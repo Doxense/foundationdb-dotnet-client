@@ -37,15 +37,15 @@ namespace FoundationDb.Test
 
 								using (var trans = db.BeginTransaction())
 								{
-									Console.WriteLine("Got the transaction!");
 
-									//trans.Set("Hello", "World");
+									trans.Set("Foo", "Bar");
 									//var data = new byte[512];
 									//new Random(1234).NextBytes(data);
 									//trans.Set("TopSecret", data);
 
 									Console.WriteLine("Commiting...");
-									await trans.CommitAsync();
+									//await trans.CommitAsync();
+									trans.Commit();
 									Console.WriteLine("Committed!");
 								}
 							}

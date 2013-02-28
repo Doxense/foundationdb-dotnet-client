@@ -43,11 +43,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FdbClusterOption.cs" />
+    <Compile Include="FdbNetworkOption.cs" />
+    <Compile Include="FdbError.cs" />
     <Compile Include="Unmanaged\TransactionHandle.cs" />
     <Compile Include="Unmanaged\FdbNativeStub.cs" />
     <Compile Include="Unmanaged\ClusterHandle.cs" />
     <Compile Include="Unmanaged\DatabaseHandle.cs" />
-    <Compile Include="Unmanaged\SafeAnsiStringHandle.cs" />
     <Compile Include="FdbTransaction.cs" />
     <Compile Include="FdbDatabase.cs" />
     <Compile Include="FdbCluster.cs" />

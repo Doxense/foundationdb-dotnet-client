@@ -1,41 +1,45 @@
-﻿using System;
+﻿#region BSD Licence
+/* Copyright (c) 2013, Doxense SARL
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of the <organization> nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#endregion
+
+using System;
+using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace System.Data.FoundationDb.Client
 {
 
-	public enum FdbError
-	{
-		Success = 0,
-	}
-
-	public enum FdbNetworkOption
-	{
-		None = 0,
-
-		/// <summary>IP:PORT
-		/// (DEPRECATED)</summary>
-		LocalAddress = 10,
-		/// <summary>Path to cluster file
-		/// (DEPRECATED)</summary>
-		ClusterFile = 20,
-		/// <summary>Path to output directory (or NULL for current working directory).
-		/// Enable traces output to a file in a directory of the clients choosing.</summary>
-		TraceEnable = 30,
-	}
-
-	public enum FdbClusterOption
-	{
-		None = 0,
-		/// <summary>This option is only a placeholder for C compatibility and should not be used</summary>
-		Invalid = -1,
-	}
-
 	public static partial class FdbCore
 	{
 
 		public static string NativeLibPath = ".";
+		public static string TracePath = @"c:\temp\fdb";
 
 		public static int GetMaxApiVersion()
 		{
@@ -67,7 +71,7 @@ namespace System.Data.FoundationDb.Client
 			if (code == FdbError.Success) return null;
 
 			string msg = GetErrorMessage(code);
-			if (msg == null) throw new InvalidOperationException(String.Format("Unexpected error code {0}", (int)code));
+			if (true || msg == null) throw new InvalidOperationException(String.Format("Unexpected error code {0}", (int)code));
 
 			switch(code)
 			{
@@ -86,6 +90,8 @@ namespace System.Data.FoundationDb.Client
 		{
 			if (s_eventLoop == null)
 			{
+				Debug.WriteLine("Starting event loop...");
+
 				var thread = new Thread(new ThreadStart(EventLoop));
 				thread.Name = "FoundationDB Event Loop";
 				thread.IsBackground = true;
@@ -111,7 +117,7 @@ namespace System.Data.FoundationDb.Client
 				s_eventLoopStarted = false;
 
 				var thread = s_eventLoop;
-				if (thread != null && thread.ThreadState == ThreadState.Running)
+				if (thread != null && thread.ThreadState == System.Threading.ThreadState.Running)
 				{
 					thread.Abort();
 					thread.Join(TimeSpan.FromSeconds(1));
@@ -122,6 +128,7 @@ namespace System.Data.FoundationDb.Client
 
 		private static void EventLoop()
 		{
+			Debug.WriteLine("Event Loop running..");
 			try
 			{
 				while (true)
@@ -131,7 +138,7 @@ namespace System.Data.FoundationDb.Client
 					{ // Stop received
 						return;
 					}
-					Console.WriteLine("RunNetwork returned " + err + " : " + GetErrorMessage(err));
+					Debug.WriteLine("RunNetwork returned " + err + " : " + GetErrorMessage(err));
 				}
 			}
 			catch (Exception e)
@@ -142,6 +149,10 @@ namespace System.Data.FoundationDb.Client
 					return;
 				}
 			}
+			finally
+			{
+				Debug.WriteLine("Event Loop stopped");
+			}
 		}
 
 		#endregion
@@ -150,7 +161,7 @@ namespace System.Data.FoundationDb.Client
 		{
 			var future = FdbNativeStub.CreateCluster(path);
 
-			Console.WriteLine("CreateCluster => 0x" + future.Handle.ToString("x"));
+			Debug.WriteLine("CreateCluster => 0x" + future.Handle.ToString("x"));
 
 			return FdbFuture<FdbCluster>
 				.FromHandle(future,
@@ -163,7 +174,7 @@ namespace System.Data.FoundationDb.Client
 						cluster.Dispose();
 						throw MapToException(err);
 					}
-					Console.WriteLine("FutureGetCluster => 0x" + cluster.Handle.ToString("x"));
+					Debug.WriteLine("FutureGetCluster => 0x" + cluster.Handle.ToString("x"));
 					return new FdbCluster(cluster);
 				})
 				.Task;
@@ -178,7 +189,7 @@ namespace System.Data.FoundationDb.Client
 
 			var future = FdbNativeStub.CreateClusterDatabase(cluster.Handle, name);
 
-			Console.WriteLine("CreateClusterDatabase => 0x" + future.Handle.ToString("x"));
+			Debug.WriteLine("CreateClusterDatabase => 0x" + future.Handle.ToString("x"));
 
 			return FdbFuture<FdbDatabase>
 				.FromHandle(future,
@@ -191,7 +202,7 @@ namespace System.Data.FoundationDb.Client
 						database.Dispose();
 						throw MapToException(err);
 					}
-					Console.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
+					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
 
 					return new FdbDatabase(cluster, database, name);
 				})
@@ -206,7 +217,7 @@ namespace System.Data.FoundationDb.Client
 
 			TransactionHandle handle;
 			var err = FdbNativeStub.DatabaseCreateTransaction(database.Handle, out handle);
-			Console.WriteLine("DatabaseCreateTransaction => " + err.ToString() + ", 0x" + handle.Handle.ToString("x"));
+			Debug.WriteLine("DatabaseCreateTransaction => " + err.ToString() + ", 0x" + handle.Handle.ToString("x"));
 			if (Failed(err))
 			{
 				handle.Dispose();
@@ -220,25 +231,37 @@ namespace System.Data.FoundationDb.Client
 		{
 			DieOnError(FdbNativeStub.SelectApiVersion(FdbNativeStub.FDB_API_VERSION));
 
-			Console.WriteLine("Setting up network...");
-			DieOnError(FdbNativeStub.SetupNetwork());
-			Console.WriteLine("Got Network");
+			Debug.WriteLine("Setting up network...");
 
-			Console.WriteLine("Starting event loop");
+			if (TracePath != null)
+			{
+				unsafe
+				{
+					byte[] data = FdbNativeStub.ToNativeString(TracePath);
+					fixed (byte* ptr = data)
+					{
+						DieOnError(FdbNativeStub.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr, data.Length));
+					}
+				}
+			}
+
+			DieOnError(FdbNativeStub.SetupNetwork());
+			Debug.WriteLine("Got Network");
+
 			StartEventLoop();
 
 		}
 
 		public static void Stop()
 		{
-			Console.WriteLine("Stopping event loop");
+			Debug.WriteLine("Stopping event loop");
 			StopEventLoop();
-			Console.WriteLine("Stopped");
+			Debug.WriteLine("Stopped");
 		}
 
 		public static Task<FdbCluster> ConnectAsync(string clusterPath)
 		{
-			Console.WriteLine("Connecting to cluster... " + clusterPath);
+			Debug.WriteLine("Connecting to cluster... " + clusterPath);
 			return CreateClusterAsync(clusterPath);
 		}
 

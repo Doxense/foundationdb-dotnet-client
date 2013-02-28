@@ -1,7 +1,37 @@
-﻿using System;
+﻿#region BSD Licence
+/* Copyright (c) 2013, Doxense SARL
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of the <organization> nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#endregion
+
+using System;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace System.Data.FoundationDb.Client
 {
@@ -16,7 +46,7 @@ namespace System.Data.FoundationDb.Client
 
 		#region Delegates ...
 
-		private delegate IntPtr FdbGetErrorDelegate(FdbError code);
+		private delegate byte* FdbGetErrorDelegate(FdbError code);
 
 		private delegate FdbError FdbSelectApiVersionImplDelegate(int runtimeVersion, int headerVersion);
 
@@ -27,25 +57,25 @@ namespace System.Data.FoundationDb.Client
 		private delegate FdbError FdbRunNetworkDelegate();
 		private delegate FdbError FdbStopNetworkDelegate();
 
-		private delegate void FdbFutureDestroy(IntPtr futureHandle);
-		private delegate FdbError FdbFutureBlockUntilReady(IntPtr futureHandle);
-		private delegate bool FdbFutureIsReady(IntPtr futureHandle);
-		private delegate bool FdbFutureIsError(IntPtr futureHandle);
-		private delegate FdbError FdbFutureGetErrorDelegate(IntPtr futureHandle, ref byte* description);
-		private delegate FdbError FdbFutureSetCallbackDelegate(IntPtr futureHandle, FdbFutureCallback callback, IntPtr callbackParameter);
+		private delegate void FdbFutureDestroy(/*FDBFuture*/IntPtr futureHandle);
+		private delegate bool FdbFutureIsReady(FutureHandle futureHandle);
+		private delegate bool FdbFutureIsError(FutureHandle futureHandle);
+		private delegate FdbError FdbFutureGetErrorDelegate(FutureHandle future, byte** description);
+		private delegate FdbError FdbFutureBlockUntilReady(FutureHandle futureHandle);
+		private delegate FdbError FdbFutureSetCallbackDelegate(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter);
 
-		private delegate /*Future*/IntPtr FdbCreateClusterDelegate(/*String*/IntPtr clusterFilePath);
+		private delegate /*Future*/IntPtr FdbCreateClusterDelegate(byte* clusterFilePath);
 		private delegate void FdbClusterDestroyDelegate(/*FDBCluster*/IntPtr cluster);
-		private delegate FdbError FdbClusterSetOptionDelegate(/*FDBCluster*/IntPtr cluster, FdbClusterOption option, byte* value, int valueLength);
-		private delegate FdbError FdbFutureGetClusterDelegate(/*Future*/IntPtr future, out /*FDBCluster*/IntPtr cluster);
+		private delegate FdbError FdbClusterSetOptionDelegate(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
+		private delegate FdbError FdbFutureGetClusterDelegate(FutureHandle future, out /*FDBCluster*/IntPtr cluster);
 
 		private delegate void FdbDatabaseDestroyDelegate(/*FDBDatabase*/IntPtr database);
-		private delegate /*Future*/IntPtr FdbClusterCreateDatabaseDelegate(IntPtr cluster, /*String*/IntPtr dbName, int dbNameLength);
+		private delegate /*Future*/IntPtr FdbClusterCreateDatabaseDelegate(ClusterHandle cluster, byte* dbName, int dbNameLength);
 		private delegate FdbError FdbFutureGetDatabaseDelegate(/*Future*/IntPtr future, out /*FDBDatabase*/IntPtr database);
 
-		private delegate FdbError FdbDatabaseCreateTransactionDelegate(/*FDBDatabase*/IntPtr database, out IntPtr transaction);
-		private delegate void FdbTransactionSetDelegate(IntPtr database, byte* keyName, int keyNameLength, byte* value, int valueLength);
-		private delegate /*Future*/IntPtr FdbTransactionCommitDelegate(IntPtr transaction);
+		private delegate FdbError FdbDatabaseCreateTransactionDelegate(DatabaseHandle database, out IntPtr transaction);
+		private delegate void FdbTransactionSetDelegate(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* value, int valueLength);
+		private delegate /*Future*/IntPtr FdbTransactionCommitDelegate(TransactionHandle transaction);
 
 		#endregion
 
@@ -147,13 +177,38 @@ namespace System.Data.FoundationDb.Client
 			throw new InvalidOperationException("An error occured while loading native FoundationDB library", s_error);
 		}
 
+		private static string ToManagedString(byte* nativeString)
+		{
+			if (nativeString == null) return null;
+			return Marshal.PtrToStringAuto(new IntPtr((void*)nativeString));
+		}
+
+		private static string ToManagedString(IntPtr nativeString)
+		{
+			if (nativeString == IntPtr.Zero) return null;
+			return Marshal.PtrToStringAuto(nativeString);
+		}
+
+		internal static byte[] ToNativeString(string value)
+		{
+			if (value == null) return null;
+			// NULL terminated ANSI string
+			byte[] result = new byte[value.Length + 1];
+			// NULL at the end
+			int p = 0;
+			foreach (var c in value)
+			{
+				result[p++] = (byte)c;
+			}
+			return result;
+		}
+
 		#region API Basics..
 
 		public static string GetError(FdbError code)
 		{
 			EnsureLibraryIsLoaded();
-			var ptr = s_stub_fdbGetError(code);
-			return ptr == IntPtr.Zero ? null : Marshal.PtrToStringAnsi(ptr);
+			return ToManagedString(s_stub_fdbGetError(code));
 		}
 
 		public static FdbError SelectApiVersionImpl(int runtimeVersion, int headerVersion)
@@ -177,35 +232,54 @@ namespace System.Data.FoundationDb.Client
 
 		#region Futures...
 
+		public static bool FutureIsReady(FutureHandle futureHandle)
+		{
+			EnsureLibraryIsLoaded();
+			return s_stub_fdbFutureIsReady(futureHandle);
+		}
+
 		public static void FutureDestroy(IntPtr futureHandle)
 		{
 			EnsureLibraryIsLoaded();
 			s_stub_fdbFutureDestroy(futureHandle);
 		}
 
-		public static bool FutureIsError(IntPtr futureHandle)
+		public static bool FutureIsError(FutureHandle futureHandle)
 		{
 			EnsureLibraryIsLoaded();
 			return s_stub_fdbFutureIsError(futureHandle);
 		}
 
-		public static FdbError FutureGetError(IntPtr futureHandle)
+		/// <summary>Return the error got from a FDBFuture</summary>
+		/// <param name="futureHandle"></param>
+		/// <returns></returns>
+		public static FdbError FutureGetError(FutureHandle future)
 		{
 			EnsureLibraryIsLoaded();
-			byte* _ = null;
-			return s_stub_fdbFutureGetError(futureHandle, ref _);
+			return s_stub_fdbFutureGetError(future, null);
 		}
 
-		public static bool FutureIsReady(IntPtr futureHandle)
+		public static FdbError FutureGetError(FutureHandle future, out string description)
 		{
 			EnsureLibraryIsLoaded();
-			return s_stub_fdbFutureIsError(futureHandle);
+
+			byte* ptr = null;
+			var err = s_stub_fdbFutureGetError(future, &ptr);
+			description = ToManagedString(ptr);
+			return err;
 		}
 
-		public static FdbError FutureSetCallback(IntPtr futureHandle, FdbFutureCallback callback, IntPtr callbackParameter)
+		public static FdbError FutureBlockUntilReady(FutureHandle future)
 		{
 			EnsureLibraryIsLoaded();
-			return s_stub_fdbFutureSetCallback(futureHandle, callback, callbackParameter);
+
+			return s_stub_fdbFutureBlockUntilReady(future);
+		}
+
+		public static FdbError FutureSetCallback(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter)
+		{
+			EnsureLibraryIsLoaded();
+			return s_stub_fdbFutureSetCallback(future, callback, callbackParameter);
 		}
 
 		#endregion
@@ -241,10 +315,11 @@ namespace System.Data.FoundationDb.Client
 		{
 			EnsureLibraryIsLoaded();
 
-			using (var ptr = SafeAnsiStringHandle.FromString(path))
+			var data = ToNativeString(path);
+			fixed (byte* ptr = data)
 			{
 				var future = new FutureHandle();
-				var handle = s_stub_fdbCreateCluster(ptr.DangerousGetHandle());
+				var handle = s_stub_fdbCreateCluster(ptr);
 				future.TrySetHandle(handle);
 				return future;
 			}
@@ -272,7 +347,7 @@ namespace System.Data.FoundationDb.Client
 			finally
 			{
 				IntPtr handle;
-				err = s_stub_fdbFutureGetCluster(future.Handle, out handle);
+				err = s_stub_fdbFutureGetCluster(future, out handle);
 				//TODO: check is err == Success ?
 				cluster.TrySetHandle(handle);
 			}
@@ -318,9 +393,8 @@ namespace System.Data.FoundationDb.Client
 		{
 			EnsureLibraryIsLoaded();
 
-			int len = name == null ? 0 : name.Length;
-
-			using (var ptr = SafeAnsiStringHandle.FromString(name))
+			var data = ToNativeString(name);
+			fixed (byte* ptr = data)
 			{
 				var future = new FutureHandle();
 
@@ -328,7 +402,7 @@ namespace System.Data.FoundationDb.Client
 				try { }
 				finally
 				{
-					var handle = s_stub_fdbClusterCreateDatabase(cluster.Handle, ptr.DangerousGetHandle(), len);
+					var handle = s_stub_fdbClusterCreateDatabase(cluster, ptr, data == null ? 0 : data.Length);
 					future.TrySetHandle(handle);
 				}
 				return future;
@@ -362,7 +436,8 @@ namespace System.Data.FoundationDb.Client
 			finally
 			{
 				IntPtr handle;
-				err = s_stub_fdbDatabaseCreateTransaction(database.Handle, out handle);
+				err = s_stub_fdbDatabaseCreateTransaction(database, out handle);
+				Debug.WriteLine("fdb_database_create_transaction(" + database.Handle.ToInt64().ToString("x") + ") => err=" + err + ", handle=" + handle.ToInt64().ToString("x"));
 				transaction.TrySetHandle(handle);
 			}
 			return err;
@@ -376,7 +451,8 @@ namespace System.Data.FoundationDb.Client
 			fixed (byte* pKey = key)
 			fixed (byte* pValue = value)
 			{
-				s_stub_fdbTransactionSet(transaction.Handle, pKey, key.Length, pValue, value.Length);
+				Debug.WriteLine("fdb_transaction_set(" + transaction.Handle.ToInt64().ToString("x") + ", [" + key.Length + "], [" + value.Length + "])");
+				s_stub_fdbTransactionSet(transaction, pKey, key.Length, pValue, value.Length);
 			}
 		}
 
@@ -389,7 +465,8 @@ namespace System.Data.FoundationDb.Client
 			try { }
 			finally
 			{
-				var handle = s_stub_fdbTransactionCommit(transaction.Handle);
+				var handle = s_stub_fdbTransactionCommit(transaction);
+				Debug.WriteLine("fdb_transaction_commit(" + transaction.Handle.ToInt64().ToString("x") + ") => " + handle.ToInt64().ToString("x"));
 				future.TrySetHandle(handle);
 			}
 			return future;
