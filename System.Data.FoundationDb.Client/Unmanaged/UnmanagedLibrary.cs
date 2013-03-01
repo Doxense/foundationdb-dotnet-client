@@ -31,7 +31,7 @@ using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace System.Data.FoundationDb.Client
+namespace System.Data.FoundationDb.Client.Native
 {
 
 	/// <summary>Native Library Loader</summary>

@@ -26,71 +26,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Microsoft.Win32.SafeHandles;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.ConstrainedExecution;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client.Native
+namespace System.Data.FoundationDb.Client
 {
 
-	/// <summary>Base class for all wrappers on FDBxxxx* opaque pointers</summary>
-	internal abstract class FdbSafeHandle : CriticalHandle
+	public enum FDBStreamingMode
 	{
-		protected FdbSafeHandle()
-			: base(IntPtr.Zero)
-		{ }
-
-		public override bool IsInvalid
-		{
-			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-			get { return this.handle == IntPtr.Zero; }
-		}
-
-		[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		protected override bool ReleaseHandle()
-		{
-			if (handle != IntPtr.Zero)
-			{
-				try
-				{
-					Destroy(handle);
-					Debug.WriteLine("[Destroyed " + this.GetType().Name + " 0x" + handle.ToString("x") + "]");
-				}
-				catch
-				{ // TODO??
-					return false;
-				}
-			}
-			return true;
-		}
-
-		[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-		internal bool TrySetHandle(IntPtr handle)
-		{
-			SetHandle(handle);
-			Debug.WriteLine("[Stored " + this.GetType().Name + " 0x" + handle.ToString("x") + "]");
-			return handle != IntPtr.Zero;
-		}
-
-		/// <summary>Retourne the value of the FDBFuture handle</summary>
-		internal IntPtr Handle
-		{
-			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-			get { return this.handle; }
-		}
-
-		/// <summary>Call the appropriate fdb_T_destroy(..)</summary>
-		/// <param name="handle">Handle on the FDBFuture</param>
-		protected abstract void Destroy(IntPtr handle);
+		//TODO !
 	}
 
 }

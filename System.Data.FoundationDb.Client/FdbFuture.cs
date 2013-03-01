@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
+using System.Data.FoundationDb.Client.Native;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -41,6 +42,7 @@ using System.Threading.Tasks;
 namespace System.Data.FoundationDb.Client
 {
 
+	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	public delegate void FdbFutureCallback(IntPtr future, IntPtr parameter);
 
 	/// <summary>FDBFuture wrapper</summary>
@@ -59,6 +61,10 @@ namespace System.Data.FoundationDb.Client
 		/// <summary>Func used to extract the result of this FDBFuture</summary>
 		private Func<FutureHandle, T> m_resultSelector;
 
+		private GCHandle m_callback;
+
+		private int m_disposed;
+
 		#endregion
 
 		#region Constructors...
@@ -71,21 +77,42 @@ namespace System.Data.FoundationDb.Client
 			m_handle = handle;
 			m_tcs = new TaskCompletionSource<T>();
 			m_resultSelector = selector;
+			m_callback = default(GCHandle);
+			m_disposed = 0;
 
 			if (!handle.IsInvalid)
 			{
 				// already completed or failed ?
 				if (FdbNativeStub.FutureIsReady(handle/*.Handle*/))
 				{ // either got a value or an error
-					Debug.WriteLine("Future 0x" + handle.Handle.ToString("x") + " was already complete");
+					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already complete");
 					TrySetTaskResult(ref this);
 				}
 				else
 				{ // we don't know yet, schedule a callback...
-					Debug.WriteLine("Future 0x" + handle.Handle.ToString("x") + " will complete later");
+					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " will complete later");
+
+					// pin the callback to prevent it from behing garbage collected
 					var callback = new FdbFutureCallback(this.CallbackHandler);
-					// note: the callback will allocate the future in the heap...
-					FdbNativeStub.FutureSetCallback(handle, callback, IntPtr.Zero);
+					m_callback = GCHandle.Alloc(callback);
+
+					try
+					{
+						// note: the callback will allocate the future in the heap...
+						var err = FdbNativeStub.FutureSetCallback(handle, callback, IntPtr.Zero);
+						if (FdbCore.Failed(err))
+						{ // uhoh
+							Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
+							var error = FdbCore.MapToException(err);
+							m_tcs.TrySetException(error);
+							throw error;
+						}
+					}
+					catch (Exception)
+					{
+						Cleanup();
+						throw;
+					}
 				}
 			}
 		}
@@ -108,14 +135,15 @@ namespace System.Data.FoundationDb.Client
 		/// <returns>True if we got a result, or false in case of error (or invalid state)</returns>
 		private static unsafe bool TrySetTaskResult(ref FdbFuture<T> future)
 		{
-			var handle = future.m_handle;
 			try
 			{
+				var handle = future.m_handle;
 				if (handle != null && !handle.IsClosed && !handle.IsInvalid)
 				{
-					if (FdbNativeStub.FutureIsError(handle/*.Handle*/))
+					if (FdbNativeStub.FutureIsError(handle))
 					{ // it failed...
-						var err = FdbNativeStub.FutureGetError(handle/*.Handle*/);
+						Debug.WriteLine("Future<" + typeof(T).Name + "> has FAILED");
+						var err = FdbNativeStub.FutureGetError(handle);
 						if (err != FdbError.Success)
 						{ // get the exception from the error code
 							future.m_tcs.TrySetException(FdbCore.MapToException(err));
@@ -126,6 +154,7 @@ namespace System.Data.FoundationDb.Client
 					else
 					{ // it succeeded...
 						// try to get the result...
+						Debug.WriteLine("Future<" + typeof(T).Name + "> has completed successfully");
 						var selector = future.m_resultSelector;
 						if (selector != null)
 						{
@@ -148,15 +177,32 @@ namespace System.Data.FoundationDb.Client
 			}
 			finally
 			{
-				if (handle != null) handle.Dispose();
+				future.Cleanup();
 			}
 		}
 
-		public void Dispose()
+		private void Cleanup()
 		{
-			if (!m_handle.IsClosed) m_handle.Dispose();
-			// ensure that the task does complete
-			m_tcs.TrySetCanceled();
+			if (Interlocked.CompareExchange(ref m_disposed, 1, 0) == 0)
+			{
+				if (!m_handle.IsClosed) m_handle.Dispose();
+				if (m_callback.IsAllocated) m_callback.Free();
+				if (m_tcs.Task.IsCompleted)
+				{ // ensure that the task always complete
+					m_tcs.TrySetCanceled();
+				}
+			}
+		}
+
+		/// <summary>Try to abort the task</summary>
+		public void Abort()
+		{
+			Cleanup();
+		}
+
+		void IDisposable.Dispose()
+		{
+			Cleanup();
 		}
 
 		/// <summary>Handler called when a FDBFuture becomes ready</summary>
@@ -164,11 +210,18 @@ namespace System.Data.FoundationDb.Client
 		/// <param name="parameter">Paramter to the callback (unused)</param>
 		private void CallbackHandler(IntPtr futureHandle, IntPtr parameter)
 		{
-			Debug.WriteLine("Future.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToInt64() + ") has fired");
+			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId);
 
 			//TODO verify if this is our handle ?
 
-			TrySetTaskResult(ref this);
+			try
+			{
+				TrySetTaskResult(ref this);
+			}
+			finally
+			{
+				Cleanup();
+			}
 		}
 
 		/// <summary>Returns a Task that wraps the FDBFuture</summary>
@@ -210,9 +263,7 @@ namespace System.Data.FoundationDb.Client
 			if (!task.IsCompleted)
 			{ // we need to wait for it to become ready
 
-				Debug.WriteLine("calling block until ready...");
 				var err = FdbNativeStub.FutureBlockUntilReady(m_handle);
-				Debug.WriteLine("returned from block until ready, err:  " + err.ToString());
 				if (FdbCore.Failed(err)) throw FdbCore.MapToException(err);
 
 				// the callback may have already fire, but try to do it anyway...

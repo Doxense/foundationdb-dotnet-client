@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Data.FoundationDb.Client;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace FoundationDb.Test
@@ -17,48 +19,7 @@ namespace FoundationDb.Test
 		{
 			try
 			{
-				ExecuteAsync(async () =>
-				{
-					FdbCore.NativeLibPath = @"C:\Program Files\foundationdb\bin";
-
-					Console.WriteLine(FdbCore.GetMaxApiVersion());
-
-					try
-					{
-						FdbCore.Start();
-						Console.WriteLine("Done!");
-
-						using (var cluster = await FdbCore.ConnectAsync(null))
-						{
-
-							using (var db = await cluster.OpenDatabaseAsync("DB"))
-							{
-								Console.WriteLine("Connected to db '{0}'", db.Name);
-
-								using (var trans = db.BeginTransaction())
-								{
-
-									trans.Set("Foo", "Bar");
-									//var data = new byte[512];
-									//new Random(1234).NextBytes(data);
-									//trans.Set("TopSecret", data);
-
-									Console.WriteLine("Commiting...");
-									//await trans.CommitAsync();
-									trans.Commit();
-									Console.WriteLine("Committed!");
-								}
-							}
-
-						}
-
-					}
-					finally
-					{
-						Console.WriteLine("### DONE ###");
-						FdbCore.Stop();
-					}
-				});
+				ExecuteAsync(() => MainAsync(args));
 			}
 			catch (Exception e)
 			{
@@ -67,7 +28,72 @@ namespace FoundationDb.Test
 			}
 			Console.WriteLine("[PRESS A KEY TO EXIT]");
 			Console.ReadKey();
+		}
 
+		static async Task MainAsync(string[] args)
+		{
+			FdbCore.NativeLibPath = @"C:\Program Files\foundationdb\bin";
+			FdbCore.TracePath = Path.Combine(Path.GetTempPath(), "fdb");
+
+			int apiVersion = FdbCore.GetMaxApiVersion();
+			Console.WriteLine("Max API Version: " + apiVersion);
+
+			try
+			{
+				Console.WriteLine("Starting network thread...");
+				FdbCore.Start(); // this will select API version 21			
+				Console.WriteLine("> Up and running");
+
+				Console.WriteLine("Connecting to local cluster...");
+				using (var cluster = await FdbCore.ConnectAsync(null))
+				{
+					Console.WriteLine("> Connected!");
+
+					Console.WriteLine("Opening database 'DB'...");
+					using (var db = await cluster.OpenDatabaseAsync("DB"))
+					{
+						Console.WriteLine("> Connected to db '{0}'", db.Name);
+
+						Console.WriteLine("Starting new transaction...");
+						using (var trans = db.BeginTransaction())
+						{
+							Console.WriteLine("> Transaction ready");
+
+							Console.WriteLine("Getting read version...");
+							var readVersion = await trans.GetReadVersion();
+							Console.WriteLine("> Read Version = " + readVersion);
+
+							//var result = await trans.GetAsync("hello");
+							Console.WriteLine("Getting 'hello'...");
+							var result = trans.Get("hello");
+							if (result == null)
+								Console.WriteLine("> hello NOT FOUND");
+							else
+								Console.WriteLine("> hello = " + Encoding.UTF8.GetString(result));
+
+							Console.WriteLine("Setting 'Foo' = 'Bar'");
+							trans.Set("Foo", "Bar");
+
+							Console.WriteLine("Setting 'TopSecret' = rnd(512)");
+							var data = new byte[512];
+							new Random(1234).NextBytes(data);
+							trans.Set("TopSecret", data);
+
+							Console.WriteLine("Commiting transaction...");
+							//await trans.CommitAsync();
+							trans.Commit();
+							Console.WriteLine("> Committed!");
+						}
+
+						Console.WriteLine("time to say goodbye...");
+					}
+				}
+			}
+			finally
+			{
+				Console.WriteLine("### DONE ###");
+				FdbCore.Stop();
+			}
 		}
 	}
 }

@@ -26,20 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Microsoft.Win32.SafeHandles;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+namespace System.Data.FoundationDb.Client.Native
 {
 
+	/// <summary>Wrapper on a FDBCluster*</summary>
 	internal class ClusterHandle : FdbSafeHandle
 	{
 		public ClusterHandle()

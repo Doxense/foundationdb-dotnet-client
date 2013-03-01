@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
+using System.Data.FoundationDb.Client.Native;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -65,7 +66,17 @@ namespace System.Data.FoundationDb.Client
 
 		public FdbTransaction BeginTransaction()
 		{
-			return FdbCore.CreateTransaction(this);
+			if (m_handle.IsInvalid) throw new InvalidOperationException("Cannot create a transaction on an invalid database");
+
+			TransactionHandle handle;
+			var err = FdbNativeStub.DatabaseCreateTransaction(m_handle, out handle);
+			if (FdbCore.Failed(err))
+			{
+				handle.Dispose();
+				throw FdbCore.MapToException(err);
+			}
+
+			return new FdbTransaction(this, handle);
 		}
 
 		private void ThrowIfDisposed()

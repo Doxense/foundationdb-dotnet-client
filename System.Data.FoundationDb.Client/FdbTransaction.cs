@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
+using System.Data.FoundationDb.Client.Native;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -64,31 +66,104 @@ namespace System.Data.FoundationDb.Client
 		public void Set(string key, byte[] value)
 		{
 			ThrowIfDisposed();
-			FdbNativeStub.TransactionSet(m_handle, GetKeyBytes(key), value);
+			if (key == null) throw new ArgumentNullException("key");
+
+			var keyBytes = GetKeyBytes(key);
+			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, value, value.Length);
 		}
 
 		public void Set(string key, string value)
 		{
 			ThrowIfDisposed();
-			FdbNativeStub.TransactionSet(m_handle, GetKeyBytes(key), Encoding.UTF8.GetBytes(value));
+			if (key == null) throw new ArgumentNullException("key");
+			if (value == null) throw new ArgumentNullException("value");
+
+			FdbCore.EnsureNotOnNetworkThread();
+
+			var keyBytes = GetKeyBytes(key);
+			var valueBytes = Encoding.UTF8.GetBytes(value);
+			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, valueBytes, valueBytes.Length);
+		}
+
+		private static byte[] GetValueResult(FutureHandle h)
+		{
+			bool present;
+			byte[] value;
+			int valueLength;
+			var err = FdbNativeStub.FutureGetValue(h, out present, out value, out valueLength);
+			Debug.WriteLine("fdb_future_get_value() => err=" + err + ", valueLength=" + valueLength);
+			FdbCore.DieOnError(err);
+			if (present)
+			{
+				if (value.Length != valueLength)
+				{
+					var tmp = new byte[valueLength];
+					Array.Copy(value, 0, tmp, 0, valueLength);
+					value = tmp;
+				}
+				return value;
+			}
+			return null;
+		}
+
+		public Task<byte[]> GetAsync(string key, bool snapshot = false)
+		{
+			ThrowIfDisposed();
+
+			FdbCore.EnsureNotOnNetworkThread();
+
+			var keyBytes = GetKeyBytes(key);
+
+			var future = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
+			return FdbFuture<byte[]>
+				.FromHandle(future, (h) => GetValueResult(h))
+				.Task;
+		}
+
+		public byte[] Get(string key, bool snapshot = false)
+		{
+			ThrowIfDisposed();
+
+			FdbCore.EnsureNotOnNetworkThread();
+
+			var keyBytes = GetKeyBytes(key);
+
+			var handle = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
+			using (var future = FdbFuture<byte[]>.FromHandle(handle, (h) => GetValueResult(h)))
+			{
+				return future.GetResult();
+			}
+		}
+
+		public Task<long> GetReadVersion()
+		{
+			ThrowIfDisposed();
+
+			FdbCore.EnsureNotOnNetworkThread();
+
+			var future = FdbNativeStub.TransactionGetReadVersion(m_handle);
+			return FdbFuture<long>
+				.FromHandle(future,
+				(h) =>
+				{
+					long version;
+					var err = FdbNativeStub.FutureGetVersion(h, out version);
+					Debug.WriteLine("fdb_future_get_version() => err=" + err + ", version=" + version);
+					FdbCore.DieOnError(err);
+					return version;
+				})
+				.Task;
 		}
 
 		public Task CommitAsync()
 		{
 			ThrowIfDisposed();
-			var future = FdbNativeStub.TransactionCommit(m_handle);
 
+			FdbCore.EnsureNotOnNetworkThread();
+
+			var future = FdbNativeStub.TransactionCommit(m_handle);
 			return FdbFuture<object>
-				.FromHandle(future,
-				(h) =>
-				{
-					var err = FdbNativeStub.FutureGetError(h/*.Handle*/);
-					if (err != FdbError.Success)
-					{
-						throw FdbCore.MapToException(err);
-					}
-					return null;
-				})
+				.FromHandle(future,(h) => null)
 				.Task;
 		}
 
@@ -96,23 +171,14 @@ namespace System.Data.FoundationDb.Client
 		{
 			ThrowIfDisposed();
 
+			FdbCore.EnsureNotOnNetworkThread();
+
 			FutureHandle handle = null;
 			try
 			{
 				// calls fdb_transaction_commit
 				handle = FdbNativeStub.TransactionCommit(m_handle);
-
-				using (var future = new FdbFuture<object>(
-					handle,
-					(h) =>
-					{
-						var err = FdbNativeStub.FutureGetError(h/*.Handle*/);
-						if (err != FdbError.Success)
-						{
-							throw FdbCore.MapToException(err);
-						}
-						return null;
-					}))
+				using(var future = FdbFuture<object>.FromHandle(handle, (h) => null))
 				{
 					future.Wait();
 				}

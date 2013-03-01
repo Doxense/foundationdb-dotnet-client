@@ -33,7 +33,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace System.Data.FoundationDb.Client
+namespace System.Data.FoundationDb.Client.Native
 {
 	internal static unsafe class FdbNativeStub
 	{
@@ -62,7 +62,7 @@ namespace System.Data.FoundationDb.Client
 		private delegate bool FdbFutureIsError(FutureHandle futureHandle);
 		private delegate FdbError FdbFutureGetErrorDelegate(FutureHandle future, byte** description);
 		private delegate FdbError FdbFutureBlockUntilReady(FutureHandle futureHandle);
-		private delegate FdbError FdbFutureSetCallbackDelegate(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter);
+		private delegate FdbError FdbFutureSetCallbackDelegate(FutureHandle future, /*FDBCallback*/ IntPtr callback, IntPtr callbackParameter);
 
 		private delegate /*Future*/IntPtr FdbCreateClusterDelegate(byte* clusterFilePath);
 		private delegate void FdbClusterDestroyDelegate(/*FDBCluster*/IntPtr cluster);
@@ -76,6 +76,28 @@ namespace System.Data.FoundationDb.Client
 		private delegate FdbError FdbDatabaseCreateTransactionDelegate(DatabaseHandle database, out IntPtr transaction);
 		private delegate void FdbTransactionSetDelegate(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* value, int valueLength);
 		private delegate /*Future*/IntPtr FdbTransactionCommitDelegate(TransactionHandle transaction);
+
+		private delegate FdbError FdbTransactionGetCommmittedVersionDelegate(TransactionHandle transaction, out long version);
+
+		private delegate /*Future*/IntPtr FdbTransactionGetReadVersionDelegate(TransactionHandle transaction);
+		private delegate FdbError FdbFutureGetVersionDelegate(FutureHandle future, out long version);
+
+		private delegate /*Future*/IntPtr FdbTransactionGetDelegate(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
+		private delegate FdbError FdbFutureGetValueDelegate(FutureHandle future, out bool present, out byte* value, out int valueLength);
+
+		private delegate /*Future*/IntPtr FdbTransactionGetKeyDelegate(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
+		private delegate FdbError FdbFutureGetKeyDelegate(FutureHandle future, out byte* key, out int keyLength);
+
+		private delegate void FdbTransactionClearDelegate(TransactionHandle transaction, byte* keyName, int keyNameLength);
+
+		private delegate FdbError FdbFutureGetKeyValueDelegate(FutureHandle future, out FdbKeyValue* kv, out int count, out bool more);
+
+		private delegate FdbError FdbTransactionGetRangeDelegate(
+			TransactionHandle transaction,
+			byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
+			byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
+			int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse
+		);
 
 		#endregion
 
@@ -108,7 +130,17 @@ namespace System.Data.FoundationDb.Client
 
 		private static readonly FdbDatabaseCreateTransactionDelegate s_stub_fdbDatabaseCreateTransaction;
 		private static readonly FdbTransactionSetDelegate s_stub_fdbTransactionSet;
+		private static readonly FdbTransactionClearDelegate s_stub_fdbTransactionClear;
 		private static readonly FdbTransactionCommitDelegate s_stub_fdbTransactionCommit;
+		private static readonly FdbTransactionGetReadVersionDelegate s_stub_fdbTransactionGetReadVersion;
+		private static readonly FdbTransactionGetCommmittedVersionDelegate s_stub_fdbTransactionGetCommittedVersion;
+		private static readonly FdbFutureGetVersionDelegate s_stub_fdbFutureGetVersion;
+		private static readonly FdbTransactionGetDelegate s_stub_fdbTransactionGet;
+		private static readonly FdbTransactionGetKeyDelegate s_stub_fdbTransactionGetKey;
+		private static readonly FdbFutureGetKeyDelegate s_stub_fdbFutureGetKey;
+		private static readonly FdbFutureGetValueDelegate s_stub_fdbFutureGetValue;
+
+		private static readonly FdbTransactionGetRangeDelegate s_stub_fdbTransactionGetRange;
 
 		private static readonly Exception s_error;
 
@@ -150,7 +182,16 @@ namespace System.Data.FoundationDb.Client
 
 				s_lib.Bind(ref s_stub_fdbDatabaseCreateTransaction, "fdb_database_create_transaction");
 				s_lib.Bind(ref s_stub_fdbTransactionSet, "fdb_transaction_set");
+				s_lib.Bind(ref s_stub_fdbTransactionClear, "fdb_transaction_clear");
 				s_lib.Bind(ref s_stub_fdbTransactionCommit, "fdb_transaction_commit");
+				s_lib.Bind(ref s_stub_fdbTransactionGetReadVersion, "fdb_transaction_get_read_version");
+				s_lib.Bind(ref s_stub_fdbTransactionGetCommittedVersion, "fdb_transaction_get_committed_version");
+				s_lib.Bind(ref s_stub_fdbFutureGetVersion, "fdb_future_get_version");
+				s_lib.Bind(ref s_stub_fdbTransactionGet, "fdb_transaction_get");
+				s_lib.Bind(ref s_stub_fdbTransactionGetKey, "fdb_transaction_get_key");
+				s_lib.Bind(ref s_stub_fdbFutureGetKey, "fdb_future_get_key");
+				s_lib.Bind(ref s_stub_fdbFutureGetValue, "fdb_future_get_value");
+				s_lib.Bind(ref s_stub_fdbTransactionGetRange, "fdb_transaction_get_range");
 
 			}
 			catch (Exception e)
@@ -180,13 +221,13 @@ namespace System.Data.FoundationDb.Client
 		private static string ToManagedString(byte* nativeString)
 		{
 			if (nativeString == null) return null;
-			return Marshal.PtrToStringAuto(new IntPtr((void*)nativeString));
+			return Marshal.PtrToStringAnsi(new IntPtr((void*)nativeString));
 		}
 
 		private static string ToManagedString(IntPtr nativeString)
 		{
 			if (nativeString == IntPtr.Zero) return null;
-			return Marshal.PtrToStringAuto(nativeString);
+			return Marshal.PtrToStringAnsi(nativeString);
 		}
 
 		internal static byte[] ToNativeString(string value)
@@ -273,13 +314,19 @@ namespace System.Data.FoundationDb.Client
 		{
 			EnsureLibraryIsLoaded();
 
-			return s_stub_fdbFutureBlockUntilReady(future);
+			Debug.WriteLine("calling fdb_future_block_until_ready(0x" + future.Handle.ToString("x") + ")...");
+			var err = s_stub_fdbFutureBlockUntilReady(future);
+			Debug.WriteLine("fdb_future_block_until_ready(0x" + future.Handle.ToString("x") + ") => err=" + err);
+			return err;
 		}
 
 		public static FdbError FutureSetCallback(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter)
 		{
 			EnsureLibraryIsLoaded();
-			return s_stub_fdbFutureSetCallback(future, callback, callbackParameter);
+			var ptrCallback = Marshal.GetFunctionPointerForDelegate(callback);
+			var err = s_stub_fdbFutureSetCallback(future, ptrCallback, callbackParameter);
+			Debug.WriteLine("fdb_future_set_callback(0x" + future.Handle.ToString("x") + ", 0x" + ptrCallback.ToString("x") + ") => err=" + err);
+			return err;
 		}
 
 		#endregion
@@ -320,6 +367,7 @@ namespace System.Data.FoundationDb.Client
 			{
 				var future = new FutureHandle();
 				var handle = s_stub_fdbCreateCluster(ptr);
+				Debug.WriteLine("fdb_create_cluster(" + path + ") => 0x" + handle.ToString("x"));
 				future.TrySetHandle(handle);
 				return future;
 			}
@@ -348,6 +396,7 @@ namespace System.Data.FoundationDb.Client
 			{
 				IntPtr handle;
 				err = s_stub_fdbFutureGetCluster(future, out handle);
+				Debug.WriteLine("fdb_future_get_cluster(0x" + future.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + handle.ToString("x"));
 				//TODO: check is err == Success ?
 				cluster.TrySetHandle(handle);
 			}
@@ -403,6 +452,7 @@ namespace System.Data.FoundationDb.Client
 				finally
 				{
 					var handle = s_stub_fdbClusterCreateDatabase(cluster, ptr, data == null ? 0 : data.Length);
+					Debug.WriteLine("fdb_cluster_create_database(0x" + cluster.Handle.ToString("x") + ", '" + name + "') => 0x" + handle.ToString("x"));
 					future.TrySetHandle(handle);
 				}
 				return future;
@@ -437,22 +487,27 @@ namespace System.Data.FoundationDb.Client
 			{
 				IntPtr handle;
 				err = s_stub_fdbDatabaseCreateTransaction(database, out handle);
-				Debug.WriteLine("fdb_database_create_transaction(" + database.Handle.ToInt64().ToString("x") + ") => err=" + err + ", handle=" + handle.ToInt64().ToString("x"));
+				Debug.WriteLine("fdb_database_create_transaction(0x" + database.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + handle.ToString("x"));
 				transaction.TrySetHandle(handle);
 			}
 			return err;
 
 		}
 
-		public static void TransactionSet(TransactionHandle transaction, byte[] key, byte[] value)
+		public static void TransactionSet(TransactionHandle transaction, byte[] key, int keyLength, byte[] value, int valueLength)
 		{
+			if (key == null) throw new ArgumentNullException("key");
+			if (value == null) throw new ArgumentNullException("value");
+			if (key.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
+			if (value.Length < valueLength) throw new ArgumentOutOfRangeException("valueLength");
+
 			EnsureLibraryIsLoaded();
 			//TODO: nullcheck!
 			fixed (byte* pKey = key)
 			fixed (byte* pValue = value)
 			{
-				Debug.WriteLine("fdb_transaction_set(" + transaction.Handle.ToInt64().ToString("x") + ", [" + key.Length + "], [" + value.Length + "])");
-				s_stub_fdbTransactionSet(transaction, pKey, key.Length, pValue, value.Length);
+				Debug.WriteLine("fdb_transaction_set(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "], [" + valueLength + "])");
+				s_stub_fdbTransactionSet(transaction, pKey, keyLength, pValue, valueLength);
 			}
 		}
 
@@ -466,10 +521,122 @@ namespace System.Data.FoundationDb.Client
 			finally
 			{
 				var handle = s_stub_fdbTransactionCommit(transaction);
-				Debug.WriteLine("fdb_transaction_commit(" + transaction.Handle.ToInt64().ToString("x") + ") => " + handle.ToInt64().ToString("x"));
+				Debug.WriteLine("fdb_transaction_commit(0x" + transaction.Handle.ToString("x") + ") => 0x" + handle.ToString("x"));
 				future.TrySetHandle(handle);
 			}
 			return future;
+		}
+
+		public static FutureHandle TransactionGetReadVersion(TransactionHandle transaction)
+		{
+			EnsureLibraryIsLoaded();
+			var future = new FutureHandle();
+
+			RuntimeHelpers.PrepareConstrainedRegions();
+			try { }
+			finally
+			{
+				var handle = s_stub_fdbTransactionGetReadVersion(transaction);
+				Debug.WriteLine("fdb_transaction_get_read_version(0x" + transaction.Handle.ToString("x") + ") => 0x" + handle.ToString("x"));
+				future.TrySetHandle(handle);
+			}
+			return future;
+		}
+
+		public static FdbError TransactionGetCommittedVersion(TransactionHandle transaction, out long version)
+		{
+			EnsureLibraryIsLoaded();
+
+			return s_stub_fdbTransactionGetCommittedVersion(transaction, out version);
+		}
+
+		public static FdbError FutureGetVersion(FutureHandle future, out long version)
+		{
+			EnsureLibraryIsLoaded();
+
+			return s_stub_fdbFutureGetVersion(future, out version);
+		}
+
+		public static FutureHandle TransactionGet(TransactionHandle transaction, byte[] keyName, int keyLength, bool snapshot)
+		{
+			EnsureLibraryIsLoaded();
+			if (keyName == null) throw new ArgumentNullException("keyName");
+			if (keyName.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
+
+			var future = new FutureHandle();
+
+			RuntimeHelpers.PrepareConstrainedRegions();
+			try { }
+			finally
+			{
+				fixed (byte* ptrKey = keyName)
+				{
+					var handle = s_stub_fdbTransactionGet(transaction, ptrKey, keyLength, snapshot);
+					Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "], " + snapshot + ") => 0x" + handle.ToString("x"));
+					future.TrySetHandle(handle);
+				}
+			}
+			return future;
+		}
+
+		public static FutureHandle TransactionGetKey(TransactionHandle transaction, byte[] keyName, int keyLength, bool orEqual, int offset, bool snapshot)
+		{
+			EnsureLibraryIsLoaded();
+			if (keyName == null) throw new ArgumentNullException("keyName");
+			if (keyName.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
+
+			var future = new FutureHandle();
+
+			RuntimeHelpers.PrepareConstrainedRegions();
+			try { }
+			finally
+			{
+				fixed (byte* ptrKey = keyName)
+				{
+					var handle = s_stub_fdbTransactionGetKey(transaction, ptrKey, keyLength, orEqual, offset, snapshot);
+					Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "], " + orEqual + ", " + offset + ", " + snapshot + ") => 0x" + handle.ToString("x"));
+					future.TrySetHandle(handle);
+				}
+			}
+			return future;
+		}
+
+		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out byte[] value, out int valueLength)
+		{
+			EnsureLibraryIsLoaded();
+
+			valuePresent = false;
+			value = null;
+			valueLength = 0;
+
+			byte* ptr = null;
+			var err = s_stub_fdbFutureGetValue(future, out valuePresent, out ptr, out valueLength);
+			Debug.WriteLine("fdb_future_get_value(0x" + future.Handle.ToString("x") + ") => err=" + err + ", present=" + valuePresent + ", valueLength=" + valueLength);
+			if (ptr != null && valueLength >= 0)
+			{
+				value = new byte[valueLength];
+				Marshal.Copy(new IntPtr(ptr), value, 0, valueLength);
+			}
+
+			return err;
+		}
+
+		public static FdbError FutureGetKey(FutureHandle future, out byte[] key, out int keyLength)
+		{
+			EnsureLibraryIsLoaded();
+
+			key = null;
+			keyLength = 0;
+
+			byte* ptr = null;
+			var err = s_stub_fdbFutureGetKey(future, out ptr, out keyLength);
+			if (ptr != null && keyLength >= 0)
+			{
+				key = new byte[keyLength];
+				Marshal.Copy(new IntPtr(ptr), key, 0, keyLength);
+			}
+
+			return err;
 		}
 
 		#endregion

@@ -27,7 +27,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using System;
+using System.Data.FoundationDb.Client.Native;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,7 +41,7 @@ namespace System.Data.FoundationDb.Client
 	{
 
 		public static string NativeLibPath = ".";
-		public static string TracePath = @"c:\temp\fdb";
+		public static string TracePath = null;
 
 		public static int GetMaxApiVersion()
 		{
@@ -85,6 +87,8 @@ namespace System.Data.FoundationDb.Client
 
 		private static Thread s_eventLoop;
 		private static bool s_eventLoopStarted;
+		private static bool s_eventLoopRunning;
+		private static int? s_eventLoopThreadId;
 
 		private static void StartEventLoop()
 		{
@@ -95,6 +99,7 @@ namespace System.Data.FoundationDb.Client
 				var thread = new Thread(new ThreadStart(EventLoop));
 				thread.Name = "FoundationDB Event Loop";
 				thread.IsBackground = true;
+				thread.Priority = ThreadPriority.AboveNormal;
 				s_eventLoop = thread;
 				try
 				{
@@ -104,6 +109,7 @@ namespace System.Data.FoundationDb.Client
 				catch (Exception)
 				{
 					s_eventLoopStarted = false;
+					s_eventLoop = null;
 					throw;
 				}
 			}
@@ -117,7 +123,7 @@ namespace System.Data.FoundationDb.Client
 				s_eventLoopStarted = false;
 
 				var thread = s_eventLoop;
-				if (thread != null && thread.ThreadState == System.Threading.ThreadState.Running)
+				if (thread != null && thread.IsAlive)
 				{
 					thread.Abort();
 					thread.Join(TimeSpan.FromSeconds(1));
@@ -128,16 +134,16 @@ namespace System.Data.FoundationDb.Client
 
 		private static void EventLoop()
 		{
-			Debug.WriteLine("Event Loop running..");
 			try
 			{
-				while (true)
-				{
-					var err = FdbNativeStub.RunNetwork();
-					if (err == FdbError.Success)
-					{ // Stop received
-						return;
-					}
+				s_eventLoopRunning = true;
+
+				s_eventLoopThreadId = Thread.CurrentThread.ManagedThreadId;
+				Debug.WriteLine("Event Loop running on thread #" + s_eventLoopThreadId.Value + "...");
+
+				var err = FdbNativeStub.RunNetwork();
+				if (err != FdbError.Success)
+				{ // Stop received
 					Debug.WriteLine("RunNetwork returned " + err + " : " + GetErrorMessage(err));
 				}
 			}
@@ -152,16 +158,52 @@ namespace System.Data.FoundationDb.Client
 			finally
 			{
 				Debug.WriteLine("Event Loop stopped");
+				s_eventLoopThreadId = null;
+				s_eventLoopRunning = false;
 			}
+		}
+
+		/// <summary>Returns 'true' if we are currently running on the Event Loop thread</summary>
+		internal static bool IsNetworkThread
+		{
+			get
+			{
+				var eventLoopThreadId = s_eventLoopThreadId;
+				return eventLoopThreadId.HasValue && Thread.CurrentThread.ManagedThreadId == eventLoopThreadId.Value;
+			}
+		}
+
+		internal static void EnsureNotOnNetworkThread()
+		{
+#if DEBUG
+			Debug.WriteLine("[Executing on thread " + Thread.CurrentThread.ManagedThreadId + "]");
+#endif
+
+			if (FdbCore.IsNetworkThread)
+			{ // cannot commit from same thread as the network loop because it could lead to a deadlock
+				FailCannotExecuteOnNetworkThread();
+			}
+		}
+
+		private static void FailCannotExecuteOnNetworkThread()
+		{
+#if DEBUG
+			if (Debugger.IsAttached) Debugger.Break();
+#endif
+			throw new InvalidOperationException("Cannot commit transaction from the Network Thread!");
 		}
 
 		#endregion
 
-		public static Task<FdbCluster> CreateClusterAsync(string path)
-		{
-			var future = FdbNativeStub.CreateCluster(path);
+		#region Cluster...
 
-			Debug.WriteLine("CreateCluster => 0x" + future.Handle.ToString("x"));
+		/// <summary>Asynchronously return a connection to a FDB Cluster</summary>
+		/// <param name="path">Path to the 'fdb.cluster' file, or null for default</param>
+		/// <returns></returns>
+		public static Task<FdbCluster> CreateClusterAsync(string path = null)
+		{
+			//TODO: check path
+			var future = FdbNativeStub.CreateCluster(path);
 
 			return FdbFuture<FdbCluster>
 				.FromHandle(future,
@@ -174,67 +216,31 @@ namespace System.Data.FoundationDb.Client
 						cluster.Dispose();
 						throw MapToException(err);
 					}
-					Debug.WriteLine("FutureGetCluster => 0x" + cluster.Handle.ToString("x"));
 					return new FdbCluster(cluster);
 				})
 				.Task;
 		}
 
-		internal static Task<FdbDatabase> CreateDatabaseAsync(FdbCluster cluster, string name)
+		#endregion
+
+		private static void EnsureIsStarted()
 		{
-			if (cluster == null) throw new ArgumentNullException("cluster");
-			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
-
-			if (cluster.Handle.IsInvalid) throw new InvalidOperationException("Cannot connect to invalid cluster");
-
-			var future = FdbNativeStub.CreateClusterDatabase(cluster.Handle, name);
-
-			Debug.WriteLine("CreateClusterDatabase => 0x" + future.Handle.ToString("x"));
-
-			return FdbFuture<FdbDatabase>
-				.FromHandle(future,
-				(h) =>
-				{
-					DatabaseHandle database;
-					var err = FdbNativeStub.FutureGetDatabase(h, out database);
-					if (err != FdbError.Success)
-					{
-						database.Dispose();
-						throw MapToException(err);
-					}
-					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
-
-					return new FdbDatabase(cluster, database, name);
-				})
-				.Task;
-		}
-
-		internal static FdbTransaction CreateTransaction(FdbDatabase database)
-		{
-			if (database == null) throw new ArgumentNullException("database");
-
-			if (database.Handle.IsInvalid) throw new InvalidOperationException("Cannot create a transaction on an invalid database");
-
-			TransactionHandle handle;
-			var err = FdbNativeStub.DatabaseCreateTransaction(database.Handle, out handle);
-			Debug.WriteLine("DatabaseCreateTransaction => " + err.ToString() + ", 0x" + handle.Handle.ToString("x"));
-			if (Failed(err))
-			{
-				handle.Dispose();
-				throw MapToException(err);
-			}
-
-			return new FdbTransaction(database, handle);
+			if (!s_eventLoopStarted) Start();
 		}
 
 		public static void Start()
 		{
+			Debug.WriteLine("Selecting API version " + FdbNativeStub.FDB_API_VERSION);
 			DieOnError(FdbNativeStub.SelectApiVersion(FdbNativeStub.FDB_API_VERSION));
 
 			Debug.WriteLine("Setting up network...");
 
 			if (TracePath != null)
 			{
+				Debug.WriteLine("Will trace network activity in " + TracePath);
+				// create trace directory if missing...
+				if (!Directory.Exists(TracePath)) Directory.CreateDirectory(TracePath);
+
 				unsafe
 				{
 					byte[] data = FdbNativeStub.ToNativeString(TracePath);
@@ -246,7 +252,7 @@ namespace System.Data.FoundationDb.Client
 			}
 
 			DieOnError(FdbNativeStub.SetupNetwork());
-			Debug.WriteLine("Got Network");
+			Debug.WriteLine("Network has been set up");
 
 			StartEventLoop();
 
@@ -261,6 +267,8 @@ namespace System.Data.FoundationDb.Client
 
 		public static Task<FdbCluster> ConnectAsync(string clusterPath)
 		{
+			EnsureIsStarted();
+
 			Debug.WriteLine("Connecting to cluster... " + clusterPath);
 			return CreateClusterAsync(clusterPath);
 		}

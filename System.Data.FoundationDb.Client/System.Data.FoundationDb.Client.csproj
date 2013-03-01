@@ -43,9 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FDBStreamingMode.cs" />
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
+    <Compile Include="Unmanaged\FdbKeyValue.cs" />
     <Compile Include="Unmanaged\TransactionHandle.cs" />
     <Compile Include="Unmanaged\FdbNativeStub.cs" />
     <Compile Include="Unmanaged\ClusterHandle.cs" />

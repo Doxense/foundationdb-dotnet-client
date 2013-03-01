@@ -27,6 +27,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using System;
+using System.Data.FoundationDb.Client.Native;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
 namespace System.Data.FoundationDb.Client
@@ -61,10 +63,29 @@ namespace System.Data.FoundationDb.Client
 			}
 		}
 
-		public Task<FdbDatabase> OpenDatabaseAsync(string dbName)
+		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName)
 		{
 			ThrowIfDisposed();
-			return FdbCore.CreateDatabaseAsync(this, dbName);
+			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
+
+			var future = FdbNativeStub.CreateClusterDatabase(m_handle, databaseName);
+
+			return FdbFuture<FdbDatabase>
+				.FromHandle(future,
+				(h) =>
+				{
+					DatabaseHandle database;
+					var err = FdbNativeStub.FutureGetDatabase(h, out database);
+					if (err != FdbError.Success)
+					{
+						database.Dispose();
+						throw FdbCore.MapToException(err);
+					}
+					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
+
+					return new FdbDatabase(this, database, databaseName);
+				})
+				.Task;
 		}
 
 	}

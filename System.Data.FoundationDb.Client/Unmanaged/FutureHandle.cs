@@ -37,9 +37,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+namespace System.Data.FoundationDb.Client.Native
 {
 
+	/// <summary>Wrapper on a FDBFuture*</summary>
 	internal sealed class FutureHandle : FdbSafeHandle
 	{
 		public FutureHandle()
