@@ -59,9 +59,9 @@ namespace FoundationDb.Test
 						{
 							Console.WriteLine("> Transaction ready");
 
-							Console.WriteLine("Getting read version...");
-							var readVersion = await trans.GetReadVersion();
-							Console.WriteLine("> Read Version = " + readVersion);
+							//Console.WriteLine("Getting read version...");
+							//var readVersion = await trans.GetReadVersion();
+							//Console.WriteLine("> Read Version = " + readVersion);
 
 							//var result = await trans.GetAsync("hello");
 							Console.WriteLine("Getting 'hello'...");

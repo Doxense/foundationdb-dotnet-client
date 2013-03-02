@@ -26,6 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+// try enabling this to diagnose problems with fdb_future_block_until_ready...
+#undef WORKAROUND_USE_POLLING
+
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
@@ -45,10 +48,32 @@ namespace System.Data.FoundationDb.Client
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	public delegate void FdbFutureCallback(IntPtr future, IntPtr parameter);
 
+	/// <summary>Helper class to create FDBFutures</summary>
+	public static class FdbFuture
+	{
+		/// <summary>Create a new FdbFuture&lt;<typeparamref name="T"/>&gt; from an FDBFuture* pointer</summary>
+		/// <param name="handle">FDBFuture* pointer</param>
+		/// <param name="selector">Func that will be called to get the result once the future completes (and did not fail)</param>
+		/// <returns></returns>
+		internal static FdbFuture<T> FromHandle<T>(FutureHandle handle, Func<FutureHandle, T> selector, bool willBlockForResult)
+		{
+			if (selector == null) throw new ArgumentNullException("selector");
+
+			return new FdbFuture<T>(handle, handle.IsInvalid ? null : selector, willBlockForResult);
+		}
+
+		internal static Task<T> CreateTaskFromHandle<T>(FutureHandle handle, Func<FutureHandle, T> continuation)
+		{
+			return FromHandle(handle, continuation, willBlockForResult: false).Task;
+		}
+
+	}
+
 	/// <summary>FDBFuture wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
 	public struct FdbFuture<T> : IDisposable
 	{
+		//EXPERIMENTAL: defined as a struct to try and remove some memory allocations...
 
 		#region Private Members...
 
@@ -61,15 +86,20 @@ namespace System.Data.FoundationDb.Client
 		/// <summary>Func used to extract the result of this FDBFuture</summary>
 		private Func<FutureHandle, T> m_resultSelector;
 
+		/// <summary>Used to pin the callback handler.</summary>
+		/// <remarks>It should be alive at least as long has the future handle, so only call Free() after fdb_future_destroy !</remarks>
 		private GCHandle m_callback;
 
-		private int m_disposed;
+		private int m_flags;
+
+		private const int DISPOSED = 1;
+		private const int BLOCKING = 2;
 
 		#endregion
 
 		#region Constructors...
 
-		internal FdbFuture(FutureHandle handle, Func<FutureHandle, T> selector)
+		internal FdbFuture(FutureHandle handle, Func<FutureHandle, T> selector, bool willBlockForResult)
 		{
 			if (handle == null) throw new ArgumentNullException("handle");
 			if (selector == null) throw new ArgumentNullException("selector");
@@ -78,20 +108,26 @@ namespace System.Data.FoundationDb.Client
 			m_tcs = new TaskCompletionSource<T>();
 			m_resultSelector = selector;
 			m_callback = default(GCHandle);
-			m_disposed = 0;
+			m_flags = 0;
 
-			if (!handle.IsInvalid)
+			if (handle.IsInvalid)
+			{ // it's dead, Jim !
+				m_flags |= DISPOSED;
+			}
+			else
 			{
-				// already completed or failed ?
 				if (FdbNativeStub.FutureIsReady(handle/*.Handle*/))
 				{ // either got a value or an error
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already complete");
 					TrySetTaskResult(ref this);
 				}
+				else if (willBlockForResult)
+				{ // this future will be consumed synchronously, no need to schedule a callback
+					m_flags |= BLOCKING;
+				}
 				else
 				{ // we don't know yet, schedule a callback...
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " will complete later");
-
 					// pin the callback to prevent it from behing garbage collected
 					var callback = new FdbFutureCallback(this.CallbackHandler);
 					m_callback = GCHandle.Alloc(callback);
@@ -118,17 +154,6 @@ namespace System.Data.FoundationDb.Client
 		}
 
 		#endregion
-
-		/// <summary>Create a new FdbFuture&lt;<typeparamref name="T"/>&gt; from an FDBFuture* pointer</summary>
-		/// <param name="handle">FDBFuture* pointer</param>
-		/// <param name="selector">Func that will be called to get the result once the future completes (and did not fail)</param>
-		/// <returns></returns>
-		internal static FdbFuture<T> FromHandle(FutureHandle handle, Func<FutureHandle, T> selector)
-		{
-			if (selector == null) throw new ArgumentNullException("selector");
-
-			return new FdbFuture<T>(handle, handle.IsInvalid ? null : selector);
-		}
 
 		/// <summary>Update the Task with the state of a ready Future</summary>
 		/// <param name="future">Future that should be ready</param>
@@ -183,7 +208,8 @@ namespace System.Data.FoundationDb.Client
 
 		private void Cleanup()
 		{
-			if (Interlocked.CompareExchange(ref m_disposed, 1, 0) == 0)
+			var flags = m_flags;
+			if ((flags & DISPOSED) == 0 && Interlocked.CompareExchange(ref m_flags, flags | DISPOSED, flags) == flags)
 			{
 				if (!m_handle.IsClosed) m_handle.Dispose();
 				if (m_callback.IsAllocated) m_callback.Free();
@@ -228,12 +254,17 @@ namespace System.Data.FoundationDb.Client
 		/// <remarks>The task will either return the result of the future, or an exception</remarks>
 		public Task<T> Task
 		{
-			get { return m_tcs.Task; }
+			get
+			{
+				if ((m_flags & BLOCKING) != 0) throw new InvalidOperationException("This Future can only be used synchronously!");
+				return m_tcs.Task;
+			}
 		}
 
 		/// <summary>Make the Future awaitable</summary>
 		public TaskAwaiter<T> GetAwaiter()
 		{
+			if ((m_flags & BLOCKING) != 0) throw new InvalidOperationException("This Future can only be used synchronously!");
 			return m_tcs.Task.GetAwaiter();
 		}
 
@@ -263,8 +294,23 @@ namespace System.Data.FoundationDb.Client
 			if (!task.IsCompleted)
 			{ // we need to wait for it to become ready
 
+#if WORKAROUND_USE_POLLING
+				var max = DateTime.UtcNow.AddSeconds(5);
+				while (!FdbNativeStub.FutureIsReady(m_handle))
+				{
+					Thread.Sleep(100);
+					if (DateTime.UtcNow >= max)
+					{ // uhoh
+						Debug.WriteLine("Future<" + typeof(T).Name + "> has timed out and will be aborted");
+						m_tcs.TrySetException(new TimeoutException());
+						Cleanup();
+						goto failure; // so sue me !
+					}
+				}
+#else
 				var err = FdbNativeStub.FutureBlockUntilReady(m_handle);
 				if (FdbCore.Failed(err)) throw FdbCore.MapToException(err);
+#endif
 
 				// the callback may have already fire, but try to do it anyway...
 				TrySetTaskResult(ref this);
@@ -276,6 +322,7 @@ namespace System.Data.FoundationDb.Client
 				return task.Result;
 			}
 
+		failure:
 			// try to preserve the callstack by using the awaiter to throw
 			// note: calling task.Result would throw an AggregateException that is not nice to work with...
 			return m_tcs.Task.GetAwaiter().GetResult();

@@ -115,9 +115,7 @@ namespace System.Data.FoundationDb.Client
 			var keyBytes = GetKeyBytes(key);
 
 			var future = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
-			return FdbFuture<byte[]>
-				.FromHandle(future, (h) => GetValueResult(h))
-				.Task;
+			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h));
 		}
 
 		public byte[] Get(string key, bool snapshot = false)
@@ -129,7 +127,7 @@ namespace System.Data.FoundationDb.Client
 			var keyBytes = GetKeyBytes(key);
 
 			var handle = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
-			using (var future = FdbFuture<byte[]>.FromHandle(handle, (h) => GetValueResult(h)))
+			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResult(h), willBlockForResult: true))
 			{
 				return future.GetResult();
 			}
@@ -142,8 +140,7 @@ namespace System.Data.FoundationDb.Client
 			FdbCore.EnsureNotOnNetworkThread();
 
 			var future = FdbNativeStub.TransactionGetReadVersion(m_handle);
-			return FdbFuture<long>
-				.FromHandle(future,
+			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
 					long version;
@@ -151,8 +148,7 @@ namespace System.Data.FoundationDb.Client
 					Debug.WriteLine("fdb_future_get_version() => err=" + err + ", version=" + version);
 					FdbCore.DieOnError(err);
 					return version;
-				})
-				.Task;
+				});
 		}
 
 		public Task CommitAsync()
@@ -162,9 +158,7 @@ namespace System.Data.FoundationDb.Client
 			FdbCore.EnsureNotOnNetworkThread();
 
 			var future = FdbNativeStub.TransactionCommit(m_handle);
-			return FdbFuture<object>
-				.FromHandle(future,(h) => null)
-				.Task;
+			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null);
 		}
 
 		public void Commit()
@@ -178,7 +172,7 @@ namespace System.Data.FoundationDb.Client
 			{
 				// calls fdb_transaction_commit
 				handle = FdbNativeStub.TransactionCommit(m_handle);
-				using(var future = FdbFuture<object>.FromHandle(handle, (h) => null))
+				using (var future = FdbFuture.FromHandle<object>(handle, (h) => null, willBlockForResult: true))
 				{
 					future.Wait();
 				}

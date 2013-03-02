@@ -205,8 +205,7 @@ namespace System.Data.FoundationDb.Client
 			//TODO: check path
 			var future = FdbNativeStub.CreateCluster(path);
 
-			return FdbFuture<FdbCluster>
-				.FromHandle(future,
+			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
 					ClusterHandle cluster;
@@ -217,8 +216,7 @@ namespace System.Data.FoundationDb.Client
 						throw MapToException(err);
 					}
 					return new FdbCluster(cluster);
-				})
-				.Task;
+				});
 		}
 
 		#endregion

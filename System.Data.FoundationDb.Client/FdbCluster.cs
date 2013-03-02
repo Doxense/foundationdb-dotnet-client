@@ -70,8 +70,7 @@ namespace System.Data.FoundationDb.Client
 
 			var future = FdbNativeStub.CreateClusterDatabase(m_handle, databaseName);
 
-			return FdbFuture<FdbDatabase>
-				.FromHandle(future,
+			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
 					DatabaseHandle database;
@@ -84,8 +83,7 @@ namespace System.Data.FoundationDb.Client
 					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
 
 					return new FdbDatabase(this, database, databaseName);
-				})
-				.Task;
+				});
 		}
 
 	}
