@@ -230,15 +230,14 @@ namespace System.Data.FoundationDb.Client.Native
 			return Marshal.PtrToStringAnsi(nativeString);
 		}
 
-		internal static byte[] ToNativeString(string value)
+		internal static byte[] ToNativeString(string value, bool nullTerminated)
 		{
 			if (value == null) return null;
 			// NULL terminated ANSI string
-			byte[] result = new byte[value.Length + 1];
-			// NULL at the end
+			var result = new byte[value.Length + (nullTerminated ? 1: 0)];
 			int p = 0;
 			foreach (var c in value)
-			{
+			{ // poor man's ANSI conversion
 				result[p++] = (byte)c;
 			}
 			return result;
@@ -362,7 +361,7 @@ namespace System.Data.FoundationDb.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 
-			var data = ToNativeString(path);
+			var data = ToNativeString(path, nullTerminated: true);
 			fixed (byte* ptr = data)
 			{
 				var future = new FutureHandle();
@@ -442,7 +441,7 @@ namespace System.Data.FoundationDb.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 
-			var data = ToNativeString(name);
+			var data = ToNativeString(name, nullTerminated: false);
 			fixed (byte* ptr = data)
 			{
 				var future = new FutureHandle();

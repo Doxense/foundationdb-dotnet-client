@@ -241,7 +241,7 @@ namespace System.Data.FoundationDb.Client
 
 				unsafe
 				{
-					byte[] data = FdbNativeStub.ToNativeString(TracePath);
+					var data = FdbNativeStub.ToNativeString(TracePath, nullTerminated: true);
 					fixed (byte* ptr = data)
 					{
 						DieOnError(FdbNativeStub.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr, data.Length));
