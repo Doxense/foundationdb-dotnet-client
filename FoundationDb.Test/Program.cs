@@ -59,13 +59,13 @@ namespace FoundationDb.Test
 						{
 							Console.WriteLine("> Transaction ready");
 
-							//Console.WriteLine("Getting read version...");
-							//var readVersion = await trans.GetReadVersion();
-							//Console.WriteLine("> Read Version = " + readVersion);
+							Console.WriteLine("Getting read version...");
+							var readVersion = await trans.GetReadVersion();
+							Console.WriteLine("> Read Version = " + readVersion);
 
-							//var result = await trans.GetAsync("hello");
 							Console.WriteLine("Getting 'hello'...");
-							var result = trans.Get("hello");
+							var result = await trans.GetAsync("hello");
+							//var result = trans.Get("hello");
 							if (result == null)
 								Console.WriteLine("> hello NOT FOUND");
 							else
@@ -79,9 +79,9 @@ namespace FoundationDb.Test
 							new Random(1234).NextBytes(data);
 							trans.Set("TopSecret", data);
 
-							Console.WriteLine("Commiting transaction...");
-							//await trans.CommitAsync();
-							trans.Commit();
+							Console.WriteLine("Committing transaction...");
+							await trans.CommitAsync();
+							//trans.Commit();
 							Console.WriteLine("> Committed!");
 						}
 
