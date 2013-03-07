@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
-using System.Data.FoundationDb.Client.Native;
+using FoundationDb.Client.Native;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -39,7 +39,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+namespace FoundationDb.Client
 {
 
 	public class FdbTransaction : IDisposable

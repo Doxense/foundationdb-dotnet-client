@@ -26,30 +26,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Diagnostics;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+using System;
+namespace FoundationDb.Client.Native
 {
 
-	public enum FdbNetworkOption
+	/// <summary>Wrapper on a FDBCluster*</summary>
+	internal class ClusterHandle : FdbSafeHandle
 	{
-		None = 0,
+		public ClusterHandle()
+			: base()
+		{ }
 
-		/// <summary>IP:PORT
-		/// (DEPRECATED)</summary>
-		LocalAddress = 10,
-
-		/// <summary>Path to cluster file
-		/// (DEPRECATED)</summary>
-		ClusterFile = 20,
-
-		/// <summary>Path to output directory (or NULL for current working directory).
-		/// Enable traces output to a file in a directory of the clients choosing.</summary>
-		TraceEnable = 30,
+		protected override void Destroy(IntPtr handle)
+		{
+			FdbNativeStub.ClusterDestroy(handle);
+		}
 	}
 
 }

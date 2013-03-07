@@ -37,20 +37,16 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client.Native
+namespace FoundationDb.Client.Native
 {
 
-	/// <summary>Wrapper on a FDBFuture*</summary>
-	internal sealed class FutureHandle : FdbSafeHandle
+	[StructLayout(LayoutKind.Sequential)]
+	internal struct FdbKeyValue
 	{
-		public FutureHandle()
-		{ }
-
-		protected override void Destroy(IntPtr handle)
-		{
-			FdbNativeStub.FutureDestroy(handle);
-		}
-
+		public IntPtr Key;
+		public int KeyLength;
+		public IntPtr Value;
+		public int ValueLength;
 	}
 
 }

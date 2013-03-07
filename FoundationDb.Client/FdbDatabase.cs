@@ -26,21 +26,73 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using Microsoft.Win32.SafeHandles;
 using System;
-using System.Diagnostics;
+using System.Collections.Generic;
+using FoundationDb.Client.Native;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+namespace FoundationDb.Client
 {
 
-	public enum FdbClusterOption
+	/// <summary>FoundationDB Database</summary>
+	/// <remarks>Wraps an FDBDatabase* handle</remarks>
+	public class FdbDatabase : IDisposable
 	{
-		None = 0,
 
-		/// <summary>This option is only a placeholder for C compatibility and should not be used</summary>
-		Invalid = -1,
+		private FdbCluster m_cluster;
+		private DatabaseHandle m_handle;
+		private string m_name;
+		private bool m_disposed;
+
+		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name)
+		{
+			m_cluster = cluster;
+			m_handle = handle;
+			m_name = name;
+		}
+
+		public FdbCluster Cluster { get { return m_cluster; } }
+
+		public string Name { get { return m_name; } }
+
+		internal DatabaseHandle Handle { get { return m_handle; } }
+
+		public FdbTransaction BeginTransaction()
+		{
+			if (m_handle.IsInvalid) throw new InvalidOperationException("Cannot create a transaction on an invalid database");
+
+			TransactionHandle handle;
+			var err = FdbNativeStub.DatabaseCreateTransaction(m_handle, out handle);
+			if (FdbCore.Failed(err))
+			{
+				handle.Dispose();
+				throw FdbCore.MapToException(err);
+			}
+
+			return new FdbTransaction(this, handle);
+		}
+
+		private void ThrowIfDisposed()
+		{
+			if (m_disposed) throw new ObjectDisposedException(null);
+		}
+
+		public void Dispose()
+		{
+			if (!m_disposed)
+			{
+				m_disposed = true;
+				m_handle.Dispose();
+			}
+		}
+
 	}
 
 }

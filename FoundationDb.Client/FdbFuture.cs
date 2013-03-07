@@ -26,13 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-// try enabling this to diagnose problems with fdb_future_block_until_ready...
+// try enabling this to diagnose problems with fdb_future_block_until_ready hanging...
 #undef WORKAROUND_USE_POLLING
 
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
-using System.Data.FoundationDb.Client.Native;
+using FoundationDb.Client.Native;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -42,7 +42,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+namespace FoundationDb.Client
 {
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -136,6 +136,8 @@ namespace System.Data.FoundationDb.Client
 					{
 						// note: the callback will allocate the future in the heap...
 						var err = FdbNativeStub.FutureSetCallback(handle, callback, IntPtr.Zero);
+						//TODO: schedule some sort of timeout ?
+
 						if (FdbCore.Failed(err))
 						{ // uhoh
 							Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
@@ -199,7 +201,7 @@ namespace System.Data.FoundationDb.Client
 								future.m_tcs.TrySetResult(result);
 							return true;
 						}
-						//else: it will be handle below
+						//else: it will be handled below
 					}
 				}
 
@@ -327,6 +329,8 @@ namespace System.Data.FoundationDb.Client
 			if (!task.IsCompleted)
 			{ // we need to wait for it to become ready
 
+				FdbCore.EnsureNotOnNetworkThread();
+
 #if WORKAROUND_USE_POLLING
 				var max = DateTime.UtcNow.AddSeconds(5);
 				while (!FdbNativeStub.FutureIsReady(m_handle))
@@ -342,6 +346,7 @@ namespace System.Data.FoundationDb.Client
 					}
 				}
 #else
+				//note: in beta1, this will block forever if there is less then 5% free disk space on db partition... :(
 				var err = FdbNativeStub.FutureBlockUntilReady(m_handle);
 				if (FdbCore.Failed(err)) throw FdbCore.MapToException(err);
 #endif

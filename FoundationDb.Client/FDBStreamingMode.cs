@@ -27,65 +27,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using System;
-using System.Data.FoundationDb.Client.Native;
 using System.Diagnostics;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+namespace FoundationDb.Client
 {
 
-	/// <summary>FoundationDB Cluster</summary>
-	/// <remarks>Wraps an FDBCluster* handle</remarks>
-	public class FdbCluster : IDisposable
+	public enum FDBStreamingMode
 	{
-
-		private ClusterHandle m_handle;
-		private bool m_disposed;
-
-		internal FdbCluster(ClusterHandle handle)
-		{
-			m_handle = handle;
-		}
-
-		internal ClusterHandle Handle { get { return m_handle; } }
-
-		private void ThrowIfDisposed()
-		{
-			if (m_disposed) throw new ObjectDisposedException(null);
-		}
-
-		public void Dispose()
-		{
-			if (!m_disposed)
-			{
-				m_disposed = true;
-				m_handle.Dispose();
-			}
-		}
-
-		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName)
-		{
-			ThrowIfDisposed();
-			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
-
-			var future = FdbNativeStub.ClusterCreateDatabase(m_handle, databaseName);
-
-			return FdbFuture.CreateTaskFromHandle(future,
-				(h) =>
-				{
-					DatabaseHandle database;
-					var err = FdbNativeStub.FutureGetDatabase(h, out database);
-					if (err != FdbError.Success)
-					{
-						database.Dispose();
-						throw FdbCore.MapToException(err);
-					}
-					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
-
-					return new FdbDatabase(this, database, databaseName);
-				});
-		}
-
+		//TODO !
 	}
 
 }

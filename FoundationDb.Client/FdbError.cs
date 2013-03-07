@@ -32,7 +32,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+namespace FoundationDb.Client
 {
 
 	/// <summary>FoundationDB API Error Code</summary>

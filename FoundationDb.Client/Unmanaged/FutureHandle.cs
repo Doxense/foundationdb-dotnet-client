@@ -26,21 +26,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using Microsoft.Win32.SafeHandles;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client.Native
+namespace FoundationDb.Client.Native
 {
 
-	/// <summary>Wrapper on a FDBCluster*</summary>
-	internal class ClusterHandle : FdbSafeHandle
+	/// <summary>Wrapper on a FDBFuture*</summary>
+	internal sealed class FutureHandle : FdbSafeHandle
 	{
-		public ClusterHandle()
-			: base()
+		public FutureHandle()
 		{ }
 
 		protected override void Destroy(IntPtr handle)
 		{
-			FdbNativeStub.ClusterDestroy(handle);
+			FdbNativeStub.FutureDestroy(handle);
 		}
+
 	}
 
 }

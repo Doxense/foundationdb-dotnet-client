@@ -32,12 +32,24 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+namespace FoundationDb.Client
 {
 
-	public enum FDBStreamingMode
+	public enum FdbNetworkOption
 	{
-		//TODO !
+		None = 0,
+
+		/// <summary>IP:PORT
+		/// (DEPRECATED)</summary>
+		LocalAddress = 10,
+
+		/// <summary>Path to cluster file
+		/// (DEPRECATED)</summary>
+		ClusterFile = 20,
+
+		/// <summary>Path to output directory (or NULL for current working directory).
+		/// Enable traces output to a file in a directory of the clients choosing.</summary>
+		TraceEnable = 30,
 	}
 
 }

@@ -5,11 +5,11 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("System.Data.FoundationDb.Client")]
+[assembly: AssemblyTitle("FoundationDb.Client")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
-[assembly: AssemblyProduct("System.Data.FoundationDb.Client")]
+[assembly: AssemblyProduct("FoundationDb.Client")]
 [assembly: AssemblyCopyright("Copyright © Doxense SARL 2013")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Data.FoundationDb.Client;
+using FoundationDb.Client;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace FoundationDb.Test
+namespace FoundationDb.Tests.Sandbox
 {
 	class Program
 	{

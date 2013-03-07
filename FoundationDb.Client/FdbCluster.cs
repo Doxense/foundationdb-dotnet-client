@@ -26,58 +26,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Microsoft.Win32.SafeHandles;
 using System;
-using System.Collections.Generic;
-using System.Data.FoundationDb.Client.Native;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
+using FoundationDb.Client.Native;
+using System.Diagnostics;
 using System.Threading.Tasks;
 
-namespace System.Data.FoundationDb.Client
+namespace FoundationDb.Client
 {
 
-	/// <summary>FoundationDB Database</summary>
-	/// <remarks>Wraps an FDBDatabase* handle</remarks>
-	public class FdbDatabase : IDisposable
+	/// <summary>FoundationDB Cluster</summary>
+	/// <remarks>Wraps an FDBCluster* handle</remarks>
+	public class FdbCluster : IDisposable
 	{
 
-		private FdbCluster m_cluster;
-		private DatabaseHandle m_handle;
-		private string m_name;
+		private ClusterHandle m_handle;
 		private bool m_disposed;
 
-		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name)
+		internal FdbCluster(ClusterHandle handle)
 		{
-			m_cluster = cluster;
 			m_handle = handle;
-			m_name = name;
 		}
 
-		public FdbCluster Cluster { get { return m_cluster; } }
-
-		public string Name { get { return m_name; } }
-
-		internal DatabaseHandle Handle { get { return m_handle; } }
-
-		public FdbTransaction BeginTransaction()
-		{
-			if (m_handle.IsInvalid) throw new InvalidOperationException("Cannot create a transaction on an invalid database");
-
-			TransactionHandle handle;
-			var err = FdbNativeStub.DatabaseCreateTransaction(m_handle, out handle);
-			if (FdbCore.Failed(err))
-			{
-				handle.Dispose();
-				throw FdbCore.MapToException(err);
-			}
-
-			return new FdbTransaction(this, handle);
-		}
+		internal ClusterHandle Handle { get { return m_handle; } }
 
 		private void ThrowIfDisposed()
 		{
@@ -91,6 +61,29 @@ namespace System.Data.FoundationDb.Client
 				m_disposed = true;
 				m_handle.Dispose();
 			}
+		}
+
+		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName)
+		{
+			ThrowIfDisposed();
+			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
+
+			var future = FdbNativeStub.ClusterCreateDatabase(m_handle, databaseName);
+
+			return FdbFuture.CreateTaskFromHandle(future,
+				(h) =>
+				{
+					DatabaseHandle database;
+					var err = FdbNativeStub.FutureGetDatabase(h, out database);
+					if (err != FdbError.Success)
+					{
+						database.Dispose();
+						throw FdbCore.MapToException(err);
+					}
+					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
+
+					return new FdbDatabase(this, database, databaseName);
+				});
 		}
 
 	}

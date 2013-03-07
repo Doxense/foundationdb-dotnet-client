@@ -33,7 +33,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace System.Data.FoundationDb.Client.Native
+namespace FoundationDb.Client.Native
 {
 	internal static unsafe class FdbNativeStub
 	{

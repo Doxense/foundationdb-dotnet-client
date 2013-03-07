@@ -27,11 +27,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using Microsoft.Win32.SafeHandles;
+using System;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace System.Data.FoundationDb.Client.Native
+namespace FoundationDb.Client.Native
 {
 
 	/// <summary>Native Library Loader</summary>
