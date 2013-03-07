@@ -64,7 +64,7 @@ namespace System.Data.FoundationDb.Client
 
 		internal static Task<T> CreateTaskFromHandle<T>(FutureHandle handle, Func<FutureHandle, T> continuation)
 		{
-			return FromHandle(handle, continuation, willBlockForResult: false).Task;
+			return FromHandle(handle, continuation, willBlockForResult: false).AsTask();
 		}
 
 	}
@@ -118,8 +118,8 @@ namespace System.Data.FoundationDb.Client
 			{
 				if (FdbNativeStub.FutureIsReady(handle/*.Handle*/))
 				{ // either got a value or an error
-					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already complete");
-					TrySetTaskResult(ref this);
+					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already ready");
+					TrySetTaskResult(ref this, false);
 				}
 				else if (willBlockForResult)
 				{ // this future will be consumed synchronously, no need to schedule a callback
@@ -158,8 +158,12 @@ namespace System.Data.FoundationDb.Client
 		/// <summary>Update the Task with the state of a ready Future</summary>
 		/// <param name="future">Future that should be ready</param>
 		/// <returns>True if we got a result, or false in case of error (or invalid state)</returns>
-		private static unsafe bool TrySetTaskResult(ref FdbFuture<T> future)
+		private static unsafe bool TrySetTaskResult(ref FdbFuture<T> future, bool fromCallback)
 		{
+			// note: if fromCallback is true, we are running on the network thread
+			// this means that we have to signal the TCS from the threadpool, if not continuations on the task may run inline.
+			// this is very frequent when we are called with await, or ContinueWith(..., TaskContinuationOptions.ExecuteSynchronously)
+
 			try
 			{
 				var handle = future.m_handle;
@@ -171,7 +175,11 @@ namespace System.Data.FoundationDb.Client
 						var err = FdbNativeStub.FutureGetError(handle);
 						if (err != FdbError.Success)
 						{ // get the exception from the error code
-							future.m_tcs.TrySetException(FdbCore.MapToException(err));
+							var ex = FdbCore.MapToException(err);
+							if (fromCallback)
+								TrySetExceptionFromThreadPool(future.m_tcs, ex);
+							else
+								future.m_tcs.TrySetException(ex);
 							return false;
 						}
 						//else: will be handle below
@@ -183,8 +191,12 @@ namespace System.Data.FoundationDb.Client
 						var selector = future.m_resultSelector;
 						if (selector != null)
 						{
+							//note: result selector will execute from network thread, but this should be our own code that only calls into some fdb_future_get_XXXX(), which should be safe...
 							var result = future.m_resultSelector(handle);
-							future.m_tcs.TrySetResult(result);
+							if (fromCallback)
+								TrySetResultFromThreadPool(future.m_tcs, result);
+							else
+								future.m_tcs.TrySetResult(result);
 							return true;
 						}
 						//else: it will be handle below
@@ -192,18 +204,42 @@ namespace System.Data.FoundationDb.Client
 				}
 
 				// most probably the future was cancelled or we are shutting down...
-				future.m_tcs.TrySetCanceled();
+				if (fromCallback)
+					TrySetCancelledFromThreadPool(future.m_tcs);
+				else
+					future.m_tcs.TrySetCanceled();
 				return false;	
 			}
 			catch (Exception e)
 			{ // something went wrong
-				future.m_tcs.TrySetException(e);
+				if (fromCallback)
+					TrySetExceptionFromThreadPool(future.m_tcs, e);
+				else
+					future.m_tcs.TrySetException(e);
 				return false;
 			}
 			finally
 			{
 				future.Cleanup();
 			}
+		}
+
+		private static void TrySetResultFromThreadPool(TaskCompletionSource<T> tcs, T result)
+		{
+			//TODO: try to not allocate a scope
+			Task.Run(() => { tcs.TrySetResult(result); });
+		}
+
+		private static void TrySetExceptionFromThreadPool(TaskCompletionSource<T> tcs, Exception e)
+		{
+			//TODO: try to not allocate a scope
+			Task.Run(() => { tcs.TrySetException(e); });
+		}
+
+		private static void TrySetCancelledFromThreadPool(TaskCompletionSource<T> tcs)
+		{
+			//TODO: try to not allocate a scope
+			Task.Run(() => { tcs.TrySetCanceled(); });
 		}
 
 		private void Cleanup()
@@ -242,7 +278,7 @@ namespace System.Data.FoundationDb.Client
 
 			try
 			{
-				TrySetTaskResult(ref this);
+				TrySetTaskResult(ref this, true);
 			}
 			finally
 			{
@@ -252,13 +288,10 @@ namespace System.Data.FoundationDb.Client
 
 		/// <summary>Returns a Task that wraps the FDBFuture</summary>
 		/// <remarks>The task will either return the result of the future, or an exception</remarks>
-		public Task<T> Task
+		public Task<T> AsTask()
 		{
-			get
-			{
-				if ((m_flags & BLOCKING) != 0) throw new InvalidOperationException("This Future can only be used synchronously!");
-				return m_tcs.Task;
-			}
+			if ((m_flags & BLOCKING) != 0) throw new InvalidOperationException("This Future can only be used synchronously!");
+			return m_tcs.Task;
 		}
 
 		/// <summary>Make the Future awaitable</summary>
@@ -298,10 +331,11 @@ namespace System.Data.FoundationDb.Client
 				var max = DateTime.UtcNow.AddSeconds(5);
 				while (!FdbNativeStub.FutureIsReady(m_handle))
 				{
-					Thread.Sleep(100);
+					Debug.WriteLine("Future<" + typeof(T).Name + ">(0x" + m_handle.Handle.ToString("x") + ") still not ready. Waiting...");
+					Thread.Sleep(500);
 					if (DateTime.UtcNow >= max)
 					{ // uhoh
-						Debug.WriteLine("Future<" + typeof(T).Name + "> has timed out and will be aborted");
+						Debug.WriteLine("Future<" + typeof(T).Name + ">(0x" + m_handle.Handle.ToString("x") + ") has timed out and will be aborted");
 						m_tcs.TrySetException(new TimeoutException());
 						Cleanup();
 						goto failure; // so sue me !
@@ -313,7 +347,7 @@ namespace System.Data.FoundationDb.Client
 #endif
 
 				// the callback may have already fire, but try to do it anyway...
-				TrySetTaskResult(ref this);
+				TrySetTaskResult(ref this, false);
 			}
 
 			// throw underlying exception if it failed
@@ -322,7 +356,10 @@ namespace System.Data.FoundationDb.Client
 				return task.Result;
 			}
 
+#if WORKAROUND_USE_POLLING
 		failure:
+#endif
+
 			// try to preserve the callstack by using the awaiter to throw
 			// note: calling task.Result would throw an AggregateException that is not nice to work with...
 			return m_tcs.Task.GetAwaiter().GetResult();
