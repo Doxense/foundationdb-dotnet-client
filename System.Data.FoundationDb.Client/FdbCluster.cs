@@ -68,7 +68,7 @@ namespace System.Data.FoundationDb.Client
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
 
-			var future = FdbNativeStub.CreateClusterDatabase(m_handle, databaseName);
+			var future = FdbNativeStub.ClusterCreateDatabase(m_handle, databaseName);
 
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>

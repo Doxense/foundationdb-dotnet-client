@@ -438,7 +438,7 @@ namespace System.Data.FoundationDb.Client.Native
 			}
 		}
 
-		public static FutureHandle CreateClusterDatabase(ClusterHandle cluster, string name)
+		public static FutureHandle ClusterCreateDatabase(ClusterHandle cluster, string name)
 		{
 			EnsureLibraryIsLoaded();
 
