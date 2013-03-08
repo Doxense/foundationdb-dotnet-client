@@ -3,6 +3,7 @@ using FoundationDb.Client;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace FoundationDb.Tests.Sandbox
 {
@@ -84,6 +85,73 @@ namespace FoundationDb.Tests.Sandbox
 							//trans.Commit();
 							Console.WriteLine("> Committed!");
 						}
+
+					const int N = 1000;
+
+					#region INSERT...
+
+					var insert = Stopwatch.StartNew();
+					using (var trans = db.BeginTransaction())
+					{
+						for (int i = 0; i < N; i++)
+						{
+							trans.Set("hello" + i, "world" + i);
+						}
+						await trans.CommitAsync();
+					}
+					insert.Stop();
+					Console.WriteLine("Took " + insert.Elapsed + " to insert " + N + " items (" + (insert.Elapsed.TotalMilliseconds / N) + "/write)");
+
+					#endregion
+
+					#region READ ASYNC
+
+					var read = Stopwatch.StartNew();
+					using (var trans = db.BeginTransaction())
+					{
+						for (int i = 0; i < N; i++)
+						{
+							var result = await trans.GetAsync("hello"+ i);
+						}
+						await trans.CommitAsync();
+					}
+					read.Stop();
+					Console.WriteLine("Took " + read.Elapsed + " to read " + N + " items (" + (read.Elapsed.TotalMilliseconds / 1000) + "/read)");
+
+					#endregion
+
+					#region READ BLOCKING
+
+					var read2 = Stopwatch.StartNew();
+					using (var trans = db.BeginTransaction())
+					{
+						for (int i = 0; i < N; i++)
+						{
+							var result = trans.Get("hello" + i);
+						}
+						await trans.CommitAsync();
+					}
+					read2.Stop();
+					Console.WriteLine("Took " + read2.Elapsed + " to read " + N + " items (" + (read2.Elapsed.TotalMilliseconds / 1000) + "/read)");
+
+					#endregion
+
+					#region CLEAR
+
+					var clear = Stopwatch.StartNew();
+					using (var trans = db.BeginTransaction())
+					{
+						for (int i = 0; i < N; i++)
+						{
+							trans.Clear("hello" + i);
+						}
+
+						await trans.CommitAsync();
+					}
+					clear.Stop();
+					Console.WriteLine("Took " + clear.Elapsed + " to clear " + N + " items (" + (clear.Elapsed.TotalMilliseconds / 1000) + "/write)");
+
+					#endregion
 
 						Console.WriteLine("time to say goodbye...");
 					}

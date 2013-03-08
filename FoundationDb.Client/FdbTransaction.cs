@@ -63,28 +63,6 @@ namespace FoundationDb.Client
 			return Encoding.Default.GetBytes(key);
 		}
 
-		public void Set(string key, byte[] value)
-		{
-			ThrowIfDisposed();
-			if (key == null) throw new ArgumentNullException("key");
-
-			var keyBytes = GetKeyBytes(key);
-			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, value, value.Length);
-		}
-
-		public void Set(string key, string value)
-		{
-			ThrowIfDisposed();
-			if (key == null) throw new ArgumentNullException("key");
-			if (value == null) throw new ArgumentNullException("value");
-
-			FdbCore.EnsureNotOnNetworkThread();
-
-			var keyBytes = GetKeyBytes(key);
-			var valueBytes = Encoding.UTF8.GetBytes(value);
-			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, valueBytes, valueBytes.Length);
-		}
-
 		private static byte[] GetValueResult(FutureHandle h)
 		{
 			bool present;
@@ -149,6 +127,39 @@ namespace FoundationDb.Client
 					FdbCore.DieOnError(err);
 					return version;
 				});
+		}
+
+		public void Set(string key, byte[] value)
+		{
+			ThrowIfDisposed();
+			if (key == null) throw new ArgumentNullException("key");
+
+			var keyBytes = GetKeyBytes(key);
+			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, value, value.Length);
+		}
+
+		public void Set(string key, string value)
+		{
+			ThrowIfDisposed();
+			if (key == null) throw new ArgumentNullException("key");
+			if (value == null) throw new ArgumentNullException("value");
+
+			FdbCore.EnsureNotOnNetworkThread();
+
+			var keyBytes = GetKeyBytes(key);
+			var valueBytes = Encoding.UTF8.GetBytes(value);
+			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, valueBytes, valueBytes.Length);
+		}
+
+		public void Clear(string key)
+		{
+			ThrowIfDisposed();
+			if (key == null) throw new ArgumentNullException("key");
+
+			FdbCore.EnsureNotOnNetworkThread();
+
+			var keyBytes = GetKeyBytes(key);
+			FdbNativeStub.TransactionClear(m_handle, keyBytes, keyBytes.Length);
 		}
 
 		public Task CommitAsync()

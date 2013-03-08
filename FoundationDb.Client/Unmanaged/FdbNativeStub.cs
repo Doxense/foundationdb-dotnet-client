@@ -493,23 +493,6 @@ namespace FoundationDb.Client.Native
 
 		}
 
-		public static void TransactionSet(TransactionHandle transaction, byte[] key, int keyLength, byte[] value, int valueLength)
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			if (value == null) throw new ArgumentNullException("value");
-			if (key.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
-			if (value.Length < valueLength) throw new ArgumentOutOfRangeException("valueLength");
-
-			EnsureLibraryIsLoaded();
-			//TODO: nullcheck!
-			fixed (byte* pKey = key)
-			fixed (byte* pValue = value)
-			{
-				Debug.WriteLine("fdb_transaction_set(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "], [" + valueLength + "])");
-				s_stub_fdbTransactionSet(transaction, pKey, keyLength, pValue, valueLength);
-			}
-		}
-
 		public static FutureHandle TransactionCommit(TransactionHandle transaction)
 		{
 			EnsureLibraryIsLoaded();
@@ -636,6 +619,35 @@ namespace FoundationDb.Client.Native
 			}
 
 			return err;
+		}
+
+		public static void TransactionSet(TransactionHandle transaction, byte[] key, int keyLength, byte[] value, int valueLength)
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			if (value == null) throw new ArgumentNullException("value");
+			if (key.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
+			if (value.Length < valueLength) throw new ArgumentOutOfRangeException("valueLength");
+
+			EnsureLibraryIsLoaded();
+			fixed (byte* pKey = key)
+			fixed (byte* pValue = value)
+			{
+				Debug.WriteLine("fdb_transaction_set(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "], [" + valueLength + "])");
+				s_stub_fdbTransactionSet(transaction, pKey, keyLength, pValue, valueLength);
+			}
+		}
+
+		public static void TransactionClear(TransactionHandle transaction, byte[] key, int keyLength)
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			if (key.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
+
+			EnsureLibraryIsLoaded();
+			fixed (byte* pKey = key)
+			{
+				Debug.WriteLine("fdb_transaction_clear(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "])");
+				s_stub_fdbTransactionClear(transaction, pKey, keyLength);
+			}
 		}
 
 		#endregion
