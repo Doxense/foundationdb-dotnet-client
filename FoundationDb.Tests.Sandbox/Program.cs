@@ -261,7 +261,7 @@ namespace FoundationDb.Tests.Sandbox
 
 						//await BenchConcurrentReadAsync(db, N);
 
-						//BenchSerialReadBlocking(db, N);
+						//await BenchSerialReadBlocking(db, N);
 
 						//await BenchClearAsync(db, N);
 
