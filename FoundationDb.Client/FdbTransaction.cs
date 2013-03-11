@@ -98,6 +98,40 @@ namespace FoundationDb.Client
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h), ct);
 		}
 
+		public Task<List<KeyValuePair<string, byte[]>>> GetBatchAsync(IEnumerable<string> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			return GetBatchAsync(keys.ToArray(), snapshot, ct);
+		}
+
+		public async Task<List<KeyValuePair<string, byte[]>>> GetBatchAsync(string[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
+
+			FdbCore.EnsureNotOnNetworkThread();
+
+			var tasks = new List<Task<byte[]>>(keys.Length);
+			for (int i = 0; i < keys.Length; i++)
+			{
+				tasks.Add(Task.Factory.StartNew((_state) =>
+				{
+					int index = (int)_state;
+					var keyBytes = GetKeyBytes(keys[index]);
+					var future = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
+					return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h), ct);
+
+				}, i, ct).Unwrap());
+			}
+
+			var results = await Task.WhenAll(tasks);
+
+			return results
+				.Select((data, i) => new KeyValuePair<string, byte[]>(keys[i], data))
+				.ToList();
+		}
+
 		public byte[] Get(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
