@@ -197,10 +197,15 @@ namespace FoundationDb.Client
 
 		#region Cluster...
 
+		public static Task<FdbCluster> OpenLocalClusterAsync(CancellationToken ct = default(CancellationToken))
+		{
+			return OpenClusterAsync(null, ct);
+		}
+
 		/// <summary>Asynchronously return a connection to a FDB Cluster</summary>
 		/// <param name="path">Path to the 'fdb.cluster' file, or null for default</param>
 		/// <returns></returns>
-		public static Task<FdbCluster> CreateClusterAsync(string path = null)
+		public static Task<FdbCluster> OpenClusterAsync(string path = null, CancellationToken ct = default(CancellationToken))
 		{
 			//TODO: check path
 			var future = FdbNativeStub.CreateCluster(path);
@@ -216,7 +221,9 @@ namespace FoundationDb.Client
 						throw MapToException(err);
 					}
 					return new FdbCluster(cluster);
-				});
+				},
+				ct
+			);
 		}
 
 		#endregion
@@ -268,7 +275,7 @@ namespace FoundationDb.Client
 			EnsureIsStarted();
 
 			Debug.WriteLine("Connecting to cluster... " + clusterPath);
-			return CreateClusterAsync(clusterPath);
+			return OpenClusterAsync(clusterPath);
 		}
 
 	}

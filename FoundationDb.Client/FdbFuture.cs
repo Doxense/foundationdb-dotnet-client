@@ -55,23 +55,23 @@ namespace FoundationDb.Client
 		/// <param name="handle">FDBFuture* pointer</param>
 		/// <param name="selector">Func that will be called to get the result once the future completes (and did not fail)</param>
 		/// <returns></returns>
-		internal static FdbFuture<T> FromHandle<T>(FutureHandle handle, Func<FutureHandle, T> selector, bool willBlockForResult)
+		internal static FdbFuture<T> FromHandle<T>(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct, bool willBlockForResult)
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
 
-			return new FdbFuture<T>(handle, handle.IsInvalid ? null : selector, willBlockForResult);
+			return new FdbFuture<T>(handle, handle.IsInvalid ? null : selector, ct, willBlockForResult);
 		}
 
-		internal static Task<T> CreateTaskFromHandle<T>(FutureHandle handle, Func<FutureHandle, T> continuation)
+		internal static Task<T> CreateTaskFromHandle<T>(FutureHandle handle, Func<FutureHandle, T> continuation, CancellationToken ct)
 		{
-			return FromHandle(handle, continuation, willBlockForResult: false).AsTask();
+			return FromHandle(handle, continuation, ct, willBlockForResult: false).AsTask();
 		}
 
 	}
 
 	/// <summary>FDBFuture wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
-	public struct FdbFuture<T> : IDisposable
+	public class FdbFuture<T> : IDisposable
 	{
 		//EXPERIMENTAL: defined as a struct to try and remove some memory allocations...
 
@@ -92,6 +92,8 @@ namespace FoundationDb.Client
 
 		private int m_flags;
 
+		private CancellationTokenRegistration m_ctr;
+
 		private const int DISPOSED = 1;
 		private const int BLOCKING = 2;
 
@@ -99,10 +101,12 @@ namespace FoundationDb.Client
 
 		#region Constructors...
 
-		internal FdbFuture(FutureHandle handle, Func<FutureHandle, T> selector, bool willBlockForResult)
+		internal FdbFuture(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct, bool willBlockForResult)
 		{
 			if (handle == null) throw new ArgumentNullException("handle");
 			if (selector == null) throw new ArgumentNullException("selector");
+
+			ct.ThrowIfCancellationRequested();
 
 			m_handle = handle;
 			m_tcs = new TaskCompletionSource<T>();
@@ -119,15 +123,20 @@ namespace FoundationDb.Client
 				if (FdbNativeStub.FutureIsReady(handle/*.Handle*/))
 				{ // either got a value or an error
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already ready");
-					TrySetTaskResult(ref this, false);
+					TrySetTaskResult(fromCallback: false);
 				}
 				else if (willBlockForResult)
 				{ // this future will be consumed synchronously, no need to schedule a callback
 					m_flags |= BLOCKING;
+
+					if (ct.CanBeCanceled) RegisterForCancellation(ct);
 				}
 				else
 				{ // we don't know yet, schedule a callback...
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " will complete later");
+
+					if (ct.CanBeCanceled) RegisterForCancellation(ct);
+
 					// pin the callback to prevent it from behing garbage collected
 					var callback = new FdbFutureCallback(this.CallbackHandler);
 					m_callback = GCHandle.Alloc(callback);
@@ -151,16 +160,26 @@ namespace FoundationDb.Client
 						Cleanup();
 						throw;
 					}
+
 				}
 			}
 		}
 
 		#endregion
 
+		private void RegisterForCancellation(CancellationToken ct)
+		{
+			m_ctr = ct.Register(
+				(_state) => { CancellationHandler(_state); },
+				this,
+				false
+			);
+		}
+
 		/// <summary>Update the Task with the state of a ready Future</summary>
 		/// <param name="future">Future that should be ready</param>
 		/// <returns>True if we got a result, or false in case of error (or invalid state)</returns>
-		private static unsafe bool TrySetTaskResult(ref FdbFuture<T> future, bool fromCallback)
+		private unsafe bool TrySetTaskResult(bool fromCallback)
 		{
 			// note: if fromCallback is true, we are running on the network thread
 			// this means that we have to signal the TCS from the threadpool, if not continuations on the task may run inline.
@@ -168,9 +187,11 @@ namespace FoundationDb.Client
 
 			try
 			{
-				var handle = future.m_handle;
+				var handle = m_handle;
 				if (handle != null && !handle.IsClosed && !handle.IsInvalid)
 				{
+					m_ctr.Dispose();
+
 					if (FdbNativeStub.FutureIsError(handle))
 					{ // it failed...
 						Debug.WriteLine("Future<" + typeof(T).Name + "> has FAILED");
@@ -179,9 +200,9 @@ namespace FoundationDb.Client
 						{ // get the exception from the error code
 							var ex = FdbCore.MapToException(err);
 							if (fromCallback)
-								TrySetExceptionFromThreadPool(future.m_tcs, ex);
+								TrySetExceptionFromThreadPool(m_tcs, ex);
 							else
-								future.m_tcs.TrySetException(ex);
+								m_tcs.TrySetException(ex);
 							return false;
 						}
 						//else: will be handle below
@@ -190,15 +211,15 @@ namespace FoundationDb.Client
 					{ // it succeeded...
 						// try to get the result...
 						Debug.WriteLine("Future<" + typeof(T).Name + "> has completed successfully");
-						var selector = future.m_resultSelector;
+						var selector = m_resultSelector;
 						if (selector != null)
 						{
 							//note: result selector will execute from network thread, but this should be our own code that only calls into some fdb_future_get_XXXX(), which should be safe...
-							var result = future.m_resultSelector(handle);
+							var result = m_resultSelector(handle);
 							if (fromCallback)
-								TrySetResultFromThreadPool(future.m_tcs, result);
+								TrySetResultFromThreadPool(m_tcs, result);
 							else
-								future.m_tcs.TrySetResult(result);
+								m_tcs.TrySetResult(result);
 							return true;
 						}
 						//else: it will be handled below
@@ -207,22 +228,22 @@ namespace FoundationDb.Client
 
 				// most probably the future was cancelled or we are shutting down...
 				if (fromCallback)
-					TrySetCancelledFromThreadPool(future.m_tcs);
+					TrySetCancelledFromThreadPool(m_tcs);
 				else
-					future.m_tcs.TrySetCanceled();
+					m_tcs.TrySetCanceled();
 				return false;	
 			}
 			catch (Exception e)
 			{ // something went wrong
 				if (fromCallback)
-					TrySetExceptionFromThreadPool(future.m_tcs, e);
+					TrySetExceptionFromThreadPool(m_tcs, e);
 				else
-					future.m_tcs.TrySetException(e);
+					m_tcs.TrySetException(e);
 				return false;
 			}
 			finally
 			{
-				future.Cleanup();
+				Cleanup();
 			}
 		}
 
@@ -249,6 +270,7 @@ namespace FoundationDb.Client
 			var flags = m_flags;
 			if ((flags & DISPOSED) == 0 && Interlocked.CompareExchange(ref m_flags, flags | DISPOSED, flags) == flags)
 			{
+				m_ctr.Dispose();
 				if (!m_handle.IsClosed) m_handle.Dispose();
 				if (m_callback.IsAllocated) m_callback.Free();
 				if (m_tcs.Task.IsCompleted)
@@ -261,7 +283,20 @@ namespace FoundationDb.Client
 		/// <summary>Try to abort the task</summary>
 		public void Abort()
 		{
-			Cleanup();
+			try
+			{
+				if (!m_tcs.Task.IsCompleted)
+				{
+					if (FdbCore.IsNetworkThread)
+						TrySetCancelledFromThreadPool(m_tcs);
+					else
+						m_tcs.TrySetCanceled();
+				}
+			}
+			finally
+			{
+				Cleanup();
+			}
 		}
 
 		void IDisposable.Dispose()
@@ -274,18 +309,28 @@ namespace FoundationDb.Client
 		/// <param name="parameter">Paramter to the callback (unused)</param>
 		private void CallbackHandler(IntPtr futureHandle, IntPtr parameter)
 		{
-			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId);
+			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
 
 			//TODO verify if this is our handle ?
 
 			try
 			{
-				TrySetTaskResult(ref this, true);
+				// note: we are always called from the network thread
+				TrySetTaskResult(fromCallback: true);
 			}
 			finally
 			{
 				Cleanup();
 			}
+		}
+
+		private static void CancellationHandler(object state)
+		{
+			var future = (FdbFuture<T>)state;
+
+			Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancell(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+
+			future.Abort();
 		}
 
 		/// <summary>Returns a Task that wraps the FDBFuture</summary>
@@ -352,7 +397,7 @@ namespace FoundationDb.Client
 #endif
 
 				// the callback may have already fire, but try to do it anyway...
-				TrySetTaskResult(ref this, false);
+				TrySetTaskResult(fromCallback: false);
 			}
 
 			// throw underlying exception if it failed

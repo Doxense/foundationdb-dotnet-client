@@ -84,34 +84,38 @@ namespace FoundationDb.Client
 			return null;
 		}
 
-		public Task<byte[]> GetAsync(string key, bool snapshot = false)
+		public Task<byte[]> GetAsync(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
 
 			FdbCore.EnsureNotOnNetworkThread();
 
 			var keyBytes = GetKeyBytes(key);
 
 			var future = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
-			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h));
+			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h), ct);
 		}
 
-		public byte[] Get(string key, bool snapshot = false)
+		public byte[] Get(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
 
 			FdbCore.EnsureNotOnNetworkThread();
 
 			var keyBytes = GetKeyBytes(key);
 
 			var handle = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
-			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResult(h), willBlockForResult: true))
+			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResult(h), ct, willBlockForResult: true))
 			{
 				return future.GetResult();
 			}
 		}
 
-		public Task<long> GetReadVersion()
+		public Task<long> GetReadVersion(CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 
@@ -126,10 +130,12 @@ namespace FoundationDb.Client
 					Debug.WriteLine("fdb_future_get_version() => err=" + err + ", version=" + version);
 					FdbCore.DieOnError(err);
 					return version;
-				});
+				},
+				ct
+			);
 		}
 
-		public void Set(string key, byte[] value)
+		public void Set(string key, byte[] value, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 			if (key == null) throw new ArgumentNullException("key");
@@ -138,7 +144,7 @@ namespace FoundationDb.Client
 			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, value, value.Length);
 		}
 
-		public void Set(string key, string value)
+		public void Set(string key, string value, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 			if (key == null) throw new ArgumentNullException("key");
@@ -151,7 +157,7 @@ namespace FoundationDb.Client
 			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, valueBytes, valueBytes.Length);
 		}
 
-		public void Clear(string key)
+		public void Clear(string key, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 			if (key == null) throw new ArgumentNullException("key");
@@ -162,19 +168,23 @@ namespace FoundationDb.Client
 			FdbNativeStub.TransactionClear(m_handle, keyBytes, keyBytes.Length);
 		}
 
-		public Task CommitAsync()
+		public Task CommitAsync(CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
 
 			FdbCore.EnsureNotOnNetworkThread();
 
 			var future = FdbNativeStub.TransactionCommit(m_handle);
-			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null);
+			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
 		}
 
-		public void Commit()
+		public void Commit(CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
 
 			FdbCore.EnsureNotOnNetworkThread();
 
@@ -183,7 +193,7 @@ namespace FoundationDb.Client
 			{
 				// calls fdb_transaction_commit
 				handle = FdbNativeStub.TransactionCommit(m_handle);
-				using (var future = FdbFuture.FromHandle<object>(handle, (h) => null, willBlockForResult: true))
+				using (var future = FdbFuture.FromHandle<object>(handle, (h) => null, ct, willBlockForResult: true))
 				{
 					future.Wait();
 				}

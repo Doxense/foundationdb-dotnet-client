@@ -30,6 +30,7 @@ using System;
 using FoundationDb.Client.Native;
 using System.Diagnostics;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace FoundationDb.Client
 {
@@ -63,14 +64,15 @@ namespace FoundationDb.Client
 			}
 		}
 
-		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName)
+		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
 
 			var future = FdbNativeStub.ClusterCreateDatabase(m_handle, databaseName);
 
-			return FdbFuture.CreateTaskFromHandle(future,
+			return FdbFuture.CreateTaskFromHandle(
+				future,
 				(h) =>
 				{
 					DatabaseHandle database;
@@ -83,7 +85,9 @@ namespace FoundationDb.Client
 					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
 
 					return new FdbDatabase(this, database, databaseName);
-				});
+				},
+				ct
+			);
 		}
 
 	}
