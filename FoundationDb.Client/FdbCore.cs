@@ -43,6 +43,17 @@ namespace FoundationDb.Client
 		public static string NativeLibPath = ".";
 		public static string TracePath = null;
 
+		internal static readonly ArraySegment<byte> Empty = new ArraySegment<byte>(new byte[0]);
+
+		/// <summary>Keys cannot exceed 10,000 bytes</summary>
+		internal const int MaxKeySize = 10 * 1000;
+
+		/// <summary>Values cannot exceed 100,000 bytes</summary>
+		internal const int MaxValueSize = 100 * 1000;
+
+		/// <summary>Maximum size of total written keys and values by a transaction</summary>
+		internal const int MaxTransactionWriteSize = 10 * 1024 * 1024;
+
 		public static int GetMaxApiVersion()
 		{
 			return FdbNativeStub.GetMaxApiVersion();
@@ -82,6 +93,35 @@ namespace FoundationDb.Client
 					throw new InvalidOperationException(msg);
 			}
 		}
+
+		#region Key/Value serialization
+
+		internal static ArraySegment<byte> GetKeyBytes(string key)
+		{
+			if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", "key");
+			return new ArraySegment<byte>(Encoding.UTF8.GetBytes(key));
+		}
+
+		internal static void EnsureKeyIsValid(ArraySegment<byte> key)
+		{
+			if (key.Count == 0) throw new ArgumentException("Key cannot be null or empty.", "key");
+			if (key.Count > FdbCore.MaxKeySize) throw new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, FdbCore.MaxKeySize), "key");
+		}
+
+		internal static ArraySegment<byte> GetValueBytes(string value)
+		{
+			if (value == null) throw new ArgumentNullException("Value cannot be null.", "value");
+			if (value.Length == 0) return FdbCore.Empty;
+			return new ArraySegment<byte>(Encoding.UTF8.GetBytes(value));
+		}
+
+		internal static void EnsureValueIsValid(ArraySegment<byte> value)
+		{
+			if (value.Count == 0) throw new ArgumentNullException("value cannot be null.", "value");
+			if (value.Count > FdbCore.MaxValueSize) throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, FdbCore.MaxValueSize), "value");
+		}
+
+		#endregion
 
 		#region Network Event Loop...
 

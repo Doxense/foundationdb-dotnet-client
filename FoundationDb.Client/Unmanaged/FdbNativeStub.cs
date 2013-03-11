@@ -233,12 +233,16 @@ namespace FoundationDb.Client.Native
 		internal static byte[] ToNativeString(string value, bool nullTerminated)
 		{
 			if (value == null) return null;
-			// NULL terminated ANSI string
-			var result = new byte[value.Length + (nullTerminated ? 1: 0)];
-			int p = 0;
-			foreach (var c in value)
-			{ // poor man's ANSI conversion
-				result[p++] = (byte)c;
+
+			byte[] result;
+			if (nullTerminated)
+			{ // NULL terminated ANSI string
+				result = new byte[value.Length + 1];
+				Encoding.Default.GetBytes(value, 0, value.Length, result, 0);
+			}
+			else
+			{
+				result = Encoding.Default.GetBytes(value);
 			}
 			return result;
 		}
@@ -539,11 +543,9 @@ namespace FoundationDb.Client.Native
 			return s_stub_fdbFutureGetVersion(future, out version);
 		}
 
-		public static FutureHandle TransactionGet(TransactionHandle transaction, byte[] keyName, int keyLength, bool snapshot)
+		public static FutureHandle TransactionGet(TransactionHandle transaction, ArraySegment<byte> key, bool snapshot)
 		{
 			EnsureLibraryIsLoaded();
-			if (keyName == null) throw new ArgumentNullException("keyName");
-			if (keyName.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
 
 			var future = new FutureHandle();
 
@@ -551,10 +553,10 @@ namespace FoundationDb.Client.Native
 			try { }
 			finally
 			{
-				fixed (byte* ptrKey = keyName)
+				fixed (byte* ptrKey = key.Array)
 				{
-					var handle = s_stub_fdbTransactionGet(transaction, ptrKey, keyLength, snapshot);
-					Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "], " + snapshot + ") => 0x" + handle.ToString("x"));
+					var handle = s_stub_fdbTransactionGet(transaction, ptrKey + key.Offset, key.Count, snapshot);
+					Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", [" + key.Count + "], " + snapshot + ") => 0x" + handle.ToString("x"));
 					future.TrySetHandle(handle);
 				}
 			}
@@ -621,32 +623,26 @@ namespace FoundationDb.Client.Native
 			return err;
 		}
 
-		public static void TransactionSet(TransactionHandle transaction, byte[] key, int keyLength, byte[] value, int valueLength)
+		public static void TransactionSet(TransactionHandle transaction, ArraySegment<byte> key, ArraySegment<byte> value)
 		{
-			if (key == null) throw new ArgumentNullException("key");
-			if (value == null) throw new ArgumentNullException("value");
-			if (key.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
-			if (value.Length < valueLength) throw new ArgumentOutOfRangeException("valueLength");
-
 			EnsureLibraryIsLoaded();
-			fixed (byte* pKey = key)
-			fixed (byte* pValue = value)
+
+			fixed (byte* pKey = key.Array)
+			fixed (byte* pValue = value.Array)
 			{
-				Debug.WriteLine("fdb_transaction_set(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "], [" + valueLength + "])");
-				s_stub_fdbTransactionSet(transaction, pKey, keyLength, pValue, valueLength);
+				Debug.WriteLine("fdb_transaction_set(0x" + transaction.Handle.ToString("x") + ", [" + key.Count + "], [" + value.Count + "])");
+				s_stub_fdbTransactionSet(transaction, pKey + key.Offset, key.Count, pValue + value.Offset, value.Count);
 			}
 		}
 
-		public static void TransactionClear(TransactionHandle transaction, byte[] key, int keyLength)
+		public static void TransactionClear(TransactionHandle transaction, ArraySegment<byte> key)
 		{
-			if (key == null) throw new ArgumentNullException("key");
-			if (key.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
-
 			EnsureLibraryIsLoaded();
-			fixed (byte* pKey = key)
+
+			fixed (byte* pKey = key.Array)
 			{
-				Debug.WriteLine("fdb_transaction_clear(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "])");
-				s_stub_fdbTransactionClear(transaction, pKey, keyLength);
+				Debug.WriteLine("fdb_transaction_clear(0x" + transaction.Handle.ToString("x") + ", [" + key.Count + "])");
+				s_stub_fdbTransactionClear(transaction, pKey + key.Offset, key.Count);
 			}
 		}
 

@@ -58,11 +58,6 @@ namespace FoundationDb.Client
 
 		internal TransactionHandle Handle { get { return m_handle; } }
 
-		private byte[] GetKeyBytes(string key)
-		{
-			return Encoding.Default.GetBytes(key);
-		}
-
 		private static byte[] GetValueResult(FutureHandle h)
 		{
 			bool present;
@@ -82,71 +77,6 @@ namespace FoundationDb.Client
 				return value;
 			}
 			return null;
-		}
-
-		public Task<byte[]> GetAsync(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			ThrowIfDisposed();
-
-			ct.ThrowIfCancellationRequested();
-
-			FdbCore.EnsureNotOnNetworkThread();
-
-			var keyBytes = GetKeyBytes(key);
-
-			var future = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
-			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h), ct);
-		}
-
-		public Task<List<KeyValuePair<string, byte[]>>> GetBatchAsync(IEnumerable<string> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			ct.ThrowIfCancellationRequested();
-			return GetBatchAsync(keys.ToArray(), snapshot, ct);
-		}
-
-		public async Task<List<KeyValuePair<string, byte[]>>> GetBatchAsync(string[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			ThrowIfDisposed();
-
-			ct.ThrowIfCancellationRequested();
-
-			FdbCore.EnsureNotOnNetworkThread();
-
-			var tasks = new List<Task<byte[]>>(keys.Length);
-			for (int i = 0; i < keys.Length; i++)
-			{
-				tasks.Add(Task.Factory.StartNew((_state) =>
-				{
-					int index = (int)_state;
-					var keyBytes = GetKeyBytes(keys[index]);
-					var future = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
-					return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h), ct);
-
-				}, i, ct).Unwrap());
-			}
-
-			var results = await Task.WhenAll(tasks);
-
-			return results
-				.Select((data, i) => new KeyValuePair<string, byte[]>(keys[i], data))
-				.ToList();
-		}
-
-		public byte[] Get(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			ThrowIfDisposed();
-
-			ct.ThrowIfCancellationRequested();
-
-			FdbCore.EnsureNotOnNetworkThread();
-
-			var keyBytes = GetKeyBytes(key);
-
-			var handle = FdbNativeStub.TransactionGet(m_handle, keyBytes, keyBytes.Length, snapshot);
-			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResult(h), ct, willBlockForResult: true))
-			{
-				return future.GetResult();
-			}
 		}
 
 		public Task<long> GetReadVersion(CancellationToken ct = default(CancellationToken))
@@ -169,38 +99,177 @@ namespace FoundationDb.Client
 			);
 		}
 
-		public void Set(string key, byte[] value, CancellationToken ct = default(CancellationToken))
-		{
-			ThrowIfDisposed();
-			if (key == null) throw new ArgumentNullException("key");
+		#region Get...
 
-			var keyBytes = GetKeyBytes(key);
-			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, value, value.Length);
+		internal Task<byte[]> GetCoreAsync(ArraySegment<byte> key, bool snapshot, CancellationToken ct)
+		{
+			FdbCore.EnsureKeyIsValid(key);
+
+			var future = FdbNativeStub.TransactionGet(m_handle, key, snapshot);
+			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h), ct);
 		}
 
-		public void Set(string key, string value, CancellationToken ct = default(CancellationToken))
+		internal byte[] GetCore(ArraySegment<byte> key, bool snapshot, CancellationToken ct)
+		{
+			FdbCore.EnsureKeyIsValid(key);
+
+			var handle = FdbNativeStub.TransactionGet(m_handle, key, snapshot);
+			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResult(h), ct, willBlockForResult: true))
+			{
+				return future.GetResult();
+			}
+		}
+
+		/// <summary>Returns the value of a particular key</summary>
+		/// <param name="key">Key to retrieve (UTF-8)</param>
+		/// <param name="snapshot"></param>
+		/// <param name="ct">CancellationToken used to cancel this operation</param>
+		/// <returns>Task that will return the value of the key if it is found, null if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public Task<byte[]> GetAsync(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			FdbCore.EnsureNotOnNetworkThread();
+
+			return GetCoreAsync(FdbCore.GetKeyBytes(key), snapshot, ct);
+		}
+
+		/// <summary>Returns the value of a particular key</summary>
+		/// <param name="key">Key to retrieve</param>
+		/// <param name="snapshot"></param>
+		/// <param name="ct">CancellationToken used to cancel this operation</param>
+		/// <returns>Task that will return null if the value of the key if it is found, null if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public Task<byte[]> GetAsync(byte[] key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			FdbCore.EnsureNotOnNetworkThread();
+
+			return GetCoreAsync(new ArraySegment<byte>(key), snapshot, ct);
+		}
+
+		/// <summary>Returns the value of a particular key</summary>
+		/// <param name="key">Key to retrieve (UTF-8)</param>
+		/// <param name="snapshot"></param>
+		/// <param name="ct">CancellationToken used to cancel this operation</param>
+		/// <returns>Returns the value of the key if it is found, or null if the key does not exist</returns>
+		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public byte[] Get(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
+			ct.ThrowIfCancellationRequested();
+			FdbCore.EnsureNotOnNetworkThread();
+
+			return GetCore(FdbCore.GetKeyBytes(key), snapshot, ct);
+		}
+
+		public Task<List<KeyValuePair<string, byte[]>>> GetBatchAsync(IEnumerable<string> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			return GetBatchAsync(keys.ToArray(), snapshot, ct);
+		}
+
+		public async Task<List<KeyValuePair<string, byte[]>>> GetBatchAsync(string[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
+
+			FdbCore.EnsureNotOnNetworkThread();
+
+			var tasks = new List<Task<byte[]>>(keys.Length);
+			for (int i = 0; i < keys.Length; i++)
+			{
+				//TODO: optimize to not have to allocate a scope
+				tasks.Add(Task.Factory.StartNew((_state) => this.GetCoreAsync(FdbCore.GetKeyBytes(keys[(int)_state]), snapshot, ct), i, ct).Unwrap());
+			}
+
+			var results = await Task.WhenAll(tasks);
+
+			return results
+				.Select((data, i) => new KeyValuePair<string, byte[]>(keys[i], data))
+				.ToList();
+		}
+
+		#endregion
+
+		#region Set...
+
+		internal void SetCore(ArraySegment<byte> key, ArraySegment<byte> value)
+		{
+			FdbCore.EnsureKeyIsValid(key);
+			FdbCore.EnsureValueIsValid(value);
+
+			FdbNativeStub.TransactionSet(m_handle, key, value);
+		}
+
+		public void Set(string key, byte[] value)
+		{
 			if (key == null) throw new ArgumentNullException("key");
 			if (value == null) throw new ArgumentNullException("value");
 
+			ThrowIfDisposed();
 			FdbCore.EnsureNotOnNetworkThread();
 
-			var keyBytes = GetKeyBytes(key);
-			var valueBytes = Encoding.UTF8.GetBytes(value);
-			FdbNativeStub.TransactionSet(m_handle, keyBytes, keyBytes.Length, valueBytes, valueBytes.Length);
+			SetCore(FdbCore.GetKeyBytes(key), new ArraySegment<byte>(value));
 		}
 
-		public void Clear(string key, CancellationToken ct = default(CancellationToken))
+		public void Set(string key, string value)
 		{
+			if (key == null) throw new ArgumentNullException("key");
+			if (value == null) throw new ArgumentNullException("value");
+
 			ThrowIfDisposed();
+			FdbCore.EnsureNotOnNetworkThread();
+
+			SetCore(FdbCore.GetKeyBytes(key), FdbCore.GetValueBytes(value));
+		}
+
+		#endregion
+
+		#region Clear...
+
+		internal void ClearCore(ArraySegment<byte> key)
+		{
+			FdbCore.EnsureKeyIsValid(key);
+
+			FdbNativeStub.TransactionClear(m_handle, key);
+		}
+
+		public void Clear(byte[] key)
+		{
 			if (key == null) throw new ArgumentNullException("key");
 
+			ThrowIfDisposed();
 			FdbCore.EnsureNotOnNetworkThread();
 
-			var keyBytes = GetKeyBytes(key);
-			FdbNativeStub.TransactionClear(m_handle, keyBytes, keyBytes.Length);
+			ClearCore(new ArraySegment<byte>(key));
 		}
+
+		public void Clear(string key)
+		{
+			if (key == null) throw new ArgumentNullException("key");
+
+			ThrowIfDisposed();
+			FdbCore.EnsureNotOnNetworkThread();
+
+			ClearCore(FdbCore.GetKeyBytes(key));
+		}
+
+		#endregion
+
+		#region Commit...
 
 		public Task CommitAsync(CancellationToken ct = default(CancellationToken))
 		{
@@ -237,6 +306,18 @@ namespace FoundationDb.Client
 				if (handle != null) handle.Dispose();
 			}
 		}
+
+		#endregion
+
+		#region Rollback...
+
+		public void Rollback()
+		{
+			//TODO: refactor code between Rollback() and Dispose() ?
+			this.Dispose();
+		}
+
+		#endregion
 
 		private void ThrowIfDisposed()
 		{
