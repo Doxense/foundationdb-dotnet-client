@@ -47,6 +47,8 @@ namespace FoundationDb.Client
 		private FdbDatabase m_database;
 		private TransactionHandle m_handle;
 		private bool m_disposed;
+		/// <summary>Estimated size of written data (in bytes)</summary>
+		private int m_payloadBytes;
 
 		internal FdbTransaction(FdbDatabase database, TransactionHandle handle)
 		{
@@ -212,6 +214,7 @@ namespace FoundationDb.Client
 			FdbCore.EnsureValueIsValid(value);
 
 			FdbNativeStub.TransactionSet(m_handle, key, value);
+			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count);
 		}
 
 		public void Set(string key, byte[] value)
@@ -245,6 +248,7 @@ namespace FoundationDb.Client
 			FdbCore.EnsureKeyIsValid(key);
 
 			FdbNativeStub.TransactionClear(m_handle, key);
+			Interlocked.Add(ref m_payloadBytes, key.Count);
 		}
 
 		public void Clear(byte[] key)
