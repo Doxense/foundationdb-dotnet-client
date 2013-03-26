@@ -133,11 +133,7 @@ namespace FoundationDb.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public Task<byte[]> GetAsync(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			ct.ThrowIfCancellationRequested();
-			ThrowIfDisposed();
-			FdbCore.EnsureNotOnNetworkThread();
-
-			return GetCoreAsync(FdbCore.GetKeyBytes(key), snapshot, ct);
+			return GetAsync(FdbCore.GetKeyBytes(key), snapshot, ct);
 		}
 
 		/// <summary>Returns the value of a particular key</summary>
@@ -151,11 +147,26 @@ namespace FoundationDb.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public Task<byte[]> GetAsync(byte[] key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			return GetAsync(new ArraySegment<byte>(key), snapshot, ct);
+		}
+
+
+		/// <summary>Returns the value of a particular key</summary>
+		/// <param name="key">Key to retrieve</param>
+		/// <param name="snapshot"></param>
+		/// <param name="ct">CancellationToken used to cancel this operation</param>
+		/// <returns>Task that will return null if the value of the key if it is found, null if the key does not exist, or an exception</returns>
+		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public Task<byte[]> GetAsync(ArraySegment<byte> key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
 			ct.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			FdbCore.EnsureNotOnNetworkThread();
 
-			return GetCoreAsync(new ArraySegment<byte>(key), snapshot, ct);
+			return GetCoreAsync(key, snapshot, ct);
 		}
 
 		/// <summary>Returns the value of a particular key</summary>
@@ -169,11 +180,39 @@ namespace FoundationDb.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public byte[] Get(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			return Get(FdbCore.GetKeyBytes(key), snapshot, ct);
+		}
+
+		/// <summary>Returns the value of a particular key</summary>
+		/// <param name="key">Key to retrieve (UTF-8)</param>
+		/// <param name="snapshot"></param>
+		/// <param name="ct">CancellationToken used to cancel this operation</param>
+		/// <returns>Returns the value of the key if it is found, or null if the key does not exist</returns>
+		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public byte[] Get(byte[] key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			return Get(new ArraySegment<byte>(key), snapshot, ct);
+		}
+
+		/// <summary>Returns the value of a particular key</summary>
+		/// <param name="key">Key to retrieve (UTF-8)</param>
+		/// <param name="snapshot"></param>
+		/// <param name="ct">CancellationToken used to cancel this operation</param>
+		/// <returns>Returns the value of the key if it is found, or null if the key does not exist</returns>
+		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
+		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
+		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
+		public byte[] Get(ArraySegment<byte> key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
 			ThrowIfDisposed();
 			ct.ThrowIfCancellationRequested();
 			FdbCore.EnsureNotOnNetworkThread();
 
-			return GetCore(FdbCore.GetKeyBytes(key), snapshot, ct);
+			return GetCore(key, snapshot, ct);
 		}
 
 		public Task<List<KeyValuePair<string, byte[]>>> GetBatchAsync(IEnumerable<string> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
@@ -215,6 +254,14 @@ namespace FoundationDb.Client
 
 			FdbNativeStub.TransactionSet(m_handle, key, value);
 			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count);
+		}
+
+		public void Set(ArraySegment<byte> keyBytes, ArraySegment<byte> valueBytes)
+		{
+			ThrowIfDisposed();
+			FdbCore.EnsureNotOnNetworkThread();
+
+			SetCore(keyBytes, valueBytes);
 		}
 
 		public void Set(string key, byte[] value)

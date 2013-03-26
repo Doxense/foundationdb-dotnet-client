@@ -1,5 +1,7 @@
 ﻿using System;
 using FoundationDb.Client;
+using FoundationDb.Client.Tuples;
+using FoundationDb.Client.Tables;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -259,26 +261,52 @@ namespace FoundationDb.Tests.Sandbox
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
-						await TestSimpleTransactionAsync(db);
+						//await TestSimpleTransactionAsync(db);
 
-						await BenchInsertSmallKeysAsync(db, N, 16); // some guid
-						await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
-						await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
-						await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
-						await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
-						await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
+						//await BenchInsertSmallKeysAsync(db, N, 16); // some guid
+						//await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
+						//await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
+						//await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
+						//await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
+						//await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
 
-						await BenchSerialReadAsync(db, N);
+						//await BenchSerialReadAsync(db, N);
 
-						await BenchConcurrentReadAsync(db, N);
+						//await BenchConcurrentReadAsync(db, N);
 
-						BenchSerialReadBlocking(db, N);
+						//BenchSerialReadBlocking(db, N);
 
-						await BenchClearAsync(db, N);
+						//await BenchClearAsync(db, N);
 
-						await BenchUpdateSameKeyLotsOfTimesAsync(db, N);
+						//await BenchUpdateSameKeyLotsOfTimesAsync(db, N);
 
-						await BenchUpdateLotsOfKeysAsync(db, N);
+						//await BenchUpdateLotsOfKeysAsync(db, N);
+
+						var foos = db.Table("foos");
+						Console.WriteLine(ToHexArray(foos.GetKeyBytes("hello")));
+						Console.WriteLine(ToHexArray(foos.GetKeyBytes(new byte[] { 65, 66, 67 })));
+						Console.WriteLine(ToHexArray(foos.GetKeyBytes(FdbTuple.Create("hello", 123))));
+
+						string rndid = Guid.NewGuid().ToString();
+						Console.WriteLine(ToHexArray(foos.GetKeyBytes(rndid)));
+
+						var key = foos.Key(123);
+						Console.WriteLine(key.Count);
+						Console.WriteLine(String.Join(", ", key.ToArray()));
+
+						using (var trans = db.BeginTransaction())
+						{
+							foos.Set(trans, rndid, Encoding.UTF8.GetBytes("This is the value of " + rndid));
+							await trans.CommitAsync();
+						}
+
+						using (var trans = db.BeginTransaction())
+						{
+							byte[] value = await foos.GetAsync(trans, rndid);
+							Console.WriteLine(ToHexArray(value));
+							value = await trans.GetAsync(FdbTuple.Create("foos", rndid));
+							Console.WriteLine(ToHexArray(value));
+						}
 
 						Console.WriteLine("time to say goodbye...");
 					}
@@ -289,6 +317,34 @@ namespace FoundationDb.Tests.Sandbox
 				Console.WriteLine("### DONE ###");
 				FdbCore.Stop();
 			}
+		}
+
+		private static string ToHexArray(byte[] buffer)
+		{
+			var sb = new StringBuilder();
+			sb.Append("[" + buffer.Length + "]{");
+			for (int i = 0; i < buffer.Length; i++)
+			{
+				if (i == 0) sb.Append(' '); else sb.Append(", ");
+				sb.Append(buffer[i]);
+			}
+			sb.AppendLine("}");
+			sb.Append("> \"" + Encoding.UTF8.GetString(buffer) + "\"");
+			return sb.ToString();
+		}
+
+		private static string ToHexArray(ArraySegment<byte> buffer)
+		{
+			var sb = new StringBuilder();
+			sb.Append("[" + buffer.Count + "]{");
+			for(int i=0;i<buffer.Count;i++)
+			{
+				if (i == 0) sb.Append(' '); else sb.Append(", ");
+				sb.Append(buffer.Array[buffer.Offset + i]);
+			}
+			sb.AppendLine("}");
+			sb.Append(System.Web.HttpUtility.JavaScriptStringEncode(Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count)));
+			return sb.ToString();
 		}
 	}
 }

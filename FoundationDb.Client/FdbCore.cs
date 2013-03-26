@@ -96,7 +96,7 @@ namespace FoundationDb.Client
 
 		#region Key/Value serialization
 
-		internal static ArraySegment<byte> GetKeyBytes(string key)
+		public static ArraySegment<byte> GetKeyBytes(string key)
 		{
 			if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", "key");
 			return new ArraySegment<byte>(Encoding.UTF8.GetBytes(key));
@@ -106,9 +106,10 @@ namespace FoundationDb.Client
 		{
 			if (key.Count == 0) throw new ArgumentException("Key cannot be null or empty.", "key");
 			if (key.Count > FdbCore.MaxKeySize) throw new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, FdbCore.MaxKeySize), "key");
+			if (key.Array == null) throw new ArgumentException("Key cannot have a null buffer", "key.Array");
 		}
 
-		internal static ArraySegment<byte> GetValueBytes(string value)
+		public static ArraySegment<byte> GetValueBytes(string value)
 		{
 			if (value == null) throw new ArgumentNullException("Value cannot be null.", "value");
 			if (value.Length == 0) return FdbCore.Empty;

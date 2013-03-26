@@ -28,7 +28,7 @@
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
+    <DefineConstants>TRACE;NET_4_5</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
@@ -48,6 +48,12 @@
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
+    <Compile Include="Layers\Tuples\FdbSubspace.cs" />
+    <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
+    <Compile Include="Layers\Tuples\FdbTuple.cs" />
+    <Compile Include="Layers\Tables\FdbTable.cs" />
+    <Compile Include="Utils\BinaryWriteBuffer.cs" />
+    <Compile Include="Utils\Contract.cs" />
     <Compile Include="Unmanaged\FdbKeyValue.cs" />
     <Compile Include="Unmanaged\TransactionHandle.cs" />
     <Compile Include="Unmanaged\FdbNativeStub.cs" />
@@ -63,6 +69,7 @@
     <Compile Include="Unmanaged\UnmanagedLibrary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
