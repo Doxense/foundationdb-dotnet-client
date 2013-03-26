@@ -165,9 +165,18 @@ namespace FoundationDb.Client
 				var thread = s_eventLoop;
 				if (thread != null && thread.IsAlive)
 				{
-					thread.Abort();
-					thread.Join(TimeSpan.FromSeconds(1));
-					s_eventLoop = null;
+					try
+					{
+						thread.Abort();
+						thread.Join(TimeSpan.FromSeconds(1));
+					}
+					catch (ThreadAbortException)
+					{
+					}
+					finally
+					{
+						s_eventLoop = null;
+					}
 				}
 			}
 		}
