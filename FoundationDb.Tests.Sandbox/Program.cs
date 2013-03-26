@@ -66,21 +66,27 @@ namespace FoundationDb.Tests.Sandbox
 			}
 		}
 
-		static async Task BenchInsertSmallKeysAsync(FdbDatabase db, int N)
+		static async Task BenchInsertSmallKeysAsync(FdbDatabase db, int N, int size)
 		{
-			// insert a lot of small keys, in a single transaction
+			// insert a lot of small key size, in a single transaction
+			var rnd = new Random();
+			var tmp = new byte[size];
 
-			var sw = Stopwatch.StartNew();
-			using (var trans = db.BeginTransaction())
+			for (int k = 0; k <= 4; k++)
 			{
-				for (int i = 0; i < N; i++)
+				var sw = Stopwatch.StartNew();
+				using (var trans = db.BeginTransaction())
 				{
-					trans.Set("hello" + i, "world" + i);
+					for (int i = 0; i < N; i++)
+					{
+						rnd.NextBytes(tmp);
+						trans.Set("hello" + i.ToString(), tmp);
+					}
+					await trans.CommitAsync();
 				}
-				await trans.CommitAsync();
+				sw.Stop();
+				Console.WriteLine("Took " + sw.Elapsed + " to insert " + N + " " + size + "-bytes items (" + (sw.Elapsed.TotalMilliseconds / N) + "/write)");
 			}
-			sw.Stop();
-			Console.WriteLine("Took " + sw.Elapsed + " to insert " + N + " items (" + (sw.Elapsed.TotalMilliseconds / N) + "/write)");
 		}
 
 		static async Task BenchSerialReadAsync(FdbDatabase db, int N)
@@ -253,19 +259,24 @@ namespace FoundationDb.Tests.Sandbox
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
-						//await TestSimpleTransactionAsync(db);
+						await TestSimpleTransactionAsync(db);
 
-						//await BenchInsertSmallKeysAsync(db, N);
+						await BenchInsertSmallKeysAsync(db, N, 16); // some guid
+						await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
+						await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
+						await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
+						await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
+						await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
 
-						//await BenchSerialReadAsync(db, N);
+						await BenchSerialReadAsync(db, N);
 
-						//await BenchConcurrentReadAsync(db, N);
+						await BenchConcurrentReadAsync(db, N);
 
-						//await BenchSerialReadBlocking(db, N);
+						BenchSerialReadBlocking(db, N);
 
-						//await BenchClearAsync(db, N);
+						await BenchClearAsync(db, N);
 
-						//await BenchUpdateSameKeyLotsOfTimesAsync(db, N);
+						await BenchUpdateSameKeyLotsOfTimesAsync(db, N);
 
 						await BenchUpdateLotsOfKeysAsync(db, N);
 
