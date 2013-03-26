@@ -86,6 +86,8 @@ namespace FoundationDb.Client
 		/// <summary>Func used to extract the result of this FDBFuture</summary>
 		private Func<FutureHandle, T> m_resultSelector;
 
+		private ExecutionContext m_context;
+
 		/// <summary>Used to pin the callback handler.</summary>
 		/// <remarks>It should be alive at least as long has the future handle, so only call Free() after fdb_future_destroy !</remarks>
 		private GCHandle m_callback;
@@ -113,6 +115,7 @@ namespace FoundationDb.Client
 			m_resultSelector = selector;
 			m_callback = default(GCHandle);
 			m_flags = 0;
+			m_context = null;
 
 			if (handle.IsInvalid)
 			{ // it's dead, Jim !
@@ -120,7 +123,7 @@ namespace FoundationDb.Client
 			}
 			else
 			{
-				if (FdbNativeStub.FutureIsReady(handle/*.Handle*/))
+				if (FdbNativeStub.FutureIsReady(handle))
 				{ // either got a value or an error
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already ready");
 					TrySetTaskResult(fromCallback: false);
@@ -231,7 +234,15 @@ namespace FoundationDb.Client
 					TrySetCancelledFromThreadPool(m_tcs);
 				else
 					m_tcs.TrySetCanceled();
-				return false;	
+				return false;
+			}
+			catch (ThreadAbortException)
+			{
+				if (fromCallback)
+					TrySetCancelledFromThreadPool(m_tcs);
+				else
+					m_tcs.TrySetCanceled();
+				return false;
 			}
 			catch (Exception e)
 			{ // something went wrong
@@ -247,10 +258,18 @@ namespace FoundationDb.Client
 			}
 		}
 
-		private static void TrySetResultFromThreadPool(TaskCompletionSource<T> tcs, T result)
+		private void TrySetResultFromThreadPool(TaskCompletionSource<T> tcs, T result)
 		{
 			//TODO: try to not allocate a scope
-			Task.Run(() => { tcs.TrySetResult(result); });
+			var context = m_context;
+			if (context != null)
+			{
+				ExecutionContext.Run(context, (_) => { tcs.TrySetResult(result); }, null);
+			}
+			else
+			{
+				ThreadPool.QueueUserWorkItem((_) => { tcs.TrySetResult(result); }, null);
+			}
 		}
 
 		private static void TrySetExceptionFromThreadPool(TaskCompletionSource<T> tcs, Exception e)
@@ -277,6 +296,7 @@ namespace FoundationDb.Client
 				{ // ensure that the task always complete
 					m_tcs.TrySetCanceled();
 				}
+				m_context = null;
 			}
 		}
 
