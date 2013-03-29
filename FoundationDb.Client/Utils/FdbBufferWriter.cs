@@ -10,7 +10,7 @@ namespace FoundationDb.Client.Utils
 	/// <summary>Mini classe capable d'écrire des données binaire dans un buffer qui se resize automatiquement</summary>
 	/// <remarks>IMPORTANT: Cette class n'effectue pas de vérification des paramètres, qui est à la charge de l'appelant ! (le but étant justement d'avoir une structure très simple et rapide)</remarks>
 	[DebuggerDisplay("Position={0}, Capacity={this.Buffer == null ? -1 : this.Buffer.Length}")]
-	public sealed class BinaryWriteBuffer
+	public sealed class FdbBufferWriter
 	{
 
 		#region Constants...
@@ -43,20 +43,20 @@ namespace FoundationDb.Client.Utils
 
 		#region Constructors...
 
-		public BinaryWriteBuffer()
+		public FdbBufferWriter()
 		{ }
 
-		public BinaryWriteBuffer(int capacity)
+		public FdbBufferWriter(int capacity)
 		{
 			this.Buffer = new byte[capacity];
 		}
 
-		public BinaryWriteBuffer(byte[] buffer)
+		public FdbBufferWriter(byte[] buffer)
 		{
 			this.Buffer = buffer;
 		}
 
-		public BinaryWriteBuffer(byte[] buffer, int index)
+		public FdbBufferWriter(byte[] buffer, int index)
 		{
 			this.Buffer = buffer;
 			this.Position = index;
@@ -377,7 +377,7 @@ namespace FoundationDb.Client.Utils
 			// we are only called for values <= -256 or >= 256
 
 			// determine the number of bytes needed to encode the absolute value
-			int bytes = BinaryWriteBuffer.NumberOfBytes((ulong)Math.Abs(value));
+			int bytes = FdbBufferWriter.NumberOfBytes((ulong)Math.Abs(value));
 
 			EnsureBytes(bytes + 1);
 
@@ -438,7 +438,7 @@ namespace FoundationDb.Client.Utils
 			// We are only called for values >= 256
 
 			// determine the number of bytes needed to encode the value
-			int bytes = BinaryWriteBuffer.NumberOfBytes(value);
+			int bytes = FdbBufferWriter.NumberOfBytes(value);
 
 			EnsureBytes(bytes + 1);
 

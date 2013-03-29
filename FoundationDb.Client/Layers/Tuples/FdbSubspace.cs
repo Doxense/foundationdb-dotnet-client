@@ -59,19 +59,19 @@ namespace FoundationDb.Client.Tuples
 			this.Tuple = prefix;
 		}
 
-		public void AppendTo(BinaryWriteBuffer writer)
+		public void AppendTo(FdbBufferWriter writer)
 		{
 			writer.WriteBytes(this.RawPrefix);
 		}
 
-		public void PackTo(BinaryWriteBuffer writer)
+		public void PackTo(FdbBufferWriter writer)
 		{
 			FdbTuplePackers.SerializeTo(writer, this.RawPrefix);
 		}
 
-		private BinaryWriteBuffer OpenBuffer(int extraBytes = 0)
+		private FdbBufferWriter OpenBuffer(int extraBytes = 0)
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			if (extraBytes > 0) writer.EnsureBytes(extraBytes + this.RawPrefix.Length);
 			writer.WriteBytes(this.RawPrefix);
 			return writer;
@@ -93,7 +93,7 @@ namespace FoundationDb.Client.Tuples
 
 		public ArraySegment<byte> GetKeyBytes(IFdbKey tuple)
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			writer.WriteBytes(this.RawPrefix);
 			tuple.PackTo(writer);
 			return writer.ToArraySegment();

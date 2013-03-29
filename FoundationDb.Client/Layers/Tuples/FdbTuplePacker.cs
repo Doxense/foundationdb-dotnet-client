@@ -41,14 +41,14 @@ namespace FoundationDb.Client.Tuples
 
 		private static readonly byte[] Empty = new byte[0];
 
-		public static Action<BinaryWriteBuffer, T> GetSerializer<T>()
+		public static Action<FdbBufferWriter, T> GetSerializer<T>()
 		{
-			return (Action<BinaryWriteBuffer, T>)GetSerializerFor(typeof(T));
+			return (Action<FdbBufferWriter, T>)GetSerializerFor(typeof(T));
 		}
 
 		internal static Delegate GetSerializerFor(Type type)
 		{
-			var typeArgs = new[] { typeof(BinaryWriteBuffer), type };
+			var typeArgs = new[] { typeof(FdbBufferWriter), type };
 			var method = typeof(FdbTuplePackers).GetMethod("SerializeTo", BindingFlags.Static | BindingFlags.Public, null, typeArgs, null);
 			if (method != null)
 			{ // we have a direct serializer
@@ -72,7 +72,7 @@ namespace FoundationDb.Client.Tuples
 
 		}
 
-		public static void SerializeObjectTo(BinaryWriteBuffer writer, object value)
+		public static void SerializeObjectTo(FdbBufferWriter writer, object value)
 		{
 			//TODO: use Type.GetTypeCode() ?
 
@@ -169,62 +169,62 @@ namespace FoundationDb.Client.Tuples
 			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0}", type.Name));
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, ArraySegment<byte> value)
+		public static void SerializeTo(FdbBufferWriter writer, ArraySegment<byte> value)
 		{
 			writer.WriteBytes(value);
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, byte[] value)
+		public static void SerializeTo(FdbBufferWriter writer, byte[] value)
 		{
 			writer.WriteAsciiString(value);
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, char value)
+		public static void SerializeTo(FdbBufferWriter writer, char value)
 		{
 			//TODO: optimize ?
 			writer.WriteUtf8String(new string(value, 1));
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, bool value)
+		public static void SerializeTo(FdbBufferWriter writer, bool value)
 		{
 			// true is encoded as 0 (\x14)
 			// true is encoded as -1 (\x13\xfe)
 			writer.WriteInt64(value ? -1L : 0L);
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, int value)
+		public static void SerializeTo(FdbBufferWriter writer, int value)
 		{
 			writer.WriteInt64(value);
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, long value)
+		public static void SerializeTo(FdbBufferWriter writer, long value)
 		{
 			writer.WriteInt64(value);
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, ulong value)
+		public static void SerializeTo(FdbBufferWriter writer, ulong value)
 		{
 			writer.WriteUInt64(value);
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, string value)
+		public static void SerializeTo(FdbBufferWriter writer, string value)
 		{
 			writer.WriteUtf8String(value ?? String.Empty);
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, DateTime value)
+		public static void SerializeTo(FdbBufferWriter writer, DateTime value)
 		{
 			//TODO: how to deal with negative values ?
 			writer.WriteInt64(value.Ticks);
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, TimeSpan value)
+		public static void SerializeTo(FdbBufferWriter writer, TimeSpan value)
 		{
 			//TODO: how to deal with negative values ?
 			writer.WriteInt64(value.Ticks);
 		}
 
-		public static void SerializeTupleTo<TTuple>(BinaryWriteBuffer writer, TTuple tuple)
+		public static void SerializeTupleTo<TTuple>(FdbBufferWriter writer, TTuple tuple)
 			where TTuple : IFdbTuple
 		{
 			tuple.PackTo(writer);
@@ -234,7 +234,7 @@ namespace FoundationDb.Client.Tuples
 	public static class FdbTuplePacker<T>
 	{
 
-		private static readonly Action<BinaryWriteBuffer, T> Serializer;
+		private static readonly Action<FdbBufferWriter, T> Serializer;
 
 		static FdbTuplePacker()
 		{
@@ -243,14 +243,14 @@ namespace FoundationDb.Client.Tuples
 			if (Serializer == null) throw new InvalidOperationException(String.Format("Does not know how to serialize values of type {0} into keys", typeof(T).Name));
 		}
 
-		public static void SerializeTo(BinaryWriteBuffer writer, T value)
+		public static void SerializeTo(FdbBufferWriter writer, T value)
 		{
 			Serializer(writer, value);
 		}
 
 		public static ArraySegment<byte> Serialize(T value)
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			Serializer(writer, value);
 			return writer.ToArraySegment();
 		}
@@ -263,7 +263,7 @@ namespace FoundationDb.Client.Tuples
 		public static void JusteFaisLe()
 		{
 
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			//writer.WriteInt64(0L);
 			//writer.WriteInt64(1L);
 			//writer.WriteInt64(123L);

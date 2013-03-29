@@ -60,14 +60,14 @@ namespace FoundationDb.Client.Tuples
 
 		public static ArraySegment<byte> ToArraySegment(this IFdbKey tuple)
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			tuple.PackTo(writer);
 			return writer.ToArraySegment();
 		}
 
 		public static byte[] ToBytes(this IFdbKey tuple)
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			tuple.PackTo(writer);
 			return writer.GetBytes();
 		}

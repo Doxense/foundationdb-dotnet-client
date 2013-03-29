@@ -69,7 +69,7 @@ namespace FoundationDb.Client.Tuples
 
 		#region IFdbKey Members...
 
-		public void PackTo(BinaryWriteBuffer writer)
+		public void PackTo(FdbBufferWriter writer)
 		{
 			foreach (var item in this.Items)
 			{
@@ -149,14 +149,14 @@ namespace FoundationDb.Client.Tuples
 
 		public ArraySegment<byte> ToArraySegment()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.ToArraySegment();
 		}
 
 		public byte[] ToBytes()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.GetBytes();
 		}

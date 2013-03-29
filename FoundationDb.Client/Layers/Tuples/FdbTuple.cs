@@ -62,7 +62,7 @@ namespace FoundationDb.Client.Tuples
 			}
 		}
 
-		public void PackTo(BinaryWriteBuffer writer)
+		public void PackTo(FdbBufferWriter writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
 		}
@@ -89,14 +89,14 @@ namespace FoundationDb.Client.Tuples
 
 		public ArraySegment<byte> ToArraySegment()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.ToArraySegment();
 		}
 
 		public byte[] ToBytes()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.GetBytes();
 		}
@@ -143,7 +143,7 @@ namespace FoundationDb.Client.Tuples
 			}
 		}
 
-		public void PackTo(BinaryWriteBuffer writer)
+		public void PackTo(FdbBufferWriter writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
 			FdbTuplePacker<T2>.SerializeTo(writer, this.Item2);
@@ -172,14 +172,14 @@ namespace FoundationDb.Client.Tuples
 
 		public ArraySegment<byte> ToArraySegment()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.ToArraySegment();
 		}
 
 		public byte[] ToBytes()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.GetBytes();
 		}
@@ -233,7 +233,7 @@ namespace FoundationDb.Client.Tuples
 			}
 		}
 
-		public void PackTo(BinaryWriteBuffer writer)
+		public void PackTo(FdbBufferWriter writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
 			FdbTuplePacker<T2>.SerializeTo(writer, this.Item2);
@@ -264,14 +264,14 @@ namespace FoundationDb.Client.Tuples
 
 		public ArraySegment<byte> ToArraySegment()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.ToArraySegment();
 		}
 
 		public byte[] ToBytes()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.GetBytes();
 		}
@@ -330,7 +330,7 @@ namespace FoundationDb.Client.Tuples
 			}
 		}
 
-		public void PackTo(BinaryWriteBuffer writer)
+		public void PackTo(FdbBufferWriter writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
 			FdbTuplePacker<T2>.SerializeTo(writer, this.Item2);
@@ -363,14 +363,14 @@ namespace FoundationDb.Client.Tuples
 
 		public ArraySegment<byte> ToArraySegment()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.ToArraySegment();
 		}
 
 		public byte[] ToBytes()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.GetBytes();
 		}
@@ -433,7 +433,7 @@ namespace FoundationDb.Client.Tuples
 			}
 		}
 
-		public void PackTo(BinaryWriteBuffer writer)
+		public void PackTo(FdbBufferWriter writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
 			FdbTuplePacker<T2>.SerializeTo(writer, this.Item2);
@@ -470,14 +470,14 @@ namespace FoundationDb.Client.Tuples
 
 		public ArraySegment<byte> ToArraySegment()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.ToArraySegment();
 		}
 
 		public byte[] ToBytes()
 		{
-			var writer = new BinaryWriteBuffer();
+			var writer = new FdbBufferWriter();
 			PackTo(writer);
 			return writer.GetBytes();
 		}
@@ -536,7 +536,7 @@ namespace FoundationDb.Client.Tuples
 				return value;
 			}
 
-			public void PackTo(BinaryWriteBuffer writer)
+			public void PackTo(FdbBufferWriter writer)
 			{
 				//NO-OP
 			}

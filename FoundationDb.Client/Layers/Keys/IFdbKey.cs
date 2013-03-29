@@ -38,7 +38,7 @@ namespace FoundationDb.Client.Tuples
 	{
 		/// <summary>Write the binary representation of this key at the end of a buffer</summary>
 		/// <param name="buffer">Buffer that will received the packed bytes of this key</param>
-		void PackTo(BinaryWriteBuffer writer);
+		void PackTo(FdbBufferWriter writer);
 	}
 
 	/// <summary>Factory class for keys</summary>
