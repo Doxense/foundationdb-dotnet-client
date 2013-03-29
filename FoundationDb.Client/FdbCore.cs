@@ -56,7 +56,7 @@ namespace FoundationDb.Client
 
 		public static int GetMaxApiVersion()
 		{
-			return FdbNativeStub.GetMaxApiVersion();
+			return FdbNative.GetMaxApiVersion();
 		}
 
 		public static bool Success(FdbError code)
@@ -76,7 +76,7 @@ namespace FoundationDb.Client
 
 		public static string GetErrorMessage(FdbError code)
 		{
-			return FdbNativeStub.GetError(code);
+			return FdbNative.GetError(code);
 		}
 
 		public static Exception MapToException(FdbError code)
@@ -160,7 +160,7 @@ namespace FoundationDb.Client
 		{
 			if (s_eventLoopStarted)
 			{
-				var err = FdbNativeStub.StopNetwork();
+				var err = FdbNative.StopNetwork();
 				s_eventLoopStarted = false;
 
 				var thread = s_eventLoop;
@@ -191,7 +191,7 @@ namespace FoundationDb.Client
 				s_eventLoopThreadId = Thread.CurrentThread.ManagedThreadId;
 				Debug.WriteLine("Event Loop running on thread #" + s_eventLoopThreadId.Value + "...");
 
-				var err = FdbNativeStub.RunNetwork();
+				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
 				{ // Stop received
 					Debug.WriteLine("RunNetwork returned " + err + " : " + GetErrorMessage(err));
@@ -258,13 +258,13 @@ namespace FoundationDb.Client
 		public static Task<FdbCluster> OpenClusterAsync(string path = null, CancellationToken ct = default(CancellationToken))
 		{
 			//TODO: check path
-			var future = FdbNativeStub.CreateCluster(path);
+			var future = FdbNative.CreateCluster(path);
 
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
 					ClusterHandle cluster;
-					var err = FdbNativeStub.FutureGetCluster(h, out cluster);
+					var err = FdbNative.FutureGetCluster(h, out cluster);
 					if (err != FdbError.Success)
 					{
 						cluster.Dispose();
@@ -285,8 +285,8 @@ namespace FoundationDb.Client
 
 		public static void Start()
 		{
-			Debug.WriteLine("Selecting API version " + FdbNativeStub.FDB_API_VERSION);
-			DieOnError(FdbNativeStub.SelectApiVersion(FdbNativeStub.FDB_API_VERSION));
+			Debug.WriteLine("Selecting API version " + FdbNative.FDB_API_VERSION);
+			DieOnError(FdbNative.SelectApiVersion(FdbNative.FDB_API_VERSION));
 
 			Debug.WriteLine("Setting up network...");
 
@@ -298,15 +298,15 @@ namespace FoundationDb.Client
 
 				unsafe
 				{
-					var data = FdbNativeStub.ToNativeString(TracePath, nullTerminated: true);
+					var data = FdbNative.ToNativeString(TracePath, nullTerminated: true);
 					fixed (byte* ptr = data)
 					{
-						DieOnError(FdbNativeStub.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr, data.Length));
+						DieOnError(FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr, data.Length));
 					}
 				}
 			}
 
-			DieOnError(FdbNativeStub.SetupNetwork());
+			DieOnError(FdbNative.SetupNetwork());
 			Debug.WriteLine("Network has been set up");
 
 			StartEventLoop();

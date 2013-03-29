@@ -123,7 +123,7 @@ namespace FoundationDb.Client
 			}
 			else
 			{
-				if (FdbNativeStub.FutureIsReady(handle))
+				if (FdbNative.FutureIsReady(handle))
 				{ // either got a value or an error
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already ready");
 					TrySetTaskResult(fromCallback: false);
@@ -147,7 +147,7 @@ namespace FoundationDb.Client
 					try
 					{
 						// note: the callback will allocate the future in the heap...
-						var err = FdbNativeStub.FutureSetCallback(handle, callback, IntPtr.Zero);
+						var err = FdbNative.FutureSetCallback(handle, callback, IntPtr.Zero);
 						//TODO: schedule some sort of timeout ?
 
 						if (FdbCore.Failed(err))
@@ -195,10 +195,10 @@ namespace FoundationDb.Client
 				{
 					m_ctr.Dispose();
 
-					if (FdbNativeStub.FutureIsError(handle))
+					if (FdbNative.FutureIsError(handle))
 					{ // it failed...
 						Debug.WriteLine("Future<" + typeof(T).Name + "> has FAILED");
-						var err = FdbNativeStub.FutureGetError(handle);
+						var err = FdbNative.FutureGetError(handle);
 						if (err != FdbError.Success)
 						{ // get the exception from the error code
 							var ex = FdbCore.MapToException(err);
@@ -373,7 +373,7 @@ namespace FoundationDb.Client
 		{
 			get
 			{
-				return !m_handle.IsInvalid && FdbNativeStub.FutureIsReady(m_handle);
+				return !m_handle.IsInvalid && FdbNative.FutureIsReady(m_handle);
 			}
 		}
 
@@ -382,7 +382,7 @@ namespace FoundationDb.Client
 		{
 			get
 			{
-				return m_handle.IsInvalid || FdbNativeStub.FutureIsError(m_handle);
+				return m_handle.IsInvalid || FdbNative.FutureIsError(m_handle);
 			}
 		}
 
@@ -412,7 +412,7 @@ namespace FoundationDb.Client
 				}
 #else
 				//note: in beta1, this will block forever if there is less then 5% free disk space on db partition... :(
-				var err = FdbNativeStub.FutureBlockUntilReady(m_handle);
+				var err = FdbNative.FutureBlockUntilReady(m_handle);
 				if (FdbCore.Failed(err)) throw FdbCore.MapToException(err);
 #endif
 

@@ -69,7 +69,7 @@ namespace FoundationDb.Client
 			if (m_handle.IsInvalid) throw new InvalidOperationException("Cannot create a transaction on an invalid database");
 
 			TransactionHandle handle;
-			var err = FdbNativeStub.DatabaseCreateTransaction(m_handle, out handle);
+			var err = FdbNative.DatabaseCreateTransaction(m_handle, out handle);
 			if (FdbCore.Failed(err))
 			{
 				handle.Dispose();

@@ -65,7 +65,7 @@ namespace FoundationDb.Client
 			bool present;
 			byte[] value;
 			int valueLength;
-			var err = FdbNativeStub.FutureGetValue(h, out present, out value, out valueLength);
+			var err = FdbNative.FutureGetValue(h, out present, out value, out valueLength);
 			Debug.WriteLine("fdb_future_get_value() => err=" + err + ", valueLength=" + valueLength);
 			FdbCore.DieOnError(err);
 			if (present)
@@ -87,12 +87,12 @@ namespace FoundationDb.Client
 
 			FdbCore.EnsureNotOnNetworkThread();
 
-			var future = FdbNativeStub.TransactionGetReadVersion(m_handle);
+			var future = FdbNative.TransactionGetReadVersion(m_handle);
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
 				{
 					long version;
-					var err = FdbNativeStub.FutureGetVersion(h, out version);
+					var err = FdbNative.FutureGetVersion(h, out version);
 					Debug.WriteLine("fdb_future_get_version() => err=" + err + ", version=" + version);
 					FdbCore.DieOnError(err);
 					return version;
@@ -107,7 +107,7 @@ namespace FoundationDb.Client
 		{
 			FdbCore.EnsureKeyIsValid(key);
 
-			var future = FdbNativeStub.TransactionGet(m_handle, key, snapshot);
+			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h), ct);
 		}
 
@@ -115,7 +115,7 @@ namespace FoundationDb.Client
 		{
 			FdbCore.EnsureKeyIsValid(key);
 
-			var handle = FdbNativeStub.TransactionGet(m_handle, key, snapshot);
+			var handle = FdbNative.TransactionGet(m_handle, key, snapshot);
 			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResult(h), ct, willBlockForResult: true))
 			{
 				return future.GetResult();
@@ -252,7 +252,7 @@ namespace FoundationDb.Client
 			FdbCore.EnsureKeyIsValid(key);
 			FdbCore.EnsureValueIsValid(value);
 
-			FdbNativeStub.TransactionSet(m_handle, key, value);
+			FdbNative.TransactionSet(m_handle, key, value);
 			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count);
 		}
 
@@ -294,7 +294,7 @@ namespace FoundationDb.Client
 		{
 			FdbCore.EnsureKeyIsValid(key);
 
-			FdbNativeStub.TransactionClear(m_handle, key);
+			FdbNative.TransactionClear(m_handle, key);
 			Interlocked.Add(ref m_payloadBytes, key.Count);
 		}
 
@@ -330,7 +330,7 @@ namespace FoundationDb.Client
 
 			FdbCore.EnsureNotOnNetworkThread();
 
-			var future = FdbNativeStub.TransactionCommit(m_handle);
+			var future = FdbNative.TransactionCommit(m_handle);
 			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
 		}
 
@@ -346,7 +346,7 @@ namespace FoundationDb.Client
 			try
 			{
 				// calls fdb_transaction_commit
-				handle = FdbNativeStub.TransactionCommit(m_handle);
+				handle = FdbNative.TransactionCommit(m_handle);
 				using (var future = FdbFuture.FromHandle<object>(handle, (h) => null, ct, willBlockForResult: true))
 				{
 					future.Wait();

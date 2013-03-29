@@ -35,187 +35,200 @@ using System.Text;
 
 namespace FoundationDb.Client.Native
 {
-	internal static unsafe class FdbNativeStub
+	internal static unsafe class FdbNative
 	{
 		public const int FDB_API_VERSION = 21;
 
 		private const string DLL_X86 = "fdb_c.dll";
 		private const string DLL_X64 = "fdb_c.dll";
 
-		private static readonly UnmanagedLibrary s_lib;
+		/// <summary>Handle on the native FDB C API library</summary>
+		private static readonly UnmanagedLibrary FdbCLib;
 
-		#region Delegates ...
+		/// <summary>Exception that was thrown when we last tried to load the native FDB C library (or null if nothing wrong happened)</summary>
+		private static readonly Exception LibraryLoadError;
 
-		private delegate byte* FdbGetErrorDelegate(FdbError code);
+		/// <summary>Holds all the delegate types for the binding with the native C API</summary>
+		public static class Delegates
+		{
 
-		private delegate FdbError FdbSelectApiVersionImplDelegate(int runtimeVersion, int headerVersion);
+			public delegate byte* FdbGetError(FdbError code);
 
-		private delegate int FdbGetMaxApiVersionDelegate();
+			public delegate FdbError FdbSelectApiVersionImpl(int runtimeVersion, int headerVersion);
 
-		private delegate FdbError FdbNetworkSetOptionDelegate(FdbNetworkOption option, byte* value, int value_length);
-		private delegate FdbError FdbSetupNetworkDelegate();
-		private delegate FdbError FdbRunNetworkDelegate();
-		private delegate FdbError FdbStopNetworkDelegate();
+			public delegate int FdbGetMaxApiVersion();
 
-		private delegate void FdbFutureDestroy(/*FDBFuture*/IntPtr futureHandle);
-		private delegate bool FdbFutureIsReady(FutureHandle futureHandle);
-		private delegate bool FdbFutureIsError(FutureHandle futureHandle);
-		private delegate FdbError FdbFutureGetErrorDelegate(FutureHandle future, byte** description);
-		private delegate FdbError FdbFutureBlockUntilReady(FutureHandle futureHandle);
-		private delegate FdbError FdbFutureSetCallbackDelegate(FutureHandle future, /*FDBCallback*/ IntPtr callback, IntPtr callbackParameter);
+			public delegate FdbError FdbNetworkSetOption(FdbNetworkOption option, byte* value, int value_length);
+			public delegate FdbError FdbSetupNetwork();
+			public delegate FdbError FdbRunNetwork();
+			public delegate FdbError FdbStopNetwork();
 
-		private delegate /*Future*/IntPtr FdbCreateClusterDelegate(byte* clusterFilePath);
-		private delegate void FdbClusterDestroyDelegate(/*FDBCluster*/IntPtr cluster);
-		private delegate FdbError FdbClusterSetOptionDelegate(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
-		private delegate FdbError FdbFutureGetClusterDelegate(FutureHandle future, out /*FDBCluster*/IntPtr cluster);
+			public delegate void FdbFutureDestroy(/*FDBFuture*/IntPtr futureHandle);
+			public delegate bool FdbFutureIsReady(FutureHandle futureHandle);
+			public delegate bool FdbFutureIsError(FutureHandle futureHandle);
+			public delegate FdbError FdbFutureGetError(FutureHandle future, byte** description);
+			public delegate FdbError FdbFutureBlockUntilReady(FutureHandle futureHandle);
+			public delegate FdbError FdbFutureSetCallback(FutureHandle future, /*FDBCallback*/ IntPtr callback, IntPtr callbackParameter);
 
-		private delegate void FdbDatabaseDestroyDelegate(/*FDBDatabase*/IntPtr database);
-		private delegate /*Future*/IntPtr FdbClusterCreateDatabaseDelegate(ClusterHandle cluster, byte* dbName, int dbNameLength);
-		private delegate FdbError FdbFutureGetDatabaseDelegate(/*Future*/IntPtr future, out /*FDBDatabase*/IntPtr database);
+			public delegate /*Future*/IntPtr FdbCreateCluster(byte* clusterFilePath);
+			public delegate void FdbClusterDestroy(/*FDBCluster*/IntPtr cluster);
+			public delegate FdbError FdbClusterSetOption(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
+			public delegate FdbError FdbFutureGetCluster(FutureHandle future, out /*FDBCluster*/IntPtr cluster);
+			public delegate void FdbDatabaseDestroy(/*FDBDatabase*/IntPtr database);
+			public delegate /*Future*/IntPtr FdbClusterCreateDatabase(ClusterHandle cluster, byte* dbName, int dbNameLength);
+			public delegate FdbError FdbFutureGetDatabase(/*Future*/IntPtr future, out /*FDBDatabase*/IntPtr database);
+			public delegate FdbError FdbDatabaseCreateTransaction(DatabaseHandle database, out IntPtr transaction);
+			public delegate void FdbTransactionSet(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* value, int valueLength);
+			public delegate /*Future*/IntPtr FdbTransactionCommit(TransactionHandle transaction);
+			public delegate FdbError FdbTransactionGetCommmittedVersion(TransactionHandle transaction, out long version);
+			public delegate /*Future*/IntPtr FdbTransactionGetReadVersion(TransactionHandle transaction);
+			public delegate FdbError FdbFutureGetVersion(FutureHandle future, out long version);
+			public delegate /*Future*/IntPtr FdbTransactionGet(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
+			public delegate FdbError FdbFutureGetValue(FutureHandle future, out bool present, out byte* value, out int valueLength);
+			public delegate /*Future*/IntPtr FdbTransactionGetKey(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
+			public delegate FdbError FdbFutureGetKey(FutureHandle future, out byte* key, out int keyLength);
+			public delegate void FdbTransactionClear(TransactionHandle transaction, byte* keyName, int keyNameLength);
+			public delegate FdbError FdbFutureGetKeyValue(FutureHandle future, out FdbKeyValue* kv, out int count, out bool more);
 
-		private delegate FdbError FdbDatabaseCreateTransactionDelegate(DatabaseHandle database, out IntPtr transaction);
-		private delegate void FdbTransactionSetDelegate(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* value, int valueLength);
-		private delegate /*Future*/IntPtr FdbTransactionCommitDelegate(TransactionHandle transaction);
+			public delegate FdbError FdbTransactionGetRange(
+				TransactionHandle transaction,
+				byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
+				byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
+				int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse
+			);
 
-		private delegate FdbError FdbTransactionGetCommmittedVersionDelegate(TransactionHandle transaction, out long version);
+		}
 
-		private delegate /*Future*/IntPtr FdbTransactionGetReadVersionDelegate(TransactionHandle transaction);
-		private delegate FdbError FdbFutureGetVersionDelegate(FutureHandle future, out long version);
+		/// <summary>Contain all the stubs to the methods exposed by the C API library</summary>
+		public static class Stubs
+		{
 
-		private delegate /*Future*/IntPtr FdbTransactionGetDelegate(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
-		private delegate FdbError FdbFutureGetValueDelegate(FutureHandle future, out bool present, out byte* value, out int valueLength);
+			// Core
 
-		private delegate /*Future*/IntPtr FdbTransactionGetKeyDelegate(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
-		private delegate FdbError FdbFutureGetKeyDelegate(FutureHandle future, out byte* key, out int keyLength);
+			public static Delegates.FdbSelectApiVersionImpl fdb_select_api_version_impl;
+			public static Delegates.FdbGetMaxApiVersion fdb_get_max_api_version;
+			public static Delegates.FdbGetError fdb_get_error;
 
-		private delegate void FdbTransactionClearDelegate(TransactionHandle transaction, byte* keyName, int keyNameLength);
+			// Network
 
-		private delegate FdbError FdbFutureGetKeyValueDelegate(FutureHandle future, out FdbKeyValue* kv, out int count, out bool more);
+			public static Delegates.FdbNetworkSetOption fdb_network_set_option;
+			public static Delegates.FdbSetupNetwork fdb_setup_network;
+			public static Delegates.FdbRunNetwork fdb_run_network;
+			public static Delegates.FdbStopNetwork fdb_stop_network;
 
-		private delegate FdbError FdbTransactionGetRangeDelegate(
-			TransactionHandle transaction,
-			byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
-			byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
-			int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse
-		);
+			// Cluster
 
-		#endregion
+			public static Delegates.FdbCreateCluster fdb_create_cluster;
+			public static Delegates.FdbClusterDestroy fdb_cluster_destroy;
+			public static Delegates.FdbClusterSetOption fdb_cluster_set_option;
+			public static Delegates.FdbClusterCreateDatabase fdb_cluster_create_database;
 
-		#region Stubs...
+			// Database
 
-		private static readonly FdbGetErrorDelegate s_stub_fdbGetError;
-		private static readonly FdbSelectApiVersionImplDelegate s_stub_fdbSelectApiVersionImpl;
-		private static readonly FdbGetMaxApiVersionDelegate s_stub_fdbGetMaxApiVersion;
+			public static Delegates.FdbDatabaseDestroy fdb_database_destroy;
+			public static Delegates.FdbDatabaseCreateTransaction fdb_database_create_transaction;
 
-		private static readonly FdbNetworkSetOptionDelegate s_stub_fdbNetworkSetOption;
-		private static readonly FdbSetupNetworkDelegate s_stub_fdbSetupNetwork;
-		private static readonly FdbRunNetworkDelegate s_stud_fdbRunNetwork;
-		private static readonly FdbStopNetworkDelegate s_stub_fdbStopNetwork;
+			// Transaction
+			public static Delegates.FdbTransactionGetReadVersion fdb_transaction_get_read_version;
+			public static Delegates.FdbTransactionGet fdb_transaction_get;
+			public static Delegates.FdbTransactionGetKey fdb_transaction_get_key;
+			public static Delegates.FdbTransactionGetRange fdb_transaction_get_range;
+			public static Delegates.FdbTransactionSet fdb_transaction_set;
+			public static Delegates.FdbTransactionClear fdb_transaction_clear;
+			public static Delegates.FdbTransactionCommit fdb_transaction_commit;
+			public static Delegates.FdbTransactionGetCommmittedVersion fdb_transaction_get_committed_version;
 
-		private static readonly FdbFutureDestroy s_stub_fdbFutureDestroy;
-		private static readonly FdbFutureIsError s_stub_fdbFutureIsError;
-		private static readonly FdbFutureIsReady s_stub_fdbFutureIsReady;
-		private static readonly FdbFutureBlockUntilReady s_stub_fdbFutureBlockUntilReady;
-		private static readonly FdbFutureGetErrorDelegate s_stub_fdbFutureGetError;
-		private static readonly FdbFutureSetCallbackDelegate s_stub_fdbFutureSetCallback;
+			// Future
 
-		private static readonly FdbCreateClusterDelegate s_stub_fdbCreateCluster;
-		private static readonly FdbClusterDestroyDelegate s_stub_fdbClusterDestroy;
-		private static readonly FdbClusterSetOptionDelegate s_stub_fdbClusterSetOption;
-		private static readonly FdbFutureGetClusterDelegate s_stub_fdbFutureGetCluster;
+			public static Delegates.FdbFutureDestroy fdb_future_destroy;
+			public static Delegates.FdbFutureBlockUntilReady fdb_future_block_until_ready;
+			public static Delegates.FdbFutureIsReady fdb_future_is_ready;
+			public static Delegates.FdbFutureIsError fdb_future_is_error;
+			public static Delegates.FdbFutureSetCallback fdb_future_set_callback;
+			public static Delegates.FdbFutureGetError fdb_future_get_error;
+			public static Delegates.FdbFutureGetVersion fdb_future_get_version;
+			public static Delegates.FdbFutureGetKey fdb_future_get_key;
+			public static Delegates.FdbFutureGetCluster fdb_future_get_cluster;
+			public static Delegates.FdbFutureGetDatabase fdb_future_get_database;
+			public static Delegates.FdbFutureGetValue fdb_future_get_value;
 
-		private static readonly FdbDatabaseDestroyDelegate s_stub_fdbDatabaseDestroy;
-		private static readonly FdbClusterCreateDatabaseDelegate s_stub_fdbClusterCreateDatabase;
-		private static readonly FdbFutureGetDatabaseDelegate s_stub_fdbFutureGetDatabase;
+			public static void LoadBindings(UnmanagedLibrary lib)
+			{
+				lib.Bind(ref Stubs.fdb_get_error, "fdb_get_error");
+				lib.Bind(ref Stubs.fdb_select_api_version_impl, "fdb_select_api_version_impl");
+				lib.Bind(ref Stubs.fdb_get_max_api_version, "fdb_get_max_api_version");
 
-		private static readonly FdbDatabaseCreateTransactionDelegate s_stub_fdbDatabaseCreateTransaction;
-		private static readonly FdbTransactionSetDelegate s_stub_fdbTransactionSet;
-		private static readonly FdbTransactionClearDelegate s_stub_fdbTransactionClear;
-		private static readonly FdbTransactionCommitDelegate s_stub_fdbTransactionCommit;
-		private static readonly FdbTransactionGetReadVersionDelegate s_stub_fdbTransactionGetReadVersion;
-		private static readonly FdbTransactionGetCommmittedVersionDelegate s_stub_fdbTransactionGetCommittedVersion;
-		private static readonly FdbFutureGetVersionDelegate s_stub_fdbFutureGetVersion;
-		private static readonly FdbTransactionGetDelegate s_stub_fdbTransactionGet;
-		private static readonly FdbTransactionGetKeyDelegate s_stub_fdbTransactionGetKey;
-		private static readonly FdbFutureGetKeyDelegate s_stub_fdbFutureGetKey;
-		private static readonly FdbFutureGetValueDelegate s_stub_fdbFutureGetValue;
+				lib.Bind(ref Stubs.fdb_network_set_option, "fdb_network_set_option");
+				lib.Bind(ref Stubs.fdb_setup_network, "fdb_setup_network");
+				lib.Bind(ref Stubs.fdb_run_network, "fdb_run_network");
+				lib.Bind(ref Stubs.fdb_stop_network, "fdb_stop_network");
 
-		private static readonly FdbTransactionGetRangeDelegate s_stub_fdbTransactionGetRange;
+				lib.Bind(ref Stubs.fdb_future_destroy, "fdb_future_destroy");
+				lib.Bind(ref Stubs.fdb_future_is_error, "fdb_future_is_error");
+				lib.Bind(ref Stubs.fdb_future_is_ready, "fdb_future_is_ready");
+				lib.Bind(ref Stubs.fdb_future_block_until_ready, "fdb_future_block_until_ready");
+				lib.Bind(ref Stubs.fdb_future_get_error, "fdb_future_get_error");
+				lib.Bind(ref Stubs.fdb_future_set_callback, "fdb_future_set_callback");
 
-		private static readonly Exception s_error;
+				lib.Bind(ref Stubs.fdb_create_cluster, "fdb_create_cluster");
+				lib.Bind(ref Stubs.fdb_cluster_destroy, "fdb_cluster_destroy");
+				lib.Bind(ref Stubs.fdb_cluster_set_option, "fdb_cluster_set_option");
+				lib.Bind(ref Stubs.fdb_future_get_cluster, "fdb_future_get_cluster");
 
-		#endregion
+				lib.Bind(ref Stubs.fdb_cluster_create_database, "fdb_cluster_create_database");
+				lib.Bind(ref Stubs.fdb_database_destroy, "fdb_database_destroy");
+				lib.Bind(ref Stubs.fdb_future_get_database, "fdb_future_get_database");
 
-		static FdbNativeStub()
+				lib.Bind(ref Stubs.fdb_database_create_transaction, "fdb_database_create_transaction");
+				lib.Bind(ref Stubs.fdb_transaction_set, "fdb_transaction_set");
+				lib.Bind(ref Stubs.fdb_transaction_clear, "fdb_transaction_clear");
+				lib.Bind(ref Stubs.fdb_transaction_commit, "fdb_transaction_commit");
+				lib.Bind(ref Stubs.fdb_transaction_get_read_version, "fdb_transaction_get_read_version");
+				lib.Bind(ref Stubs.fdb_transaction_get_committed_version, "fdb_transaction_get_committed_version");
+				lib.Bind(ref Stubs.fdb_future_get_version, "fdb_future_get_version");
+				lib.Bind(ref Stubs.fdb_transaction_get, "fdb_transaction_get");
+				lib.Bind(ref Stubs.fdb_transaction_get_key, "fdb_transaction_get_key");
+				lib.Bind(ref Stubs.fdb_future_get_key, "fdb_future_get_key");
+				lib.Bind(ref Stubs.fdb_future_get_value, "fdb_future_get_value");
+				lib.Bind(ref Stubs.fdb_transaction_get_range, "fdb_transaction_get_range");
+			}
+
+		}
+
+		static FdbNative()
 		{
 			try
 			{
-				s_lib = UnmanagedLibrary.LoadLibrary(
+				FdbCLib = UnmanagedLibrary.LoadLibrary(
 					Path.Combine(FdbCore.NativeLibPath, DLL_X86),
 					Path.Combine(FdbCore.NativeLibPath, DLL_X64)
 				);
 
-				s_lib.Bind(ref s_stub_fdbGetError, "fdb_get_error");
-				s_lib.Bind(ref s_stub_fdbSelectApiVersionImpl, "fdb_select_api_version_impl");
-				s_lib.Bind(ref s_stub_fdbGetMaxApiVersion, "fdb_get_max_api_version");
-
-				s_lib.Bind(ref s_stub_fdbNetworkSetOption, "fdb_network_set_option");
-				s_lib.Bind(ref s_stub_fdbSetupNetwork, "fdb_setup_network");
-				s_lib.Bind(ref s_stud_fdbRunNetwork, "fdb_run_network");
-				s_lib.Bind(ref s_stub_fdbStopNetwork, "fdb_stop_network");
-
-				s_lib.Bind(ref s_stub_fdbFutureDestroy, "fdb_future_destroy");
-				s_lib.Bind(ref s_stub_fdbFutureIsError, "fdb_future_is_error");
-				s_lib.Bind(ref s_stub_fdbFutureIsReady, "fdb_future_is_ready");
-				s_lib.Bind(ref s_stub_fdbFutureBlockUntilReady, "fdb_future_block_until_ready");
-				s_lib.Bind(ref s_stub_fdbFutureGetError, "fdb_future_get_error");
-				s_lib.Bind(ref s_stub_fdbFutureSetCallback, "fdb_future_set_callback");
-
-				s_lib.Bind(ref s_stub_fdbCreateCluster, "fdb_create_cluster");
-				s_lib.Bind(ref s_stub_fdbClusterDestroy, "fdb_cluster_destroy");
-				s_lib.Bind(ref s_stub_fdbClusterSetOption, "fdb_cluster_set_option");
-				s_lib.Bind(ref s_stub_fdbFutureGetCluster, "fdb_future_get_cluster");
-
-				s_lib.Bind(ref s_stub_fdbClusterCreateDatabase, "fdb_cluster_create_database");
-				s_lib.Bind(ref s_stub_fdbDatabaseDestroy, "fdb_database_destroy");
-				s_lib.Bind(ref s_stub_fdbFutureGetDatabase, "fdb_future_get_database");
-
-				s_lib.Bind(ref s_stub_fdbDatabaseCreateTransaction, "fdb_database_create_transaction");
-				s_lib.Bind(ref s_stub_fdbTransactionSet, "fdb_transaction_set");
-				s_lib.Bind(ref s_stub_fdbTransactionClear, "fdb_transaction_clear");
-				s_lib.Bind(ref s_stub_fdbTransactionCommit, "fdb_transaction_commit");
-				s_lib.Bind(ref s_stub_fdbTransactionGetReadVersion, "fdb_transaction_get_read_version");
-				s_lib.Bind(ref s_stub_fdbTransactionGetCommittedVersion, "fdb_transaction_get_committed_version");
-				s_lib.Bind(ref s_stub_fdbFutureGetVersion, "fdb_future_get_version");
-				s_lib.Bind(ref s_stub_fdbTransactionGet, "fdb_transaction_get");
-				s_lib.Bind(ref s_stub_fdbTransactionGetKey, "fdb_transaction_get_key");
-				s_lib.Bind(ref s_stub_fdbFutureGetKey, "fdb_future_get_key");
-				s_lib.Bind(ref s_stub_fdbFutureGetValue, "fdb_future_get_value");
-				s_lib.Bind(ref s_stub_fdbTransactionGetRange, "fdb_transaction_get_range");
+				Stubs.LoadBindings(FdbCLib);
 
 			}
 			catch (Exception e)
 			{
-				if (s_lib != null) s_lib.Dispose();
-				s_lib = null;
-				s_error = e;
+				if (FdbCLib != null) FdbCLib.Dispose();
+				FdbCLib = null;
+				LibraryLoadError = e;
 			}
 		}
 
 		public static bool IsLoaded
 		{
-			get { return s_error == null && s_lib != null; }
+			get { return LibraryLoadError == null && FdbCLib != null; }
 		}
 
 		private static void EnsureLibraryIsLoaded()
 		{
 			// should be inlined
-			if (s_error != null || s_lib == null) FailLibraryDidNotLoad();
+			if (LibraryLoadError != null || FdbCLib == null) FailLibraryDidNotLoad();
 		}
 
 		private static void FailLibraryDidNotLoad()
 		{
-			throw new InvalidOperationException("An error occured while loading native FoundationDB library", s_error);
+			throw new InvalidOperationException("An error occured while loading native FoundationDB library", LibraryLoadError);
 		}
 
 		private static string ToManagedString(byte* nativeString)
@@ -247,29 +260,33 @@ namespace FoundationDb.Client.Native
 			return result;
 		}
 
-		#region API Basics..
+		#region Core..
 
+		/// <summary>fdb_get_error</summary>
 		public static string GetError(FdbError code)
 		{
 			EnsureLibraryIsLoaded();
-			return ToManagedString(s_stub_fdbGetError(code));
+			return ToManagedString(Stubs.fdb_get_error(code));
 		}
 
+		/// <summary>fdb_select_api_impl</summary>
 		public static FdbError SelectApiVersionImpl(int runtimeVersion, int headerVersion)
 		{
 			EnsureLibraryIsLoaded();
-			return s_stub_fdbSelectApiVersionImpl(runtimeVersion, headerVersion);
+			return Stubs.fdb_select_api_version_impl(runtimeVersion, headerVersion);
 		}
 
+		/// <summary>fdb_select_api_impl</summary>
 		public static FdbError SelectApiVersion(int version)
 		{
 			return SelectApiVersionImpl(version, FDB_API_VERSION);
 		}
 
+		/// <summary>fdb_get_max_api_version</summary>
 		public static int GetMaxApiVersion()
 		{
 			EnsureLibraryIsLoaded();
-			return s_stub_fdbGetMaxApiVersion();
+			return Stubs.fdb_get_max_api_version();
 		}
 
 		#endregion
@@ -279,19 +296,19 @@ namespace FoundationDb.Client.Native
 		public static bool FutureIsReady(FutureHandle futureHandle)
 		{
 			EnsureLibraryIsLoaded();
-			return s_stub_fdbFutureIsReady(futureHandle);
+			return Stubs.fdb_future_is_ready(futureHandle);
 		}
 
 		public static void FutureDestroy(IntPtr futureHandle)
 		{
 			EnsureLibraryIsLoaded();
-			s_stub_fdbFutureDestroy(futureHandle);
+			Stubs.fdb_future_destroy(futureHandle);
 		}
 
 		public static bool FutureIsError(FutureHandle futureHandle)
 		{
 			EnsureLibraryIsLoaded();
-			return s_stub_fdbFutureIsError(futureHandle);
+			return Stubs.fdb_future_is_error(futureHandle);
 		}
 
 		/// <summary>Return the error got from a FDBFuture</summary>
@@ -300,7 +317,7 @@ namespace FoundationDb.Client.Native
 		public static FdbError FutureGetError(FutureHandle future)
 		{
 			EnsureLibraryIsLoaded();
-			return s_stub_fdbFutureGetError(future, null);
+			return Stubs.fdb_future_get_error(future, null);
 		}
 
 		public static FdbError FutureGetError(FutureHandle future, out string description)
@@ -308,7 +325,7 @@ namespace FoundationDb.Client.Native
 			EnsureLibraryIsLoaded();
 
 			byte* ptr = null;
-			var err = s_stub_fdbFutureGetError(future, &ptr);
+			var err = Stubs.fdb_future_get_error(future, &ptr);
 			description = ToManagedString(ptr);
 			return err;
 		}
@@ -318,7 +335,7 @@ namespace FoundationDb.Client.Native
 			EnsureLibraryIsLoaded();
 
 			Debug.WriteLine("calling fdb_future_block_until_ready(0x" + future.Handle.ToString("x") + ")...");
-			var err = s_stub_fdbFutureBlockUntilReady(future);
+			var err = Stubs.fdb_future_block_until_ready(future);
 			Debug.WriteLine("fdb_future_block_until_ready(0x" + future.Handle.ToString("x") + ") => err=" + err);
 			return err;
 		}
@@ -327,7 +344,7 @@ namespace FoundationDb.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 			var ptrCallback = Marshal.GetFunctionPointerForDelegate(callback);
-			var err = s_stub_fdbFutureSetCallback(future, ptrCallback, callbackParameter);
+			var err = Stubs.fdb_future_set_callback(future, ptrCallback, callbackParameter);
 			Debug.WriteLine("fdb_future_set_callback(0x" + future.Handle.ToString("x") + ", 0x" + ptrCallback.ToString("x") + ") => err=" + err);
 			return err;
 		}
@@ -339,22 +356,22 @@ namespace FoundationDb.Client.Native
 		public static FdbError NetworkSetOption(FdbNetworkOption option, byte* value, int valueLength)
 		{
 			EnsureLibraryIsLoaded();
-			return s_stub_fdbNetworkSetOption(option, value, valueLength);
+			return Stubs.fdb_network_set_option(option, value, valueLength);
 		}
 
 		public static FdbError SetupNetwork()
 		{
-			return s_stub_fdbSetupNetwork();
+			return Stubs.fdb_setup_network();
 		}
 
 		public static FdbError RunNetwork()
 		{
-			return s_stud_fdbRunNetwork();
+			return Stubs.fdb_run_network();
 		}
 
 		public static FdbError StopNetwork()
 		{
-			return s_stub_fdbStopNetwork();
+			return Stubs.fdb_stop_network();
 		}
 
 		#endregion
@@ -369,7 +386,7 @@ namespace FoundationDb.Client.Native
 			fixed (byte* ptr = data)
 			{
 				var future = new FutureHandle();
-				var handle = s_stub_fdbCreateCluster(ptr);
+				var handle = Stubs.fdb_create_cluster(ptr);
 				Debug.WriteLine("fdb_create_cluster(" + path + ") => 0x" + handle.ToString("x"));
 				future.TrySetHandle(handle);
 				return future;
@@ -383,7 +400,7 @@ namespace FoundationDb.Client.Native
 			try { }
 			finally
 			{
-				s_stub_fdbClusterDestroy(handle);
+				Stubs.fdb_cluster_destroy(handle);
 			}
 		}
 
@@ -398,7 +415,7 @@ namespace FoundationDb.Client.Native
 			finally
 			{
 				IntPtr handle;
-				err = s_stub_fdbFutureGetCluster(future, out handle);
+				err = Stubs.fdb_future_get_cluster(future, out handle);
 				Debug.WriteLine("fdb_future_get_cluster(0x" + future.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + handle.ToString("x"));
 				//TODO: check is err == Success ?
 				cluster.TrySetHandle(handle);
@@ -422,7 +439,7 @@ namespace FoundationDb.Client.Native
 			finally
 			{
 				IntPtr handle;
-				err = s_stub_fdbFutureGetDatabase(future.Handle, out handle);
+				err = Stubs.fdb_future_get_database(future.Handle, out handle);
 				//TODO: check is err == Success ?
 				database.TrySetHandle(handle);
 			}
@@ -437,7 +454,7 @@ namespace FoundationDb.Client.Native
 			try { }
 			finally
 			{
-				s_stub_fdbDatabaseDestroy(handle);
+				Stubs.fdb_database_destroy(handle);
 			}
 		}
 
@@ -454,7 +471,7 @@ namespace FoundationDb.Client.Native
 				try { }
 				finally
 				{
-					var handle = s_stub_fdbClusterCreateDatabase(cluster, ptr, data == null ? 0 : data.Length);
+					var handle = Stubs.fdb_cluster_create_database(cluster, ptr, data == null ? 0 : data.Length);
 					Debug.WriteLine("fdb_cluster_create_database(0x" + cluster.Handle.ToString("x") + ", '" + name + "') => 0x" + handle.ToString("x"));
 					future.TrySetHandle(handle);
 				}
@@ -474,7 +491,7 @@ namespace FoundationDb.Client.Native
 			try { }
 			finally
 			{
-				s_stub_fdbDatabaseDestroy(handle);
+				Stubs.fdb_database_destroy(handle);
 			}
 		}
 
@@ -489,7 +506,7 @@ namespace FoundationDb.Client.Native
 			finally
 			{
 				IntPtr handle;
-				err = s_stub_fdbDatabaseCreateTransaction(database, out handle);
+				err = Stubs.fdb_database_create_transaction(database, out handle);
 				Debug.WriteLine("fdb_database_create_transaction(0x" + database.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + handle.ToString("x"));
 				transaction.TrySetHandle(handle);
 			}
@@ -506,7 +523,7 @@ namespace FoundationDb.Client.Native
 			try { }
 			finally
 			{
-				var handle = s_stub_fdbTransactionCommit(transaction);
+				var handle = Stubs.fdb_transaction_commit(transaction);
 				Debug.WriteLine("fdb_transaction_commit(0x" + transaction.Handle.ToString("x") + ") => 0x" + handle.ToString("x"));
 				future.TrySetHandle(handle);
 			}
@@ -522,7 +539,7 @@ namespace FoundationDb.Client.Native
 			try { }
 			finally
 			{
-				var handle = s_stub_fdbTransactionGetReadVersion(transaction);
+				var handle = Stubs.fdb_transaction_get_read_version(transaction);
 				Debug.WriteLine("fdb_transaction_get_read_version(0x" + transaction.Handle.ToString("x") + ") => 0x" + handle.ToString("x"));
 				future.TrySetHandle(handle);
 			}
@@ -533,14 +550,14 @@ namespace FoundationDb.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 
-			return s_stub_fdbTransactionGetCommittedVersion(transaction, out version);
+			return Stubs.fdb_transaction_get_committed_version(transaction, out version);
 		}
 
 		public static FdbError FutureGetVersion(FutureHandle future, out long version)
 		{
 			EnsureLibraryIsLoaded();
 
-			return s_stub_fdbFutureGetVersion(future, out version);
+			return Stubs.fdb_future_get_version(future, out version);
 		}
 
 		public static FutureHandle TransactionGet(TransactionHandle transaction, ArraySegment<byte> key, bool snapshot)
@@ -555,7 +572,7 @@ namespace FoundationDb.Client.Native
 			{
 				fixed (byte* ptrKey = key.Array)
 				{
-					var handle = s_stub_fdbTransactionGet(transaction, ptrKey + key.Offset, key.Count, snapshot);
+					var handle = Stubs.fdb_transaction_get(transaction, ptrKey + key.Offset, key.Count, snapshot);
 					Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", [" + key.Count + "], " + snapshot + ") => 0x" + handle.ToString("x"));
 					future.TrySetHandle(handle);
 				}
@@ -577,7 +594,7 @@ namespace FoundationDb.Client.Native
 			{
 				fixed (byte* ptrKey = keyName)
 				{
-					var handle = s_stub_fdbTransactionGetKey(transaction, ptrKey, keyLength, orEqual, offset, snapshot);
+					var handle = Stubs.fdb_transaction_get_key(transaction, ptrKey, keyLength, orEqual, offset, snapshot);
 					Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "], " + orEqual + ", " + offset + ", " + snapshot + ") => 0x" + handle.ToString("x"));
 					future.TrySetHandle(handle);
 				}
@@ -594,7 +611,7 @@ namespace FoundationDb.Client.Native
 			valueLength = 0;
 
 			byte* ptr = null;
-			var err = s_stub_fdbFutureGetValue(future, out valuePresent, out ptr, out valueLength);
+			var err = Stubs.fdb_future_get_value(future, out valuePresent, out ptr, out valueLength);
 			Debug.WriteLine("fdb_future_get_value(0x" + future.Handle.ToString("x") + ") => err=" + err + ", present=" + valuePresent + ", valueLength=" + valueLength);
 			if (ptr != null && valueLength >= 0)
 			{
@@ -613,7 +630,7 @@ namespace FoundationDb.Client.Native
 			keyLength = 0;
 
 			byte* ptr = null;
-			var err = s_stub_fdbFutureGetKey(future, out ptr, out keyLength);
+			var err = Stubs.fdb_future_get_key(future, out ptr, out keyLength);
 			if (ptr != null && keyLength >= 0)
 			{
 				key = new byte[keyLength];
@@ -631,7 +648,7 @@ namespace FoundationDb.Client.Native
 			fixed (byte* pValue = value.Array)
 			{
 				Debug.WriteLine("fdb_transaction_set(0x" + transaction.Handle.ToString("x") + ", [" + key.Count + "], [" + value.Count + "])");
-				s_stub_fdbTransactionSet(transaction, pKey + key.Offset, key.Count, pValue + value.Offset, value.Count);
+				Stubs.fdb_transaction_set(transaction, pKey + key.Offset, key.Count, pValue + value.Offset, value.Count);
 			}
 		}
 
@@ -642,7 +659,7 @@ namespace FoundationDb.Client.Native
 			fixed (byte* pKey = key.Array)
 			{
 				Debug.WriteLine("fdb_transaction_clear(0x" + transaction.Handle.ToString("x") + ", [" + key.Count + "])");
-				s_stub_fdbTransactionClear(transaction, pKey + key.Offset, key.Count);
+				Stubs.fdb_transaction_clear(transaction, pKey + key.Offset, key.Count);
 			}
 		}
 

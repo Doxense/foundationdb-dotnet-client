@@ -48,7 +48,7 @@ namespace FoundationDb.Client.Native
 
 		protected override void Destroy(IntPtr handle)
 		{
-			FdbNativeStub.FutureDestroy(handle);
+			FdbNative.FutureDestroy(handle);
 		}
 
 	}

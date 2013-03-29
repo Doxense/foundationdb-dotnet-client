@@ -49,7 +49,7 @@ namespace FoundationDb.Client.Native
 
 		protected override void Destroy(IntPtr handle)
 		{
-			FdbNativeStub.DatabaseDestroy(handle);
+			FdbNative.DatabaseDestroy(handle);
 		}
 	}
 

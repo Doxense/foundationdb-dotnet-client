@@ -56,7 +56,7 @@
     <Compile Include="Utils\Contract.cs" />
     <Compile Include="Unmanaged\FdbKeyValue.cs" />
     <Compile Include="Unmanaged\TransactionHandle.cs" />
-    <Compile Include="Unmanaged\FdbNativeStub.cs" />
+    <Compile Include="Unmanaged\FdbNative.cs" />
     <Compile Include="Unmanaged\ClusterHandle.cs" />
     <Compile Include="Unmanaged\DatabaseHandle.cs" />
     <Compile Include="FdbTransaction.cs" />
