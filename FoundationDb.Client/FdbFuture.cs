@@ -150,10 +150,10 @@ namespace FoundationDb.Client
 						var err = FdbNative.FutureSetCallback(handle, callback, IntPtr.Zero);
 						//TODO: schedule some sort of timeout ?
 
-						if (FdbCore.Failed(err))
+						if (Fdb.Failed(err))
 						{ // uhoh
 							Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
-							var error = FdbCore.MapToException(err);
+							var error = Fdb.MapToException(err);
 							m_tcs.TrySetException(error);
 							throw error;
 						}
@@ -201,7 +201,7 @@ namespace FoundationDb.Client
 						var err = FdbNative.FutureGetError(handle);
 						if (err != FdbError.Success)
 						{ // get the exception from the error code
-							var ex = FdbCore.MapToException(err);
+							var ex = Fdb.MapToException(err);
 							if (fromCallback)
 								TrySetExceptionFromThreadPool(m_tcs, ex);
 							else
@@ -307,7 +307,7 @@ namespace FoundationDb.Client
 			{
 				if (!m_tcs.Task.IsCompleted)
 				{
-					if (FdbCore.IsNetworkThread)
+					if (Fdb.IsNetworkThread)
 						TrySetCancelledFromThreadPool(m_tcs);
 					else
 						m_tcs.TrySetCanceled();
@@ -394,7 +394,7 @@ namespace FoundationDb.Client
 			if (!task.IsCompleted)
 			{ // we need to wait for it to become ready
 
-				FdbCore.EnsureNotOnNetworkThread();
+				Fdb.EnsureNotOnNetworkThread();
 
 #if WORKAROUND_USE_POLLING
 				var max = DateTime.UtcNow.AddSeconds(5);
@@ -413,7 +413,7 @@ namespace FoundationDb.Client
 #else
 				//note: in beta1, this will block forever if there is less then 5% free disk space on db partition... :(
 				var err = FdbNative.FutureBlockUntilReady(m_handle);
-				if (FdbCore.Failed(err)) throw FdbCore.MapToException(err);
+				if (Fdb.Failed(err)) throw Fdb.MapToException(err);
 #endif
 
 				// the callback may have already fire, but try to do it anyway...

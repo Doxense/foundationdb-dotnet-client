@@ -200,8 +200,8 @@ namespace FoundationDb.Client.Native
 			try
 			{
 				FdbCLib = UnmanagedLibrary.LoadLibrary(
-					Path.Combine(FdbCore.NativeLibPath, DLL_X86),
-					Path.Combine(FdbCore.NativeLibPath, DLL_X64)
+					Path.Combine(Fdb.NativeLibPath, DLL_X86),
+					Path.Combine(Fdb.NativeLibPath, DLL_X64)
 				);
 
 				Stubs.LoadBindings(FdbCLib);

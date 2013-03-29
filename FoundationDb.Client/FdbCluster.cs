@@ -40,15 +40,19 @@ namespace FoundationDb.Client
 	public class FdbCluster : IDisposable
 	{
 
-		private ClusterHandle m_handle;
+		private readonly ClusterHandle m_handle;
+		private readonly string m_path;
 		private bool m_disposed;
 
-		internal FdbCluster(ClusterHandle handle)
+		internal FdbCluster(ClusterHandle handle, string path)
 		{
 			m_handle = handle;
+			m_path = path;
 		}
 
 		internal ClusterHandle Handle { get { return m_handle; } }
+
+		public string Path { get { return m_path; } }
 
 		private void ThrowIfDisposed()
 		{
@@ -80,7 +84,7 @@ namespace FoundationDb.Client
 					if (err != FdbError.Success)
 					{
 						database.Dispose();
-						throw FdbCore.MapToException(err);
+						throw Fdb.MapToException(err);
 					}
 					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
 

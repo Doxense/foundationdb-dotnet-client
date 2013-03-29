@@ -45,7 +45,7 @@ namespace FoundationDb.Client.Tuples
 
 		public static void Set(this FdbTransaction transaction, IFdbTuple tuple, string value)
 		{
-			transaction.Set(tuple.ToArraySegment(), FdbCore.GetValueBytes(value));
+			transaction.Set(tuple.ToArraySegment(), Fdb.GetValueBytes(value));
 		}
 
 		public static Task<byte[]> GetAsync(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))

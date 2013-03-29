@@ -70,10 +70,10 @@ namespace FoundationDb.Client
 
 			TransactionHandle handle;
 			var err = FdbNative.DatabaseCreateTransaction(m_handle, out handle);
-			if (FdbCore.Failed(err))
+			if (Fdb.Failed(err))
 			{
 				handle.Dispose();
-				throw FdbCore.MapToException(err);
+				throw Fdb.MapToException(err);
 			}
 
 			return new FdbTransaction(this, handle);

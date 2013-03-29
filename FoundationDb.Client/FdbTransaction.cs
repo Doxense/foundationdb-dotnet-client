@@ -67,7 +67,7 @@ namespace FoundationDb.Client
 			int valueLength;
 			var err = FdbNative.FutureGetValue(h, out present, out value, out valueLength);
 			Debug.WriteLine("fdb_future_get_value() => err=" + err + ", valueLength=" + valueLength);
-			FdbCore.DieOnError(err);
+			Fdb.DieOnError(err);
 			if (present)
 			{
 				if (value.Length != valueLength)
@@ -85,7 +85,7 @@ namespace FoundationDb.Client
 		{
 			ThrowIfDisposed();
 
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
 			var future = FdbNative.TransactionGetReadVersion(m_handle);
 			return FdbFuture.CreateTaskFromHandle(future,
@@ -94,7 +94,7 @@ namespace FoundationDb.Client
 					long version;
 					var err = FdbNative.FutureGetVersion(h, out version);
 					Debug.WriteLine("fdb_future_get_version() => err=" + err + ", version=" + version);
-					FdbCore.DieOnError(err);
+					Fdb.DieOnError(err);
 					return version;
 				},
 				ct
@@ -105,7 +105,7 @@ namespace FoundationDb.Client
 
 		internal Task<byte[]> GetCoreAsync(ArraySegment<byte> key, bool snapshot, CancellationToken ct)
 		{
-			FdbCore.EnsureKeyIsValid(key);
+			Fdb.EnsureKeyIsValid(key);
 
 			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResult(h), ct);
@@ -113,7 +113,7 @@ namespace FoundationDb.Client
 
 		internal byte[] GetCore(ArraySegment<byte> key, bool snapshot, CancellationToken ct)
 		{
-			FdbCore.EnsureKeyIsValid(key);
+			Fdb.EnsureKeyIsValid(key);
 
 			var handle = FdbNative.TransactionGet(m_handle, key, snapshot);
 			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResult(h), ct, willBlockForResult: true))
@@ -133,7 +133,7 @@ namespace FoundationDb.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public Task<byte[]> GetAsync(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return GetAsync(FdbCore.GetKeyBytes(key), snapshot, ct);
+			return GetAsync(Fdb.GetKeyBytes(key), snapshot, ct);
 		}
 
 		/// <summary>Returns the value of a particular key</summary>
@@ -164,7 +164,7 @@ namespace FoundationDb.Client
 		{
 			ct.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
 			return GetCoreAsync(key, snapshot, ct);
 		}
@@ -180,7 +180,7 @@ namespace FoundationDb.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public byte[] Get(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return Get(FdbCore.GetKeyBytes(key), snapshot, ct);
+			return Get(Fdb.GetKeyBytes(key), snapshot, ct);
 		}
 
 		/// <summary>Returns the value of a particular key</summary>
@@ -210,7 +210,7 @@ namespace FoundationDb.Client
 		{
 			ThrowIfDisposed();
 			ct.ThrowIfCancellationRequested();
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
 			return GetCore(key, snapshot, ct);
 		}
@@ -227,13 +227,13 @@ namespace FoundationDb.Client
 
 			ct.ThrowIfCancellationRequested();
 
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
 			var tasks = new List<Task<byte[]>>(keys.Length);
 			for (int i = 0; i < keys.Length; i++)
 			{
 				//TODO: optimize to not have to allocate a scope
-				tasks.Add(Task.Factory.StartNew((_state) => this.GetCoreAsync(FdbCore.GetKeyBytes(keys[(int)_state]), snapshot, ct), i, ct).Unwrap());
+				tasks.Add(Task.Factory.StartNew((_state) => this.GetCoreAsync(Fdb.GetKeyBytes(keys[(int)_state]), snapshot, ct), i, ct).Unwrap());
 			}
 
 			var results = await Task.WhenAll(tasks);
@@ -249,8 +249,8 @@ namespace FoundationDb.Client
 
 		internal void SetCore(ArraySegment<byte> key, ArraySegment<byte> value)
 		{
-			FdbCore.EnsureKeyIsValid(key);
-			FdbCore.EnsureValueIsValid(value);
+			Fdb.EnsureKeyIsValid(key);
+			Fdb.EnsureValueIsValid(value);
 
 			FdbNative.TransactionSet(m_handle, key, value);
 			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count);
@@ -259,7 +259,7 @@ namespace FoundationDb.Client
 		public void Set(ArraySegment<byte> keyBytes, ArraySegment<byte> valueBytes)
 		{
 			ThrowIfDisposed();
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
 			SetCore(keyBytes, valueBytes);
 		}
@@ -270,9 +270,9 @@ namespace FoundationDb.Client
 			if (value == null) throw new ArgumentNullException("value");
 
 			ThrowIfDisposed();
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
-			SetCore(FdbCore.GetKeyBytes(key), new ArraySegment<byte>(value));
+			SetCore(Fdb.GetKeyBytes(key), new ArraySegment<byte>(value));
 		}
 
 		public void Set(string key, string value)
@@ -281,9 +281,9 @@ namespace FoundationDb.Client
 			if (value == null) throw new ArgumentNullException("value");
 
 			ThrowIfDisposed();
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
-			SetCore(FdbCore.GetKeyBytes(key), FdbCore.GetValueBytes(value));
+			SetCore(Fdb.GetKeyBytes(key), Fdb.GetValueBytes(value));
 		}
 
 		#endregion
@@ -292,7 +292,7 @@ namespace FoundationDb.Client
 
 		internal void ClearCore(ArraySegment<byte> key)
 		{
-			FdbCore.EnsureKeyIsValid(key);
+			Fdb.EnsureKeyIsValid(key);
 
 			FdbNative.TransactionClear(m_handle, key);
 			Interlocked.Add(ref m_payloadBytes, key.Count);
@@ -303,7 +303,7 @@ namespace FoundationDb.Client
 			if (key == null) throw new ArgumentNullException("key");
 
 			ThrowIfDisposed();
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
 			ClearCore(new ArraySegment<byte>(key));
 		}
@@ -313,9 +313,9 @@ namespace FoundationDb.Client
 			if (key == null) throw new ArgumentNullException("key");
 
 			ThrowIfDisposed();
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
-			ClearCore(FdbCore.GetKeyBytes(key));
+			ClearCore(Fdb.GetKeyBytes(key));
 		}
 
 		#endregion
@@ -328,7 +328,7 @@ namespace FoundationDb.Client
 
 			ct.ThrowIfCancellationRequested();
 
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
 			var future = FdbNative.TransactionCommit(m_handle);
 			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
@@ -340,7 +340,7 @@ namespace FoundationDb.Client
 
 			ct.ThrowIfCancellationRequested();
 
-			FdbCore.EnsureNotOnNetworkThread();
+			Fdb.EnsureNotOnNetworkThread();
 
 			FutureHandle handle = null;
 			try

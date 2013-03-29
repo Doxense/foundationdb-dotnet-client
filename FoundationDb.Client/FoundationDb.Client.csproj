@@ -70,7 +70,7 @@
     <Compile Include="Unmanaged\FutureHandle.cs" />
     <Compile Include="Unmanaged\FdbSafeHandle.cs" />
     <Compile Include="FdbFuture.cs" />
-    <Compile Include="FdbCore.cs" />
+    <Compile Include="Fdb.cs" />
     <Compile Include="Unmanaged\UnmanagedLibrary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

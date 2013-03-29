@@ -37,10 +37,13 @@ using System.Threading.Tasks;
 namespace FoundationDb.Client
 {
 
-	public static partial class FdbCore
+	public static class Fdb
 	{
 
+		/// <summary>Default path to the native C API library</summary>
 		public static string NativeLibPath = ".";
+
+		/// <summary>Default path to the network thread tracing file</summary>
 		public static string TracePath = null;
 
 		internal static readonly ArraySegment<byte> Empty = new ArraySegment<byte>(new byte[0]);
@@ -59,26 +62,33 @@ namespace FoundationDb.Client
 			return FdbNative.GetMaxApiVersion();
 		}
 
+		/// <summary>Returns true if the error code represents a success</summary>
 		public static bool Success(FdbError code)
 		{
 			return code == FdbError.Success;
 		}
 
+		/// <summary>Returns true if the error code represents a failure</summary>
 		public static bool Failed(FdbError code)
 		{
 			return code != FdbError.Success;
 		}
 
+		/// <summary>Throws an exception if the code represents a failure</summary>
 		internal static void DieOnError(FdbError code)
 		{
 			if (Failed(code)) throw MapToException(code);
 		}
 
+		/// <summary>Return the error message matching the specified error code</summary>
 		public static string GetErrorMessage(FdbError code)
 		{
 			return FdbNative.GetError(code);
 		}
 
+		/// <summary>Maps an error code into an Exception (to be throwned)</summary>
+		/// <param name="code"></param>
+		/// <returns>Exception object corresponding to the error code, or null if the code is not an error</returns>
 		public static Exception MapToException(FdbError code)
 		{
 			if (code == FdbError.Success) return null;
@@ -96,49 +106,54 @@ namespace FoundationDb.Client
 
 		#region Key/Value serialization
 
+		/// <summary>Serialize an unicode string into a key</summary>
 		public static ArraySegment<byte> GetKeyBytes(string key)
 		{
 			if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", "key");
 			return new ArraySegment<byte>(Encoding.UTF8.GetBytes(key));
 		}
 
+		/// <summary>Ensures that a serialized key is valid</summary>
 		internal static void EnsureKeyIsValid(ArraySegment<byte> key)
 		{
 			if (key.Count == 0) throw new ArgumentException("Key cannot be null or empty.", "key");
-			if (key.Count > FdbCore.MaxKeySize) throw new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, FdbCore.MaxKeySize), "key");
+			if (key.Count > Fdb.MaxKeySize) throw new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, Fdb.MaxKeySize), "key");
 			if (key.Array == null) throw new ArgumentException("Key cannot have a null buffer", "key.Array");
 		}
 
+		/// <summary>Serialize an unicode string into a value</summary>
 		public static ArraySegment<byte> GetValueBytes(string value)
 		{
 			if (value == null) throw new ArgumentNullException("Value cannot be null.", "value");
-			if (value.Length == 0) return FdbCore.Empty;
+			if (value.Length == 0) return Fdb.Empty;
 			return new ArraySegment<byte>(Encoding.UTF8.GetBytes(value));
 		}
 
+		/// <summary>Ensures that a serialized value is valid</summary>
 		internal static void EnsureValueIsValid(ArraySegment<byte> value)
 		{
 			if (value.Count == 0) throw new ArgumentNullException("value cannot be null.", "value");
-			if (value.Count > FdbCore.MaxValueSize) throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, FdbCore.MaxValueSize), "value");
+			if (value.Count > Fdb.MaxValueSize) throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), "value");
 		}
 
 		#endregion
 
-		#region Network Event Loop...
+		#region Network Thread / Event Loop...
 
 		private static Thread s_eventLoop;
 		private static bool s_eventLoopStarted;
 		private static bool s_eventLoopRunning;
 		private static int? s_eventLoopThreadId;
 
+		/// <summary>Starts the thread running the FDB event loop</summary>
 		private static void StartEventLoop()
 		{
 			if (s_eventLoop == null)
 			{
-				Debug.WriteLine("Starting event loop...");
+				Debug.WriteLine("Starting Network Thread...");
 
 				var thread = new Thread(new ThreadStart(EventLoop));
-				thread.Name = "FoundationDB Event Loop";
+				thread.Name = "FoundationDB Network Thread";
 				thread.IsBackground = true;
 				thread.Priority = ThreadPriority.AboveNormal;
 				s_eventLoop = thread;
@@ -156,10 +171,13 @@ namespace FoundationDb.Client
 			}
 		}
 
+		/// <summary>Stops the thread running the FDB event loop</summary>
 		private static void StopEventLoop()
 		{
 			if (s_eventLoopStarted)
 			{
+				Debug.WriteLine("Stopping Network Thread...");
+
 				var err = FdbNative.StopNetwork();
 				s_eventLoopStarted = false;
 
@@ -182,6 +200,7 @@ namespace FoundationDb.Client
 			}
 		}
 
+		/// <summary>Entry point for the Network Thread</summary>
 		private static void EventLoop()
 		{
 			try
@@ -189,7 +208,7 @@ namespace FoundationDb.Client
 				s_eventLoopRunning = true;
 
 				s_eventLoopThreadId = Thread.CurrentThread.ManagedThreadId;
-				Debug.WriteLine("Event Loop running on thread #" + s_eventLoopThreadId.Value + "...");
+				Debug.WriteLine("FDB Event Loop running on thread #" + s_eventLoopThreadId.Value + "...");
 
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
@@ -207,7 +226,7 @@ namespace FoundationDb.Client
 			}
 			finally
 			{
-				Debug.WriteLine("Event Loop stopped");
+				Debug.WriteLine("FDB Event Loop stopped");
 				s_eventLoopThreadId = null;
 				s_eventLoopRunning = false;
 			}
@@ -223,13 +242,15 @@ namespace FoundationDb.Client
 			}
 		}
 
+		/// <summary>Throws if the current thread is the Network Thread.</summary>
+		/// <remarks>Should be used to ensure that we do not execute tasks continuations from the network thread, to avoid dead-locks.</remarks>
 		internal static void EnsureNotOnNetworkThread()
 		{
 #if DEBUG
 			Debug.WriteLine("[Executing on thread " + Thread.CurrentThread.ManagedThreadId + "]");
 #endif
 
-			if (FdbCore.IsNetworkThread)
+			if (Fdb.IsNetworkThread)
 			{ // cannot commit from same thread as the network loop because it could lead to a deadlock
 				FailCannotExecuteOnNetworkThread();
 			}
@@ -247,17 +268,27 @@ namespace FoundationDb.Client
 
 		#region Cluster...
 
+		/// <summary>Opens a connection to the local FDB cluster</summary>
+		/// <param name="ct"></param>
+		/// <returns></returns>
 		public static Task<FdbCluster> OpenLocalClusterAsync(CancellationToken ct = default(CancellationToken))
 		{
+			//BUGBUG: does 'null' means Local? or does it mean the default config file that may or may not point to the local cluster ??
 			return OpenClusterAsync(null, ct);
 		}
 
-		/// <summary>Asynchronously return a connection to a FDB Cluster</summary>
+		/// <summary>Opens a connection to an FDB Cluster</summary>
 		/// <param name="path">Path to the 'fdb.cluster' file, or null for default</param>
-		/// <returns></returns>
+		/// <returns>Task that will return an FdbCluster, or an exception</returns>
 		public static Task<FdbCluster> OpenClusterAsync(string path = null, CancellationToken ct = default(CancellationToken))
 		{
-			//TODO: check path
+			ct.ThrowIfCancellationRequested();
+
+			EnsureIsStarted();
+
+			Debug.WriteLine("Connecting to " + (path == null ? " default cluster" : (" cluster " + path)));
+
+			//TODO: check path ?
 			var future = FdbNative.CreateCluster(path);
 
 			return FdbFuture.CreateTaskFromHandle(future,
@@ -270,7 +301,7 @@ namespace FoundationDb.Client
 						cluster.Dispose();
 						throw MapToException(err);
 					}
-					return new FdbCluster(cluster);
+					return new FdbCluster(cluster, path);
 				},
 				ct
 			);
@@ -278,21 +309,24 @@ namespace FoundationDb.Client
 
 		#endregion
 
+		/// <summary>Ensure that we have loaded the C API library, and that the Network Thread has been started</summary>
 		private static void EnsureIsStarted()
 		{
 			if (!s_eventLoopStarted) Start();
 		}
 
+		/// <summary>Select the correct API version, and start the Network Thread</summary>
 		public static void Start()
 		{
 			Debug.WriteLine("Selecting API version " + FdbNative.FDB_API_VERSION);
+
 			DieOnError(FdbNative.SelectApiVersion(FdbNative.FDB_API_VERSION));
 
-			Debug.WriteLine("Setting up network...");
+			Debug.WriteLine("Setting up Network Thread...");
 
 			if (TracePath != null)
 			{
-				Debug.WriteLine("Will trace network activity in " + TracePath);
+				Debug.WriteLine("Will trace client activity in " + TracePath);
 				// create trace directory if missing...
 				if (!Directory.Exists(TracePath)) Directory.CreateDirectory(TracePath);
 
@@ -310,22 +344,14 @@ namespace FoundationDb.Client
 			Debug.WriteLine("Network has been set up");
 
 			StartEventLoop();
-
 		}
 
+		/// <summary>Stop the Network Thread</summary>
 		public static void Stop()
 		{
-			Debug.WriteLine("Stopping event loop");
+			Debug.WriteLine("Stopping Network Thread");
 			StopEventLoop();
 			Debug.WriteLine("Stopped");
-		}
-
-		public static Task<FdbCluster> ConnectAsync(string clusterPath)
-		{
-			EnsureIsStarted();
-
-			Debug.WriteLine("Connecting to cluster... " + clusterPath);
-			return OpenClusterAsync(clusterPath);
 		}
 
 	}

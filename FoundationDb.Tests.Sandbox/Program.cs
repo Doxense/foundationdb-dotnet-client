@@ -238,22 +238,22 @@ namespace FoundationDb.Tests.Sandbox
 			const int N = 1000;
 			const string NATIVE_PATH = @"C:\Program Files\foundationdb\bin";
 
-			FdbCore.NativeLibPath = NATIVE_PATH;
+			Fdb.NativeLibPath = NATIVE_PATH;
 
 			// uncomment this to enable network thread tracing
 			//FdbCore.TracePath = Path.Combine(Path.GetTempPath(), "fdb");
 
-			int apiVersion = FdbCore.GetMaxApiVersion();
+			int apiVersion = Fdb.GetMaxApiVersion();
 			Console.WriteLine("Max API Version: " + apiVersion);
 
 			try
 			{
 				Console.WriteLine("Starting network thread...");
-				FdbCore.Start(); // this will select API version 21			
+				Fdb.Start(); // this will select API version 21			
 				Console.WriteLine("> Up and running");
 
 				Console.WriteLine("Connecting to local cluster...");
-				using (var cluster = await FdbCore.OpenLocalClusterAsync())
+				using (var cluster = await Fdb.OpenLocalClusterAsync())
 				{
 					Console.WriteLine("> Connected!");
 
@@ -331,7 +331,7 @@ namespace FoundationDb.Tests.Sandbox
 			finally
 			{
 				Console.WriteLine("### DONE ###");
-				FdbCore.Stop();
+				Fdb.Stop();
 			}
 		}
 
