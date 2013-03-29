@@ -84,6 +84,33 @@ namespace FoundationDb.Client
 			return new FdbTransaction(this, handle);
 		}
 
+		/// <summary>Set a parameter-less option on this database</summary>
+		/// <param name="option">Option to set</param>
+		public void SetOption(FdbDatabaseOption option)
+		{
+			SetOption(option, default(string));
+		}
+
+		/// <summary>Set an option on this database</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter</param>
+		public void SetOption(FdbDatabaseOption option, string value)
+		{
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			int n;
+			byte[] data = FdbNative.ToNativeString(value, nullTerminated: true, length: out n);
+			unsafe
+			{
+				fixed (byte* ptr = data)
+				{
+					FdbNative.DatabaseSetOption(m_handle, option, ptr, n);
+				}
+			}
+		}
+
 		internal void EnsureCheckTransactionIsValid(FdbTransaction transaction)
 		{
 			ThrowIfDisposed();

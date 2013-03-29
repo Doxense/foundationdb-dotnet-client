@@ -119,6 +119,34 @@ namespace FoundationDb.Client
 			);
 		}
 
+		/// <summary>Set a parameter-less option on this cluster</summary>
+		/// <param name="option">Option to set</param>
+		public void SetOption(FdbClusterOption option)
+		{
+			SetOption(option, default(string));
+		}
+
+		/// <summary>Set an option on this cluster</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter</param>
+		public void SetOption(FdbClusterOption option, string value)
+		{
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			int n;
+			byte[] data = FdbNative.ToNativeString(value, nullTerminated: true, length: out n);
+			unsafe
+			{
+				fixed (byte* ptr = data)
+				{
+					FdbNative.ClusterSetOption(m_handle, option, ptr, n);
+				}
+			}
+		}
+
+
 	}
 
 }
