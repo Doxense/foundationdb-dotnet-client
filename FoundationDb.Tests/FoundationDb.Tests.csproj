@@ -4,14 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{773166B7-DE74-4FCC-845C-84080CC89533}</ProjectGuid>
+    <ProjectGuid>{7C888F78-99B1-4CA1-8973-282EC5CCCACD}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FoundationDb.Client</RootNamespace>
-    <AssemblyName>FoundationDb.Client</AssemblyName>
+    <RootNamespace>FoundationDb.Tests</RootNamespace>
+    <AssemblyName>FoundationDb.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -21,20 +23,22 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
-    <DefineConstants>TRACE;NET_4_5</DefineConstants>
+    <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="nunit.framework, Version=2.6.2.12296, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\NUnit.2.6.2\lib\nunit.framework.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -44,45 +48,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="FdbTransactionOption.cs" />
-    <Compile Include="FdbDatabaseOption.cs" />
-    <Compile Include="FDBStreamingMode.cs" />
-    <Compile Include="FdbClusterOption.cs" />
-    <Compile Include="FdbNetworkOption.cs" />
-    <Compile Include="FdbError.cs" />
-    <Compile Include="Layers\Arrays\FdbArray.cs" />
-    <Compile Include="Layers\Tuples\IFdbTuple.cs" />
-    <Compile Include="Layers\Keys\IFdbKey.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleList.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
-    <Compile Include="Layers\Tuples\FdbSubspace.cs" />
-    <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple.cs" />
-    <Compile Include="Layers\Tables\FdbTable.cs" />
-    <Compile Include="Utils\FdbBufferWriter.cs" />
-    <Compile Include="Utils\Contract.cs" />
-    <Compile Include="Unmanaged\FdbKeyValue.cs" />
-    <Compile Include="Unmanaged\TransactionHandle.cs" />
-    <Compile Include="Unmanaged\FdbNative.cs" />
-    <Compile Include="Unmanaged\ClusterHandle.cs" />
-    <Compile Include="Unmanaged\DatabaseHandle.cs" />
-    <Compile Include="FdbTransaction.cs" />
-    <Compile Include="FdbDatabase.cs" />
-    <Compile Include="FdbCluster.cs" />
-    <Compile Include="Unmanaged\FutureHandle.cs" />
-    <Compile Include="Unmanaged\FdbSafeHandle.cs" />
-    <Compile Include="FdbFuture.cs" />
-    <Compile Include="Fdb.cs" />
-    <Compile Include="Unmanaged\UnmanagedLibrary.cs" />
+    <Compile Include="ClusterFacts.cs" />
+    <Compile Include="TransactionFacts.cs" />
+    <Compile Include="DatabaseFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\..\..\..\Program Files\foundationdb\bin\fdb_c.dll">
-      <Link>fdb_c.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FoundationDb.Client\FoundationDb.Client.csproj">
+      <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
+      <Name>FoundationDb.Client</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
