@@ -245,8 +245,14 @@ namespace FoundationDb.Client.Native
 			return Marshal.PtrToStringAnsi(nativeString);
 		}
 
-		internal static byte[] ToNativeString(string value, bool nullTerminated)
+		/// <summary>Converts a string into an ANSI byte array</summary>
+		/// <param name="value">String to convert (or null)</param>
+		/// <param name="nullTerminated">If true, adds a terminating \0 at the end (C-style strings)</param>
+		/// <param name="length">Receives the size of the string including the optional NUL terminator (or 0 if <paramref name="value"/> is null)</param>
+		/// <returns>Byte array with the ANSI-encoded string with an optional NUL terminator, or null if <paramref name="value"/> was null</returns>
+		internal static byte[] ToNativeString(string value, bool nullTerminated, out int length)
 		{
+			length = 0;
 			if (value == null) return null;
 
 			byte[] result;
@@ -259,6 +265,7 @@ namespace FoundationDb.Client.Native
 			{
 				result = Encoding.Default.GetBytes(value);
 			}
+			length = result.Length;
 			return result;
 		}
 
@@ -384,7 +391,8 @@ namespace FoundationDb.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 
-			var data = ToNativeString(path, nullTerminated: true);
+			int _;
+			var data = ToNativeString(path, nullTerminated: true, length: out _);
 			fixed (byte* ptr = data)
 			{
 				var future = new FutureHandle();
@@ -464,7 +472,8 @@ namespace FoundationDb.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 
-			var data = ToNativeString(name, nullTerminated: false);
+			int n;
+			var data = ToNativeString(name, nullTerminated: false, length: out n);
 			fixed (byte* ptr = data)
 			{
 				var future = new FutureHandle();
@@ -473,7 +482,7 @@ namespace FoundationDb.Client.Native
 				try { }
 				finally
 				{
-					var handle = Stubs.fdb_cluster_create_database(cluster, ptr, data == null ? 0 : data.Length);
+					var handle = Stubs.fdb_cluster_create_database(cluster, ptr, n);
 					Debug.WriteLine("fdb_cluster_create_database(0x" + cluster.Handle.ToString("x") + ", '" + name + "') => 0x" + handle.ToString("x"));
 					future.TrySetHandle(handle);
 				}

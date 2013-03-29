@@ -371,10 +371,11 @@ namespace FoundationDb.Client
 
 				unsafe
 				{
-					var data = FdbNative.ToNativeString(TracePath, nullTerminated: true);
+					int n;
+					var data = FdbNative.ToNativeString(TracePath, nullTerminated: true, length: out n);
 					fixed (byte* ptr = data)
 					{
-						DieOnError(FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr, data.Length));
+						DieOnError(FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr, n));
 					}
 				}
 			}
