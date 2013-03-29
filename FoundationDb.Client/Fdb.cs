@@ -309,6 +309,45 @@ namespace FoundationDb.Client
 
 		#endregion
 
+		#region Database...
+
+		/// <summary>Open a database on the local cluster</summary>
+		/// <param name="name">Name of the database. Must be 'DB'</param>
+		/// <param name="ct">Cancellation Token</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <remarks>As of Beta1, the only supported database name is 'DB'</remarks>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		public static async Task<FdbDatabase> OpenLocalDatabaseAsync(string name, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+
+			Debug.WriteLine("Connecting to local database " + name + " ...");
+
+			FdbCluster cluster = null;
+			FdbDatabase db = null;
+			bool success = false;
+			try
+			{
+				cluster = await OpenLocalClusterAsync(ct);
+				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
+				db = await cluster.OpenDatabaseAsync(name, true, ct);
+				success = true;
+				return db;
+			}
+			finally
+			{
+				if (!success)
+				{
+					// cleanup the cluter if something went wrong
+					if (db != null) db.Dispose();
+					if (cluster != null) cluster.Dispose();
+				}
+			}
+		}
+
+		#endregion
+
 		/// <summary>Ensure that we have loaded the C API library, and that the Network Thread has been started</summary>
 		private static void EnsureIsStarted()
 		{

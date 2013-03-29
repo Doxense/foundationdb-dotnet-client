@@ -46,16 +46,18 @@ namespace FoundationDb.Client
 	public class FdbDatabase : IDisposable
 	{
 
-		private FdbCluster m_cluster;
-		private DatabaseHandle m_handle;
-		private string m_name;
+		private readonly FdbCluster m_cluster;
+		private readonly DatabaseHandle m_handle;
+		private readonly string m_name;
+		private readonly bool m_ownsCluster;
 		private bool m_disposed;
 
-		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name)
+		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name, bool ownsCluster)
 		{
 			m_cluster = cluster;
 			m_handle = handle;
 			m_name = name;
+			m_ownsCluster = ownsCluster;
 		}
 
 		public FdbCluster Cluster { get { return m_cluster; } }
@@ -90,6 +92,7 @@ namespace FoundationDb.Client
 			{
 				m_disposed = true;
 				m_handle.Dispose();
+				if (m_ownsCluster) m_cluster.Dispose();
 			}
 		}
 

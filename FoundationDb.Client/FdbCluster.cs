@@ -68,10 +68,35 @@ namespace FoundationDb.Client
 			}
 		}
 
+		/// <summary>Opens a database on this cluster</summary>
+		/// <param name="databaseName">Name of the database. Must be 'DB'</param>
+		/// <param name="ct">Cancellation Token</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <remarks>As of Beta1, the only supported database name is 'DB'</remarks>
 		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, CancellationToken ct = default(CancellationToken))
+		{
+			return OpenDatabaseAsync(databaseName, false, ct);
+		}
+
+		/// <summary>Opens a database on this cluster</summary>
+		/// <param name="databaseName">Name of the database. Must be 'DB'</param>
+		/// <param name="ownsCluster">If true, the database will dispose this cluster when it is disposed.</param>
+		/// <param name="ct">Cancellation Token</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <remarks>As of Beta1, the only supported database name is 'DB'</remarks>
+		internal Task<FdbDatabase> OpenDatabaseAsync(string databaseName, bool ownsCluster, CancellationToken ct)
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
+
+			// BUGBUG: the only accepted name is "DB".
+			// Currently in Beta1, if you create a database with any other name, it will succeed but any transaction performed on it will fail (future will never complete)
+			// Hope that it will be changed in the future to return an error code if the name is not valid.
+			if (databaseName != "DB") throw new InvalidOperationException("This version of FoundationDB only allows connections to the 'DB' database");
 
 			var future = FdbNative.ClusterCreateDatabase(m_handle, databaseName);
 
@@ -88,7 +113,7 @@ namespace FoundationDb.Client
 					}
 					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
 
-					return new FdbDatabase(this, database, databaseName);
+					return new FdbDatabase(this, database, databaseName, ownsCluster);
 				},
 				ct
 			);
