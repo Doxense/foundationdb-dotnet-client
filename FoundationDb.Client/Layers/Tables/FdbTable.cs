@@ -44,6 +44,7 @@ namespace FoundationDb.Client.Tables
 			if (database == null) throw new ArgumentNullException("database");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
+			this.Database = database;
 			this.Subspace = subspace;
 		}
 
@@ -63,7 +64,7 @@ namespace FoundationDb.Client.Tables
 			return this.Subspace.GetKeyBytes(key);
 		}
 
-		public ArraySegment<byte> GetKeyBytes(IFdbTuple tuple)
+		public ArraySegment<byte> GetKeyBytes(IFdbKey tuple)
 		{
 			return this.Subspace.GetKeyBytes(tuple);
 		}
@@ -86,7 +87,7 @@ namespace FoundationDb.Client.Tables
 		/// <returns>(namespace, tuple_items, )</returns>
 		public IFdbTuple Key(IFdbTuple tuple)
 		{
-			return this.Subspace.Append(tuple);
+			return this.Subspace.AppendRange(tuple);
 		}
 
 		#endregion
@@ -103,7 +104,7 @@ namespace FoundationDb.Client.Tables
 			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
 		}
 
-		public Task<byte[]> GetAsync(FdbTransaction trans, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<byte[]> GetAsync(FdbTransaction trans, IFdbKey tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return trans.GetAsync(GetKeyBytes(tuple), snapshot, ct);
 		}
@@ -124,7 +125,7 @@ namespace FoundationDb.Client.Tables
 			}
 		}
 
-		public async Task<byte[]> GetAsync(IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<byte[]> GetAsync(IFdbKey tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -146,7 +147,7 @@ namespace FoundationDb.Client.Tables
 			trans.Set(GetKeyBytes(key), new ArraySegment<byte>(value));
 		}
 
-		public void Set(FdbTransaction trans, IFdbTuple tuple, byte[] value)
+		public void Set(FdbTransaction trans, IFdbKey tuple, byte[] value)
 		{
 			trans.Set(GetKeyBytes(tuple), new ArraySegment<byte>(value));
 		}
@@ -169,7 +170,7 @@ namespace FoundationDb.Client.Tables
 			}
 		}
 
-		public async Task SetAsync(IFdbTuple tuple, byte[] value)
+		public async Task SetAsync(IFdbKey tuple, byte[] value)
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -191,7 +192,7 @@ namespace FoundationDb.Client.Tables
 			return new FdbTable(db, new FdbSubspace(tableName));
 		}
 
-		public static FdbTable Table(this FdbDatabase db, IFdbTuple prefix)
+		public static FdbTable Table(this FdbDatabase db, IFdbKey prefix)
 		{
 			return new FdbTable(db, new FdbSubspace(prefix.ToBytes()));
 		}

@@ -48,6 +48,11 @@
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
+    <Compile Include="Layers\Arrays\FdbArray.cs" />
+    <Compile Include="Layers\Tuples\IFdbTuple.cs" />
+    <Compile Include="Layers\Keys\IFdbKey.cs" />
+    <Compile Include="Layers\Tuples\FdbTupleList.cs" />
+    <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbSubspace.cs" />
     <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
     <Compile Include="Layers\Tuples\FdbTuple.cs" />

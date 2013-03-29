@@ -55,7 +55,7 @@ namespace FoundationDb.Client.Tuples
 				return method.CreateDelegate(typeof(Action<,>).MakeGenericType(typeArgs));
 			}
 
-			// try again if it is an IFdbTuple...
+			// maybe if it is a tuple ?
 			if (typeof(IFdbTuple).IsAssignableFrom(type))
 			{
 				method = typeof(FdbTuplePackers).GetMethod("SerializeTupleTo", BindingFlags.Static | BindingFlags.Public);
@@ -64,6 +64,8 @@ namespace FoundationDb.Client.Tuples
 					return method.MakeGenericMethod(type).CreateDelegate(typeof(Action<,>).MakeGenericType(typeArgs));
 				}
 			}
+
+			// TODO: look for a static SerializeTo(BWB, T) method on the type itself ?
 
 			// no luck..
 			return null;

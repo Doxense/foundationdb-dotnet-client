@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 
 namespace FoundationDb.Tests.Sandbox
 {
@@ -282,6 +283,21 @@ namespace FoundationDb.Tests.Sandbox
 
 						//await BenchUpdateLotsOfKeysAsync(db, N);
 
+						var k1 = FdbKey.Ascii("hello world");
+						Console.WriteLine(k1.ToString());
+						Console.WriteLine(ToHexArray(k1));
+
+						var k2 = FdbKey.Pack("hello world", 123);
+						Console.WriteLine(k2.ToString());
+						Console.WriteLine(ToHexArray(k2.ToBytes()));
+
+						var k2b = FdbTuple.Create("hello world", 123);
+						Console.WriteLine(k2b.ToString());
+
+						var k3 = FdbKey.Pack(k2b, "yolo");
+						Console.WriteLine(k3.ToString());
+						Console.WriteLine(ToHexArray(k3.ToBytes()));
+
 						var foos = db.Table("foos");
 						Console.WriteLine(ToHexArray(foos.GetKeyBytes("hello")));
 						Console.WriteLine(ToHexArray(foos.GetKeyBytes(new byte[] { 65, 66, 67 })));
@@ -346,5 +362,6 @@ namespace FoundationDb.Tests.Sandbox
 			sb.Append(System.Web.HttpUtility.JavaScriptStringEncode(Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count)));
 			return sb.ToString();
 		}
+
 	}
 }

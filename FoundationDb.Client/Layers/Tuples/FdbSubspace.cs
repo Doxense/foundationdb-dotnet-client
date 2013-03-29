@@ -29,9 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace FoundationDb.Client.Tuples
 {
@@ -94,7 +91,7 @@ namespace FoundationDb.Client.Tuples
 			return writer.ToArraySegment();
 		}
 
-		public ArraySegment<byte> GetKeyBytes(IFdbTuple tuple)
+		public ArraySegment<byte> GetKeyBytes(IFdbKey tuple)
 		{
 			var writer = new BinaryWriteBuffer();
 			writer.WriteBytes(this.RawPrefix);
@@ -104,12 +101,24 @@ namespace FoundationDb.Client.Tuples
 
 		int IFdbTuple.Count
 		{
-			get { return 1; }
+			get { return this.Tuple.Count; }
 		}
 
+		object IFdbTuple.this[int index]
+		{
+			get { return this.Tuple[index]; }
+		}
+		
 		public IFdbTuple Append<T>(T value)
 		{
 			return this.Tuple.Append<T>(value);
+		}
+
+		public IFdbTuple AppendRange(IFdbTuple value)
+		{
+			if (value == null) throw new ArgumentNullException("value");
+
+			return this.Tuple.Concat(value);
 		}
 
 		IEnumerator<object> IEnumerable<object>.GetEnumerator()

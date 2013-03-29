@@ -30,33 +30,10 @@ using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FoundationDb.Client.Tuples
 {
-
-	public interface IFdbTuplePackable
-	{
-		/// <summary>Append al "items" of this tuple at the end of a buffer</summary>
-		/// <param name="buffer">Buffer that will received the packed bytes of this tuple</param>
-		void PackTo(BinaryWriteBuffer writer);
-	}
-
-	public interface IFdbTuple : IFdbTuplePackable, IEnumerable<object>
-	{
-		/// <summary>Returns the number of "items" in the Tuple</summary>
-		int Count { get; }
-
-		/// <summary>Create a new Tuple by appending a new value at the end the this tuple</summary>
-		/// <typeparam name="T">Type of the new value</typeparam>
-		/// <param name="value">Value that will be appended at the end</param>
-		/// <returns>New tuple with the new value</returns>
-		IFdbTuple Append<T>(T value);
-	}
 
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
@@ -73,6 +50,18 @@ namespace FoundationDb.Client.Tuples
 
 		public int Count { get { return 1; } }
 
+		public object this[int index]
+		{
+			get
+			{
+				switch(index)
+				{
+					case 0: return this.Item1;
+					default: throw new IndexOutOfRangeException();
+				}
+			}
+		}
+
 		public void PackTo(BinaryWriteBuffer writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
@@ -80,7 +69,7 @@ namespace FoundationDb.Client.Tuples
 
 		IFdbTuple IFdbTuple.Append<T2>(T2 value)
 		{
-			return new FdbTuple<T1, T2>(this.Item1, value);
+			return this.Append<T2>(value);
 		}
 
 		public FdbTuple<T1, T2> Append<T2>(T2 value)
@@ -112,6 +101,16 @@ namespace FoundationDb.Client.Tuples
 			return writer.GetBytes();
 		}
 
+		public override string ToString()
+		{
+			return "(" + this.Item1 + ")";
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Item1 != null ? this.Item1.GetHashCode() : -1;
+		}
+
 	}
 
 	/// <summary>Tuple that holds a pair of items</summary>
@@ -131,6 +130,19 @@ namespace FoundationDb.Client.Tuples
 
 		public int Count { get { return 2; } }
 
+		public object this[int index]
+		{
+			get
+			{
+				switch (index)
+				{
+					case 0: return this.Item1;
+					case 1: return this.Item2;
+					default: throw new IndexOutOfRangeException();
+				}
+			}
+		}
+
 		public void PackTo(BinaryWriteBuffer writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
@@ -139,7 +151,7 @@ namespace FoundationDb.Client.Tuples
 
 		IFdbTuple IFdbTuple.Append<T3>(T3 value)
 		{
-			return new FdbTuple<T1, T2, T3>(this.Item1, this.Item2, value);
+			return this.Append<T3>(value);
 		}
 
 		public FdbTuple<T1, T2, T3> Append<T3>(T3 value)
@@ -172,6 +184,19 @@ namespace FoundationDb.Client.Tuples
 			return writer.GetBytes();
 		}
 
+		public override string ToString()
+		{
+			return "(" + this.Item1 + ", " + this.Item2 + ")";
+		}
+
+		public override int GetHashCode()
+		{
+			int h;
+			h = this.Item1 != null ? this.Item1.GetHashCode() : -1;
+			h ^= this.Item2 != null ? this.Item2.GetHashCode() : -1;
+			return h;
+		}
+
 	}
 
 	/// <summary>Tuple that can hold three items</summary>
@@ -194,6 +219,20 @@ namespace FoundationDb.Client.Tuples
 
 		public int Count { get { return 3; } }
 
+		public object this[int index]
+		{
+			get
+			{
+				switch (index)
+				{
+					case 0: return this.Item1;
+					case 1: return this.Item2;
+					case 2: return this.Item3;
+					default: throw new IndexOutOfRangeException();
+				}
+			}
+		}
+
 		public void PackTo(BinaryWriteBuffer writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
@@ -203,7 +242,7 @@ namespace FoundationDb.Client.Tuples
 
 		IFdbTuple IFdbTuple.Append<T4>(T4 value)
 		{
-			return new FdbTuple<T1, T2, T3, T4>(this.Item1, this.Item2, this.Item3, value);
+			return this.Append<T4>(value);
 		}
 
 		public FdbTuple<T1, T2, T3, T4> Append<T4>(T4 value)
@@ -237,6 +276,20 @@ namespace FoundationDb.Client.Tuples
 			return writer.GetBytes();
 		}
 
+		public override string ToString()
+		{
+			return new StringBuilder().Append('(').Append(this.Item1).Append(", ").Append(this.Item2).Append(", ").Append(this.Item3).Append(')').ToString();
+		}
+
+		public override int GetHashCode()
+		{
+			int h;
+			h = this.Item1 != null ? this.Item1.GetHashCode() : -1;
+			h ^= this.Item2 != null ? this.Item2.GetHashCode() : -1;
+			h ^= this.Item3 != null ? this.Item3.GetHashCode() : -1;
+			return h;
+		}
+
 	}
 
 	/// <summary>Tuple that can hold four items</summary>
@@ -262,6 +315,21 @@ namespace FoundationDb.Client.Tuples
 
 		public int Count { get { return 4; } }
 
+		public object this[int index]
+		{
+			get
+			{
+				switch (index)
+				{
+					case 0: return this.Item1;
+					case 1: return this.Item2;
+					case 2: return this.Item3;
+					case 3: return this.Item4;
+					default: throw new IndexOutOfRangeException();
+				}
+			}
+		}
+
 		public void PackTo(BinaryWriteBuffer writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
@@ -272,13 +340,12 @@ namespace FoundationDb.Client.Tuples
 
 		IFdbTuple IFdbTuple.Append<T5>(T5 value)
 		{
-			var items = new List<object>(5);
-			items.Add(this.Item1);
-			items.Add(this.Item2);
-			items.Add(this.Item3);
-			items.Add(this.Item4);
-			items.Add(value);
-			return new FdbTupleList(items);
+			return this.Append<T5>(value);
+		}
+
+		public FdbTuple<T1, T2, T3, T4, T5> Append<T5>(T5 value)
+		{
+			return new FdbTuple<T1, T2, T3, T4, T5>(this.Item1, this.Item2, this.Item3, this.Item4, value);
 		}
 
 		public IEnumerator<object> GetEnumerator()
@@ -308,51 +375,92 @@ namespace FoundationDb.Client.Tuples
 			return writer.GetBytes();
 		}
 
+		public override string ToString()
+		{
+			return new StringBuilder().Append('(').Append(this.Item1).Append(", ").Append(this.Item2).Append(", ").Append(this.Item3).Append(", ").Append(this.Item4).Append(')').ToString();
+		}
+
+		public override int GetHashCode()
+		{
+			int h;
+			h = this.Item1 != null ? this.Item1.GetHashCode() : -1;
+			h ^= this.Item2 != null ? this.Item2.GetHashCode() : -1;
+			h ^= this.Item3 != null ? this.Item3.GetHashCode() : -1;
+			h ^= this.Item4 != null ? this.Item4.GetHashCode() : -1;
+			return h;
+		}
+
 	}
 
-	/// <summary>Tuple that can hold any number of items</summary>
-	public class FdbTupleList : IFdbTuple
+	/// <summary>Tuple that can hold four items</summary>
+	/// <typeparam name="T1">Type of the first item</typeparam>
+	/// <typeparam name="T2">Type of the second item</typeparam>
+	/// <typeparam name="T3">Type of the third item</typeparam>
+	/// <typeparam name="T4">Type of the fourth item</typeparam>
+	[DebuggerDisplay("({Item1}, {Item2}, {Item3}, {Item4})")]
+	public struct FdbTuple<T1, T2, T3, T4, T5> : IFdbTuple
 	{
-		private static readonly List<object> EmptyList = new List<object>(); 
+		public readonly T1 Item1;
+		public readonly T2 Item2;
+		public readonly T3 Item3;
+		public readonly T4 Item4;
+		public readonly T5 Item5;
 
-		/// <summary>List of the items in the tuple.</summary>
-		/// <remarks>It is supposed to be immutable!</remarks>
-		private readonly List<object> Items;
-
-		public FdbTupleList(params object[] items)
+		public FdbTuple(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			this.Items = items.Length > 0 ? new List<object>(items) : EmptyList;
+			this.Item1 = item1;
+			this.Item2 = item2;
+			this.Item3 = item3;
+			this.Item4 = item4;
+			this.Item5 = item5;
 		}
 
-		internal FdbTupleList(List<object> items)
-		{
-			this.Items = items;
-		}
+		public int Count { get { return 5; } }
 
-		public int Count
+		public object this[int index]
 		{
-			get { return this.Items.Count; }
+			get
+			{
+				switch (index)
+				{
+					case 0: return this.Item1;
+					case 1: return this.Item2;
+					case 2: return this.Item3;
+					case 3: return this.Item4;
+					case 4: return this.Item5;
+					default: throw new IndexOutOfRangeException();
+				}
+			}
 		}
 
 		public void PackTo(BinaryWriteBuffer writer)
 		{
-			foreach (var item in this.Items)
-			{
-				FdbTuplePackers.SerializeObjectTo(writer, item);
-			}
+			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
+			FdbTuplePacker<T2>.SerializeTo(writer, this.Item2);
+			FdbTuplePacker<T3>.SerializeTo(writer, this.Item3);
+			FdbTuplePacker<T4>.SerializeTo(writer, this.Item4);
+			FdbTuplePacker<T5>.SerializeTo(writer, this.Item5);
 		}
 
-		public IFdbTuple Append<T>(T value)
+		IFdbTuple IFdbTuple.Append<T6>(T6 value)
 		{
-			var items = new List<object>(this.Count + 1);
-			items.AddRange(this.Items);
+			var items = new List<object>(6);
+			items.Add(this.Item1);
+			items.Add(this.Item2);
+			items.Add(this.Item3);
+			items.Add(this.Item4);
+			items.Add(this.Item5);
 			items.Add(value);
 			return new FdbTupleList(items);
 		}
 
 		public IEnumerator<object> GetEnumerator()
 		{
-			return this.Items.GetEnumerator();
+			yield return this.Item1;
+			yield return this.Item2;
+			yield return this.Item3;
+			yield return this.Item4;
+			yield return this.Item5;
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -373,87 +481,136 @@ namespace FoundationDb.Client.Tuples
 			PackTo(writer);
 			return writer.GetBytes();
 		}
+
+		public override string ToString()
+		{
+			return new StringBuilder().Append('(').Append(this.Item1).Append(", ").Append(this.Item2).Append(", ").Append(this.Item3).Append(", ").Append(this.Item4).Append(", ").Append(this.Item5).Append(')').ToString();
+		}
+
+		public override int GetHashCode()
+		{
+			int h;
+			h = this.Item1 != null ? this.Item1.GetHashCode() : -1;
+			h ^= this.Item2 != null ? this.Item2.GetHashCode() : -1;
+			h ^= this.Item3 != null ? this.Item3.GetHashCode() : -1;
+			h ^= this.Item4 != null ? this.Item4.GetHashCode() : -1;
+			h ^= this.Item5 != null ? this.Item5.GetHashCode() : -1;
+			return h;
+		}
+
 	}
 
+	/// <summary>Factory class for Tuples</summary>
 	public static class FdbTuple
 	{
+		/// <summary>Empty tuple</summary>
+		/// <remarks>Not to be mistaken with a 1-tuple containing 'null' !</remarks>
+		public static readonly IFdbTuple Empty = new EmptyTuple();
+
+		/// <summary>Empty tuple (singleton that is used as a base for other tuples)</summary>
+		internal sealed class EmptyTuple : IFdbTuple
+		{
+
+			public int Count
+			{
+				get { return 0; }
+			}
+
+			object IFdbTuple.this[int index]
+			{
+				get { throw new IndexOutOfRangeException(); }
+			}
+
+			IFdbTuple IFdbTuple.Append<T1>(T1 value)
+			{
+				return this.Append<T1>(value);
+			}
+
+			public FdbTuple<T1> Append<T1>(T1 value)
+			{
+				return new FdbTuple<T1>(value);
+			}
+
+			public IFdbTuple AppendRange(IFdbTuple value)
+			{
+				return value;
+			}
+
+			public void PackTo(BinaryWriteBuffer writer)
+			{
+				//NO-OP
+			}
+
+			public IEnumerator<object> GetEnumerator()
+			{
+				yield break;
+			}
+
+			System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+			{
+				return this.GetEnumerator();
+			}
+
+			public override string ToString()
+			{
+				return "()";
+			}
+
+			public override int GetHashCode()
+			{
+				return 0;
+			}
+
+		}
+
+		/// <summary>Create a new 1-tuple, holding only one item</summary>
 		public static FdbTuple<T1> Create<T1>(T1 item1)
 		{
 			return new FdbTuple<T1>(item1);
 		}
 
+		/// <summary>Create a new 2-tuple, holding two items</summary>
 		public static FdbTuple<T1, T2> Create<T1, T2>(T1 item1, T2 item2)
 		{
 			return new FdbTuple<T1, T2>(item1, item2);
 		}
 
+		/// <summary>Create a new 3-tuple, holding three items</summary>
 		public static FdbTuple<T1, T2, T3> Create<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			return new FdbTuple<T1, T2, T3>(item1, item2, item3);
 		}
 
+		/// <summary>Create a new 4-tuple, holding four items</summary>
 		public static FdbTuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return new FdbTuple<T1, T2, T3, T4>(item1, item2, item3, item4);
 		}
 
-		public static IFdbTuple Create(params object[] items)
+		/// <summary>Create a new 5-tuple, holding five items</summary>
+		public static FdbTuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		{
+			return new FdbTuple<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
+		}
+
+		/// <summary>Create a new N-tuple, from N items</summary>
+		public static FdbTupleList Create(params object[] items)
 		{
 			var list = new List<object>(items);
 			return new FdbTupleList(list);
 		}
 
-		public static IFdbTuple Create(ICollection<object> items)
+		/// <summary>Create a new N-tuple from a sequence of items</summary>
+		public static FdbTupleList Create(IEnumerable<object> items)
 		{
 			if (items == null) throw new ArgumentNullException("items");
-			var list = new List<object>(items.Count);
-			list.AddRange(items);
-			return new FdbTupleList(list);
-		}
 
-		public static IFdbTuple Create(IEnumerable<object> items)
-		{
-			if (items == null) throw new ArgumentNullException("items");
-			var list = new FdbTupleList(items);
-			return new FdbTupleList(list);
-		}
-
-		public static ArraySegment<byte> ToArraySegment(this IFdbTuple tuple)
-		{
-			var writer = new BinaryWriteBuffer();
-			tuple.PackTo(writer);
-			return writer.ToArraySegment();
-		}
-
-		public static byte[] ToBytes(this IFdbTuple tuple)
-		{
-			var writer = new BinaryWriteBuffer();
-			tuple.PackTo(writer);
-			return writer.GetBytes();
-		}
-
-	}
-
-	public static class FdbTupleExtensions
-	{
-		public static void Set(this FdbTransaction transaction, IFdbTuple tuple, byte[] value)
-		{
-			transaction.Set(tuple.ToArraySegment(), new ArraySegment<byte>(value));
-		}
-
-		public static void Set(this FdbTransaction transaction, IFdbTuple tuple, string value)
-		{
-			transaction.Set(tuple.ToArraySegment(), FdbCore.GetValueBytes(value));
-		}
-
-		public static Task<byte[]> GetAsync(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return transaction.GetAsync(tuple.ToArraySegment(), snapshot, ct);
-		}
-
-		public static byte[] Get(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return transaction.Get(tuple.ToArraySegment(), snapshot, ct);
+			var tuple = items as FdbTupleList;
+			if (tuple == null)
+			{
+				tuple = new FdbTupleList(new List<object>(items));
+			}
+			return tuple;
 		}
 
 	}
