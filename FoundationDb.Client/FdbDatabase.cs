@@ -52,6 +52,8 @@ namespace FoundationDb.Client
 		private readonly bool m_ownsCluster;
 		private bool m_disposed;
 
+		//TODO: keep track of all pending transactions on this db that are still alive
+
 		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name, bool ownsCluster)
 		{
 			m_cluster = cluster;
@@ -78,7 +80,24 @@ namespace FoundationDb.Client
 				throw Fdb.MapToException(err);
 			}
 
+			//TODO: register this transation
 			return new FdbTransaction(this, handle);
+		}
+
+		internal void EnsureCheckTransactionIsValid(FdbTransaction transaction)
+		{
+			ThrowIfDisposed();
+			//TODO: enroll this transaction in a list of pending transactions ?
+		}
+
+		internal void RegisterTransaction(FdbTransaction transaction)
+		{
+			//TODO !
+		}
+
+		internal void UnregisterTransaction(FdbTransaction transaction)
+		{
+			//TODO !
 		}
 
 		private void ThrowIfDisposed()
@@ -91,6 +110,7 @@ namespace FoundationDb.Client
 			if (!m_disposed)
 			{
 				m_disposed = true;
+				//TODO: kill all pending transactions on this db? 
 				m_handle.Dispose();
 				if (m_ownsCluster) m_cluster.Dispose();
 			}

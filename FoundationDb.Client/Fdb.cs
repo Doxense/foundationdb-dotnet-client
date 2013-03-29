@@ -247,7 +247,7 @@ namespace FoundationDb.Client
 		internal static void EnsureNotOnNetworkThread()
 		{
 #if DEBUG
-			Debug.WriteLine("[Executing on thread " + Thread.CurrentThread.ManagedThreadId + "]");
+			Debug.WriteLine("> [Executing on thread " + Thread.CurrentThread.ManagedThreadId + "]");
 #endif
 
 			if (Fdb.IsNetworkThread)
@@ -286,7 +286,7 @@ namespace FoundationDb.Client
 
 			EnsureIsStarted();
 
-			Debug.WriteLine("Connecting to " + (path == null ? " default cluster" : (" cluster " + path)));
+			Debug.WriteLine("Connecting to " + (path == null ? "default cluster" : ("cluster specified in " + path)));
 
 			//TODO: check path ?
 			var future = FdbNative.CreateCluster(path);

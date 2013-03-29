@@ -81,6 +81,55 @@ namespace FoundationDb.Client
 			return null;
 		}
 
+		#region Options..
+
+		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
+		public void WithAccessToSystemKeys()
+		{
+			SetOption(FdbTransactionOption.AccessSystemKeys, null);
+		}
+
+		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools</summary>
+		public void WithPrioritySystemImmediate()
+		{
+			SetOption(FdbTransactionOption.PrioritySystemImmediate, null);
+		}
+
+		/// <summary>Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work</summary>
+		public void WithPriorityBatch()
+		{
+			SetOption(FdbTransactionOption.PriorityBatch, null);
+		}
+
+		/// <summary>Set a parameter-less option on this transaction</summary>
+		/// <param name="option">Option to set</param>
+		public void SetOption(FdbTransactionOption option)
+		{
+			SetOption(option, default(string));
+		}
+
+		/// <summary>Set an option taking a parameter on this transaction</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter</param>
+		public void SetOption(FdbTransactionOption option, string value)
+		{
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			int n;
+			byte[] data = FdbNative.ToNativeString(value, nullTerminated: true, length: out n);
+			unsafe
+			{
+				fixed (byte* ptr = data)
+				{
+					FdbNative.TransactionSetOption(m_handle, option, ptr, n);
+				}
+			}
+		}
+
+		#endregion
+
 		public Task<long> GetReadVersion(CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
@@ -360,8 +409,19 @@ namespace FoundationDb.Client
 
 		#endregion
 
-		#region Rollback...
+		#region Reset/Rollback...
 
+		/// <summary>Reset the transaction to its initial state.</summary>
+		public void Reset()
+		{
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			FdbNative.TransactionReset(m_handle);
+		}
+
+		/// <summary>Rollback this transaction, and dispose it. It should not be used after that.</summary>
 		public void Rollback()
 		{
 			//TODO: refactor code between Rollback() and Dispose() ?
@@ -373,6 +433,8 @@ namespace FoundationDb.Client
 		private void ThrowIfDisposed()
 		{
 			if (m_disposed) throw new ObjectDisposedException(null);
+			// also checks that the DB has not been disposed behind our back
+			m_database.EnsureCheckTransactionIsValid(this);
 		}
 
 		public void Dispose()
@@ -381,6 +443,7 @@ namespace FoundationDb.Client
 			{
 				m_disposed = true;
 				m_handle.Dispose();
+				m_database.UnregisterTransaction(this);
 			}
 		}
 	}

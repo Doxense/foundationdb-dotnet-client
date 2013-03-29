@@ -44,6 +44,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FdbTransactionOption.cs" />
+    <Compile Include="FdbDatabaseOption.cs" />
     <Compile Include="FDBStreamingMode.cs" />
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />

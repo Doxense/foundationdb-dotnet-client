@@ -53,9 +53,7 @@ namespace FoundationDb.Client.Native
 		{
 
 			public delegate byte* FdbGetError(FdbError code);
-
 			public delegate FdbError FdbSelectApiVersionImpl(int runtimeVersion, int headerVersion);
-
 			public delegate int FdbGetMaxApiVersion();
 
 			public delegate FdbError FdbNetworkSetOption(FdbNetworkOption option, byte* value, int value_length);
@@ -63,40 +61,45 @@ namespace FoundationDb.Client.Native
 			public delegate FdbError FdbRunNetwork();
 			public delegate FdbError FdbStopNetwork();
 
-			public delegate void FdbFutureDestroy(/*FDBFuture*/IntPtr futureHandle);
-			public delegate bool FdbFutureIsReady(FutureHandle futureHandle);
-			public delegate bool FdbFutureIsError(FutureHandle futureHandle);
-			public delegate FdbError FdbFutureGetError(FutureHandle future, byte** description);
-			public delegate FdbError FdbFutureBlockUntilReady(FutureHandle futureHandle);
-			public delegate FdbError FdbFutureSetCallback(FutureHandle future, /*FDBCallback*/ IntPtr callback, IntPtr callbackParameter);
-
 			public delegate /*Future*/IntPtr FdbCreateCluster(byte* clusterFilePath);
 			public delegate void FdbClusterDestroy(/*FDBCluster*/IntPtr cluster);
 			public delegate FdbError FdbClusterSetOption(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
-			public delegate FdbError FdbFutureGetCluster(FutureHandle future, out /*FDBCluster*/IntPtr cluster);
-			public delegate void FdbDatabaseDestroy(/*FDBDatabase*/IntPtr database);
 			public delegate /*Future*/IntPtr FdbClusterCreateDatabase(ClusterHandle cluster, byte* dbName, int dbNameLength);
-			public delegate FdbError FdbFutureGetDatabase(/*Future*/IntPtr future, out /*FDBDatabase*/IntPtr database);
+
+			public delegate void FdbDatabaseDestroy(/*FDBDatabase*/IntPtr database);
+			public delegate FdbError FdbDatabaseSetOption(DatabaseHandle handle, FdbDatabaseOption option, byte* value, int valueLength);
 			public delegate FdbError FdbDatabaseCreateTransaction(DatabaseHandle database, out IntPtr transaction);
+
 			public delegate void FdbTransactionDestroy(/*FdbTransaction*/IntPtr transaction);
+			public delegate FdbError FdbTransactionSetOption(TransactionHandle handle, FdbTransactionOption option, byte* value, int valueLength);
 			public delegate void FdbTransactionSet(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* value, int valueLength);
 			public delegate /*Future*/IntPtr FdbTransactionCommit(TransactionHandle transaction);
 			public delegate FdbError FdbTransactionGetCommmittedVersion(TransactionHandle transaction, out long version);
 			public delegate /*Future*/IntPtr FdbTransactionGetReadVersion(TransactionHandle transaction);
-			public delegate FdbError FdbFutureGetVersion(FutureHandle future, out long version);
 			public delegate /*Future*/IntPtr FdbTransactionGet(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
-			public delegate FdbError FdbFutureGetValue(FutureHandle future, out bool present, out byte* value, out int valueLength);
 			public delegate /*Future*/IntPtr FdbTransactionGetKey(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
-			public delegate FdbError FdbFutureGetKey(FutureHandle future, out byte* key, out int keyLength);
 			public delegate void FdbTransactionClear(TransactionHandle transaction, byte* keyName, int keyNameLength);
-			public delegate FdbError FdbFutureGetKeyValue(FutureHandle future, out FdbKeyValue* kv, out int count, out bool more);
-
 			public delegate FdbError FdbTransactionGetRange(
 				TransactionHandle transaction,
 				byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
 				byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
 				int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse
 			);
+			public delegate /*Future*/IntPtr FdbTransactionOnError(TransactionHandle transaction, FdbError error);
+			public delegate void FdbTransactionReset(TransactionHandle transaction);
+
+			public delegate void FdbFutureDestroy(/*FDBFuture*/IntPtr futureHandle);
+			public delegate bool FdbFutureIsReady(FutureHandle futureHandle);
+			public delegate bool FdbFutureIsError(FutureHandle futureHandle);
+			public delegate FdbError FdbFutureGetError(FutureHandle future, byte** description);
+			public delegate FdbError FdbFutureBlockUntilReady(FutureHandle futureHandle);
+			public delegate FdbError FdbFutureSetCallback(FutureHandle future, /*FDBCallback*/ IntPtr callback, IntPtr callbackParameter);
+			public delegate FdbError FdbFutureGetCluster(FutureHandle future, out /*FDBCluster*/IntPtr cluster);
+			public delegate FdbError FdbFutureGetDatabase(/*Future*/IntPtr future, out /*FDBDatabase*/IntPtr database);
+			public delegate FdbError FdbFutureGetVersion(FutureHandle future, out long version);
+			public delegate FdbError FdbFutureGetValue(FutureHandle future, out bool present, out byte* value, out int valueLength);
+			public delegate FdbError FdbFutureGetKey(FutureHandle future, out byte* key, out int keyLength);
+			public delegate FdbError FdbFutureGetKeyValue(FutureHandle future, out FdbKeyValue* kv, out int count, out bool more);
 
 		}
 
@@ -127,9 +130,13 @@ namespace FoundationDb.Client.Native
 			// Database
 
 			public static Delegates.FdbDatabaseDestroy fdb_database_destroy;
+			public static Delegates.FdbDatabaseSetOption fdb_database_set_option;
 			public static Delegates.FdbDatabaseCreateTransaction fdb_database_create_transaction;
 
 			// Transaction
+
+			public static Delegates.FdbTransactionDestroy fdb_transaction_destroy;
+			public static Delegates.FdbTransactionSetOption fdb_transaction_set_option;
 			public static Delegates.FdbTransactionGetReadVersion fdb_transaction_get_read_version;
 			public static Delegates.FdbTransactionGet fdb_transaction_get;
 			public static Delegates.FdbTransactionGetKey fdb_transaction_get_key;
@@ -138,6 +145,8 @@ namespace FoundationDb.Client.Native
 			public static Delegates.FdbTransactionClear fdb_transaction_clear;
 			public static Delegates.FdbTransactionCommit fdb_transaction_commit;
 			public static Delegates.FdbTransactionGetCommmittedVersion fdb_transaction_get_committed_version;
+			public static Delegates.FdbTransactionOnError fdb_transaction_on_error;
+			public static Delegates.FdbTransactionReset fdb_transaction_reset;
 
 			// Future
 
@@ -164,35 +173,40 @@ namespace FoundationDb.Client.Native
 				lib.Bind(ref Stubs.fdb_run_network, "fdb_run_network");
 				lib.Bind(ref Stubs.fdb_stop_network, "fdb_stop_network");
 
+				lib.Bind(ref Stubs.fdb_create_cluster, "fdb_create_cluster");
+				lib.Bind(ref Stubs.fdb_cluster_destroy, "fdb_cluster_destroy");
+				lib.Bind(ref Stubs.fdb_cluster_set_option, "fdb_cluster_set_option");
+				lib.Bind(ref Stubs.fdb_cluster_create_database, "fdb_cluster_create_database");
+
+				lib.Bind(ref Stubs.fdb_database_destroy, "fdb_database_destroy");
+				lib.Bind(ref Stubs.fdb_database_set_option, "fdb_database_set_option");
+				lib.Bind(ref Stubs.fdb_database_create_transaction, "fdb_database_create_transaction");
+
+				lib.Bind(ref Stubs.fdb_transaction_destroy, "fdb_transaction_destroy");
+				lib.Bind(ref Stubs.fdb_transaction_set_option, "fdb_transaction_set_option");
+				lib.Bind(ref Stubs.fdb_transaction_set, "fdb_transaction_set");
+				lib.Bind(ref Stubs.fdb_transaction_clear, "fdb_transaction_clear");
+				lib.Bind(ref Stubs.fdb_transaction_commit, "fdb_transaction_commit");
+				lib.Bind(ref Stubs.fdb_transaction_get_read_version, "fdb_transaction_get_read_version");
+				lib.Bind(ref Stubs.fdb_transaction_get_committed_version, "fdb_transaction_get_committed_version");
+				lib.Bind(ref Stubs.fdb_transaction_get, "fdb_transaction_get");
+				lib.Bind(ref Stubs.fdb_transaction_get_key, "fdb_transaction_get_key");
+				lib.Bind(ref Stubs.fdb_transaction_get_range, "fdb_transaction_get_range");
+				lib.Bind(ref Stubs.fdb_transaction_on_error, "fdb_transaction_on_error");
+				lib.Bind(ref Stubs.fdb_transaction_reset, "fdb_transaction_reset");
+
 				lib.Bind(ref Stubs.fdb_future_destroy, "fdb_future_destroy");
 				lib.Bind(ref Stubs.fdb_future_is_error, "fdb_future_is_error");
 				lib.Bind(ref Stubs.fdb_future_is_ready, "fdb_future_is_ready");
 				lib.Bind(ref Stubs.fdb_future_block_until_ready, "fdb_future_block_until_ready");
 				lib.Bind(ref Stubs.fdb_future_get_error, "fdb_future_get_error");
 				lib.Bind(ref Stubs.fdb_future_set_callback, "fdb_future_set_callback");
-
-				lib.Bind(ref Stubs.fdb_create_cluster, "fdb_create_cluster");
-				lib.Bind(ref Stubs.fdb_cluster_destroy, "fdb_cluster_destroy");
-				lib.Bind(ref Stubs.fdb_cluster_set_option, "fdb_cluster_set_option");
 				lib.Bind(ref Stubs.fdb_future_get_cluster, "fdb_future_get_cluster");
-
-				lib.Bind(ref Stubs.fdb_cluster_create_database, "fdb_cluster_create_database");
-				lib.Bind(ref Stubs.fdb_database_destroy, "fdb_database_destroy");
 				lib.Bind(ref Stubs.fdb_future_get_database, "fdb_future_get_database");
-
-				lib.Bind(ref Stubs.fdb_database_create_transaction, "fdb_database_create_transaction");
-				lib.Bind(ref Stubs.fdb_transaction_destroy, "fdb_transaction_destroy");
-				lib.Bind(ref Stubs.fdb_transaction_set, "fdb_transaction_set");
-				lib.Bind(ref Stubs.fdb_transaction_clear, "fdb_transaction_clear");
-				lib.Bind(ref Stubs.fdb_transaction_commit, "fdb_transaction_commit");
-				lib.Bind(ref Stubs.fdb_transaction_get_read_version, "fdb_transaction_get_read_version");
-				lib.Bind(ref Stubs.fdb_transaction_get_committed_version, "fdb_transaction_get_committed_version");
-				lib.Bind(ref Stubs.fdb_future_get_version, "fdb_future_get_version");
-				lib.Bind(ref Stubs.fdb_transaction_get, "fdb_transaction_get");
-				lib.Bind(ref Stubs.fdb_transaction_get_key, "fdb_transaction_get_key");
 				lib.Bind(ref Stubs.fdb_future_get_key, "fdb_future_get_key");
 				lib.Bind(ref Stubs.fdb_future_get_value, "fdb_future_get_value");
-				lib.Bind(ref Stubs.fdb_transaction_get_range, "fdb_transaction_get_range");
+				lib.Bind(ref Stubs.fdb_future_get_version, "fdb_future_get_version");
+
 			}
 
 		}
@@ -414,6 +428,12 @@ namespace FoundationDb.Client.Native
 			}
 		}
 
+		public static FdbError ClusterSetOption(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength)
+		{
+			EnsureLibraryIsLoaded();
+			return Stubs.fdb_cluster_set_option(cluster, option, value, valueLength);
+		}
+
 		public static FdbError FutureGetCluster(FutureHandle future, out ClusterHandle cluster)
 		{
 			EnsureLibraryIsLoaded();
@@ -454,6 +474,12 @@ namespace FoundationDb.Client.Native
 				database.TrySetHandle(handle);
 			}
 			return err;
+		}
+
+		public static FdbError DatabaseSetOption(DatabaseHandle database, FdbDatabaseOption option, byte* value, int valueLength)
+		{
+			EnsureLibraryIsLoaded();
+			return Stubs.fdb_database_set_option(database, option, value, valueLength);
 		}
 
 		public static void DatabaseDestroy(IntPtr handle)
@@ -506,6 +532,12 @@ namespace FoundationDb.Client.Native
 			}
 		}
 
+		public static FdbError TransactionSetOption(TransactionHandle transaction, FdbTransactionOption option, byte* value, int valueLength)
+		{
+			EnsureLibraryIsLoaded();
+			return Stubs.fdb_transaction_set_option(transaction, option, value, valueLength);
+		}
+
 		public static FdbError DatabaseCreateTransaction(DatabaseHandle database, out TransactionHandle transaction)
 		{
 			EnsureLibraryIsLoaded();
@@ -539,6 +571,14 @@ namespace FoundationDb.Client.Native
 				future.TrySetHandle(handle);
 			}
 			return future;
+		}
+
+		public static void TransactionReset(TransactionHandle transaction)
+		{
+			EnsureLibraryIsLoaded();
+
+			Debug.WriteLine("fdb_transaction_reset(0x" + transaction.Handle.ToString("x") + ")");
+			Stubs.fdb_transaction_reset(transaction);
 		}
 
 		public static FutureHandle TransactionGetReadVersion(TransactionHandle transaction)
