@@ -26,6 +26,31 @@ namespace FoundationDb.Tests
 				}
 			}
 		}
+		
+		[Test]
+		public async Task Test_Creating_Concurrent_Transactions_Are_Independent()
+		{
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				FdbTransaction tr1 = null;
+				FdbTransaction tr2 = null;
+				try
+				{
+					tr1 = db.BeginTransaction();
+					tr2 = db.BeginTransaction();
+
+					Assert.That(tr1, Is.Not.Null);
+					Assert.That(tr2, Is.Not.Null);
+					Assert.That(tr1, Is.Not.SameAs(tr2), "Should create two different transaction objects");
+				}
+				finally
+				{
+					if (tr1 != null) tr1.Dispose();
+					if (tr2 != null) tr2.Dispose();
+
+				}
+			}
+		}
 
 		[Test]
 		public async Task Test_Commiting_An_Empty_Transaction_Does_Nothing()
@@ -51,10 +76,130 @@ namespace FoundationDb.Tests
 					// do nothing with it
 					await tr.CommitAsync();
 					// => should not fail!
+
+					// Committed version should be -1 (where is is specified?)
+					long ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Committed version of empty transaction should be -1");
+
 				}
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_Get_Transaction_Read_Version()
+		{
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					long ver = await tr.GetReadVersionAsync();
+					Assert.That(ver, Is.GreaterThan(0), "Read version should be > 0");
+
+					// if we ask for it again, we should have the same value
+					long ver2 = await tr.GetReadVersionAsync();
+					Assert.That(ver2, Is.EqualTo(ver), "Read version should not change inside same transaction");
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Write_And_Read_Simple_Keys()
+		{
+			// test that we can read and write simple keys
+
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				long ticks = DateTime.UtcNow.Ticks; ;
+				long writeVersion;
+				long readVersion;
+
+				// write a bunch of keys
+				using (var tr = db.BeginTransaction())
+				{
+					tr.Set("test.hello", "World!");
+					tr.Set("test.timestamp", ticks);
+					tr.Set("test.blob", new byte[] { 42, 123, 7 });
+
+					await tr.CommitAsync();
+
+					writeVersion = tr.GetCommittedVersion();
+					Assert.That(writeVersion, Is.GreaterThan(0), "Commited version of non-empty transaction should be > 0");
+
+				}
+
+				// read them back
+				using (var tr = db.BeginTransaction())
+				{
+					byte[] bytes;
+
+					readVersion = await tr.GetReadVersionAsync();
+					Assert.That(readVersion, Is.GreaterThan(0), "Read version should be > 0");
+
+					bytes = await tr.GetAsync("test.hello");
+					Assert.That(bytes, Is.Not.Null);
+					Assert.That(Encoding.UTF8.GetString(bytes), Is.EqualTo("World!"));
+
+					bytes = await tr.GetAsync("test.timestamp");
+					Assert.That(bytes, Is.Not.Null);
+					Assert.That(BitConverter.ToInt64(bytes, 0), Is.EqualTo(ticks));
+
+					bytes = await tr.GetAsync("test.blob");
+					Assert.That(bytes, Is.Not.Null);
+					Assert.That(bytes, Is.EqualTo(new byte[] { 42, 123, 7 }));
+				}
+
+				Assert.That(readVersion, Is.GreaterThanOrEqualTo(writeVersion), "Read version should not be before previous committed version");
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Set_Read_Version()
+		{
+			// Verify that we can set a read version on a transaction
+			// * tr1 will set value to 1
+			// * tr2 will set value to 2
+			// * tr3 will SetReadVersion(TR1.CommittedVersion) and we expect it to read 1 (and not 2)
+
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+
+				long commitedVersion;
+
+				// create first version
+				using (var tr1 = db.BeginTransaction())
+				{
+					tr1.Set("test.concurrent", new byte[] { 1 });
+					await tr1.CommitAsync();
+
+					// get this version
+					commitedVersion = tr1.GetCommittedVersion();
+				}
+
+				// mutate in another transaction
+				using (var tr2 = db.BeginTransaction())
+				{
+					tr2.Set("test.concurrent", new byte[] { 2 });
+					await tr2.CommitAsync();
+				}
+
+				// read the value with TR1's commited version
+				using (var tr3 = db.BeginTransaction())
+				{
+					tr3.SetReadVersion(commitedVersion);
+
+					long ver = await tr3.GetReadVersionAsync();
+					Assert.That(ver, Is.EqualTo(commitedVersion), "GetReadVersion should return the same value as SetReadVersion!");
+
+					var bytes = await tr3.GetAsync("test.concurrent");
+
+					Assert.That(bytes, Is.Not.Null);
+					Assert.That(bytes, Is.EqualTo(new byte[] { 1 }), "Should have seen the first version!");
+
+				}
+
+			}
+
+		}
 
 	}
 }

@@ -72,6 +72,7 @@ namespace FoundationDb.Client.Native
 
 			public delegate void FdbTransactionDestroy(/*FdbTransaction*/IntPtr transaction);
 			public delegate FdbError FdbTransactionSetOption(TransactionHandle handle, FdbTransactionOption option, byte* value, int valueLength);
+			public delegate void FdbTransactionSetReadVersion(TransactionHandle handle, long version);
 			public delegate void FdbTransactionSet(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* value, int valueLength);
 			public delegate /*Future*/IntPtr FdbTransactionCommit(TransactionHandle transaction);
 			public delegate FdbError FdbTransactionGetCommmittedVersion(TransactionHandle transaction, out long version);
@@ -137,6 +138,7 @@ namespace FoundationDb.Client.Native
 
 			public static Delegates.FdbTransactionDestroy fdb_transaction_destroy;
 			public static Delegates.FdbTransactionSetOption fdb_transaction_set_option;
+			public static Delegates.FdbTransactionSetReadVersion fdb_transaction_set_read_version;
 			public static Delegates.FdbTransactionGetReadVersion fdb_transaction_get_read_version;
 			public static Delegates.FdbTransactionGet fdb_transaction_get;
 			public static Delegates.FdbTransactionGetKey fdb_transaction_get_key;
@@ -187,6 +189,7 @@ namespace FoundationDb.Client.Native
 				lib.Bind(ref Stubs.fdb_transaction_set, "fdb_transaction_set");
 				lib.Bind(ref Stubs.fdb_transaction_clear, "fdb_transaction_clear");
 				lib.Bind(ref Stubs.fdb_transaction_commit, "fdb_transaction_commit");
+				lib.Bind(ref Stubs.fdb_transaction_set_read_version, "fdb_transaction_set_read_version");
 				lib.Bind(ref Stubs.fdb_transaction_get_read_version, "fdb_transaction_get_read_version");
 				lib.Bind(ref Stubs.fdb_transaction_get_committed_version, "fdb_transaction_get_committed_version");
 				lib.Bind(ref Stubs.fdb_transaction_get, "fdb_transaction_get");
@@ -581,6 +584,14 @@ namespace FoundationDb.Client.Native
 			Stubs.fdb_transaction_reset(transaction);
 		}
 
+		public static void TransactionSetReadVersion(TransactionHandle transaction, long version)
+		{
+			EnsureLibraryIsLoaded();
+
+			Debug.WriteLine("fdb_transaction_set_read_version(0x" + transaction.Handle.ToString("x") + ", " + version.ToString() + ")");
+			Stubs.fdb_transaction_set_read_version(transaction, version);
+		}
+
 		public static FutureHandle TransactionGetReadVersion(TransactionHandle transaction)
 		{
 			EnsureLibraryIsLoaded();
@@ -601,6 +612,7 @@ namespace FoundationDb.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 
+			Debug.WriteLine("fdb_transaction_get_committed_version(0x" + transaction.Handle.ToString("x") + ")");
 			return Stubs.fdb_transaction_get_committed_version(transaction, out version);
 		}
 

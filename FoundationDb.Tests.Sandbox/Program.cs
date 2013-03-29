@@ -43,7 +43,7 @@ namespace FoundationDb.Tests.Sandbox
 				Console.WriteLine("> Transaction ready");
 
 				Console.WriteLine("Getting read version...");
-				var readVersion = await trans.GetReadVersion();
+				var readVersion = await trans.GetReadVersionAsync();
 				Console.WriteLine("> Read Version = " + readVersion);
 
 				Console.WriteLine("Getting 'hello'...");
@@ -66,6 +66,10 @@ namespace FoundationDb.Tests.Sandbox
 				await trans.CommitAsync();
 				//trans.Commit();
 				Console.WriteLine("> Committed!");
+
+				Console.WriteLine("Getting comitted version...");
+				var writeVersion = trans.GetCommittedVersion();
+				Console.WriteLine("> Commited Version = " + writeVersion);
 			}
 		}
 

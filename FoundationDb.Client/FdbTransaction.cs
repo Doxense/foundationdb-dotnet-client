@@ -108,7 +108,7 @@ namespace FoundationDb.Client
 			SetOption(option, default(string));
 		}
 
-		/// <summary>Set an option taking a parameter on this transaction</summary>
+		/// <summary>Set an option on this transaction</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter</param>
 		public void SetOption(FdbTransactionOption option, string value)
@@ -130,7 +130,8 @@ namespace FoundationDb.Client
 
 		#endregion
 
-		public Task<long> GetReadVersion(CancellationToken ct = default(CancellationToken))
+		/// <summary>Returns this transaction snapshot read version.</summary>
+		public Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 
@@ -148,6 +149,31 @@ namespace FoundationDb.Client
 				},
 				ct
 			);
+		}
+
+		/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>
+		/// <returns>Version number, or -1 if this transaction was not committed (or did nothing)</returns>
+		/// <remarks>The value return by this method is undefined if Commit has not been called</remarks>
+		public long GetCommittedVersion()
+		{
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			long version;
+			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
+			Debug.WriteLine("fdb_transaction_get_committed_version() => err=" + err + ", version=" + version);
+			Fdb.DieOnError(err);
+			return version;
+		}
+
+		public void SetReadVersion(long version)
+		{
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			FdbNative.TransactionSetReadVersion(m_handle, version);
 		}
 
 		#region Get...
@@ -333,6 +359,20 @@ namespace FoundationDb.Client
 			Fdb.EnsureNotOnNetworkThread();
 
 			SetCore(Fdb.GetKeyBytes(key), Fdb.GetValueBytes(value));
+		}
+
+		public void Set(string key, long value)
+		{
+			if (key == null) throw new ArgumentNullException("key");
+
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
+			//HACKHACK: use something else! (endianness depends on plateform)
+			var bytes = BitConverter.GetBytes(value);
+			//TODO: only stores the needed number of bytes ?
+			//or use ZigZag encoding ?
+			SetCore(Fdb.GetKeyBytes(key), new ArraySegment<byte>(bytes));
 		}
 
 		#endregion
