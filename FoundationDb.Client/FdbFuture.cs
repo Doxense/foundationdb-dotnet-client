@@ -29,6 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // try enabling this to diagnose problems with fdb_future_block_until_ready hanging...
 #undef WORKAROUND_USE_POLLING
 
+// enable this to help debug Futures
+#undef DEBUG_FUTURES
+
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
@@ -125,7 +128,9 @@ namespace FoundationDb.Client
 			{
 				if (FdbNative.FutureIsReady(handle))
 				{ // either got a value or an error
+#if DEBUG_FUTURES
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already ready");
+#endif
 					TrySetTaskResult(fromCallback: false);
 				}
 				else if (willBlockForResult)
@@ -136,7 +141,9 @@ namespace FoundationDb.Client
 				}
 				else
 				{ // we don't know yet, schedule a callback...
+#if DEBUG_FUTURES
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " will complete later");
+#endif
 
 					if (ct.CanBeCanceled) RegisterForCancellation(ct);
 
@@ -197,7 +204,9 @@ namespace FoundationDb.Client
 
 					if (FdbNative.FutureIsError(handle))
 					{ // it failed...
+#if DEBUG_FUTURES
 						Debug.WriteLine("Future<" + typeof(T).Name + "> has FAILED");
+#endif
 						var err = FdbNative.FutureGetError(handle);
 						if (err != FdbError.Success)
 						{ // get the exception from the error code
@@ -213,7 +222,9 @@ namespace FoundationDb.Client
 					else
 					{ // it succeeded...
 						// try to get the result...
+#if DEBUG_FUTURES
 						Debug.WriteLine("Future<" + typeof(T).Name + "> has completed successfully");
+#endif
 						var selector = m_resultSelector;
 						if (selector != null)
 						{
@@ -329,7 +340,9 @@ namespace FoundationDb.Client
 		/// <param name="parameter">Paramter to the callback (unused)</param>
 		private void CallbackHandler(IntPtr futureHandle, IntPtr parameter)
 		{
+#if DEBUG_FUTURES
 			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+#endif
 
 			//TODO verify if this is our handle ?
 
@@ -348,7 +361,9 @@ namespace FoundationDb.Client
 		{
 			var future = (FdbFuture<T>)state;
 
+#if DEBUG_FUTURES
 			Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancell(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+#endif
 
 			future.Abort();
 		}

@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#undef DEBUG_THREADS
+
 using System;
 using FoundationDb.Client.Native;
 using System.Diagnostics;
@@ -150,7 +152,9 @@ namespace FoundationDb.Client
 		{
 			if (s_eventLoop == null)
 			{
+#if DEBUG_THREADS
 				Debug.WriteLine("Starting Network Thread...");
+#endif
 
 				var thread = new Thread(new ThreadStart(EventLoop));
 				thread.Name = "FoundationDB Network Thread";
@@ -176,7 +180,9 @@ namespace FoundationDb.Client
 		{
 			if (s_eventLoopStarted)
 			{
+#if DEBUG_THREADS
 				Debug.WriteLine("Stopping Network Thread...");
+#endif
 
 				var err = FdbNative.StopNetwork();
 				s_eventLoopStarted = false;
@@ -208,12 +214,15 @@ namespace FoundationDb.Client
 				s_eventLoopRunning = true;
 
 				s_eventLoopThreadId = Thread.CurrentThread.ManagedThreadId;
+#if DEBUG_THREADS
 				Debug.WriteLine("FDB Event Loop running on thread #" + s_eventLoopThreadId.Value + "...");
+#endif
 
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
 				{ // Stop received
 					Debug.WriteLine("RunNetwork returned " + err + " : " + GetErrorMessage(err));
+					//TODO: logging ?
 				}
 			}
 			catch (Exception e)
@@ -226,7 +235,9 @@ namespace FoundationDb.Client
 			}
 			finally
 			{
+#if DEBUG_THREADS
 				Debug.WriteLine("FDB Event Loop stopped");
+#endif
 				s_eventLoopThreadId = null;
 				s_eventLoopRunning = false;
 			}
@@ -246,7 +257,7 @@ namespace FoundationDb.Client
 		/// <remarks>Should be used to ensure that we do not execute tasks continuations from the network thread, to avoid dead-locks.</remarks>
 		internal static void EnsureNotOnNetworkThread()
 		{
-#if DEBUG
+#if DEBUG_THREADS
 			Debug.WriteLine("> [Executing on thread " + Thread.CurrentThread.ManagedThreadId + "]");
 #endif
 

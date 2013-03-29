@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#undef DEBUG_HANDLES
+
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
@@ -63,7 +65,9 @@ namespace FoundationDb.Client.Native
 				try
 				{
 					Destroy(handle);
+#if DEBUG_HANDLES
 					Debug.WriteLine("> [Destroyed " + this.GetType().Name + " 0x" + handle.ToString("x") + "]");
+#endif
 				}
 				catch
 				{ // TODO??
@@ -77,7 +81,9 @@ namespace FoundationDb.Client.Native
 		internal bool TrySetHandle(IntPtr handle)
 		{
 			SetHandle(handle);
+#if DEBUG_HANDLES
 			Debug.WriteLine("> [Stored " + this.GetType().Name + " 0x" + handle.ToString("x") + "]");
+#endif
 			return handle != IntPtr.Zero;
 		}
 
