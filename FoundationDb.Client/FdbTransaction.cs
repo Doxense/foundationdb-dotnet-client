@@ -60,25 +60,23 @@ namespace FoundationDb.Client
 
 		internal TransactionHandle Handle { get { return m_handle; } }
 
-		private static byte[] GetValueResult(FutureHandle h)
+		private static bool TryGetValueResult(FutureHandle h, out ArraySegment<byte> result)
 		{
 			bool present;
-			byte[] value;
-			int valueLength;
-			var err = FdbNative.FutureGetValue(h, out present, out value, out valueLength);
-			Debug.WriteLine("fdb_future_get_value() => err=" + err + ", valueLength=" + valueLength);
+			var err = FdbNative.FutureGetValue(h, out present, out result);
+			Debug.WriteLine("fdb_future_get_value() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
 			Fdb.DieOnError(err);
-			if (present)
+			return present;
+		}
+
+		private static byte[] GetValueResult(FutureHandle h)
+		{
+			ArraySegment<byte> result;
+			if (!TryGetValueResult(h, out result))
 			{
-				if (value.Length != valueLength)
-				{
-					var tmp = new byte[valueLength];
-					Array.Copy(value, 0, tmp, 0, valueLength);
-					value = tmp;
-				}
-				return value;
+				return null;
 			}
-			return null;
+			return FdbNative.GetBytes(result);
 		}
 
 		#region Options..
@@ -117,13 +115,12 @@ namespace FoundationDb.Client
 
 			Fdb.EnsureNotOnNetworkThread();
 
-			int n;
-			byte[] data = FdbNative.ToNativeString(value, nullTerminated: true, length: out n);
+			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			unsafe
 			{
-				fixed (byte* ptr = data)
+				fixed (byte* ptr = data.Array)
 				{
-					FdbNative.TransactionSetOption(m_handle, option, ptr, n);
+					FdbNative.TransactionSetOption(m_handle, option, ptr + data.Offset, data.Count);
 				}
 			}
 		}

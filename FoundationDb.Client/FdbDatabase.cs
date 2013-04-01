@@ -100,13 +100,12 @@ namespace FoundationDb.Client
 
 			Fdb.EnsureNotOnNetworkThread();
 
-			int n;
-			byte[] data = FdbNative.ToNativeString(value, nullTerminated: true, length: out n);
+			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			unsafe
 			{
-				fixed (byte* ptr = data)
+				fixed (byte* ptr = data.Array)
 				{
-					FdbNative.DatabaseSetOption(m_handle, option, ptr, n);
+					FdbNative.DatabaseSetOption(m_handle, option, ptr + data.Offset, data.Count);
 				}
 			}
 		}

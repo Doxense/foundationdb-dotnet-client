@@ -48,6 +48,10 @@ namespace FoundationDb.Client
 		/// <summary>Default path to the network thread tracing file</summary>
 		public static string TracePath = null;
 
+		/// <summary>Buffer containing a null result (no value)</summary>
+		internal static readonly ArraySegment<byte> Nil = new ArraySegment<byte>(null, 0, 0);
+
+		/// <summary>Buffer containing an empty array (byte[0])</summary>
 		internal static readonly ArraySegment<byte> Empty = new ArraySegment<byte>(new byte[0]);
 
 		/// <summary>Keys cannot exceed 10,000 bytes</summary>
@@ -382,11 +386,10 @@ namespace FoundationDb.Client
 
 				unsafe
 				{
-					int n;
-					var data = FdbNative.ToNativeString(TracePath, nullTerminated: true, length: out n);
-					fixed (byte* ptr = data)
+					var data = FdbNative.ToNativeString(TracePath, nullTerminated: true);
+					fixed (byte* ptr = data.Array)
 					{
-						DieOnError(FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr, n));
+						DieOnError(FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr + data.Offset, data.Count));
 					}
 				}
 			}

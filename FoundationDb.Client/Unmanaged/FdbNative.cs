@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -250,6 +251,21 @@ namespace FoundationDb.Client.Native
 			throw new InvalidOperationException("An error occured while loading native FoundationDB library", LibraryLoadError);
 		}
 
+		public static byte[] GetBytes(ArraySegment<byte> buffer)
+		{
+			if (buffer.Count == 0)
+			{
+				return buffer.Array == null ? null : Fdb.Empty.Array;
+			}
+			if (buffer.Offset == 0 && buffer.Count == buffer.Array.Length)
+			{
+				return buffer.Array;
+			}
+			var tmp = new byte[buffer.Count];
+			Buffer.BlockCopy(buffer.Array, buffer.Offset, tmp, 0, buffer.Count);
+			return tmp;
+		}
+
 		private static string ToManagedString(byte* nativeString)
 		{
 			if (nativeString == null) return null;
@@ -267,10 +283,9 @@ namespace FoundationDb.Client.Native
 		/// <param name="nullTerminated">If true, adds a terminating \0 at the end (C-style strings)</param>
 		/// <param name="length">Receives the size of the string including the optional NUL terminator (or 0 if <paramref name="value"/> is null)</param>
 		/// <returns>Byte array with the ANSI-encoded string with an optional NUL terminator, or null if <paramref name="value"/> was null</returns>
-		internal static byte[] ToNativeString(string value, bool nullTerminated, out int length)
+		public static ArraySegment<byte> ToNativeString(string value, bool nullTerminated)
 		{
-			length = 0;
-			if (value == null) return null;
+			if (value == null) return Fdb.Nil;
 
 			byte[] result;
 			if (nullTerminated)
@@ -282,8 +297,7 @@ namespace FoundationDb.Client.Native
 			{
 				result = Encoding.Default.GetBytes(value);
 			}
-			length = result.Length;
-			return result;
+			return new ArraySegment<byte>(result);
 		}
 
 		#region Core..
@@ -408,12 +422,11 @@ namespace FoundationDb.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 
-			int _;
-			var data = ToNativeString(path, nullTerminated: true, length: out _);
-			fixed (byte* ptr = data)
+			var data = ToNativeString(path, nullTerminated: true);
+			fixed (byte* ptr = data.Array)
 			{
 				var future = new FutureHandle();
-				var handle = Stubs.fdb_create_cluster(ptr);
+				var handle = Stubs.fdb_create_cluster(ptr + data.Offset);
 				Debug.WriteLine("fdb_create_cluster(" + path + ") => 0x" + handle.ToString("x"));
 				future.TrySetHandle(handle);
 				return future;
@@ -501,9 +514,8 @@ namespace FoundationDb.Client.Native
 		{
 			EnsureLibraryIsLoaded();
 
-			int n;
-			var data = ToNativeString(name, nullTerminated: false, length: out n);
-			fixed (byte* ptr = data)
+			var data = ToNativeString(name, nullTerminated: false);
+			fixed (byte* ptr = data.Array)
 			{
 				var future = new FutureHandle();
 
@@ -511,7 +523,7 @@ namespace FoundationDb.Client.Native
 				try { }
 				finally
 				{
-					var handle = Stubs.fdb_cluster_create_database(cluster, ptr, n);
+					var handle = Stubs.fdb_cluster_create_database(cluster, ptr + data.Offset, data.Count);
 					Debug.WriteLine("fdb_cluster_create_database(0x" + cluster.Handle.ToString("x") + ", '" + name + "') => 0x" + handle.ToString("x"));
 					future.TrySetHandle(handle);
 				}
@@ -626,6 +638,7 @@ namespace FoundationDb.Client.Native
 		public static FutureHandle TransactionGet(TransactionHandle transaction, ArraySegment<byte> key, bool snapshot)
 		{
 			EnsureLibraryIsLoaded();
+			if (key.Array == null || key.Count == 0) throw new ArgumentException("Key cannot be empty", "key");
 
 			var future = new FutureHandle();
 
@@ -643,11 +656,10 @@ namespace FoundationDb.Client.Native
 			return future;
 		}
 
-		public static FutureHandle TransactionGetKey(TransactionHandle transaction, byte[] keyName, int keyLength, bool orEqual, int offset, bool snapshot)
+		public static FutureHandle TransactionGetKey(TransactionHandle transaction, ArraySegment<byte> key, bool orEqual, int offset, bool snapshot)
 		{
 			EnsureLibraryIsLoaded();
-			if (keyName == null) throw new ArgumentNullException("keyName");
-			if (keyName.Length < keyLength) throw new ArgumentOutOfRangeException("keyLength");
+			if (key.Array == null || key.Count == 0) throw new ArgumentException("Key cannot be empty", "key");
 
 			var future = new FutureHandle();
 
@@ -655,50 +667,55 @@ namespace FoundationDb.Client.Native
 			try { }
 			finally
 			{
-				fixed (byte* ptrKey = keyName)
+				fixed (byte* ptrKey = key.Array)
 				{
-					var handle = Stubs.fdb_transaction_get_key(transaction, ptrKey, keyLength, orEqual, offset, snapshot);
-					Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", [" + keyLength + "], " + orEqual + ", " + offset + ", " + snapshot + ") => 0x" + handle.ToString("x"));
+					var handle = Stubs.fdb_transaction_get_key(transaction, ptrKey + key.Offset, key.Count, orEqual, offset, snapshot);
+					Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", [" + key.Count + "], " + orEqual + ", " + offset + ", " + snapshot + ") => 0x" + handle.ToString("x"));
 					future.TrySetHandle(handle);
 				}
 			}
 			return future;
 		}
 
-		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out byte[] value, out int valueLength)
+		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out ArraySegment<byte> value)
 		{
 			EnsureLibraryIsLoaded();
 
-			valuePresent = false;
-			value = null;
-			valueLength = 0;
-
 			byte* ptr = null;
+			int valueLength = 0;
 			var err = Stubs.fdb_future_get_value(future, out valuePresent, out ptr, out valueLength);
 			Debug.WriteLine("fdb_future_get_value(0x" + future.Handle.ToString("x") + ") => err=" + err + ", present=" + valuePresent + ", valueLength=" + valueLength);
 			if (ptr != null && valueLength >= 0)
 			{
-				value = new byte[valueLength];
-				Marshal.Copy(new IntPtr(ptr), value, 0, valueLength);
+				var bytes = new byte[valueLength];
+				Marshal.Copy(new IntPtr(ptr), bytes, 0, valueLength);
+				value = new ArraySegment<byte>(bytes, 0, valueLength);
 			}
-
+			else
+			{
+				value = default(ArraySegment<byte>);
+			}
 			return err;
 		}
 
-		public static FdbError FutureGetKey(FutureHandle future, out byte[] key, out int keyLength)
+		public static FdbError FutureGetKey(FutureHandle future, out ArraySegment<byte> key)
 		{
 			EnsureLibraryIsLoaded();
 
-			key = null;
-			keyLength = 0;
-
 			byte* ptr = null;
+			int keyLength = 0;
 			var err = Stubs.fdb_future_get_key(future, out ptr, out keyLength);
 			if (ptr != null && keyLength >= 0)
 			{
-				key = new byte[keyLength];
-				Marshal.Copy(new IntPtr(ptr), key, 0, keyLength);
+				var bytes = new byte[keyLength];
+				Marshal.Copy(new IntPtr(ptr), bytes, 0, keyLength);
+				key = new ArraySegment<byte>(bytes, 0, keyLength);
 			}
+			else
+			{
+				key = default(ArraySegment<byte>);
+			}
+
 
 			return err;
 		}
