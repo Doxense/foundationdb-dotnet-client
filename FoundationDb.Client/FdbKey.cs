@@ -33,21 +33,23 @@ using System.Text;
 namespace FoundationDb.Client.Tuples
 {
 
-	/// <summary>Base interface for all types of keys</summary>
-	public interface IFdbKey
-	{
-		/// <summary>Write the binary representation of this key at the end of a buffer</summary>
-		/// <param name="buffer">Buffer that will received the packed bytes of this key</param>
-		void PackTo(FdbBufferWriter writer);
-	}
-
 	/// <summary>Factory class for keys</summary>
 	public static class FdbKey
 	{
+		/// <summary>Smallest possible key ('\0')</summary>
+		public static readonly FdbByteKey MinValue = new FdbByteKey(new byte[1] { 0 }, 0, 1);
 
-		public static byte[] Ascii(string text)
+		/// <summary>Bigest possible key ('\xFF'), exclusing the system keys</summary>
+		public static readonly FdbByteKey MaxValue = new FdbByteKey(new byte[1] { 255 }, 0, 1);
+
+		public static IFdbKey Ascii(string text)
 		{
-			return Encoding.Default.GetBytes(text);
+			return new FdbByteKey(Encoding.Default.GetBytes(text));
+		}
+
+		public static IFdbKey Unicode(string text)
+		{
+			return new FdbByteKey(Encoding.UTF8.GetBytes(text));
 		}
 
 		public static IFdbKey Pack<T1, T2>(T1 item1, T2 item2)

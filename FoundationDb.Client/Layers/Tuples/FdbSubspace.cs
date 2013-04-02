@@ -69,6 +69,13 @@ namespace FoundationDb.Client.Tuples
 			FdbTuplePackers.SerializeTo(writer, this.RawPrefix);
 		}
 
+		public byte[] ToBytes()
+		{
+			var writer = new FdbBufferWriter();
+			PackTo(writer);
+			return writer.GetBytes();
+		}
+
 		private FdbBufferWriter OpenBuffer(int extraBytes = 0)
 		{
 			var writer = new FdbBufferWriter();

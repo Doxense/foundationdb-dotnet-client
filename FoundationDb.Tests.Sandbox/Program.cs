@@ -289,7 +289,7 @@ namespace FoundationDb.Tests.Sandbox
 
 						var k1 = FdbKey.Ascii("hello world");
 						Console.WriteLine(k1.ToString());
-						Console.WriteLine(ToHexArray(k1));
+						Console.WriteLine(ToHexArray(k1.ToBytes()));
 
 						var k2 = FdbKey.Pack("hello world", 123);
 						Console.WriteLine(k2.ToString());

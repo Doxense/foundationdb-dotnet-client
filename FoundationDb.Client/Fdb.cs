@@ -142,6 +142,20 @@ namespace FoundationDb.Client
 			if (value.Count > Fdb.MaxValueSize) throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), "value");
 		}
 
+		internal static byte[] GetBytes(ArraySegment<byte> buffer)
+		{
+			if (buffer.Count == 0)
+			{
+				return buffer.Array == null ? null : Fdb.Empty.Array;
+			}
+			if (buffer.Offset == 0 && buffer.Count == buffer.Array.Length)
+			{
+				return buffer.Array;
+			}
+			var tmp = new byte[buffer.Count];
+			Buffer.BlockCopy(buffer.Array, buffer.Offset, tmp, 0, buffer.Count);
+			return tmp;
+		}
 		#endregion
 
 		#region Network Thread / Event Loop...

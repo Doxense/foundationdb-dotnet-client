@@ -541,6 +541,11 @@ namespace FoundationDb.Client.Tuples
 				//NO-OP
 			}
 
+			public byte[] ToBytes()
+			{
+				return Fdb.Empty.Array;
+			}
+
 			public IEnumerator<object> GetEnumerator()
 			{
 				yield break;
