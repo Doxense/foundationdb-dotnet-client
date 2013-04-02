@@ -81,7 +81,7 @@ namespace FoundationDb.Client.Native
 			public delegate /*Future*/IntPtr FdbTransactionGet(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
 			public delegate /*Future*/IntPtr FdbTransactionGetKey(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
 			public delegate void FdbTransactionClear(TransactionHandle transaction, byte* keyName, int keyNameLength);
-			public delegate FdbError FdbTransactionGetRange(
+			public delegate /*Future*/IntPtr FdbTransactionGetRange(
 				TransactionHandle transaction,
 				byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
 				byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
@@ -164,6 +164,7 @@ namespace FoundationDb.Client.Native
 			public static Delegates.FdbFutureGetCluster fdb_future_get_cluster;
 			public static Delegates.FdbFutureGetDatabase fdb_future_get_database;
 			public static Delegates.FdbFutureGetValue fdb_future_get_value;
+			public static Delegates.FdbFutureGetKeyValue fdb_future_get_keyvalue_array;
 
 			public static void LoadBindings(UnmanagedLibrary lib)
 			{
@@ -209,6 +210,7 @@ namespace FoundationDb.Client.Native
 				lib.Bind(ref Stubs.fdb_future_get_database, "fdb_future_get_database");
 				lib.Bind(ref Stubs.fdb_future_get_key, "fdb_future_get_key");
 				lib.Bind(ref Stubs.fdb_future_get_value, "fdb_future_get_value");
+				lib.Bind(ref Stubs.fdb_future_get_keyvalue_array, "fdb_future_get_keyvalue_array");
 				lib.Bind(ref Stubs.fdb_future_get_version, "fdb_future_get_version");
 
 			}
@@ -249,21 +251,6 @@ namespace FoundationDb.Client.Native
 		private static void FailLibraryDidNotLoad()
 		{
 			throw new InvalidOperationException("An error occured while loading native FoundationDB library", LibraryLoadError);
-		}
-
-		public static byte[] GetBytes(ArraySegment<byte> buffer)
-		{
-			if (buffer.Count == 0)
-			{
-				return buffer.Array == null ? null : Fdb.Empty.Array;
-			}
-			if (buffer.Offset == 0 && buffer.Count == buffer.Array.Length)
-			{
-				return buffer.Array;
-			}
-			var tmp = new byte[buffer.Count];
-			Buffer.BlockCopy(buffer.Array, buffer.Offset, tmp, 0, buffer.Count);
-			return tmp;
 		}
 
 		private static string ToManagedString(byte* nativeString)
@@ -656,6 +643,31 @@ namespace FoundationDb.Client.Native
 			return future;
 		}
 
+		public static FutureHandle TransactionGetRange(TransactionHandle transaction, FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse)
+		{
+			EnsureLibraryIsLoaded();
+
+			var future = new FutureHandle();
+
+			RuntimeHelpers.PrepareConstrainedRegions();
+			try { }
+			finally
+			{
+				fixed (byte* ptrBegin = begin.Key.Array)
+				fixed (byte* ptrEnd = end.Key.Array)
+				{
+					var handle = Stubs.fdb_transaction_get_range(
+						transaction,
+						ptrBegin + begin.Key.Offset, begin.Key.Count, begin.OrEqual, begin.Offset,
+						ptrEnd + end.Key.Offset, end.Key.Count, end.OrEqual, end.Offset,
+						limit, targetBytes, mode, iteration, snapshot, reverse);
+					Debug.WriteLine("fdb_transaction_get_range(0x" + transaction.Handle.ToString("x") + ", ..., " + snapshot + ") => 0x" + handle.ToString("x"));
+					future.TrySetHandle(handle);
+				}
+			}
+			return future;
+		}
+
 		public static FutureHandle TransactionGetKey(TransactionHandle transaction, ArraySegment<byte> key, bool orEqual, int offset, bool snapshot)
 		{
 			EnsureLibraryIsLoaded();
@@ -716,7 +728,52 @@ namespace FoundationDb.Client.Native
 				key = default(ArraySegment<byte>);
 			}
 
+			return err;
+		}
 
+		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] result)
+		{
+			result = null;
+
+			int count;
+			bool more;
+			FdbKeyValue* kvp;
+			var err = Stubs.fdb_future_get_keyvalue_array(future, out kvp, out count, out more);
+			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
+
+			if (err == FdbError.Success && count >= 0 && kvp != null)
+			{ // convert the keyvalue result into an array
+
+				// first pass to compute the total size needed
+				int total = 0;
+				for (int i = 0; i < count; i++)
+				{
+					//TODO: protect against negative values ?
+					total += kvp[i].KeyLength + kvp[i].ValueLength;
+				}
+
+				// allocate all memory in one chunk, and make the key/values point to it
+				//TODO: protect against too much memory allocated ?
+				var page = new byte[total];
+				result = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[count];
+				int p = 0;
+				for (int i = 0; i < result.Length; i++)
+				{
+					int kl = kvp[i].KeyLength;
+					int vl = kvp[i].ValueLength;
+
+					Marshal.Copy(kvp[i].Key, page, p, kl);
+					Marshal.Copy(kvp[i].Value, page, p + kl, vl);
+
+					result[i] = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>(
+						new ArraySegment<byte>(page, p, kl),
+						new ArraySegment<byte>(page, p + kl, vl)
+					);
+
+					p += kl + vl;
+				}
+				Debug.Assert(p == total);
+			}
 			return err;
 		}
 

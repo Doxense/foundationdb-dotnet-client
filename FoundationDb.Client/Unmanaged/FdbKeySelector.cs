@@ -26,19 +26,57 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using Microsoft.Win32.SafeHandles;
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace FoundationDb.Client.Native
 {
 
-	[StructLayout(LayoutKind.Sequential)]
-	internal struct FdbKeyValue
+	public struct FdbKeySelector
 	{
-		public IntPtr Key;
-		public int KeyLength;
-		public IntPtr Value;
-		public int ValueLength;
+		public ArraySegment<byte> Key;
+		public bool OrEqual;
+		public int Offset;
+
+		public FdbKeySelector(ArraySegment<byte> key, bool OrEqual, int offset)
+		{
+			this.Key = key;
+			this.OrEqual = OrEqual;
+			this.Offset = offset;
+		}
+
+		public static FdbKeySelector FirstGreaterThan(ArraySegment<byte> key)
+		{
+			// #define FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1
+			return new FdbKeySelector(key, true, 1);
+		}
+
+		public static FdbKeySelector FirstGreaterOrEqual(ArraySegment<byte> key)
+		{
+			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
+			return new FdbKeySelector(key, false, 1);
+		}
+
+		public static FdbKeySelector LastLessThan(ArraySegment<byte> key)
+		{
+			// #define FDB_KEYSEL_LAST_LESS_THAN(k, l) k, l, 0, 0
+			return new FdbKeySelector(key, false, 0);
+		}
+
+		public static FdbKeySelector LastOrEqual(ArraySegment<byte> key)
+		{
+			// #define FDB_KEYSEL_LAST_LESS_OR_EQUAL(k, l) k, l, 1, 0
+			return new FdbKeySelector(key, true, 0);
+		}
+
 	}
 
 }

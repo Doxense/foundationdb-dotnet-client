@@ -61,6 +61,7 @@
     <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
     <Compile Include="Layers\Tuples\FdbTuple.cs" />
     <Compile Include="Layers\Tables\FdbTable.cs" />
+    <Compile Include="Unmanaged\FdbKeySelector.cs" />
     <Compile Include="Utils\FdbBufferWriter.cs" />
     <Compile Include="Utils\Contract.cs" />
     <Compile Include="Unmanaged\FdbKeyValue.cs" />

@@ -60,25 +60,6 @@ namespace FoundationDb.Client
 
 		internal TransactionHandle Handle { get { return m_handle; } }
 
-		private static bool TryGetValueResult(FutureHandle h, out ArraySegment<byte> result)
-		{
-			bool present;
-			var err = FdbNative.FutureGetValue(h, out present, out result);
-			Debug.WriteLine("fdb_future_get_value() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
-			Fdb.DieOnError(err);
-			return present;
-		}
-
-		private static byte[] GetValueResult(FutureHandle h)
-		{
-			ArraySegment<byte> result;
-			if (!TryGetValueResult(h, out result))
-			{
-				return null;
-			}
-			return FdbNative.GetBytes(result);
-		}
-
 		#region Options..
 
 		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
@@ -127,6 +108,8 @@ namespace FoundationDb.Client
 
 		#endregion
 
+		#region Versions...
+
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		public Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken))
 		{
@@ -173,7 +156,28 @@ namespace FoundationDb.Client
 			FdbNative.TransactionSetReadVersion(m_handle, version);
 		}
 
+		#endregion
+
 		#region Get...
+
+		private static bool TryGetValueResult(FutureHandle h, out ArraySegment<byte> result)
+		{
+			bool present;
+			var err = FdbNative.FutureGetValue(h, out present, out result);
+			Debug.WriteLine("fdb_future_get_value() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
+			Fdb.DieOnError(err);
+			return present;
+		}
+
+		private static byte[] GetValueResult(FutureHandle h)
+		{
+			ArraySegment<byte> result;
+			if (!TryGetValueResult(h, out result))
+			{
+				return null;
+			}
+			return Fdb.GetBytes(result);
+		}
 
 		internal Task<byte[]> GetCoreAsync(ArraySegment<byte> key, bool snapshot, CancellationToken ct)
 		{
@@ -221,7 +225,6 @@ namespace FoundationDb.Client
 		{
 			return GetAsync(new ArraySegment<byte>(key), snapshot, ct);
 		}
-
 
 		/// <summary>Returns the value of a particular key</summary>
 		/// <param name="key">Key to retrieve</param>
@@ -313,6 +316,36 @@ namespace FoundationDb.Client
 			return results
 				.Select((data, i) => new KeyValuePair<string, byte[]>(keys[i], data))
 				.ToList();
+		}
+
+		#endregion
+
+		#region GetRange...
+
+		private static KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] GetKeyValueResult(FutureHandle h)
+		{
+			KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] result;
+			var err = FdbNative.FutureGetKeyValueArray(h, out result);
+			Debug.WriteLine("fdb_future_get_keyvalue_array() => err=" + err + ", result=" + (result != null ? result.Length : -1));
+			Fdb.DieOnError(err);
+			return result;
+		}
+		internal Task<KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[]> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct)
+		{
+			Fdb.EnsureKeyIsValid(begin.Key);
+			Fdb.EnsureKeyIsValid(end.Key);
+
+			var future = FdbNative.TransactionGetRange(m_handle, begin, end, limit, targetBytes, mode, iteration, snapshot, reverse);
+			return FdbFuture.CreateTaskFromHandle(future, (h) => GetKeyValueResult(h), ct);
+		}
+
+		public Task<KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[]> GetRangeAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
+			return GetRangeCoreAsync(begin, end, limit, targetBytes, mode, iteration, snapshot, reverse, ct);
 		}
 
 		#endregion
