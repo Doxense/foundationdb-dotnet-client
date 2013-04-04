@@ -80,7 +80,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\..\..\..\..\Program Files\foundationdb\bin\fdb_c.dll">
+    <Content Include="C:\Program Files\foundationdb\bin\fdb_c.dll">
       <Link>fdb_c.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
