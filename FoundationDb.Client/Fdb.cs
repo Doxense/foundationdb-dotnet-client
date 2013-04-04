@@ -49,7 +49,7 @@ namespace FoundationDb.Client
 		public static string TracePath = null;
 
 		/// <summary>Buffer containing a null result (no value)</summary>
-		internal static readonly ArraySegment<byte> Nil = new ArraySegment<byte>(null, 0, 0);
+		internal static readonly ArraySegment<byte> Nil = default(ArraySegment<byte>);
 
 		/// <summary>Buffer containing an empty array (byte[0])</summary>
 		internal static readonly ArraySegment<byte> Empty = new ArraySegment<byte>(new byte[0]);
