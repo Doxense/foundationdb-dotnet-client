@@ -335,16 +335,21 @@ namespace FoundationDb.Tests.Sandbox
 							var prefix = FdbTuple.Create("range");
 							for (int i = 0; i < 100; i++)
 							{
-								trans.Set(prefix.Append(i), "value" + i.ToString());
+                                var k = prefix.Append(i);
+                                Console.WriteLine("Insert: " + ToHexString(k.ToArraySegment()));
+								trans.Set(k, "value" + i.ToString());
 							}
 							await trans.CommitAsync();
 						}
 
 						using (var trans = db.BeginTransaction())
 						{
+                            Console.WriteLine("Begin: " + ToHexString(FdbKey.Pack("range", 1).ToArraySegment()));
+                            Console.WriteLine("End: " + ToHexString(FdbKey.Pack("range", 7).ToArraySegment()));
+
 							var res = await trans.GetRangeAsync(
 								FdbKeySelector.FirstGreaterOrEqual(FdbKey.Pack("range", 1).ToArraySegment()),
-								FdbKeySelector.LastOrEqual(FdbKey.Pack("range", 7).ToArraySegment()),
+								FdbKeySelector.LastLessOrEqual(FdbKey.Pack("range", 7).ToArraySegment()) + 1,
 								0, 
 								0,
 								FDBStreamingMode.WantAll,
@@ -353,10 +358,10 @@ namespace FoundationDb.Tests.Sandbox
 								false
 							);
 
-							Console.WriteLine(res.Length);
+							Console.WriteLine("Found " + res.Length + " results");
 							foreach (var x in res)
 							{
-								Console.WriteLine(String.Join(" ", x.Key.Array.Skip(x.Key.Offset).Take(x.Key.Count).Select(b => b.ToString("X2"))) + " : " + Encoding.UTF8.GetString(x.Value.Array, x.Value.Offset, x.Value.Count));
+								Console.WriteLine(ToHexString(x.Key) + " : " + Encoding.UTF8.GetString(x.Value.Array, x.Value.Offset, x.Value.Count));
 							}
 						}
 
@@ -370,6 +375,14 @@ namespace FoundationDb.Tests.Sandbox
 				Fdb.Stop();
 			}
 		}
+
+        private static string ToHexString(ArraySegment<byte> segment)
+        {
+            if (segment.Array == null) return "<null>";
+            if (segment.Count == null) return "<empty>";
+            // close you eyes...
+            return String.Join(" ", segment.Array.Skip(segment.Offset).Take(segment.Count).Select(b => b.ToString("X2")));
+        }
 
 		private static string ToHexArray(byte[] buffer)
 		{

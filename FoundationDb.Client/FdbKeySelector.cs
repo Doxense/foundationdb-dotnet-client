@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -40,8 +41,10 @@ using System.Threading.Tasks;
 namespace FoundationDb.Client
 {
 
+	[DebuggerDisplay("Key=[{Key.Count}], OrEqual={OrEqual}, Offset={Offset}")]
 	public struct FdbKeySelector
 	{
+		//REVIEW: use IFdbKey instead ?
 		public ArraySegment<byte> Key;
 		public bool OrEqual;
 		public int Offset;
@@ -71,12 +74,22 @@ namespace FoundationDb.Client
 			return new FdbKeySelector(key, false, 0);
 		}
 
-		public static FdbKeySelector LastOrEqual(ArraySegment<byte> key)
+		public static FdbKeySelector LastLessOrEqual(ArraySegment<byte> key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_OR_EQUAL(k, l) k, l, 1, 0
 			return new FdbKeySelector(key, true, 0);
 		}
 
+		public static FdbKeySelector operator +(FdbKeySelector selector, int offset)
+		{
+			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset + offset);
+		}
+
+		public static FdbKeySelector operator -(FdbKeySelector selector, int offset)
+		{
+			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset - offset);
+		}
+	
 	}
 
 }
