@@ -32,7 +32,7 @@ using System.Runtime.InteropServices;
 namespace FoundationDb.Client.Native
 {
 
-	[StructLayout(LayoutKind.Sequential)]
+	[StructLayout(LayoutKind.Sequential, Pack = 4)]
 	internal struct FdbKeyValue
 	{
 		public IntPtr Key;

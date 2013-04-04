@@ -741,7 +741,7 @@ namespace FoundationDb.Client.Native
 			var err = Stubs.fdb_future_get_keyvalue_array(future, out kvp, out count, out more);
 			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
 
-			if (err == FdbError.Success && count >= 0 && kvp != null)
+			if (count > 0 && kvp != null)
 			{ // convert the keyvalue result into an array
 
 				// first pass to compute the total size needed
@@ -773,6 +773,10 @@ namespace FoundationDb.Client.Native
 					p += kl + vl;
 				}
 				Debug.Assert(p == total);
+			}
+			else if (count == 0 && err == FdbError.Success)
+			{
+				result = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[0];
 			}
 			return err;
 		}

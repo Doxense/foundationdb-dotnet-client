@@ -328,6 +328,38 @@ namespace FoundationDb.Tests.Sandbox
 							Console.WriteLine(ToHexArray(value));
 						}
 
+
+						// test range
+						using (var trans = db.BeginTransaction())
+						{
+							var prefix = FdbTuple.Create("range");
+							for (int i = 0; i < 100; i++)
+							{
+								trans.Set(prefix.Append(i), "value" + i.ToString());
+							}
+							await trans.CommitAsync();
+						}
+
+						using (var trans = db.BeginTransaction())
+						{
+							var res = await trans.GetRangeAsync(
+								FdbKeySelector.FirstGreaterOrEqual(FdbKey.Pack("range", 1).ToArraySegment()),
+								FdbKeySelector.LastOrEqual(FdbKey.Pack("range", 7).ToArraySegment()),
+								0, 
+								0,
+								FDBStreamingMode.WantAll,
+								0,
+								false,
+								false
+							);
+
+							Console.WriteLine(res.Length);
+							foreach (var x in res)
+							{
+								Console.WriteLine(String.Join(" ", x.Key.Array.Skip(x.Key.Offset).Take(x.Key.Count).Select(b => b.ToString("X2"))) + " : " + Encoding.UTF8.GetString(x.Value.Array, x.Value.Offset, x.Value.Count));
+							}
+						}
+
 						Console.WriteLine("time to say goodbye...");
 					}
 				}
