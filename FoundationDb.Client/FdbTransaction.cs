@@ -322,24 +322,64 @@ namespace FoundationDb.Client
 
 		#region GetRange...
 
-		private static KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] GetKeyValueResult(FutureHandle h)
+		private static KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] GetKeyValueArrayResult(FutureHandle h, out bool more)
 		{
 			KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] result;
-			var err = FdbNative.FutureGetKeyValueArray(h, out result);
-			Debug.WriteLine("fdb_future_get_keyvalue_array() => err=" + err + ", result=" + (result != null ? result.Length : -1));
+			var err = FdbNative.FutureGetKeyValueArray(h, out result, out more);
+			Debug.WriteLine("fdb_future_get_keyvalue_array() => err=" + err + ", result=" + (result != null ? result.Length : -1) + ", more=" + more);
 			Fdb.DieOnError(err);
 			return result;
 		}
-		internal Task<KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[]> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct)
+
+		public class FdbSearchResults
+		{
+			/// <summary>Key selector describing the beginning of the range</summary>
+			public FdbKeySelector Begin { get; internal set; }
+
+			/// <summary>Key selector describing the end of the range</summary>
+			public FdbKeySelector End { get; internal set; }
+
+			public bool Reverse { get; internal set; }
+
+			/// <summary>Iteration number of current page (in iterator mode), or 0</summary>
+			public int Iteration { get; internal set; }
+
+			/// <summary>Current page (may contain all records or only a segment)</summary>
+			public KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] Page { get; internal set; }
+
+			/// <summary>If true, we have more records pending</summary>
+			public bool HasMore { get; internal set; }
+
+		}
+
+		internal Task<FdbSearchResults> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct)
 		{
 			Fdb.EnsureKeyIsValid(begin.Key);
 			Fdb.EnsureKeyIsValid(end.Key);
 
+			var searchResults = new FdbSearchResults
+			{
+				Begin = begin,
+				End = end,
+				Reverse = reverse,
+				Iteration = iteration,
+			};
+
 			var future = FdbNative.TransactionGetRange(m_handle, begin, end, limit, targetBytes, mode, iteration, snapshot, reverse);
-			return FdbFuture.CreateTaskFromHandle(future, (h) => GetKeyValueResult(h), ct);
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				(h) =>
+				{
+					bool hasMore;
+					searchResults.Page = GetKeyValueArrayResult(h, out hasMore);
+					searchResults.HasMore = hasMore;
+					return searchResults;
+				},
+				ct
+			);
 		}
 
-		public Task<KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[]> GetRangeAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct = default(CancellationToken))
+		public Task<FdbSearchResults> GetRangeAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 			ThrowIfDisposed();

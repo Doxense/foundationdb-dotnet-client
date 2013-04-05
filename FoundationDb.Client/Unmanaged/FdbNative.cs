@@ -731,53 +731,72 @@ namespace FoundationDb.Client.Native
 			return err;
 		}
 
-		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] result)
+		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] result, out bool more)
 		{
 			result = null;
+			more = false;
 
 			int count;
-			bool more;
 			FdbKeyValue* kvp;
+
 			var err = Stubs.fdb_future_get_keyvalue_array(future, out kvp, out count, out more);
 			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
 
-			if (count > 0 && kvp != null)
-			{ // convert the keyvalue result into an array
-
-				// first pass to compute the total size needed
-				int total = 0;
-				for (int i = 0; i < count; i++)
-				{
-					//TODO: protect against negative values ?
-					total += kvp[i].KeyLength + kvp[i].ValueLength;
-				}
-
-				// allocate all memory in one chunk, and make the key/values point to it
-				//TODO: protect against too much memory allocated ?
-				var page = new byte[total];
-				result = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[count];
-				int p = 0;
-				for (int i = 0; i < result.Length; i++)
-				{
-					int kl = kvp[i].KeyLength;
-					int vl = kvp[i].ValueLength;
-
-					Marshal.Copy(kvp[i].Key, page, p, kl);
-					Marshal.Copy(kvp[i].Value, page, p + kl, vl);
-
-					result[i] = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>(
-						new ArraySegment<byte>(page, p, kl),
-						new ArraySegment<byte>(page, p + kl, vl)
-					);
-
-					p += kl + vl;
-				}
-				Debug.Assert(p == total);
-			}
-			else if (count == 0 && err == FdbError.Success)
+			if (Fdb.Success(err))
 			{
-				result = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[0];
+				Debug.Assert(count >= 0, "Return count was negative");
+
+				result = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[count];
+
+				if (count > 0)
+				{ // convert the keyvalue result into an array
+
+					Debug.Assert(kvp != null, "We have results but array pointer was null");
+
+					// in order to reduce allocations, we want to merge all keys and values
+					// into a single byte{] and return  list of ArraySegment<byte> that will
+					// link to the different chunks of this buffer.
+
+					// first pass to compute the total size needed
+					int total = 0;
+					for (int i = 0; i < count; i++)
+					{
+						//TODO: protect against negative values or values too big ?
+						Debug.Assert(kvp[i].KeyLength >= 0 && kvp[i].KeyLength >= 0);
+						total += kvp[i].KeyLength + kvp[i].ValueLength;
+					}
+
+					// allocate all memory in one chunk, and make the key/values point to it
+					// Does fdb allocate all keys into a single buffer ? We could copy everything in one pass,
+					// but it would rely on implementation details that could break at anytime...
+
+					//TODO: protect against too much memory allocated ?
+					// what would be a good max value? we need to at least be able to handle FDB_STREAMING_MODE_WANT_ALL
+
+					var page = new byte[total];
+					int p = 0;
+					for (int i = 0; i < result.Length; i++)
+					{
+						int kl = kvp[i].KeyLength;
+						int vl = kvp[i].ValueLength;
+
+						//TODO: some keys/values will be small (32 bytes or less) while other will be big
+						//consider having to copy methods, optimized for each scenario ?
+
+						Marshal.Copy(kvp[i].Key, page, p, kl);
+						Marshal.Copy(kvp[i].Value, page, p + kl, vl);
+
+						result[i] = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>(
+							new ArraySegment<byte>(page, p, kl),
+							new ArraySegment<byte>(page, p + kl, vl)
+						);
+
+						p += kl + vl;
+					}
+					Debug.Assert(p == total);
+				}
 			}
+
 			return err;
 		}
 

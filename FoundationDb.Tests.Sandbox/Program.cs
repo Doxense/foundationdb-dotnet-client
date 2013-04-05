@@ -358,8 +358,8 @@ namespace FoundationDb.Tests.Sandbox
 								false
 							);
 
-							Console.WriteLine("Found " + res.Length + " results");
-							foreach (var x in res)
+							Console.WriteLine("Found " + res.Page.Length + " results");
+							foreach (var x in res.Page)
 							{
 								Console.WriteLine(ToHexString(x.Key) + " : " + Encoding.UTF8.GetString(x.Value.Array, x.Value.Offset, x.Value.Count));
 							}
