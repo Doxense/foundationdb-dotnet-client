@@ -50,6 +50,7 @@
   <ItemGroup>
     <Compile Include="ClusterFacts.cs" />
     <Compile Include="KeyFacts.cs" />
+    <Compile Include="Layers\StringInternFacts.cs" />
     <Compile Include="TransactionFacts.cs" />
     <Compile Include="DatabaseFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
