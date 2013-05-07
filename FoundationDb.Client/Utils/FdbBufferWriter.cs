@@ -92,7 +92,7 @@ namespace FoundationDb.Client.Utils
 #endif
 		public ArraySegment<byte> ToArraySegment()
 		{
-			return new ArraySegment<byte>(this.Buffer, 0, this.Position);
+			return new ArraySegment<byte>(this.Buffer ?? Empty, 0, this.Position);
 		}
 
 #if !NET_4_0
@@ -167,8 +167,10 @@ namespace FoundationDb.Client.Utils
 #endif
 		public void WriteBytes(byte[] data)
 		{
-			//Contract.NotNull(data, WellKnownParameters.data);
-			WriteBytes(data, 0, data.Length);
+			if (data != null)
+			{
+				WriteBytes(data, 0, data.Length);
+			}
 		}
 
 #if !NET_4_0
@@ -260,7 +262,12 @@ namespace FoundationDb.Client.Utils
 			}
 
 			int n = value.Length;
-			//TODO: detect NULs!
+			// we need to know if there are any NUL chars (\0) that need escaping...
+			// (we will also need to add 1 byte to the buffer size per NUL)
+			foreach (byte b in value)
+			{
+				if (b == 0) ++n;
+			}
 
 			EnsureBytes(n + 2);
 			var buffer = this.Buffer;
@@ -268,8 +275,19 @@ namespace FoundationDb.Client.Utils
 			buffer[p++] = TypeStringAscii;
 			if (n > 0)
 			{
-				System.Buffer.BlockCopy(value, 0, buffer, p, n);
-				p += n;
+				if (n == value.Length)
+				{ // no NUL in the string, can copy all at once
+					System.Buffer.BlockCopy(value, 0, buffer, p, n);
+					p += n;
+				}
+				else
+				{ // we need to escape all NULs
+					foreach (byte b in value)
+					{
+						buffer[p++] = b;
+						if (b == 0) buffer[p++] = 0xFF;
+					}
+				}
 			}
 			buffer[p++] = TypeNil;
 			this.Position = p;

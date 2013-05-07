@@ -7,6 +7,7 @@ using FoundationDb.Client;
 using System.Threading.Tasks;
 using System.Threading;
 using FoundationDb.Client.Utils;
+using System.Text.RegularExpressions;
 
 namespace FoundationDb.Tests
 {
@@ -20,12 +21,22 @@ namespace FoundationDb.Tests
 			return String.Join(" ", buffer.Array.Skip(buffer.Offset).Take(buffer.Count).Select(b => b.ToString("X2")));
 		}
 
+		private static string Clean(string value)
+		{
+			var sb = new StringBuilder(value.Length + 8);
+			foreach (var c in value)
+			{
+				if (c < ' ') sb.Append("\\x").Append(((int)c).ToString("x2")); else sb.Append(c);
+			}
+			return sb.ToString();
+		}
+
 		private static void PerformWriterTest<T>(Action<FdbBufferWriter, T> action, T value, string expectedResult, string message = null)
 		{
 			var writer = new FdbBufferWriter();
 			action(writer, value);
 
-			Assert.That(Dump(writer.ToArraySegment()), Is.EqualTo(expectedResult), "Value {0} ({1}) was not properly packed", value, (value == null ? "null" : value.GetType().Name));
+			Assert.That(Dump(writer.ToArraySegment()), Is.EqualTo(expectedResult), "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name));
 		}
 
 		[Test]
@@ -91,5 +102,35 @@ namespace FoundationDb.Tests
 			PerformWriterTest(test, ulong.MaxValue-1, "1C FE FF FF FF FF FF FF FF");
 
 		}
+	
+		[Test]
+		public void Test_WriteAsciiString()
+		{
+			Action<FdbBufferWriter, string> test = (writer, value) => writer.WriteAsciiString(value);
+
+			PerformWriterTest(test, null, "00");
+			PerformWriterTest(test, String.Empty, "01 00");
+			PerformWriterTest(test, "A", "01 41 00");
+			PerformWriterTest(test, "ABC", "01 41 42 43 00");
+
+			// Must escape '\0' contained in the string as '\x00\xFF'
+			PerformWriterTest(test, "\0", "01 00 FF 00");
+			PerformWriterTest(test, "A\0", "01 41 00 FF 00");
+			PerformWriterTest(test, "\0A", "01 00 FF 41 00");
+			PerformWriterTest(test, "A\0\0A", "01 41 00 FF 00 FF 41 00");
+			PerformWriterTest(test, "A\0B\0\xFF", "01 41 00 FF 42 00 FF FF 00");
+		}
+
+		[Test]
+		public void Test_WriteBytes()
+		{
+			Action<FdbBufferWriter, byte[]> test = (writer, value) => writer.WriteBytes(value);
+
+			PerformWriterTest(test, null, "");
+			PerformWriterTest(test, new byte[0], "");
+			PerformWriterTest(test, new byte[] { 66 }, "42");
+			PerformWriterTest(test, new byte[] { 65, 66, 67 }, "41 42 43");
+		}
+
 	}
 }

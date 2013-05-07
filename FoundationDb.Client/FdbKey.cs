@@ -96,13 +96,11 @@ namespace FoundationDb.Client
 			if (buffer.Count == 0) return buffer.Array == null ? "<null>" : "<empty>";
 
 			var sb = new StringBuilder(buffer.Count + 16);
-			sb.Append('"');
 			for (int i = 0; i < buffer.Count; i++)
 			{
 				int c = buffer.Array[buffer.Offset + i];
-				if (c < 32) sb.Append('<').Append(c.ToString("x2")).Append('>'); else sb.Append((char)c);
+				if (c < 32 || c == 255) sb.Append('<').Append(c.ToString("X2")).Append('>'); else sb.Append((char)c);
 			}
-			sb.Append("\"[").Append(buffer.Count).Append(']');
 			return sb.ToString();
 		}
 

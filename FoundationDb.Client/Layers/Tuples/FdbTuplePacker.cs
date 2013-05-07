@@ -187,7 +187,7 @@ namespace FoundationDb.Client.Tuples
 
 		public static void SerializeTo(FdbBufferWriter writer, bool value)
 		{
-			// true is encoded as 0 (\x14)
+			// false is encoded as 0 (\x14)
 			// true is encoded as -1 (\x13\xfe)
 			writer.WriteInt64(value ? -1L : 0L);
 		}
