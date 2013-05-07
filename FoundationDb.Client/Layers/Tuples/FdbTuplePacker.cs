@@ -257,40 +257,4 @@ namespace FoundationDb.Client.Tuples
 
 	}
 
-	public static class TestTest
-	{
-
-		public static void JusteFaisLe()
-		{
-
-			var writer = new FdbBufferWriter();
-			//writer.WriteInt64(0L);
-			//writer.WriteInt64(1L);
-			//writer.WriteInt64(123L);
-			writer.WriteInt64(-1L);
-			//writer.WriteInt64(-123L);
-			writer.WriteInt64(-255L);
-			writer.WriteInt64(-256L);
-			writer.WriteInt64(-65535L);
-			writer.WriteInt64(-65536L);
-			//writer.WriteInt64(256L);
-			//writer.WriteInt64(65535L);
-			//writer.WriteInt64(65536L);
-			//writer.WriteInt64((1L << 24) - 1);
-			//writer.WriteInt64(1L << 24);
-			//writer.WriteInt64((1L << 32) - 1);
-			//writer.WriteInt64((1L << 32));
-			var x = writer.GetBytes();
-			
-			//var tuple = FdbTuple.Create("Metrics", 123, DateTime.UtcNow, "cpuload");
-			//var x = tuple.ToBytes();
-
-			Console.WriteLine(x.Length);
-			Console.WriteLine(String.Join(" ", x));
-
-
-		}
-
-	}
-
 }

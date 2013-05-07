@@ -121,6 +121,11 @@ namespace FoundationDb.Client.Tuples
 			return this.Tuple.Append<T>(value);
 		}
 
+		public IFdbTuple Append<T1, T2>(T1 value1, T2 value2)
+		{
+			return this.Tuple.Append<T1>(value1).Append<T2>(value2);
+		}
+
 		public IFdbTuple AppendRange(IFdbTuple value)
 		{
 			if (value == null) throw new ArgumentNullException("value");

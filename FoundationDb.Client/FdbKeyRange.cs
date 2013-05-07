@@ -26,41 +26,50 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client.Utils;
 using System;
-using System.Text;
 
 namespace FoundationDb.Client
 {
 
-	/// <summary>Key serialized as a byte array</summary>
-	public struct FdbByteKey : IFdbKey
+	public struct FdbKeyRange
 	{
-		public readonly ArraySegment<byte> Buffer;
+		public readonly ArraySegment<byte> Begin;
+		public readonly ArraySegment<byte> End;
 
-		public FdbByteKey(ArraySegment<byte> buffer)
+		public FdbKeyRange(ArraySegment<byte> begin, ArraySegment<byte> end)
 		{
-			this.Buffer = buffer;
+			this.Begin = begin;
+			this.End = end;
 		}
 
-		public FdbByteKey(byte[] buffer)
+		public FdbKeySelector BeginIncluded
 		{
-			this.Buffer = new ArraySegment<byte>(buffer);
+			get { return FdbKeySelector.FirstGreaterOrEqual(this.Begin); }
 		}
 
-		public FdbByteKey(byte[] buffer, int offset, int count)
+		public FdbKeySelector BeginExcluded
 		{
-			this.Buffer = new ArraySegment<byte>(buffer, offset, count);
+			get { return FdbKeySelector.FirstGreaterThan(this.Begin); }
 		}
 
-		public void PackTo(FdbBufferWriter writer)
+		public FdbKeySelector EndIncluded
 		{
-			writer.WriteBytes(this.Buffer);
+			get { return FdbKeySelector.FirstGreaterThan(this.End); }
 		}
 
-		public byte[] ToBytes()
+		public FdbKeySelector EndExcluded
 		{
-			return Fdb.GetBytes(this.Buffer);
+			get { return FdbKeySelector.FirstGreaterOrEqual(this.End); }
+		}
+
+		/// <summary>Returns true, if the key is contained in the range</summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
+		public bool Contains(ArraySegment<byte> key)
+		{
+			if (FdbKey.Compare(key, this.Begin) < 0) return false;
+			if (FdbKey.Compare(key, this.End) > 0) return false;
+			return true;
 		}
 	}
 

@@ -26,6 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+// enable this to help debug Transactions
+#undef DEBUG_TRANSACTIONS
+
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
@@ -123,7 +126,9 @@ namespace FoundationDb.Client
 				{
 					long version;
 					var err = FdbNative.FutureGetVersion(h, out version);
+#if DEBUG_TRANSACTIONS
 					Debug.WriteLine("fdb_future_get_version() => err=" + err + ", version=" + version);
+#endif
 					Fdb.DieOnError(err);
 					return version;
 				},
@@ -142,7 +147,9 @@ namespace FoundationDb.Client
 
 			long version;
 			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
+#if DEBUG_TRANSACTIONS
 			Debug.WriteLine("fdb_transaction_get_committed_version() => err=" + err + ", version=" + version);
+#endif
 			Fdb.DieOnError(err);
 			return version;
 		}
@@ -164,7 +171,9 @@ namespace FoundationDb.Client
 		{
 			bool present;
 			var err = FdbNative.FutureGetValue(h, out present, out result);
+#if DEBUG_TRANSACTIONS
 			Debug.WriteLine("fdb_future_get_value() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
+#endif
 			Fdb.DieOnError(err);
 			return present;
 		}
@@ -326,30 +335,11 @@ namespace FoundationDb.Client
 		{
 			KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] result;
 			var err = FdbNative.FutureGetKeyValueArray(h, out result, out more);
+#if DEBUG_TRANSACTIONS
 			Debug.WriteLine("fdb_future_get_keyvalue_array() => err=" + err + ", result=" + (result != null ? result.Length : -1) + ", more=" + more);
+#endif
 			Fdb.DieOnError(err);
 			return result;
-		}
-
-		public class FdbSearchResults
-		{
-			/// <summary>Key selector describing the beginning of the range</summary>
-			public FdbKeySelector Begin { get; internal set; }
-
-			/// <summary>Key selector describing the end of the range</summary>
-			public FdbKeySelector End { get; internal set; }
-
-			public bool Reverse { get; internal set; }
-
-			/// <summary>Iteration number of current page (in iterator mode), or 0</summary>
-			public int Iteration { get; internal set; }
-
-			/// <summary>Current page (may contain all records or only a segment)</summary>
-			public KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] Page { get; internal set; }
-
-			/// <summary>If true, we have more records pending</summary>
-			public bool HasMore { get; internal set; }
-
 		}
 
 		internal Task<FdbSearchResults> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct)
@@ -379,13 +369,77 @@ namespace FoundationDb.Client
 			);
 		}
 
-		public Task<FdbSearchResults> GetRangeAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct = default(CancellationToken))
+		public Task<FdbSearchResults> GetRangeInclusiveAsync(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			return GetRangeAsync(beginInclusive, endInclusive + 1, snapshot, ct);
+		}
+
+		public Task<FdbSearchResults> GetRangeAsync(IFdbKey beginInclusive, IFdbKey endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			return GetRangeAsync(
+				FdbKeySelector.FirstGreaterOrEqual(beginInclusive),
+				FdbKeySelector.FirstGreaterThan(endExclusive),
+				snapshot,
+				ct
+			);
+			
+		}
+
+		public Task<FdbSearchResults> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			Fdb.EnsureNotOnNetworkThread();
 
-			return GetRangeCoreAsync(begin, end, limit, targetBytes, mode, iteration, snapshot, reverse, ct);
+			return GetRangeCoreAsync(beginInclusive, endExclusive, limit: 0, targetBytes: 0, mode: FDBStreamingMode.WantAll, iteration: 0, snapshot: snapshot, reverse: false, ct: ct);
+		}
+
+		public Task<FdbSearchResults> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
+			return GetRangeCoreAsync(beginInclusive, endExclusive, limit, targetBytes, mode, iteration, snapshot, reverse, ct);
+		}
+
+		#endregion
+
+		#region GetKey...
+
+		private static ArraySegment<byte> GetKeyResult(FutureHandle h)
+		{
+			ArraySegment<byte> result;
+			var err = FdbNative.FutureGetKey(h, out result);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("fdb_future_get_key() => err=" + err + ", result=" + (result != null ? result.Length : -1));
+#endif
+			Fdb.DieOnError(err);
+			return result;
+		}
+
+		internal Task<ArraySegment<byte>> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot, CancellationToken ct)
+		{
+			Fdb.EnsureKeyIsValid(selector.Key);
+
+			var future = FdbNative.TransactionGetKey(m_handle, selector, snapshot);
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				(h) =>
+				{
+					return GetKeyResult(h);
+				},
+				ct
+			);
+		}
+
+		public Task<ArraySegment<byte>> GetKeyAsync(FdbKeySelector selector, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
+			return GetKeyCoreAsync(selector, snapshot, ct);			
 		}
 
 		#endregion
@@ -557,5 +611,27 @@ namespace FoundationDb.Client
 			}
 		}
 	}
+
+	public class FdbSearchResults
+	{
+		/// <summary>Key selector describing the beginning of the range</summary>
+		public FdbKeySelector Begin { get; internal set; }
+
+		/// <summary>Key selector describing the end of the range</summary>
+		public FdbKeySelector End { get; internal set; }
+
+		public bool Reverse { get; internal set; }
+
+		/// <summary>Iteration number of current page (in iterator mode), or 0</summary>
+		public int Iteration { get; internal set; }
+
+		/// <summary>Current page (may contain all records or only a segment)</summary>
+		public KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] Page { get; internal set; }
+
+		/// <summary>If true, we have more records pending</summary>
+		public bool HasMore { get; internal set; }
+
+	}
+
 
 }

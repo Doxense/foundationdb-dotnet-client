@@ -379,7 +379,7 @@ namespace FoundationDb.Tests.Sandbox
 		private static string ToHexString(ArraySegment<byte> segment)
 		{
 			if (segment.Array == null) return "<null>";
-			if (segment.Count == null) return "<empty>";
+			if (segment.Count == 0) return "<empty>";
 			// close you eyes...
 			return String.Join(" ", segment.Array.Skip(segment.Offset).Take(segment.Count).Select(b => b.ToString("X2")));
 		}
@@ -411,6 +411,7 @@ namespace FoundationDb.Tests.Sandbox
 			sb.Append(System.Web.HttpUtility.JavaScriptStringEncode(Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count)));
 			return sb.ToString();
 		}
+
 
 	}
 }

@@ -618,6 +618,24 @@ namespace FoundationDb.Client.Tuples
 			return tuple;
 		}
 
+		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
+		public static ArraySegment<byte>[] BatchPack(IEnumerable<IFdbTuple> tuples)
+		{
+			var next = new List<int>();
+			var writer = new FdbBufferWriter();
+
+			foreach(var tuple in tuples)
+			{
+				tuple.PackTo(writer);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
 	}
 
 }

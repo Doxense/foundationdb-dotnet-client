@@ -104,6 +104,52 @@ namespace FoundationDb.Client.Tuples
 			return new FdbTupleList(list);
 		}
 
+		/// <summary>Creates a key range containing all children of this tuple, from tuple.pack()+'\0' to tuple.pack()+'\xFF'</summary>
+		/// <param name="tuple">Tuple that is the suffix of all keys</param>
+		/// <returns>Range of all keys suffixed by the tuple. The tuple itself will not be included</returns>
+		public static FdbKeyRange ToRange(this IFdbTuple tuple)
+		{
+			return ToRange(tuple, false);
+		}
+
+		/// <summary>Creates a key range containing all children of tuple, optionally including the tuple itself.</summary>
+		/// <param name="tuple">Tuple that is the prefix of all keys</param>
+		/// <param name="includePrefix">If true, the tuple key itself is included, if false only the children keys are included</param>
+		/// <returns>Range of all keys suffixed by the tuple. The tuple itself will be included if <paramref name="includePrefix"/> is true</returns>
+		public static FdbKeyRange ToRange(this IFdbTuple tuple, bool includePrefix)
+		{
+			// We want to allocate only one byte[] to store both keys, and map both ArraySegment<byte> to each chunk
+			// So we will serialize the tuple two times in the same writer
+
+			var writer = new FdbBufferWriter();
+
+			tuple.PackTo(writer);
+			writer.EnsureBytes(writer.Position + 2);
+			if (!includePrefix) writer.WriteByte(0);
+			int p0 = writer.Position;
+
+			tuple.PackTo(writer);
+			writer.WriteByte(0xFF);
+			int p1 = writer.Position;
+
+			return new FdbKeyRange(
+				new ArraySegment<byte>(writer.Buffer, 0, p0),
+				new ArraySegment<byte>(writer.Buffer, p0, p1 - p0)
+			);
+		}
+
+		public static Task<FdbSearchResults> GetRangeAsync(this FdbTransaction transaction, IFdbTuple suffix, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			var range = suffix.ToRange();
+
+			return transaction.GetRangeAsync(
+				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
+				FdbKeySelector.FirstGreaterThan(range.End),
+				snapshot,
+				ct
+			);
+		}
+
 	}
 
 }

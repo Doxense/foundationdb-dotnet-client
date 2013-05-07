@@ -26,17 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Microsoft.Win32.SafeHandles;
+using FoundationDb.Client.Tuples;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FoundationDb.Client
 {
@@ -44,28 +36,35 @@ namespace FoundationDb.Client
 	[DebuggerDisplay("Key=[{Key.Count}], OrEqual={OrEqual}, Offset={Offset}")]
 	public struct FdbKeySelector
 	{
-		//REVIEW: use IFdbKey instead ?
-		public ArraySegment<byte> Key;
-		public bool OrEqual;
-		public int Offset;
+		public readonly ArraySegment<byte> Key;
+		public readonly bool OrEqual;
+		public readonly int Offset;
 
-		public FdbKeySelector(ArraySegment<byte> key, bool OrEqual, int offset)
+		public FdbKeySelector(ArraySegment<byte> key, bool orEqual, int offset)
 		{
 			this.Key = key;
-			this.OrEqual = OrEqual;
+			this.OrEqual = orEqual;
 			this.Offset = offset;
 		}
 
-		public static FdbKeySelector FirstGreaterThan(ArraySegment<byte> key)
+		public static FdbKeySelector LastLessThan(IFdbKey key)
 		{
-			// #define FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1
-			return new FdbKeySelector(key, true, 1);
+			return LastLessThan(key.ToArraySegment());
 		}
 
-		public static FdbKeySelector FirstGreaterOrEqual(ArraySegment<byte> key)
+		public static FdbKeySelector LastLessOrEqual(IFdbKey key)
 		{
-			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
-			return new FdbKeySelector(key, false, 1);
+			return LastLessOrEqual(key.ToArraySegment());
+		}
+
+		public static FdbKeySelector FirstGreaterThan(IFdbKey key)
+		{
+			return FirstGreaterThan(key.ToArraySegment());
+		}
+
+		public static FdbKeySelector FirstGreaterOrEqual(IFdbKey key)
+		{
+			return FirstGreaterOrEqual(key.ToArraySegment());
 		}
 
 		public static FdbKeySelector LastLessThan(ArraySegment<byte> key)
@@ -80,6 +79,18 @@ namespace FoundationDb.Client
 			return new FdbKeySelector(key, true, 0);
 		}
 
+		public static FdbKeySelector FirstGreaterThan(ArraySegment<byte> key)
+		{
+			// #define FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1
+			return new FdbKeySelector(key, true, 1);
+		}
+
+		public static FdbKeySelector FirstGreaterOrEqual(ArraySegment<byte> key)
+		{
+			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
+			return new FdbKeySelector(key, false, 1);
+		}
+
 		public static FdbKeySelector operator +(FdbKeySelector selector, int offset)
 		{
 			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset + offset);
@@ -89,7 +100,7 @@ namespace FoundationDb.Client
 		{
 			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset - offset);
 		}
-	
+
 	}
 
 }

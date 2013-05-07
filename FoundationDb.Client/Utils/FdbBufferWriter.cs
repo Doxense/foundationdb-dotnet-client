@@ -377,7 +377,7 @@ namespace FoundationDb.Client.Utils
 			// we are only called for values <= -256 or >= 256
 
 			// determine the number of bytes needed to encode the absolute value
-			int bytes = FdbBufferWriter.NumberOfBytes((ulong)Math.Abs(value));
+			int bytes = FdbBufferWriter.NumberOfBytes(value);
 
 			EnsureBytes(bytes + 1);
 
@@ -547,6 +547,11 @@ namespace FoundationDb.Client.Utils
 		public static int NumberOfBytes(uint v)
 		{
 			return (MostSignificantBit(v) + 8) >> 3;
+		}
+
+		public static int NumberOfBytes(long v)
+		{
+			return v >= 0 ? NumberOfBytes((ulong)v) : v != long.MinValue ? NumberOfBytes((ulong)-v) : 8;
 		}
 
 		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>

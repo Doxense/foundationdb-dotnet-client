@@ -30,7 +30,7 @@ using FoundationDb.Client.Utils;
 using System;
 using System.Text;
 
-namespace FoundationDb.Client.Tuples
+namespace FoundationDb.Client
 {
 
 	/// <summary>Base interface for all types of keys</summary>
