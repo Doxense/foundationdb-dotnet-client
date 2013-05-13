@@ -56,6 +56,7 @@
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
     <Compile Include="Layers\Arrays\FdbArray.cs" />
+    <Compile Include="Layers\Indexes\FdbSimpleIndex.cs" />
     <Compile Include="Layers\Strings\FdbStringIntern.cs" />
     <Compile Include="Layers\Tuples\IFdbTuple.cs" />
     <Compile Include="IFdbKey.cs" />
