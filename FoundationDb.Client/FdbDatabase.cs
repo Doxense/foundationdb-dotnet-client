@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using FoundationDb.Client.Native;
 using System.IO;
 using System.Linq;
@@ -37,6 +38,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace FoundationDb.Client
 {
@@ -50,7 +52,11 @@ namespace FoundationDb.Client
 		private readonly DatabaseHandle m_handle;
 		private readonly string m_name;
 		private readonly bool m_ownsCluster;
+		private readonly CancellationTokenSource m_cts = new CancellationTokenSource();
 		private bool m_disposed;
+
+		private static int s_transactionCounter;
+		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new ConcurrentDictionary<int, FdbTransaction>();
 
 		//TODO: keep track of all pending transactions on this db that are still alive
 
@@ -64,13 +70,21 @@ namespace FoundationDb.Client
 
 		public FdbCluster Cluster { get { return m_cluster; } }
 
+		/// <summary>Name of the database</summary>
 		public string Name { get { return m_name; } }
 
+		/// <summary>Handle to the underlying FDB_DATABASE*</summary>
 		internal DatabaseHandle Handle { get { return m_handle; } }
+
+		/// <summary>Source or cancellation that is linked with the lifetime of this database</summary>
+		/// <remarks>Will be cancelled when Dispose() is called</remarks>
+		internal CancellationTokenSource CancellationSource { get { return m_cts; } }
 
 		public FdbTransaction BeginTransaction()
 		{
 			if (m_handle.IsInvalid) throw new InvalidOperationException("Cannot create a transaction on an invalid database");
+
+			int id = Interlocked.Increment(ref s_transactionCounter);
 
 			TransactionHandle handle;
 			var err = FdbNative.DatabaseCreateTransaction(m_handle, out handle);
@@ -80,8 +94,22 @@ namespace FoundationDb.Client
 				throw Fdb.MapToException(err);
 			}
 
-			//TODO: register this transation
-			return new FdbTransaction(this, handle);
+			// ensure that if anything happens, either we return a valid Transaction, or we dispose it immediately
+			FdbTransaction trans = null;
+			try
+			{
+				trans = new FdbTransaction(this, id, handle);
+				RegisterTransaction(trans);
+				return trans;
+			}
+			catch (Exception)
+			{
+				if (trans != null)
+				{
+					trans.Dispose();
+				}
+				throw;
+			}
 		}
 
 		/// <summary>Set a parameter-less option on this database</summary>
@@ -118,12 +146,27 @@ namespace FoundationDb.Client
 
 		internal void RegisterTransaction(FdbTransaction transaction)
 		{
-			//TODO !
+			Debug.Assert(transaction != null);
+
+			ThrowIfDisposed();
+
+			if (!m_transactions.TryAdd(transaction.Id, transaction))
+			{
+				throw new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id, this.Name));
+			}
 		}
 
 		internal void UnregisterTransaction(FdbTransaction transaction)
 		{
-			//TODO !
+			Debug.Assert(transaction != null);
+
+			//do nothing is already disposed
+			if (m_disposed) return;
+
+			// Unregister the transaction. We do not care if it has already been done
+			FdbTransaction _;
+			m_transactions.TryRemove(transaction.Id, out _);
+			//TODO: compare removed value with the specified transaction to ensure it was the correct one?
 		}
 
 		private void ThrowIfDisposed()
@@ -136,9 +179,33 @@ namespace FoundationDb.Client
 			if (!m_disposed)
 			{
 				m_disposed = true;
+				// mark this db has dead, but keep the handle alive until after all the callbacks have fired
+
 				//TODO: kill all pending transactions on this db? 
-				m_handle.Dispose();
-				if (m_ownsCluster) m_cluster.Dispose();
+				foreach (var trans in m_transactions.Values)
+				{
+					if (trans != null && trans.StillAlive)
+					{
+						trans.Rollback();
+					}
+				}
+
+				try
+				{
+					//note: will block until all the registered callbacks have finished executing
+					m_cts.Cancel();
+				}
+				catch (ObjectDisposedException) { }
+				catch (AggregateException e)
+				{
+					//TODO: what should we do with the exception ?
+					Debug.WriteLine("Error while cancelling all pending operations: " + e.ToString());
+				}
+				finally
+				{
+					m_handle.Dispose();
+					if (m_ownsCluster) m_cluster.Dispose();
+				}
 			}
 		}
 

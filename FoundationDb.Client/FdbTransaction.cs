@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using FoundationDb.Client.Native;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -41,21 +42,27 @@ namespace FoundationDb.Client
 
 	public class FdbTransaction : IDisposable
 	{
-		private FdbDatabase m_database;
-		private TransactionHandle m_handle;
+		private readonly FdbDatabase m_database;
+		private readonly int m_id;
+		private readonly TransactionHandle m_handle;
 		private bool m_disposed;
 		/// <summary>Estimated size of written data (in bytes)</summary>
 		private int m_payloadBytes;
 
-		internal FdbTransaction(FdbDatabase database, TransactionHandle handle)
+		internal FdbTransaction(FdbDatabase database, int id, TransactionHandle handle)
 		{
 			m_database = database;
+			m_id = id;
 			m_handle = handle;
 		}
+
+		public int Id { get { return m_id; } }
 
 		public FdbDatabase Database { get { return m_database; } }
 
 		internal TransactionHandle Handle { get { return m_handle; } }
+
+		internal bool StillAlive { get { return !m_disposed; } }
 
 		#region Options..
 
@@ -121,7 +128,7 @@ namespace FoundationDb.Client
 					long version;
 					var err = FdbNative.FutureGetVersion(h, out version);
 #if DEBUG_TRANSACTIONS
-					Debug.WriteLine("fdb_future_get_version() => err=" + err + ", version=" + version);
+					Debug.WriteLine("FdbTransaction[" + m_id + "].GetReadVersion() => err=" + err + ", version=" + version);
 #endif
 					Fdb.DieOnError(err);
 					return version;
@@ -142,7 +149,7 @@ namespace FoundationDb.Client
 			long version;
 			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
 #if DEBUG_TRANSACTIONS
-			Debug.WriteLine("fdb_transaction_get_committed_version() => err=" + err + ", version=" + version);
+			Debug.WriteLine("FdbTransaction[" + m_id + "].GetCommittedVersion() => err=" + err + ", version=" + version);
 #endif
 			Fdb.DieOnError(err);
 			return version;
@@ -166,7 +173,7 @@ namespace FoundationDb.Client
 			bool present;
 			var err = FdbNative.FutureGetValue(h, out present, out result);
 #if DEBUG_TRANSACTIONS
-			Debug.WriteLine("fdb_future_get_value() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
+			Debug.WriteLine("FdbTransaction[].TryGetValueResult() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
 #endif
 			Fdb.DieOnError(err);
 			return present;
@@ -330,7 +337,7 @@ namespace FoundationDb.Client
 			KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] result;
 			var err = FdbNative.FutureGetKeyValueArray(h, out result, out more);
 #if DEBUG_TRANSACTIONS
-			Debug.WriteLine("fdb_future_get_keyvalue_array() => err=" + err + ", result=" + (result != null ? result.Length : -1) + ", more=" + more);
+			Debug.WriteLine("FdbTransaction[].GetKeyValueArrayResult() => err=" + err + ", result=" + (result != null ? result.Length : -1) + ", more=" + more);
 #endif
 			Fdb.DieOnError(err);
 			return result;
@@ -406,7 +413,7 @@ namespace FoundationDb.Client
 			ArraySegment<byte> result;
 			var err = FdbNative.FutureGetKey(h, out result);
 #if DEBUG_TRANSACTIONS
-			Debug.WriteLine("fdb_future_get_key() => err=" + err + ", result=" + (result != null ? result.Length : -1));
+			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + FdbKey.Dump(result));
 #endif
 			Fdb.DieOnError(err);
 			return result;
@@ -634,11 +641,19 @@ namespace FoundationDb.Client
 
 		public void Dispose()
 		{
+			// note: we can be called by user code, or by the FdbDatabase when it is terminating with pending transactions
 			if (!m_disposed)
 			{
 				m_disposed = true;
-				m_handle.Dispose();
-				m_database.UnregisterTransaction(this);
+
+				try
+				{
+					m_database.UnregisterTransaction(this);
+				}
+				finally
+				{
+					m_handle.Dispose();
+				}
 			}
 		}
 	}
