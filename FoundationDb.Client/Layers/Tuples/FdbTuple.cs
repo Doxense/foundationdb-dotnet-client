@@ -636,6 +636,13 @@ namespace FoundationDb.Client.Tuples
 			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
+		/// <summary>Unpack a tuple from a serialied key blob</summary>
+		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
+		/// <returns>Unpacked tuple</returns>
+		public static IFdbTuple Unpack(ArraySegment<byte> packedKey)
+		{
+			throw new NotImplementedException();
+		}
 	}
 
 }
