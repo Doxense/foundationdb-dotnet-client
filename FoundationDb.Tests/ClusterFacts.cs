@@ -39,6 +39,18 @@ namespace FoundationDb.Tests
 	public class ClusterFacts
 	{
 
+		[TestFixtureSetUp]
+		public void Setup()
+		{
+			//TODO: cleanup ?
+		}
+
+		[TestFixtureTearDown]
+		public void Teardown()
+		{
+			Fdb.Stop();
+		}
+
 		[Test]
 		public async Task Test_Can_Connect_To_Local_Cluster()
 		{

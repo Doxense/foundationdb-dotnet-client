@@ -38,6 +38,17 @@ namespace FoundationDb.Tests
 	[TestFixture]
 	public class DatabaseFacts
 	{
+		[TestFixtureSetUp]
+		public void Setup()
+		{
+			//TODO: cleanup ?
+		}
+
+		[TestFixtureTearDown]
+		public void Teardown()
+		{
+			Fdb.Stop();
+		}
 
 		[Test]
 		public async Task Test_Can_Open_Database()
