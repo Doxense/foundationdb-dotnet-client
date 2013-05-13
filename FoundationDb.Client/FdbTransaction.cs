@@ -511,6 +511,14 @@ namespace FoundationDb.Client
 			Interlocked.Add(ref m_payloadBytes, key.Count);
 		}
 
+		public void Clear(ArraySegment<byte> key)
+		{
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
+			ClearCore(key);
+		}
+
 		public void Clear(byte[] key)
 		{
 			if (key == null) throw new ArgumentNullException("key");

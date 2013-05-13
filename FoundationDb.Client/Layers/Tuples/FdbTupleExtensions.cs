@@ -48,6 +48,11 @@ namespace FoundationDb.Client.Tuples
 			transaction.Set(tuple.ToArraySegment(), Fdb.GetValueBytes(value));
 		}
 
+		public static void Clear(this FdbTransaction transaction, IFdbTuple tuple)
+		{
+			transaction.Clear(tuple.ToArraySegment());
+		}
+
 		public static Task<byte[]> GetAsync(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return transaction.GetAsync(tuple.ToArraySegment(), snapshot, ct);
