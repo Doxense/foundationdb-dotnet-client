@@ -28,8 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #undef DEBUG_THREADS
 
-using System;
 using FoundationDb.Client.Native;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
@@ -47,6 +47,11 @@ namespace FoundationDb.Client
 
 		/// <summary>Default path to the network thread tracing file</summary>
 		public static string TracePath = null;
+
+		/// <summary>Flag indicating if FDB has been initialized or not</summary>
+		private static bool s_started;
+
+		private static EventHandler s_appDomainUnloadHandler;
 
 		/// <summary>Buffer containing a null result (no value)</summary>
 		internal static readonly ArraySegment<byte> Nil = default(ArraySegment<byte>);
@@ -386,6 +391,22 @@ namespace FoundationDb.Client
 		/// <summary>Select the correct API version, and start the Network Thread</summary>
 		public static void Start()
 		{
+			if (s_started) return;
+			s_started = true;
+
+			// register with the AppDomain to ensure that everyting is cleared when the process exists
+			s_appDomainUnloadHandler = (sender, args) =>
+			{
+				if (s_started)
+				{
+					Debug.WriteLine("AppDomain is unloading, stopping FoundationDB Network Thread...");
+					Stop();
+				}
+			};
+			AppDomain.CurrentDomain.DomainUnload += s_appDomainUnloadHandler;
+			//TODO: should we also register with AppDomain.ProcessExit event ?
+
+
 			Debug.WriteLine("Selecting API version " + FdbNative.FDB_API_VERSION);
 
 			DieOnError(FdbNative.SelectApiVersion(FdbNative.FDB_API_VERSION));
@@ -417,9 +438,18 @@ namespace FoundationDb.Client
 		/// <summary>Stop the Network Thread</summary>
 		public static void Stop()
 		{
-			Debug.WriteLine("Stopping Network Thread");
-			StopEventLoop();
-			Debug.WriteLine("Stopped");
+			if (s_started)
+			{
+				s_started = false;
+
+				// unregister the event on the AppDomain
+				AppDomain.CurrentDomain.DomainUnload -= s_appDomainUnloadHandler;
+				s_appDomainUnloadHandler = null;
+
+				Debug.WriteLine("Stopping Network Thread");
+				StopEventLoop();
+				Debug.WriteLine("Stopped");
+			}
 		}
 
 	}
