@@ -29,16 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Transactions
 #undef DEBUG_TRANSACTIONS
 
-using Microsoft.Win32.SafeHandles;
+using FoundationDb.Client.Native;
 using System;
 using System.Collections.Generic;
-using FoundationDb.Client.Native;
-using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -619,27 +613,5 @@ namespace FoundationDb.Client
 			}
 		}
 	}
-
-	public class FdbSearchResults
-	{
-		/// <summary>Key selector describing the beginning of the range</summary>
-		public FdbKeySelector Begin { get; internal set; }
-
-		/// <summary>Key selector describing the end of the range</summary>
-		public FdbKeySelector End { get; internal set; }
-
-		public bool Reverse { get; internal set; }
-
-		/// <summary>Iteration number of current page (in iterator mode), or 0</summary>
-		public int Iteration { get; internal set; }
-
-		/// <summary>Current page (may contain all records or only a segment)</summary>
-		public KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] Page { get; internal set; }
-
-		/// <summary>If true, we have more records pending</summary>
-		public bool HasMore { get; internal set; }
-
-	}
-
 
 }

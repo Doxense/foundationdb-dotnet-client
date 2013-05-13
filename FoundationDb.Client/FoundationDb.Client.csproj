@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FdbSearchResults.cs" />
     <Compile Include="FdbKeyRange.cs" />
     <Compile Include="FdbByteKey.cs" />
     <Compile Include="FdbKey.cs" />
