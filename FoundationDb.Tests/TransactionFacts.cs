@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using FoundationDb.Client;
+using FoundationDb.Client.Tuples;
 using NUnit.Framework;
 using System;
 using System.Text;
@@ -226,5 +227,54 @@ namespace FoundationDb.Tests
 
 		}
 
+		[Test]
+		public async Task Test_Can_Get_Range()
+		{
+			// test that we can read and write simple keys
+
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				// put test values in a namespace
+				var tuple = FdbTuple.Create("GetRangeTest");
+				// cleanup everything
+				using (var tr = db.BeginTransaction())
+				{
+					tr.ClearRange(tuple);
+					await tr.CommitAsync();
+				}
+
+				// Set values from 0 to 9
+
+				using (var tr = db.BeginTransaction())
+				{
+
+					for (int i = 0; i < 10; i++)
+					{
+						tr.Set(tuple.Append(i), i.ToString());
+					}
+
+					await tr.CommitAsync();
+				}
+
+				// Read values
+
+				using (var tr = db.BeginTransaction())
+				{
+					var res = await tr.GetRangeAsync(tuple.Append(0), tuple.Append(255));
+					Assert.That(res, Is.Not.Null);
+					Assert.That(res.Page, Is.Not.Null);
+
+					Assert.That(res.Page.Length, Is.EqualTo(10));
+
+					for (int i = 0; i < 10; i++)
+					{
+						var kvp = res.Page[i];
+						Assert.That(FdbKey.Dump(kvp.Value), Is.EqualTo(i.ToString()));
+						//TODO: check key
+					}
+				}
+
+			}
+		}
 	}
 }

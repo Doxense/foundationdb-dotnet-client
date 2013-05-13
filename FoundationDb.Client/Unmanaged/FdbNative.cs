@@ -84,6 +84,11 @@ namespace FoundationDb.Client.Native
 			public delegate /*Future*/IntPtr FdbTransactionGet(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
 			public delegate /*Future*/IntPtr FdbTransactionGetKey(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
 			public delegate void FdbTransactionClear(TransactionHandle transaction, byte* keyName, int keyNameLength);
+			public delegate void FdbTransactionClearRange(
+				TransactionHandle transaction,
+				byte* beginKeyName, int beginKeyNameLength,
+				byte* endKeyName, int endKeyNameLength
+			);
 			public delegate /*Future*/IntPtr FdbTransactionGetRange(
 				TransactionHandle transaction,
 				byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
@@ -149,6 +154,7 @@ namespace FoundationDb.Client.Native
 			public static Delegates.FdbTransactionGetRange fdb_transaction_get_range;
 			public static Delegates.FdbTransactionSet fdb_transaction_set;
 			public static Delegates.FdbTransactionClear fdb_transaction_clear;
+			public static Delegates.FdbTransactionClearRange fdb_transaction_clear_range;
 			public static Delegates.FdbTransactionCommit fdb_transaction_commit;
 			public static Delegates.FdbTransactionGetCommmittedVersion fdb_transaction_get_committed_version;
 			public static Delegates.FdbTransactionOnError fdb_transaction_on_error;
@@ -193,6 +199,7 @@ namespace FoundationDb.Client.Native
 				lib.Bind(ref Stubs.fdb_transaction_set_option, "fdb_transaction_set_option");
 				lib.Bind(ref Stubs.fdb_transaction_set, "fdb_transaction_set");
 				lib.Bind(ref Stubs.fdb_transaction_clear, "fdb_transaction_clear");
+				lib.Bind(ref Stubs.fdb_transaction_clear_range, "fdb_transaction_clear_range");
 				lib.Bind(ref Stubs.fdb_transaction_commit, "fdb_transaction_commit");
 				lib.Bind(ref Stubs.fdb_transaction_set_read_version, "fdb_transaction_set_read_version");
 				lib.Bind(ref Stubs.fdb_transaction_get_read_version, "fdb_transaction_get_read_version");
@@ -864,6 +871,20 @@ namespace FoundationDb.Client.Native
 				Debug.WriteLine("fdb_transaction_clear(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "')");
 #endif
 				Stubs.fdb_transaction_clear(transaction, pKey + key.Offset, key.Count);
+			}
+		}
+
+		public static void TransactionClearRange(TransactionHandle transaction, ArraySegment<byte> beginKey, ArraySegment<byte> endKey)
+		{
+			EnsureLibraryIsLoaded();
+
+			fixed (byte* pBeginKey = beginKey.Array)
+			fixed (byte* pEndKey = endKey.Array)
+			{
+#if DEBUG_NATIVE_CALLS
+				Debug.WriteLine("fdb_transaction_clear_range(0x" + transaction.Handle.ToString("x") + ", beginKey: '" + FdbKey.Dump(beginKey) + ", endKey: '" + FdbKey.Dump(endKey) + "')");
+#endif
+				Stubs.fdb_transaction_clear_range(transaction, pBeginKey + beginKey.Offset, beginKey.Count, pEndKey + endKey.Offset, endKey.Count);
 			}
 		}
 

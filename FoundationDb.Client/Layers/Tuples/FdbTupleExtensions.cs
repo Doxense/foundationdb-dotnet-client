@@ -53,6 +53,17 @@ namespace FoundationDb.Client.Tuples
 			transaction.Clear(tuple.ToArraySegment());
 		}
 
+		public static void ClearRange(this FdbTransaction transaction, IFdbTuple beginInclusive, IFdbTuple endExclusive)
+		{
+			transaction.ClearRange(beginInclusive.ToArraySegment(), endExclusive.ToArraySegment());
+		}
+
+		public static void ClearRange(this FdbTransaction transaction, IFdbTuple prefix)
+		{
+			var range = prefix.ToRange();
+			transaction.ClearRange(range.Begin, range.End);
+		}
+
 		public static Task<byte[]> GetAsync(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return transaction.GetAsync(tuple.ToArraySegment(), snapshot, ct);

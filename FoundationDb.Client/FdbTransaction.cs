@@ -535,6 +535,35 @@ namespace FoundationDb.Client
 
 		#endregion
 
+		#region Clear...
+
+		internal void ClearRangeCore(ArraySegment<byte> beginKeyInclusive, ArraySegment<byte> endKeyExclusive)
+		{
+			Fdb.EnsureKeyIsValid(beginKeyInclusive);
+			Fdb.EnsureKeyIsValid(endKeyExclusive);
+
+			FdbNative.TransactionClear(m_handle, beginKeyInclusive);
+			//TODO: how to account for these ?
+			//Interlocked.Add(ref m_payloadBytes, beginKey.Count);
+			//Interlocked.Add(ref m_payloadBytes, endKey.Count);
+		}
+
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
+		/// Sets and clears affect the actual database only if transaction is later committed with fdb_transaction_commit().
+		/// </summary>
+		/// <param name="beginKeyInclusive"></param>
+		/// <param name="endKeyExclusive"></param>
+		public void ClearRange(ArraySegment<byte> beginKeyInclusive, ArraySegment<byte> endKeyExclusive)
+		{
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
+			ClearRangeCore(beginKeyInclusive, endKeyExclusive);
+		}
+
+		#endregion
+
 		#region Commit...
 
 		public Task CommitAsync(CancellationToken ct = default(CancellationToken))
