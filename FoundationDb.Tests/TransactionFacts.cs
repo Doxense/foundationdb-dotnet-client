@@ -154,15 +154,14 @@ namespace FoundationDb.Tests
 				// write a bunch of keys
 				using (var tr = db.BeginTransaction())
 				{
-					tr.Set("test.hello", "World!");
-					tr.Set("test.timestamp", ticks);
-					tr.Set("test.blob", new byte[] { 42, 123, 7 });
+					tr.Set(FdbKey.Ascii("test.hello"), FdbValue.Encode("World!"));
+					tr.Set(FdbKey.Ascii("test.timestamp"), FdbValue.Encode(ticks));
+					tr.Set(FdbKey.Ascii("test.blob"), FdbValue.Encode(new byte[] { 42, 123, 7 }));
 
 					await tr.CommitAsync();
 
 					writeVersion = tr.GetCommittedVersion();
 					Assert.That(writeVersion, Is.GreaterThan(0), "Commited version of non-empty transaction should be > 0");
-
 				}
 
 				// read them back
@@ -206,7 +205,7 @@ namespace FoundationDb.Tests
 				// create first version
 				using (var tr1 = db.BeginTransaction())
 				{
-					tr1.Set("test.concurrent", new byte[] { 1 });
+					tr1.Set(FdbKey.Ascii("test.concurrent"), new byte[] { 1 });
 					await tr1.CommitAsync();
 
 					// get this version
@@ -216,7 +215,7 @@ namespace FoundationDb.Tests
 				// mutate in another transaction
 				using (var tr2 = db.BeginTransaction())
 				{
-					tr2.Set("test.concurrent", new byte[] { 2 });
+					tr2.Set(FdbKey.Ascii("test.concurrent"), new byte[] { 2 });
 					await tr2.CommitAsync();
 				}
 

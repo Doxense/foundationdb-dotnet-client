@@ -44,9 +44,16 @@ namespace FoundationDb.Client
 		/// <summary>Bigest possible key ('\xFF'), excluding the system keys</summary>
 		public static readonly FdbByteKey MaxValue = new FdbByteKey(new byte[1] { 255 }, 0, 1);
 
-		public static IFdbKey Ascii(string text)
+		public static IFdbKey Ascii(string key)
 		{
-			return new FdbByteKey(Encoding.Default.GetBytes(text));
+			if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or emtpy", "key");
+
+			var bytes = new byte[key.Length];
+			for (int i = 0; i < key.Length; i++)
+			{
+				bytes[i] = (byte)key[i];
+			}
+			return new FdbByteKey(bytes);
 		}
 
 		public static string Ascii(ArraySegment<byte> key)

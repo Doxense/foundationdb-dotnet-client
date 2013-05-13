@@ -300,13 +300,13 @@ namespace FoundationDb.Client
 			return GetCore(key, snapshot, ct);
 		}
 
-		public Task<List<KeyValuePair<string, byte[]>>> GetBatchAsync(IEnumerable<string> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<List<KeyValuePair<IFdbKey, byte[]>>> GetBatchAsync(IEnumerable<IFdbKey> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 			return GetBatchAsync(keys.ToArray(), snapshot, ct);
 		}
 
-		public async Task<List<KeyValuePair<string, byte[]>>> GetBatchAsync(string[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<List<KeyValuePair<IFdbKey, byte[]>>> GetBatchAsync(IFdbKey[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 
@@ -318,13 +318,17 @@ namespace FoundationDb.Client
 			for (int i = 0; i < keys.Length; i++)
 			{
 				//TODO: optimize to not have to allocate a scope
-				tasks.Add(Task.Factory.StartNew((_state) => this.GetCoreAsync(Fdb.GetKeyBytes(keys[(int)_state]), snapshot, ct), i, ct).Unwrap());
+				tasks.Add(Task.Factory.StartNew((_state) =>
+				{
+					var key = new ArraySegment<byte>(keys[(int)_state].ToBytes());
+					return this.GetCoreAsync(key, snapshot, ct);
+				}, i, ct).Unwrap());
 			}
 
 			var results = await Task.WhenAll(tasks);
 
 			return results
-				.Select((data, i) => new KeyValuePair<string, byte[]>(keys[i], data))
+				.Select((data, i) => new KeyValuePair<IFdbKey, byte[]>(keys[i], data))
 				.ToList();
 		}
 
@@ -459,10 +463,35 @@ namespace FoundationDb.Client
 		public void Set(ArraySegment<byte> keyBytes, ArraySegment<byte> valueBytes)
 		{
 			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			//Fdb.EnsureNotOnNetworkThread();
 
 			SetCore(keyBytes, valueBytes);
 		}
+
+		public void Set(IFdbKey key, byte[] valueBytes)
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			if (valueBytes == null) throw new ArgumentNullException("valueBytes");
+
+			ThrowIfDisposed();
+			//Fdb.EnsureNotOnNetworkThread();
+
+			var keyBytes = key.ToBytes();
+			SetCore(new ArraySegment<byte>(keyBytes), new ArraySegment<byte>(valueBytes));
+		}
+
+		public void Set(IFdbKey key, ArraySegment<byte> valueBytes)
+		{
+			if (key == null) throw new ArgumentNullException("key");
+
+			ThrowIfDisposed();
+			//Fdb.EnsureNotOnNetworkThread();
+
+			var keyBytes = key.ToBytes();
+			SetCore(new ArraySegment<byte>(keyBytes), valueBytes);
+		}
+
+#if DEPRECATED
 
 		public void Set(string key, byte[] value)
 		{
@@ -499,6 +528,8 @@ namespace FoundationDb.Client
 			//or use ZigZag encoding ?
 			SetCore(Fdb.GetKeyBytes(key), new ArraySegment<byte>(bytes));
 		}
+
+#endif
 
 		#endregion
 
@@ -567,6 +598,17 @@ namespace FoundationDb.Client
 			Fdb.EnsureNotOnNetworkThread();
 
 			ClearRangeCore(beginKeyInclusive, endKeyExclusive);
+		}
+
+		public void ClearRange(IFdbKey beginInclusive, IFdbKey endExclusive)
+		{
+			if (beginInclusive == null) throw new ArgumentNullException("beginInclusive");
+			if (endExclusive == null) throw new ArgumentNullException("endExclusive");
+
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
+			ClearRangeCore(new ArraySegment<byte>(beginInclusive.ToBytes()), new ArraySegment<byte>(endExclusive.ToBytes()));
 		}
 
 		#endregion

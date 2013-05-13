@@ -65,14 +65,14 @@ namespace FoundationDb.Tests
 
 				using (var tr = db.BeginTransaction())
 				{
-					tr.Set("0", await strs.InternAsync(tr, "testing 123456789"));
-					tr.Set("1", await strs.InternAsync(tr, "dog"));
-					tr.Set("2", await strs.InternAsync(tr, "testing 123456789"));
-					tr.Set("3", await strs.InternAsync(tr, "cat"));
-					tr.Set("4", await strs.InternAsync(tr, "cat"));
+					tr.Set(FdbKey.Ascii("0"), await strs.InternAsync(tr, "testing 123456789"));
+					tr.Set(FdbKey.Ascii("1"), await strs.InternAsync(tr, "dog"));
+					tr.Set(FdbKey.Ascii("2"), await strs.InternAsync(tr, "testing 123456789"));
+					tr.Set(FdbKey.Ascii("3"), await strs.InternAsync(tr, "cat"));
+					tr.Set(FdbKey.Ascii("4"), await strs.InternAsync(tr, "cat"));
 
-					tr.Set("9", "last");
-					tr.Set(":", "guard");
+					tr.Set(FdbKey.Ascii("9"), FdbValue.Encode("last"));
+					tr.Set(FdbKey.Ascii(":"), FdbValue.Encode("guard"));
 
 					await tr.CommitAsync();
 				}
