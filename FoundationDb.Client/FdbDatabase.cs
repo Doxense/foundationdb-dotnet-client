@@ -84,6 +84,8 @@ namespace FoundationDb.Client
 		{
 			if (m_handle.IsInvalid) throw new InvalidOperationException("Cannot create a transaction on an invalid database");
 
+			ThrowIfDisposed();
+
 			int id = Interlocked.Increment(ref s_transactionCounter);
 
 			TransactionHandle handle;
@@ -141,14 +143,12 @@ namespace FoundationDb.Client
 		internal void EnsureCheckTransactionIsValid(FdbTransaction transaction)
 		{
 			ThrowIfDisposed();
-			//TODO: enroll this transaction in a list of pending transactions ?
+			//TODO?
 		}
 
 		internal void RegisterTransaction(FdbTransaction transaction)
 		{
 			Debug.Assert(transaction != null);
-
-			ThrowIfDisposed();
 
 			if (!m_transactions.TryAdd(transaction.Id, transaction))
 			{
@@ -189,6 +189,7 @@ namespace FoundationDb.Client
 						trans.Rollback();
 					}
 				}
+				m_transactions.Clear();
 
 				try
 				{
