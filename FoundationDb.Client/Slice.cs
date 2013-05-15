@@ -93,8 +93,16 @@ namespace FoundationDb.Client
 		public readonly int Offset;
 		public readonly int Count;
 
+		/// <summary>Returns false is the slice is null, or true is the slice maps to zero or more bytes</summary>
+		/// <remarks>An empty slice is NOT null</remarks>
 		public bool HasValue { get { return this.Array != null; } }
 
+		/// <summary>Return true if the slice is not null but contains 0 bytes</summary>
+		/// <remarks>A null slice is NOT empty</remarks>
+		public bool IsEmpty { get { return this.Count == 0 && this.HasValue; } }
+
+		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
+		/// <returns>Byte array or null</returns>
 		public byte[] GetBytes()
 		{
 			if (Count == 0) return this.Array == null ? null : Slice.EmptyArray;
@@ -103,22 +111,30 @@ namespace FoundationDb.Client
 			return bytes;
 		}
 
+		/// <summary>Stringify a slice containing only ASCII chars</summary>
+		/// <returns>ASCII string, or null if the slice is null</returns>
 		public string ToAscii()
 		{
 			return FdbKey.Ascii(this);
 		}
 
+		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
+		/// <returns>Unicode string, or null if the slice is null</returns>
 		public string ToUnicode()
 		{
 			return FdbKey.Unicode(this);
 		}
 
+		/// <summary>Converts a slice using Base64 encoding</summary>
+		/// <returns></returns>
 		public string ToBase64()
 		{
 			if (Count == 0) return this.Array == null ? null : String.Empty;
 			return Convert.ToBase64String(this.Array, this.Offset, this.Count);
 		}
 
+		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
+		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
 		internal Slice Memoize()
 		{
 			if (!HasValue) return Slice.Nil;
@@ -126,31 +142,27 @@ namespace FoundationDb.Client
 			return new Slice(GetBytes(), 0, this.Count);
 		}
 
-		internal void AppendTo(FdbBufferWriter writer)
-		{
-			Contract.Requires(writer != null);
-
-			if (this.Count > 0)
-			{
-				writer.WriteBytes(this.Array, this.Offset, this.Count);
-			}
-		}
-
+		/// <summary>Implicitly converts a Slice into an ArraySegment&lt;byte&gt;</summary>
 		public static implicit operator ArraySegment<byte>(Slice value)
 		{
 			return new ArraySegment<byte>(value.Array, value.Offset, value.Count);
 		}
 
+		/// <summary>Implicitly converts an ArraySegment&lt;byte&gt; into a Slice</summary>
 		public static implicit operator Slice(ArraySegment<byte> value)
 		{
 			return new Slice(value.Array, value.Offset, value.Count);
 		}
 
+		/// <summary>Compare two slices for equality</summary>
+		/// <returns>True if the slice contains the same bytes</returns>
 		public static bool operator ==(Slice a, Slice b)
 		{
 			return a.Equals(b);
 		}
 
+		/// <summary>Compare two slices for inequality</summary>
+		/// <returns>True if the slice do not contain the same bytes</returns>
 		public static bool operator !=(Slice a, Slice b)
 		{
 			return !a.Equals(b);
@@ -169,7 +181,19 @@ namespace FoundationDb.Client
 		{
 			if (this.Array != null)
 			{
-				return this.Array.GetHashCode() ^ this.Offset ^ this.Count;
+				//TODO: use a better hash algorithm? (CityHash, SipHash, ...)
+
+				// <HACKHACK>: unoptimized 32 bits FNV-1a implementation
+				uint h = 2166136261; // FNV1 32 bits offset basis
+				var bytes = this.Array;
+				int p = this.Offset;
+				int count = this.Count;
+				while(count-- > 0)
+				{
+					h = (h ^ bytes[p++]) * 16777619; // FNV1 32 prime
+				}
+				return (int)h;
+				// </HACKHACK>
 			}
 			return 0;
 		}
