@@ -90,20 +90,20 @@ namespace FoundationDb.Tests
 		[Test]
 		public void Test_FdbTuple_Pack()
 		{
-			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world").ToArraySegment()),
+			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world").ToBytes()),
 				Is.EqualTo("<02>hello world<00>")
 			);
 
-			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world", 123).ToArraySegment()),
+			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world", 123).ToBytes()),
 				Is.EqualTo("<02>hello world<00><15>{")
 			);
 
-			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world", 123, false).ToArraySegment()),
+			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world", 123, false).ToBytes()),
 				Is.EqualTo("<02>hello world<00><15>{<14>")
 			);
 
 			Assert.That(
-				FdbKey.Dump(FdbTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }).ToArraySegment()),
+				FdbKey.Dump(FdbTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }).ToBytes()),
 				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
 			);
 

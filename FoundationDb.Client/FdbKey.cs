@@ -38,11 +38,13 @@ namespace FoundationDb.Client
 	/// <summary>Factory class for keys</summary>
 	public static class FdbKey
 	{
+		private static readonly byte[] Bytes = new byte[] { 0, 255 };
+
 		/// <summary>Smallest possible key ('\0')</summary>
-		public static readonly FdbByteKey MinValue = new FdbByteKey(new byte[1] { 0 }, 0, 1);
+		public static readonly IFdbKey MinValue = new FdbByteKey(Bytes, 0, 1);
 
 		/// <summary>Bigest possible key ('\xFF'), excluding the system keys</summary>
-		public static readonly FdbByteKey MaxValue = new FdbByteKey(new byte[1] { 255 }, 0, 1);
+		public static readonly IFdbKey MaxValue = new FdbByteKey(Bytes, 1, 1);
 
 		public static IFdbKey Ascii(string key)
 		{
@@ -53,7 +55,7 @@ namespace FoundationDb.Client
 			{
 				bytes[i] = (byte)key[i];
 			}
-			return new FdbByteKey(bytes);
+			return Binary(bytes);
 		}
 
 		public static string Ascii(ArraySegment<byte> key)
@@ -64,7 +66,7 @@ namespace FoundationDb.Client
 
 		public static IFdbKey Unicode(string text)
 		{
-			return new FdbByteKey(Encoding.UTF8.GetBytes(text));
+			return Binary(Encoding.UTF8.GetBytes(text));
 		}
 
 		public static string Unicode(ArraySegment<byte> key)
@@ -73,9 +75,20 @@ namespace FoundationDb.Client
 			return Encoding.UTF8.GetString(key.Array, key.Offset, key.Count);
 		}
 
+		public static IFdbKey Binary(byte[] data)
+		{
+			if (data == null) throw new ArgumentNullException("data");
+			return new FdbByteKey(data, 0, data.Length);
+		}
+
+		public static IFdbKey Binary(byte[] data, int offset, int count)
+		{
+			return new FdbByteKey(data, offset, count);
+		}
+
 		public static ArraySegment<byte> Increment(IFdbKey key)
 		{
-			return Increment(key.ToArraySegment());
+			return Increment(key.ToBytes());
 		}
 
 		public static ArraySegment<byte> Increment(ArraySegment<byte> buffer)
@@ -114,7 +127,7 @@ namespace FoundationDb.Client
 		public static bool AreEqual(IFdbKey left, IFdbKey right)
 		{
 			if (object.ReferenceEquals(left, right)) return true;
-			return AreEqual(left.ToArraySegment(), right.ToArraySegment());
+			return AreEqual(left.ToBytes(), right.ToBytes());
 		}
 
 		public static bool AreEqual(ArraySegment<byte> left, ArraySegment<byte> right)
@@ -172,6 +185,8 @@ namespace FoundationDb.Client
 			return result;
 		}
 
+#if DEPRECATED
+
 		public static IFdbKey Pack<T1, T2>(T1 item1, T2 item2)
 		{
 			return FdbTuple.Create<T1, T2>(item1, item2);
@@ -201,6 +216,8 @@ namespace FoundationDb.Client
 		{
 			return prefix.AppendRange(items);
 		}
+
+#endif
 
 	}
 

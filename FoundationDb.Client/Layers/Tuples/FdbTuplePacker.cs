@@ -39,8 +39,6 @@ namespace FoundationDb.Client.Tuples
 	public static class FdbTuplePackers
 	{
 
-		private static readonly byte[] Empty = new byte[0];
-
 		public static Action<FdbBufferWriter, T> GetSerializer<T>()
 		{
 			return (Action<FdbBufferWriter, T>)GetSerializerFor(typeof(T));
@@ -252,7 +250,7 @@ namespace FoundationDb.Client.Tuples
 		{
 			var writer = new FdbBufferWriter();
 			Serializer(writer, value);
-			return writer.ToArraySegment();
+			return writer.GetBytes();
 		}
 
 	}

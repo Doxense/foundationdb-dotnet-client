@@ -40,22 +40,22 @@ namespace FoundationDb.Client.Tuples
 	{
 		public static void Set(this FdbTransaction transaction, IFdbTuple tuple, byte[] value)
 		{
-			transaction.Set(tuple.ToArraySegment(), new ArraySegment<byte>(value));
+			transaction.Set(tuple.ToBytes(), new ArraySegment<byte>(value));
 		}
 
 		public static void Set(this FdbTransaction transaction, IFdbTuple tuple, string value)
 		{
-			transaction.Set(tuple.ToArraySegment(), Fdb.GetValueBytes(value));
+			transaction.Set(tuple.ToBytes(), Fdb.GetValueBytes(value));
 		}
 
 		public static void Clear(this FdbTransaction transaction, IFdbTuple tuple)
 		{
-			transaction.Clear(tuple.ToArraySegment());
+			transaction.Clear(tuple.ToBytes());
 		}
 
 		public static void ClearRange(this FdbTransaction transaction, IFdbTuple beginInclusive, IFdbTuple endExclusive)
 		{
-			transaction.ClearRange(beginInclusive.ToArraySegment(), endExclusive.ToArraySegment());
+			transaction.ClearRange(beginInclusive.ToBytes(), endExclusive.ToBytes());
 		}
 
 		public static void ClearRange(this FdbTransaction transaction, IFdbTuple prefix)
@@ -64,28 +64,28 @@ namespace FoundationDb.Client.Tuples
 			transaction.ClearRange(range.Begin, range.End);
 		}
 
-		public static Task<byte[]> GetAsync(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static Task<ArraySegment<byte>> GetAsync(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return transaction.GetAsync(tuple.ToArraySegment(), snapshot, ct);
+			return transaction.GetAsync(tuple.ToBytes(), snapshot, ct);
 		}
 
-		public static byte[] Get(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static ArraySegment<byte> Get(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return transaction.Get(tuple.ToArraySegment(), snapshot, ct);
+			return transaction.Get(tuple.ToBytes(), snapshot, ct);
 		}
 
-		public static ArraySegment<byte> ToArraySegment(this IFdbKey tuple)
-		{
-			var writer = new FdbBufferWriter();
-			tuple.PackTo(writer);
-			return writer.ToArraySegment();
-		}
-
-		public static byte[] ToBytes(this IFdbKey tuple)
+		public static ArraySegment<byte> ToBytes(this IFdbKey tuple)
 		{
 			var writer = new FdbBufferWriter();
 			tuple.PackTo(writer);
 			return writer.GetBytes();
+		}
+
+		public static byte[] ToByteArray(this IFdbKey tuple)
+		{
+			var writer = new FdbBufferWriter();
+			tuple.PackTo(writer);
+			return writer.ToByteArray();
 		}
 
 		public static IFdbTuple Concat(this IFdbTuple first, IFdbTuple second)

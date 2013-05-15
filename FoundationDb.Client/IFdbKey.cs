@@ -40,8 +40,8 @@ namespace FoundationDb.Client
 		/// <param name="buffer">Buffer that will received the packed bytes of this key</param>
 		void PackTo(FdbBufferWriter writer);
 
-		/// <summary>Return the value of the key as a byte array</summary>
-		byte[] ToBytes();
+		/// <summary>Return the value of the key as a byte buffer</summary>
+		ArraySegment<byte> ToBytes();
 	}
 
 }

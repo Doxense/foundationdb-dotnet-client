@@ -147,7 +147,7 @@ namespace FoundationDb.Tests
 
 			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
 			{
-				long ticks = DateTime.UtcNow.Ticks; ;
+				long ticks = DateTime.UtcNow.Ticks;
 				long writeVersion;
 				long readVersion;
 
@@ -167,22 +167,22 @@ namespace FoundationDb.Tests
 				// read them back
 				using (var tr = db.BeginTransaction())
 				{
-					byte[] bytes;
+					ArraySegment<byte> bytes;
 
 					readVersion = await tr.GetReadVersionAsync();
 					Assert.That(readVersion, Is.GreaterThan(0), "Read version should be > 0");
 
-					bytes = await tr.GetAsync("test.hello");
-					Assert.That(bytes, Is.Not.Null);
-					Assert.That(Encoding.UTF8.GetString(bytes), Is.EqualTo("World!"));
+					bytes = await tr.GetAsync(FdbKey.Ascii("test.hello"));
+					Assert.That(bytes.Array, Is.Not.Null);
+					Assert.That(Encoding.UTF8.GetString(bytes.Array, bytes.Offset, bytes.Count), Is.EqualTo("World!"));
 
-					bytes = await tr.GetAsync("test.timestamp");
-					Assert.That(bytes, Is.Not.Null);
-					Assert.That(BitConverter.ToInt64(bytes, 0), Is.EqualTo(ticks));
+					bytes = await tr.GetAsync(FdbKey.Ascii("test.timestamp"));
+					Assert.That(bytes.Array, Is.Not.Null);
+					Assert.That(BitConverter.ToInt64(bytes.Array, bytes.Offset), Is.EqualTo(ticks));
 
-					bytes = await tr.GetAsync("test.blob");
-					Assert.That(bytes, Is.Not.Null);
-					Assert.That(bytes, Is.EqualTo(new byte[] { 42, 123, 7 }));
+					bytes = await tr.GetAsync(FdbKey.Ascii("test.blob"));
+					Assert.That(bytes.Array, Is.Not.Null);
+					Assert.That(bytes.Array, Is.EqualTo(new byte[] { 42, 123, 7 }));
 				}
 
 				Assert.That(readVersion, Is.GreaterThanOrEqualTo(writeVersion), "Read version should not be before previous committed version");
@@ -227,7 +227,7 @@ namespace FoundationDb.Tests
 					long ver = await tr3.GetReadVersionAsync();
 					Assert.That(ver, Is.EqualTo(commitedVersion), "GetReadVersion should return the same value as SetReadVersion!");
 
-					var bytes = await tr3.GetAsync("test.concurrent");
+					var bytes = await tr3.GetAsync(FdbKey.Ascii("test.concurrent"));
 
 					Assert.That(bytes, Is.Not.Null);
 					Assert.That(bytes, Is.EqualTo(new byte[] { 1 }), "Should have seen the first version!");

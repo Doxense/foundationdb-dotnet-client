@@ -42,20 +42,22 @@ namespace FoundationDb.Client.Tuples
 		public FdbSubspace(string prefix)
 		{
 			var tuple = new FdbTuple<string>(prefix);
-			this.RawPrefix = tuple.ToBytes();
+			this.RawPrefix = tuple.ToByteArray();
 			this.Tuple = tuple;
 		}
 
+#if DEPRECATED
 		public FdbSubspace(byte[] prefix)
 		{
 			var tuple = new FdbTuple<byte[]>(prefix);
-			this.RawPrefix = tuple.ToBytes();
+			this.RawPrefix = tuple.ToByteArray();
 			this.Tuple = tuple;
 		}
+#endif
 
 		public FdbSubspace(IFdbTuple prefix)
 		{
-			this.RawPrefix = prefix.ToBytes();
+			this.RawPrefix = prefix.ToByteArray();
 			this.Tuple = prefix;
 		}
 
@@ -69,7 +71,7 @@ namespace FoundationDb.Client.Tuples
 			FdbTuplePackers.SerializeTo(writer, this.RawPrefix);
 		}
 
-		public byte[] ToBytes()
+		public ArraySegment<byte> ToBytes()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -88,14 +90,14 @@ namespace FoundationDb.Client.Tuples
 		{
 			var writer = OpenBuffer();
 			FdbTuplePacker<T>.SerializeTo(writer, key);
-			return writer.ToArraySegment();
+			return writer.GetBytes();
 		}
 
 		public ArraySegment<byte> GetKeyBytes(ArraySegment<byte> keyBlob)
 		{
 			var writer = OpenBuffer(keyBlob.Count);
 			writer.WriteBytes(keyBlob);
-			return writer.ToArraySegment();
+			return writer.GetBytes();
 		}
 
 		public ArraySegment<byte> GetKeyBytes(IFdbKey tuple)
@@ -103,7 +105,7 @@ namespace FoundationDb.Client.Tuples
 			var writer = new FdbBufferWriter();
 			writer.WriteBytes(this.RawPrefix);
 			tuple.PackTo(writer);
-			return writer.ToArraySegment();
+			return writer.GetBytes();
 		}
 
 		int IFdbTuple.Count

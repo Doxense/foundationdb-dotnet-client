@@ -48,12 +48,12 @@ namespace FoundationDb.Tests.Sandbox
 				Console.WriteLine("> Read Version = " + readVersion);
 
 				Console.WriteLine("Getting 'hello'...");
-				var result = await trans.GetAsync("hello");
+				var result = await trans.GetAsync(FdbKey.Ascii("hello"));
 				//var result = trans.Get("hello");
-				if (result == null)
+				if (result.Array == null)
 					Console.WriteLine("> hello NOT FOUND");
 				else
-					Console.WriteLine("> hello = " + Encoding.UTF8.GetString(result));
+					Console.WriteLine("> hello = " + FdbValue.Dump(result));
 
 				Console.WriteLine("Setting 'Foo' = 'Bar'");
 				trans.Set(FdbKey.Ascii("Foo"), FdbValue.Encode("Bar"));
@@ -93,7 +93,7 @@ namespace FoundationDb.Tests.Sandbox
 					{
 						tmp[0] = (byte)i;
 						tmp[1] = (byte)(i >> 8);
-						trans.Set(table.Append(k * N + i).ToArraySegment(), new ArraySegment<byte>(tmp));
+						trans.Set(table.Append(k * N + i), new ArraySegment<byte>(tmp));
 					}
 					await trans.CommitAsync();
 				}
@@ -131,7 +131,7 @@ namespace FoundationDb.Tests.Sandbox
 						{
 							tmp[0] = (byte)i;
 							tmp[1] = (byte)(i >> 8);
-							trans.Set(table.Append(offset + i).ToArraySegment(), new ArraySegment<byte>(tmp));
+							trans.Set(table.Append(offset + i), new ArraySegment<byte>(tmp));
 						}
 						await trans.CommitAsync();
 					}
@@ -154,7 +154,7 @@ namespace FoundationDb.Tests.Sandbox
 			{
 				for (int i = 0; i < N; i++)
 				{
-					var result = await trans.GetAsync("hello" + i);
+					var result = await trans.GetAsync(FdbKey.Ascii("hello" + i));
 				}
 			}
 			sw.Stop();
@@ -170,7 +170,7 @@ namespace FoundationDb.Tests.Sandbox
 			{
 				var results = await Task.WhenAll(Enumerable
 					.Range(0, N)
-					.Select((i) => trans.GetAsync("hello" + i))
+					.Select((i) => trans.GetAsync(FdbKey.Ascii("hello" + i)))
 				);
 			}
 			sw.Stop();
@@ -196,7 +196,7 @@ namespace FoundationDb.Tests.Sandbox
 			{
 				for (int i = 0; i < N; i++)
 				{
-					var result = trans.Get("hello" + i);
+					var result = trans.Get(FdbKey.Ascii("hello" + i));
 				}
 			}
 			sw.Stop();
@@ -273,7 +273,7 @@ namespace FoundationDb.Tests.Sandbox
 				for (int i = 0; i < data.Count; i++)
 				{
 					var list = data[i].Value;
-					list[(list.Length >> 1) + 1] = (byte)i;
+					list.Array[list.Offset + (list.Count >> 1) + 1] = (byte)i;
 					trans.Set(data[i].Key, list);
 				}
 
@@ -331,22 +331,22 @@ namespace FoundationDb.Tests.Sandbox
 
 						await TestSimpleTransactionAsync(db);
 
-						//await BenchInsertSmallKeysAsync(db, N, 16); // some guid
-						//await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
-						await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
-						//await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
-						//await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
-						//await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
+						await BenchInsertSmallKeysAsync(db, N, 16); // some guid
+						////await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
+						//await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
+						////await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
+						////await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
+						////await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
 
-						// insert keys in parrallel
-						await BenchConcurrentInsert(db, 2, N, 512);
-						await BenchConcurrentInsert(db, 4, N, 512);
-						await BenchConcurrentInsert(db, 8, N, 512);
-						await BenchConcurrentInsert(db, 16, N, 512);
+						//// insert keys in parrallel
+						//await BenchConcurrentInsert(db, 2, N, 512);
+						//await BenchConcurrentInsert(db, 4, N, 512);
+						//await BenchConcurrentInsert(db, 8, N, 512);
+						//await BenchConcurrentInsert(db, 16, N, 512);
 
-						//await BenchSerialReadAsync(db, N);
+						await BenchSerialReadAsync(db, N);
 
-						//await BenchConcurrentReadAsync(db, N);
+						await BenchConcurrentReadAsync(db, N);
 
 						//BenchSerialReadBlocking(db, N);
 

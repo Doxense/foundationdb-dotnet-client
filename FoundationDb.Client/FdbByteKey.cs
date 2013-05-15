@@ -43,13 +43,9 @@ namespace FoundationDb.Client
 			this.Buffer = buffer;
 		}
 
-		public FdbByteKey(byte[] buffer)
-		{
-			this.Buffer = new ArraySegment<byte>(buffer);
-		}
-
 		public FdbByteKey(byte[] buffer, int offset, int count)
 		{
+			if (buffer == null) throw new ArgumentNullException("buffer");
 			this.Buffer = new ArraySegment<byte>(buffer, offset, count);
 		}
 
@@ -58,9 +54,9 @@ namespace FoundationDb.Client
 			writer.WriteBytes(this.Buffer);
 		}
 
-		public byte[] ToBytes()
+		public ArraySegment<byte> ToBytes()
 		{
-			return Fdb.GetBytes(this.Buffer);
+			return this.Buffer;
 		}
 	}
 

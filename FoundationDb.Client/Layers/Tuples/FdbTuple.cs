@@ -87,14 +87,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToArraySegment()
-		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
-			return writer.ToArraySegment();
-		}
-
-		public byte[] ToBytes()
+		public ArraySegment<byte> ToBytes()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -170,14 +163,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToArraySegment()
-		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
-			return writer.ToArraySegment();
-		}
-
-		public byte[] ToBytes()
+		public ArraySegment<byte> ToBytes()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -262,14 +248,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToArraySegment()
-		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
-			return writer.ToArraySegment();
-		}
-
-		public byte[] ToBytes()
+		public ArraySegment<byte> ToBytes()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -361,14 +340,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToArraySegment()
-		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
-			return writer.ToArraySegment();
-		}
-
-		public byte[] ToBytes()
+		public ArraySegment<byte> ToBytes()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -468,14 +440,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToArraySegment()
-		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
-			return writer.ToArraySegment();
-		}
-
-		public byte[] ToBytes()
+		public ArraySegment<byte> ToBytes()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -541,9 +506,9 @@ namespace FoundationDb.Client.Tuples
 				//NO-OP
 			}
 
-			public byte[] ToBytes()
+			public ArraySegment<byte> ToBytes()
 			{
-				return Fdb.Empty.Array;
+				return Fdb.Empty;
 			}
 
 			public IEnumerator<object> GetEnumerator()

@@ -53,11 +53,13 @@ namespace FoundationDb.Client
 
 		private static EventHandler s_appDomainUnloadHandler;
 
+		internal static readonly byte[] EmptyArray = new byte[0];
+
 		/// <summary>Buffer containing a null result (no value)</summary>
 		internal static readonly ArraySegment<byte> Nil = default(ArraySegment<byte>);
 
 		/// <summary>Buffer containing an empty array (byte[0])</summary>
-		internal static readonly ArraySegment<byte> Empty = new ArraySegment<byte>(new byte[0]);
+		internal static readonly ArraySegment<byte> Empty = new ArraySegment<byte>(EmptyArray, 0, 0);
 
 		/// <summary>Keys cannot exceed 10,000 bytes</summary>
 		internal const int MaxKeySize = 10 * 1000;
@@ -150,14 +152,15 @@ namespace FoundationDb.Client
 			if (value.Count > Fdb.MaxValueSize) throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), "value");
 		}
 
-		internal static byte[] GetBytes(ArraySegment<byte> buffer)
+		public static byte[] ToByteArray(ArraySegment<byte> buffer)
 		{
 			if (buffer.Count == 0)
 			{
-				return buffer.Array == null ? null : Fdb.Empty.Array;
+				return buffer.Array == null ? null : Fdb.EmptyArray;
 			}
 			if (buffer.Offset == 0 && buffer.Count == buffer.Array.Length)
 			{
+				//REVIEW: should we copy the bytes ?
 				return buffer.Array;
 			}
 			var tmp = new byte[buffer.Count];

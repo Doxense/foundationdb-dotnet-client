@@ -94,22 +94,22 @@ namespace FoundationDb.Client.Tables
 
 		#region GetAsync() ...
 
-		public Task<byte[]> GetAsync<TKey>(FdbTransaction trans, TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<ArraySegment<byte>> GetAsync<TKey>(FdbTransaction trans, TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
 		}
 
-		public Task<byte[]> GetAsync(FdbTransaction trans, ArraySegment<byte> key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<ArraySegment<byte>> GetAsync(FdbTransaction trans, ArraySegment<byte> key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
 		}
 
-		public Task<byte[]> GetAsync(FdbTransaction trans, IFdbKey tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<ArraySegment<byte>> GetAsync(FdbTransaction trans, IFdbKey tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return trans.GetAsync(GetKeyBytes(tuple), snapshot, ct);
 		}
 
-		public async Task<byte[]> GetAsync<TKey>(TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<ArraySegment<byte>> GetAsync<TKey>(TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -117,7 +117,7 @@ namespace FoundationDb.Client.Tables
 			}
 		}
 
-		public async Task<byte[]> GetAsync(ArraySegment<byte> key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<ArraySegment<byte>> GetAsync(ArraySegment<byte> key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -125,7 +125,7 @@ namespace FoundationDb.Client.Tables
 			}
 		}
 
-		public async Task<byte[]> GetAsync(IFdbKey tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<ArraySegment<byte>> GetAsync(IFdbKey tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -192,9 +192,9 @@ namespace FoundationDb.Client.Tables
 			return new FdbTable(db, new FdbSubspace(tableName));
 		}
 
-		public static FdbTable Table(this FdbDatabase db, IFdbKey prefix)
+		public static FdbTable Table(this FdbDatabase db, IFdbTuple prefix)
 		{
-			return new FdbTable(db, new FdbSubspace(prefix.ToBytes()));
+			return new FdbTable(db, new FdbSubspace(prefix));
 		}
 
 	}

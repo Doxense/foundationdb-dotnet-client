@@ -83,17 +83,17 @@ namespace FoundationDb.Client.Arrays
 
 		#region GetAsync() ...
 
-		public Task<byte[]> GetAsync(FdbTransaction trans, int key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<ArraySegment<byte>> GetAsync(FdbTransaction trans, int key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
 		}
 
-		public Task<byte[]> GetAsync(FdbTransaction trans, long key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<ArraySegment<byte>> GetAsync(FdbTransaction trans, long key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
 		}
 
-		public async Task<byte[]> GetAsync(int key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<ArraySegment<byte>> GetAsync(int key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -101,7 +101,7 @@ namespace FoundationDb.Client.Arrays
 			}
 		}
 
-		public async Task<byte[]> GetAsync(long key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<ArraySegment<byte>> GetAsync(long key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -164,7 +164,7 @@ namespace FoundationDb.Client.Arrays
 
 		public static FdbArray Array(this FdbDatabase db, IFdbTuple prefix)
 		{
-			return new FdbArray(db, new FdbSubspace(prefix.ToBytes()));
+			return new FdbArray(db, new FdbSubspace(prefix));
 		}
 
 	}

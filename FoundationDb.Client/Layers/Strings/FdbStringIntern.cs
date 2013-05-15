@@ -199,7 +199,7 @@ namespace FoundationDb.Client.Tables
 		{
 			var stringKey = StringKey(value);
 
-			byte[] uid = await trans.GetAsync(stringKey);
+			var uid = Fdb.ToByteArray(await trans.GetAsync(stringKey));
 			if (uid == null)
 			{
 				Debug.WriteLine("_ not found in db, will create...");
@@ -236,7 +236,7 @@ namespace FoundationDb.Client.Tables
 
 		private async Task<string> LookupSlowAsync(FdbTransaction trans, byte[] uid)
 		{
-			byte[] valueBytes = await trans.GetAsync(UidKey(uid));
+			byte[] valueBytes = Fdb.ToByteArray(await trans.GetAsync(UidKey(uid)));
 			if (valueBytes == null) throw new KeyNotFoundException("String intern indentifier not found");
 
 			string value = Encoding.UTF8.GetString(valueBytes);

@@ -59,7 +59,7 @@ namespace FoundationDb.Tests
 			var writer = new FdbBufferWriter();
 			action(writer, value);
 
-			Assert.That(Dump(writer.ToArraySegment()), Is.EqualTo(expectedResult), "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name));
+			Assert.That(Dump(writer.GetBytes()), Is.EqualTo(expectedResult), "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name));
 		}
 
 		[Test]

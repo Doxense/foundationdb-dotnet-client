@@ -77,7 +77,7 @@ namespace FoundationDb.Client.Utils
 
 		#endregion
 
-		public byte[] GetBytes()
+		public byte[] ToByteArray()
 		{
 			var bytes = new byte[this.Position];
 			if (this.Position > 0)
@@ -90,7 +90,7 @@ namespace FoundationDb.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public ArraySegment<byte> ToArraySegment()
+		public ArraySegment<byte> GetBytes()
 		{
 			return new ArraySegment<byte>(this.Buffer ?? Empty, 0, this.Position);
 		}
@@ -98,7 +98,7 @@ namespace FoundationDb.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public ArraySegment<byte> ToArraySegment(int size)
+		public ArraySegment<byte> GetBytes(int size)
 		{
 			Contract.Requires(size >= 0 && size <= this.Position);
 			return new ArraySegment<byte>(this.Buffer, 0, size);

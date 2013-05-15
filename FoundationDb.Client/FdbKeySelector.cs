@@ -49,22 +49,22 @@ namespace FoundationDb.Client
 
 		public static FdbKeySelector LastLessThan(IFdbKey key)
 		{
-			return LastLessThan(key.ToArraySegment());
+			return LastLessThan(key.ToBytes());
 		}
 
 		public static FdbKeySelector LastLessOrEqual(IFdbKey key)
 		{
-			return LastLessOrEqual(key.ToArraySegment());
+			return LastLessOrEqual(key.ToBytes());
 		}
 
 		public static FdbKeySelector FirstGreaterThan(IFdbKey key)
 		{
-			return FirstGreaterThan(key.ToArraySegment());
+			return FirstGreaterThan(key.ToBytes());
 		}
 
 		public static FdbKeySelector FirstGreaterOrEqual(IFdbKey key)
 		{
-			return FirstGreaterOrEqual(key.ToArraySegment());
+			return FirstGreaterOrEqual(key.ToBytes());
 		}
 
 		public static FdbKeySelector LastLessThan(ArraySegment<byte> key)

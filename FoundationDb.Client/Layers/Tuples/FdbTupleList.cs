@@ -147,14 +147,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToArraySegment()
-		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
-			return writer.ToArraySegment();
-		}
-
-		public byte[] ToBytes()
+		public ArraySegment<byte> ToBytes()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
