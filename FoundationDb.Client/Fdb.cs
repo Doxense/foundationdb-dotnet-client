@@ -180,7 +180,7 @@ namespace FoundationDb.Client
 #endif
 
 				var thread = new Thread(new ThreadStart(EventLoop));
-				thread.Name = "FoundationDB Network Thread";
+				thread.Name = "FdbNetworkLoop";
 				thread.IsBackground = true;
 				thread.Priority = ThreadPriority.AboveNormal;
 				s_eventLoop = thread;
