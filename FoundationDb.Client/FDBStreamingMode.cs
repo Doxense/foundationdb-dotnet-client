@@ -35,7 +35,7 @@ using System.Threading.Tasks;
 namespace FoundationDb.Client
 {
 
-	public enum FDBStreamingMode
+	public enum FdbStreamingMode
 	{
 		// Client intends to consume the entire range and would like it all transferred as early as possible.
 		WantAll = -2,

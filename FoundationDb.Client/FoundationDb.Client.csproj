@@ -44,6 +44,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FdbTimeoutManager.cs" />
     <Compile Include="FdbValue.cs" />
     <Compile Include="FdbSearchResults.cs" />
     <Compile Include="FdbKeyRange.cs" />
@@ -51,7 +52,7 @@
     <Compile Include="FdbKey.cs" />
     <Compile Include="FdbTransactionOption.cs" />
     <Compile Include="FdbDatabaseOption.cs" />
-    <Compile Include="FDBStreamingMode.cs" />
+    <Compile Include="FdbStreamingMode.cs" />
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />

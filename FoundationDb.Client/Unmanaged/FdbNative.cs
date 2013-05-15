@@ -93,7 +93,7 @@ namespace FoundationDb.Client.Native
 				TransactionHandle transaction,
 				byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
 				byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
-				int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse
+				int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse
 			);
 			public delegate /*Future*/IntPtr FdbTransactionOnError(TransactionHandle transaction, FdbError error);
 			public delegate void FdbTransactionReset(TransactionHandle transaction);
@@ -679,7 +679,7 @@ namespace FoundationDb.Client.Native
 			return future;
 		}
 
-		public static FutureHandle TransactionGetRange(TransactionHandle transaction, FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse)
+		public static FutureHandle TransactionGetRange(TransactionHandle transaction, FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse)
 		{
 			EnsureLibraryIsLoaded();
 

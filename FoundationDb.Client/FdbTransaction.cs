@@ -347,7 +347,7 @@ namespace FoundationDb.Client
 			return result;
 		}
 
-		internal Task<FdbSearchResults> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct)
+		internal Task<FdbSearchResults> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct)
 		{
 			Fdb.EnsureKeyIsValid(begin.Key);
 			Fdb.EnsureKeyIsValid(end.Key);
@@ -396,10 +396,10 @@ namespace FoundationDb.Client
 			ThrowIfDisposed();
 			Fdb.EnsureNotOnNetworkThread();
 
-			return GetRangeCoreAsync(beginInclusive, endExclusive, limit: 0, targetBytes: 0, mode: FDBStreamingMode.WantAll, iteration: 0, snapshot: snapshot, reverse: false, ct: ct);
+			return GetRangeCoreAsync(beginInclusive, endExclusive, limit: 0, targetBytes: 0, mode: FdbStreamingMode.WantAll, iteration: 0, snapshot: snapshot, reverse: false, ct: ct);
 		}
 
-		public Task<FdbSearchResults> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, int targetBytes, FDBStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct = default(CancellationToken))
+		public Task<FdbSearchResults> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
