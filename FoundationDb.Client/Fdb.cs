@@ -105,13 +105,16 @@ namespace FoundationDb.Client
 			if (code == FdbError.Success) return null;
 
 			string msg = GetErrorMessage(code);
-			if (true || msg == null) throw new InvalidOperationException(String.Format("Unexpected error code {0}", (int)code));
+			if (msg == null) throw new FdbException(code, String.Format("Unexpected error code {0}", (int)code));
 
+			//TODO: create a custom FdbException to be able to store the error code and error message
 			switch(code)
 			{
+				case FdbError.TimedOut: return new TimeoutException("Operation timed out");
+				case FdbError.LargeAllocFailed: return new OutOfMemoryException("Large block allocation failed");
 				//TODO!
 				default: 
-					throw new InvalidOperationException(msg);
+					throw new FdbException(code, msg);
 			}
 		}
 
