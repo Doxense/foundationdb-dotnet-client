@@ -55,12 +55,12 @@ namespace FoundationDb.Client.Arrays
 
 		#region GetKeyBytes() ...
 
-		public ArraySegment<byte> GetKeyBytes(int key)
+		public Slice GetKeyBytes(int key)
 		{
 			return this.Subspace.GetKeyBytes<int>(key);
 		}
 
-		public ArraySegment<byte> GetKeyBytes(long key)
+		public Slice GetKeyBytes(long key)
 		{
 			return this.Subspace.GetKeyBytes<long>(key);
 		}
@@ -83,17 +83,17 @@ namespace FoundationDb.Client.Arrays
 
 		#region GetAsync() ...
 
-		public Task<ArraySegment<byte>> GetAsync(FdbTransaction trans, int key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(FdbTransaction trans, int key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
 		}
 
-		public Task<ArraySegment<byte>> GetAsync(FdbTransaction trans, long key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(FdbTransaction trans, long key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
 		}
 
-		public async Task<ArraySegment<byte>> GetAsync(int key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<Slice> GetAsync(int key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -101,7 +101,7 @@ namespace FoundationDb.Client.Arrays
 			}
 		}
 
-		public async Task<ArraySegment<byte>> GetAsync(long key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<Slice> GetAsync(long key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -113,17 +113,17 @@ namespace FoundationDb.Client.Arrays
 
 		#region Set() ...
 
-		public void Set(FdbTransaction trans, int key, byte[] value)
+		public void Set(FdbTransaction trans, int key, Slice value)
 		{
-			trans.Set(GetKeyBytes(key), new ArraySegment<byte>(value));
+			trans.Set(GetKeyBytes(key), value);
 		}
 
-		public void Set(FdbTransaction trans, long key, byte[] value)
+		public void Set(FdbTransaction trans, long key, Slice value)
 		{
-			trans.Set(GetKeyBytes(key), new ArraySegment<byte>(value));
+			trans.Set(GetKeyBytes(key), value);
 		}
 
-		public async Task SetAsync<TKey>(int key, byte[] value)
+		public async Task SetAsync<TKey>(int key, Slice value)
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -132,7 +132,7 @@ namespace FoundationDb.Client.Arrays
 			}
 		}
 
-		public async Task SetAsync(long key, byte[] value)
+		public async Task SetAsync(long key, Slice value)
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -145,7 +145,7 @@ namespace FoundationDb.Client.Arrays
 
 		#region GetValuesAsync()
 
-		public Task<List<byte[]>> GetValuesAsync(bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<List<Slice>> GetValuesAsync(bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			throw new NotImplementedException();
 		}

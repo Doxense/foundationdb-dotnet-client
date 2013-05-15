@@ -58,9 +58,9 @@ namespace FoundationDb.Client
 			return Binary(bytes);
 		}
 
-		public static string Ascii(ArraySegment<byte> key)
+		public static string Ascii(Slice key)
 		{
-			if (key.Count == 0) return key.Array == null ? null : String.Empty;
+			if (key.Count == 0) return key.HasValue ? String.Empty : default(string);
 			return Encoding.Default.GetString(key.Array, key.Offset, key.Count);
 		}
 
@@ -69,9 +69,9 @@ namespace FoundationDb.Client
 			return Binary(Encoding.UTF8.GetBytes(text));
 		}
 
-		public static string Unicode(ArraySegment<byte> key)
+		public static string Unicode(Slice key)
 		{
-			if (key.Count == 0) return key.Array == null ? null : String.Empty;
+			if (key.Count == 0) return key.HasValue ? String.Empty : default(string);
 			return Encoding.UTF8.GetString(key.Array, key.Offset, key.Count);
 		}
 
@@ -86,13 +86,14 @@ namespace FoundationDb.Client
 			return new FdbByteKey(data, offset, count);
 		}
 
-		public static ArraySegment<byte> Increment(IFdbKey key)
+		public static Slice Increment(IFdbKey key)
 		{
-			return Increment(key.ToBytes());
+			return Increment(key.ToSlice());
 		}
 
-		public static ArraySegment<byte> Increment(ArraySegment<byte> buffer)
+		public static Slice Increment(Slice buffer)
 		{
+			if (!buffer.HasValue) throw new ArgumentException("Cannot increment null buffer");
 			var tmp = new byte[buffer.Count];
 			Array.Copy(buffer.Array, 0, tmp, 0, tmp.Length);
 			int n = tmp.Length - 1;
@@ -108,12 +109,12 @@ namespace FoundationDb.Client
 				--n;
 			}
 			if (n < 0) throw new OverflowException("Cannot increment FdbKey past the maximum value");
-			return new ArraySegment<byte>(tmp, 0, tmp.Length);
+			return new Slice(tmp, 0, tmp.Length);
 		}
 
-		public static string Dump(ArraySegment<byte> buffer)
+		public static string Dump(Slice buffer)
 		{
-			if (buffer.Count == 0) return buffer.Array == null ? "<null>" : "<empty>";
+			if (buffer.Count == 0) return buffer.HasValue ? "<empty>" : "<null>";
 
 			var sb = new StringBuilder(buffer.Count + 16);
 			for (int i = 0; i < buffer.Count; i++)
@@ -127,42 +128,7 @@ namespace FoundationDb.Client
 		public static bool AreEqual(IFdbKey left, IFdbKey right)
 		{
 			if (object.ReferenceEquals(left, right)) return true;
-			return AreEqual(left.ToBytes(), right.ToBytes());
-		}
-
-		public static bool AreEqual(ArraySegment<byte> left, ArraySegment<byte> right)
-		{
-			int n = left.Count;
-			if (right.Count != n) return false;
-
-			int pl = left.Offset;
-			int pr = right.Offset;
-			byte[] al = left.Array;
-			byte[] ar = right.Array;
-
-			while (n-- > 0)
-			{
-				if (al[pl++] != ar[pr++]) return false;
-			}
-			return true;
-		}
-
-		public static int Compare(ArraySegment<byte> left, ArraySegment<byte> right)
-		{
-			int n = Math.Min(left.Count, right.Count);
-
-			int pl = left.Offset;
-			int pr = right.Offset;
-			byte[] al = left.Array;
-			byte[] ar = right.Array;
-
-			while (n-- > 0)
-			{
-				int d = ar[pr++] - al[pl++];
-				if (d != 0) return d;
-			}
-
-			return left.Count == right.Count ? 0 : right.Count - left.Count;
+			return left.ToSlice() == right.ToSlice();
 		}
 
 		/// <summary>Split a buffer containing multiple contiguous segments into an array of segments</summary>
@@ -171,14 +137,14 @@ namespace FoundationDb.Client
 		/// <param name="endOffsets">Array containing, for each segment, the offset of the following segment</param>
 		/// <returns>Array of segments</returns>
 		/// <example>SplitIntoSegments("HelloWorld", 0, [5, 10]) => [{"Hello"}, {"World"}]</example>
-		internal static ArraySegment<byte>[] SplitIntoSegments(byte[] buffer, int start, List<int> endOffsets)
+		internal static Slice[] SplitIntoSegments(byte[] buffer, int start, List<int> endOffsets)
 		{
-			var result = new ArraySegment<byte>[endOffsets.Count];
+			var result = new Slice[endOffsets.Count];
 			int i = 0;
 			int p = start;
 			foreach (var end in endOffsets)
 			{
-				result[i++] = new ArraySegment<byte>(buffer, p, end - p);
+				result[i++] = new Slice(buffer, p, end - p);
 				p = end;
 			}
 

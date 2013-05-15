@@ -36,9 +36,9 @@ namespace FoundationDb.Client
 	/// <summary>Key serialized as a byte array</summary>
 	public struct FdbByteKey : IFdbKey
 	{
-		public readonly ArraySegment<byte> Buffer;
+		public readonly Slice Buffer;
 
-		public FdbByteKey(ArraySegment<byte> buffer)
+		public FdbByteKey(Slice buffer)
 		{
 			this.Buffer = buffer;
 		}
@@ -46,7 +46,7 @@ namespace FoundationDb.Client
 		public FdbByteKey(byte[] buffer, int offset, int count)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			this.Buffer = new ArraySegment<byte>(buffer, offset, count);
+			this.Buffer = new Slice(buffer, offset, count);
 		}
 
 		public void PackTo(FdbBufferWriter writer)
@@ -54,7 +54,7 @@ namespace FoundationDb.Client
 			writer.WriteBytes(this.Buffer);
 		}
 
-		public ArraySegment<byte> ToBytes()
+		public Slice ToSlice()
 		{
 			return this.Buffer;
 		}

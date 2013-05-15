@@ -280,9 +280,10 @@ namespace FoundationDb.Client.Native
 		/// <param name="nullTerminated">If true, adds a terminating \0 at the end (C-style strings)</param>
 		/// <param name="length">Receives the size of the string including the optional NUL terminator (or 0 if <paramref name="value"/> is null)</param>
 		/// <returns>Byte array with the ANSI-encoded string with an optional NUL terminator, or null if <paramref name="value"/> was null</returns>
-		public static ArraySegment<byte> ToNativeString(string value, bool nullTerminated)
+		public static Slice ToNativeString(string value, bool nullTerminated)
 		{
-			if (value == null) return Fdb.Nil;
+			if (value == null) return Slice.Nil;
+			if (value.Length == 0) return Slice.Empty;
 
 			byte[] result;
 			if (nullTerminated)
@@ -294,7 +295,7 @@ namespace FoundationDb.Client.Native
 			{
 				result = Encoding.Default.GetBytes(value);
 			}
-			return new ArraySegment<byte>(result);
+			return new Slice(result, 0, result.Length);
 		}
 
 		#region Core..
@@ -656,7 +657,7 @@ namespace FoundationDb.Client.Native
 			return Stubs.fdb_future_get_version(future, out version);
 		}
 
-		public static FutureHandle TransactionGet(TransactionHandle transaction, ArraySegment<byte> key, bool snapshot)
+		public static FutureHandle TransactionGet(TransactionHandle transaction, Slice key, bool snapshot)
 		{
 			EnsureLibraryIsLoaded();
 			if (key.Array == null || key.Count == 0) throw new ArgumentException("Key cannot be empty", "key");
@@ -729,7 +730,7 @@ namespace FoundationDb.Client.Native
 			return future;
 		}
 
-		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out ArraySegment<byte> value)
+		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out Slice value)
 		{
 			EnsureLibraryIsLoaded();
 
@@ -743,16 +744,16 @@ namespace FoundationDb.Client.Native
 			{
 				var bytes = new byte[valueLength];
 				Marshal.Copy(new IntPtr(ptr), bytes, 0, valueLength);
-				value = new ArraySegment<byte>(bytes, 0, valueLength);
+				value = new Slice(bytes, 0, valueLength);
 			}
 			else
 			{
-				value = default(ArraySegment<byte>);
+				value = Slice.Nil;
 			}
 			return err;
 		}
 
-		public static FdbError FutureGetKey(FutureHandle future, out ArraySegment<byte> key)
+		public static FdbError FutureGetKey(FutureHandle future, out Slice key)
 		{
 			EnsureLibraryIsLoaded();
 
@@ -762,21 +763,11 @@ namespace FoundationDb.Client.Native
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_key(0x" + future.Handle.ToString("x") + ") => err=" + err + ", keyLength=" + keyLength);
 #endif
-			if (ptr != null && keyLength >= 0)
-			{
-				var bytes = new byte[keyLength];
-				Marshal.Copy(new IntPtr(ptr), bytes, 0, keyLength);
-				key = new ArraySegment<byte>(bytes, 0, keyLength);
-			}
-			else
-			{
-				key = default(ArraySegment<byte>);
-			}
-
+			key = Slice.Create(ptr, keyLength);
 			return err;
 		}
 
-		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] result, out bool more)
+		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more)
 		{
 			result = null;
 			more = false;
@@ -793,7 +784,7 @@ namespace FoundationDb.Client.Native
 			{
 				Debug.Assert(count >= 0, "Return count was negative");
 
-				result = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[count];
+				result = new KeyValuePair<Slice, Slice>[count];
 
 				if (count > 0)
 				{ // convert the keyvalue result into an array
@@ -801,7 +792,7 @@ namespace FoundationDb.Client.Native
 					Debug.Assert(kvp != null, "We have results but array pointer was null");
 
 					// in order to reduce allocations, we want to merge all keys and values
-					// into a single byte{] and return  list of ArraySegment<byte> that will
+					// into a single byte{] and return  list of Slice that will
 					// link to the different chunks of this buffer.
 
 					// first pass to compute the total size needed
@@ -833,9 +824,9 @@ namespace FoundationDb.Client.Native
 						Marshal.Copy(kvp[i].Key, page, p, kl);
 						Marshal.Copy(kvp[i].Value, page, p + kl, vl);
 
-						result[i] = new KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>(
-							new ArraySegment<byte>(page, p, kl),
-							new ArraySegment<byte>(page, p + kl, vl)
+						result[i] = new KeyValuePair<Slice, Slice>(
+							new Slice(page, p, kl),
+							new Slice(page, p + kl, vl)
 						);
 
 						p += kl + vl;
@@ -847,7 +838,7 @@ namespace FoundationDb.Client.Native
 			return err;
 		}
 
-		public static void TransactionSet(TransactionHandle transaction, ArraySegment<byte> key, ArraySegment<byte> value)
+		public static void TransactionSet(TransactionHandle transaction, Slice key, Slice value)
 		{
 			EnsureLibraryIsLoaded();
 
@@ -861,7 +852,7 @@ namespace FoundationDb.Client.Native
 			}
 		}
 
-		public static void TransactionClear(TransactionHandle transaction, ArraySegment<byte> key)
+		public static void TransactionClear(TransactionHandle transaction, Slice key)
 		{
 			EnsureLibraryIsLoaded();
 
@@ -874,7 +865,7 @@ namespace FoundationDb.Client.Native
 			}
 		}
 
-		public static void TransactionClearRange(TransactionHandle transaction, ArraySegment<byte> beginKey, ArraySegment<byte> endKey)
+		public static void TransactionClearRange(TransactionHandle transaction, Slice beginKey, Slice endKey)
 		{
 			EnsureLibraryIsLoaded();
 

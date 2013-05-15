@@ -36,11 +36,11 @@ namespace FoundationDb.Client
 	[DebuggerDisplay("Key=[{Key.Count}], OrEqual={OrEqual}, Offset={Offset}")]
 	public struct FdbKeySelector
 	{
-		public readonly ArraySegment<byte> Key;
+		public readonly Slice Key;
 		public readonly bool OrEqual;
 		public readonly int Offset;
 
-		public FdbKeySelector(ArraySegment<byte> key, bool orEqual, int offset)
+		public FdbKeySelector(Slice key, bool orEqual, int offset)
 		{
 			this.Key = key;
 			this.OrEqual = orEqual;
@@ -49,43 +49,43 @@ namespace FoundationDb.Client
 
 		public static FdbKeySelector LastLessThan(IFdbKey key)
 		{
-			return LastLessThan(key.ToBytes());
+			return LastLessThan(key.ToSlice());
 		}
 
 		public static FdbKeySelector LastLessOrEqual(IFdbKey key)
 		{
-			return LastLessOrEqual(key.ToBytes());
+			return LastLessOrEqual(key.ToSlice());
 		}
 
 		public static FdbKeySelector FirstGreaterThan(IFdbKey key)
 		{
-			return FirstGreaterThan(key.ToBytes());
+			return FirstGreaterThan(key.ToSlice());
 		}
 
 		public static FdbKeySelector FirstGreaterOrEqual(IFdbKey key)
 		{
-			return FirstGreaterOrEqual(key.ToBytes());
+			return FirstGreaterOrEqual(key.ToSlice());
 		}
 
-		public static FdbKeySelector LastLessThan(ArraySegment<byte> key)
+		public static FdbKeySelector LastLessThan(Slice key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_THAN(k, l) k, l, 0, 0
 			return new FdbKeySelector(key, false, 0);
 		}
 
-		public static FdbKeySelector LastLessOrEqual(ArraySegment<byte> key)
+		public static FdbKeySelector LastLessOrEqual(Slice key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_OR_EQUAL(k, l) k, l, 1, 0
 			return new FdbKeySelector(key, true, 0);
 		}
 
-		public static FdbKeySelector FirstGreaterThan(ArraySegment<byte> key)
+		public static FdbKeySelector FirstGreaterThan(Slice key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1
 			return new FdbKeySelector(key, true, 1);
 		}
 
-		public static FdbKeySelector FirstGreaterOrEqual(ArraySegment<byte> key)
+		public static FdbKeySelector FirstGreaterOrEqual(Slice key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
 			return new FdbKeySelector(key, false, 1);

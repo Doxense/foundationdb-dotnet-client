@@ -46,7 +46,7 @@ namespace FoundationDb.Client
 		public int Iteration { get; internal set; }
 
 		/// <summary>Current page (may contain all records or only a segment)</summary>
-		public KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] Page { get; internal set; }
+		public KeyValuePair<Slice, Slice>[] Page { get; internal set; }
 
 		/// <summary>If true, we have more records pending</summary>
 		public bool HasMore { get; internal set; }

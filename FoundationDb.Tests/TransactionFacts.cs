@@ -167,7 +167,7 @@ namespace FoundationDb.Tests
 				// read them back
 				using (var tr = db.BeginTransaction())
 				{
-					ArraySegment<byte> bytes;
+					Slice bytes;
 
 					readVersion = await tr.GetReadVersionAsync();
 					Assert.That(readVersion, Is.GreaterThan(0), "Read version should be > 0");
@@ -205,7 +205,7 @@ namespace FoundationDb.Tests
 				// create first version
 				using (var tr1 = db.BeginTransaction())
 				{
-					tr1.Set(FdbKey.Ascii("test.concurrent"), new byte[] { 1 });
+					tr1.Set(FdbKey.Ascii("test.concurrent"), Slice.Create(new byte[] { 1 }));
 					await tr1.CommitAsync();
 
 					// get this version
@@ -215,7 +215,7 @@ namespace FoundationDb.Tests
 				// mutate in another transaction
 				using (var tr2 = db.BeginTransaction())
 				{
-					tr2.Set(FdbKey.Ascii("test.concurrent"), new byte[] { 2 });
+					tr2.Set(FdbKey.Ascii("test.concurrent"), Slice.Create(new byte[] { 2 }));
 					await tr2.CommitAsync();
 				}
 
@@ -261,7 +261,7 @@ namespace FoundationDb.Tests
 
 					for (int i = 0; i < 10; i++)
 					{
-						tr.Set(tuple.Append(i), i.ToString());
+						tr.Set(tuple.Append(i), FdbValue.Ascii(i.ToString()));
 					}
 
 					await tr.CommitAsync();

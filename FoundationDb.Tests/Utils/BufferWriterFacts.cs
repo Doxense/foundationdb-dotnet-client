@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using FoundationDb.Client;
 using FoundationDb.Client.Utils;
 using NUnit.Framework;
 using System;
@@ -39,7 +40,7 @@ namespace FoundationDb.Tests
 	public class BufferWriterFacts
 	{
 
-		private static string Dump(ArraySegment<byte> buffer)
+		private static string Dump(Slice buffer)
 		{
 			return String.Join(" ", buffer.Array.Skip(buffer.Offset).Take(buffer.Count).Select(b => b.ToString("X2")));
 		}

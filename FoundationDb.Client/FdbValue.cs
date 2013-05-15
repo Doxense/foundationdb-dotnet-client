@@ -38,63 +38,41 @@ namespace FoundationDb.Client
 	/// <summary>Factory class for keys</summary>
 	public static class FdbValue
 	{
-		public static ArraySegment<byte> Ascii(string text)
+		public static Slice Ascii(string text)
 		{
-			return new ArraySegment<byte>(Encoding.Default.GetBytes(text));
+			return text == null ? Slice.Nil : text.Length == 0 ? Slice.Empty : Slice.Create(Encoding.Default.GetBytes(text));
 		}
 
-		public static string Ascii(ArraySegment<byte> asciiBytes)
+		public static Slice Base64(string base64Encoded)
 		{
-			if (asciiBytes.Count == 0) return asciiBytes.Array == null ? null : String.Empty;
-			return Encoding.Default.GetString(asciiBytes.Array, asciiBytes.Offset, asciiBytes.Count);
+			return base64Encoded == null ? Slice.Nil : base64Encoded.Length == 0 ? Slice.Empty : Slice.Create(Convert.FromBase64String(base64Encoded));
 		}
 
-		public static ArraySegment<byte> Base64(string base64Encoded)
+		public static Slice Encode(byte[] value)
 		{
-			return new ArraySegment<byte>(Convert.FromBase64String(base64Encoded));
+			return Slice.Create(value);
 		}
 
-		public static string Base64(ArraySegment<byte> base64Encoded)
-		{
-			if (base64Encoded.Count == 0) return base64Encoded.Array == null ? null : String.Empty;
-			return Convert.ToBase64String(base64Encoded.Array, base64Encoded.Offset, base64Encoded.Count);
-		}
-
-		public static ArraySegment<byte> Encode(byte[] value)
-		{
-			return value == null ? Fdb.Nil : value.Length == 0 ? Fdb.Empty : new ArraySegment<byte>(value);
-		}
-
-		public static ArraySegment<byte> Encode(int value)
+		public static Slice Encode(int value)
 		{
 			//HACKHACK: use something else! (endianness depends on plateform)
-			return new ArraySegment<byte>(BitConverter.GetBytes(value));
+			return Slice.Create(BitConverter.GetBytes(value));
 		}
 
-		public static ArraySegment<byte> Encode(long value)
+		public static Slice Encode(long value)
 		{
 			//HACKHACK: use something else! (endianness depends on plateform)
-			return new ArraySegment<byte>(BitConverter.GetBytes(value));
+			return Slice.Create(BitConverter.GetBytes(value));
 		}
 
-		public static ArraySegment<byte> Encode(string value)
+		public static Slice Encode(string value)
 		{
-			if (value == null) return Fdb.Nil;
-			if (value.Length == 0) return Fdb.Empty;
-			return new ArraySegment<byte>(Encoding.UTF8.GetBytes(value));
+			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Encoding.UTF8.GetBytes(value));
 		}
 
-		public static string Decode(ArraySegment<byte> bytes)
+		public static string Dump(Slice buffer)
 		{
-			if (bytes.Count == 0)
-				return bytes.Array == null ? null : String.Empty;
-			else
-				return Encoding.UTF8.GetString(bytes.Array, bytes.Offset, bytes.Count);
-		}
-
-		public static string Dump(ArraySegment<byte> buffer)
-		{
-			if (buffer.Count == 0) return buffer.Array == null ? "<null>" : "<empty>";
+			if (buffer.Count == 0) return buffer.HasValue ? "<empty>" : "<null>";
 
 			var sb = new StringBuilder(buffer.Count + 16);
 			for (int i = 0; i < buffer.Count; i++)

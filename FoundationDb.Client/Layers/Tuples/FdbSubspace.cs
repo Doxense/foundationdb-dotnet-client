@@ -71,7 +71,7 @@ namespace FoundationDb.Client.Tuples
 			FdbTuplePackers.SerializeTo(writer, this.RawPrefix);
 		}
 
-		public ArraySegment<byte> ToBytes()
+		public Slice ToSlice()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -86,21 +86,21 @@ namespace FoundationDb.Client.Tuples
 			return writer;
 		}
 
-		public ArraySegment<byte> GetKeyBytes<T>(T key)
+		public Slice GetKeyBytes<T>(T key)
 		{
 			var writer = OpenBuffer();
 			FdbTuplePacker<T>.SerializeTo(writer, key);
 			return writer.GetBytes();
 		}
 
-		public ArraySegment<byte> GetKeyBytes(ArraySegment<byte> keyBlob)
+		public Slice GetKeyBytes(Slice keyBlob)
 		{
 			var writer = OpenBuffer(keyBlob.Count);
 			writer.WriteBytes(keyBlob);
 			return writer.GetBytes();
 		}
 
-		public ArraySegment<byte> GetKeyBytes(IFdbKey tuple)
+		public Slice GetKeyBytes(IFdbKey tuple)
 		{
 			var writer = new FdbBufferWriter();
 			writer.WriteBytes(this.RawPrefix);

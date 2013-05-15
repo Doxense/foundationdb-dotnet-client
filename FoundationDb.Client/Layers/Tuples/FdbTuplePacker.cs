@@ -92,9 +92,9 @@ namespace FoundationDb.Client.Tuples
 						return;
 					}
 
-					if (value is ArraySegment<byte>)
+					if (value is Slice)
 					{
-						SerializeTo(writer, (ArraySegment<byte>)value);
+						SerializeTo(writer, (Slice)value);
 						return;
 					}
 
@@ -167,7 +167,7 @@ namespace FoundationDb.Client.Tuples
 			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0}", type.Name));
 		}
 
-		public static void SerializeTo(FdbBufferWriter writer, ArraySegment<byte> value)
+		public static void SerializeTo(FdbBufferWriter writer, Slice value)
 		{
 			writer.WriteBytes(value);
 		}
@@ -246,7 +246,7 @@ namespace FoundationDb.Client.Tuples
 			Serializer(writer, value);
 		}
 
-		public static ArraySegment<byte> Serialize(T value)
+		public static Slice Serialize(T value)
 		{
 			var writer = new FdbBufferWriter();
 			Serializer(writer, value);

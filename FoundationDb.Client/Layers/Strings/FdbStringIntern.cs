@@ -71,7 +71,7 @@ namespace FoundationDb.Client.Tables
 
 		public FdbSubspace Subspace { get; private set; }
 
-		public IFdbTuple UidKey(byte[] uid)
+		public IFdbTuple UidKey(Slice uid)
 		{
 			return this.Subspace.Append(UidStringPrefix, uid);
 		}
@@ -110,14 +110,14 @@ namespace FoundationDb.Client.Tables
 			Interlocked.Add(ref m_bytesCached, -size);
 		}
 
-		private void AddToCache(string value, byte[] uid)
+		private void AddToCache(string value, Slice uid)
 		{
 			while (m_bytesCached > CacheLimitBytes)
 			{
 				EvictCache();
 			}
 
-			string uidKey = Convert.ToBase64String(uid);
+			string uidKey = uid.ToBase64();
 
 			m_lock.EnterUpgradeableReadLock();
 			try
@@ -153,7 +153,7 @@ namespace FoundationDb.Client.Tables
 		/// </summary>
 		/// <param name="trans"></param>
 		/// <returns></returns>
-		private async Task<byte[]> FindUidAsync(FdbTransaction trans)
+		private async Task<Slice> FindUidAsync(FdbTransaction trans)
 		{
 			// note: we diverge from stringingern.py here by converting the UID (bytes) into Base64 in the cache.
 			// this allows us to use StringComparer.Ordinal as a comparer for the Dictionary<K, V> and not EqualityComparer<byte[]>
@@ -164,11 +164,12 @@ namespace FoundationDb.Client.Tables
 				var bytes = new byte[4 + tries];
 				m_prng.GetBytes(bytes);
 
-				if (m_uidStringCache.ContainsKey(Convert.ToBase64String(bytes)))
+				var slice = Slice.Create(bytes);
+				if (m_uidStringCache.ContainsKey(slice.ToBase64()))
 					continue;
 
-				if (await trans.GetAsync(UidKey(bytes)) == null)
-					return bytes;
+				if (await trans.GetAsync(UidKey(slice)) == Slice.Nil)
+					return slice;
 
 				++tries;
 			}
@@ -179,7 +180,7 @@ namespace FoundationDb.Client.Tables
 		/// <param name="value">String to intern</param>
 		/// <returns>Normalized representation of the string</returns>
 		/// <remarks><paramref name="value"/> must fit within a FoundationDB value</remarks>
-		public Task<byte[]> InternAsync(FdbTransaction trans, string value)
+		public Task<Slice> InternAsync(FdbTransaction trans, string value)
 		{
 			Debug.WriteLine("Want to intern: " + value);
 			string uidKey;
@@ -187,7 +188,7 @@ namespace FoundationDb.Client.Tables
 			if (m_stringUidCache.TryGetValue(value, out uidKey))
 			{
 				Debug.WriteLine("> found in cache! " + uidKey);
-				return Task.FromResult(Convert.FromBase64String(uidKey));
+				return Task.FromResult(Slice.FromBase64(uidKey));
 			}
 
 			Debug.WriteLine("_ not in cache, taking slow route...");
@@ -195,26 +196,27 @@ namespace FoundationDb.Client.Tables
 			return InternSlowAsync(trans, value);
 		}
 
-		private async Task<byte[]> InternSlowAsync(FdbTransaction trans, string value)
+		private async Task<Slice> InternSlowAsync(FdbTransaction trans, string value)
 		{
 			var stringKey = StringKey(value);
 
-			var uid = Fdb.ToByteArray(await trans.GetAsync(stringKey));
-			if (uid == null)
+			var uid = await trans.GetAsync(stringKey);
+			if (uid == Slice.Nil)
 			{
 				Debug.WriteLine("_ not found in db, will create...");
 
 				uid = await FindUidAsync(trans);
-				Debug.WriteLine("> using new uid " + Convert.ToBase64String(uid));
+				if (uid == Slice.Nil) throw new InvalidOperationException("Failed to allocate a new uid while attempting to intern a string");
+				Debug.WriteLine("> using new uid " + uid.ToBase64());
 
-				trans.Set(UidKey(uid), Encoding.UTF8.GetBytes(value));
+				trans.Set(UidKey(uid), FdbValue.Encode(value));
 				trans.Set(stringKey, uid);
 
 				AddToCache(value, uid);
 			}
 			else
 			{
-				Debug.WriteLine("> found in db with uid " + Convert.ToBase64String(uid));
+				Debug.WriteLine("> found in db with uid " + uid.ToBase64());
 			}
 			return uid;
 		}
@@ -223,10 +225,10 @@ namespace FoundationDb.Client.Tables
 		/// <param name="trans"></param>
 		/// <param name="uid"></param>
 		/// <returns></returns>
-		public Task<string> LookupAsync(FdbTransaction trans, byte[] uid)
+		public Task<string> LookupAsync(FdbTransaction trans, Slice uid)
 		{
 			string value;
-			if (m_uidStringCache.TryGetValue(Convert.ToBase64String(uid), out value))
+			if (m_uidStringCache.TryGetValue(uid.ToBase64(), out value))
 			{
 				return Task.FromResult(value);
 			}
@@ -234,12 +236,12 @@ namespace FoundationDb.Client.Tables
 			return LookupSlowAsync(trans, uid);
 		}
 
-		private async Task<string> LookupSlowAsync(FdbTransaction trans, byte[] uid)
+		private async Task<string> LookupSlowAsync(FdbTransaction trans, Slice uid)
 		{
-			byte[] valueBytes = Fdb.ToByteArray(await trans.GetAsync(UidKey(uid)));
-			if (valueBytes == null) throw new KeyNotFoundException("String intern indentifier not found");
+			var valueBytes = await trans.GetAsync(UidKey(uid));
+			if (valueBytes == Slice.Nil) throw new KeyNotFoundException("String intern indentifier not found");
 
-			string value = Encoding.UTF8.GetString(valueBytes);
+			string value = valueBytes.ToUnicode();
 			AddToCache(value, uid);
 
 			return value;

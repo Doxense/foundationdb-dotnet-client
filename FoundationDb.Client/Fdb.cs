@@ -55,12 +55,6 @@ namespace FoundationDb.Client
 
 		internal static readonly byte[] EmptyArray = new byte[0];
 
-		/// <summary>Buffer containing a null result (no value)</summary>
-		internal static readonly ArraySegment<byte> Nil = default(ArraySegment<byte>);
-
-		/// <summary>Buffer containing an empty array (byte[0])</summary>
-		internal static readonly ArraySegment<byte> Empty = new ArraySegment<byte>(EmptyArray, 0, 0);
-
 		/// <summary>Keys cannot exceed 10,000 bytes</summary>
 		internal const int MaxKeySize = 10 * 1000;
 
@@ -122,51 +116,22 @@ namespace FoundationDb.Client
 
 		#region Key/Value serialization
 
-		/// <summary>Serialize an unicode string into a key</summary>
-		public static ArraySegment<byte> GetKeyBytes(string key)
-		{
-			if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or empty.", "key");
-			return new ArraySegment<byte>(Encoding.UTF8.GetBytes(key));
-		}
-
 		/// <summary>Ensures that a serialized key is valid</summary>
-		internal static void EnsureKeyIsValid(ArraySegment<byte> key)
+		internal static void EnsureKeyIsValid(Slice key)
 		{
-			if (key.Count == 0) throw new ArgumentException("Key cannot be null or empty.", "key");
+			if (!key.HasValue) throw new ArgumentException("Key cannot be null", "key");
+			if (key.Count == 0) throw new ArgumentException("Key cannot be empty.", "key");
 			if (key.Count > Fdb.MaxKeySize) throw new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, Fdb.MaxKeySize), "key");
-			if (key.Array == null) throw new ArgumentException("Key cannot have a null buffer", "key.Array");
-		}
-
-		/// <summary>Serialize an unicode string into a value</summary>
-		public static ArraySegment<byte> GetValueBytes(string value)
-		{
-			if (value == null) throw new ArgumentNullException("Value cannot be null.", "value");
-			if (value.Length == 0) return Fdb.Empty;
-			return new ArraySegment<byte>(Encoding.UTF8.GetBytes(value));
 		}
 
 		/// <summary>Ensures that a serialized value is valid</summary>
-		internal static void EnsureValueIsValid(ArraySegment<byte> value)
+		internal static void EnsureValueIsValid(Slice value)
 		{
-			if (value.Count == 0) throw new ArgumentNullException("value cannot be null.", "value");
+			if (!value.HasValue) throw new ArgumentException("Value cannot be null", "value");
+			if (value.Count < 0) throw new ArgumentException("value size must be positive.", "value");
 			if (value.Count > Fdb.MaxValueSize) throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), "value");
 		}
 
-		public static byte[] ToByteArray(ArraySegment<byte> buffer)
-		{
-			if (buffer.Count == 0)
-			{
-				return buffer.Array == null ? null : Fdb.EmptyArray;
-			}
-			if (buffer.Offset == 0 && buffer.Count == buffer.Array.Length)
-			{
-				//REVIEW: should we copy the bytes ?
-				return buffer.Array;
-			}
-			var tmp = new byte[buffer.Count];
-			Buffer.BlockCopy(buffer.Array, buffer.Offset, tmp, 0, buffer.Count);
-			return tmp;
-		}
 		#endregion
 
 		#region Network Thread / Event Loop...

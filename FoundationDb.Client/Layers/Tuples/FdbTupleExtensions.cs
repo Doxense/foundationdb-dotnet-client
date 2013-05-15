@@ -38,24 +38,19 @@ namespace FoundationDb.Client.Tuples
 
 	public static class FdbTupleExtensions
 	{
-		public static void Set(this FdbTransaction transaction, IFdbTuple tuple, byte[] value)
+		public static void Set(this FdbTransaction transaction, IFdbTuple tuple, Slice value)
 		{
-			transaction.Set(tuple.ToBytes(), new ArraySegment<byte>(value));
-		}
-
-		public static void Set(this FdbTransaction transaction, IFdbTuple tuple, string value)
-		{
-			transaction.Set(tuple.ToBytes(), Fdb.GetValueBytes(value));
+			transaction.Set(tuple.ToSlice(), value);
 		}
 
 		public static void Clear(this FdbTransaction transaction, IFdbTuple tuple)
 		{
-			transaction.Clear(tuple.ToBytes());
+			transaction.Clear(tuple.ToSlice());
 		}
 
 		public static void ClearRange(this FdbTransaction transaction, IFdbTuple beginInclusive, IFdbTuple endExclusive)
 		{
-			transaction.ClearRange(beginInclusive.ToBytes(), endExclusive.ToBytes());
+			transaction.ClearRange(beginInclusive.ToSlice(), endExclusive.ToSlice());
 		}
 
 		public static void ClearRange(this FdbTransaction transaction, IFdbTuple prefix)
@@ -64,21 +59,14 @@ namespace FoundationDb.Client.Tuples
 			transaction.ClearRange(range.Begin, range.End);
 		}
 
-		public static Task<ArraySegment<byte>> GetAsync(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> GetAsync(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return transaction.GetAsync(tuple.ToBytes(), snapshot, ct);
+			return transaction.GetAsync(tuple.ToSlice(), snapshot, ct);
 		}
 
-		public static ArraySegment<byte> Get(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static Slice Get(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return transaction.Get(tuple.ToBytes(), snapshot, ct);
-		}
-
-		public static ArraySegment<byte> ToBytes(this IFdbKey tuple)
-		{
-			var writer = new FdbBufferWriter();
-			tuple.PackTo(writer);
-			return writer.GetBytes();
+			return transaction.Get(tuple.ToSlice(), snapshot, ct);
 		}
 
 		public static byte[] ToByteArray(this IFdbKey tuple)
@@ -134,7 +122,7 @@ namespace FoundationDb.Client.Tuples
 		/// <returns>Range of all keys suffixed by the tuple. The tuple itself will be included if <paramref name="includePrefix"/> is true</returns>
 		public static FdbKeyRange ToRange(this IFdbTuple tuple, bool includePrefix)
 		{
-			// We want to allocate only one byte[] to store both keys, and map both ArraySegment<byte> to each chunk
+			// We want to allocate only one byte[] to store both keys, and map both Slice to each chunk
 			// So we will serialize the tuple two times in the same writer
 
 			var writer = new FdbBufferWriter();
@@ -149,8 +137,8 @@ namespace FoundationDb.Client.Tuples
 			int p1 = writer.Position;
 
 			return new FdbKeyRange(
-				new ArraySegment<byte>(writer.Buffer, 0, p0),
-				new ArraySegment<byte>(writer.Buffer, p0, p1 - p0)
+				new Slice(writer.Buffer, 0, p0),
+				new Slice(writer.Buffer, p0, p1 - p0)
 			);
 		}
 

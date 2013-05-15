@@ -168,7 +168,7 @@ namespace FoundationDb.Client
 
 		#region Get...
 
-		private static bool TryGetValueResult(FutureHandle h, out ArraySegment<byte> result)
+		private static bool TryGetValueResult(FutureHandle h, out Slice result)
 		{
 			bool present;
 			var err = FdbNative.FutureGetValue(h, out present, out result);
@@ -179,17 +179,17 @@ namespace FoundationDb.Client
 			return present;
 		}
 
-		private static ArraySegment<byte> GetValueResultBytes(FutureHandle h)
+		private static Slice GetValueResultBytes(FutureHandle h)
 		{
-			ArraySegment<byte> result;
+			Slice result;
 			if (!TryGetValueResult(h, out result))
 			{
-				return Fdb.Nil;
+				return Slice.Nil;
 			}
 			return result;
 		}
 
-		internal Task<ArraySegment<byte>> GetCoreAsync(ArraySegment<byte> key, bool snapshot, CancellationToken ct)
+		internal Task<Slice> GetCoreAsync(Slice key, bool snapshot, CancellationToken ct)
 		{
 			Fdb.EnsureKeyIsValid(key);
 
@@ -197,7 +197,7 @@ namespace FoundationDb.Client
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
 		}
 
-		internal ArraySegment<byte> GetCore(ArraySegment<byte> key, bool snapshot, CancellationToken ct)
+		internal Slice GetCore(Slice key, bool snapshot, CancellationToken ct)
 		{
 			Fdb.EnsureKeyIsValid(key);
 
@@ -208,10 +208,8 @@ namespace FoundationDb.Client
 			}
 		}
 
-#if DEPRECATED
-
 		/// <summary>Returns the value of a particular key</summary>
-		/// <param name="key">Key to retrieve (UTF-8)</param>
+		/// <param name="key">Key to retrieve</param>
 		/// <param name="snapshot"></param>
 		/// <param name="ct">CancellationToken used to cancel this operation</param>
 		/// <returns>Task that will return the value of the key if it is found, null if the key does not exist, or an exception</returns>
@@ -219,37 +217,10 @@ namespace FoundationDb.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Task<byte[]> GetAsync(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(IFdbKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return GetAsync(Fdb.GetKeyBytes(key), snapshot, ct);
+			return GetAsync(key.ToSlice(), snapshot, ct);
 		}
-#endif
-
-		public Task<ArraySegment<byte>> GetAsync(IFdbKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return GetAsync(key.ToBytes(), snapshot, ct);
-		}
-
-		public async Task<byte[]> GetBytesAsync(IFdbKey key,bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return Fdb.ToByteArray(await GetAsync(key.ToBytes(), snapshot, ct));
-		}
-
-#if DEPRECATED
-		/// <summary>Returns the value of a particular key</summary>
-		/// <param name="key">Key to retrieve</param>
-		/// <param name="snapshot"></param>
-		/// <param name="ct">CancellationToken used to cancel this operation</param>
-		/// <returns>Task that will return null if the value of the key if it is found, null if the key does not exist, or an exception</returns>
-		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
-		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
-		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Task<byte[]> GetAsync(byte[] key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return GetAsync(new ArraySegment<byte>(key), snapshot, ct);
-		}
-#endif
 
 		/// <summary>Returns the value of a particular key</summary>
 		/// <param name="keyBytes">Key to retrieve</param>
@@ -260,7 +231,7 @@ namespace FoundationDb.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Task<ArraySegment<byte>> GetAsync(ArraySegment<byte> keyBytes, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(Slice keyBytes, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
@@ -269,9 +240,8 @@ namespace FoundationDb.Client
 			return GetCoreAsync(keyBytes, snapshot, ct);
 		}
 
-#if DEPRECATED
 		/// <summary>Returns the value of a particular key</summary>
-		/// <param name="key">Key to retrieve (UTF-8)</param>
+		/// <param name="key">Key to retrieve</param>
 		/// <param name="snapshot"></param>
 		/// <param name="ct">CancellationToken used to cancel this operation</param>
 		/// <returns>Returns the value of the key if it is found, or null if the key does not exist</returns>
@@ -279,29 +249,9 @@ namespace FoundationDb.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public byte[] Get(string key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Slice Get(IFdbKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return Get(Fdb.GetKeyBytes(key), snapshot, ct);
-		}
-
-		/// <summary>Returns the value of a particular key</summary>
-		/// <param name="key">Key to retrieve (UTF-8)</param>
-		/// <param name="snapshot"></param>
-		/// <param name="ct">CancellationToken used to cancel this operation</param>
-		/// <returns>Returns the value of the key if it is found, or null if the key does not exist</returns>
-		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
-		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
-		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public byte[] Get(byte[] key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return Get(new ArraySegment<byte>(key), snapshot, ct);
-		}
-#endif
-
-		public ArraySegment<byte> Get(IFdbKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return Get(key.ToBytes(), snapshot, ct);
+			return Get(key.ToSlice(), snapshot, ct);
 		}
 
 		/// <summary>Returns the value of a particular key</summary>
@@ -313,7 +263,7 @@ namespace FoundationDb.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public ArraySegment<byte> Get(ArraySegment<byte> keyBytes, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Slice Get(Slice keyBytes, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 			ct.ThrowIfCancellationRequested();
@@ -322,13 +272,13 @@ namespace FoundationDb.Client
 			return GetCore(keyBytes, snapshot, ct);
 		}
 
-		public Task<List<KeyValuePair<IFdbKey, ArraySegment<byte>>>> GetBatchAsync(IEnumerable<IFdbKey> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<List<KeyValuePair<IFdbKey, Slice>>> GetBatchAsync(IEnumerable<IFdbKey> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 			return GetBatchAsync(keys.ToArray(), snapshot, ct);
 		}
 
-		public async Task<List<KeyValuePair<IFdbKey, ArraySegment<byte>>>> GetBatchAsync(IFdbKey[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<List<KeyValuePair<IFdbKey, Slice>>> GetBatchAsync(IFdbKey[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 
@@ -336,20 +286,20 @@ namespace FoundationDb.Client
 
 			Fdb.EnsureNotOnNetworkThread();
 
-			var tasks = new List<Task<ArraySegment<byte>>>(keys.Length);
+			var tasks = new List<Task<Slice>>(keys.Length);
 			for (int i = 0; i < keys.Length; i++)
 			{
 				//TODO: optimize to not have to allocate a scope
 				tasks.Add(Task.Factory.StartNew((_state) =>
 				{
-					return this.GetCoreAsync(keys[(int)_state].ToBytes(), snapshot, ct);
+					return this.GetCoreAsync(keys[(int)_state].ToSlice(), snapshot, ct);
 				}, i, ct).Unwrap());
 			}
 
 			var results = await Task.WhenAll(tasks);
 
 			return results
-				.Select((data, i) => new KeyValuePair<IFdbKey, ArraySegment<byte>>(keys[i], data))
+				.Select((data, i) => new KeyValuePair<IFdbKey, Slice>(keys[i], data))
 				.ToList();
 		}
 
@@ -357,9 +307,9 @@ namespace FoundationDb.Client
 
 		#region GetRange...
 
-		private static KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] GetKeyValueArrayResult(FutureHandle h, out bool more)
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more)
 		{
-			KeyValuePair<ArraySegment<byte>, ArraySegment<byte>>[] result;
+			KeyValuePair<Slice, Slice>[] result;
 			var err = FdbNative.FutureGetKeyValueArray(h, out result, out more);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].GetKeyValueArrayResult() => err=" + err + ", result=" + (result != null ? result.Length : -1) + ", more=" + more);
@@ -433,9 +383,9 @@ namespace FoundationDb.Client
 
 		#region GetKey...
 
-		private static ArraySegment<byte> GetKeyResult(FutureHandle h)
+		private static Slice GetKeyResult(FutureHandle h)
 		{
-			ArraySegment<byte> result;
+			Slice result;
 			var err = FdbNative.FutureGetKey(h, out result);
 #if DEBUG_TRANSACTIONS
 			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + FdbKey.Dump(result));
@@ -444,7 +394,7 @@ namespace FoundationDb.Client
 			return result;
 		}
 
-		internal Task<ArraySegment<byte>> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot, CancellationToken ct)
+		internal Task<Slice> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot, CancellationToken ct)
 		{
 			Fdb.EnsureKeyIsValid(selector.Key);
 
@@ -459,7 +409,7 @@ namespace FoundationDb.Client
 			);
 		}
 
-		public Task<ArraySegment<byte>> GetKeyAsync(FdbKeySelector selector, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
@@ -472,7 +422,7 @@ namespace FoundationDb.Client
 
 		#region Set...
 
-		internal void SetCore(ArraySegment<byte> key, ArraySegment<byte> value)
+		internal void SetCore(Slice key, Slice value)
 		{
 			Fdb.EnsureKeyIsValid(key);
 			Fdb.EnsureValueIsValid(value);
@@ -481,7 +431,7 @@ namespace FoundationDb.Client
 			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count);
 		}
 
-		public void Set(ArraySegment<byte> keyBytes, ArraySegment<byte> valueBytes)
+		public void Set(Slice keyBytes, Slice valueBytes)
 		{
 			ThrowIfDisposed();
 			//Fdb.EnsureNotOnNetworkThread();
@@ -489,72 +439,21 @@ namespace FoundationDb.Client
 			SetCore(keyBytes, valueBytes);
 		}
 
-		public void Set(IFdbKey key, byte[] valueBytes)
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			if (valueBytes == null) throw new ArgumentNullException("valueBytes");
-
-			ThrowIfDisposed();
-			//Fdb.EnsureNotOnNetworkThread();
-
-			SetCore(key.ToBytes(), new ArraySegment<byte>(valueBytes));
-		}
-
-		public void Set(IFdbKey key, ArraySegment<byte> valueBytes)
+		public void Set(IFdbKey key, Slice valueBytes)
 		{
 			if (key == null) throw new ArgumentNullException("key");
 
 			ThrowIfDisposed();
 			//Fdb.EnsureNotOnNetworkThread();
 
-			SetCore(key.ToBytes(), valueBytes);
+			SetCore(key.ToSlice(), valueBytes);
 		}
-
-#if DEPRECATED
-
-		public void Set(string key, byte[] value)
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			if (value == null) throw new ArgumentNullException("value");
-
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
-
-			SetCore(Fdb.GetKeyBytes(key), new ArraySegment<byte>(value));
-		}
-
-		public void Set(string key, string value)
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			if (value == null) throw new ArgumentNullException("value");
-
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
-
-			SetCore(Fdb.GetKeyBytes(key), Fdb.GetValueBytes(value));
-		}
-
-		public void Set(string key, long value)
-		{
-			if (key == null) throw new ArgumentNullException("key");
-
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
-
-			//HACKHACK: use something else! (endianness depends on plateform)
-			var bytes = BitConverter.GetBytes(value);
-			//TODO: only stores the needed number of bytes ?
-			//or use ZigZag encoding ?
-			SetCore(Fdb.GetKeyBytes(key), new ArraySegment<byte>(bytes));
-		}
-
-#endif
 
 		#endregion
 
 		#region Clear...
 
-		internal void ClearCore(ArraySegment<byte> key)
+		internal void ClearCore(Slice key)
 		{
 			Fdb.EnsureKeyIsValid(key);
 
@@ -562,39 +461,29 @@ namespace FoundationDb.Client
 			Interlocked.Add(ref m_payloadBytes, key.Count);
 		}
 
-		public void Clear(ArraySegment<byte> key)
+		public void Clear(Slice key)
 		{
 			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			//Fdb.EnsureNotOnNetworkThread();
 
 			ClearCore(key);
 		}
 
-		public void Clear(byte[] key)
+		public void Clear(IFdbKey key)
 		{
 			if (key == null) throw new ArgumentNullException("key");
 
 			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			//Fdb.EnsureNotOnNetworkThread();
 
-			ClearCore(new ArraySegment<byte>(key));
-		}
-
-		public void Clear(string key)
-		{
-			if (key == null) throw new ArgumentNullException("key");
-
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
-
-			ClearCore(Fdb.GetKeyBytes(key));
+			ClearCore(key.ToSlice());
 		}
 
 		#endregion
 
 		#region Clear...
 
-		internal void ClearRangeCore(ArraySegment<byte> beginKeyInclusive, ArraySegment<byte> endKeyExclusive)
+		internal void ClearRangeCore(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			Fdb.EnsureKeyIsValid(beginKeyInclusive);
 			Fdb.EnsureKeyIsValid(endKeyExclusive);
@@ -611,7 +500,7 @@ namespace FoundationDb.Client
 		/// </summary>
 		/// <param name="beginKeyInclusive"></param>
 		/// <param name="endKeyExclusive"></param>
-		public void ClearRange(ArraySegment<byte> beginKeyInclusive, ArraySegment<byte> endKeyExclusive)
+		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			ThrowIfDisposed();
 			Fdb.EnsureNotOnNetworkThread();
@@ -627,7 +516,7 @@ namespace FoundationDb.Client
 			ThrowIfDisposed();
 			Fdb.EnsureNotOnNetworkThread();
 
-			ClearRangeCore(beginInclusive.ToBytes(), endExclusive.ToBytes());
+			ClearRangeCore(beginInclusive.ToSlice(), endExclusive.ToSlice());
 		}
 
 		#endregion

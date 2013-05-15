@@ -41,7 +41,7 @@ namespace FoundationDb.Client
 		void PackTo(FdbBufferWriter writer);
 
 		/// <summary>Return the value of the key as a byte buffer</summary>
-		ArraySegment<byte> ToBytes();
+		Slice ToSlice();
 	}
 
 }

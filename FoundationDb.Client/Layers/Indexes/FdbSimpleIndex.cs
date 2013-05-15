@@ -62,7 +62,7 @@ namespace FoundationDb.Client.Tables
 
 		public void AddOrUpdate(FdbTransaction trans, TId id, TValue value)
 		{
-			trans.Set(this.Subspace.Append(value, id), String.Empty);
+			trans.Set(this.Subspace.Append(value, id), Slice.Empty);
 		}
 
 		public void Remove(FdbTransaction trans, TId id, TValue value)

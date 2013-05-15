@@ -61,7 +61,7 @@ namespace FoundationDb.Tests.Sandbox
 				Console.WriteLine("Setting 'TopSecret' = rnd(512)");
 				var data = new byte[512];
 				new Random(1234).NextBytes(data);
-				trans.Set(FdbKey.Ascii("TopSecret"), data);
+				trans.Set(FdbKey.Ascii("TopSecret"), Slice.Create(data));
 
 				Console.WriteLine("Committing transaction...");
 				await trans.CommitAsync();
@@ -93,7 +93,7 @@ namespace FoundationDb.Tests.Sandbox
 					{
 						tmp[0] = (byte)i;
 						tmp[1] = (byte)(i >> 8);
-						trans.Set(table.Append(k * N + i), new ArraySegment<byte>(tmp));
+						trans.Set(table.Append(k * N + i), Slice.Create(tmp));
 					}
 					await trans.CommitAsync();
 				}
@@ -131,7 +131,7 @@ namespace FoundationDb.Tests.Sandbox
 						{
 							tmp[0] = (byte)i;
 							tmp[1] = (byte)(i >> 8);
-							trans.Set(table.Append(offset + i), new ArraySegment<byte>(tmp));
+							trans.Set(table.Append(offset + i), Slice.Create(tmp));
 						}
 						await trans.CommitAsync();
 					}
@@ -212,7 +212,7 @@ namespace FoundationDb.Tests.Sandbox
 			{
 				for (int i = 0; i < N; i++)
 				{
-					trans.Clear("hello" + i);
+					trans.Clear(FdbKey.Ascii("hello" + i));
 				}
 
 				await trans.CommitAsync();
@@ -232,7 +232,7 @@ namespace FoundationDb.Tests.Sandbox
 				list[i] = (byte)i;
 				using (var trans = db.BeginTransaction())
 				{
-					trans.Set(FdbKey.Ascii("list"), list);
+					trans.Set(FdbKey.Ascii("list"), Slice.Create(list));
 					await trans.CommitAsync();
 				}
 			}
@@ -255,7 +255,7 @@ namespace FoundationDb.Tests.Sandbox
 			{
 				for (int i = 0; i < N; i++)
 				{
-					trans.Set(keys[i], segment);
+					trans.Set(keys[i], Slice.Create(segment));
 				}
 				await trans.CommitAsync();
 			}
@@ -445,7 +445,7 @@ namespace FoundationDb.Tests.Sandbox
 			}
 		}
 
-		private static string ToHexString(ArraySegment<byte> segment)
+		private static string ToHexString(Slice segment)
 		{
 			if (segment.Array == null) return "<null>";
 			if (segment.Count == 0) return "<empty>";
@@ -467,7 +467,7 @@ namespace FoundationDb.Tests.Sandbox
 			return sb.ToString();
 		}
 
-		private static string ToHexArray(ArraySegment<byte> buffer)
+		private static string ToHexArray(Slice buffer)
 		{
 			var sb = new StringBuilder();
 			sb.Append("[" + buffer.Count + "]{");

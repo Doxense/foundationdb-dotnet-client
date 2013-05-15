@@ -87,7 +87,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToBytes()
+		public Slice ToSlice()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -163,7 +163,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToBytes()
+		public Slice ToSlice()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -248,7 +248,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToBytes()
+		public Slice ToSlice()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -340,7 +340,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToBytes()
+		public Slice ToSlice()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -440,7 +440,7 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
-		public ArraySegment<byte> ToBytes()
+		public Slice ToSlice()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
@@ -506,9 +506,9 @@ namespace FoundationDb.Client.Tuples
 				//NO-OP
 			}
 
-			public ArraySegment<byte> ToBytes()
+			public Slice ToSlice()
 			{
-				return Fdb.Empty;
+				return Slice.Empty;
 			}
 
 			public IEnumerator<object> GetEnumerator()
@@ -587,7 +587,7 @@ namespace FoundationDb.Client.Tuples
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		public static ArraySegment<byte>[] BatchPack(IEnumerable<IFdbTuple> tuples)
+		public static Slice[] BatchPack(IEnumerable<IFdbTuple> tuples)
 		{
 			var next = new List<int>();
 			var writer = new FdbBufferWriter();
@@ -604,7 +604,7 @@ namespace FoundationDb.Client.Tuples
 		/// <summary>Unpack a tuple from a serialied key blob</summary>
 		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
 		/// <returns>Unpacked tuple</returns>
-		public static IFdbTuple Unpack(ArraySegment<byte> packedKey)
+		public static IFdbTuple Unpack(Slice packedKey)
 		{
 			throw new NotImplementedException();
 		}

@@ -33,10 +33,10 @@ namespace FoundationDb.Client
 
 	public struct FdbKeyRange
 	{
-		public readonly ArraySegment<byte> Begin;
-		public readonly ArraySegment<byte> End;
+		public readonly Slice Begin;
+		public readonly Slice End;
 
-		public FdbKeyRange(ArraySegment<byte> begin, ArraySegment<byte> end)
+		public FdbKeyRange(Slice begin, Slice end)
 		{
 			this.Begin = begin;
 			this.End = end;
@@ -65,11 +65,9 @@ namespace FoundationDb.Client
 		/// <summary>Returns true, if the key is contained in the range</summary>
 		/// <param name="key"></param>
 		/// <returns></returns>
-		public bool Contains(ArraySegment<byte> key)
+		public bool Contains(Slice key)
 		{
-			if (FdbKey.Compare(key, this.Begin) < 0) return false;
-			if (FdbKey.Compare(key, this.End) > 0) return false;
-			return true;
+			return key.CompareTo(this.Begin) >= 0 && key.CompareTo(this.End) <= 0;
 		}
 	}
 

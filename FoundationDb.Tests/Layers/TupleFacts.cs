@@ -78,32 +78,32 @@ namespace FoundationDb.Tests
 			IFdbTuple t1 = FdbTuple.Create("hello world");
 			IFdbTuple t2 = FdbTuple.Create(new object[] { "hello world" });
 
-			Assert.That(t1.ToBytes(), Is.EquivalentTo(t2.ToBytes()));
+			Assert.That(t1.ToSlice(), Is.EqualTo(t2.ToSlice()));
 
 			t1 = FdbTuple.Create("hello world", 123);
 			t2 = FdbTuple.Create("hello world").Append(123);
 
-			Assert.That(t1.ToBytes(), Is.EquivalentTo(t2.ToBytes()));
+			Assert.That(t1.ToSlice(), Is.EqualTo(t2.ToSlice()));
 			
 		}
 
 		[Test]
 		public void Test_FdbTuple_Pack()
 		{
-			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world").ToBytes()),
+			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world").ToSlice()),
 				Is.EqualTo("<02>hello world<00>")
 			);
 
-			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world", 123).ToBytes()),
+			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world", 123).ToSlice()),
 				Is.EqualTo("<02>hello world<00><15>{")
 			);
 
-			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world", 123, false).ToBytes()),
+			Assert.That(FdbKey.Dump(FdbTuple.Create("hello world", 123, false).ToSlice()),
 				Is.EqualTo("<02>hello world<00><15>{<14>")
 			);
 
 			Assert.That(
-				FdbKey.Dump(FdbTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }).ToBytes()),
+				FdbKey.Dump(FdbTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }).ToSlice()),
 				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
 			);
 

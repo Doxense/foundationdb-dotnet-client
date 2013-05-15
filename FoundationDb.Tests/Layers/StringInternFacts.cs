@@ -130,7 +130,7 @@ namespace FoundationDb.Tests
 			}
 		}
 
-		private static string DumpHex(ArraySegment<byte> seg)
+		private static string DumpHex(Slice seg)
 		{
 			var sb = new StringBuilder();
 			int n = seg.Count;

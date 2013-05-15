@@ -90,18 +90,18 @@ namespace FoundationDb.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public ArraySegment<byte> GetBytes()
+		public Slice GetBytes()
 		{
-			return new ArraySegment<byte>(this.Buffer ?? Empty, 0, this.Position);
+			return new Slice(this.Buffer ?? Empty, 0, this.Position);
 		}
 
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public ArraySegment<byte> GetBytes(int size)
+		public Slice GetBytes(int size)
 		{
 			Contract.Requires(size >= 0 && size <= this.Position);
-			return new ArraySegment<byte>(this.Buffer, 0, size);
+			return new Slice(this.Buffer, 0, size);
 		}
 
 		/// <summary>Truncate the buffer by setting the cursor to the specified position.</summary>
@@ -207,7 +207,7 @@ namespace FoundationDb.Client.Utils
 		/// <param name="data"></param>
 		/// <param name="offset"></param>
 		/// <param name="count"></param>
-		public void WriteBytes(ArraySegment<byte> data)
+		public void WriteBytes(Slice data)
 		{
 			Contract.Requires(data.Array != null);
 			Contract.Requires(data.Offset >= 0);
