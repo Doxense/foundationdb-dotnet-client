@@ -109,6 +109,31 @@ namespace FoundationDb.Tests
 
 		}
 
+		[Test]
+		public void Test_FdbTuple_Unpack()
+		{
+
+			var packed = FdbTuple.Create("hello world").ToSlice();
+			Console.WriteLine(FdbKey.Dump(packed));
+
+			var tuple = FdbTuple.Unpack(packed);
+			Assert.That(tuple, Is.Not.Null);
+			Console.WriteLine(tuple);
+			Assert.That(tuple.Count, Is.EqualTo(1));
+			Assert.That(tuple[0], Is.EqualTo("hello world"));
+
+			packed = FdbTuple.Create("hello world", 123).ToSlice();
+			Console.WriteLine(FdbKey.Dump(packed));
+
+			tuple = FdbTuple.Unpack(packed);
+			Assert.That(tuple, Is.Not.Null);
+			Console.WriteLine(tuple);
+			Assert.That(tuple.Count, Is.EqualTo(2));
+			Assert.That(tuple[0], Is.EqualTo("hello world"));
+			Assert.That(tuple[1], Is.EqualTo(123));
+
+		}
+
 	}
 
 }

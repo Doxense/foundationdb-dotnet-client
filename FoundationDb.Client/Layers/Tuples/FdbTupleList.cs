@@ -30,6 +30,7 @@ using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,50 +39,32 @@ namespace FoundationDb.Client.Tuples
 {
 
 	/// <summary>Tuple that can hold any number of items</summary>
-	public class FdbTupleList : IFdbTuple, IEquatable<FdbTupleList>
+	public sealed class FdbTupleList : IFdbTuple, IEquatable<FdbTupleList>
 	{
-		private static readonly List<object> EmptyList = new List<object>();
+		private static readonly object[] EmptyList = new object[0];
 
 		/// <summary>List of the items in the tuple.</summary>
 		/// <remarks>It is supposed to be immutable!</remarks>
-		private readonly List<object> Items;
+		private readonly object[] Items;
 
 		private int? HashCode;
-
-		/// <summary>Create a new tuple from a list of items (copied)</summary>
-		public FdbTupleList(params object[] items)
-		{
-			this.Items = items.Length > 0 ? new List<object>(items) : EmptyList;
-		}
 
 		/// <summary>Create a new tuple from a sequence of items (copied)</summary>
 		public FdbTupleList(IEnumerable<object> items)
 		{
-			this.Items = new List<object>(items);
+			this.Items = items.ToArray();
 		}
 
 		/// <summary>Wrap a List of items</summary>
 		/// <remarks>The list should not mutate and should not be exposed to anyone else!</remarks>
-		internal FdbTupleList(List<object> items)
+		internal FdbTupleList(object[] items)
 		{
 			this.Items = items;
 		}
 
-		#region IFdbKey Members...
-
-		public void PackTo(FdbBufferWriter writer)
-		{
-			foreach (var item in this.Items)
-			{
-				FdbTuplePackers.SerializeObjectTo(writer, item);
-			}
-		}
-
-		#endregion
-
 		public int Count
 		{
-			get { return this.Items.Count; }
+			get { return this.Items.Length; }
 		}
 
 		public object this[int index]
@@ -115,9 +98,9 @@ namespace FoundationDb.Client.Tuples
 			if (tuple == null) throw new ArgumentNullException("tuple");
 
 			var items = tuple.Items;
-			if (items.Count == 0) return this;
+			if (items.Length == 0) return this;
 
-			var list = new List<object>(this.Count + items.Count);
+			var list = new List<object>(this.Count + items.Length);
 			list.AddRange(this.Items);
 			list.AddRange(items);
 			return new FdbTupleList(list);
@@ -131,15 +114,20 @@ namespace FoundationDb.Client.Tuples
 			int count = tuple.Count;
 			if (count == 0) return this;
 
-			var list = new List<object>(this.Count + count);
-			list.AddRange(this.Items);
-			list.AddRange(tuple);
+			var list = new object[this.Count + count];
+			this.CopyTo(list, 0);
+			tuple.CopyTo(list, this.Count);
 			return new FdbTupleList(list);
+		}
+
+		public void CopyTo(object[] array, int offset)
+		{
+			Array.Copy(this.Items, 0, array, offset, this.Count);
 		}
 
 		public IEnumerator<object> GetEnumerator()
 		{
-			return this.Items.GetEnumerator();
+			return ((IList<object>)this.Items).GetEnumerator();
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -147,11 +135,20 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
+
+		public void PackTo(FdbBufferWriter writer)
+		{
+			foreach (var item in this.Items)
+			{
+				FdbTuplePackers.SerializeObjectTo(writer, item);
+			}
+		}
+
 		public Slice ToSlice()
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 		public override string ToString()

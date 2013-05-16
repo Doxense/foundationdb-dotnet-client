@@ -58,6 +58,11 @@ namespace FoundationDb.Client.Tuples
 		/// <param name="value">Value that will be appended at the end</param>
 		/// <returns>New tuple with the new value</returns>
 		IFdbTuple Append<T>(T value);
+
+		/// <summary>Copy all items of the tuple into an array at a specific location</summary>
+		/// <param name="array">Destination array (must be big enough to contains all the items)</param>
+		/// <param name="offset">Offset at wich to start copying items</param>
+		void CopyTo(object[] array, int offset);
 	}
 
 }

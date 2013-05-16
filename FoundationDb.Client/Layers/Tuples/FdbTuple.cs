@@ -77,6 +77,11 @@ namespace FoundationDb.Client.Tuples
 			return new FdbTuple<T1, T2>(this.Item1, value);
 		}
 
+		public void CopyTo(object[] array, int offset)
+		{
+			array[offset] = this.Item1;
+		}
+
 		public IEnumerator<object> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -91,7 +96,7 @@ namespace FoundationDb.Client.Tuples
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 		public override string ToString()
@@ -152,6 +157,12 @@ namespace FoundationDb.Client.Tuples
 			return new FdbTuple<T1, T2, T3>(this.Item1, this.Item2, value);
 		}
 
+		public void CopyTo(object[] array, int offset)
+		{
+			array[offset] = this.Item1;
+			array[offset + 1] = this.Item2;
+		}
+
 		public IEnumerator<object> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -167,7 +178,7 @@ namespace FoundationDb.Client.Tuples
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 		public override string ToString()
@@ -236,6 +247,13 @@ namespace FoundationDb.Client.Tuples
 			return new FdbTuple<T1, T2, T3, T4>(this.Item1, this.Item2, this.Item3, value);
 		}
 
+		public void CopyTo(object[] array, int offset)
+		{
+			array[offset] = this.Item1;
+			array[offset + 1] = this.Item2;
+			array[offset + 2] = this.Item3;
+		}
+
 		public IEnumerator<object> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -252,7 +270,7 @@ namespace FoundationDb.Client.Tuples
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 		public override string ToString()
@@ -327,6 +345,14 @@ namespace FoundationDb.Client.Tuples
 			return new FdbTuple<T1, T2, T3, T4, T5>(this.Item1, this.Item2, this.Item3, this.Item4, value);
 		}
 
+		public void CopyTo(object[] array, int offset)
+		{
+			array[offset] = this.Item1;
+			array[offset + 1] = this.Item2;
+			array[offset + 2] = this.Item3;
+			array[offset + 3] = this.Item4;
+		}
+
 		public IEnumerator<object> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -344,7 +370,7 @@ namespace FoundationDb.Client.Tuples
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 		public override string ToString()
@@ -426,6 +452,15 @@ namespace FoundationDb.Client.Tuples
 			return new FdbTupleList(items);
 		}
 
+		public void CopyTo(object[] array, int offset)
+		{
+			array[offset] = this.Item1;
+			array[offset + 1] = this.Item2;
+			array[offset + 2] = this.Item3;
+			array[offset + 3] = this.Item4;
+			array[offset + 4] = this.Item5;
+		}
+
 		public IEnumerator<object> GetEnumerator()
 		{
 			yield return this.Item1;
@@ -444,7 +479,7 @@ namespace FoundationDb.Client.Tuples
 		{
 			var writer = new FdbBufferWriter();
 			PackTo(writer);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 		public override string ToString()
@@ -509,6 +544,11 @@ namespace FoundationDb.Client.Tuples
 			public Slice ToSlice()
 			{
 				return Slice.Empty;
+			}
+
+			public void CopyTo(object[] array, int offset)
+			{
+				//NO-OP
 			}
 
 			public IEnumerator<object> GetEnumerator()
@@ -592,6 +632,8 @@ namespace FoundationDb.Client.Tuples
 			var next = new List<int>();
 			var writer = new FdbBufferWriter();
 
+			//TODO: use multiple buffers if item count is huge ?
+
 			foreach(var tuple in tuples)
 			{
 				tuple.PackTo(writer);
@@ -606,8 +648,25 @@ namespace FoundationDb.Client.Tuples
 		/// <returns>Unpacked tuple</returns>
 		public static IFdbTuple Unpack(Slice packedKey)
 		{
-			throw new NotImplementedException();
+			if (!packedKey.HasValue) return null;
+			if (packedKey.IsEmpty) return FdbTuple.Empty;
+
+			var reader = new FdbBufferReader(packedKey);
+			return FdbTuplePackers.Unpack(reader);
 		}
+
+		internal static void CopyTo(IFdbTuple tuple, object[] array, int offset)
+		{
+			Contract.Requires(tuple != null);
+			Contract.Requires(array != null);
+			Contract.Requires(offset >= 0);
+
+			foreach (var item in tuple)
+			{
+				array[offset++] = item;
+			}
+		}
+
 	}
 
 }

@@ -9,23 +9,23 @@ namespace FoundationDb.Client.Utils
 
 	/// <summary>Mini classe capable d'écrire des données binaire dans un buffer qui se resize automatiquement</summary>
 	/// <remarks>IMPORTANT: Cette class n'effectue pas de vérification des paramètres, qui est à la charge de l'appelant ! (le but étant justement d'avoir une structure très simple et rapide)</remarks>
-	[DebuggerDisplay("Position={0}, Capacity={this.Buffer == null ? -1 : this.Buffer.Length}")]
+	[DebuggerDisplay("Position={this.Position}, Capacity={this.Buffer == null ? -1 : this.Buffer.Length}")]
 	public sealed class FdbBufferWriter
 	{
 
 		#region Constants...
 
 		/// <summary>Null/Empty/Void</summary>
-		private const byte TypeNil = (byte)0;
+		internal const byte TypeNil = (byte)0;
 
 		/// <summary>ASCII String</summary>
-		private const byte TypeStringAscii = (byte)1;
+		internal const byte TypeStringAscii = (byte)1;
 
 		/// <summary>UTF-8 String</summary>
-		private const byte TypeStringUtf8 = (byte)2;
+		internal const byte TypeStringUtf8 = (byte)2;
 
 		/// <summary>Base value for integer types (20 +/- n)</summary>
-		private const int TypeIntegerBase = 20;
+		internal const int TypeIntegerBase = 20;
 
 		/// <summary>Empty buffer</summary>
 		private static readonly byte[] Empty = new byte[0];
@@ -77,7 +77,7 @@ namespace FoundationDb.Client.Utils
 
 		#endregion
 
-		public byte[] ToByteArray()
+		public byte[] GetBytes()
 		{
 			var bytes = new byte[this.Position];
 			if (this.Position > 0)
@@ -90,7 +90,7 @@ namespace FoundationDb.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public Slice GetBytes()
+		public Slice ToSlice()
 		{
 			return new Slice(this.Buffer ?? Empty, 0, this.Position);
 		}
@@ -98,10 +98,23 @@ namespace FoundationDb.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public Slice GetBytes(int size)
+		public Slice ToSlice(int count)
 		{
-			Contract.Requires(size >= 0 && size <= this.Position);
-			return new Slice(this.Buffer, 0, size);
+			if (count < 0 || count > this.Position) throw new ArgumentNullException("count");
+
+			Contract.Requires(count >= 0 && count <= this.Position);
+			return new Slice(this.Buffer, 0, count);
+		}
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		public Slice ToSlice(int offset, int count)
+		{
+			if (offset < 0 || offset >= this.Position) throw new ArgumentException("offset");
+			if (count < 0 || offset + count > this.Position) throw new ArgumentException("count");
+
+			return new Slice(this.Buffer, offset, count);
 		}
 
 		/// <summary>Truncate the buffer by setting the cursor to the specified position.</summary>
@@ -475,6 +488,7 @@ namespace FoundationDb.Client.Utils
 			}
 			this.Position = p;
 		}
+
 		/// <summary>Vérifie qu'il y a au moins 'count' octets de libre en fin du buffer</summary>
 		/// <param name="count">Nombre d'octets qui vont être écrit dans le buffer juste après</param>
 		/// <remarks>Si le buffer n'est pas assez grand, il est resizé pour accomoder le nombre d'octets désirés</remarks>
@@ -606,6 +620,120 @@ namespace FoundationDb.Client.Utils
 			var r = (v * 0x07C4ACDDU) >> 27;
 			return MultiplyDeBruijnBitPosition[r];
 		}
+
+	}
+
+	[DebuggerDisplay("Cursor={this.Position}/{this.Buffer.Count}, Absolute={this.Buffer.Offset+this.Position}/{this.Buffer.Offset}")]
+	public sealed class FdbBufferReader
+	{
+		/// <summary>Buffer holding the data to parse</summary>
+		public Slice Buffer;
+
+		/// <summary>Position in the buffer</summary>
+		public int Position;
+
+		public FdbBufferReader(Slice data)
+		{
+			if (!data.HasValue) throw new ArgumentNullException("data");
+			this.Buffer = data;
+		}
+
+		public FdbBufferReader(byte[] data)
+		{
+			if (data == null) throw new ArgumentNullException("data");
+			this.Buffer = Slice.Create(data);
+		}
+
+		/// <summary>Returns true if there is at least one more byte in the reader</summary>
+		public bool HasMoreData { get { return this.Position < this.Buffer.Count; } }
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		private void EnsureBytes(int count)
+		{
+			if (this.Position + count > this.Buffer.Count) FailNotEnoughData(count);
+		}
+
+		private static void FailNotEnoughData(int count)
+		{
+			throw new InvalidOperationException("Not enough data in the read buffer");
+		}
+
+		public byte ReadByte()
+		{
+			EnsureBytes(1);
+
+			int p = this.Position;
+			byte b = this.Buffer[p];
+			this.Position = p + 1;
+			return b;
+		}
+
+		public Slice ReadSlice(int count)
+		{
+			Contract.Requires(count >= 0);
+			if (count == 0) return Slice.Empty;
+			return new Slice(this.Buffer.Array, this.Buffer.Offset + this.Position, count);
+		}
+
+		public Slice ReadByteString()
+		{
+			var array = this.Buffer.Array;
+			int start = this.Buffer.Offset + this.Position;
+			int p = start;
+			int end = this.Buffer.Offset + this.Buffer.Count;
+			while (p < end)
+			{
+				byte b = array[p++];
+				if (b == 0)
+				{
+					//TODO: decode \0\xFF ?
+					if (p < end && array[p] == 0xFF)
+					{
+						throw new NotSupportedException();
+					}
+
+					this.Position = p - this.Buffer.Offset;
+					return new Slice(array, start, p - start - 1);
+				}
+			}
+
+			throw new FormatException("Truncated byte string (expected terminal NUL not found)");
+		}
+
+		public ulong ParseUInt(int type)
+		{
+			switch(type)
+			{
+				case FdbBufferWriter.TypeIntegerBase: return 0;
+				case FdbBufferWriter.TypeIntegerBase + 1: return ReadByte();
+				default: return ParseUInt64Slow(type);
+			}
+		}
+
+		public ulong ParseUInt64Slow(int type)
+		{
+			// We are only called for values >= 256
+
+			int bytes = type - FdbBufferWriter.TypeIntegerBase;
+
+			EnsureBytes(bytes);
+
+			var buffer = this.Buffer;
+			int p = this.Position;
+
+			ulong value = 0;
+			while (bytes-- > 0)
+			{
+				value <<= 8;
+				value |= buffer[p++];
+			}
+
+			this.Position = p;
+			return value;
+		}
+
 
 	}
 

@@ -38,48 +38,37 @@ namespace FoundationDb.Client.Tuples
 
 	public static class FdbTupleExtensions
 	{
-		public static void Set(this FdbTransaction transaction, IFdbTuple tuple, Slice value)
+
+		/// <summary>Returns an array containing all the objects of a tuple</summary>
+		public static object[] ToArray(this IFdbTuple tuple)
 		{
-			transaction.Set(tuple.ToSlice(), value);
+			if (tuple == null) throw new ArgumentNullException("tuple");
+
+			var items = new object[tuple.Count];
+			if (items.Length > 0)
+			{
+				tuple.CopyTo(items, 0);
+			}
+			return items;
 		}
 
-		public static void Clear(this FdbTransaction transaction, IFdbTuple tuple)
+		/// <summary>Returns a byte array containing the packed version of a tuple</summary>
+		public static byte[] GetBytes(this IFdbTuple tuple)
 		{
-			transaction.Clear(tuple.ToSlice());
+			return tuple.ToSlice().GetBytes();
 		}
 
-		public static void ClearRange(this FdbTransaction transaction, IFdbTuple beginInclusive, IFdbTuple endExclusive)
-		{
-			transaction.ClearRange(beginInclusive.ToSlice(), endExclusive.ToSlice());
-		}
-
-		public static void ClearRange(this FdbTransaction transaction, IFdbTuple prefix)
-		{
-			var range = prefix.ToRange();
-			transaction.ClearRange(range.Begin, range.End);
-		}
-
-		public static Task<Slice> GetAsync(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return transaction.GetAsync(tuple.ToSlice(), snapshot, ct);
-		}
-
-		public static Slice Get(this FdbTransaction transaction, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return transaction.Get(tuple.ToSlice(), snapshot, ct);
-		}
-
-		public static byte[] ToByteArray(this IFdbTuple tuple)
-		{
-			var writer = new FdbBufferWriter();
-			tuple.PackTo(writer);
-			return writer.ToByteArray();
-		}
-
+		/// <summary>Concatenates two tuples together</summary>
 		public static IFdbTuple Concat(this IFdbTuple first, IFdbTuple second)
 		{
-			if (second.Count == 0) return first;
-			if (first.Count == 0) return second;
+			if (first == null) throw new ArgumentNullException("first");
+			if (second == null) throw new ArgumentNullException("second");
+
+			int n1 = first.Count;
+			if (n1 == 0) return second;
+
+			int n2 = second.Count;
+			if (n2 == 0) return first;
 
 			var firstList = first as FdbTupleList;
 			if (firstList != null)
@@ -88,7 +77,7 @@ namespace FoundationDb.Client.Tuples
 			}
 
 			// create a new list with both
-			var list = new List<object>(first.Count + second.Count);
+			var list = new List<object>(n1 + n2);
 			list.AddRange(first);
 			list.AddRange(second);
 			return new FdbTupleList(list);
@@ -96,13 +85,14 @@ namespace FoundationDb.Client.Tuples
 
 		public static IFdbTuple AppendRange(this IFdbTuple tuple, params object[] items)
 		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
 			if (items == null) throw new ArgumentNullException("items");
 			if (items.Length == 0) return tuple;
 
 			var tupleList = tuple as FdbTupleList;
 			if (tupleList != null) return tupleList.AppendRange(items);
 
-			var list = new List<object>(tuple.Count + tuple.Count);
+			var list = new List<object>(tuple.Count + items.Length);
 			list.AddRange(tuple);
 			list.AddRange(items);
 			return new FdbTupleList(list);
@@ -122,6 +112,8 @@ namespace FoundationDb.Client.Tuples
 		/// <returns>Range of all keys suffixed by the tuple. The tuple itself will be included if <paramref name="includePrefix"/> is true</returns>
 		public static FdbKeyRange ToRange(this IFdbTuple tuple, bool includePrefix)
 		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+
 			// We want to allocate only one byte[] to store both keys, and map both Slice to each chunk
 			// So we will serialize the tuple two times in the same writer
 
@@ -142,18 +134,22 @@ namespace FoundationDb.Client.Tuples
 			);
 		}
 
-		public static Task<FdbSearchResults> GetRangeAsync(this FdbTransaction transaction, IFdbTuple suffix, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		/// <summary>Creates pre-packed and isolated copy of this tuple</summary>
+		/// <param name="tuple"></param>
+		/// <returns>Create a copy of the tuple that can be reused frequently to pack values</returns>
+		/// <remarks>If the tuple is already memoized, the current instance will be returned</remarks>
+		public static FdbMemoizedTuple Memoize(this IFdbTuple tuple)
 		{
-			var range = suffix.ToRange();
+			if (tuple == null) return null;
 
-			return transaction.GetRangeAsync(
-				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
-				FdbKeySelector.FirstGreaterThan(range.End),
-				snapshot,
-				ct
-			);
+			var memoized = tuple as FdbMemoizedTuple;
+			if (memoized == null)
+			{
+				memoized = new FdbMemoizedTuple(tuple.ToArray(), tuple.ToSlice());
+			}
+
+			return memoized;
 		}
-
 	}
 
 }

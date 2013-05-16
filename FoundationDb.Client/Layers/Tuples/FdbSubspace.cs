@@ -36,14 +36,12 @@ namespace FoundationDb.Client.Tuples
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
 	public class FdbSubspace : IFdbTuple
 	{
-		private readonly IFdbTuple Tuple;
-		private readonly byte[] RawPrefix;
+		/// <summary>Store a memoized version of the tuple to speed up serialization</summary>
+		private readonly FdbMemoizedTuple Tuple;
 
 		public FdbSubspace(string prefix)
 		{
-			var tuple = new FdbTuple<string>(prefix);
-			this.RawPrefix = tuple.ToByteArray();
-			this.Tuple = tuple;
+			this.Tuple = new FdbTuple<string>(prefix).Memoize();
 		}
 
 #if DEPRECATED
@@ -57,32 +55,24 @@ namespace FoundationDb.Client.Tuples
 
 		public FdbSubspace(IFdbTuple prefix)
 		{
-			this.RawPrefix = prefix.ToByteArray();
-			this.Tuple = prefix;
-		}
-
-		public void AppendTo(FdbBufferWriter writer)
-		{
-			writer.WriteBytes(this.RawPrefix);
+			this.Tuple = prefix.Memoize();
 		}
 
 		public void PackTo(FdbBufferWriter writer)
 		{
-			FdbTuplePackers.SerializeTo(writer, this.RawPrefix);
+			writer.WriteBytes(this.Tuple.Packed);
 		}
 
 		public Slice ToSlice()
 		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
-			return writer.GetBytes();
+			return this.Tuple.Packed;
 		}
 
 		private FdbBufferWriter OpenBuffer(int extraBytes = 0)
 		{
 			var writer = new FdbBufferWriter();
-			if (extraBytes > 0) writer.EnsureBytes(extraBytes + this.RawPrefix.Length);
-			writer.WriteBytes(this.RawPrefix);
+			if (extraBytes > 0) writer.EnsureBytes(extraBytes + this.Tuple.PackedSize);
+			writer.WriteBytes(this.Tuple.Packed);
 			return writer;
 		}
 
@@ -90,22 +80,22 @@ namespace FoundationDb.Client.Tuples
 		{
 			var writer = OpenBuffer();
 			FdbTuplePacker<T>.SerializeTo(writer, key);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 		public Slice GetKeyBytes(Slice keyBlob)
 		{
 			var writer = OpenBuffer(keyBlob.Count);
 			writer.WriteBytes(keyBlob);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 		public Slice GetKeyBytes(IFdbTuple tuple)
 		{
 			var writer = new FdbBufferWriter();
-			writer.WriteBytes(this.RawPrefix);
+			writer.WriteBytes(this.Tuple.Packed);
 			tuple.PackTo(writer);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 		int IFdbTuple.Count
@@ -133,6 +123,11 @@ namespace FoundationDb.Client.Tuples
 			if (value == null) throw new ArgumentNullException("value");
 
 			return this.Tuple.Concat(value);
+		}
+
+		public void CopyTo(object[] array, int offset)
+		{
+			this.Tuple.CopyTo(array, offset);
 		}
 
 		IEnumerator<object> IEnumerable<object>.GetEnumerator()

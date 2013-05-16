@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using FoundationDb.Client.Utils;
 using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
@@ -38,6 +39,8 @@ namespace FoundationDb.Client.Tuples
 
 	public static class FdbTuplePackers
 	{
+
+		#region Serializers...
 
 		public static Action<FdbBufferWriter, T> GetSerializer<T>()
 		{
@@ -227,6 +230,71 @@ namespace FoundationDb.Client.Tuples
 		{
 			tuple.PackTo(writer);
 		}
+
+		#endregion
+
+		#region Deserializers...
+
+		public static IFdbTuple Unpack(FdbBufferReader reader)
+		{
+			var items = new List<object>();
+
+			while (reader.HasMoreData)
+			{
+				object item;
+				if (!TryParseNext(reader, out item))
+					throw new FormatException("Failed to parse tuple");
+
+				items.Add(item);
+			}
+
+			if (items.Count == 0) return FdbTuple.Empty;
+			return new FdbTupleList(items.ToArray());
+		}
+
+		public static bool TryParseNext(FdbBufferReader reader, out object value)
+		{
+			if (reader.HasMoreData)
+			{
+				int type = reader.ReadByte();
+				switch (type)
+				{
+					case FdbBufferWriter.TypeNil:
+					{
+						value = null;
+						return true;
+					}
+					case FdbBufferWriter.TypeStringAscii:
+					{
+						Slice slice = reader.ReadByteString();
+						value = slice.ToAscii();
+						return true;
+					}
+					case FdbBufferWriter.TypeStringUtf8:
+					{
+						Slice slice = reader.ReadByteString();
+						value = slice.ToUnicode();
+						return true;
+					}
+					case FdbBufferWriter.TypeIntegerBase:
+					{
+						value = 0;
+						return true;
+					}
+					case FdbBufferWriter.TypeIntegerBase + 1:
+					{
+						value = reader.ReadByte();
+						return true;
+					}
+				}
+			}
+
+			value = null;
+			return false;
+		}
+
+		#endregion
+
 	}
 
 	public static class FdbTuplePacker<T>
@@ -250,7 +318,7 @@ namespace FoundationDb.Client.Tuples
 		{
 			var writer = new FdbBufferWriter();
 			Serializer(writer, value);
-			return writer.GetBytes();
+			return writer.ToSlice();
 		}
 
 	}

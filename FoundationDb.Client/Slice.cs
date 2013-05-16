@@ -43,6 +43,30 @@ namespace FoundationDb.Client
 		public static readonly Slice Nil = new Slice(null, 0, 0);
 		public static readonly Slice Empty = new Slice(EmptyArray, 0, 0);
 
+		public readonly byte[] Array;
+		public readonly int Offset;
+		public readonly int Count;
+
+		internal Slice(byte[] array)
+		{
+			Contract.Requires(array != null);
+
+			this.Array = array;
+			this.Offset = 0;
+			this.Count = array != null ? array.Length : 0;
+		}
+
+		internal Slice(byte[] array, int offset, int count)
+		{
+			Contract.Requires(array != null);
+			Contract.Requires(offset >= 0 && offset < array.Length);
+			Contract.Requires(count >= 0 && offset + count <= array.Length);
+
+			this.Array = array;
+			this.Offset = offset;
+			this.Count = count;
+		}
+
 		public static Slice Create(byte[] bytes)
 		{
 			return bytes == null ? Slice.Nil : bytes.Length == 0 ? Slice.Empty : new Slice(bytes, 0, bytes.Length);
@@ -57,6 +81,15 @@ namespace FoundationDb.Client
 			return new Slice(buffer, offset, count);
 		}
 
+		/// <summary>Create a new empty slice of a specified size containing all zeroes</summary>
+		/// <param name="size"></param>
+		/// <returns></returns>
+		public static Slice Create(int size)
+		{
+			if (size < 0) throw new ArgumentException("size");
+			return size == 0 ? Slice.Empty : new Slice(new byte[size], 0, size);
+		}
+
 		internal static unsafe Slice Create(byte* ptr, int count)
 		{
 			if (ptr == null) return Slice.Nil;
@@ -67,31 +100,10 @@ namespace FoundationDb.Client
 			return new Slice(bytes, 0, count);
 		}
 
-		public static Slice Allocate(int size)
-		{
-			if (size < 0) throw new ArgumentException("size");
-			return size == 0 ? Slice.Empty : new Slice(new byte[size], 0, size);
-		}
-
 		public static Slice FromBase64(string base64String)
 		{
 			return base64String == null ? Slice.Nil : base64String.Length == 0 ? Slice.Empty : Slice.Create(Convert.FromBase64String(base64String));
 		}
-
-		internal Slice(byte[] array, int offset, int count)
-		{
-			Contract.Requires(array != null);
-			Contract.Requires(offset >= 0 && offset < array.Length);
-			Contract.Requires(count >= 0 && offset + count <= array.Length);
-
-			this.Array = array;
-			this.Offset = offset;
-			this.Count = count;
-		}
-
-		public readonly byte[] Array;
-		public readonly int Offset;
-		public readonly int Count;
 
 		/// <summary>Returns false is the slice is null, or true is the slice maps to zero or more bytes</summary>
 		/// <remarks>An empty slice is NOT null</remarks>
@@ -140,6 +152,26 @@ namespace FoundationDb.Client
 			if (!HasValue) return Slice.Nil;
 			if (Count == 0) return Slice.Empty;
 			return new Slice(GetBytes(), 0, this.Count);
+		}
+
+		public byte this[int index]
+		{
+			get
+			{
+				if (index < 0 || index >= this.Count) FailIndexOutOfBound(index);
+				return this.Array[this.Offset + index];
+			}
+		}
+
+		private static void FailIndexOutOfBound(int index)
+		{
+			throw new IndexOutOfRangeException("Index is outside the slice");
+		}
+
+		internal byte GetByte(int index)
+		{
+			Contract.Requires(index >= 0 && index < this.Count);
+			return this.Array[this.Offset + index];
 		}
 
 		/// <summary>Implicitly converts a Slice into an ArraySegment&lt;byte&gt;</summary>
