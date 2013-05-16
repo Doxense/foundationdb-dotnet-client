@@ -40,7 +40,7 @@ namespace FoundationDb.Client
 	{
 		internal static readonly byte[] EmptyArray = new byte[0];
 
-		public static readonly Slice Nil = new Slice(null, 0, 0);
+		public static readonly Slice Nil = default(Slice);
 		public static readonly Slice Empty = new Slice(EmptyArray, 0, 0);
 
 		public readonly byte[] Array;
@@ -59,7 +59,7 @@ namespace FoundationDb.Client
 		internal Slice(byte[] array, int offset, int count)
 		{
 			Contract.Requires(array != null);
-			Contract.Requires(offset >= 0 && offset < array.Length);
+			Contract.Requires(offset >= 0 && offset <= array.Length);
 			Contract.Requires(count >= 0 && offset + count <= array.Length);
 
 			this.Array = array;
