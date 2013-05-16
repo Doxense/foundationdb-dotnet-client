@@ -69,7 +69,7 @@ namespace FoundationDb.Client.Tuples
 			return transaction.Get(tuple.ToSlice(), snapshot, ct);
 		}
 
-		public static byte[] ToByteArray(this IFdbKey tuple)
+		public static byte[] ToByteArray(this IFdbTuple tuple)
 		{
 			var writer = new FdbBufferWriter();
 			tuple.PackTo(writer);

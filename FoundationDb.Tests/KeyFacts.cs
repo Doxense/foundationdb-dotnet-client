@@ -61,7 +61,11 @@ namespace FoundationDb.Tests
 		[Test]
 		public void Test_FdbKey_AreEqual()
 		{
-			Assert.That(FdbKey.AreEqual(FdbKey.Ascii("Hello"), FdbKey.Ascii("Hello")), Is.True);
+			Assert.That(FdbKey.Ascii("Hello").Equals(FdbKey.Ascii("Hello")), Is.True);
+			Assert.That(FdbKey.Ascii("Hello") == FdbKey.Ascii("Hello"), Is.True);
+
+			Assert.That(FdbKey.Ascii("Hello").Equals(FdbKey.Ascii("Helloo")), Is.False);
+			Assert.That(FdbKey.Ascii("Hello") == FdbKey.Ascii("Helloo"), Is.False);
 		}
 
 	}

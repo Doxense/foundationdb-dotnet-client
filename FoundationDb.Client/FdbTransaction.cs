@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #undef DEBUG_TRANSACTIONS
 
 using FoundationDb.Client.Native;
+using FoundationDb.Client.Tuples;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -217,7 +218,7 @@ namespace FoundationDb.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Task<Slice> GetAsync(IFdbKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return GetAsync(key.ToSlice(), snapshot, ct);
 		}
@@ -249,7 +250,7 @@ namespace FoundationDb.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Slice Get(IFdbKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Slice Get(IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return Get(key.ToSlice(), snapshot, ct);
 		}
@@ -272,13 +273,44 @@ namespace FoundationDb.Client
 			return GetCore(keyBytes, snapshot, ct);
 		}
 
-		public Task<List<KeyValuePair<IFdbKey, Slice>>> GetBatchAsync(IEnumerable<IFdbKey> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 			return GetBatchAsync(keys.ToArray(), snapshot, ct);
 		}
 
-		public async Task<List<KeyValuePair<IFdbKey, Slice>>> GetBatchAsync(IFdbKey[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			var tasks = new List<Task<Slice>>(keys.Length);
+			for (int i = 0; i < keys.Length; i++)
+			{
+				//TODO: optimize to not have to allocate a scope
+				tasks.Add(Task.Factory.StartNew((_state) =>
+				{
+					return this.GetCoreAsync(keys[(int)_state], snapshot, ct);
+				}, i, ct).Unwrap());
+			}
+
+			var results = await Task.WhenAll(tasks);
+
+			return results
+				.Select((data, i) => new KeyValuePair<Slice, Slice>(keys[i], data))
+				.ToList();
+		}
+
+		public Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(IEnumerable<IFdbTuple> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			return GetBatchAsync(keys.ToArray(), snapshot, ct);
+		}
+
+		public async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(IFdbTuple[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 
@@ -299,7 +331,7 @@ namespace FoundationDb.Client
 			var results = await Task.WhenAll(tasks);
 
 			return results
-				.Select((data, i) => new KeyValuePair<IFdbKey, Slice>(keys[i], data))
+				.Select((data, i) => new KeyValuePair<IFdbTuple, Slice>(keys[i], data))
 				.ToList();
 		}
 
@@ -350,7 +382,7 @@ namespace FoundationDb.Client
 			return GetRangeAsync(beginInclusive, endInclusive + 1, snapshot, ct);
 		}
 
-		public Task<FdbSearchResults> GetRangeAsync(IFdbKey beginInclusive, IFdbKey endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<FdbSearchResults> GetRangeAsync(IFdbTuple beginInclusive, IFdbTuple endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return GetRangeAsync(
 				FdbKeySelector.FirstGreaterOrEqual(beginInclusive),
@@ -377,6 +409,20 @@ namespace FoundationDb.Client
 			Fdb.EnsureNotOnNetworkThread();
 
 			return GetRangeCoreAsync(beginInclusive, endExclusive, limit, targetBytes, mode, iteration, snapshot, reverse, ct);
+		}
+
+		public Task<FdbSearchResults> GetRangeAsync(IFdbTuple suffix, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			if (suffix == null) throw new ArgumentNullException("suffix");
+
+			var range = suffix.ToRange();
+
+			return GetRangeAsync(
+				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
+				FdbKeySelector.FirstGreaterThan(range.End),
+				snapshot,
+				ct
+			);
 		}
 
 		#endregion
@@ -439,7 +485,7 @@ namespace FoundationDb.Client
 			SetCore(keyBytes, valueBytes);
 		}
 
-		public void Set(IFdbKey key, Slice valueBytes)
+		public void Set(IFdbTuple key, Slice valueBytes)
 		{
 			if (key == null) throw new ArgumentNullException("key");
 
@@ -469,7 +515,7 @@ namespace FoundationDb.Client
 			ClearCore(key);
 		}
 
-		public void Clear(IFdbKey key)
+		public void Clear(IFdbTuple key)
 		{
 			if (key == null) throw new ArgumentNullException("key");
 
@@ -508,7 +554,7 @@ namespace FoundationDb.Client
 			ClearRangeCore(beginKeyInclusive, endKeyExclusive);
 		}
 
-		public void ClearRange(IFdbKey beginInclusive, IFdbKey endExclusive)
+		public void ClearRange(IFdbTuple beginInclusive, IFdbTuple endExclusive)
 		{
 			if (beginInclusive == null) throw new ArgumentNullException("beginInclusive");
 			if (endExclusive == null) throw new ArgumentNullException("endExclusive");
@@ -517,6 +563,17 @@ namespace FoundationDb.Client
 			Fdb.EnsureNotOnNetworkThread();
 
 			ClearRangeCore(beginInclusive.ToSlice(), endExclusive.ToSlice());
+		}
+
+		public void ClearRange(IFdbTuple prefix)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
+			var range = prefix.ToRange();
+			ClearRangeCore(range.Begin, range.End);
 		}
 
 		#endregion

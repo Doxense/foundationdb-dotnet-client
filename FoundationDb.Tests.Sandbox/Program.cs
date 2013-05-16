@@ -332,11 +332,11 @@ namespace FoundationDb.Tests.Sandbox
 						await TestSimpleTransactionAsync(db);
 
 						await BenchInsertSmallKeysAsync(db, N, 16); // some guid
-						////await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
-						//await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
-						////await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
-						////await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
-						////await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
+						//await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
+						await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
+						//await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
+						//await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
+						//await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
 
 						//// insert keys in parrallel
 						//await BenchConcurrentInsert(db, 2, N, 512);

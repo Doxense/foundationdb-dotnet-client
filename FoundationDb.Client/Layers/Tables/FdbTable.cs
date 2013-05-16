@@ -64,7 +64,7 @@ namespace FoundationDb.Client.Tables
 			return this.Subspace.GetKeyBytes(key);
 		}
 
-		public Slice GetKeyBytes(IFdbKey tuple)
+		public Slice GetKeyBytes(IFdbTuple tuple)
 		{
 			return this.Subspace.GetKeyBytes(tuple);
 		}
@@ -104,7 +104,7 @@ namespace FoundationDb.Client.Tables
 			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
 		}
 
-		public Task<Slice> GetAsync(FdbTransaction trans, IFdbKey tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(FdbTransaction trans, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return trans.GetAsync(GetKeyBytes(tuple), snapshot, ct);
 		}
@@ -125,7 +125,7 @@ namespace FoundationDb.Client.Tables
 			}
 		}
 
-		public async Task<Slice> GetAsync(IFdbKey tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<Slice> GetAsync(IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -147,7 +147,7 @@ namespace FoundationDb.Client.Tables
 			trans.Set(GetKeyBytes(key), value);
 		}
 
-		public void Set(FdbTransaction trans, IFdbKey tuple, Slice value)
+		public void Set(FdbTransaction trans, IFdbTuple tuple, Slice value)
 		{
 			trans.Set(GetKeyBytes(tuple), value);
 		}
@@ -170,7 +170,7 @@ namespace FoundationDb.Client.Tables
 			}
 		}
 
-		public async Task SetAsync(IFdbKey tuple, Slice value)
+		public async Task SetAsync(IFdbTuple tuple, Slice value)
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{

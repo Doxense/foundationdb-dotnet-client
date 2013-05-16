@@ -47,22 +47,22 @@ namespace FoundationDb.Client
 			this.Offset = offset;
 		}
 
-		public static FdbKeySelector LastLessThan(IFdbKey key)
+		public static FdbKeySelector LastLessThan(IFdbTuple key)
 		{
 			return LastLessThan(key.ToSlice());
 		}
 
-		public static FdbKeySelector LastLessOrEqual(IFdbKey key)
+		public static FdbKeySelector LastLessOrEqual(IFdbTuple key)
 		{
 			return LastLessOrEqual(key.ToSlice());
 		}
 
-		public static FdbKeySelector FirstGreaterThan(IFdbKey key)
+		public static FdbKeySelector FirstGreaterThan(IFdbTuple key)
 		{
 			return FirstGreaterThan(key.ToSlice());
 		}
 
-		public static FdbKeySelector FirstGreaterOrEqual(IFdbKey key)
+		public static FdbKeySelector FirstGreaterOrEqual(IFdbTuple key)
 		{
 			return FirstGreaterOrEqual(key.ToSlice());
 		}

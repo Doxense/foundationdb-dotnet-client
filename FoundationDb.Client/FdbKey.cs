@@ -41,12 +41,12 @@ namespace FoundationDb.Client
 		private static readonly byte[] Bytes = new byte[] { 0, 255 };
 
 		/// <summary>Smallest possible key ('\0')</summary>
-		public static readonly IFdbKey MinValue = new FdbByteKey(Bytes, 0, 1);
+		public static readonly Slice MinValue = new Slice(Bytes, 0, 1);
 
 		/// <summary>Bigest possible key ('\xFF'), excluding the system keys</summary>
-		public static readonly IFdbKey MaxValue = new FdbByteKey(Bytes, 1, 1);
+		public static readonly Slice MaxValue = new Slice(Bytes, 1, 1);
 
-		public static IFdbKey Ascii(string key)
+		public static Slice Ascii(string key)
 		{
 			if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or emtpy", "key");
 
@@ -64,7 +64,7 @@ namespace FoundationDb.Client
 			return Encoding.Default.GetString(key.Array, key.Offset, key.Count);
 		}
 
-		public static IFdbKey Unicode(string text)
+		public static Slice Unicode(string text)
 		{
 			return Binary(Encoding.UTF8.GetBytes(text));
 		}
@@ -75,18 +75,18 @@ namespace FoundationDb.Client
 			return Encoding.UTF8.GetString(key.Array, key.Offset, key.Count);
 		}
 
-		public static IFdbKey Binary(byte[] data)
+		public static Slice Binary(byte[] data)
 		{
 			if (data == null) throw new ArgumentNullException("data");
-			return new FdbByteKey(data, 0, data.Length);
+			return new Slice(data, 0, data.Length);
 		}
 
-		public static IFdbKey Binary(byte[] data, int offset, int count)
+		public static Slice Binary(byte[] data, int offset, int count)
 		{
-			return new FdbByteKey(data, offset, count);
+			return new Slice(data, offset, count);
 		}
 
-		public static Slice Increment(IFdbKey key)
+		public static Slice Increment(IFdbTuple key)
 		{
 			return Increment(key.ToSlice());
 		}
@@ -125,7 +125,7 @@ namespace FoundationDb.Client
 			return sb.ToString();
 		}
 
-		public static bool AreEqual(IFdbKey left, IFdbKey right)
+		public static bool AreEqual(IFdbTuple left, IFdbTuple right)
 		{
 			if (object.ReferenceEquals(left, right)) return true;
 			return left.ToSlice() == right.ToSlice();

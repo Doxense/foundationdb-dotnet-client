@@ -46,7 +46,6 @@
     <Compile Include="FdbValue.cs" />
     <Compile Include="FdbSearchResults.cs" />
     <Compile Include="FdbKeyRange.cs" />
-    <Compile Include="FdbByteKey.cs" />
     <Compile Include="FdbKey.cs" />
     <Compile Include="FdbTransactionOption.cs" />
     <Compile Include="FdbDatabaseOption.cs" />
@@ -58,7 +57,6 @@
     <Compile Include="Layers\Indexes\FdbSimpleIndex.cs" />
     <Compile Include="Layers\Strings\FdbStringIntern.cs" />
     <Compile Include="Layers\Tuples\IFdbTuple.cs" />
-    <Compile Include="IFdbKey.cs" />
     <Compile Include="Layers\Tuples\FdbTupleList.cs" />
     <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbSubspace.cs" />

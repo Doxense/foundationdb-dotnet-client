@@ -34,8 +34,16 @@ using System.Diagnostics;
 namespace FoundationDb.Client.Tuples
 {
 
-	public interface IFdbTuple : IFdbKey, IEnumerable<object>
+	public interface IFdbTuple : IEnumerable<object>
 	{
+
+		/// <summary>Write the binary representation of this key at the end of a buffer</summary>
+		/// <param name="buffer">Buffer that will received the packed bytes of this key</param>
+		void PackTo(FdbBufferWriter writer);
+
+		/// <summary>Return the value of the key as a byte buffer</summary>
+		Slice ToSlice();
+
 		/// <summary>Returns the number of "items" in the Tuple</summary>
 		int Count { get; }
 

@@ -100,7 +100,7 @@ namespace FoundationDb.Client.Tuples
 			return writer.GetBytes();
 		}
 
-		public Slice GetKeyBytes(IFdbKey tuple)
+		public Slice GetKeyBytes(IFdbTuple tuple)
 		{
 			var writer = new FdbBufferWriter();
 			writer.WriteBytes(this.RawPrefix);
