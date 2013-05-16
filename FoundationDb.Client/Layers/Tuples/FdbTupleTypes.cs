@@ -29,40 +29,46 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Globalization;
+using System.Linq.Expressions;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace FoundationDb.Client.Tuples
 {
 
-	public interface IFdbTuple : IEnumerable<object>
+	internal static class FdbTupleTypes
 	{
+		/// <summary>Null/Empty/Void</summary>
+		internal const byte Nil = (byte)0;
 
-		/// <summary>Write the binary representation of this key at the end of a buffer</summary>
-		/// <param name="buffer">Buffer that will received the packed bytes of this key</param>
-		void PackTo(FdbBufferWriter writer);
+		/// <summary>ASCII String</summary>
+		internal const byte StringAscii = (byte)1;
 
-		/// <summary>Return the value of the key as a byte buffer</summary>
-		Slice ToSlice();
+		/// <summary>UTF-8 String</summary>
+		internal const byte StringUtf8 = (byte)2;
 
-		/// <summary>Returns the number of "items" in the Tuple</summary>
-		int Count { get; }
+		internal const byte IntNeg8 = (byte)12;
+		internal const byte IntNeg7 = (byte)13;
+		internal const byte IntNeg6 = (byte)14;
+		internal const byte IntNeg5 = (byte)15;
+		internal const byte IntNeg4 = (byte)16;
+		internal const byte IntNeg3 = (byte)17;
+		internal const byte IntNeg2 = (byte)18;
+		internal const byte IntNeg1 = (byte)19;
+		internal const byte IntZero = (byte)20;
+		internal const byte IntPos1 = (byte)21;
+		internal const byte IntPos2 = (byte)22;
+		internal const byte IntPos3 = (byte)23;
+		internal const byte IntPos4 = (byte)24;
+		internal const byte IntPos5 = (byte)25;
+		internal const byte IntPos6 = (byte)26;
+		internal const byte IntPos7 = (byte)27;
+		internal const byte IntPos8 = (byte)28;
 
-		/// <summary>Return an item of the tuple, given its position</summary>
-		/// <param name="index">Position of the item</param>
-		/// <returns>Value of the item</returns>
-		/// <exception cref="System.IndexOutOfRangeException">If index if outside the bounds of the tuple</exception>
-		object this[int index] { get; }
-
-		/// <summary>Create a new Tuple by appending a new value at the end the this tuple</summary>
-		/// <typeparam name="T">Type of the new value</typeparam>
-		/// <param name="value">Value that will be appended at the end</param>
-		/// <returns>New tuple with the new value</returns>
-		IFdbTuple Append<T>(T value);
-
-		/// <summary>Copy all items of the tuple into an array at a specific location</summary>
-		/// <param name="array">Destination array (must be big enough to contains all the items)</param>
-		/// <param name="offset">Offset at wich to start copying items</param>
-		void CopyTo(object[] array, int offset);
+		/// <summary>Base value for integer types (20 +/- n)</summary>
+		internal const int IntBase = 20;
 	}
 
 }

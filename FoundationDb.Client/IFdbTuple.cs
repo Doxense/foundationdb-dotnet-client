@@ -26,50 +26,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client.Utils
-{
-	using System;
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
+using FoundationDb.Client.Utils;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 
-	internal static class Contract
+namespace FoundationDb.Client
+{
+
+	public interface IFdbTuple : IEnumerable<object>
 	{
 
-		[DebuggerStepThrough]
-		[Conditional("DEBUG")]
-#if NET_4_5
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void Requires(bool condition)
-		{
-			if (!condition) RaiseContractFailure(true, null, "A pre-requisite was not met");
-		}
+		/// <summary>Write the binary representation of this key at the end of a buffer</summary>
+		/// <param name="buffer">Buffer that will received the packed bytes of this key</param>
+		void PackTo(FdbBufferWriter writer);
 
-		[DebuggerStepThrough]
-		[Conditional("DEBUG")]
-#if NET_4_5
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void Requires(bool condition, string test, string message)
-		{
-			if (!condition) RaiseContractFailure(true, test, message);
-		}
+		/// <summary>Return the value of the key as a byte buffer</summary>
+		Slice ToSlice();
 
-		[DebuggerStepThrough]
-		public static void RaiseContractFailure(bool assertion, string test, string message)
-		{
-			if (assertion)
-			{
-#if DEBUG
-				if (Debugger.IsAttached) Debugger.Break();
-#endif
-				Debug.Fail(message, test);
-			}
-			else
-			{
-				throw new InvalidOperationException(message);
-			}
-		}
+		/// <summary>Returns the number of "items" in the Tuple</summary>
+		int Count { get; }
 
+		/// <summary>Return an item of the tuple, given its position</summary>
+		/// <param name="index">Position of the item</param>
+		/// <returns>Value of the item</returns>
+		/// <exception cref="System.IndexOutOfRangeException">If index if outside the bounds of the tuple</exception>
+		object this[int index] { get; }
+
+		/// <summary>Create a new Tuple by appending a new value at the end the this tuple</summary>
+		/// <typeparam name="T">Type of the new value</typeparam>
+		/// <param name="value">Value that will be appended at the end</param>
+		/// <returns>New tuple with the new value</returns>
+		IFdbTuple Append<T>(T value);
+
+		/// <summary>Copy all items of the tuple into an array at a specific location</summary>
+		/// <param name="array">Destination array (must be big enough to contains all the items)</param>
+		/// <param name="offset">Offset at wich to start copying items</param>
+		void CopyTo(object[] array, int offset);
 	}
+
 }

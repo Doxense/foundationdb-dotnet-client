@@ -101,6 +101,11 @@ namespace FoundationDb.Client.Tuples
 			return this.GetEnumerator();
 		}
 
+		public override string ToString()
+		{
+			return FdbTuple.ToString(this.Items);
+		}
+
 	}
 
 	public sealed class FdbLinkedTuple<T> : IFdbTuple
@@ -170,5 +175,11 @@ namespace FoundationDb.Client.Tuples
 		{
 			return this.GetEnumerator();
 		}
+
+		public override string ToString()
+		{
+			return FdbTuple.ToString(this);
+		}
+
 	}
 }

@@ -26,50 +26,77 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client.Utils
+using FoundationDb.Client.Utils;
+using System;
+using System.Collections.Generic;
+
+namespace FoundationDb.Client.Tuples
 {
-	using System;
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 
-	internal static class Contract
+	internal class FdbSlicedTuple : IFdbTuple
 	{
+		private readonly Slice Buffer;
+		private readonly List<Slice> Slices;
 
-		[DebuggerStepThrough]
-		[Conditional("DEBUG")]
-#if NET_4_5
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void Requires(bool condition)
+		public FdbSlicedTuple(Slice buffer, List<Slice> slices)
 		{
-			if (!condition) RaiseContractFailure(true, null, "A pre-requisite was not met");
+			this.Buffer = buffer;
+			this.Slices = slices;
 		}
 
-		[DebuggerStepThrough]
-		[Conditional("DEBUG")]
-#if NET_4_5
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void Requires(bool condition, string test, string message)
+		public void PackTo(FdbBufferWriter writer)
 		{
-			if (!condition) RaiseContractFailure(true, test, message);
+			writer.WriteBytes(this.Buffer);
 		}
 
-		[DebuggerStepThrough]
-		public static void RaiseContractFailure(bool assertion, string test, string message)
+		public Slice ToSlice()
 		{
-			if (assertion)
+			return this.Buffer;
+		}
+
+		public int Count
+		{
+			get { return this.Slices.Count; }
+		}
+
+		public object this[int index]
+		{
+			get { return FdbTuplePackers.DeserializeObject(this.Slices[index]); }
+		}
+
+		public IFdbTuple Append<T>(T value)
+		{
+			throw new NotImplementedException();
+		}
+
+		public void CopyTo(object[] array, int offset)
+		{
+			var slices = this.Slices;
+			foreach (var slice in slices)
 			{
-#if DEBUG
-				if (Debugger.IsAttached) Debugger.Break();
-#endif
-				Debug.Fail(message, test);
+				array[offset++] = FdbTuplePackers.DeserializeObject(slice);
 			}
-			else
+		}
+
+		public IEnumerator<object> GetEnumerator()
+		{
+			var slices = this.Slices;
+			foreach (var slice in slices)
 			{
-				throw new InvalidOperationException(message);
+				yield return FdbTuplePackers.DeserializeObject(slice);
 			}
+		}
+
+		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+		{
+			return this.GetEnumerator();
+		}
+
+		public override string ToString()
+		{
+			return FdbTuple.ToString(this);
 		}
 
 	}
+
 }

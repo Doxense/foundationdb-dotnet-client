@@ -39,6 +39,7 @@ namespace FoundationDb.Tests.Sandbox
 		static async Task TestSimpleTransactionAsync(FdbDatabase db)
 		{
 			Console.WriteLine("Starting new transaction...");
+
 			using (var trans = db.BeginTransaction())
 			{
 				Console.WriteLine("> Transaction ready");
@@ -93,6 +94,8 @@ namespace FoundationDb.Tests.Sandbox
 					{
 						tmp[0] = (byte)i;
 						tmp[1] = (byte)(i >> 8);
+						// (Batch, 1) = [......]
+						// (Batch, 2) = [......]
 						trans.Set(table.Append(k * N + i), Slice.Create(tmp));
 					}
 					await trans.CommitAsync();
@@ -101,7 +104,7 @@ namespace FoundationDb.Tests.Sandbox
 				times.Add(sw.Elapsed);
 			}
 			var min = times.Min();
-			Console.WriteLine("Took " + min.TotalSeconds.ToString("N3") + " to insert " + N + " " + size + "-bytes items (" + FormatTimeMicro(min.TotalMilliseconds / N) + "/write)");
+			Console.WriteLine("["+ Thread.CurrentThread.ManagedThreadId + "] Took " + min.TotalSeconds.ToString("N3") + " to insert " + N + " " + size + "-bytes items (" + FormatTimeMicro(min.TotalMilliseconds / N) + "/write)");
 		}
 
 		static async Task BenchConcurrentInsert(FdbDatabase db, int k, int N, int size)
@@ -125,16 +128,27 @@ namespace FoundationDb.Tests.Sandbox
 					rnd.NextBytes(tmp);
 
 					sem.Wait();
+
+					Console.WriteLine("[" + Thread.CurrentThread.ManagedThreadId + "] start");
+
+					//------ 4k keys ("Batch", xx) x 512 bytes value
 					using (var trans = db.BeginTransaction())
 					{
+
 						for (int i = 0; i < n; i++)
 						{
 							tmp[0] = (byte)i;
 							tmp[1] = (byte)(i >> 8);
+
 							trans.Set(table.Append(offset + i), Slice.Create(tmp));
 						}
+						Console.WriteLine("[" + Thread.CurrentThread.ManagedThreadId + "] before commit " + n + " k (" + trans.Size.ToString("N0") + " bytes)");
+						var x = Stopwatch.StartNew();
 						await trans.CommitAsync();
+						x.Stop();
+						Console.WriteLine("[" + Thread.CurrentThread.ManagedThreadId + "] after commit " + x.Elapsed.Milliseconds + " ms");
 					}
+					//------ 300 ms
 				}, TaskCreationOptions.LongRunning).Unwrap();
 			}
 			await Task.Delay(100);
@@ -142,7 +156,7 @@ namespace FoundationDb.Tests.Sandbox
 			sem.Set();
 			await Task.WhenAll(tasks);
 			sw.Stop();
-			Console.WriteLine("Took " + sw.Elapsed.TotalSeconds.ToString("N3") + " to insert " + N + " " + size + "-bytes items on " + k + " threads (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/write)");
+			Console.WriteLine("["+ Thread.CurrentThread.ManagedThreadId + "] Took " + sw.Elapsed.TotalMilliseconds.ToString("N1") + "ms to insert " + N + " " + size + "-bytes items on " + k + " threads (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/write)");
 		}
 
 		static async Task BenchSerialReadAsync(FdbDatabase db, int N)
@@ -317,6 +331,7 @@ namespace FoundationDb.Tests.Sandbox
 
 					Console.WriteLine("Opening database 'DB'...");
 					using (var db = await cluster.OpenDatabaseAsync("DB"))
+					//using (var db = await cluster.OpenDatabaseAsync("TEST"))
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
@@ -331,22 +346,28 @@ namespace FoundationDb.Tests.Sandbox
 
 						await TestSimpleTransactionAsync(db);
 
-						await BenchInsertSmallKeysAsync(db, N, 16); // some guid
+						//await BenchInsertSmallKeysAsync(db, N, 16); // some guid
 						//await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
-						await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
+						//await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
 						//await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
 						//await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
 						//await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
 
 						//// insert keys in parrallel
-						//await BenchConcurrentInsert(db, 2, N, 512);
-						//await BenchConcurrentInsert(db, 4, N, 512);
+						//await BenchConcurrentInsert(db, 1, 100, 512);
+						//await BenchConcurrentInsert(db, 1, 1000, 512);
+						//await BenchConcurrentInsert(db, 1, 10000, 512);
+
+						await BenchConcurrentInsert(db, 1, N, 16);
+						await BenchConcurrentInsert(db, 2, N, 16);
+						await BenchConcurrentInsert(db, 4, N, 16);
+
 						//await BenchConcurrentInsert(db, 8, N, 512);
 						//await BenchConcurrentInsert(db, 16, N, 512);
 
-						await BenchSerialReadAsync(db, N);
+						//await BenchSerialReadAsync(db, N);
 
-						await BenchConcurrentReadAsync(db, N);
+						//await BenchConcurrentReadAsync(db, N);
 
 						//BenchSerialReadBlocking(db, N);
 

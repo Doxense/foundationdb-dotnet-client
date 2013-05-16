@@ -26,15 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client.Tuples;
-using FoundationDb.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
-
 namespace FoundationDb.Client
 {
+	using FoundationDb.Client.Tuples;
+	using FoundationDb.Client.Utils;
+	using System;
+	using System.Collections.Generic;
+	using System.Runtime.InteropServices;
+	using System.Text;
 
 	public struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>
 	{
@@ -127,14 +126,34 @@ namespace FoundationDb.Client
 		/// <returns>ASCII string, or null if the slice is null</returns>
 		public string ToAscii()
 		{
-			return FdbKey.Ascii(this);
+			if (this.Count == 0) return this.HasValue ? String.Empty : default(string);
+			return Encoding.Default.GetString(this.Array, this.Offset, this.Count);
+		}
+
+		/// <summary>Stringify a slice containing only ASCII chars</summary>
+		/// <returns>ASCII string, or null if the slice is null</returns>
+		public string ToAscii(int offset, int count)
+		{
+			if (count == 0) return String.Empty;
+			//TODO: check args
+			return Encoding.Default.GetString(this.Array, this.Offset, count);
 		}
 
 		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
 		/// <returns>Unicode string, or null if the slice is null</returns>
 		public string ToUnicode()
 		{
-			return FdbKey.Unicode(this);
+			if (this.Count == 0) return this.HasValue ? String.Empty : default(string);
+			return Encoding.UTF8.GetString(this.Array, this.Offset, this.Count);
+		}
+
+		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
+		/// <returns>Unicode string, or null if the slice is null</returns>
+		public string ToUnicode(int offset, int count)
+		{
+			if (count == 0) return String.Empty;
+			//TODO: check args
+			return Encoding.UTF8.GetString(this.Array, this.Offset + offset, count);
 		}
 
 		/// <summary>Converts a slice using Base64 encoding</summary>
@@ -172,6 +191,44 @@ namespace FoundationDb.Client
 		{
 			Contract.Requires(index >= 0 && index < this.Count);
 			return this.Array[this.Offset + index];
+		}
+
+		public Slice Substring(int offset)
+		{
+			//TODO: param check
+			return new Slice(this.Array, this.Offset + offset, this.Count - offset);
+		}
+
+		public Slice Substring(int offset, int count)
+		{
+			//TODO: param check
+			return new Slice(this.Array, this.Offset + offset, count);
+		}
+
+		public long ReadInt64(int offset, int bytes)
+		{
+			long value = 0;
+			var buffer = this.Array;
+			int p = this.Offset + offset;
+			while (bytes-- > 0)
+			{
+				value <<= 8;
+				value |= buffer[p++];
+			}
+			return value;
+		}
+
+		public ulong ReadUInt64(int offset, int bytes)
+		{
+			ulong value = 0;
+			var buffer = this.Array;
+			int p = this.Offset + offset;
+			while (bytes-- > 0)
+			{
+				value <<= 8;
+				value |= buffer[p++];
+			}
+			return value;
 		}
 
 		/// <summary>Implicitly converts a Slice into an ArraySegment&lt;byte&gt;</summary>

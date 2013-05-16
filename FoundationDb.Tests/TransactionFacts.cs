@@ -172,7 +172,7 @@ namespace FoundationDb.Tests
 					readVersion = await tr.GetReadVersionAsync();
 					Assert.That(readVersion, Is.GreaterThan(0), "Read version should be > 0");
 
-					bytes = await tr.GetAsync(FdbKey.Ascii("test.hello"));
+					bytes = await tr.GetAsync(FdbKey.Ascii("test.hello")); // => 1007 "past_version"
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(Encoding.UTF8.GetString(bytes.Array, bytes.Offset, bytes.Count), Is.EqualTo("World!"));
 

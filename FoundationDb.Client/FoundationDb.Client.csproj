@@ -40,8 +40,13 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Layers\Tuples\FdbTupleTypes.cs" />
+    <Compile Include="Layers\Tuples\FdbTuplePackers.cs" />
+    <Compile Include="Utils\Slicer.cs" />
+    <Compile Include="Layers\Tuples\FdbSlicedTuple.cs" />
+    <Compile Include="Layers\Tuples\FdbTuple_T.cs" />
     <Compile Include="Layers\Tuples\FdbMemoizedTuple.cs" />
-    <Compile Include="Slice.cs" />
+    <Compile Include="Utils\Slice.cs" />
     <Compile Include="FdbException.cs" />
     <Compile Include="FdbTimeoutManager.cs" />
     <Compile Include="FdbValue.cs" />
@@ -57,12 +62,12 @@
     <Compile Include="Layers\Arrays\FdbArray.cs" />
     <Compile Include="Layers\Indexes\FdbSimpleIndex.cs" />
     <Compile Include="Layers\Strings\FdbStringIntern.cs" />
-    <Compile Include="Layers\Tuples\IFdbTuple.cs" />
+    <Compile Include="IFdbTuple.cs" />
     <Compile Include="Layers\Tuples\FdbTupleList.cs" />
     <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
-    <Compile Include="Layers\Tuples\FdbSubspace.cs" />
+    <Compile Include="FdbSubspace.cs" />
     <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple.cs" />
+    <Compile Include="FdbTuple.cs" />
     <Compile Include="Layers\Tables\FdbTable.cs" />
     <Compile Include="FdbKeySelector.cs" />
     <Compile Include="Utils\FdbBufferWriter.cs" />

@@ -153,15 +153,7 @@ namespace FoundationDb.Client.Tuples
 
 		public override string ToString()
 		{
-			var sb = new StringBuilder();
-			sb.Append('(');
-			bool tail = false;
-			foreach (var item in this.Items)
-			{
-				if (tail) { sb.Append(", "); } else { tail = true; }
-				sb.Append(item);
-			}
-			return sb.Append(')').ToString();
+			return FdbTuple.ToString(this.Items);
 		}
 
 		public override int GetHashCode()

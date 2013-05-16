@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using FoundationDb.Client.Tuples;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
@@ -33,7 +34,7 @@ using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FoundationDb.Client.Tuples
+namespace FoundationDb.Client
 {
 
 	public static class FdbTupleExtensions

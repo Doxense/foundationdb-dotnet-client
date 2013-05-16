@@ -1,7 +1,34 @@
-﻿//TODO: Copyright
+﻿#region BSD Licence
+/* Copyright (c) 2013, Doxense SARL
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of the <organization> nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#endregion
 
 namespace FoundationDb.Client.Utils
 {
+	using FoundationDb.Client.Tuples;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
@@ -14,18 +41,6 @@ namespace FoundationDb.Client.Utils
 	{
 
 		#region Constants...
-
-		/// <summary>Null/Empty/Void</summary>
-		internal const byte TypeNil = (byte)0;
-
-		/// <summary>ASCII String</summary>
-		internal const byte TypeStringAscii = (byte)1;
-
-		/// <summary>UTF-8 String</summary>
-		internal const byte TypeStringUtf8 = (byte)2;
-
-		/// <summary>Base value for integer types (20 +/- n)</summary>
-		internal const int TypeIntegerBase = 20;
 
 		/// <summary>Empty buffer</summary>
 		private static readonly byte[] Empty = new byte[0];
@@ -262,7 +277,7 @@ namespace FoundationDb.Client.Utils
 		/// <summary>Writes a NIL byte (\x00) into the buffer</summary>
 		public void WriteNil()
 		{
-			WriteByte(TypeNil);
+			WriteByte(FdbTupleTypes.Nil);
 		}
 
 		/// <summary>Writes a binary string (ASCII)</summary>
@@ -270,7 +285,7 @@ namespace FoundationDb.Client.Utils
 		{
 			if (value == null)
 			{
-				WriteByte(TypeNil);
+				WriteByte(FdbTupleTypes.Nil);
 				return;
 			}
 
@@ -285,7 +300,7 @@ namespace FoundationDb.Client.Utils
 			EnsureBytes(n + 2);
 			var buffer = this.Buffer;
 			int p = this.Position;
-			buffer[p++] = TypeStringAscii;
+			buffer[p++] = FdbTupleTypes.StringAscii;
 			if (n > 0)
 			{
 				if (n == value.Length)
@@ -302,7 +317,7 @@ namespace FoundationDb.Client.Utils
 					}
 				}
 			}
-			buffer[p++] = TypeNil;
+			buffer[p++] = FdbTupleTypes.Nil;
 			this.Position = p;
 		}
 
@@ -311,7 +326,7 @@ namespace FoundationDb.Client.Utils
 		{
 			if (value == null)
 			{
-				WriteByte(TypeNil);
+				WriteByte(FdbTupleTypes.Nil);
 			}
 			else
 			{
@@ -379,14 +394,14 @@ namespace FoundationDb.Client.Utils
 			{
 				if (value == 0)
 				{ // zero
-					WriteByte((byte)TypeIntegerBase);
+					WriteByte(FdbTupleTypes.IntZero);
 					return;
 				}
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
 					EnsureBytes(2);
-					UnsafeWriteByte(TypeIntegerBase + 1);
+					UnsafeWriteByte(FdbTupleTypes.IntPos1);
 					UnsafeWriteByte((byte)value);
 					return;
 				}
@@ -394,7 +409,7 @@ namespace FoundationDb.Client.Utils
 				if (value > -256)
 				{ // -255..-1
 					EnsureBytes(2);
-					UnsafeWriteByte(TypeIntegerBase - 1);
+					UnsafeWriteByte(FdbTupleTypes.IntNeg1);
 					UnsafeWriteByte((byte)(255 + value));
 					return;
 				}
@@ -418,7 +433,7 @@ namespace FoundationDb.Client.Utils
 			ulong v;
 			if (value > 0)
 			{ // simple case
-				buffer[p++] = (byte)(TypeIntegerBase + bytes);
+				buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
 				v = (ulong)value;
 			}
 			else
@@ -426,7 +441,7 @@ namespace FoundationDb.Client.Utils
 				// -1 => 0xFE
 				// -256 => 0xFFFE
 				// -65536 => 0xFFFFFE
-				buffer[p++] = (byte)(TypeIntegerBase - bytes);
+				buffer[p++] = (byte)(FdbTupleTypes.IntBase - bytes);
 				v = (ulong)((1 << (bytes << 3)) - 1 + value);
 			}
 
@@ -448,20 +463,19 @@ namespace FoundationDb.Client.Utils
 			{
 				if (value == 0)
 				{ // 0
-					WriteByte((byte)TypeIntegerBase);
+					WriteByte(FdbTupleTypes.IntZero);
 				}
 				else
 				{ // 1..255
 					EnsureBytes(2);
-					UnsafeWriteByte(TypeIntegerBase + 1);
+					UnsafeWriteByte(FdbTupleTypes.IntPos1);
 					UnsafeWriteByte((byte)value);
 				}
-				return;
-
 			}
-
-			// >= 256
-			WriteUInt64Slow(value);
+			else
+			{ // >= 256
+				WriteUInt64Slow(value);
+			}
 		}
 
 		public void WriteUInt64Slow(ulong value)
@@ -477,7 +491,7 @@ namespace FoundationDb.Client.Utils
 			int p = this.Position;
 
 			// simple case (ulong can only be positive)
-			buffer[p++] = (byte)(TypeIntegerBase + bytes);
+			buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
 
 			// TODO: unroll ?
 			while (bytes-- > 0)
@@ -620,120 +634,6 @@ namespace FoundationDb.Client.Utils
 			var r = (v * 0x07C4ACDDU) >> 27;
 			return MultiplyDeBruijnBitPosition[r];
 		}
-
-	}
-
-	[DebuggerDisplay("Cursor={this.Position}/{this.Buffer.Count}, Absolute={this.Buffer.Offset+this.Position}/{this.Buffer.Offset}")]
-	public sealed class FdbBufferReader
-	{
-		/// <summary>Buffer holding the data to parse</summary>
-		public Slice Buffer;
-
-		/// <summary>Position in the buffer</summary>
-		public int Position;
-
-		public FdbBufferReader(Slice data)
-		{
-			if (!data.HasValue) throw new ArgumentNullException("data");
-			this.Buffer = data;
-		}
-
-		public FdbBufferReader(byte[] data)
-		{
-			if (data == null) throw new ArgumentNullException("data");
-			this.Buffer = Slice.Create(data);
-		}
-
-		/// <summary>Returns true if there is at least one more byte in the reader</summary>
-		public bool HasMoreData { get { return this.Position < this.Buffer.Count; } }
-
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		private void EnsureBytes(int count)
-		{
-			if (this.Position + count > this.Buffer.Count) FailNotEnoughData(count);
-		}
-
-		private static void FailNotEnoughData(int count)
-		{
-			throw new InvalidOperationException("Not enough data in the read buffer");
-		}
-
-		public byte ReadByte()
-		{
-			EnsureBytes(1);
-
-			int p = this.Position;
-			byte b = this.Buffer[p];
-			this.Position = p + 1;
-			return b;
-		}
-
-		public Slice ReadSlice(int count)
-		{
-			Contract.Requires(count >= 0);
-			if (count == 0) return Slice.Empty;
-			return new Slice(this.Buffer.Array, this.Buffer.Offset + this.Position, count);
-		}
-
-		public Slice ReadByteString()
-		{
-			var array = this.Buffer.Array;
-			int start = this.Buffer.Offset + this.Position;
-			int p = start;
-			int end = this.Buffer.Offset + this.Buffer.Count;
-			while (p < end)
-			{
-				byte b = array[p++];
-				if (b == 0)
-				{
-					//TODO: decode \0\xFF ?
-					if (p < end && array[p] == 0xFF)
-					{
-						throw new NotSupportedException();
-					}
-
-					this.Position = p - this.Buffer.Offset;
-					return new Slice(array, start, p - start - 1);
-				}
-			}
-
-			throw new FormatException("Truncated byte string (expected terminal NUL not found)");
-		}
-
-		public ulong ParseUInt(int type)
-		{
-			switch(type)
-			{
-				case FdbBufferWriter.TypeIntegerBase: return 0;
-				case FdbBufferWriter.TypeIntegerBase + 1: return ReadByte();
-				default: return ParseUInt64Slow(type);
-			}
-		}
-
-		public ulong ParseUInt64Slow(int type)
-		{
-			// We are only called for values >= 256
-
-			int bytes = type - FdbBufferWriter.TypeIntegerBase;
-
-			EnsureBytes(bytes);
-
-			var buffer = this.Buffer;
-			int p = this.Position;
-
-			ulong value = 0;
-			while (bytes-- > 0)
-			{
-				value <<= 8;
-				value |= buffer[p++];
-			}
-
-			this.Position = p;
-			return value;
-		}
-
 
 	}
 

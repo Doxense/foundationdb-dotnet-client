@@ -140,6 +140,10 @@ namespace FoundationDb.Client.Tuples
 			return this.Tuple.GetEnumerator();
 		}
 
+		public override string ToString()
+		{
+			return this.Tuple.ToString();
+		}
 
 	}
 

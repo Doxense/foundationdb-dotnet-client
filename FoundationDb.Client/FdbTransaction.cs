@@ -65,6 +65,8 @@ namespace FoundationDb.Client
 
 		internal bool StillAlive { get { return !m_disposed; } }
 
+		public int Size { get { return m_payloadBytes; } }
+
 		#region Options..
 
 		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>

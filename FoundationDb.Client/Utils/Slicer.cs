@@ -26,50 +26,87 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client.Utils
+namespace FoundationDb.Client
 {
 	using System;
-	using System.Diagnostics;
-	using System.Runtime.CompilerServices;
 
-	internal static class Contract
+	public struct Slicer
 	{
 
-		[DebuggerStepThrough]
-		[Conditional("DEBUG")]
-#if NET_4_5
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void Requires(bool condition)
+		private readonly Slice Buffer;
+		private int Position;
+
+		public Slicer(Slice buffer)
 		{
-			if (!condition) RaiseContractFailure(true, null, "A pre-requisite was not met");
+			this.Buffer = buffer;
+			this.Position = 0;
 		}
 
-		[DebuggerStepThrough]
-		[Conditional("DEBUG")]
-#if NET_4_5
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void Requires(bool condition, string test, string message)
+		public bool HasMore { get { return this.Position < this.Buffer.Count; } }
+
+		public void EnsureBytes(int count)
 		{
-			if (!condition) RaiseContractFailure(true, test, message);
+			if (count < 0 || count > this.Buffer.Count - this.Position) throw new ArgumentOutOfRangeException("count");
 		}
 
-		[DebuggerStepThrough]
-		public static void RaiseContractFailure(bool assertion, string test, string message)
+		public int PeekByte()
 		{
-			if (assertion)
+			int p = this.Position;
+			return p < this.Buffer.Count ? this.Buffer[p] : -1;
+		}
+
+		public void Skip(int count)
+		{
+			EnsureBytes(count);
+
+			this.Position += count;
+		}
+
+		public byte ReadByte()
+		{
+			EnsureBytes(1);
+
+			int p = this.Position;
+			byte b = this.Buffer[p];
+			this.Position = p + 1;
+			return b;
+		}
+
+		public Slice ReadBytes(int count)
+		{
+			EnsureBytes(count);
+
+			int p = this.Position;
+			this.Position = p + count;
+			return this.Buffer.Substring(p, count);
+		}
+
+		public Slice ReadByteString()
+		{
+			var buffer = this.Buffer.Array;
+			int start = this.Buffer.Offset + this.Position;
+			int p = start;
+			int end = start + this.Buffer.Offset + this.Buffer.Count;
+
+			while (p < end)
 			{
-#if DEBUG
-				if (Debugger.IsAttached) Debugger.Break();
-#endif
-				Debug.Fail(message, test);
+				byte b = buffer[p++];
+				if (b == 0)
+				{
+					//TODO: decode \0\xFF ?
+					if (p < end && buffer[p] == 0xFF)
+					{
+						throw new NotSupportedException();
+					}
+
+					this.Position = p - this.Buffer.Offset;
+					return new Slice(buffer, start, p - start - 1);
+				}
 			}
-			else
-			{
-				throw new InvalidOperationException(message);
-			}
+
+			throw new FormatException("Truncated byte string (expected terminal NUL not found)");
 		}
 
 	}
+
 }

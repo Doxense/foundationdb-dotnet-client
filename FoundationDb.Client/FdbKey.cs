@@ -60,8 +60,7 @@ namespace FoundationDb.Client
 
 		public static string Ascii(Slice key)
 		{
-			if (key.Count == 0) return key.HasValue ? String.Empty : default(string);
-			return Encoding.Default.GetString(key.Array, key.Offset, key.Count);
+			return key.ToAscii();
 		}
 
 		public static Slice Unicode(string text)
@@ -71,8 +70,7 @@ namespace FoundationDb.Client
 
 		public static string Unicode(Slice key)
 		{
-			if (key.Count == 0) return key.HasValue ? String.Empty : default(string);
-			return Encoding.UTF8.GetString(key.Array, key.Offset, key.Count);
+			return key.ToUnicode();
 		}
 
 		public static Slice Binary(byte[] data)
