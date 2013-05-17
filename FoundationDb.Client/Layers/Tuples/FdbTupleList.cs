@@ -69,7 +69,7 @@ namespace FoundationDb.Client.Tuples
 
 		public object this[int index]
 		{
-			get { return this.Items[index]; }
+			get { return this.Items[FdbTuple.MapIndex(index, this.Count)]; }
 		}
 
 		IFdbTuple IFdbTuple.Append<T>(T value)

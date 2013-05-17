@@ -219,6 +219,13 @@ namespace FoundationDb.Client
 			}
 		}
 
+		internal static int MapIndex(int index, int count)
+		{
+			if (index < 0) index += count;
+			if (index >= 0 && index < count) return index;
+			throw new ArgumentOutOfRangeException("count");		
+		}
+
 	}
 
 }

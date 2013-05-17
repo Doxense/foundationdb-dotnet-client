@@ -73,6 +73,30 @@ namespace FoundationDb.Tests
 		}
 
 		[Test]
+		public void Test_FdbTuple_Negative_Indexing()
+		{
+			var t1 = FdbTuple.Create("hello world");
+			Assert.That(t1[-1], Is.EqualTo("hello world"));
+
+			var t2 = FdbTuple.Create("hello world", 123);
+			Assert.That(t2[-1], Is.EqualTo(123));
+			Assert.That(t2[-2], Is.EqualTo("hello world"));
+
+			var t3 = FdbTuple.Create("hello world", 123, false);
+			Assert.That(t3[-1], Is.EqualTo(false));
+			Assert.That(t3[-2], Is.EqualTo(123));
+			Assert.That(t3[-3], Is.EqualTo("hello world"));
+
+			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, "four", "five", "six" });
+			Assert.That(tn[-1], Is.EqualTo("six"));
+			Assert.That(tn[-2], Is.EqualTo("five"));
+			Assert.That(tn[-3], Is.EqualTo("four"));
+			Assert.That(tn[-4], Is.EqualTo(false));
+			Assert.That(tn[-5], Is.EqualTo(123));
+			Assert.That(tn[-6], Is.EqualTo("hello world"));
+		}
+
+		[Test]
 		public void Test_FdbTuple_SameBytes()
 		{
 			IFdbTuple t1 = FdbTuple.Create("hello world");

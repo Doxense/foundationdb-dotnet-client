@@ -61,7 +61,13 @@ namespace FoundationDb.Client.Tuples
 
 		public object this[int index]
 		{
-			get { return FdbTuplePackers.DeserializeObject(this.Slices[index]); }
+			get { return FdbTuplePackers.DeserializeObject(GetSlice(index)); }
+		}
+
+		public Slice GetSlice(int index)
+		{
+			var slices = this.Slices;
+			return slices[FdbTuple.MapIndex(index, slices.Count)];
 		}
 
 		public IFdbTuple Append<T>(T value)

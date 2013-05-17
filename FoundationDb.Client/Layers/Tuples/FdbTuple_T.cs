@@ -56,7 +56,7 @@ namespace FoundationDb.Client.Tuples
 			{
 				switch(index)
 				{
-					case 0: return this.Item1;
+					case 0: case -1: return this.Item1;
 					default: throw new IndexOutOfRangeException();
 				}
 			}
@@ -134,8 +134,8 @@ namespace FoundationDb.Client.Tuples
 			{
 				switch (index)
 				{
-					case 0: return this.Item1;
-					case 1: return this.Item2;
+					case 0: case -2: return this.Item1;
+					case 1: case -1: return this.Item2;
 					default: throw new IndexOutOfRangeException();
 				}
 			}
@@ -222,9 +222,9 @@ namespace FoundationDb.Client.Tuples
 			{
 				switch (index)
 				{
-					case 0: return this.Item1;
-					case 1: return this.Item2;
-					case 2: return this.Item3;
+					case 0: case -3: return this.Item1;
+					case 1: case -2: return this.Item2;
+					case 2: case -1: return this.Item3;
 					default: throw new IndexOutOfRangeException();
 				}
 			}
@@ -318,10 +318,10 @@ namespace FoundationDb.Client.Tuples
 			{
 				switch (index)
 				{
-					case 0: return this.Item1;
-					case 1: return this.Item2;
-					case 2: return this.Item3;
-					case 3: return this.Item4;
+					case 0: case -4: return this.Item1;
+					case 1: case -3: return this.Item2;
+					case 2: case -2: return this.Item3;
+					case 3: case -1: return this.Item4;
 					default: throw new IndexOutOfRangeException();
 				}
 			}
@@ -421,11 +421,11 @@ namespace FoundationDb.Client.Tuples
 			{
 				switch (index)
 				{
-					case 0: return this.Item1;
-					case 1: return this.Item2;
-					case 2: return this.Item3;
-					case 3: return this.Item4;
-					case 4: return this.Item5;
+					case 0: case -5: return this.Item1;
+					case 1: case -4: return this.Item2;
+					case 2: case -3: return this.Item3;
+					case 3: case -2: return this.Item4;
+					case 4: case -1: return this.Item5;
 					default: throw new IndexOutOfRangeException();
 				}
 			}
