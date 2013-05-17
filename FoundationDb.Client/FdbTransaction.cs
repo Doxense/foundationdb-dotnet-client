@@ -550,7 +550,7 @@ namespace FoundationDb.Client
 			Fdb.EnsureKeyIsValid(beginKeyInclusive);
 			Fdb.EnsureKeyIsValid(endKeyExclusive);
 
-			FdbNative.TransactionClear(m_handle, beginKeyInclusive);
+			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
 			//TODO: how to account for these ?
 			//Interlocked.Add(ref m_payloadBytes, beginKey.Count);
 			//Interlocked.Add(ref m_payloadBytes, endKey.Count);
