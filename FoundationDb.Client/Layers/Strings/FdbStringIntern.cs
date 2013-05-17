@@ -228,7 +228,7 @@ namespace FoundationDb.Client.Tables
 				Debug.WriteLine("> using new uid " + uid.ToBase64());
 #endif
 
-				trans.Set(UidKey(uid), FdbValue.Encode(value));
+				trans.Set(UidKey(uid), Slice.FromString(value));
 				trans.Set(stringKey, uid);
 
 				AddToCache(value, uid);

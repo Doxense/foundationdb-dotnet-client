@@ -71,8 +71,8 @@ namespace FoundationDb.Tests
 					tr.Set(FdbKey.Ascii("3"), await strs.InternAsync(tr, "cat"));
 					tr.Set(FdbKey.Ascii("4"), await strs.InternAsync(tr, "cat"));
 
-					tr.Set(FdbKey.Ascii("9"), FdbValue.Encode("last"));
-					tr.Set(FdbKey.Ascii(":"), FdbValue.Encode("guard"));
+					tr.Set(FdbKey.Ascii("9"), Slice.FromString("last"));
+					tr.Set(FdbKey.Ascii(":"), Slice.FromString("guard"));
 
 					await tr.CommitAsync();
 				}
@@ -90,7 +90,7 @@ namespace FoundationDb.Tests
 					Debug.WriteLine("Found " + results.Page.Length + " results");
 					foreach (var kvp in results.Page)
 					{
-						Debug.WriteLine(FdbKey.Dump(kvp.Key) + " : " + FdbKey.Dump(kvp.Value));
+						Debug.WriteLine(kvp.Key + " : " + kvp.Value);
 					}
 
 					Debug.WriteLine("GetRange((BigStrings,*)) ....");
@@ -100,7 +100,7 @@ namespace FoundationDb.Tests
 					Debug.WriteLine("Found " + results.Page.Length + " results");
 					foreach (var kvp in results.Page)
 					{
-						Debug.WriteLine(FdbKey.Dump(kvp.Key) + " : " + FdbKey.Dump(kvp.Value));
+						Debug.WriteLine(kvp.Key + " : " + kvp.Value);
 					}
 
 					//var r = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(FdbKey.Ascii("0")));

@@ -32,6 +32,7 @@ namespace FoundationDb.Client
 	using FoundationDb.Client.Utils;
 	using System;
 	using System.Collections.Generic;
+	using System.Globalization;
 	using System.Runtime.InteropServices;
 	using System.Text;
 
@@ -39,11 +40,19 @@ namespace FoundationDb.Client
 	{
 		internal static readonly byte[] EmptyArray = new byte[0];
 
+		/// <summary>Null slice ("no segment")</summary>
 		public static readonly Slice Nil = default(Slice);
+
+		/// <summary>Empty slice ("segment of 0 bytes")</summary>
 		public static readonly Slice Empty = new Slice(EmptyArray, 0, 0);
 
+		/// <summary>Pointer to the buffer (or null for Slice.Nil)</summary>
 		public readonly byte[] Array;
+
+		/// <summary>Offset of the first byte of the slice in the parent buffer</summary>
 		public readonly int Offset;
+
+		/// <summary>Number of bytes in the slice</summary>
 		public readonly int Count;
 
 		internal Slice(byte[] array)
@@ -66,11 +75,19 @@ namespace FoundationDb.Client
 			this.Count = count;
 		}
 
+		/// <summary>Creates a slice mapping an entire buffer</summary>
+		/// <param name="bytes"></param>
+		/// <returns></returns>
 		public static Slice Create(byte[] bytes)
 		{
 			return bytes == null ? Slice.Nil : bytes.Length == 0 ? Slice.Empty : new Slice(bytes, 0, bytes.Length);
 		}
 
+		/// <summary>Creates a slice mapping a section of a buffer</summary>
+		/// <param name="buffer"></param>
+		/// <param name="offset"></param>
+		/// <param name="count"></param>
+		/// <returns></returns>
 		public static Slice Create(byte[] buffer, int offset, int count)
 		{
 			if (buffer == null) return Nil;
@@ -89,6 +106,10 @@ namespace FoundationDb.Client
 			return size == 0 ? Slice.Empty : new Slice(new byte[size], 0, size);
 		}
 
+		/// <summary>Creates a new slice with a copy of an unmanaged memory buffer</summary>
+		/// <param name="ptr">Pointer to unmanaged buffer</param>
+		/// <param name="count">Number of bytes in the buffer</param>
+		/// <returns>Slice with a managed copy of the data</returns>
 		internal static unsafe Slice Create(byte* ptr, int count)
 		{
 			if (ptr == null) return Slice.Nil;
@@ -99,9 +120,32 @@ namespace FoundationDb.Client
 			return new Slice(bytes, 0, count);
 		}
 
+		/// <summary>Decode a Base64 encoded string into a slice</summary>
 		public static Slice FromBase64(string base64String)
 		{
 			return base64String == null ? Slice.Nil : base64String.Length == 0 ? Slice.Empty : Slice.Create(Convert.FromBase64String(base64String));
+		}
+
+		public static Slice FromInt32(int value)
+		{
+			//HACKHACK: use something else! (endianness depends on plateform)
+			return Slice.Create(BitConverter.GetBytes(value));
+		}
+
+		public static Slice FromInt64(long value)
+		{
+			//HACKHACK: use something else! (endianness depends on plateform)
+			return Slice.Create(BitConverter.GetBytes(value));
+		}
+
+		public static Slice FromAscii(string text)
+		{
+			return text == null ? Slice.Nil : text.Length == 0 ? Slice.Empty : Slice.Create(Encoding.Default.GetBytes(text));
+		}
+
+		public static Slice FromString(string value)
+		{
+			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Encoding.UTF8.GetBytes(value));
 		}
 
 		/// <summary>Returns true is the slice is not null</summary>
@@ -110,13 +154,13 @@ namespace FoundationDb.Client
 
 		/// <summary>Return true if the slice is not null but contains 0 bytes</summary>
 		/// <remarks>A null slice is NOT empty</remarks>
-		public bool IsEmpty { get { return this.Count == 0 && this.HasValue; } }
+		public bool IsEmpty { get { return this.Count == 0 && this.Array != null; } }
 
 		/// <summary>Returns true if the slice does not contain at least 1 byte</summary>
 		public bool IsNullOrEmpty { get { return this.Count == 0; } }
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
-		/// <returns>Byte array or null</returns>
+		/// <returns>Byte array with a copy of the slice, or null</returns>
 		public byte[] GetBytes()
 		{
 			if (this.IsNullOrEmpty) return this.Array == null ? null : Slice.EmptyArray;
@@ -160,11 +204,29 @@ namespace FoundationDb.Client
 		}
 
 		/// <summary>Converts a slice using Base64 encoding</summary>
-		/// <returns></returns>
 		public string ToBase64()
 		{
 			if (this.IsNullOrEmpty) return this.Array == null ? null : String.Empty;
 			return Convert.ToBase64String(this.Array, this.Offset, this.Count);
+		}
+
+		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (lowercase)</summary>
+		public string ToHexaString()
+		{
+			if (this.IsNullOrEmpty) return this.Array == null ? null : String.Empty;
+			var buffer = this.Array;
+			int p = this.Offset;
+			int n = this.Count;
+			var sb = new StringBuilder(n * 2);
+			while (n-- > 0)
+			{
+				byte b = buffer[p++];
+				int x = b & 0xF;
+				sb.Append((char)(x + (x < 10 ? 48 : 87)));
+				x = b >> 4;
+				sb.Append((char)(x + (x < 10 ? 48 : 87)));
+			}
+			return sb.ToString();
 		}
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
@@ -175,13 +237,34 @@ namespace FoundationDb.Client
 			return new Slice(GetBytes(), 0, this.Count);
 		}
 
+		/// <summary>Map an offset in the slice into the absolute offset in the buffer, without any bound checking</summary>
+		/// <param name="index">Relative offset (negative values mean from the end)</param>
+		/// <returns>Absolute offset in the buffer</returns>
+		private int UnsafeMapToOffset(int index)
+		{
+			int p = index;
+			if (p < 0) p += this.Count;
+			Contract.Requires(p >= 0 & p < this.Count);
+			return this.Offset + p;
+		}
+
+		/// <summary>Map an offset in the slice into the absolute offset in the buffer</summary>
+		/// <param name="index">Relative offset (negative values mean from the end)</param>
+		/// <returns>Absolute offset in the buffer</returns>
+		/// <exception cref="IndexOutOfRangeException">If the index is outside the slice</exception>
+		private int MapToOffset(int index)
+		{
+			int p = index;
+			if (p < 0) p += this.Count;
+			if (p < 0 || p >= this.Count) FailIndexOutOfBound(index);
+			return this.Offset + p;
+		}
+
+		/// <summary>Returns the value of one byte in the slice</summary>
+		/// <param name="index">Offset of the byte (negative values means start from the end)</param>
 		public byte this[int index]
 		{
-			get
-			{
-				if (index < 0 || index >= this.Count) FailIndexOutOfBound(index);
-				return this.Array[this.Offset + index];
-			}
+			get { return this.Array[MapToOffset(index)]; }
 		}
 
 		private static void FailIndexOutOfBound(int index)
@@ -191,14 +274,20 @@ namespace FoundationDb.Client
 
 		internal byte GetByte(int index)
 		{
-			Contract.Requires(index >= 0 && index < this.Count);
-			return this.Array[this.Offset + index];
+			return this.Array[UnsafeMapToOffset(index)];
 		}
 
 		public Slice Substring(int offset)
 		{
 			//TODO: param check
-			return new Slice(this.Array, this.Offset + offset, this.Count - offset);
+			if (offset < 0)
+			{ // from the end
+				return new Slice(this.Array, this.Offset + offset, this.Count - offset);
+			}
+			else
+			{ // from the start
+				return new Slice(this.Array, this.Offset + this.Count + offset, -offset);
+			}
 		}
 
 		public Slice Substring(int offset, int count)
@@ -211,7 +300,7 @@ namespace FoundationDb.Client
 		{
 			long value = 0;
 			var buffer = this.Array;
-			int p = this.Offset + offset;
+			int p = UnsafeMapToOffset(offset);
 			while (bytes-- > 0)
 			{
 				value <<= 8;
@@ -224,7 +313,7 @@ namespace FoundationDb.Client
 		{
 			ulong value = 0;
 			var buffer = this.Array;
-			int p = this.Offset + offset;
+			int p = UnsafeMapToOffset(offset);
 			while (bytes-- > 0)
 			{
 				value <<= 8;
@@ -257,6 +346,22 @@ namespace FoundationDb.Client
 		public static bool operator !=(Slice a, Slice b)
 		{
 			return !a.Equals(b);
+		}
+
+		public override string ToString()
+		{
+			if (this.IsNullOrEmpty) return this.HasValue ? "<empty>" : "<null>";
+
+			var buffer = this.Array;
+			int n = this.Count;
+			int p = this.Offset;
+			var sb = new StringBuilder(n + 16);
+			while(n-- > 0)
+			{
+				int c = buffer[p++];
+				if (c < 32 || c >= 128) sb.Append('<').Append(c.ToString("X2")).Append('>'); else sb.Append((char)c);
+			}
+			return sb.ToString();
 		}
 
 		public override bool Equals(object obj)
@@ -294,6 +399,9 @@ namespace FoundationDb.Client
 			return this.Count == other.Count && SameBytes(this.Array, this.Offset, other.Array, other.Offset, this.Count);
 		}
 
+		/// <summary>Lexicographically compare this slice with another one</summary>
+		/// <param name="other">Other slice to compare</param>
+		/// <returns>0 for equal, positive if we are greater, negative if we are smaller</returns>
 		public int CompareTo(Slice other)
 		{
 			if (!other.HasValue) return this.HasValue ? 1 : 0;

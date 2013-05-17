@@ -49,7 +49,6 @@
     <Compile Include="Utils\Slice.cs" />
     <Compile Include="FdbException.cs" />
     <Compile Include="FdbTimeoutManager.cs" />
-    <Compile Include="FdbValue.cs" />
     <Compile Include="FdbSearchResults.cs" />
     <Compile Include="FdbKeyRange.cs" />
     <Compile Include="FdbKey.cs" />

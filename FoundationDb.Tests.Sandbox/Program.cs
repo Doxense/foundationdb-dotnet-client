@@ -53,10 +53,10 @@ namespace FoundationDb.Tests.Sandbox
 				if (!result.HasValue)
 					Console.WriteLine("> hello NOT FOUND");
 				else
-					Console.WriteLine("> hello = " + FdbValue.Dump(result));
+					Console.WriteLine("> hello = " + result.ToString());
 
 				Console.WriteLine("Setting 'Foo' = 'Bar'");
-				trans.Set(FdbKey.Ascii("Foo"), FdbValue.Encode("Bar"));
+				trans.Set(FdbKey.Ascii("Foo"), Slice.FromString("Bar"));
 
 				Console.WriteLine("Setting 'TopSecret' = rnd(512)");
 				var data = new byte[512];
@@ -496,13 +496,6 @@ namespace FoundationDb.Tests.Sandbox
 				Console.WriteLine("### DONE ###");
 				Fdb.Stop();
 			}
-		}
-
-		private static string ToHexString(Slice segment)
-		{
-			if (segment.IsNullOrEmpty) return segment.IsEmpty ? "<empty": "<null>";
-			// close you eyes...
-			return String.Join(" ", segment.Array.Skip(segment.Offset).Take(segment.Count).Select(b => b.ToString("X2")));
 		}
 
 		private static string ToHexArray(byte[] buffer)

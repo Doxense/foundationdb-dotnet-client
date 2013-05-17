@@ -154,9 +154,9 @@ namespace FoundationDb.Tests
 				// write a bunch of keys
 				using (var tr = db.BeginTransaction())
 				{
-					tr.Set(FdbKey.Ascii("test.hello"), FdbValue.Encode("World!"));
-					tr.Set(FdbKey.Ascii("test.timestamp"), FdbValue.Encode(ticks));
-					tr.Set(FdbKey.Ascii("test.blob"), FdbValue.Encode(new byte[] { 42, 123, 7 }));
+					tr.Set(FdbKey.Ascii("test.hello"), Slice.FromString("World!"));
+					tr.Set(FdbKey.Ascii("test.timestamp"), Slice.FromInt64(ticks));
+					tr.Set(FdbKey.Ascii("test.blob"), Slice.Create(new byte[] { 42, 123, 7 }));
 
 					await tr.CommitAsync();
 
@@ -261,7 +261,7 @@ namespace FoundationDb.Tests
 
 					for (int i = 0; i < 10; i++)
 					{
-						tr.Set(tuple.Append(i), FdbValue.Ascii(i.ToString()));
+						tr.Set(tuple.Append(i), Slice.FromAscii(i.ToString()));
 					}
 
 					await tr.CommitAsync();
@@ -280,7 +280,7 @@ namespace FoundationDb.Tests
 					for (int i = 0; i < 10; i++)
 					{
 						var kvp = res.Page[i];
-						Assert.That(FdbKey.Dump(kvp.Value), Is.EqualTo(i.ToString()));
+						Assert.That(kvp.Value.ToString(), Is.EqualTo(i.ToString()));
 						//TODO: check key
 					}
 				}

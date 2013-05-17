@@ -110,19 +110,6 @@ namespace FoundationDb.Client
 			return new Slice(tmp, 0, tmp.Length);
 		}
 
-		public static string Dump(Slice buffer)
-		{
-			if (buffer.IsNullOrEmpty) return buffer.HasValue ? "<empty>" : "<null>";
-
-			var sb = new StringBuilder(buffer.Count + 16);
-			for (int i = 0; i < buffer.Count; i++)
-			{
-				int c = buffer.Array[buffer.Offset + i];
-				if (c < 32 || c == 255) sb.Append('<').Append(c.ToString("X2")).Append('>'); else sb.Append((char)c);
-			}
-			return sb.ToString();
-		}
-
 		public static bool AreEqual(IFdbTuple left, IFdbTuple right)
 		{
 			if (object.ReferenceEquals(left, right)) return true;
