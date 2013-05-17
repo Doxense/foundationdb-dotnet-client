@@ -31,6 +31,7 @@ using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -39,6 +40,36 @@ namespace FoundationDb.Client
 
 	public static class FdbTupleExtensions
 	{
+
+		public static bool GetBoolean(this IFdbTuple tuple, int offset)
+		{
+			object value = tuple[offset];
+			if (value == null) return false;
+			return Convert.ToBoolean(value);
+		}
+
+		public static int GetInt32(this IFdbTuple tuple, int offset)
+		{
+			object value = tuple[offset];
+			if (value == null) return 0;
+			return Convert.ToInt32(value);
+		}
+
+		public static long GetInt64(this IFdbTuple tuple, int offset)
+		{
+			object value = tuple[offset];
+			if (value == null) return 0L;
+			return Convert.ToInt64(value);
+		}
+
+		public static string GetString(this IFdbTuple tuple, int offset)
+		{
+			object value = tuple[offset];
+			if (value == null) return null;
+			var str = value as string;
+			if (str != null) return str;
+			return Convert.ToString(value, CultureInfo.InvariantCulture);
+		}
 
 		/// <summary>Returns an array containing all the objects of a tuple</summary>
 		public static object[] ToArray(this IFdbTuple tuple)

@@ -240,24 +240,35 @@ namespace FoundationDb.Client.Tuples
 		{
 			int bytes = type - FdbTupleTypes.IntBase;
 			if (bytes == 0) return 0L;
-			if (bytes > 0)
+
+			bool neg = false;
+			if (bytes < 0)
 			{
-				if (bytes > 8) throw new FormatException("Invalid size for tuple integer");
-				return slice.ReadInt64(1, bytes);
+				bytes = -bytes;
+				neg = true;
 			}
-			else
-			{
-				if (bytes < -8) throw new FormatException("Invalid size for tuple integer");
-				return -slice.ReadInt64(1, -bytes);
+
+			if (bytes > 8) throw new FormatException("Invalid size for tuple integer");
+			long value = (long)slice.ReadUInt64(1, bytes);
+
+			if (neg)
+			{ // the value is encoded as the one's complement of the absolute value
+				value = (-(~value));
+				if (bytes < 8) value |= (-1L << (bytes << 3)); 
+				return value;
 			}
+
+			return value;
 		}
 
-		private static ulong ParseUInt64(int type, Slice slice)
+		private static string ParseAscii(Slice slice)
 		{
-			int bytes = type - FdbTupleTypes.IntBase;
-			if (bytes < 0 || bytes > 8) throw new FormatException("Invalid size for tuple integer");
-			if (bytes == 0) return 0L;
-			return slice.ReadUInt64(1, bytes);
+			return slice.ToAscii(1, slice.Count - 2);
+		}
+
+		private static string ParseUnicode(Slice slice)
+		{
+			return slice.ToUnicode(1, slice.Count - 2);
 		}
 
 		public static object DeserializeObject(Slice slice)
@@ -267,14 +278,13 @@ namespace FoundationDb.Client.Tuples
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntZero) return ParseUInt64(type, slice);
 				if (type >= FdbTupleTypes.IntNeg8) return ParseInt64(type, slice);
 
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return null;
-					case FdbTupleTypes.StringAscii: return slice.ToAscii(1, slice.Count - 1);
-					case FdbTupleTypes.StringUtf8: return slice.ToUnicode(1, slice.Count - 1);
+					case FdbTupleTypes.StringAscii: return ParseAscii(slice);
+					case FdbTupleTypes.StringUtf8: return ParseUnicode(slice);
 				}
 			}
 
@@ -298,8 +308,8 @@ namespace FoundationDb.Client.Tuples
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return 0;
-					case FdbTupleTypes.StringAscii: return long.Parse(slice.ToAscii(), CultureInfo.InvariantCulture);
-					case FdbTupleTypes.StringUtf8: return long.Parse(slice.ToUnicode(), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.StringAscii: return long.Parse(ParseAscii(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.StringUtf8: return long.Parse(ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 			}
 
@@ -318,13 +328,13 @@ namespace FoundationDb.Client.Tuples
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntNeg8) return ParseUInt64(type, slice);
+				if (type >= FdbTupleTypes.IntNeg8) return (ulong)ParseInt64(type, slice);
 
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return 0;
-					case FdbTupleTypes.StringAscii: return ulong.Parse(slice.ToAscii(), CultureInfo.InvariantCulture);
-					case FdbTupleTypes.StringUtf8: return ulong.Parse(slice.ToUnicode(), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.StringAscii: return ulong.Parse(ParseAscii(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.StringUtf8: return ulong.Parse(ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 			}
 
@@ -338,14 +348,13 @@ namespace FoundationDb.Client.Tuples
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntZero) return ParseUInt64(type, slice).ToString(CultureInfo.InvariantCulture);
 				if (type >= FdbTupleTypes.IntNeg8) return ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
 
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return null;
-					case FdbTupleTypes.StringAscii: return slice.ToAscii(1, slice.Count - 1);
-					case FdbTupleTypes.StringUtf8: return slice.ToUnicode(1, slice.Count - 1);
+					case FdbTupleTypes.StringAscii: return ParseAscii(slice);
+					case FdbTupleTypes.StringUtf8: return ParseUnicode(slice);
 				}
 			}
 
@@ -401,13 +410,13 @@ namespace FoundationDb.Client.Tuples
 
 			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
 			{
-				int bytes = type - FdbTupleTypes.IntZero + 1;
-				if (bytes < 0) bytes = -bytes + 1;
+				int bytes = type - FdbTupleTypes.IntZero;
+				if (bytes < 0) bytes = -bytes;
 
-				return reader.ReadBytes(bytes);
+				return reader.ReadBytes(1 + bytes);
 			}
 
-			throw new FormatException("Invalid tuple type byte");
+			throw new FormatException(String.Format("Invalid tuple type byte {0} at index {1}/{2}", type, reader.Position, reader.Buffer.Count));
 		}
 
 		#endregion

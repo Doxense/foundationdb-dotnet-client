@@ -33,8 +33,9 @@ namespace FoundationDb.Client
 	public struct Slicer
 	{
 
-		private readonly Slice Buffer;
-		private int Position;
+		public readonly Slice Buffer;
+
+		public int Position;
 
 		public Slicer(Slice buffer)
 		{
@@ -100,7 +101,7 @@ namespace FoundationDb.Client
 					}
 
 					this.Position = p - this.Buffer.Offset;
-					return new Slice(buffer, start, p - start - 1);
+					return new Slice(buffer, start, p - start);
 				}
 			}
 

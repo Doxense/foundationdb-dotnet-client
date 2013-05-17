@@ -33,7 +33,7 @@ using System.Collections.Generic;
 namespace FoundationDb.Client.Tuples
 {
 
-	internal class FdbSlicedTuple : IFdbTuple
+	public sealed class FdbSlicedTuple : IFdbTuple
 	{
 		private readonly Slice Buffer;
 		private readonly List<Slice> Slices;

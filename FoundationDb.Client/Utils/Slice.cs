@@ -148,6 +148,29 @@ namespace FoundationDb.Client
 			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Encoding.UTF8.GetBytes(value));
 		}
 
+		private static int NibbleToDecimal(char c)
+		{
+			int x = c - 48;
+			if (x < 10) return x;
+			if (x >= 17 && x <= 42) return x - 7;
+			if (x >= 49 && x <= 74) return x - 39;
+			throw new FormatException("Input is not valid hexadecimal");
+		}
+
+		public static Slice FromHexa(string hexaString)
+		{
+			if (string.IsNullOrEmpty(hexaString)) return hexaString == null ? Slice.Nil : Slice.Empty;
+
+			if ((hexaString.Length & 1) != 0) throw new ArgumentException("Hexadecimal string must be of even length", "hexaString");
+
+			var buffer = new byte[hexaString.Length >> 1];
+			for (int i = 0; i < hexaString.Length; i += 2)
+			{
+				buffer[i >> 1] = (byte) ((NibbleToDecimal(hexaString[i]) << 4) | NibbleToDecimal(hexaString[i + 1]));
+			}
+			return new Slice(buffer, 0, buffer.Length);
+		}
+
 		/// <summary>Returns true is the slice is not null</summary>
 		/// <remarks>An empty slice is NOT considered null</remarks>
 		public bool HasValue { get { return this.Array != null; } }
@@ -296,28 +319,15 @@ namespace FoundationDb.Client
 			return new Slice(this.Array, this.Offset + offset, count);
 		}
 
-		public long ReadInt64(int offset, int bytes)
-		{
-			long value = 0;
-			var buffer = this.Array;
-			int p = UnsafeMapToOffset(offset);
-			while (bytes-- > 0)
-			{
-				value <<= 8;
-				value |= buffer[p++];
-			}
-			return value;
-		}
-
 		public ulong ReadUInt64(int offset, int bytes)
 		{
 			ulong value = 0;
 			var buffer = this.Array;
-			int p = UnsafeMapToOffset(offset);
+			int p = UnsafeMapToOffset(offset) + bytes - 1;
 			while (bytes-- > 0)
 			{
 				value <<= 8;
-				value |= buffer[p++];
+				value |= buffer[p--];
 			}
 			return value;
 		}
@@ -350,18 +360,40 @@ namespace FoundationDb.Client
 
 		public override string ToString()
 		{
-			if (this.IsNullOrEmpty) return this.HasValue ? "<empty>" : "<null>";
+			return Slice.Escape(this);
+		}
 
-			var buffer = this.Array;
-			int n = this.Count;
-			int p = this.Offset;
+		public static string Escape(Slice value)
+		{
+			if (value.IsNullOrEmpty) return value.HasValue ? "<empty>" : "<null>";
+
+			var buffer = value.Array;
+			int n = value.Count;
+			int p = value.Offset;
 			var sb = new StringBuilder(n + 16);
-			while(n-- > 0)
+			while (n-- > 0)
 			{
 				int c = buffer[p++];
-				if (c < 32 || c >= 128) sb.Append('<').Append(c.ToString("X2")).Append('>'); else sb.Append((char)c);
+				if (c < 32 || c >= 127 || c == 60) sb.Append('<').Append(c.ToString("X2")).Append('>'); else sb.Append((char)c);
 			}
 			return sb.ToString();
+		}
+
+		public static Slice Unescape(string value)
+		{
+			var writer = new FdbBufferWriter();
+			for (int i = 0; i < value.Length; i++)
+			{
+				char c = value[i];
+				if (c == '<')
+				{
+					if (value[i + 3] != '>') throw new FormatException("Invalid escape slice string");
+					c = (char)(NibbleToDecimal(value[i + 1]) << 4 | NibbleToDecimal(value[i + 2]));
+					i += 3;
+				}
+				writer.WriteByte((byte)c);
+			}
+			return writer.ToSlice();
 		}
 
 		public override bool Equals(object obj)

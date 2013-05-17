@@ -374,7 +374,7 @@ namespace FoundationDb.Client.Utils
 				// -256 => 0xFFFE
 				// -65536 => 0xFFFFFE
 				buffer[p++] = (byte)(FdbTupleTypes.IntBase - bytes);
-				v = (ulong)((1 << (bytes << 3)) - 1 + value);
+				v = (ulong)(~(-value));
 			}
 
 			// TODO: unroll ?

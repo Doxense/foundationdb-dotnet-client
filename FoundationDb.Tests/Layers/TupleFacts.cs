@@ -125,6 +125,11 @@ namespace FoundationDb.Tests
 			);
 
 			Assert.That(
+				FdbTuple.Create("hello world", 1234, -1234).ToSlice().ToString(),
+				Is.EqualTo("<02>hello world<00><16><D2><04><12>-<FB>")
+			);
+
+			Assert.That(
 				FdbTuple.Create("hello world", 123, false).ToSlice().ToString(),
 				Is.EqualTo("<02>hello world<00><15>{<14>")
 			);
@@ -133,6 +138,70 @@ namespace FoundationDb.Tests
 				FdbTuple.Create("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }).ToSlice().ToString(),
 				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
 			);
+
+			Assert.That(
+				FdbTuple.Create(int.MaxValue).ToSlice().ToString(),
+				Is.EqualTo("<18><FF><FF><FF><7F>")
+			);
+
+			Assert.That(
+				FdbTuple.Create(int.MinValue).ToSlice().ToString(),
+				Is.EqualTo("<10><FF><FF><FF><7F>")
+			);
+
+			Assert.That(
+				FdbTuple.Create(long.MaxValue).ToSlice().ToString(),
+				Is.EqualTo("<1C><FF><FF><FF><FF><FF><FF><FF><7F>")
+			);
+
+			Assert.That(
+				FdbTuple.Create(long.MinValue).ToSlice().ToString(),
+				Is.EqualTo("<0C><FF><FF><FF><FF><FF><FF><FF><7F>")
+			);
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_Deserialize()
+		{
+			var slice = Slice.Unescape("<02>hello world<00>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo("hello world"));
+
+			slice = Slice.Unescape("<14>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(0));
+
+			slice = Slice.Unescape("<15>{");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(123));
+
+			slice = Slice.Unescape("<16><D2><04>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(1234));
+
+			slice = Slice.Unescape("<13><FE>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(-1));
+
+			slice = Slice.Unescape("<13><00>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(-255));
+
+			slice = Slice.Unescape("<12><FF><FE>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(-256));
+
+			slice = Slice.Unescape("<12><00><00>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(-65535));
+
+			slice = Slice.Unescape("<11><FF><FF><FE>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(-65536));
+
+			slice = Slice.Unescape("<18><FF><FF><FF><7F>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(int.MaxValue));
+
+			slice = Slice.Unescape("<10><FF><FF><FF><7F>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(int.MinValue));
+
+			slice = Slice.Unescape("<1C><FF><FF><FF><FF><FF><FF><FF><7F>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(long.MaxValue));
+
+			slice = Slice.Unescape("<0C><FF><FF><FF><FF><FF><FF><FF><7F>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(long.MinValue));
 
 		}
 
@@ -159,6 +228,33 @@ namespace FoundationDb.Tests
 			Assert.That(tuple[0], Is.EqualTo("hello world"));
 			Assert.That(tuple[1], Is.EqualTo(123));
 
+			packed = FdbTuple.Create(1, 256, 257, 65536, int.MaxValue, long.MaxValue).ToSlice();
+			Console.WriteLine(packed);
+
+			tuple = FdbTuple.Unpack(packed);
+			Assert.That(tuple, Is.Not.Null);
+			Assert.That(tuple.Count, Is.EqualTo(6));
+			Assert.That(tuple[0], Is.EqualTo(1));
+			Assert.That(tuple[1], Is.EqualTo(256));
+			Assert.That(tuple[2], Is.EqualTo(257), ((FdbSlicedTuple)tuple).GetSlice(2).ToString());
+			Assert.That(tuple[3], Is.EqualTo(65536));
+			Assert.That(tuple[4], Is.EqualTo(int.MaxValue));
+			Assert.That(tuple[5], Is.EqualTo(long.MaxValue));
+
+			packed = FdbTuple.Create(-1, -256, -257, -65536, int.MinValue, long.MinValue).ToSlice();
+			Console.WriteLine(packed);
+
+			tuple = FdbTuple.Unpack(packed);
+			Assert.That(tuple, Is.Not.Null);
+			Assert.That(tuple, Is.InstanceOf<FdbSlicedTuple>());
+			Console.WriteLine(tuple);
+			Assert.That(tuple.Count, Is.EqualTo(6));
+			Assert.That(tuple[0], Is.EqualTo(-1));
+			Assert.That(tuple[1], Is.EqualTo(-256));
+			Assert.That(tuple[2], Is.EqualTo(-257), "Slice is " + ((FdbSlicedTuple)tuple).GetSlice(2).ToString());
+			Assert.That(tuple[3], Is.EqualTo(-65536));
+			Assert.That(tuple[4], Is.EqualTo(int.MinValue));
+			Assert.That(tuple[5], Is.EqualTo(long.MinValue));
 		}
 
 	}
