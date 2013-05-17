@@ -72,7 +72,7 @@ namespace FoundationDb.Client
 
 		public static string Dump(Slice buffer)
 		{
-			if (buffer.Count == 0) return buffer.HasValue ? "<empty>" : "<null>";
+			if (buffer.IsNullOrEmpty) return buffer.HasValue ? "<empty>" : "<null>";
 
 			var sb = new StringBuilder(buffer.Count + 16);
 			for (int i = 0; i < buffer.Count; i++)
