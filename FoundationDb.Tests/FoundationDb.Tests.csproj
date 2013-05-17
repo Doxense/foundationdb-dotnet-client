@@ -49,6 +49,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ClusterFacts.cs" />
+    <Compile Include="ErrorFacts.cs" />
     <Compile Include="KeyFacts.cs" />
     <Compile Include="Layers\TupleFacts.cs" />
     <Compile Include="Layers\StringInternFacts.cs" />

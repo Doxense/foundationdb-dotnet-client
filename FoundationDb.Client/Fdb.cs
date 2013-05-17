@@ -110,7 +110,7 @@ namespace FoundationDb.Client
 				case FdbError.LargeAllocFailed: return new OutOfMemoryException("Large block allocation failed");
 				//TODO!
 				default: 
-					throw new FdbException(code, msg);
+					return new FdbException(code, msg);
 			}
 		}
 
