@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#undef DEBUG_STRING_INTERNING
+
 using FoundationDb.Client.Tuples;
 using System;
 using System.Collections.Generic;
@@ -158,8 +160,10 @@ namespace FoundationDb.Client.Tables
 			// note: we diverge from stringingern.py here by converting the UID (bytes) into Base64 in the cache.
 			// this allows us to use StringComparer.Ordinal as a comparer for the Dictionary<K, V> and not EqualityComparer<byte[]>
 
+			const int MAX_TRIES = 256;
+
 			int tries = 0;
-			while (true)
+			while (tries < MAX_TRIES)
 			{
 				var bytes = new byte[4 + tries];
 				m_prng.GetBytes(bytes);
@@ -168,11 +172,15 @@ namespace FoundationDb.Client.Tables
 				if (m_uidStringCache.ContainsKey(slice.ToBase64()))
 					continue;
 
-				if (await trans.GetAsync(UidKey(slice)) == Slice.Nil)
+				var candidate = await trans.GetAsync(UidKey(slice)).ConfigureAwait(false);
+				if (!candidate.HasValue)
 					return slice;
 
 				++tries;
 			}
+
+			//TODO: another way ?
+			throw new InvalidOperationException("Failed to find a free uid for interned string after " + MAX_TRIES + " attempts");
 		}
 
 		/// <summary>Look up string <paramref name="value"/> in the intern database and return its normalized representation. If value already exists, intern returns the existing representation.</summary>
@@ -182,16 +190,23 @@ namespace FoundationDb.Client.Tables
 		/// <remarks><paramref name="value"/> must fit within a FoundationDB value</remarks>
 		public Task<Slice> InternAsync(FdbTransaction trans, string value)
 		{
+#if DEBUG_STRING_INTERNING
 			Debug.WriteLine("Want to intern: " + value);
+#endif
+
 			string uidKey;
 
 			if (m_stringUidCache.TryGetValue(value, out uidKey))
 			{
+#if DEBUG_STRING_INTERNING
 				Debug.WriteLine("> found in cache! " + uidKey);
+#endif
 				return Task.FromResult(Slice.FromBase64(uidKey));
 			}
 
+#if DEBUG_STRING_INTERNING
 			Debug.WriteLine("_ not in cache, taking slow route...");
+#endif
 
 			return InternSlowAsync(trans, value);
 		}
@@ -203,11 +218,15 @@ namespace FoundationDb.Client.Tables
 			var uid = await trans.GetAsync(stringKey);
 			if (uid == Slice.Nil)
 			{
+#if DEBUG_STRING_INTERNING
 				Debug.WriteLine("_ not found in db, will create...");
+#endif
 
 				uid = await FindUidAsync(trans);
 				if (uid == Slice.Nil) throw new InvalidOperationException("Failed to allocate a new uid while attempting to intern a string");
+#if DEBUG_STRING_INTERNING
 				Debug.WriteLine("> using new uid " + uid.ToBase64());
+#endif
 
 				trans.Set(UidKey(uid), FdbValue.Encode(value));
 				trans.Set(stringKey, uid);
@@ -216,7 +235,9 @@ namespace FoundationDb.Client.Tables
 			}
 			else
 			{
+#if DEBUG_STRING_INTERNING
 				Debug.WriteLine("> found in db with uid " + uid.ToBase64());
+#endif
 			}
 			return uid;
 		}

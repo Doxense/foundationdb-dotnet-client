@@ -41,8 +41,12 @@ using System.Threading.Tasks;
 namespace FoundationDb.Client
 {
 
+	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	public class FdbTransaction : IDisposable
 	{
+
+		#region Private Members...
+
 		private readonly FdbDatabase m_database;
 		private readonly int m_id;
 		private readonly TransactionHandle m_handle;
@@ -50,12 +54,20 @@ namespace FoundationDb.Client
 		/// <summary>Estimated size of written data (in bytes)</summary>
 		private int m_payloadBytes;
 
+		#endregion
+
+		#region Constructors...
+
 		internal FdbTransaction(FdbDatabase database, int id, TransactionHandle handle)
 		{
 			m_database = database;
 			m_id = id;
 			m_handle = handle;
 		}
+
+		#endregion
+
+		#region Public Members...
 
 		public int Id { get { return m_id; } }
 
@@ -66,6 +78,8 @@ namespace FoundationDb.Client
 		internal bool StillAlive { get { return !m_disposed; } }
 
 		public int Size { get { return m_payloadBytes; } }
+
+		#endregion
 
 		#region Options..
 
@@ -299,7 +313,7 @@ namespace FoundationDb.Client
 				}, i, ct).Unwrap());
 			}
 
-			var results = await Task.WhenAll(tasks);
+			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
 			return results
 				.Select((data, i) => new KeyValuePair<Slice, Slice>(keys[i], data))
@@ -330,7 +344,7 @@ namespace FoundationDb.Client
 				}, i, ct).Unwrap());
 			}
 
-			var results = await Task.WhenAll(tasks);
+			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
 			return results
 				.Select((data, i) => new KeyValuePair<IFdbTuple, Slice>(keys[i], data))
@@ -529,7 +543,7 @@ namespace FoundationDb.Client
 
 		#endregion
 
-		#region Clear...
+		#region Clear Range...
 
 		internal void ClearRangeCore(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
@@ -641,6 +655,8 @@ namespace FoundationDb.Client
 
 		#endregion
 
+		#region IDisposable...
+
 		private void ThrowIfDisposed()
 		{
 			if (m_disposed) throw new ObjectDisposedException(null);
@@ -665,6 +681,8 @@ namespace FoundationDb.Client
 				}
 			}
 		}
+
+		#endregion
 	}
 
 }

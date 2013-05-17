@@ -97,7 +97,7 @@ namespace FoundationDb.Client.Arrays
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
-				return await GetAsync(trans, key, snapshot, ct);
+				return await GetAsync(trans, key, snapshot, ct).ConfigureAwait(false);
 			}
 		}
 
@@ -105,7 +105,7 @@ namespace FoundationDb.Client.Arrays
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
-				return await GetAsync(trans, key, snapshot, ct);
+				return await GetAsync(trans, key, snapshot, ct).ConfigureAwait(false);
 			}
 		}
 
@@ -128,7 +128,7 @@ namespace FoundationDb.Client.Arrays
 			using (var trans = this.Database.BeginTransaction())
 			{
 				Set(trans, key, value);
-				await trans.CommitAsync();
+				await trans.CommitAsync().ConfigureAwait(false);
 			}
 		}
 
@@ -137,7 +137,7 @@ namespace FoundationDb.Client.Arrays
 			using (var trans = this.Database.BeginTransaction())
 			{
 				Set(trans, key, value);
-				await trans.CommitAsync();
+				await trans.CommitAsync().ConfigureAwait(false);
 			}
 		}
 
