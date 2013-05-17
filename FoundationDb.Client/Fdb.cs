@@ -110,26 +110,44 @@ namespace FoundationDb.Client
 				case FdbError.LargeAllocFailed: return new OutOfMemoryException("Large block allocation failed");
 				//TODO!
 				default: 
-					throw new FdbException(code, msg);
+					return new FdbException(code, msg);
 			}
 		}
 
 		#region Key/Value serialization
 
 		/// <summary>Ensures that a serialized key is valid</summary>
+		/// <exception cref="System.ArgumentException">If the key is either null, empty, or exceeds the maximum allowed size (Fdb.MaxKeySize)</exception>
 		internal static void EnsureKeyIsValid(Slice key)
 		{
-			if (!key.HasValue) throw new ArgumentException("Key cannot be null", "key");
-			if (key.Count == 0) throw new ArgumentException("Key cannot be empty.", "key");
-			if (key.Count > Fdb.MaxKeySize) throw new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, Fdb.MaxKeySize), "key");
+			if (key.IsNullOrEmpty)
+			{
+				if (key.Array == null) 
+					throw new ArgumentException("Key cannot be null", "key");
+				else
+					throw new ArgumentException("Key cannot be empty.", "key");
+			}
+			if (key.Count > Fdb.MaxKeySize)
+			{
+				throw new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, Fdb.MaxKeySize), "key");
+			}
 		}
 
 		/// <summary>Ensures that a serialized value is valid</summary>
+		/// <exception cref="System.ArgumentException">If the value is either null, empty, or exceeds the maximum allowed size (Fdb.MaxValueSize)</exception>
 		internal static void EnsureValueIsValid(Slice value)
 		{
-			if (!value.HasValue) throw new ArgumentException("Value cannot be null", "value");
-			if (value.Count < 0) throw new ArgumentException("value size must be positive.", "value");
-			if (value.Count > Fdb.MaxValueSize) throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), "value");
+			if (value.IsNullOrEmpty)
+			{
+				if (value.Array == null)
+					throw new ArgumentException("Value cannot be null", "value");
+				else
+					throw new ArgumentException("value size must be positive.", "value");
+			}
+			if (value.Count > Fdb.MaxValueSize)
+			{
+				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), "value");
+			}
 		}
 
 		#endregion
@@ -334,9 +352,9 @@ namespace FoundationDb.Client
 			bool success = false;
 			try
 			{
-				cluster = await OpenLocalClusterAsync(ct);
+				cluster = await OpenLocalClusterAsync(ct).ConfigureAwait(false);
 				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseAsync(name, true, ct);
+				db = await cluster.OpenDatabaseAsync(name, true, ct).ConfigureAwait(false);
 				success = true;
 				return db;
 			}

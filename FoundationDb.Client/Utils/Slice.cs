@@ -104,19 +104,22 @@ namespace FoundationDb.Client
 			return base64String == null ? Slice.Nil : base64String.Length == 0 ? Slice.Empty : Slice.Create(Convert.FromBase64String(base64String));
 		}
 
-		/// <summary>Returns false is the slice is null, or true is the slice maps to zero or more bytes</summary>
-		/// <remarks>An empty slice is NOT null</remarks>
+		/// <summary>Returns true is the slice is not null</summary>
+		/// <remarks>An empty slice is NOT considered null</remarks>
 		public bool HasValue { get { return this.Array != null; } }
 
 		/// <summary>Return true if the slice is not null but contains 0 bytes</summary>
 		/// <remarks>A null slice is NOT empty</remarks>
 		public bool IsEmpty { get { return this.Count == 0 && this.HasValue; } }
 
+		/// <summary>Returns true if the slice does not contain at least 1 byte</summary>
+		public bool IsNullOrEmpty { get { return this.Count == 0; } }
+
 		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array or null</returns>
 		public byte[] GetBytes()
 		{
-			if (Count == 0) return this.Array == null ? null : Slice.EmptyArray;
+			if (this.IsNullOrEmpty) return this.Array == null ? null : Slice.EmptyArray;
 			var bytes = new byte[this.Count];
 			Buffer.BlockCopy(this.Array, this.Offset, bytes, 0, bytes.Length);
 			return bytes;
@@ -126,7 +129,7 @@ namespace FoundationDb.Client
 		/// <returns>ASCII string, or null if the slice is null</returns>
 		public string ToAscii()
 		{
-			if (this.Count == 0) return this.HasValue ? String.Empty : default(string);
+			if (this.IsNullOrEmpty) return this.HasValue ? String.Empty : default(string);
 			return Encoding.Default.GetString(this.Array, this.Offset, this.Count);
 		}
 
@@ -143,7 +146,7 @@ namespace FoundationDb.Client
 		/// <returns>Unicode string, or null if the slice is null</returns>
 		public string ToUnicode()
 		{
-			if (this.Count == 0) return this.HasValue ? String.Empty : default(string);
+			if (this.IsNullOrEmpty) return this.HasValue ? String.Empty : default(string);
 			return Encoding.UTF8.GetString(this.Array, this.Offset, this.Count);
 		}
 
@@ -160,7 +163,7 @@ namespace FoundationDb.Client
 		/// <returns></returns>
 		public string ToBase64()
 		{
-			if (Count == 0) return this.Array == null ? null : String.Empty;
+			if (this.IsNullOrEmpty) return this.Array == null ? null : String.Empty;
 			return Convert.ToBase64String(this.Array, this.Offset, this.Count);
 		}
 
@@ -168,8 +171,7 @@ namespace FoundationDb.Client
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
 		internal Slice Memoize()
 		{
-			if (!HasValue) return Slice.Nil;
-			if (Count == 0) return Slice.Empty;
+			if (this.IsNullOrEmpty) return this.Array == null ? Slice.Nil : Slice.Empty;
 			return new Slice(GetBytes(), 0, this.Count);
 		}
 

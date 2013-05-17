@@ -26,63 +26,55 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client.Tuples;
-using FoundationDb.Client.Utils;
+using FoundationDb.Client;
+using NUnit.Framework;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace FoundationDb.Client
+namespace FoundationDb.Tests
 {
 
-	/// <summary>Factory class for keys</summary>
-	public static class FdbValue
+	[TestFixture]
+	public class ErrorFacts
 	{
-		public static Slice Ascii(string text)
+
+		[TestFixtureSetUp]
+		public void Setup()
 		{
-			return text == null ? Slice.Nil : text.Length == 0 ? Slice.Empty : Slice.Create(Encoding.Default.GetBytes(text));
+			//TODO: cleanup ?
 		}
 
-		public static Slice Base64(string base64Encoded)
+		[TestFixtureTearDown]
+		public void Teardown()
 		{
-			return base64Encoded == null ? Slice.Nil : base64Encoded.Length == 0 ? Slice.Empty : Slice.Create(Convert.FromBase64String(base64Encoded));
+			Fdb.Stop();
 		}
 
-		public static Slice Encode(byte[] value)
+		[Test]
+		public void Test_Fdb_GetErrorMessage()
 		{
-			return Slice.Create(value);
+			Assert.That(Fdb.GetErrorMessage(FdbError.Success), Is.EqualTo("success"));
+
+			Assert.That(Fdb.GetErrorMessage(FdbError.OperationFailed), Is.EqualTo("operation_failed"));
+
+			Assert.That(Fdb.GetErrorMessage(FdbError.TimedOut), Is.EqualTo("timed_out"));
+
+			Assert.That(Fdb.GetErrorMessage(FdbError.PastVersion), Is.EqualTo("past_version"));
 		}
 
-		public static Slice Encode(int value)
+		[Test]
+		public void Test_Fdb_MapToException()
 		{
-			//HACKHACK: use something else! (endianness depends on plateform)
-			return Slice.Create(BitConverter.GetBytes(value));
-		}
+			Assert.That(Fdb.MapToException(FdbError.Success), Is.Null);
 
-		public static Slice Encode(long value)
-		{
-			//HACKHACK: use something else! (endianness depends on plateform)
-			return Slice.Create(BitConverter.GetBytes(value));
-		}
+			Assert.That(Fdb.MapToException(FdbError.OperationFailed), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.OperationFailed));
 
-		public static Slice Encode(string value)
-		{
-			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Encoding.UTF8.GetBytes(value));
-		}
+			Assert.That(Fdb.MapToException(FdbError.TimedOut), Is.InstanceOf<TimeoutException>());
 
-		public static string Dump(Slice buffer)
-		{
-			if (buffer.IsNullOrEmpty) return buffer.HasValue ? "<empty>" : "<null>";
-
-			var sb = new StringBuilder(buffer.Count + 16);
-			for (int i = 0; i < buffer.Count; i++)
-			{
-				int c = buffer.Array[buffer.Offset + i];
-				if (c < 32 || c == 255) sb.Append('<').Append(c.ToString("X2")).Append('>'); else sb.Append((char)c);
-			}
-			return sb.ToString();
+			Assert.That(Fdb.MapToException(FdbError.LargeAllocFailed), Is.InstanceOf<OutOfMemoryException>());
 		}
 
 	}
-
 }

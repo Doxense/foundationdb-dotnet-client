@@ -113,7 +113,7 @@ namespace FoundationDb.Client.Tables
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
-				return await GetAsync(trans, key, snapshot, ct);
+				return await GetAsync(trans, key, snapshot, ct).ConfigureAwait(false);
 			}
 		}
 
@@ -121,7 +121,7 @@ namespace FoundationDb.Client.Tables
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
-				return await GetAsync(trans, key, snapshot, ct);
+				return await GetAsync(trans, key, snapshot, ct).ConfigureAwait(false);
 			}
 		}
 
@@ -129,7 +129,7 @@ namespace FoundationDb.Client.Tables
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
-				return await GetAsync(trans, tuple, snapshot, ct);
+				return await GetAsync(trans, tuple, snapshot, ct).ConfigureAwait(false);
 			}
 		}
 
@@ -157,7 +157,7 @@ namespace FoundationDb.Client.Tables
 			using (var trans = this.Database.BeginTransaction())
 			{
 				Set(trans, key, value);
-				await trans.CommitAsync();
+				await trans.CommitAsync().ConfigureAwait(false);
 			}
 		}
 
@@ -166,7 +166,7 @@ namespace FoundationDb.Client.Tables
 			using (var trans = this.Database.BeginTransaction())
 			{
 				Set(trans, key, value);
-				await trans.CommitAsync();
+				await trans.CommitAsync().ConfigureAwait(false);
 			}
 		}
 
@@ -175,7 +175,7 @@ namespace FoundationDb.Client.Tables
 			using (var trans = this.Database.BeginTransaction())
 			{
 				Set(trans, tuple, value);
-				await trans.CommitAsync();
+				await trans.CommitAsync().ConfigureAwait(false);
 			}
 		}
 

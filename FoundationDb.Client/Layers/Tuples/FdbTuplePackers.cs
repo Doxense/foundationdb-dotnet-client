@@ -262,7 +262,7 @@ namespace FoundationDb.Client.Tuples
 
 		public static object DeserializeObject(Slice slice)
 		{
-			if (slice.Count == 0) return null;
+			if (slice.IsNullOrEmpty) return null;
 
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
@@ -288,7 +288,7 @@ namespace FoundationDb.Client.Tuples
 
 		public static long DeserializeInt64(Slice slice)
 		{
-			if (slice.Count == 0) return 0L; //TODO: fail ?
+			if (slice.IsNullOrEmpty) return 0L; //TODO: fail ?
 
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
@@ -313,7 +313,7 @@ namespace FoundationDb.Client.Tuples
 
 		public static ulong DeserializeUInt64(Slice slice)
 		{
-			if (slice.Count == 0) return 0UL; //TODO: fail ?
+			if (slice.IsNullOrEmpty) return 0UL; //TODO: fail ?
 
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
@@ -333,7 +333,7 @@ namespace FoundationDb.Client.Tuples
 
 		public static string DeserializeString(Slice slice)
 		{
-			if (slice.Count == 0) return null;
+			if (slice.IsNullOrEmpty) return null;
 
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)

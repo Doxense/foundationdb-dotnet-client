@@ -34,27 +34,35 @@ namespace FoundationDb.Client.Utils
 	using System.Runtime.CompilerServices;
 	using System.Text;
 
-	/// <summary>Mini classe capable d'écrire des données binaire dans un buffer qui se resize automatiquement</summary>
-	/// <remarks>IMPORTANT: Cette class n'effectue pas de vérification des paramètres, qui est à la charge de l'appelant ! (le but étant justement d'avoir une structure très simple et rapide)</remarks>
+	/// <summary>Helper class that emulates a pseudo-stream using a byte buffer that will automatically grow in size, if necessary</summary>
+	/// <remarks>IMPORTANT: This class does not extensively check the parameters! The caller must ensure that everything is valid (this is to get the max performance when serializing keys and values)</remarks>
 	[DebuggerDisplay("Position={this.Position}, Capacity={this.Buffer == null ? -1 : this.Buffer.Length}")]
 	public sealed class FdbBufferWriter
 	{
+		// Invariant
+		// * Valid data always start at offset 0
+		// * 'this.Position' is equal to the current size as well as the offset of the next available free spot
+		// * 'this.Buffer' is either null (meaning newly created stream), or is at least as big as this.Position
 
 		#region Constants...
+
+		/// <summary>Minimum size of buffer</summary>
+		private const int MIN_SIZE = 32;
 
 		/// <summary>Empty buffer</summary>
 		private static readonly byte[] Empty = new byte[0];
 
 		#endregion
 
-		// Wrap a byte buffer in a structure that will automatically grow in size, if necessary
-		// Valid data always start at offset 0, and this.Position is equal to the current size as well as the offset of the next available free spot
+		#region Private Members...
 
 		/// <summary>Buffer holding the data</summary>
 		public byte[] Buffer;
 
 		/// <summary>Position in the buffer ( == number of already written bytes)</summary>
 		public int Position;
+
+		#endregion
 
 		#region Constructors...
 
@@ -91,7 +99,9 @@ namespace FoundationDb.Client.Utils
 		}
 
 		#endregion
-
+		
+		/// <summary>Returns a byte array filled with the contents of the buffer</summary>
+		/// <remarks>The buffer is copied in the byte array. And change to one will not impact the other</remarks>
 		public byte[] GetBytes()
 		{
 			var bytes = new byte[this.Position];
@@ -102,6 +112,8 @@ namespace FoundationDb.Client.Utils
 			return bytes;
 		}
 
+		/// <summary>Returns a slice pointing to the content of the buffer</summary>
+		/// <remarks>Any change to the slice will change the buffer !</remarks>
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
@@ -110,6 +122,9 @@ namespace FoundationDb.Client.Utils
 			return new Slice(this.Buffer ?? Empty, 0, this.Position);
 		}
 
+		/// <summary>Returns a slice pointing to the first <paramref name="count"/> bytes of the buffer</summary>
+		/// <param name="count">Size of the segment</param>
+		/// <remarks>Any change to the slice will change the buffer !</remarks>
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
@@ -121,6 +136,10 @@ namespace FoundationDb.Client.Utils
 			return new Slice(this.Buffer, 0, count);
 		}
 
+		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
+		/// <param name="offset">Offset of the segment from the start of the buffer</param>
+		/// <param name="count">Size of the segment</param>
+		/// <remarks>Any change to the slice will change the buffer !</remarks>
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
@@ -188,6 +207,44 @@ namespace FoundationDb.Client.Utils
 			}
 		}
 
+		/// <summary>Advance the cursor of the buffer without writing anything</summary>
+		/// <param name="skip">Number of bytes to skip</param>
+		/// <returns>Position of the cursor BEFORE moving it. Can be used as a marker to go back later and fill some value</returns>
+		/// <remarks>Will fill the skipped bytes with 0xFF</remarks>
+		public int Skip(int skip)
+		{
+			Contract.Requires(skip > 0);
+
+			int before = Position;
+			EnsureBytes(skip);
+			for (int i = 0; i < skip; i++)
+			{
+				Buffer[before + i] = 0xFF;
+			}
+			Position = before + skip;
+			return before;
+		}
+
+		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>
+		/// <param name="value">Byte, 8 bits</param>
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		public void WriteByte(byte value)
+		{
+			EnsureBytes(1);
+			Buffer[Position++] = value;
+		}
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		internal void UnsafeWriteByte(byte value)
+		{
+			Contract.Requires(Buffer != null & Position < Buffer.Length);
+			Buffer[Position++] = value;
+		}
+
 		/// <summary>Append a byte array to the end of the buffer</summary>
 		/// <param name="data"></param>
 #if !NET_4_0
@@ -199,17 +256,6 @@ namespace FoundationDb.Client.Utils
 			{
 				WriteBytes(data, 0, data.Length);
 			}
-		}
-
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public void UnsafeWriteBytes(byte[] bytes)
-		{
-			Contract.Requires(bytes != null && this.Buffer != null && this.Position + bytes.Length <= this.Buffer.Length);
-
-			System.Buffer.BlockCopy(bytes, 0, this.Buffer, this.Position, bytes.Length);
-			this.Position += bytes.Length;
 		}
 
 		/// <summary>Append a chunk of a byte array to the end of the buffer</summary>
@@ -237,31 +283,21 @@ namespace FoundationDb.Client.Utils
 		/// <param name="count"></param>
 		public void WriteBytes(Slice data)
 		{
-			Contract.Requires(data.Array != null);
+			Contract.Requires(data.HasValue);
 			Contract.Requires(data.Offset >= 0);
 			Contract.Requires(data.Count >= 0);
 			Contract.Requires(data.Offset + data.Count <= data.Array.Length);
 
-			if (data.Count > 0)
+			int n = data.Count;
+			if (n > 0)
 			{
-				EnsureBytes(data.Count);
-				System.Buffer.BlockCopy(data.Array, data.Offset, this.Buffer, this.Position, data.Count);
-				this.Position += data.Count;
+				EnsureBytes(n);
+				System.Buffer.BlockCopy(data.Array, data.Offset, this.Buffer, this.Position, n);
+				this.Position += n;
 			}
 		}
 
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public void UnsafeWriteBytes(byte[] bytes, int offset, int count)
-		{
-			Contract.Requires(bytes != null && offset >= 0 && count >= 0 && offset + count <= bytes.Length && this.Buffer != null & Position + count <= this.Buffer.Length);
-
-			System.Buffer.BlockCopy(bytes, offset, this.Buffer, this.Position, count);
-			this.Position += count;
-		}
-
-		public unsafe void WriteBytes(byte* data, int count)
+		internal unsafe void WriteBytes(byte* data, int count)
 		{
 			Contract.Requires(data != null);
 			Contract.Requires(count >= 0);
@@ -274,10 +310,129 @@ namespace FoundationDb.Client.Utils
 			}
 		}
 
+		#region TODO: move these into Tuple Layer !
+
 		/// <summary>Writes a NIL byte (\x00) into the buffer</summary>
 		public void WriteNil()
 		{
 			WriteByte(FdbTupleTypes.Nil);
+		}
+
+		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
+		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
+		public void WriteInt64(long value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // zero
+					WriteByte(FdbTupleTypes.IntZero);
+					return;
+				}
+
+				if (value > 0)
+				{ // 1..255: frequent for array index
+					EnsureBytes(2);
+					UnsafeWriteByte(FdbTupleTypes.IntPos1);
+					UnsafeWriteByte((byte)value);
+					return;
+				}
+
+				if (value > -256)
+				{ // -255..-1
+					EnsureBytes(2);
+					UnsafeWriteByte(FdbTupleTypes.IntNeg1);
+					UnsafeWriteByte((byte)(255 + value));
+					return;
+				}
+			}
+
+			WriteInt64Slow(value);
+		}
+
+		private void WriteInt64Slow(long value)
+		{
+			// we are only called for values <= -256 or >= 256
+
+			// determine the number of bytes needed to encode the absolute value
+			int bytes = FdbBufferWriter.NumberOfBytes(value);
+
+			EnsureBytes(bytes + 1);
+
+			var buffer = this.Buffer;
+			int p = this.Position;
+
+			ulong v;
+			if (value > 0)
+			{ // simple case
+				buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
+				v = (ulong)value;
+			}
+			else
+			{ // we will encode the one's complement of the absolute value
+				// -1 => 0xFE
+				// -256 => 0xFFFE
+				// -65536 => 0xFFFFFE
+				buffer[p++] = (byte)(FdbTupleTypes.IntBase - bytes);
+				v = (ulong)((1 << (bytes << 3)) - 1 + value);
+			}
+
+			// TODO: unroll ?
+			while(bytes-- > 0)
+			{
+				buffer[p++] = (byte)v;
+				//TODO: we don't need the last '>>='
+				v >>= 8;
+			}
+			this.Position = p;
+		}
+
+		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>
+		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
+		public void WriteUInt64(ulong value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // 0
+					WriteByte(FdbTupleTypes.IntZero);
+				}
+				else
+				{ // 1..255
+					EnsureBytes(2);
+					UnsafeWriteByte(FdbTupleTypes.IntPos1);
+					UnsafeWriteByte((byte)value);
+				}
+			}
+			else
+			{ // >= 256
+				WriteUInt64Slow(value);
+			}
+		}
+
+		private void WriteUInt64Slow(ulong value)
+		{
+			// We are only called for values >= 256
+
+			// determine the number of bytes needed to encode the value
+			int bytes = FdbBufferWriter.NumberOfBytes(value);
+
+			EnsureBytes(bytes + 1);
+
+			var buffer = this.Buffer;
+			int p = this.Position;
+
+			// simple case (ulong can only be positive)
+			buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
+
+			// TODO: unroll ?
+			while (bytes-- > 0)
+			{
+				buffer[p++] = (byte)value;
+				//TODO: we don't need the last '>>='
+				value >>= 8;
+			}
+			this.Position = p;
 		}
 
 		/// <summary>Writes a binary string (ASCII)</summary>
@@ -348,164 +503,11 @@ namespace FoundationDb.Client.Utils
 			this.Position = p + n + 2;
 		}
 
-		/// <summary>Advance the cursor of the buffer without writing anything</summary>
-		/// <param name="skip">Number of bytes to skip</param>
-		/// <returns>Position of the cursor BEFORE moving it. Can be used as a marker to go back later and fill some value</returns>
-		/// <remarks>Will fill the skipped bytes with 0xFF</remarks>
-		public int Skip(int skip)
-		{
-			Contract.Requires(skip > 0);
+		#endregion
 
-			int before = Position;
-			EnsureBytes(skip);
-			for (int i = 0; i < skip; i++)
-			{
-				Buffer[before + i] = 0xFF;
-			}
-			Position = before + skip;
-			return before;
-		}
-
-		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>
-		/// <param name="value">Byte, 8 bits</param>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public void WriteByte(byte value)
-		{
-			EnsureBytes(1);
-			Buffer[Position++] = value;
-		}
-
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public void UnsafeWriteByte(byte value)
-		{
-			Contract.Requires(Buffer != null & Position < Buffer.Length);
-			Buffer[Position++] = value;
-		}
-
-		/// <summary>Ecrit un Int64 à la fin, et avance le curseur</summary>
-		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
-		public void WriteInt64(long value)
-		{
-			if (value <= 255)
-			{
-				if (value == 0)
-				{ // zero
-					WriteByte(FdbTupleTypes.IntZero);
-					return;
-				}
-
-				if (value > 0)
-				{ // 1..255: frequent for array index
-					EnsureBytes(2);
-					UnsafeWriteByte(FdbTupleTypes.IntPos1);
-					UnsafeWriteByte((byte)value);
-					return;
-				}
-
-				if (value > -256)
-				{ // -255..-1
-					EnsureBytes(2);
-					UnsafeWriteByte(FdbTupleTypes.IntNeg1);
-					UnsafeWriteByte((byte)(255 + value));
-					return;
-				}
-			}
-
-			WriteInt64Slow(value);
-		}
-
-		private void WriteInt64Slow(long value)
-		{
-			// we are only called for values <= -256 or >= 256
-
-			// determine the number of bytes needed to encode the absolute value
-			int bytes = FdbBufferWriter.NumberOfBytes(value);
-
-			EnsureBytes(bytes + 1);
-
-			var buffer = this.Buffer;
-			int p = this.Position;
-
-			ulong v;
-			if (value > 0)
-			{ // simple case
-				buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
-				v = (ulong)value;
-			}
-			else
-			{ // we will encode the one's complement of the absolute value
-				// -1 => 0xFE
-				// -256 => 0xFFFE
-				// -65536 => 0xFFFFFE
-				buffer[p++] = (byte)(FdbTupleTypes.IntBase - bytes);
-				v = (ulong)((1 << (bytes << 3)) - 1 + value);
-			}
-
-			// TODO: unroll ?
-			while(bytes-- > 0)
-			{
-				buffer[p++] = (byte)v;
-				//TODO: we don't need the last '>>='
-				v >>= 8;
-			}
-			this.Position = p;
-		}
-
-		/// <summary>Ecrit un Int64 à la fin, et avance le curseur</summary>
-		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
-		public void WriteUInt64(ulong value)
-		{
-			if (value <= 255)
-			{
-				if (value == 0)
-				{ // 0
-					WriteByte(FdbTupleTypes.IntZero);
-				}
-				else
-				{ // 1..255
-					EnsureBytes(2);
-					UnsafeWriteByte(FdbTupleTypes.IntPos1);
-					UnsafeWriteByte((byte)value);
-				}
-			}
-			else
-			{ // >= 256
-				WriteUInt64Slow(value);
-			}
-		}
-
-		public void WriteUInt64Slow(ulong value)
-		{
-			// We are only called for values >= 256
-
-			// determine the number of bytes needed to encode the value
-			int bytes = FdbBufferWriter.NumberOfBytes(value);
-
-			EnsureBytes(bytes + 1);
-
-			var buffer = this.Buffer;
-			int p = this.Position;
-
-			// simple case (ulong can only be positive)
-			buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
-
-			// TODO: unroll ?
-			while (bytes-- > 0)
-			{
-				buffer[p++] = (byte)value;
-				//TODO: we don't need the last '>>='
-				value >>= 8;
-			}
-			this.Position = p;
-		}
-
-		/// <summary>Vérifie qu'il y a au moins 'count' octets de libre en fin du buffer</summary>
-		/// <param name="count">Nombre d'octets qui vont être écrit dans le buffer juste après</param>
-		/// <remarks>Si le buffer n'est pas assez grand, il est resizé pour accomoder le nombre d'octets désirés</remarks>
+		/// <summary>Ensures that we can fit a specific amount of data at the end of the buffer</summary>
+		/// <param name="count">Number of bytes that will be written</param>
+		/// <remarks>If the buffer is too small, it will be resized</remarks>
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
@@ -520,6 +522,10 @@ namespace FoundationDb.Client.Utils
 			}
 		}
 
+		/// <summary>Ensures that we can fit data at a specifc offset in the buffer</summary>
+		/// <param name="offset">Offset into the buffer (from the start)</param>
+		/// <param name="count">Number of bytes that will be written at this offset</param>
+		/// <remarks>If the buffer is too small, it will be resized</remarks>
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
@@ -543,19 +549,29 @@ namespace FoundationDb.Client.Utils
 			Contract.Requires(minimumCapacity >= 0);
 
 			// essayes de doubler la taille du buffer, ou prendre le minimum demandé
-			int newSize = Math.Max(minimumCapacity, buffer == null ? 0 : buffer.Length << 1);
+			int newSize = buffer == null ? 0 : (buffer.Length << 1);
+			if (newSize < minimumCapacity) newSize = minimumCapacity;
+
+			// .NET (as of 4.5) cannot allocate an array with more then 2^31 - 1 items...
+			if (newSize > 2147483647) FailCannotGrowBuffer();
 
 			// round to the next multiple of 16 bytes (to reduce fragmentation)
-			if (newSize < 16)
+			if (newSize < MIN_SIZE)
 			{
-				newSize = 16;
+				newSize = MIN_SIZE;
 			}
 			else if ((newSize & 0xF) != 0)
 			{
-				newSize = ((newSize + 15) >> 4) << 4;
+				checked { newSize = (newSize + 0xF) & 0x7FFFFFF8; }
 			}
 
 			Array.Resize(ref buffer, newSize);
+		}
+
+		private static void FailCannotGrowBuffer()
+		{
+			//REVIEW: should we throw an OutOfMemoryException ? or ArgumentOutOfRangeException ?
+			throw new InvalidOperationException("Buffer cannot be resize, because it would larger than the maximum allowed size");
 		}
 
 		/// <summary>Round a number to the next power of 2</summary>
@@ -584,24 +600,26 @@ namespace FoundationDb.Client.Utils
 		/// <summary>Lookup table used to compute the index of the most significant bit</summary>
 		private static readonly int[] MultiplyDeBruijnBitPosition = new int[32]
 		{
-		  0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
-		  8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
+			0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
+			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
 		};
 
 		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
-		/// <remarks>Note: will returns 1 even for <param name="v"/> == 0</remarks>
+		/// <remarks>Note: will return 1 even for <param name="v"/> == 0</remarks>
 		public static int NumberOfBytes(uint v)
 		{
 			return (MostSignificantBit(v) + 8) >> 3;
 		}
 
+		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
+		/// <remarks>Note: will return 1 even for <param name="v"/> == 0</remarks>
 		public static int NumberOfBytes(long v)
 		{
 			return v >= 0 ? NumberOfBytes((ulong)v) : v != long.MinValue ? NumberOfBytes((ulong)-v) : 8;
 		}
 
 		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
-		/// <returns></returns>
+		/// <returns>Note: will return 1 even for <param name="v"/> == 0</returns>
 		public static int NumberOfBytes(ulong v)
 		{
 			int msb = 0;
