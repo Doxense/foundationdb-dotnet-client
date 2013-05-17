@@ -50,8 +50,7 @@ namespace FoundationDb.Tests.Sandbox
 
 				Console.WriteLine("Getting 'hello'...");
 				var result = await trans.GetAsync(FdbKey.Ascii("hello"));
-				//var result = trans.Get("hello");
-				if (result.Array == null)
+				if (!result.HasValue)
 					Console.WriteLine("> hello NOT FOUND");
 				else
 					Console.WriteLine("> hello = " + FdbValue.Dump(result));
@@ -110,53 +109,83 @@ namespace FoundationDb.Tests.Sandbox
 		static async Task BenchConcurrentInsert(FdbDatabase db, int k, int N, int size)
 		{
 			// insert a lot of small key size, in multiple batch running in //
+			// k = number of threads
+			// N = total number of keys
+			// size = value size (bytes)
+			// n = keys per batch (N/k)
 
 			int n = N / k;
+			// make sure that N is multiple of k
 			N = n * k;
 
-			var table = FdbTuple.Create("Batch");
+			Console.WriteLine("Inserting " + N + " keys in " + k + " batches of " + n + " with " + size + "-bytes values...");
 
-			var tasks = new Task[k];
+			// store every key under ("Batch", i)
+			var table = FdbTuple.Create("Batch");
+			// total estimated size of all transactions
+			long totalPayloadSize = 0;
+
+			var tasks = new List<Task>();
 			var sem = new ManualResetEventSlim();
 			for (int j = 0; j < k; j++)
 			{
-				int offset = j * n;
-				tasks[j] = Task.Factory.StartNew(async () =>
+				int offset = j;
+				// spin a task for the batch using TaskCreationOptions.LongRunning to make sure it runs in its own thread
+				tasks.Add(Task.Factory.StartNew(async () =>
 				{
-					var rnd = new Random();
+					var rnd = new Random(1234567 * j);
 					var tmp = new byte[size];
 					rnd.NextBytes(tmp);
 
+					// ("Batch", batch_index, )
+					var batch = table.Append(offset);
+
+					// block until all threads are ready
 					sem.Wait();
 
-					Console.WriteLine("[" + Thread.CurrentThread.ManagedThreadId + "] start");
-
-					//------ 4k keys ("Batch", xx) x 512 bytes value
+					var x = Stopwatch.StartNew();
 					using (var trans = db.BeginTransaction())
 					{
+						x.Stop();
+						Console.WriteLine("> [" + offset + "] got transaction in " + x.Elapsed.TotalMilliseconds.ToString("N3") + " ms");
 
+						// package the keys...
+						x.Restart();
 						for (int i = 0; i < n; i++)
 						{
+							// change the value a little bit
 							tmp[0] = (byte)i;
 							tmp[1] = (byte)(i >> 8);
 
-							trans.Set(table.Append(offset + i), Slice.Create(tmp));
+							// ("Batch", batch_index, i) = [..random..]
+							trans.Set(table.Append(i), Slice.Create(tmp));
 						}
-						Console.WriteLine("[" + Thread.CurrentThread.ManagedThreadId + "] before commit " + n + " k (" + trans.Size.ToString("N0") + " bytes)");
-						var x = Stopwatch.StartNew();
+						x.Stop();
+						Console.WriteLine("> [" + offset + "] packaged " + n + " keys (" + trans.Size.ToString("N0") + " bytes) in " + x.Elapsed.TotalMilliseconds.ToString("N3") + " ms");
+
+						// commit the transaction
+						x.Restart();
 						await trans.CommitAsync();
 						x.Stop();
-						Console.WriteLine("[" + Thread.CurrentThread.ManagedThreadId + "] after commit " + x.Elapsed.Milliseconds + " ms");
+						Console.WriteLine("> [" + offset + "] committed " + n + " keys (" + trans.Size.ToString("N0") + " bytes) in " + x.Elapsed.TotalMilliseconds.ToString("N3") + " ms");
+
+						Interlocked.Add(ref totalPayloadSize, trans.Size);
 					}
-					//------ 300 ms
-				}, TaskCreationOptions.LongRunning).Unwrap();
+
+				}, TaskCreationOptions.LongRunning).Unwrap());
 			}
+			// give time for threads to be ready
 			await Task.Delay(100);
+
+			// start
 			var sw = Stopwatch.StartNew();
 			sem.Set();
+
+			// wait for total completion
 			await Task.WhenAll(tasks);
 			sw.Stop();
-			Console.WriteLine("["+ Thread.CurrentThread.ManagedThreadId + "] Took " + sw.Elapsed.TotalMilliseconds.ToString("N1") + "ms to insert " + N + " " + size + "-bytes items on " + k + " threads (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/write)");
+			Console.WriteLine("* Total: " + sw.Elapsed.TotalMilliseconds.ToString("N1") + "ms, " + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/write, " + (totalPayloadSize / (sw.Elapsed.TotalSeconds * 1024)).ToString("N1") + "kB/sec");
+			Console.WriteLine();
 		}
 
 		static async Task BenchSerialReadAsync(FdbDatabase db, int N)
@@ -307,7 +336,7 @@ namespace FoundationDb.Tests.Sandbox
 
 		static async Task MainAsync(string[] args)
 		{
-			const int N = 16384;
+			const int N = 16000;
 			const string NATIVE_PATH = @"C:\Program Files\foundationdb\bin";
 
 			Fdb.NativeLibPath = NATIVE_PATH;
@@ -344,9 +373,13 @@ namespace FoundationDb.Tests.Sandbox
 							Console.WriteLine("> Database cleared");
 						}
 
+						Console.WriteLine("----------");
+
 						await TestSimpleTransactionAsync(db);
 
-						//await BenchInsertSmallKeysAsync(db, N, 16); // some guid
+						Console.WriteLine("----------");
+
+						await BenchInsertSmallKeysAsync(db, N, 16); // some guid
 						//await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
 						//await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
 						//await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
@@ -361,9 +394,8 @@ namespace FoundationDb.Tests.Sandbox
 						await BenchConcurrentInsert(db, 1, N, 16);
 						await BenchConcurrentInsert(db, 2, N, 16);
 						await BenchConcurrentInsert(db, 4, N, 16);
-
-						//await BenchConcurrentInsert(db, 8, N, 512);
-						//await BenchConcurrentInsert(db, 16, N, 512);
+						await BenchConcurrentInsert(db, 8, N, 16);
+						await BenchConcurrentInsert(db, 16, N, 16);
 
 						//await BenchSerialReadAsync(db, N);
 
@@ -468,8 +500,7 @@ namespace FoundationDb.Tests.Sandbox
 
 		private static string ToHexString(Slice segment)
 		{
-			if (segment.Array == null) return "<null>";
-			if (segment.Count == 0) return "<empty>";
+			if (segment.IsNullOrEmpty) return segment.IsEmpty ? "<empty": "<null>";
 			// close you eyes...
 			return String.Join(" ", segment.Array.Skip(segment.Offset).Take(segment.Count).Select(b => b.ToString("X2")));
 		}
