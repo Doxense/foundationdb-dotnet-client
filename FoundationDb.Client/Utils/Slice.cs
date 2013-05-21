@@ -192,21 +192,42 @@ namespace FoundationDb.Client
 			return bytes;
 		}
 
+		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
+		/// <returns>Byte array with a copy of a subset of the slice, or null</returns>
+		public byte[] GetBytes(int offset, int count)
+		{
+			//TODO: throw if this.Array == null ? (what does "Slice.Nil.GetBytes(..., 0)" mean ?)
+
+			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
+			if (count < 0) throw new ArgumentOutOfRangeException("count");
+			if (offset + count > this.Count) throw new ArgumentOutOfRangeException("count");
+
+			if (count == 0) return this.Array == null ? null : Slice.EmptyArray;
+
+			var bytes = new byte[count];
+			Buffer.BlockCopy(this.Array, this.Offset + offset, bytes, 0, count);
+			return bytes;
+		}
+
 		/// <summary>Stringify a slice containing only ASCII chars</summary>
 		/// <returns>ASCII string, or null if the slice is null</returns>
 		public string ToAscii()
 		{
 			if (this.IsNullOrEmpty) return this.HasValue ? String.Empty : default(string);
-			return Encoding.Default.GetString(this.Array, this.Offset, this.Count);
+
+			var decoded = UnescapeByteString(this.Array, this.Offset, this.Count);
+			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
 		/// <summary>Stringify a slice containing only ASCII chars</summary>
 		/// <returns>ASCII string, or null if the slice is null</returns>
 		public string ToAscii(int offset, int count)
 		{
-			if (count == 0) return String.Empty;
 			//TODO: check args
-			return Encoding.Default.GetString(this.Array, this.Offset, count);
+			if (count == 0) return String.Empty;
+
+			var decoded = UnescapeByteString(this.Array, this.Offset + offset, count);
+			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
 		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
@@ -214,7 +235,9 @@ namespace FoundationDb.Client
 		public string ToUnicode()
 		{
 			if (this.IsNullOrEmpty) return this.HasValue ? String.Empty : default(string);
-			return Encoding.UTF8.GetString(this.Array, this.Offset, this.Count);
+
+			var decoded = UnescapeByteString(this.Array, this.Offset, this.Count);
+			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
 		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
@@ -223,7 +246,54 @@ namespace FoundationDb.Client
 		{
 			if (count == 0) return String.Empty;
 			//TODO: check args
-			return Encoding.UTF8.GetString(this.Array, this.Offset + offset, count);
+			var decoded = UnescapeByteString(this.Array, this.Offset + offset, count);
+			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
+		}
+
+		private static ArraySegment<byte> UnescapeByteString(byte[] buffer, int offset, int count)
+		{
+			// check for nulls
+			int p = offset;
+			int end = offset + count;
+
+			while (p < end)
+			{
+				if (buffer[p] == 0)
+				{ // found a 0, switch to slow path
+					return UnescapeByteStringSlow(buffer, offset, count, p - offset);
+				}
+				++p;
+			}
+			// buffer is clean, we can return it as-is
+			return new ArraySegment<byte>(buffer, offset, count);
+		}
+
+		private static ArraySegment<byte> UnescapeByteStringSlow(byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
+		{
+			var tmp = new byte[count];
+
+			int p = offset;
+			int end = offset + count;
+			int i = 0;
+
+			if (offsetOfFirstZero > 0)
+			{
+				Buffer.BlockCopy(buffer, offset, tmp, 0, offsetOfFirstZero);
+				p += offsetOfFirstZero;
+			}
+
+			while (p < end)
+			{
+				byte b = buffer[p++];
+				if (b == 0)
+				{ // skip next FF
+					//TODO: check that next byte really is 0xFF
+					++p;
+				}
+				tmp[i++] = b;
+			}
+
+			return new ArraySegment<byte>(tmp, 0, p - offset);
 		}
 
 		/// <summary>Converts a slice using Base64 encoding</summary>

@@ -49,6 +49,9 @@ namespace FoundationDb.Client.Tuples
 		/// <summary>UTF-8 String</summary>
 		internal const byte StringUtf8 = (byte)2;
 
+		/// <summary>128 bits GUID [CUSTOM EXTENSION]</summary>
+		internal const byte Guid = (byte)3;
+
 		internal const byte IntNeg8 = (byte)12;
 		internal const byte IntNeg7 = (byte)13;
 		internal const byte IntNeg6 = (byte)14;

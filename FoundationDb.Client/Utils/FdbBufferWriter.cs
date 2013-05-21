@@ -215,13 +215,13 @@ namespace FoundationDb.Client.Utils
 		{
 			Contract.Requires(skip > 0);
 
-			int before = Position;
+			int before = this.Position;
 			EnsureBytes(skip);
 			for (int i = 0; i < skip; i++)
 			{
-				Buffer[before + i] = 0xFF;
+				this.Buffer[before + i] = 0xFF;
 			}
-			Position = before + skip;
+			this.Position = before + skip;
 			return before;
 		}
 
@@ -233,7 +233,7 @@ namespace FoundationDb.Client.Utils
 		public void WriteByte(byte value)
 		{
 			EnsureBytes(1);
-			Buffer[Position++] = value;
+			this.Buffer[this.Position++] = value;
 		}
 
 #if !NET_4_0
@@ -241,8 +241,8 @@ namespace FoundationDb.Client.Utils
 #endif
 		internal void UnsafeWriteByte(byte value)
 		{
-			Contract.Requires(Buffer != null & Position < Buffer.Length);
-			Buffer[Position++] = value;
+			Contract.Requires(this.Buffer != null && this.Position < this.Buffer.Length);
+			this.Buffer[this.Position++] = value;
 		}
 
 		/// <summary>Append a byte array to the end of the buffer</summary>
@@ -272,6 +272,17 @@ namespace FoundationDb.Client.Utils
 			if (count > 0)
 			{
 				EnsureBytes(count);
+				System.Buffer.BlockCopy(data, offset, this.Buffer, this.Position, count);
+				this.Position += count;
+			}
+		}
+
+		internal void UnsafeWriteBytes(byte[] data, int offset, int count)
+		{
+			Contract.Requires(this.Buffer != null && data != null && count >= 0 && this.Position + count <= this.Buffer.Length && offset >= 0 && offset + count <= data.Length);
+
+			if (count > 0)
+			{
 				System.Buffer.BlockCopy(data, offset, this.Buffer, this.Position, count);
 				this.Position += count;
 			}

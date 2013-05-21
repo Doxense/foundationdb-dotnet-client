@@ -102,6 +102,12 @@ namespace FoundationDb.Client.Tuples
 						return;
 					}
 
+					if (value is Guid)
+					{
+						SerializeTo(writer, (Guid)value);
+						return;
+					}
+
 					break;
 				}
 				case TypeCode.DBNull:
@@ -211,7 +217,19 @@ namespace FoundationDb.Client.Tuples
 
 		public static void SerializeTo(FdbBufferWriter writer, string value)
 		{
-			writer.WriteUtf8String(value ?? String.Empty);
+			if (value == null)
+			{ // <00>
+				writer.WriteByte(FdbTupleTypes.Nil);
+			}
+			else if (value.Length == 0)
+			{ // <02><00>
+				writer.WriteByte(FdbTupleTypes.StringUtf8);
+				writer.WriteByte(0);
+			}
+			else
+			{ // <02>...utf8...<00>
+				writer.WriteUtf8String(value);
+			}
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, DateTime value)
@@ -224,6 +242,14 @@ namespace FoundationDb.Client.Tuples
 		{
 			//TODO: how to deal with negative values ?
 			writer.WriteInt64(value.Ticks);
+		}
+
+		public static void SerializeTo(FdbBufferWriter writer, Guid value)
+		{
+			//TODO: optimize !
+			writer.EnsureBytes(17);
+			writer.UnsafeWriteByte(FdbTupleTypes.Guid);
+			writer.UnsafeWriteBytes(value.ToByteArray(), 0, 16);
 		}
 
 		public static void SerializeTupleTo<TTuple>(FdbBufferWriter writer, TTuple tuple)
@@ -271,6 +297,18 @@ namespace FoundationDb.Client.Tuples
 			return slice.ToUnicode(1, slice.Count - 2);
 		}
 
+		private static Guid ParseGuid(Slice slice)
+		{
+			if (slice.Count != 17)
+			{
+				//TODO: usefull! error message! 
+				throw new FormatException("Slice has invalid size for a guid");
+			}
+
+			//TODO: optimize !
+			return new Guid(slice.GetBytes(1, 16));
+		}
+
 		public static object DeserializeObject(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
@@ -285,6 +323,7 @@ namespace FoundationDb.Client.Tuples
 					case FdbTupleTypes.Nil: return null;
 					case FdbTupleTypes.StringAscii: return ParseAscii(slice);
 					case FdbTupleTypes.StringUtf8: return ParseUnicode(slice);
+					case FdbTupleTypes.Guid: return ParseGuid(slice);
 				}
 			}
 
@@ -355,11 +394,37 @@ namespace FoundationDb.Client.Tuples
 					case FdbTupleTypes.Nil: return null;
 					case FdbTupleTypes.StringAscii: return ParseAscii(slice);
 					case FdbTupleTypes.StringUtf8: return ParseUnicode(slice);
+					case FdbTupleTypes.Guid: return ParseGuid(slice).ToString();
 				}
 			}
 
 			throw new FormatException("Cannot convert slice into this type");
 
+		}
+
+		public static Guid DeserializeGuid(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return Guid.Empty;
+
+			int type = slice[0];
+
+			switch (type)
+			{
+				case FdbTupleTypes.StringAscii:
+				{
+					return Guid.Parse(ParseAscii(slice));
+				}
+				case FdbTupleTypes.StringUtf8:
+				{
+					return Guid.Parse(ParseUnicode(slice));
+				}
+				case FdbTupleTypes.Guid:
+				{
+					return ParseGuid(slice);
+				}
+			}
+
+			throw new FormatException("Cannot convert slice into this type");
 		}
 
 		internal static IFdbTuple Unpack(Slice buffer)
@@ -392,19 +457,23 @@ namespace FoundationDb.Client.Tuples
 				}
 
 				case FdbTupleTypes.Nil:
-				{
+				{ // <00> => null
 					reader.Skip(1);
 					return Slice.Empty;
 				}
 
 				case FdbTupleTypes.StringAscii:
-				{
+				{ // <01>(bytes)<00>
 					return reader.ReadByteString();
 				}
 
 				case FdbTupleTypes.StringUtf8:
-				{
+				{ // <02>(utf8 bytes)<00>
 					return reader.ReadByteString();
+				}
+				case FdbTupleTypes.Guid:
+				{ // <03>(16 bytes)
+					return reader.ReadBytes(17);
 				}
 			}
 

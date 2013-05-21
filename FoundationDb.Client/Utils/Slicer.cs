@@ -97,7 +97,9 @@ namespace FoundationDb.Client
 					//TODO: decode \0\xFF ?
 					if (p < end && buffer[p] == 0xFF)
 					{
-						throw new NotSupportedException();
+						// skip the next byte and continue
+						p++;
+						continue;
 					}
 
 					this.Position = p - this.Buffer.Offset;

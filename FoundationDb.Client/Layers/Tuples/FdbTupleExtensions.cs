@@ -52,6 +52,9 @@ namespace FoundationDb.Client
 		{
 			object value = tuple[offset];
 			if (value == null) return 0;
+
+			if (value is long) return (int)((long)value);
+			if (value is int) return (int)value;
 			return Convert.ToInt32(value);
 		}
 
@@ -59,6 +62,8 @@ namespace FoundationDb.Client
 		{
 			object value = tuple[offset];
 			if (value == null) return 0L;
+
+			if (value is long) return (long)value;
 			return Convert.ToInt64(value);
 		}
 
@@ -66,9 +71,34 @@ namespace FoundationDb.Client
 		{
 			object value = tuple[offset];
 			if (value == null) return null;
+
 			var str = value as string;
 			if (str != null) return str;
 			return Convert.ToString(value, CultureInfo.InvariantCulture);
+		}
+
+		public static Guid GetGuid(this IFdbTuple tuple, int offset)
+		{
+			object value = tuple[offset];
+			if (value == null) return Guid.Empty;
+
+			if (value is Guid) return (Guid)value;
+
+			if (value is string)
+			{
+				// if the string length is 36 (32 digits and 4 dashes), is was encoded as a unicode string
+				var s = (string)value;
+				if (s.Length == 36 && s[8] == '-' && char.IsDigit(s[0]))
+				{
+					return Guid.Parse(value as string);
+				}
+			}
+			else if (value is byte[])
+			{
+				return new Guid(value as byte[]);
+			}
+
+			throw new FormatException("Cannot convert tuple value into Guid");
 		}
 
 		/// <summary>Returns an array containing all the objects of a tuple</summary>
