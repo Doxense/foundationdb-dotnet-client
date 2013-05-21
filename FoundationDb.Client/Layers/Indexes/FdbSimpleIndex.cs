@@ -72,7 +72,7 @@ namespace FoundationDb.Client.Tables
 
 		public async Task<List<TId>> LookupAsync(FdbTransaction trans, TValue value, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			var results = await trans.GetRangeAsync(this.Subspace.Append(value), snapshot, ct).ConfigureAwait(false);
+			var results = await trans.GetRangeStartsWithAsync(this.Subspace.Append(value), snapshot, ct).ConfigureAwait(false);
 			return results
 				.Page
 				.Select(kvp => FdbTuple.Unpack(kvp.Key))

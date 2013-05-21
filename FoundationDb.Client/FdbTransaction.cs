@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using FoundationDb.Client.Native;
 using FoundationDb.Client.Tuples;
+using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -366,6 +367,12 @@ namespace FoundationDb.Client
 			return result;
 		}
 
+		internal static FdbKeySelector ToSelector(Slice slice)
+		{
+			//TODO: check for null ? check for count == 0 ?
+			return FdbKeySelector.FirstGreaterOrEqual(slice);
+		}
+
 		internal Task<FdbSearchResults> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct)
 		{
 			Fdb.EnsureKeyIsValid(begin.Key);
@@ -393,20 +400,54 @@ namespace FoundationDb.Client
 			);
 		}
 
+		public Task<FdbSearchResults> GetRangeAsync(Slice beginInclusive, Slice endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;
+			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
+
+			return GetRangeAsync(
+				ToSelector(beginInclusive),
+				ToSelector(endExclusive),
+				snapshot,
+				ct
+			);
+		}
+
+		public Task<FdbSearchResults> GetRangeAsync(IFdbTuple beginInclusive, IFdbTuple endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			var begin = beginInclusive != null ? beginInclusive.ToSlice() : FdbKey.MinValue;
+			var end = endExclusive != null ? endExclusive.ToSlice() : FdbKey.MaxValue;
+
+			return GetRangeAsync(
+				ToSelector(begin),
+				ToSelector(end),
+				snapshot,
+				ct
+			);
+		}
+
 		public Task<FdbSearchResults> GetRangeInclusiveAsync(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			return GetRangeAsync(beginInclusive, endInclusive + 1, snapshot, ct);
 		}
 
-		public Task<FdbSearchResults> GetRangeAsync(IFdbTuple beginInclusive, IFdbTuple endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<FdbSearchResults> GetRangeStartsWithAsync(Slice prefix, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			return GetRangeAsync(prefix, FdbKey.Increment(prefix), snapshot, ct);
+		}
+
+		public Task<FdbSearchResults> GetRangeStartsWithAsync(IFdbTuple suffix, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			if (suffix == null) throw new ArgumentNullException("suffix");
+
+			var range = suffix.ToRange();
+
 			return GetRangeAsync(
-				FdbKeySelector.FirstGreaterOrEqual(beginInclusive),
-				FdbKeySelector.FirstGreaterThan(endExclusive),
+				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
+				FdbKeySelector.FirstGreaterThan(range.End),
 				snapshot,
 				ct
 			);
-			
 		}
 
 		public Task<FdbSearchResults> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
@@ -425,20 +466,6 @@ namespace FoundationDb.Client
 			Fdb.EnsureNotOnNetworkThread();
 
 			return GetRangeCoreAsync(beginInclusive, endExclusive, limit, targetBytes, mode, iteration, snapshot, reverse, ct);
-		}
-
-		public Task<FdbSearchResults> GetRangeAsync(IFdbTuple suffix, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (suffix == null) throw new ArgumentNullException("suffix");
-
-			var range = suffix.ToRange();
-
-			return GetRangeAsync(
-				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
-				FdbKeySelector.FirstGreaterThan(range.End),
-				snapshot,
-				ct
-			);
 		}
 
 		#endregion

@@ -95,7 +95,7 @@ namespace FoundationDb.Tests
 
 					Debug.WriteLine("GetRange((BigStrings,*)) ....");
 
-					results = await tr.GetRangeAsync(FdbTuple.Create("BigStrings"));
+					results = await tr.GetRangeStartsWithAsync(FdbTuple.Create("BigStrings"));
 
 					Debug.WriteLine("Found " + results.Page.Length + " results");
 					foreach (var kvp in results.Page)
