@@ -259,7 +259,7 @@ namespace FoundationDb.Tests
 				using (var tr = db.BeginTransaction())
 				{
 
-					for (int i = 0; i < 10; i++)
+					for (int i = 0; i < 1000; i++)
 					{
 						tr.Set(tuple.Append(i), Slice.FromAscii(i.ToString()));
 					}
@@ -271,13 +271,13 @@ namespace FoundationDb.Tests
 
 				using (var tr = db.BeginTransaction())
 				{
-					var res = await tr.GetRangeAsync(tuple.Append(0), tuple.Append(255));
+					var res = await tr.GetRangeAsync(tuple.Append(0), tuple.Append(1000));
 					Assert.That(res, Is.Not.Null);
 					Assert.That(res.Page, Is.Not.Null);
 
-					Assert.That(res.Page.Length, Is.EqualTo(10));
+					Assert.That(res.Page.Length, Is.EqualTo(1000));
 
-					for (int i = 0; i < 10; i++)
+					for (int i = 0; i < 1000; i++)
 					{
 						var kvp = res.Page[i];
 						Assert.That(kvp.Value.ToString(), Is.EqualTo(i.ToString()));

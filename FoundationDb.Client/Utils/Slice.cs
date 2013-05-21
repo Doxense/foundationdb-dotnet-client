@@ -323,11 +323,17 @@ namespace FoundationDb.Client
 		{
 			ulong value = 0;
 			var buffer = this.Array;
-			int p = UnsafeMapToOffset(offset) + bytes - 1;
-			while (bytes-- > 0)
+			int p = UnsafeMapToOffset(offset);
+			if (bytes > 0)
 			{
-				value <<= 8;
-				value |= buffer[p--];
+				value = buffer[p++];
+				--bytes;
+
+				while (bytes-- > 0)
+				{
+					value <<= 8;
+					value |= buffer[p++];
+				}
 			}
 			return value;
 		}
@@ -451,11 +457,18 @@ namespace FoundationDb.Client
 			return this.Count == other.Length && SameBytes(this.Array, this.Offset, other, 0, this.Count);
 		}
 
+		/// <summary>Compare two byte segments for equalit</summary>
+		/// <param name="left">Left buffer</param>
+		/// <param name="leftOffset">Start offset in left buffer</param>
+		/// <param name="right">Right buffer</param>
+		/// <param name="rightOffset">Start offset in right buffer</param>
+		/// <param name="count">Number of bytes to compare</param>
+		/// <returns>true if all bytes are the same in both segments</returns>
 		internal static bool SameBytes(byte[] left, int leftOffset, byte[] right, int rightOffset, int count)
 		{
-			Contract.Requires(count >= 0);
 			Contract.Requires(leftOffset >= 0);
 			Contract.Requires(rightOffset >= 0);
+			Contract.Requires(count >= 0);
 
 			if (left == null) return object.ReferenceEquals(right, null);
 			if (object.ReferenceEquals(left, right)) return leftOffset == rightOffset;
@@ -469,20 +482,40 @@ namespace FoundationDb.Client
 			return true;
 		}
 
+		/// <summary>Compare two byte segments lexicographically</summary>
+		/// <param name="left">Left buffer</param>
+		/// <param name="leftOffset">Start offset in left buffer</param>
+		/// <param name="leftCount">Number of bytes in left buffer</param>
+		/// <param name="right">Right buffer</param>
+		/// <param name="rightOffset">Start offset in right buffer</param>
+		/// <param name="rightCount">Number of bytes in right buffer</param>
+		/// <returns>Returns zero if segments are identical (same bytes), a negative value if left is lexicographically less than right, or a positive value if left is lexicographically greater than right</returns>
+		/// <remarks>The comparison algorithm respect the following:
+		/// * "A" &lt; "B"
+		/// * "A" &lt; "AA"
+		/// * "AA" &lt; "B"</remarks>
 		internal static int CompareBytes(byte[] left, int leftOffset, int leftCount, byte[] right, int rightOffset, int rightCount)
 		{
+			Contract.Requires(leftCount >= 0);
+			Contract.Requires(leftOffset >= 0);
+			Contract.Requires(rightCount >= 0);
+			Contract.Requires(rightOffset >= 0);
+
 			if (leftCount == rightCount && leftOffset == rightOffset && object.ReferenceEquals(left, right))
+			{ // same segment
 				return 0;
+			}
 
+			// Compare the common prefix
 			int n = Math.Min(leftCount, rightCount);
-
 			while (n-- > 0)
 			{
-				int d = right[rightOffset++] - left[leftOffset++];
+				int d = left[leftOffset++] - right[rightOffset++];
 				if (d != 0) return d;
 			}
 
-			return rightCount - leftCount;
+			// Same prefix, compare the lengths
+			return leftCount - rightCount;
 		}
 
 	}

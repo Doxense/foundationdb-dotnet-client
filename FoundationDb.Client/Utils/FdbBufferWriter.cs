@@ -377,12 +377,19 @@ namespace FoundationDb.Client.Utils
 				v = (ulong)(~(-value));
 			}
 
-			// TODO: unroll ?
-			while(bytes-- > 0)
+			if (bytes > 0)
 			{
+				// head
+				--bytes;
+				int shift = bytes << 3;
+
+				while (bytes--> 0)
+				{
+					buffer[p++] = (byte)(v >> shift);
+					shift -= 8;
+				}
+				// last
 				buffer[p++] = (byte)v;
-				//TODO: we don't need the last '>>='
-				v >>= 8;
 			}
 			this.Position = p;
 		}
@@ -425,13 +432,20 @@ namespace FoundationDb.Client.Utils
 			// simple case (ulong can only be positive)
 			buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
 
-			// TODO: unroll ?
-			while (bytes-- > 0)
+			if (bytes > 0)
 			{
+				int shift = bytes << 3;
+				// head
+				--bytes;
+				while (bytes-- > 0)
+				{
+					buffer[p++] = (byte)(value >> shift);
+					shift -= 8;
+				}
+				// last
 				buffer[p++] = (byte)value;
-				//TODO: we don't need the last '>>='
-				value >>= 8;
 			}
+
 			this.Position = p;
 		}
 

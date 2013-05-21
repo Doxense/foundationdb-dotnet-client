@@ -62,13 +62,13 @@ namespace FoundationDb.Tests
 			Assert.That(t3[1], Is.EqualTo(123));
 			Assert.That(t3[2], Is.EqualTo(false));
 
-			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, "four", "five", "six" });
+			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, 1234, -1234, "six" });
 			Assert.That(tn.Count, Is.EqualTo(6));
 			Assert.That(tn[0], Is.EqualTo("hello world"));
 			Assert.That(tn[1], Is.EqualTo(123));
 			Assert.That(tn[2], Is.EqualTo(false));
-			Assert.That(tn[3], Is.EqualTo("four"));
-			Assert.That(tn[4], Is.EqualTo("five"));
+			Assert.That(tn[3], Is.EqualTo(1234));
+			Assert.That(tn[4], Is.EqualTo(-1234));
 			Assert.That(tn[5], Is.EqualTo("six"));
 		}
 
@@ -87,10 +87,10 @@ namespace FoundationDb.Tests
 			Assert.That(t3[-2], Is.EqualTo(123));
 			Assert.That(t3[-3], Is.EqualTo("hello world"));
 
-			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, "four", "five", "six" });
+			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, 1234, -1234, "six" });
 			Assert.That(tn[-1], Is.EqualTo("six"));
-			Assert.That(tn[-2], Is.EqualTo("five"));
-			Assert.That(tn[-3], Is.EqualTo("four"));
+			Assert.That(tn[-2], Is.EqualTo(-1234));
+			Assert.That(tn[-3], Is.EqualTo(1234));
 			Assert.That(tn[-4], Is.EqualTo(false));
 			Assert.That(tn[-5], Is.EqualTo(123));
 			Assert.That(tn[-6], Is.EqualTo("hello world"));
@@ -104,8 +104,8 @@ namespace FoundationDb.Tests
 
 			Assert.That(t1.ToSlice(), Is.EqualTo(t2.ToSlice()));
 
-			t1 = FdbTuple.Create("hello world", 123);
-			t2 = FdbTuple.Create("hello world").Append(123);
+			t1 = FdbTuple.Create("hello world", 1234);
+			t2 = FdbTuple.Create("hello world").Append(1234);
 
 			Assert.That(t1.ToSlice(), Is.EqualTo(t2.ToSlice()));
 			
@@ -126,7 +126,7 @@ namespace FoundationDb.Tests
 
 			Assert.That(
 				FdbTuple.Create("hello world", 1234, -1234).ToSlice().ToString(),
-				Is.EqualTo("<02>hello world<00><16><D2><04><12>-<FB>")
+				Is.EqualTo("<02>hello world<00><16><04><D2><12><FB>-")
 			);
 
 			Assert.That(
@@ -140,23 +140,42 @@ namespace FoundationDb.Tests
 			);
 
 			Assert.That(
+				FdbTuple.Create(-1).ToSlice().ToString(),
+				Is.EqualTo("<13><FE>")
+			);
+
+			Assert.That(
+				FdbTuple.Create(-255).ToSlice().ToString(),
+				Is.EqualTo("<13><00>")
+			);
+
+			Assert.That(
+				FdbTuple.Create(-256).ToSlice().ToString(),
+				Is.EqualTo("<12><FE><FF>")
+			);
+			Assert.That(
+				FdbTuple.Create(-257).ToSlice().ToString(),
+				Is.EqualTo("<12><FE><FE>")
+			);
+
+			Assert.That(
 				FdbTuple.Create(int.MaxValue).ToSlice().ToString(),
-				Is.EqualTo("<18><FF><FF><FF><7F>")
+				Is.EqualTo("<18><7F><FF><FF><FF>")
 			);
 
 			Assert.That(
 				FdbTuple.Create(int.MinValue).ToSlice().ToString(),
-				Is.EqualTo("<10><FF><FF><FF><7F>")
+				Is.EqualTo("<10><7F><FF><FF><FF>")
 			);
 
 			Assert.That(
 				FdbTuple.Create(long.MaxValue).ToSlice().ToString(),
-				Is.EqualTo("<1C><FF><FF><FF><FF><FF><FF><FF><7F>")
+				Is.EqualTo("<1C><7F><FF><FF><FF><FF><FF><FF><FF>")
 			);
 
 			Assert.That(
 				FdbTuple.Create(long.MinValue).ToSlice().ToString(),
-				Is.EqualTo("<0C><FF><FF><FF><FF><FF><FF><FF><7F>")
+				Is.EqualTo("<0C><7F><FF><FF><FF><FF><FF><FF><FF>")
 			);
 
 		}
@@ -173,7 +192,7 @@ namespace FoundationDb.Tests
 			slice = Slice.Unescape("<15>{");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(123));
 
-			slice = Slice.Unescape("<16><D2><04>");
+			slice = Slice.Unescape("<16><04><D2>");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(1234));
 
 			slice = Slice.Unescape("<13><FE>");
@@ -182,25 +201,25 @@ namespace FoundationDb.Tests
 			slice = Slice.Unescape("<13><00>");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(-255));
 
-			slice = Slice.Unescape("<12><FF><FE>");
+			slice = Slice.Unescape("<12><FE><FF>");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(-256));
 
 			slice = Slice.Unescape("<12><00><00>");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(-65535));
 
-			slice = Slice.Unescape("<11><FF><FF><FE>");
+			slice = Slice.Unescape("<11><FE><FF><FF>");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(-65536));
 
-			slice = Slice.Unescape("<18><FF><FF><FF><7F>");
+			slice = Slice.Unescape("<18><7F><FF><FF><FF>");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(int.MaxValue));
 
-			slice = Slice.Unescape("<10><FF><FF><FF><7F>");
+			slice = Slice.Unescape("<10><7F><FF><FF><FF>");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(int.MinValue));
 
-			slice = Slice.Unescape("<1C><FF><FF><FF><FF><FF><FF><FF><7F>");
+			slice = Slice.Unescape("<1C><7F><FF><FF><FF><FF><FF><FF><FF>");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(long.MaxValue));
 
-			slice = Slice.Unescape("<0C><FF><FF><FF><FF><FF><FF><FF><7F>");
+			slice = Slice.Unescape("<0C><7F><FF><FF><FF><FF><FF><FF><FF>");
 			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(long.MinValue));
 
 		}
@@ -257,6 +276,42 @@ namespace FoundationDb.Tests
 			Assert.That(tuple[5], Is.EqualTo(long.MinValue));
 		}
 
+		[Test]
+		public void Test_FdbTuple_Numbers_Are_Sorted_Lexicographically()
+		{
+			// pick two numbers 'x' and 'y' at random, and check that the order of 'x' compared to 'y' is the same as 'pack(tuple(x))' compared to 'pack(tuple(y))'
+
+			// ie: ensure that x.CompareTo(y) always has the same sign as Tuple(x).CompareTo(Tuple(y))
+
+			const int N = 1 * 1000 * 1000;
+			var rnd = new Random();
+
+			for (int i = 0; i < N; i++)
+			{
+				int x = rnd.Next() - 1073741824;
+				int y = x;
+				while (y == x)
+				{
+					y = rnd.Next() - 1073741824;
+				}
+
+				var t1 = FdbTuple.Create(x).ToSlice();
+				var t2 = FdbTuple.Create(y).ToSlice();
+
+				int dint = x.CompareTo(y);
+				int dtup = t1.CompareTo(t2);
+
+				if (dtup == 0) Assert.Fail("Tuples for x={0} and y={1} should not have the same packed value", x, y);
+
+				// compare signs
+				if (Math.Sign(dint) != Math.Sign(dtup))
+				{
+					Assert.Fail("Tuples for x={0} and y={1} are not sorted properly ({2} / {3}): t(x)='{4}' and t(y)='{5}'", x, y, dint, dtup, t1.ToString(), t2.ToString());
+				}
+			}
+
+		}
 	}
+
 
 }
