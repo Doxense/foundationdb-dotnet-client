@@ -60,6 +60,8 @@ namespace FoundationDb.Client.Tables
 
 		public FdbSubspace Subspace { get; private set; }
 
+		public bool Snapshot { get; private set; }
+
 		public void AddOrUpdate(FdbTransaction trans, TId id, TValue value)
 		{
 			trans.Set(this.Subspace.Append(value, id), Slice.Empty);
@@ -70,14 +72,24 @@ namespace FoundationDb.Client.Tables
 			trans.Clear(this.Subspace.Append(value, id));
 		}
 
-		public async Task<List<TId>> LookupAsync(FdbTransaction trans, TValue value, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		/// <summary>Returns a list of ids matching a specific value</summary>
+		/// <param name="trans"></param>
+		/// <param name="value">Value to lookup</param>
+		/// <param name="reverse"></param>
+		/// <param name="ct"></param>
+		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
+		public Task<List<TId>> LookupAsync(FdbTransaction trans, TValue value, bool reverse = false, CancellationToken ct = default(CancellationToken))
 		{
-			var results = await trans.GetRangeStartsWithAsync(this.Subspace.Append(value), snapshot, ct).ConfigureAwait(false);
-			return results
-				.Page
-				.Select(kvp => FdbTuple.Unpack(kvp.Key))
-				.Select(tuple => (TId)(tuple[tuple.Count - 1]))
-				.ToList();
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
+			var results = trans.GetRangeStartsWith(this.Subspace.Append(value), 0, this.Snapshot, reverse);
+
+			//TODO: limits? paging? ...
+
+			return results.ReadAllAsync<TId>(
+				(key, _) => (TId) (FdbTuple.Unpack(key)[-1]),
+				ct
+			);
 		}
 
 	}

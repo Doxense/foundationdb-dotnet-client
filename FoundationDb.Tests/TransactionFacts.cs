@@ -30,7 +30,12 @@ using FoundationDb.Client;
 using FoundationDb.Client.Tuples;
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FoundationDb.Tests
@@ -241,7 +246,9 @@ namespace FoundationDb.Tests
 		[Test]
 		public async Task Test_Can_Get_Range()
 		{
-			// test that we can read and write simple keys
+			// test that we can get a range of keys
+
+			const int N = 1000; // total item count
 
 			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
 			{
@@ -254,34 +261,54 @@ namespace FoundationDb.Tests
 					await tr.CommitAsync();
 				}
 
-				// Set values from 0 to 9
+				// insert all values (batched)
+				Console.WriteLine("Inserting " + N.ToString("N0") + " keys...");
+				var insert = Stopwatch.StartNew();
 
 				using (var tr = db.BeginTransaction())
-				{
-
-					for (int i = 0; i < 1000; i++)
+				{ 
+					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(tuple.Append(i), Slice.FromAscii(i.ToString()));
+						tr.Set(tuple.Append(i), Slice.FromInt32(i));
 					}
 
 					await tr.CommitAsync();
 				}
+				insert.Stop();
 
-				// Read values
+				Console.WriteLine("Committed " + N + " keys in " + insert.Elapsed.TotalMilliseconds.ToString("N1") + " ms");
+
+				// GetRange values
 
 				using (var tr = db.BeginTransaction())
 				{
-					var res = await tr.GetRangeAsync(tuple.Append(0), tuple.Append(1000));
+					var res = tr.GetRange(tuple.Append(0), tuple.Append(N));
 					Assert.That(res, Is.Not.Null);
-					Assert.That(res.Page, Is.Not.Null);
 
-					Assert.That(res.Page.Length, Is.EqualTo(1000));
+					Console.WriteLine("Getting range " + res.Query.Begin + " -> " + res.Query.End + " ...");
 
-					for (int i = 0; i < 1000; i++)
+					var range = Stopwatch.StartNew();
+					var items = await res.ReadAllAsync();
+					range.Stop();
+					Assert.That(items, Is.Not.Null);
+					Assert.That(items.Count, Is.EqualTo(N));
+					Console.WriteLine("Took " + range.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + items.Count.ToString("N0") + " results");
+
+					for (int i = 0; i < N; i++)
 					{
-						var kvp = res.Page[i];
-						Assert.That(kvp.Value.ToString(), Is.EqualTo(i.ToString()));
-						//TODO: check key
+						var kvp = items[i];
+
+						// key should be a tuple in the correct order
+						var key = FdbTuple.Unpack(kvp.Key);
+
+						if (i % 128 == 0) Console.WriteLine(key.ToString() + " = " + kvp.Value.ToString());
+
+						Assert.That(key.Count, Is.EqualTo(2));
+						Assert.That(key.GetInt32(-1), Is.EqualTo(i));
+
+						// value should be a guid
+						Assert.That(kvp.Value.Count, Is.EqualTo(4));
+						Assert.That(BitConverter.ToInt32(kvp.Value.Array, kvp.Value.Offset), Is.EqualTo(i));
 					}
 				}
 

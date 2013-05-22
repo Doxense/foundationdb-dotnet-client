@@ -30,6 +30,7 @@ using FoundationDb.Client.Tuples;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace FoundationDb.Client
@@ -134,6 +135,92 @@ namespace FoundationDb.Client
 			}
 
 			return result;
+		}
+
+		/// <summary>Split a range of indexes into several batches</summary>
+		/// <param name="offset">Offset from which to start counting</param>
+		/// <param name="count">Total number of values that will be returned</param>
+		/// <param name="batchSize">Maximum size of each batch</param>
+		/// <returns>Collection of B batches each containing at most <paramref name="batchSize"/> contiguous indices, counting from <paramref name="offset"/> to (<paramref name="offset"/> + <paramref name="count"/> - 1)</returns>
+		/// <example>Batched(0, 100, 20) => [ {0..19}, {20..39}, {40..59}, {60..79}, {80..99} ]</example>
+		public static IEnumerable<IEnumerable<int>> Batched(int offset, int count, int batchSize)
+		{
+			while (count > 0)
+			{
+				int chunk = Math.Min(count, batchSize);
+				yield return Enumerable.Range(offset, chunk);
+				offset += chunk;
+				count -= chunk;
+			}
+		}
+
+		private class BatchIterator : IEnumerable<IEnumerable<KeyValuePair<int, int>>>
+		{
+			private readonly object m_lock = new object();
+			private int m_cursor;
+			private int m_remaining;
+
+			private readonly int m_offset;
+			private readonly int m_count;
+			private readonly int m_workers;
+			private readonly int m_batchSize;
+
+			public BatchIterator(int offset, int count, int workers, int batchSize)
+			{
+				m_offset = offset;
+				m_count = count;
+				m_workers = workers;
+				m_batchSize = batchSize;
+
+				m_cursor = offset;
+				m_remaining = count;
+			}
+
+			private KeyValuePair<int, int> GetChunk()
+			{
+				if (m_remaining == 0) return default(KeyValuePair<int, int>);
+
+				lock (m_lock)
+				{
+					int cursor = m_cursor;
+					int size = Math.Min(m_remaining, m_batchSize);
+
+					m_cursor += size;
+					m_remaining -= size;
+
+					return new KeyValuePair<int, int>(cursor, size);
+				}
+			}
+
+
+			public IEnumerator<IEnumerable<KeyValuePair<int, int>>> GetEnumerator()
+			{
+				for (int k = 0; k < m_workers; k++)
+				{
+					if (m_remaining == 0) yield break;
+					yield return WorkerIterator(k);
+				}
+			}
+
+			private IEnumerable<KeyValuePair<int, int>> WorkerIterator(int k)
+			{
+				while (true)
+				{
+					var chunk = GetChunk();
+					if (chunk.Value == 0) break;
+					yield return chunk;
+				}
+			}
+
+			System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
+			{
+				return this.GetEnumerator();
+			}
+		}
+
+		public static IEnumerable<IEnumerable<KeyValuePair<int, int>>> Batched(int offset, int count, int workers, int batchSize)
+		{
+			return new BatchIterator(offset, count, workers, batchSize);
 		}
 
 #if DEPRECATED

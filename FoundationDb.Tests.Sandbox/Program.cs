@@ -329,6 +329,94 @@ namespace FoundationDb.Tests.Sandbox
 
 		}
 
+		static async Task BenchBulkInsertThenBulkReadAsync(FdbDatabase db, int N, int K, int B, bool instrumented = false)
+		{
+			// test that we can bulk write / bulk read
+
+			var timings = instrumented ? new List<KeyValuePair<double, double>>() : null;
+
+			// put test values inside a namespace
+			var tuple = FdbTuple.Create("BulkInsert");
+
+			// cleanup everything
+			using (var tr = db.BeginTransaction())
+			{
+				tr.ClearRange(tuple);
+				await tr.CommitAsync();
+			}
+
+			// insert all values (batched)
+			Console.WriteLine("Inserting " + N.ToString("N0") + " keys: ");
+			var insert = Stopwatch.StartNew();
+			int batches = 0;
+			long bytes = 0;
+
+			var start = Stopwatch.StartNew();
+
+			var tasks = new List<Task>();
+			foreach (var worker in FdbKey.Batched(0, N, K, B))
+			{
+				//hack
+				tasks.Add(Task.Run(async () =>
+				{
+					foreach (var chunk in worker)
+					{
+						using (var tr = db.BeginTransaction())
+						{
+							int z = 0;
+							foreach (int i in Enumerable.Range(chunk.Key, chunk.Value))
+							{
+								tr.Set(tuple.Append(i), Slice.Create(new byte[256]));
+								z++;
+							}
+
+							//Console.Write("#");
+							//Console.WriteLine("  Commiting batch (" + tr.Size.ToString("N0") + " bytes) " + z + " keys");
+							var localStart = start.Elapsed.TotalSeconds;
+							await tr.CommitAsync();
+							var localDuration = start.Elapsed.TotalSeconds - localStart;
+							if (instrumented)
+							{
+								lock (timings) { timings.Add(new KeyValuePair<double, double>(localStart, localDuration)); }
+							}
+							Interlocked.Increment(ref batches);
+							Interlocked.Add(ref bytes, tr.Size);
+						}
+
+					}
+				}));
+
+			}
+			await Task.WhenAll(tasks);
+
+			insert.Stop();
+			Console.WriteLine("Committed " + batches + " batches in " + insert.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (insert.Elapsed.TotalMilliseconds / batches).ToString("N2") + " ms / batch, " + (insert.Elapsed.TotalMilliseconds * 1000 / N).ToString("N3") + " µs / item");
+			Console.WriteLine("Throughput " + (bytes / (1024.0 * 1024.0 * insert.Elapsed.TotalSeconds)).ToString("N3") + " MB/s");
+
+			if (instrumented)
+			{
+				var sb = new StringBuilder();
+				foreach (var kvp in timings)
+				{
+					sb.Append(kvp.Key.ToString()).Append(';').Append((kvp.Key + kvp.Value).ToString()).Append(';').Append(kvp.Value.ToString()).AppendLine();
+				}
+				System.IO.File.WriteAllText(@"c:\temp\fdb\timings_" + N + "_" + K + "_" + B + ".csv", sb.ToString());
+			}
+
+			// Read values
+
+			using (var tr = db.BeginTransaction())
+			{
+				var res = tr.GetRange(tuple.Append(0), tuple.Append(N));
+
+				Console.WriteLine("Reading all keys...");
+				var range = Stopwatch.StartNew();
+				var items = await res.ReadAllAsync();
+				range.Stop();
+				Console.WriteLine("Took " + range.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + items.Count.ToString("N0") + " results");
+			}
+		}
+
 		private static string FormatTimeMicro(double ms)
 		{
 			return (1000 * ms).ToString("N1") + "µs";
@@ -391,11 +479,11 @@ namespace FoundationDb.Tests.Sandbox
 						//await BenchConcurrentInsert(db, 1, 1000, 512);
 						//await BenchConcurrentInsert(db, 1, 10000, 512);
 
-						await BenchConcurrentInsert(db, 1, N, 16);
-						await BenchConcurrentInsert(db, 2, N, 16);
-						await BenchConcurrentInsert(db, 4, N, 16);
-						await BenchConcurrentInsert(db, 8, N, 16);
-						await BenchConcurrentInsert(db, 16, N, 16);
+						//await BenchConcurrentInsert(db, 1, N, 16);
+						//await BenchConcurrentInsert(db, 2, N, 16);
+						//await BenchConcurrentInsert(db, 4, N, 16);
+						//await BenchConcurrentInsert(db, 8, N, 16);
+						//await BenchConcurrentInsert(db, 16, N, 16);
 
 						//await BenchSerialReadAsync(db, N);
 
@@ -408,6 +496,10 @@ namespace FoundationDb.Tests.Sandbox
 						//await BenchUpdateSameKeyLotsOfTimesAsync(db, N);
 
 						//await BenchUpdateLotsOfKeysAsync(db, N);
+
+						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 50, 128);
+						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 128, 50);
+						//await BenchBulkInsertThenBulkReadAsync(db, 1 * 1000 * 1000, 50, 128);
 
 						//var k1 = FdbKey.Ascii("hello world");
 						//Console.WriteLine(k1.ToString());

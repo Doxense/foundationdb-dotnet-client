@@ -308,10 +308,7 @@ namespace FoundationDb.Client
 			for (int i = 0; i < keys.Length; i++)
 			{
 				//TODO: optimize to not have to allocate a scope
-				tasks.Add(Task.Factory.StartNew((_state) =>
-				{
-					return this.GetCoreAsync(keys[(int)_state], snapshot, ct);
-				}, i, ct).Unwrap());
+				tasks.Add(GetCoreAsync(keys[i], snapshot, ct));
 			}
 
 			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -356,116 +353,115 @@ namespace FoundationDb.Client
 
 		#region GetRange...
 
-		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more)
-		{
-			KeyValuePair<Slice, Slice>[] result;
-			var err = FdbNative.FutureGetKeyValueArray(h, out result, out more);
-#if DEBUG_TRANSACTIONS
-			Debug.WriteLine("FdbTransaction[].GetKeyValueArrayResult() => err=" + err + ", result=" + (result != null ? result.Length : -1) + ", more=" + more);
-#endif
-			Fdb.DieOnError(err);
-			return result;
-		}
-
 		internal static FdbKeySelector ToSelector(Slice slice)
 		{
 			//TODO: check for null ? check for count == 0 ?
 			return FdbKeySelector.FirstGreaterOrEqual(slice);
 		}
 
-		internal Task<FdbSearchResults> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct)
+		internal FdbRangeResults GetRangeCore(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
 		{
 			Fdb.EnsureKeyIsValid(begin.Key);
 			Fdb.EnsureKeyIsValid(end.Key);
 
-			var searchResults = new FdbSearchResults
+			var query = new FdbRangeQuery
 			{
-				Begin = begin,
-				End = end,
+				Begin = begin, 
+				End = end, 
+				Limit = limit, 
+				TargetBytes = targetBytes, 
+				Mode = mode, 
+				Snapshot = snapshot, 
 				Reverse = reverse,
-				Iteration = iteration,
 			};
 
-			var future = FdbNative.TransactionGetRange(m_handle, begin, end, limit, targetBytes, mode, iteration, snapshot, reverse);
-			return FdbFuture.CreateTaskFromHandle(
-				future,
-				(h) =>
-				{
-					bool hasMore;
-					searchResults.Page = GetKeyValueArrayResult(h, out hasMore);
-					searchResults.HasMore = hasMore;
-					return searchResults;
-				},
-				ct
-			);
+			return new FdbRangeResults(this, query);
 		}
 
-		public Task<FdbSearchResults> GetRangeAsync(Slice beginInclusive, Slice endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public FdbRangeResults GetRange(Slice beginInclusive, Slice endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
 			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;
 			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
 
-			return GetRangeAsync(
+			return GetRangeCore(
 				ToSelector(beginInclusive),
 				ToSelector(endExclusive),
+				limit,
+				0,
+				FdbStreamingMode.WantAll,
 				snapshot,
-				ct
+				reverse
 			);
 		}
 
-		public Task<FdbSearchResults> GetRangeAsync(IFdbTuple beginInclusive, IFdbTuple endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public FdbRangeResults GetRange(IFdbTuple beginInclusive, IFdbTuple endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
 			var begin = beginInclusive != null ? beginInclusive.ToSlice() : FdbKey.MinValue;
 			var end = endExclusive != null ? endExclusive.ToSlice() : FdbKey.MaxValue;
 
-			return GetRangeAsync(
+			return GetRangeCore(
 				ToSelector(begin),
 				ToSelector(end),
+				limit,
+				0,
+				FdbStreamingMode.WantAll,
 				snapshot,
-				ct
+				reverse
 			);
 		}
 
-		public Task<FdbSearchResults> GetRangeInclusiveAsync(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public FdbRangeResults GetRangeInclusive(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
-			return GetRangeAsync(beginInclusive, endInclusive + 1, snapshot, ct);
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
+			return GetRangeCore(beginInclusive, endInclusive + 1, limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
 		}
 
-		public Task<FdbSearchResults> GetRangeStartsWithAsync(Slice prefix, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public FdbRangeResults GetRangeStartsWith(Slice prefix, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
-			return GetRangeAsync(prefix, FdbKey.Increment(prefix), snapshot, ct);
+			if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
+
+			return GetRange(prefix, FdbKey.Increment(prefix), limit, snapshot, reverse);
 		}
 
-		public Task<FdbSearchResults> GetRangeStartsWithAsync(IFdbTuple suffix, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public FdbRangeResults GetRangeStartsWith(IFdbTuple suffix, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
 			if (suffix == null) throw new ArgumentNullException("suffix");
 
+			ThrowIfDisposed();
+			Fdb.EnsureNotOnNetworkThread();
+
 			var range = suffix.ToRange();
 
-			return GetRangeAsync(
+			return GetRangeCore(
 				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
 				FdbKeySelector.FirstGreaterThan(range.End),
+				limit,
+				0,
+				FdbStreamingMode.WantAll,
 				snapshot,
-				ct
+				reverse
 			);
 		}
 
-		public Task<FdbSearchResults> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public FdbRangeResults GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
-			ct.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			Fdb.EnsureNotOnNetworkThread();
 
-			return GetRangeCoreAsync(beginInclusive, endExclusive, limit: 0, targetBytes: 0, mode: FdbStreamingMode.WantAll, iteration: 0, snapshot: snapshot, reverse: false, ct: ct);
+			return GetRangeCore(beginInclusive, endExclusive, limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
 		}
 
-		public Task<FdbSearchResults> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse, CancellationToken ct = default(CancellationToken))
+		public FdbRangeResults GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
 		{
-			ct.ThrowIfCancellationRequested();
 			ThrowIfDisposed();
 			Fdb.EnsureNotOnNetworkThread();
 
-			return GetRangeCoreAsync(beginInclusive, endExclusive, limit, targetBytes, mode, iteration, snapshot, reverse, ct);
+			return GetRangeCore(beginInclusive, endExclusive, limit, targetBytes, mode, snapshot, reverse);
 		}
 
 		#endregion

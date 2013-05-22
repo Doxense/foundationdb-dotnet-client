@@ -82,23 +82,20 @@ namespace FoundationDb.Tests
 
 					Debug.WriteLine("GetRange('0'..'9') ....");
 		
-					var results = await tr.GetRangeAsync(
-						FdbKeySelector.FirstGreaterOrEqual(FdbKey.Ascii("0")),
-						FdbKeySelector.FirstGreaterThan(FdbKey.Ascii("9"))
-					);
+					var results = await tr.GetRange(FdbKey.Ascii("0"), FdbKey.Ascii("9")).ReadAllAsync();
 
-					Debug.WriteLine("Found " + results.Page.Length + " results");
-					foreach (var kvp in results.Page)
+					Debug.WriteLine("Found " + results.Count + " results");
+					foreach (var kvp in results)
 					{
 						Debug.WriteLine(kvp.Key + " : " + kvp.Value);
 					}
 
 					Debug.WriteLine("GetRange((BigStrings,*)) ....");
 
-					results = await tr.GetRangeStartsWithAsync(FdbTuple.Create("BigStrings"));
+					results = await tr.GetRangeStartsWith(FdbTuple.Create("BigStrings")).ReadAllAsync();
 
-					Debug.WriteLine("Found " + results.Page.Length + " results");
-					foreach (var kvp in results.Page)
+					Debug.WriteLine("Found " + results.Count + " results");
+					foreach (var kvp in results)
 					{
 						Debug.WriteLine(kvp.Key + " : " + kvp.Value);
 					}

@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using FoundationDb.Client.Tuples;
 using System;
 using System.Diagnostics;
+using System.Text;
 
 namespace FoundationDb.Client
 {
@@ -45,6 +46,18 @@ namespace FoundationDb.Client
 			this.Key = key;
 			this.OrEqual = orEqual;
 			this.Offset = offset;
+		}
+
+		public override string ToString()
+		{
+			var sb = new StringBuilder();
+			sb.Append("{\"");
+			sb.Append(this.Key.ToString());
+			sb.Append(this.OrEqual ? "\", true, " : "\", false, ");
+			if (Offset > 0) sb.Append('+');
+			sb.Append(Offset);
+			sb.Append('}');
+			return sb.ToString();
 		}
 
 		public static FdbKeySelector LastLessThan(IFdbTuple key)
