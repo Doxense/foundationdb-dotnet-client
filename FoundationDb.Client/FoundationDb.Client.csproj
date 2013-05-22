@@ -40,8 +40,10 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Converters\FdbConverters.cs" />
     <Compile Include="Layers\Tuples\FdbTupleTypes.cs" />
     <Compile Include="Layers\Tuples\FdbTuplePackers.cs" />
+    <Compile Include="Converters\IFdbConverter.cs" />
     <Compile Include="Utils\Slicer.cs" />
     <Compile Include="Layers\Tuples\FdbSlicedTuple.cs" />
     <Compile Include="Layers\Tuples\FdbTuple_T.cs" />
