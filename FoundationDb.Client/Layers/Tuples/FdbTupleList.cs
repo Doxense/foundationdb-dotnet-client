@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using FoundationDb.Client.Converters;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
@@ -70,6 +71,11 @@ namespace FoundationDb.Client.Tuples
 		public object this[int index]
 		{
 			get { return this.Items[FdbTuple.MapIndex(index, this.Count)]; }
+		}
+
+		public R Get<R>(int index)
+		{
+			return FdbConverters.ConvertBoxed<R>(this[index]);
 		}
 
 		IFdbTuple IFdbTuple.Append<T>(T value)

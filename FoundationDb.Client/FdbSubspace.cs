@@ -34,7 +34,7 @@ namespace FoundationDb.Client.Tuples
 {
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
-	public class FdbSubspace : IFdbTuple
+	public class FdbSubspace
 	{
 		/// <summary>Store a memoized version of the tuple to speed up serialization</summary>
 		private readonly FdbMemoizedTuple Tuple;
@@ -98,17 +98,7 @@ namespace FoundationDb.Client.Tuples
 			return writer.ToSlice();
 		}
 
-		int IFdbTuple.Count
-		{
-			get { return this.Tuple.Count; }
-		}
-
-		object IFdbTuple.this[int index]
-		{
-			get { return this.Tuple[index]; }
-		}
-		
-		public IFdbTuple Append<T>(T value)
+		public FdbLinkedTuple<T> Append<T>(T value)
 		{
 			return this.Tuple.Append<T>(value);
 		}
@@ -123,21 +113,6 @@ namespace FoundationDb.Client.Tuples
 			if (value == null) throw new ArgumentNullException("value");
 
 			return this.Tuple.Concat(value);
-		}
-
-		public void CopyTo(object[] array, int offset)
-		{
-			this.Tuple.CopyTo(array, offset);
-		}
-
-		IEnumerator<object> IEnumerable<object>.GetEnumerator()
-		{
-			return this.Tuple.GetEnumerator();
-		}
-
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return this.Tuple.GetEnumerator();
 		}
 
 		public override string ToString()

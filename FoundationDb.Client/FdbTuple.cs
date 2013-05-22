@@ -57,6 +57,11 @@ namespace FoundationDb.Client
 				get { throw new IndexOutOfRangeException(); }
 			}
 
+			public R Get<R>(int index)
+			{
+				throw new IndexOutOfRangeException();
+			}
+
 			IFdbTuple IFdbTuple.Append<T1>(T1 value)
 			{
 				return this.Append<T1>(value);

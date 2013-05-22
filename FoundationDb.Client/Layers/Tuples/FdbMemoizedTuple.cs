@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using FoundationDb.Client.Converters;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
@@ -80,9 +81,18 @@ namespace FoundationDb.Client.Tuples
 			get { return this.Items[FdbTuple.MapIndex(index, this.Items.Length)]; }
 		}
 
-		public IFdbTuple Append<T>(T value)
+		public R Get<R>(int index)
 		{
-			if (this.Items.Length == 0) return new FdbTuple<T>(value);
+			return FdbConverters.ConvertBoxed<R>(this[index]);
+		}
+
+		IFdbTuple IFdbTuple.Append<T>(T value)
+		{
+			return this.Append<T>(value);
+		}
+
+		public FdbLinkedTuple<T> Append<T>(T value)
+		{
 			return new FdbLinkedTuple<T>(this, value);
 		}
 
@@ -108,11 +118,12 @@ namespace FoundationDb.Client.Tuples
 
 	}
 
+	[DebuggerDisplay("Last={this.Last}, Depth={this.Depth}")]
 	public sealed class FdbLinkedTuple<T> : IFdbTuple
 	{
-		private readonly IFdbTuple Head;
-		private readonly int Depth;
-		private readonly T Tail;
+		public readonly IFdbTuple Head;
+		public readonly int Depth;
+		public readonly T Tail;
 
 		internal FdbLinkedTuple(IFdbTuple head, T tail)
 		{
@@ -145,13 +156,23 @@ namespace FoundationDb.Client.Tuples
 		{
 			get
 			{
-				if (index < this.Depth) return this.Head[index];
-				if (index == this.Depth) return this.Tail;
-				throw new IndexOutOfRangeException();
+				if (index == this.Depth || index == -1) return this.Tail;
+				return this.Head[index];
 			}
 		}
 
-		public IFdbTuple Append<R>(R value)
+		public R Get<R>(int index)
+		{
+			if (index == this.Depth || index == -1) return FdbConverters.Convert<T, R>(this.Tail);
+			return this.Head.Get<R>(index);
+		}
+
+		IFdbTuple IFdbTuple.Append<R>(R value)
+		{
+			return this.Append<R>(value);
+		}
+
+		public FdbLinkedTuple<R> Append<R>(R value)
 		{
 			return new FdbLinkedTuple<R>(this, value);
 		}

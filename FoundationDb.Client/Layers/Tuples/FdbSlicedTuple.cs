@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using FoundationDb.Client.Converters;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
@@ -62,6 +63,11 @@ namespace FoundationDb.Client.Tuples
 		public object this[int index]
 		{
 			get { return FdbTuplePackers.DeserializeObject(GetSlice(index)); }
+		}
+
+		public R Get<R>(int index)
+		{
+			return FdbConverters.ConvertBoxed<R>(FdbTuplePackers.DeserializeObject(GetSlice(index)));
 		}
 
 		public Slice GetSlice(int index)

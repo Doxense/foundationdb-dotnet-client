@@ -53,6 +53,8 @@ namespace FoundationDb.Client
 		/// <exception cref="System.IndexOutOfRangeException">If index if outside the bounds of the tuple</exception>
 		object this[int index] { get; }
 
+		T Get<T>(int index);
+
 		/// <summary>Create a new Tuple by appending a new value at the end the this tuple</summary>
 		/// <typeparam name="T">Type of the new value</typeparam>
 		/// <param name="value">Value that will be appended at the end</param>

@@ -43,42 +43,56 @@ namespace FoundationDb.Client
 
 		public static bool GetBoolean(this IFdbTuple tuple, int offset)
 		{
+			return tuple.Get<bool>(offset);
+#if REFACTORED
 			object value = tuple[offset];
 			if (value == null) return false;
 			return Convert.ToBoolean(value);
+#endif
 		}
 
 		public static int GetInt32(this IFdbTuple tuple, int offset)
 		{
+			return tuple.Get<Int32>(offset);
+#if REFACTORED
 			object value = tuple[offset];
 			if (value == null) return 0;
 
 			if (value is long) return (int)((long)value);
 			if (value is int) return (int)value;
 			return Convert.ToInt32(value);
+#endif
 		}
 
 		public static long GetInt64(this IFdbTuple tuple, int offset)
 		{
+			return tuple.Get<Int64>(offset);
+#if REFACTORED
 			object value = tuple[offset];
 			if (value == null) return 0L;
 
 			if (value is long) return (long)value;
 			return Convert.ToInt64(value);
+#endif
 		}
 
 		public static string GetString(this IFdbTuple tuple, int offset)
 		{
+			return tuple.Get<string>(offset);
+#if REFACTORED
 			object value = tuple[offset];
 			if (value == null) return null;
 
 			var str = value as string;
 			if (str != null) return str;
 			return Convert.ToString(value, CultureInfo.InvariantCulture);
+#endif
 		}
 
 		public static Guid GetGuid(this IFdbTuple tuple, int offset)
 		{
+			return tuple.Get<Guid>(offset);
+#if REFACTORED
 			object value = tuple[offset];
 			if (value == null) return Guid.Empty;
 
@@ -99,6 +113,7 @@ namespace FoundationDb.Client
 			}
 
 			throw new FormatException("Cannot convert tuple value into Guid");
+#endif
 		}
 
 		/// <summary>Returns an array containing all the objects of a tuple</summary>

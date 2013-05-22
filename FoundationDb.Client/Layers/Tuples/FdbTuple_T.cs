@@ -26,6 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using FoundationDb.Client.Converters;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
@@ -60,6 +61,12 @@ namespace FoundationDb.Client.Tuples
 					default: throw new IndexOutOfRangeException();
 				}
 			}
+		}
+
+		public R Get<R>(int index)
+		{
+			if (index == 0 || index == -1) return FdbConverters.Convert<T1, R>(this.Item1);
+			throw new IndexOutOfRangeException();
 		}
 
 		public void PackTo(FdbBufferWriter writer)
@@ -139,6 +146,13 @@ namespace FoundationDb.Client.Tuples
 					default: throw new IndexOutOfRangeException();
 				}
 			}
+		}
+
+		public R Get<R>(int index)
+		{
+			if (index == 0 || index == -2) return FdbConverters.Convert<T1, R>(this.Item1);
+			if (index == 1 || index == -1) return FdbConverters.Convert<T2, R>(this.Item2);
+			throw new IndexOutOfRangeException();
 		}
 
 		public void PackTo(FdbBufferWriter writer)
@@ -227,6 +241,17 @@ namespace FoundationDb.Client.Tuples
 					case 2: case -1: return this.Item3;
 					default: throw new IndexOutOfRangeException();
 				}
+			}
+		}
+
+		public R Get<R>(int index)
+		{
+			switch(index)
+			{
+					case 0: case -3: return FdbConverters.Convert<T1, R>(this.Item1);
+					case 1: case -2: return FdbConverters.Convert<T2, R>(this.Item2);
+					case 2: case -1: return FdbConverters.Convert<T3, R>(this.Item3);
+					default: throw new IndexOutOfRangeException();
 			}
 		}
 
@@ -324,6 +349,18 @@ namespace FoundationDb.Client.Tuples
 					case 3: case -1: return this.Item4;
 					default: throw new IndexOutOfRangeException();
 				}
+			}
+		}
+
+		public R Get<R>(int index)
+		{
+			switch (index)
+			{
+				case 0: case -4: return FdbConverters.Convert<T1, R>(this.Item1);
+				case 1: case -3: return FdbConverters.Convert<T2, R>(this.Item2);
+				case 2: case -2: return FdbConverters.Convert<T3, R>(this.Item3);
+				case 3: case -1: return FdbConverters.Convert<T4, R>(this.Item4);
+				default: throw new IndexOutOfRangeException();
 			}
 		}
 
@@ -428,6 +465,20 @@ namespace FoundationDb.Client.Tuples
 					case 4: case -1: return this.Item5;
 					default: throw new IndexOutOfRangeException();
 				}
+			}
+		}
+
+
+		public R Get<R>(int index)
+		{
+			switch (index)
+			{
+				case 0: case -5: return FdbConverters.Convert<T1, R>(this.Item1);
+				case 1: case -4: return FdbConverters.Convert<T2, R>(this.Item2);
+				case 2: case -3: return FdbConverters.Convert<T3, R>(this.Item3);
+				case 3: case -2: return FdbConverters.Convert<T4, R>(this.Item4);
+				case 4: case -1: return FdbConverters.Convert<T5, R>(this.Item5);
+				default: throw new IndexOutOfRangeException();
 			}
 		}
 

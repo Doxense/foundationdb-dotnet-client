@@ -138,6 +138,12 @@ namespace FoundationDb.Client
 			return Slice.Create(BitConverter.GetBytes(value));
 		}
 
+		public static Slice FromGuid(Guid value)
+		{
+			//TODO: optimize !
+			return new Slice(value.ToByteArray(), 0, 16);
+		}
+
 		public static Slice FromAscii(string text)
 		{
 			return text == null ? Slice.Nil : text.Length == 0 ? Slice.Empty : Slice.Create(Encoding.Default.GetBytes(text));
