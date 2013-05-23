@@ -314,5 +314,38 @@ namespace FoundationDb.Tests
 
 			}
 		}
+
+		[Test]
+		public async Task Test_Has_Access_To_System_Keys()
+		{
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+
+				using (var tr = db.BeginTransaction())
+				{
+
+					// should fail if access to system keys has not been requested
+
+					try
+					{
+						var _ = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), limit: 10).ReadAllAsync();
+						Assert.Fail("Should not have access to system keys by default");
+					}
+					catch (Exception e)
+					{
+						Assert.That(e, Is.InstanceOf<FdbException>());
+						var x = (FdbException)e;
+						Assert.That(x.Code, Is.EqualTo(FdbError.KeyOutsideLegalRange));
+					}
+
+					// should succeed once system access has been requested
+					tr.WithAccessToSystemKeys();
+
+					var keys = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), limit: 10).ReadAllAsync();
+					Assert.That(keys, Is.Not.Null);
+				}
+
+			}
+		}
 	}
 }
