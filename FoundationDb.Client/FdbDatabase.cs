@@ -210,6 +210,23 @@ namespace FoundationDb.Client
 			}
 		}
 
+		#region System Keys...
+
+		/// <summary>Returns a string describing the list of the coordinators for the cluster</summary>
+		public async Task<string> GetCoordinatorsAsync()
+		{
+			using (var tr = BeginTransaction())
+			{
+				tr.WithAccessToSystemKeys();
+
+				var result = await tr.GetAsync(Slice.FromAscii("\xFF/coordinators"));
+				return result.ToAscii();
+			}
+		}
+
+		#endregion
+
+
 	}
 
 }

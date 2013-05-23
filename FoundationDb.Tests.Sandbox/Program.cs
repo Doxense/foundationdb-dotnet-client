@@ -452,6 +452,10 @@ namespace FoundationDb.Tests.Sandbox
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
+						// get coordinators
+						string coordinators = await db.GetCoordinatorsAsync();
+						Console.WriteLine("Coordinators: " + coordinators);
+
 						// clear everything
 						using (var tr = db.BeginTransaction())
 						{

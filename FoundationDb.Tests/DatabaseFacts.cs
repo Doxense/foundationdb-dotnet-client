@@ -55,6 +55,9 @@ namespace FoundationDb.Tests
 		{
 			using (var cluster = await Fdb.OpenLocalClusterAsync())
 			{
+				Assert.That(cluster, Is.Not.Null);
+				Assert.That(cluster.Path, Is.Null);
+
 				using (var db = await cluster.OpenDatabaseAsync("DB"))
 				{
 					Assert.That(db, Is.Not.Null, "Should return a valid object");
@@ -86,6 +89,28 @@ namespace FoundationDb.Tests
 			using (var cluster = await Fdb.OpenLocalClusterAsync())
 			{
 				Assert.Throws<InvalidOperationException>(() => cluster.OpenDatabaseAsync("SomeOtherName").GetAwaiter().GetResult());
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Open_Local_Database()
+		{
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				Assert.That(db, Is.Not.Null, "Should return a valid database");
+				Assert.That(db.Cluster, Is.Not.Null, "FdbDatabase should have its own Cluster instance");
+				Assert.That(db.Cluster.Path, Is.Null, "Cluster path should be null (default)");
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Coordinators()
+		{
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				var coordinators = await db.GetCoordinatorsAsync();
+				Console.WriteLine("Coordinators: " + coordinators);
+				Assert.That(coordinators, Is.StringStarting("local:"));
 			}
 		}
 
