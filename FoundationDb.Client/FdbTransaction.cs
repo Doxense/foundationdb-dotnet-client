@@ -425,7 +425,9 @@ namespace FoundationDb.Client
 		{
 			if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
 
-			return GetRange(prefix, FdbKey.Increment(prefix), limit, snapshot, reverse);
+			var range = FdbKeyRange.FromPrefix(prefix);
+
+			return GetRange(range.Begin, range.End, limit, snapshot, reverse);
 		}
 
 		public FdbRangeResults GetRangeStartsWith(IFdbTuple suffix, int limit = 0, bool snapshot = false, bool reverse = false)

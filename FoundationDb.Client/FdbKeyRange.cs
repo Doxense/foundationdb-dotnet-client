@@ -27,10 +27,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using System;
+using System.Diagnostics;
 
 namespace FoundationDb.Client
 {
 
+	[DebuggerDisplay("Begin={this.Begin}, End={this.end}")]
 	public struct FdbKeyRange
 	{
 		public readonly Slice Begin;
@@ -40,6 +42,29 @@ namespace FoundationDb.Client
 		{
 			this.Begin = begin;
 			this.End = end;
+		}
+
+		/// <summary>Convert a prefix key into a range "key\x00".."key\xFF"</summary>
+		/// <param name="prefix">Key prefix</param>
+		/// <returns>Range including all keys with the specified prefix</returns>
+		public static FdbKeyRange FromPrefix(Slice prefix)
+		{
+			int n = prefix.Count + 1;
+
+			var tmp = new byte[n + 2];
+			int p = 0;
+			// first segment will contain prefix + '\x00'
+			prefix.CopyTo(tmp, 0);
+			tmp[n - 1] = 0;
+
+			// second segment will contain prefix + '\xFF'
+			prefix.CopyTo(tmp, n);
+			tmp[(n << 1) - 1] = 0xFF;
+
+			return new FdbKeyRange(
+				new Slice(tmp, 0, n),
+				new Slice(tmp, n, n)
+			);
 		}
 
 		public FdbKeySelector BeginIncluded
@@ -68,6 +93,11 @@ namespace FoundationDb.Client
 		public bool Contains(Slice key)
 		{
 			return key.CompareTo(this.Begin) >= 0 && key.CompareTo(this.End) <= 0;
+		}
+
+		public override string ToString()
+		{
+			return "{\"" + this.Begin.ToString() + "\", \"" + this.End.ToString() + "}";
 		}
 	}
 

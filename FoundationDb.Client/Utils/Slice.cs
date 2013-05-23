@@ -359,6 +359,35 @@ namespace FoundationDb.Client
 			return this.Offset + p;
 		}
 
+		/// <summary>Copy this slice into another buffer</summary>
+		/// <param name="buffer">Buffer where to copy this slice</param>
+		/// <param name="offset">Offset into the destination buffer</param>
+		public void CopyTo(byte[] buffer, int offset)
+		{
+			if (buffer == null) throw new ArgumentNullException("buffer");
+			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
+
+			if (this.Count > 0)
+			{
+				Buffer.BlockCopy(this.Array, this.Offset, buffer, offset, this.Count);
+			}
+		}
+
+		/// <summary>Copy this slice into another buffer</summary>
+		/// <param name="buffer">Buffer where to copy this slice</param>
+		/// <param name="offset">Offset into the destination buffer</param>
+		public void Append(byte[] buffer, ref int cursor)
+		{
+			if (buffer == null) throw new ArgumentNullException("buffer");
+			if (cursor < 0) throw new ArgumentOutOfRangeException("offset");
+
+			if (this.Count > 0)
+			{
+				Buffer.BlockCopy(this.Array, this.Offset, buffer, cursor, this.Count);
+			}
+			cursor += this.Count;
+		}
+
 		/// <summary>Returns the value of one byte in the slice</summary>
 		/// <param name="index">Offset of the byte (negative values means start from the end)</param>
 		public byte this[int index]

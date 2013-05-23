@@ -93,8 +93,7 @@ namespace FoundationDb.Client
 		public static Slice Increment(Slice buffer)
 		{
 			if (!buffer.HasValue) throw new ArgumentException("Cannot increment null buffer");
-			var tmp = new byte[buffer.Count];
-			Array.Copy(buffer.Array, 0, tmp, 0, tmp.Length);
+			var tmp = buffer.GetBytes();
 			int n = tmp.Length - 1;
 			while (n >= 0)
 			{
