@@ -42,11 +42,26 @@ namespace FoundationDb.Client
 	public static class Fdb
 	{
 
-		/// <summary>Default path to the native C API library</summary>
-		public static string NativeLibPath = ".";
+		public static class Options
+		{
 
-		/// <summary>Default path to the network thread tracing file</summary>
-		public static string TracePath = null;
+			/// <summary>Default path to the native C API library</summary>
+			public static string NativeLibPath = ".";
+
+			/// <summary>Default path to the network thread tracing file</summary>
+			public static string TracePath = null;
+
+			public static void SetNativeLibPath(string path)
+			{
+				Fdb.Options.NativeLibPath = path;
+			}
+
+			public static void SetTraceEnable(string outputDirectory)
+			{
+				Fdb.Options.TracePath = outputDirectory;
+			}
+
+		}
 
 		/// <summary>Flag indicating if FDB has been initialized or not</summary>
 		private static bool s_started;
@@ -402,15 +417,15 @@ namespace FoundationDb.Client
 
 			Debug.WriteLine("Setting up Network Thread...");
 
-			if (TracePath != null)
+			if (Fdb.Options.TracePath != null)
 			{
-				Debug.WriteLine("Will trace client activity in " + TracePath);
+				Debug.WriteLine("Will trace client activity in " + Fdb.Options.TracePath);
 				// create trace directory if missing...
-				if (!Directory.Exists(TracePath)) Directory.CreateDirectory(TracePath);
+				if (!Directory.Exists(Fdb.Options.TracePath)) Directory.CreateDirectory(Fdb.Options.TracePath);
 
 				unsafe
 				{
-					var data = FdbNative.ToNativeString(TracePath, nullTerminated: true);
+					var data = FdbNative.ToNativeString(Fdb.Options.TracePath, nullTerminated: true);
 					fixed (byte* ptr = data.Array)
 					{
 						DieOnError(FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr + data.Offset, data.Count));

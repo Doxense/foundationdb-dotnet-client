@@ -427,7 +427,7 @@ namespace FoundationDb.Tests.Sandbox
 			const int N = 16000;
 			const string NATIVE_PATH = @"C:\Program Files\foundationdb\bin";
 
-			Fdb.NativeLibPath = NATIVE_PATH;
+			Fdb.Options.SetNativeLibPath(NATIVE_PATH);
 
 			// uncomment this to enable network thread tracing
 			//FdbCore.TracePath = Path.Combine(Path.GetTempPath(), "fdb");
