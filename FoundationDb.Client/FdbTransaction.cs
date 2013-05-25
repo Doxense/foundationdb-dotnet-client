@@ -654,9 +654,50 @@ namespace FoundationDb.Client
 			catch (Exception)
 			{
 				if (handle != null) handle.Dispose();
+				throw;
 			}
 		}
 
+		#endregion
+
+		#region OnError...
+
+		public Task OnErrorAsync(FdbError code, CancellationToken ct = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			var future = FdbNative.TransactionOnError(m_handle, code);
+			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
+		}
+
+		public void OnError(FdbError code, CancellationToken ct = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			FutureHandle handle = null;
+			try
+			{
+				// calls fdb_transaction_on_error
+				handle = FdbNative.TransactionOnError(m_handle, code);
+				using (var future = FdbFuture.FromHandle<object>(handle, (h) => null, ct, willBlockForResult: true))
+				{
+					future.Wait();
+				}
+			}
+			catch (Exception)
+			{
+				if (handle != null) handle.Dispose();
+				throw;
+			}
+		}
 		#endregion
 
 		#region Reset/Rollback...

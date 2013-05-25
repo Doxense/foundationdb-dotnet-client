@@ -486,8 +486,13 @@ namespace FoundationDb.Client.Native
 			Debug.WriteLine("fdb_transaction_commit(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
 #endif
 			return future;
+		}
 
+		public static FutureHandle TransactionOnError(TransactionHandle transaction, FdbError errorCode)
+		{
+			var future = Stubs.fdb_transaction_on_error(transaction, errorCode);
 #if DEBUG_NATIVE_CALLS
+			Debug.WriteLine("fdb_transaction_on_error(0x" + transaction.Handle.ToString("x") + ", " + errorCode + ") => 0x" + future.Handle.ToString("x"));
 #endif
 			return future;
 		}
