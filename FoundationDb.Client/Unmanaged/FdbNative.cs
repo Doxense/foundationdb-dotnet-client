@@ -270,14 +270,13 @@ namespace FoundationDb.Client.Native
 		/// <summary>fdb_get_error</summary>
 		public static string GetError(FdbError code)
 		{
-			//EnsureLibraryIsLoaded();
 			return ToManagedString(Stubs.fdb_get_error(code));
 		}
 
 		/// <summary>fdb_select_api_impl</summary>
 		public static FdbError SelectApiVersionImpl(int runtimeVersion, int headerVersion)
 		{
-			//EnsureLibraryIsLoaded();
+			EnsureLibraryIsLoaded();
 			return Stubs.fdb_select_api_version_impl(runtimeVersion, headerVersion);
 		}
 
@@ -290,7 +289,7 @@ namespace FoundationDb.Client.Native
 		/// <summary>fdb_get_max_api_version</summary>
 		public static int GetMaxApiVersion()
 		{
-			//EnsureLibraryIsLoaded();
+			EnsureLibraryIsLoaded();
 			return Stubs.fdb_get_max_api_version();
 		}
 
@@ -300,19 +299,19 @@ namespace FoundationDb.Client.Native
 
 		public static bool FutureIsReady(FutureHandle futureHandle)
 		{
-			//EnsureLibraryIsLoaded();
 			return Stubs.fdb_future_is_ready(futureHandle);
 		}
 
 		public static void FutureDestroy(IntPtr futureHandle)
 		{
-			//EnsureLibraryIsLoaded();
-			Stubs.fdb_future_destroy(futureHandle);
+			if (futureHandle != IntPtr.Zero)
+			{
+				Stubs.fdb_future_destroy(futureHandle);
+			}
 		}
 
 		public static bool FutureIsError(FutureHandle futureHandle)
 		{
-			//EnsureLibraryIsLoaded();
 			return Stubs.fdb_future_is_error(futureHandle);
 		}
 
@@ -321,14 +320,11 @@ namespace FoundationDb.Client.Native
 		/// <returns></returns>
 		public static FdbError FutureGetError(FutureHandle future)
 		{
-			//EnsureLibraryIsLoaded();
 			return Stubs.fdb_future_get_error(future, null);
 		}
 
 		public static FdbError FutureGetError(FutureHandle future, out string description)
 		{
-			//EnsureLibraryIsLoaded();
-
 			var ptr = IntPtr.Zero;
 			var err = Stubs.fdb_future_get_error(future, &ptr);
 			description = ToManagedString(ptr);
@@ -337,8 +333,6 @@ namespace FoundationDb.Client.Native
 
 		public static FdbError FutureBlockUntilReady(FutureHandle future)
 		{
-			//EnsureLibraryIsLoaded();
-
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("calling fdb_future_block_until_ready(0x" + future.Handle.ToString("x") + ")...");
 #endif
@@ -351,8 +345,6 @@ namespace FoundationDb.Client.Native
 
 		public static FdbError FutureSetCallback(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter)
 		{
-			//EnsureLibraryIsLoaded();
-
 			var ptrCallback = Marshal.GetFunctionPointerForDelegate(callback);
 			var err = Stubs.fdb_future_set_callback(future, ptrCallback, callbackParameter);
 #if DEBUG_NATIVE_CALLS
@@ -400,41 +392,18 @@ namespace FoundationDb.Client.Native
 			Debug.WriteLine("fdb_create_cluster(" + path + ") => 0x" + future.Handle.ToString("x"));
 #endif
 			return future;
-
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-
-			var data = ToNativeString(path, nullTerminated: true);
-			fixed (byte* ptr = data.Array)
-			{
-				var future = new FutureHandle();
-				var handle = Stubs.fdb_create_cluster(ptr + data.Offset);
-#if DEBUG_NATIVE_CALLS
-				Debug.WriteLine("fdb_create_cluster(" + path + ") => 0x" + handle.ToString("x"));
-#endif
-				future.TrySetHandle(handle);
-				return future;
-			}
-#endif
 		}
 
 		public static void ClusterDestroy(IntPtr handle)
 		{
-			Stubs.fdb_cluster_destroy(handle);
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
+			if (handle != IntPtr.Zero)
 			{
 				Stubs.fdb_cluster_destroy(handle);
 			}
-#endif
 		}
 
 		public static FdbError ClusterSetOption(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength)
 		{
-			//EnsureLibraryIsLoaded();
 			return Stubs.fdb_cluster_set_option(cluster, option, value, valueLength);
 		}
 
@@ -446,26 +415,6 @@ namespace FoundationDb.Client.Native
 #endif
 			//TODO: check if err == Success ?
 			return err;
-
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-			cluster = new ClusterHandle();
-			FdbError err;
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				IntPtr handle;
-				err = Stubs.fdb_future_get_cluster(future, out handle);
-#if DEBUG_NATIVE_CALLS
-				Debug.WriteLine("fdb_future_get_cluster(0x" + future.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + handle.ToString("x"));
-#endif
-				//TODO: check is err == Success ?
-				cluster.TrySetHandle(handle);
-			}
-			return err;
-#endif
 		}
 
 		#endregion
@@ -480,29 +429,10 @@ namespace FoundationDb.Client.Native
 #endif
 			//TODO: check if err == Success ?
 			return err;
-
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-
-			database = new DatabaseHandle();
-			FdbError err;
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				IntPtr handle;
-				err = Stubs.fdb_future_get_database(future.Handle, out handle);
-				//TODO: check is err == Success ?
-				database.TrySetHandle(handle);
-			}
-			return err;
-#endif
 		}
 
 		public static FdbError DatabaseSetOption(DatabaseHandle database, FdbDatabaseOption option, byte* value, int valueLength)
 		{
-			//EnsureLibraryIsLoaded();
 			return Stubs.fdb_database_set_option(database, option, value, valueLength);
 		}
 
@@ -512,17 +442,6 @@ namespace FoundationDb.Client.Native
 			{
 				Stubs.fdb_database_destroy(handle);
 			}
-
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				Stubs.fdb_database_destroy(handle);
-			}
-#endif
 		}
 
 		public static FutureHandle ClusterCreateDatabase(ClusterHandle cluster, string name)
@@ -532,28 +451,6 @@ namespace FoundationDb.Client.Native
 			Debug.WriteLine("fdb_cluster_create_database(0x" + cluster.Handle.ToString("x") + ", name: '" + name + "') => 0x" + cluster.Handle.ToString("x"));
 #endif
 			return future;
-
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-
-			var data = ToNativeString(name, nullTerminated: false);
-			fixed (byte* ptr = data.Array)
-			{
-				var future = new FutureHandle();
-
-				RuntimeHelpers.PrepareConstrainedRegions();
-				try { }
-				finally
-				{
-					var handle = Stubs.fdb_cluster_create_database(cluster, ptr + data.Offset, data.Count);
-#if DEBUG_NATIVE_CALLS
-					Debug.WriteLine("fdb_cluster_create_database(0x" + cluster.Handle.ToString("x") + ", name: '" + name + "') => 0x" + handle.ToString("x"));
-#endif
-					future.TrySetHandle(handle);
-				}
-				return future;
-			}
-#endif
 		}
 
 		#endregion
@@ -566,21 +463,10 @@ namespace FoundationDb.Client.Native
 			{
 				Stubs.fdb_transaction_destroy(handle);
 			}
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				Stubs.fdb_transaction_destroy(handle);
-			}
-#endif
 		}
 
 		public static FdbError TransactionSetOption(TransactionHandle transaction, FdbTransactionOption option, byte* value, int valueLength)
 		{
-			//EnsureLibraryIsLoaded();
 			return Stubs.fdb_transaction_set_option(transaction, option, value, valueLength);
 		}
 
@@ -591,25 +477,6 @@ namespace FoundationDb.Client.Native
 			Debug.WriteLine("fdb_database_create_transaction(0x" + database.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + transaction.Handle.ToString("x"));
 #endif
 			return err;
-
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-			transaction = new TransactionHandle();
-			FdbError err;
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				IntPtr handle;
-				err = Stubs.fdb_database_create_transaction(database, out handle);
-#if DEBUG_NATIVE_CALLS
-				Debug.WriteLine("fdb_database_create_transaction(0x" + database.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + handle.ToString("x"));
-#endif
-				transaction.TrySetHandle(handle);
-			}
-			return err;
-#endif
 		}
 
 		public static FutureHandle TransactionCommit(TransactionHandle transaction)
@@ -620,22 +487,9 @@ namespace FoundationDb.Client.Native
 #endif
 			return future;
 
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-			var future = new FutureHandle();
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				var handle = Stubs.fdb_transaction_commit(transaction);
 #if DEBUG_NATIVE_CALLS
-				Debug.WriteLine("fdb_transaction_commit(0x" + transaction.Handle.ToString("x") + ") => 0x" + handle.ToString("x"));
 #endif
-				future.TrySetHandle(handle);
-			}
 			return future;
-#endif
 		}
 
 		public static void TransactionReset(TransactionHandle transaction)
@@ -661,23 +515,6 @@ namespace FoundationDb.Client.Native
 			Debug.WriteLine("fdb_transaction_get_read_version(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
 #endif
 			return future;
-
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-			var future = new FutureHandle();
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				var handle = Stubs.fdb_transaction_get_read_version(transaction);
-#if DEBUG_NATIVE_CALLS
-				Debug.WriteLine("fdb_transaction_get_read_version(0x" + transaction.Handle.ToString("x") + ") => 0x" + handle.ToString("x"));
-#endif
-				future.TrySetHandle(handle);
-			}
-			return future;
-#endif
 		}
 
 		public static FdbError TransactionGetCommittedVersion(TransactionHandle transaction, out long version)
@@ -708,25 +545,6 @@ namespace FoundationDb.Client.Native
 #endif
 				return future;
 			}
-
-#if REFACTORED
-			var future = new FutureHandle();
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				fixed (byte* ptrKey = key.Array)
-				{
-					var handle = Stubs.fdb_transaction_get(transaction, ptrKey + key.Offset, key.Count, snapshot);
-#if DEBUG_NATIVE_CALLS
-					Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', snapshot: " + snapshot + ") => 0x" + handle.ToString("x"));
-#endif
-					future.TrySetHandle(handle);
-				}
-			}
-			return future;
-#endif
 		}
 
 		public static FutureHandle TransactionGetRange(TransactionHandle transaction, FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse)
@@ -744,32 +562,6 @@ namespace FoundationDb.Client.Native
 #endif
 				return future;
 			}
-
-#if REFACTORED
-			EnsureLibraryIsLoaded();
-
-			var future = new FutureHandle();
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				fixed (byte* ptrBegin = begin.Key.Array)
-				fixed (byte* ptrEnd = end.Key.Array)
-				{
-					var handle = Stubs.fdb_transaction_get_range(
-						transaction,
-						ptrBegin + begin.Key.Offset, begin.Key.Count, begin.OrEqual, begin.Offset,
-						ptrEnd + end.Key.Offset, end.Key.Count, end.OrEqual, end.Offset,
-						limit, targetBytes, mode, iteration, snapshot, reverse);
-#if DEBUG_NATIVE_CALLS
-					Debug.WriteLine("fdb_transaction_get_range(0x" + transaction.Handle.ToString("x") + ", begin: {'" + FdbKey.Dump(begin.Key) + "'," + begin.OrEqual + "," + begin.Offset + "}, end: {'" + FdbKey.Dump(end.Key) + "'," + end.OrEqual + "," + end.Offset + "}, " + snapshot + ") => 0x" + handle.ToString("x"));
-#endif
-					future.TrySetHandle(handle);
-				}
-			}
-			return future;
-#endif
 		}
 
 		public static FutureHandle TransactionGetKey(TransactionHandle transaction, FdbKeySelector selector, bool snapshot)
@@ -784,31 +576,10 @@ namespace FoundationDb.Client.Native
 #endif
 				return future;
 			}
-
-#if REFACTORED
-			var future = new FutureHandle();
-
-			RuntimeHelpers.PrepareConstrainedRegions();
-			try { }
-			finally
-			{
-				fixed (byte* ptrKey = selector.Key.Array)
-				{
-					var handle = Stubs.fdb_transaction_get_key(transaction, ptrKey + selector.Key.Offset, selector.Key.Count, selector.OrEqual, selector.Offset, snapshot);
-#if DEBUG_NATIVE_CALLS
-					Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", {'" + FdbKey.Dump(selector.Key) + "'," + selector.OrEqual + "," + selector.Offset + "}, " + snapshot + ") => 0x" + handle.ToString("x"));
-#endif
-					future.TrySetHandle(handle);
-				}
-			}
-			return future;
-#endif
 		}
 
 		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out Slice value)
 		{
-			//EnsureLibraryIsLoaded();
-
 			byte* ptr = null;
 			int valueLength = 0;
 			var err = Stubs.fdb_future_get_value(future, out valuePresent, out ptr, out valueLength);
@@ -830,8 +601,6 @@ namespace FoundationDb.Client.Native
 
 		public static FdbError FutureGetKey(FutureHandle future, out Slice key)
 		{
-			//EnsureLibraryIsLoaded();
-
 			byte* ptr = null;
 			int keyLength = 0;
 			var err = Stubs.fdb_future_get_key(future, out ptr, out keyLength);
@@ -915,8 +684,6 @@ namespace FoundationDb.Client.Native
 
 		public static void TransactionSet(TransactionHandle transaction, Slice key, Slice value)
 		{
-			//EnsureLibraryIsLoaded();
-
 			fixed (byte* pKey = key.Array)
 			fixed (byte* pValue = value.Array)
 			{
@@ -929,8 +696,6 @@ namespace FoundationDb.Client.Native
 
 		public static void TransactionClear(TransactionHandle transaction, Slice key)
 		{
-			//EnsureLibraryIsLoaded();
-
 			fixed (byte* pKey = key.Array)
 			{
 #if DEBUG_NATIVE_CALLS
@@ -942,8 +707,6 @@ namespace FoundationDb.Client.Native
 
 		public static void TransactionClearRange(TransactionHandle transaction, Slice beginKey, Slice endKey)
 		{
-			//EnsureLibraryIsLoaded();
-
 			fixed (byte* pBeginKey = beginKey.Array)
 			fixed (byte* pEndKey = endKey.Array)
 			{
