@@ -287,18 +287,76 @@ namespace FoundationDb.Client.Tuples
 			return value;
 		}
 
+		private static ArraySegment<byte> UnescapeByteString(byte[] buffer, int offset, int count)
+		{
+			// check for nulls
+			int p = offset;
+			int end = offset + count;
+
+			while (p < end)
+			{
+				if (buffer[p] == 0)
+				{ // found a 0, switch to slow path
+					return UnescapeByteStringSlow(buffer, offset, count, p - offset);
+				}
+				++p;
+			}
+			// buffer is clean, we can return it as-is
+			return new ArraySegment<byte>(buffer, offset, count);
+		}
+
+		private static ArraySegment<byte> UnescapeByteStringSlow(byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
+		{
+			var tmp = new byte[count];
+
+			int p = offset;
+			int end = offset + count;
+			int i = 0;
+
+			if (offsetOfFirstZero > 0)
+			{
+				Buffer.BlockCopy(buffer, offset, tmp, 0, offsetOfFirstZero);
+				p += offsetOfFirstZero;
+			}
+
+			while (p < end)
+			{
+				byte b = buffer[p++];
+				if (b == 0)
+				{ // skip next FF
+					//TODO: check that next byte really is 0xFF
+					++p;
+				}
+				tmp[i++] = b;
+			}
+
+			return new ArraySegment<byte>(tmp, 0, p - offset);
+		}
+
 		private static string ParseAscii(Slice slice)
 		{
-			return slice.ToAscii(1, slice.Count - 2);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.StringAscii);
+
+			if (slice.Count <= 2) return String.Empty;
+
+			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
+			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
 		private static string ParseUnicode(Slice slice)
 		{
-			return slice.ToUnicode(1, slice.Count - 2);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.StringUtf8);
+
+			if (slice.Count <= 2) return String.Empty;
+			//TODO: check args
+			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
+			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
 		private static Guid ParseGuid(Slice slice)
 		{
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Guid);
+
 			if (slice.Count != 17)
 			{
 				//TODO: usefull! error message! 

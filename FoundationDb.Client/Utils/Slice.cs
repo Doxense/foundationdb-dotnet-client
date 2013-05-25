@@ -221,8 +221,7 @@ namespace FoundationDb.Client
 		{
 			if (this.IsNullOrEmpty) return this.HasValue ? String.Empty : default(string);
 
-			var decoded = UnescapeByteString(this.Array, this.Offset, this.Count);
-			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			return Encoding.Default.GetString(this.Array, this.Offset, this.Count);
 		}
 
 		/// <summary>Stringify a slice containing only ASCII chars</summary>
@@ -232,8 +231,7 @@ namespace FoundationDb.Client
 			//TODO: check args
 			if (count == 0) return String.Empty;
 
-			var decoded = UnescapeByteString(this.Array, this.Offset + offset, count);
-			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			return Encoding.Default.GetString(this.Array, this.Offset + offset, count);
 		}
 
 		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
@@ -242,18 +240,17 @@ namespace FoundationDb.Client
 		{
 			if (this.IsNullOrEmpty) return this.HasValue ? String.Empty : default(string);
 
-			var decoded = UnescapeByteString(this.Array, this.Offset, this.Count);
-			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			return Encoding.UTF8.GetString(this.Array, this.Offset, this.Count);
 		}
 
 		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
 		/// <returns>Unicode string, or null if the slice is null</returns>
 		public string ToUnicode(int offset, int count)
 		{
-			if (count == 0) return String.Empty;
 			//TODO: check args
-			var decoded = UnescapeByteString(this.Array, this.Offset + offset, count);
-			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			if (count == 0) return String.Empty;
+
+			return Encoding.UTF8.GetString(this.Array, this.Offset + offset, count);
 		}
 
 		private static ArraySegment<byte> UnescapeByteString(byte[] buffer, int offset, int count)
