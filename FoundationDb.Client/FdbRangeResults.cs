@@ -152,6 +152,25 @@ namespace FoundationDb.Client
 			return results;
 		}
 
+        /// <summary>Reads all the results in a single operation, and process the results as they arrive, do not store anything</summary>
+        /// <param name="action">delegate function called to process each result</param>
+        /// <param name="ct"></param>
+        public async Task ExecuteAllAsync(Action<Slice, Slice> action, CancellationToken ct = default(CancellationToken))
+        {
+            if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+            ThrowIfDisposed();
+
+            //TODO: process a batch while fetching the next ?
+
+            while (await this.MoveNextAsync(ct))
+            {
+                foreach (var kvp in this.Chunk)
+                {
+                    action(kvp.Key, kvp.Value);
+                }
+            }
+        }
+
 		/// <summary>Task that will complete when the next page of results arrives. Will return true if a new page (with at least one result) is available, or false if no more results are available.</summary>
 		/// <param name="ct"></param>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
