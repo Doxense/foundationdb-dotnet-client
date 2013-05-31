@@ -347,5 +347,38 @@ namespace FoundationDb.Tests
 
 			}
 		}
+
+		[Test]
+		public async Task Test_Cannot_Read_Or_Write_Outside_Of_Restricted_Key_Space()
+		{
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				var space = FdbTuple.Create(123);
+
+				db.RestrictKeySpace(space);
+
+				using (var tr = db.BeginTransaction())
+				{
+					// should allow writing inside the space
+					tr.Set(space.Append("hello"), Slice.Empty);
+
+					// should not allow outside of the space
+					Assert.That(
+						Assert.Throws<FdbException>(() => tr.Set(FdbTuple.Create(122), Slice.Empty), "Key is less than minimum allowed"),
+						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
+					);
+					Assert.That(
+						Assert.Throws<FdbException>(() => tr.Set(FdbTuple.Create(123), Slice.Empty), "Key is more than maximum allowed"),
+						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
+					);
+
+					// should not allow the prefix itself
+					Assert.That(
+						Assert.Throws<FdbException>(() => tr.Set(space, Slice.Empty)),
+						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
+					);
+				}
+			}
+		}
 	}
 }

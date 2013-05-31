@@ -58,6 +58,10 @@ namespace FoundationDb.Client
 		private static int s_transactionCounter;
 		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new ConcurrentDictionary<int, FdbTransaction>();
 
+		/// <summary>Contains the bounds of the allowed key space</summary>
+		/// <remarks>Any key that is outside of the bound should be rejected</remarks>
+		private FdbKeyRange m_allowedKeySpace;
+
 		//TODO: keep track of all pending transactions on this db that are still alive
 
 		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name, bool ownsCluster)
@@ -137,6 +141,65 @@ namespace FoundationDb.Client
 				{
 					FdbNative.DatabaseSetOption(m_handle, option, ptr + data.Offset, data.Count);
 				}
+			}
+		}
+
+		/// <summary>Restrict access to only the keys contained inside the specified bounds</summary>
+		/// <param name="beginInclusive">If non-null, only allow keys that are bigger than or equal to this key</param>
+		/// <param name="endInclusive">If non-null, only allow keys that are less than or equal to this key</param>
+		/// <remarks>This is "opt-in" security, and should not be relied on to ensure safety of the database. It should only be seen as a safety net to defend yourself from logical bugs in your code while dealing with multi-tenancy issues</remarks>
+		public void RestrictKeySpace(Slice beginInclusive, Slice endInclusive)
+		{
+			// Ensure that end is not less then begin
+			if (beginInclusive.HasValue && endInclusive.HasValue && beginInclusive.CompareTo(endInclusive) > 0)
+			{
+				throw new ArgumentException("The end key of the allowed key space cannot be less than the end key", "endInclusive");
+			}
+
+			m_allowedKeySpace = new FdbKeyRange(beginInclusive, endInclusive);
+		}
+
+		public void RestrictKeySpace(FdbKeyRange range)
+		{
+			// Ensure that end is not less then begin
+			if (range.Begin.HasValue && range.End.HasValue && range.Begin.CompareTo(range.End) > 0)
+			{
+				throw new ArgumentException("The end key of the allowed key space cannot be less than the end key", "range");
+			}
+
+			m_allowedKeySpace = range;
+		}
+
+		public void RestrictKeySpace(Slice prefix)
+		{
+			m_allowedKeySpace = FdbKeyRange.FromPrefix(prefix);
+		}
+
+		public void RestrictKeySpace(IFdbTuple prefix)
+		{
+			m_allowedKeySpace = prefix != null ? prefix.ToRange(includePrefix: false) : FdbKeyRange.None;
+		}
+
+		/// <summary>Return the legal key space (if specified). Any key used for reading or writing outside of these bounds will be rejected at the binding layer</summary>
+		public FdbKeyRange KeySpace { get { return m_allowedKeySpace; } }
+
+		/// <summary>Checks that a key is inside the legal key space allowed on this database</summary>
+		/// <param name="key">Key to verify</param>
+		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		internal void EnsureKeyIsValid(Slice key)
+		{
+			Fdb.EnsureKeyIsValid(key);
+
+			var begin = this.KeySpace.Begin;
+			var end = this.KeySpace.End;
+
+			if (begin.HasValue && begin.CompareTo(key) > 0)	
+			{
+				throw new FdbException(FdbError.KeyOutsideLegalRange, String.Format("Key is outside the allowed key space for this database ({0} < {1})", key.ToString(), begin.ToString()));
+			}
+			if (end.HasValue && m_allowedKeySpace.End.CompareTo(key) < 0)
+			{
+				throw new FdbException(FdbError.KeyOutsideLegalRange, String.Format("Key is outside the allowed key space for this database ({0} > {1})", key.ToString(), end.ToString()));
 			}
 		}
 

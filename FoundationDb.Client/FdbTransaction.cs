@@ -209,7 +209,7 @@ namespace FoundationDb.Client
 
 		internal Task<Slice> GetCoreAsync(Slice key, bool snapshot, CancellationToken ct)
 		{
-			Fdb.EnsureKeyIsValid(key);
+			m_database.EnsureKeyIsValid(key);
 
 			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
@@ -217,7 +217,7 @@ namespace FoundationDb.Client
 
 		internal Slice GetCore(Slice key, bool snapshot, CancellationToken ct)
 		{
-			Fdb.EnsureKeyIsValid(key);
+			m_database.EnsureKeyIsValid(key);
 
 			var handle = FdbNative.TransactionGet(m_handle, key, snapshot);
 			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResultBytes(h), ct, willBlockForResult: true))
@@ -361,8 +361,8 @@ namespace FoundationDb.Client
 
 		internal FdbRangeResults GetRangeCore(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
 		{
-			Fdb.EnsureKeyIsValid(begin.Key);
-			Fdb.EnsureKeyIsValid(end.Key);
+			m_database.EnsureKeyIsValid(begin.Key);
+			m_database.EnsureKeyIsValid(end.Key);
 
 			var query = new FdbRangeQuery
 			{
@@ -483,15 +483,12 @@ namespace FoundationDb.Client
 
 		internal Task<Slice> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot, CancellationToken ct)
 		{
-			Fdb.EnsureKeyIsValid(selector.Key);
+			m_database.EnsureKeyIsValid(selector.Key);
 
 			var future = FdbNative.TransactionGetKey(m_handle, selector, snapshot);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
-				(h) =>
-				{
-					return GetKeyResult(h);
-				},
+				(h) => GetKeyResult(h),
 				ct
 			);
 		}
@@ -502,7 +499,7 @@ namespace FoundationDb.Client
 			ThrowIfDisposed();
 			Fdb.EnsureNotOnNetworkThread();
 
-			return GetKeyCoreAsync(selector, snapshot, ct);			
+			return GetKeyCoreAsync(selector, snapshot, ct);
 		}
 
 		#endregion
@@ -511,7 +508,7 @@ namespace FoundationDb.Client
 
 		internal void SetCore(Slice key, Slice value)
 		{
-			Fdb.EnsureKeyIsValid(key);
+			m_database.EnsureKeyIsValid(key);
 			Fdb.EnsureValueIsValid(value);
 
 			FdbNative.TransactionSet(m_handle, key, value);
@@ -542,7 +539,7 @@ namespace FoundationDb.Client
 
 		internal void ClearCore(Slice key)
 		{
-			Fdb.EnsureKeyIsValid(key);
+			m_database.EnsureKeyIsValid(key);
 
 			FdbNative.TransactionClear(m_handle, key);
 			Interlocked.Add(ref m_payloadBytes, key.Count);
@@ -572,8 +569,8 @@ namespace FoundationDb.Client
 
 		internal void ClearRangeCore(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
-			Fdb.EnsureKeyIsValid(beginKeyInclusive);
-			Fdb.EnsureKeyIsValid(endKeyExclusive);
+			m_database.EnsureKeyIsValid(beginKeyInclusive);
+			m_database.EnsureKeyIsValid(endKeyExclusive);
 
 			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
 			//TODO: how to account for these ?
@@ -698,6 +695,7 @@ namespace FoundationDb.Client
 				throw;
 			}
 		}
+
 		#endregion
 
 		#region Reset/Rollback...

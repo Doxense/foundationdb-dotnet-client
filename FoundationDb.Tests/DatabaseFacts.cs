@@ -114,5 +114,46 @@ namespace FoundationDb.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_Change_Restricted_Key_Space()
+		{
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				Assert.That(db.KeySpace.Begin, Is.EqualTo(Slice.Nil));
+				Assert.That(db.KeySpace.End, Is.EqualTo(Slice.Nil));
+
+				// can set min and max
+				db.RestrictKeySpace(
+					Slice.FromAscii("alpha"),
+					Slice.FromAscii("omega")
+				);
+				Assert.That(db.KeySpace.Begin.ToAscii(), Is.EqualTo("alpha"));
+				Assert.That(db.KeySpace.End.ToAscii(), Is.EqualTo("omega"));
+
+				// can use a tuple as prefix
+				db.RestrictKeySpace(
+					FdbTuple.Create("prefix")
+				);
+				Assert.That(db.KeySpace.Begin.ToString(), Is.EqualTo("<02>prefix<00><00>"));
+				Assert.That(db.KeySpace.End.ToString(), Is.EqualTo("<02>prefix<00><FF>"));
+
+				// can use a slice as a prefix
+				db.RestrictKeySpace(
+					Slice.FromHexa("BEEF")
+				);
+				Assert.That(db.KeySpace.Begin.ToString(), Is.EqualTo("<BE><EF><00>"));
+				Assert.That(db.KeySpace.End.ToString(), Is.EqualTo("<BE><EF><FF>"));
+
+				// can directlry specify a range
+				db.RestrictKeySpace(
+					FdbKeyRange.FromPrefix(Slice.Create(new byte[] { 1, 2, 3 }))
+				);
+				Assert.That(db.KeySpace.Begin.ToString(), Is.EqualTo("<01><02><03><00>"));
+				Assert.That(db.KeySpace.End.ToString(), Is.EqualTo("<01><02><03><FF>"));
+
+				// throws if bounds are reversed
+				Assert.Throws<ArgumentException>(() => db.RestrictKeySpace(Slice.FromAscii("Z"), Slice.FromAscii("A")));
+			}		
+		}
 	}
 }
