@@ -152,12 +152,9 @@ namespace FoundationDb.Client
 		/// <exception cref="System.ArgumentException">If the value is either null, empty, or exceeds the maximum allowed size (Fdb.MaxValueSize)</exception>
 		internal static void EnsureValueIsValid(Slice value)
 		{
-			if (value.IsNullOrEmpty)
+			if (!value.HasValue)
 			{
-				if (value.Array == null)
-					throw new ArgumentException("Value cannot be null", "value");
-				else
-					throw new ArgumentException("value size must be positive.", "value");
+				throw new ArgumentException("Value cannot be null", "value");
 			}
 			if (value.Count > Fdb.MaxValueSize)
 			{
