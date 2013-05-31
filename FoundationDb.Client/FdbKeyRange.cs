@@ -35,6 +35,10 @@ namespace FoundationDb.Client
 	[DebuggerDisplay("Begin={this.Begin}, End={this.end}")]
 	public struct FdbKeyRange
 	{
+		public static FdbKeyRange None { get { return default(FdbKeyRange); } }
+
+		public static FdbKeyRange All { get { return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue); } }
+
 		public readonly Slice Begin;
 		public readonly Slice End;
 
@@ -46,12 +50,17 @@ namespace FoundationDb.Client
 
 		/// <summary>Convert a prefix key into a range "key\x00".."key\xFF"</summary>
 		/// <param name="prefix">Key prefix</param>
-		/// <returns>Range including all keys with the specified prefix</returns>
+		/// <returns>Range including all keys with the specified prefix.</returns>
 		public static FdbKeyRange FromPrefix(Slice prefix)
 		{
+			if (prefix.IsNullOrEmpty)
+			{
+				return prefix.HasValue ? FdbKeyRange.All : FdbKeyRange.None;
+			}
+
 			int n = prefix.Count + 1;
 
-			var tmp = new byte[n + 2];
+			var tmp = new byte[n << 1];
 			int p = 0;
 			// first segment will contain prefix + '\x00'
 			prefix.CopyTo(tmp, 0);
