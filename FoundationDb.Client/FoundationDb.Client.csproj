@@ -40,10 +40,6 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Converters\FdbConverters.cs" />
-    <Compile Include="Converters\IFdbConverter.cs" />
-    <Compile Include="Utils\Slicer.cs" />
-    <Compile Include="Utils\Slice.cs" />
     <Compile Include="FdbException.cs" />
     <Compile Include="FdbTimeoutManager.cs" />
     <Compile Include="FdbRangeResults.cs" />
@@ -55,16 +51,20 @@
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
-    <Compile Include="Layers\Arrays\FdbArray.cs" />
-    <Compile Include="Layers\Indexes\FdbSimpleIndex.cs" />
-    <Compile Include="Layers\Strings\FdbStringIntern.cs" />
     <Compile Include="IFdbTuple.cs" />
     <Compile Include="FdbSubspace.cs" />
     <Compile Include="FdbTuple.cs" />
-    <Compile Include="Layers\Tables\FdbTable.cs" />
     <Compile Include="FdbKeySelector.cs" />
+    <Compile Include="FdbTransaction.cs" />
+    <Compile Include="FdbDatabase.cs" />
+    <Compile Include="FdbCluster.cs" />
+    <Compile Include="FdbFuture.cs" />
+    <Compile Include="Fdb.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Utils\FdbSliceSerializer.cs" />
     <Compile Include="Utils\ISliceSerializer.cs" />
+    <Compile Include="Utils\Slice.cs" />
+    <Compile Include="Utils\Slicer.cs" />
     <Compile Include="Utils\FdbBufferWriter.cs" />
     <Compile Include="Utils\Contract.cs" />
     <Compile Include="Unmanaged\FdbKeyValue.cs" />
@@ -72,18 +72,15 @@
     <Compile Include="Unmanaged\FdbNative.cs" />
     <Compile Include="Unmanaged\ClusterHandle.cs" />
     <Compile Include="Unmanaged\DatabaseHandle.cs" />
-    <Compile Include="FdbTransaction.cs" />
-    <Compile Include="FdbDatabase.cs" />
-    <Compile Include="FdbCluster.cs" />
     <Compile Include="Unmanaged\FutureHandle.cs" />
     <Compile Include="Unmanaged\FdbSafeHandle.cs" />
-    <Compile Include="FdbFuture.cs" />
-    <Compile Include="Fdb.cs" />
     <Compile Include="Unmanaged\UnmanagedLibrary.cs" />
-    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Converters\FdbConverters.cs" />
+    <Compile Include="Converters\IFdbConverter.cs" />
     <Compile Include="Layers\Tables\FdbVersionedTable.cs" />
     <Compile Include="Layers\Tables\FdbTable`2.cs" />
     <Compile Include="Layers\Tables\FdbTableExtensions.cs" />
+    <Compile Include="Layers\Tables\FdbTable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleKeyReader.cs" />
     <Compile Include="Layers\Tuples\ITupleKeyReader.cs" />
     <Compile Include="Layers\Tuples\FdbTupleTypes.cs" />
@@ -98,6 +95,9 @@
     <Compile Include="Layers\Tuples\FdbTupleList.cs" />
     <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
+    <Compile Include="Layers\Arrays\FdbArray.cs" />
+    <Compile Include="Layers\Indexes\FdbSimpleIndex.cs" />
+    <Compile Include="Layers\Strings\FdbStringIntern.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fdb_c.dll">
