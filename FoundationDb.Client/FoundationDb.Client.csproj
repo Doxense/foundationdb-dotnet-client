@@ -81,6 +81,7 @@
     <Compile Include="Fdb.cs" />
     <Compile Include="Unmanaged\UnmanagedLibrary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Layers\Tables\FdbVersionedTable.cs" />
     <Compile Include="Layers\Tables\FdbTable`2.cs" />
     <Compile Include="Layers\Tables\FdbTableExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbTupleKeyReader.cs" />
