@@ -138,6 +138,12 @@ namespace FoundationDb.Client
 			return Slice.Create(BitConverter.GetBytes(value));
 		}
 
+		public static Slice FromUInt64(ulong value)
+		{
+			//HACKHACK: use something else! (endianness depends on plateform)
+			return Slice.Create(BitConverter.GetBytes(value));
+		}
+
 		public static Slice FromGuid(Guid value)
 		{
 			//TODO: optimize !
@@ -402,23 +408,116 @@ namespace FoundationDb.Client
 			return this.Array[UnsafeMapToOffset(index)];
 		}
 
+		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position.</summary>
+		/// <param name="offset">The starting position of the substring. Positive values mmeans from the start, negative values means from the end</param>
+		/// <returns>A slice that is equivalent to the substring that begins at <paramref name="offset"/> (from the start or the end depending on the sign) in this instance, or Slice.Empty if <paramref name="offset"/> is equal to the length of the slice.</returns>
+		/// <remarks>The substring does not copy the original data, and refers to the same buffer as the original slice. Any change to the parent slice's buffer will be seen by the substring. You must call Memoize() on the resulting substring if you want a copy</remarks>
+		/// <example>{"ABCDE"}.Substring(0) => {"ABC"}
+		/// {"ABCDE"}.Substring(1} => {"BCDE"}
+		/// {"ABCDE"}.Substring(-2} => {"DE"}
+		/// {"ABCDE"}.Substring(5} => Slice.Empty
+		/// Slice.Empty.Substring(0) => Slice.Empty
+		/// Slice.Nil.Substring(0) => Slice.Emtpy
+		/// </example>
+		/// <exception cref="System.ArgumentOutOfRangeException"><paramref name="offset"/> indicates a position not within this instance, or <paramref name="offset"/> is less than zero</exception>
 		public Slice Substring(int offset)
 		{
-			//TODO: param check
-			if (offset < 0)
-			{ // from the end
-				return new Slice(this.Array, this.Offset + offset, this.Count - offset);
-			}
-			else
-			{ // from the start
-				return new Slice(this.Array, this.Offset + this.Count + offset, -offset);
-			}
+			// negative values means from the end
+			if (offset < 0) offset = this.Count + offset;
+
+			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less then start of the slice");
+			if (offset > this.Count) throw new ArgumentOutOfRangeException("offset", "Offset cannot be larger than end of slice");
+
+			return this.Count == offset ? Slice.Empty : new Slice(this.Array, this.Offset + offset, this.Count - offset);
 		}
 
+		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position and has a specified length.</summary>
+		/// <param name="offset">The starting position of the substring. Positive values mmeans from the start, negative values means from the end</param>
+		/// <param name="count">Number of bytes in the substring</param>
+		/// <returns>A slice that is equivalent to the substring of length <paramref name="count"/> that begins at <paramref name="offset"/> (from the start or the end depending on the sign) in this instance, or Slice.Empty if count is zero.</returns>
+		/// <remarks>The substring does not copy the original data, and refers to the same buffer as the original slice. Any change to the parent slice's buffer will be seen by the substring. You must call Memoize() on the resulting substring if you want a copy</remarks>
+		/// <example>{"ABCDE"}.Substring(0, 3) => {"ABC"}
+		/// {"ABCDE"}.Substring(1, 3} => {"BCD"}
+		/// {"ABCDE"}.Substring(-2, 2} => {"DE"}
+		/// Slice.Empty.Substring(0, 0) => Slice.Empty
+		/// Slice.Nil.Substring(0, 0) => Slice.Emtpy
+		/// </example>
+		/// <exception cref="System.ArgumentOutOfRangeException"><paramref name="offset"/> plus <paramref name="count"/> indicates a position not within this instance, or <paramref name="offset"/> or <paramref name="count"/> is less than zero</exception>
 		public Slice Substring(int offset, int count)
 		{
-			//TODO: param check
+			// negative values means from the end
+			if (offset < 0) offset = this.Count + offset;
+
+			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less then start of the slice");
+			if (offset > this.Count) throw new ArgumentOutOfRangeException("offset", "Offset cannot be larger than end of slice");
+			if (count < 0) throw new ArgumentOutOfRangeException("count", "Count must be a positive integer");
+			if (offset > this.Count - count) throw new ArgumentOutOfRangeException("count", "Offset and count must refer to a location within the slice");
+
+			if (count == 0) return Slice.Empty;
+
 			return new Slice(this.Array, this.Offset + offset, count);
+		}
+
+		/// <summary>Determines whether the beginning of this slice instance matches a specified slice.</summary>
+		/// <param name="value">The slice to compare</param>
+		/// <returns><b>true</b> if <paramref name="value"/> matches the beginning of this slice; otherwise, <b>false</b></returns>
+		public bool StartsWith(Slice value)
+		{
+			if (!value.HasValue) throw new ArgumentNullException("value");
+
+			// any strings starts with the empty string
+			if (value.IsEmpty) return true;
+
+			// prefix cannot be bigger
+			if (value.Count > this.Count) return false;
+
+			return Slice.SameBytes(this.Array, this.Offset, value.Array, value.Offset, value.Count);
+		}
+
+		/// <summary>Determines whether the end of this slice instance matches a specified slice.</summary>
+		/// <param name="value">The slice to compare to the substring at the end of this instance.</param>
+		/// <returns><b>true</b> if <paramref name="value"/> matches the end of this slice; otherwise, <b>false</b></returns>
+		public bool EndsWith(Slice value)
+		{
+			if (!value.HasValue) throw new ArgumentNullException("value");
+
+			// any strings ends with the empty string
+			if (value.IsEmpty) return true;
+
+			// suffix cannot be bigger
+			if (value.Count > this.Count) return false;
+
+			return Slice.SameBytes(this.Array, this.Offset + this.Count - value.Count, value.Array, value.Offset, value.Count);
+		}
+
+		/// <summary>Equivalent of StartsWith, but the returns false if both slices are identical</summary>
+		public bool PrefixedBy(Slice parent)
+		{
+			// empty is a parent of everyone
+			if (parent.IsNullOrEmpty) return true;
+			// empty is not a child of anything
+			if (this.IsNullOrEmpty) return false;
+
+			// we must have at least one more byte then the parent
+			if (this.Count <= parent.Count) return false;
+
+			// must start with the same bytes
+			return SameBytes(parent.Array, parent.Offset, this.Array, this.Offset, this.Count);
+		}
+
+		/// <summary>Equivalent of EndsWith, but the returns false if both slices are identical</summary>
+		public bool SuffixedBy(Slice parent)
+		{
+			// empty is a parent of everyone
+			if (parent.IsNullOrEmpty) return true;
+			// empty is not a child of anything
+			if (this.IsNullOrEmpty) return false;
+
+			// we must have at least one more byte then the parent
+			if (this.Count <= parent.Count) return false;
+
+			// must start with the same bytes
+			return SameBytes(parent.Array, parent.Offset + this.Count - parent.Count, this.Array, this.Offset, this.Count);
 		}
 
 		public ulong ReadUInt64(int offset, int bytes)
