@@ -26,15 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client.Tuples;
-using System;
-using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDb.Client.Tables
 {
+	using FoundationDb.Client.Tuples;
+	using System;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	public class FdbTable
 	{
@@ -48,44 +45,18 @@ namespace FoundationDb.Client.Tables
 			this.Subspace = subspace;
 		}
 
+		/// <summary>Database used to perform transactions</summary>
 		public FdbDatabase Database { get; private set; }
 
+		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
 
-		#region GetKeyBytes() ...
-
-		public Slice GetKeyBytes<TKey>(TKey key)
-		{
-			return this.Subspace.GetKeyBytes<TKey>(key);
-		}
-
-		public Slice GetKeyBytes(Slice key)
-		{
-			return this.Subspace.GetKeyBytes(key);
-		}
-
-		public Slice GetKeyBytes(IFdbTuple tuple)
-		{
-			return this.Subspace.GetKeyBytes(tuple);
-		}
-
-		#endregion
-
-		#region
-
-		/// <summary>Returns a tuple (namespace, key, )</summary>
-		/// <typeparam name="TKey"></typeparam>
-		/// <param name="key"></param>
-		/// <returns></returns>
-		public IFdbTuple Key<TKey>(TKey key)
-		{
-			return this.Subspace.Append<TKey>(key);
-		}
+		#region Keys...
 
 		/// <summary>Add the namespace in front of an existing tuple</summary>
 		/// <param name="tuple">Existing tuple</param>
 		/// <returns>(namespace, tuple_items, )</returns>
-		public IFdbTuple Key(IFdbTuple tuple)
+		protected virtual IFdbTuple MakeKey(IFdbTuple tuple)
 		{
 			return this.Subspace.AppendRange(tuple);
 		}
@@ -94,35 +65,9 @@ namespace FoundationDb.Client.Tables
 
 		#region GetAsync() ...
 
-		public Task<Slice> GetAsync<TKey>(FdbTransaction trans, TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
-		}
-
-		public Task<Slice> GetAsync(FdbTransaction trans, Slice key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
-		}
-
 		public Task<Slice> GetAsync(FdbTransaction trans, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return trans.GetAsync(GetKeyBytes(tuple), snapshot, ct);
-		}
-
-		public async Task<Slice> GetAsync<TKey>(TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			using (var trans = this.Database.BeginTransaction())
-			{
-				return await GetAsync(trans, key, snapshot, ct).ConfigureAwait(false);
-			}
-		}
-
-		public async Task<Slice> GetAsync(Slice key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			using (var trans = this.Database.BeginTransaction())
-			{
-				return await GetAsync(trans, key, snapshot, ct).ConfigureAwait(false);
-			}
+			return trans.GetAsync(MakeKey(tuple).ToSlice(), snapshot, ct);
 		}
 
 		public async Task<Slice> GetAsync(IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
@@ -137,37 +82,9 @@ namespace FoundationDb.Client.Tables
 
 		#region Set() ...
 
-		public void Set<TKey>(FdbTransaction trans, TKey key, Slice value)
-		{
-			trans.Set(GetKeyBytes<TKey>(key), value);
-		}
-
-		public void Set(FdbTransaction trans, Slice key, Slice value)
-		{
-			trans.Set(GetKeyBytes(key), value);
-		}
-
 		public void Set(FdbTransaction trans, IFdbTuple tuple, Slice value)
 		{
-			trans.Set(GetKeyBytes(tuple), value);
-		}
-
-		public async Task SetAsync<TKey>(TKey key, Slice value)
-		{
-			using (var trans = this.Database.BeginTransaction())
-			{
-				Set(trans, key, value);
-				await trans.CommitAsync().ConfigureAwait(false);
-			}
-		}
-
-		public async Task SetAsync(Slice key, Slice value)
-		{
-			using (var trans = this.Database.BeginTransaction())
-			{
-				Set(trans, key, value);
-				await trans.CommitAsync().ConfigureAwait(false);
-			}
+			trans.Set(MakeKey(tuple).ToSlice(), value);
 		}
 
 		public async Task SetAsync(IFdbTuple tuple, Slice value)
@@ -179,24 +96,7 @@ namespace FoundationDb.Client.Tables
 			}
 		}
 
-
 		#endregion
-	}
-
-	public static class FdbTableExtensions
-	{
-
-
-		public static FdbTable Table(this FdbDatabase db, string tableName)
-		{
-			return new FdbTable(db, new FdbSubspace(tableName));
-		}
-
-		public static FdbTable Table(this FdbDatabase db, IFdbTuple prefix)
-		{
-			return new FdbTable(db, new FdbSubspace(prefix));
-		}
-
 	}
 
 }
