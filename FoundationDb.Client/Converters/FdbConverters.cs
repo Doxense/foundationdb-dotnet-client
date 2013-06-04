@@ -118,16 +118,19 @@ namespace FoundationDb.Client.Converters
 		/// <summary>Register all the default converters</summary>
 		private static void RegisterDefaultConverters()
 		{
+			RegisterUnsafe((bool value) => Slice.FromInt32(value ? 1 : 0));
 			RegisterUnsafe((bool value) => value ? 1 : default(int));
 			RegisterUnsafe((bool value) => value ? 1L : default(long));
 			RegisterUnsafe((bool value) => value ? "true" : "false");
 
+			RegisterUnsafe((int value) => Slice.FromInt32(value));
 			RegisterUnsafe((int value) => (long)value);
 			RegisterUnsafe((int value) => value.ToString(CultureInfo.InvariantCulture));
 			RegisterUnsafe((int value) => value != 0);
 			RegisterUnsafe((int value) => (ulong)value);
 			RegisterUnsafe((int value) => (uint)value);
 
+			RegisterUnsafe((long value) => Slice.FromInt64(value));
 			RegisterUnsafe((long value) => { checked { return (int)value; } });
 			RegisterUnsafe((long value) => value.ToString(CultureInfo.InvariantCulture));
 			RegisterUnsafe((long value) => value != 0);
@@ -135,6 +138,7 @@ namespace FoundationDb.Client.Converters
 			RegisterUnsafe((long value) => { return (ulong)value; });
 			RegisterUnsafe((long value) => { return (uint)value; });
 
+			RegisterUnsafe((ulong value) => Slice.FromUInt64(value));
 			RegisterUnsafe((ulong value) => { checked { return (int)value; } });
 			RegisterUnsafe((ulong value) => { checked { return (long)value; } });
 			RegisterUnsafe((ulong value) => { checked { return (uint)value; } });
@@ -142,15 +146,23 @@ namespace FoundationDb.Client.Converters
 			RegisterUnsafe((ulong value) => value != 0);
 			RegisterUnsafe((ulong value) => TimeSpan.FromTicks((long)value));
 
+			RegisterUnsafe((string value) => Slice.FromString(value));
 			RegisterUnsafe((string value) => string.IsNullOrEmpty(value) ? default(int) : Int32.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe((string value) => string.IsNullOrEmpty(value) ? default(long) : Int64.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe((string value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
 			RegisterUnsafe((string value) => string.IsNullOrEmpty(value) ? default(bool) : Boolean.Parse(value));
 
+			RegisterUnsafe((byte[] value) => Slice.Create(value));
+			RegisterUnsafe((byte[] value) => value == null ? default(string) : value.Length == 0 ? String.Empty : System.Convert.ToBase64String(value));
+			RegisterUnsafe((byte[] value) => value == null || value.Length == 0 ? Guid.Empty : new Guid(value));
+
+			RegisterUnsafe((Guid value) => Slice.FromGuid(value));
 			RegisterUnsafe((Guid value) => value.ToString(null));
 			RegisterUnsafe((Guid value) => value.ToByteArray());
 
+			RegisterUnsafe((TimeSpan value) => Slice.FromInt64(value.Ticks));
 			RegisterUnsafe((TimeSpan value) => value.Ticks);
+			RegisterUnsafe((TimeSpan value) => value.TotalSeconds);
 
 			RegisterUnsafe((Slice value) => FdbTuplePackers.DeserializeString(value));
 			RegisterUnsafe((Slice value) => { checked { return (int)FdbTuplePackers.DeserializeInt64(value); } });
