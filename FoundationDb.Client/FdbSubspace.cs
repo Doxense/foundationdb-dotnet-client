@@ -37,21 +37,12 @@ namespace FoundationDb.Client.Tuples
 	public class FdbSubspace
 	{
 		/// <summary>Store a memoized version of the tuple to speed up serialization</summary>
-		private readonly FdbMemoizedTuple Tuple;
+		public FdbMemoizedTuple Tuple { get; private set; }
 
 		public FdbSubspace(string prefix)
 		{
 			this.Tuple = new FdbTuple<string>(prefix).Memoize();
 		}
-
-#if DEPRECATED
-		public FdbSubspace(byte[] prefix)
-		{
-			var tuple = new FdbTuple<byte[]>(prefix);
-			this.RawPrefix = tuple.ToByteArray();
-			this.Tuple = tuple;
-		}
-#endif
 
 		public FdbSubspace(IFdbTuple prefix)
 		{
