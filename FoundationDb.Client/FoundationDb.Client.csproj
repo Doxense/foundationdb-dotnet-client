@@ -63,6 +63,8 @@
     <Compile Include="FdbTuple.cs" />
     <Compile Include="Layers\Tables\FdbTable.cs" />
     <Compile Include="FdbKeySelector.cs" />
+    <Compile Include="Utils\FdbSliceSerializer.cs" />
+    <Compile Include="Utils\ISliceSerializer.cs" />
     <Compile Include="Utils\FdbBufferWriter.cs" />
     <Compile Include="Utils\Contract.cs" />
     <Compile Include="Unmanaged\FdbKeyValue.cs" />
