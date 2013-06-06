@@ -290,13 +290,13 @@ namespace FoundationDb.Client
 			return GetCore(keyBytes, snapshot, ct);
 		}
 
-		public Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
-			return GetBatchAsync(keys.ToArray(), snapshot, ct);
+			return GetBatchIndexedAsync(keys.ToArray(), snapshot, ct);
 		}
 
-		public async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			ThrowIfDisposed();
 
@@ -307,14 +307,57 @@ namespace FoundationDb.Client
 			var tasks = new List<Task<Slice>>(keys.Length);
 			for (int i = 0; i < keys.Length; i++)
 			{
-				//TODO: optimize to not have to allocate a scope
 				tasks.Add(GetCoreAsync(keys[i], snapshot, ct));
 			}
 
 			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
 
 			return results
-				.Select((data, i) => new KeyValuePair<Slice, Slice>(keys[i], data))
+				.Select((data, i) => new KeyValuePair<int, Slice>(i, data))
+				.ToList();
+		}
+
+		public Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			return GetBatchAsync(keys.ToArray(), snapshot, ct);
+		}
+
+		public async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			var indexedResults = await GetBatchIndexedAsync(keys, snapshot, ct);
+
+			ct.ThrowIfCancellationRequested();
+
+			return indexedResults
+				.Select((kvp) => new KeyValuePair<Slice, Slice>(keys[kvp.Key], kvp.Value))
+				.ToList();
+		}
+
+		public Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IEnumerable<IFdbTuple> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+			return GetBatchIndexedAsync(keys.ToArray(), snapshot, ct);
+		}
+
+		public async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IFdbTuple[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+
+			ct.ThrowIfCancellationRequested();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			var tasks = new List<Task<Slice>>(keys.Length);
+			for (int i = 0; i < keys.Length; i++)
+			{
+				tasks.Add(this.GetCoreAsync(keys[i].ToSlice(), snapshot, ct));
+			}
+
+			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+
+			return results
+				.Select((data, i) => new KeyValuePair<int, Slice>(i, data))
 				.ToList();
 		}
 
@@ -326,26 +369,13 @@ namespace FoundationDb.Client
 
 		public async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(IFdbTuple[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			ThrowIfDisposed();
+			var indexedResults = await GetBatchIndexedAsync(keys, snapshot, ct);
 
 			ct.ThrowIfCancellationRequested();
 
-			Fdb.EnsureNotOnNetworkThread();
-
-			var tasks = new List<Task<Slice>>(keys.Length);
-			for (int i = 0; i < keys.Length; i++)
-			{
-				//TODO: optimize to not have to allocate a scope
-				tasks.Add(Task.Factory.StartNew((_state) =>
-				{
-					return this.GetCoreAsync(keys[(int)_state].ToSlice(), snapshot, ct);
-				}, i, ct).Unwrap());
-			}
-
-			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
-
-			return results
-				.Select((data, i) => new KeyValuePair<IFdbTuple, Slice>(keys[i], data))
+			// maps the index back to the original key
+			return indexedResults
+				.Select((kvp) => new KeyValuePair<IFdbTuple, Slice>(keys[kvp.Key], kvp.Value))
 				.ToList();
 		}
 

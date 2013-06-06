@@ -179,7 +179,11 @@ namespace FoundationDb.Client.Tuples
 
 		public static void SerializeTo(FdbBufferWriter writer, Slice value)
 		{
-			writer.WriteBytes(value);
+			if (value.HasValue)
+				//TODO: optimize!
+				writer.WriteAsciiString(value.GetBytes());
+			else
+				writer.WriteNil();
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, byte[] value)

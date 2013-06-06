@@ -227,6 +227,20 @@ namespace FoundationDb.Client
 
 			return memoized;
 		}
+
+		/// <summary>Unpack a tuple from this slice</summary>
+		/// <param name="slice"></param>
+		/// <returns>Unpacked tuple if the slice contains data, FdbTuple.Empty if the slice is empty, or null if the slice is Slice.Nil</returns>
+		public static IFdbTuple ToTuple(this Slice slice)
+		{
+			if (slice.IsNullOrEmpty)
+			{
+				return slice.HasValue ? FdbTuple.Empty : null;
+			}
+
+			return FdbTuple.Unpack(slice);
+		}
+
 	}
 
 }

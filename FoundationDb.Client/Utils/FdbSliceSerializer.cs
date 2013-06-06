@@ -33,12 +33,12 @@ namespace FoundationDb.Client
 
 	/// <summary>Very simple serializer that uses FdbConverters to convert values of type <typeparamref name="T"/> from/to Slice</summary>
 	/// <typeparam name="T">Type of the value to serialize/deserialize</typeparam>
-	public sealed class FdbSliceSerializer<T> : ISliceSerializer<T>
+	public sealed class FdbGenericSliceSerializer<T> : ISliceSerializer<T>
 	{
 		/// <summary>Singleton that can convert between <typeparam name="T"> and Slice</summary>
-		public static readonly ISliceSerializer<T> Default = new FdbSliceSerializer<T>();
+		public static readonly ISliceSerializer<T> Default = new FdbGenericSliceSerializer<T>();
 
-		private FdbSliceSerializer()
+		private FdbGenericSliceSerializer()
 		{ }
 
 		public Slice Serialize(T value)
@@ -50,6 +50,33 @@ namespace FoundationDb.Client
 		{
 			if (slice.IsNullOrEmpty) return missing;
 			return FdbConverters.Convert<Slice, T>(slice);
+		}
+	}
+
+	/// <summary>Very simple serializer that uses FdbConverters to convert values of type <typeparamref name="T"/> from/to Slice</summary>
+	/// <typeparam name="T">Type of the value to serialize/deserialize</typeparam>
+	public sealed class FdbSliceSerializer<T> : ISliceSerializer<T>
+	{
+
+		private Func<T, Slice> Serializer { get; set; }
+
+		private Func<Slice, T> Deserializer { get; set; }
+
+		public FdbSliceSerializer(Func<T, Slice> serialize, Func<Slice, T> deserialize)
+		{
+			this.Serializer = serialize;
+			this.Deserializer = deserialize;
+		}
+
+		public Slice Serialize(T value)
+		{
+			return value == null ? Slice.Nil : this.Serializer(value);
+		}
+
+		public T Deserialize(Slice slice, T missing)
+		{
+			if (slice.IsNullOrEmpty) return missing;
+			return this.Deserializer(slice);
 		}
 	}
 

@@ -128,20 +128,104 @@ namespace FoundationDb.Client
 
 		public static Slice FromInt32(int value)
 		{
-			//HACKHACK: use something else! (endianness depends on plateform)
-			return Slice.Create(BitConverter.GetBytes(value));
+			//REVIEW: use ZigZag encoding for negative values ? (aka VarInt)
+
+			if (value >= 0)
+			{
+				if (value <= 255)
+				{
+					//TODO: use a cache for these ?
+					return new Slice(new byte[] { (byte)value }, 0, 1);
+				}
+				if (value <= 65535)
+				{
+					return new Slice(new byte[] { (byte)(value >> 8), (byte)value }, 0, 2);
+				}
+			}
+
+			return new Slice(
+				new byte[]
+				{ 
+					(byte)(value >> 24),
+					(byte)(value >> 16),
+					(byte)(value >> 8),
+					(byte)value
+				},
+				0,
+				4
+			);
 		}
 
 		public static Slice FromInt64(long value)
 		{
-			//HACKHACK: use something else! (endianness depends on plateform)
-			return Slice.Create(BitConverter.GetBytes(value));
+			//REVIEW: use ZigZag encoding for negative values ? (aka VarInt)
+
+			if (value >= 0 && value <= int.MaxValue)
+			{
+				return FromInt32((int)value);
+			}
+
+			return new Slice(
+				new byte[]
+				{ 
+					(byte)(value >> 56),
+					(byte)(value >> 48),
+					(byte)(value >> 40),
+					(byte)(value >> 32),
+					(byte)(value >> 24),
+					(byte)(value >> 16),
+					(byte)(value >> 8),
+					(byte)value
+				}, 
+				0, 
+				8
+			);
 		}
 
 		public static Slice FromUInt64(ulong value)
 		{
-			//HACKHACK: use something else! (endianness depends on plateform)
-			return Slice.Create(BitConverter.GetBytes(value));
+			//REVIEW: use ZigZag encoding for negative values ? (aka VarInt)
+
+			if (value <= 255)
+			{
+				//TODO: use a cache for these ?
+				return new Slice(new byte[] { (byte)value }, 0, 1);
+			}
+			if (value <= 65535)
+			{
+				return new Slice(new byte[] { (byte)(value >> 8), (byte)value }, 0, 2);
+			}
+
+			if (value <= uint.MaxValue)
+			{
+				return new Slice(
+					new byte[]
+					{ 
+						(byte)(value >> 24),
+						(byte)(value >> 16),
+						(byte)(value >> 8),
+						(byte)value
+					},
+					0,
+					4
+				);
+			}
+
+			return new Slice(
+				new byte[]
+				{ 
+					(byte)(value >> 56),
+					(byte)(value >> 48),
+					(byte)(value >> 40),
+					(byte)(value >> 32),
+					(byte)(value >> 24),
+					(byte)(value >> 16),
+					(byte)(value >> 8),
+					(byte)value
+				},
+				0,
+				8
+			);
 		}
 
 		public static Slice FromGuid(Guid value)
@@ -331,6 +415,27 @@ namespace FoundationDb.Client
 			return sb.ToString();
 		}
 
+		public long ToInt64()
+		{
+			if (this.IsNullOrEmpty) return 0L;
+
+			if (this.Count > 8) throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes");
+
+			//REVIEW: use ZigZag encofing for negative values ? (aka Google's VarInt)
+
+			var buffer = this.Array;
+			int p = this.Offset;
+			int n = this.Count;
+			long value = 0;
+
+			while (n-- > 0)
+			{
+				value = (value << 8) | buffer[p++];
+			}
+
+			return value;
+		}
+
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
 		internal Slice Memoize()
@@ -502,7 +607,7 @@ namespace FoundationDb.Client
 			if (this.Count <= parent.Count) return false;
 
 			// must start with the same bytes
-			return SameBytes(parent.Array, parent.Offset, this.Array, this.Offset, this.Count);
+			return SameBytes(parent.Array, parent.Offset, this.Array, this.Offset, parent.Count);
 		}
 
 		/// <summary>Equivalent of EndsWith, but the returns false if both slices are identical</summary>
@@ -517,7 +622,7 @@ namespace FoundationDb.Client
 			if (this.Count <= parent.Count) return false;
 
 			// must start with the same bytes
-			return SameBytes(parent.Array, parent.Offset + this.Count - parent.Count, this.Array, this.Offset, this.Count);
+			return SameBytes(parent.Array, parent.Offset + this.Count - parent.Count, this.Array, this.Offset, parent.Count);
 		}
 
 		public ulong ReadUInt64(int offset, int bytes)

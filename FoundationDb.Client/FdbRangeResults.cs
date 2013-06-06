@@ -152,6 +152,32 @@ namespace FoundationDb.Client
 			return results;
 		}
 
+		/// <summary>Reads all the results in a single operation, and process the results as they arrive</summary>
+		/// <typeparam name="T">Type of the processed results</typeparam>
+		/// <param name="lambda">Lambda function called to process each result</param>
+		/// <param name="ct"></param>
+		/// <returns>List of all processed results</returns>
+		public async Task<List<T>> ReadAllAsync<K, V, T>(Func<Slice, K> keyReader, Func<Slice, V> valueReader, Func<K, V, T> transform, CancellationToken ct = default(CancellationToken))
+		{
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+
+			//TODO: process a batch while fetching the next ?
+
+			var results = new List<T>();
+			while (await this.MoveNextAsync(ct))
+			{
+				foreach (var kvp in this.Chunk)
+				{
+					var key = keyReader(kvp.Key);
+					var value = valueReader(kvp.Value);
+
+					results.Add(transform(key, value));
+				}
+			}
+			return results;
+		}
+
 		/// <summary>Reads all the results in a single operation, and process the results as they arrive, do not store anything</summary>
 		/// <param name="action">delegate function called to process each result</param>
 		/// <param name="ct"></param>

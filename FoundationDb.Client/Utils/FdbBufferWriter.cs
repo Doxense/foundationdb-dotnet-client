@@ -484,7 +484,7 @@ namespace FoundationDb.Client.Utils
 			if (n > 0)
 			{
 				if (n == value.Length)
-				{ // no NUL in the string, can copy all at once
+				{ // no NULs in the string, can copy all at once
 					System.Buffer.BlockCopy(value, 0, buffer, p, n);
 					p += n;
 				}
