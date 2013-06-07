@@ -44,15 +44,44 @@ namespace FoundationDb.Client.Tables
 	public class FdbStringIntern
 	{
 		// Differences with the stringintern.py implementation at https://github.com/FoundationDB/python-layers/blob/master/lib/stringintern.py
-		// * UID are byte[] but we store them as a base64 encoded string in the in-memory dictionary. They are still stored as byte[] in the tuple
+		// * The subspaces for strings and uids are 0 and 1, instead of 'S' and 'U' (shorter keys)
+		// * We try to keep the uid size small by retring several time in FindUid before augmenting the size of the key
 
-		private static readonly string StringUidPrefix = "S";
-		private static readonly string UidStringPrefix = "U";
+		private const int STRING_2_UID_KEY = 0;
+		private const int UID_2_STRING_KEY = 1;
+
 		private const int CacheLimitBytes = 10 * 1000 * 1000;
 
-		private readonly List<string> m_uidsInCache = new List<string>();
-		private readonly Dictionary<string, string> m_uidStringCache = new Dictionary<string, string>();
-		private readonly Dictionary<string, string> m_stringUidCache = new Dictionary<string, string>();
+		private class Uid : IEquatable<Uid>
+		{
+			public readonly Slice Slice;
+			public readonly int HashCode;
+
+			public Uid(Slice slice)
+			{
+				this.Slice = slice;
+				this.HashCode = slice.GetHashCode();
+			}
+
+			public bool Equals(Uid other)
+			{
+				return other.HashCode == this.HashCode && other.Equals(this);
+			}
+
+			public override bool Equals(object obj)
+			{
+				return obj is Uid && Equals(obj as Uid);
+			}
+
+			public override int GetHashCode()
+			{
+				return this.HashCode;
+			}
+		}
+
+		private readonly List<Uid> m_uidsInCache = new List<Uid>();
+		private readonly Dictionary<Uid, string> m_uidStringCache = new Dictionary<Uid, string>(EqualityComparer<Uid>.Default);
+		private readonly Dictionary<string, Uid> m_stringUidCache = new Dictionary<string, Uid>(StringComparer.Ordinal);
 		private int m_bytesCached;
 
 		private readonly Random m_rnd = new Random();
@@ -67,22 +96,32 @@ namespace FoundationDb.Client.Tables
 
 			this.Database = database;
 			this.Subspace = subspace;
+
+			this.StringUidPrefix = subspace.Append(STRING_2_UID_KEY).Memoize();
+			this.UidStringPrefix = subspace.Append(UID_2_STRING_KEY).Memoize();
 		}
 
 		public FdbDatabase Database { get; private set; }
 
 		public FdbSubspace Subspace { get; private set; }
 
+		protected FdbMemoizedTuple StringUidPrefix { get; private set; }
+
+		protected FdbMemoizedTuple UidStringPrefix { get; private set; }
+
+		#region Private Helpers...
+
 		public IFdbTuple UidKey(Slice uid)
 		{
-			return this.Subspace.Append(UidStringPrefix, uid);
+			return this.UidStringPrefix.Append(uid);
 		}
 
 		public IFdbTuple StringKey(string value)
 		{
-			return this.Subspace.Append(StringUidPrefix, value);
+			return this.StringUidPrefix.Append(value);
 		}
 
+		/// <summary>Evict a random value from the cache</summary>
 		private void EvictCache()
 		{
 			if (m_uidsInCache.Count == 0)
@@ -94,7 +133,7 @@ namespace FoundationDb.Client.Tables
 			int i = m_rnd.Next(m_uidsInCache.Count);
 
 			// remove from uids_in_cache
-			string uidKey = m_uidsInCache[i];
+			var uidKey = m_uidsInCache[i];
 			m_uidsInCache[i] = m_uidsInCache[m_uidsInCache.Count - 1];
 			m_uidsInCache.RemoveAt(m_uidsInCache.Count - 1);
 
@@ -108,10 +147,11 @@ namespace FoundationDb.Client.Tables
 			m_uidStringCache.Remove(uidKey);
 			m_stringUidCache.Remove(value);
 
-			int size = (value.Length + uidKey.Length) * 2;
+			int size = (value.Length * 2) + uidKey.Slice.Count;
 			Interlocked.Add(ref m_bytesCached, -size);
 		}
 
+		/// <summary>Add a value in the cache</summary>
 		private void AddToCache(string value, Slice uid)
 		{
 			while (m_bytesCached > CacheLimitBytes)
@@ -119,7 +159,7 @@ namespace FoundationDb.Client.Tables
 				EvictCache();
 			}
 
-			string uidKey = uid.ToBase64();
+			var uidKey = new Uid(uid);
 
 			m_lock.EnterUpgradeableReadLock();
 			try
@@ -139,7 +179,7 @@ namespace FoundationDb.Client.Tables
 						m_lock.ExitWriteLock();
 					}
 
-					int size = (value.Length + uidKey.Length) * 2;
+					int size = (value.Length * 2) + uidKey.Slice.Count;
 					Interlocked.Add(ref m_bytesCached, size);
 
 				}
@@ -150,11 +190,9 @@ namespace FoundationDb.Client.Tables
 			}
 		}
 
-		/// <summary>
-		/// 
-		/// </summary>
-		/// <param name="trans"></param>
-		/// <returns></returns>
+		/// <summary>Finds a new free uid that can be used to store a new string in the table</summary>
+		/// <param name="trans">Transaction used to look for and create a new uid</param>
+		/// <returns>Newly created UID that is guaranteed to be globally unique</returns>
 		private async Task<Slice> FindUidAsync(FdbTransaction trans)
 		{
 			// note: we diverge from stringingern.py here by converting the UID (bytes) into Base64 in the cache.
@@ -165,11 +203,12 @@ namespace FoundationDb.Client.Tables
 			int tries = 0;
 			while (tries < MAX_TRIES)
 			{
-				var bytes = new byte[4 + tries];
+				// note: we diverge from the python sample layer by not expanding the size at each retry, in order to ensure that value size keeps as small as possible
+				var bytes = new byte[3 + (tries >> 1)];
 				m_prng.GetBytes(bytes);
 
 				var slice = Slice.Create(bytes);
-				if (m_uidStringCache.ContainsKey(slice.ToBase64()))
+				if (m_uidStringCache.ContainsKey(new Uid(slice)))
 					continue;
 
 				var candidate = await trans.GetAsync(UidKey(slice)).ConfigureAwait(false);
@@ -183,6 +222,10 @@ namespace FoundationDb.Client.Tables
 			throw new InvalidOperationException("Failed to find a free uid for interned string after " + MAX_TRIES + " attempts");
 		}
 
+		#endregion
+
+		#region Intern...
+
 		/// <summary>Look up string <paramref name="value"/> in the intern database and return its normalized representation. If value already exists, intern returns the existing representation.</summary>
 		/// <param name="trans">Fdb transaction</param>
 		/// <param name="value">String to intern</param>
@@ -190,18 +233,23 @@ namespace FoundationDb.Client.Tables
 		/// <remarks><paramref name="value"/> must fit within a FoundationDB value</remarks>
 		public Task<Slice> InternAsync(FdbTransaction trans, string value)
 		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (value == null) throw new ArgumentNullException("value");
+
+			if (value.Length == 0) return Task.FromResult(Slice.Empty);
+
 #if DEBUG_STRING_INTERNING
 			Debug.WriteLine("Want to intern: " + value);
 #endif
 
-			string uidKey;
+			Uid uidKey;
 
 			if (m_stringUidCache.TryGetValue(value, out uidKey))
 			{
 #if DEBUG_STRING_INTERNING
 				Debug.WriteLine("> found in cache! " + uidKey);
 #endif
-				return Task.FromResult(Slice.FromBase64(uidKey));
+				return Task.FromResult(uidKey.Slice);
 			}
 
 #if DEBUG_STRING_INTERNING
@@ -242,14 +290,21 @@ namespace FoundationDb.Client.Tables
 			return uid;
 		}
 
+		#endregion
+
+		#region Lookup...
+
 		/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
-		/// <param name="trans"></param>
-		/// <param name="uid"></param>
-		/// <returns></returns>
 		public Task<string> LookupAsync(FdbTransaction trans, Slice uid)
 		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			if (!uid.HasValue) throw new ArgumentException("String uid cannot be nil", "uid");
+
+			if (uid.IsEmpty) return Task.FromResult(String.Empty);
+
 			string value;
-			if (m_uidStringCache.TryGetValue(uid.ToBase64(), out value))
+			if (m_uidStringCache.TryGetValue(new Uid(uid), out value))
 			{
 				return Task.FromResult(value);
 			}
@@ -267,6 +322,8 @@ namespace FoundationDb.Client.Tables
 
 			return value;
 		}
+
+		#endregion
 
 	}
 

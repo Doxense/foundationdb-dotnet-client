@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using FoundationDb.Client;
 using FoundationDb.Client.Tables;
+using FoundationDb.Client.Tests;
 using FoundationDb.Client.Tuples;
 using NUnit.Framework;
 using System;
@@ -60,69 +61,63 @@ namespace FoundationDb.Tests
 		{
 			using(var db = await Fdb.OpenLocalDatabaseAsync("DB"))
 			{
-				var location = new FdbSubspace("BigStrings");
-				var strs = new FdbStringIntern(db, location);
+				var stringSpace = new FdbSubspace("Strings");
+				var dataSpace = new FdbSubspace("Data");
 
+				// clear all previous data
+				await FdbTestHelpers.DeleteSubspace(db, stringSpace);
+				await FdbTestHelpers.DeleteSubspace(db, dataSpace);
+
+				var stringTable = new FdbStringIntern(db, stringSpace);
+
+				// insert a bunch of strings
 				using (var tr = db.BeginTransaction())
 				{
-					tr.Set(FdbKey.Ascii("0"), await strs.InternAsync(tr, "testing 123456789"));
-					tr.Set(FdbKey.Ascii("1"), await strs.InternAsync(tr, "dog"));
-					tr.Set(FdbKey.Ascii("2"), await strs.InternAsync(tr, "testing 123456789"));
-					tr.Set(FdbKey.Ascii("3"), await strs.InternAsync(tr, "cat"));
-					tr.Set(FdbKey.Ascii("4"), await strs.InternAsync(tr, "cat"));
-
-					tr.Set(FdbKey.Ascii("9"), Slice.FromString("last"));
-					tr.Set(FdbKey.Ascii(":"), Slice.FromString("guard"));
+					tr.Set(dataSpace.Append("a"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Append("b"), await stringTable.InternAsync(tr, "dog"));
+					tr.Set(dataSpace.Append("c"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Append("d"), await stringTable.InternAsync(tr, "cat"));
+					tr.Set(dataSpace.Append("e"), await stringTable.InternAsync(tr, "cat"));
 
 					await tr.CommitAsync();
 				}
 
+#if DEBUG
+				await FdbTestHelpers.DumpSubspace(db, stringSpace);
+				await FdbTestHelpers.DumpSubspace(db, dataSpace);
+#endif
+
+				// check the contents of the data
 				using (var tr = db.BeginTransaction())
 				{
+					var uid_a = await tr.GetAsync(dataSpace.Append("a"));
+					var uid_b = await tr.GetAsync(dataSpace.Append("b"));
+					var uid_c = await tr.GetAsync(dataSpace.Append("c"));
+					var uid_d = await tr.GetAsync(dataSpace.Append("d"));
+					var uid_e = await tr.GetAsync(dataSpace.Append("e"));
 
-					Debug.WriteLine("GetRange('0'..'9') ....");
-		
-					var results = await tr.GetRange(FdbKey.Ascii("0"), FdbKey.Ascii("9")).ReadAllAsync();
+					// a, b, d should be different
+					Assert.That(uid_b, Is.Not.EqualTo(uid_a));
+					Assert.That(uid_d, Is.Not.EqualTo(uid_a));
 
-					Debug.WriteLine("Found " + results.Count + " results");
-					foreach (var kvp in results)
-					{
-						Debug.WriteLine(kvp.Key + " : " + kvp.Value);
-					}
+					// a should equal c
+					Assert.That(uid_c, Is.EqualTo(uid_a));
 
-					Debug.WriteLine("GetRange((BigStrings,*)) ....");
+					// d should equal e
+					Assert.That(uid_e, Is.EqualTo(uid_d));
 
-					results = await tr.GetRangeStartsWith(FdbTuple.Create("BigStrings")).ReadAllAsync();
+					// perform a lookup
+					var str_a = await stringTable.LookupAsync(tr, uid_a);
+					var str_b = await stringTable.LookupAsync(tr, uid_b);
+					var str_c = await stringTable.LookupAsync(tr, uid_c);
+					var str_d = await stringTable.LookupAsync(tr, uid_d);
+					var str_e = await stringTable.LookupAsync(tr, uid_e);
 
-					Debug.WriteLine("Found " + results.Count + " results");
-					foreach (var kvp in results)
-					{
-						Debug.WriteLine(kvp.Key + " : " + kvp.Value);
-					}
-
-					//var r = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(FdbKey.Ascii("0")));
-					//Debug.WriteLine("First_Greater_Or_Equal('0') => " + DumpStr(r));
-					//r = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.Ascii("0")));
-					//Debug.WriteLine("First_Greater_Than('0') => " + DumpStr(r));
-
-					//r = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(FdbKey.Ascii("4")));
-					//Debug.WriteLine("Last_Less_Or_Equal('4') => " + DumpStr(r));
-					//r = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.Ascii("4")));
-					//Debug.WriteLine("Last_Less_Than('4') => " + DumpStr(r));
-
-					//r = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(FdbKey.Ascii("9")));
-					//Debug.WriteLine("Last_Less_Or_Equal('9') => " + DumpStr(r));
-					//r = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.Ascii("9")));
-					//Debug.WriteLine("Last_Less_Than('9') => " + DumpStr(r));
-
-					//r = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.Ascii("0")));
-					//Debug.WriteLine("Last_Less_Than('0') => " + DumpStr(r));
-					//r = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.Ascii("9")));
-					//Debug.WriteLine("First_Greater_Than('9') => " + DumpStr(r));
-
-					//r = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.Ascii("\0")));
-					//Debug.WriteLine("Last_Less_Than(NUL) => " + DumpStr(r));
-
+					Assert.That(str_a, Is.EqualTo("testing 123456789"));
+					Assert.That(str_b, Is.EqualTo("dog"));
+					Assert.That(str_c, Is.EqualTo(str_a));
+					Assert.That(str_d, Is.EqualTo("cat"));
+					Assert.That(str_e, Is.EqualTo(str_d));
 				}
 			}
 		}
