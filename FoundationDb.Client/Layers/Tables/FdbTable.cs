@@ -54,27 +54,31 @@ namespace FoundationDb.Client.Tables
 		#region Keys...
 
 		/// <summary>Add the namespace in front of an existing tuple</summary>
-		/// <param name="tuple">Existing tuple</param>
+		/// <param name="id">Existing tuple</param>
 		/// <returns>(namespace, tuple_items, )</returns>
-		protected virtual IFdbTuple MakeKey(IFdbTuple tuple)
+		protected virtual IFdbTuple MakeKey(IFdbTuple id)
 		{
-			return this.Subspace.AppendRange(tuple);
+			if (id == null) throw new ArgumentNullException("id");
+
+			return this.Subspace.AppendRange(id);
 		}
 
 		#endregion
 
 		#region GetAsync() ...
 
-		public Task<Slice> GetAsync(FdbTransaction trans, IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(FdbTransaction trans, IFdbTuple id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return trans.GetAsync(MakeKey(tuple).ToSlice(), snapshot, ct);
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			return trans.GetAsync(MakeKey(id).ToSlice(), snapshot, ct);
 		}
 
-		public async Task<Slice> GetAsync(IFdbTuple tuple, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<Slice> GetAsync(IFdbTuple id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
-				return await GetAsync(trans, tuple, snapshot, ct).ConfigureAwait(false);
+				return await GetAsync(trans, id, snapshot, ct).ConfigureAwait(false);
 			}
 		}
 
@@ -82,16 +86,38 @@ namespace FoundationDb.Client.Tables
 
 		#region Set() ...
 
-		public void Set(FdbTransaction trans, IFdbTuple tuple, Slice value)
+		public void Set(FdbTransaction trans, IFdbTuple id, Slice value)
 		{
-			trans.Set(MakeKey(tuple).ToSlice(), value);
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Set(MakeKey(id).ToSlice(), value);
 		}
 
-		public async Task SetAsync(IFdbTuple tuple, Slice value)
+		public async Task SetAsync(IFdbTuple id, Slice value)
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
-				Set(trans, tuple, value);
+				Set(trans, id, value);
+				await trans.CommitAsync().ConfigureAwait(false);
+			}
+		}
+
+		#endregion
+
+		#region Clear() ...
+
+		public void Clear(FdbTransaction trans, IFdbTuple id)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Clear(MakeKey(id));
+		}
+
+		public async Task ClearAsync(IFdbTuple id)
+		{
+			using (var trans = this.Database.BeginTransaction())
+			{
+				Clear(trans, id);
 				await trans.CommitAsync().ConfigureAwait(false);
 			}
 		}

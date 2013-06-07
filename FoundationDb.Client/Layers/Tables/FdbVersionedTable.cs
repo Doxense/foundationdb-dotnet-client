@@ -32,12 +32,21 @@ namespace FoundationDb.Client.Tables
 	using FoundationDb.Client.Utils;
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public class FdbVersionedTable<TKey, TValue>
+	/// <summary>Table that can store items and keep all past versions</summary>
+	/// <typeparam name="TId">Type of the unique identifier of an item</typeparam>
+	/// <typeparam name="TValue">Type of the value of an item</typeparam>
+	public class FdbVersionedTable<TId, TValue>
 	{
-		public const long VersionNotFound = -1;
+		private const int METADATA_KEY = 0;
+		private const int ITEMS_KEY = 1;
+		private const int LAST_VERSIONS_KEY = 2;
+
+		/// <summary>Name of the table</summary>
+		public string Name { get; private set; }
 
 		/// <summary>Database used to perform transactions</summary>
 		public FdbDatabase Database { get; private set; }
@@ -46,88 +55,126 @@ namespace FoundationDb.Client.Tables
 		public FdbSubspace Subspace { get; private set; }
 
 		/// <summary>Class that can pack/unpack keys into/from tuples</summary>
-		public ITupleKeyReader<TKey> KeyReader { get; private set; }
+		public ITupleKeyReader<TId> KeyReader { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		public ISliceSerializer<TValue> ValueSerializer { get; private set; }
 
-		public FdbVersionedTable(FdbDatabase database, FdbSubspace subspace, ITupleKeyReader<TKey> keyReader, ISliceSerializer<TValue> valueSerializer, Func<TKey, long> initialVersion, Func<TKey, long, long> incrementVersion)
+		/// <summary>(Subspace, METADATA_KEY, attr_name) = attr_value</summary>
+		protected FdbMemoizedTuple MetadataPrefix { get; private set; }
+
+		/// <summary>(Subspace, ITEMS_KEY, key, version) = Contains the value of a specific version of the key, or empty if the last change was a deletion</summary>
+		protected FdbMemoizedTuple ItemsPrefix { get; private set; }
+
+		/// <summary>(Subspace, LATEST_VERSIONS_KEY, key) = Contains the last version for this specific key</summary>
+		protected FdbMemoizedTuple VersionsPrefix { get; private set; }
+
+		public FdbVersionedTable(string name, FdbDatabase database, FdbSubspace subspace, ITupleKeyReader<TId> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
+			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
 			if (database == null) throw new ArgumentNullException("database");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (keyReader == null) throw new ArgumentNullException("keyReader");
 			if (valueSerializer == null) throw new ArgumentNullException("valueSerializer");
 
-			if (initialVersion == null) initialVersion = (_) => 0;
-			if (incrementVersion == null) incrementVersion = (_, ver) => ver + 1;
-
+			this.Name = name;
 			this.Database = database;
 			this.Subspace = subspace;
 			this.KeyReader = keyReader;
 			this.ValueSerializer = valueSerializer;
+
+			this.MetadataPrefix = this.Subspace.Append(METADATA_KEY).Memoize();
+			this.ItemsPrefix = this.Subspace.Append(ITEMS_KEY).Memoize();
+			this.VersionsPrefix = this.Subspace.Append(LAST_VERSIONS_KEY).Memoize();
 		}
 
-		/// <summary>Returns a tuple including the key and the version (namespace, key, version, )</summary>
-		/// <typeparam name="TKey"></typeparam>
-		/// <param name="key"></param>
-		/// <returns></returns>
-		protected virtual IFdbTuple MakeKey(TKey key, long version)
+		public async Task<bool> OpenOrCreateAsync()
 		{
-			return this.Subspace.Append(key, version);
-		}
+			using (var tr = this.Database.BeginTransaction())
+			{
+				// (Subspace, ) + \00 = begin marker (= "")
+				// (Susbspace, 0, Name) = Table Name
+				// (Subspace, ) + \FF = end marker (= "")
 
-		/// <summary>Returns a tuple with only the key (namespace, key, )</summary>
-		/// <typeparam name="TKey"></typeparam>
-		/// <param name="key"></param>
-		/// <returns></returns>
-		protected virtual IFdbTuple MakeKey(TKey key)
-		{
-			return this.Subspace.Append(key);
+				var key = await tr.GetAsync(this.MetadataPrefix).ConfigureAwait(false);
+				// it should be (Subspace, 0)
+
+				if (key == this.MetadataPrefix.ToSlice())
+				{ // seems ok
+
+					//TODO: check table name, check metadata ?
+					return false;
+				}
+
+				// not found ? initialize!
+				// get (Subspace, 00) and (Subspace, FF)
+				var bounds = this.Subspace.Tuple.ToRange();
+				tr.Set(bounds.Begin, Slice.Empty);
+				tr.Set(bounds.End, Slice.Empty);
+				tr.Set(this.MetadataPrefix.Append("Name"), Slice.FromString(this.Name));
+				tr.Set(this.MetadataPrefix.Append("KeyType"), Slice.FromString(typeof(TId).FullName));
+				tr.Set(this.MetadataPrefix.Append("ValueType"), Slice.FromString(typeof(TValue).FullName));
+
+				await tr.CommitAsync();
+
+				return true;
+			}
 		}
 
 		/// <summary>Returns the key of the last valid version for this entry that is not after the specified version</summary>
 		/// <remarks>Slice.Nil if not valid version was found, or the key of the matchin version</remarks>
-		protected virtual async Task<Slice> FindLastKnownVersionAsync(FdbTransaction trans, IFdbTuple key, long? version, bool snapshot, CancellationToken ct)
-		{
-
-			// prefix of all the version for this key: (subspace, key, )
-			Slice prefixKey = key.ToSlice();
-
-			// search selector to get the maximum version that is less or equal to the specified version
-			// note: if version is null, we increment the prefix to get the last known version
-
-			Slice searchKey = version.HasValue ? key.Append(version.Value).ToSlice() : FdbKey.Increment(prefixKey);
-
-			// Get the last version that matches.
-			var dbKey = await trans.GetKeyAsync(FdbKeySelector.LastLessOrEqual(searchKey), snapshot, ct);
-
-			// Either we have found a version for this key, or there are no valid version. In the last case:
-			// * if 'version' is specified, and the key does not exist at all, or if the version is "too early", we will get back a key from a previous entry in the db
-			// * if 'version' is null, and the key does not exist at all, we will get back the key for a next entry in the db
-			// In both cases, the returned key does not match the prefix, and will be treated as "not found"
-			if (!dbKey.PrefixedBy(prefixKey))
-			{ // "not found"
-				return Slice.Nil;
-			}
-
-			// We have a valid version for this key
-			return dbKey;
-		}
-
-		protected virtual Task<Slice> GetValueAtVersionAsync(FdbTransaction trans, Slice keyWithVersion, bool snapshot, CancellationToken ct)
+		protected virtual async Task<long?> GetLastVersionAsync(FdbTransaction trans, TId id, bool snapshot, CancellationToken ct)
 		{
 			Contract.Requires(trans != null);
-			Contract.Requires(!keyWithVersion.IsNullOrEmpty);
+			Contract.Requires(id != null);
 
-			return trans.GetAsync(keyWithVersion, snapshot, ct);
+			// Lookup in the Version subspace
+			var tuple = GetVersionKey(id);
+
+			var value = await trans.GetAsync(tuple, snapshot, ct).ConfigureAwait(false);
+
+			// if the item does not exist at all, returns null
+			if (value.IsNullOrEmpty) return default(long?);
+
+			// parse the version
+			long version = value.ToInt64();
+
+			return version;
 		}
 
-		protected virtual long ExtractVersionFromKeyBytes(Slice keyBytes)
+		/// <summary>Returns the active revision of an item that was valid at the specified version</summary>
+		/// <remarks>null if no valid version was found, or the version number of the revision if found</remarks>
+		protected virtual async Task<long?> FindVersionAsync(FdbTransaction trans, TId id, long version, bool snapshot, CancellationToken ct)
 		{
-			if (keyBytes.IsNullOrEmpty) return VersionNotFound;
+			Contract.Requires(trans != null);
+			Contract.Requires(id != null);
+			Contract.Requires(version >= 0);
+
+
+			// search selector to get the maximum version that is less or equal to the specified version
+			var searchKey = FdbKeySelector.LastLessOrEqual(GetItemKey(id, version));
+
+			// Finds the corresponding key...
+			var dbKey = await trans.GetKeyAsync(searchKey, snapshot, ct).ConfigureAwait(false);
+
+			// If the key does not exist at all, or if the specified version is "too early", we will get back a key from a previous entry in the db
+			if (!dbKey.PrefixedBy(GetItemKeyPrefix(id).ToSlice()))
+			{ // foreign key => "not found"
+				return default(long?);
+			}
+
+			// parse the version from the key
+			var dbVersion = ExtractVersionFromKeyBytes(dbKey);
+
+			return dbVersion;
+		}
+
+		protected virtual long? ExtractVersionFromKeyBytes(Slice keyBytes)
+		{
+			if (keyBytes.IsNullOrEmpty) return default(long?);
 
 			// we need to unpack the key, to get the db version
-			var unpacked = FdbTuple.Unpack(keyBytes);
+			var unpacked = keyBytes.ToTuple();
 
 			//TODO: ensure that there is a version at the end !
 
@@ -137,97 +184,269 @@ namespace FoundationDb.Client.Tables
 			return dbVersion;
 		}
 
-		#region GetAsync() ...
+		/// <summary>Compute the key prefix for all versions of an item</summary>
+		/// <param name="id">Item key</param>
+		/// <returns>(Subspace, ITEMS_KEY, key, )</returns>
+		protected virtual IFdbTuple GetItemKeyPrefix(TId id)
+		{
+			return this.KeyReader.Append(this.ItemsPrefix, id);
+		}
 
-		private async Task<Slice> GetLastCoreAsync(FdbTransaction trans, IFdbTuple keyWithoutVersion, bool snapshot, CancellationToken ct)
+		protected virtual IFdbTuple GetItemKey(TId id, long version)
+		{
+			return GetItemKeyPrefix(id).Append(version);
+		}
+
+		/// <summary>Compute the key that holds the last known version number of an item</summary>
+		/// <returns>(Subspace, LAST_VERSION_KEY, key, )</returns>
+		protected virtual IFdbTuple GetVersionKey(TId id)
+		{
+			return this.KeyReader.Append(this.VersionsPrefix, id);
+		}
+
+		protected virtual Task<Slice> GetValueAtVersionAsync(FdbTransaction trans, TId id, long version, bool snapshot, CancellationToken ct)
+		{
+			var tuple = GetItemKey(id, version);
+			return trans.GetAsync(tuple, snapshot, ct);
+		}
+
+		#region GetLast() ...
+
+		private async Task<KeyValuePair<long?, TValue>> GetLastCoreAsync(FdbTransaction trans, TId id, bool snapshot, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
-			var keyBytes = keyWithoutVersion.ToSlice();
+			// Get the last known version for this key
+			var last = await GetLastVersionAsync(trans, id, snapshot, ct).ConfigureAwait(false);
 
-			var last = await FindLastKnownVersionAsync(trans, keyWithoutVersion, null, snapshot, ct);
-
-			if (last.IsNullOrEmpty)
-			{ // "not found"
-				return Slice.Nil;
+			var value = default(TValue);
+			if (last.HasValue)
+			{ // extract the specified value
+				var data = await GetValueAtVersionAsync(trans, id, last.Value, snapshot, ct).ConfigureAwait(false);
+				value = this.ValueSerializer.Deserialize(data, default(TValue));
 			}
 
-			return await GetValueAtVersionAsync(trans, last, snapshot, ct);
+			return new KeyValuePair<long?, TValue>(last, value);
 		}
 
-		public Task<Slice> GetLastAsync(FdbTransaction trans, TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<KeyValuePair<long?, TValue>> GetLastAsync(FdbTransaction trans, TId id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
+			if (id == null) throw new ArgumentNullException("key");
 
-			return GetLastCoreAsync(trans, MakeKey(key), snapshot, ct);
+			return GetLastCoreAsync(trans, id, snapshot, ct);
 		}
 
-		private async Task<KeyValuePair<long, Slice>> GetVersionCoreAsync(FdbTransaction trans, IFdbTuple keyWithoutVersion, long version, bool snapshot, CancellationToken ct)
+		#endregion
+
+		#region GetVersion()...
+
+		private async Task<KeyValuePair<long?, TValue>> GetVersionCoreAsync(FdbTransaction trans, TId id, long version, bool snapshot, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
-			var keyOnlyBytes = keyWithoutVersion.ToSlice();
-			var versionnedKeyBytes = keyWithoutVersion.Append(version).ToSlice();
+			long? dbVersion;
 
-			var key = await trans.GetKeyAsync(FdbKeySelector.LastLessOrEqual(versionnedKeyBytes), snapshot, ct);
-			if (!key.PrefixedBy(keyOnlyBytes))
-			{ // "not found"
-				return new KeyValuePair<long, Slice>(VersionNotFound, Slice.Nil);
+			if (version == long.MaxValue)
+			{ // caller wants the latest
+				dbVersion = await GetLastVersionAsync(trans, id, snapshot, ct).ConfigureAwait(false);
+			}
+			else
+			{ // find the version alive at this time
+				dbVersion = await FindVersionAsync(trans, id, version, snapshot, ct).ConfigureAwait(false);
 			}
 
-			// we need to unpack the key, to get the db version
-			var unpacked = FdbTuple.Unpack(key);
-			//TODO: ensure that there is a version at the end !
-			long dbVersion = unpacked.Get<long>(-1);
+			if (dbVersion.HasValue)
+			{ // we have found a valid record that contains this version, read the value
+				// note that it could be a deletion
 
-			// we have found a valid record that contains this version, read the value
-			var value = await trans.GetAsync(key, snapshot, ct);
+				var data = await GetValueAtVersionAsync(trans, id, dbVersion.Value, snapshot, ct).ConfigureAwait(false);
+				// note: returns Slice.Empty if the value is deleted at this version
+				if (!data.IsNullOrEmpty)
+				{
+					var value = this.ValueSerializer.Deserialize(data, default(TValue));
+					return new KeyValuePair<long?, TValue>(dbVersion, value);
+				}
+			}
 
-			return new KeyValuePair<long, Slice>(dbVersion, value);
+			// not found, or deleted
+			return new KeyValuePair<long?, TValue>(dbVersion, default(TValue));
 		}
 
-		public Task<KeyValuePair<long, Slice>> GetVersionAsync(FdbTransaction trans, TKey key, long version, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		/// <summary>Return the value of an item at a specific version</summary>
+		/// <param name="id">Key of the item to read</param>
+		/// <param name="version">Time at which the item must exist</param>
+		/// <returns>If there was a version at this time, returns a pair with the actual version number and the value. If not, return (null, Slice.Nil). If the value was deleted at this time, returns (version, Slice.Nil)</returns>
+		public Task<KeyValuePair<long?, TValue>> GetVersionAsync(FdbTransaction trans, TId id, long version, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			// item did not exist yet => (null, Slice.Nil)
+			// item exist at this time => (item.Version, item.Value)
+			// item is deleted at this time => (item.Version, Slice.Empty)
+
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			// note: if TKey is a struct, it cannot be null. So we allow 0, false, default(TStruct), ...
-			if (key == null) throw new ArgumentNullException("key");
+			if (id == null) throw new ArgumentNullException("key");
 
 			if (version < 0) throw new ArgumentOutOfRangeException("version", "Version cannot be less than zero");
 
-			return GetVersionCoreAsync(trans, MakeKey(key), version, snapshot, ct);
+			return GetVersionCoreAsync(trans, id, version, snapshot, ct);
 		}
 
 		#endregion
 
-		#region Set() ...
+		#region SetLast() ...
 
-		public async Task<long> SetLastAsync(FdbTransaction trans, TKey key, TValue value, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<bool> Contains(FdbTransaction trans, TId id, long? version = null, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			var prefix = MakeKey(key);
+			ct.ThrowIfCancellationRequested();
 
-			// Find the last version
-			var last = await FindLastKnownVersionAsync(trans, prefix, null, snapshot, ct);
+			long? dbVersion;
 
-			long version;
-			if (last.IsNullOrEmpty)
-			{ // first version for this key !
-
-				version = 0; //TODO: get "initial version" ?
-				last = prefix.Append(version).ToSlice();
+			if (version.HasValue)
+			{
+				dbVersion = await FindVersionAsync(trans, id, version.Value, snapshot, ct).ConfigureAwait(false);
 			}
 			else
 			{
-				version = ExtractVersionFromKeyBytes(last);
+				dbVersion = await GetLastVersionAsync(trans, id, snapshot, ct).ConfigureAwait(false);
 			}
 
-			trans.Set(last, this.ValueSerializer.Serialize(value));
+			if (!dbVersion.HasValue) return false;
 
-			return version;
+			// We still need to check if the last version was a deletion
+
+			var data = await GetValueAtVersionAsync(trans, id, dbVersion.Value, snapshot, ct).ConfigureAwait(false);
+
+			return data.IsNullOrEmpty;
+		}
+
+		/// <summary>Attempts to update the last version of an item, if it exists</summary>
+		/// <param name="id">Key of the item to update</param>
+		/// <param name="value">New value for this item</param>
+		/// <returns>If there are no known versions for this item, return null. Otherwise, update the item and return the version number</returns>
+		public async Task<long?> TryUpdateLastAsync(FdbTransaction trans, TId id, TValue value, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+
+			// Find the last version
+			var last = await GetLastVersionAsync(trans, id, snapshot, ct);
+
+			if (last.HasValue)
+			{
+				Slice data = this.ValueSerializer.Serialize(value);
+				trans.Set(GetItemKey(id, last.Value), data);
+			}
+
+			return last;
+		}
+
+		/// <summary>Attempts to update a previous version of an item, if it exists</summary>
+		/// <param name="id">Key of the item to update</param>
+		/// <param name="version">Version number (that must exist) of the item to change</param>
+		/// <param name="updater">Func that will be passed the previous value, and return the new value</param>
+		/// <returns>True if the previous version has been changed, false if it did not exist</returns>
+		public async Task<bool> TryUpdateVersionAsync(FdbTransaction trans, TId id, long version, Func<TValue, TValue> updater, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+
+			var data = await GetValueAtVersionAsync(trans, id, version, snapshot, ct).ConfigureAwait(false);
+			if (!data.HasValue)
+			{ // this version does not exist !
+				return false;
+			}
+
+			// parse previous value
+			var value = this.ValueSerializer.Deserialize(data, default(TValue));
+
+			// call the update lambda that will return a new value
+			value = updater(value);
+
+			// serialize the new value
+			data = this.ValueSerializer.Serialize(value);
+
+			// update
+			trans.Set(GetItemKey(id, version), data);
+
+			return true;
+		}
+
+		/// <summary>Attempts to create a new version of an item</summary>
+		/// <param name="id">Key of the item to create</param>
+		/// <param name="version">New version number of the item</param>
+		/// <param name="value">New value of the item</param>
+		/// <returns>Return the previous version number for this item, or null if it was the first version</returns>
+		public async Task<long?> TryCreateNewVersionAsync(FdbTransaction trans, TId id, long version, TValue value, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+
+			// Ensure that the specified version number is indeed the last value
+			var last = await GetLastVersionAsync(trans, id, snapshot, ct).ConfigureAwait(false);
+
+			if (last.HasValue && last.Value >= version)
+			{
+				//REVIEW: should we throw FdbError.FutureVersion instead ?
+				throw new InvalidOperationException("The table already contains a newer entry for this item");
+			}
+
+			// We can insert the new version
+
+			Slice data = this.ValueSerializer.Serialize(value);
+
+			//HACK to emulate Delete, remove me!
+			if (!data.HasValue) data = Slice.Empty;
+			//end of ugly hack
+
+			// (subspace, ITEMS_KEY, key, version) = data
+			trans.Set(GetItemKey(id, version), data);
+			// (subspace, LAST_VERSIONS_KEY, key) = version
+			trans.Set(GetVersionKey(id), Slice.FromInt64(version));
+
+			return last;
 		}
 
 		#endregion
+
+		#region List...
+
+		public async Task<List<KeyValuePair<TId, TValue>>> SelectLatestAsync(FdbTransaction trans, bool includeDeleted = false, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			//REVIEW: pagination ? filtering ???
+
+			ct.ThrowIfCancellationRequested();
+
+			// get all latest versions...
+
+			var versions = await trans
+				.GetRangeStartsWith(this.ItemsPrefix, 0, snapshot)
+				.ReadAllAsync(
+					(key) => this.KeyReader.Unpack(key.ToTuple(), this.VersionsPrefix.Count),
+					(value) => value.ToInt64(),
+					(key, version) => new KeyValuePair<TId, long>(key, version),
+					ct
+				).ConfigureAwait(false);
+
+			// now read all the values
+
+			var indexedResults = await trans
+				.GetBatchIndexedAsync(
+					versions.Select(kvp => GetItemKey(kvp.Key, kvp.Value)),
+					snapshot,
+					ct
+				).ConfigureAwait(false);
+
+			var results = indexedResults
+				.Select((kvp) => new KeyValuePair<TId, TValue>(
+					versions[kvp.Key].Key,
+					this.ValueSerializer.Deserialize(kvp.Value, default(TValue))
+				))
+				.ToList();
+
+			return results;
+		}
+
+		#endregion
+
 	}
 
 }
