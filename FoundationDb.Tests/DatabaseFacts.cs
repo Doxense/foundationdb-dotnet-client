@@ -155,5 +155,23 @@ namespace FoundationDb.Tests
 				Assert.Throws<ArgumentException>(() => db.RestrictKeySpace(Slice.FromAscii("Z"), Slice.FromAscii("A")));
 			}		
 		}
+
+		[Test]
+		public async Task Test_Can_Change_Location_Cache_Size()
+		{
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+
+				//TODO: how can we test that it is successfull ?
+
+				db.SetLocationCacheSize(1000);
+				db.SetLocationCacheSize(10000000);
+				db.SetLocationCacheSize(0);
+
+
+				// reject negative numbers
+				Assert.That(() => db.SetLocationCacheSize(-123), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			}
+		}
 	}
 }

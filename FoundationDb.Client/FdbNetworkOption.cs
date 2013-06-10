@@ -39,16 +39,22 @@ namespace FoundationDb.Client
 	{
 		None = 0,
 
-		/// <summary>IP:PORT
-		/// (DEPRECATED)</summary>
+		/// <summary>
+		/// Deprecated
+		/// Parameter: (String) IP:PORT
+		/// </summary>
 		LocalAddress = 10,
 
-		/// <summary>Path to cluster file
-		/// (DEPRECATED)</summary>
+		/// <summary>
+		/// Deprecated
+		/// Parameter: (String) Path to cluster file
+		/// </summary>
 		ClusterFile = 20,
 
-		/// <summary>Path to output directory (or NULL for current working directory).
-		/// Enable traces output to a file in a directory of the clients choosing.</summary>
+		/// <summary>
+		/// Enables trace output to a file in a directory of the clients choosing
+		/// Parameter: (String) path to output directory (or NULL for current working directory)
+		/// </summary>
 		TraceEnable = 30,
 	}
 

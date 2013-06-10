@@ -39,12 +39,14 @@ namespace FoundationDb.Client
 	{
 		None = 0,
 
-		/// <summary>The transaction, if not self-conflicting, may be committed a second time after commit succeeds, in the event of a fault
+		/// <summary>
+		/// The transaction, if not self-conflicting, may be committed a second time after commit succeeds, in the event of a fault
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		CausalWriteRisky = 10,
 
-		/// <summary>The read version will be committed, and usually will be the latest committed, but might not be the latest committed in the event of a fault or partition
+		/// <summary>
+		/// The read version will be committed, and usually will be the latest committed, but might not be the latest committed in the event of a fault or partition
 		// Parameter: Option takes no parameter
 		/// </summary>
 		CausalReadRisky = 20,
@@ -59,12 +61,14 @@ namespace FoundationDb.Client
 		/// </summary>
 		CheckWritesEnable = 50,
 
-		/// <summary>Reads performed by a transaction will not see any prior mutations that occured in that transaction, instead seeing the value which was in the database at the transaction's read version. This option may provide a small performance benefit for the client, but also disables a number of client-side optimizations which are beneficial for transactions which tend to read and write the same keys within a single transaction. Also note that with this option invoked any outstanding reads will return errors when transaction commit is called (rather than the normal behavior of commit waiting for outstanding reads to complete).
+		/// <summary>
+		/// Reads performed by a transaction will not see any prior mutations that occured in that transaction, instead seeing the value which was in the database at the transaction's read version. This option may provide a small performance benefit for the client, but also disables a number of client-side optimizations which are beneficial for transactions which tend to read and write the same keys within a single transaction. Also note that with this option invoked any outstanding reads will return errors when transaction commit is called (rather than the normal behavior of commit waiting for outstanding reads to complete).
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		ReadYourWrites = 51,
 
-		/// <summary>Disables read-ahead caching for range reads. Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).
+		/// <summary>
+		/// Disables read-ahead caching for range reads. Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		ReadAheadDisable = 52,
@@ -84,22 +88,26 @@ namespace FoundationDb.Client
 		/// </summary>
 		DevNullIsWebScale = 130,
 
-		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools
+		/// <summary>
+		/// Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		PrioritySystemImmediate = 200,
 
-		/// <summary>Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work
+		/// <summary>
+		/// Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		PriorityBatch = 201,
 
-		/// <summary>This is a write-only transaction which sets the initial configuration
+		/// <summary>
+		/// This is a write-only transaction which sets the initial configuration
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		InitializeNewDatabase = 300,
 
-		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)
+		/// <summary>
+		/// Allows this transaction to read and modify system keys (those that start with the byte 0xFF)
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		AccessSystemKeys = 301,

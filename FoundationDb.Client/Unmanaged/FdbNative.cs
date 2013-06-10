@@ -41,7 +41,7 @@ namespace FoundationDb.Client.Native
 {
 	internal static unsafe class FdbNative
 	{
-		public const int FDB_API_VERSION = 21;
+		public const int FDB_API_VERSION = 22;
 
 		/// <summary>Name of the C API dll used for P/Invoking</summary>
 		private const string FDB_C_DLL = "fdb_c.dll";

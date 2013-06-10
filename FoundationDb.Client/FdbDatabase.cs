@@ -125,9 +125,9 @@ namespace FoundationDb.Client
 			SetOption(option, default(string));
 		}
 
-		/// <summary>Set an option on this database</summary>
+		/// <summary>Set an option on this database that takes a string value</summary>
 		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter</param>
+		/// <param name="value">Value of the parameter (can be null)</param>
 		public void SetOption(FdbDatabaseOption option, string value)
 		{
 			ThrowIfDisposed();
@@ -142,6 +142,30 @@ namespace FoundationDb.Client
 					FdbNative.DatabaseSetOption(m_handle, option, ptr + data.Offset, data.Count);
 				}
 			}
+		}
+
+		/// <summary>Set an option on this database that takes an integer value</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter</param>
+		public void SetOption(FdbDatabaseOption option, int value)
+		{
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			unsafe
+			{
+				FdbNative.DatabaseSetOption(m_handle, option, (byte*)(&value), 4);
+			}
+		}
+
+		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
+		/// <param name="size">Max location cache entries</param>
+		public void SetLocationCacheSize(int size)
+		{
+			//REVIEW: we can't really change this to a Propertiy, because we don't have a way to get the current value for the getter, and set only properties are weird...
+			if (size < 0) throw new ArgumentOutOfRangeException("size", "Location cache size cannot be less than zero");
+			SetOption(FdbDatabaseOption.LocationCacheSize, size);
 		}
 
 		/// <summary>Restrict access to only the keys contained inside the specified bounds</summary>

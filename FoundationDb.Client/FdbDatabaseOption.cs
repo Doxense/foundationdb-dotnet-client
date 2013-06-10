@@ -39,8 +39,11 @@ namespace FoundationDb.Client
 	{
 		None = 0,
 
-		/// <summary>This option is only a placeholder for C compatibility and should not be used</summary>
-		Invalid = -1,
+		/// <summary>
+		/// Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.
+		/// Parameter: (Int) Max location cache entries
+		/// </summary>
+		LocationCacheSize = 10,
 	}
 
 }
