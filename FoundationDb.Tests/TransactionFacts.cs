@@ -183,7 +183,7 @@ namespace FoundationDb.Tests
 
 					bytes = await tr.GetAsync(FdbKey.Ascii("test.timestamp"));
 					Assert.That(bytes.Array, Is.Not.Null);
-					Assert.That(BitConverter.ToInt64(bytes.Array, bytes.Offset), Is.EqualTo(ticks));
+					Assert.That(bytes.ToInt64(), Is.EqualTo(ticks));
 
 					bytes = await tr.GetAsync(FdbKey.Ascii("test.blob"));
 					Assert.That(bytes.Array, Is.Not.Null);
@@ -307,8 +307,7 @@ namespace FoundationDb.Tests
 						Assert.That(key.GetInt32(-1), Is.EqualTo(i));
 
 						// value should be a guid
-						Assert.That(kvp.Value.Count, Is.EqualTo(4));
-						Assert.That(BitConverter.ToInt32(kvp.Value.Array, kvp.Value.Offset), Is.EqualTo(i));
+						Assert.That(kvp.Value.ToInt32(), Is.EqualTo(i));
 					}
 				}
 

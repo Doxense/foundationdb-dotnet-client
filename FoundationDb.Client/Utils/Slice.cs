@@ -415,13 +415,29 @@ namespace FoundationDb.Client
 			return sb.ToString();
 		}
 
+		public int ToInt32()
+		{
+			if (this.IsNullOrEmpty) return 0;
+
+			if (this.Count > 4) throw new FormatException("Cannot convert slice into an Int32 because it is larger than 4 bytes");
+
+			var buffer = this.Array;
+			int p = this.Offset;
+			int n = this.Count;
+			int value = 0;
+
+			while (n-- > 0)
+			{
+				value = (value << 8) | buffer[p++];
+			}
+			return value;
+		}
+
 		public long ToInt64()
 		{
 			if (this.IsNullOrEmpty) return 0L;
 
 			if (this.Count > 8) throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes");
-
-			//REVIEW: use ZigZag encofing for negative values ? (aka Google's VarInt)
 
 			var buffer = this.Array;
 			int p = this.Offset;
