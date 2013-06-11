@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDb.Client
 {
 	using FoundationDb.Client.Native;
+	using FoundationDb.Client.Utils;
 	using FoundationDb.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
@@ -84,31 +85,38 @@ namespace FoundationDb.Client
 		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
 		public void WithAccessToSystemKeys()
 		{
-			SetOption(FdbTransactionOption.AccessSystemKeys, null);
+			SetOption(FdbTransactionOption.AccessSystemKeys);
 		}
 
 		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools</summary>
 		public void WithPrioritySystemImmediate()
 		{
-			SetOption(FdbTransactionOption.PrioritySystemImmediate, null);
+			SetOption(FdbTransactionOption.PrioritySystemImmediate);
 		}
 
 		/// <summary>Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work</summary>
 		public void WithPriorityBatch()
 		{
-			SetOption(FdbTransactionOption.PriorityBatch, null);
+			SetOption(FdbTransactionOption.PriorityBatch);
 		}
 
-		/// <summary>Set a parameter-less option on this transaction</summary>
+		/// <summary>Set an option on this transaction that does not take any parameter</summary>
 		/// <param name="option">Option to set</param>
 		public void SetOption(FdbTransactionOption option)
 		{
-			SetOption(option, default(string));
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			unsafe
+			{
+				Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, null, 0));
+			}
 		}
 
-		/// <summary>Set an option on this transaction</summary>
+		/// <summary>Set an option on this transaction that takes a string value</summary>
 		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter</param>
+		/// <param name="value">Value of the parameter (can be null)</param>
 		public void SetOption(FdbTransactionOption option, string value)
 		{
 			ThrowIfDisposed();
@@ -120,8 +128,28 @@ namespace FoundationDb.Client
 			{
 				fixed (byte* ptr = data.Array)
 				{
-					FdbNative.TransactionSetOption(m_handle, option, ptr + data.Offset, data.Count);
+					Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr + data.Offset, data.Count));
 				}
+			}
+		}
+
+		/// <summary>Set an option on this transaction that takes an integer value</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter</param>
+		public void SetOption(FdbTransactionOption option, long value)
+		{
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			unsafe
+			{
+				// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
+
+				//TODO: what if we run on Big-Endian hardware ?
+				Contract.Requires(BitConverter.IsLittleEndian, null, "Not supported on Big-Endian platforms");
+
+				Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, (byte*)&value, 8));
 			}
 		}
 
