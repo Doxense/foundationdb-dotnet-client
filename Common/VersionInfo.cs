@@ -1,4 +1,4 @@
-ï»¿#region BSD Licence
+#region BSD Licence
 /* Copyright (c) 2013, Doxense SARL
 All rights reserved.
 
@@ -27,12 +27,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("FoundationDb.Layers.Common")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
+[assembly: AssemblyCompany("Doxense SARL")]
+[assembly: AssemblyProduct("FoundationDb.Client")]
+[assembly: AssemblyCopyright("Copyright © Doxense SARL 2013")]
+[assembly: AssemblyTrademark("")]
+[assembly: AssemblyCulture("")]
 
-[assembly: ComVisible(false)]
-
-[assembly: Guid("0fce138d-cb61-49fd-bb0a-a0ecb37abe79")]
+[assembly: AssemblyVersion("0.22.0.0")]
+[assembly: AssemblyFileVersion("0.22.0.0")]

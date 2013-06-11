@@ -16,6 +16,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{8DB844
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDb.Layers.Common", "FoundationDb.Layers.Common\FoundationDb.Layers.Common.csproj", "{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{4788B3A8-BFC1-4A57-8062-83071A1D41F7}"
+	ProjectSection(SolutionItems) = preProject
+		Common\foundationdb-net-client.snk = Common\foundationdb-net-client.snk
+		VersionInfo.cs = VersionInfo.cs
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
