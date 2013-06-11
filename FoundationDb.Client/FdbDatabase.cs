@@ -40,6 +40,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using FoundationDb.Layers.Tuples;
+using FoundationDb.Client.Utils;
 
 namespace FoundationDb.Client
 {
@@ -140,7 +141,7 @@ namespace FoundationDb.Client
 			{
 				fixed (byte* ptr = data.Array)
 				{
-					FdbNative.DatabaseSetOption(m_handle, option, ptr + data.Offset, data.Count);
+					Fdb.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, ptr + data.Offset, data.Count));
 				}
 			}
 		}
@@ -148,7 +149,7 @@ namespace FoundationDb.Client
 		/// <summary>Set an option on this database that takes an integer value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter</param>
-		public void SetOption(FdbDatabaseOption option, int value)
+		public void SetOption(FdbDatabaseOption option, long value)
 		{
 			ThrowIfDisposed();
 
@@ -156,16 +157,20 @@ namespace FoundationDb.Client
 
 			unsafe
 			{
-				FdbNative.DatabaseSetOption(m_handle, option, (byte*)(&value), 4);
+				// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
+
+				//TODO: what if we run on Big-Endian hardware ?
+				Contract.Requires(BitConverter.IsLittleEndian, null, "Not supported on Big-Endian platforms");
+
+				Fdb.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, (byte*)(&value), 8));
 			}
 		}
 
 		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
 		/// <param name="size">Max location cache entries</param>
-		public void SetLocationCacheSize(int size)
+		public void SetLocationCacheSize(long size)
 		{
-			//REVIEW: we can't really change this to a Propertiy, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			if (size < 0) throw new ArgumentOutOfRangeException("size", "Location cache size cannot be less than zero");
+			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			SetOption(FdbDatabaseOption.LocationCacheSize, size);
 		}
 
