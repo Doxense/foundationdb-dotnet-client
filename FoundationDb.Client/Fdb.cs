@@ -202,6 +202,10 @@ namespace FoundationDb.Client
 		{
 			if (s_eventLoopStarted)
 			{
+
+				// We cannot be called from the network thread itself, or else we will dead lock !
+				Fdb.EnsureNotOnNetworkThread();
+
 #if DEBUG_THREADS
 				Debug.WriteLine("Stopping Network Thread...");
 #endif
@@ -209,20 +213,57 @@ namespace FoundationDb.Client
 				var err = FdbNative.StopNetwork();
 				s_eventLoopStarted = false;
 
+
 				var thread = s_eventLoop;
 				if (thread != null && thread.IsAlive)
 				{
+					// BUGBUG: specs says that we need to wait for the network thread to stop gracefuly, or else data integrity may not be guaranteed...
+					// We should wait for a bit, and only attempt to Abort() the thread after a timeout (30sec ? more ?)
+
+					// keep track of how much time it took to stop...
+					var duration = Stopwatch.StartNew();
+
 					try
 					{
-						thread.Abort();
-						thread.Join(TimeSpan.FromSeconds(1));
+						//TODO: replace with a ManualResetEvent that would get signaled at the end of the event loop ?
+						while (thread.IsAlive && duration.Elapsed.TotalSeconds < 5)
+						{
+							// wait a bit...
+							Thread.Sleep(250);
+						}
+
+						if (thread.IsAlive)
+						{
+							// TODO: logging ?
+							Trace.WriteLine(String.Format("The fdb network thread has not stopped after {0} seconds. Forcing shutdown...", duration.Elapsed.TotalSeconds.ToString("N0")));
+
+							// Force a shutdown
+							thread.Abort();
+
+							bool stopped = thread.Join(TimeSpan.FromSeconds(30));
+							//REVIEW: is this even usefull? If the thread is stuck in a native P/Invoke call, it won't get notified until it returns to managed code ...
+							// => in that case, we have a zombie thread on our hands...
+
+							if (!stopped)
+							{
+								//TODO: logging?
+								Trace.WriteLine(String.Format("The fdb network thread failed to stop after more than {0} seconds. Transaction integrity may not be guaranteed.", duration.Elapsed.TotalSeconds.ToString("N0")));
+							}
+						}
 					}
 					catch (ThreadAbortException)
 					{
+						// Should not happen, unless we are called from a thread that is itself being stopped ?
 					}
 					finally
 					{
 						s_eventLoop = null;
+						duration.Stop();
+						if (duration.Elapsed.TotalSeconds >= 20)
+						{
+							//TODO: logging?
+							Trace.WriteLine(String.Format("The fdb network thread took a long time to stop ({0} seconds).", duration.Elapsed.TotalSeconds.ToString("N0")));
+						}
 					}
 				}
 			}
@@ -243,8 +284,8 @@ namespace FoundationDb.Client
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
 				{ // Stop received
-					Debug.WriteLine("RunNetwork returned " + err + " : " + GetErrorMessage(err));
 					//TODO: logging ?
+					Trace.WriteLine(String.Format("The fdb network thread returned with error code {0}: {1}", err, GetErrorMessage(err)));
 				}
 			}
 			catch (Exception e)
