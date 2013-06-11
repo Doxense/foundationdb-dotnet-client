@@ -66,7 +66,7 @@ namespace FoundationDb.Layers.Tables
 
 			public bool Equals(Uid other)
 			{
-				return other.HashCode == this.HashCode && other.Equals(this);
+				return other.HashCode == this.HashCode && other.Slice.Equals(this.Slice);
 			}
 
 			public override bool Equals(object obj)
