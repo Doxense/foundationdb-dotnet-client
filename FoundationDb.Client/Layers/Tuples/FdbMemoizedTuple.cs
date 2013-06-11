@@ -157,6 +157,7 @@ namespace FoundationDb.Client.Tuples
 			get
 			{
 				if (index == this.Depth || index == -1) return this.Tail;
+				if (index < -1) index++;
 				return this.Head[index];
 			}
 		}
@@ -164,6 +165,7 @@ namespace FoundationDb.Client.Tuples
 		public R Get<R>(int index)
 		{
 			if (index == this.Depth || index == -1) return FdbConverters.Convert<T, R>(this.Tail);
+			if (index < -1) index++;
 			return this.Head.Get<R>(index);
 		}
 
