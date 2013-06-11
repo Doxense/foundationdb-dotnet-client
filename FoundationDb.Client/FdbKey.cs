@@ -26,15 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client.Tuples;
-using FoundationDb.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 namespace FoundationDb.Client
 {
+	using FoundationDb.Layers.Tuples;
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Text;
 
 	/// <summary>Factory class for keys</summary>
 	public static class FdbKey

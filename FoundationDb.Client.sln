@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{8DB844
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDb.Layers.Common", "FoundationDb.Layers.Common\FoundationDb.Layers.Common.csproj", "{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

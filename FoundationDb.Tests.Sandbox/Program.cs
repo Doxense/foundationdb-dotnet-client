@@ -1,7 +1,7 @@
 ﻿using System;
 using FoundationDb.Client;
-using FoundationDb.Client.Tuples;
-using FoundationDb.Client.Tables;
+using FoundationDb.Layers.Tuples;
+using FoundationDb.Layers.Tables;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;

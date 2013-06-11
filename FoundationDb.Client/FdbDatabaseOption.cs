@@ -34,6 +34,7 @@ using System.Threading.Tasks;
 
 namespace FoundationDb.Client
 {
+	using System;
 
 	public enum FdbDatabaseOption
 	{

@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDb.Client
 {
-	using FoundationDb.Client.Tuples;
 	using FoundationDb.Client.Utils;
 	using System;
 	using System.Collections.Generic;

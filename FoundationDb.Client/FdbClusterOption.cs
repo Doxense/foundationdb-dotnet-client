@@ -26,14 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Diagnostics;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDb.Client
 {
+	using System;
 
 	public enum FdbClusterOption
 	{

@@ -34,6 +34,12 @@
     <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>foundationdb-client.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -51,9 +57,9 @@
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
-    <Compile Include="IFdbTuple.cs" />
+    <Compile Include="Tuples\IFdbTuple.cs" />
     <Compile Include="FdbSubspace.cs" />
-    <Compile Include="FdbTuple.cs" />
+    <Compile Include="Tuples\FdbTuple.cs" />
     <Compile Include="FdbKeySelector.cs" />
     <Compile Include="FdbTransaction.cs" />
     <Compile Include="FdbDatabase.cs" />
@@ -77,33 +83,29 @@
     <Compile Include="Unmanaged\UnmanagedLibrary.cs" />
     <Compile Include="Converters\FdbConverters.cs" />
     <Compile Include="Converters\IFdbConverter.cs" />
-    <Compile Include="Layers\Tables\FdbVersionedTable.cs" />
-    <Compile Include="Layers\Tables\FdbTable`2.cs" />
-    <Compile Include="Layers\Tables\FdbTableExtensions.cs" />
-    <Compile Include="Layers\Tables\FdbTable.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleKeyReader.cs" />
-    <Compile Include="Layers\Tuples\ITupleKeyReader.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleTypes.cs" />
-    <Compile Include="Layers\Tuples\FdbTuplePackers.cs" />
-    <Compile Include="Layers\Tuples\FdbSlicedTuple.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`1.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`2.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`3.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`4.cs" />
-    <Compile Include="Layers\Tuples\FdbTuple`5.cs" />
-    <Compile Include="Layers\Tuples\FdbMemoizedTuple.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleList.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
-    <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
-    <Compile Include="Layers\Arrays\FdbArray.cs" />
-    <Compile Include="Layers\Indexes\FdbSimpleIndex.cs" />
-    <Compile Include="Layers\Strings\FdbStringIntern.cs" />
+    <Compile Include="Tuples\FdbTupleKeyReader.cs" />
+    <Compile Include="Tuples\ITupleKeyReader.cs" />
+    <Compile Include="Tuples\FdbTupleTypes.cs" />
+    <Compile Include="Tuples\FdbTuplePackers.cs" />
+    <Compile Include="Tuples\FdbSlicedTuple.cs" />
+    <Compile Include="Tuples\FdbTuple`1.cs" />
+    <Compile Include="Tuples\FdbTuple`2.cs" />
+    <Compile Include="Tuples\FdbTuple`3.cs" />
+    <Compile Include="Tuples\FdbTuple`4.cs" />
+    <Compile Include="Tuples\FdbTuple`5.cs" />
+    <Compile Include="Tuples\FdbMemoizedTuple.cs" />
+    <Compile Include="Tuples\FdbTupleList.cs" />
+    <Compile Include="Tuples\FdbTupleExtensions.cs" />
+    <Compile Include="Tuples\FdbTuplePacker.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fdb_c.dll">
       <Link>fdb_c.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="foundationdb-client.snk" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

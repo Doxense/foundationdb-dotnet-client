@@ -28,16 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #undef DEBUG_THREADS
 
-using FoundationDb.Client.Native;
-using System;
-using System.Diagnostics;
-using System.IO;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDb.Client
 {
+	using FoundationDb.Client.Native;
+	using System;
+	using System.Diagnostics;
+	using System.IO;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	public static class Fdb
 	{

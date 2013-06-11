@@ -26,13 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client.Tuples;
-using System;
-using System.Diagnostics;
-using System.Text;
-
 namespace FoundationDb.Client
 {
+	using FoundationDb.Layers.Tuples;
+	using System.Diagnostics;
+	using System.Text;
 
 	[DebuggerDisplay("Key=[{Key.Count}], OrEqual={OrEqual}, Offset={Offset}")]
 	public struct FdbKeySelector

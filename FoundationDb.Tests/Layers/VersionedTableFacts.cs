@@ -26,17 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Tests;
-using FoundationDb.Client.Tuples;
-using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace FoundationDb.Client.Tables.Tests
+namespace FoundationDb.Layers.Tables.Tests
 {
+	using FoundationDb.Client;
+	using FoundationDb.Client.Tests;
+	using FoundationDb.Layers.Tuples;
+	using NUnit.Framework;
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class VersionedTableFacts
@@ -51,7 +50,7 @@ namespace FoundationDb.Client.Tables.Tests
 				var subspace = new FdbSubspace(FdbTuple.Create("TblVerSeq"));
 
 				// clear previous values
-				await FdbTestHelpers.DeleteSubspace(db, subspace);
+				await TestHelpers.DeleteSubspace(db, subspace);
 
 				var table = new FdbVersionedTable<int, string>(
 					"Foos",
@@ -75,7 +74,7 @@ namespace FoundationDb.Client.Tables.Tests
 				}
 
 #if DEBUG
-				await FdbTestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, subspace);
 #endif
 
 				// read that version
@@ -101,7 +100,7 @@ namespace FoundationDb.Client.Tables.Tests
 				}
 
 #if DEBUG
-				await FdbTestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, subspace);
 #endif
 
 				// read that new version
@@ -133,7 +132,7 @@ namespace FoundationDb.Client.Tables.Tests
 				}
 
 #if DEBUG
-				await FdbTestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, subspace);
 #endif
 
 				// read back
@@ -168,7 +167,7 @@ namespace FoundationDb.Client.Tables.Tests
 				var subspace = new FdbSubspace(FdbTuple.Create("TblVerTs"));
 
 				// clear previous values
-				await FdbTestHelpers.DeleteSubspace(db, subspace);
+				await TestHelpers.DeleteSubspace(db, subspace);
 
 				var table = new FdbVersionedTable<Guid, string>(
 					"Bars",
@@ -209,7 +208,7 @@ namespace FoundationDb.Client.Tables.Tests
 				}
 
 #if DEBUG
-				await FdbTestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, subspace);
 #endif
 
 

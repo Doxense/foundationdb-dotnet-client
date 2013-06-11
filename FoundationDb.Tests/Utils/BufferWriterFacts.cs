@@ -26,15 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Utils;
-using NUnit.Framework;
-using System;
-using System.Linq;
-using System.Text;
-
-namespace FoundationDb.Tests
+namespace FoundationDb.Client.Utils.Tests
 {
+	using FoundationDb.Client;
+	using FoundationDb.Client.Utils;
+	using NUnit.Framework;
+	using System;
+	using System.Linq;
+	using System.Text;
 
 	[TestFixture]
 	public class BufferWriterFacts

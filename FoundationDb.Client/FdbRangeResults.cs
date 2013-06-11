@@ -28,16 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #undef DEBUG_RANGE_PAGING
 
-using FoundationDb.Client.Native;
-using FoundationDb.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDb.Client
 {
+	using FoundationDb.Client.Native;
+	using FoundationDb.Client.Utils;
+	using System;
+	using System.Collections.Generic;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>Query describing a GetRange operation that will be performed at a later time</summary>
 	/// <remarks>This object is reusable</remarks>

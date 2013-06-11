@@ -26,19 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Tables;
-using FoundationDb.Client.Tests;
-using FoundationDb.Client.Tuples;
-using NUnit.Framework;
-using System;
-using System.Diagnostics;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace FoundationDb.Tests
+namespace FoundationDb.Layers.Tables.Tests
 {
+	using FoundationDb.Client;
+	using FoundationDb.Client.Tests;
+	using FoundationDb.Layers.Tuples;
+	using NUnit.Framework;
+	using System;
+	using System.Text;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class StringInternFacts
@@ -65,8 +62,8 @@ namespace FoundationDb.Tests
 				var dataSpace = new FdbSubspace("Data");
 
 				// clear all previous data
-				await FdbTestHelpers.DeleteSubspace(db, stringSpace);
-				await FdbTestHelpers.DeleteSubspace(db, dataSpace);
+				await TestHelpers.DeleteSubspace(db, stringSpace);
+				await TestHelpers.DeleteSubspace(db, dataSpace);
 
 				var stringTable = new FdbStringIntern(db, stringSpace);
 
@@ -83,8 +80,8 @@ namespace FoundationDb.Tests
 				}
 
 #if DEBUG
-				await FdbTestHelpers.DumpSubspace(db, stringSpace);
-				await FdbTestHelpers.DumpSubspace(db, dataSpace);
+				await TestHelpers.DumpSubspace(db, stringSpace);
+				await TestHelpers.DumpSubspace(db, dataSpace);
 #endif
 
 				// check the contents of the data

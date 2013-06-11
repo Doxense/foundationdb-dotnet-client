@@ -26,11 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Diagnostics;
-
 namespace FoundationDb.Client
 {
+	using System;
+	using System.Diagnostics;
 
 	[DebuggerDisplay("Begin={this.Begin}, End={this.end}")]
 	public struct FdbKeyRange

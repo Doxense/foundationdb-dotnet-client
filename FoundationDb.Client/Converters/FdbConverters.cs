@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDb.Client.Converters
 {
-	using FoundationDb.Client.Tuples;
+	using FoundationDb.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
@@ -164,6 +164,7 @@ namespace FoundationDb.Client.Converters
 			RegisterUnsafe((TimeSpan value) => value.Ticks);
 			RegisterUnsafe((TimeSpan value) => value.TotalSeconds);
 
+			//REVIEW: this should go in the Tuples layer !
 			RegisterUnsafe((Slice value) => FdbTuplePackers.DeserializeString(value));
 			RegisterUnsafe((Slice value) => { checked { return (int)FdbTuplePackers.DeserializeInt64(value); } });
 			RegisterUnsafe((Slice value) => FdbTuplePackers.DeserializeInt64(value));

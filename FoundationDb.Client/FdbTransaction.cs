@@ -29,18 +29,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Transactions
 #undef DEBUG_TRANSACTIONS
 
-using FoundationDb.Client.Native;
-using FoundationDb.Client.Tuples;
-using FoundationDb.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDb.Client
 {
+	using FoundationDb.Client.Native;
+	using FoundationDb.Layers.Tuples;
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	public class FdbTransaction : IDisposable

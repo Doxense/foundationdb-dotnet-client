@@ -34,6 +34,12 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>foundationdb-client.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="nunit.framework, Version=2.6.2.12296, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -51,7 +57,7 @@
     <Compile Include="ClusterFacts.cs" />
     <Compile Include="ErrorFacts.cs" />
     <Compile Include="KeyFacts.cs" />
-    <Compile Include="Layers\FdbTestHelpers.cs" />
+    <Compile Include="TestHelpers.cs" />
     <Compile Include="Layers\VersionedTableFacts.cs" />
     <Compile Include="Layers\TableFacts.cs" />
     <Compile Include="Layers\TupleFacts.cs" />
@@ -62,12 +68,17 @@
     <Compile Include="Utils\BufferWriterFacts.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="foundationdb-client.snk" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FoundationDb.Client\FoundationDb.Client.csproj">
       <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
       <Name>FoundationDb.Client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\FoundationDb.Layers.Common\FoundationDb.Layers.Common.csproj">
+      <Project>{7c7717d6-a1e7-4541-af8b-1ac762b5ed0f}</Project>
+      <Name>FoundationDb.Layers.Common</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

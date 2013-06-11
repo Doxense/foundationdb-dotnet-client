@@ -26,12 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client.Utils;
-using System;
-using System.Collections.Generic;
-
-namespace FoundationDb.Client.Tuples
+namespace FoundationDb.Layers.Tuples
 {
+	using FoundationDb.Client;
+	using FoundationDb.Client.Utils;
+	using System;
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
 	public class FdbSubspace

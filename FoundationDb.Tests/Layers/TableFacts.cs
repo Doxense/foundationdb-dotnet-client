@@ -26,15 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Tests;
-using FoundationDb.Client.Tuples;
-using NUnit.Framework;
-using System;
-using System.Threading.Tasks;
-
-namespace FoundationDb.Client.Tables.Tests
+namespace FoundationDb.Layers.Tables.Tests
 {
+	using FoundationDb.Client;
+	using FoundationDb.Client.Tests;
+	using FoundationDb.Layers.Tuples;
+	using NUnit.Framework;
+	using System;
+	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class TableFacts
@@ -50,7 +49,7 @@ namespace FoundationDb.Client.Tables.Tests
 				var subspace = new FdbSubspace(FdbTuple.Create("TestTable"));
 
 				// clear previous values
-				await FdbTestHelpers.DeleteSubspace(db, subspace);
+				await TestHelpers.DeleteSubspace(db, subspace);
 
 				var table = new FdbTable(db, subspace);
 
@@ -73,7 +72,7 @@ namespace FoundationDb.Client.Tables.Tests
 				}
 
 #if DEBUG
-				await FdbTestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, subspace);
 #endif
 
 				// read value back
@@ -100,7 +99,7 @@ namespace FoundationDb.Client.Tables.Tests
 				}
 
 #if DEBUG
-				await FdbTestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, subspace);
 #endif
 
 				// verifiy that it is gone
@@ -126,7 +125,7 @@ namespace FoundationDb.Client.Tables.Tests
 				var subspace = new FdbSubspace(FdbTuple.Create("TestTable"));
 
 				// clear previous values
-				await FdbTestHelpers.DeleteSubspace(db, subspace);
+				await TestHelpers.DeleteSubspace(db, subspace);
 
 				var table = new FdbTable(db, subspace);
 
@@ -140,7 +139,7 @@ namespace FoundationDb.Client.Tables.Tests
 				}
 
 #if DEBUG
-				await FdbTestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, subspace);
 #endif
 
 				// read them back

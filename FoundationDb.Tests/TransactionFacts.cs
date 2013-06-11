@@ -26,20 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Tuples;
-using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
-namespace FoundationDb.Tests
+namespace FoundationDb.Client.Tests
 {
+	using FoundationDb.Layers.Tuples;
+	using NUnit.Framework;
+	using System;
+	using System.Diagnostics;
+	using System.Linq;
+	using System.Text;
+	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class TransactionFacts

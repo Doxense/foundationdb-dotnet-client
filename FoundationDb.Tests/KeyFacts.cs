@@ -26,12 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using NUnit.Framework;
-using System;
-
-namespace FoundationDb.Tests
+namespace FoundationDb.Client.Tests
 {
+	using FoundationDb.Client;
+	using NUnit.Framework;
+	using System;
 
 	[TestFixture]
 	public class KeyFacts

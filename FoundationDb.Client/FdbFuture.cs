@@ -32,21 +32,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Futures
 #undef DEBUG_FUTURES
 
-using Microsoft.Win32.SafeHandles;
-using System;
-using System.Collections.Generic;
-using FoundationDb.Client.Native;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDb.Client
 {
+	using FoundationDb.Client.Native;
+	using System;
+	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
+	using System.Runtime.InteropServices;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 	public delegate void FdbFutureCallback(IntPtr future, IntPtr parameter);

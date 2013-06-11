@@ -26,16 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Diagnostics;
-using System.Runtime.Serialization;
-using System.Security;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDb.Client
 {
+	using System;
+	using System.Runtime.Serialization;
+	using System.Security;
 
 	/// <summary>FoundationDB API Error Code</summary>
 	public class FdbException : Exception

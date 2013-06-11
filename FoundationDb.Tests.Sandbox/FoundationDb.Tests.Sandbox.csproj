@@ -53,6 +53,10 @@
       <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
       <Name>FoundationDb.Client</Name>
     </ProjectReference>
+    <ProjectReference Include="..\FoundationDb.Layers.Common\FoundationDb.Layers.Common.csproj">
+      <Project>{7c7717d6-a1e7-4541-af8b-1ac762b5ed0f}</Project>
+      <Name>FoundationDb.Layers.Common</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="app.config" />

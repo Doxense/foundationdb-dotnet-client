@@ -26,14 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using FoundationDb.Client.Native;
-using System.Diagnostics;
-using System.Threading.Tasks;
-using System.Threading;
-
 namespace FoundationDb.Client
 {
+	using FoundationDb.Client.Native;
+	using System;
+	using System.Diagnostics;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>FoundationDB Cluster</summary>
 	/// <remarks>Wraps an FDBCluster* handle</remarks>
