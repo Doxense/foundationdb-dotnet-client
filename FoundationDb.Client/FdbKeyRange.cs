@@ -60,7 +60,6 @@ namespace FoundationDb.Client
 			int n = prefix.Count + 1;
 
 			var tmp = new byte[n << 1];
-			int p = 0;
 			// first segment will contain prefix + '\x00'
 			prefix.CopyTo(tmp, 0);
 			tmp[n - 1] = 0;

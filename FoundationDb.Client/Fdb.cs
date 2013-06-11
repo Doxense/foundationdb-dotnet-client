@@ -265,6 +265,12 @@ namespace FoundationDb.Client
 			}
 		}
 
+		/// <summary>Returns true if the Network thread start is executing, otherwise falsse</summary>
+		public static bool IsNetworkRunning
+		{
+			get { return s_eventLoopRunning; }
+		}
+
 		/// <summary>Returns 'true' if we are currently running on the Event Loop thread</summary>
 		internal static bool IsNetworkThread
 		{
