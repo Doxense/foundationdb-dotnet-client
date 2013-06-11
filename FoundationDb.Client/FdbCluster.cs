@@ -118,16 +118,23 @@ namespace FoundationDb.Client
 			);
 		}
 
-		/// <summary>Set a parameter-less option on this cluster</summary>
+		/// <summary>Set an option on this cluster that does not take any parameter</summary>
 		/// <param name="option">Option to set</param>
 		public void SetOption(FdbClusterOption option)
 		{
-			SetOption(option, default(string));
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			unsafe
+			{
+				Fdb.DieOnError(FdbNative.ClusterSetOption(m_handle, option, null, 0));
+			}
 		}
 
-		/// <summary>Set an option on this cluster</summary>
+		/// <summary>Set an option on this cluster that takes a string value</summary>
 		/// <param name="option">Option to set</param>
-		/// <param name="value">Value of the parameter</param>
+		/// <param name="value">Value of the parameter (can be null)</param>
 		public void SetOption(FdbClusterOption option, string value)
 		{
 			ThrowIfDisposed();
@@ -139,7 +146,7 @@ namespace FoundationDb.Client
 			{
 				fixed (byte* ptr = data.Array)
 				{
-					FdbNative.ClusterSetOption(m_handle, option, ptr + data.Offset, data.Count);
+					Fdb.DieOnError(FdbNative.ClusterSetOption(m_handle, option, ptr + data.Offset, data.Count));
 				}
 			}
 		}
