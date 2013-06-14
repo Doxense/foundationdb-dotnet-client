@@ -687,10 +687,11 @@ namespace FoundationDb.Client
 
 		public override string ToString()
 		{
-			return Slice.Escape(this);
+			//TODO: add a protection against keys that are too big ?
+			return Slice.Dump(this);
 		}
 
-		public static string Escape(Slice value)
+		public static string Dump(Slice value)
 		{
 			if (value.IsNullOrEmpty) return value.HasValue ? "<empty>" : "<null>";
 

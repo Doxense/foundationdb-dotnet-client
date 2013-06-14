@@ -49,9 +49,10 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="FdbRangeSelector.cs" />
     <Compile Include="FdbException.cs" />
     <Compile Include="FdbTimeoutManager.cs" />
-    <Compile Include="FdbRangeResults.cs" />
+    <Compile Include="FdbRangeQuery.cs" />
     <Compile Include="FdbKeyRange.cs" />
     <Compile Include="FdbKey.cs" />
     <Compile Include="FdbTransactionOption.cs" />
