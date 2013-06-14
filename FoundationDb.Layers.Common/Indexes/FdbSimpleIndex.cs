@@ -83,12 +83,13 @@ namespace FoundationDb.Layers.Indexing
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			var results = trans.GetRangeStartsWith(this.Subspace.Append(value), 0, this.Snapshot, reverse);
+			var prefix = this.Subspace.Append(value);
+			var results = trans.GetRangeStartsWith(prefix, 0, this.Snapshot, reverse);
 
 			//TODO: limits? paging? ...
 
 			return results.ReadAllAsync<TId>(
-				(key, _) => (TId) (FdbTuple.Unpack(key)[-1]),
+				(key, _) => FdbTuple.Unpack(key).Get<TId>(-1),
 				ct
 			);
 		}
