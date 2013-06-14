@@ -31,6 +31,7 @@ namespace FoundationDb.Layers.Tables
 	using FoundationDb.Client;
 	using FoundationDb.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -124,6 +125,13 @@ namespace FoundationDb.Layers.Tables
 		}
 
 		#endregion
+	
+		public Task<List<KeyValuePair<Slice, Slice>>> GetAllAsync(FdbTransaction trans, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			return trans.GetRangeStartsWith(this.Subspace.Tuple, snapshot: snapshot).ReadAllAsync(ct);
+		}
 	}
 
 }
