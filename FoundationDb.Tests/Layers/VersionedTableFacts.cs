@@ -44,7 +44,7 @@ namespace FoundationDb.Layers.Tables.Tests
 		[Test]
 		public async Task Test_FdbVersionedTable_Write_Multiple_SequentialVersions()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 
 				var subspace = new FdbSubspace(FdbTuple.Create("TblVerSeq"));
@@ -162,7 +162,7 @@ namespace FoundationDb.Layers.Tables.Tests
 		public async Task Test_FdbVersionedTable_Write_Multiple_TimestampVersions()
 		{
 
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				var subspace = new FdbSubspace(FdbTuple.Create("TblVerTs"));
 

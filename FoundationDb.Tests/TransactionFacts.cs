@@ -55,7 +55,7 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Can_Create_Transaction()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				using (var tr = db.BeginTransaction())
 				{
@@ -68,7 +68,7 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Creating_Concurrent_Transactions_Are_Independent()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				FdbTransaction tr1 = null;
 				FdbTransaction tr2 = null;
@@ -93,7 +93,7 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Commiting_An_Empty_Transaction_Does_Nothing()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				using (var tr = db.BeginTransaction())
 				{
@@ -107,7 +107,7 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Resetting_An_Empty_Transaction_Does_Nothing()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				using (var tr = db.BeginTransaction())
 				{
@@ -126,7 +126,7 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Transaction_Read_Version()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				using (var tr = db.BeginTransaction())
 				{
@@ -145,7 +145,7 @@ namespace FoundationDb.Client.Tests
 		{
 			// test that we can read and write simple keys
 
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				long ticks = DateTime.UtcNow.Ticks;
 				long writeVersion;
@@ -197,7 +197,7 @@ namespace FoundationDb.Client.Tests
 			// * tr2 will set value to 2
 			// * tr3 will SetReadVersion(TR1.CommittedVersion) and we expect it to read 1 (and not 2)
 
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 
 				long commitedVersion;
@@ -245,7 +245,7 @@ namespace FoundationDb.Client.Tests
 
 			const int N = 1000; // total item count
 
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				// put test values in a namespace
 				var tuple = FdbTuple.Create("GetRangeTest");
@@ -312,7 +312,7 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Has_Access_To_System_Keys()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 
 				using (var tr = db.BeginTransaction())
@@ -345,7 +345,7 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Cannot_Read_Or_Write_Outside_Of_Restricted_Key_Space()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				var space = FdbTuple.Create(123);
 

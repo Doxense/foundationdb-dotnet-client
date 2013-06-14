@@ -34,6 +34,18 @@ namespace FoundationDb.Client.Tests
 
 	internal static class TestHelpers
 	{
+		// change these to target a specific test cluster
+
+		public const string TestClusterFile = null; // null will your defaut fdb.cluster file
+		public const string TestDbName = "DB"; // note cannot change this as of Beta2
+
+		/// <summary>Connect to the local test database</summary>
+		/// <returns></returns>
+		public static Task<FdbDatabase> OpenTestDatabaseAsync()
+		{
+			return Fdb.OpenDatabaseAsync(TestClusterFile, TestDbName);
+		}
+
 		public static async Task DumpSubspace(FdbDatabase db, FdbSubspace subspace)
 		{
 			using (var tr = db.BeginTransaction())

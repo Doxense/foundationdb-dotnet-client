@@ -56,7 +56,7 @@ namespace FoundationDb.Layers.Tables.Tests
 		[Test]
 		public async Task Test_StringIntern_Example()
 		{
-			using(var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				var stringSpace = new FdbSubspace("Strings");
 				var dataSpace = new FdbSubspace("Data");

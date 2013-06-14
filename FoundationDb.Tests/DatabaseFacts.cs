@@ -53,6 +53,8 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Can_Open_Database()
 		{
+			//README: if your test db is remote and you don't have a local running fdb instance, this test will fail and you should ignore this.
+
 			using (var cluster = await Fdb.OpenLocalClusterAsync())
 			{
 				Assert.That(cluster, Is.Not.Null);
@@ -83,19 +85,36 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Open_Database_With_Invalid_Name_Should_Fail()
 		{
-			// As of Beta1, the only accepted database name is "DB"
-			// The Beta1 API silently fails (deadlock) with any other name, so make sure that OpenDatabaseAsync does protect us against that!
+			// As of Beta2, the only accepted database name is "DB"
+			// The Beta2 API silently fails (deadlock) with any other name, so make sure that OpenDatabaseAsync does protect us against that!
+
+			// Don't forget to update this test if in the future the API allows for other names !
 
 			using (var cluster = await Fdb.OpenLocalClusterAsync())
 			{
-				Assert.Throws<InvalidOperationException>(() => cluster.OpenDatabaseAsync("SomeOtherName").GetAwaiter().GetResult());
+				Assert.That(() => cluster.OpenDatabaseAsync("SomeOtherName").GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 			}
 		}
 
 		[Test]
 		public async Task Test_Can_Open_Local_Database()
 		{
+			//README: if your test database is remote, and you don't have FDB running locally, this test will fail and you should ignore this one.
+
 			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				Assert.That(db, Is.Not.Null, "Should return a valid database");
+				Assert.That(db.Cluster, Is.Not.Null, "FdbDatabase should have its own Cluster instance");
+				Assert.That(db.Cluster.Path, Is.Null, "Cluster path should be null (default)");
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Open_Test_Database()
+		{
+			// note: may be different than local db !
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				Assert.That(db, Is.Not.Null, "Should return a valid database");
 				Assert.That(db.Cluster, Is.Not.Null, "FdbDatabase should have its own Cluster instance");
@@ -106,18 +125,20 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Coordinators()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				var coordinators = await db.GetCoordinatorsAsync();
-				Console.WriteLine("Coordinators: " + coordinators);
 				Assert.That(coordinators, Is.StringStarting("local:"));
+
+				//TODO: how can we check that it is correct?
+				Console.WriteLine("Coordinators: " + coordinators);
 			}
 		}
 
 		[Test]
 		public async Task Test_Can_Change_Restricted_Key_Space()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				Assert.That(db.KeySpace.Begin, Is.EqualTo(Slice.Nil));
 				Assert.That(db.KeySpace.End, Is.EqualTo(Slice.Nil));
@@ -159,7 +180,9 @@ namespace FoundationDb.Client.Tests
 		[Test]
 		public async Task Test_Can_Change_Location_Cache_Size()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			// New in Beta2
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 
 				//TODO: how can we test that it is successfull ?

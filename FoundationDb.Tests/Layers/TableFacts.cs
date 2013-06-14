@@ -43,7 +43,7 @@ namespace FoundationDb.Layers.Tables.Tests
 		public async Task Test_FdbTable_Read_Write_Delete()
 		{
 
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 
 				var subspace = new FdbSubspace(FdbTuple.Create("TestTable"));
@@ -120,7 +120,7 @@ namespace FoundationDb.Layers.Tables.Tests
 		[Test]
 		public async Task Test_FdbTable_List()
 		{
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				var subspace = new FdbSubspace(FdbTuple.Create("TestTable"));
 
