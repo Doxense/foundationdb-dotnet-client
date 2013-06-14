@@ -31,6 +31,8 @@ namespace FoundationDb.Layers.Tables
 	using FoundationDb.Client;
 	using FoundationDb.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -76,25 +78,34 @@ namespace FoundationDb.Layers.Tables
 			return this.Subspace.Append<TKey>(key);
 		}
 
-		public Task<Slice> GetAsync(FdbTransaction trans, TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<TValue> GetAsync(FdbTransaction trans, TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			return trans.GetAsync(GetKeyBytes(key), snapshot, ct);
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			Slice data = await trans.GetAsync(GetKeyBytes(key), snapshot, ct).ConfigureAwait(false);
+
+			if (!data.HasValue) return default(TValue);
+			return this.ValueSerializer.Deserialize(data, default(TValue));
 		}
 
-		public async Task<Slice> GetAsync(TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<TValue> GetAsync(TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
 			using (var trans = this.Database.BeginTransaction())
 			{
-				return await GetAsync(trans, key, snapshot, ct).ConfigureAwait(false);
+				return await this.GetAsync(key, snapshot, ct);
 			}
 		}
 
-		public void Set(FdbTransaction trans, TKey key, Slice value)
+		public void Set(FdbTransaction trans, TKey key, TValue value)
 		{
-			trans.Set(GetKeyBytes(key), value);
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Set(GetKeyBytes(key), this.ValueSerializer.Serialize(value));
 		}
 
-		public async Task SetAsync(TKey key, Slice value)
+		public async Task SetAsync(TKey key, TValue value)
 		{
 			using (var trans = this.Database.BeginTransaction())
 			{
@@ -103,6 +114,48 @@ namespace FoundationDb.Layers.Tables
 			}
 		}
 
+		public Task<List<KeyValuePair<TKey, TValue>>> GetAllAsync(FdbTransaction trans, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			//TODO: make it simpler / configurable ?
+			int offset = this.Subspace.Tuple.Count;
+			TValue missing = default(TValue);
+
+			return trans
+				.GetRangeStartsWith(this.Subspace.Tuple, snapshot: snapshot)
+				.ReadAllAsync(
+					(key) => this.KeyReader.Unpack(FdbTuple.Unpack(key), offset),
+					(value) => this.ValueSerializer.Deserialize(value, missing),
+					(key, value) => new KeyValuePair<TKey, TValue>(key, value),
+					ct
+				);
+		}
+
+		public async Task<List<KeyValuePair<TKey, TValue>>> GetBatchIndexedAsync(FdbTransaction trans, IEnumerable<TKey> ids, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			var keys = ids.ToArray();
+
+			var results = await trans.GetBatchIndexedAsync(keys.Select(GetKeyBytes), snapshot, ct);
+
+			//TODO: make it simpler / configurable ?
+			TValue missing = default(TValue);
+
+			return results.Select((kvp) => new KeyValuePair<TKey, TValue>(
+				keys[kvp.Key],
+				this.ValueSerializer.Deserialize(kvp.Value, missing)
+			)).ToList();
+		}
+
+		public async Task<List<TValue>> GetBatchAsync(FdbTransaction trans, IEnumerable<TKey> ids, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			var results = await trans.GetBatchAsync(ids.Select(GetKeyBytes), snapshot, ct);
+
+			//TODO: make it simpler / configurable ?
+			TValue missing = default(TValue);
+
+			return results.Select((kvp) => this.ValueSerializer.Deserialize(kvp.Value, missing)).ToList();
+		}
 	}
 
 }
