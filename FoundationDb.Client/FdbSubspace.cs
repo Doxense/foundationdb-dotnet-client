@@ -35,6 +35,9 @@ namespace FoundationDb.Layers.Tuples
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
 	public class FdbSubspace
 	{
+		/// <summary>Empty subspace, that does not add any prefix to the keys</summary>
+		public static readonly FdbSubspace Empty = new FdbSubspace(FdbTuple.Empty);
+
 		/// <summary>Store a memoized version of the tuple to speed up serialization</summary>
 		public FdbMemoizedTuple Tuple { get; private set; }
 
@@ -88,11 +91,34 @@ namespace FoundationDb.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <typeparam name="T">Type of the child subspace key</typeparam>
+		/// <param name="value">Value of the child subspace</param>
+		/// <returns>New subspace that is logically contained by the current subspace</returns>
+		/// <remarks>Subspace([Foo,]).Partition(Bar) is equivalent to Subspace([Foo,Bar,])</remarks>
+		/// <example>new FdbSubspace(["Users",]).Partition("Contacts") == new Subspace(["Users","Contacts",])</example>
+		public FdbSubspace Partition<T>(T value)
+		{
+			return new FdbSubspace(this.Tuple.Append<T>(value));
+		}
+
+		/// <summary>Append the subspace suffix to a key and return the full path</summary>
+		/// <typeparam name="T">Type of the key to append</typeparam>
+		/// <param name="value">Value of the key to append</param>
+		/// <returns>Tuple that starts with the subspace's suffix, followed by the specified value</returns>
+		/// <example>new FdbSubspace(["Users",]).Append(123) => ["Users",123,]</example>
 		public FdbLinkedTuple<T> Append<T>(T value)
 		{
 			return this.Tuple.Append<T>(value);
 		}
 
+		/// <summary>Append the subspace suffix to a pair of keys and return the full path</summary>
+		/// <typeparam name="T1">Type of the first key to append</typeparam>
+		/// <typeparam name="T2">Type of the second key to append</typeparam>
+		/// <param name="value">Value of the first key</param>
+		/// <param name="value">Value of the second key</param>
+		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, and second value</returns>
+		/// <example>new FdbSubspace(["Users",]).Append("ContactsById", 123) => ["Users","ContactsById",123,]</example>
 		public IFdbTuple Append<T1, T2>(T1 value1, T2 value2)
 		{
 			return this.Tuple.Append<T1>(value1).Append<T2>(value2);
