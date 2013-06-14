@@ -391,11 +391,48 @@ namespace FoundationDb.Client
 
 		#region Database...
 
+		/// <summary>Open a database on the specified cluster</summary>
+		/// <param name="path">Path to the 'fdb.cluster' file, or null for default</param>
+		/// <param name="name">Name of the database. Must be 'DB'</param>
+		/// <param name="ct">Cancellation Token</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		public static async Task<FdbDatabase> OpenDatabaseAsync(string path, string name, CancellationToken ct = default(CancellationToken))
+		{
+			ct.ThrowIfCancellationRequested();
+
+			Debug.WriteLine("Connecting to database " + name + " on cluster " + path + " ...");
+
+			FdbCluster cluster = null;
+			FdbDatabase db = null;
+			bool success = false;
+			try
+			{
+				cluster = await OpenClusterAsync(path, ct).ConfigureAwait(false);
+				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
+				db = await cluster.OpenDatabaseAsync(name, true, ct).ConfigureAwait(false);
+				success = true;
+				return db;
+			}
+			finally
+			{
+				if (!success)
+				{
+					// cleanup the cluter if something went wrong
+					if (db != null) db.Dispose();
+					if (cluster != null) cluster.Dispose();
+				}
+			}
+		}
+
+
 		/// <summary>Open a database on the local cluster</summary>
 		/// <param name="name">Name of the database. Must be 'DB'</param>
 		/// <param name="ct">Cancellation Token</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <remarks>As of Beta1, the only supported database name is 'DB'</remarks>
+		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		public static async Task<FdbDatabase> OpenLocalDatabaseAsync(string name, CancellationToken ct = default(CancellationToken))
