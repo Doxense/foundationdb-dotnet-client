@@ -31,6 +31,7 @@ namespace FoundationDb.Layers.Tuples.Tests
 	using FoundationDb.Client;
 	using NUnit.Framework;
 	using System;
+	using System.Diagnostics;
 
 	[TestFixture]
 	public class TupleFacts
@@ -464,6 +465,7 @@ namespace FoundationDb.Layers.Tuples.Tests
 
 			const int N = 1 * 1000 * 1000;
 			var rnd = new Random();
+			var sw = Stopwatch.StartNew();
 
 			for (int i = 0; i < N; i++)
 			{
@@ -488,6 +490,8 @@ namespace FoundationDb.Layers.Tuples.Tests
 					Assert.Fail("Tuples for x={0} and y={1} are not sorted properly ({2} / {3}): t(x)='{4}' and t(y)='{5}'", x, y, dint, dtup, t1.ToString(), t2.ToString());
 				}
 			}
+			sw.Stop();
+			Console.WriteLine("Checked " + N.ToString("N0") + " tuples in " + sw.ElapsedMilliseconds + " ms");
 
 		}
 	

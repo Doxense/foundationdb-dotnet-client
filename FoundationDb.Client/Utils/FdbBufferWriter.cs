@@ -445,9 +445,10 @@ namespace FoundationDb.Client.Utils
 
 			if (bytes > 0)
 			{
-				int shift = bytes << 3;
 				// head
 				--bytes;
+				int shift = bytes << 3;
+
 				while (bytes-- > 0)
 				{
 					buffer[p++] = (byte)(value >> shift);

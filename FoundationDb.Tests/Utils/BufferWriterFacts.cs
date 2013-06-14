@@ -32,6 +32,7 @@ namespace FoundationDb.Client.Utils.Tests
 	using FoundationDb.Client.Utils;
 	using NUnit.Framework;
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 	using System.Text;
 
@@ -73,10 +74,10 @@ namespace FoundationDb.Client.Utils.Tests
 			PerformWriterTest(test, 2L, "15 02");
 			PerformWriterTest(test, 123L, "15 7B");
 			PerformWriterTest(test, 255L, "15 FF");
-			PerformWriterTest(test, 256L, "16 00 01");
+			PerformWriterTest(test, 256L, "16 01 00");
 			PerformWriterTest(test, 257L, "16 01 01");
 			PerformWriterTest(test, 65535L, "16 FF FF");
-			PerformWriterTest(test, 65536L, "17 00 00 01");
+			PerformWriterTest(test, 65536L, "17 01 00 00");
 			PerformWriterTest(test, 65537L, "17 01 00 01");
 
 			PerformWriterTest(test, -1L, "13 FE");
@@ -100,6 +101,69 @@ namespace FoundationDb.Client.Utils.Tests
 		}
 
 		[Test]
+		public void Test_WriteInt64_Ordered()
+		{
+			var list = new List<KeyValuePair<long, Slice>>();
+
+			Action<long> test = (x) =>
+			{
+				var writer = new FdbBufferWriter();
+				writer.WriteInt64(x);
+				var res = new KeyValuePair<long, Slice>(x, writer.ToSlice());
+				list.Add(res);
+				Console.WriteLine("{0,20} : {0:x16} {1}", res.Key, res.Value.ToString());
+			};
+
+			// We can't test 2^64 values, be we are interested at what happens around powers of two (were size can change)
+
+			// negatives
+			for (int i = 63; i >= 3; i--)
+			{
+				long x = -(1L << i);
+
+				if (i < 63)
+				{
+					test(x - 2);
+					test(x - 1);
+				}
+				test(x + 0);
+				test(x + 1);
+				test(x + 2);
+			}
+
+			test(-2);
+			test(0);
+			test(+1);
+			test(+2);
+
+			// positives
+			for (int i = 3; i <= 63; i++)
+			{
+				long x = (1L << i);
+
+				test(x - 2);
+				test(x - 1);
+				if (i < 63)
+				{
+					test(x + 0);
+					test(x + 1);
+					test(x + 2);
+				}
+			}
+
+			KeyValuePair<long, Slice> previous = list[0];
+			for (int i = 1; i < list.Count; i++)
+			{
+				KeyValuePair<long, Slice> current = list[i];
+
+				Assert.That(current.Key, Is.GreaterThan(previous.Key));
+				Assert.That(current.Value, Is.GreaterThan(previous.Value), "Expect {0} > {1}", current.Key, previous.Key);
+
+				previous = current;
+			}
+		}
+
+		[Test]
 		public void Test_WriteUInt64()
 		{
 			Action<FdbBufferWriter, ulong> test = (writer, value) => writer.WriteUInt64(value);
@@ -109,23 +173,71 @@ namespace FoundationDb.Client.Utils.Tests
 			PerformWriterTest(test, 1UL, "15 01");
 			PerformWriterTest(test, 123UL, "15 7B");
 			PerformWriterTest(test, 255UL, "15 FF");
-			PerformWriterTest(test, 256UL, "16 00 01");
+			PerformWriterTest(test, 256UL, "16 01 00");
 			PerformWriterTest(test, 257UL, "16 01 01");
 			PerformWriterTest(test, 65535UL, "16 FF FF");
-			PerformWriterTest(test, 65536UL, "17 00 00 01");
+			PerformWriterTest(test, 65536UL, "17 01 00 00");
 			PerformWriterTest(test, 65537UL, "17 01 00 01");
 
 			PerformWriterTest(test, (1UL << 24) - 1, "17 FF FF FF");
-			PerformWriterTest(test, 1UL << 24, "18 00 00 00 01");
+			PerformWriterTest(test, 1UL << 24, "18 01 00 00 00");
 
 			PerformWriterTest(test, (1UL << 32) - 1, "18 FF FF FF FF");
-			PerformWriterTest(test, (1UL << 32), "19 00 00 00 00 01");
+			PerformWriterTest(test, (1UL << 32), "19 01 00 00 00 00");
 
 			PerformWriterTest(test, ulong.MaxValue, "1C FF FF FF FF FF FF FF FF");
-			PerformWriterTest(test, ulong.MaxValue-1, "1C FE FF FF FF FF FF FF FF");
+			PerformWriterTest(test, ulong.MaxValue-1, "1C FF FF FF FF FF FF FF FE");
 
 		}
-	
+
+		[Test]
+		public void Test_WriteUInt64_Ordered()
+		{
+			var list = new List<KeyValuePair<ulong, Slice>>();
+
+			Action<ulong> test = (x) =>
+			{
+				var writer = new FdbBufferWriter();
+				writer.WriteUInt64(x);
+				var res = new KeyValuePair<ulong, Slice>(x, writer.ToSlice());
+				list.Add(res);
+#if DEBUG
+				Console.WriteLine("{0,20} : {0:x16} {1}", res.Key, res.Value.ToString());
+#endif
+			};
+
+			// We can't test 2^64 values, be we are interested at what happens around powers of two (were size can change)
+
+			test(0);
+			test(1);
+
+			// positives
+			for (int i = 3; i <= 63; i++)
+			{
+				ulong x = (1UL << i);
+
+				test(x - 2);
+				test(x - 1);
+				test(x + 0);
+				test(x + 1);
+				test(x + 2);
+			}
+			test(ulong.MaxValue - 2);
+			test(ulong.MaxValue - 1);
+			test(ulong.MaxValue);
+
+			KeyValuePair<ulong, Slice> previous = list[0];
+			for (int i = 1; i < list.Count; i++)
+			{
+				KeyValuePair<ulong, Slice> current = list[i];
+
+				Assert.That(current.Key, Is.GreaterThan(previous.Key));
+				Assert.That(current.Value, Is.GreaterThan(previous.Value), "Expect {0} > {1}", current.Key, previous.Key);
+
+				previous = current;
+			}
+		}
+
 		[Test]
 		public void Test_WriteAsciiString()
 		{
