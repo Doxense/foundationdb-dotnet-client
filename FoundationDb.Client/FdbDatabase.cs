@@ -108,6 +108,7 @@ namespace FoundationDb.Client
 			{
 				trans = new FdbTransaction(this, id, handle);
 				RegisterTransaction(trans);
+				trans.State = FdbTransaction.STATE_READY;
 				return trans;
 			}
 			catch (Exception)

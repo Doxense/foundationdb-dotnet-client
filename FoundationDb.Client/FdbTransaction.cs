@@ -29,6 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Transactions
 #undef DEBUG_TRANSACTIONS
 
+// enable to allow non-async methods
+#undef ENABLE_BLOCKING_OPERATIONS
+
 namespace FoundationDb.Client
 {
 	using FoundationDb.Client.Native;
@@ -43,15 +46,25 @@ namespace FoundationDb.Client
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	public class FdbTransaction : IDisposable
 	{
+		internal const int STATE_INIT = 0;
+		internal const int STATE_READY = 1;
+		internal const int STATE_COMMITTED = 2;
+		internal const int STATE_ROLLEDBACK = 3;
+		internal const int STATE_FAILED = 4;
+		internal const int STATE_DISPOSED = -1;
 
 		#region Private Members...
+
+		/// <summary>Current state of the transaction</summary>
+		private int m_state;
 
 		private readonly FdbDatabase m_database;
 		private readonly int m_id;
 		private readonly TransactionHandle m_handle;
-		private bool m_disposed;
+
 		/// <summary>Estimated size of written data (in bytes)</summary>
 		private int m_payloadBytes;
+		//note: should be use a long instead?
 
 		#endregion
 
@@ -74,7 +87,7 @@ namespace FoundationDb.Client
 
 		internal TransactionHandle Handle { get { return m_handle; } }
 
-		internal bool StillAlive { get { return !m_disposed; } }
+		internal bool StillAlive { get { return this.State == STATE_READY; } }
 
 		public int Size { get { return m_payloadBytes; } }
 
@@ -104,9 +117,7 @@ namespace FoundationDb.Client
 		/// <param name="option">Option to set</param>
 		public void SetOption(FdbTransactionOption option)
 		{
-			ThrowIfDisposed();
-
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresStillValid();
 
 			unsafe
 			{
@@ -119,9 +130,7 @@ namespace FoundationDb.Client
 		/// <param name="value">Value of the parameter (can be null)</param>
 		public void SetOption(FdbTransactionOption option, string value)
 		{
-			ThrowIfDisposed();
-
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresStillValid();
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			unsafe
@@ -138,9 +147,7 @@ namespace FoundationDb.Client
 		/// <param name="value">Value of the parameter</param>
 		public void SetOption(FdbTransactionOption option, long value)
 		{
-			ThrowIfDisposed();
-
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresStillValid();
 
 			unsafe
 			{
@@ -160,9 +167,8 @@ namespace FoundationDb.Client
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		public Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken))
 		{
-			ThrowIfDisposed();
-
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(ct);
+			//TODO: should we also allow being called after commit or rollback ?
 
 			var future = FdbNative.TransactionGetReadVersion(m_handle);
 			return FdbFuture.CreateTaskFromHandle(future,
@@ -185,9 +191,8 @@ namespace FoundationDb.Client
 		/// <remarks>The value return by this method is undefined if Commit has not been called</remarks>
 		public long GetCommittedVersion()
 		{
-			ThrowIfDisposed();
-
-			Fdb.EnsureNotOnNetworkThread();
+			//TODO: should we only allow calls if transaction is in state "COMMITTED" ?
+			EnsuresStillValid();
 
 			long version;
 			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
@@ -200,9 +205,7 @@ namespace FoundationDb.Client
 
 		public void SetReadVersion(long version)
 		{
-			ThrowIfDisposed();
-
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite();
 
 			FdbNative.TransactionSetReadVersion(m_handle, version);
 		}
@@ -213,6 +216,8 @@ namespace FoundationDb.Client
 
 		private static bool TryGetValueResult(FutureHandle h, out Slice result)
 		{
+			Contract.Requires(h != null);
+
 			bool present;
 			var err = FdbNative.FutureGetValue(h, out present, out result);
 #if DEBUG_TRANSACTIONS
@@ -224,6 +229,8 @@ namespace FoundationDb.Client
 
 		private static Slice GetValueResultBytes(FutureHandle h)
 		{
+			Contract.Requires(h != null);
+
 			Slice result;
 			if (!TryGetValueResult(h, out result))
 			{
@@ -234,15 +241,17 @@ namespace FoundationDb.Client
 
 		internal Task<Slice> GetCoreAsync(Slice key, bool snapshot, CancellationToken ct)
 		{
-			m_database.EnsureKeyIsValid(key);
+			this.Database.EnsureKeyIsValid(key);
 
 			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
 		}
 
+#if ENABLE_BLOCKING_OPERATIONS
+
 		internal Slice GetCore(Slice key, bool snapshot, CancellationToken ct)
 		{
-			m_database.EnsureKeyIsValid(key);
+			this.Database.EnsureKeyIsValid(key);
 
 			var handle = FdbNative.TransactionGet(m_handle, key, snapshot);
 			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResultBytes(h), ct, willBlockForResult: true))
@@ -250,6 +259,8 @@ namespace FoundationDb.Client
 				return future.GetResult();
 			}
 		}
+
+#endif
 
 		/// <summary>Returns the value of a particular key</summary>
 		/// <param name="key">Key to retrieve</param>
@@ -262,6 +273,8 @@ namespace FoundationDb.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public Task<Slice> GetAsync(IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			if (key == null) throw new ArgumentNullException("key");
+
 			return GetAsync(key.ToSlice(), snapshot, ct);
 		}
 
@@ -276,12 +289,11 @@ namespace FoundationDb.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public Task<Slice> GetAsync(Slice keyBytes, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			ct.ThrowIfCancellationRequested();
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(ct);
 
 			return GetCoreAsync(keyBytes, snapshot, ct);
 		}
+
 
 		/// <summary>Returns the value of a particular key</summary>
 		/// <param name="key">Key to retrieve</param>
@@ -294,7 +306,13 @@ namespace FoundationDb.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public Slice Get(IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+#if ENABLE_BLOCKING_OPERATIONS
+			if (key == null) throw new ArgumentNullException("key");
+
 			return Get(key.ToSlice(), snapshot, ct);
+#else
+			throw new NotSupportedException();
+#endif
 		}
 
 		/// <summary>Returns the value of a particular key</summary>
@@ -308,26 +326,28 @@ namespace FoundationDb.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public Slice Get(Slice keyBytes, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			ThrowIfDisposed();
-			ct.ThrowIfCancellationRequested();
-			Fdb.EnsureNotOnNetworkThread();
+#if ENABLE_BLOCKING_OPERATIONS
+			EnsuresCanReadOrWrite(ct);
 
 			return GetCore(keyBytes, snapshot, ct);
+#else
+			throw new NotSupportedException();
+#endif
 		}
 
 		public Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
 			ct.ThrowIfCancellationRequested();
 			return GetBatchIndexedAsync(keys.ToArray(), snapshot, ct);
 		}
 
 		public async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			ThrowIfDisposed();
+			if (keys == null) throw new ArgumentNullException("keys");
 
-			ct.ThrowIfCancellationRequested();
-
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(ct);
 
 			var tasks = new List<Task<Slice>>(keys.Length);
 			for (int i = 0; i < keys.Length; i++)
@@ -344,12 +364,16 @@ namespace FoundationDb.Client
 
 		public Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
 			ct.ThrowIfCancellationRequested();
 			return GetBatchAsync(keys.ToArray(), snapshot, ct);
 		}
 
 		public async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
 			var indexedResults = await GetBatchIndexedAsync(keys, snapshot, ct);
 
 			ct.ThrowIfCancellationRequested();
@@ -361,17 +385,17 @@ namespace FoundationDb.Client
 
 		public Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IEnumerable<IFdbTuple> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
 			ct.ThrowIfCancellationRequested();
 			return GetBatchIndexedAsync(keys.ToArray(), snapshot, ct);
 		}
 
 		public async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IFdbTuple[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			ThrowIfDisposed();
+			if (keys == null) throw new ArgumentNullException("keys");
 
-			ct.ThrowIfCancellationRequested();
-
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(ct);
 
 			var tasks = new List<Task<Slice>>(keys.Length);
 			for (int i = 0; i < keys.Length; i++)
@@ -388,12 +412,16 @@ namespace FoundationDb.Client
 
 		public Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(IEnumerable<IFdbTuple> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
 			ct.ThrowIfCancellationRequested();
 			return GetBatchAsync(keys.ToArray(), snapshot, ct);
 		}
 
 		public async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(IFdbTuple[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
 			var indexedResults = await GetBatchIndexedAsync(keys, snapshot, ct);
 
 			ct.ThrowIfCancellationRequested();
@@ -414,12 +442,14 @@ namespace FoundationDb.Client
 			return FdbKeySelector.FirstGreaterOrEqual(slice);
 		}
 
-		internal FdbRangeResults GetRangeCore(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
+		internal FdbRangeQuery GetRangeCore(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
 		{
-			m_database.EnsureKeyIsValid(begin.Key);
-			m_database.EnsureKeyIsValid(end.Key);
+			Contract.Requires(limit >= 0 && targetBytes >= 0 && Enum.IsDefined(typeof(FdbStreamingMode), mode));
 
-			var query = new FdbRangeQuery
+			this.Database.EnsureKeyIsValid(begin.Key);
+			this.Database.EnsureKeyIsValid(end.Key);
+
+			var query = new FdbRangeSelector
 			{
 				Begin = begin, 
 				End = end, 
@@ -430,11 +460,13 @@ namespace FoundationDb.Client
 				Reverse = reverse,
 			};
 
-			return new FdbRangeResults(this, query);
+			return new FdbRangeQuery(this, query);
 		}
 
-		public FdbRangeResults GetRange(Slice beginInclusive, Slice endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
+		public FdbRangeQuery GetRange(Slice beginInclusive, Slice endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
+			EnsuresCanReadOrWrite();
+
 			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;
 			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
 
@@ -449,10 +481,9 @@ namespace FoundationDb.Client
 			);
 		}
 
-		public FdbRangeResults GetRange(IFdbTuple beginInclusive, IFdbTuple endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
+		public FdbRangeQuery GetRange(IFdbTuple beginInclusive, IFdbTuple endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite();
 
 			var begin = beginInclusive != null ? beginInclusive.ToSlice() : FdbKey.MinValue;
 			var end = endExclusive != null ? endExclusive.ToSlice() : FdbKey.MaxValue;
@@ -468,15 +499,14 @@ namespace FoundationDb.Client
 			);
 		}
 
-		public FdbRangeResults GetRangeInclusive(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, int limit = 0, bool snapshot = false, bool reverse = false)
+		public FdbRangeQuery GetRangeInclusive(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite();
 
 			return GetRangeCore(beginInclusive, endInclusive + 1, limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
 		}
 
-		public FdbRangeResults GetRangeStartsWith(Slice prefix, int limit = 0, bool snapshot = false, bool reverse = false)
+		public FdbRangeQuery GetRangeStartsWith(Slice prefix, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
 			if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
 
@@ -485,12 +515,11 @@ namespace FoundationDb.Client
 			return GetRange(range.Begin, range.End, limit, snapshot, reverse);
 		}
 
-		public FdbRangeResults GetRangeStartsWith(IFdbTuple suffix, int limit = 0, bool snapshot = false, bool reverse = false)
+		public FdbRangeQuery GetRangeStartsWith(IFdbTuple suffix, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
 			if (suffix == null) throw new ArgumentNullException("suffix");
 
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite();
 
 			var range = suffix.ToRange();
 
@@ -505,18 +534,16 @@ namespace FoundationDb.Client
 			);
 		}
 
-		public FdbRangeResults GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
+		public FdbRangeQuery GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite();
 
 			return GetRangeCore(beginInclusive, endExclusive, limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
 		}
 
-		public FdbRangeResults GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
+		public FdbRangeQuery GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
 		{
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite();
 
 			return GetRangeCore(beginInclusive, endExclusive, limit, targetBytes, mode, snapshot, reverse);
 		}
@@ -527,6 +554,8 @@ namespace FoundationDb.Client
 
 		private static Slice GetKeyResult(FutureHandle h)
 		{
+			Contract.Requires(h != null);
+
 			Slice result;
 			var err = FdbNative.FutureGetKey(h, out result);
 #if DEBUG_TRANSACTIONS
@@ -538,7 +567,7 @@ namespace FoundationDb.Client
 
 		internal Task<Slice> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot, CancellationToken ct)
 		{
-			m_database.EnsureKeyIsValid(selector.Key);
+			this.Database.EnsureKeyIsValid(selector.Key);
 
 			var future = FdbNative.TransactionGetKey(m_handle, selector, snapshot);
 			return FdbFuture.CreateTaskFromHandle(
@@ -550,9 +579,7 @@ namespace FoundationDb.Client
 
 		public Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			ct.ThrowIfCancellationRequested();
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(ct);
 
 			return GetKeyCoreAsync(selector, snapshot, ct);
 		}
@@ -563,7 +590,7 @@ namespace FoundationDb.Client
 
 		internal void SetCore(Slice key, Slice value)
 		{
-			m_database.EnsureKeyIsValid(key);
+			this.Database.EnsureKeyIsValid(key);
 			Fdb.EnsureValueIsValid(value);
 
 			FdbNative.TransactionSet(m_handle, key, value);
@@ -572,8 +599,7 @@ namespace FoundationDb.Client
 
 		public void Set(Slice keyBytes, Slice valueBytes)
 		{
-			ThrowIfDisposed();
-			//Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
 
 			SetCore(keyBytes, valueBytes);
 		}
@@ -582,8 +608,7 @@ namespace FoundationDb.Client
 		{
 			if (key == null) throw new ArgumentNullException("key");
 
-			ThrowIfDisposed();
-			//Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
 
 			SetCore(key.ToSlice(), valueBytes);
 		}
@@ -594,7 +619,7 @@ namespace FoundationDb.Client
 
 		internal void ClearCore(Slice key)
 		{
-			m_database.EnsureKeyIsValid(key);
+			this.Database.EnsureKeyIsValid(key);
 
 			FdbNative.TransactionClear(m_handle, key);
 			Interlocked.Add(ref m_payloadBytes, key.Count);
@@ -602,8 +627,7 @@ namespace FoundationDb.Client
 
 		public void Clear(Slice key)
 		{
-			ThrowIfDisposed();
-			//Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
 
 			ClearCore(key);
 		}
@@ -612,8 +636,7 @@ namespace FoundationDb.Client
 		{
 			if (key == null) throw new ArgumentNullException("key");
 
-			ThrowIfDisposed();
-			//Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
 
 			ClearCore(key.ToSlice());
 		}
@@ -624,8 +647,8 @@ namespace FoundationDb.Client
 
 		internal void ClearRangeCore(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
-			m_database.EnsureKeyIsValid(beginKeyInclusive);
-			m_database.EnsureKeyIsValid(endKeyExclusive);
+			this.Database.EnsureKeyIsValid(beginKeyInclusive);
+			this.Database.EnsureKeyIsValid(endKeyExclusive);
 
 			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
 			//TODO: how to account for these ?
@@ -641,8 +664,7 @@ namespace FoundationDb.Client
 		/// <param name="endKeyExclusive"></param>
 		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
 
 			ClearRangeCore(beginKeyInclusive, endKeyExclusive);
 		}
@@ -652,8 +674,7 @@ namespace FoundationDb.Client
 			if (beginInclusive == null) throw new ArgumentNullException("beginInclusive");
 			if (endExclusive == null) throw new ArgumentNullException("endExclusive");
 
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
 
 			ClearRangeCore(beginInclusive.ToSlice(), endExclusive.ToSlice());
 		}
@@ -662,8 +683,7 @@ namespace FoundationDb.Client
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 
-			ThrowIfDisposed();
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
 
 			var range = prefix.ToRange();
 			ClearRangeCore(range.Begin, range.End);
@@ -673,25 +693,32 @@ namespace FoundationDb.Client
 
 		#region Commit...
 
-		public Task CommitAsync(CancellationToken ct = default(CancellationToken))
+		public async Task CommitAsync(CancellationToken ct = default(CancellationToken))
 		{
-			ThrowIfDisposed();
+			EnsuresCanReadOrWrite(ct);
 
-			ct.ThrowIfCancellationRequested();
+			//TODO: need a STATE_COMMITTING ?
+			try
+			{
+				var future = FdbNative.TransactionCommit(m_handle);
+				await FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
 
-			Fdb.EnsureNotOnNetworkThread();
-
-			var future = FdbNative.TransactionCommit(m_handle);
-			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
+				Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY);
+			}
+			catch (Exception)
+			{
+				Interlocked.CompareExchange(ref m_state, STATE_FAILED, STATE_READY);
+				throw;
+			}
 		}
+
 
 		public void Commit(CancellationToken ct = default(CancellationToken))
 		{
-			ThrowIfDisposed();
+#if ENABLE_BLOCKING_OPERATIONS
+			EnsuresCanReadOrWrite(ct);
 
-			ct.ThrowIfCancellationRequested();
-
-			Fdb.EnsureNotOnNetworkThread();
+			//TODO: need a STATE_COMMITTING ?
 
 			FutureHandle handle = null;
 			try
@@ -702,12 +729,17 @@ namespace FoundationDb.Client
 				{
 					future.Wait();
 				}
+				Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY);
 			}
 			catch (Exception)
 			{
+				Interlocked.CompareExchange(ref m_state, STATE_FAILED, STATE_READY);
 				if (handle != null) handle.Dispose();
 				throw;
 			}
+#else
+			throw new NotSupportedException();
+#endif
 		}
 
 		#endregion
@@ -716,11 +748,8 @@ namespace FoundationDb.Client
 
 		public Task OnErrorAsync(FdbError code, CancellationToken ct = default(CancellationToken))
 		{
-			ThrowIfDisposed();
-
-			ct.ThrowIfCancellationRequested();
-
-			Fdb.EnsureNotOnNetworkThread();
+			//note: should this be allowed from network thread ?
+			EnsuresCanReadOrWrite(ct);
 
 			var future = FdbNative.TransactionOnError(m_handle, code);
 			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
@@ -728,11 +757,9 @@ namespace FoundationDb.Client
 
 		public void OnError(FdbError code, CancellationToken ct = default(CancellationToken))
 		{
-			ThrowIfDisposed();
-
-			ct.ThrowIfCancellationRequested();
-
-			Fdb.EnsureNotOnNetworkThread();
+#if ENABLE_BLOCKING_OPERATIONS
+			//note: should this be allowed from network thread ?
+			EnsuresCanReadOrWrite(ct);
 
 			FutureHandle handle = null;
 			try
@@ -749,6 +776,9 @@ namespace FoundationDb.Client
 				if (handle != null) handle.Dispose();
 				throw;
 			}
+#else
+			throw new NotSupportedException();
+#endif
 		}
 
 		#endregion
@@ -758,9 +788,7 @@ namespace FoundationDb.Client
 		/// <summary>Reset the transaction to its initial state.</summary>
 		public void Reset()
 		{
-			ThrowIfDisposed();
-
-			Fdb.EnsureNotOnNetworkThread();
+			EnsuresCanReadOrWrite();
 
 			FdbNative.TransactionReset(m_handle);
 		}
@@ -768,35 +796,107 @@ namespace FoundationDb.Client
 		/// <summary>Rollback this transaction, and dispose it. It should not be used after that.</summary>
 		public void Rollback()
 		{
-			//TODO: refactor code between Rollback() and Dispose() ?
-			this.Dispose();
+			var state = Interlocked.CompareExchange(ref m_state, STATE_ROLLEDBACK, STATE_READY);
+			if (state != STATE_READY)
+			{
+				switch(state)
+				{
+					case STATE_ROLLEDBACK: break; // already the case !
+
+					case STATE_COMMITTED: throw new InvalidOperationException("Cannot rollback transaction that has already been committed");
+					case STATE_FAILED: throw new InvalidOperationException("Cannot rollback transaction because it is in a failed state");
+					case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "Cannot rollback transaction because it already has been disposed");
+					default: throw new InvalidOperationException(String.Format("Cannot rollback transaction because it is in unknown state {0}", state));
+				}
+			}
+
+			// Dispose of the handle
+			if (!m_handle.IsClosed) m_handle.Dispose();
 		}
 
 		#endregion
 
 		#region IDisposable...
 
-		private void ThrowIfDisposed()
+		/// <summary>Get/Sets the internal state of the exception</summary>
+		internal int State
 		{
-			if (m_disposed) throw new ObjectDisposedException(null);
-			// also checks that the DB has not been disposed behind our back
+			get { return Volatile.Read(ref m_state); }
+			set
+			{
+				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_DISPOSED, null, "Invalid state value");
+				Volatile.Write(ref m_state, value);
+			}
+		}
+
+		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
+		/// <param name="ct">Optionnal CancellationToken that should not be cancelled</param>
+		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
+		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() as already been called on the transaction, or if the database has been closed</exception>
+		public void EnsuresCanReadOrWrite(CancellationToken ct = default(CancellationToken), bool allowFromNetworkThread = false)
+		{
+			// We must not be disposed
+			switch (this.State)
+			{
+				case STATE_READY:
+				{
+					// We cannot be called from the network thread (or else we will deadlock)
+					if (!allowFromNetworkThread) Fdb.EnsureNotOnNetworkThread();
+
+					// also checks that the DB has not been disposed behind our back
+					m_database.EnsureCheckTransactionIsValid(this);
+
+					// and finally, the cancellation token should not be signaled
+					if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
+					// we are ready to go !
+					return;
+				}
+
+				case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "This transaction has already been disposed and cannot be used anymore");
+				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
+				case STATE_COMMITTED: throw new InvalidOperationException("The transaction has already been committed");
+				case STATE_ROLLEDBACK: throw new InvalidOperationException("The transaction has already been rolled back");
+				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", this.State));
+			}
+		}
+
+		/// <summary>Throws if the transaction is not a valid state (for reading/writing)</summary>
+		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
+		public void EnsuresStillValid()
+		{
+			switch (this.State)
+			{
+				case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "This transaction has already been disposed and cannot be used anymore");
+				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
+
+				case STATE_INIT:
+				case STATE_READY:
+				case STATE_COMMITTED:
+				case STATE_ROLLEDBACK:
+					// We are still valid
+					break;
+
+				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", this.State));
+			}
+
+			// checks that the DB has not been disposed behind our back
 			m_database.EnsureCheckTransactionIsValid(this);
 		}
 
 		public void Dispose()
 		{
 			// note: we can be called by user code, or by the FdbDatabase when it is terminating with pending transactions
-			if (!m_disposed)
+			if (Interlocked.Exchange(ref m_state, STATE_DISPOSED) != STATE_DISPOSED)
 			{
-				m_disposed = true;
-
 				try
 				{
 					m_database.UnregisterTransaction(this);
 				}
 				finally
 				{
-					m_handle.Dispose();
+					// Dispose of the handle
+					if (!m_handle.IsClosed) m_handle.Dispose();
 				}
 			}
 		}

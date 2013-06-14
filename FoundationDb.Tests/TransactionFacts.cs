@@ -53,14 +53,29 @@ namespace FoundationDb.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Can_Create_Transaction()
+		public async Task Test_Can_Create_And_Dispose_Transactions()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				using (var tr = db.BeginTransaction())
 				{
 					Assert.That(tr, Is.Not.Null, "BeginTransaction should return a valid instance");
+					Assert.That(tr.State == FdbTransaction.STATE_READY, "Transaction should be in ready state");
+					Assert.That(tr.StillAlive, Is.True, "Transaction should be alive");
+					Assert.That(tr.Handle.IsInvalid, Is.False, "Transaction handle should be valid");
+					Assert.That(tr.Handle.IsClosed, Is.False, "Transaction handle should not be closed");
 					Assert.That(tr.Database, Is.SameAs(db), "Transaction should reference the parent Database");
+					Assert.That(tr.Size, Is.EqualTo(0), "Estimated size should be zero");
+
+					// manually dispose the transaction
+					tr.Dispose();
+
+					Assert.That(tr.State == FdbTransaction.STATE_DISPOSED, "Transaction should now be in the disposed state");
+					Assert.That(tr.StillAlive, Is.False, "Transaction should be not be alive anymore");
+					Assert.That(tr.Handle.IsClosed, Is.True, "Transaction handle should now be closed");
+
+					// multiple calls to dispose should not do anything more
+					Assert.That(() => { tr.Dispose(); }, Throws.Nothing);
 				}
 			}
 		}
@@ -74,12 +89,25 @@ namespace FoundationDb.Client.Tests
 				FdbTransaction tr2 = null;
 				try
 				{
+					// concurrent transactions should have separate FDB_FUTURE* handles
+
 					tr1 = db.BeginTransaction();
 					tr2 = db.BeginTransaction();
 
 					Assert.That(tr1, Is.Not.Null);
 					Assert.That(tr2, Is.Not.Null);
 					Assert.That(tr1, Is.Not.SameAs(tr2), "Should create two different transaction objects");
+					Assert.That(tr1.Handle, Is.Not.EqualTo(tr2.Handle), "Should have different FDB_FUTURE* handles");
+
+					// disposing the first should not impact the second
+
+					tr1.Dispose();
+
+					Assert.That(tr1.StillAlive, Is.False, "First transaction should be dead");
+					Assert.That(tr1.Handle.IsClosed, Is.True, "First FDB_FUTURE* handle should be closed");
+
+					Assert.That(tr2.StillAlive, Is.True, "Second transaction should still be alive");
+					Assert.That(tr2.Handle.IsClosed, Is.False, "Second FDB_FUTURE* handle should still be opened");
 				}
 				finally
 				{
@@ -100,10 +128,29 @@ namespace FoundationDb.Client.Tests
 					// do nothing with it
 					await tr.CommitAsync();
 					// => should not fail!
+
+					Assert.That(tr.StillAlive, Is.False);
+					Assert.That(tr.State, Is.EqualTo(FdbTransaction.STATE_COMMITTED));
 				}
 			}
 		}
 
+		[Test]
+		public async Task Test_Rolling_Back_An_Empty_Transaction_Does_Nothing()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					// do nothing with it
+					tr.Rollback();
+					// => should not fail!
+
+					Assert.That(tr.StillAlive, Is.False);
+					Assert.That(tr.State, Is.EqualTo(FdbTransaction.STATE_ROLLEDBACK));
+				}
+			}
+		}
 		[Test]
 		public async Task Test_Resetting_An_Empty_Transaction_Does_Nothing()
 		{
