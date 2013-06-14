@@ -31,7 +31,7 @@ namespace FoundationDb.Client
 	using System;
 	using System.Diagnostics;
 
-	[DebuggerDisplay("Begin={this.Begin}, End={this.end}")]
+	[DebuggerDisplay("Begin={Begin}, End={End}")]
 	public struct FdbKeyRange
 	{
 		public static FdbKeyRange None { get { return default(FdbKeyRange); } }

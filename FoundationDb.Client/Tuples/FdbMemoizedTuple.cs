@@ -119,7 +119,7 @@ namespace FoundationDb.Layers.Tuples
 
 	}
 
-	[DebuggerDisplay("Last={this.Last}, Depth={this.Depth}")]
+	[DebuggerDisplay("{ToString()}")]
 	public sealed class FdbLinkedTuple<T> : IFdbTuple
 	{
 		public readonly IFdbTuple Head;
@@ -132,7 +132,7 @@ namespace FoundationDb.Layers.Tuples
 
 			this.Head = head;
 			this.Tail = tail;
-			this.Depth = head.Count + 1;
+			this.Depth = head.Count;
 		}
 
 		public void PackTo(FdbBufferWriter writer)
