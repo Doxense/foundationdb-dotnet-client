@@ -41,18 +41,6 @@ namespace FoundationDb.Layers.Tables.Tests
 	public class StringInternFacts
 	{
 
-		[TestFixtureSetUp]
-		public void Setup()
-		{
-			//TODO: cleanup ?
-		}
-
-		[TestFixtureTearDown]
-		public void Teardown()
-		{
-			Fdb.Stop();
-		}
-
 		[Test]
 		public async Task Test_StringIntern_Example()
 		{

@@ -36,18 +36,6 @@ namespace FoundationDb.Client.Tests
 	public class ErrorFacts
 	{
 
-		[TestFixtureSetUp]
-		public void Setup()
-		{
-			//TODO: cleanup ?
-		}
-
-		[TestFixtureTearDown]
-		public void Teardown()
-		{
-			Fdb.Stop();
-		}
-
 		[Test]
 		public void Test_Fdb_GetErrorMessage()
 		{
