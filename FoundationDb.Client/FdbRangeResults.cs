@@ -132,6 +132,29 @@ namespace FoundationDb.Client
 		/// <param name="lambda">Lambda function called to process each result</param>
 		/// <param name="ct"></param>
 		/// <returns>List of all processed results</returns>
+		public async Task<List<T>> ReadAllAsync<T>(Func<KeyValuePair<Slice, Slice>, T> lambda, CancellationToken ct = default(CancellationToken))
+		{
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+
+			//TODO: process a batch while fetching the next ?
+
+			var results = new List<T>();
+			while (await this.MoveNextAsync(ct))
+			{
+				foreach (var kvp in this.Chunk)
+				{
+					results.Add(lambda(kvp));
+				}
+			}
+			return results;
+		}
+
+		/// <summary>Reads all the results in a single operation, and process the results as they arrive</summary>
+		/// <typeparam name="T">Type of the processed results</typeparam>
+		/// <param name="lambda">Lambda function called to process each result</param>
+		/// <param name="ct"></param>
+		/// <returns>List of all processed results</returns>
 		public async Task<List<T>> ReadAllAsync<T>(Func<Slice, Slice, T> lambda, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
