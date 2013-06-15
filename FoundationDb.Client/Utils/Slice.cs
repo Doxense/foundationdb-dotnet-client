@@ -32,8 +32,10 @@ namespace FoundationDb.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
+	using System.IO;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using System.Threading.Tasks;
 
 	public struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>
 	{
@@ -396,6 +398,7 @@ namespace FoundationDb.Client
 		}
 
 		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (lowercase)</summary>
+		/// <returns>"0123456789abcdef"</returns>
 		public string ToHexaString()
 		{
 			if (this.IsNullOrEmpty) return this.Array == null ? null : String.Empty;
@@ -406,10 +409,31 @@ namespace FoundationDb.Client
 			while (n-- > 0)
 			{
 				byte b = buffer[p++];
-				int x = b & 0xF;
+				int x = b >> 4;
 				sb.Append((char)(x + (x < 10 ? 48 : 87)));
-				x = b >> 4;
+				x = b & 0xF;
 				sb.Append((char)(x + (x < 10 ? 48 : 87)));
+			}
+			return sb.ToString();
+		}
+
+		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
+		/// <returns>"0123456789abcdef"</returns>
+		public string ToHexaString(char sep)
+		{
+			if (this.IsNullOrEmpty) return this.Array == null ? null : String.Empty;
+			var buffer = this.Array;
+			int p = this.Offset;
+			int n = this.Count;
+			var sb = new StringBuilder(n * 3);
+			while (n-- > 0)
+			{
+				if (sb.Length > 0) sb.Append(sep);
+				byte b = buffer[p++];
+				int x = b >> 4;
+				sb.Append((char)(x + (x < 10 ? 48 : 55)));
+				x = b & 0xF;
+				sb.Append((char)(x + (x < 10 ? 48 : 55)));
 			}
 			return sb.ToString();
 		}
@@ -451,6 +475,25 @@ namespace FoundationDb.Client
 			return value;
 		}
 
+		public ulong ReadUInt64(int offset, int bytes)
+		{
+			ulong value = 0;
+			var buffer = this.Array;
+			int p = UnsafeMapToOffset(offset);
+			if (bytes > 0)
+			{
+				value = buffer[p++];
+				--bytes;
+
+				while (bytes-- > 0)
+				{
+					value <<= 8;
+					value |= buffer[p++];
+				}
+			}
+			return value;
+		}
+
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
 		internal Slice Memoize()
@@ -464,8 +507,7 @@ namespace FoundationDb.Client
 		/// <returns>Absolute offset in the buffer</returns>
 		private int UnsafeMapToOffset(int index)
 		{
-			int p = index;
-			if (p < 0) p += this.Count;
+			int p = NormalizeIndex(index);
 			Contract.Requires(p >= 0 & p < this.Count);
 			return this.Offset + p;
 		}
@@ -476,24 +518,56 @@ namespace FoundationDb.Client
 		/// <exception cref="IndexOutOfRangeException">If the index is outside the slice</exception>
 		private int MapToOffset(int index)
 		{
-			int p = index;
-			if (p < 0) p += this.Count;
+			int p = NormalizeIndex(index);
 			if (p < 0 || p >= this.Count) FailIndexOutOfBound(index);
-			return this.Offset + p;
+			checked { return this.Offset + p; }
 		}
 
-		/// <summary>Copy this slice into another buffer</summary>
-		/// <param name="buffer">Buffer where to copy this slice</param>
-		/// <param name="offset">Offset into the destination buffer</param>
-		public void CopyTo(byte[] buffer, int offset)
+		/// <summary>Normalize negative index values into offset from the start</summary>
+		/// <param name="index">Relative offset (negative values mean from the end)</param>
+		/// <returns>Relative offset from the start of the slice</returns>
+		private int NormalizeIndex(int index)
 		{
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
+			checked { return index < 0 ? index + this.Count : index; }
+		}
 
-			if (this.Count > 0)
+		/// <summary>Returns the value of one byte in the slice</summary>
+		/// <param name="index">Offset of the byte (negative values means start from the end)</param>
+		public byte this[int index]
+		{
+			get { return this.Array[MapToOffset(index)]; }
+		}
+
+		/// <summary>Returns a substring of the current slice that fits withing the specified index range</summary>
+		/// <param name="start">The starting position of the substring. Positive values means from the start, negative values means from the end</param>
+		/// <param name="end">The end position (exlucded) of the substring. Positive values means from the start, negative values means from the end</param>
+		/// <returns>Subslice</returns>
+		public Slice this[int start, int end]
+		{
+			get
 			{
-				Buffer.BlockCopy(this.Array, this.Offset, buffer, offset, this.Count);
+				start = NormalizeIndex(start);
+				end = NormalizeIndex(end);
+
+				// bound check
+				if (start < 0) start = 0;
+				if (end > this.Count) end = this.Count;
+
+				if (start >= end) return Slice.Empty;
+				if (start == 0 && end == this.Count) return this;
+
+				checked { return new Slice(this.Array, this.Offset + start, end - start); }
 			}
+		}
+
+		private static void FailIndexOutOfBound(int index)
+		{
+			throw new IndexOutOfRangeException("Index is outside the slice");
+		}
+
+		internal byte GetByte(int index)
+		{
+			return this.Array[UnsafeMapToOffset(index)];
 		}
 
 		/// <summary>Copy this slice into another buffer</summary>
@@ -511,21 +585,18 @@ namespace FoundationDb.Client
 			cursor += this.Count;
 		}
 
-		/// <summary>Returns the value of one byte in the slice</summary>
-		/// <param name="index">Offset of the byte (negative values means start from the end)</param>
-		public byte this[int index]
+		/// <summary>Copy this slice into another buffer</summary>
+		/// <param name="buffer">Buffer where to copy this slice</param>
+		/// <param name="offset">Offset into the destination buffer</param>
+		public void CopyTo(byte[] buffer, int offset)
 		{
-			get { return this.Array[MapToOffset(index)]; }
-		}
+			if (buffer == null) throw new ArgumentNullException("buffer");
+			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
 
-		private static void FailIndexOutOfBound(int index)
-		{
-			throw new IndexOutOfRangeException("Index is outside the slice");
-		}
-
-		internal byte GetByte(int index)
-		{
-			return this.Array[UnsafeMapToOffset(index)];
+			if (this.Count > 0)
+			{
+				Buffer.BlockCopy(this.Array, this.Offset, buffer, offset, this.Count);
+			}
 		}
 
 		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position.</summary>
@@ -552,7 +623,7 @@ namespace FoundationDb.Client
 		}
 
 		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position and has a specified length.</summary>
-		/// <param name="offset">The starting position of the substring. Positive values mmeans from the start, negative values means from the end</param>
+		/// <param name="offset">The starting position of the substring. Positive values means from the start, negative values means from the end</param>
 		/// <param name="count">Number of bytes in the substring</param>
 		/// <returns>A slice that is equivalent to the substring of length <paramref name="count"/> that begins at <paramref name="offset"/> (from the start or the end depending on the sign) in this instance, or Slice.Empty if count is zero.</returns>
 		/// <remarks>The substring does not copy the original data, and refers to the same buffer as the original slice. Any change to the parent slice's buffer will be seen by the substring. You must call Memoize() on the resulting substring if you want a copy</remarks>
@@ -640,23 +711,24 @@ namespace FoundationDb.Client
 			return SameBytes(parent.Array, parent.Offset + this.Count - parent.Count, this.Array, this.Offset, parent.Count);
 		}
 
-		public ulong ReadUInt64(int offset, int bytes)
+		/// <summary>Append/Merge a slice at the end of the current slice</summary>
+		/// <param name="tail">Slice that must be appended</param>
+		/// <returns>Merged slice if both slices are contigous, or a new slice containg the content of the current slice, followed by the tail slice</returns>
+		public Slice Concat(Slice tail)
 		{
-			ulong value = 0;
-			var buffer = this.Array;
-			int p = UnsafeMapToOffset(offset);
-			if (bytes > 0)
-			{
-				value = buffer[p++];
-				--bytes;
+			if (tail.IsNullOrEmpty) return this;
+			if (this.IsNullOrEmpty) return tail;
 
-				while (bytes-- > 0)
-				{
-					value <<= 8;
-					value |= buffer[p++];
-				}
+			// special case: adjacent segments ?
+			if (this.Array == tail.Array && this.Offset + this.Count == tail.Offset)
+			{
+				return new Slice(this.Array, this.Offset, this.Count + tail.Count);
 			}
-			return value;
+
+			byte[] tmp = new byte[this.Count + tail.Count];
+			this.CopyTo(tmp, 0);
+			tail.CopyTo(tmp, this.Count);
+			return new Slice(tmp, 0, tmp.Length);
 		}
 
 		/// <summary>Implicitly converts a Slice into an ArraySegment&lt;byte&gt;</summary>
@@ -683,6 +755,48 @@ namespace FoundationDb.Client
 		public static bool operator !=(Slice a, Slice b)
 		{
 			return !a.Equals(b);
+		}
+
+		public static bool operator <(Slice a, Slice b)
+		{
+			return a.CompareTo(b) < 0;
+		}
+
+		public static bool operator <=(Slice a, Slice b)
+		{
+			return a.CompareTo(b) <= 0;
+		}
+
+		public static bool operator >(Slice a, Slice b)
+		{
+			return a.CompareTo(b) > 0;
+		}
+
+		public static bool operator >=(Slice a, Slice b)
+		{
+			return a.CompareTo(b) >= 0;
+		}
+
+		/// <summary>Append/Merge two slices together</summary>
+		/// <param name="a">First slice</param>
+		/// <param name="b">Second slice</param>
+		/// <returns>Merged slices if both slices are contigous, or a new slice containg the content of the first slice, followed by the second</returns>
+		public static Slice operator +(Slice a, Slice b)
+		{
+			return a.Concat(b);
+		}
+
+		/// <summary>Remove <paramref name="n"/> bytes at the end of slice <param name="s"/></summary>
+		/// <returns>Smaller slice</returns>
+		public static Slice operator -(Slice s, int n)
+		{
+			if (n < 0) throw new ArgumentOutOfRangeException("count", "Cannot subtract a negative number from a slice");
+			if (n > s.Count) throw new ArgumentOutOfRangeException("count", "Cannout substract more bytes than the slice contains");
+
+			if (n == 0) return s;
+			if (n == s.Count) return Slice.Empty;
+
+			return new Slice(s.Array, s.Offset, s.Count - n);
 		}
 
 		public override string ToString()
@@ -723,6 +837,8 @@ namespace FoundationDb.Client
 			}
 			return writer.ToSlice();
 		}
+
+		#region Equality, Comparison...
 
 		public override bool Equals(object obj)
 		{
@@ -839,6 +955,8 @@ namespace FoundationDb.Client
 			// Same prefix, compare the lengths
 			return leftCount - rightCount;
 		}
+
+		#endregion
 
 	}
 

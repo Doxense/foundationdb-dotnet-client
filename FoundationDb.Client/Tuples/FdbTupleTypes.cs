@@ -44,10 +44,10 @@ namespace FoundationDb.Layers.Tuples
 		internal const byte Nil = (byte)0;
 
 		/// <summary>ASCII String</summary>
-		internal const byte StringAscii = (byte)1;
+		internal const byte Bytes = (byte)1;
 
 		/// <summary>UTF-8 String</summary>
-		internal const byte StringUtf8 = (byte)2;
+		internal const byte Utf8 = (byte)2;
 
 		/// <summary>128 bits GUID [CUSTOM EXTENSION]</summary>
 		internal const byte Guid = (byte)3;

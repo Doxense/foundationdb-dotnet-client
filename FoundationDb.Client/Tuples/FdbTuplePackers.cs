@@ -51,6 +51,8 @@ namespace FoundationDb.Layers.Tuples
 
 		internal static Delegate GetSerializerFor(Type type)
 		{
+			if (type == null) throw new ArgumentNullException("type");
+
 			var typeArgs = new[] { typeof(FdbBufferWriter), type };
 			var method = typeof(FdbTuplePackers).GetMethod("SerializeTo", BindingFlags.Static | BindingFlags.Public, null, typeArgs, null);
 			if (method != null)
@@ -77,7 +79,7 @@ namespace FoundationDb.Layers.Tuples
 
 		public static void SerializeObjectTo(FdbBufferWriter writer, object value)
 		{
-			//TODO: use Type.GetTypeCode() ?
+			if (writer == null) throw new ArgumentNullException("writer");
 
 			var type = value != null ? value.GetType() : null;
 			switch (Type.GetTypeCode(type))
@@ -85,7 +87,7 @@ namespace FoundationDb.Layers.Tuples
 				case TypeCode.Empty:
 				{ // null value
 					// includes all null references to ref types, as nullables where HasValue == false
-					writer.WriteNil();
+					FdbTupleParser.WriteNil(writer);
 					return;
 				}
 				case TypeCode.Object:
@@ -113,7 +115,7 @@ namespace FoundationDb.Layers.Tuples
 				}
 				case TypeCode.DBNull:
 				{ // same as null
-					writer.WriteNil();
+					FdbTupleParser.WriteNil(writer);
 					return;
 				}
 				case TypeCode.Boolean:
@@ -180,86 +182,123 @@ namespace FoundationDb.Layers.Tuples
 
 		public static void SerializeTo(FdbBufferWriter writer, Slice value)
 		{
-			if (value.HasValue)
-				//TODO: optimize!
-				writer.WriteAsciiString(value.GetBytes());
+			Contract.Requires(writer != null);
+			if (!value.HasValue)
+			{
+				FdbTupleParser.WriteNil(writer);
+			}
+			else if (value.Offset == 0 && value.Count == value.Array.Length)
+			{
+				FdbTupleParser.WriteBytes(writer, value.Array);
+			}
 			else
-				writer.WriteNil();
+			{
+				FdbTupleParser.WriteBytes(writer, value.Array, value.Offset, value.Count);
+			}
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, byte[] value)
 		{
-			writer.WriteAsciiString(value);
+			Contract.Requires(writer != null);
+			FdbTupleParser.WriteBytes(writer, value);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, char value)
 		{
-			//TODO: optimize ?
-			writer.WriteUtf8String(new string(value, 1));
+			Contract.Requires(writer != null);
+
+			// Layers usually use a single ASCII letter to create subpaces, and since python has 'ascii' strings, they will be serialized as '01 XX 00'
+
+			// So, if the char is in the ASCII range (0..127), save it as if it was a byte[], else save it has a string
+			if (value >= 0 && value < 128)
+			{ // ASCII
+				writer.EnsureBytes(3);
+				writer.UnsafeWriteByte(FdbTupleTypes.Bytes);
+				writer.UnsafeWriteByte((byte)value);
+				writer.UnsafeWriteByte(0);
+			}
+			else
+			{ // Unicode ?
+				byte[] tmp = Encoding.UTF8.GetBytes(new char[] { value });
+				FdbTupleParser.WriteBytes(writer, tmp);
+			}
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, bool value)
 		{
+			Contract.Requires(writer != null);
+
 			// false is encoded as 0 (\x14)
 			// true is encoded as -1 (\x13\xfe)
-			writer.WriteInt64(value ? -1L : 0L);
+			FdbTupleParser.WriteInt64(writer, value ? -1L : 0L);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, int value)
 		{
-			writer.WriteInt64(value);
+			Contract.Requires(writer != null);
+
+			FdbTupleParser.WriteInt64(writer, value);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, long value)
 		{
-			writer.WriteInt64(value);
+			FdbTupleParser.WriteInt64(writer, value);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, ulong value)
 		{
-			writer.WriteUInt64(value);
+			Contract.Requires(writer != null);
+
+			FdbTupleParser.WriteUInt64(writer, value);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, string value)
 		{
+			Contract.Requires(writer != null);
+
 			if (value == null)
 			{ // <00>
 				writer.WriteByte(FdbTupleTypes.Nil);
 			}
 			else if (value.Length == 0)
 			{ // <02><00>
-				writer.WriteByte(FdbTupleTypes.StringUtf8);
+				writer.WriteByte(FdbTupleTypes.Utf8);
 				writer.WriteByte(0);
 			}
 			else
 			{ // <02>...utf8...<00>
-				writer.WriteUtf8String(value);
+				FdbTupleParser.WriteString(writer, value);
 			}
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, DateTime value)
 		{
+			Contract.Requires(writer != null);
+
 			//TODO: how to deal with negative values ?
-			writer.WriteInt64(value.Ticks);
+			FdbTupleParser.WriteInt64(writer, value.Ticks);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, TimeSpan value)
 		{
+			Contract.Requires(writer != null);
+
 			//TODO: how to deal with negative values ?
-			writer.WriteInt64(value.Ticks);
+			FdbTupleParser.WriteInt64(writer, value.Ticks);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, Guid value)
 		{
-			//TODO: optimize !
-			writer.EnsureBytes(17);
-			writer.UnsafeWriteByte(FdbTupleTypes.Guid);
-			writer.UnsafeWriteBytes(value.ToByteArray(), 0, 16);
+			Contract.Requires(writer != null);
+
+			FdbTupleParser.WriteGuid(writer, value);
 		}
 
 		public static void SerializeTupleTo<TTuple>(FdbBufferWriter writer, TTuple tuple)
 			where TTuple : IFdbTuple
 		{
+			Contract.Requires(writer != null && tuple != null);
+
 			tuple.PackTo(writer);
 		}
 
@@ -294,6 +333,8 @@ namespace FoundationDb.Layers.Tuples
 
 		private static ArraySegment<byte> UnescapeByteString(byte[] buffer, int offset, int count)
 		{
+			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
+
 			// check for nulls
 			int p = offset;
 			int end = offset + count;
@@ -312,6 +353,8 @@ namespace FoundationDb.Layers.Tuples
 
 		private static ArraySegment<byte> UnescapeByteStringSlow(byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
 		{
+			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
+
 			var tmp = new byte[count];
 
 			int p = offset;
@@ -340,7 +383,7 @@ namespace FoundationDb.Layers.Tuples
 
 		private static string ParseAscii(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.StringAscii);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes);
 
 			if (slice.Count <= 2) return String.Empty;
 
@@ -350,7 +393,7 @@ namespace FoundationDb.Layers.Tuples
 
 		private static string ParseUnicode(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.StringUtf8);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Utf8);
 
 			if (slice.Count <= 2) return String.Empty;
 			//TODO: check args
@@ -384,8 +427,8 @@ namespace FoundationDb.Layers.Tuples
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return null;
-					case FdbTupleTypes.StringAscii: return ParseAscii(slice);
-					case FdbTupleTypes.StringUtf8: return ParseUnicode(slice);
+					case FdbTupleTypes.Bytes: return ParseAscii(slice);
+					case FdbTupleTypes.Utf8: return ParseUnicode(slice);
 					case FdbTupleTypes.Guid: return ParseGuid(slice);
 				}
 			}
@@ -395,7 +438,10 @@ namespace FoundationDb.Layers.Tuples
 
 		public static int DeserializeInt32(Slice slice)
 		{
-			return (int)DeserializeInt64(slice);
+			checked
+			{
+				return (int)DeserializeInt64(slice);
+			}
 		}
 
 		public static long DeserializeInt64(Slice slice)
@@ -410,8 +456,8 @@ namespace FoundationDb.Layers.Tuples
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return 0;
-					case FdbTupleTypes.StringAscii: return long.Parse(ParseAscii(slice), CultureInfo.InvariantCulture);
-					case FdbTupleTypes.StringUtf8: return long.Parse(ParseUnicode(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.Bytes: return long.Parse(ParseAscii(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.Utf8: return long.Parse(ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 			}
 
@@ -420,7 +466,10 @@ namespace FoundationDb.Layers.Tuples
 
 		public static uint DeserializeUInt32(Slice slice)
 		{
-			return (uint)DeserializeUInt64(slice);
+			checked
+			{
+				return (uint)DeserializeUInt64(slice);
+			}
 		}
 
 		public static ulong DeserializeUInt64(Slice slice)
@@ -435,8 +484,8 @@ namespace FoundationDb.Layers.Tuples
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return 0;
-					case FdbTupleTypes.StringAscii: return ulong.Parse(ParseAscii(slice), CultureInfo.InvariantCulture);
-					case FdbTupleTypes.StringUtf8: return ulong.Parse(ParseUnicode(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.Bytes: return ulong.Parse(ParseAscii(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.Utf8: return ulong.Parse(ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 			}
 
@@ -455,8 +504,8 @@ namespace FoundationDb.Layers.Tuples
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return null;
-					case FdbTupleTypes.StringAscii: return ParseAscii(slice);
-					case FdbTupleTypes.StringUtf8: return ParseUnicode(slice);
+					case FdbTupleTypes.Bytes: return ParseAscii(slice);
+					case FdbTupleTypes.Utf8: return ParseUnicode(slice);
 					case FdbTupleTypes.Guid: return ParseGuid(slice).ToString();
 				}
 			}
@@ -473,11 +522,11 @@ namespace FoundationDb.Layers.Tuples
 
 			switch (type)
 			{
-				case FdbTupleTypes.StringAscii:
+				case FdbTupleTypes.Bytes:
 				{
 					return Guid.Parse(ParseAscii(slice));
 				}
-				case FdbTupleTypes.StringUtf8:
+				case FdbTupleTypes.Utf8:
 				{
 					return Guid.Parse(ParseUnicode(slice));
 				}
@@ -525,12 +574,12 @@ namespace FoundationDb.Layers.Tuples
 					return Slice.Empty;
 				}
 
-				case FdbTupleTypes.StringAscii:
+				case FdbTupleTypes.Bytes:
 				{ // <01>(bytes)<00>
 					return reader.ReadByteString();
 				}
 
-				case FdbTupleTypes.StringUtf8:
+				case FdbTupleTypes.Utf8:
 				{ // <02>(utf8 bytes)<00>
 					return reader.ReadByteString();
 				}

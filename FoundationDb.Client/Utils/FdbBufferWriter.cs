@@ -50,7 +50,7 @@ namespace FoundationDb.Client.Utils
 		private const int MIN_SIZE = 32;
 
 		/// <summary>Empty buffer</summary>
-		private static readonly byte[] Empty = new byte[0];
+		internal static readonly byte[] Empty = new byte[0];
 
 		#endregion
 
@@ -279,7 +279,7 @@ namespace FoundationDb.Client.Utils
 
 		internal void UnsafeWriteBytes(byte[] data, int offset, int count)
 		{
-			Contract.Requires(this.Buffer != null && data != null && count >= 0 && this.Position + count <= this.Buffer.Length && offset >= 0 && offset + count <= data.Length);
+			Contract.Requires(this.Buffer != null && this.Position >= 0 && data != null && count >= 0 && this.Position + count <= this.Buffer.Length && offset >= 0 && offset + count <= data.Length);
 
 			if (count > 0)
 			{
@@ -321,215 +321,77 @@ namespace FoundationDb.Client.Utils
 			}
 		}
 
-		#region TODO: move these into Tuple Layer !
-
-		/// <summary>Writes a NIL byte (\x00) into the buffer</summary>
-		public void WriteNil()
+		internal unsafe void UnsafeWriteBytes(byte* data, int count)
 		{
-			WriteByte(FdbTupleTypes.Nil);
-		}
+			Contract.Requires(this.Buffer != null && this.Position >= 0 && data != null && count >= 0 && this.Position + count <= this.Buffer.Length);
 
-		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
-		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
-		public void WriteInt64(long value)
-		{
-			if (value <= 255)
+			if (count > 0)
 			{
-				if (value == 0)
-				{ // zero
-					WriteByte(FdbTupleTypes.IntZero);
-					return;
-				}
-
-				if (value > 0)
-				{ // 1..255: frequent for array index
-					EnsureBytes(2);
-					UnsafeWriteByte(FdbTupleTypes.IntPos1);
-					UnsafeWriteByte((byte)value);
-					return;
-				}
-
-				if (value > -256)
-				{ // -255..-1
-					EnsureBytes(2);
-					UnsafeWriteByte(FdbTupleTypes.IntNeg1);
-					UnsafeWriteByte((byte)(255 + value));
-					return;
-				}
-			}
-
-			WriteInt64Slow(value);
-		}
-
-		private void WriteInt64Slow(long value)
-		{
-			// we are only called for values <= -256 or >= 256
-
-			// determine the number of bytes needed to encode the absolute value
-			int bytes = FdbBufferWriter.NumberOfBytes(value);
-
-			EnsureBytes(bytes + 1);
-
-			var buffer = this.Buffer;
-			int p = this.Position;
-
-			ulong v;
-			if (value > 0)
-			{ // simple case
-				buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
-				v = (ulong)value;
-			}
-			else
-			{ // we will encode the one's complement of the absolute value
-				// -1 => 0xFE
-				// -256 => 0xFFFE
-				// -65536 => 0xFFFFFE
-				buffer[p++] = (byte)(FdbTupleTypes.IntBase - bytes);
-				v = (ulong)(~(-value));
-			}
-
-			if (bytes > 0)
-			{
-				// head
-				--bytes;
-				int shift = bytes << 3;
-
-				while (bytes--> 0)
-				{
-					buffer[p++] = (byte)(v >> shift);
-					shift -= 8;
-				}
-				// last
-				buffer[p++] = (byte)v;
-			}
-			this.Position = p;
-		}
-
-		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>
-		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
-		public void WriteUInt64(ulong value)
-		{
-			if (value <= 255)
-			{
-				if (value == 0)
-				{ // 0
-					WriteByte(FdbTupleTypes.IntZero);
-				}
-				else
-				{ // 1..255
-					EnsureBytes(2);
-					UnsafeWriteByte(FdbTupleTypes.IntPos1);
-					UnsafeWriteByte((byte)value);
-				}
-			}
-			else
-			{ // >= 256
-				WriteUInt64Slow(value);
+				System.Runtime.InteropServices.Marshal.Copy(new IntPtr(data), this.Buffer, this.Position, count);
+				this.Position += count;
 			}
 		}
 
-		private void WriteUInt64Slow(ulong value)
+		/// <summary>Writes a 7-bit encoded unsigned int (aka 'Varint32') at the end, and advances the cursor</summary>
+		public void WriteVarint32(uint value)
 		{
-			// We are only called for values >= 256
+			const uint MASK = 128;
 
-			// determine the number of bytes needed to encode the value
-			int bytes = FdbBufferWriter.NumberOfBytes(value);
-
-			EnsureBytes(bytes + 1);
-
-			var buffer = this.Buffer;
-			int p = this.Position;
-
-			// simple case (ulong can only be positive)
-			buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
-
-			if (bytes > 0)
+			if (value < (1 << 7))
 			{
-				// head
-				--bytes;
-				int shift = bytes << 3;
-
-				while (bytes-- > 0)
-				{
-					buffer[p++] = (byte)(value >> shift);
-					shift -= 8;
-				}
-				// last
-				buffer[p++] = (byte)value;
+				WriteByte((byte)value);
 			}
-
-			this.Position = p;
-		}
-
-		/// <summary>Writes a binary string (ASCII)</summary>
-		public void WriteAsciiString(byte[] value)
-		{
-			if (value == null)
+			else if (value < (1 << 14))
 			{
-				WriteByte(FdbTupleTypes.Nil);
-				return;
+				EnsureBytes(2);
+				UnsafeWriteByte((byte)(value | MASK));
+				UnsafeWriteByte((byte)(value >> 7));
 			}
-
-			int n = value.Length;
-			// we need to know if there are any NUL chars (\0) that need escaping...
-			// (we will also need to add 1 byte to the buffer size per NUL)
-			foreach (byte b in value)
+			else if (value < (1 << 21))
 			{
-				if (b == 0) ++n;
+				EnsureBytes(2);
+				UnsafeWriteByte((byte)(value | MASK));
+				UnsafeWriteByte((byte)((value >> 7) | MASK));
+				UnsafeWriteByte((byte)(value >> 14));
 			}
-
-			EnsureBytes(n + 2);
-			var buffer = this.Buffer;
-			int p = this.Position;
-			buffer[p++] = FdbTupleTypes.StringAscii;
-			if (n > 0)
+			else if (value < (1 << 28))
 			{
-				if (n == value.Length)
-				{ // no NULs in the string, can copy all at once
-					System.Buffer.BlockCopy(value, 0, buffer, p, n);
-					p += n;
-				}
-				else
-				{ // we need to escape all NULs
-					foreach (byte b in value)
-					{
-						buffer[p++] = b;
-						if (b == 0) buffer[p++] = 0xFF;
-					}
-				}
-			}
-			buffer[p++] = FdbTupleTypes.Nil;
-			this.Position = p;
-		}
-
-		/// <summary>Writes a string containing only ASCII chars</summary>
-		public void WriteAsciiString(string value)
-		{
-			if (value == null)
-			{
-				WriteByte(FdbTupleTypes.Nil);
+				EnsureBytes(2);
+				UnsafeWriteByte((byte)(value | MASK));
+				UnsafeWriteByte((byte)((value >> 7) | MASK));
+				UnsafeWriteByte((byte)((value >> 14) | MASK));
+				UnsafeWriteByte((byte)(value >> 21));
 			}
 			else
 			{
-				WriteAsciiString(value.Length == 0 ? Empty : Encoding.Default.GetBytes(value));
+				EnsureBytes(2);
+				UnsafeWriteByte((byte)(value | MASK));
+				UnsafeWriteByte((byte)((value >> 7) | MASK));
+				UnsafeWriteByte((byte)((value >> 14) | MASK));
+				UnsafeWriteByte((byte)((value >> 21) | MASK));
+				UnsafeWriteByte((byte)(value >> 28));
 			}
 		}
 
-		/// <summary>Writes a string encoded in UTF-8</summary>
-		public void WriteUtf8String(string value)
+		/// <summary>Writes a 7-bit encoded unsigned long (aka 'Varint64') at the end, and advances the cursor</summary>
+		public void WriteVarint64(ulong value)
 		{
-			var bytes = Encoding.UTF8.GetBytes(value);
-			int n = bytes.Length;
-			EnsureBytes(n + 2);
+			const uint MASK = 128;
+
+			// max size is 5
+			EnsureBytes(value < (1 << 7) ? 1 : value < (1 << 14) ? 2 : value < (1 << 21) ? 3 : 10);
+
 			var buffer = this.Buffer;
 			int p = this.Position;
-			buffer[p] = 2;
-			System.Buffer.BlockCopy(bytes, 0, buffer, p + 1, n);
-			buffer[p + n + 1] = 0;
-			this.Position = p + n + 2;
-		}
+			while (value >= MASK)
+			{
+				buffer[p++] = (byte)((value & (MASK - 1)) | MASK);
+				value >>= 7;
+			}
 
-		#endregion
+			buffer[p++] = (byte)value;
+			this.Position = p;
+		}
 
 		/// <summary>Ensures that we can fit a specific amount of data at the end of the buffer</summary>
 		/// <param name="count">Number of bytes that will be written</param>
@@ -681,4 +543,279 @@ namespace FoundationDb.Client.Utils
 
 	}
 
+	public static class FdbTupleParser
+	{
+		/// <summary>Writes a null value at the end, and advance the cursor</summary>
+		public static void WriteNil(FdbBufferWriter writer)
+		{
+			writer.WriteByte(FdbTupleTypes.Nil);
+		}
+
+		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
+		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
+		public static void WriteInt64(FdbBufferWriter writer, long value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // zero
+					writer.WriteByte(FdbTupleTypes.IntZero);
+					return;
+				}
+
+				if (value > 0)
+				{ // 1..255: frequent for array index
+					writer.EnsureBytes(2);
+					writer.UnsafeWriteByte(FdbTupleTypes.IntPos1);
+					writer.UnsafeWriteByte((byte)value);
+					return;
+				}
+
+				if (value > -256)
+				{ // -255..-1
+					writer.EnsureBytes(2);
+					writer.UnsafeWriteByte(FdbTupleTypes.IntNeg1);
+					writer.UnsafeWriteByte((byte)(255 + value));
+					return;
+				}
+			}
+
+			WriteInt64Slow(writer, value);
+		}
+
+		private static void WriteInt64Slow(FdbBufferWriter writer, long value)
+		{
+			// we are only called for values <= -256 or >= 256
+
+			// determine the number of bytes needed to encode the absolute value
+			int bytes = FdbBufferWriter.NumberOfBytes(value);
+
+			writer.EnsureBytes(bytes + 1);
+
+			var buffer = writer.Buffer;
+			int p = writer.Position;
+
+			ulong v;
+			if (value > 0)
+			{ // simple case
+				buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
+				v = (ulong)value;
+			}
+			else
+			{ // we will encode the one's complement of the absolute value
+				// -1 => 0xFE
+				// -256 => 0xFFFE
+				// -65536 => 0xFFFFFE
+				buffer[p++] = (byte)(FdbTupleTypes.IntBase - bytes);
+				v = (ulong)(~(-value));
+			}
+
+			if (bytes > 0)
+			{
+				// head
+				--bytes;
+				int shift = bytes << 3;
+
+				while (bytes-- > 0)
+				{
+					buffer[p++] = (byte)(v >> shift);
+					shift -= 8;
+				}
+				// last
+				buffer[p++] = (byte)v;
+			}
+			writer.Position = p;
+		}
+
+		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>
+		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
+		public static void WriteUInt64(FdbBufferWriter writer, ulong value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // 0
+					writer.WriteByte(FdbTupleTypes.IntZero);
+				}
+				else
+				{ // 1..255
+					writer.EnsureBytes(2);
+					writer.UnsafeWriteByte(FdbTupleTypes.IntPos1);
+					writer.UnsafeWriteByte((byte)value);
+				}
+			}
+			else
+			{ // >= 256
+				WriteUInt64Slow(writer, value);
+			}
+		}
+
+		private static void WriteUInt64Slow(FdbBufferWriter writer, ulong value)
+		{
+			// We are only called for values >= 256
+
+			// determine the number of bytes needed to encode the value
+			int bytes = FdbBufferWriter.NumberOfBytes(value);
+
+			writer.EnsureBytes(bytes + 1);
+
+			var buffer = writer.Buffer;
+			int p = writer.Position;
+
+			// simple case (ulong can only be positive)
+			buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
+
+			if (bytes > 0)
+			{
+				// head
+				--bytes;
+				int shift = bytes << 3;
+
+				while (bytes-- > 0)
+				{
+					buffer[p++] = (byte)(value >> shift);
+					shift -= 8;
+				}
+				// last
+				buffer[p++] = (byte)value;
+			}
+
+			writer.Position = p;
+		}
+
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(FdbBufferWriter writer, byte[] value)
+		{
+			if (value == null)
+			{
+				writer.WriteByte(FdbTupleTypes.Nil);
+			}
+			else
+			{
+				WriteNulEscapedBytes(writer, FdbTupleTypes.Bytes, value);
+			}
+		}
+
+		/// <summary>Writes a string containing only ASCII chars</summary>
+		public static void WriteAsciiString(FdbBufferWriter writer, string value)
+		{
+			if (value == null)
+			{
+				writer.WriteByte(FdbTupleTypes.Nil);
+			}
+			else
+			{
+				WriteNulEscapedBytes(writer, FdbTupleTypes.Bytes, value.Length == 0 ? FdbBufferWriter.Empty : Encoding.Default.GetBytes(value));
+			}
+		}
+
+		/// <summary>Writes a string encoded in UTF-8</summary>
+		public static void WriteString(FdbBufferWriter writer, string value)
+		{
+			if (value == null)
+			{
+				writer.WriteByte(FdbTupleTypes.Nil);
+			}
+			else
+			{
+				WriteNulEscapedBytes(writer, FdbTupleTypes.Utf8, value.Length == 0 ? FdbBufferWriter.Empty : Encoding.UTF8.GetBytes(value));
+			}
+		}
+
+		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
+		private static void WriteNulEscapedBytes(FdbBufferWriter writer, byte type, byte[] value)
+		{
+			int n = value.Length;
+			// we need to know if there are any NUL chars (\0) that need escaping...
+			// (we will also need to add 1 byte to the buffer size per NUL)
+			foreach (byte b in value)
+			{
+				if (b == 0) ++n;
+			}
+
+			writer.EnsureBytes(n + 2);
+			var buffer = writer.Buffer;
+			int p = writer.Position;
+			buffer[p++] = type;
+			if (n > 0)
+			{
+				if (n == value.Length)
+				{ // no NULs in the string, can copy all at once
+					System.Buffer.BlockCopy(value, 0, buffer, p, n);
+					p += n;
+				}
+				else
+				{ // we need to escape all NULs
+					foreach (byte b in value)
+					{
+						buffer[p++] = b;
+						if (b == 0) buffer[p++] = 0xFF;
+					}
+				}
+			}
+			buffer[p++] = FdbTupleTypes.Nil;
+			writer.Position = p;
+		}
+
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(FdbBufferWriter writer, byte[] value, int offset, int count)
+		{
+			WriteNulEscapedBytes(writer, FdbTupleTypes.Bytes, value, offset, count);
+		}
+
+		/// <summary>Writes a binary string</summary>
+		public static void WriteBytes(FdbBufferWriter writer, ArraySegment<byte> value)
+		{
+			WriteNulEscapedBytes(writer, FdbTupleTypes.Bytes, value.Array, value.Offset, value.Count);
+		}
+
+		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
+		private static void WriteNulEscapedBytes(FdbBufferWriter writer, byte type, byte[] value, int offset, int count)
+		{
+			int n = count;
+
+			// we need to know if there are any NUL chars (\0) that need escaping...
+			// (we will also need to add 1 byte to the buffer size per NUL)
+			for (int i = offset, end = offset + count; i < end; ++i)
+			{
+				if (value[i] == 0) ++n;
+			}
+
+			writer.EnsureBytes(n + 2);
+			var buffer = writer.Buffer;
+			int p = writer.Position;
+			buffer[p++] = type;
+			if (n > 0)
+			{
+				if (n == value.Length)
+				{ // no NULs in the string, can copy all at once
+					System.Buffer.BlockCopy(value, 0, buffer, p, n);
+					p += n;
+				}
+				else
+				{ // we need to escape all NULs
+					for(int i = offset, end = offset + count; i < end; ++i)
+					{
+						byte b = value[i];
+						buffer[p++] = b;
+						if (b == 0) buffer[p++] = 0xFF;
+					}
+				}
+			}
+			buffer[p++] = FdbTupleTypes.Nil;
+			writer.Position = p;
+		}
+
+		/// <summary>Writes a GUID encoded as a 16-byte UUID</summary>
+		public static void WriteGuid(FdbBufferWriter writer, Guid value)
+		{
+			writer.EnsureBytes(17);
+			writer.UnsafeWriteByte(FdbTupleTypes.Guid);
+			unsafe
+			{
+				byte* ptr = (byte*)&value;
+				writer.UnsafeWriteBytes(ptr, 16);
+			}
+		}
+	}
 }
