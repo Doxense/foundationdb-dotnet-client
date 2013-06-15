@@ -838,6 +838,158 @@ namespace FoundationDb.Client
 			return writer.ToSlice();
 		}
 
+
+		#region Streams...
+
+		/// <summary>Read the content of a stream into a slice</summary>
+		/// <param name="data">Source stream, that must be in a readable state</param>
+		/// <returns>Slice containing the stream content (or Slice.Nil if the stream is Stream.Nul)</returns>
+		public static Slice FromStream(Stream data)
+		{
+			if (data == null) throw new ArgumentNullException("data");
+
+			// special case for empty values
+			if (data == Stream.Null) return Slice.Nil;
+			if (data.Length == 0) return Slice.Empty;
+
+			if (!data.CanRead) throw new ArgumentException("Cannot read from provided stream", "data");
+			if (data.Length > int.MaxValue) throw new InvalidOperationException("Streams of more than 2GB are not supported");
+			//TODO: other checks?
+
+			int length;
+			checked { length = (int)data.Length; }
+
+			if (data is MemoryStream || data is UnmanagedMemoryStream) // other types of already completed streams ?
+			{ // read synchronously
+				return LoadFromNonBlockingStream(data, length);
+			}
+
+			// read asynchronoulsy
+			return LoadFromBlockingStream(data, length);
+		}
+
+		/// <summary>Asynchronously read the content of a stream into a slice</summary>
+		/// <param name="data">Source stream, that must be in a readable state</param>
+		/// <returns>Slice containing the stream content (or Slice.Nil if the stream is Stream.Nul)</returns>
+		public static Task<Slice> FromStreamAsync(Stream data)
+		{
+			if (data == null) throw new ArgumentNullException("data");
+
+			// special case for empty values
+			if (data == Stream.Null) return Task.FromResult(Slice.Nil);
+			if (data.Length == 0) return Task.FromResult(Slice.Empty);
+
+			if (!data.CanRead) throw new ArgumentException("Cannot read from provided stream", "data");
+			if (data.Length > int.MaxValue) throw new InvalidOperationException("Streams of more than 2GB are not supported");
+			//TODO: other checks?
+
+			int length;
+			checked { length = (int)data.Length; }
+
+			if (data is MemoryStream || data is UnmanagedMemoryStream) // other types of already completed streams ?
+			{ // read synchronously
+				return Task.FromResult(LoadFromNonBlockingStream(data, length));
+			}
+
+			// read asynchronoulsy
+			return LoadFromBlockingStreamAsync(data, length);
+		}
+
+		/// <summary>Read from a non-blocking stream that already contains all the data in memory (MemoryStream, UnmanagedStream, ...)</summary>
+		/// <param name="source">Source stream</param>
+		/// <param name="length">Number of bytes to read from the stream</param>
+		/// <returns>Slice containing the loaded data</returns>
+		private static Slice LoadFromNonBlockingStream(Stream source, int length)
+		{
+			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue);
+
+			var ms = source as MemoryStream;
+			if (ms != null)
+			{ // Already holds onto a byte[]
+
+				//note: should be use GetBuffer() ? It can throws and is dangerous (could mutate)
+				return Slice.Create(ms.ToArray());
+			}
+
+			// read it in bulk, without buffering
+
+			var buffer = new byte[length]; //TODO: round up to avoid fragmentation ?
+
+			// note: reading should usually complete with only one big read, but loop until completed, just to be sure
+			int p = 0;
+			int r = length;
+			while (r > 0)
+			{
+				int n = source.Read(buffer, p, r);
+				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
+				p += n;
+				r -= n;
+			}
+			Contract.Assert(r == 0 && p == length);
+
+			return Slice.Create(buffer);
+		}
+
+		/// <summary>Synchronously read from a blocking stream (FileStream, NetworkStream, ...)</summary>
+		/// <param name="source">Source stream</param>
+		/// <param name="length">Number of bytes to read from the stream</param>
+		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
+		/// <returns>Slice containing the loaded data</returns>
+		private static Slice LoadFromBlockingStream(Stream source, int length, int chunkSize = 0)
+		{
+			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
+
+			if (chunkSize == 0) chunkSize = int.MaxValue;
+
+			var buffer = new byte[length]; //TODO: round up to avoid fragmentation ?
+
+			// note: reading should usually complete with only one big read, but loop until completed, just to be sure
+			int p = 0;
+			int r = length;
+			while (r > 0)
+			{
+				int c = Math.Max(r, chunkSize);
+				int n = source.Read(buffer, p, c);
+				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
+				p += n;
+				r -= n;
+			}
+			Contract.Assert(r == 0 && p == length);
+
+			return Slice.Create(buffer);
+		}
+
+		/// <summary>Asynchronously read from a blocking stream (FileStream, NetworkStream, ...)</summary>
+		/// <param name="source">Source stream</param>
+		/// <param name="length">Number of bytes to read from the stream</param>
+		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
+		/// <returns>Slice containing the loaded data</returns>
+		private static async Task<Slice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize = 0)
+		{
+			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
+
+			if (chunkSize == 0) chunkSize = int.MaxValue;
+
+			var buffer = new byte[length]; //TODO: round up to avoid fragmentation ?
+
+			// note: reading should usually complete with only one big read, but loop until completed, just to be sure
+			int p = 0;
+			int r = length;
+			while (r > 0)
+			{
+				int c = Math.Max(r, chunkSize);
+				int n = await source.ReadAsync(buffer, p, c);
+				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
+				p += n;
+				r -= n;
+			}
+			Contract.Assert(r == 0 && p == length);
+
+			return Slice.Create(buffer);
+		}
+
+		#endregion
+
 		#region Equality, Comparison...
 
 		public override bool Equals(object obj)

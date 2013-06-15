@@ -39,6 +39,7 @@ namespace FoundationDb.Client
 	using FoundationDb.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
+	using System.IO;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -604,6 +605,24 @@ namespace FoundationDb.Client
 			SetCore(keyBytes, valueBytes);
 		}
 
+		public void Set(Slice keyBytes, Stream data)
+		{
+			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
+
+			Slice value = Slice.FromStream(data);
+
+			SetCore(keyBytes, value);
+		}
+
+		public async Task SetAsync(Slice keyBytes, Stream data)
+		{
+			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
+
+			Slice value = await Slice.FromStreamAsync(data);
+
+			SetCore(keyBytes, value);
+		}
+
 		public void Set(IFdbTuple key, Slice valueBytes)
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -612,6 +631,7 @@ namespace FoundationDb.Client
 
 			SetCore(key.ToSlice(), valueBytes);
 		}
+
 
 		#endregion
 
