@@ -51,6 +51,7 @@
     <Compile Include="Indexes\FdbSimpleIndex.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Strings\FdbStringIntern.cs" />
+    <Compile Include="Blobs\FdbBlob.cs" />
     <Compile Include="Tables\FdbTable.cs" />
     <Compile Include="Tables\FdbTableExtensions.cs" />
     <Compile Include="Tables\FdbTable`2.cs" />

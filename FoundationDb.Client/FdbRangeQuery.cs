@@ -160,6 +160,35 @@ using System.Threading.Tasks;
 		/// <param name="lambda">Lambda function called to process each result</param>
 		/// <param name="ct"></param>
 		/// <returns>List of all processed results</returns>
+		public async Task<List<KeyValuePair<K, V>>> ReadAllAsync<K, V>(Func<Slice, K> keyReader, Func<Slice, V> valueReader, CancellationToken ct = default(CancellationToken))
+		{
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+
+			var results = new List<KeyValuePair<K, V>>();
+			//TODO: pre-allocate the list to something more sensible ?
+
+			while (await this.MoveNextAsync(ct))
+			{
+				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
+				//TODO: process a batch while fetching the next ?
+				foreach (var kvp in this.Chunk)
+				{
+					var key = keyReader(kvp.Key);
+					var value = valueReader(kvp.Value);
+
+					results.Add(new KeyValuePair<K, V>(key, value));
+				}
+			}
+			return results;
+		}
+
+		/// <summary>Reads all the results in a single operation, and process the results as they arrive</summary>
+		/// <typeparam name="T">Type of the processed results</typeparam>
+		/// <param name="lambda">Lambda function called to process each result</param>
+		/// <param name="ct"></param>
+		/// <returns>List of all processed results</returns>
 		public async Task<List<T>> ReadAllAsync<K, V, T>(Func<Slice, K> keyReader, Func<Slice, V> valueReader, Func<K, V, T> transform, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
