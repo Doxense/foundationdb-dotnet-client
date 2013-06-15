@@ -35,6 +35,8 @@ namespace FoundationDb.Client.Utils
 	internal static class Contract
 	{
 
+		#region Requires
+
 		[DebuggerStepThrough]
 		[Conditional("DEBUG")]
 #if NET_4_5
@@ -54,6 +56,56 @@ namespace FoundationDb.Client.Utils
 		{
 			if (!condition) RaiseContractFailure(true, test, message);
 		}
+
+		#endregion
+
+		#region Assert
+
+		[DebuggerStepThrough]
+		[Conditional("DEBUG")]
+#if NET_4_5
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		public static void Assert(bool condition)
+		{
+			if (!condition) RaiseContractFailure(true, null, "An assertion was not met");
+		}
+
+		[DebuggerStepThrough]
+		[Conditional("DEBUG")]
+#if NET_4_5
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		public static void Assert(bool condition, string test, string message)
+		{
+			if (!condition) RaiseContractFailure(true, test, message);
+		}
+
+		#endregion
+
+		#region Requires
+
+		[DebuggerStepThrough]
+		[Conditional("DEBUG")]
+#if NET_4_5
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		public static void Ensures(bool condition)
+		{
+			if (!condition) RaiseContractFailure(true, null, "A post-condition was not met");
+		}
+
+		[DebuggerStepThrough]
+		[Conditional("DEBUG")]
+#if NET_4_5
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		public static void Ensures(bool condition, string test, string message)
+		{
+			if (!condition) RaiseContractFailure(true, test, message);
+		}
+
+		#endregion
 
 		[DebuggerStepThrough]
 		public static void RaiseContractFailure(bool assertion, string test, string message)
