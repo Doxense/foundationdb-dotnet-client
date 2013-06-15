@@ -62,7 +62,7 @@ namespace FoundationDb.Layers.Tables
 		{
 			if (id == null) throw new ArgumentNullException("id");
 
-			return this.Subspace.AppendRange(id);
+			return this.Subspace.Append(id);
 		}
 
 		#endregion

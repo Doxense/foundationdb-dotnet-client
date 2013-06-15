@@ -69,27 +69,36 @@ namespace FoundationDb.Layers.Tuples
 			return writer;
 		}
 
-		public Slice GetKeyBytes<T>(T key)
-		{
-			var writer = OpenBuffer();
-			FdbTuplePacker<T>.SerializeTo(writer, key);
-			return writer.ToSlice();
-		}
-
-		public Slice GetKeyBytes(Slice keyBlob)
+		public Slice Pack(Slice keyBlob)
 		{
 			var writer = OpenBuffer(keyBlob.Count);
 			writer.WriteBytes(keyBlob);
 			return writer.ToSlice();
 		}
 
-		public Slice GetKeyBytes(IFdbTuple tuple)
+		public Slice Pack(IFdbTuple tuple)
 		{
 			var writer = new FdbBufferWriter();
 			writer.WriteBytes(this.Tuple.Packed);
 			tuple.PackTo(writer);
 			return writer.ToSlice();
 		}
+
+		public Slice Pack<T>(T key)
+		{
+			var writer = OpenBuffer();
+			FdbTuplePacker<T>.SerializeTo(writer, key);
+			return writer.ToSlice();
+		}
+
+		public Slice Pack<T1, T2>(T1 key1, T2 key2)
+		{
+			var writer = OpenBuffer();
+			FdbTuplePacker<T1>.SerializeTo(writer, key1);
+			FdbTuplePacker<T2>.SerializeTo(writer, key2);
+			return writer.ToSlice();
+		}
+
 
 		/// <summary>Partition this subspace into a child subspace</summary>
 		/// <typeparam name="T">Type of the child subspace key</typeparam>
@@ -124,7 +133,7 @@ namespace FoundationDb.Layers.Tuples
 			return this.Tuple.Append<T1>(value1).Append<T2>(value2);
 		}
 
-		public IFdbTuple AppendRange(IFdbTuple value)
+		public IFdbTuple Append(IFdbTuple value)
 		{
 			if (value == null) throw new ArgumentNullException("value");
 

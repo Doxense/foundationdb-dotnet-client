@@ -58,12 +58,12 @@ namespace FoundationDb.Layers.Arrays
 
 		public Slice GetKeyBytes(int key)
 		{
-			return this.Subspace.GetKeyBytes<int>(key);
+			return this.Subspace.Pack<int>(key);
 		}
 
 		public Slice GetKeyBytes(long key)
 		{
-			return this.Subspace.GetKeyBytes<long>(key);
+			return this.Subspace.Pack<long>(key);
 		}
 
 		#endregion
