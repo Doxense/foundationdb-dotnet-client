@@ -145,7 +145,7 @@ namespace FoundationDb.Layers.Tuples
 
 		public override string ToString()
 		{
-			return new StringBuilder().Append('(').Append(this.Item1).Append(", ").Append(this.Item2).Append(", ").Append(this.Item3).Append(", ").Append(this.Item4).Append(", ").Append(this.Item5).Append(')').ToString();
+			return FdbTuple.ToString(new object[] { this.Item1, this.Item2, this.Item3, this.Item4, this.Item5 });
 		}
 
 		public override int GetHashCode()

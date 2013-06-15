@@ -31,6 +31,7 @@ using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Text;
 
 namespace FoundationDb.Layers.Tuples
@@ -164,6 +165,22 @@ namespace FoundationDb.Layers.Tuples
 			return tuple;
 		}
 
+		internal static string Stringify(object item)
+		{
+			if (item == null) return String.Empty;
+
+			var s = item as string;
+			if (s != null) return "\"" + s + "\"";
+
+			var f = item as IFormattable;
+			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);
+
+			var b = item as byte[];
+			if (b != null) return new Slice(b, 0, b.Length).ToHexaString(' ');
+
+			return item.ToString();
+		}
+
 		internal static string ToString(IEnumerable<object> items)
 		{
 			if (items == null) return String.Empty;
@@ -171,10 +188,10 @@ namespace FoundationDb.Layers.Tuples
 			{
 				if (!enumerator.MoveNext()) return "()";
 
-				var sb = new StringBuilder().Append('(').Append(enumerator.Current);
+				var sb = new StringBuilder().Append('(').Append(Stringify(enumerator.Current));
 				while (enumerator.MoveNext())
 				{
-					sb.Append(", ").Append(enumerator.Current);
+					sb.Append(", ").Append(Stringify(enumerator.Current));
 				}
 
 				return sb.Append(')').ToString();

@@ -87,7 +87,7 @@ namespace FoundationDb.Client
 			var buffer = this.Buffer.Array;
 			int start = this.Buffer.Offset + this.Position;
 			int p = start;
-			int end = start + this.Buffer.Offset + this.Buffer.Count;
+			int end = this.Buffer.Offset + this.Buffer.Count;
 
 			while (p < end)
 			{
