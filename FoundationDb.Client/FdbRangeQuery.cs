@@ -204,6 +204,26 @@ using System.Threading.Tasks;
 			}
 		}
 
+		/// <summary>Reads all the results in a single operation, and process the results as they arrive, do not store anything</summary>
+		/// <param name="action">delegate function called to process each result</param>
+		/// <param name="ct"></param>
+		public async Task ExecuteAllAsync(Action<KeyValuePair<Slice, Slice>> action, CancellationToken ct = default(CancellationToken))
+		{
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			ThrowIfDisposed();
+
+			while (await this.MoveNextAsync(ct))
+			{
+				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
+				//TODO: process a batch while fetching the next ?
+				foreach (var kvp in this.Chunk)
+				{
+					action(kvp);
+				}
+			}
+		}
+
 		/// <summary>[EXPERIMENTAL] Execute a handle on chunk as they arrive, while fetching the next one in the background</summary>
 		/// <param name="chunkHandler">Handler that gets called every time a new chunk arrives. Receives the chunk array in the first paramter, a 'first' boolean in the second parameter, and a cancellation token in the third</param>
 		/// <param name="ct">Cancellation Token</param>
