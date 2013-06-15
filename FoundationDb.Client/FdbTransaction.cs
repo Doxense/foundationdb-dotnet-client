@@ -824,7 +824,7 @@ namespace FoundationDb.Client
 			get { return Volatile.Read(ref m_state); }
 			set
 			{
-				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_DISPOSED, null, "Invalid state value");
+				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_FAILED, null, "Invalid state value");
 				Volatile.Write(ref m_state, value);
 			}
 		}
