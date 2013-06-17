@@ -39,21 +39,16 @@ namespace FoundationDb.Layers.Tables
 	public class FdbTable<TKey, TValue>
 	{
 
-		public FdbTable(FdbDatabase database, FdbSubspace subspace, ITupleKeyReader<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public FdbTable(FdbSubspace subspace, ITupleKeyReader<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
-			if (database == null) throw new ArgumentNullException("database");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (keyReader == null) throw new ArgumentNullException("keyReader");
 			if (valueSerializer == null) throw new ArgumentNullException("valueSerializer");
 
-			this.Database = database;
 			this.Subspace = subspace;
 			this.KeyReader = keyReader;
 			this.ValueSerializer = valueSerializer;
 		}
-
-		/// <summary>Database used to perform transactions</summary>
-		public FdbDatabase Database { get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
@@ -88,30 +83,11 @@ namespace FoundationDb.Layers.Tables
 			return this.ValueSerializer.Deserialize(data, default(TValue));
 		}
 
-		public async Task<TValue> GetAsync(TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
-
-			using (var trans = this.Database.BeginTransaction())
-			{
-				return await this.GetAsync(key, snapshot, ct);
-			}
-		}
-
 		public void Set(FdbTransaction trans, TKey key, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			trans.Set(GetKeyBytes(key), this.ValueSerializer.Serialize(value));
-		}
-
-		public async Task SetAsync(TKey key, TValue value)
-		{
-			using (var trans = this.Database.BeginTransaction())
-			{
-				Set(trans, key, value);
-				await trans.CommitAsync().ConfigureAwait(false);
-			}
 		}
 
 		public Task<List<KeyValuePair<TKey, TValue>>> GetAllAsync(FdbTransaction trans, bool snapshot = false, CancellationToken ct = default(CancellationToken))

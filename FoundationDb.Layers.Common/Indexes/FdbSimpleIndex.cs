@@ -48,16 +48,12 @@ namespace FoundationDb.Layers.Indexing
 	public class FdbSimpleIndex<TValue, TId>
 	{
 
-		public FdbSimpleIndex(FdbDatabase database, FdbSubspace subspace)
+		public FdbSimpleIndex(FdbSubspace subspace)
 		{
-			if (database == null) throw new ArgumentNullException("database");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Database = database;
 			this.Subspace = subspace;
 		}
-
-		public FdbDatabase Database { get; private set; }
 
 		public FdbSubspace Subspace { get; private set; }
 

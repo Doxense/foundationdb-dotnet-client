@@ -38,17 +38,12 @@ namespace FoundationDb.Layers.Tables
 	public class FdbTable
 	{
 
-		public FdbTable(FdbDatabase database, FdbSubspace subspace)
+		public FdbTable(FdbSubspace subspace)
 		{
-			if (database == null) throw new ArgumentNullException("database");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Database = database;
 			this.Subspace = subspace;
 		}
-
-		/// <summary>Database used to perform transactions</summary>
-		public FdbDatabase Database { get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
@@ -76,14 +71,6 @@ namespace FoundationDb.Layers.Tables
 			return trans.GetAsync(MakeKey(id).ToSlice(), snapshot, ct);
 		}
 
-		public async Task<Slice> GetAsync(IFdbTuple id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			using (var trans = this.Database.BeginTransaction())
-			{
-				return await GetAsync(trans, id, snapshot, ct).ConfigureAwait(false);
-			}
-		}
-
 		#endregion
 
 		#region Set() ...
@@ -95,15 +82,6 @@ namespace FoundationDb.Layers.Tables
 			trans.Set(MakeKey(id).ToSlice(), value);
 		}
 
-		public async Task SetAsync(IFdbTuple id, Slice value)
-		{
-			using (var trans = this.Database.BeginTransaction())
-			{
-				Set(trans, id, value);
-				await trans.CommitAsync().ConfigureAwait(false);
-			}
-		}
-
 		#endregion
 
 		#region Clear() ...
@@ -113,15 +91,6 @@ namespace FoundationDb.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			trans.Clear(MakeKey(id));
-		}
-
-		public async Task ClearAsync(IFdbTuple id)
-		{
-			using (var trans = this.Database.BeginTransaction())
-			{
-				Clear(trans, id);
-				await trans.CommitAsync().ConfigureAwait(false);
-			}
 		}
 
 		#endregion

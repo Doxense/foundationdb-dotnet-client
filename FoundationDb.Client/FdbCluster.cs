@@ -110,7 +110,7 @@ namespace FoundationDb.Client
 						database.Dispose();
 						throw Fdb.MapToException(err);
 					}
-					Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
+					//Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
 
 					return new FdbDatabase(this, database, databaseName, ownsCluster);
 				},

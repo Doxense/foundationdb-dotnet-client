@@ -39,12 +39,12 @@ namespace FoundationDb.Layers.Tables
 
 		public static FdbTable Table(this FdbDatabase db, string tableName)
 		{
-			return new FdbTable(db, new FdbSubspace(tableName));
+			return new FdbTable(new FdbSubspace(tableName));
 		}
 
 		public static FdbTable Table(this FdbDatabase db, IFdbTuple prefix)
 		{
-			return new FdbTable(db, new FdbSubspace(prefix));
+			return new FdbTable(new FdbSubspace(prefix));
 		}
 
 	}

@@ -475,6 +475,9 @@ namespace FoundationDb.Client
 		public static void Start()
 		{
 			if (s_started) return;
+
+			//BUGBUG: Specs say we cannot restart the network thread anymore in the process after stoping it ! :(
+
 			s_started = true;
 
 			// register with the AppDomain to ensure that everyting is cleared when the process exists
