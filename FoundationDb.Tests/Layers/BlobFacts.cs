@@ -52,7 +52,7 @@ namespace FoundationDb.Layers.Blobs.Tests
 
 				using (var tr = db.BeginTransaction())
 				{
-					long size = await blob.GetSizeAsync(tr);
+					long? size = await blob.GetSizeAsync(tr);
 					Assert.That(size, Is.EqualTo(0), "Non existing blob should have size 0");
 				}
 
@@ -84,7 +84,7 @@ namespace FoundationDb.Layers.Blobs.Tests
 
 				using(var tr = db.BeginTransaction())
 				{
-					long size = await blob.GetSizeAsync(tr);
+					long? size = await blob.GetSizeAsync(tr);
 					Assert.That(size, Is.EqualTo(20));
 
 					Slice data = await blob.ReadToEndAsync(tr);
@@ -118,7 +118,7 @@ namespace FoundationDb.Layers.Blobs.Tests
 
 				using (var tr = db.BeginTransaction())
 				{
-					long size = await blob.GetSizeAsync(tr);
+					long? size = await blob.GetSizeAsync(tr);
 					Assert.That(size, Is.EqualTo(50 * data.Length));
 
 					var s = await blob.ReadAsync(tr, 1234567, 1 * 1000 * 1000);

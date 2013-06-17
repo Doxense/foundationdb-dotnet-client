@@ -206,13 +206,13 @@ namespace FoundationDb.Layers.Blobs
 			trans.ClearRange(this.Subspace.Tuple);
 		}
 
-		public async Task<long> GetSizeAsync(FdbTransaction trans)
+		public async Task<long?> GetSizeAsync(FdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			Slice value = await trans.GetAsync(SizeKey()).ConfigureAwait(false);
 
-			if (value.IsNullOrEmpty) return 0;
+			if (value.IsNullOrEmpty) return default(long?);
 
 			//note: python code stores the size as a string
 			return Int64.Parse(value.ToUnicode());
@@ -230,12 +230,14 @@ namespace FoundationDb.Layers.Blobs
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentNullException("offset", "Offset cannot be less than zero");
 
-			long size = await GetSizeAsync(trans).ConfigureAwait(false);
-			if (offset >= size)
+			long? size = await GetSizeAsync(trans).ConfigureAwait(false);
+			if (size == null) return Slice.Nil; // not found
+
+			if (offset >= size.Value)
 				return Slice.Empty;
 
 			// read all chunks matching the segment we need, and copy them in our buffer
-			var buffer = new byte[Math.Min(n, size - offset)];
+			var buffer = new byte[Math.Min(n, size.Value - offset)];
 
 			await trans.GetRange(
 				FdbKeySelector.LastLessOrEqual(DataKey(offset)),
@@ -284,9 +286,9 @@ namespace FoundationDb.Layers.Blobs
 			long end = offset + data.Count;
 			await MakeSparseAsync(trans, offset, end).ConfigureAwait(false);
 			WriteToSparse(trans, offset, data);
-			await TryRemoteSplitPoint(trans, offset);
+			await TryRemoteSplitPoint(trans, offset).ConfigureAwait(false);
 
-			long oldLength = await GetSizeAsync(trans).ConfigureAwait(false);
+			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
 			if (end > oldLength)
 				SetSize(trans, end); // lengthen file if necessary
 			else
@@ -302,7 +304,7 @@ namespace FoundationDb.Layers.Blobs
 
 			if (data.IsNullOrEmpty) return;
 
-			long oldLength = await GetSizeAsync(trans).ConfigureAwait(false);
+			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
 			WriteToSparse(trans, oldLength, data);
 			await TryRemoteSplitPoint(trans, oldLength).ConfigureAwait(false);
 			SetSize(trans, oldLength + data.Count);
@@ -313,9 +315,26 @@ namespace FoundationDb.Layers.Blobs
 		/// </summary>
 		public async Task Truncate(FdbTransaction trans, long newLength)
 		{
-			long length = await GetSizeAsync(trans).ConfigureAwait(false);
-			await MakeSparseAsync(trans, newLength, length).ConfigureAwait(false);
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (newLength < 0) throw new ArgumentOutOfRangeException("newLength", "Length cannot be less than zero");
+
+			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
+			if (length != null)
+			{
+				await MakeSparseAsync(trans, newLength, length.Value).ConfigureAwait(false);
+			}
 			SetSize(trans, newLength);
+		}
+
+		/// <summary>Clear the blob's content (without loosing the attributes)</summary>
+		/// <param name="trans"></param>
+		/// <returns></returns>
+		public void Clear(FdbTransaction trans)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.ClearRange(this.Subspace.Append('D'));
+			SetSize(trans, 0);
 		}
 
 		/// <summary>
@@ -369,12 +388,99 @@ namespace FoundationDb.Layers.Blobs
 		/// <remarks>Warning, do not call this if you know that the blob can be very large, because it will need to feed in memory, and don't exceed 2GB</remarks>
 		public async Task<Slice> ReadToEndAsync(FdbTransaction trans)
 		{
-			long length = await GetSizeAsync(trans).ConfigureAwait(false);
+			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
 
-			if (length == 0) return Slice.Empty;
-			if (length > int.MaxValue) throw new InvalidOperationException(String.Format("Cannot read blob of size {0} because it is over 2 GB", length));
+			if (length == null) return Slice.Nil;
+			if (length.Value == 0) return Slice.Empty;
+			if (length.Value > int.MaxValue) throw new InvalidOperationException(String.Format("Cannot read blob of size {0} because it is over 2 GB", length.Value));
 
-			return await ReadAsync(trans, 0, (int)length);
+			return await ReadAsync(trans, 0, (int)length.Value);
+		}
+
+		public async Task<Stream> DownloadAsync(FdbTransaction trans, CancellationToken ct = default(CancellationToken))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			ct.ThrowIfCancellationRequested();
+
+			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
+
+			if (length == null) return Stream.Null;
+
+			if (length.Value > int.MaxValue) throw new InvalidOperationException("Cannot download blobs of more than GB");
+
+			var ms = new MemoryStream((int)length.Value);
+
+			await trans
+				.GetRangeStartsWith(this.Subspace.Append('D'))
+				.ExecuteAllAsync((chunk) =>
+				{
+					long offset = DataKeyOffset(chunk.Key);
+					ms.Seek(offset, SeekOrigin.Begin);
+					ms.Write(chunk.Value.Array, chunk.Value.Offset, chunk.Value.Count);
+				}, ct).ConfigureAwait(false);
+
+			ms.Seek(0, SeekOrigin.Begin);
+			return ms;
+		}
+
+		public async Task Upload(FdbTransaction trans, Slice data)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (!data.HasValue) throw new ArgumentNullException("data");
+
+			await Truncate(trans, 0).ConfigureAwait(false);
+			await AppendAsync(trans, data).ConfigureAwait(false);
+		}
+
+		public async Task UploadAsync(FdbTransaction trans, Stream stream, CancellationToken ct = default(CancellationToken))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (stream == null) throw new ArgumentNullException("stream");
+			if (!stream.CanRead) throw new InvalidOperationException("Cannot read from the stream");
+
+			ct.ThrowIfCancellationRequested();
+
+			Clear(trans);
+
+			if (stream != Stream.Null)
+			{
+				await AppendStreamAsync(trans, stream, ct).ConfigureAwait(false);
+			}
+		}
+
+		/// <summary>
+		/// Append the content of a stream at the end of the blob
+		/// </summary>
+		public async Task AppendStreamAsync(FdbTransaction trans, Stream stream, CancellationToken ct = default(CancellationToken))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (stream == null) throw new ArgumentNullException("stream");
+			if (!stream.CanRead) throw new InvalidOperationException("Cannot read from the stream");
+
+			ct.ThrowIfCancellationRequested();
+
+			long length = stream.Length;
+			if (length >= 0)
+			{
+
+				byte[] buffer = new byte[Math.Min(length, CHUNK_LARGE)];
+
+				//TODO: find a way to detect large spans of zeros, and create a sparse blob ?
+
+				long read = 0;
+				while (true)
+				{
+					int n = await stream.ReadAsync(buffer, 0, buffer.Length, ct).ConfigureAwait(false);
+					if (n == 0) break;
+
+					ct.ThrowIfCancellationRequested();
+					await AppendAsync(trans, new Slice(buffer, 0, n)).ConfigureAwait(false);
+
+					read += n;
+				}
+			}
+
 		}
 
 	}
