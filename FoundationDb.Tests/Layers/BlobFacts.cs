@@ -53,7 +53,7 @@ namespace FoundationDb.Layers.Blobs.Tests
 				using (var tr = db.BeginTransaction())
 				{
 					long? size = await blob.GetSizeAsync(tr);
-					Assert.That(size, Is.EqualTo(0), "Non existing blob should have size 0");
+					Assert.That(size, Is.Null, "Non existing blob should have no size");
 				}
 
 			}
