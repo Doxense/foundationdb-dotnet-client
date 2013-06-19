@@ -84,6 +84,14 @@ namespace FoundationDb.Client
 			return bytes == null ? Slice.Nil : bytes.Length == 0 ? Slice.Empty : new Slice(bytes, 0, bytes.Length);
 		}
 
+		/// <summary>Creates a slice from an Array Segment</summary>
+		/// <param name="arraySegment"></param>
+		/// <returns></returns>
+		public static Slice Create(ArraySegment<byte> arraySegment)
+		{
+			return Create(arraySegment.Array, arraySegment.Offset, arraySegment.Count);
+		}
+
 		/// <summary>Creates a slice mapping a section of a buffer</summary>
 		/// <param name="buffer"></param>
 		/// <param name="offset"></param>
