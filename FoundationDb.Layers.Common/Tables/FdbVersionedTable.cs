@@ -29,8 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDb.Layers.Tables
 {
 	using FoundationDb.Client;
-	using FoundationDb.Layers.Tuples;
 	using FoundationDb.Client.Utils;
+	using FoundationDb.Layers.Tuples;
+	using FoundationDb.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
@@ -420,11 +421,12 @@ namespace FoundationDb.Layers.Tables
 
 			var versions = await trans
 				.GetRangeStartsWith(this.ItemsPrefix, 0, snapshot)
-				.ReadAllAsync(
+				.Select(
 					(key) => this.KeyReader.Unpack(FdbTuple.UnpackWithoutPrefix(key, this.VersionsPrefix)),
-					(value) => value.ToInt64(),
-					ct
-				).ConfigureAwait(false);
+					(value) => value.ToInt64()
+				)
+				.ToListAsync(ct)
+				.ConfigureAwait(false);
 
 			// now read all the values
 

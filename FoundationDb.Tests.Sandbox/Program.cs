@@ -395,7 +395,7 @@ namespace FoundationDb.Tests.Sandbox
 
 				Console.WriteLine("Reading all keys...");
 				var range = Stopwatch.StartNew();
-				var items = await res.ReadAllAsync();
+				var items = await res.ToListAsync();
 				range.Stop();
 				Console.WriteLine("Took " + range.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + items.Count.ToString("N0") + " results");
 			}

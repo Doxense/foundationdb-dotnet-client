@@ -32,18 +32,180 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDb.Client
 {
 	using FoundationDb.Client.Native;
-using FoundationDb.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Runtime.ExceptionServices;
-using System.Threading;
-using System.Threading.Tasks;
+	using FoundationDb.Client.Utils;
+	using FoundationDb.Linq;
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Linq;
+	using System.Runtime.ExceptionServices;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
 	[DebuggerDisplay("Begin={Query.Begin}, End={Query.End}, Chunk={Chunk==null?-1:Chunk.Length}, HasMore={HasMore}, Iteration={Iteration}, Remaining={Remaining}")]
-	public sealed class FdbRangeQuery : IDisposable
+	public sealed class FdbRangeQuery : IDisposable, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>
 	{
+
+		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
+		/// <typeparam name="TResult">Type of the results returned</typeparam>
+		[DebuggerDisplay("State={m_state}, RemainingInBatch={m_remainingInBatch}, ReadLastBatch={m_lastBatchRead}")]
+		private sealed class Iterator<TResult> : IFdbAsyncEnumerator<TResult>
+		{
+			private const int STATE_INIT = 0;
+			private const int STATE_READY = 1;
+			private const int STATE_COMPLETED = 2;
+			private const int STATE_DISPOSED = -1;
+
+			//TODO: move read logic from query to this class!
+
+			private FdbRangeQuery m_query;
+
+			private Func<KeyValuePair<Slice, Slice>, TResult> m_transform;
+
+			/// <summary>State of the iterator</summary>
+			private volatile int m_state = STATE_INIT;
+
+			/// <summary>Holds the current result</summary>
+			private TResult m_current;
+
+			/// <summary>Current/Last batch read task</summary>
+			private Task<bool> m_nextBatchReadTask;
+			/// <summary>True if we already have read the last batch</summary>
+			private bool m_lastBatchRead;
+
+			/// <summary>Last successfully read batch of results</summary>
+			private KeyValuePair<Slice, Slice>[] m_batch;
+			/// <summary>Number of remaining items in the current batch</summary>
+			private int m_remainingInBatch;
+			/// <summary>Offset in the current batch of the current item</summary>
+			private int m_offset;
+
+			public Iterator(FdbRangeQuery query, Func<KeyValuePair<Slice, Slice>, TResult> transform)
+			{
+				Contract.Requires(query != null && transform != null);
+
+				m_query = query;
+				m_transform = transform;
+			}
+
+			public Task<bool> MoveNext(CancellationToken cancellationToken)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+
+				switch (m_state)
+				{
+					case STATE_COMPLETED:
+					{ // already reached the end !
+						return FdbAsyncEnumerable.FalseTask;
+					}
+					case STATE_INIT:
+					case STATE_READY:
+					{
+						break;
+					}
+					default:
+					{
+						ThrowInvalidState();
+						break;
+					}
+				}
+
+				//TODO: check if not already pending
+				if (m_nextBatchReadTask != null && !m_nextBatchReadTask.IsCompleted)
+				{
+					throw new InvalidOperationException("Cannot call MoveNext while a previous call is still running");
+				}
+
+				if (m_remainingInBatch > 0)
+				{ // we need can get another one from the batch
+					++m_offset;
+					SetCurrentItem();
+					m_remainingInBatch--;
+					return FdbAsyncEnumerable.TrueTask;
+				}
+
+				if (m_lastBatchRead)
+				{ // we already read the last batch !
+					return FdbAsyncEnumerable.FalseTask;
+				}
+
+				// slower path, we need to actually read the first batch...
+				m_offset = 0;
+				m_batch = null;
+				return ReadAnotherBatchAsync(cancellationToken);
+			}
+
+			private async Task<bool> ReadAnotherBatchAsync(CancellationToken ct)
+			{
+				Contract.Requires(m_state == STATE_INIT || m_state == STATE_READY);
+				Contract.Requires(m_remainingInBatch == 0 && m_offset == 0 && !m_lastBatchRead);
+
+				// start reading the next batch
+				m_nextBatchReadTask = m_query.MoveNextAsync(ct);
+
+				if (await m_nextBatchReadTask)
+				{ // we got a new chunk !
+					m_batch = m_query.Chunk;
+					m_remainingInBatch = m_batch.Length;
+				}
+
+				if (m_remainingInBatch > 0)
+				{
+					// read the first one
+					m_offset = 0;
+					SetCurrentItem();
+					--m_remainingInBatch;
+					m_state = STATE_READY;
+					return true;
+				}
+
+				m_lastBatchRead = true;
+				m_current = default(TResult);
+				m_state = STATE_COMPLETED;
+				return false;
+			}
+	
+			public TResult Current
+			{
+				get
+				{
+					if (m_state != STATE_READY) ThrowInvalidState();
+					return m_current;
+				}
+			}
+
+			private void SetCurrentItem()
+			{
+				m_current = m_transform(m_batch[m_offset]);
+			}
+
+			private void ThrowInvalidState()
+			{
+				switch(m_state)
+				{
+					case STATE_DISPOSED: throw new ObjectDisposedException(null, "Query iterator has already been disposed");
+					case STATE_READY: return;
+					case STATE_INIT: throw new InvalidOperationException("You must call MoveNext at least once before accessing the current value");
+					case STATE_COMPLETED: throw new ObjectDisposedException(null, "Query iterator has already completed");
+					default: throw new InvalidOperationException("Invalid unknown state");
+				}
+			}
+
+			public void Dispose()
+			{
+				//TODO: should we wait/cancel any pending read task ?
+
+				m_state = -2;
+				m_query = null;
+				m_current = default(TResult);
+				m_nextBatchReadTask = null;
+				m_lastBatchRead = true;
+				m_batch = null;
+				m_offset = 0;
+				m_remainingInBatch = 0;
+			}
+		}
 
 		internal FdbRangeQuery(FdbTransaction transaction, FdbRangeSelector query)
 		{
@@ -54,6 +216,8 @@ using System.Threading.Tasks;
 			this.Begin = query.Begin;
 			this.End = query.End;
 		}
+
+		//TODO: move read logic into BatchedITerator !
 
 		/// <summary>Holds to the current or last read task</summary>
 		private Task PendingTask { get; set; }
@@ -88,8 +252,11 @@ using System.Threading.Tasks;
 		/// <summary>Running total of rows that have been read</summary>
 		private int RowCount { get; set; }
 
+#if REFACTORED
+
 		/// <summary>Reads all the results in a single operation</summary>
 		/// <returns>List of all the results</returns>
+		[Obsolete("Use ToListAsync() instead")]
 		public async Task<List<KeyValuePair<Slice, Slice>>> ReadAllAsync(CancellationToken ct = default(CancellationToken))
 		{
 			Contract.Requires(this.Iteration >= 0);
@@ -110,6 +277,7 @@ using System.Threading.Tasks;
 		/// <param name="lambda">Lambda function called to process each result</param>
 		/// <param name="ct"></param>
 		/// <returns>List of all processed results</returns>
+		[Obsolete("Use .Select().ToListAsync() instead")]
 		public async Task<List<T>> ReadAllAsync<T>(Func<KeyValuePair<Slice, Slice>, T> lambda, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -134,6 +302,7 @@ using System.Threading.Tasks;
 		/// <param name="lambda">Lambda function called to process each result</param>
 		/// <param name="ct"></param>
 		/// <returns>List of all processed results</returns>
+		[Obsolete("Use .Select().ToListAsync() instead")]
 		public async Task<List<T>> ReadAllAsync<T>(Func<Slice, Slice, T> lambda, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -160,6 +329,7 @@ using System.Threading.Tasks;
 		/// <param name="lambda">Lambda function called to process each result</param>
 		/// <param name="ct"></param>
 		/// <returns>List of all processed results</returns>
+		[Obsolete("Use .Select().ToListAsync() instead")]
 		public async Task<List<KeyValuePair<K, V>>> ReadAllAsync<K, V>(Func<Slice, K> keyReader, Func<Slice, V> valueReader, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -189,6 +359,7 @@ using System.Threading.Tasks;
 		/// <param name="lambda">Lambda function called to process each result</param>
 		/// <param name="ct"></param>
 		/// <returns>List of all processed results</returns>
+		[Obsolete("Use .Select().ToListAsync() instead")]
 		public async Task<List<T>> ReadAllAsync<K, V, T>(Func<Slice, K> keyReader, Func<Slice, V> valueReader, Func<K, V, T> transform, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -212,6 +383,8 @@ using System.Threading.Tasks;
 			}
 			return results;
 		}
+
+#endif
 
 		/// <summary>Reads all the results in a single operation, and process the results as they arrive, do not store anything</summary>
 		/// <param name="action">delegate function called to process each result</param>
@@ -453,7 +626,74 @@ using System.Threading.Tasks;
 
 		#endregion
 
-	}
+		#region Pseudo-LINQ
 
+		private bool m_gotUsedOnce;
+
+		public IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>> GetEnumerator()
+		{
+			ThrowIfDisposed();
+			if (m_gotUsedOnce) throw new InvalidOperationException("This query has already been executed once. Reusing the same query object would re-run the query on the server. If you need to data multiple times, you should call ToListAsync() one time, and then reuse this list using normal LINQ to Object operators.");
+			m_gotUsedOnce = true;
+			return new Iterator<KeyValuePair<Slice, Slice>>(this, x => x);
+		}
+
+		public Task<List<KeyValuePair<Slice, Slice>>> ToListAsync(CancellationToken ct = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.ToListAsync(this, ct);
+		}
+
+		public IFdbAsyncEnumerable<T> Select<T>(Func<KeyValuePair<Slice, Slice>, T> lambda)
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.Select(this, lambda);
+		}
+
+		public IFdbAsyncEnumerable<T> Select<T>(Func<Slice, Slice, T> lambda)
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.Select(this, (kvp) => lambda(kvp.Key, kvp.Value));
+		}
+
+		public IFdbAsyncEnumerable<KeyValuePair<K, V>> Select<K, V>(Func<Slice, K> extractKey, Func<Slice, V> extractValue)
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.Select(this, (kvp) => new KeyValuePair<K, V>(extractKey(kvp.Key), extractValue(kvp.Value)));
+		}
+
+		public IFdbAsyncEnumerable<R> Select<K, V, R>(Func<Slice, K> extractKey, Func<Slice, V> extractValue, Func<K, V, R> transform)
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.Select(this, (kvp) => transform(extractKey(kvp.Key), extractValue(kvp.Value)));
+		}
+
+		public IFdbAsyncEnumerable<Slice> Keys()
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.Select(this, kvp => kvp.Key);
+		}
+
+		public IFdbAsyncEnumerable<T> Keys<T>(Func<Slice, T> lambda)
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.Select(this, kvp => lambda(kvp.Key));
+		}
+
+		public IFdbAsyncEnumerable<Slice> Values()
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.Select(this, kvp => kvp.Value);
+		}
+
+		public IFdbAsyncEnumerable<T> Values<T>(Func<Slice, T> lambda)
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.Select(this, kvp => lambda(kvp.Value));
+		}
+
+		#endregion
+
+	}
 
 }

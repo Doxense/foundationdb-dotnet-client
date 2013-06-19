@@ -37,6 +37,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using FoundationDb.Client;
 using FoundationDb.Layers.Tuples;
+using FoundationDb.Linq;
 
 namespace FoundationDb.Layers.Indexing
 {
@@ -84,10 +85,9 @@ namespace FoundationDb.Layers.Indexing
 
 			//TODO: limits? paging? ...
 
-			return results.ReadAllAsync<TId>(
-				(key, _) => FdbTuple.Unpack(key).Get<TId>(-1),
-				ct
-			);
+			return results
+				.Keys((key) => FdbTuple.Unpack(key).Get<TId>(-1))
+				.ToListAsync(ct);
 		}
 
 	}

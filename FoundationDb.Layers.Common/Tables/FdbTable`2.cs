@@ -30,6 +30,7 @@ namespace FoundationDb.Layers.Tables
 {
 	using FoundationDb.Client;
 	using FoundationDb.Layers.Tuples;
+	using FoundationDb.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
@@ -100,12 +101,11 @@ namespace FoundationDb.Layers.Tables
 
 			return trans
 				.GetRangeStartsWith(this.Subspace, snapshot: snapshot)
-				.ReadAllAsync(
+				.Select(
 					(key) => this.KeyReader.Unpack(this.Subspace.Unpack(key)),
-					(value) => this.ValueSerializer.Deserialize(value, missing),
-					(key, value) => new KeyValuePair<TKey, TValue>(key, value),
-					ct
-				);
+					(value) => this.ValueSerializer.Deserialize(value, missing)
+				)
+				.ToListAsync(ct);
 		}
 
 		public async Task<List<KeyValuePair<TKey, TValue>>> GetBatchIndexedAsync(FdbTransaction trans, IEnumerable<TKey> ids, bool snapshot = false, CancellationToken ct = default(CancellationToken))

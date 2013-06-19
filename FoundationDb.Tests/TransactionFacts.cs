@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDb.Client.Tests
 {
 	using FoundationDb.Layers.Tuples;
+	using FoundationDb.Linq;
 	using NUnit.Framework;
 	using System;
 	using System.Diagnostics;
@@ -318,8 +319,9 @@ namespace FoundationDb.Client.Tests
 					Console.WriteLine("Getting range " + res.Query.Begin + " -> " + res.Query.End + " ...");
 
 					var range = Stopwatch.StartNew();
-					var items = await res.ReadAllAsync();
+					var items = await res.ToListAsync();
 					range.Stop();
+
 					Assert.That(items, Is.Not.Null);
 					Assert.That(items.Count, Is.EqualTo(N));
 					Console.WriteLine("Took " + range.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + items.Count.ToString("N0") + " results");
@@ -357,7 +359,7 @@ namespace FoundationDb.Client.Tests
 
 					try
 					{
-						var _ = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), limit: 10).ReadAllAsync();
+						var _ = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), limit: 10).ToListAsync();
 						Assert.Fail("Should not have access to system keys by default");
 					}
 					catch (Exception e)
@@ -370,7 +372,7 @@ namespace FoundationDb.Client.Tests
 					// should succeed once system access has been requested
 					tr.WithAccessToSystemKeys();
 
-					var keys = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), limit: 10).ReadAllAsync();
+					var keys = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), limit: 10).ToListAsync();
 					Assert.That(keys, Is.Not.Null);
 				}
 

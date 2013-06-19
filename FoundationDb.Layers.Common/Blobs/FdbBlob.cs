@@ -31,6 +31,7 @@ namespace FoundationDb.Layers.Blobs
 	using FoundationDb.Client;
 	using FoundationDb.Client.Utils;
 	using FoundationDb.Layers.Tuples;
+	using FoundationDb.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
@@ -375,10 +376,11 @@ namespace FoundationDb.Layers.Blobs
 
 			return trans
 				.GetRangeStartsWith(this.Subspace.Pack('A'))
-				.ReadAllAsync(
+				.Select(
 					(key) => FdbTuple.Unpack(key).Get<string>(-1),
 					(value) => value
-				);
+				)
+				.ToListAsync();
 		}
 
 		/// <summary>
