@@ -41,7 +41,7 @@ namespace FoundationDb.Layers.Tuples
 	/// <typeparam name="T1">Type of the first item</typeparam>
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	/// <typeparam name="T3">Type of the third item</typeparam>
-	[DebuggerDisplay("({Item1}, {Item2}, {Item3})")]
+	[DebuggerDisplay("{ToString()}")]
 	public struct FdbTuple<T1, T2, T3> : IFdbTuple
 	{
 		public readonly T1 Item1;
@@ -71,6 +71,11 @@ namespace FoundationDb.Layers.Tuples
 			}
 		}
 
+		public IFdbTuple this[int? from, int? to]
+		{
+			get { return FdbTuple.Splice(this, from, to); }
+		}
+
 		public R Get<R>(int index)
 		{
 			switch(index)
@@ -94,9 +99,9 @@ namespace FoundationDb.Layers.Tuples
 			return this.Append<T4>(value);
 		}
 
-		public FdbTuple<T1, T2, T3, T4> Append<T4>(T4 value)
+		public FdbListTuple Append<T4>(T4 value)
 		{
-			return new FdbTuple<T1, T2, T3, T4>(this.Item1, this.Item2, this.Item3, value);
+			return new FdbListTuple(new object[] { this.Item1, this.Item2, this.Item3, value }, 0, 4);
 		}
 
 		public void CopyTo(object[] array, int offset)
@@ -127,7 +132,7 @@ namespace FoundationDb.Layers.Tuples
 
 		public override string ToString()
 		{
-			return new StringBuilder().Append('(').Append(FdbTuple.Stringify(this.Item1)).Append(", ").Append(FdbTuple.Stringify(this.Item2)).Append(", ").Append(FdbTuple.Stringify(this.Item3)).Append(')').ToString();
+			return new StringBuilder().Append('(').Append(FdbTuple.Stringify(this.Item1)).Append(", ").Append(FdbTuple.Stringify(this.Item2)).Append(", ").Append(FdbTuple.Stringify(this.Item3)).Append(",)").ToString();
 		}
 
 		public override int GetHashCode()
@@ -137,6 +142,16 @@ namespace FoundationDb.Layers.Tuples
 			h ^= this.Item2 != null ? this.Item2.GetHashCode() : -1;
 			h ^= this.Item3 != null ? this.Item3.GetHashCode() : -1;
 			return h;
+		}
+
+		public bool Equals(IFdbTuple other)
+		{
+			return other != null && other.Count == 3 && ComparisonHelper.AreSimilar(this.Item1, other[0]) && ComparisonHelper.AreSimilar(this.Item2, other[1]) && ComparisonHelper.AreSimilar(this.Item3, other[2]);
+		}
+
+		public override bool Equals(object obj)
+		{
+			return Equals(obj as IFdbTuple);
 		}
 
 	}

@@ -29,11 +29,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDb.Layers.Tuples.Tests
 {
 	using FoundationDb.Client;
+	using FoundationDb.Client.Converters;
 	using FoundationDb.Client.Utils;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Text;
 
 	[TestFixture]
@@ -115,6 +117,232 @@ namespace FoundationDb.Layers.Tuples.Tests
 			Assert.That(tn[-5], Is.EqualTo(123));
 			Assert.That(tn[-6], Is.EqualTo("hello world"));
 		}
+
+		#region Splicing...
+
+		private static void VerifyTuple(string message, IFdbTuple t, object[] expected)
+		{
+			// count
+			if (t.Count != expected.Length)
+			{
+#if DEBUG
+				if (Debugger.IsAttached) Debugger.Break();
+#endif
+				Assert.Fail("{0}: Count mismatch between {1} and expected {2}", message, t, FdbTuple.ToString(expected));
+			}
+
+			// direct access
+			for (int i = 0; i < expected.Length; i++)
+			{
+				Assert.That(ComparisonHelper.AreSimilar(t[i], expected[i]), Is.True, "{0}: t[{1}] != expected[{1}]", message, i);
+			}
+
+			// iterator
+			int p = 0;
+			foreach (var obj in t)
+			{
+				if (p >= expected.Length) Assert.Fail("Spliced iterator overshoot at t[{0}] = {1}", p, obj);
+				Assert.That(ComparisonHelper.AreSimilar(obj, expected[p]), Is.True, "{0}: Iterator[{1}], {2} ~= {3}", message, p, obj, expected[p]);
+				++p;
+			}
+			Assert.That(p, Is.EqualTo(expected.Length), "{0}: t.GetEnumerator() returned only {1} elements out of {2} exected", message, p, expected.Length);
+
+			// CopyTo
+			var tmp = new object[expected.Length];
+			t.CopyTo(tmp, 0);
+			for (int i = 0; i < tmp.Length; i++)
+			{
+				Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, "{0}: CopyTo[{1}], {2} ~= {3}", message, i, tmp[i], expected[i]);
+			}
+
+			// Memoize
+			tmp = t.Memoize().Items;
+			for (int i = 0; i < tmp.Length; i++)
+			{
+				Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, "{0}: Memoize.Items[{1}], {2} ~= {3}", message, i, tmp[i], expected[i]);
+			}
+
+			// Append
+			var u = t.Append("last");
+			Assert.That(u.Get<string>(-1), Is.EqualTo("last"));
+			tmp = u.ToArray();
+			for (int i = 0; i < tmp.Length - 1; i++)
+			{
+				Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, "{0}: Appended[{1}], {2} ~= {3}", message, i, tmp[i], expected[i]);
+			}
+
+		}
+
+		[Test]
+		public void Test_Can_Splice_FdbListTuple()
+		{
+			var items = new object[] { "hello", "world", 123, "foo", 456, "bar" };
+			//                            0        1      2     3     4     5
+			//                           -6       -5     -4    -3    -2    -1
+
+			var tuple = new FdbListTuple(items);
+			Assert.That(tuple.Count, Is.EqualTo(6));
+
+			// get all
+			VerifyTuple("[:]", tuple[null, null], items);
+			VerifyTuple("[:]", tuple[null, 5], items);
+			VerifyTuple("[:]", tuple[0, null], items);
+			VerifyTuple("[:]", tuple[0, 5], items);
+			VerifyTuple("[:]", tuple[0, -1], items);
+			VerifyTuple("[:]", tuple[-6, -1], items);
+			VerifyTuple("[:]", tuple[-6, 5], items);
+
+			// tail
+			VerifyTuple("[n:]", tuple[4, null], new object[] { 456, "bar" });
+			VerifyTuple("[n:+]", tuple[4, 5], new object[] { 456, "bar" });
+			VerifyTuple("[n:-]", tuple[4, -1], new object[] { 456, "bar" });
+			VerifyTuple("[-n:+]", tuple[-2, 5], new object[] { 456, "bar" });
+			VerifyTuple("[-n:-]", tuple[-2, -1], new object[] { 456, "bar" });
+
+			// head
+			VerifyTuple("[:n]", tuple[null, 2], new object[] { "hello", "world", 123 });
+			VerifyTuple("[0:n]", tuple[0, 2], new object[] { "hello", "world", 123 });
+			VerifyTuple("[0:-n]", tuple[0, -4], new object[] { "hello", "world", 123 });
+			VerifyTuple("[-:n]", tuple[-6, 2], new object[] { "hello", "world", 123 });
+			VerifyTuple("[-:-n]", tuple[-6, -4], new object[] { "hello", "world", 123 });
+
+			// chunk
+			VerifyTuple("[2:3]", tuple[2, 3], new object[] { 123, "foo" });
+			VerifyTuple("[2:-3]", tuple[2, -3], new object[] { 123, "foo" });
+			VerifyTuple("[-4:-3]", tuple[-4, 3], new object[] { 123, "foo" });
+			VerifyTuple("[-4:-3]", tuple[-4, -3], new object[] { 123, "foo" });
+
+			// remove first
+			VerifyTuple("[1:]", tuple[1, null], new object[] { "world", 123, "foo", 456, "bar" });
+			VerifyTuple("[1:+]", tuple[1, 5], new object[] { "world", 123, "foo", 456, "bar" });
+			VerifyTuple("[1:-]", tuple[1, -1], new object[] { "world", 123, "foo", 456, "bar" });
+			VerifyTuple("[-5:-]", tuple[1, -1], new object[] { "world", 123, "foo", 456, "bar" });
+
+			// remove last
+			VerifyTuple("[:4]", tuple[null, 4], new object[] { "hello", "world", 123, "foo", 456 });
+			VerifyTuple("[:-2]", tuple[null, -2], new object[] { "hello", "world", 123, "foo", 456 });
+			VerifyTuple("[0:4]", tuple[0, 4], new object[] { "hello", "world", 123, "foo", 456 });
+			VerifyTuple("[0:-2]", tuple[0, -2], new object[] { "hello", "world", 123, "foo", 456 });
+
+			// index out of range
+			Assert.That(() => tuple[2, 6], Throws.InstanceOf<IndexOutOfRangeException>());
+			Assert.That(() => tuple[2, 123456], Throws.InstanceOf<IndexOutOfRangeException>());
+
+		}
+
+		private static object[] GetRange(int from, int to, int count)
+		{
+			if (count == 0) return new object[0];
+
+			if (from < 0) from += count;
+			if (to < 0) to += count;
+
+			if (to >= count) to = count - 1;
+			var tmp = new object[to - from + 1];
+			for (int i = 0; i < tmp.Length; i++) tmp[i] = new string((char) (65 + from + i), 1);
+			return tmp;
+		}
+
+		[Test]
+		public void Test_Randomized_Splices()
+		{
+			// Test a random mix of sizes, and indexes...
+
+			const int N = 100 * 1000;
+
+			var tuples = new IFdbTuple[11];
+			tuples[0] = FdbTuple.Empty;
+			tuples[1] = FdbTuple.Create('A');
+			tuples[2] = FdbTuple.Create('A', 'B');
+			tuples[3] = FdbTuple.Create('A', 'B', 'C');
+			tuples[4] = FdbTuple.Create('A', 'B', 'C', 'D');
+			tuples[5] = FdbTuple.Create('A', 'B', 'C', 'D', 'E');
+			tuples[6] = FdbTuple.Create('A', 'B', 'C', 'D', 'E', 'F');
+			tuples[7] = FdbTuple.Create('A', 'B', 'C', 'D', 'E', 'F', 'G');
+			tuples[8] = FdbTuple.Create('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H');
+			tuples[9] = FdbTuple.Create('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I');
+			tuples[10]= FdbTuple.Create('A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J');
+
+			Console.Write("Checking tuples");
+
+			foreach (var tuple in tuples)
+			{
+				var t = FdbTuple.Unpack(tuple.ToSlice());
+				Assert.That(t.Equals(tuple), Is.True, t.ToString() + " != unpack(" + tuple.ToString() + ")");
+			}
+
+			var rnd = new Random(123456);
+
+			for (int i = 0; i < N; i++)
+			{
+				if (i % 500 == 0) Console.Write(".");
+				var len = rnd.Next(tuples.Length);
+				var tuple = tuples[len];
+				Assert.That(tuple.Count, Is.EqualTo(len));
+
+				string prefix = tuple.ToString();
+
+				if (rnd.Next(5) == 0)
+				{ // randomly pack/unpack
+					tuple = FdbTuple.Unpack(tuple.ToSlice());
+					prefix = "unpacked:" + prefix;
+				}
+				else if (rnd.Next(5) == 0)
+				{ // randomly memoize
+					tuple = tuple.Memoize();
+					prefix = "memoized:" + prefix;
+				}
+
+				switch (rnd.Next(6))
+				{
+					case 0:
+					{ // [:+rnd]
+						int x = rnd.Next(len);
+						VerifyTuple(prefix + "[:" + x.ToString() + "]", tuple[null, x], GetRange(0, x, len));
+						break;
+					}
+					case 1:
+					{ // [+rnd:]
+						int x = rnd.Next(len);
+						VerifyTuple(prefix + "[" + x.ToString() + ":]", tuple[x, null], GetRange(x, int.MaxValue, len));
+						break;
+					}
+					case 2:
+					{ // [:-rnd]
+						int x = -1 - rnd.Next(len);
+						VerifyTuple(prefix + "[:" + x.ToString() + "]", tuple[null, x], GetRange(0, len + x, len));
+						break;
+					}
+					case 3:
+					{ // [-rnd:]
+						int x = -1 - rnd.Next(len);
+						VerifyTuple(prefix + "[" + x.ToString() + ":]", tuple[x, null], GetRange(len + x, int.MaxValue, len));
+						break;
+					}
+					case 4:
+					{ // [rnd:rnd]
+						int x = rnd.Next(len);
+						int y;
+						do { y = rnd.Next(len); } while (y < x);
+						VerifyTuple(prefix + " [" + x.ToString() + ":" + y.ToString() + "]", tuple[x, y], GetRange(x, y, len));
+						break;
+					}
+					case 5:
+					{ // [-rnd:-rnd]
+						int x = -1 - rnd.Next(len);
+						int y;
+						do { y = -1 - rnd.Next(len); } while (y < x);
+						VerifyTuple(prefix + " [" + x.ToString() + ":" + y.ToString() + "]", tuple[x, y], GetRange(len + x, len + y, len));
+						break;
+					}
+				}
+
+			}
+			Console.WriteLine(" done");
+
+		}
+
+		#endregion
 
 		#region Serialization...
 

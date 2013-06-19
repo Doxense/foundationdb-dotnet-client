@@ -31,47 +31,71 @@ using FoundationDb.Client.Converters;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace FoundationDb.Layers.Tuples
 {
 
 	/// <summary>Tuple that can hold any number of items</summary>
-	public sealed class FdbTupleList : IFdbTuple, IEquatable<FdbTupleList>
+	public sealed class FdbListTuple : IFdbTuple, IEquatable<FdbListTuple>
 	{
 		private static readonly object[] EmptyList = new object[0];
 
 		/// <summary>List of the items in the tuple.</summary>
 		/// <remarks>It is supposed to be immutable!</remarks>
-		private readonly object[] Items;
+		private readonly object[] m_items;
 
-		private int? HashCode;
+		private readonly int m_offset;
+
+		private readonly int m_count;
+
+		private int? m_hashCode;
 
 		/// <summary>Create a new tuple from a sequence of items (copied)</summary>
-		public FdbTupleList(IEnumerable<object> items)
+		internal FdbListTuple(IEnumerable<object> items)
 		{
-			this.Items = items.ToArray();
+			m_items = items.ToArray();
+			m_count = m_items.Length;
 		}
 
 		/// <summary>Wrap a List of items</summary>
 		/// <remarks>The list should not mutate and should not be exposed to anyone else!</remarks>
-		internal FdbTupleList(object[] items)
+		internal FdbListTuple(object[] items, int offset, int count)
 		{
-			this.Items = items;
+			Contract.Requires(items != null && offset >= 0 && count >= 0);
+			Contract.Requires(offset + count <= items.Length, null, "inner item array is too small");
+
+			m_items = items;
+			m_offset = offset;
+			m_count = count;
 		}
 
 		public int Count
 		{
-			get { return this.Items.Length; }
+			get { return m_count; }
 		}
 
 		public object this[int index]
 		{
-			get { return this.Items[FdbTuple.MapIndex(index, this.Count)]; }
+			get { return m_items[m_offset + FdbTuple.MapIndex(index, m_count)]; }
+		}
+
+		public IFdbTuple this[int? from, int? to]
+		{
+			get
+			{
+				int start = FdbTuple.MapIndex(from ?? 0, m_count);
+				int end = FdbTuple.MapIndex(to ?? -1, m_count);
+
+				int len = end - start + 1;
+				if (len <= 0) return FdbTuple.Empty;
+				if (start == 0 && len == m_count) return this;
+
+				Contract.Assert(m_offset + start >= m_offset);
+				Contract.Assert(len >= 0 && len <= m_count);
+
+				return new FdbListTuple(m_items, m_offset + start, len);
+			}
 		}
 
 		public R Get<R>(int index)
@@ -84,57 +108,65 @@ namespace FoundationDb.Layers.Tuples
 			return this.Append<T>(value);
 		}
 
-		public FdbTupleList Append<T>(T value)
+		public FdbListTuple Append<T>(T value)
 		{
-			var list = new List<object>(this.Count + 1);
-			list.AddRange(this.Items);
-			list.Add(value);
-			return new FdbTupleList(list);
+			var list = new object[m_count + 1];
+			Array.Copy(m_items, m_offset, list, 0, m_count);
+			list[m_count] = value;
+			return new FdbListTuple(list, 0, list.Length);
 		}
 
-		public FdbTupleList AppendRange(object[] items)
+		public FdbListTuple AppendRange(object[] items)
 		{
-			var list = new List<object>(this.Count + items.Length);
-			list.AddRange(this.Items);
-			list.AddRange(items);
-			return new FdbTupleList(list);
+			if (items == null) throw new ArgumentNullException("items");
+
+			if (items.Length == 0) return this;
+
+			var list = new object[m_count + items.Length];
+			Array.Copy(m_items, m_offset, list, 0, m_count);
+			Array.Copy(items, 0, list, m_count, items.Length);
+			return new FdbListTuple(list, 0, list.Length);
 		}
 
-		public FdbTupleList Concat(FdbTupleList tuple)
+		public FdbListTuple Concat(FdbListTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 
-			var items = tuple.Items;
-			if (items.Length == 0) return this;
+			if (tuple.m_count == 0) return this;
+			if (m_count == 0) return tuple;
 
-			var list = new List<object>(this.Count + items.Length);
-			list.AddRange(this.Items);
-			list.AddRange(items);
-			return new FdbTupleList(list);
+			var list = new object[m_count + tuple.m_count];
+			Array.Copy(m_items, m_offset, list, 0, m_count);
+			Array.Copy(tuple.m_items, tuple.m_offset, list, m_count, tuple.m_count);
+			return new FdbListTuple(list, 0, list.Length);
 		}
 
-		public FdbTupleList Concat(IFdbTuple tuple)
+		public FdbListTuple Concat(IFdbTuple tuple)
 		{
-			var _ = tuple as FdbTupleList;
+			var _ = tuple as FdbListTuple;
 			if (_ != null) return Concat(_);
 
 			int count = tuple.Count;
 			if (count == 0) return this;
 
-			var list = new object[this.Count + count];
-			this.CopyTo(list, 0);
-			tuple.CopyTo(list, this.Count);
-			return new FdbTupleList(list);
+			var list = new object[m_count + count];
+			Array.Copy(m_items, m_offset, list, 0, m_count);
+			tuple.CopyTo(list, m_count);
+			return new FdbListTuple(list, 0, list.Length);
 		}
 
 		public void CopyTo(object[] array, int offset)
 		{
-			Array.Copy(this.Items, 0, array, offset, this.Count);
+			Array.Copy(m_items, m_offset, array, offset, m_count);
 		}
 
 		public IEnumerator<object> GetEnumerator()
 		{
-			return ((IList<object>)this.Items).GetEnumerator();
+			if (m_offset == 0 && m_count == m_items.Length)
+			{
+				return ((IList<object>)m_items).GetEnumerator();
+			}
+			return Enumerate(m_items, m_offset, m_count);
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -142,12 +174,19 @@ namespace FoundationDb.Layers.Tuples
 			return this.GetEnumerator();
 		}
 
+		private static IEnumerator<object> Enumerate(object[] items, int offset, int count)
+		{
+			while (count-- > 0)
+			{
+				yield return items[offset++];
+			}
+		}
 
 		public void PackTo(FdbBufferWriter writer)
 		{
-			foreach (var item in this.Items)
+			for (int i = 0; i < m_count; i++)
 			{
-				FdbTuplePackers.SerializeObjectTo(writer, item);
+				FdbTuplePackers.SerializeObjectTo(writer, m_items[i + m_offset]);
 			}
 		}
 
@@ -160,26 +199,27 @@ namespace FoundationDb.Layers.Tuples
 
 		public override string ToString()
 		{
-			return FdbTuple.ToString(this.Items);
+			return FdbTuple.ToString(m_items, m_offset, m_count);
 		}
 
 		public override int GetHashCode()
 		{
-			if (!this.HashCode.HasValue)
+			if (!m_hashCode.HasValue)
 			{
 				int h = 0;
-				foreach (var item in this.Items)
+				for (int i = 0; i < m_count; i++)
 				{
+					var item = m_items[i + m_offset];
 					h ^= item != null ? item.GetHashCode() : -1;
 				}
-				this.HashCode = h;
+				m_hashCode = h;
 			}
-			return this.HashCode.GetValueOrDefault();
+			return m_hashCode.GetValueOrDefault();
 		}
 
 		public override bool Equals(object obj)
 		{
-			var tupleList = obj as FdbTupleList;
+			var tupleList = obj as FdbListTuple;
 			if (tupleList != null) return this.Equals(tupleList);
 			var tuple = obj as IFdbTuple;
 			if (tuple != null) return this.Equals(tuple);
@@ -189,34 +229,42 @@ namespace FoundationDb.Layers.Tuples
 		private bool CompareItems(IEnumerable<object> theirs)
 		{
 			int p = 0;
-			var mine = this.Items;
 			foreach (var item in theirs)
 			{
+				if (p >= m_count) return false;
+
 				if (item == null)
 				{
-					if (mine[p] != null) return false;
+					if (m_items[p + m_offset] != null) return false;
 				}
 				else
 				{
-					if (!item.Equals(mine[p])) return false;
+					if (!ComparisonHelper.AreSimilar(item, m_items[p + m_offset])) return false;
 				}
 				p++;
 			}
-			return true;
+			return p >= m_count;
 		}
 
-		public bool Equals(FdbTupleList tuple)
+		public bool Equals(FdbListTuple tuple)
 		{
 			if (object.ReferenceEquals(this, tuple)) return true;
-			if (object.ReferenceEquals(tuple, null) || tuple.Count != this.Count || this.GetHashCode() != tuple.GetHashCode()) return false;
+			if (object.ReferenceEquals(tuple, null) || tuple.m_count != m_count || this.GetHashCode() != tuple.GetHashCode()) return false;
 
-			return CompareItems(tuple.Items);
+			if (tuple.m_offset == 0 && tuple.m_count == tuple.m_items.Length)
+			{
+				return CompareItems(tuple.m_items);
+			}
+			else
+			{
+				return CompareItems(tuple);
+			}
 		}
 
 		public bool Equals(IFdbTuple tuple)
 		{
 			if (object.ReferenceEquals(this, tuple)) return true;
-			if (object.ReferenceEquals(tuple, null) || tuple.Count != this.Count) return false;
+			if (object.ReferenceEquals(tuple, null) || tuple.Count != m_count) return false;
 
 			return CompareItems(tuple);
 		}

@@ -49,6 +49,7 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="FdbRangeSelector.cs" />
     <Compile Include="FdbException.cs" />
     <Compile Include="FdbTimeoutManager.cs" />
@@ -61,9 +62,11 @@
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
-    <Compile Include="Tuples\IFdbTuple.cs" />
-    <Compile Include="FdbSubspace.cs" />
-    <Compile Include="Tuples\FdbTuple.cs" />
+    <Compile Include="Layers\Tuples\FdbJoinedTuple.cs" />
+    <Compile Include="Layers\Tuples\FdbLinkedTuple.cs" />
+    <Compile Include="Layers\Tuples\IFdbTuple.cs" />
+    <Compile Include="Layers\Tuples\FdbSubspace.cs" />
+    <Compile Include="Layers\Tuples\FdbTuple.cs" />
     <Compile Include="FdbKeySelector.cs" />
     <Compile Include="FdbTransaction.cs" />
     <Compile Include="FdbDatabase.cs" />
@@ -89,18 +92,16 @@
     <Compile Include="Converters\IFdbConverter.cs" />
     <Compile Include="Tuples\FdbTupleKeyReader.cs" />
     <Compile Include="Tuples\ITupleKeyReader.cs" />
-    <Compile Include="Tuples\FdbTupleTypes.cs" />
-    <Compile Include="Tuples\FdbTuplePackers.cs" />
-    <Compile Include="Tuples\FdbSlicedTuple.cs" />
-    <Compile Include="Tuples\FdbTuple`1.cs" />
-    <Compile Include="Tuples\FdbTuple`2.cs" />
-    <Compile Include="Tuples\FdbTuple`3.cs" />
-    <Compile Include="Tuples\FdbTuple`4.cs" />
-    <Compile Include="Tuples\FdbTuple`5.cs" />
-    <Compile Include="Tuples\FdbMemoizedTuple.cs" />
-    <Compile Include="Tuples\FdbTupleList.cs" />
-    <Compile Include="Tuples\FdbTupleExtensions.cs" />
-    <Compile Include="Tuples\FdbTuplePacker.cs" />
+    <Compile Include="Layers\Tuples\FdbTupleTypes.cs" />
+    <Compile Include="Layers\Tuples\FdbTuplePackers.cs" />
+    <Compile Include="Layers\Tuples\FdbSlicedTuple.cs" />
+    <Compile Include="Layers\Tuples\FdbTuple`1.cs" />
+    <Compile Include="Layers\Tuples\FdbTuple`2.cs" />
+    <Compile Include="Layers\Tuples\FdbTuple`3.cs" />
+    <Compile Include="Layers\Tuples\FdbMemoizedTuple.cs" />
+    <Compile Include="Layers\Tuples\FdbListTuple.cs" />
+    <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
+    <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="fdb_c.dll">

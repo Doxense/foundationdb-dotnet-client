@@ -37,88 +37,67 @@ using System.Text;
 namespace FoundationDb.Layers.Tuples
 {
 
-	/// <summary>Tuple that can hold four items</summary>
-	/// <typeparam name="T1">Type of the first item</typeparam>
-	/// <typeparam name="T2">Type of the second item</typeparam>
-	/// <typeparam name="T3">Type of the third item</typeparam>
-	/// <typeparam name="T4">Type of the fourth item</typeparam>
-	[DebuggerDisplay("({Item1}, {Item2}, {Item3}, {Item4})")]
-	public struct FdbTuple<T1, T2, T3, T4> : IFdbTuple
+	/// <summary>Tuple that holds only one item</summary>
+	/// <typeparam name="T1">Type of the item</typeparam>
+	[DebuggerDisplay("{ToString()}")]
+	public struct FdbTuple<T1> : IFdbTuple
 	{
-		public readonly T1 Item1;
-		public readonly T2 Item2;
-		public readonly T3 Item3;
-		public readonly T4 Item4;
 
-		public FdbTuple(T1 item1, T2 item2, T3 item3, T4 item4)
+		public readonly T1 Item1;
+
+		public FdbTuple(T1 item1)
 		{
 			this.Item1 = item1;
-			this.Item2 = item2;
-			this.Item3 = item3;
-			this.Item4 = item4;
 		}
 
-		public int Count { get { return 4; } }
+		public int Count { get { return 1; } }
 
 		public object this[int index]
 		{
 			get
 			{
-				switch (index)
+				switch(index)
 				{
-					case 0: case -4: return this.Item1;
-					case 1: case -3: return this.Item2;
-					case 2: case -2: return this.Item3;
-					case 3: case -1: return this.Item4;
+					case 0: case -1: return this.Item1;
 					default: throw new IndexOutOfRangeException();
 				}
 			}
 		}
 
+		public IFdbTuple this[int? from, int? to]
+		{
+			get { return FdbTuple.Splice(this, from, to); }
+		}
+
 		public R Get<R>(int index)
 		{
-			switch (index)
-			{
-				case 0: case -4: return FdbConverters.Convert<T1, R>(this.Item1);
-				case 1: case -3: return FdbConverters.Convert<T2, R>(this.Item2);
-				case 2: case -2: return FdbConverters.Convert<T3, R>(this.Item3);
-				case 3: case -1: return FdbConverters.Convert<T4, R>(this.Item4);
-				default: throw new IndexOutOfRangeException();
-			}
+			if (index == 0 || index == -1) return FdbConverters.Convert<T1, R>(this.Item1);
+			throw new IndexOutOfRangeException();
 		}
 
 		public void PackTo(FdbBufferWriter writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
-			FdbTuplePacker<T2>.SerializeTo(writer, this.Item2);
-			FdbTuplePacker<T3>.SerializeTo(writer, this.Item3);
-			FdbTuplePacker<T4>.SerializeTo(writer, this.Item4);
 		}
 
-		IFdbTuple IFdbTuple.Append<T5>(T5 value)
+		IFdbTuple IFdbTuple.Append<T2>(T2 value)
 		{
-			return this.Append<T5>(value);
+			return this.Append<T2>(value);
 		}
 
-		public FdbTuple<T1, T2, T3, T4, T5> Append<T5>(T5 value)
+		public FdbTuple<T1, T2> Append<T2>(T2 value)
 		{
-			return new FdbTuple<T1, T2, T3, T4, T5>(this.Item1, this.Item2, this.Item3, this.Item4, value);
+			return new FdbTuple<T1, T2>(this.Item1, value);
 		}
 
 		public void CopyTo(object[] array, int offset)
 		{
 			array[offset] = this.Item1;
-			array[offset + 1] = this.Item2;
-			array[offset + 2] = this.Item3;
-			array[offset + 3] = this.Item4;
 		}
 
 		public IEnumerator<object> GetEnumerator()
 		{
 			yield return this.Item1;
-			yield return this.Item2;
-			yield return this.Item3;
-			yield return this.Item4;
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -135,17 +114,22 @@ namespace FoundationDb.Layers.Tuples
 
 		public override string ToString()
 		{
-			return FdbTuple.ToString(new object[] { this.Item1, this.Item2, this.Item3, this.Item4 });
+			return "(" + FdbTuple.Stringify(this.Item1) + ",)";
 		}
 
 		public override int GetHashCode()
 		{
-			int h;
-			h = this.Item1 != null ? this.Item1.GetHashCode() : -1;
-			h ^= this.Item2 != null ? this.Item2.GetHashCode() : -1;
-			h ^= this.Item3 != null ? this.Item3.GetHashCode() : -1;
-			h ^= this.Item4 != null ? this.Item4.GetHashCode() : -1;
-			return h;
+			return this.Item1 != null ? this.Item1.GetHashCode() : -1;
+		}
+
+		public bool Equals(IFdbTuple other)
+		{
+			return other != null && other.Count == 1 && ComparisonHelper.AreSimilar(this.Item1, other[0]);
+		}
+
+		public override bool Equals(object obj)
+		{
+			return Equals(obj as IFdbTuple);
 		}
 
 	}

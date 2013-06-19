@@ -118,7 +118,7 @@ namespace FoundationDb.Layers.Tuples
 		/// <example>new FdbSubspace(["Users",]).Append(123) => ["Users",123,]</example>
 		public FdbLinkedTuple<T> Append<T>(T value)
 		{
-			return this.Tuple.Append<T>(value);
+			return new FdbLinkedTuple<T>(this.Tuple, value);
 		}
 
 		/// <summary>Append the subspace suffix to a pair of keys and return the full path</summary>
@@ -130,14 +130,45 @@ namespace FoundationDb.Layers.Tuples
 		/// <example>new FdbSubspace(["Users",]).Append("ContactsById", 123) => ["Users","ContactsById",123,]</example>
 		public IFdbTuple Append<T1, T2>(T1 value1, T2 value2)
 		{
-			return this.Tuple.Append<T1>(value1).Append<T2>(value2);
+			return this.Tuple.Concat(new FdbTuple<T1, T2>(value1, value2));
 		}
 
+		/// <summary>Append the subspace suffix to a pair of keys and return the full path</summary>
+		/// <typeparam name="T1">Type of the first key to append</typeparam>
+		/// <typeparam name="T2">Type of the second key to append</typeparam>
+		/// <param name="value">Value of the first key</param>
+		/// <param name="value">Value of the second key</param>
+		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, and second value</returns>
+		/// <example>new FdbSubspace(["Users",]).Append("ContactsById", 123) => ("Users","ContactsById",123,)</example>
+		public IFdbTuple Append<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		{
+			return this.Tuple.Concat(new FdbTuple<T1, T2, T3>(value1, value2, value3));
+		}
+
+		/// <summary>Append the subspace suffix to a triplet of keys and return the full path</summary>
+		/// <typeparam name="T1">Type of the first key to append</typeparam>
+		/// <typeparam name="T2">Type of the second key to append</typeparam>
+		/// <typeparam name="T3">Type of the third key to append</typeparam>
+		/// <param name="value1">Value of the first key</param>
+		/// <param name="value2">Value of the second key</param>
+		/// <param name="value3">Value of the third and last key</param>
+		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, second and third value</returns>
+		/// <example>new FdbSubspace(["Users",]).Append("User123", "ContactsById", 456) => ("Users","User123","ContactsById",456,)</example>
 		public IFdbTuple Append(IFdbTuple value)
 		{
 			if (value == null) throw new ArgumentNullException("value");
 
 			return this.Tuple.Concat(value);
+		}
+
+		/// <summary>Unpack a key into a tuple, with the subspace prefix removed</summary>
+		/// <param name="key">Packed version of a key inside this subspace</param>
+		/// <returns>Unpacked tuple that starts after the subspace</returns>
+		/// <example>new Subspace("Foo").Unpack(FdbTuple.Pack("Foo", "Bar", 123)) => ("Bar", 123,) </example>
+		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked tuple is not contained in this subspace</exception>
+		public IFdbTuple Unpack(Slice key)
+		{
+			return FdbTuple.UnpackWithoutPrefix(key, this.Tuple);
 		}
 
 		public override string ToString()

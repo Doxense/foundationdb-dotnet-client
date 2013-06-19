@@ -31,75 +31,81 @@ using FoundationDb.Client.Converters;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
 
 namespace FoundationDb.Layers.Tuples
 {
 
-	/// <summary>Tuple that holds a pair of items</summary>
-	/// <typeparam name="T1">Type of the first item</typeparam>
-	/// <typeparam name="T2">Type of the second item</typeparam>
-	[DebuggerDisplay("({Item1}, {Item2})")]
-	public struct FdbTuple<T1, T2> : IFdbTuple
+	public sealed class FdbMemoizedTuple : IFdbTuple
 	{
-		public readonly T1 Item1;
-		public readonly T2 Item2;
+		internal readonly object[] Items;
 
-		public FdbTuple(T1 item1, T2 item2)
+		internal readonly Slice Packed;
+
+		internal FdbMemoizedTuple(object[] items, Slice packed)
 		{
-			this.Item1 = item1;
-			this.Item2 = item2;
+			Contract.Requires(items != null);
+			Contract.Requires(packed.HasValue);
+
+			this.Items = items;
+			this.Packed = packed;
 		}
 
-		public int Count { get { return 2; } }
-
-		public object this[int index]
+		public int PackedSize
 		{
-			get
-			{
-				switch (index)
-				{
-					case 0: case -2: return this.Item1;
-					case 1: case -1: return this.Item2;
-					default: throw new IndexOutOfRangeException();
-				}
-			}
-		}
-
-		public R Get<R>(int index)
-		{
-			if (index == 0 || index == -2) return FdbConverters.Convert<T1, R>(this.Item1);
-			if (index == 1 || index == -1) return FdbConverters.Convert<T2, R>(this.Item2);
-			throw new IndexOutOfRangeException();
+			get { return this.Packed.Count; }
 		}
 
 		public void PackTo(FdbBufferWriter writer)
 		{
-			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
-			FdbTuplePacker<T2>.SerializeTo(writer, this.Item2);
+			if (this.Packed.Count > 0)
+			{
+				writer.WriteBytes(this.Packed);
+			}
 		}
 
-		IFdbTuple IFdbTuple.Append<T3>(T3 value)
+		public Slice ToSlice()
 		{
-			return this.Append<T3>(value);
+			return this.Packed;
 		}
 
-		public FdbTuple<T1, T2, T3> Append<T3>(T3 value)
+		public int Count
 		{
-			return new FdbTuple<T1, T2, T3>(this.Item1, this.Item2, value);
+			get { return this.Items.Length; }
+		}
+
+		public object this[int index]
+		{
+			get { return this.Items[FdbTuple.MapIndex(index, this.Items.Length)]; }
+		}
+
+		public IFdbTuple this[int? from, int? to]
+		{
+			get { return FdbTuple.Splice(this, from, to); }
+		}
+
+		public R Get<R>(int index)
+		{
+			return FdbConverters.ConvertBoxed<R>(this[index]);
+		}
+
+		IFdbTuple IFdbTuple.Append<T>(T value)
+		{
+			return this.Append<T>(value);
+		}
+
+		public FdbLinkedTuple<T> Append<T>(T value)
+		{
+			return new FdbLinkedTuple<T>(this, value);
 		}
 
 		public void CopyTo(object[] array, int offset)
 		{
-			array[offset] = this.Item1;
-			array[offset + 1] = this.Item2;
+			Array.Copy(this.Items, 0, array, offset, this.Items.Length);
 		}
 
 		public IEnumerator<object> GetEnumerator()
 		{
-			yield return this.Item1;
-			yield return this.Item2;
+			return ((IList<object>)this.Items).GetEnumerator();
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -107,26 +113,20 @@ namespace FoundationDb.Layers.Tuples
 			return this.GetEnumerator();
 		}
 
-		public Slice ToSlice()
-		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
-			return writer.ToSlice();
-		}
-
 		public override string ToString()
 		{
-			return "(" + FdbTuple.Stringify(this.Item1) + ", " + FdbTuple.Stringify(this.Item2) + ")";
+			return FdbTuple.ToString(this.Items, 0, this.Items.Length);
 		}
 
-		public override int GetHashCode()
+		public bool Equals(IFdbTuple other)
 		{
-			int h;
-			h = this.Item1 != null ? this.Item1.GetHashCode() : -1;
-			h ^= this.Item2 != null ? this.Item2.GetHashCode() : -1;
-			return h;
+			//TODO!
+			return object.ReferenceEquals(this, other);
 		}
 
+		public override bool Equals(object obj)
+		{
+			return Equals(obj as IFdbTuple);
+		}
 	}
-
 }

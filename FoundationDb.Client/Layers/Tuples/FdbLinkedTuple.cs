@@ -26,102 +26,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Converters;
-using FoundationDb.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDb.Layers.Tuples
 {
+	using FoundationDb.Client;
+	using FoundationDb.Client.Converters;
+	using FoundationDb.Client.Utils;
+	using System.Collections.Generic;
+	using System.Diagnostics;
 
-	public sealed class FdbMemoizedTuple : IFdbTuple
-	{
-		internal readonly object[] Items;
-
-		internal readonly Slice Packed;
-
-		internal FdbMemoizedTuple(object[] items, Slice packed)
-		{
-			Contract.Requires(items != null);
-			Contract.Requires(packed.HasValue);
-
-			this.Items = items;
-			this.Packed = packed;
-		}
-
-		public int PackedSize
-		{
-			get { return this.Packed.Count; }
-		}
-
-		public void PackTo(FdbBufferWriter writer)
-		{
-			if (this.Packed.Count > 0)
-			{
-				writer.WriteBytes(this.Packed);
-			}
-		}
-
-		public Slice ToSlice()
-		{
-			return this.Packed;
-		}
-
-		public int Count
-		{
-			get { return this.Items.Length; }
-		}
-
-		public object this[int index]
-		{
-			get { return this.Items[FdbTuple.MapIndex(index, this.Items.Length)]; }
-		}
-
-		public R Get<R>(int index)
-		{
-			return FdbConverters.ConvertBoxed<R>(this[index]);
-		}
-
-		IFdbTuple IFdbTuple.Append<T>(T value)
-		{
-			return this.Append<T>(value);
-		}
-
-		public FdbLinkedTuple<T> Append<T>(T value)
-		{
-			return new FdbLinkedTuple<T>(this, value);
-		}
-
-		public void CopyTo(object[] array, int offset)
-		{
-			Array.Copy(this.Items, 0, array, offset, this.Items.Length);
-		}
-
-		public IEnumerator<object> GetEnumerator()
-		{
-			return ((IList<object>)this.Items).GetEnumerator();
-		}
-
-		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
-		{
-			return this.GetEnumerator();
-		}
-
-		public override string ToString()
-		{
-			return FdbTuple.ToString(this.Items);
-		}
-
-	}
-
+	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
+	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
 	[DebuggerDisplay("{ToString()}")]
 	public sealed class FdbLinkedTuple<T> : IFdbTuple
 	{
+		// Used in scenario where we will append keys to a common base tuple
+		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
+
 		public readonly IFdbTuple Head;
 		public readonly int Depth;
 		public readonly T Tail;
@@ -161,6 +81,11 @@ namespace FoundationDb.Layers.Tuples
 				if (index < -1) index++;
 				return this.Head[index];
 			}
+		}
+
+		public IFdbTuple this[int? from, int? to]
+		{
+			get { return FdbTuple.Splice(this, from, to); }
 		}
 
 		public R Get<R>(int index)
@@ -203,6 +128,24 @@ namespace FoundationDb.Layers.Tuples
 		public override string ToString()
 		{
 			return FdbTuple.ToString(this);
+		}
+
+		public bool Equals(IFdbTuple other)
+		{
+			//TODO: implemented equality check !
+			return object.ReferenceEquals(other, this);
+		}
+
+		public override bool Equals(object obj)
+		{
+			return Equals(obj as IFdbTuple);
+		}
+
+		public override int GetHashCode()
+		{
+			int h = this.Head != null ? this.Head.GetHashCode() : -1;
+			h ^= this.Tail != null ? this.Tail.GetHashCode() : -1;
+			return h;
 		}
 
 	}

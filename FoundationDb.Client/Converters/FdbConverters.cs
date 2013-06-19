@@ -258,6 +258,7 @@ namespace FoundationDb.Client.Converters
 		/// <returns>Converted value</returns>
 		public static R Convert<T, R>(T value)
 		{
+			//note: most of the types, T will be equal to R. We should get an optimized converter that will not box the values
 			return GetConverter<T, R>().Convert(value);
 		}
 

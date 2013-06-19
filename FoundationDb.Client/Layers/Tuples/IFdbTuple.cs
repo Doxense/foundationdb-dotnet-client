@@ -30,12 +30,11 @@ using FoundationDb.Client;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace FoundationDb.Layers.Tuples
 {
 
-	public interface IFdbTuple : IEnumerable<object>
+	public interface IFdbTuple : IEnumerable<object>, IEquatable<IFdbTuple>
 	{
 
 		/// <summary>Write the binary representation of this key at the end of a buffer</summary>
@@ -49,10 +48,20 @@ namespace FoundationDb.Layers.Tuples
 		int Count { get; }
 
 		/// <summary>Return an item of the tuple, given its position</summary>
-		/// <param name="index">Position of the item</param>
+		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item</returns>
 		/// <exception cref="System.IndexOutOfRangeException">If index if outside the bounds of the tuple</exception>
+		/// <example>
+		/// ("Foo", "Bar", 123,)[0] => "Foo"
+		/// ("Foo", "Bar", 123,)[-1] => 123
+		/// </example>
 		object this[int index] { get; }
+
+		/// <summary>Return a section of the tuple</summary>
+		/// <param name="start">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
+		/// <param name="end">Ending offset of the sub-tuple to return or null to select until the end. Negative values means from the end</param>
+		/// <returns>Tuple that only includes the selected items</returns>
+		IFdbTuple this[int? start, int? end] { get; }
 
 		T Get<T>(int index);
 

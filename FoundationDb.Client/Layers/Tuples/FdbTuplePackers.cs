@@ -29,18 +29,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using FoundationDb.Client;
 using FoundationDb.Client.Utils;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace FoundationDb.Layers.Tuples
 {
 
 	public static class FdbTuplePackers
 	{
+		private static readonly Slice[] NoSlices = new Slice[0];
 
 		#region Serializers...
 
@@ -539,21 +537,27 @@ namespace FoundationDb.Layers.Tuples
 			throw new FormatException("Cannot convert slice into this type");
 		}
 
-		internal static IFdbTuple Unpack(Slice buffer)
+		internal static FdbSlicedTuple Unpack(Slice buffer)
 		{
 			var slicer = new Slicer(buffer);
-			var items = new List<Slice>();
+
+			// most tuples will probably fit within (prefix, sub-prefix, id, key) so pre-allocating with 4 should be ok...
+			var items = new Slice[4];
 
 			Slice item;
+			int p = 0;
 			while ((item = ParseNext(ref slicer)).HasValue)
 			{
-				items.Add(item);
+				if (p >= items.Length)
+				{
+					// note: do not grow exponentially, because tuples will never but very large...
+					Array.Resize(ref items, p + 4);
+				}
+				items[p++] = item;
 			}
 
 			if (slicer.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
-
-			if (items.Count == 0) return FdbTuple.Empty;
-			return new FdbSlicedTuple(buffer, items);
+			return new FdbSlicedTuple(p == 0 ? NoSlices : items, 0, p);
 		}
 
 		internal static Slice ParseNext(ref Slicer reader)
