@@ -42,16 +42,14 @@ using System.Threading.Tasks;
 namespace FoundationDb.Layers.Tables
 {
 
+	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
 	public class FdbStringIntern
 	{
-		// Differences with the stringintern.py implementation at https://github.com/FoundationDB/python-layers/blob/master/lib/stringintern.py
-		// * The subspaces for strings and uids are 0 and 1, instead of 'S' and 'U' (shorter keys)
-		// * We try to keep the uid size small by retring several time in FindUid before augmenting the size of the key
+		// Based on the stringintern.py implementation at https://github.com/FoundationDB/python-layers/blob/master/lib/stringintern.py
 
-		private const int STRING_2_UID_KEY = 0;
-		private const int UID_2_STRING_KEY = 1;
-
-		private const int CacheLimitBytes = 10 * 1000 * 1000;
+		private const char STRING_2_UID_KEY = 'S';
+		private const char UID_2_STRING_KEY = 'U';
+		private const int CACHE_LIMIT_BYTES = 10 * 1000 * 1000;
 
 		private class Uid : IEquatable<Uid>
 		{
@@ -90,19 +88,15 @@ namespace FoundationDb.Layers.Tables
 
 		private readonly ReaderWriterLockSlim m_lock = new ReaderWriterLockSlim();
 
-		public FdbStringIntern(FdbDatabase database, FdbSubspace subspace)
+		public FdbStringIntern(FdbSubspace subspace)
 		{
-			if (database == null) throw new ArgumentNullException("database");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Database = database;
 			this.Subspace = subspace;
 
 			this.StringUidPrefix = subspace.Append(STRING_2_UID_KEY).Memoize();
 			this.UidStringPrefix = subspace.Append(UID_2_STRING_KEY).Memoize();
 		}
-
-		public FdbDatabase Database { get; private set; }
 
 		public FdbSubspace Subspace { get; private set; }
 
@@ -155,7 +149,7 @@ namespace FoundationDb.Layers.Tables
 		/// <summary>Add a value in the cache</summary>
 		private void AddToCache(string value, Slice uid)
 		{
-			while (m_bytesCached > CacheLimitBytes)
+			while (m_bytesCached > CACHE_LIMIT_BYTES)
 			{
 				EvictCache();
 			}

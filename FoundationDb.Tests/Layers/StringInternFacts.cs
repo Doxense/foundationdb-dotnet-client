@@ -53,7 +53,7 @@ namespace FoundationDb.Layers.Tables.Tests
 				await TestHelpers.DeleteSubspace(db, stringSpace);
 				await TestHelpers.DeleteSubspace(db, dataSpace);
 
-				var stringTable = new FdbStringIntern(db, stringSpace);
+				var stringTable = new FdbStringIntern(stringSpace);
 
 				// insert a bunch of strings
 				using (var tr = db.BeginTransaction())
