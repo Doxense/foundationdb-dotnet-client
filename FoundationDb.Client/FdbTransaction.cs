@@ -261,6 +261,29 @@ namespace FoundationDb.Client
 			return GetCoreAsync(keyBytes, snapshot, ct);
 		}
 
+		#endregion
+
+		#region Batching...
+
+		public async Task<Slice[]> GetBatchValuesAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			EnsuresCanReadOrWrite(ct);
+
+			//TODO: we should maybe limit the number of concurrent requests, if there are too many keys to read at once ?
+
+			var tasks = new List<Task<Slice>>(keys.Length);
+			for (int i = 0; i < keys.Length; i++)
+			{
+				tasks.Add(GetCoreAsync(keys[i], snapshot, ct));
+			}
+
+			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+
+			return results;
+		}
+
 		public Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -271,17 +294,7 @@ namespace FoundationDb.Client
 
 		public async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			EnsuresCanReadOrWrite(ct);
-
-			var tasks = new List<Task<Slice>>(keys.Length);
-			for (int i = 0; i < keys.Length; i++)
-			{
-				tasks.Add(GetCoreAsync(keys[i], snapshot, ct));
-			}
-
-			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+			var results = await GetBatchValuesAsync(keys, snapshot, ct);
 
 			return results
 				.Select((data, i) => new KeyValuePair<int, Slice>(i, data))

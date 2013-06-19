@@ -286,11 +286,38 @@ namespace FoundationDb.Layers.Tuples
 			var next = new List<int>();
 			var writer = new FdbBufferWriter();
 
+			//TODO: pre-allocated buffer ?
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach(var tuple in tuples)
 			{
 				tuple.PackTo(writer);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
+		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] BatchPack<T>(IFdbTuple prefix, IEnumerable<T> keys)
+		{
+			var next = new List<int>();
+			var writer = new FdbBufferWriter();
+
+			var slice = prefix.ToSlice();
+			var packer = FdbTuplePackers.GetSerializer<T>();
+
+			//TODO: pre-allocated buffer ?
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var key in keys)
+			{
+				writer.WriteBytes(slice);
+				packer(writer, key);
 				next.Add(writer.Position);
 			}
 
