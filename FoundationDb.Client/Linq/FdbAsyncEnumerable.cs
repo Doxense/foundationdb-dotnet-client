@@ -37,13 +37,43 @@ namespace FoundationDb.Linq
 	{
 		// Welcome to the wonderful world of the Monads! 
 
+		private sealed class EmptySequence<T> : IFdbAsyncEnumerable<T>, IFdbAsyncEnumerator<T>
+		{
+
+			Task<bool> IFdbAsyncEnumerator<T>.MoveNext(CancellationToken cancellationToken)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+				return FalseTask;
+			}
+
+			T IFdbAsyncEnumerator<T>.Current
+			{
+				get { throw new InvalidOperationException("This sequence is emty"); }
+			}
+
+			void IDisposable.Dispose()
+			{
+				// NOOP!
+			}
+
+			public IFdbAsyncEnumerator<T> GetEnumerator()
+			{
+				return this;
+			}
+		}
+
+		public static IFdbAsyncEnumerable<T> Empty<T>()
+		{
+			return new EmptySequence<T>();
+		}
+
 		/// <summary>Transform each elements of an inner async sequence into a new async sequence</summary>
 		public static IFdbAsyncEnumerable<R> Select<T, R>(this IFdbAsyncEnumerable<T> source, Func<T, R> lambda)
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (lambda == null) throw new ArgumentNullException("lambda");
 
-			return Create(source, (iterator) => new AsyncSelector<T, R>(iterator, lambda));
+			return Create(source, (iterator) => Iterate<T, R>(iterator, lambda));
 		}
 
 		/// <summary>Transform each elements of an inner async sequence into a new async sequence</summary>
@@ -52,7 +82,44 @@ namespace FoundationDb.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (lambda == null) throw new ArgumentNullException("lambda");
 
-			return Create(source, (iterator) => new AsyncIndexedSelector<T, R>(iterator, lambda));
+			return Create<T, R>(source, (iterator) =>
+			{
+				int index = 0;
+				return Iterate<T, R>(
+					iterator,
+					(x) =>
+					{
+						return lambda(x, index++);
+					}
+				);
+			});		}
+
+		/// <summary>Transform each elements of an inner async sequence into a new async sequence</summary>
+		public static IFdbAsyncEnumerable<R> Select<T, R>(this IFdbAsyncEnumerable<T> source, Func<T, Task<R>> lambda)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (lambda == null) throw new ArgumentNullException("lambda");
+
+			return Create<T, R>(source, (iterator) => Iterate<T, R>(iterator, lambda));
+		}
+
+		/// <summary>Transform each elements of an inner async sequence into a new async sequence</summary>
+		public static IFdbAsyncEnumerable<R> Select<T, R>(this IFdbAsyncEnumerable<T> source, Func<T, int, Task<R>> lambda)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (lambda == null) throw new ArgumentNullException("lambda");
+
+			return Create<T, R>(source, (iterator) =>
+			{
+				int index = 0;
+				return Iterate<T, R>(
+					iterator,
+					(x) =>
+					{
+						return lambda(x, index++);
+					}
+				);
+			});
 		}
 
 		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
@@ -61,7 +128,15 @@ namespace FoundationDb.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (lambda == null) throw new ArgumentNullException("lambda");
 
-			return new AnonymousSelectable<T, R>(source, (iterator) => new Selector<T, R>(iterator, lambda));
+			return new EnumerableSelectable<T, R>(source, (iterator) => new EnumerableSelector<T, R>(iterator, lambda));
+		}
+
+		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
+		public static IFdbAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> source)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			return new EnumerableSelectable<T, T>(source, (iterator) => new EnumerableSelector<T, T>(iterator, x => Task.FromResult(x)));
 		}
 
 		/// <summary>Execute an action for each element of an async sequence</summary>
@@ -70,7 +145,7 @@ namespace FoundationDb.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (action == null) throw new ArgumentNullException("action");
 
-			return Iterate<T>(source, action, ct);
+			return Run<T>(source, action, ct);
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
@@ -79,41 +154,41 @@ namespace FoundationDb.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (action == null) throw new ArgumentNullException("action");
 
-			return Iterate<T>(source, action, ct);
+			return Run<T>(source, action, ct);
 		}
 
 		/// <summary>Return a list of all the elements from an async sequence</summary>
 		public static async Task<List<T>> ToListAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
 			var list = new List<T>();
-			await Iterate<T>(source, (x) => list.Add(x), ct);
+			await Run<T>(source, (x) => list.Add(x), ct);
 			return list;
 		}
 		
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
 		public static Task<T> First<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
-			return Head<T>(source, ct, single: false, orDefault: false);
+			return Head<T>(source, single: false, orDefault: false, ct: ct);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
 		public static Task<T> FirstOrDefault<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
-			return Head<T>(source, ct, single: false, orDefault: true);
+			return Head<T>(source, single: false, orDefault: true, ct: ct);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, or an exception if it is empty or have two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static Task<T> Single<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
-			return Head<T>(source, ct, single: true, orDefault: false);
+			return Head<T>(source, single: true, orDefault: false, ct: ct);
 		}
 
 		/// <summary>Returns the first and only element of an async sequence, the default value for the type if it is empty, or an exception if it has two or more elements</summary>
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static Task<T> SingleOrDefault<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
-			return Head<T>(source, ct, single: true, orDefault: true);
+			return Head<T>(source, single: true, orDefault: true, ct: ct);
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
@@ -122,7 +197,7 @@ namespace FoundationDb.Linq
 			bool found = false;
 			T last = default(T);
 
-			await Iterate<T>(source, (x) => { found = true; last = x; }, ct);
+			await Run<T>(source, (x) => { found = true; last = x; }, ct);
 
 			if (!found) throw new InvalidOperationException("The sequence was empty");
 			return last;
@@ -134,7 +209,7 @@ namespace FoundationDb.Linq
 			bool found = false;
 			T last = default(T);
 
-			await Iterate<T>(source, (x) => { found = true; last = x; }, ct);
+			await Run<T>(source, (x) => { found = true; last = x; }, ct);
 
 			return found ? last : default(T);
 		}

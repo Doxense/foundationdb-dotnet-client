@@ -38,6 +38,15 @@ namespace FoundationDb.Linq
 	{
 		// Welcome to the wonderful world of the Monads! 
 
+		/// <summary>Cached task that returns false</summary>
+		internal static readonly Task<bool> FalseTask = Task.FromResult(false);
+
+		/// <summary>Cached task that returns true</summary>
+		internal static readonly Task<bool> TrueTask = Task.FromResult(true);
+
+		/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
+		/// <typeparam name="T">Type of elements of the inner async sequence</typeparam>
+		/// <typeparam name="R">Type of elements of the outer async sequence</typeparam>
 		internal sealed class AnonymousAsyncSelectable<T, R> : IFdbAsyncEnumerable<R>
 		{
 			public readonly IFdbAsyncEnumerable<T> Source;
@@ -71,12 +80,98 @@ namespace FoundationDb.Linq
 			}
 		}
 
-		internal sealed class AnonymousSelectable<T, R> : IFdbAsyncEnumerable<R>
+		/// <summary>Iterates over an async sequence of items</summary>
+		/// <typeparam name="T">Type of elements of the inner async sequence</typeparam>
+		/// <typeparam name="R">Type of elements of the outer async sequence</typeparam>
+		internal sealed class AnonymousAsyncSelector<T, R> : IFdbAsyncEnumerator<R>
+		{
+			private IFdbAsyncEnumerator<T> m_iterator;
+			private Func<T, Task<R>> m_onNextAsync;
+			private Func<T, R> m_onNextSync;
+			private Func<Task> m_onComplete;
+			private bool m_closed;
+			private R m_current;
+
+			public AnonymousAsyncSelector(IFdbAsyncEnumerator<T> iterator, Func<T, R> onNext, Func<Task> onComplete)
+			{
+				m_iterator = iterator;
+				m_onNextSync = onNext;
+				m_onComplete = onComplete;
+			}
+
+			public AnonymousAsyncSelector(IFdbAsyncEnumerator<T> iterator, Func<T, Task<R>> onNextAsync, Func<Task> onComplete)
+			{
+				m_iterator = iterator;
+				m_onNextAsync = onNextAsync;
+				m_onComplete = onComplete;
+			}
+
+			public async Task<bool> MoveNext(CancellationToken cancellationToken)
+			{
+				if (m_closed)
+				{
+					if (m_iterator == null) throw new ObjectDisposedException(this.GetType().Name);
+					return false;
+				}
+
+				cancellationToken.ThrowIfCancellationRequested();
+
+				if (await m_iterator.MoveNext(cancellationToken))
+				{
+					if (m_onNextAsync != null)
+					{
+						m_current = await m_onNextAsync(m_iterator.Current);
+					}
+					else
+					{
+						m_current = m_onNextSync(m_iterator.Current);
+					}
+					return true;
+				}
+
+				m_current = default(R);
+				m_closed = true;
+				if (m_onComplete != null)
+				{
+					await m_onComplete();
+				}
+
+				return false;
+			}
+
+			public R Current
+			{
+				get
+				{
+					if (m_closed) throw new InvalidOperationException();
+					return m_current;
+				}
+			}
+
+			public void Dispose()
+			{
+				if (m_iterator != null)
+				{
+					m_iterator.Dispose();
+				}
+				m_iterator = null;
+				m_onNextAsync = null;
+				m_onNextSync = null;
+				m_onComplete = null;
+				m_closed = true;
+				m_current = default(R);
+			}
+		}
+
+		/// <summary>Wraps a sequence of items into an async sequence of items</summary>
+		/// <typeparam name="T">Type of elements of the inner sequence</typeparam>
+		/// <typeparam name="R">Type of elements of the outer async sequence</typeparam>
+		internal sealed class EnumerableSelectable<T, R> : IFdbAsyncEnumerable<R>
 		{
 			public readonly IEnumerable<T> Source;
 			public readonly Func<IEnumerator<T>, IFdbAsyncEnumerator<R>> Factory;
 
-			public AnonymousSelectable(IEnumerable<T> source, Func<IEnumerator<T>, IFdbAsyncEnumerator<R>> factory)
+			public EnumerableSelectable(IEnumerable<T> source, Func<IEnumerator<T>, IFdbAsyncEnumerator<R>> factory)
 			{
 				this.Source = source;
 				this.Factory = factory;
@@ -104,162 +199,10 @@ namespace FoundationDb.Linq
 			}
 		}
 
-		internal sealed class AsyncSelector<T, R> : IFdbAsyncEnumerator<R>
-		{
-
-			private IFdbAsyncEnumerator<T> m_iterator;
-			private Func<T, R> m_transformSync;
-			private Func<T, Task<R>> m_transformAsync;
-			private bool m_closed;
-			private R m_current;
-
-			public AsyncSelector(IFdbAsyncEnumerator<T> source, Func<T, R> transform)
-			{
-				Contract.Requires(source != null && transform != null);
-
-				m_iterator = source;
-				m_transformSync = transform;
-			}
-
-			public AsyncSelector(IFdbAsyncEnumerator<T> source, Func<T, Task<R>> transform)
-			{
-				Contract.Requires(source != null && transform != null);
-
-				m_iterator = source;
-				m_transformAsync = transform;
-			}
-
-			public async Task<bool> MoveNext(CancellationToken cancellationToken)
-			{
-				if (m_closed)
-				{
-					if (m_iterator == null) throw new ObjectDisposedException(this.GetType().Name);
-					return false;
-				}
-
-				cancellationToken.ThrowIfCancellationRequested();
-
-				if (await m_iterator.MoveNext(cancellationToken))
-				{
-					if (m_transformSync != null)
-					{
-						m_current = m_transformSync(m_iterator.Current);
-					}
-					else
-					{
-						m_current = await m_transformAsync(m_iterator.Current);
-					}
-					return true;
-				}
-
-				m_current = default(R);
-				m_closed = true;
-				return false;
-			}
-
-			public R Current
-			{
-				get
-				{
-					if (m_closed) throw new InvalidOperationException();
-					return m_current;
-				}
-			}
-
-			public void Dispose()
-			{
-				if (m_iterator != null)
-				{
-					m_iterator.Dispose();
-				}
-				this.m_iterator = null;
-				m_transformSync = null;
-				m_transformAsync = null;
-				m_closed = true;
-				m_current = default(R);
-			}
-
-		}
-
-		internal sealed class AsyncIndexedSelector<T, R> : IFdbAsyncEnumerator<R>
-		{
-
-			private IFdbAsyncEnumerator<T> m_iterator;
-			private Func<T, int, R> m_transformSync;
-			private Func<T, int, Task<R>> m_transformAsync;
-			private int m_index;
-			private R m_current;
-
-			public AsyncIndexedSelector(IFdbAsyncEnumerator<T> source, Func<T, int, R> transform)
-			{
-				Contract.Requires(source != null && transform != null);
-
-				m_iterator = source;
-				m_transformSync = transform;
-			}
-
-			public AsyncIndexedSelector(IFdbAsyncEnumerator<T> source, Func<T, int, Task<R>> transform)
-			{
-				Contract.Requires(source != null && transform != null);
-
-				m_iterator = source;
-				m_transformAsync = transform;
-			}
-
-			public async Task<bool> MoveNext(CancellationToken cancellationToken)
-			{
-				if (m_index == -1)
-				{
-					if (m_iterator == null) throw new ObjectDisposedException(this.GetType().Name);
-					return false;
-				}
-
-				cancellationToken.ThrowIfCancellationRequested();
-
-				if (await m_iterator.MoveNext(cancellationToken))
-				{
-					if (m_transformSync != null)
-					{
-						m_current = m_transformSync(m_iterator.Current, m_index);
-					}
-					else
-					{
-						m_current = await m_transformAsync(m_iterator.Current, m_index);
-					}
-					++m_index;
-					return true;
-				}
-
-				m_current = default(R);
-				m_index = -1;
-				return false;
-			}
-
-			public R Current
-			{
-				get
-				{
-					if (m_index == -1) throw new InvalidOperationException();
-					return m_current;
-				}
-			}
-
-			public void Dispose()
-			{
-				if (m_iterator != null)
-				{
-					m_iterator.Dispose();
-				}
-				m_iterator = null;
-				m_transformSync = null;
-				m_transformAsync = null;
-				m_index = -1;
-				m_current = default(R);
-			}
-
-		}
-
-		internal sealed class Selector<T, R> : IFdbAsyncEnumerator<R>
+		/// <summary>Iterates over a sequence of items</summary>
+		/// <typeparam name="T">Type of elements of the inner sequence</typeparam>
+		/// <typeparam name="R">Type of elements of the outer async sequence</typeparam>
+		internal sealed class EnumerableSelector<T, R> : IFdbAsyncEnumerator<R>
 		{
 
 			private IEnumerator<T> m_iterator;
@@ -267,7 +210,7 @@ namespace FoundationDb.Linq
 			private bool m_closed;
 			private R m_current;
 
-			public Selector(IEnumerator<T> iterator, Func<T, Task<R>> transform)
+			public EnumerableSelector(IEnumerator<T> iterator, Func<T, Task<R>> transform)
 			{
 				Contract.Requires(iterator != null && transform != null);
 
@@ -319,17 +262,65 @@ namespace FoundationDb.Linq
 
 		}
 
+		/// <summary>Create a new async sequence that will transform an inner async sequence</summary>
+		/// <typeparam name="T">Type of elements of the inner async sequence</typeparam>
+		/// <typeparam name="R">Type of elements of the outer async sequence</typeparam>
+		/// <param name="source">Source async sequence that will be wrapped</param>
+		/// <param name="factory">Factory method called when the outer sequence starts iterating. Must return an async enumerator</param>
+		/// <returns>New async sequence</returns>
 		internal static AnonymousAsyncSelectable<T, R> Create<T, R>(IFdbAsyncEnumerable<T> source, Func<IFdbAsyncEnumerator<T>, IFdbAsyncEnumerator<R>> factory)
 		{
 			return new AnonymousAsyncSelectable<T, R>(source, factory);
 		}
 
-		internal static AnonymousSelectable<T, R> Create<T, R>(IEnumerable<T> source, Func<IEnumerator<T>, IFdbAsyncEnumerator<R>> factory)
+		/// <summary>Create a new async sequence that will transform an inner sequence</summary>
+		/// <typeparam name="T">Type of elements of the inner sequence</typeparam>
+		/// <typeparam name="R">Type of elements of the outer async sequence</typeparam>
+		/// <param name="source">Source sequence that will be wrapped</param>
+		/// <param name="factory">Factory method called when the outer sequence starts iterating. Must return an async enumerator</param>
+		/// <returns>New async sequence</returns>
+		internal static EnumerableSelectable<T, R> Create<T, R>(IEnumerable<T> source, Func<IEnumerator<T>, IFdbAsyncEnumerator<R>> factory)
 		{
-			return new AnonymousSelectable<T, R>(source, factory);
+			return new EnumerableSelectable<T, R>(source, factory);
 		}
 
-		private static async Task<long> Iterate<T>(IFdbAsyncEnumerable<T> source, Action<T> action, CancellationToken ct)
+		/// <summary>Create a new async iterator over an inner async iterator, that will transform each item as they arrive</summary>
+		/// <typeparam name="T">Type of elements of the inner async sequence</typeparam>
+		/// <typeparam name="R">Type of elements of the outer async sequence</typeparam>
+		/// <param name="iterator">Inner iterator to use</param>
+		/// <param name="onNext">Lambda called when a new inner element arrives that returns a transform item</param>
+		/// <param name="onComplete">Called when the inner iterator has completed</param>
+		/// <returns>New async iterator</returns>
+		internal static AnonymousAsyncSelector<T, R> Iterate<T, R>(IFdbAsyncEnumerator<T> iterator, Func<T, R> onNext, Func<Task> onComplete = null)
+		{
+			if (iterator == null) throw new ArgumentNullException("iterator");
+			if (onNext == null) throw new ArgumentNullException("onNext");
+
+			return new AnonymousAsyncSelector<T, R>(iterator, onNext, onComplete);
+		}
+
+		/// <summary>Create a new async iterator over an inner async iterator, that will transform each item as they arrive</summary>
+		/// <typeparam name="T">Type of elements of the inner async sequence</typeparam>
+		/// <typeparam name="R">Type of elements of the outer async sequence</typeparam>
+		/// <param name="iterator">Inner iterator to use</param>
+		/// <param name="onNextAsync">Async lambda called when a new inner element arrives that returns a Task that will return the transform item</param>
+		/// <param name="onComplete">Called when the inner iterator has completed</param>
+		/// <returns>New async iterator</returns>
+		internal static AnonymousAsyncSelector<T, R> Iterate<T, R>(IFdbAsyncEnumerator<T> iterator, Func<T, Task<R>> onNextAsync, Func<Task> onComplete = null)
+		{
+			if (iterator == null) throw new ArgumentNullException("iterator");
+			if (onNextAsync == null) throw new ArgumentNullException("onNextAsync");
+
+			return new AnonymousAsyncSelector<T, R>(iterator, onNextAsync, onComplete);
+		}
+
+		/// <summary>Immediately execute an action on each element of an async sequence</summary>
+		/// <typeparam name="T">Type of elements of the async sequence</typeparam>
+		/// <param name="source">Source async sequence</param>
+		/// <param name="action">Action to perform on each element as it arrives</param>
+		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
+		/// <returns>Number of items that have been processed</returns>
+		internal static async Task<long> Run<T>(IFdbAsyncEnumerable<T> source, Action<T> action, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -347,7 +338,13 @@ namespace FoundationDb.Linq
 			return count;
 		}
 
-		private static async Task<long> Iterate<T>(IFdbAsyncEnumerable<T> source, Func<T, Task> action, CancellationToken ct)
+		/// <summary>Immediately execute an asunc action on each element of an async sequence</summary>
+		/// <typeparam name="T">Type of elements of the async sequence</typeparam>
+		/// <param name="source">Source async sequence</param>
+		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
+		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
+		/// <returns>Number of items that have been processed</returns>
+		internal static async Task<long> Run<T>(IFdbAsyncEnumerable<T> source, Func<T, Task> action, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -366,7 +363,13 @@ namespace FoundationDb.Linq
 		}
 
 		/// <summary>Helper async method to get the first element of an async sequence</summary>
-		private static async Task<T> Head<T>(IFdbAsyncEnumerable<T> source, CancellationToken ct, bool single, bool orDefault)
+		/// <typeparam name="T">Type of elements of the async sequence</typeparam>
+		/// <param name="source">Source async sequence</param>
+		/// <param name="single">If true, the sequence must contain at most one element</param>
+		/// <param name="orDefault">When the sequence is empty: If true then returns the default value for the type. Otherwise, throws an exception</param>
+		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
+		/// <returns>Value of the first element of the <paramref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
+		internal static async Task<T> Head<T>(IFdbAsyncEnumerable<T> source, bool single, bool orDefault, CancellationToken ct)
 		{
 			using (var iterator = source.GetEnumerator())
 			{
@@ -374,11 +377,12 @@ namespace FoundationDb.Linq
 
 				if (await iterator.MoveNext(ct))
 				{
+					T first = iterator.Current;
 					if (single)
 					{
 						if (await iterator.MoveNext(ct)) throw new InvalidOperationException("The sequence contained more than one element");
 					}
-					return iterator.Current;
+					return first;
 				}
 				if (!orDefault) throw new InvalidOperationException("The sequence was empty");
 				return default(T);
