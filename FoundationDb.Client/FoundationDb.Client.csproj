@@ -63,6 +63,7 @@
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
     <Compile Include="Layers\Tuples\FdbJoinedTuple.cs" />
+    <Compile Include="Layers\Tuples\FdbSubspaceExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbLinkedTuple.cs" />
     <Compile Include="Layers\Tuples\IFdbTuple.cs" />
     <Compile Include="Layers\Tuples\FdbSubspace.cs" />
@@ -90,8 +91,8 @@
     <Compile Include="Unmanaged\UnmanagedLibrary.cs" />
     <Compile Include="Converters\FdbConverters.cs" />
     <Compile Include="Converters\IFdbConverter.cs" />
-    <Compile Include="Tuples\FdbTupleKeyReader.cs" />
-    <Compile Include="Tuples\ITupleKeyReader.cs" />
+    <Compile Include="Layers\Tuples\FdbTupleKeyFormatter.cs" />
+    <Compile Include="Layers\Tuples\ITupleKeyFormatter.cs" />
     <Compile Include="Layers\Tuples\FdbTupleTypes.cs" />
     <Compile Include="Layers\Tuples\FdbTuplePackers.cs" />
     <Compile Include="Layers\Tuples\FdbSlicedTuple.cs" />

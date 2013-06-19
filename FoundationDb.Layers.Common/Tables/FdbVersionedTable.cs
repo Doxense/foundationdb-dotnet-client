@@ -56,7 +56,7 @@ namespace FoundationDb.Layers.Tables
 		public FdbSubspace Subspace { get; private set; }
 
 		/// <summary>Class that can pack/unpack keys into/from tuples</summary>
-		public ITupleKeyReader<TId> KeyReader { get; private set; }
+		public ITupleKeyFormatter<TId> KeyReader { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		public ISliceSerializer<TValue> ValueSerializer { get; private set; }
@@ -70,7 +70,7 @@ namespace FoundationDb.Layers.Tables
 		/// <summary>(Subspace, LATEST_VERSIONS_KEY, key) = Contains the last version for this specific key</summary>
 		protected FdbMemoizedTuple VersionsPrefix { get; private set; }
 
-		public FdbVersionedTable(string name, FdbDatabase database, FdbSubspace subspace, ITupleKeyReader<TId> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public FdbVersionedTable(string name, FdbDatabase database, FdbSubspace subspace, ITupleKeyFormatter<TId> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
 			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
 			if (database == null) throw new ArgumentNullException("database");
@@ -190,7 +190,7 @@ namespace FoundationDb.Layers.Tables
 		/// <returns>(Subspace, ITEMS_KEY, key, )</returns>
 		protected virtual IFdbTuple GetItemKeyPrefix(TId id)
 		{
-			return this.KeyReader.Append(this.ItemsPrefix, id);
+			return this.ItemsPrefix.AppendRange(this.KeyReader.Pack(id));
 		}
 
 		protected virtual IFdbTuple GetItemKey(TId id, long version)
@@ -202,7 +202,7 @@ namespace FoundationDb.Layers.Tables
 		/// <returns>(Subspace, LAST_VERSION_KEY, key, )</returns>
 		protected virtual IFdbTuple GetVersionKey(TId id)
 		{
-			return this.KeyReader.Append(this.VersionsPrefix, id);
+			return this.VersionsPrefix.AppendRange(this.KeyReader.Pack(id));
 		}
 
 		protected virtual Task<Slice> GetValueAtVersionAsync(FdbTransaction trans, TId id, long version, bool snapshot, CancellationToken ct)
@@ -421,9 +421,8 @@ namespace FoundationDb.Layers.Tables
 			var versions = await trans
 				.GetRangeStartsWith(this.ItemsPrefix, 0, snapshot)
 				.ReadAllAsync(
-					(key) => this.KeyReader.Unpack(key.ToTuple(), this.VersionsPrefix.Count),
+					(key) => this.KeyReader.Unpack(FdbTuple.UnpackWithoutPrefix(key, this.VersionsPrefix)),
 					(value) => value.ToInt64(),
-					(key, version) => new KeyValuePair<TId, long>(key, version),
 					ct
 				).ConfigureAwait(false);
 

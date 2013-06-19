@@ -230,22 +230,6 @@ namespace FoundationDb.Tests.Sandbox
 			Console.WriteLine("Took " + sw.Elapsed + " to read " + keys.Length + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / keys.Length) + "/read)");
 		}
 
-		static void BenchSerialReadBlocking(FdbDatabase db, int N)
-		{
-			// read a lot of small keys, by blocking (no async)
-
-			var sw = Stopwatch.StartNew();
-			using (var trans = db.BeginTransaction())
-			{
-				for (int i = 0; i < N; i++)
-				{
-					var result = trans.Get(FdbKey.Ascii("hello" + i));
-				}
-			}
-			sw.Stop();
-			Console.WriteLine("Took " + sw.Elapsed + " to read " + N + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/read)");
-		}
-
 		static async Task BenchClearAsync(FdbDatabase db, int N)
 		{
 			// clear a lot of small keys, in a single transaction

@@ -56,7 +56,7 @@ namespace FoundationDb.Layers.Tables.Tests
 					"Foos",
 					db, 
 					subspace,
-					FdbTupleKeyReader<int>.Default,
+					FdbTupleKeyFormatter<int>.Default,
 					new FdbSliceSerializer<string>(
 						(str) => Slice.FromString(str),
 						(slice) => slice.ToUnicode()
@@ -173,7 +173,7 @@ namespace FoundationDb.Layers.Tables.Tests
 					"Bars",
 					db,
 					subspace,
-					FdbTupleKeyReader<Guid>.Default,
+					FdbTupleKeyFormatter<Guid>.Default,
 					new FdbSliceSerializer<string>(
 						(str) => Slice.FromString(str),
 						(slice) => slice.ToUnicode()

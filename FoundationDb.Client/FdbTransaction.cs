@@ -29,9 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Transactions
 #undef DEBUG_TRANSACTIONS
 
-// enable to allow non-async methods
-#undef ENABLE_BLOCKING_OPERATIONS
-
 namespace FoundationDb.Client
 {
 	using FoundationDb.Client.Native;
@@ -248,37 +245,6 @@ namespace FoundationDb.Client
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
 		}
 
-#if ENABLE_BLOCKING_OPERATIONS
-
-		internal Slice GetCore(Slice key, bool snapshot, CancellationToken ct)
-		{
-			this.Database.EnsureKeyIsValid(key);
-
-			var handle = FdbNative.TransactionGet(m_handle, key, snapshot);
-			using (var future = FdbFuture.FromHandle(handle, (h) => GetValueResultBytes(h), ct, willBlockForResult: true))
-			{
-				return future.GetResult();
-			}
-		}
-
-#endif
-
-		/// <summary>Returns the value of a particular key</summary>
-		/// <param name="key">Key to retrieve</param>
-		/// <param name="snapshot"></param>
-		/// <param name="ct">CancellationToken used to cancel this operation</param>
-		/// <returns>Task that will return the value of the key if it is found, null if the key does not exist, or an exception</returns>
-		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
-		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
-		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Task<Slice> GetAsync(IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (key == null) throw new ArgumentNullException("key");
-
-			return GetAsync(key.ToSlice(), snapshot, ct);
-		}
-
 		/// <summary>Returns the value of a particular key</summary>
 		/// <param name="keyBytes">Key to retrieve</param>
 		/// <param name="snapshot"></param>
@@ -293,47 +259,6 @@ namespace FoundationDb.Client
 			EnsuresCanReadOrWrite(ct);
 
 			return GetCoreAsync(keyBytes, snapshot, ct);
-		}
-
-
-		/// <summary>Returns the value of a particular key</summary>
-		/// <param name="key">Key to retrieve</param>
-		/// <param name="snapshot"></param>
-		/// <param name="ct">CancellationToken used to cancel this operation</param>
-		/// <returns>Returns the value of the key if it is found, or null if the key does not exist</returns>
-		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
-		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
-		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Slice Get(IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-#if ENABLE_BLOCKING_OPERATIONS
-			if (key == null) throw new ArgumentNullException("key");
-
-			return Get(key.ToSlice(), snapshot, ct);
-#else
-			throw new NotSupportedException();
-#endif
-		}
-
-		/// <summary>Returns the value of a particular key</summary>
-		/// <param name="keyBytes">Key to retrieve (UTF-8)</param>
-		/// <param name="snapshot"></param>
-		/// <param name="ct">CancellationToken used to cancel this operation</param>
-		/// <returns>Returns the value of the key if it is found, or null if the key does not exist</returns>
-		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
-		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
-		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Slice Get(Slice keyBytes, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-#if ENABLE_BLOCKING_OPERATIONS
-			EnsuresCanReadOrWrite(ct);
-
-			return GetCore(keyBytes, snapshot, ct);
-#else
-			throw new NotSupportedException();
-#endif
 		}
 
 		public Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
@@ -381,55 +306,6 @@ namespace FoundationDb.Client
 
 			return indexedResults
 				.Select((kvp) => new KeyValuePair<Slice, Slice>(keys[kvp.Key], kvp.Value))
-				.ToList();
-		}
-
-		public Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IEnumerable<IFdbTuple> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			ct.ThrowIfCancellationRequested();
-			return GetBatchIndexedAsync(keys.ToArray(), snapshot, ct);
-		}
-
-		public async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IFdbTuple[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			EnsuresCanReadOrWrite(ct);
-
-			var tasks = new List<Task<Slice>>(keys.Length);
-			for (int i = 0; i < keys.Length; i++)
-			{
-				tasks.Add(this.GetCoreAsync(keys[i].ToSlice(), snapshot, ct));
-			}
-
-			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
-
-			return results
-				.Select((data, i) => new KeyValuePair<int, Slice>(i, data))
-				.ToList();
-		}
-
-		public Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(IEnumerable<IFdbTuple> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			ct.ThrowIfCancellationRequested();
-			return GetBatchAsync(keys.ToArray(), snapshot, ct);
-		}
-
-		public async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(IFdbTuple[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			var indexedResults = await GetBatchIndexedAsync(keys, snapshot, ct);
-
-			ct.ThrowIfCancellationRequested();
-
-			// maps the index back to the original key
-			return indexedResults
-				.Select((kvp) => new KeyValuePair<IFdbTuple, Slice>(keys[kvp.Key], kvp.Value))
 				.ToList();
 		}
 
@@ -482,24 +358,6 @@ namespace FoundationDb.Client
 			);
 		}
 
-		public FdbRangeQuery GetRange(IFdbTuple beginInclusive, IFdbTuple endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
-		{
-			EnsuresCanReadOrWrite();
-
-			var begin = beginInclusive != null ? beginInclusive.ToSlice() : FdbKey.MinValue;
-			var end = endExclusive != null ? endExclusive.ToSlice() : FdbKey.MaxValue;
-
-			return GetRangeCore(
-				ToSelector(begin),
-				ToSelector(end),
-				limit,
-				0,
-				FdbStreamingMode.WantAll,
-				snapshot,
-				reverse
-			);
-		}
-
 		public FdbRangeQuery GetRangeInclusive(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
 			EnsuresCanReadOrWrite();
@@ -514,25 +372,6 @@ namespace FoundationDb.Client
 			var range = FdbKeyRange.FromPrefix(prefix);
 
 			return GetRange(range.Begin, range.End, limit, snapshot, reverse);
-		}
-
-		public FdbRangeQuery GetRangeStartsWith(IFdbTuple suffix, int limit = 0, bool snapshot = false, bool reverse = false)
-		{
-			if (suffix == null) throw new ArgumentNullException("suffix");
-
-			EnsuresCanReadOrWrite();
-
-			var range = suffix.ToRange();
-
-			return GetRangeCore(
-				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
-				FdbKeySelector.FirstGreaterThan(range.End),
-				limit,
-				0,
-				FdbStreamingMode.WantAll,
-				snapshot,
-				reverse
-			);
 		}
 
 		public FdbRangeQuery GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
@@ -623,16 +462,6 @@ namespace FoundationDb.Client
 			SetCore(keyBytes, value);
 		}
 
-		public void Set(IFdbTuple key, Slice valueBytes)
-		{
-			if (key == null) throw new ArgumentNullException("key");
-
-			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
-
-			SetCore(key.ToSlice(), valueBytes);
-		}
-
-
 		#endregion
 
 		#region Clear...
@@ -650,15 +479,6 @@ namespace FoundationDb.Client
 			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
 
 			ClearCore(key);
-		}
-
-		public void Clear(IFdbTuple key)
-		{
-			if (key == null) throw new ArgumentNullException("key");
-
-			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
-
-			ClearCore(key.ToSlice());
 		}
 
 		#endregion
@@ -689,26 +509,6 @@ namespace FoundationDb.Client
 			ClearRangeCore(beginKeyInclusive, endKeyExclusive);
 		}
 
-		public void ClearRange(IFdbTuple beginInclusive, IFdbTuple endExclusive)
-		{
-			if (beginInclusive == null) throw new ArgumentNullException("beginInclusive");
-			if (endExclusive == null) throw new ArgumentNullException("endExclusive");
-
-			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
-
-			ClearRangeCore(beginInclusive.ToSlice(), endExclusive.ToSlice());
-		}
-
-		public void ClearRange(IFdbTuple prefix)
-		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-
-			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
-
-			var range = prefix.ToRange();
-			ClearRangeCore(range.Begin, range.End);
-		}
-
 		#endregion
 
 		#region Commit...
@@ -732,36 +532,6 @@ namespace FoundationDb.Client
 			}
 		}
 
-
-		public void Commit(CancellationToken ct = default(CancellationToken))
-		{
-#if ENABLE_BLOCKING_OPERATIONS
-			EnsuresCanReadOrWrite(ct);
-
-			//TODO: need a STATE_COMMITTING ?
-
-			FutureHandle handle = null;
-			try
-			{
-				// calls fdb_transaction_commit
-				handle = FdbNative.TransactionCommit(m_handle);
-				using (var future = FdbFuture.FromHandle<object>(handle, (h) => null, ct, willBlockForResult: true))
-				{
-					future.Wait();
-				}
-				Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY);
-			}
-			catch (Exception)
-			{
-				Interlocked.CompareExchange(ref m_state, STATE_FAILED, STATE_READY);
-				if (handle != null) handle.Dispose();
-				throw;
-			}
-#else
-			throw new NotSupportedException();
-#endif
-		}
-
 		#endregion
 
 		#region OnError...
@@ -773,32 +543,6 @@ namespace FoundationDb.Client
 
 			var future = FdbNative.TransactionOnError(m_handle, code);
 			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
-		}
-
-		public void OnError(FdbError code, CancellationToken ct = default(CancellationToken))
-		{
-#if ENABLE_BLOCKING_OPERATIONS
-			//note: should this be allowed from network thread ?
-			EnsuresCanReadOrWrite(ct);
-
-			FutureHandle handle = null;
-			try
-			{
-				// calls fdb_transaction_on_error
-				handle = FdbNative.TransactionOnError(m_handle, code);
-				using (var future = FdbFuture.FromHandle<object>(handle, (h) => null, ct, willBlockForResult: true))
-				{
-					future.Wait();
-				}
-			}
-			catch (Exception)
-			{
-				if (handle != null) handle.Dispose();
-				throw;
-			}
-#else
-			throw new NotSupportedException();
-#endif
 		}
 
 		#endregion

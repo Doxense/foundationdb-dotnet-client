@@ -26,14 +26,50 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Layers.Tuples
+namespace FoundationDb.Layers.Blobs
 {
+	using FoundationDb.Client;
+	using FoundationDb.Client.Utils;
+	using FoundationDb.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
+	using System.Globalization;
+	using System.IO;
+	using System.Linq;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-	public interface ITupleKeyReader<TKey>
+	/// <summary>Represents a collection of dictionaries of fields.</summary>
+	public class FdbHashSetCollection
 	{
-		IFdbTuple Append(IFdbTuple parent, TKey key);
-		TKey Unpack(IFdbTuple parent, int offset);
+
+		public FdbHashSetCollection(FdbSubspace subspace)
+		{
+			if (subspace == null) throw new ArgumentNullException("subspace");
+
+			this.Subspace = subspace;
+		}
+
+		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
+		public FdbSubspace Subspace { get; private set; }
+
+		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
+		/// <param name="id"></param>
+		/// <returns></returns>
+		private Slice GetKey(IFdbTuple id)
+		{
+			return this.Subspace.Pack(id);
+		}
+
+		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>
+		/// <param name="id"></param>
+		/// <param name="field"></param>
+		/// <returns></returns>
+		private Slice GetFieldKey(IFdbTuple id, string field)
+		{
+			return this.Subspace.Pack(id, field);
+		}
+
 	}
 
 }

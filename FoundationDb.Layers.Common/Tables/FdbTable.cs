@@ -99,7 +99,7 @@ namespace FoundationDb.Layers.Tables
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			return trans.GetRangeStartsWith(this.Subspace.Tuple, snapshot: snapshot).ReadAllAsync(ct);
+			return trans.GetRangeStartsWith(this.Subspace, snapshot: snapshot).ReadAllAsync(ct);
 		}
 	}
 

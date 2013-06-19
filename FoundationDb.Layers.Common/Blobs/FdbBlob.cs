@@ -203,7 +203,7 @@ namespace FoundationDb.Layers.Blobs
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.ClearRange(this.Subspace.Tuple);
+			trans.ClearRange(this.Subspace);
 		}
 
 		public async Task<long?> GetSizeAsync(FdbTransaction trans)

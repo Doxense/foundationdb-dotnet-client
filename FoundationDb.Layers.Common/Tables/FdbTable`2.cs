@@ -39,7 +39,7 @@ namespace FoundationDb.Layers.Tables
 	public class FdbTable<TKey, TValue>
 	{
 
-		public FdbTable(FdbSubspace subspace, ITupleKeyReader<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public FdbTable(FdbSubspace subspace, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (keyReader == null) throw new ArgumentNullException("keyReader");
@@ -54,14 +54,14 @@ namespace FoundationDb.Layers.Tables
 		public FdbSubspace Subspace { get; private set; }
 		
 		/// <summary>Class that can pack/unpack keys into/from tuples</summary>
-		public ITupleKeyReader<TKey> KeyReader { get; private set; }
+		public ITupleKeyFormatter<TKey> KeyReader { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		public ISliceSerializer<TValue> ValueSerializer { get; private set; }
 
 		public Slice GetKeyBytes(TKey key)
 		{
-			return this.KeyReader.Append(this.Subspace.Tuple, key).ToSlice();
+			return this.Subspace.Append(this.KeyReader.Pack(key)).ToSlice();
 		}
 
 		/// <summary>Returns a tuple (namespace, key, )</summary>
@@ -99,9 +99,9 @@ namespace FoundationDb.Layers.Tables
 			TValue missing = default(TValue);
 
 			return trans
-				.GetRangeStartsWith(this.Subspace.Tuple, snapshot: snapshot)
+				.GetRangeStartsWith(this.Subspace, snapshot: snapshot)
 				.ReadAllAsync(
-					(key) => this.KeyReader.Unpack(FdbTuple.Unpack(key), offset),
+					(key) => this.KeyReader.Unpack(this.Subspace.Unpack(key)),
 					(value) => this.ValueSerializer.Deserialize(value, missing),
 					(key, value) => new KeyValuePair<TKey, TValue>(key, value),
 					ct

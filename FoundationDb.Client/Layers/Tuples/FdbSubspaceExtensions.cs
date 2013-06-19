@@ -28,24 +28,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDb.Layers.Tuples
 {
+	using FoundationDb.Client;
+	using FoundationDb.Client.Utils;
 	using System;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-	public sealed class FdbTupleKeyReader<T> : ITupleKeyReader<T>
+	/// <summary>Extensions methods to add FdbSubspace overrides to various types</summary>
+	public static class FdbSubspaceExtensions
 	{
-		public static readonly ITupleKeyReader<T> Default = new FdbTupleKeyReader<T>();
 
-		private FdbTupleKeyReader()
-		{ }
-
-		public IFdbTuple Append(IFdbTuple parent, T key)
+		public static void ClearRange(this FdbTransaction trans, FdbSubspace subspace)
 		{
-			return parent.Append<T>(key);
+			Contract.Requires(trans != null && subspace != null);
+
+			trans.ClearRange(subspace.Tuple);
 		}
 
-		public T Unpack(IFdbTuple parent, int offset)
+		public static FdbRangeQuery GetRangeStartsWith(this FdbTransaction trans, FdbSubspace subspace, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
-			return parent.Get<T>(offset);
+			Contract.Requires(trans != null && subspace != null);
+
+			return trans.GetRangeStartsWith(subspace.Tuple, limit, snapshot, reverse);
 		}
+
+		public static Task<Slice> GetAsync(this FdbTransaction trans, FdbSubspace subspace, IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			Contract.Requires(trans != null && subspace != null && key != null);
+
+			return trans.GetAsync(subspace.Append(key), snapshot, ct);
+		}
+
+		public static void Set(this FdbTransaction trans, FdbSubspace subspace, IFdbTuple key, Slice value)
+		{
+			Contract.Requires(trans != null && subspace != null && key != null);
+
+			trans.Set(subspace.Append(key), value);
+		}
+
 	}
-
 }
