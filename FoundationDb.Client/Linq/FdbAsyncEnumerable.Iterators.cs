@@ -234,23 +234,24 @@ namespace FoundationDb.Linq
 			private Func<Task> m_onComplete;
 			private bool m_closed;
 
+			private T m_sourceCurrent;
 			private IEnumerator<R> m_batch;
 			private R m_current;
 
-			public AnonymousAsyncManySelector(IFdbAsyncEnumerator<T> iterator, Func<T, bool> preFilter, Func<T, IEnumerable<R>> onNext, Func<R, bool> postFilter, Func<Task> onComplete)
+			public AnonymousAsyncManySelector(IFdbAsyncEnumerator<T> iterator, Func<T, bool> preFilter, Func<T, IEnumerable<R>> collectionSelector, Func<R, bool> postFilter, Func<Task> onComplete)
 			{
 				m_iterator = iterator;
 				m_preFilter = preFilter;
-				m_onNextSync = onNext;
+				m_onNextSync = collectionSelector;
 				m_postFilter = postFilter;
 				m_onComplete = onComplete;
 			}
 
-			public AnonymousAsyncManySelector(IFdbAsyncEnumerator<T> iterator, Func<T, bool> preFilter, Func<T, Task<IEnumerable<R>>> onNextAsync, Func<R, bool> postFilter, Func<Task> onComplete)
+			public AnonymousAsyncManySelector(IFdbAsyncEnumerator<T> iterator, Func<T, bool> preFilter, Func<T, Task<IEnumerable<R>>> asyncCollectionSelector, Func<R, bool> postFilter, Func<Task> onComplete)
 			{
 				m_iterator = iterator;
 				m_preFilter = preFilter;
-				m_onNextAsync = onNextAsync;
+				m_onNextAsync = asyncCollectionSelector;
 				m_postFilter = postFilter;
 				m_onComplete = onComplete;
 			}
@@ -279,7 +280,9 @@ namespace FoundationDb.Linq
 							break;
 						}
 
-						if (m_preFilter != null && !m_preFilter(m_iterator.Current))
+						m_sourceCurrent = m_iterator.Current;
+
+						if (m_preFilter != null && !m_preFilter(m_sourceCurrent))
 						{ // filtered out
 							continue;
 						}
@@ -287,11 +290,11 @@ namespace FoundationDb.Linq
 						IEnumerable<R> sequence;
 						if (m_onNextAsync != null)
 						{
-							sequence = await m_onNextAsync(m_iterator.Current);
+							sequence = await m_onNextAsync(m_sourceCurrent);
 						}
 						else
 						{
-							sequence = m_onNextSync(m_iterator.Current);
+							sequence = m_onNextSync(m_sourceCurrent);
 						}
 
 						if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
@@ -306,15 +309,16 @@ namespace FoundationDb.Linq
 						continue;
 					}
 
-					R current = m_batch.Current;
+					R batchCurrent = m_batch.Current;
 
-					if (m_postFilter == null || m_postFilter(current))
+					if (m_postFilter == null || m_postFilter(batchCurrent))
 					{
-						m_current = current;
+						m_current = batchCurrent;
 						return true;
 					}
 				}
 
+				m_sourceCurrent = default(T);
 				m_current = default(R);
 				m_closed = true;
 				if (m_onComplete != null)
@@ -352,6 +356,7 @@ namespace FoundationDb.Linq
 				m_postFilter = null;
 				m_onComplete = null;
 				m_closed = true;
+				m_sourceCurrent = default(T);
 				m_current = default(R);
 			}
 		}
@@ -519,7 +524,7 @@ namespace FoundationDb.Linq
 			if (iterator == null) throw new ArgumentNullException("iterator");
 			if (transform == null) throw new ArgumentNullException("transform");
 
-			return new AnonymousAsyncManySelector<T, R>(iterator, preFilter: null, onNext: transform, postFilter: null, onComplete: onComplete);
+			return new AnonymousAsyncManySelector<T, R>(iterator, preFilter: null, collectionSelector: transform, postFilter: null, onComplete: onComplete);
 		}
 
 		/// <summary>Create a new async iterator over an async iterator, that will filter items as they arrive</summary>

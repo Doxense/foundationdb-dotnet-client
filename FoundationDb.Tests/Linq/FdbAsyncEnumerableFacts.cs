@@ -363,7 +363,6 @@ namespace FoundationDb.Linq.Tests
 			Assert.That(any, Is.False);
 		}
 
-
 		[Test]
 		public async Task Test_Can_Any_With_Predicate()
 		{
@@ -397,6 +396,43 @@ namespace FoundationDb.Linq.Tests
 			var count = await source.CountAsync(x => x % 2 == 1);
 
 			Assert.That(count, Is.EqualTo(5));
+		}
+
+		[Test]
+		public async Task Test_Can_Select_Anonymous_Types()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			var results = await source
+				.Select((x) => new { Value = x, Square = x * x, Root = Math.Sqrt(x), Odd = x % 2 == 1 })
+				.Where((t) => t.Odd)
+				.ToListAsync();
+
+			Assert.That(results, Is.Not.Null);
+			Assert.That(results.Count, Is.EqualTo(5));
+
+			Assert.That(results[0].Value, Is.EqualTo(1));
+			Assert.That(results[0].Square, Is.EqualTo(1));
+			Assert.That(results[0].Root, Is.EqualTo(1.0));
+			Assert.That(results[0].Odd, Is.True);
+		}
+
+		public async Task Test_Can_Select_With_LINQ_Syntax()
+		{
+			// ensure that we can also use the "from ... select ... where" syntax
+
+			var results = await 
+				(from x in Enumerable.Range(0, 10).ToAsyncEnumerable()
+				let t = new { Value = x, Square = x * x, Root = Math.Sqrt(x), Odd = x % 2 == 1 }
+				where t.Odd
+				select t)
+				.ToListAsync();
+
+			Assert.That(results.Count, Is.EqualTo(5));
+			Assert.That(results[0].Value, Is.EqualTo(1));
+			Assert.That(results[0].Square, Is.EqualTo(1));
+			Assert.That(results[0].Root, Is.EqualTo(1.0));
+			Assert.That(results[0].Odd, Is.True);
 		}
 
 	}
