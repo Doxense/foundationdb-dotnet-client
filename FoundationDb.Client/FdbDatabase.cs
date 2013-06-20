@@ -304,6 +304,33 @@ namespace FoundationDb.Client
 			}
 		}
 
+		public async Task Attempt(Func<FdbTransaction, int, Task> action)
+		{
+			int attempt = 0;
+			while (true)
+			{
+				using (var trans = BeginTransaction())
+				{
+					FdbException e = null;
+					try
+					{
+						await action(trans, attempt++);
+						break;
+					}
+					catch (FdbException x)
+					{
+						x = e;
+					}
+
+					if (e != null)
+					{
+						await trans.OnErrorAsync(e.Code);
+					}
+				}
+			}
+
+		}
+
 		#region System Keys...
 
 		/// <summary>Returns a string describing the list of the coordinators for the cluster</summary>
