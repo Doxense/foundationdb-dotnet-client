@@ -339,18 +339,7 @@ namespace FoundationDb.Client
 			this.Database.EnsureKeyIsValid(begin.Key);
 			this.Database.EnsureKeyIsValid(end.Key);
 
-			var query = new FdbRangeSelector
-			{
-				Begin = begin, 
-				End = end, 
-				Limit = limit, 
-				TargetBytes = targetBytes, 
-				Mode = mode, 
-				Snapshot = snapshot, 
-				Reverse = reverse,
-			};
-
-			return new FdbRangeQuery(this, query);
+			return new FdbRangeQuery(this, begin, end, limit, targetBytes, mode, snapshot, reverse);
 		}
 
 		public FdbRangeQuery GetRange(Slice beginInclusive, Slice endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)

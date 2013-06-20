@@ -37,6 +37,13 @@ namespace FoundationDb.Linq
 	{
 		// Welcome to the wonderful world of the Monads! 
 
+		/// <summary>Helper class that will hold on cached generic delegates</summary>
+		/// <typeparam name="T"></typeparam>
+		private static class Cache<T>
+		{
+			public static readonly Func<T, T> Identity = (x) => x;
+		}
+
 		#region Entering the Monad...
 
 		/// <summary>Returns an empty async sequence</summary>

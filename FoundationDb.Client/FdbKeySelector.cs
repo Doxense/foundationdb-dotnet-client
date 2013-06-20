@@ -35,6 +35,8 @@ namespace FoundationDb.Client
 	[DebuggerDisplay("Key=[{Key.Count}], OrEqual={OrEqual}, Offset={Offset}")]
 	public struct FdbKeySelector
 	{
+		public static readonly FdbKeySelector None = default(FdbKeySelector);
+
 		public readonly Slice Key;
 		public readonly bool OrEqual;
 		public readonly int Offset;

@@ -32,6 +32,7 @@ namespace FoundationDb.Client.Tests
 	using FoundationDb.Linq;
 	using NUnit.Framework;
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Text;
@@ -313,18 +314,19 @@ namespace FoundationDb.Client.Tests
 
 				using (var tr = db.BeginTransaction())
 				{
-					var res = tr.GetRange(tuple.Append(0), tuple.Append(N));
-					Assert.That(res, Is.Not.Null);
+					var query = tr.GetRange(tuple.Append(0), tuple.Append(N));
+					Assert.That(query, Is.Not.Null);
+					Assert.That(query, Is.InstanceOf<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>());
 
-					Console.WriteLine("Getting range " + res.Query.Begin + " -> " + res.Query.End + " ...");
+					Console.WriteLine("Getting range " + query.Begin + " -> " + query.End + " ...");
 
-					var range = Stopwatch.StartNew();
-					var items = await res.ToListAsync();
-					range.Stop();
+					var ts = Stopwatch.StartNew();
+					var items = await query.ToListAsync();
+					ts.Stop();
 
 					Assert.That(items, Is.Not.Null);
 					Assert.That(items.Count, Is.EqualTo(N));
-					Console.WriteLine("Took " + range.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + items.Count.ToString("N0") + " results");
+					Console.WriteLine("Took " + ts.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + items.Count.ToString("N0") + " results");
 
 					for (int i = 0; i < N; i++)
 					{
@@ -333,16 +335,48 @@ namespace FoundationDb.Client.Tests
 						// key should be a tuple in the correct order
 						var key = FdbTuple.Unpack(kvp.Key);
 
-						if (i % 128 == 0) Console.WriteLine(key.ToString() + " = " + kvp.Value.ToString());
+						if (i % 128 == 0) Console.WriteLine("... " + key.ToString() + " = " + kvp.Value.ToString());
 
 						Assert.That(key.Count, Is.EqualTo(2));
-						Assert.That(key.GetInt32(-1), Is.EqualTo(i));
+						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
 
 						// value should be a guid
 						Assert.That(kvp.Value.ToInt32(), Is.EqualTo(i));
 					}
 				}
 
+				// GetRange by batch
+
+				using(var tr = db.BeginTransaction())
+				{
+					var query = tr
+						.GetRange(tuple.Append(0), tuple.Append(N))
+						.Batched();
+
+					Assert.That(query, Is.Not.Null);
+					Assert.That(query, Is.InstanceOf<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>[]>>());
+
+					var ts = Stopwatch.StartNew();
+					var chunks = await query.ToListAsync();
+					ts.Stop();
+
+					Assert.That(chunks, Is.Not.Null);
+					Assert.That(chunks.Count, Is.GreaterThan(0));
+					Assert.That(chunks.Sum(c => c.Length), Is.EqualTo(N));
+					Console.WriteLine("Took " + ts.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + chunks.Count.ToString("N0") + " chunks");
+
+					var keys = chunks.SelectMany(chunk => chunk.Select(x => FdbTuple.Unpack(x.Key).Get<int>(-1))).ToArray();
+					Assert.That(keys.Length, Is.EqualTo(N));
+					var values = chunks.SelectMany(chunk => chunk.Select(x => x.Value.ToInt32())).ToArray();
+					Assert.That(values.Length, Is.EqualTo(N));
+
+					for (int i = 0; i < N; i++)
+					{
+						Assert.That(keys[i], Is.EqualTo(i));
+						Assert.That(values[i], Is.EqualTo(i));
+					}
+
+				}
 			}
 		}
 

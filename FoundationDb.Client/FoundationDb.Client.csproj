@@ -50,7 +50,8 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="Converters\ConversionHelper.cs" />
-    <Compile Include="FdbRangeSelector.cs" />
+    <Compile Include="FdbRangeQuery.ResultIterator.cs" />
+    <Compile Include="FdbRangeQuery.PagingIterator.cs" />
     <Compile Include="FdbException.cs" />
     <Compile Include="FdbTimeoutManager.cs" />
     <Compile Include="FdbRangeQuery.cs" />
