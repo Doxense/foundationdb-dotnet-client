@@ -240,36 +240,38 @@ namespace FoundationDb.Layers.Blobs
 			// read all chunks matching the segment we need, and copy them in our buffer
 			var buffer = new byte[Math.Min(n, size.Value - offset)];
 
-			await trans.GetRange(
-				FdbKeySelector.LastLessOrEqual(DataKey(offset)),
-				FdbKeySelector.FirstGreaterOrEqual(DataKey(offset + n))
-			).ExecuteAllAsync((chunk) =>
-			{
-				// get offset of this chunk
-				long chunkOffset = DataKeyOffset(chunk.Key);
-				Slice chunkData = chunk.Value;
-
-				checked
+			await trans
+				.GetRange(
+					FdbKeySelector.LastLessOrEqual(DataKey(offset)),
+					FdbKeySelector.FirstGreaterOrEqual(DataKey(offset + n))
+				)
+				.ForEachAsync((chunk) =>
 				{
-					// intersect chunk bounds with output
-					int delta = (int)(chunkOffset - offset);
-					int start = delta;
-					int end = delta + chunkData.Count;
-					if (start < 0) start = 0;
-					if (end > n) end = n;
+					// get offset of this chunk
+					long chunkOffset = DataKeyOffset(chunk.Key);
+					Slice chunkData = chunk.Value;
 
-					// compute the relative offsets in the chunk
-					int rStart = start - delta;
-					int rEnd = end - delta;
+					checked
+					{
+						// intersect chunk bounds with output
+						int delta = (int)(chunkOffset - offset);
+						int start = delta;
+						int end = delta + chunkData.Count;
+						if (start < 0) start = 0;
+						if (end > n) end = n;
 
-					var intersect = chunkData[rStart, rEnd];
-					if (intersect.Count > 0)
-					{ // copy the data that fits
-						intersect.CopyTo(buffer, start);
+						// compute the relative offsets in the chunk
+						int rStart = start - delta;
+						int rEnd = end - delta;
+
+						var intersect = chunkData[rStart, rEnd];
+						if (intersect.Count > 0)
+						{ // copy the data that fits
+							intersect.CopyTo(buffer, start);
+						}
 					}
-				}
-				
-			}).ConfigureAwait(false);
+				})
+				.ConfigureAwait(false);
 
 			return new Slice(buffer, 0, buffer.Length);
 		}
@@ -415,12 +417,13 @@ namespace FoundationDb.Layers.Blobs
 
 			await trans
 				.GetRangeStartsWith(this.Subspace.Append('D'))
-				.ExecuteAllAsync((chunk) =>
+				.ForEachAsync((chunk) =>
 				{
 					long offset = DataKeyOffset(chunk.Key);
 					ms.Seek(offset, SeekOrigin.Begin);
 					ms.Write(chunk.Value.Array, chunk.Value.Offset, chunk.Value.Count);
-				}, ct).ConfigureAwait(false);
+				}, ct)
+				.ConfigureAwait(false);
 
 			ms.Seek(0, SeekOrigin.Begin);
 			return ms;

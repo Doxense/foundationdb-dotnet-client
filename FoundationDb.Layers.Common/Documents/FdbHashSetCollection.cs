@@ -106,14 +106,12 @@ namespace FoundationDb.Layers.Blobs
 
 			await trans
 				.GetRangeStartsWith(prefix)
-				.ExecuteAllAsync(
-					(kvp) =>
-					{
-						string field = FdbTuple.Unpack(kvp.Key).Get<string>(-1);
-						results[field] = kvp.Value;
-					},
-					ct
-				).ConfigureAwait(false);
+				.ForEachAsync((kvp) =>
+				{
+					string field = FdbTuple.Unpack(kvp.Key).Get<string>(-1);
+					results[field] = kvp.Value;
+				}, ct)
+				.ConfigureAwait(false);
 
 			return results;
 		}

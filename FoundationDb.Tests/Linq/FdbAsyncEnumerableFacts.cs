@@ -95,6 +95,38 @@ namespace FoundationDb.Linq.Tests
 		}
 
 		[Test]
+		public async Task Test_Empty()
+		{
+			var empty = FdbAsyncEnumerable.Empty<int>();
+			Assert.That(empty, Is.Not.Null);
+
+			var results = await empty.ToListAsync();
+			Assert.That(results, Is.Empty);
+
+			bool any = await empty.AnyAsync();
+			Assert.That(any, Is.False);
+
+			int count = await empty.CountAsync();
+			Assert.That(count, Is.EqualTo(0));
+		}
+
+		[Test]
+		public async Task Test_Singleton()
+		{
+			var singleton = FdbAsyncEnumerable.Singleton(42);
+			Assert.That(singleton, Is.Not.Null);
+
+			var results = await singleton.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 42 }));
+
+			bool any = await singleton.AnyAsync();
+			Assert.That(any, Is.True);
+
+			int count = await singleton.CountAsync();
+			Assert.That(count, Is.EqualTo(1));
+		}
+
+		[Test]
 		public async Task Test_Can_Select_Sync()
 		{
 			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
@@ -166,14 +198,50 @@ namespace FoundationDb.Linq.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_SelectMany()
+		{
+			var source = Enumerable.Range(0, 5).ToAsyncEnumerable();
+
+			var query = source.SelectMany((x) => Enumerable.Repeat((char)(65 + x), x));
+			Assert.That(query, Is.Not.Null);
+
+			var results = await query.ToListAsync();
+			Assert.That(results, Is.EqualTo(new [] { 'B', 'C', 'C', 'D', 'D', 'D', 'E', 'E', 'E', 'E' }));
+		}
+
+		[Test]
+		public async Task Test_Can_Where()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			var query = source.Where(x => x % 2 == 1);
+			Assert.That(query, Is.Not.Null);
+
+			var results = await query.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
+		}
+
+		[Test]
+		public async Task Test_Can_Where_Indexed()
+		{
+			var source = Enumerable.Range(42, 10).ToAsyncEnumerable();
+
+			var query = source.Where((x, i) => i == 0 || i == 3 || i == 6);
+			Assert.That(query, Is.Not.Null);
+
+			var results = await query.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 42, 45, 48 }));
+		}
+
+		[Test]
 		public async Task Test_Can_Get_First()
 		{
 			var source = Enumerable.Range(42, 3).ToAsyncEnumerable();
-			int first = await source.First();
+			int first = await source.FirstAsync();
 			Assert.That(first, Is.EqualTo(42));
 
 			source = FdbAsyncEnumerable.Empty<int>();
-			Assert.That(() => source.First().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => source.FirstAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 
 		}
 
@@ -181,11 +249,11 @@ namespace FoundationDb.Linq.Tests
 		public async Task Test_Can_Get_FirstOrDefault()
 		{
 			var source = Enumerable.Range(42, 3).ToAsyncEnumerable();
-			int first = await source.FirstOrDefault();
+			int first = await source.FirstOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(42));
 
 			source = FdbAsyncEnumerable.Empty<int>();
-			first = await source.FirstOrDefault();
+			first = await source.FirstOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(0));
 
 		}
@@ -194,14 +262,14 @@ namespace FoundationDb.Linq.Tests
 		public async Task Test_Can_Get_Single()
 		{
 			var source = Enumerable.Range(42, 1).ToAsyncEnumerable();
-			int first = await source.Single();
+			int first = await source.SingleAsync();
 			Assert.That(first, Is.EqualTo(42));
 
 			source = FdbAsyncEnumerable.Empty<int>();
-			Assert.That(() => source.Single().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => source.SingleAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 
 			source = Enumerable.Range(42, 3).ToAsyncEnumerable();
-			Assert.That(() => source.Single().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => source.SingleAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 
 		}
 
@@ -209,26 +277,26 @@ namespace FoundationDb.Linq.Tests
 		public async Task Test_Can_Get_SingleOrDefault()
 		{
 			var source = Enumerable.Range(42, 1).ToAsyncEnumerable();
-			int first = await source.SingleOrDefault();
+			int first = await source.SingleOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(42));
 
 			source = FdbAsyncEnumerable.Empty<int>();
-			first = await source.SingleOrDefault();
+			first = await source.SingleOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(0));
 
 			source = Enumerable.Range(42, 3).ToAsyncEnumerable();
-			Assert.That(() => source.SingleOrDefault().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => source.SingleOrDefaultAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 		}
 
 		[Test]
 		public async Task Test_Can_Get_Last()
 		{
 			var source = Enumerable.Range(42, 3).ToAsyncEnumerable();
-			int first = await source.Last();
+			int first = await source.LastAsync();
 			Assert.That(first, Is.EqualTo(44));
 
 			source = FdbAsyncEnumerable.Empty<int>();
-			Assert.That(() => source.Last().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => source.LastAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 
 		}
 
@@ -236,11 +304,11 @@ namespace FoundationDb.Linq.Tests
 		public async Task Test_Can_Get_LastOrDefault()
 		{
 			var source = Enumerable.Range(42, 3).ToAsyncEnumerable();
-			int first = await source.LastOrDefault();
+			int first = await source.LastOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(44));
 
 			source = FdbAsyncEnumerable.Empty<int>();
-			first = await source.LastOrDefault();
+			first = await source.LastOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(0));
 
 		}
@@ -252,7 +320,7 @@ namespace FoundationDb.Linq.Tests
 
 			var items = new List<int>();
 
-			await source.ForEach((x) =>
+			await source.ForEachAsync((x) =>
 			{
 				Assert.That(items.Count, Is.LessThan(10));
 				items.Add(x);
@@ -269,7 +337,7 @@ namespace FoundationDb.Linq.Tests
 
 			var items = new List<int>();
 
-			await source.ForEach(async (x) =>
+			await source.ForEachAsync(async (x) =>
 			{
 				Assert.That(items.Count, Is.LessThan(10));
 				await Task.Delay(10);
@@ -279,5 +347,57 @@ namespace FoundationDb.Linq.Tests
 			Assert.That(items.Count, Is.EqualTo(10));
 			Assert.That(items, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
+
+		[Test]
+		public async Task Test_Can_Any()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+			bool any = await source.AnyAsync();
+			Assert.That(any, Is.True);
+
+			source = Enumerable.Range(0, 1).ToAsyncEnumerable();
+			any = await source.AnyAsync();
+			Assert.That(any, Is.True);
+
+			any = await FdbAsyncEnumerable.Empty<int>().AnyAsync();
+			Assert.That(any, Is.False);
+		}
+
+
+		[Test]
+		public async Task Test_Can_Any_With_Predicate()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			bool any = await source.AnyAsync(x => x % 2 == 1);
+			Assert.That(any, Is.True);
+
+			any = await source.AnyAsync(x => x < 0);
+			Assert.That(any, Is.False);
+
+			any = await FdbAsyncEnumerable.Empty<int>().AnyAsync(x => x == 42);
+			Assert.That(any, Is.False);
+		}
+
+		[Test]
+		public async Task Test_Can_Count()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			var count = await source.CountAsync();
+
+			Assert.That(count, Is.EqualTo(10));
+		}
+
+		[Test]
+		public async Task Test_Can_Count_With_Predicate()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			var count = await source.CountAsync(x => x % 2 == 1);
+
+			Assert.That(count, Is.EqualTo(5));
+		}
+
 	}
 }

@@ -384,11 +384,10 @@ namespace FoundationDb.Client
 			return results;
 		}
 
-#endif
-
 		/// <summary>Reads all the results in a single operation, and process the results as they arrive, do not store anything</summary>
 		/// <param name="action">delegate function called to process each result</param>
 		/// <param name="ct"></param>
+		[Obsolete("Use .ForEachAsync() instead")]
 		public async Task ExecuteAllAsync(Action<Slice, Slice> action, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -409,6 +408,7 @@ namespace FoundationDb.Client
 		/// <summary>Reads all the results in a single operation, and process the results as they arrive, do not store anything</summary>
 		/// <param name="action">delegate function called to process each result</param>
 		/// <param name="ct"></param>
+		[Obsolete("Use .ForEachAsync() instead")]
 		public async Task ExecuteAllAsync(Action<KeyValuePair<Slice, Slice>> action, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -425,6 +425,8 @@ namespace FoundationDb.Client
 				}
 			}
 		}
+
+#endif
 
 		/// <summary>[EXPERIMENTAL] Execute a handle on chunk as they arrive, while fetching the next one in the background</summary>
 		/// <param name="chunkHandler">Handler that gets called every time a new chunk arrives. Receives the chunk array in the first paramter, a 'first' boolean in the second parameter, and a cancellation token in the third</param>
@@ -690,6 +692,18 @@ namespace FoundationDb.Client
 		{
 			ThrowIfDisposed();
 			return FdbAsyncEnumerable.Select(this, kvp => lambda(kvp.Value));
+		}
+
+		public Task ForEachAsync(Action<KeyValuePair<Slice, Slice>> action, CancellationToken ct = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.ForEachAsync(this, action, ct);
+		}
+
+		public Task ForEachAsync(Action<Slice, Slice> action, CancellationToken ct = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+			return FdbAsyncEnumerable.ForEachAsync(this, (kvp) => action(kvp.Key, kvp.Value), ct);
 		}
 
 		#endregion

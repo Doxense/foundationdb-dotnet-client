@@ -52,8 +52,9 @@ namespace FoundationDb.Client.Tests
 			{
 				Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
 				int count = 0;
-				await tr.GetRangeStartsWith(subspace.Tuple).ExecuteAllAsync(
-					(key, value) =>
+				await tr
+					.GetRangeStartsWith(subspace.Tuple)
+					.ForEachAsync((key, value) =>
 					{
 						++count;
 						string keyDump = null;
@@ -69,9 +70,8 @@ namespace FoundationDb.Client.Tests
 						}
 						
 						Console.WriteLine("- " + keyDump + " = " + value.ToString());
+					});
 
-					}
-				);
 				if (count == 0)
 					Console.WriteLine("> empty !");
 				else
