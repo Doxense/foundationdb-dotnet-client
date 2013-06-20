@@ -110,10 +110,9 @@
     <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="fdb_c.dll">
-      <Link>fdb_c.dll</Link>
+    <None Include="fdb_c.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
