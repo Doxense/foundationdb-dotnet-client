@@ -80,6 +80,7 @@
     <Compile Include="Linq\FdbAsyncEnumerable.cs" />
     <Compile Include="Linq\IFdbAsyncEnumerator.cs" />
     <Compile Include="Linq\IFdbAsyncEnumerable.cs" />
+    <Compile Include="Layers\Tuples\FdbTupleParser.cs" />
     <Compile Include="Utils\FdbSliceSerializer.cs" />
     <Compile Include="Utils\ISliceSerializer.cs" />
     <Compile Include="Utils\Slice.cs" />
