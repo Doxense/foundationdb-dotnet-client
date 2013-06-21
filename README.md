@@ -6,6 +6,8 @@ The .NET binding is licensed under the 3-clause BSD Licence.
 
 It requires the .NET 4.5 Framework, and uses the 64-bit C API binding that is licensed by FoundationDB LLC and must be obtained separately.
 
+It currently targets the Beta 2 of FoundationDB (API level 22)
+
 How to build
 ============
 
@@ -39,7 +41,7 @@ WARNING: some tests will clear the local database and you may lose all your data
 Implementation Notes
 ====================
 
-Please refer to http://foundationdb.com/documentation/beta2/ yo get an overview on the FoundationDB API, if you haven't already.
+Please refer to http://foundationdb.com/documentation/beta2/ to get an overview on the FoundationDB API, if you haven't already.
 
 This .NET binding as been modeled to be as close as possible to the other bindings (Python especially), while still having a '.NET' style API. 
 
