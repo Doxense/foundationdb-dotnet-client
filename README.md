@@ -1,11 +1,13 @@
-foundationdb-net-client
-=======================
+FoundationDB-dotnet-Client
+==========================
 
 This is a prototype .NET wrapper for FoundationDB Client C API
 
 *** THIS IS PROTOTYPE QUALITY, DO NOT USE IN PRODUCTION ***
 
-It requires the .NET 4.5 and the 64-bit C API binding.
+The .NET binding is licensed under the 3-clause BSD Licence. 
+
+It requires the .NET 4.5 Framework, and uses the 64-bit C API binding that is licensed by FoundationDB LLC and must be obtained separately.
 
 How to build
 ============
