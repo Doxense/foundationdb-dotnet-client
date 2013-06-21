@@ -31,14 +31,19 @@ using FoundationDb.Client.Converters;
 using FoundationDb.Client.Utils;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 namespace FoundationDb.Layers.Tuples
 {
 
+	/// <summary>Represent an immutable tuple where the packed bytes are cached</summary>
+	[DebuggerDisplay("{ToString()}")]
 	public sealed class FdbMemoizedTuple : IFdbTuple
 	{
+		/// <summary>Items of the tuple</summary>
 		internal readonly object[] Items;
 
+		/// <summary>Packed version of the tuple</summary>
 		internal readonly Slice Packed;
 
 		internal FdbMemoizedTuple(object[] items, Slice packed)
@@ -116,6 +121,12 @@ namespace FoundationDb.Layers.Tuples
 		public override string ToString()
 		{
 			return FdbTuple.ToString(this.Items, 0, this.Items.Length);
+		}
+
+		public override int GetHashCode()
+		{
+			// The simplest way is to get the hash of the slice...
+			return this.Packed.GetHashCode();
 		}
 
 		public bool Equals(IFdbTuple other)

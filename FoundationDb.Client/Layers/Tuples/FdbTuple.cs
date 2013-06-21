@@ -455,6 +455,16 @@ namespace FoundationDb.Layers.Tuples
 			throw new IndexOutOfRangeException(String.Format("Index {0} is outside of the tuple's range (0..{1})", index, count - 1));
 		}
 
+		internal static int CombineHashCode(int h1, int h2)
+		{
+			// h(0) = hash_function(x[0])
+			// h(n) = ROTL(h(n-1), 13) ^ hash_function(x[n])
+
+			return ((h1 << 13) | (h1 >> (32 - 13))) ^ h2;
+		}
+
+		#endregion
+
 	}
 
 }

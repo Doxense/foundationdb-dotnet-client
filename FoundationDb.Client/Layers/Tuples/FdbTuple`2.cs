@@ -126,10 +126,10 @@ namespace FoundationDb.Layers.Tuples
 
 		public override int GetHashCode()
 		{
-			int h;
-			h = this.Item1 != null ? this.Item1.GetHashCode() : -1;
-			h ^= this.Item2 != null ? this.Item2.GetHashCode() : -1;
-			return h;
+			return FdbTuple.CombineHashCode(
+				this.Item1 != null ? this.Item1.GetHashCode() : -1,
+				this.Item2 != null ? this.Item2.GetHashCode() : -1
+			);
 		}
 
 		public bool Equals(IFdbTuple other)

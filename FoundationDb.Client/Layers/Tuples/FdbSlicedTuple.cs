@@ -35,12 +35,12 @@ using System.Collections.Generic;
 namespace FoundationDb.Layers.Tuples
 {
 
-	/// <summary>Specialized tuple that maps a parsed key</summary>
+	/// <summary>Specialized tuple that efficiently maps a key parsed from a Slice</summary>
 	internal sealed class FdbSlicedTuple : IFdbTuple, IEquatable<FdbSlicedTuple>
 	{
-		// FdbTuple.Unpack() splits a key into an array of slices (one for each item). We hold onto these slices, and only "deserialize" them if needed.
-		// This is helpful because in most keys, the app code will only want to get the last few items (e.g: tuple[-1]) or skip the first few items (some subspace).
-		// We also support windowing so that Splicing is efficient (used a lot by FdbSubspace.Unpack(...) to remove the subspace itself)
+		// FdbTuple.Unpack() splits a key into an array of slices (one for each item). We hold onto these slices, and only deserialize them if needed.
+		// This is helpful because in most cases, the app code will only want to get the last few items (e.g: tuple[-1]) or skip the first few items (some subspace).
+		// We also support offset/count so that Splicing is efficient (used a lot to remove the suffixes from keys)
 
 		/// <summary>Buffer containing the original slices. Note: can be bigger than the size of the tuple</summary>
 		private readonly Slice[] m_slices;
@@ -183,7 +183,7 @@ namespace FoundationDb.Layers.Tuples
 				for (int i = 0; i < m_count; i++)
 				{
 					var item = m_slices[i + m_offset];
-					h ^= item != null ? item.GetHashCode() : -1;
+					h = FdbTuple.CombineHashCode(h, item != null ? item.GetHashCode() : -1);
 				}
 				m_hashCode = h;
 			}

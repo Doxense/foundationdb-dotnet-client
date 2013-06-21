@@ -1013,7 +1013,8 @@ namespace FoundationDb.Client
 		{
 			if (this.Array != null)
 			{
-				//TODO: use a better hash algorithm? (CityHash, SipHash, ...)
+				//TODO: use a better hash algorithm? (xxHash, CityHash, SipHash, ...?)
+				//we don't need a cryptographic hash, just something fast and suitable for use with hashtables...
 
 				// <HACKHACK>: unoptimized 32 bits FNV-1a implementation
 				uint h = 2166136261; // FNV1 32 bits offset basis

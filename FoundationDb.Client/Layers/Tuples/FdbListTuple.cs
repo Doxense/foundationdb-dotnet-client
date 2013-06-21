@@ -210,7 +210,7 @@ namespace FoundationDb.Layers.Tuples
 				for (int i = 0; i < m_count; i++)
 				{
 					var item = m_items[i + m_offset];
-					h ^= item != null ? item.GetHashCode() : -1;
+					h = FdbTuple.CombineHashCode(h, item != null ? item.GetHashCode() : -1);
 				}
 				m_hashCode = h;
 			}

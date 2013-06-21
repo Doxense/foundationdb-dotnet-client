@@ -143,9 +143,10 @@ namespace FoundationDb.Layers.Tuples
 
 		public override int GetHashCode()
 		{
-			int h = this.Head != null ? this.Head.GetHashCode() : -1;
-			h ^= this.Tail != null ? this.Tail.GetHashCode() : -1;
-			return h;
+			return FdbTuple.CombineHashCode(
+				this.Head != null ? this.Head.GetHashCode() : -1,
+				this.Tail != null ? this.Tail.GetHashCode() : -1
+			);
 		}
 
 	}

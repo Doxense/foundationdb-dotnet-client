@@ -176,6 +176,19 @@ namespace FoundationDb.Layers.Tuples
 			return this.Tuple.ToString();
 		}
 
+		public override int GetHashCode()
+		{
+			return this.Tuple.GetHashCode();
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (object.ReferenceEquals(obj, this)) return true;
+			if (obj is FdbSubspace) return this.Tuple.Equals((obj as FdbSubspace).Tuple);
+			if (obj is IFdbTuple) return this.Tuple.Equals(obj as IFdbTuple);
+			return false;
+		}
+	
 	}
 
 }
