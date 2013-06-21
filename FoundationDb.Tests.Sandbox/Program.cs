@@ -62,6 +62,25 @@ namespace FoundationDb.Tests.Sandbox
 			Console.ReadKey();
 		}
 
+		private static async Task HelloWorld()
+		{
+
+			// Connect to the "DB" database on the local cluster
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+
+				// Writes some data in to the database
+				using (var tr = db.BeginTransaction())
+				{
+					tr.Set(FdbTuple.Pack("Test", 123), Slice.FromString("Hello World!"));
+					tr.Set(FdbTuple.Pack("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
+				}
+
+			}
+
+		}
+
+
 		static async Task TestSimpleTransactionAsync(FdbDatabase db)
 		{
 			Console.WriteLine("Starting new transaction...");
@@ -603,35 +622,6 @@ namespace FoundationDb.Tests.Sandbox
 				Fdb.Stop();
 			}
 		}
-
-		private static string ToHexArray(byte[] buffer)
-		{
-			var sb = new StringBuilder();
-			sb.Append("[" + buffer.Length + "]{");
-			for (int i = 0; i < buffer.Length; i++)
-			{
-				if (i == 0) sb.Append(' '); else sb.Append(", ");
-				sb.Append(buffer[i]);
-			}
-			sb.AppendLine("}");
-			sb.Append("> \"" + Encoding.UTF8.GetString(buffer) + "\"");
-			return sb.ToString();
-		}
-
-		private static string ToHexArray(Slice buffer)
-		{
-			var sb = new StringBuilder();
-			sb.Append("[" + buffer.Count + "]{");
-			for(int i=0;i<buffer.Count;i++)
-			{
-				if (i == 0) sb.Append(' '); else sb.Append(", ");
-				sb.Append(buffer.Array[buffer.Offset + i]);
-			}
-			sb.AppendLine("}");
-			sb.Append(System.Web.HttpUtility.JavaScriptStringEncode(Encoding.UTF8.GetString(buffer.Array, buffer.Offset, buffer.Count)));
-			return sb.ToString();
-		}
-
 
 	}
 }

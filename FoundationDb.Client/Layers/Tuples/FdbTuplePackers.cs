@@ -26,15 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Utils;
-using System;
-using System.Globalization;
-using System.Reflection;
-using System.Text;
-
 namespace FoundationDb.Layers.Tuples
 {
+	using FoundationDb.Client;
+	using FoundationDb.Client.Utils;
+	using System;
+	using System.Globalization;
+	using System.Reflection;
+	using System.Text;
 
 	public static class FdbTuplePackers
 	{

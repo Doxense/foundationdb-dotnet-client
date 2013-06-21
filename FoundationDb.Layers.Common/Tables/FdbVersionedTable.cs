@@ -85,9 +85,9 @@ namespace FoundationDb.Layers.Tables
 			this.KeyReader = keyReader;
 			this.ValueSerializer = valueSerializer;
 
-			this.MetadataPrefix = this.Subspace.Append(METADATA_KEY).Memoize();
-			this.ItemsPrefix = this.Subspace.Append(ITEMS_KEY).Memoize();
-			this.VersionsPrefix = this.Subspace.Append(LAST_VERSIONS_KEY).Memoize();
+			this.MetadataPrefix = this.Subspace.Create(METADATA_KEY).Memoize();
+			this.ItemsPrefix = this.Subspace.Create(ITEMS_KEY).Memoize();
+			this.VersionsPrefix = this.Subspace.Create(LAST_VERSIONS_KEY).Memoize();
 		}
 
 		public async Task<bool> OpenOrCreateAsync()
@@ -191,7 +191,7 @@ namespace FoundationDb.Layers.Tables
 		/// <returns>(Subspace, ITEMS_KEY, key, )</returns>
 		protected virtual IFdbTuple GetItemKeyPrefix(TId id)
 		{
-			return this.ItemsPrefix.AppendRange(this.KeyReader.Pack(id));
+			return this.ItemsPrefix.Concat(this.KeyReader.Pack(id));
 		}
 
 		protected virtual IFdbTuple GetItemKey(TId id, long version)
@@ -203,7 +203,7 @@ namespace FoundationDb.Layers.Tables
 		/// <returns>(Subspace, LAST_VERSION_KEY, key, )</returns>
 		protected virtual IFdbTuple GetVersionKey(TId id)
 		{
-			return this.VersionsPrefix.AppendRange(this.KeyReader.Pack(id));
+			return this.VersionsPrefix.Concat(this.KeyReader.Pack(id));
 		}
 
 		protected virtual Task<Slice> GetValueAtVersionAsync(FdbTransaction trans, TId id, long version, bool snapshot, CancellationToken ct)
@@ -422,7 +422,7 @@ namespace FoundationDb.Layers.Tables
 			var versions = await trans
 				.GetRangeStartsWith(this.ItemsPrefix, 0, snapshot)
 				.Select(
-					(key) => this.KeyReader.Unpack(FdbTuple.UnpackWithoutPrefix(key, this.VersionsPrefix)),
+					(key) => this.KeyReader.Unpack(FdbTuple.UnpackWithoutPrefix(key, this.VersionsPrefix.Packed)),
 					(value) => value.ToInt64()
 				)
 				.ToListAsync(ct)

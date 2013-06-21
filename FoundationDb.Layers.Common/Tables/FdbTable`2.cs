@@ -71,7 +71,7 @@ namespace FoundationDb.Layers.Tables
 		/// <returns></returns>
 		public IFdbTuple Key(TKey key)
 		{
-			return this.Subspace.Append<TKey>(key);
+			return this.Subspace.Create<TKey>(key);
 		}
 
 		public async Task<TValue> GetAsync(FdbTransaction trans, TKey key, bool snapshot = false, CancellationToken ct = default(CancellationToken))

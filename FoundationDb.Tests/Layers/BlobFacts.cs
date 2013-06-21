@@ -48,7 +48,7 @@ namespace FoundationDb.Layers.Blobs.Tests
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, Subspace);
 
-				var blob = new FdbBlob(Subspace.Append("Empty"));
+				var blob = new FdbBlob(Subspace.Create("Empty"));
 
 				using (var tr = db.BeginTransaction())
 				{
@@ -67,7 +67,7 @@ namespace FoundationDb.Layers.Blobs.Tests
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, Subspace);
 
-				var blob = new FdbBlob(Subspace.Append("BobTheBlob"));
+				var blob = new FdbBlob(Subspace.Create("BobTheBlob"));
 
 				using (var tr = db.BeginTransaction())
 				{
@@ -102,7 +102,7 @@ namespace FoundationDb.Layers.Blobs.Tests
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, Subspace);
 
-				var blob = new FdbBlob(Subspace.Append("BigBlob"));
+				var blob = new FdbBlob(Subspace.Create("BigBlob"));
 
 				var data = new byte[100 * 1000];
 				for (int i = 0; i < data.Length; i++) data[i] = (byte)i;
@@ -142,7 +142,7 @@ namespace FoundationDb.Layers.Blobs.Tests
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, Subspace);
 
-				var blob = new FdbBlob(Subspace.Append("Blob"));
+				var blob = new FdbBlob(Subspace.Create("Blob"));
 
 				DateTime created = DateTime.UtcNow;
 				using (var tr = db.BeginTransaction())

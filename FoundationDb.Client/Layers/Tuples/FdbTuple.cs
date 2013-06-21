@@ -130,6 +130,8 @@ namespace FoundationDb.Layers.Tuples
 
 		}
 
+		#region Creation
+
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
 		public static FdbTuple<T1> Create<T1>(T1 item1)
 		{
@@ -147,20 +149,6 @@ namespace FoundationDb.Layers.Tuples
 		{
 			return new FdbTuple<T1, T2, T3>(item1, item2, item3);
 		}
-
-#if DISABLED
-		/// <summary>Create a new 4-tuple, holding four items</summary>
-		public static FdbTupleList Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
-		{
-			return new FdbTupleList(new object[] { item1, item2, item3, item4 }, 0, 4);
-		}
-
-		/// <summary>Create a new 5-tuple, holding five items</summary>
-		public static FdbTupleList Create<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
-		{
-			return new FdbTupleList(new object[] { item1, item2, item3, item4, item5 }, 0, 5);
-		}
-#endif
 
 		/// <summary>Create a new N-tuple, from N items</summary>
 		/// <param name="items">Array of items to wrap in a tuple</param>
@@ -206,75 +194,46 @@ namespace FoundationDb.Layers.Tuples
 			return tuple;
 		}
 
-		/// <summary>Converts any object into a displayble string, for logging/debugging purpose</summary>
-		/// <param name="item">Object to stringify</param>
-		/// <returns>String representation of the object</returns>
-		/// <example>
-		/// Stringify(null) => "nil"
-		/// Stringify("hello") => "\"hello\""
-		/// Stringify(123) => "123"
-		/// Stringify(123.4) => "123.4"
-		/// Stringify(true) => "true"
-		/// Stringify(Slice) => hexa decimal string ("01 23 45 67 89 AB CD EF")
-		/// </example>
-		internal static string Stringify(object item)
+		#endregion
+
+		#region Packing...
+
+		/// <summary>Pack a 1-tuple directly into a slice</summary>
+		public static Slice Pack<T1>(T1 item1)
 		{
-			if (item == null) return "nil";
-
-			var s = item as string;
-			if (s != null) return "\"" + s + "\"";
-
-			if (item is char) return "\"" + (char)item + "\"";
-
-			var f = item as IFormattable;
-			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);
-
-			var b = item as byte[];
-			if (b != null) return new Slice(b, 0, b.Length).ToHexaString(' ');
-
-			return item.ToString();
+			var writer = new FdbBufferWriter();
+			FdbTuplePacker<T1>.SerializeTo(writer, item1);
+			return writer.ToSlice();
 		}
 
-		/// <summary>Convert a list of object into a displaying string, for loggin/debugging purpose</summary>
-		/// <param name="items">Array containing items to stringfy</param>
-		/// <param name="offset">Start offset of the items to convert</param>
-		/// <param name="count">Number of items to convert</param>
-		/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
-		/// <example>ToString(FdbTuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
-		internal static string ToString(object[] items, int offset, int count)
+		/// <summary>Pack a 2-tuple directly into a slice</summary>
+		public static Slice Pack<T1, T2>(T1 item1, T2 item2)
 		{
-			if (items == null) return String.Empty;
-			if (count == 0) return "()";
-
-			var sb = new StringBuilder();
-			sb.Append('(').Append(Stringify(items[offset++]));
-			while (--count > 0)
-			{ 
-				sb.Append(", ").Append(Stringify(items[offset++]));
-			}
-			return sb.Append(",)").ToString();
+			var writer = new FdbBufferWriter();
+			FdbTuplePacker<T1>.SerializeTo(writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(writer, item2);
+			return writer.ToSlice();
 		}
 
-		/// <summary>Convert a sequence of object into a displaying string, for loggin/debugging purpose</summary>
-		/// <param name="items">Sequence of items to stringfy</param>
-		/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
-		/// <example>ToString(FdbTuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
-		internal static string ToString(IEnumerable<object> items)
+		/// <summary>Pack a 3-tuple directly into a slice</summary>
+		public static Slice Pack<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
-			if (items == null) return String.Empty;
-			using (var enumerator = items.GetEnumerator())
-			{
-				if (!enumerator.MoveNext()) return "()";
+			var writer = new FdbBufferWriter();
+			FdbTuplePacker<T1>.SerializeTo(writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(writer, item2);
+			FdbTuplePacker<T3>.SerializeTo(writer, item3);
+			return writer.ToSlice();
+		}
 
-				var sb = new StringBuilder();
-				sb.Append('(').Append(Stringify(enumerator.Current));
-				while (enumerator.MoveNext())
-				{
-					sb.Append(", ").Append(Stringify(enumerator.Current));
-				}
-
-				return sb.Append(",)").ToString();
-			}
+		/// <summary>Pack a 4-tuple directly into a slice</summary>
+		public static Slice Pack<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
+		{
+			var writer = new FdbBufferWriter();
+			FdbTuplePacker<T1>.SerializeTo(writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(writer, item2);
+			FdbTuplePacker<T3>.SerializeTo(writer, item3);
+			FdbTuplePacker<T4>.SerializeTo(writer, item4);
+			return writer.ToSlice();
 		}
 
 		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
@@ -324,6 +283,10 @@ namespace FoundationDb.Layers.Tuples
 			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
+		#endregion
+
+		#region Unpacking...
+
 		/// <summary>Unpack a tuple from a serialied key blob</summary>
 		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
 		/// <returns>Unpacked tuple</returns>
@@ -341,18 +304,90 @@ namespace FoundationDb.Layers.Tuples
 		/// <returns>Unpacked tuple (minus the prefix) or an exception if the key is outside the prefix</returns>
 		/// <exception cref="System.ArgumentNullException">If prefix is null</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked key is outside the specified prefix</exception>
-		public static IFdbTuple UnpackWithoutPrefix(Slice packedKey, IFdbTuple prefix)
+		public static IFdbTuple UnpackWithoutPrefix(Slice packedKey, Slice prefix)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 
-			// unpack the key
-			var tuple = FdbTuplePackers.Unpack(packedKey);
+			// ensure that the key starts with the prefix
+			if (!packedKey.StartsWith(prefix)) throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
 
-			// check that it has the expected prefix
-			if (!tuple.StartsWith(prefix)) throw new ArgumentOutOfRangeException("packedKey", String.Format("The specifed packed key is outside of tuple {0}", prefix.ToString()));
+			// unpack the key, minus the prefix
+			return FdbTuplePackers.Unpack(packedKey.Substring(prefix.Count));
+		}
 
-			// return the rest of the tuple (minus the prefix)
-			return tuple[prefix.Count, null];
+		#endregion
+
+		#region Internal Helpers...
+
+		/// <summary>Converts any object into a displayble string, for logging/debugging purpose</summary>
+		/// <param name="item">Object to stringify</param>
+		/// <returns>String representation of the object</returns>
+		/// <example>
+		/// Stringify(null) => "nil"
+		/// Stringify("hello") => "\"hello\""
+		/// Stringify(123) => "123"
+		/// Stringify(123.4) => "123.4"
+		/// Stringify(true) => "true"
+		/// Stringify(Slice) => hexa decimal string ("01 23 45 67 89 AB CD EF")
+		/// </example>
+		internal static string Stringify(object item)
+		{
+			if (item == null) return "nil";
+
+			var s = item as string;
+			if (s != null) return "\"" + s + "\"";
+
+			if (item is char) return "\"" + (char)item + "\"";
+
+			var f = item as IFormattable;
+			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);
+
+			var b = item as byte[];
+			if (b != null) return new Slice(b, 0, b.Length).ToHexaString(' ');
+
+			return item.ToString();
+		}
+
+		/// <summary>Convert a list of object into a displaying string, for loggin/debugging purpose</summary>
+		/// <param name="items">Array containing items to stringfy</param>
+		/// <param name="offset">Start offset of the items to convert</param>
+		/// <param name="count">Number of items to convert</param>
+		/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
+		/// <example>ToString(FdbTuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
+		internal static string ToString(object[] items, int offset, int count)
+		{
+			if (items == null) return String.Empty;
+			if (count == 0) return "()";
+
+			var sb = new StringBuilder();
+			sb.Append('(').Append(Stringify(items[offset++]));
+			while (--count > 0)
+			{
+				sb.Append(", ").Append(Stringify(items[offset++]));
+			}
+			return sb.Append(",)").ToString();
+		}
+
+		/// <summary>Convert a sequence of object into a displaying string, for loggin/debugging purpose</summary>
+		/// <param name="items">Sequence of items to stringfy</param>
+		/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
+		/// <example>ToString(FdbTuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
+		internal static string ToString(IEnumerable<object> items)
+		{
+			if (items == null) return String.Empty;
+			using (var enumerator = items.GetEnumerator())
+			{
+				if (!enumerator.MoveNext()) return "()";
+
+				var sb = new StringBuilder();
+				sb.Append('(').Append(Stringify(enumerator.Current));
+				while (enumerator.MoveNext())
+				{
+					sb.Append(", ").Append(Stringify(enumerator.Current));
+				}
+
+				return sb.Append(",)").ToString();
+			}
 		}
 
 		/// <summary>Default (non-optimized) implementation of IFdbTuple.this[long?, long?]</summary>

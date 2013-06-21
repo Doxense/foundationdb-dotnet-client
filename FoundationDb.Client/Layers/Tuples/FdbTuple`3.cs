@@ -125,9 +125,7 @@ namespace FoundationDb.Layers.Tuples
 
 		public Slice ToSlice()
 		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
-			return writer.ToSlice();
+			return FdbTuple.Pack(this.Item1, this.Item2, this.Item3);
 		}
 
 		public override string ToString()

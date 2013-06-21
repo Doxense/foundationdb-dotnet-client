@@ -38,6 +38,7 @@ namespace FoundationDb.Layers.Tuples
 	public static class FdbSubspaceExtensions
 	{
 
+		/// <summary>Clear the entire content of a subspace</summary>
 		public static void ClearRange(this FdbTransaction trans, FdbSubspace subspace)
 		{
 			Contract.Requires(trans != null && subspace != null);
@@ -45,6 +46,7 @@ namespace FoundationDb.Layers.Tuples
 			trans.ClearRange(subspace.Tuple);
 		}
 
+		/// <summary>Returns all the keys inside of a subspace</summary>
 		public static FdbRangeQuery GetRangeStartsWith(this FdbTransaction trans, FdbSubspace subspace, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
 			Contract.Requires(trans != null && subspace != null);
@@ -52,6 +54,12 @@ namespace FoundationDb.Layers.Tuples
 			return trans.GetRangeStartsWith(subspace.Tuple, limit, snapshot, reverse);
 		}
 
+		/// <summary>Read a key inside a subspace</summary>
+		/// <example>
+		/// Both lines are equivalent:
+		/// tr.GetAsync(new FdbSubspace("Hello"), FdbTuple.Create("World"));
+		/// tr.GetAsync(FdbTuple.Create("Hello", "World"));
+		/// </example>
 		public static Task<Slice> GetAsync(this FdbTransaction trans, FdbSubspace subspace, IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			Contract.Requires(trans != null && subspace != null && key != null);
@@ -59,6 +67,12 @@ namespace FoundationDb.Layers.Tuples
 			return trans.GetAsync(subspace.Append(key), snapshot, ct);
 		}
 
+		/// <summary>Write a key inside a subspace</summary>
+		/// <example>
+		/// Both lines are equivalent:
+		/// tr.Set(new FdbSubspace("Hello"), FdbTuple.Create("World"), some_value);
+		/// tr.Set(FdbTuple.Create("Hello", "World"), some_value);
+		/// </example>
 		public static void Set(this FdbTransaction trans, FdbSubspace subspace, IFdbTuple key, Slice value)
 		{
 			Contract.Requires(trans != null && subspace != null && key != null);

@@ -37,41 +37,10 @@ using System.Threading.Tasks;
 namespace FoundationDb.Layers.Tuples
 {
 
+	/// <summary>Add extensions methods that deal with tuples on various types</summary>
 	public static class FdbTupleExtensions
 	{
 		#region IFdbTuple extensions...
-
-		public static bool GetBoolean(this IFdbTuple tuple, int offset)
-		{
-			return tuple.Get<bool>(offset);
-		}
-
-		public static int GetInt32(this IFdbTuple tuple, int offset)
-		{
-			return tuple.Get<Int32>(offset);
-		}
-
-		public static long GetInt64(this IFdbTuple tuple, int offset)
-		{
-			return tuple.Get<Int64>(offset);
-#if REFACTORED
-			object value = tuple[offset];
-			if (value == null) return 0L;
-
-			if (value is long) return (long)value;
-			return Convert.ToInt64(value);
-#endif
-		}
-
-		public static string GetString(this IFdbTuple tuple, int offset)
-		{
-			return tuple.Get<string>(offset);
-		}
-
-		public static Guid GetGuid(this IFdbTuple tuple, int offset)
-		{
-			return tuple.Get<Guid>(offset);
-		}
 
 		/// <summary>Returns an array containing all the objects of a tuple</summary>
 		public static object[] ToArray(this IFdbTuple tuple)
@@ -105,21 +74,6 @@ namespace FoundationDb.Layers.Tuples
 			if (n2 == 0) return first;
 
 			return new FdbJoinedTuple(first, second);
-		}
-
-		public static IFdbTuple AppendRange(this IFdbTuple tuple, params object[] items)
-		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
-			if (items == null) throw new ArgumentNullException("items");
-			if (items.Length == 0) return tuple;
-
-			var tupleList = tuple as FdbListTuple;
-			if (tupleList != null) return tupleList.AppendRange(items);
-
-			var list = new object[tuple.Count + items.Length];
-			tuple.CopyTo(list, 0);
-			Array.Copy(items, 0, list, tuple.Count, items.Length);
-			return new FdbListTuple(list, 0, list.Length);
 		}
 
 		/// <summary>Creates a key range containing all children of this tuple, from tuple.pack()+'\0' to tuple.pack()+'\xFF'</summary>
@@ -198,7 +152,6 @@ namespace FoundationDb.Layers.Tuples
 
 			return tuple[offset, null];
 		}
-
 
 		/// <summary>Returns a substring of the current tuple</summary>
 		/// <param name="tuple">Current tuple</param>

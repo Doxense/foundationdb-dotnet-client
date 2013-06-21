@@ -62,12 +62,12 @@ namespace FoundationDb.Layers.Indexing
 
 		public void AddOrUpdate(FdbTransaction trans, TId id, TValue value)
 		{
-			trans.Set(this.Subspace.Append(value, id), Slice.Empty);
+			trans.Set(this.Subspace.Create(value, id), Slice.Empty);
 		}
 
 		public void Remove(FdbTransaction trans, TId id, TValue value)
 		{
-			trans.Clear(this.Subspace.Append(value, id));
+			trans.Clear(this.Subspace.Create(value, id));
 		}
 
 		/// <summary>Returns a list of ids matching a specific value</summary>
@@ -80,7 +80,7 @@ namespace FoundationDb.Layers.Indexing
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			var prefix = this.Subspace.Append(value);
+			var prefix = this.Subspace.Create(value);
 			var results = trans.GetRangeStartsWith(prefix, 0, this.Snapshot, reverse);
 
 			//TODO: limits? paging? ...

@@ -30,6 +30,7 @@ namespace FoundationDb.Layers.Tuples
 {
 	using System;
 
+	/// <summary>Simple key formatter that maps a value into a singleton tuple, and back</summary>
 	public sealed class FdbTupleKeyFormatter<T> : ITupleKeyFormatter<T>
 	{
 		public static readonly ITupleKeyFormatter<T> Default = new FdbTupleKeyFormatter<T>();

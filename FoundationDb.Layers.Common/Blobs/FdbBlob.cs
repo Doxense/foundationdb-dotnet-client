@@ -336,7 +336,7 @@ namespace FoundationDb.Layers.Blobs
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.ClearRange(this.Subspace.Append('D'));
+			trans.ClearRange(this.Subspace.Create('D'));
 			SetSize(trans, 0);
 		}
 
@@ -416,7 +416,7 @@ namespace FoundationDb.Layers.Blobs
 			var ms = new MemoryStream((int)length.Value);
 
 			await trans
-				.GetRangeStartsWith(this.Subspace.Append('D'))
+				.GetRangeStartsWith(this.Subspace.Create('D'))
 				.ForEachAsync((chunk) =>
 				{
 					long offset = DataKeyOffset(chunk.Key);
