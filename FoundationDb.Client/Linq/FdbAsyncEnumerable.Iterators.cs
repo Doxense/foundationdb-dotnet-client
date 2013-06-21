@@ -26,9 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Linq
+namespace FoundationDB.Linq
 {
-	using FoundationDb.Client.Utils;
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;

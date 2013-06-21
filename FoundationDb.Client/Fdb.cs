@@ -28,9 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #undef DEBUG_THREADS
 
-namespace FoundationDb.Client
+namespace FoundationDB.Client
 {
-	using FoundationDb.Client.Native;
+	using FoundationDB.Client.Native;
 	using System;
 	using System.Diagnostics;
 	using System.IO;

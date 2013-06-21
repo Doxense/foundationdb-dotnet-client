@@ -29,11 +29,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Transactions
 #undef DEBUG_TRANSACTIONS
 
-namespace FoundationDb.Client
+namespace FoundationDB.Client
 {
-	using FoundationDb.Client.Native;
-	using FoundationDb.Client.Utils;
-	using FoundationDb.Layers.Tuples;
+	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;

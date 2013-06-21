@@ -32,7 +32,7 @@ using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Security;
 
-namespace FoundationDb.Client.Native
+namespace FoundationDB.Client.Native
 {
 
 	/// <summary>Native Library Loader</summary>

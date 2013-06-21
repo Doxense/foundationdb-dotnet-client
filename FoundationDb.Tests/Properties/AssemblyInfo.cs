@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System.Reflection;
 using System.Runtime.InteropServices;
 
-[assembly: AssemblyTitle("FoundationDb.Tests")]
+[assembly: AssemblyTitle("FoundationDB.Tests")]
 [assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
 

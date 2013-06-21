@@ -26,9 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client
+namespace FoundationDB.Client
 {
-	using FoundationDb.Client.Converters;
+	using FoundationDB.Client.Converters;
 	using System;
 
 	/// <summary>Very simple serializer that uses FdbConverters to convert values of type <typeparamref name="T"/> from/to Slice</summary>

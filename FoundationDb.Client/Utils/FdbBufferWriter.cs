@@ -26,9 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client.Utils
+namespace FoundationDB.Client.Utils
 {
-	using FoundationDb.Layers.Tuples;
+	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;

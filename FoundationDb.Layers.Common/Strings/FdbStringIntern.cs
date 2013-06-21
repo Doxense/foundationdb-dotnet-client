@@ -28,8 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #undef DEBUG_STRING_INTERNING
 
-using FoundationDb.Client;
-using FoundationDb.Layers.Tuples;
+using FoundationDB.Client;
+using FoundationDB.Layers.Tuples;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -39,7 +39,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FoundationDb.Layers.Tables
+namespace FoundationDB.Layers.Tables
 {
 
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>

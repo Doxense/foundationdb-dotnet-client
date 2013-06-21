@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #if false // DOES NOT WORK
 
 using System;
-using FoundationDb.Client.Native;
+using FoundationDB.Client.Native;
 using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Threading;
@@ -36,7 +36,7 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 
-namespace FoundationDb.Client
+namespace FoundationDB.Client
 {
 
 	/// <summary>Class that handles all timeouts for async operations</summary>

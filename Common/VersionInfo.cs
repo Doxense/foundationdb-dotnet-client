@@ -31,7 +31,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyCompany("Doxense SARL")]
-[assembly: AssemblyProduct("FoundationDb.Client")]
+[assembly: AssemblyProduct("FoundationDB.Client")]
 [assembly: AssemblyCopyright("Copyright © Doxense SARL 2013")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]

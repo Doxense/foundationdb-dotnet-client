@@ -26,9 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client.Converters
+namespace FoundationDB.Client.Converters
 {
-	using FoundationDb.Client.Utils;
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;

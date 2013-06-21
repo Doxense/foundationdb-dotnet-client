@@ -37,7 +37,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FoundationDb.Client.Native
+namespace FoundationDB.Client.Native
 {
 
 	/// <summary>Wrapper on a FDBFuture*</summary>

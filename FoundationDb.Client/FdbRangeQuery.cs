@@ -26,10 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client
+namespace FoundationDB.Client
 {
-	using FoundationDb.Client.Utils;
-	using FoundationDb.Linq;
+	using FoundationDB.Client.Utils;
+	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;

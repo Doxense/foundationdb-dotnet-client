@@ -41,7 +41,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FoundationDb.Client.Native
+namespace FoundationDB.Client.Native
 {
 
 	/// <summary>Base class for all wrappers on FDBxxxx* opaque pointers</summary>

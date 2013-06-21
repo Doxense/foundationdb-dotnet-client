@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Layers.Tuples
+namespace FoundationDB.Layers.Tuples
 {
 	using System;
 

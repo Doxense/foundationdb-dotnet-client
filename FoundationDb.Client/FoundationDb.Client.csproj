@@ -7,8 +7,8 @@
     <ProjectGuid>{773166B7-DE74-4FCC-845C-84080CC89533}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FoundationDb.Client</RootNamespace>
-    <AssemblyName>FoundationDb.Client</AssemblyName>
+    <RootNamespace>FoundationDB.Client</RootNamespace>
+    <AssemblyName>FoundationDB.Client</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />

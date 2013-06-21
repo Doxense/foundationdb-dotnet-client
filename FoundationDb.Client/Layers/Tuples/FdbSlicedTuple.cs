@@ -26,13 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Converters;
-using FoundationDb.Client.Utils;
+using FoundationDB.Client;
+using FoundationDB.Client.Converters;
+using FoundationDB.Client.Utils;
 using System;
 using System.Collections.Generic;
 
-namespace FoundationDb.Layers.Tuples
+namespace FoundationDB.Layers.Tuples
 {
 
 	/// <summary>Specialized tuple that efficiently maps a key parsed from a Slice</summary>

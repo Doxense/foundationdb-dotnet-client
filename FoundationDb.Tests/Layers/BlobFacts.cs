@@ -26,11 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Layers.Blobs.Tests
+namespace FoundationDB.Layers.Blobs.Tests
 {
-	using FoundationDb.Client;
-	using FoundationDb.Client.Tests;
-	using FoundationDb.Layers.Tuples;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
+	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Threading.Tasks;

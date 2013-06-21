@@ -37,7 +37,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace FoundationDb.Client.Native
+namespace FoundationDB.Client.Native
 {
 	internal static unsafe class FdbNative
 	{

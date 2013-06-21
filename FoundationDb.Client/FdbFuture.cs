@@ -32,9 +32,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Futures
 #undef DEBUG_FUTURES
 
-namespace FoundationDb.Client
+namespace FoundationDB.Client
 {
-	using FoundationDb.Client.Native;
+	using FoundationDB.Client.Native;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;

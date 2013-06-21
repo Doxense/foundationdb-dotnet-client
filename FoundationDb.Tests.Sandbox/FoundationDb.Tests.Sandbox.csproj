@@ -7,7 +7,7 @@
     <ProjectGuid>{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FoundationDb.Tests.Sandbox</RootNamespace>
+    <RootNamespace>FoundationDB.Tests.Sandbox</RootNamespace>
     <AssemblyName>fdbsandbox</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -52,13 +52,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FoundationDb.Client\FoundationDb.Client.csproj">
+    <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj">
       <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
-      <Name>FoundationDb.Client</Name>
+      <Name>FoundationDB.Client</Name>
     </ProjectReference>
-    <ProjectReference Include="..\FoundationDb.Layers.Common\FoundationDb.Layers.Common.csproj">
+    <ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj">
       <Project>{7c7717d6-a1e7-4541-af8b-1ac762b5ed0f}</Project>
-      <Name>FoundationDb.Layers.Common</Name>
+      <Name>FoundationDB.Layers.Common</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

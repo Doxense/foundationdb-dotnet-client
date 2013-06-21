@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 using System;
 using System.Runtime.InteropServices;
 
-namespace FoundationDb.Client.Native
+namespace FoundationDB.Client.Native
 {
 
 	[StructLayout(LayoutKind.Sequential, Pack = 4)]

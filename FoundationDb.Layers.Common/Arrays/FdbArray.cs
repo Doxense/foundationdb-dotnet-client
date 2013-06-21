@@ -26,8 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Layers.Tuples;
+using FoundationDB.Client;
+using FoundationDB.Layers.Tuples;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -35,7 +35,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace FoundationDb.Layers.Arrays
+namespace FoundationDB.Layers.Arrays
 {
 
 	public class FdbArray

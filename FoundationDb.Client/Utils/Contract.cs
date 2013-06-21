@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client.Utils
+namespace FoundationDB.Client.Utils
 {
 	using System;
 	using System.Diagnostics;

@@ -30,7 +30,7 @@ using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
-using FoundationDb.Client.Native;
+using FoundationDB.Client.Native;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -39,10 +39,10 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
-using FoundationDb.Layers.Tuples;
-using FoundationDb.Client.Utils;
+using FoundationDB.Layers.Tuples;
+using FoundationDB.Client.Utils;
 
-namespace FoundationDb.Client
+namespace FoundationDB.Client
 {
 
 	/// <summary>FoundationDB Database</summary>

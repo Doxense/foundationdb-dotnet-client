@@ -26,10 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Layers.Tables
+namespace FoundationDB.Layers.Tables
 {
-	using FoundationDb.Client;
-	using FoundationDb.Layers.Tuples;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;

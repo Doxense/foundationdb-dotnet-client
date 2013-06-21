@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Linq
+namespace FoundationDB.Linq
 {
 	using System;
 	using System.Collections.Generic;

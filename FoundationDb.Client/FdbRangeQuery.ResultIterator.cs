@@ -29,10 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //enable this to enable verbose traces when doing paging
 #undef DEBUG_RANGE_ITERATOR
 
-namespace FoundationDb.Client
+namespace FoundationDB.Client
 {
-	using FoundationDb.Client.Utils;
-	using FoundationDb.Linq;
+	using FoundationDB.Client.Utils;
+	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;

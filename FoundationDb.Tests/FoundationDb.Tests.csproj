@@ -7,8 +7,8 @@
     <ProjectGuid>{7C888F78-99B1-4CA1-8973-282EC5CCCACD}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FoundationDb.Tests</RootNamespace>
-    <AssemblyName>FoundationDb.Tests</AssemblyName>
+    <RootNamespace>FoundationDB.Tests</RootNamespace>
+    <AssemblyName>FoundationDB.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -77,13 +77,13 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FoundationDb.Client\FoundationDb.Client.csproj">
+    <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj">
       <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
-      <Name>FoundationDb.Client</Name>
+      <Name>FoundationDB.Client</Name>
     </ProjectReference>
-    <ProjectReference Include="..\FoundationDb.Layers.Common\FoundationDb.Layers.Common.csproj">
+    <ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj">
       <Project>{7c7717d6-a1e7-4541-af8b-1ac762b5ed0f}</Project>
-      <Name>FoundationDb.Layers.Common</Name>
+      <Name>FoundationDB.Layers.Common</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

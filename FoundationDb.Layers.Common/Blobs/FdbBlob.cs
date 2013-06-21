@@ -26,12 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Layers.Blobs
+namespace FoundationDB.Layers.Blobs
 {
-	using FoundationDb.Client;
-	using FoundationDb.Client.Utils;
-	using FoundationDb.Layers.Tuples;
-	using FoundationDb.Linq;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;

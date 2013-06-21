@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
 
-namespace FoundationDb.Layers.Tuples
+namespace FoundationDB.Layers.Tuples
 {
 
 	internal static class FdbTupleTypes

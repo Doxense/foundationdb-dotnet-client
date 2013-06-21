@@ -26,14 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Converters;
-using FoundationDb.Client.Utils;
+using FoundationDB.Client;
+using FoundationDB.Client.Converters;
+using FoundationDB.Client.Utils;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace FoundationDb.Layers.Tuples
+namespace FoundationDB.Layers.Tuples
 {
 
 	/// <summary>Represent an immutable tuple where the packed bytes are cached</summary>

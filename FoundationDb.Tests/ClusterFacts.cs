@@ -26,9 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client.Tests
+namespace FoundationDB.Client.Tests
 {
-	using FoundationDb.Client;
+	using FoundationDB.Client;
 	using NUnit.Framework;
 	using System;
 	using System.Threading;

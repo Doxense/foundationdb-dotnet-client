@@ -35,11 +35,11 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
-using FoundationDb.Client;
-using FoundationDb.Layers.Tuples;
-using FoundationDb.Linq;
+using FoundationDB.Client;
+using FoundationDB.Layers.Tuples;
+using FoundationDB.Linq;
 
-namespace FoundationDb.Layers.Indexing
+namespace FoundationDB.Layers.Indexing
 {
 
 	/// <summary>Simple indexe that indexes instances of type <typeparamref name="TElement"/>, by a value of type <typeparamref name="TValue"/> and a reference of type <typeparamref name="TId"/></summary>

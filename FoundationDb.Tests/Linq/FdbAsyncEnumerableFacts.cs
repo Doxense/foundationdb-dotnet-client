@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Linq.Tests
+namespace FoundationDB.Linq.Tests
 {
 	using NUnit.Framework;
 	using System;

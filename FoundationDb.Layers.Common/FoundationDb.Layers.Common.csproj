@@ -7,8 +7,8 @@
     <ProjectGuid>{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FoundationDb.Layers.Common</RootNamespace>
-    <AssemblyName>FoundationDb.Layers.Common</AssemblyName>
+    <RootNamespace>FoundationDB.Layers.Common</RootNamespace>
+    <AssemblyName>FoundationDB.Layers.Common</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
@@ -59,9 +59,9 @@
     <Compile Include="Tables\FdbVersionedTable.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\FoundationDb.Client\FoundationDb.Client.csproj">
+    <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj">
       <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
-      <Name>FoundationDb.Client</Name>
+      <Name>FoundationDB.Client</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

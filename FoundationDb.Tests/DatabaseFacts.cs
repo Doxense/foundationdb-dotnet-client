@@ -26,10 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDb.Client.Tests
+namespace FoundationDB.Client.Tests
 {
-	using FoundationDb.Client;
-	using FoundationDb.Layers.Tuples;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Threading;

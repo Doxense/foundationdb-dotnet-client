@@ -26,14 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDb.Client;
-using FoundationDb.Client.Utils;
+using FoundationDB.Client;
+using FoundationDB.Client.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 
-namespace FoundationDb.Layers.Tuples
+namespace FoundationDB.Layers.Tuples
 {
 
 	/// <summary>Factory class for Tuples</summary>

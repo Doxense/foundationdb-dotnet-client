@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
 using System;
-namespace FoundationDb.Client.Native
+namespace FoundationDB.Client.Native
 {
 
 	/// <summary>Wrapper on a FDBCluster*</summary>
