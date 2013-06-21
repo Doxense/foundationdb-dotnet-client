@@ -1,6 +1,3 @@
-FoundationDB-dotnet-Client
-==========================
-
 This is a prototype .NET wrapper for FoundationDB Client C API
 
 *** THIS IS PROTOTYPE QUALITY, DO NOT USE IN PRODUCTION ***
@@ -79,4 +76,6 @@ What should work okay:
 * range queries
 * key selectors
 * simple LINQ queries, like Select() or Where() on the result of range queries (to convert Slice key/values into oter types).
+
+
 
