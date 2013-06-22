@@ -220,40 +220,6 @@ namespace FoundationDB.Client
 			return new BatchIterator(offset, count, workers, batchSize);
 		}
 
-#if DEPRECATED
-
-		public static IFdbKey Pack<T1, T2>(T1 item1, T2 item2)
-		{
-			return FdbTuple.Create<T1, T2>(item1, item2);
-		}
-
-		public static IFdbKey Pack<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
-		{
-			return FdbTuple.Create<T1, T2, T3>(item1, item2, item3);
-		}
-
-		public static IFdbKey Pack<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
-		{
-			return FdbTuple.Create<T1, T2, T3, T4>(item1, item2, item3, item4);
-		}
-
-		public static IFdbKey Pack<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
-		{
-			return FdbTuple.Create<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
-		}
-
-		public static IFdbKey Pack(params object[] items)
-		{
-			return FdbTuple.Create(items);
-		}
-
-		public static IFdbKey Pack(IFdbTuple prefix, params object[] items)
-		{
-			return prefix.AppendRange(items);
-		}
-
-#endif
-
 	}
 
 }
