@@ -40,7 +40,7 @@ namespace FoundationDB.Linq.Tests
 	{
 
 		[Test]
-		public async Task Test_Can_Convert_Enumerable_To_AsyncEnmuerable()
+		public async Task Test_Can_Convert_Enumerable_To_AsyncEnumerable()
 		{
 			// we need to make sure this works, because we will use this a lot for other tests
 
@@ -417,6 +417,7 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(results[0].Odd, Is.True);
 		}
 
+		[Test]
 		public async Task Test_Can_Select_With_LINQ_Syntax()
 		{
 			// ensure that we can also use the "from ... select ... where" syntax
@@ -429,10 +430,74 @@ namespace FoundationDB.Linq.Tests
 				.ToListAsync();
 
 			Assert.That(results.Count, Is.EqualTo(5));
-			Assert.That(results[0].Value, Is.EqualTo(1));
-			Assert.That(results[0].Square, Is.EqualTo(1));
-			Assert.That(results[0].Root, Is.EqualTo(1.0));
-			Assert.That(results[0].Odd, Is.True);
+			Assert.That(results.Select(t => t.Value).ToArray(), Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
+			Assert.That(results.Select(t => t.Square).ToArray(), Is.EqualTo(new int[] { 1, 9, 25, 49, 81 }));
+			Assert.That(results.Select(t => t.Value).ToArray(), Is.EqualTo(new double[] { 1.0, 3.0, 5.0, 7.0, 9.0 }));
+			Assert.That(results.All(t => t.Odd), Is.True);
+		}
+
+
+		[Test]
+		public async Task Test_Can_SelectMany_With_LINQ_Syntax()
+		{
+
+			var results = await
+			(from x in Enumerable.Range(0, 10).ToAsyncEnumerable()
+			 from y in Enumerable.Repeat((char)(65 + x), x)
+			 let t = new { X = x, Y = y, Odd = x % 2 == 1 }
+			 where t.Odd
+			 select t)
+			 .ToListAsync();
+
+			Assert.That(results.Count, Is.EqualTo(25));
+			Assert.That(results.Select(t => t.X).ToArray(), Is.EqualTo(new int[] { 1, 3, 3, 3, 5, 5, 5, 5, 5, 7, 7, 7, 7, 7, 7, 7, 9, 9, 9, 9, 9, 9, 9, 9, 9 }));
+			Assert.That(results.Select(t => t.Y).ToArray(), Is.EqualTo(new char[] { 'B', 'D', 'D', 'D', 'F', 'F', 'F', 'F', 'F', 'H', 'H', 'H', 'H', 'H', 'H', 'H', 'J', 'J', 'J', 'J', 'J', 'J', 'J', 'J', 'J' }));
+			Assert.That(results.All(t => t.Odd), Is.True);
+		}
+
+		[Test]
+		public async Task Test_Exceptions_Are_Propagated_To_Caller()
+		{
+			var query = Enumerable.Range(0, 10).ToAsyncEnumerable()
+				.Select(x =>
+				{
+					if (x == 1) throw new FormatException("KABOOM");
+					Assert.That(x, Is.LessThan(1));
+					return x;
+				});
+
+			using (var iterator = query.GetEnumerator())
+			{
+				// first move next should succeed
+				bool res = await iterator.MoveNext(CancellationToken.None);
+				Assert.That(res, Is.True);
+
+				// second move next should fail
+				try
+				{
+					res = await iterator.MoveNext(CancellationToken.None);
+					Assert.Fail("Should have failed");
+				}
+				catch (AssertionException) { throw; }
+				catch (Exception e)
+				{
+					Assert.That(e, Is.InstanceOf<FormatException>().And.Message.EqualTo("KABOOM"));
+				}
+
+				// accessing current should rethrow the exception
+				Assert.That(() => iterator.Current, Throws.InstanceOf<InvalidOperationException>());
+
+				// another attempt at MoveNext should fail immediately but with a different error
+				try
+				{
+					res = await iterator.MoveNext(CancellationToken.None);
+				}
+				catch (AssertionException) { throw; }
+				catch (Exception e)
+				{
+					Assert.That(e, Is.InstanceOf<InvalidOperationException>());
+				}
+			}
 		}
 
 	}
