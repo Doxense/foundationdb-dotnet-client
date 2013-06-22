@@ -943,6 +943,91 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 		#endregion
 
+		#region Bench....
+
+		[Test]
+		public void Bench_FdbTuple_Unpack_Random()
+		{
+			const int N = 100 * 1000;
+
+			Console.Write("Creating " + N.ToString("N0") + " random tuples...");
+			var tuples = new List<IFdbTuple>(N);
+			var rnd = new Random(777);
+			var sw = Stopwatch.StartNew();
+			for (int i = 0; i < N; i++)
+			{
+				IFdbTuple tuple = FdbTuple.Empty;
+				int s = 1 + (int)Math.Sqrt(rnd.Next(128));
+				for (int j = 0; j < s; j++)
+				{
+					switch (rnd.Next(10))
+					{
+						case 0: tuple = tuple.Append<int>(rnd.Next(255)); break;
+						case 1: tuple = tuple.Append<int>(-1 - rnd.Next(255)); break;
+						case 2: tuple = tuple.Append<int>(256 + rnd.Next(65536 - 256)); break;
+						case 3: tuple = tuple.Append<int>(rnd.Next(int.MaxValue)); break;
+						case 4: tuple = tuple.Append<long>((rnd.Next(int.MaxValue) << 32) | rnd.Next(int.MaxValue)); break;
+						case 5: tuple = tuple.Append(new string('A', 1 + rnd.Next(16))); break;
+						case 6: tuple = tuple.Append(new string('B', 8 + (int)Math.Sqrt(rnd.Next(1024)))); break;
+						case 7: tuple = tuple.Append(Guid.NewGuid()); break;
+						case 8: { var buf = new byte[rnd.Next((int)Math.Sqrt(256))]; rnd.NextBytes(buf); tuple = tuple.Append(buf); break; }
+						case 9: tuple = tuple.Append(default(string)); break;
+					}
+				}
+				tuples.Add(tuple);
+			}
+			sw.Stop();
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" > " + tuples.Sum(x => x.Count).ToString("N0") + " items");
+			Console.WriteLine(" > "  + tuples[42]);
+
+			Console.Write("Packing tuples...");
+			sw.Restart();
+			var slices = FdbTuple.BatchPack(tuples);
+			sw.Stop();
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" > " + (N / sw.Elapsed.TotalSeconds).ToString("N0") + " tps");
+			Console.WriteLine(" > " + slices.Sum(x => x.Count).ToString("N0") + " bytes");
+			Console.WriteLine(" > " + slices[42]);
+
+			Console.Write("Unpacking tuples...");
+			sw.Restart();
+			var unpacked = slices.Select(slice => FdbTuple.Unpack(slice)).ToList();
+			sw.Stop();
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" > " + (N / sw.Elapsed.TotalSeconds).ToString("N0") + " tps");
+			Console.WriteLine(" > " + unpacked[42]);
+
+			Console.Write("Comparing ...");
+			sw.Restart();
+			tuples.Zip(unpacked, (x, y) => x.Equals(y)).All(b => b);
+			sw.Stop();
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+
+			Console.Write("Tuples.ToString ...");
+			sw.Restart();
+			var strings = tuples.Select(x => x.ToString()).ToList();
+			sw.Stop();
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" > " + strings.Sum(x => x.Length).ToString("N0") + " chars");
+			Console.WriteLine(" > " + strings[42]);
+
+			Console.Write("Unpacked.ToString ...");
+			sw.Restart();
+			strings = unpacked.Select(x => x.ToString()).ToList();
+			sw.Stop();
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" > " + strings.Sum(x => x.Length).ToString("N0") + " chars");
+			Console.WriteLine(" > " + strings[42]);
+
+			Console.Write("Memoizing ...");
+			sw.Restart();
+			var memoized = tuples.Select(x => x.Memoize()).ToList();
+			sw.Stop();
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+		}
+
+		#endregion
 	}
 
 
