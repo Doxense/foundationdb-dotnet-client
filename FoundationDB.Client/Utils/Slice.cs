@@ -464,6 +464,24 @@ namespace FoundationDB.Client
 			return value;
 		}
 
+		public uint ToUInt32()
+		{
+			if (this.IsNullOrEmpty) return 0;
+
+			if (this.Count > 4) throw new FormatException("Cannot convert slice into an UInt32 because it is larger than 4 bytes");
+
+			var buffer = this.Array;
+			int p = this.Offset;
+			int n = this.Count;
+			uint value = 0;
+
+			while (n-- > 0)
+			{
+				value = (value << 8) | buffer[p++];
+			}
+			return value;
+		}
+
 		public long ToInt64()
 		{
 			if (this.IsNullOrEmpty) return 0L;
@@ -474,6 +492,25 @@ namespace FoundationDB.Client
 			int p = this.Offset;
 			int n = this.Count;
 			long value = 0;
+
+			while (n-- > 0)
+			{
+				value = (value << 8) | buffer[p++];
+			}
+
+			return value;
+		}
+
+		public ulong ToUInt64()
+		{
+			if (this.IsNullOrEmpty) return 0L;
+
+			if (this.Count > 8) throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes");
+
+			var buffer = this.Array;
+			int p = this.Offset;
+			int n = this.Count;
+			ulong value = 0;
 
 			while (n-- > 0)
 			{
@@ -500,6 +537,26 @@ namespace FoundationDB.Client
 				}
 			}
 			return value;
+		}
+
+		public Guid ToGuid()
+		{
+			if (this.Count == 16)
+			{ // direct byte array
+				byte[] tmp;
+				if (this.Offset == 0 && this.Array.Length == 16)
+					tmp = this.Array;
+				else
+					tmp = this.GetBytes();
+				return new Guid(tmp);
+			}
+
+			if (this.Count == 44)
+			{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
+				return Guid.Parse(this.ToAscii());
+			}
+
+			throw new FormatException("Cannot convert slice into a Guid because it has an incorrect size");
 		}
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>

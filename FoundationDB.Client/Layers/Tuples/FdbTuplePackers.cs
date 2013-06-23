@@ -171,6 +171,11 @@ namespace FoundationDB.Layers.Tuples
 					SerializeTo(writer, value as string);
 					return;
 				}
+				case TypeCode.DateTime:
+				{
+					SerializeTo(writer, (DateTime)value);
+					return;
+				}
 			}
 
 			// Not Supported ?
@@ -376,11 +381,19 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			return new ArraySegment<byte>(tmp, 0, p - offset);
+
+		private static Slice ParseBytes(Slice slice)
+		{
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[slice.Count - 1] == 0);
+			if (slice.Count <= 2) return Slice.Empty;
+
+			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
+			return new Slice(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
 		private static string ParseAscii(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[slice.Count - 1] == 0);
 
 			if (slice.Count <= 2) return String.Empty;
 
@@ -424,7 +437,7 @@ namespace FoundationDB.Layers.Tuples
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return null;
-					case FdbTupleTypes.Bytes: return ParseAscii(slice);
+					case FdbTupleTypes.Bytes: return ParseBytes(slice);
 					case FdbTupleTypes.Utf8: return ParseUnicode(slice);
 					case FdbTupleTypes.Guid: return ParseGuid(slice);
 				}

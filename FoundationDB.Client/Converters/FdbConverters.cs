@@ -118,57 +118,75 @@ namespace FoundationDB.Client.Converters
 		/// <summary>Register all the default converters</summary>
 		private static void RegisterDefaultConverters()
 		{
-			RegisterUnsafe((bool value) => Slice.FromInt32(value ? 1 : 0));
-			RegisterUnsafe((bool value) => value ? 1 : default(int));
-			RegisterUnsafe((bool value) => value ? 1L : default(long));
-			RegisterUnsafe((bool value) => value ? "true" : "false");
+			RegisterUnsafe<bool, Slice>((value) => Slice.FromInt32(value ? 1 : 0));
+			RegisterUnsafe<bool, byte[]>((value) => Slice.FromInt32(value ? 1 : 0).GetBytes());
+			RegisterUnsafe<bool, int>((value) => value ? 1 : default(int));
+			RegisterUnsafe<bool, uint>((value) => value ? 1U : default(uint));
+			RegisterUnsafe<bool, long>((value) => value ? 1L : default(long));
+			RegisterUnsafe<bool, ulong>((value) => value ? 1UL : default(ulong));
+			RegisterUnsafe<bool, string>((value) => value ? "true" : "false");
 
-			RegisterUnsafe((int value) => Slice.FromInt32(value));
-			RegisterUnsafe((int value) => (long)value);
-			RegisterUnsafe((int value) => value.ToString(CultureInfo.InvariantCulture));
-			RegisterUnsafe((int value) => value != 0);
-			RegisterUnsafe((int value) => (ulong)value);
-			RegisterUnsafe((int value) => (uint)value);
+			RegisterUnsafe<int, Slice>((value) => Slice.FromInt32(value));
+			RegisterUnsafe<int, byte[]>((value) => Slice.FromInt32(value).GetBytes());
+			RegisterUnsafe<int, string>((value) => value.ToString(CultureInfo.InvariantCulture));
+			RegisterUnsafe<int, uint>((value) => (uint)value);
+			RegisterUnsafe<int, long>((value) => (long)value);
+			RegisterUnsafe<int, ulong>((value) => (ulong)value);
+			RegisterUnsafe<int, bool>((value) => value != 0);
 
-			RegisterUnsafe((long value) => Slice.FromInt64(value));
-			RegisterUnsafe((long value) => { checked { return (int)value; } });
-			RegisterUnsafe((long value) => value.ToString(CultureInfo.InvariantCulture));
-			RegisterUnsafe((long value) => value != 0);
-			RegisterUnsafe((long value) => TimeSpan.FromTicks(value));
-			RegisterUnsafe((long value) => { return (ulong)value; });
-			RegisterUnsafe((long value) => { return (uint)value; });
+			RegisterUnsafe<long, Slice>((value) => Slice.FromInt64(value));
+			RegisterUnsafe<long, byte[]>((value) => Slice.FromInt64(value).GetBytes());
+			RegisterUnsafe<long, string>((value) => value.ToString(CultureInfo.InvariantCulture));
+			RegisterUnsafe<long, int>((value) => { checked { return (int)value; } });
+			RegisterUnsafe<long, uint>((value) => { return (uint)value; });
+			RegisterUnsafe<long, ulong>((value) => { return (ulong)value; });
+			RegisterUnsafe<long, bool>((value) => value != 0);
+			RegisterUnsafe<long, TimeSpan>((value) => TimeSpan.FromTicks(value));
 
-			RegisterUnsafe((ulong value) => Slice.FromUInt64(value));
-			RegisterUnsafe((ulong value) => { checked { return (int)value; } });
-			RegisterUnsafe((ulong value) => { checked { return (long)value; } });
-			RegisterUnsafe((ulong value) => { checked { return (uint)value; } });
-			RegisterUnsafe((ulong value) => value.ToString(CultureInfo.InvariantCulture));
-			RegisterUnsafe((ulong value) => value != 0);
-			RegisterUnsafe((ulong value) => TimeSpan.FromTicks((long)value));
+			RegisterUnsafe<ulong, Slice>((value) => Slice.FromUInt64(value));
+			RegisterUnsafe<ulong, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
+			RegisterUnsafe<ulong, string>((value) => value.ToString(CultureInfo.InvariantCulture));
+			RegisterUnsafe<ulong, int>((value) => { checked { return (int)value; } });
+			RegisterUnsafe<ulong, uint>((value) => { checked { return (uint)value; } });
+			RegisterUnsafe<ulong, long>((value) => { checked { return (long)value; } });
+			RegisterUnsafe<ulong, bool>((value) => value != 0);
 
-			RegisterUnsafe((string value) => Slice.FromString(value));
-			RegisterUnsafe((string value) => string.IsNullOrEmpty(value) ? default(int) : Int32.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe((string value) => string.IsNullOrEmpty(value) ? default(long) : Int64.Parse(value, CultureInfo.InvariantCulture));
-			RegisterUnsafe((string value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
-			RegisterUnsafe((string value) => string.IsNullOrEmpty(value) ? default(bool) : Boolean.Parse(value));
+			RegisterUnsafe<string, Slice>((value) => Slice.FromString(value));
+			RegisterUnsafe<string, byte[]>((value) => Slice.FromString(value).GetBytes());
+			RegisterUnsafe<string, int>((value) => string.IsNullOrEmpty(value) ? default(int) : Int32.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, uint>((value) => string.IsNullOrEmpty(value) ? default(uint) : UInt32.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, long>((value) => string.IsNullOrEmpty(value) ? default(long) : Int64.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, ulong>((value) => string.IsNullOrEmpty(value) ? default(ulong) : UInt64.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, Guid>((value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
+			RegisterUnsafe<string, bool>((value) => string.IsNullOrEmpty(value) ? default(bool) : Boolean.Parse(value));
 
-			RegisterUnsafe((byte[] value) => Slice.Create(value));
-			RegisterUnsafe((byte[] value) => value == null ? default(string) : value.Length == 0 ? String.Empty : System.Convert.ToBase64String(value));
-			RegisterUnsafe((byte[] value) => value == null || value.Length == 0 ? Guid.Empty : new Guid(value));
+			RegisterUnsafe<byte[], Slice>((value) => Slice.Create(value));
+			RegisterUnsafe<byte[], string>((value) => value == null ? default(string) : value.Length == 0 ? String.Empty : System.Convert.ToBase64String(value));
+			RegisterUnsafe<byte[], int>((value) => value == null ? 0 : Slice.Create(value).ToInt32());
+			RegisterUnsafe<byte[], uint>((value) => value == null ? 0U : Slice.Create(value).ToUInt32());
+			RegisterUnsafe<byte[], long>((value) => value == null ? 0L : Slice.Create(value).ToInt64());
+			RegisterUnsafe<byte[], ulong>((value) => value == null ? 0UL : Slice.Create(value).ToUInt64());
+			RegisterUnsafe<byte[], Guid>((value) => value == null || value.Length == 0 ? Guid.Empty : new Guid(value));
+			RegisterUnsafe<byte[], TimeSpan>((value) => value == null ? TimeSpan.Zero : TimeSpan.FromTicks(Slice.Create(value).ToInt64()));
 
-			RegisterUnsafe((Guid value) => Slice.FromGuid(value));
-			RegisterUnsafe((Guid value) => value.ToString(null));
-			RegisterUnsafe((Guid value) => value.ToByteArray());
+			RegisterUnsafe<Guid, Slice>((value) => Slice.FromGuid(value));
+			RegisterUnsafe<Guid, byte[]>((value) => value.ToByteArray());
+			RegisterUnsafe<Guid, string>((value) => value.ToString(null));
 
-			RegisterUnsafe((TimeSpan value) => Slice.FromInt64(value.Ticks));
-			RegisterUnsafe((TimeSpan value) => value.Ticks);
-			RegisterUnsafe((TimeSpan value) => value.TotalSeconds);
+			RegisterUnsafe<TimeSpan, Slice>((value) => Slice.FromInt64(value.Ticks));
+			RegisterUnsafe<TimeSpan, byte[]>((value) => Slice.FromInt64(value.Ticks).GetBytes());
+			RegisterUnsafe<TimeSpan, long>((value) => value.Ticks);
+			RegisterUnsafe<TimeSpan, double>((value) => value.TotalSeconds);
 
 			//REVIEW: this should go in the Tuples layer !
-			RegisterUnsafe((Slice value) => FdbTuplePackers.DeserializeString(value));
-			RegisterUnsafe((Slice value) => { checked { return (int)FdbTuplePackers.DeserializeInt64(value); } });
-			RegisterUnsafe((Slice value) => FdbTuplePackers.DeserializeInt64(value));
-			RegisterUnsafe((Slice value) => FdbTuplePackers.DeserializeGuid(value));
+			RegisterUnsafe<Slice, byte[]>((value) => value.GetBytes());
+			RegisterUnsafe<Slice, string>((value) => value.ToAscii());
+			RegisterUnsafe<Slice, int>((value) => value.ToInt32());
+			RegisterUnsafe<Slice, uint>((value) => value.ToUInt32());
+			RegisterUnsafe<Slice, long>((value) => value.ToInt64());
+			RegisterUnsafe<Slice, ulong>((value) => value.ToUInt64());
+			RegisterUnsafe<Slice, Guid>((value) => value.ToGuid());
+			RegisterUnsafe<Slice, TimeSpan>((value) => TimeSpan.FromTicks(value.ToInt64()));
 		}
 
 		/// <summary>Helper method to throw an exception when we don't know how to convert from <paramref name="source"/> to <paramref name="destination"/></summary>
