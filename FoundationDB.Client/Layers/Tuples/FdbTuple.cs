@@ -339,11 +339,13 @@ namespace FoundationDB.Layers.Tuples
 
 			if (item is char) return "\"" + (char)item + "\"";
 
-			var f = item as IFormattable;
-			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);
-
 			var b = item as byte[];
 			if (b != null) return new Slice(b, 0, b.Length).ToHexaString(' ');
+
+			if (item is Slice) return ((Slice)item).ToAsciiOrHexaString();
+
+			var f = item as IFormattable;
+			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);
 
 			return item.ToString();
 		}

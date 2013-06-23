@@ -446,6 +446,26 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
+		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex dump of the slice. It should only be used for logging and troubleshooting !</summary>
+		/// <returns></returns>
+		public string ToAsciiOrHexaString()
+		{
+			var buffer = this.Array;
+			int n = this.Count;
+			int p = this.Offset;
+			var chars = new char[n + 2];
+			int i = 1;
+			while(n-- > 0)
+			{
+				byte b = buffer[p++];
+				if (b < 32 || b > 127) return ToHexaString(' ');
+				chars[i++] = (char)b;
+			}
+			chars[0] = '\'';
+			chars[chars.Length - 1] = '\'';
+			return new string(chars, 0, chars.Length);
+		}
+
 		public int ToInt32()
 		{
 			if (this.IsNullOrEmpty) return 0;
