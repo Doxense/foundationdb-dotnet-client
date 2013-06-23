@@ -362,11 +362,11 @@ namespace FoundationDB.Layers.Tuples
 			int p = offset;
 			int end = offset + count;
 			int i = 0;
-
 			if (offsetOfFirstZero > 0)
 			{
 				Buffer.BlockCopy(buffer, offset, tmp, 0, offsetOfFirstZero);
 				p += offsetOfFirstZero;
+				i = offsetOfFirstZero;
 			}
 
 			while (p < end)
@@ -380,7 +380,8 @@ namespace FoundationDB.Layers.Tuples
 				tmp[i++] = b;
 			}
 
-			return new ArraySegment<byte>(tmp, 0, p - offset);
+			return new ArraySegment<byte>(tmp, 0, i);
+		}
 
 		private static Slice ParseBytes(Slice slice)
 		{

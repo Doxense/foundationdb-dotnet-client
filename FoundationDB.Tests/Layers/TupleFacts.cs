@@ -347,6 +347,49 @@ namespace FoundationDB.Layers.Tuples.Tests
 		#region Serialization...
 
 		[Test]
+		public void Test_Fdb_Tuple_Serialize_Bytes()
+		{
+			Slice packed;
+
+			packed = FdbTuple.Pack(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 });
+			Assert.That(packed.ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
+			packed = FdbTuple.Pack(new byte[] { 0x00, 0x42 });
+			Assert.That(packed.ToString(), Is.EqualTo("<01><00><FF>B<00>"));
+			packed = FdbTuple.Pack(new byte[] { 0x42, 0x00 });
+			Assert.That(packed.ToString(), Is.EqualTo("<01>B<00><FF><00>"));
+			packed = FdbTuple.Pack(new byte[] { 0x42, 0x00, 0x42 });
+			Assert.That(packed.ToString(), Is.EqualTo("<01>B<00><FF>B<00>"));
+			packed = FdbTuple.Pack(new byte[] { 0x42, 0x00, 0x00, 0x42 });
+			Assert.That(packed.ToString(), Is.EqualTo("<01>B<00><FF><00><FF>B<00>"));
+		}
+
+		[Test]
+		public void Test_Fdb_Tuple_Deserialize_Bytes()
+		{
+			IFdbTuple t;
+
+			t = FdbTuple.Unpack(Slice.Unescape("<01><01><23><45><67><89><AB><CD><EF><00>"));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF }));
+			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("01 23 45 67 89 AB CD EF"));
+
+			t = FdbTuple.Unpack(Slice.Unescape("<01><42><00><FF><00>"));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x42, 0x00 }));
+			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("42 00"));
+
+			t = FdbTuple.Unpack(Slice.Unescape("<01><00><FF><42><00>"));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x00, 0x42 }));
+			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("00 42"));
+
+			t = FdbTuple.Unpack(Slice.Unescape("<01><42><00><FF><42><00>"));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x42, 0x00, 0x42 }));
+			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("42 00 42"));
+
+			t = FdbTuple.Unpack(Slice.Unescape("<01><42><00><FF><00><FF><42><00>"));
+			Assert.That(t.Get<byte[]>(0), Is.EqualTo(new byte[] { 0x42, 0x00, 0x00, 0x42 }));
+			Assert.That(t.Get<Slice>(0).ToHexaString(' '), Is.EqualTo("42 00 00 42"));
+		}
+
+		[Test]
 		public void Test_FdbTuple_Serialize_Unicode_Strings()
 		{
 			// Unicode strings are stored with prefix '02' followed by the utf8 bytes, and terminated by '00'. All occurence of '00' in the UTF8 bytes are escaped with '00 FF'
