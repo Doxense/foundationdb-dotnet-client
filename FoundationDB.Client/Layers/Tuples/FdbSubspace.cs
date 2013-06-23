@@ -216,6 +216,16 @@ namespace FoundationDB.Layers.Tuples
 
 		#endregion
 
+		public FdbKeyRange ToRange()
+		{
+			return this.Tuple.ToRange();
+		}
+
+		public FdbKeyRange ToRange(IFdbTuple tuple)
+		{
+			return FdbKeyRange.FromPrefix(this.Tuple.Append(tuple).ToSlice());
+		}
+
 		internal FdbBufferWriter OpenBuffer(int extraBytes = 0)
 		{
 			var writer = new FdbBufferWriter();

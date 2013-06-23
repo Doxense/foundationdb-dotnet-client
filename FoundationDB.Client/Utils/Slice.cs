@@ -129,6 +129,20 @@ namespace FoundationDB.Client
 			return new Slice(bytes, 0, count);
 		}
 
+		/// <summary>Create a new slice fille with random bytes taken from a random number generator</summary>
+		/// <param name="rnd">Random generator to use (needs locking if instance is shared)</param>
+		/// <param name="size">Number of random bytes to generate</param>
+		/// <returns>Slice of <paramref name="size"/> bytes takent from <paramref name="rnd"/></returns>
+		internal static Slice Random(Random rnd, int size)
+		{
+			if (rnd == null) throw new ArgumentNullException("rnd");
+			if (size <= 0) return Slice.Empty;
+
+			var bytes = new byte[size];
+			rnd.NextBytes(bytes);
+			return new Slice(bytes, 0, size);
+		}
+
 		/// <summary>Decode a Base64 encoded string into a slice</summary>
 		public static Slice FromBase64(string base64String)
 		{

@@ -61,6 +61,7 @@
     <Compile Include="ErrorFacts.cs" />
     <Compile Include="KeyFacts.cs" />
     <Compile Include="Layers\BlobFacts.cs" />
+    <Compile Include="Layers\CounterFacts.cs" />
     <Compile Include="TestHelpers.cs" />
     <Compile Include="Layers\VersionedTableFacts.cs" />
     <Compile Include="Layers\TableFacts.cs" />

@@ -63,6 +63,7 @@
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
+    <Compile Include="Layers\Counters\FdbCounter.cs" />
     <Compile Include="Layers\Tuples\FdbJoinedTuple.cs" />
     <Compile Include="Layers\Tuples\FdbSubspaceExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbLinkedTuple.cs" />
