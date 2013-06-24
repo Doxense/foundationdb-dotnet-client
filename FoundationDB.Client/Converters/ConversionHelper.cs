@@ -97,6 +97,9 @@ namespace FoundationDB.Client.Converters
 
 			if (value is char) return new string((char)value, 1);
 
+			if (value is Slice) return ((Slice) value).ToAscii();
+			if (value is byte[]) return Slice.Create(value as byte[]).ToAscii();
+
 			var fmt = value as IFormattable;
 			if (fmt != null) return fmt.ToString(null, CultureInfo.InvariantCulture);
 

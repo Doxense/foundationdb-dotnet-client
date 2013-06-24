@@ -39,6 +39,8 @@ namespace FoundationDB.Client
 
 	public struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>
 	{
+		#region Static Members...
+
 		internal static readonly byte[] EmptyArray = new byte[0];
 
 		/// <summary>Null slice ("no segment")</summary>
@@ -46,6 +48,17 @@ namespace FoundationDB.Client
 
 		/// <summary>Empty slice ("segment of 0 bytes")</summary>
 		public static readonly Slice Empty = new Slice(EmptyArray, 0, 0);
+
+		private static readonly byte[] ByteSprite;
+
+		static Slice()
+		{
+			var tmp = new byte[256];
+			for (int i = 0; i < tmp.Length; i++) tmp[i] = (byte)i;
+			ByteSprite = tmp;
+		}
+
+		#endregion
 
 		/// <summary>Pointer to the buffer (or null for Slice.Nil)</summary>
 		public readonly byte[] Array;
@@ -81,22 +94,23 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public static Slice Create(byte[] bytes)
 		{
-			return bytes == null ? Slice.Nil : bytes.Length == 0 ? Slice.Empty : new Slice(bytes, 0, bytes.Length);
+			return 
+				bytes == null ? Slice.Nil :
+				bytes.Length == 0 ? Slice.Empty :
+				new Slice(bytes, 0, bytes.Length);
 		}
 
 		/// <summary>Creates a slice from an Array Segment</summary>
-		/// <param name="arraySegment"></param>
-		/// <returns></returns>
+		/// <param name="arraySegment">Segment of buffer to convert</param>
 		public static Slice Create(ArraySegment<byte> arraySegment)
 		{
 			return Create(arraySegment.Array, arraySegment.Offset, arraySegment.Count);
 		}
 
 		/// <summary>Creates a slice mapping a section of a buffer</summary>
-		/// <param name="buffer"></param>
-		/// <param name="offset"></param>
-		/// <param name="count"></param>
-		/// <returns></returns>
+		/// <param name="buffer">Original buffer</param>
+		/// <param name="offset">Offset into buffer</param>
+		/// <param name="count">Number of bytes</param>
 		public static Slice Create(byte[] buffer, int offset, int count)
 		{
 			if (buffer == null) return Nil;
@@ -124,6 +138,11 @@ namespace FoundationDB.Client
 			if (ptr == null) return Slice.Nil;
 			if (count <= 0) return Slice.Empty;
 
+			if (count == 1)
+			{
+				return Slice.FromByte(*ptr);
+			}
+
 			var bytes = new byte[count];
 			Marshal.Copy(new IntPtr(ptr), bytes, 0, count);
 			return new Slice(bytes, 0, count);
@@ -149,6 +168,11 @@ namespace FoundationDB.Client
 			return base64String == null ? Slice.Nil : base64String.Length == 0 ? Slice.Empty : Slice.Create(Convert.FromBase64String(base64String));
 		}
 
+		public static Slice FromByte(byte value)
+		{
+			return new Slice(ByteSprite, value, 1);
+		}
+
 		public static Slice FromInt32(int value)
 		{
 			//REVIEW: use ZigZag encoding for negative values ? (aka VarInt)
@@ -158,7 +182,7 @@ namespace FoundationDB.Client
 				if (value <= 255)
 				{
 					//TODO: use a cache for these ?
-					return new Slice(new byte[] { (byte)value }, 0, 1);
+					return Slice.FromByte((byte)value);
 				}
 				if (value <= 65535)
 				{
@@ -212,7 +236,7 @@ namespace FoundationDB.Client
 			if (value <= 255)
 			{
 				//TODO: use a cache for these ?
-				return new Slice(new byte[] { (byte)value }, 0, 1);
+				return Slice.FromByte((byte)value);
 			}
 			if (value <= 65535)
 			{
@@ -265,6 +289,19 @@ namespace FoundationDB.Client
 		public static Slice FromString(string value)
 		{
 			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Encoding.UTF8.GetBytes(value));
+		}
+
+		public static Slice FromChar(char value)
+		{
+			if (value < 128)
+			{ // ASCII
+				return Slice.FromByte((byte)value);
+			}
+
+			// note: Encoding.UTF8.GetMaxByteCount(1) returns 6, but allocate 8 to stay aligned
+			var tmp = new byte[8];
+			int n = Encoding.UTF8.GetBytes(new char[] { value }, 0, 1, tmp, 0);
+			return new Slice(tmp, 0, n);
 		}
 
 		private static int NibbleToDecimal(char c)

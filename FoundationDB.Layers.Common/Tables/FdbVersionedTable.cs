@@ -38,6 +38,8 @@ namespace FoundationDB.Layers.Tables
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	// THIS IS NOT AN OFFICIAL LAYER, JUST A PROTOTYPE TO TEST A FEW THINGS !
+
 	/// <summary>Table that can store items and keep all past versions</summary>
 	/// <typeparam name="TId">Type of the unique identifier of an item</typeparam>
 	/// <typeparam name="TValue">Type of the value of an item</typeparam>

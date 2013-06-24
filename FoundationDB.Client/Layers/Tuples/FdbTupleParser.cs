@@ -54,17 +54,13 @@ namespace FoundationDB.Layers.Tuples
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
-					writer.EnsureBytes(2);
-					writer.UnsafeWriteByte(FdbTupleTypes.IntPos1);
-					writer.UnsafeWriteByte((byte)value);
+					writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
 					return;
 				}
 
 				if (value > -256)
 				{ // -255..-1
-					writer.EnsureBytes(2);
-					writer.UnsafeWriteByte(FdbTupleTypes.IntNeg1);
-					writer.UnsafeWriteByte((byte)(255 + value));
+					writer.WriteByte2(FdbTupleTypes.IntNeg1, (byte)(255 + value));
 					return;
 				}
 			}
@@ -128,9 +124,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 				else
 				{ // 1..255
-					writer.EnsureBytes(2);
-					writer.UnsafeWriteByte(FdbTupleTypes.IntPos1);
-					writer.UnsafeWriteByte((byte)value);
+					writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
 				}
 			}
 			else
@@ -259,7 +253,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		private static void WriteNulEscapedBytes(FdbBufferWriter writer, byte type, byte[] value, int offset, int count)
+		internal static void WriteNulEscapedBytes(FdbBufferWriter writer, byte type, byte[] value, int offset, int count)
 		{
 			int n = count;
 
@@ -291,8 +285,8 @@ namespace FoundationDB.Layers.Tuples
 					}
 				}
 			}
-			buffer[p++] = FdbTupleTypes.Nil;
-			writer.Position = p;
+			buffer[p] = FdbTupleTypes.Nil;
+			writer.Position = p + 1;
 		}
 
 		/// <summary>Writes a GUID encoded as a 16-byte UUID</summary>

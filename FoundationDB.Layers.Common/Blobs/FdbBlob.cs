@@ -46,6 +46,10 @@ namespace FoundationDB.Layers.Blobs
 		private const long CHUNK_LARGE = 10000; // all chunks will be not greater than this size
 		private const long CHUNK_SMALL = 200; // all adjacent chunks will sum to more than this size
 
+		private static readonly Slice SizeSuffix = Slice.FromChar('S');
+		private static readonly Slice AttributesSuffix = Slice.FromChar('A');
+		private static readonly Slice DataSuffix = Slice.FromChar('D');
+
 		/// <summary>
 		/// Create a new object representing a binary large object (blob).
 		/// Only keys within the subspace will be used by the object. 
@@ -74,7 +78,7 @@ namespace FoundationDB.Layers.Blobs
 		private Slice DataKey(long offset)
 		{
 			//note: python code uses "%16d" % offset, which pads the value with spaces.. Not sure why ?
-			return this.Subspace.Pack('D', offset.ToString("D16", CultureInfo.InvariantCulture));
+			return this.Subspace.Pack(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
 		}
 
 		private long DataKeyOffset(Slice key)
@@ -88,12 +92,12 @@ namespace FoundationDB.Layers.Blobs
 
 		private Slice SizeKey()
 		{
-			return this.Subspace.Pack('S');
+			return this.Subspace.Pack(SizeSuffix);
 		}
 
 		private Slice AttributeKey(string name)
 		{
-			return this.Subspace.Pack('A', name);
+			return this.Subspace.Pack(AttributesSuffix, name);
 		}
 
 		private struct Chunk
@@ -336,7 +340,7 @@ namespace FoundationDB.Layers.Blobs
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.ClearRange(this.Subspace.Create('D'));
+			trans.ClearRange(this.Subspace.Create(DataSuffix));
 			SetSize(trans, 0);
 		}
 
@@ -377,7 +381,7 @@ namespace FoundationDB.Layers.Blobs
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRangeStartsWith(this.Subspace.Pack('A'))
+				.GetRangeStartsWith(this.Subspace.Pack(AttributesSuffix))
 				.Select(
 					(key) => FdbTuple.Unpack(key).Get<string>(-1),
 					(value) => value
@@ -416,7 +420,7 @@ namespace FoundationDB.Layers.Blobs
 			var ms = new MemoryStream((int)length.Value);
 
 			await trans
-				.GetRangeStartsWith(this.Subspace.Create('D'))
+				.GetRangeStartsWith(this.Subspace.Create(DataSuffix))
 				.ForEachAsync((chunk) =>
 				{
 					long offset = DataKeyOffset(chunk.Key);

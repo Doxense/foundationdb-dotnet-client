@@ -118,8 +118,8 @@ namespace FoundationDB.Client.Converters
 		/// <summary>Register all the default converters</summary>
 		private static void RegisterDefaultConverters()
 		{
-			RegisterUnsafe<bool, Slice>((value) => Slice.FromInt32(value ? 1 : 0));
-			RegisterUnsafe<bool, byte[]>((value) => Slice.FromInt32(value ? 1 : 0).GetBytes());
+			RegisterUnsafe<bool, Slice>((value) => Slice.FromByte(value ? (byte)1 : default(byte)));
+			RegisterUnsafe<bool, byte[]>((value) => Slice.FromByte(value ? (byte)1 : default(byte)).GetBytes());
 			RegisterUnsafe<bool, int>((value) => value ? 1 : default(int));
 			RegisterUnsafe<bool, uint>((value) => value ? 1U : default(uint));
 			RegisterUnsafe<bool, long>((value) => value ? 1L : default(long));
@@ -133,6 +133,14 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<int, long>((value) => (long)value);
 			RegisterUnsafe<int, ulong>((value) => (ulong)value);
 			RegisterUnsafe<int, bool>((value) => value != 0);
+
+			RegisterUnsafe<uint, Slice>((value) => Slice.FromUInt64(value));
+			RegisterUnsafe<uint, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
+			RegisterUnsafe<uint, string>((value) => value.ToString(CultureInfo.InvariantCulture));
+			RegisterUnsafe<uint, int>((value) => (int)value);
+			RegisterUnsafe<uint, long>((value) => (long)value);
+			RegisterUnsafe<uint, ulong>((value) => (ulong)value);
+			RegisterUnsafe<uint, bool>((value) => value != 0);
 
 			RegisterUnsafe<long, Slice>((value) => Slice.FromInt64(value));
 			RegisterUnsafe<long, byte[]>((value) => Slice.FromInt64(value).GetBytes());

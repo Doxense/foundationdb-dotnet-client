@@ -47,9 +47,12 @@ namespace FoundationDB.Layers.Tables
 	{
 		// Based on the stringintern.py implementation at https://github.com/FoundationDB/python-layers/blob/master/lib/stringintern.py
 
-		private const char STRING_2_UID_KEY = 'S';
-		private const char UID_2_STRING_KEY = 'U';
-		private const int CACHE_LIMIT_BYTES = 10 * 1000 * 1000;
+		private const int CacheLimitBytes = 10 * 1000 * 1000;
+
+		// note: the python layer uses 'S' and 'U' as ascii string, so we need to use Slice and not chars to respect the tuple serialization
+
+		private static readonly Slice String2UidKey = Slice.FromChar('S');
+		private static readonly Slice Uid2StringKey = Slice.FromChar('U');
 
 		private class Uid : IEquatable<Uid>
 		{
@@ -94,8 +97,8 @@ namespace FoundationDB.Layers.Tables
 
 			this.Subspace = subspace;
 
-			this.StringUidPrefix = subspace.Create(STRING_2_UID_KEY).Memoize();
-			this.UidStringPrefix = subspace.Create(UID_2_STRING_KEY).Memoize();
+			this.StringUidPrefix = subspace.Create(String2UidKey).Memoize();
+			this.UidStringPrefix = subspace.Create(Uid2StringKey).Memoize();
 		}
 
 		public FdbSubspace Subspace { get; private set; }
@@ -149,7 +152,7 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>Add a value in the cache</summary>
 		private void AddToCache(string value, Slice uid)
 		{
-			while (m_bytesCached > CACHE_LIMIT_BYTES)
+			while (m_bytesCached > CacheLimitBytes)
 			{
 				EvictCache();
 			}

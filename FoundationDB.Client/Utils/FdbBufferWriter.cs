@@ -245,6 +245,124 @@ namespace FoundationDB.Client.Utils
 			this.Buffer[this.Position++] = value;
 		}
 
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		internal void WriteByte2(byte value1, byte value2)
+		{
+			EnsureBytes(2);
+
+			int p = this.Position;
+			this.Buffer[p] = value1;
+			this.Buffer[p + 1] = value2;
+			this.Position = p + 2;
+		}
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		internal void UnsafeWriteByte2(byte value1, byte value2)
+		{
+			Contract.Requires(this.Buffer != null && this.Position + 1 < this.Buffer.Length);
+			int p = this.Position;
+			this.Buffer[p] = value1;
+			this.Buffer[p + 1] = value2;
+			this.Position = p + 2;
+		}
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		internal void WriteByte3(byte value1, byte value2, byte value3)
+		{
+			EnsureBytes(3);
+
+			var buffer = this.Buffer;
+			int p = this.Position;
+			buffer[p] = value1;
+			buffer[p + 1] = value2;
+			buffer[p + 2] = value3;
+			this.Position = p + 3;
+		}
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		internal void UnsafeWriteByte3(byte value1, byte value2, byte value3)
+		{
+			Contract.Requires(this.Buffer != null && this.Position + 2 < this.Buffer.Length);
+			var buffer = this.Buffer;
+			int p = this.Position;
+			buffer[p] = value1;
+			buffer[p + 1] = value2;
+			buffer[p + 2] = value3;
+			this.Position = p + 3;
+		}
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		internal void WriteByte4(byte value1, byte value2, byte value3, byte value4)
+		{
+			EnsureBytes(4);
+
+			var buffer = this.Buffer;
+			int p = this.Position;
+			buffer[p] = value1;
+			buffer[p + 1] = value2;
+			buffer[p + 2] = value3;
+			buffer[p + 3] = value4;
+			this.Position = p + 4;
+		}
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		internal void UnsafeWriteByte4(byte value1, byte value2, byte value3, byte value4)
+		{
+			Contract.Requires(this.Buffer != null && this.Position + 3 < this.Buffer.Length);
+			var buffer = this.Buffer;
+			int p = this.Position;
+			buffer[p] = value1;
+			buffer[p + 1] = value2;
+			buffer[p + 2] = value3;
+			buffer[p + 3] = value4;
+			this.Position = p + 4;
+		}
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		internal void WriteByte5(byte value1, byte value2, byte value3, byte value4, byte value5)
+		{
+			EnsureBytes(5);
+
+			var buffer = this.Buffer;
+			int p = this.Position;
+			buffer[p] = value1;
+			buffer[p + 1] = value2;
+			buffer[p + 2] = value3;
+			buffer[p + 3] = value4;
+			buffer[p + 4] = value5;
+			this.Position = p + 5;
+		}
+
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
+		internal void UnsafeWriteByte5(byte value1, byte value2, byte value3, byte value4, byte value5)
+		{
+			Contract.Requires(this.Buffer != null && this.Position + 4 < this.Buffer.Length);
+			var buffer = this.Buffer;
+			int p = this.Position;
+			buffer[p] = value1;
+			buffer[p + 1] = value2;
+			buffer[p + 2] = value3;
+			buffer[p + 3] = value4;
+			buffer[p + 4] = value5;
+			this.Position = p + 5;
+		}
+
 		/// <summary>Append a byte array to the end of the buffer</summary>
 		/// <param name="data"></param>
 #if !NET_4_0
@@ -343,33 +461,37 @@ namespace FoundationDB.Client.Utils
 			}
 			else if (value < (1 << 14))
 			{
-				EnsureBytes(2);
-				UnsafeWriteByte((byte)(value | MASK));
-				UnsafeWriteByte((byte)(value >> 7));
+				WriteByte2(
+					(byte)(value | MASK),
+					(byte)(value >> 7)
+				);
 			}
 			else if (value < (1 << 21))
 			{
-				EnsureBytes(2);
-				UnsafeWriteByte((byte)(value | MASK));
-				UnsafeWriteByte((byte)((value >> 7) | MASK));
-				UnsafeWriteByte((byte)(value >> 14));
+				WriteByte3(
+					(byte)(value | MASK),
+					(byte)((value >> 7) | MASK),
+					(byte)(value >> 14)
+				);
 			}
 			else if (value < (1 << 28))
 			{
-				EnsureBytes(2);
-				UnsafeWriteByte((byte)(value | MASK));
-				UnsafeWriteByte((byte)((value >> 7) | MASK));
-				UnsafeWriteByte((byte)((value >> 14) | MASK));
-				UnsafeWriteByte((byte)(value >> 21));
+				WriteByte4(
+					(byte)(value | MASK),
+					(byte)((value >> 7) | MASK),
+					(byte)((value >> 14) | MASK),
+					(byte)(value >> 21)
+				);
 			}
 			else
 			{
-				EnsureBytes(2);
-				UnsafeWriteByte((byte)(value | MASK));
-				UnsafeWriteByte((byte)((value >> 7) | MASK));
-				UnsafeWriteByte((byte)((value >> 14) | MASK));
-				UnsafeWriteByte((byte)((value >> 21) | MASK));
-				UnsafeWriteByte((byte)(value >> 28));
+				WriteByte5(
+					(byte)(value | MASK),
+					(byte)((value >> 7) | MASK),
+					(byte)((value >> 14) | MASK),
+					(byte)((value >> 21) | MASK),
+					(byte)(value >> 28)
+				);
 			}
 		}
 
