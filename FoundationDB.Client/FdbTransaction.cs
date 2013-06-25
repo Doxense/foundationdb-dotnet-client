@@ -44,6 +44,8 @@ namespace FoundationDB.Client
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	public class FdbTransaction : IDisposable
 	{
+		#region Private Members...
+
 		internal const int STATE_INIT = 0;
 		internal const int STATE_READY = 1;
 		internal const int STATE_COMMITTED = 2;
@@ -51,13 +53,16 @@ namespace FoundationDB.Client
 		internal const int STATE_FAILED = 4;
 		internal const int STATE_DISPOSED = -1;
 
-		#region Private Members...
-
 		/// <summary>Current state of the transaction</summary>
 		private int m_state;
 
+		/// <summary>Parent database for this transaction</summary>
 		private readonly FdbDatabase m_database;
+
+		/// <summary>Unique internal id for this transaction (for debugging purpose)</summary>
 		private readonly int m_id;
+
+		/// <summary>FDB_TRANSACTION* handle</summary>
 		private readonly TransactionHandle m_handle;
 
 		/// <summary>Estimated size of written data (in bytes)</summary>
@@ -79,14 +84,20 @@ namespace FoundationDB.Client
 
 		#region Public Members...
 
+		/// <summary>Internal local identifier of the transaction</summary>
+		/// <remarks>Should only used for logging/debugging purpose.</remarks>
 		public int Id { get { return m_id; } }
 
+		/// <summary>Database instance that manages this transaction</summary>
 		public FdbDatabase Database { get { return m_database; } }
 
+		/// <summary>Native FDB_TRANSACTION* handle</summary>
 		internal TransactionHandle Handle { get { return m_handle; } }
 
+		/// <summary>If true, the transaction is still pending (not committed or rolledback).</summary>
 		internal bool StillAlive { get { return this.State == STATE_READY; } }
 
+		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
 		public int Size { get { return m_payloadBytes; } }
 
 		#endregion
@@ -610,7 +621,7 @@ namespace FoundationDB.Client
 					if (!allowFromNetworkThread) Fdb.EnsureNotOnNetworkThread();
 
 					// also checks that the DB has not been disposed behind our back
-					m_database.EnsureCheckTransactionIsValid(this);
+					m_database.EnsureTransactionIsValid(this);
 
 					// and finally, the cancellation token should not be signaled
 					if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -647,7 +658,7 @@ namespace FoundationDB.Client
 			}
 
 			// checks that the DB has not been disposed behind our back
-			m_database.EnsureCheckTransactionIsValid(this);
+			m_database.EnsureTransactionIsValid(this);
 		}
 
 		public void Dispose()

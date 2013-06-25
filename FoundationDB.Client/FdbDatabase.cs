@@ -235,7 +235,7 @@ namespace FoundationDB.Client
 			}, ct);
 		}
 
-		internal void EnsureCheckTransactionIsValid(FdbTransaction transaction)
+		internal void EnsureTransactionIsValid(FdbTransaction transaction)
 		{
 			ThrowIfDisposed();
 			//TODO?
