@@ -142,23 +142,37 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
-		/// <param name="action">Async action to perform under a new transaction, that receives the transaction as the first parameter, and the number of retries (starts at 0) as the second parameter. It should throw an OperationCancelledException if it decides to not retry the action</param>
+		/// <typeparam name="TResult">Type of the result returned by the action</typeparam>
+		/// <param name="asyncAction">Async action to perform under a new transaction, that receives the transaction as the first parameter, the number of retries (starts at 0) as the second parameter, and a cancellation token as the third parameter. It should throw an OperationCancelledException if it decides to not retry the action</param>
+		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
 		/// <returns>Task that completes when we have successfully completed the action, or fails if a non retryable error occurs</returns>
-		public async Task Attempt(Func<FdbTransaction, int, Task> action)
+		public async Task<TResult> Attempt<TResult>(Func<FdbTransaction, int, CancellationToken, Task<TResult>> asyncAction, CancellationToken ct = default(CancellationToken))
 		{
-			//note: this is called "Run" in Java
+			// this is the equivalent of the "transactionnal" decorator in Python, and maybe also the "Run" method in Java
+
 			//TODO: add 'maxAttempts' or 'maxDuration' optional parameters ?
 
-			int attempt = 0;
-			while (true)
+			var start = DateTime.UtcNow;
+
+			int retries = 0;
+			bool committed = false;
+			TResult res = default(TResult);
+
+			while (!committed && !ct.IsCancellationRequested)
 			{
 				using (var trans = BeginTransaction())
 				{
 					FdbException e = null;
 					try
 					{
-						await action(trans, attempt++);
-						break;
+						// call the user provided lambda
+						res = await asyncAction(trans, retries, ct);
+
+						// commit the transaction
+						await trans.CommitAsync(ct);
+
+						// we are done
+						committed = true;
 					}
 					catch (FdbException x)
 					{
@@ -169,8 +183,56 @@ namespace FoundationDB.Client
 					{
 						await trans.OnErrorAsync(e.Code);
 					}
+
+					var now = DateTime.UtcNow;
+					var elapsed = now - start;
+					if (elapsed.TotalSeconds >= 1)
+					{
+						Debug.WriteLine("fdb WARNING: long transaction ({0} elapsed in transaction lambda function ({1} retries, {2})", elapsed, retries, committed ? "committed" : "not yet committed");
+					}
+
+					++retries;
 				}
 			}
+			ct.ThrowIfCancellationRequested();
+
+			return res;
+		}
+
+		public Task Attempt(Func<FdbTransaction, int, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		{
+			return Attempt<object>(async (tr, retry, _) =>
+			{
+				await asyncAction(tr, retry);
+				return null;
+			}, ct);
+		}
+
+		public Task Attempt(Func<FdbTransaction, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		{
+			return Attempt<object>(async (tr, _, __) =>
+			{
+				await asyncAction(tr);
+				return null;
+			}, ct);
+		}
+
+		public Task Attempt(Action<FdbTransaction, int> action, CancellationToken ct = default(CancellationToken))
+		{
+			return Attempt<bool>((tr, retry, _) =>
+			{
+				action(tr, retry);
+				return Task.FromResult(true);
+			}, ct);
+		}
+
+		public Task Attempt(Action<FdbTransaction> action, CancellationToken ct = default(CancellationToken))
+		{
+			return Attempt<bool>((tr, _, __) =>
+			{
+				action(tr);
+				return Task.FromResult(true);
+			}, ct);
 		}
 
 		internal void EnsureCheckTransactionIsValid(FdbTransaction transaction)
