@@ -37,81 +37,107 @@ namespace FoundationDB.Client
 	/// <summary>Factory class for keys</summary>
 	public static class FdbKey
 	{
-		private static readonly byte[] Bytes = new byte[] { 0, 255 };
-
 		/// <summary>Smallest possible key ('\0')</summary>
-		public static readonly Slice MinValue = new Slice(Bytes, 0, 1);
+		public static readonly Slice MinValue = Slice.FromByte(0);
 
 		/// <summary>Bigest possible key ('\xFF'), excluding the system keys</summary>
-		public static readonly Slice MaxValue = new Slice(Bytes, 1, 1);
+		public static readonly Slice MaxValue = Slice.FromByte(255);
 
-		public static Slice Ascii(string key)
+		/// <summary>Converts an ASCII string into a binary slice (ony byte per character)</summary>
+		/// <param name="value">String that should only contain ASCII characters (0..127)</param>
+		/// <returns>Slice with ony byte per character</returns>
+		/// <remarks>All non-ASCII chars will be truncated to the lower 8 bits !!</remarks>
+		public static Slice Ascii(string value)
 		{
-			if (string.IsNullOrEmpty(key)) throw new ArgumentException("Key cannot be null or emtpy", "key");
+			if (string.IsNullOrEmpty(value)) throw new ArgumentException("Key cannot be null or emtpy", "value");
 
-			var bytes = new byte[key.Length];
-			for (int i = 0; i < key.Length; i++)
+			//TODO: how to handle non-ASCII chars ? (>=128)
+			// => we should throw if char >= 128, to force use of unicode string for everything that is not a keyword !
+
+			var bytes = new byte[value.Length];
+			for (int i = 0; i < value.Length; i++)
 			{
-				bytes[i] = (byte)key[i];
+				bytes[i] = (byte)value[i];
 			}
-			return Binary(bytes);
+			return Slice.Create(bytes);
 		}
 
+		/// <summary>Decode an ASCII encoded key into a string</summary>
+		/// <param name="key">ASCII bytes</param>
+		/// <returns>Decoded string</returns>
 		public static string Ascii(Slice key)
 		{
 			return key.ToAscii();
 		}
 
-		public static Slice Unicode(string text)
+		/// <summary>Converts a string into an UTF-8 encoded key</summary>
+		/// <param name="value">String to convert</param>
+		/// <returns>Key that is the UTF-8 representation of the string</returns>
+		public static Slice Unicode(string value)
 		{
-			return Binary(Encoding.UTF8.GetBytes(text));
+			if (string.IsNullOrEmpty(value)) throw new ArgumentNullException("value");
+			return Slice.Create(Encoding.UTF8.GetBytes(value));
 		}
 
+		/// <summary>Decode an UTF-8 encoded key into a string</summary>
+		/// <param name="key">UTF-8 bytes</param>
+		/// <returns>Decoded string</returns>
 		public static string Unicode(Slice key)
 		{
 			return key.ToUnicode();
 		}
 
-		public static Slice Binary(byte[] data)
+		public static Slice Binary(byte[] value)
 		{
-			if (data == null) throw new ArgumentNullException("data");
-			return new Slice(data, 0, data.Length);
+			if (value == null || value.Length == 0) throw new ArgumentException("Key cannot be null or empty", "value");
+			return Slice.Create(value);
 		}
 
 		public static Slice Binary(byte[] data, int offset, int count)
 		{
-			return new Slice(data, offset, count);
+			if (data == null || count == 0) throw new ArgumentException("Key cannot be null or empty", "value");
+			return Slice.Create(data, offset, count);
 		}
 
-		public static Slice Increment(IFdbTuple key)
+		/// <summary>Increment the last byte of the slice</summary>
+		/// <param name="slice">Slice to increment</param>
+		/// <returns>New slice that is guaranteed to be lexicographically higher than <paramref name="slice"/>. If <paramref name="Slice"/> is empty, then the slice [ 0x00 ] is returned.</returns>
+		/// <remarks>If the last byte is already equal to 0xFF, it will rollover to 0x00 and the next byte will be incremented.</remarks>
+		/// <exception cref="System.ArgumentException">If the Slice is equal to Slice.Nil</exception>
+		/// <exception cref="System.OverflowException">If the Slice is equal to [ 0xFF ] (maximum allowed key)</exception>
+		/// <example>
+		/// FdbKey.Increment(Slice.FromString("ABC")) => "ABD"
+		/// FdbKey.Increment(Slice.FromHexa("01 FF")) => { 02 00 }
+		/// </example>
+		public static Slice Increment(Slice slice)
 		{
-			return Increment(key.ToSlice());
-		}
+			if (!slice.HasValue) throw new ArgumentException("Cannot increment null buffer");
 
-		public static Slice Increment(Slice buffer)
-		{
-			if (!buffer.HasValue) throw new ArgumentException("Cannot increment null buffer");
-			var tmp = buffer.GetBytes();
-			int n = tmp.Length - 1;
-			while (n >= 0)
+			// "" => "\x00" ?
+			if (slice.Count == 0) return Slice.FromByte(0);
+
+			// TODO: let say we have Increment({xx yy 00 FF})
+			// Should we return {xx yy 01 00}, or should we remove the trailing 0 and return {xx yy 01} instead ?
+			// Since {xx yy 00 FF} < {xx yy 01} < {xx yy 01 00}, the smaller one is "closer" to the key than the larger one...
+
+			// copy the bytes from initial slice
+			var tmp = slice.GetBytes();
+
+			int p = tmp.Length - 1;
+			while (p >= 0)
 			{
-				byte c = (byte)((tmp[n] + 1) & 0xFF);
+				byte c = (byte)((tmp[p] + 1) & 0xFF);
 				if (c > 0)
 				{
-					tmp[n] = c;
+					tmp[p] = c;
 					break;
 				}
-				tmp[n] = 0;
-				--n;
+				tmp[p] = 0;
+				--p;
 			}
-			if (n < 0) throw new OverflowException("Cannot increment FdbKey past the maximum value");
-			return new Slice(tmp, 0, tmp.Length);
-		}
 
-		public static bool AreEqual(IFdbTuple left, IFdbTuple right)
-		{
-			if (object.ReferenceEquals(left, right)) return true;
-			return left.ToSlice() == right.ToSlice();
+			if (p < 0) throw new OverflowException("Cannot increment FdbKey because it is already equal to the maximum possible value (0xFF)");
+			return new Slice(tmp, 0, tmp.Length);
 		}
 
 		/// <summary>Split a buffer containing multiple contiguous segments into an array of segments</summary>
@@ -151,7 +177,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		private class BatchIterator : IEnumerable<IEnumerable<KeyValuePair<int, int>>>
+		private sealed class BatchIterator : IEnumerable<IEnumerable<KeyValuePair<int, int>>>
 		{
 			private readonly object m_lock = new object();
 			private int m_cursor;

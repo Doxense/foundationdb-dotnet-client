@@ -180,6 +180,12 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.StartsWith(left, right);
 		}
 
+		public static Slice Increment(this IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			return FdbKey.Increment(tuple.ToSlice());
+		}
+
 		#endregion
 
 		#region FdbTransaction extensions...
