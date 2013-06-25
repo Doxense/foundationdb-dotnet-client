@@ -49,6 +49,7 @@ namespace FoundationDB.Client
 	/// <remarks>Wraps an FDBDatabase* handle</remarks>
 	public class FdbDatabase : IDisposable
 	{
+		#region Private Fields...
 
 		private readonly FdbCluster m_cluster;
 		private readonly DatabaseHandle m_handle;
@@ -64,7 +65,9 @@ namespace FoundationDB.Client
 		/// <remarks>Any key that is outside of the bound should be rejected</remarks>
 		private FdbKeyRange m_allowedKeySpace;
 
-		//TODO: keep track of all pending transactions on this db that are still alive
+		#endregion
+
+		#region Constructors...
 
 		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name, bool ownsCluster)
 		{
@@ -74,6 +77,11 @@ namespace FoundationDB.Client
 			m_ownsCluster = ownsCluster;
 		}
 
+		#endregion
+
+		#region Public Properties...
+
+		/// <summary>Cluster where the database is located</summary>
 		public FdbCluster Cluster { get { return m_cluster; } }
 
 		/// <summary>Name of the database</summary>
@@ -82,14 +90,26 @@ namespace FoundationDB.Client
 		/// <summary>Handle to the underlying FDB_DATABASE*</summary>
 		internal DatabaseHandle Handle { get { return m_handle; } }
 
-		/// <summary>Source or cancellation that is linked with the lifetime of this database</summary>
+		/// <summary>Source of cancellation that is linked with the lifetime of this database</summary>
 		/// <remarks>Will be cancelled when Dispose() is called</remarks>
 		internal CancellationTokenSource CancellationSource { get { return m_cts; } }
 
+		#endregion
+
+		#region Transaction Management...
+
+		/// <summary>Start a new transaction on this database</summary>
+		/// <returns>New transaction</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		/// <example>
+		/// using(var tr = db.BeginTransaction())
+		/// {
+		///		tr.Set(Slice.FromString("Hello"), Slice.FromString("World"));
+		///		await tr.CommitAsync();
+		/// }</example>
 		public FdbTransaction BeginTransaction()
 		{
 			if (m_handle.IsInvalid) throw new InvalidOperationException("Cannot create a transaction on an invalid database");
-
 			ThrowIfDisposed();
 
 			int id = Interlocked.Increment(ref s_transactionCounter);
@@ -120,6 +140,74 @@ namespace FoundationDB.Client
 				throw;
 			}
 		}
+
+		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
+		/// <param name="action">Async action to perform under a new transaction, that receives the transaction as the first parameter, and the number of retries (starts at 0) as the second parameter. It should throw an OperationCancelledException if it decides to not retry the action</param>
+		/// <returns>Task that completes when we have successfully completed the action, or fails if a non retryable error occurs</returns>
+		public async Task Attempt(Func<FdbTransaction, int, Task> action)
+		{
+			//note: this is called "Run" in Java
+			//TODO: add 'maxAttempts' or 'maxDuration' optional parameters ?
+
+			int attempt = 0;
+			while (true)
+			{
+				using (var trans = BeginTransaction())
+				{
+					FdbException e = null;
+					try
+					{
+						await action(trans, attempt++);
+						break;
+					}
+					catch (FdbException x)
+					{
+						x = e;
+					}
+
+					if (e != null)
+					{
+						await trans.OnErrorAsync(e.Code);
+					}
+				}
+			}
+		}
+
+		internal void EnsureCheckTransactionIsValid(FdbTransaction transaction)
+		{
+			ThrowIfDisposed();
+			//TODO?
+		}
+
+		/// <summary>Add a new transaction to the list of tracked transactions</summary>
+		internal void RegisterTransaction(FdbTransaction transaction)
+		{
+			Contract.Requires(transaction != null);
+
+			if (!m_transactions.TryAdd(transaction.Id, transaction))
+			{
+				throw new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id, this.Name));
+			}
+		}
+
+		/// <summary>Remove a transaction from the list of tracked transactions</summary>
+		/// <param name="transaction"></param>
+		internal void UnregisterTransaction(FdbTransaction transaction)
+		{
+			Contract.Requires(transaction != null);
+
+			//do nothing is already disposed
+			if (m_disposed) return;
+
+			// Unregister the transaction. We do not care if it has already been done
+			FdbTransaction _;
+			m_transactions.TryRemove(transaction.Id, out _);
+			//TODO: compare removed value with the specified transaction to ensure it was the correct one?
+		}
+
+		#endregion
+
+		#region Database Options...
 
 		/// <summary>Set a parameter-less option on this database</summary>
 		/// <param name="option">Option to set</param>
@@ -174,6 +262,10 @@ namespace FoundationDB.Client
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			SetOption(FdbDatabaseOption.LocationCacheSize, size);
 		}
+
+		#endregion
+
+		#region Key Management...
 
 		/// <summary>Restrict access to only the keys contained inside the specified bounds</summary>
 		/// <param name="beginInclusive">If non-null, only allow keys that are bigger than or equal to this key</param>
@@ -234,34 +326,25 @@ namespace FoundationDB.Client
 			}
 		}
 
-		internal void EnsureCheckTransactionIsValid(FdbTransaction transaction)
-		{
-			ThrowIfDisposed();
-			//TODO?
-		}
+		#endregion
 
-		internal void RegisterTransaction(FdbTransaction transaction)
-		{
-			Debug.Assert(transaction != null);
+		#region System Keys...
 
-			if (!m_transactions.TryAdd(transaction.Id, transaction))
+		/// <summary>Returns a string describing the list of the coordinators for the cluster</summary>
+		public async Task<string> GetCoordinatorsAsync()
+		{
+			using (var tr = BeginTransaction())
 			{
-				throw new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id, this.Name));
+				tr.WithAccessToSystemKeys();
+
+				var result = await tr.GetAsync(Slice.FromAscii("\xFF/coordinators"));
+				return result.ToAscii();
 			}
 		}
 
-		internal void UnregisterTransaction(FdbTransaction transaction)
-		{
-			Debug.Assert(transaction != null);
+		#endregion
 
-			//do nothing is already disposed
-			if (m_disposed) return;
-
-			// Unregister the transaction. We do not care if it has already been done
-			FdbTransaction _;
-			m_transactions.TryRemove(transaction.Id, out _);
-			//TODO: compare removed value with the specified transaction to ensure it was the correct one?
-		}
+		#region IDisposable...
 
 		private void ThrowIfDisposed()
 		{
@@ -304,49 +387,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public async Task Attempt(Func<FdbTransaction, int, Task> action)
-		{
-			int attempt = 0;
-			while (true)
-			{
-				using (var trans = BeginTransaction())
-				{
-					FdbException e = null;
-					try
-					{
-						await action(trans, attempt++);
-						break;
-					}
-					catch (FdbException x)
-					{
-						x = e;
-					}
-
-					if (e != null)
-					{
-						await trans.OnErrorAsync(e.Code);
-					}
-				}
-			}
-
-		}
-
-		#region System Keys...
-
-		/// <summary>Returns a string describing the list of the coordinators for the cluster</summary>
-		public async Task<string> GetCoordinatorsAsync()
-		{
-			using (var tr = BeginTransaction())
-			{
-				tr.WithAccessToSystemKeys();
-
-				var result = await tr.GetAsync(Slice.FromAscii("\xFF/coordinators"));
-				return result.ToAscii();
-			}
-		}
-
 		#endregion
-
 
 	}
 
