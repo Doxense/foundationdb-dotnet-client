@@ -252,6 +252,10 @@ namespace FoundationDB.Client
 		{
 			this.Database.EnsureKeyIsValid(key);
 
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting value for '{0}'", key.ToString()));
+#endif
+
 			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
 		}
@@ -350,6 +354,10 @@ namespace FoundationDB.Client
 			this.Database.EnsureKeyIsValid(begin.Key);
 			this.Database.EnsureKeyIsValid(end.Key);
 
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0}'..'{1}'", begin.ToString(), end.ToString()));
+#endif
+
 			return new FdbRangeQuery(this, begin, end, limit, targetBytes, mode, snapshot, reverse);
 		}
 
@@ -422,6 +430,10 @@ namespace FoundationDB.Client
 		{
 			this.Database.EnsureKeyIsValid(selector.Key);
 
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyCoreAsync", String.Format("Getting key '{0}'", selector.ToString()));
+#endif
+
 			var future = FdbNative.TransactionGetKey(m_handle, selector, snapshot);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
@@ -445,6 +457,10 @@ namespace FoundationDB.Client
 		{
 			this.Database.EnsureKeyIsValid(key);
 			this.Database.EnsureValueIsValid(value);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetCore", String.Format("Setting '{0}' = {1}", key.ToString(), value.ToString()));
+#endif
 
 			FdbNative.TransactionSet(m_handle, key, value);
 			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count);
@@ -483,6 +499,10 @@ namespace FoundationDB.Client
 		{
 			this.Database.EnsureKeyIsValid(key);
 
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearCore", String.Format("Clearing '{0}'", key.ToString()));
+#endif
+
 			FdbNative.TransactionClear(m_handle, key);
 			Interlocked.Add(ref m_payloadBytes, key.Count);
 		}
@@ -502,6 +522,10 @@ namespace FoundationDB.Client
 		{
 			this.Database.EnsureKeyIsValid(beginKeyInclusive);
 			this.Database.EnsureKeyIsValid(endKeyExclusive);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRangeCore", String.Format("Clearing Range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString()));
+#endif
 
 			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
 			//TODO: how to account for these ?
@@ -530,17 +554,25 @@ namespace FoundationDB.Client
 		{
 			EnsuresCanReadOrWrite(ct);
 
+			if (Logging.On) Logging.Verbose(this, "CommitAsync", "Committing transaction...");
+
 			//TODO: need a STATE_COMMITTING ?
 			try
 			{
 				var future = FdbNative.TransactionCommit(m_handle);
 				await FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
 
-				Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY);
+				if (Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY) == STATE_READY)
+				{
+					if (Logging.On) Logging.Verbose(this, "CommitAsync", "Transaction has been committed");
+				}
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
-				Interlocked.CompareExchange(ref m_state, STATE_FAILED, STATE_READY);
+				if (Interlocked.CompareExchange(ref m_state, STATE_FAILED, STATE_READY) == STATE_READY)
+				{
+					if (Logging.On) Logging.Exception(this, "CommitAsync", e);
+				}
 				throw;
 			}
 		}
@@ -568,6 +600,8 @@ namespace FoundationDB.Client
 			EnsuresCanReadOrWrite();
 
 			FdbNative.TransactionReset(m_handle);
+
+			if (Logging.On) Logging.Verbose(this, "Reset", "Transaction has been reset");
 		}
 
 		/// <summary>Rollback this transaction, and dispose it. It should not be used after that.</summary>
@@ -587,8 +621,12 @@ namespace FoundationDB.Client
 				}
 			}
 
+			if (Logging.On) Logging.Verbose(this, "Reset", "Rolling back transaction...");
+
 			// Dispose of the handle
 			if (!m_handle.IsClosed) m_handle.Dispose();
+
+			if (Logging.On) Logging.Verbose(this, "Reset", "Transaction has been rolled back");
 		}
 
 		#endregion
@@ -669,6 +707,8 @@ namespace FoundationDB.Client
 				try
 				{
 					m_database.UnregisterTransaction(this);
+
+					if (Logging.On) Logging.Verbose(this, "Dispose", String.Format("Transaction #{0} has been disposed", m_id));
 				}
 				finally
 				{

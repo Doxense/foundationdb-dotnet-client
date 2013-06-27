@@ -31,9 +31,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.IO;
+	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -118,9 +120,7 @@ namespace FoundationDB.Client
 		{
 			if (s_eventLoop == null)
 			{
-#if DEBUG_THREADS
-				Debug.WriteLine("Starting Network Thread...");
-#endif
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "StartEventLoop", "Starting network thread...");
 
 				var thread = new Thread(new ThreadStart(EventLoop));
 				thread.Name = "FdbNetworkLoop";
@@ -132,10 +132,11 @@ namespace FoundationDB.Client
 					thread.Start();
 					s_eventLoopStarted = true;
 				}
-				catch (Exception)
+				catch (Exception e)
 				{
 					s_eventLoopStarted = false;
 					s_eventLoop = null;
+					if (Logging.On) Logging.Exception(typeof(Fdb), "StartEventLoop", e);
 					throw;
 				}
 			}
@@ -150,9 +151,7 @@ namespace FoundationDB.Client
 				// We cannot be called from the network thread itself, or else we will dead lock !
 				Fdb.EnsureNotOnNetworkThread();
 
-#if DEBUG_THREADS
-				Debug.WriteLine("Stopping Network Thread...");
-#endif
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "StopEventLoop", "Stopping network thread...");
 
 				var err = FdbNative.StopNetwork();
 				s_eventLoopStarted = false;
@@ -178,8 +177,7 @@ namespace FoundationDB.Client
 
 						if (thread.IsAlive)
 						{
-							// TODO: logging ?
-							Trace.WriteLine(String.Format("The fdb network thread has not stopped after {0} seconds. Forcing shutdown...", duration.Elapsed.TotalSeconds.ToString("N0")));
+							if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", String.Format("The fdb network thread has not stopped after {0} seconds. Forcing shutdown...", duration.Elapsed.TotalSeconds.ToString("N0")));
 
 							// Force a shutdown
 							thread.Abort();
@@ -190,8 +188,7 @@ namespace FoundationDB.Client
 
 							if (!stopped)
 							{
-								//TODO: logging?
-								Trace.WriteLine(String.Format("The fdb network thread failed to stop after more than {0} seconds. Transaction integrity may not be guaranteed.", duration.Elapsed.TotalSeconds.ToString("N0")));
+								if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", String.Format("The fdb network thread failed to stop after more than {0} seconds. Transaction integrity may not be guaranteed.", duration.Elapsed.TotalSeconds.ToString("N0")));
 							}
 						}
 					}
@@ -205,8 +202,7 @@ namespace FoundationDB.Client
 						duration.Stop();
 						if (duration.Elapsed.TotalSeconds >= 20)
 						{
-							//TODO: logging?
-							Trace.WriteLine(String.Format("The fdb network thread took a long time to stop ({0} seconds).", duration.Elapsed.TotalSeconds.ToString("N0")));
+							if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", String.Format("The fdb network thread took a long time to stop ({0} seconds).", duration.Elapsed.TotalSeconds.ToString("N0")));
 						}
 					}
 				}
@@ -221,15 +217,14 @@ namespace FoundationDB.Client
 				s_eventLoopRunning = true;
 
 				s_eventLoopThreadId = Thread.CurrentThread.ManagedThreadId;
-#if DEBUG_THREADS
-				Debug.WriteLine("FDB Event Loop running on thread #" + s_eventLoopThreadId.Value + "...");
-#endif
+
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "EventLoop", String.Format("FDB Event Loop running on thread #{0}...", s_eventLoopThreadId.Value));
 
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
 				{ // Stop received
 					//TODO: logging ?
-					Trace.WriteLine(String.Format("The fdb network thread returned with error code {0}: {1}", err, GetErrorMessage(err)));
+					if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err, GetErrorMessage(err)));
 				}
 			}
 			catch (Exception e)
@@ -242,9 +237,8 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
-#if DEBUG_THREADS
-				Debug.WriteLine("FDB Event Loop stopped");
-#endif
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "EventLoop", "FDB Event Loop stopped");
+
 				s_eventLoopThreadId = null;
 				s_eventLoopRunning = false;
 			}
@@ -268,10 +262,13 @@ namespace FoundationDB.Client
 
 		/// <summary>Throws if the current thread is the Network Thread.</summary>
 		/// <remarks>Should be used to ensure that we do not execute tasks continuations from the network thread, to avoid dead-locks.</remarks>
-		internal static void EnsureNotOnNetworkThread()
+		internal static void EnsureNotOnNetworkThread([CallerMemberName]string callerMethod = null)
 		{
 #if DEBUG_THREADS
-			Debug.WriteLine("> [Executing on thread " + Thread.CurrentThread.ManagedThreadId + "]");
+			if (Logging.On && Logging.IsVerbose)
+			{
+				Logging.Verbose(null, callerMethod, String.Format("[Executing on thread #{0}]", Thread.CurrentThread.ManagedThreadId));
+			}
 #endif
 
 			if (Fdb.IsNetworkThread)
@@ -282,7 +279,7 @@ namespace FoundationDB.Client
 
 		private static void FailCannotExecuteOnNetworkThread()
 		{
-#if DEBUG
+#if DEBUG_THREADS
 			if (Debugger.IsAttached) Debugger.Break();
 #endif
 			throw Fdb.Errors.CannotExecuteOnNetworkThread();
@@ -310,7 +307,7 @@ namespace FoundationDB.Client
 
 			EnsureIsStarted();
 
-			Debug.WriteLine("Connecting to " + (path == null ? "default cluster" : ("cluster specified in " + path)));
+			if (Logging.On) Logging.Info(typeof(Fdb), "OpenClusterAsync", path == null ? "Connecting to default cluster..." : String.Format("Connecting to cluster using '{0}' ...", path));
 
 			//TODO: check path ?
 			var future = FdbNative.CreateCluster(path);
@@ -347,7 +344,8 @@ namespace FoundationDB.Client
 		{
 			ct.ThrowIfCancellationRequested();
 
-			Debug.WriteLine("Connecting to database " + name + " on cluster " + path + " ...");
+
+			if (Logging.On) Logging.Info(typeof(Fdb), "OpenDatabaseAsync", String.Format("Connecting to database '{0}' using cluster file '{1}' and subspace '{2}' ...", name, path, subspace.ToString()));
 
 			FdbCluster cluster = null;
 			FdbDatabase db = null;
@@ -383,7 +381,8 @@ namespace FoundationDB.Client
 		{
 			ct.ThrowIfCancellationRequested();
 
-			Debug.WriteLine("Connecting to local database " + name + " ...");
+
+			if (Logging.On) Logging.Info(typeof(Fdb), "OpenLocalDatabaseAsync", String.Format("Connecting to local database '{0}' ...", name));
 
 			FdbCluster cluster = null;
 			FdbDatabase db = null;
@@ -429,23 +428,21 @@ namespace FoundationDB.Client
 			{
 				if (s_started)
 				{
-					Debug.WriteLine("AppDomain is unloading, stopping FoundationDB Network Thread...");
+					//note: since app domain is unloading, the logger may also have already stopped...
+					if (Logging.On) Logging.Verbose(typeof(Fdb), "AppDomainUnloadHandler", "AppDomain is unloading, stopping FoundationDB Network Thread...");
 					Stop();
 				}
 			};
 			AppDomain.CurrentDomain.DomainUnload += s_appDomainUnloadHandler;
 			//TODO: should we also register with AppDomain.ProcessExit event ?
 
-
-			Debug.WriteLine("Selecting API version " + FdbNative.FDB_API_VERSION);
+			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", FdbNative.FDB_API_VERSION));
 
 			DieOnError(FdbNative.SelectApiVersion(FdbNative.FDB_API_VERSION));
 
-			Debug.WriteLine("Setting up Network Thread...");
-
-			if (Fdb.Options.TracePath != null)
+			if (!string.IsNullOrWhiteSpace(Fdb.Options.TracePath))
 			{
-				Debug.WriteLine("Will trace client activity in " + Fdb.Options.TracePath);
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will trace client activity in '{0}'", Fdb.Options.TracePath));
 				// create trace directory if missing...
 				if (!Directory.Exists(Fdb.Options.TracePath)) Directory.CreateDirectory(Fdb.Options.TracePath);
 
@@ -459,8 +456,11 @@ namespace FoundationDB.Client
 				}
 			}
 
+			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", "Setting up Network Thread...");
+
 			DieOnError(FdbNative.SetupNetwork());
-			Debug.WriteLine("Network has been set up");
+
+			if (Logging.On) Logging.Info(typeof(Fdb), "Start", "Network thread has been set up");
 
 			StartEventLoop();
 		}
@@ -476,9 +476,9 @@ namespace FoundationDB.Client
 				AppDomain.CurrentDomain.DomainUnload -= s_appDomainUnloadHandler;
 				s_appDomainUnloadHandler = null;
 
-				Debug.WriteLine("Stopping Network Thread");
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Stop", "Stopping Network Thread...");
 				StopEventLoop();
-				Debug.WriteLine("Stopped");
+				if (Logging.On) Logging.Info(typeof(Fdb), "Stop", "Network Thread stopped");
 			}
 		}
 
