@@ -30,6 +30,7 @@ namespace FoundationDB.Tests.Sandbox
 {
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -189,37 +190,42 @@ namespace FoundationDB.Tests.Sandbox
 
 						Console.WriteLine("----------");
 
-						await BenchInsertSmallKeysAsync(db, N, 16); // some guid
-						await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
-						await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
-						//await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
-						//await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
-						await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
+						//await BenchInsertSmallKeysAsync(db, N, 16); // some guid
+						//await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
+						//await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
+						////await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
+						////await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
+						//await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
 
-						//// insert keys in parrallel
-						await BenchConcurrentInsert(db, 1, 100, 512);
-						await BenchConcurrentInsert(db, 1, 1000, 512);
-						await BenchConcurrentInsert(db, 1, 10000, 512);
+						////// insert keys in parrallel
+						//await BenchConcurrentInsert(db, 1, 100, 512);
+						//await BenchConcurrentInsert(db, 1, 1000, 512);
+						//await BenchConcurrentInsert(db, 1, 10000, 512);
 
-						await BenchConcurrentInsert(db, 1, N, 16);
-						await BenchConcurrentInsert(db, 2, N, 16);
-						await BenchConcurrentInsert(db, 4, N, 16);
-						await BenchConcurrentInsert(db, 8, N, 16);
-						await BenchConcurrentInsert(db, 16, N, 16);
+						//await BenchConcurrentInsert(db, 1, N, 16);
+						//await BenchConcurrentInsert(db, 2, N, 16);
+						//await BenchConcurrentInsert(db, 4, N, 16);
+						//await BenchConcurrentInsert(db, 8, N, 16);
+						//await BenchConcurrentInsert(db, 16, N, 16);
 
-						await BenchSerialWriteAsync(db, N);
-						await BenchSerialReadAsync(db, N);
-						await BenchConcurrentReadAsync(db, N);
+						//await BenchSerialWriteAsync(db, N);
+						//await BenchSerialReadAsync(db, N);
+						//await BenchConcurrentReadAsync(db, N);
 
-						await BenchClearAsync(db, N);
+						//await BenchClearAsync(db, N);
 
-						await BenchUpdateSameKeyLotsOfTimesAsync(db, N);
+						//await BenchUpdateSameKeyLotsOfTimesAsync(db, N);
 
-						await BenchUpdateLotsOfKeysAsync(db, N);
+						//await BenchUpdateLotsOfKeysAsync(db, N);
 
-						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 50, 128);
-						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 128, 50);
-						//await BenchBulkInsertThenBulkReadAsync(db, 1 * 1000 * 1000, 50, 128);
+						//await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 50, 128);
+						//await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 128, 50);
+						////await BenchBulkInsertThenBulkReadAsync(db, 1 * 1000 * 1000, 50, 128);
+
+						await BenchMergeSortAsync(db, 100, 3, 20);
+						await BenchMergeSortAsync(db, 1000, 10, 100);
+						await BenchMergeSortAsync(db, 100, 100, 100);
+						await BenchMergeSortAsync(db, 100, 1000, 100);
 
 						Console.WriteLine("time to say goodbye...");
 					}
@@ -669,6 +675,58 @@ namespace FoundationDB.Tests.Sandbox
 				var items = await tr.GetRangeStartsWith(subspace).ToListAsync();
 				sw.Stop();
 				Console.WriteLine("Took " + FormatTimeMilli(sw.Elapsed.TotalMilliseconds) + " to get " + items.Count.ToString("N0", CultureInfo.InvariantCulture) + " results");
+			}
+		}
+
+		private static async Task BenchMergeSortAsync(FdbDatabase db, int N, int K, int B)
+		{
+			// create multiple lists
+			var location = db.Partition("MergeSort");
+			await db.ClearRangeAsync(location);
+
+			var sources = Enumerable.Range(0, K).Select(i => 'A' + i).ToArray();
+			var rnd = new Random();
+
+			// insert a number of random number lists
+			Console.Write("> Inserting " + (K * N).ToString("N0", CultureInfo.InvariantCulture) + " items... ");
+			foreach (var source in sources)
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					var list = location.Partition(source);
+					for (int i = 0; i < N; i++)
+					{
+						tr.Set(list.Pack(rnd.Next()), Slice.FromInt32(i));
+					}
+					await tr.CommitAsync();
+				}
+			}
+			Console.WriteLine("Done");
+
+			// merge/sort them to get only one (hopefully sorted) list
+
+			using (var tr = db.BeginTransaction())
+			{
+				var mergesort = tr
+					.MergeSort(
+						sources.Select(source => FdbKeySelectorPair.StartsWith(location.Pack(source))),
+						(key) => location.Unpack(key).Get<int>(-1)
+					)
+					.Take(B)
+					.Select(kvp => location.Unpack(kvp.Key));
+
+				Console.Write("> MergeSort with limit " + B + "... ");
+				var sw = Stopwatch.StartNew();
+				var results = await mergesort.ToListAsync();
+				sw.Stop();
+				Console.WriteLine("Done");
+
+				Console.WriteLine("Took " + FormatTimeMilli(sw.Elapsed.TotalMilliseconds) + " to merge sort " + results.Count + " results from " + K + " lists of " + N + " items each");
+
+				//foreach (var result in results)
+				//{
+				//	Console.WriteLine(result.Get<int>(-1));
+				//}
 			}
 		}
 

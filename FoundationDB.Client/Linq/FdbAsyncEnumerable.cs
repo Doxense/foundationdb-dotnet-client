@@ -39,7 +39,7 @@ namespace FoundationDB.Linq
 
 		/// <summary>Helper class that will hold on cached generic delegates</summary>
 		/// <typeparam name="T"></typeparam>
-		private static class Cache<T>
+		internal static class Cache<T>
 		{
 			public static readonly Func<T, T> Identity = (x) => x;
 		}
