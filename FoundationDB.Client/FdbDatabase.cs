@@ -552,6 +552,25 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Transactional Methods..
+
+		/// <summary>Clear the entire content of a subspace</summary>
+		public async Task ClearRangeAsync(FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
+		{
+			Contract.Requires(subspace != null);
+
+			ct.ThrowIfCancellationRequested();
+
+			using(var trans = this.BeginTransaction())
+			{
+				trans.ClearRange(subspace);
+				await trans.CommitAsync(ct);
+			}
+		}
+
+
+		#endregion
+
 		#region IDisposable...
 
 		private void ThrowIfDisposed()
