@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Native;
+	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Diagnostics;
 	using System.Threading;
@@ -76,21 +77,37 @@ namespace FoundationDB.Client
 		/// <remarks>As of Beta1, the only supported database name is 'DB'</remarks>
 		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, CancellationToken ct = default(CancellationToken))
 		{
-			return OpenDatabaseAsync(databaseName, false, ct);
+			return OpenDatabaseAsync(databaseName, FdbSubspace.Empty, false, ct);
+		}
+
+		/// <summary>Opens a database on this cluster, configured to only access a specific subspace of keys</summary>
+		/// <param name="databaseName">Name of the database. Must be 'DB' (as of Beta 2)</param>
+		/// <param name="subspace">Subspace of keys that will be accessed.</param>
+		/// <param name="ct">Cancellation Token (optionnal) for the connect operation</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <remarks>Any attempt to use a key outside the specified subspace will throw an exception</remarks>
+		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
+		{
+			if (subspace == null) throw new ArgumentNullException("subspace");
+			return OpenDatabaseAsync(databaseName, subspace, false, ct);
 		}
 
 		/// <summary>Opens a database on this cluster</summary>
 		/// <param name="databaseName">Name of the database. Must be 'DB'</param>
+		/// <param name="subspace">Subspace of keys that will be accessed.</param>
 		/// <param name="ownsCluster">If true, the database will dispose this cluster when it is disposed.</param>
 		/// <param name="ct">Cancellation Token</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		/// <remarks>As of Beta1, the only supported database name is 'DB'</remarks>
-		internal Task<FdbDatabase> OpenDatabaseAsync(string databaseName, bool ownsCluster, CancellationToken ct)
+		internal Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool ownsCluster, CancellationToken ct)
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
+			if (subspace == null) throw new ArgumentNullException("rootNamespace");
 
 			// BUGBUG: the only accepted name is "DB".
 			// Currently in Beta1, if you create a database with any other name, it will succeed but any transaction performed on it will fail (future will never complete)
@@ -112,7 +129,7 @@ namespace FoundationDB.Client
 					}
 					//Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
 
-					return new FdbDatabase(this, database, databaseName, ownsCluster);
+					return new FdbDatabase(this, database, databaseName, subspace, ownsCluster);
 				},
 				ct
 			);

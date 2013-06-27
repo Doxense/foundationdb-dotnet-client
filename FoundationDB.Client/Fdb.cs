@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Diagnostics;
 	using System.IO;
@@ -340,10 +341,24 @@ namespace FoundationDB.Client
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
-		public static async Task<FdbDatabase> OpenDatabaseAsync(string path, string name, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDatabase> OpenDatabaseAsync(string path, string name, CancellationToken ct = default(CancellationToken))
+		{
+			return OpenDatabaseAsync(path, name, FdbSubspace.Empty, ct);
+		}
+
+		/// <summary>Open a database on the specified cluster</summary>
+		/// <param name="path">Path to the 'fdb.cluster' file, or null for default</param>
+		/// <param name="name">Name of the database. Must be 'DB'</param>
+		/// <param name="ct">Cancellation Token</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		public static async Task<FdbDatabase> OpenDatabaseAsync(string path, string name, FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 
+			subspace = subspace ?? FdbSubspace.Empty;
 
 			if (Logging.On) Logging.Info(typeof(Fdb), "OpenDatabaseAsync", String.Format("Connecting to database '{0}' using cluster file '{1}' and subspace '{2}' ...", name, path, subspace.ToString()));
 
@@ -354,7 +369,7 @@ namespace FoundationDB.Client
 			{
 				cluster = await OpenClusterAsync(path, ct).ConfigureAwait(false);
 				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseAsync(name, true, ct).ConfigureAwait(false);
+				db = await cluster.OpenDatabaseAsync(name, subspace, true, ct).ConfigureAwait(false);
 				success = true;
 				return db;
 			}
@@ -369,6 +384,17 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Open a database on the local cluster</summary>
+		/// <param name="name">Name of the database. Must be 'DB'</param>
+		/// <param name="ct">Cancellation Token</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		public static Task<FdbDatabase> OpenLocalDatabaseAsync(string name, CancellationToken ct = default(CancellationToken))
+		{
+			return OpenLocalDatabaseAsync(name, FdbSubspace.Empty, ct);
+		}
 
 		/// <summary>Open a database on the local cluster</summary>
 		/// <param name="name">Name of the database. Must be 'DB'</param>
@@ -377,10 +403,11 @@ namespace FoundationDB.Client
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
-		public static async Task<FdbDatabase> OpenLocalDatabaseAsync(string name, CancellationToken ct = default(CancellationToken))
+		public static async Task<FdbDatabase> OpenLocalDatabaseAsync(string name, FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 
+			subspace = subspace ?? FdbSubspace.Empty;
 
 			if (Logging.On) Logging.Info(typeof(Fdb), "OpenLocalDatabaseAsync", String.Format("Connecting to local database '{0}' ...", name));
 
@@ -391,7 +418,7 @@ namespace FoundationDB.Client
 			{
 				cluster = await OpenLocalClusterAsync(ct).ConfigureAwait(false);
 				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseAsync(name, true, ct).ConfigureAwait(false);
+				db = await cluster.OpenDatabaseAsync(name, subspace, true, ct).ConfigureAwait(false);
 				success = true;
 				return db;
 			}

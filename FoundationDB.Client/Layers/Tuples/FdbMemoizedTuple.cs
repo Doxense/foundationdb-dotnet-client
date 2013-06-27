@@ -73,6 +73,14 @@ namespace FoundationDB.Layers.Tuples
 			return this.Packed;
 		}
 
+		public FdbMemoizedTuple Copy()
+		{
+			return new FdbMemoizedTuple(
+				(object[])(this.Items.Clone()),
+				this.Packed.Memoize()
+			);
+		}
+
 		public int Count
 		{
 			get { return this.Items.Length; }

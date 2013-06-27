@@ -51,29 +51,57 @@ namespace FoundationDB.Client
 	{
 		#region Private Fields...
 
+		/// <summary>Parent cluster that owns the database.</summary>
 		private readonly FdbCluster m_cluster;
-		private readonly DatabaseHandle m_handle;
-		private readonly string m_name;
-		private readonly bool m_ownsCluster;
-		private readonly CancellationTokenSource m_cts = new CancellationTokenSource();
-		private bool m_disposed;
 
+		/// <summary>Handle that wraps the native FDB_DATABASE*</summary>
+		private readonly DatabaseHandle m_handle;
+
+		/// <summary>Name of the database (note: value it is the value that was passed to Connect(...) since we don't have any API to read the name from an FDB_DATABASE* handle)</summary>
+		private readonly string m_name;
+
+		/// <summary>If true, the cluster instance will be disposed at the same time as the current db instance.</summary>
+		private readonly bool m_ownsCluster;
+	
+		/// <summary>Global cancellation source that is cancelled when the current db instance gets disposed.</summary>
+		private readonly CancellationTokenSource m_cts = new CancellationTokenSource();
+
+		/// <summary>Set to true when the current db instance gets disposed.</summary>
+		private volatile bool m_disposed;
+
+		/// <summary>Global counters used to generate the transaction's local id (for debugging purpose)</summary>
 		private static int s_transactionCounter;
+
+		/// <summary>List of all "pending" transactions created from this database instance (and that have not yet been disposed)</summary>
 		private readonly ConcurrentDictionary<int, FdbTransaction> m_transactions = new ConcurrentDictionary<int, FdbTransaction>();
 
-		/// <summary>Contains the bounds of the allowed key space</summary>
-		/// <remarks>Any key that is outside of the bound should be rejected</remarks>
-		private FdbKeyRange m_allowedKeySpace;
+		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
+		/// <remarks>This is readonly and is set when creating the database instance</remarks>
+		private readonly FdbSubspace m_namespace;
+		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
+		private readonly FdbSubspace m_namespaceCopy;
+
+		/// <summary>Contains the bounds of the allowed key space. Any key that is outside of the bound should be rejected</summary>
+		/// <remarks>This is modifiable, but should always be contained in the global namespace</remarks>
+		private FdbKeyRange m_restrictedKeySpace;
 
 		#endregion
 
 		#region Constructors...
 
-		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name, bool ownsCluster)
+		/// <summary>Create a new database instance</summary>
+		/// <param name="cluster">Parent cluster</param>
+		/// <param name="handle">Handle to the native FDB_DATABASE*</param>
+		/// <param name="name">Name of the database</param>
+		/// <param name="subspace">Root namespace of all keys accessible by this database instance</param>
+		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
+		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name, FdbSubspace subspace, bool ownsCluster)
 		{
 			m_cluster = cluster;
 			m_handle = handle;
 			m_name = name;
+			m_namespace = subspace != null ? new FdbSubspace(subspace) : FdbSubspace.Empty;
+			m_namespaceCopy = new FdbSubspace(m_namespace);
 			m_ownsCluster = ownsCluster;
 		}
 
@@ -90,9 +118,9 @@ namespace FoundationDB.Client
 		/// <summary>Handle to the underlying FDB_DATABASE*</summary>
 		internal DatabaseHandle Handle { get { return m_handle; } }
 
-		/// <summary>Source of cancellation that is linked with the lifetime of this database</summary>
-		/// <remarks>Will be cancelled when Dispose() is called</remarks>
-		internal CancellationTokenSource CancellationSource { get { return m_cts; } }
+		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
+		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
+		public CancellationToken Token { get { return m_cts.Token; } }
 
 		#endregion
 
@@ -329,44 +357,92 @@ namespace FoundationDB.Client
 
 		#region Key Space Management...
 
+		/// <summary>Return the global namespace used by this database instance</summary>
+		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
+		public FdbSubspace Namespace
+		{
+			get
+			{
+				// return a copy of the subspace
+				return m_namespaceCopy;
+			}
+		}
+
+		/// <summary>Return a new partition of the current database</summary>
+		/// <typeparam name="T">Type of the value used for the partition</typeparam>
+		/// <param name="value">Prefix of the new partition</param>
+		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="value"/></returns>
+		public FdbSubspace Partition<T>(T value)
+		{
+			return this.Namespace.Partition<T>(value);
+		}
+
+		/// <summary>Return a new partition of the current database</summary>
+		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
+		public FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
+		{
+			return this.Namespace.Partition<T1, T2>(value1, value2);
+		}
+
+		/// <summary>Return a new partition of the current database</summary>
+		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="tuple"/></returns>
+		public FdbSubspace Partition(IFdbTuple tuple)
+		{
+			return this.Namespace.Partition(tuple);
+		}
+
+		/// <summary>Restrict access to only the keys contained inside the specified range</summary>
+		/// <param name="range"></param>
+		/// <remarks>This is "opt-in" security, and should not be relied on to ensure safety of the database. It should only be seen as a safety net to defend yourself from logical bugs in your code while dealing with multi-tenancy issues</remarks>
+		public void RestrictKeySpace(FdbKeyRange range)
+		{
+			var begin = range.Begin;
+			var end = range.End;
+
+			// Ensure that end is not less then begin
+			if (begin.HasValue && end.HasValue && begin > end)
+			{
+				throw Fdb.Errors.EndKeyOfRangeCannotBeLessThanBeginKey(range);
+			}
+
+			// clip the bounds of the range with the global namespace
+			var globalRange = m_namespace.ToRange();
+			if (begin < globalRange.Begin) begin = globalRange.Begin;
+			if (end > globalRange.End) end = globalRange.End;
+
+			// copy the bounds so that nobody can change them behind our back
+			m_restrictedKeySpace = new FdbKeyRange(begin.Memoize(), end.Memoize());
+		}
+
 		/// <summary>Restrict access to only the keys contained inside the specified bounds</summary>
 		/// <param name="beginInclusive">If non-null, only allow keys that are bigger than or equal to this key</param>
 		/// <param name="endInclusive">If non-null, only allow keys that are less than or equal to this key</param>
 		/// <remarks>This is "opt-in" security, and should not be relied on to ensure safety of the database. It should only be seen as a safety net to defend yourself from logical bugs in your code while dealing with multi-tenancy issues</remarks>
 		public void RestrictKeySpace(Slice beginInclusive, Slice endInclusive)
 		{
-			// Ensure that end is not less then begin
-			if (beginInclusive.HasValue && endInclusive.HasValue && beginInclusive.CompareTo(endInclusive) > 0)
-			{
-				throw new ArgumentException("The end key of the allowed key space cannot be less than the end key", "endInclusive");
-			}
-
-			m_allowedKeySpace = new FdbKeyRange(beginInclusive, endInclusive);
-		}
-
-		public void RestrictKeySpace(FdbKeyRange range)
-		{
-			// Ensure that end is not less then begin
-			if (range.Begin.HasValue && range.End.HasValue && range.Begin.CompareTo(range.End) > 0)
-			{
-				throw new ArgumentException("The end key of the allowed key space cannot be less than the end key", "range");
-			}
-
-			m_allowedKeySpace = range;
+			RestrictKeySpace(new FdbKeyRange(beginInclusive, endInclusive));
 		}
 
 		public void RestrictKeySpace(Slice prefix)
 		{
-			m_allowedKeySpace = FdbKeyRange.FromPrefix(prefix);
+			RestrictKeySpace(FdbKeyRange.FromPrefix(prefix));
 		}
 
 		public void RestrictKeySpace(IFdbTuple prefix)
 		{
-			m_allowedKeySpace = prefix != null ? prefix.ToRange(includePrefix: false) : FdbKeyRange.None;
+			RestrictKeySpace(prefix != null ? prefix.ToRange(includePrefix: false) : FdbKeyRange.None);
 		}
 
-		/// <summary>Return the legal key space (if specified). Any key used for reading or writing outside of these bounds will be rejected at the binding layer</summary>
-		public FdbKeyRange KeySpace { get { return m_allowedKeySpace; } }
+		/// <summary>Returns the current key space</summary>
+		/// <remarks>Makes a copy of the keys, so you should not call this property a lot</remarks>
+		public FdbKeyRange KeySpace
+		{
+			get
+			{
+				// return a copy, in order not to expose the internal slice buffers
+				return new FdbKeyRange(m_restrictedKeySpace.Begin.Memoize(), m_restrictedKeySpace.End.Memoize());
+			}
+		}
 
 		/// <summary>Test if a key is allowed to be used with this database instance</summary>
 		/// <param name="key">Key to test</param>
@@ -376,10 +452,11 @@ namespace FoundationDB.Client
 			// key is legal if...
 			return !key.IsNullOrEmpty					// has some data in it
 				&& key.Count <= Fdb.MaxKeySize			// not too big
+				&& m_namespace.Contains(key)			// not outside the namespace
 				&& m_restrictedKeySpace.Test(key) == 0; // not outside the restricted key space
 		}
 
-		/// <summary>Checks that a key is inside the legal key space allowed on this database</summary>
+		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
 		/// <param name="key">Key to verify</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		internal void EnsureKeyIsValid(Slice key)
@@ -411,6 +488,9 @@ namespace FoundationDB.Client
 				// note: it will fail later if the transaction does not have access to the system keys!
 				return null;
 			}
+
+			// first, it MUST start with the root prefix of this database (if any)
+			if (!m_namespace.Contains(key))
 			{
 				return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
 			}

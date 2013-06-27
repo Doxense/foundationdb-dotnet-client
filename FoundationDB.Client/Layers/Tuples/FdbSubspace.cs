@@ -53,6 +53,11 @@ namespace FoundationDB.Layers.Tuples
 			this.Tuple = prefix.Memoize();
 		}
 
+		internal FdbSubspace(FdbSubspace parent)
+		{
+			this.Tuple = parent.Tuple.Copy();
+		}
+
 		#endregion
 
 		#region Partition...
@@ -61,11 +66,50 @@ namespace FoundationDB.Layers.Tuples
 		/// <typeparam name="T">Type of the child subspace key</typeparam>
 		/// <param name="value">Value of the child subspace</param>
 		/// <returns>New subspace that is logically contained by the current subspace</returns>
-		/// <remarks>Subspace([Foo,]).Partition(Bar) is equivalent to Subspace([Foo,Bar,])</remarks>
-		/// <example>new FdbSubspace(["Users",]).Partition("Contacts") == new Subspace(["Users","Contacts",])</example>
+		/// <remarks>Subspace([Foo, ]).Partition(Bar) is equivalent to Subspace([Foo, Bar, ])</remarks>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
+		/// </example>
 		public FdbSubspace Partition<T>(T value)
 		{
 			return new FdbSubspace(this.Tuple.Append<T>(value));
+		}
+
+
+		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <typeparam name="T1">Type of the primary subspace key</typeparam>
+		/// <typeparam name="T2">Type of the secondary subspace key</typeparam>
+		/// <param name="value1">Value of the primary subspace key</param>
+		/// <param name="value1">Value of the secondary subspace key</param>
+		/// <returns>New subspace that is logically contained by the current subspace</returns>
+		/// <remarks>Subspace([Foo, ]).Partition(Bar, Baz) is equivalent to Subspace([Foo, Bar, Baz])</remarks>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
+		/// </example>
+		public FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
+		{
+			return new FdbSubspace(this.Tuple.Concat(new FdbTuple<T1, T2>(value1, value2)));
+		}
+
+		/// <summary>Parition this subspace by appending a tuple</summary>
+		/// <param name="tuple">Tuple that will be used for this partition</param>
+		/// <returns>New subspace that is creating by combining the namespace prefix and <paramref name="tuple"/></returns>
+		/// <remarks>Subspace([Foo, ]).Partition([Bar, Baz, ]) is equivalent to Subspace([Foo, Bar, Baz,])</remarks>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition(["Contacts", "Friends", ]) => new FdbSubspace(["Users", "Contacts", "Friends", ])
+		/// </example>
+		public FdbSubspace Partition(IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			return new FdbSubspace(this.Tuple.Concat(tuple));
+		}
+
+		/// <summary>Returns true if <paramref name="key"/> is contained withing this subspace's tuple (or is equal to tuple itself)</summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
+		public bool Contains(Slice key)
+		{
+			return key.HasValue && key.StartsWith(this.Tuple.Packed);
 		}
 
 		#endregion
