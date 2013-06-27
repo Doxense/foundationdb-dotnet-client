@@ -37,29 +37,8 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public static class Fdb
+	public static partial class Fdb
 	{
-
-		public static class Options
-		{
-
-			/// <summary>Default path to the native C API library</summary>
-			public static string NativeLibPath = ".";
-
-			/// <summary>Default path to the network thread tracing file</summary>
-			public static string TracePath = null;
-
-			public static void SetNativeLibPath(string path)
-			{
-				Fdb.Options.NativeLibPath = path;
-			}
-
-			public static void SetTraceEnable(string outputDirectory)
-			{
-				Fdb.Options.TracePath = outputDirectory;
-			}
-
-		}
 
 		/// <summary>Flag indicating if FDB has been initialized or not</summary>
 		private static bool s_started;
