@@ -103,8 +103,8 @@ namespace FoundationDB.Client
 
 				this.Remaining = query.Limit > 0 ? query.Limit : default(int?);
 
-				this.Begin = query.Begin;
-				this.End = query.End;
+				this.Begin = query.Range.Start;
+				this.End = query.Range.Stop;
 			}
 
 			public Task<bool> MoveNext(CancellationToken cancellationToken)

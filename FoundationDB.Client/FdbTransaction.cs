@@ -348,24 +348,18 @@ namespace FoundationDB.Client
 
 		#region GetRange...
 
-		internal static FdbKeySelector ToSelector(Slice slice)
-		{
-			//TODO: check for null ? check for count == 0 ?
-			return FdbKeySelector.FirstGreaterOrEqual(slice);
-		}
-
-		internal FdbRangeQuery GetRangeCore(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
+		internal FdbRangeQuery GetRangeCore(FdbKeySelectorPair range, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
 		{
 			Contract.Requires(limit >= 0 && targetBytes >= 0 && Enum.IsDefined(typeof(FdbStreamingMode), mode));
 
-			this.Database.EnsureKeyIsValid(begin.Key);
-			this.Database.EnsureKeyIsValid(end.Key);
+			this.Database.EnsureKeyIsValid(range.Start.Key);
+			this.Database.EnsureKeyIsValid(range.Stop.Key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0}'..'{1}'", begin.ToString(), end.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0}'..'{1}'", range.Start.ToString(), range.Stop.ToString()));
 #endif
 
-			return new FdbRangeQuery(this, begin, end, limit, targetBytes, mode, snapshot, reverse);
+			return new FdbRangeQuery(this, range, limit, targetBytes, mode, snapshot, reverse);
 		}
 
 		public FdbRangeQuery GetRange(Slice beginInclusive, Slice endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
@@ -376,8 +370,10 @@ namespace FoundationDB.Client
 			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
 
 			return GetRangeCore(
-				ToSelector(beginInclusive),
-				ToSelector(endExclusive),
+				FdbKeySelectorPair.Create(
+					FdbKeySelector.FirstGreaterOrEqual(beginInclusive),
+					FdbKeySelector.FirstGreaterOrEqual(endExclusive)
+				),
 				limit,
 				0,
 				FdbStreamingMode.WantAll,
@@ -390,30 +386,35 @@ namespace FoundationDB.Client
 		{
 			EnsuresCanReadOrWrite();
 
-			return GetRangeCore(beginInclusive, endInclusive + 1, limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
+			return GetRangeCore(FdbKeySelectorPair.Create(beginInclusive, endInclusive + 1), limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
 		}
 
 		public FdbRangeQuery GetRangeStartsWith(Slice prefix, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
 			if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
 
-			var range = FdbKeyRange.FromPrefix(prefix);
-
-			return GetRange(range.Begin, range.End, limit, snapshot, reverse);
+			return GetRange(FdbKeySelectorPair.StartsWith(prefix), limit, snapshot, reverse);
 		}
 
 		public FdbRangeQuery GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
 			EnsuresCanReadOrWrite();
 
-			return GetRangeCore(beginInclusive, endExclusive, limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
+			return GetRangeCore(FdbKeySelectorPair.Create(beginInclusive, endExclusive), limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
 		}
 
-		public FdbRangeQuery GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
+		public FdbRangeQuery GetRange(FdbKeySelectorPair range, int limit = 0, bool snapshot = false, bool reverse = false)
 		{
 			EnsuresCanReadOrWrite();
 
-			return GetRangeCore(beginInclusive, endExclusive, limit, targetBytes, mode, snapshot, reverse);
+			return GetRangeCore(range, limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
+		}
+
+		public FdbRangeQuery GetRange(FdbKeySelectorPair range, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
+		{
+			EnsuresCanReadOrWrite();
+
+			return GetRangeCore(range, limit, targetBytes, mode, snapshot, reverse);
 		}
 
 		#endregion

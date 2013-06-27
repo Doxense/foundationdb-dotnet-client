@@ -253,8 +253,10 @@ namespace FoundationDB.Layers.Tuples
 			var end = endExclusive != null ? endExclusive.ToSlice() : FdbKey.MaxValue;
 
 			return trans.GetRange(
-				FdbTransaction.ToSelector(begin),
-				FdbTransaction.ToSelector(end),
+				FdbKeySelectorPair.Create(
+					FdbKeySelector.FirstGreaterOrEqual(begin),
+					FdbKeySelector.FirstGreaterOrEqual(end)
+				),
 				limit,
 				0,
 				FdbStreamingMode.WantAll,
@@ -268,11 +270,8 @@ namespace FoundationDB.Layers.Tuples
 			Contract.Requires(trans != null);
 			if (suffix == null) throw new ArgumentNullException("suffix");
 
-			var range = suffix.ToRange();
-
 			return trans.GetRange(
-				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
-				FdbKeySelector.FirstGreaterThan(range.End),
+				FdbKeySelectorPair.StartsWith(suffix.ToSlice()),
 				limit,
 				0,
 				FdbStreamingMode.WantAll,

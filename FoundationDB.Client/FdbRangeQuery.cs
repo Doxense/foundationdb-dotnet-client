@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -42,11 +43,10 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
-		internal FdbRangeQuery(FdbTransaction transaction, FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
+		internal FdbRangeQuery(FdbTransaction transaction, FdbKeySelectorPair range, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
 		{
 			this.Transaction = transaction;
-			this.Begin = begin;
-			this.End = end;
+			this.Range = range;
 			this.Limit = limit;
 			this.TargetBytes = targetBytes;
 			this.Mode = mode;
@@ -58,8 +58,7 @@ namespace FoundationDB.Client
 		private FdbRangeQuery(FdbRangeQuery query)
 		{
 			this.Transaction = query.Transaction;
-			this.Begin = query.Begin;
-			this.End = query.End;
+			this.Range = query.Range;
 			this.Limit = query.Limit;
 			this.TargetBytes = query.TargetBytes;
 			this.Mode = query.Mode;
@@ -69,11 +68,8 @@ namespace FoundationDB.Client
 
 		#region Public Properties...
 
-		/// <summary>Key selector describing the beginning of the range</summary>
-		public FdbKeySelector Begin { get; private set; }
-
-		/// <summary>Key selector describing the end of the range</summary>
-		public FdbKeySelector End { get; private set; }
+		/// <summary>Key selector pair describing the beginning and end of the range that will be queried</summary>
+		public FdbKeySelectorPair Range { get; private set; }
 
 		/// <summary>Limit in number of rows to return</summary>
 		public int Limit { get; private set; }
@@ -246,7 +242,7 @@ namespace FoundationDB.Client
 
 		public override string ToString()
 		{
-			return "(" + this.Begin.ToString() + " ... " + this.End.ToString() + ")";
+			return "(" + this.Range.Start.ToString() + " ... " + this.Range.Stop.ToString() + ")";
 		}
 
 	}
