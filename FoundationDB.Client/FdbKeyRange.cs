@@ -106,6 +106,19 @@ namespace FoundationDB.Client
 		{
 			return "{\"" + this.Begin.ToString() + "\", \"" + this.End.ToString() + "}";
 		}
+
+		/// <summary>Test if <paramref name="key"/> is contained inside the range</summary>
+		/// <param name="key">Key that will be compared with the the range's bounds</param>
+		/// <returns>-1 if key is less than the lower bound of the range (<paramref name="key"/> &lt; Begin), +1 if the key is greater or equal to the higher bound of the range (<paramref name="key"/> &gt;= End) or 0 if it is inside the range (Begin &lt;= <paramref name="key"/> &lt; End)</returns>
+		public int Test(Slice key)
+		{
+			// note: if the range is empty (Begin = End = Slice.Empty) then it should return 0
+
+			return
+				!this.Begin.IsNullOrEmpty && key.CompareTo(this.Begin) < 0 ? -1 :
+				!this.End.IsNullOrEmpty && key.CompareTo(this.End) <= 0 ? +1 :
+				0;
+		}
 	}
 
 }

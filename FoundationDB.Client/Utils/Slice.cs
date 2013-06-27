@@ -755,7 +755,7 @@ namespace FoundationDB.Client
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less then start of the slice");
 			if (offset > this.Count) throw new ArgumentOutOfRangeException("offset", "Offset cannot be larger than end of slice");
 
-			return this.Count == offset ? Slice.Empty : new Slice(this.Array, this.Offset + offset, this.Count - offset);
+			return offset == 0 ? this : this.Count == offset ? Slice.Empty : new Slice(this.Array, this.Offset + offset, this.Count - offset);
 		}
 
 		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position and has a specified length.</summary>
@@ -1167,10 +1167,11 @@ namespace FoundationDB.Client
 		/// <summary>Lexicographically compare this slice with another one</summary>
 		/// <param name="other">Other slice to compare</param>
 		/// <returns>0 for equal, positive if we are greater, negative if we are smaller</returns>
+		/// <remarks>Nil/Empty is equal to itself, and smaller than everything else</remarks>
 		public int CompareTo(Slice other)
 		{
-			if (!other.HasValue) return this.HasValue ? 1 : 0;
-			return CompareBytes(this.Array, this.Offset, this.Count, other.Array, other.Offset, other.Count);
+			if (this.IsNullOrEmpty) return other.IsNullOrEmpty ? 0 : -1;
+			return other.IsNullOrEmpty ? +1 : CompareBytes(this.Array, this.Offset, this.Count, other.Array, other.Offset, other.Count);
 		}
 
 		public bool Equals(ArraySegment<byte> other)
