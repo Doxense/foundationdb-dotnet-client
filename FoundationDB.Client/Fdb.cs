@@ -106,41 +106,6 @@ namespace FoundationDB.Client
 			}
 		}
 
-		#region Key/Value serialization
-
-		/// <summary>Ensures that a serialized key is valid</summary>
-		/// <exception cref="System.ArgumentException">If the key is either null, empty, or exceeds the maximum allowed size (Fdb.MaxKeySize)</exception>
-		internal static void EnsureKeyIsValid(Slice key)
-		{
-			if (key.IsNullOrEmpty)
-			{
-				if (key.Array == null) 
-					throw new ArgumentException("Key cannot be null", "key");
-				else
-					throw new ArgumentException("Key cannot be empty.", "key");
-			}
-			if (key.Count > Fdb.MaxKeySize)
-			{
-				throw new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, Fdb.MaxKeySize), "key");
-			}
-		}
-
-		/// <summary>Ensures that a serialized value is valid</summary>
-		/// <exception cref="System.ArgumentException">If the value is either null, empty, or exceeds the maximum allowed size (Fdb.MaxValueSize)</exception>
-		internal static void EnsureValueIsValid(Slice value)
-		{
-			if (!value.HasValue)
-			{
-				throw new ArgumentException("Value cannot be null", "value");
-			}
-			if (value.Count > Fdb.MaxValueSize)
-			{
-				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), "value");
-			}
-		}
-
-		#endregion
-
 		#region Network Thread / Event Loop...
 
 		private static Thread s_eventLoop;
@@ -320,7 +285,7 @@ namespace FoundationDB.Client
 #if DEBUG
 			if (Debugger.IsAttached) Debugger.Break();
 #endif
-			throw new InvalidOperationException("Cannot commit transaction from the Network Thread!");
+			throw Fdb.Errors.CannotExecuteOnNetworkThread();
 		}
 
 		#endregion

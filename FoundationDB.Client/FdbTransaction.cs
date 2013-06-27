@@ -444,7 +444,7 @@ namespace FoundationDB.Client
 		internal void SetCore(Slice key, Slice value)
 		{
 			this.Database.EnsureKeyIsValid(key);
-			Fdb.EnsureValueIsValid(value);
+			this.Database.EnsureValueIsValid(value);
 
 			FdbNative.TransactionSet(m_handle, key, value);
 			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count);

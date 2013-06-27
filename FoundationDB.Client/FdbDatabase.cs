@@ -109,7 +109,7 @@ namespace FoundationDB.Client
 		/// }</example>
 		public FdbTransaction BeginTransaction()
 		{
-			if (m_handle.IsInvalid) throw new InvalidOperationException("Cannot create a transaction on an invalid database");
+			if (m_handle.IsInvalid) throw Fdb.Errors.CannotCreateTransactionOnInvalidDatabase();
 			ThrowIfDisposed();
 
 			int id = Interlocked.Increment(ref s_transactionCounter);
@@ -248,7 +248,7 @@ namespace FoundationDB.Client
 
 			if (!m_transactions.TryAdd(transaction.Id, transaction))
 			{
-				throw new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id, this.Name));
+				throw Fdb.Errors.FailedToRegisterTransactionOnDatabase(transaction, this);
 			}
 		}
 
@@ -327,7 +327,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Key Management...
+		#region Key Space Management...
 
 		/// <summary>Restrict access to only the keys contained inside the specified bounds</summary>
 		/// <param name="beginInclusive">If non-null, only allow keys that are bigger than or equal to this key</param>
@@ -368,24 +368,90 @@ namespace FoundationDB.Client
 		/// <summary>Return the legal key space (if specified). Any key used for reading or writing outside of these bounds will be rejected at the binding layer</summary>
 		public FdbKeyRange KeySpace { get { return m_allowedKeySpace; } }
 
+		/// <summary>Test if a key is allowed to be used with this database instance</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, is contained in the root namespace of this database instance, and is inside the bounds of the optionnal restricted key space. Otherwise, returns false.</returns>
+		public bool IsKeyValid(Slice key)
+		{
+			// key is legal if...
+			return !key.IsNullOrEmpty					// has some data in it
+				&& key.Count <= Fdb.MaxKeySize			// not too big
+				&& m_restrictedKeySpace.Test(key) == 0; // not outside the restricted key space
+		}
+
 		/// <summary>Checks that a key is inside the legal key space allowed on this database</summary>
 		/// <param name="key">Key to verify</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		internal void EnsureKeyIsValid(Slice key)
 		{
-			Fdb.EnsureKeyIsValid(key);
+			var ex = ValidateKey(key);
+			if (ex != null) throw ex;
+		}
 
-			var begin = this.KeySpace.Begin;
-			var end = this.KeySpace.End;
+		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="key">Key to verify</param>
+		/// <returns>An exception if the key is outside of the allowed keyspace of this database</exception>
+		internal Exception ValidateKey(Slice key)
+		{
+			// null or empty keys are not allowed
+			if (key.IsNullOrEmpty)
+			{
+				return Fdb.Errors.KeyCannotBeNullOrEmpty(key);
+			}
 
-			if (begin.HasValue && begin.CompareTo(key) > 0)	
+			// key cannot be larger than maximum allowed key size
+			if (key.Count > Fdb.MaxKeySize)
 			{
-				throw new FdbException(FdbError.KeyOutsideLegalRange, String.Format("Key is outside the allowed key space for this database ({0} < {1})", key.ToString(), begin.ToString()));
+				return Fdb.Errors.KeyIsTooBig(key);
 			}
-			if (end.HasValue && m_allowedKeySpace.End.CompareTo(key) < 0)
+
+			// special case for system keys
+			if (IsSystemKey(key))
 			{
-				throw new FdbException(FdbError.KeyOutsideLegalRange, String.Format("Key is outside the allowed key space for this database ({0} > {1})", key.ToString(), end.ToString()));
+				// note: it will fail later if the transaction does not have access to the system keys!
+				return null;
 			}
+			{
+				return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
+			}
+
+			// test if the key is inside the restrictied key space
+			int x = m_restrictedKeySpace.Test(key); // returns -1/+1 if outside, 0 if inside
+			if (x != 0)
+			{
+				return Fdb.Errors.InvalidKeyOutsideDatabaseRestrictedKeySpace(this, key, greaterThan: x > 0);
+			}
+
+			return null;
+		}
+
+		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
+		internal static bool IsSystemKey(Slice key)
+		{
+			return key.Count > 0 && key.Array[key.Offset] == 0xFF;
+		}
+
+		/// <summary>Ensures that a serialized value is valid</summary>
+		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</exception>
+		internal void EnsureValueIsValid(Slice value)
+		{
+			var ex = ValidateValue(value);
+			if (ex != null) throw ex;
+		}
+
+		internal Exception ValidateValue(Slice value)
+		{
+			if (!value.HasValue)
+			{
+				return Fdb.Errors.ValueCannotBeNull(value);
+			}
+
+			if (value.Count > Fdb.MaxValueSize)
+			{
+				return Fdb.Errors.ValueIsTooBig(value);
+			}
+
+			return null;
 		}
 
 		#endregion

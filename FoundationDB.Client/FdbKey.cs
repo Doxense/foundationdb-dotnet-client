@@ -136,7 +136,7 @@ namespace FoundationDB.Client
 				--p;
 			}
 
-			if (p < 0) throw new OverflowException("Cannot increment FdbKey because it is already equal to the maximum possible value (0xFF)");
+			if (p < 0) throw Fdb.Errors.CannotIncrementMaxKey();
 			return new Slice(tmp, 0, tmp.Length);
 		}
 

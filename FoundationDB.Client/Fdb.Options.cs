@@ -26,19 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef DEBUG_THREADS
-
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
-	using System.Diagnostics;
-	using System.IO;
-	using System.Runtime.CompilerServices;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	public static partial class Fdb
 	{
