@@ -564,28 +564,23 @@ namespace FoundationDB.Client
 			if (!m_disposed)
 			{
 				m_disposed = true;
-				// mark this db has dead, but keep the handle alive until after all the callbacks have fired
-
-				//TODO: kill all pending transactions on this db? 
-				foreach (var trans in m_transactions.Values)
-				{
-					if (trans != null && trans.StillAlive)
-					{
-						trans.Rollback();
-					}
-				}
-				m_transactions.Clear();
 
 				try
 				{
+					// mark this db has dead, but keep the handle alive until after all the callbacks have fired
+
+					//TODO: kill all pending transactions on this db? 
+					foreach (var trans in m_transactions.Values)
+					{
+						if (trans != null && trans.StillAlive)
+						{
+							trans.Rollback();
+						}
+					}
+					m_transactions.Clear();
+
 					//note: will block until all the registered callbacks have finished executing
-					m_cts.Cancel();
-				}
-				catch (ObjectDisposedException) { }
-				catch (AggregateException e)
-				{
-					//TODO: what should we do with the exception ?
-					Debug.WriteLine("Error while cancelling all pending operations: " + e.ToString());
+					m_cts.SafeCancelAndDispose();
 				}
 				finally
 				{

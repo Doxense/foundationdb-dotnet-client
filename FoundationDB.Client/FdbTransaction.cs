@@ -69,6 +69,9 @@ namespace FoundationDB.Client
 		private int m_payloadBytes;
 		//note: should be use a long instead?
 
+		/// <summary>Cancelletation source specific to this instance.</summary>
+		private CancellationTokenSource m_cts;
+
 		#endregion
 
 		#region Constructors...
@@ -78,6 +81,7 @@ namespace FoundationDB.Client
 			m_database = database;
 			m_id = id;
 			m_handle = handle;
+			m_cts = CancellationTokenSource.CreateLinkedTokenSource(database.Token);
 		}
 
 		#endregion
@@ -99,6 +103,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
 		public int Size { get { return m_payloadBytes; } }
+
+		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
+		public CancellationToken Token { get { return m_cts.Token; } }
 
 		#endregion
 
@@ -701,12 +708,19 @@ namespace FoundationDB.Client
 
 		public void Dispose()
 		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing)
+		{
 			// note: we can be called by user code, or by the FdbDatabase when it is terminating with pending transactions
 			if (Interlocked.Exchange(ref m_state, STATE_DISPOSED) != STATE_DISPOSED)
 			{
 				try
 				{
 					m_database.UnregisterTransaction(this);
+					m_cts.SafeCancelAndDispose();
 
 					if (Logging.On) Logging.Verbose(this, "Dispose", String.Format("Transaction #{0} has been disposed", m_id));
 				}
@@ -714,6 +728,7 @@ namespace FoundationDB.Client
 				{
 					// Dispose of the handle
 					if (!m_handle.IsClosed) m_handle.Dispose();
+					m_cts.Dispose();
 				}
 			}
 		}

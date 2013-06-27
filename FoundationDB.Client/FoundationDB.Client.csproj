@@ -113,6 +113,7 @@
     <Compile Include="Layers\Tuples\FdbListTuple.cs" />
     <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
+    <Compile Include="Utils\TaskHelpers.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="fdb_c.dll">
