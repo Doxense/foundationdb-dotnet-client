@@ -11,6 +11,77 @@ It requires the .NET 4.5 Framework, and uses the 64-bit C API binding that is li
 
 It currently targets the Beta 2 of FoundationDB (API level 22)
 
+How to use
+----------
+
+```CSharp
+
+// Connect to the db "DB" using the default local cluster file
+using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+{
+    // we will use a subspace for all our data
+    var location = db.Partition("Test");
+    
+    // starts a transaction to write some keys to the db
+    using (var trans = db.BeginTransaction())
+    {
+        // ("Test", "Hello", ) = "World"
+        trans.Set(location.Pack("Hello"), Slice.FromString("World"));
+
+        // ("Test", "Count", ) = 42
+        trans.Set(location.Pack("Count", Slice.FromInt32(42));
+        
+        // commits the transaction
+        await trans.CommitAsync();
+    }
+
+    // starts another transaction to read some keys
+    using (var trans = db.BeginTransaction())
+    {  
+        Slice value = await trans.GetAsync(location.Pack("Hello"));
+        Console.WriteLine(value.ToUnicode()); // -> Hello
+    
+        value = await trans.GetAsync(location.Pack("Count"));
+        Console.WriteLine(value.ToInt32()); // -> 42
+    
+        value = await trans.GetAsync(location.Pack("NotFound"));
+        Console.WriteLine(value.HasValue); // -> false
+        Console.WriteLine(value == Slice.Nul); // -> true
+        
+        // no writes, so we need to commit
+    }
+
+    // We can also do async "LINQ" queries
+    using(var trans = db.BeginTransaction())
+    {
+        // create a list prefix
+        var list = location.Create("List");
+    
+        // add some data to the list
+        trans.Set(list.Pack(0), Slice.FromString("AAA"));
+        trans.Set(list.Pack(1), Slice.FromString("BBB"));
+        trans.Set(list.Pack(2), Slice.FromString("CCC"));
+    
+        // do a range query on the list prefix, that returns the pairs (int index, string value).        
+        var results = await (trans.
+            .GetRangeStartsWith(list)
+            .Select((kvp) => new KeyValuePair<int, string>(
+                location.Unpack(kvp.Key).Get<int>(-1), // unpack the tuple and returns the last item as an int
+                kvp.Value.ToUnicode() // convert the value into an unicode string
+            ))
+            .ToListAsync());
+
+       // list[0] -> <int, string>(0, "AAA")
+       // list[1] -> <int, string>(1, "BBB")
+       // list[2] -> <int, string>(2, "CCC")
+        
+    }
+    
+}
+
+
+```
+
 How to build
 ------------
 
