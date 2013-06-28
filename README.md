@@ -44,15 +44,17 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
         value = await trans.GetAsync(location.Pack("Count"));
         Console.WriteLine(value.ToInt32()); // -> 42
     
+        // missing values return Slice.Nil, that is the equivalent of "no value"
         value = await trans.GetAsync(location.Pack("NotFound"));
         Console.WriteLine(value.HasValue); // -> false
-        Console.WriteLine(value == Slice.Nul); // -> true
+        Console.WriteLine(value == Slice.Nil); // -> true
+        // note: there is also Slice.Empty that is returned for existing keys with not values (used frequently for indexes)
         
         // no writes, so we need to commit
     }
 
     // We can also do async "LINQ" queries
-    using(var trans = db.BeginTransaction())
+    using (var trans = db.BeginTransaction())
     {
         // create a list prefix
         var list = location.Create("List");
@@ -65,16 +67,16 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
         // do a range query on the list prefix, that returns the pairs (int index, string value).        
         var results = await (trans.
             .GetRangeStartsWith(list)
-            .Select((kvp) => new KeyValuePair<int, string>(
-                location.Unpack(kvp.Key).Get<int>(-1), // unpack the tuple and returns the last item as an int
-                kvp.Value.ToUnicode() // convert the value into an unicode string
-            ))
-            .ToListAsync());
+            .Select((kvp) => 
+                new KeyValuePair<int, string>(
+                    location.Unpack(kvp.Key).Get<int>(-1), // unpack the tuple and returns the last item as an int
+                    kvp.Value.ToUnicode() // convert the value into an unicode string
+               )
+            ).ToListAsync());
 
        // list[0] -> <int, string>(0, "AAA")
        // list[1] -> <int, string>(1, "BBB")
        // list[2] -> <int, string>(2, "CCC")
-        
     }
     
 }
