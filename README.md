@@ -94,7 +94,7 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
 How to build
 ------------
 
-You will need Visual Studio .NET 2012 and .NET 4.5 to compile the solution.
+You will need Visual Studio .NET 2012 or 2013 and .NET 4.5 minimum to compile the solution.
 
 You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.com wesite, and copy it in the client project folder.
 
