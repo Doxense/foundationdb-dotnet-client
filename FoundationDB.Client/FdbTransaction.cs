@@ -316,7 +316,7 @@ namespace FoundationDB.Client
 
 		public async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			var results = await GetBatchValuesAsync(keys, snapshot, ct);
+			var results = await GetBatchValuesAsync(keys, snapshot, ct).ConfigureAwait(false);
 
 			return results
 				.Select((data, i) => new KeyValuePair<int, Slice>(i, data))
@@ -335,7 +335,7 @@ namespace FoundationDB.Client
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			var indexedResults = await GetBatchIndexedAsync(keys, snapshot, ct);
+			var indexedResults = await GetBatchIndexedAsync(keys, snapshot, ct).ConfigureAwait(false);
 
 			ct.ThrowIfCancellationRequested();
 
@@ -494,7 +494,7 @@ namespace FoundationDB.Client
 		{
 			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
 
-			Slice value = await Slice.FromStreamAsync(data);
+			Slice value = await Slice.FromStreamAsync(data).ConfigureAwait(false);
 
 			SetCore(keyBytes, value);
 		}
@@ -568,7 +568,7 @@ namespace FoundationDB.Client
 			try
 			{
 				var future = FdbNative.TransactionCommit(m_handle);
-				await FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
+				await FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct).ConfigureAwait(false);
 
 				if (Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY) == STATE_READY)
 				{

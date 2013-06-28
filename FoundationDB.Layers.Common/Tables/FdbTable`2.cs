@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Tables
 		{
 			var keys = ids.ToArray();
 
-			var results = await trans.GetBatchIndexedAsync(keys.Select(GetKeyBytes), snapshot, ct);
+			var results = await trans.GetBatchIndexedAsync(keys.Select(GetKeyBytes), snapshot, ct).ConfigureAwait(false);
 
 			//TODO: make it simpler / configurable ?
 			TValue missing = default(TValue);
@@ -125,7 +125,7 @@ namespace FoundationDB.Layers.Tables
 
 		public async Task<List<TValue>> GetBatchAsync(FdbTransaction trans, IEnumerable<TKey> ids, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
-			var results = await trans.GetBatchAsync(ids.Select(GetKeyBytes), snapshot, ct);
+			var results = await trans.GetBatchAsync(ids.Select(GetKeyBytes), snapshot, ct).ConfigureAwait(false);
 
 			//TODO: make it simpler / configurable ?
 			TValue missing = default(TValue);

@@ -214,7 +214,7 @@ namespace FoundationDB.Client
 
 				if (!m_iterators[i].HasCurrent)
 				{
-					if (!await m_iterators[i].Next)
+					if (!await m_iterators[i].Next.ConfigureAwait(false))
 					{ // this one is done, remove it
 						m_iterators[i].Iterator.Dispose();
 						m_iterators[i] = default(IteratorState);

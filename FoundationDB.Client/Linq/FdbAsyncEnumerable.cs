@@ -265,7 +265,7 @@ namespace FoundationDB.Linq
 		public static async Task<List<T>> ToListAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
 			var list = new List<T>();
-			await Run<T>(source, (x) => list.Add(x), ct);
+			await Run<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
 			return list;
 		}
 		
@@ -301,7 +301,7 @@ namespace FoundationDB.Linq
 			bool found = false;
 			T last = default(T);
 
-			await Run<T>(source, (x) => { found = true; last = x; }, ct);
+			await Run<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
 
 			if (!found) throw new InvalidOperationException("The sequence was empty");
 			return last;
@@ -313,7 +313,7 @@ namespace FoundationDB.Linq
 			bool found = false;
 			T last = default(T);
 
-			await Run<T>(source, (x) => { found = true; last = x; }, ct);
+			await Run<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
 
 			return found ? last : default(T);
 		}
@@ -323,7 +323,7 @@ namespace FoundationDB.Linq
 		{
 			int count = 0;
 
-			await Run<T>(source, (_) => { ++count; }, ct);
+			await Run<T>(source, (_) => { ++count; }, ct).ConfigureAwait(false);
 
 			return count;
 		}
@@ -337,8 +337,8 @@ namespace FoundationDB.Linq
 
 			await Run<T>(source, (x) =>
 			{ 
-				if (predicate(x)) ++count; 
-			}, ct);
+				if (predicate(x)) ++count;
+			}, ct).ConfigureAwait(false);
 
 			return count;
 		}
@@ -352,7 +352,7 @@ namespace FoundationDB.Linq
 
 			using (var iterator = source.GetEnumerator())
 			{
-				return await iterator.MoveNext(ct);
+				return await iterator.MoveNext(ct).ConfigureAwait(false);
 			}
 		}
 
@@ -365,7 +365,7 @@ namespace FoundationDB.Linq
 
 			using (var iterator = source.GetEnumerator())
 			{
-				while (await iterator.MoveNext(ct))
+				while (await iterator.MoveNext(ct).ConfigureAwait(false))
 				{
 					if (predicate(iterator.Current)) return true;
 				}

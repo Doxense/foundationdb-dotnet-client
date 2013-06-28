@@ -151,7 +151,7 @@ using System.Threading.Tasks;
 
 						try
 						{
-							return await OnNextAsync(ct);
+							return await OnNextAsync(ct).ConfigureAwait(false);
 						}
 						catch (Exception e)
 						{
@@ -250,7 +250,7 @@ using System.Threading.Tasks;
 			{
 				while (!cancellationToken.IsCancellationRequested)
 				{
-					if (!await m_iterator.MoveNext(cancellationToken))
+					if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 					{ // completed
 						return Completed();
 					}
@@ -302,7 +302,7 @@ using System.Threading.Tasks;
 			{
 				while (!cancellationToken.IsCancellationRequested)
 				{
-					if (!await m_iterator.MoveNext(cancellationToken))
+					if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 					{ // completed
 						return Completed();
 					}
@@ -312,7 +312,7 @@ using System.Threading.Tasks;
 					TSource current = m_iterator.Current;
 					if (m_filter == null || m_filter(current))
 					{
-						TResult result = await m_transform(current, cancellationToken);
+						TResult result = await m_transform(current, cancellationToken).ConfigureAwait(false);
 						return Publish(result);
 					}
 				}
@@ -353,7 +353,7 @@ using System.Threading.Tasks;
 
 				while (!cancellationToken.IsCancellationRequested)
 				{
-					if (!await m_iterator.MoveNext(cancellationToken))
+					if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 					{ // completed
 						return Completed();
 					}
@@ -405,7 +405,7 @@ using System.Threading.Tasks;
 
 				while (!cancellationToken.IsCancellationRequested)
 				{
-					if (!await m_iterator.MoveNext(cancellationToken))
+					if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 					{ // completed
 						return Completed();
 					}
@@ -413,7 +413,7 @@ using System.Threading.Tasks;
 					if (cancellationToken.IsCancellationRequested) break;
 
 					TSource current = m_iterator.Current;
-					if (!await m_filter(current, cancellationToken))
+					if (!await m_filter(current, cancellationToken).ConfigureAwait(false))
 					{
 						continue;
 					}
@@ -462,7 +462,7 @@ using System.Threading.Tasks;
 					if (m_batch == null)
 					{
 
-						if (!await m_iterator.MoveNext(cancellationToken))
+						if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 						{ // inner completed
 							return Completed();
 						}
@@ -531,14 +531,14 @@ using System.Threading.Tasks;
 					if (m_batch == null)
 					{
 
-						if (!await m_iterator.MoveNext(cancellationToken))
+						if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 						{ // inner completed
 							return Completed();
 						}
 
 						if (cancellationToken.IsCancellationRequested) break;
 
-						var sequence = await m_transform(m_iterator.Current, cancellationToken);
+						var sequence = await m_transform(m_iterator.Current, cancellationToken).ConfigureAwait(false);
 						if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
 						m_batch = sequence.GetEnumerator();
@@ -603,7 +603,7 @@ using System.Threading.Tasks;
 					if (m_batch == null)
 					{
 
-						if (!await m_iterator.MoveNext(cancellationToken))
+						if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 						{ // inner completed
 							return Completed();
 						}
@@ -681,7 +681,7 @@ using System.Threading.Tasks;
 					if (m_batch == null)
 					{
 
-						if (!await m_iterator.MoveNext(cancellationToken))
+						if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 						{ // inner completed
 							return Completed();
 						}
@@ -690,7 +690,7 @@ using System.Threading.Tasks;
 
 						m_sourceCurrent = m_iterator.Current;
 
-						var sequence = await m_collectionSelector(m_sourceCurrent, cancellationToken);
+						var sequence = await m_collectionSelector(m_sourceCurrent, cancellationToken).ConfigureAwait(false);
 						if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
 						m_batch = sequence.GetEnumerator();
@@ -800,7 +800,7 @@ using System.Threading.Tasks;
 
 				if (m_iterator.MoveNext())
 				{
-					m_current = await m_transform(m_iterator.Current);
+					m_current = await m_transform(m_iterator.Current).ConfigureAwait(false);
 					return true;
 				}
 
@@ -1016,7 +1016,7 @@ using System.Threading.Tasks;
 			{
 				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct))
+				while (await iterator.MoveNext(ct).ConfigureAwait(false))
 				{
 					action(iterator.Current);
 					++count;
@@ -1040,9 +1040,9 @@ using System.Threading.Tasks;
 			{
 				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct))
+				while (await iterator.MoveNext(ct).ConfigureAwait(false))
 				{
-					await action(iterator.Current, ct);
+					await action(iterator.Current, ct).ConfigureAwait(false);
 					++count;
 				}
 			}
@@ -1064,10 +1064,10 @@ using System.Threading.Tasks;
 			{
 				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct))
+				while (await iterator.MoveNext(ct).ConfigureAwait(false))
 				{
 					ct.ThrowIfCancellationRequested();
-					await action(iterator.Current);
+					await action(iterator.Current).ConfigureAwait(false);
 					++count;
 				}
 			}
@@ -1087,12 +1087,12 @@ using System.Threading.Tasks;
 			{
 				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
 
-				if (await iterator.MoveNext(ct))
+				if (await iterator.MoveNext(ct).ConfigureAwait(false))
 				{
 					TSource first = iterator.Current;
 					if (single)
 					{
-						if (await iterator.MoveNext(ct)) throw new InvalidOperationException("The sequence contained more than one element");
+						if (await iterator.MoveNext(ct).ConfigureAwait(false)) throw new InvalidOperationException("The sequence contained more than one element");
 					}
 					return first;
 				}

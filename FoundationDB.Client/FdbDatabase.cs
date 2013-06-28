@@ -194,10 +194,10 @@ namespace FoundationDB.Client
 					try
 					{
 						// call the user provided lambda
-						res = await asyncAction(trans, retries, ct);
+						res = await asyncAction(trans, retries, ct).ConfigureAwait(false);
 
 						// commit the transaction
-						await trans.CommitAsync(ct);
+						await trans.CommitAsync(ct).ConfigureAwait(false);
 
 						// we are done
 						committed = true;
@@ -209,7 +209,7 @@ namespace FoundationDB.Client
 
 					if (e != null)
 					{
-						await trans.OnErrorAsync(e.Code);
+						await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
 					}
 
 					var now = DateTime.UtcNow;
@@ -231,7 +231,7 @@ namespace FoundationDB.Client
 		{
 			return Attempt<object>(async (tr, retry, _) =>
 			{
-				await asyncAction(tr, retry);
+				await asyncAction(tr, retry).ConfigureAwait(false);
 				return null;
 			}, ct);
 		}
@@ -240,7 +240,7 @@ namespace FoundationDB.Client
 		{
 			return Attempt<object>(async (tr, _, __) =>
 			{
-				await asyncAction(tr);
+				await asyncAction(tr).ConfigureAwait(false);
 				return null;
 			}, ct);
 		}
@@ -545,7 +545,7 @@ namespace FoundationDB.Client
 			{
 				tr.WithAccessToSystemKeys();
 
-				var result = await tr.GetAsync(Slice.FromAscii("\xFF/coordinators"));
+				var result = await tr.GetAsync(Slice.FromAscii("\xFF/coordinators")).ConfigureAwait(false);
 				return result.ToAscii();
 			}
 		}
@@ -564,7 +564,7 @@ namespace FoundationDB.Client
 			using(var trans = this.BeginTransaction())
 			{
 				trans.ClearRange(subspace);
-				await trans.CommitAsync(ct);
+				await trans.CommitAsync(ct).ConfigureAwait(false);
 			}
 		}
 

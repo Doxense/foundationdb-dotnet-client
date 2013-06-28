@@ -150,7 +150,7 @@ namespace FoundationDB.Client
 				Contract.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
 
 				// start reading the next batch
-				if (await m_chunkIterator.MoveNext(ct))
+				if (await m_chunkIterator.MoveNext(ct).ConfigureAwait(false))
 				{ // we got a new chunk !
 
 					var chunk = m_chunkIterator.Current;
@@ -165,7 +165,7 @@ namespace FoundationDB.Client
 						m_itemsRemainingInChunk = chunk.Length;
 
 						// transform the first one
-						await ProcessNextItem();
+						await ProcessNextItem().ConfigureAwait(false);
 
 						m_state = STATE_READY;
 						return true;

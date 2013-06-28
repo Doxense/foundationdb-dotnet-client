@@ -261,14 +261,14 @@ namespace FoundationDB.Layers.Tables
 		{
 			var stringKey = StringKey(value);
 
-			var uid = await trans.GetAsync(stringKey);
+			var uid = await trans.GetAsync(stringKey).ConfigureAwait(false);
 			if (uid == Slice.Nil)
 			{
 #if DEBUG_STRING_INTERNING
 				Debug.WriteLine("_ not found in db, will create...");
 #endif
 
-				uid = await FindUidAsync(trans);
+				uid = await FindUidAsync(trans).ConfigureAwait(false);
 				if (uid == Slice.Nil) throw new InvalidOperationException("Failed to allocate a new uid while attempting to intern a string");
 #if DEBUG_STRING_INTERNING
 				Debug.WriteLine("> using new uid " + uid.ToBase64());
@@ -312,7 +312,7 @@ namespace FoundationDB.Layers.Tables
 
 		private async Task<string> LookupSlowAsync(FdbTransaction trans, Slice uid)
 		{
-			var valueBytes = await trans.GetAsync(UidKey(uid));
+			var valueBytes = await trans.GetAsync(UidKey(uid)).ConfigureAwait(false);
 			if (valueBytes == Slice.Nil) throw new KeyNotFoundException("String intern indentifier not found");
 
 			string value = valueBytes.ToUnicode();

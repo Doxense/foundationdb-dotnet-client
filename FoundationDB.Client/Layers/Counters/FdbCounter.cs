@@ -107,11 +107,11 @@ namespace FoundationDB.Layers.Counters
 					List<KeyValuePair<Slice, Slice>> shards;
 					if (this.Rng.NextDouble() < 0.5)
 					{
-						shards = await tr.GetRange(loc, this.Subspace.ToRange().End, limit: N, snapshot: true).ToListAsync();
+						shards = await tr.GetRange(loc, this.Subspace.ToRange().End, limit: N, snapshot: true).ToListAsync().ConfigureAwait(false);
 					}
 					else
 					{
-						shards = await tr.GetRange(this.Subspace.ToRange().Begin, loc, limit: N, reverse: true, snapshot: true).ToListAsync();
+						shards = await tr.GetRange(this.Subspace.ToRange().Begin, loc, limit: N, reverse: true, snapshot: true).ToListAsync().ConfigureAwait(false);
 					}
 
 					if (shards.Count > 0)
@@ -120,7 +120,7 @@ namespace FoundationDB.Layers.Counters
 						foreach (var shard in shards)
 						{
 							checked { total += DecodeInt(shard.Value); }
-							await tr.GetAsync(shard.Key); // real read for isolation
+							await tr.GetAsync(shard.Key).ConfigureAwait(false); // real read for isolation
 							tr.Clear(shard.Key);
 						}
 
@@ -131,7 +131,7 @@ namespace FoundationDB.Layers.Counters
 
 						// note: contrary to the pytonh impl, we will await the commit, and rely on the caller to not wait to the Coalesce task itself to complete.
 						// That way, the transaction will live as long as the task, and we ensure that it gets disposed at some time
-						await tr.CommitAsync();
+						await tr.CommitAsync().ConfigureAwait(false);
 					}
 				}
 				catch (FdbException)
@@ -167,7 +167,8 @@ namespace FoundationDB.Layers.Counters
 			await trans
 				.GetRangeStartsWith(this.Subspace)
 				.Values()
-				.ForEachAsync((v) => { checked { total += DecodeInt(v); } });
+				.ForEachAsync((v) => { checked { total += DecodeInt(v); } })
+				.ConfigureAwait(false);
 
 			return total;
 		}
@@ -185,7 +186,8 @@ namespace FoundationDB.Layers.Counters
 			long total = 0;
 			await trans
 				.GetRangeStartsWith(this.Subspace, snapshot: true)
-				.ForEachAsync((kvp) => { checked { total += DecodeInt(kvp.Value); } });
+				.ForEachAsync((kvp) => { checked { total += DecodeInt(kvp.Value); } })
+				.ConfigureAwait(false);
 
 			return total;
 		}
@@ -208,7 +210,7 @@ namespace FoundationDB.Layers.Counters
 			using (var trans = this.Database.BeginTransaction())
 			{
 				Add(trans, x);
-				await trans.CommitAsync(ct);
+				await trans.CommitAsync(ct).ConfigureAwait(false);
 			}
 		}
 
@@ -216,7 +218,7 @@ namespace FoundationDB.Layers.Counters
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			long value = await GetSnapshot(trans, ct);
+			long value = await GetSnapshot(trans, ct).ConfigureAwait(false);
 			Add(trans, x - value);
 		}
 

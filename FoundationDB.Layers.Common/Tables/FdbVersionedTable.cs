@@ -119,7 +119,7 @@ namespace FoundationDB.Layers.Tables
 				tr.Set(this.MetadataPrefix.Append("KeyType"), Slice.FromString(typeof(TId).FullName));
 				tr.Set(this.MetadataPrefix.Append("ValueType"), Slice.FromString(typeof(TValue).FullName));
 
-				await tr.CommitAsync();
+				await tr.CommitAsync().ConfigureAwait(false);
 
 				return true;
 			}
