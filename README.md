@@ -66,17 +66,24 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
     
         // do a range query on the list prefix, that returns the pairs (int index, string value).        
         var results = await (trans.
+            // ask for all keys prefixed by the tuple ("Test", "List", )
             .GetRangeStartsWith(list)
+            // transform the results (KeyValuePair<Slice, Slice>) into something nicer
             .Select((kvp) => 
                 new KeyValuePair<int, string>(
-                    location.Unpack(kvp.Key).Get<int>(-1), // unpack the tuple and returns the last item as an int
-                    kvp.Value.ToUnicode() // convert the value into an unicode string
-               )
-            ).ToListAsync());
+                    // unpack the tuple and returns the last item as an int
+                    location.Unpack(kvp.Key).Get<int>(-1),
+                    // convert the value into an unicode string
+                    kvp.Value.ToUnicode() 
+                ))
+            // only get even values (note: this will execute on the client, the query will still need to fetch ALL the values)
+            .Where((kvp) => kvp.Key % 2 == 0)
+            // actually execute the query, and return a List<KeyValuePair<int, string>> with the results
+            .ToListAsync());
 
+       // list.Count -> 2
        // list[0] -> <int, string>(0, "AAA")
-       // list[1] -> <int, string>(1, "BBB")
-       // list[2] -> <int, string>(2, "CCC")
+       // list[1] -> <int, string>(2, "CCC")
     }
     
 }
