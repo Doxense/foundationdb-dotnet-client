@@ -122,14 +122,20 @@ namespace FoundationDB.Client
 			m_resultSelector = parent.m_resultSelector;
 		}
 
+		/// <summary>Limit the number of elements returned by the MergeSort</summary>
+		/// <param name="limit">Maximum number of results to return</param>
+		/// <returns>New MergeSort that will only return the specified number of results</returns>
 		public FdbMergeSortSelectable<TKey, TResult> Take(int limit)
 		{
+			if (limit < 0) throw new ArgumentOutOfRangeException("limit", "Value cannot be less than zero");
+
 			return new FdbMergeSortSelectable<TKey, TResult>(this)
 			{
 				m_remaining = limit
 			};
 		}
 
+		/// <summary>Apply a transformation on the results of the merge sort</summary>
 		public FdbMergeSortSelectable<TKey, TNewResult> Select<TNewResult>(Func<TResult, TNewResult> selector)
 		{
 			return new FdbMergeSortSelectable<TKey, TNewResult>(
@@ -141,11 +147,51 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Starts executing the MergeSort</summary>
 		public IFdbAsyncEnumerator<TResult> GetEnumerator()
 		{
 			var iterator = new FdbMergeSortSelectable<TKey, TResult>(m_queries, m_remaining, m_keySelector, m_resultSelector, m_keyComparer);
 			iterator.m_state = STATE_READY;
 			return iterator;
+		}
+
+		/// <summary>Runs the merge sort, calling the specified action with each result, as it arrives</summary>
+		/// <param name="action">Action executed on each result</param>
+		/// <param name="ct">Cancellation token (optionnal)</param>
+		/// <returns>Task that completes once all results have been processed</returns>
+		public Task ForEachAsync(Action<TResult> action, CancellationToken ct = default(CancellationToken))
+		{
+			return FdbAsyncEnumerable.ForEachAsync<TResult>(this, action, ct);
+		}
+
+		/// <summary>Runs the merge sort, and returns the results in an ordered list.</summary>
+		/// <param name="ct">Cancellation token (optionnal)</param>
+		/// <returns>List that contains all the results of the merge sort, or an empty collection if it produced no results</returns>
+		public Task<List<TResult>> ToListAsync(CancellationToken ct = default(CancellationToken))
+		{
+			if (m_remaining != null && m_remaining.Value <= 1000)
+			{
+				return FdbAsyncEnumerable.ToListAsync<TResult>(this, m_remaining.Value, ct);
+			}
+			else
+			{
+				return FdbAsyncEnumerable.ToListAsync<TResult>(this, ct);
+			}
+		}
+
+		/// <summary>Runs the merge sort, and returns the results in an ordered list.</summary>
+		/// <param name="ct">Cancellation token (optionnal)</param>
+		/// <returns>List that contains all the results of the merge sort, or an empty collection if it produced no results</returns>
+		public Task<TResult[]> ToArrayAsync(CancellationToken ct = default(CancellationToken))
+		{
+			if (m_remaining != null && m_remaining.Value <= 1000)
+			{
+				return FdbAsyncEnumerable.ToArrayAsync<TResult>(this, m_remaining.Value, ct);
+			}
+			else
+			{
+				return FdbAsyncEnumerable.ToArrayAsync<TResult>(this, ct);
+			}
 		}
 
 		Task<bool> IFdbAsyncEnumerator<TResult>.MoveNext(CancellationToken cancellationToken)
@@ -194,6 +240,7 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Finds the next smallest item from all the active iterators</summary>
 		private async Task<bool> FindNextAsync(CancellationToken ct)
 		{
 			if (m_remaining != null && m_remaining.Value <= 0)
@@ -218,7 +265,6 @@ namespace FoundationDB.Client
 					{ // this one is done, remove it
 						m_iterators[i].Iterator.Dispose();
 						m_iterators[i] = default(IteratorState);
-						Trace.WriteLine("> #" + i + " is done, will be ignore from now one");
 						continue;
 					}
 
@@ -241,8 +287,6 @@ namespace FoundationDB.Client
 
 			// store the current pair
 			m_current = m_resultSelector(m_iterators[index].Iterator.Current);
-
-			Trace.WriteLine("> #" + index + " was the winner with " + min + " (" + m_current + " from " + m_iterators[index].Iterator.Current.Key.ToString() + ")");
 
 			// advance the current iterator
 			m_iterators[index].HasCurrent = false;
@@ -275,11 +319,37 @@ namespace FoundationDB.Client
 
 		private void OnComplete()
 		{
-			m_current = default(TResult);
-			m_remaining = 0;
 			if (Interlocked.CompareExchange(ref m_state, STATE_COMPLETE, STATE_ITERATING) == STATE_ITERATING)
 			{
-				//TODO ?
+				Cleanup();
+			}
+		}
+
+		private void Cleanup()
+		{
+			var iterators = Interlocked.Exchange(ref m_iterators, null);
+			if (iterators != null)
+			{
+				List<Exception> errors = null;
+
+				for (int i = 0; i < iterators.Length; i++)
+				{
+					if (iterators[i].Active && iterators[i].Iterator != null)
+					{
+						try
+						{
+							iterators[i].Iterator.Dispose();
+							iterators[i] = new IteratorState();
+							iterators[i].Active = false;
+						}
+						catch (Exception e)
+						{
+							(errors ?? (errors = new List<Exception>())).Add(e);
+						}
+					}
+				}
+
+				if (errors != null) throw new AggregateException(errors);
 			}
 		}
 
@@ -287,9 +357,16 @@ namespace FoundationDB.Client
 		{
 			if (Interlocked.Exchange(ref m_state, STATE_DISPOSED) != STATE_DISPOSED)
 			{
-				m_current = default(TResult);
-				m_iterators = null;
-				//TODO: close everything !
+				try
+				{
+					Cleanup();
+				}
+				finally
+				{
+					m_current = default(TResult);
+					m_iterators = null;
+					m_remaining = 0;
+				}
 			}
 		}
 
