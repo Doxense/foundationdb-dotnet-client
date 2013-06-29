@@ -47,7 +47,7 @@ namespace FoundationDB.Client
 				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
 				default(int?),
 				keySelector,
-				FdbAsyncEnumerable.Cache<KeyValuePair<Slice, Slice>>.Identity,
+				TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity,
 				keyComparer
 			);
 		}

@@ -1103,18 +1103,5 @@ using System.Threading.Tasks;
 
 		#endregion
 
-		/// <summary>Wraps a classic lambda into one that supports cancellation</summary>
-		/// <param name="lambda">Lambda that does not support cancellation</param>
-		/// <returns>New lambda that will check if the token is cancelled before calling <paramref name="lambda"/></returns>
-		internal static Func<TSource, CancellationToken, TResult> WithCancellation<TSource, TResult>(Func<TSource, TResult> lambda)
-		{
-			Contract.Requires(lambda != null);
-			return (value, ct) =>
-			{
-				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
-				return lambda(value);
-			};
-		}
-
 	}
 }

@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
@@ -36,13 +37,6 @@ namespace FoundationDB.Linq
 	public static partial class FdbAsyncEnumerable
 	{
 		// Welcome to the wonderful world of the Monads! 
-
-		/// <summary>Helper class that will hold on cached generic delegates</summary>
-		/// <typeparam name="T"></typeparam>
-		internal static class Cache<T>
-		{
-			public static readonly Func<T, T> Identity = (x) => x;
-		}
 
 		#region Entering the Monad...
 
@@ -135,7 +129,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			return Create<TSource, TResult>(source, (iterator) => Map<TSource, TResult>(iterator, null, WithCancellation(asyncSelector)));
+			return Create<TSource, TResult>(source, (iterator) => Map<TSource, TResult>(iterator, null, TaskHelpers.WithCancellation(asyncSelector)));
 		}
 
 		/// <summary>Projects each element of a async sequence into a new form.</summary>
@@ -204,7 +198,7 @@ namespace FoundationDB.Linq
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
 		public static IFdbAsyncEnumerable<T> Where<T>(this IFdbAsyncEnumerable<T> source, Func<T, Task<bool>> asyncPredicate)
 		{
-			return Create<T, T>(source, (iterator) => Filter<T>(iterator, WithCancellation(asyncPredicate)));
+			return Create<T, T>(source, (iterator) => Filter<T>(iterator, TaskHelpers.WithCancellation(asyncPredicate)));
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
