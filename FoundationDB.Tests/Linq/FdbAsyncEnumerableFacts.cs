@@ -90,8 +90,27 @@ namespace FoundationDB.Linq.Tests
 		{
 			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
 
-			var list = await source.ToListAsync();
+			List<int> list = await source.ToListAsync();
 			Assert.That(list, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+		}
+
+		[Test]
+		public async Task Test_Can_ToListAsync_With_Size_Hint()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			List<int> list = await source.ToListAsync(42);
+			Assert.That(list, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+			Assert.That(list.Capacity, Is.EqualTo(42));
+		}
+
+		[Test]
+		public async Task Test_Can_ToArrayAsync()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			int[] array = await source.ToArrayAsync();
+			Assert.That(array, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
 		[Test]

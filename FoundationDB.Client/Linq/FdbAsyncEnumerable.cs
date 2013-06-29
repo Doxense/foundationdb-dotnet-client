@@ -264,11 +264,48 @@ namespace FoundationDB.Linq
 		/// <summary>Return a list of all the elements from an async sequence</summary>
 		public static async Task<List<T>> ToListAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
+			Contract.Requires(source != null);
+
+			//TODO: use a more optimized version that does not copy items as it grows ?
 			var list = new List<T>();
 			await Run<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
 			return list;
 		}
-		
+
+		/// <summary>Return a list of all the elements from an async sequence with a rough estimate of the number of results</summary>
+		internal static async Task<List<T>> ToListAsync<T>(this IFdbAsyncEnumerable<T> source, int estimatedSize, CancellationToken ct = default(CancellationToken))
+		{
+			Contract.Requires(source != null && estimatedSize >= 0);
+
+			// This is an optimized version of ToListAsync that tries to avoid copying items in the list as it grows
+			// it should be replaced by a custom list that holds chunks of results, without the need to copy items more than once
+
+			var list = new List<T>(estimatedSize);
+			await Run<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
+			return list;
+		}
+
+		/// <summary>Return a list of all the elements from an async sequence</summary>
+		public static async Task<T[]> ToArrayAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		{
+			Contract.Requires(source != null);
+
+			//TODO: use a more optimized version that does not copy items as it grows ?
+			var list = new List<T>();
+			await Run<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
+			return list.ToArray();
+		}
+
+		/// <summary>Return a list of all the elements from an async sequence</summary>
+		internal static async Task<T[]> ToArrayAsync<T>(this IFdbAsyncEnumerable<T> source, int estimatedSize, CancellationToken ct = default(CancellationToken))
+		{
+			Contract.Requires(source != null && estimatedSize >= 0);
+
+			var list = new List<T>(estimatedSize);
+			await Run<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
+			return list.ToArray();
+		}
+
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
 		public static Task<T> FirstAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
