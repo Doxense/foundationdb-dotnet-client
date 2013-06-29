@@ -81,23 +81,90 @@ namespace FoundationDB.Linq
 
 		#region Staying in the Monad...
 
+		#region SelectMany...
+
 		/// <summary>Projects each element of an async sequence to an IFdbAsyncEnumerable&lt;T&gt; and flattens the resulting sequences into one async sequence.</summary>
 		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
 		{
-			return Create<TSource, TResult>(source, (iterator) =>
+			if (source == null) throw new ArgumentNullException("source");
+			if (selector == null) throw new ArgumentNullException("selector");
+
+			var iterator = source as AsyncIterator<TSource>;
+			if (iterator != null)
 			{
-				return Flatten<TSource, TResult>(iterator, selector);
-			});
+				return iterator.SelectMany<TResult>(selector);
+			}
+
+			return Flatten<TSource, TResult>(source, selector);
+		}
+
+		/// <summary>Projects each element of an async sequence to an IFdbAsyncEnumerable&lt;T&gt; and flattens the resulting sequences into one async sequence.</summary>
+		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, Task<IEnumerable<TResult>>> asyncSelector)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
+
+			return SelectMany<TSource, TResult>(source, TaskHelpers.WithCancellation(asyncSelector));
+		}
+
+		/// <summary>Projects each element of an async sequence to an IFdbAsyncEnumerable&lt;T&gt; and flattens the resulting sequences into one async sequence.</summary>
+		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
+
+			var iterator = source as AsyncIterator<TSource>;
+			if (iterator != null)
+			{
+				return iterator.SelectMany<TResult>(asyncSelector);
+			}
+
+			return Flatten<TSource, TResult>(source, asyncSelector);
 		}
 
 		/// <summary>Projects each element of an async sequence to an IFdbAsyncEnumerable&lt;T&gt; flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
 		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
-			return Create<TSource, TResult>(source, (iterator) =>
+			if (source == null) throw new ArgumentNullException("source");
+			if (collectionSelector == null) throw new ArgumentNullException("collectionSelector");
+			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
+
+			var iterator = source as AsyncIterator<TSource>;
+			if (iterator != null)
 			{
-				return Flatten<TSource, TCollection, TResult>(iterator, collectionSelector, resultSelector);
-			});
+				return iterator.SelectMany<TCollection, TResult>(collectionSelector, resultSelector);
+			}
+
+			return Flatten<TSource, TCollection, TResult>(source, collectionSelector, resultSelector);
 		}
+
+		/// <summary>Projects each element of an async sequence to an IFdbAsyncEnumerable&lt;T&gt; flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
+		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
+			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
+
+			return SelectMany<TSource, TCollection, TResult>(source, TaskHelpers.WithCancellation(asyncCollectionSelector), resultSelector);
+		}
+
+		/// <summary>Projects each element of an async sequence to an IFdbAsyncEnumerable&lt;T&gt; flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
+		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
+			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
+
+			var iterator = source as AsyncIterator<TSource>;
+			if (iterator != null)
+			{
+				return iterator.SelectMany<TCollection, TResult>(asyncCollectionSelector, resultSelector);
+			}
+
+			return Flatten<TSource, TCollection, TResult>(source, asyncCollectionSelector, resultSelector);
+		}
+
+		#endregion
 
 		#region Select...
 
@@ -107,8 +174,16 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (selector == null) throw new ArgumentNullException("selector");
 
-			return Create(source, (iterator) => Map<TSource, TResult>(iterator, null, selector));
+			var iterator = source as AsyncIterator<TSource>;
+			if (iterator != null)
+			{
+				return iterator.Select<TResult>(selector);
+			}
+
+			return Map<TSource, TResult>(source, selector);
 		}
+
+#if REFACTORING_IN_PROGRESS
 
 		/// <summary>Projects each element of an async sequence into a new form by incorporating the element's index.</summary>
 		public static IFdbAsyncEnumerable<TResult> Select<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, int, TResult> indexedSelector)
@@ -123,13 +198,15 @@ namespace FoundationDB.Linq
 			});		
 		}
 
+#endif
+
 		/// <summary>Projects each element of a async sequence into a new form.</summary>
 		public static IFdbAsyncEnumerable<TResult> Select<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, Task<TResult>> asyncSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			return Create<TSource, TResult>(source, (iterator) => Map<TSource, TResult>(iterator, null, TaskHelpers.WithCancellation(asyncSelector)));
+			return Select<TSource, TResult>(source, TaskHelpers.WithCancellation(asyncSelector));
 		}
 
 		/// <summary>Projects each element of a async sequence into a new form.</summary>
@@ -138,8 +215,16 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			return Create<TSource, TResult>(source, (iterator) => Map<TSource, TResult>(iterator, null, asyncSelector));
+			var iterator = source as AsyncIterator<TSource>;
+			if (iterator != null)
+			{
+				return iterator.Select<TResult>(asyncSelector);
+			}
+
+			return Map<TSource, TResult>(source, asyncSelector);
 		}
+
+#if REFACTORING_IN_PROGRESS
 
 		/// <summary>Projects each element of an async sequence into a new form by incorporating the element's index.</summary>
 		public static IFdbAsyncEnumerable<TResult> Select<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, int, Task<TResult>> asyncIndexedSelector)
@@ -175,19 +260,35 @@ namespace FoundationDB.Linq
 			});
 		}
 
+#endif
+
 		#endregion
 
 		#region Where...
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
-		public static IFdbAsyncEnumerable<T> Where<T>(this IFdbAsyncEnumerable<T> source, Func<T, bool> predicate)
+		public static IFdbAsyncEnumerable<TResult> Where<TResult>(this IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> predicate)
 		{
-			return Create<T, T>(source, (iterator) => Filter<T>(iterator, predicate));
+			if (source == null) throw new ArgumentNullException("source");
+			if (predicate == null) throw new ArgumentNullException("predicate");
+
+			var iterator = source as AsyncIterator<TResult>;
+			if (iterator != null)
+			{
+				return iterator.Where(predicate);
+			}
+
+			return Filter<TResult>(source, predicate);
 		}
+
+#if REFACTORING_IN_PROGRESS
 
 		/// <summary>Filters an async sequence of values based on a predicate. Each element's index is used in the logic of the predicate function.</summary>
 		public static IFdbAsyncEnumerable<T> Where<T>(this IFdbAsyncEnumerable<T> source, Func<T, int, bool> predicate)
 		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (predicate == null) throw new ArgumentNullException("predicate");
+
 			return Create<T, T>(source, (iterator) =>
 			{
 				int index = 0;
@@ -195,21 +296,40 @@ namespace FoundationDB.Linq
 			});
 		}
 
+#endif
+
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
 		public static IFdbAsyncEnumerable<T> Where<T>(this IFdbAsyncEnumerable<T> source, Func<T, Task<bool>> asyncPredicate)
 		{
-			return Create<T, T>(source, (iterator) => Filter<T>(iterator, TaskHelpers.WithCancellation(asyncPredicate)));
+			if (source == null) throw new ArgumentNullException("source");
+			if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
+
+			return Where<T>(source, TaskHelpers.WithCancellation(asyncPredicate));
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
-		public static IFdbAsyncEnumerable<T> Where<T>(this IFdbAsyncEnumerable<T> source, Func<T, CancellationToken, Task<bool>> asyncPredicate)
+		public static IFdbAsyncEnumerable<TResult> Where<TResult>(this IFdbAsyncEnumerable<TResult> source, Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
-			return Create<T, T>(source, (iterator) => Filter<T>(iterator, asyncPredicate));
+			if (source == null) throw new ArgumentNullException("source");
+			if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
+
+			var iterator = source as AsyncIterator<TResult>;
+			if (iterator != null)
+			{
+				return iterator.Where(asyncPredicate);
+			}
+
+			return Filter<TResult>(source, asyncPredicate);
 		}
+
+#if REFACTORING_IN_PROGRESS
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
 		public static IFdbAsyncEnumerable<T> Where<T>(this IFdbAsyncEnumerable<T> source, Func<T, int, Task<bool>> asyncPredicate)
 		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
+
 			return Create<T, T>(source, (iterator) =>
 			{
 				int index = 0;
@@ -231,6 +351,25 @@ namespace FoundationDB.Linq
 			});
 		}
 
+#endif
+		#endregion
+
+		#region Take...
+
+		public static IFdbAsyncEnumerable<TSource> Take<TSource>(this IFdbAsyncEnumerable<TSource> source, int limit)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (limit < 0) throw new ArgumentOutOfRangeException("limit", "Limit cannot be less than zero");
+
+			var iterator = source as AsyncIterator<TSource>;
+			if (iterator != null)
+			{
+				return iterator.Take(limit);
+			}
+
+			return Limit<TSource>(source, limit);
+		}
+
 		#endregion
 
 		#endregion
@@ -243,16 +382,28 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (action == null) throw new ArgumentNullException("action");
 
+			var iterator = source as AsyncIterator<T>;
+			if (iterator != null)
+			{
+				return iterator.ExecuteAsync(action, ct);
+			}
+
 			return Run<T>(source, action, ct);
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>(this IFdbAsyncEnumerable<T> source, Func<T, Task> action, CancellationToken ct = default(CancellationToken))
+		public static Task ForEachAsync<T>(this IFdbAsyncEnumerable<T> source, Func<T, CancellationToken, Task> asyncAction, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
-			if (action == null) throw new ArgumentNullException("action");
+			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
 
-			return Run<T>(source, action, ct);
+			var iterator = source as AsyncIterator<T>;
+			if (iterator != null)
+			{
+				return iterator.ExecuteAsync(asyncAction, ct);
+			}
+
+			return Run<T>(source, asyncAction, ct);
 		}
 
 		/// <summary>Return a list of all the elements from an async sequence</summary>
@@ -262,7 +413,7 @@ namespace FoundationDB.Linq
 
 			//TODO: use a more optimized version that does not copy items as it grows ?
 			var list = new List<T>();
-			await Run<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
+			await ForEachAsync<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
 			return list;
 		}
 
@@ -275,7 +426,7 @@ namespace FoundationDB.Linq
 			// it should be replaced by a custom list that holds chunks of results, without the need to copy items more than once
 
 			var list = new List<T>(estimatedSize);
-			await Run<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
+			await ForEachAsync<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
 			return list;
 		}
 
@@ -286,7 +437,7 @@ namespace FoundationDB.Linq
 
 			//TODO: use a more optimized version that does not copy items as it grows ?
 			var list = new List<T>();
-			await Run<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
+			await ForEachAsync<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
 			return list.ToArray();
 		}
 
@@ -296,7 +447,7 @@ namespace FoundationDB.Linq
 			Contract.Requires(source != null && estimatedSize >= 0);
 
 			var list = new List<T>(estimatedSize);
-			await Run<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
+			await ForEachAsync<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
 			return list.ToArray();
 		}
 

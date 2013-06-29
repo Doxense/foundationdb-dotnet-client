@@ -45,23 +45,19 @@ namespace FoundationDB.Client
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		/// <typeparam name="TResult">Type of the results returned</typeparam>
-		[DebuggerDisplay("State={m_state}, RemainingInBatch={m_remainingInBatch}, ReadLastBatch={m_lastBatchRead}")]
-		private sealed class PagingIterator : IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>[]>
+		[DebuggerDisplay("State={m_state}, Iteration={Iteration}, AtEnd={AtEnd}, HasMore={HasMore}")]
+		private sealed class PagingIterator : FdbAsyncEnumerable.AsyncIterator<KeyValuePair<Slice, Slice>[]>
 		{
-			private const int STATE_INIT = 0;
-			private const int STATE_READY = 1;
-			private const int STATE_COMPLETED = 2;
-			private const int STATE_DISPOSED = -1;
 
-
-			/// <summary>State of the iterator</summary>
-			private volatile int m_state = STATE_INIT;
-
-			// --
+			#region Iterable Properties...
 
 			private FdbRangeQuery Query { get; set; }
 
 			private FdbTransaction Transaction { get; set; }
+
+			#endregion
+
+			#region Iterator Properties...
 
 			/// <summary>Key selector describing the beginning of the current range (when paging)</summary>
 			private FdbKeySelector Begin { get; set; }
@@ -90,73 +86,48 @@ namespace FoundationDB.Client
 			/// <summary>Current/Last batch read task</summary>
 			private Task<bool> PendingReadTask { get; set; }
 
-			// --
+			#endregion
 
-			#region IFdbAsyncEnumerator<T>...
-
-			public PagingIterator(FdbRangeQuery query)
+			public PagingIterator(FdbRangeQuery query, FdbTransaction transaction)
 			{
 				Contract.Requires(query != null);
 
 				this.Query = query;
-				this.Transaction = query.Transaction;
-
-				this.Remaining = query.Limit > 0 ? query.Limit : default(int?);
-
-				this.Begin = query.Range.Start;
-				this.End = query.Range.Stop;
+				this.Transaction = transaction ?? query.Transaction;
 			}
 
-			public Task<bool> MoveNext(CancellationToken cancellationToken)
+			protected override FdbAsyncEnumerable.AsyncIterator<KeyValuePair<Slice, Slice>[]> Clone()
 			{
-				cancellationToken.ThrowIfCancellationRequested();
+				return new PagingIterator(this.Query, this.Transaction);
+			}
 
-				switch (m_state)
-				{
-					case STATE_COMPLETED:
-					{ // already reached the end !
-						return FdbAsyncEnumerable.FalseTask;
-					}
-					case STATE_INIT:
-					case STATE_READY:
-					{
-						break;
-					}
-					default:
-					{
-						ThrowInvalidState();
-						break;
-					}
-				}
+			#region IFdbAsyncEnumerator<T>...
 
-				//TODO: check if not already pending
-				if (PendingReadTask != null && !PendingReadTask.IsCompleted)
+			protected override Task<bool> OnFirstAsync(CancellationToken ct)
+			{
+				this.Remaining = this.Query.Limit > 0 ? this.Query.Limit : default(int?);
+				this.Begin = this.Query.Range.Start;
+				this.End = this.Query.Range.Stop;
+
+				return TaskHelpers.TrueTask;
+			}
+
+			protected override Task<bool> OnNextAsync(CancellationToken cancellationToken)
+			{
+				// Make sure that we are not called while the previous fetch is still running
+				if (this.PendingReadTask != null && !this.PendingReadTask.IsCompleted)
 				{
-					throw new InvalidOperationException("Cannot call MoveNext while a previous call is still running");
+					throw new InvalidOperationException("Cannot fetch another page while a previous read operation is still pending");
 				}
 
 				if (this.AtEnd)
 				{ // we already read the last batch !
-					m_state = STATE_COMPLETED;
-					return FdbAsyncEnumerable.FalseTask;
+					return Completed() ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
 				}
 
 				// slower path, we need to actually read the first batch...
 				return FetchNextPageAsync(cancellationToken);
 			}
-
-			public KeyValuePair<Slice, Slice>[] Current
-			{
-				get
-				{
-					if (m_state != STATE_READY) ThrowInvalidState();
-					return this.Chunk;
-				}
-			}
-
-			#endregion
-
-			#region ...
 
 			/// <summary>Asynchronously fetch a new page of results</summary>
 			/// <param name="ct"></param>
@@ -166,13 +137,6 @@ namespace FoundationDB.Client
 				Contract.Requires(!this.AtEnd);
 				Contract.Requires(this.Iteration >= 0);
 
-				// Make sure that we are not called while the previous fetch is still running
-				if (this.PendingReadTask != null && !this.PendingReadTask.IsCompleted)
-				{
-					throw new InvalidOperationException("Cannot fetch another page while a previous read operation is still pending");
-				}
-
-				ct.ThrowIfCancellationRequested();
 				this.Transaction.EnsuresCanReadOrWrite(ct);
 
 				this.Iteration++;
@@ -203,8 +167,6 @@ namespace FoundationDB.Client
 
 						this.AtEnd = !hasMore || (this.Remaining.HasValue && this.Remaining.Value <= 0);
 
-						m_state = STATE_READY;
-
 						if (!this.AtEnd)
 						{ // update begin..end so that next call will continue from where we left...
 							var lastKey = chunk[chunk.Length - 1].Key;
@@ -220,7 +182,11 @@ namespace FoundationDB.Client
 #if DEBUG_RANGE_PAGING
 						Debug.WriteLine("FdbRangeQuery.PagingIterator.FetchNextPageAsync() returned " + this.Chunk.Length + " results (" + this.RowCount + " total) " + (hasMore ? " with more to come" : " and has no more data"));
 #endif
-						return chunk.Length > 0 && this.Transaction != null;
+						if (chunk.Length > 0 && this.Transaction != null)
+						{
+							return Publish(chunk);
+						}
+						return Completed();
 					},
 					ct
 				);
@@ -247,36 +213,64 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			private void ThrowInvalidState()
+			#region LINQ
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<KeyValuePair<Slice, Slice>[], TNew> selector)
 			{
-				switch(m_state)
-				{
-					case STATE_DISPOSED: throw new ObjectDisposedException(null, "Query iterator has already been disposed");
-					case STATE_READY: return;
-					case STATE_INIT: throw new InvalidOperationException("You must call MoveNext at least once before accessing the current value");
-					case STATE_COMPLETED: throw new ObjectDisposedException(null, "Query iterator has already completed");
-					default: throw new InvalidOperationException("Invalid unknown state");
-				}
+				return FdbAsyncEnumerable.Map(this, selector);
 			}
 
-			private void ThrowIfDisposed()
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<KeyValuePair<Slice, Slice>[], CancellationToken, Task<TNew>> asyncSelector)
 			{
-				if (m_state == STATE_DISPOSED) throw new ObjectDisposedException(null, "Query iterator has already been disposed");
+				return FdbAsyncEnumerable.Map(this, asyncSelector);
 			}
 
-			public void Dispose()
+			public override FdbAsyncEnumerable.AsyncIterator<KeyValuePair<Slice, Slice>[]> Where(Func<KeyValuePair<Slice, Slice>[], bool> predicate)
+			{
+				return FdbAsyncEnumerable.Filter(this, predicate);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<KeyValuePair<Slice, Slice>[]> Where(Func<KeyValuePair<Slice, Slice>[], CancellationToken, Task<bool>> asyncPredicate)
+			{
+				return FdbAsyncEnumerable.Filter(this, asyncPredicate);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TNew>(Func<KeyValuePair<Slice, Slice>[], IEnumerable<TNew>> selector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, selector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TNew>(Func<KeyValuePair<Slice, Slice>[], CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, asyncSelector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<KeyValuePair<Slice, Slice>[], CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<KeyValuePair<Slice, Slice>[], TCollection, TNew> resultSelector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, asyncCollectionSelector, resultSelector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<KeyValuePair<Slice, Slice>[], IEnumerable<TCollection>> collectionSelector, Func<KeyValuePair<Slice, Slice>[], TCollection, TNew> resultSelector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, collectionSelector, resultSelector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<KeyValuePair<Slice, Slice>[]> Take(int limit)
+			{
+				//note: this would limit the number of *chunks*, not results, so here we need the regular Take(..)
+				return FdbAsyncEnumerable.Limit(this, limit);
+			}
+
+			#endregion
+
+			protected override void Cleanup()
 			{
 				//TODO: should we wait/cancel any pending read task ?
-
-				m_state = STATE_DISPOSED;
-
 				this.Chunk = null;
 				this.AtEnd = true;
 				this.HasMore = false;
 				this.Remaining = null;
 				this.Iteration = -1;
-				this.Query = null;
-				this.Transaction = null;
 				this.PendingReadTask = null;
 			}
 		}

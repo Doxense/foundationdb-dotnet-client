@@ -45,15 +45,8 @@ namespace FoundationDB.Client
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		/// <typeparam name="TResult">Type of the results returned</typeparam>
 		[DebuggerDisplay("State={m_state}, RemainingInBatch={m_remainingInBatch}, ReadLastBatch={m_lastBatchRead}")]
-		private sealed class ResultIterator<TResult> : IFdbAsyncEnumerator<TResult>
+		private sealed class ResultIterator<TResult> : FdbAsyncEnumerable.AsyncIterator<TResult>
 		{
-			private const int STATE_INIT = 0;
-			private const int STATE_READY = 1;
-			private const int STATE_COMPLETED = 2;
-			private const int STATE_DISPOSED = -1;
-
-			/// <summary>State of the iterator</summary>
-			private volatile int m_state = STATE_INIT;
 
 			private FdbRangeQuery m_query;
 
@@ -62,11 +55,9 @@ namespace FoundationDB.Client
 			/// <summary>Lambda used to transform pairs of key/value into the expected result</summary>
 			private Func<KeyValuePair<Slice, Slice>, TResult> m_resultTransform;
 
-			/// <summary>Holds the current result</summary>
-			private TResult m_current;
 
 			/// <summary>Iterator used to read chunks from the database</summary>
-			private PagingIterator m_chunkIterator;
+			private IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
 
 			/// <summary>True if we have reached the last page</summary>
 			private bool m_outOfChunks;
@@ -82,52 +73,36 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			public ResultIterator(FdbRangeQuery query, Func<KeyValuePair<Slice, Slice>, TResult> transform)
+			public ResultIterator(FdbRangeQuery query, FdbTransaction transaction, Func<KeyValuePair<Slice, Slice>, TResult> transform)
 			{
 				Contract.Requires(query != null && transform != null);
 
 				m_query = query;
-				m_transaction = query.Transaction;
+				m_transaction = transaction ?? query.Transaction;
 				m_resultTransform = transform;
 			}
 
-			public Task<bool> MoveNext(CancellationToken cancellationToken)
+			protected override FdbAsyncEnumerable.AsyncIterator<TResult> Clone()
 			{
-				cancellationToken.ThrowIfCancellationRequested();
+				return new ResultIterator<TResult>(m_query, m_transaction, m_resultTransform);
+			}
 
-				switch (m_state)
+			protected override Task<bool> OnFirstAsync(CancellationToken ct)
+			{
+				// on first call, setup the page iterator
+				if (m_chunkIterator == null)
 				{
-					case STATE_COMPLETED:
-					{ // already reached the end !
-						return FdbAsyncEnumerable.FalseTask;
-					}
-					case STATE_INIT:
-					{
-#if DEBUG_RANGE_ITERATOR
-						Debug.WriteLine("Initializing range query iterator for first chunk");
-#endif
-						// on first call, setup the page iterator
-						if (m_chunkIterator == null)
-						{
-							m_chunkIterator = new PagingIterator(m_query);
-						}
-						break;
-					}
-					case STATE_READY:
-					{
-						break;
-					}
-					default:
-					{
-						ThrowInvalidState();
-						break;
-					}
+					m_chunkIterator = new PagingIterator(m_query, m_transaction).GetEnumerator();
 				}
+				return TaskHelpers.TrueTask;
+			}
 
+			protected override Task<bool> OnNextAsync(CancellationToken ct)
+			{
 				if (m_itemsRemainingInChunk > 0)
 				{ // we need can get another one from the batch
 
-					return ProcessNextItem();
+					return ProcessNextItem() ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
 				}
 
 				if (m_outOfChunks)
@@ -141,12 +116,11 @@ namespace FoundationDB.Client
 				// slower path, we need to actually read the first batch...
 				m_chunk = null;
 				m_currentOffsetInChunk = -1;
-				return ReadAnotherBatchAsync(cancellationToken);
+				return ReadAnotherBatchAsync(ct);
 			}
 
 			private async Task<bool> ReadAnotherBatchAsync(CancellationToken ct)
 			{
-				Contract.Requires(m_state == STATE_INIT || m_state == STATE_READY);
 				Contract.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
 
 				// start reading the next batch
@@ -165,10 +139,7 @@ namespace FoundationDB.Client
 						m_itemsRemainingInChunk = chunk.Length;
 
 						// transform the first one
-						await ProcessNextItem().ConfigureAwait(false);
-
-						m_state = STATE_READY;
-						return true;
+						return ProcessNextItem();
 					}
 #if DEBUG_RANGE_ITERATOR
 					Debug.WriteLine("Got empty chunk from page iterator!");
@@ -179,82 +150,87 @@ namespace FoundationDB.Client
 				Debug.WriteLine("No more chunks from page iterator");
 #endif
 				m_outOfChunks = true;
-				m_current = default(TResult);
-				m_state = STATE_COMPLETED;
-				return false;
+				return Completed();
 			}
 
-			public TResult Current
-			{
-				get
-				{
-					if (m_state != STATE_READY) ThrowInvalidState();
-					return m_current;
-				}
-			}
-
-			private Task<bool> ProcessNextItem()
+			private bool ProcessNextItem()
 			{
 				++m_currentOffsetInChunk;
 				--m_itemsRemainingInChunk;
-				m_current = m_resultTransform(m_chunk[m_currentOffsetInChunk]);
-#if DEBUG_RANGE_ITERATOR
-				Debug.WriteLine("Using item #" + m_currentOffsetInChunk + " in current chunk (" + m_itemsRemainingInChunk + " remaining)");
-#endif
-				return FdbAsyncEnumerable.TrueTask;
+				var result = m_resultTransform(m_chunk[m_currentOffsetInChunk]);
+				return Publish(result);
 			}
 
 			#endregion
 
-			private void ThrowInvalidState()
+			#region LINQ
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 			{
-				switch (m_state)
+				return FdbAsyncEnumerable.Map(this, selector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
+			{
+				return FdbAsyncEnumerable.Map(this, asyncSelector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
+			{
+				return FdbAsyncEnumerable.Filter(this, predicate);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+			{
+				return FdbAsyncEnumerable.Filter(this, asyncPredicate);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, selector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, asyncSelector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, asyncCollectionSelector, resultSelector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, collectionSelector, resultSelector);
+			}
+
+			public override FdbAsyncEnumerable.AsyncIterator<TResult> Take(int limit)
+			{
+				return new ResultIterator<TResult>(m_query.Take(limit), m_transaction, m_resultTransform);
+			}
+
+			#endregion
+
+			protected override void Cleanup()
+			{
+				try
 				{
-					case STATE_DISPOSED: throw new ObjectDisposedException(null, "Query iterator has already been disposed");
-					case STATE_READY: return;
-					case STATE_INIT: throw new InvalidOperationException("You must call MoveNext at least once before accessing the current value");
-					case STATE_COMPLETED: throw new ObjectDisposedException(null, "Query iterator has already completed");
-					default: throw new InvalidOperationException("Invalid unknown state");
+					if (m_chunkIterator != null)
+					{
+						m_chunkIterator.Dispose();
+					}
+				}
+				finally
+				{
+					m_chunkIterator = null;
+					m_chunk = null;
+					m_outOfChunks = true;
+					m_currentOffsetInChunk = 0;
+					m_itemsRemainingInChunk = 0;
 				}
 			}
 
-			private void ThrowIfDisposed()
-			{
-				if (m_state == STATE_DISPOSED) throw new ObjectDisposedException(null, "Query iterator has already been disposed");
-			}
-
-			public void Dispose()
-			{
-				//TODO: should we wait/cancel any pending read task ?
-
-				if (m_state != STATE_DISPOSED)
-				{
-					m_state = STATE_DISPOSED;
-#if DEBUG_RANGE_ITERATOR
-					Debug.WriteLine("Disposing range query iterator");
-#endif
-
-					try
-					{
-						if (m_chunkIterator != null)
-						{
-							m_chunkIterator.Dispose();
-						}
-					}
-					finally
-					{
-						m_current = default(TResult);
-						m_query = null;
-						m_transaction = null;
-						m_chunkIterator = null;
-						m_chunk = null;
-						m_outOfChunks = true;
-						m_currentOffsetInChunk = 0;
-						m_itemsRemainingInChunk = 0;
-					}
-				}
-				GC.SuppressFinalize(this);
-			}
 		}
 
 	}

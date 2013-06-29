@@ -349,6 +349,45 @@ namespace FoundationDB.Client.Tests
 					}
 				}
 
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Range_Batched()
+		{
+			// test that we can get a range of keys
+
+			const int N = 1000; // total item count
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				// put test values in a namespace
+				var location = db.Partition("Range");
+
+				// cleanup everything
+				using (var tr = db.BeginTransaction())
+				{
+					tr.ClearRange(location);
+					await tr.CommitAsync();
+				}
+
+				// insert all values (batched)
+				Console.WriteLine("Inserting " + N.ToString("N0") + " keys...");
+				var insert = Stopwatch.StartNew();
+
+				using (var tr = db.BeginTransaction())
+				{
+					foreach (int i in Enumerable.Range(0, N))
+					{
+						tr.Set(location.Pack(i), Slice.FromInt32(i));
+					}
+
+					await tr.CommitAsync();
+				}
+				insert.Stop();
+
+				Console.WriteLine("Committed " + N + " keys in " + insert.Elapsed.TotalMilliseconds.ToString("N1") + " ms");
+
 				// GetRange by batch
 
 				using (var tr = db.BeginTransaction())
@@ -365,8 +404,11 @@ namespace FoundationDB.Client.Tests
 					ts.Stop();
 
 					Assert.That(chunks, Is.Not.Null);
-					Assert.That(chunks.Count, Is.GreaterThan(0));
-					Assert.That(chunks.Sum(c => c.Length), Is.EqualTo(N));
+					Assert.That(chunks.Count, Is.GreaterThan(0), "Should at least return one chunk");
+					Console.WriteLine("Got " + chunks.Count + " chunks");
+					Assert.That(chunks, Is.All.Not.Null, "Should nether return null chunks");
+					Assert.That(chunks, Is.All.Not.Empty, "Should nether return empty chunks");
+					Assert.That(chunks.Sum(c => c.Length), Is.EqualTo(N), "Total size should match");
 					Console.WriteLine("Took " + ts.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + chunks.Count.ToString("N0") + " chunks");
 
 					var keys = chunks.SelectMany(chunk => chunk.Select(x => FdbTuple.Unpack(x.Key).Get<int>(-1))).ToArray();

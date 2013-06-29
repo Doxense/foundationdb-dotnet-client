@@ -114,64 +114,133 @@ using System.Threading.Tasks;
 		/// <summary>Base class for all async iterators</summary>
 		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		internal abstract class AsyncIterator<TSource, TResult> : IFdbAsyncEnumerator<TResult>
+		internal abstract class AsyncIterator<TResult> : IFdbAsyncEnumerable<TResult>, IFdbAsyncEnumerator<TResult>
 		{
-			private const int STATE_ALIVE = 0;
+			private const int STATE_SEQ = 0;
+			private const int STATE_INIT = 1;
+			private const int STATE_ITERATING = 2;
+			private const int STATE_COMPLETED = 3;
 			private const int STATE_DISPOSED = -1;
 
-			protected IFdbAsyncEnumerator<TSource> m_iterator;
 			protected TResult m_current;
 			protected int m_state;
 
-			protected AsyncIterator(IFdbAsyncEnumerator<TSource> iterator)
+			#region IFdbAsyncEnumerable<TResult>...
+
+			public IFdbAsyncEnumerator<TResult> GetEnumerator()
 			{
-				Contract.Requires(iterator != null);
-				m_iterator = iterator;
+				// reuse the same instance the first time
+				if (Interlocked.CompareExchange(ref m_state, STATE_INIT, STATE_SEQ) == STATE_SEQ)
+				{
+					return this;
+				}
+				// create a new one
+				var iter = Clone();
+				Volatile.Write(ref iter.m_state, STATE_INIT);
+				return iter;
 			}
+
+			protected abstract AsyncIterator<TResult> Clone();
+
+			#endregion
+
+			#region IFdbAsyncEnumerator<TResult>...
 
 			public TResult Current
 			{
 				get
 				{
-					if (m_state == STATE_DISPOSED) ThrowInvalidState();
+					if (Volatile.Read(ref m_state) != STATE_ITERATING) ThrowInvalidState();
 					return m_current;
 				}
 			}
 
 			public async Task<bool> MoveNext(CancellationToken ct)
 			{
-				switch (m_state)
+				var state = Volatile.Read(ref m_state);
+
+				if (state == STATE_COMPLETED)
 				{
-					case STATE_ALIVE:
+					return false;
+				}
+				if (state != STATE_INIT && state != STATE_ITERATING)
+				{
+					ThrowInvalidState();
+					return false;
+				}
+
+				if (ct.IsCancellationRequested)
+				{
+					return Cancelled(ct);
+				}
+
+				try
+				{
+					if (state == STATE_INIT)
 					{
-						if (ct.IsCancellationRequested)
-						{
-							return Cancelled(ct);
+						if (!await OnFirstAsync(ct).ConfigureAwait(false))
+						{ // did not start at all ?
+							return Completed();
 						}
 
-						try
-						{
-							return await OnNextAsync(ct).ConfigureAwait(false);
-						}
-						catch (Exception e)
-						{
-							Failed(e);
-							throw;
+						if (Interlocked.CompareExchange(ref m_state, STATE_ITERATING, STATE_INIT) != STATE_INIT)
+						{ // something happened while we where starting ?
+							return false;
 						}
 					}
-					default:
-					{
-						ThrowInvalidState();
-						return false;
-					}
+
+					return await OnNextAsync(ct).ConfigureAwait(false);
+				}
+				catch (Exception e)
+				{
+					Failed(e);
+					throw;
 				}
 			}
+
+			#endregion
+
+			#region LINQ...
+
+			public abstract AsyncIterator<TResult> Where(Func<TResult, bool> predicate);
+
+			public abstract AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate);
+
+			public abstract AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector);
+
+			public abstract AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector);
+
+			public abstract AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector);
+
+			public abstract AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector);
+
+			public abstract AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector);
+
+			public abstract AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector);
+
+			public abstract AsyncIterator<TResult> Take(int limit);
+
+			public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
+			{
+				return FdbAsyncEnumerable.Run<TResult>(this, action, ct);
+			}
+
+			public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
+			{
+				return FdbAsyncEnumerable.Run<TResult>(this, asyncAction, ct);
+			}
+
+			#endregion
+
+			#region Iterator Impl...
+
+			protected abstract Task<bool> OnFirstAsync(CancellationToken ct);
 
 			protected abstract Task<bool> OnNextAsync(CancellationToken ct);
 
 			protected bool Publish(TResult current)
 			{
-				if (m_state == STATE_ALIVE)
+				if (Volatile.Read(ref m_state) == STATE_ITERATING)
 				{
 					m_current = current;
 					return true;
@@ -181,7 +250,14 @@ using System.Threading.Tasks;
 
 			protected bool Completed()
 			{
-				this.Dispose();
+				if (m_state == STATE_INIT)
+				{ // nothing should have been done by the iterator..
+					Interlocked.CompareExchange(ref m_state, STATE_COMPLETED, STATE_INIT);
+				}
+				else if (Interlocked.CompareExchange(ref m_state, STATE_COMPLETED, STATE_ITERATING) == STATE_ITERATING)
+				{ // the iterator has done at least something, so we can clean it up
+					this.Cleanup();
+				}
 				return false;
 			}
 
@@ -200,8 +276,28 @@ using System.Threading.Tasks;
 
 			protected void ThrowInvalidState()
 			{
-				if (m_state != STATE_ALIVE) throw new InvalidOperationException();
+				switch(m_state)
+				{
+					case STATE_SEQ:
+						throw new InvalidOperationException("The async iterator should have been initiliazed with a called to GetEnumerator()");
+
+					case STATE_ITERATING:
+						break;
+					
+					case STATE_DISPOSED:
+						throw new ObjectDisposedException(null, "The async iterator has already been closed");
+
+					default:
+						throw new InvalidOperationException();
+				}
+				
 			}
+
+			protected abstract void Cleanup();
+
+			#endregion
+
+			#region IDisposable...
 
 			public void Dispose()
 			{
@@ -215,91 +311,175 @@ using System.Threading.Tasks;
 				{
 					try
 					{
-						if (disposing && m_iterator != null)
-						{
-							m_iterator.Dispose();
-						}
+						Cleanup();
 					}
 					finally
 					{
-						m_iterator = null;
 						m_current = default(TResult);
 					}
 				}
 			}
+
+			#endregion
+		}
+
+		internal abstract class AsyncFilter<TSource, TResult> : AsyncIterator<TResult>
+		{
+			/// <summary>Source sequence (when in iterable mode)</summary>
+			protected IFdbAsyncEnumerable<TSource> m_source;
+
+			/// <summary>Active iterator on the source (when in terator mode)</summary>
+			protected IFdbAsyncEnumerator<TSource> m_iterator;
+
+			protected AsyncFilter(IFdbAsyncEnumerable<TSource> source)
+			{
+				Contract.Requires(source!= null);
+				m_source = source;
+			}
+
+			protected override Task<bool> OnFirstAsync(CancellationToken ct)
+			{
+				// on the first call to MoveNext, we have to hook up with the source iterator
+
+				IFdbAsyncEnumerator<TSource> iterator = null;
+				try
+				{
+					iterator = m_source.GetEnumerator();
+					return iterator != null ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
+				}
+				catch(Exception)
+				{
+					// whatever happens, make sure that we released the iterator...
+					if (iterator != null)
+					{
+						iterator.Dispose();
+						iterator = null;
+					}
+					throw;
+				}
+				finally
+				{
+					m_iterator = iterator;
+				}
+			}
+
+			protected override void Cleanup()
+			{
+				var iterator = Interlocked.Exchange(ref m_iterator, null);
+				if (iterator != null)
+				{
+					iterator.Dispose();
+				}
+			}
+
+			public override AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+			{
+				if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
+				if (resultSelector == null) throw new ArgumentNullException("resultSelector");
+
+				return new SelectManyAsyncIterator<TResult, TCollection, TNew>(this, null, asyncCollectionSelector, resultSelector);
+			}
+
+			public override AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+			{
+				if (collectionSelector == null) throw new ArgumentNullException("collectionSelector");
+				if (resultSelector == null) throw new ArgumentNullException("resultSelector");
+
+				return new SelectManyAsyncIterator<TResult, TCollection, TNew>(this, collectionSelector, null, resultSelector);
+			}
+
+			public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, selector);
+			}
+
+			public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
+			{
+				return FdbAsyncEnumerable.Flatten(this, asyncSelector);
+			}
+
+			public override AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+			{
+				return FdbAsyncEnumerable.Map(this, selector);
+			}
+
+			public override AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
+			{
+				return FdbAsyncEnumerable.Map(this, asyncSelector);
+			}
+
+			public override AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
+			{
+				return FdbAsyncEnumerable.Filter(this, predicate);
+			}
+
+			public override AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+			{
+				return FdbAsyncEnumerable.Filter(this, asyncPredicate);
+			}
+
+			public override AsyncIterator<TResult> Take(int limit)
+			{
+				return FdbAsyncEnumerable.Limit(this, limit);
+			}
+
 		}
 
 		/// <summary>Iterates over an async sequence of items</summary>
 		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		internal sealed class WhereSelectorIterator<TSource, TResult> : AsyncIterator<TSource, TResult>
+		internal sealed class WhereSelectAsyncIterator<TSource, TResult> : AsyncFilter<TSource, TResult>
 		{
 			private Func<TSource, bool> m_filter;
+			private Func<TSource, CancellationToken, Task<bool>> m_asyncFilter;
+
 			private Func<TSource, TResult> m_transform;
+			private Func<TSource, CancellationToken, Task<TResult>> m_asyncTransform;
 
-			public WhereSelectorIterator(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, bool> filter, Func<TSource, TResult> transform)
-				: base(iterator)
+			private int? m_limit;
+
+			private int? m_remaining;
+
+			public WhereSelectAsyncIterator(
+				IFdbAsyncEnumerable<TSource> source,
+				Func<TSource, bool> filter,
+				Func<TSource, CancellationToken, Task<bool>> asyncFilter,
+				Func<TSource, TResult> transform,
+				Func<TSource, CancellationToken, Task<TResult>> asyncTransform,
+				int? limit
+			)
+				: base(source)
 			{
-				Contract.Requires(filter != null || transform != null);
+				Contract.Requires(transform != null ^ asyncTransform != null); // at least one but not both
+				Contract.Requires(filter == null || asyncFilter == null); // can have none, but not both
+				Contract.Requires(limit == null || limit >= 0);
 
 				m_filter = filter;
+				m_asyncFilter = asyncFilter;
 				m_transform = transform;
+				m_asyncTransform = asyncTransform;
+				m_limit = limit;
+			}
+
+
+			protected override AsyncIterator<TResult> Clone()
+			{
+				return new WhereSelectAsyncIterator<TSource, TResult>(m_source, m_filter, m_asyncFilter, m_transform, m_asyncTransform, m_limit);
+			}
+
+			protected override Task<bool> OnFirstAsync(CancellationToken ct)
+			{
+				m_remaining = m_limit;
+				return base.OnFirstAsync(ct);
 			}
 
 			protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
 			{
-				while (!cancellationToken.IsCancellationRequested)
-				{
-					if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-					{ // completed
-						return Completed();
-					}
-
-					if (cancellationToken.IsCancellationRequested) break;
-
-					var current = m_iterator.Current;
-					if (m_filter == null || m_filter(current))
-					{
-						return Publish(m_transform(current));
-					}
+				if (m_remaining != null && m_remaining.Value <= 0)
+				{ // reached limit!
+					return Completed();
 				}
 
-				return Cancelled(cancellationToken);
-			}
-
-			protected override void Dispose(bool disposing)
-			{
-				try
-				{
-					m_filter = null;
-					m_transform = null;
-				}
-				finally
-				{
-					base.Dispose(disposing);
-				}
-			}
-		}
-
-		/// <summary>Iterates over an async sequence of items</summary>
-		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
-		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		internal sealed class WhereSelectAsyncIterator<TSource, TResult> : AsyncIterator<TSource, TResult>
-		{
-			private Func<TSource, bool> m_filter;
-			private Func<TSource, CancellationToken, Task<TResult>> m_transform;
-
-			public WhereSelectAsyncIterator(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, bool> filter, Func<TSource, CancellationToken, Task<TResult>> transform)
-				: base(iterator)
-			{
-				Contract.Requires(transform != null);
-
-				m_filter = filter;
-				m_transform = transform;
-			}
-
-			protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
-			{
 				while (!cancellationToken.IsCancellationRequested)
 				{
 					if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
@@ -310,42 +490,188 @@ using System.Threading.Tasks;
 					if (cancellationToken.IsCancellationRequested) break;
 
 					TSource current = m_iterator.Current;
-					if (m_filter == null || m_filter(current))
+					if (m_filter != null)
 					{
-						TResult result = await m_transform(current, cancellationToken).ConfigureAwait(false);
-						return Publish(result);
+						if (!m_filter(current)) continue;
 					}
+					else if (m_asyncFilter != null)
+					{
+						if (!await m_asyncFilter(current, cancellationToken).ConfigureAwait(false)) continue;
+					}
+
+					TResult result;
+					if (m_transform != null)
+					{
+						result = m_transform(current);
+					}
+					else
+					{
+						result = await m_asyncTransform(current, cancellationToken).ConfigureAwait(false);
+					}
+
+					if (m_remaining != null)
+					{ // decrement remaining quota
+						m_remaining = m_remaining.Value - 1;
+					}
+
+					return Publish(result);
 				}
 
 				return Cancelled(cancellationToken);
 			}
 
-			protected override void Dispose(bool disposing)
+			public override AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 			{
-				try
+				if (selector == null) throw new ArgumentNullException("selector");
+
+				if (m_transform != null)
 				{
-					m_filter = null;
-					m_transform = null;
+					return new WhereSelectAsyncIterator<TSource, TNew>(
+						m_source,
+						m_filter,
+						m_asyncFilter,
+						(x) => selector(m_transform(x)),
+						null,
+						m_limit
+					);
 				}
-				finally
+				else
 				{
-					base.Dispose(disposing);
+					return new WhereSelectAsyncIterator<TSource, TNew>(
+						m_source,
+						m_filter,
+						m_asyncFilter,
+						null,
+						async (x, ct) => selector(await m_asyncTransform(x, ct).ConfigureAwait(false)),
+						m_limit
+					);
 				}
 			}
+
+			public override AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
+			{
+				if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
+
+				if (m_transform != null)
+				{
+					return new WhereSelectAsyncIterator<TSource, TNew>(
+						m_source,
+						m_filter,
+						m_asyncFilter,
+						null,
+						(x, ct) => asyncSelector(m_transform(x), ct),
+						m_limit
+					);
+				}
+				else
+				{
+					return new WhereSelectAsyncIterator<TSource, TNew>(
+						m_source,
+						m_filter,
+						m_asyncFilter,
+						null,
+						async (x, ct) => await asyncSelector(await m_asyncTransform(x, ct).ConfigureAwait(false), ct).ConfigureAwait(false),
+						m_limit
+					);
+				}
+			}
+
+			public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
+			{
+				if (selector == null) throw new ArgumentNullException("selector");
+
+				if (m_filter == null && m_asyncFilter == null && m_limit == null)
+				{
+					if (m_transform != null)
+					{
+						return new SelectManyAsyncIterator<TSource, TNew>(
+							m_source,
+							selector: (x) => selector(m_transform(x)),
+							asyncSelector: null
+						);
+					}
+					else
+					{
+						return new SelectManyAsyncIterator<TSource, TNew>(
+							m_source,
+							selector: null,
+							asyncSelector: async (x, ct) => selector(await m_asyncTransform(x, ct).ConfigureAwait(false))
+						);
+					}
+				}
+
+				// other cases are too complex :(
+				return base.SelectMany<TNew>(selector);
+			}
+			public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
+			{
+				if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
+
+				if (m_filter == null && m_asyncFilter == null && m_limit == null)
+				{
+					if (m_transform != null)
+					{
+						return new SelectManyAsyncIterator<TSource, TNew>(
+							m_source,
+							selector: null,
+							asyncSelector: (x, ct) => asyncSelector(m_transform(x), ct)
+						);
+					}
+					else
+					{
+						return new SelectManyAsyncIterator<TSource, TNew>(
+							m_source,
+							selector: null,
+							asyncSelector: async (x, ct) => await asyncSelector(await m_asyncTransform(x, ct).ConfigureAwait(false), ct).ConfigureAwait(false)
+						);
+					}
+				}
+
+				// other cases are too complex :(
+				return base.SelectMany<TNew>(asyncSelector);
+			}
+
+			public override AsyncIterator<TResult> Take(int limit)
+			{
+				if (limit < 0) throw new ArgumentOutOfRangeException("limit", "Limit cannot be less than zero");
+
+				if (m_limit != null && m_limit.Value <= limit)
+				{
+					// we are already taking less then that
+					return this;
+				}
+
+				return new WhereSelectAsyncIterator<TSource, TResult>(
+					m_source,
+					m_filter,
+					m_asyncFilter,
+					m_transform,
+					m_asyncTransform,
+					m_limit
+				);
+			}
+
 		}
 
 		/// <summary>Filters an async sequence of items</summary>
 		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
-		internal sealed class WhereIterator<TSource> : AsyncIterator<TSource, TSource>
+		internal sealed class WhereAsyncIterator<TSource> : AsyncFilter<TSource, TSource>
 		{
 			private Func<TSource, bool> m_filter;
+			private Func<TSource, CancellationToken, Task<bool>> m_asyncFilter;
 
-			public WhereIterator(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, bool> filter)
-				: base(iterator)
+			public WhereAsyncIterator(IFdbAsyncEnumerable<TSource> source, Func<TSource, bool> filter, Func<TSource, CancellationToken, Task<bool>> asyncFilter)
+				: base(source)
 			{
-				Contract.Requires(filter != null);
+				Contract.Requires(filter != null ^ asyncFilter != null);
 
 				m_filter = filter;
+				m_asyncFilter = asyncFilter;
+			}
+
+			protected override AsyncIterator<TSource> Clone()
+			{
+				return new WhereAsyncIterator<TSource>(m_source, m_filter, m_asyncFilter);
 			}
 
 			protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
@@ -361,9 +687,19 @@ using System.Threading.Tasks;
 					if (cancellationToken.IsCancellationRequested) break;
 
 					TSource current = m_iterator.Current;
-					if (!m_filter(current))
+					if (m_filter != null)
 					{
-						continue;
+						if (!m_filter(current))
+						{
+							continue;
+						}
+					}
+					else
+					{
+						if (!await m_asyncFilter(current, cancellationToken).ConfigureAwait(false))
+						{
+							continue;
+						}
 					}
 
 					return Publish(current);
@@ -372,83 +708,155 @@ using System.Threading.Tasks;
 				return Cancelled(cancellationToken);
 			}
 
-			protected override void Dispose(bool disposing)
+			public override AsyncIterator<TSource> Where(Func<TSource, bool> predicate)
 			{
-				try
-				{
-					m_filter = null;
-				}
-				finally
-				{
-					base.Dispose(disposing);
-				}
-			}
-		}
-
-		/// <summary>Filters an async sequence of items</summary>
-		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
-		internal sealed class WhereAsyncIterator<TSource> : AsyncIterator<TSource, TSource>
-		{
-			private Func<TSource, CancellationToken, Task<bool>> m_filter;
-
-			public WhereAsyncIterator(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, CancellationToken, Task<bool>> asyncFilter)
-				: base(iterator)
-			{
-				Contract.Requires(iterator != null && asyncFilter != null);
-
-				m_iterator = iterator;
-				m_filter = asyncFilter;
+				return FdbAsyncEnumerable.Filter<TSource>(
+					m_source,
+					async (x, ct) => (await m_asyncFilter(x, ct)) && predicate(x)
+				);
 			}
 
-			protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
+			public override AsyncIterator<TSource> Where(Func<TSource, CancellationToken, Task<bool>> asyncPredicate)
 			{
+				return FdbAsyncEnumerable.Filter<TSource>(
+					m_source,
+					async (x, ct) => (await m_asyncFilter(x, ct)) && (await asyncPredicate(x, ct))
+				);
+			}
 
-				while (!cancellationToken.IsCancellationRequested)
+			public override AsyncIterator<TNew> Select<TNew>(Func<TSource, TNew> selector)
+			{
+				return new WhereSelectAsyncIterator<TSource, TNew>(
+					m_source,
+					m_filter,
+					m_asyncFilter,
+					selector,
+					null,
+					null
+				);
+			}
+
+			public override AsyncIterator<TNew> Select<TNew>(Func<TSource, CancellationToken, Task<TNew>> asyncSelector)
+			{
+				return new WhereSelectAsyncIterator<TSource, TNew>(
+					m_source,
+					m_filter,
+					m_asyncFilter,
+					null,
+					asyncSelector,
+					null
+				);
+			}
+
+			public override AsyncIterator<TSource> Take(int limit)
+			{
+				if (limit < 0) throw new ArgumentOutOfRangeException("limit", "Limit cannot be less than zero");
+
+				return new WhereSelectAsyncIterator<TSource, TSource>(
+					m_source,
+					m_filter,
+					m_asyncFilter,
+					TaskHelpers.Cache<TSource>.Identity,
+					null,
+					limit
+				);
+			}
+
+			public override async Task ExecuteAsync(Action<TSource> handler, CancellationToken ct)
+			{
+				if (handler == null) throw new ArgumentNullException("handler");
+
+				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
+				using (var iter = m_source.GetEnumerator())
 				{
-					if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-					{ // completed
-						return Completed();
-					}
-
-					if (cancellationToken.IsCancellationRequested) break;
-
-					TSource current = m_iterator.Current;
-					if (!await m_filter(current, cancellationToken).ConfigureAwait(false))
+					if (m_filter != null)
 					{
-						continue;
+						while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+						{
+							var current = iter.Current;
+							if (m_filter(current))
+							{
+								handler(current);
+							}
+						}
 					}
-
-					return Publish(current);
+					else
+					{
+						while(!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+						{
+							var current = iter.Current;
+							if (await m_asyncFilter(current, ct).ConfigureAwait(false))
+							{
+								handler(current);
+							}
+						}
+					}
 				}
 
-				return Cancelled(cancellationToken);
+				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
 			}
 
-			protected override void Dispose(bool disposing)
+			public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> asyncHandler, CancellationToken ct)
 			{
-				try
+				if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+
+				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
+				using (var iter = m_source.GetEnumerator())
 				{
-					m_filter = null;
+					if (m_filter != null)
+					{
+						while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+						{
+							var current = iter.Current;
+							if (m_filter(current))
+							{
+								await asyncHandler(current, ct).ConfigureAwait(false);
+							}
+						}
+					}
+					else
+					{
+						while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
+						{
+							var current = iter.Current;
+							if (await m_asyncFilter(current, ct).ConfigureAwait(false))
+							{
+								await asyncHandler(current, ct).ConfigureAwait(false);
+							}
+						}
+					}
 				}
-				finally
-				{
-					base.Dispose(disposing);
-				}
+
+				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 			}
+
 		}
 
 		/// <summary>Iterates over an async sequence of items</summary>
 		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		internal sealed class SelectManyIterator<TSource, TResult> : AsyncIterator<TSource, TResult>
+		internal sealed class SelectManyAsyncIterator<TSource, TResult> : AsyncFilter<TSource, TResult>
 		{
-			private Func<TSource, IEnumerable<TResult>> m_transform;
+			private Func<TSource, IEnumerable<TResult>> m_selector;
+			private Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> m_asyncSelector;
 			private IEnumerator<TResult> m_batch;
 
-			public SelectManyIterator(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, IEnumerable<TResult>> selector)
-				: base(iterator)
+			public SelectManyAsyncIterator(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
+				: base(source)
 			{
-				m_transform = selector;
+				// Must have at least one, but not both
+				Contract.Requires(selector != null ^ asyncSelector != null);
+
+				m_selector = selector;
+				m_asyncSelector = asyncSelector;
+			}
+
+			protected override AsyncIterator<TResult> Clone()
+			{
+				return new SelectManyAsyncIterator<TSource, TResult>(m_source, m_selector, m_asyncSelector);
 			}
 
 			protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
@@ -469,76 +877,15 @@ using System.Threading.Tasks;
 
 						if (cancellationToken.IsCancellationRequested) break;
 
-						var sequence = m_transform(m_iterator.Current);
-						if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
-
-						m_batch = sequence.GetEnumerator();
-						Contract.Assert(m_batch != null);
-					}
-
-					if (!m_batch.MoveNext())
-					{ // the current batch is exhausted, move to the next
-						m_batch.Dispose();
-						m_batch = null;
-						continue;
-					}
-
-					return Publish(m_batch.Current);
-				}
-
-				return Cancelled(cancellationToken);
-			}
-
-			protected override void Dispose(bool disposing)
-			{
-				try
-				{
-					if (disposing && m_batch != null)
-					{
-						m_batch.Dispose();
-					}
-				}
-				finally
-				{
-					m_batch = null;
-					m_transform = null;
-				}
-			}
-		}
-
-		/// <summary>Iterates over an async sequence of items</summary>
-		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
-		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		internal sealed class SelectManyAsyncIterator<TSource, TResult> : AsyncIterator<TSource, TResult>
-		{
-			private Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> m_transform;
-			private IEnumerator<TResult> m_batch;
-
-			public SelectManyAsyncIterator(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
-				: base(iterator)
-			{
-				m_transform = asyncSelector;
-			}
-
-			protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
-			{
-				// if we are in a batch, iterate over it
-				// if not, wait for the next batch
-
-				while (!cancellationToken.IsCancellationRequested)
-				{
-
-					if (m_batch == null)
-					{
-
-						if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-						{ // inner completed
-							return Completed();
+						IEnumerable<TResult> sequence;
+						if (m_selector != null)
+						{
+							sequence = m_selector(m_iterator.Current);
 						}
-
-						if (cancellationToken.IsCancellationRequested) break;
-
-						var sequence = await m_transform(m_iterator.Current, cancellationToken).ConfigureAwait(false);
+						else
+						{
+							sequence = await m_asyncSelector(m_iterator.Current, cancellationToken).ConfigureAwait(false);
+						}
 						if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
 						m_batch = sequence.GetEnumerator();
@@ -558,11 +905,11 @@ using System.Threading.Tasks;
 				return Cancelled(cancellationToken);
 			}
 
-			protected override void Dispose(bool disposing)
+			protected override void Cleanup()
 			{
 				try
 				{
-					if (disposing && m_batch != null)
+					if (m_batch != null)
 					{
 						m_batch.Dispose();
 					}
@@ -570,7 +917,7 @@ using System.Threading.Tasks;
 				finally
 				{
 					m_batch = null;
-					m_transform = null;
+					base.Cleanup();
 				}
 			}
 		}
@@ -578,18 +925,34 @@ using System.Threading.Tasks;
 		/// <summary>Iterates over an async sequence of items</summary>
 		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		internal sealed class SelectManyIterator<TSource, TCollection, TResult> : AsyncIterator<TSource, TResult>
+		internal sealed class SelectManyAsyncIterator<TSource, TCollection, TResult> : AsyncFilter<TSource, TResult>
 		{
 			private Func<TSource, IEnumerable<TCollection>> m_collectionSelector;
+			private Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> m_asyncCollectionSelector;
 			private Func<TSource, TCollection, TResult> m_resultSelector;
 			private TSource m_sourceCurrent;
 			private IEnumerator<TCollection> m_batch;
 
-			public SelectManyIterator(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
-				: base(iterator)
+			public SelectManyAsyncIterator(
+				IFdbAsyncEnumerable<TSource> source,
+				Func<TSource, IEnumerable<TCollection>> collectionSelector,
+				Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector,
+				Func<TSource, TCollection, TResult> resultSelector
+			)
+				: base(source)
 			{
+				// must have at least one but not both
+				Contract.Requires(collectionSelector != null ^ asyncCollectionSelector != null);
+				Contract.Requires(resultSelector != null);
+
 				m_collectionSelector = collectionSelector;
+				m_asyncCollectionSelector = asyncCollectionSelector;
 				m_resultSelector = resultSelector;
+			}
+
+			protected override AsyncIterator<TResult> Clone()
+			{
+				return new SelectManyAsyncIterator<TSource, TCollection, TResult>(m_source, m_collectionSelector, m_asyncCollectionSelector, m_resultSelector);
 			}
 
 			protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
@@ -612,85 +975,16 @@ using System.Threading.Tasks;
 
 						m_sourceCurrent = m_iterator.Current;
 
-						var sequence = m_collectionSelector(m_sourceCurrent);
-						if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
+						IEnumerable<TCollection> sequence;
 
-						m_batch = sequence.GetEnumerator();
-						Contract.Assert(m_batch != null);
-					}
-
-					if (!m_batch.MoveNext())
-					{ // the current batch is exhausted, move to the next
-						m_batch.Dispose();
-						m_batch = null;
-						m_sourceCurrent = default(TSource);
-						continue;
-					}
-
-					return Publish(m_resultSelector(m_sourceCurrent, m_batch.Current));
-				}
-
-				return Cancelled(cancellationToken);
-			}
-
-			protected override void Dispose(bool disposing)
-			{
-				try
-				{
-					if (disposing && m_batch != null)
-					{
-						m_batch.Dispose();
-					}
-				}
-				finally
-				{
-					m_batch = null;
-					m_collectionSelector = null;
-					m_resultSelector = null;
-					m_sourceCurrent = default(TSource);
-				}
-			}
-		
-		}
-
-		/// <summary>Iterates over an async sequence of items</summary>
-		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
-		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		internal sealed class SelectManyAsyncIterator<TSource, TCollection, TResult> : AsyncIterator<TSource, TResult>
-		{
-			private Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> m_collectionSelector;
-			private Func<TSource, TCollection, TResult> m_resultSelector;
-			private TSource m_sourceCurrent;
-			private IEnumerator<TCollection> m_batch;
-
-			public SelectManyAsyncIterator(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
-				: base(iterator)
-			{
-				m_collectionSelector = asyncCollectionSelector;
-				m_resultSelector = resultSelector;
-			}
-
-			protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
-			{
-				// if we are in a batch, iterate over it
-				// if not, wait for the next batch
-
-				while (!cancellationToken.IsCancellationRequested)
-				{
-
-					if (m_batch == null)
-					{
-
-						if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-						{ // inner completed
-							return Completed();
+						if (m_collectionSelector != null)
+						{
+							sequence = m_collectionSelector(m_sourceCurrent);
 						}
-
-						if (cancellationToken.IsCancellationRequested) break;
-
-						m_sourceCurrent = m_iterator.Current;
-
-						var sequence = await m_collectionSelector(m_sourceCurrent, cancellationToken).ConfigureAwait(false);
+						else
+						{
+							sequence = await m_asyncCollectionSelector(m_sourceCurrent, cancellationToken).ConfigureAwait(false);
+						}
 						if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
 						m_batch = sequence.GetEnumerator();
@@ -711,11 +1005,11 @@ using System.Threading.Tasks;
 				return Cancelled(cancellationToken);
 			}
 
-			protected override void Dispose(bool disposing)
+			protected override void Cleanup()
 			{
 				try
 				{
-					if (disposing && m_batch != null)
+					if (m_batch != null)
 					{
 						m_batch.Dispose();
 					}
@@ -723,9 +1017,7 @@ using System.Threading.Tasks;
 				finally
 				{
 					m_batch = null;
-					m_collectionSelector = null;
-					m_resultSelector = null;
-					m_sourceCurrent = default(TSource);
+					base.Cleanup();
 				}
 			}
 
@@ -860,138 +1152,72 @@ using System.Threading.Tasks;
 
 		#endregion
 
-		#region Map...
+		#region Flatten...
 
-		/// <summary>Create a new async iterator over an inner async iterator, that will transform each item as they arrive</summary>
-		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
-		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		/// <param name="iterator">Inner iterator to use</param>
-		/// <param name="transform">Lambda called when a new inner element arrives that returns a transform item</param>
-		/// <param name="onComplete">Called when the inner iterator has completed</param>
-		/// <returns>New async iterator</returns>
-		internal static WhereSelectorIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, bool> filter, Func<TSource, TResult> transform)
+		internal static SelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
 		{
-			if (iterator == null) throw new ArgumentNullException("iterator");
-			if (transform == null) throw new ArgumentNullException("transform");
-
-			return new WhereSelectorIterator<TSource, TResult>(iterator, filter, transform);
+			return new SelectManyAsyncIterator<TSource, TResult>(source, selector, null);
 		}
 
-		/// <summary>Create a new async iterator over an inner async iterator, that will transform each item as they arrive</summary>
-		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
-		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		/// <param name="iterator">Inner iterator to use</param>
-		/// <param name="transform">Async lambda called when a new inner element arrives that returns a Task that will return the transform item</param>
-		/// <param name="onComplete">Called when the inner iterator has completed (optionnal)</param>
-		/// <returns>New async iterator</returns>
-		internal static WhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, bool> filter, Func<TSource, CancellationToken, Task<TResult>> transform)
+		internal static SelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
 		{
-			if (iterator == null) throw new ArgumentNullException("iterator");
-			if (transform == null) throw new ArgumentNullException("transform");
+			return new SelectManyAsyncIterator<TSource, TResult>(source, null, asyncSelector);
+		}
 
-			return new WhereSelectAsyncIterator<TSource, TResult>(iterator, filter, transform);
+		internal static SelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		{
+			return new SelectManyAsyncIterator<TSource, TCollection, TResult>(
+				source,
+				collectionSelector,
+				null,
+				resultSelector
+			);
+		}
+
+		internal static SelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		{
+			return new SelectManyAsyncIterator<TSource, TCollection, TResult>(
+				source,
+				null,
+				asyncCollectionSelector,
+				resultSelector
+			);
 		}
 
 		#endregion
 
-		#region Flatten...
+		#region Map...
 
-		/// <summary>Create a new async iterator over an inner async iterator, that will transform each item as they arrive</summary>
-		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
-		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		/// <param name="iterator">Inner iterator to use</param>
-		/// <param name="selector">Lambda called when a new inner element arrives that returns a transform item</param>
-		/// <param name="onComplete">Called when the inner iterator has completed</param>
-		/// <returns>New async iterator</returns>
-		internal static SelectManyIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, IEnumerable<TResult>> selector)
+		internal static WhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, TResult> selector, int? limit = null)
 		{
-			if (iterator == null) throw new ArgumentNullException("iterator");
-			if (selector == null) throw new ArgumentNullException("selector");
-
-			return new SelectManyIterator<TSource, TResult>(iterator, selector);
+			return new WhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: selector, asyncTransform: null, limit: limit);
 		}
-
-		/// <summary>Create a new async iterator over an inner async iterator, that will transform each item as they arrive</summary>
-		/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
-		/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-		/// <param name="iterator">Inner iterator to use</param>
-		/// <param name="selector">Lambda called when a new inner element arrives that returns a transform item</param>
-		/// <param name="onComplete">Called when the inner iterator has completed</param>
-		/// <returns>New async iterator</returns>
-		internal static SelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
+		internal static WhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, int? limit = null)
 		{
-			if (iterator == null) throw new ArgumentNullException("iterator");
-			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
-
-			return new SelectManyAsyncIterator<TSource, TResult>(iterator, asyncSelector);
-		}
-
-		/// <summary>Create a new async iterator over an inner async iterator, that will transform each item as they arrive</summary>
-		/// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
-		/// <typeparam name="TCollection">The type of the intermediate elements collected by <paramref name="collectionSelector"/>.</typeparam>
-		/// <typeparam name="TResult">The type of the elements of the resulting async sequence.</typeparam>
-		/// <param name="iterator">Inner iterator to use</param>
-		/// <param name="collectionSelector">A transform function to apply to each element of the input async sequence.</param>
-		/// <param name="resultSelector">A transform function to apply to each element of the intermediate sequence.</param>
-		/// <param name="onComplete">Called when the inner iterator has completed</param>
-		/// <returns>New async iterator</returns>
-		internal static SelectManyIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
-		{
-			if (iterator == null) throw new ArgumentNullException("iterator");
-			if (collectionSelector == null) throw new ArgumentNullException("collectionSelector");
-			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
-
-			return new SelectManyIterator<TSource, TCollection, TResult>(iterator, collectionSelector, resultSelector);
-		}
-
-		/// <summary>Create a new async iterator over an inner async iterator, that will transform each item as they arrive</summary>
-		/// <typeparam name="TSource">The type of the elements of <paramref name="source"/>.</typeparam>
-		/// <typeparam name="TCollection">The type of the intermediate elements collected by <paramref name="asyncCollectionSelector"/>.</typeparam>
-		/// <typeparam name="TResult">The type of the elements of the resulting async sequence.</typeparam>
-		/// <param name="iterator">Inner iterator to use</param>
-		/// <param name="asyncCollectionSelector">A transform function to apply to each element of the input async sequence.</param>
-		/// <param name="resultSelector">A transform function to apply to each element of the intermediate sequence.</param>
-		/// <param name="onComplete">Called when the inner iterator has completed</param>
-		/// <returns>New async iterator</returns>
-		internal static SelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
-		{
-			if (iterator == null) throw new ArgumentNullException("iterator");
-			if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
-			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
-
-			return new SelectManyAsyncIterator<TSource, TCollection, TResult>(iterator, asyncCollectionSelector, resultSelector);
+			return new WhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: null, asyncTransform: asyncSelector, limit: limit);
 		}
 
 		#endregion
 
 		#region Filter...
 
-		/// <summary>Create a new async iterator over an async iterator, that will filter items as they arrive</summary>
-		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
-		/// <param name="iterator">Inner iterator to use</param>
-		/// <param name="predicate">Predicate called on each element. If true the element will be published on the outer async sequence. Otherwise it will be discarded.</param>
-		/// <param name="onComplete">Called when the inner iterator has completed (optionnal)</param>
-		/// <returns>New async iterator</returns>
-		internal static WhereIterator<TSource> Filter<TSource>(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, bool> predicate)
+		internal static WhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> predicate)
 		{
-			if (iterator == null) throw new ArgumentNullException("iterator");
-			if (predicate == null) throw new ArgumentNullException("predicate");
-
-			return new WhereIterator<TSource>(iterator, predicate);
+			return new WhereAsyncIterator<TResult>(source, predicate, null);
 		}
 
-		/// <summary>Create a new async iterator over an async iterator, that will filter items as they arrive</summary>
-		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
-		/// <param name="iterator">Inner iterator to use</param>
-		/// <param name="asyncPredicate">Predicate called on each element. If true the element will be published on the outer async sequence. Otherwise it will be discarded.</param>
-		/// <param name="onComplete">Called when the inner iterator has completed (optionnal)</param>
-		/// <returns>New async iterator</returns>
-		internal static WhereAsyncIterator<TSource> Filter<TSource>(IFdbAsyncEnumerator<TSource> iterator, Func<TSource, CancellationToken, Task<bool>> asyncPredicate)
+		internal static WhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
-			if (iterator == null) throw new ArgumentNullException("iterator");
-			if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
+			return new WhereAsyncIterator<TResult>(source, null, asyncPredicate);
+		}
 
-			return new WhereAsyncIterator<TSource>(iterator, asyncPredicate);
+		#endregion
+
+		#region Limit...
+
+		internal static WhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, int limit)
+		{
+			return new WhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: limit);
 		}
 
 		#endregion
