@@ -44,10 +44,10 @@ namespace FoundationDB.Client.Utils
 		public static readonly Task CompletedTask = Task.Delay(0);
 
 		/// <summary>Already completed task that returns false</summary>
-		public static readonly Task FalseTask = Task.FromResult<bool>(false);
+		public static readonly Task<bool> FalseTask = Task.FromResult<bool>(false);
 
 		/// <summary>Already completed task that returns true</summary>
-		public static readonly Task TrueTask = Task.FromResult<bool>(true);
+		public static readonly Task<bool> TrueTask = Task.FromResult<bool>(true);
 
 		/// <summary>Returns a cached completed task that returns the default value of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
