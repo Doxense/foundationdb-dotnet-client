@@ -453,7 +453,7 @@ namespace FoundationDB.Client
 			return !key.IsNullOrEmpty					// has some data in it
 				&& key.Count <= Fdb.MaxKeySize			// not too big
 				&& m_namespace.Contains(key)			// not outside the namespace
-				&& m_restrictedKeySpace.Test(key) == 0; // not outside the restricted key space
+				&& m_restrictedKeySpace.Test(key, endIncluded: true) == 0; // not outside the restricted key space
 		}
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -496,7 +496,7 @@ namespace FoundationDB.Client
 			}
 
 			// test if the key is inside the restrictied key space
-			int x = m_restrictedKeySpace.Test(key); // returns -1/+1 if outside, 0 if inside
+			int x = m_restrictedKeySpace.Test(key, endIncluded: true); // returns -1/+1 if outside, 0 if inside
 			if (x != 0)
 			{
 				return Fdb.Errors.InvalidKeyOutsideDatabaseRestrictedKeySpace(this, key, greaterThan: x > 0);

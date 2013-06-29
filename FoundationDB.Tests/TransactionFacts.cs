@@ -418,31 +418,52 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				var space = FdbTuple.Create(123);
+				var space = db.Partition(123);
 
-				db.RestrictKeySpace(space);
+				db.RestrictKeySpace(space.Tuple);
+			
+				Assert.That(db.ValidateKey(space.Pack("hello")), Is.Null, "key inside range should be ok");
 
+				// bounds should be allowed
+				var range = space.ToRange();
+				Assert.That(db.ValidateKey(range.Begin), Is.Null, "range + '\\0' should be allowed");
+				Assert.That(db.ValidateKey(range.End), Is.Null, "range + '\\FF' should be allowed");
+
+				// before/after should be denied
+				Assert.That(db.ValidateKey(db.Partition(122).Pack("hello")), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange), "key before the range should be denied");
+				Assert.That(db.ValidateKey(db.Partition(124).Pack("hello")), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange), "key after the range should be denied");
+
+				// the range prefix itself is not allowed
+				Assert.That(db.ValidateKey(space.Tuple.Packed), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange), "Range prefix itself is not allowed");
+
+				// check that methods also respect the key range
 				using (var tr = db.BeginTransaction())
 				{
 					// should allow writing inside the space
-					tr.Set(space.Append("hello"), Slice.Empty);
+					tr.Set(space.Pack("hello"), Slice.Empty);
+					tr.Set(range.Begin, Slice.Empty);
+					tr.Set(range.End, Slice.Empty);
 
 					// should not allow outside of the space
 					Assert.That(
-						Assert.Throws<FdbException>(() => tr.Set(FdbTuple.Create(122), Slice.Empty), "Key is less than minimum allowed"),
+						Assert.Throws<FdbException>(() => tr.Set(db.Namespace.Pack(122), Slice.Empty), "Key is less than minimum allowed"),
 						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
 					);
 					Assert.That(
-						Assert.Throws<FdbException>(() => tr.Set(FdbTuple.Create(123), Slice.Empty), "Key is more than maximum allowed"),
+						Assert.Throws<FdbException>(() => tr.Set(db.Namespace.Pack(124), Slice.Empty), "Key is more than maximum allowed"),
 						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
 					);
 
 					// should not allow the prefix itself
 					Assert.That(
-						Assert.Throws<FdbException>(() => tr.Set(space, Slice.Empty)),
+						Assert.Throws<FdbException>(() => tr.Set(space.Tuple, Slice.Empty)),
 						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
 					);
+
+					// check that the commit does not blow up
+					await tr.CommitAsync();
 				}
+
 			}
 		}
 	}

@@ -82,8 +82,8 @@ namespace FoundationDB.Client
 				Contract.Requires(db != null);
 				return new FdbException(FdbError.KeyOutsideLegalRange,
 					greaterThan
-					? String.Format("Key is outside the allowed key space for this database ({0} > {1})", key.ToString(), db.KeySpace.Begin.ToString())
-					: String.Format("Key is outside the allowed key space for this database ({0} < {1})", key.ToString(), db.KeySpace.End.ToString())
+					? String.Format("Key is outside the allowed key space for this database ({0} > {1})", key.ToString(), db.KeySpace.End.ToString())
+					: String.Format("Key is outside the allowed key space for this database ({0} < {1})", key.ToString(), db.KeySpace.Begin.ToString())
 				);
 			}
 

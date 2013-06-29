@@ -109,15 +109,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Test if <paramref name="key"/> is contained inside the range</summary>
 		/// <param name="key">Key that will be compared with the the range's bounds</param>
+		/// <param name="endIncluded">If true, the End bound is inclusive, otherwise it is exclusive</param>
 		/// <returns>-1 if key is less than the lower bound of the range (<paramref name="key"/> &lt; Begin), +1 if the key is greater or equal to the higher bound of the range (<paramref name="key"/> &gt;= End) or 0 if it is inside the range (Begin &lt;= <paramref name="key"/> &lt; End)</returns>
-		public int Test(Slice key)
+		public int Test(Slice key, bool endIncluded = false)
 		{
 			// note: if the range is empty (Begin = End = Slice.Empty) then it should return 0
 
-			return
-				!this.Begin.IsNullOrEmpty && key.CompareTo(this.Begin) < 0 ? -1 :
-				!this.End.IsNullOrEmpty && key.CompareTo(this.End) <= 0 ? +1 :
-				0;
+			if (!this.Begin.IsNullOrEmpty && key.CompareTo(this.Begin) < 0) return -1;
+			if (!this.End.IsNullOrEmpty && key.CompareTo(this.End) >= (endIncluded ? 1 : 0)) return +1;
+			return 0;
 		}
 	}
 
