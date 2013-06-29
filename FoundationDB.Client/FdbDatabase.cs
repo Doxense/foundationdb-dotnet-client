@@ -374,21 +374,68 @@ namespace FoundationDB.Client
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="value"/></returns>
 		public FdbSubspace Partition<T>(T value)
 		{
-			return this.Namespace.Partition<T>(value);
+			return m_namespace.Partition<T>(value);
 		}
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
 		public FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
 		{
-			return this.Namespace.Partition<T1, T2>(value1, value2);
+			return m_namespace.Partition<T1, T2>(value1, value2);
 		}
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="tuple"/></returns>
 		public FdbSubspace Partition(IFdbTuple tuple)
 		{
-			return this.Namespace.Partition(tuple);
+			return m_namespace.Partition(tuple);
+		}
+
+		public Slice Pack<T>(T key)
+		{
+			return m_namespace.Pack<T>(key);
+		}
+
+		public Slice Pack<T1, T2>(T1 key1, T2 key2)
+		{
+			return m_namespace.Pack<T1, T2>(key1, key2);
+		}
+
+		/// <summary>Unpack a key using the current namespace of the database</summary>
+		/// <param name="key">Key that should fit inside the current namespace of the database</param>
+		/// <returns></returns>
+		public IFdbTuple Unpack(Slice key)
+		{
+			return m_namespace.Unpack(key);
+		}
+
+		/// <summary>Add the global namespace prefix to a relative key</summary>
+		/// <param name="keyRelative">Key that is relative to the global namespace</param>
+		/// <returns>Key that starts with the global namespace prefix</returns>
+		/// <example>
+		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
+		/// db.Concat('&lt;02&gt;Bar&lt;00&gt;') => '&lt;02&gt;Foo&lt;00&gt;&gt;&lt;02&gt;Bar&lt;00&gt;'
+		/// db.Concat(Slice.Empty) => '&lt;02&gt;Foo&lt;00&gt;'
+		/// db.Concat(Slice.Nil) => Slice.Nil
+		/// </example>
+		public Slice Concat(Slice keyRelative)
+		{
+			return m_namespace.Concat(keyRelative);
+		}
+
+		/// <summary>Remove the global namespace prefix of this database form the key, and return the rest of the bytes, or Slice.Nil is the key is outside the namespace</summary>
+		/// <param name="keyAbsolute">Binary key that starts with the namespace prefix, followed by some bytes</param>
+		/// <returns>Binary key that contain only the bytes after the namespace prefix</returns>
+		/// <example>
+		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
+		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;&lt;02&gt;Bar&lt;00&gt;') => '&gt;&lt;02&gt;Bar&lt;00&gt;'
+		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;') => Slice.Empty
+		/// db.Extract('&lt;02&gt;TopSecret&lt;00&gt;&lt;02&gt;Password&lt;00&gt;') => Slice.Nil
+		/// db.Extract(Slice.Nil) => Slice.Nil
+		/// </example>
+		public Slice Extract(Slice keyAbsolute)
+		{
+			return m_namespace.Extract(keyAbsolute);
 		}
 
 		/// <summary>Restrict access to only the keys contained inside the specified range</summary>
@@ -414,10 +461,13 @@ namespace FoundationDB.Client
 			m_restrictedKeySpace = new FdbKeyRange(begin.Memoize(), end.Memoize());
 		}
 
-		/// <summary>Restrict access to only the keys contained inside the specified bounds</summary>
+		/// <summary>Restrict access to only the keys contained inside the specified bounds.</summary>
 		/// <param name="beginInclusive">If non-null, only allow keys that are bigger than or equal to this key</param>
 		/// <param name="endInclusive">If non-null, only allow keys that are less than or equal to this key</param>
-		/// <remarks>This is "opt-in" security, and should not be relied on to ensure safety of the database. It should only be seen as a safety net to defend yourself from logical bugs in your code while dealing with multi-tenancy issues</remarks>
+		/// <remarks>
+		/// The keys should fit inside the global namespace of the current db. If they don't, they will be clipped to fit inside the range.
+		/// IMPORTANT: This is "opt-in" security, and should not be relied on to ensure safety of the database. It should only be seen as a safety net to defend yourself from logical bugs in your code while dealing with multi-tenancy issues
+		/// </remarks>
 		public void RestrictKeySpace(Slice beginInclusive, Slice endInclusive)
 		{
 			RestrictKeySpace(new FdbKeyRange(beginInclusive, endInclusive));

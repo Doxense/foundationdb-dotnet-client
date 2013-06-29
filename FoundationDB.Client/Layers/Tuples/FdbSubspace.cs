@@ -260,6 +260,43 @@ namespace FoundationDB.Layers.Tuples
 
 		#endregion
 
+		#region Slice Manipulation...
+
+		/// <summary>Append a Slice to the tuple and returned the combined packed value</summary>
+		/// <param name="suffix">Binary suffix that will be appended</param>
+		/// <returns>New slice that contains the tuple followed by the binary suffix</returns>
+		/// <remarks>Warning: this can created invalid tuples that will not be parsable! Only append "valid" tuple binary data or parse the keys manually</remarks>
+		public Slice Concat(Slice suffix)
+		{
+			if (suffix.IsNullOrEmpty)
+			{
+				if (!suffix.HasValue) return Slice.Nil;
+
+				// note: we do not want to expose the packed bytes in case the suffix is empty, so we will always return a copy !
+				return this.Tuple.Packed.Memoize();
+			}
+
+			return this.Tuple.Packed.Concat(suffix);
+		}
+
+		/// <summary>Extract the namespace prefix from a binary key, and return the rest of the key, or Slice.Nil if the key does not fit inside the namespace</summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
+		public Slice Extract(Slice key)
+		{
+			if (!key.HasValue) return Slice.Nil;
+
+			if (!key.StartsWith(this.Tuple.Packed))
+			{
+				// or should we throw ?
+				return Slice.Nil;
+			}
+
+			return key.Substring(this.Tuple.PackedSize);
+		}
+
+		#endregion
+
 		public FdbKeyRange ToRange()
 		{
 			return this.Tuple.ToRange();

@@ -188,12 +188,14 @@ namespace FoundationDB.Client.Tests
 				long writeVersion;
 				long readVersion;
 
+				var location = db.Partition("test");
+
 				// write a bunch of keys
 				using (var tr = db.BeginTransaction())
 				{
-					tr.Set(FdbKey.Ascii("test.hello"), Slice.FromString("World!"));
-					tr.Set(FdbKey.Ascii("test.timestamp"), Slice.FromInt64(ticks));
-					tr.Set(FdbKey.Ascii("test.blob"), Slice.Create(new byte[] { 42, 123, 7 }));
+					tr.Set(location.Pack("hello"), Slice.FromString("World!"));
+					tr.Set(location.Pack("timestamp"), Slice.FromInt64(ticks));
+					tr.Set(location.Pack("blob"), Slice.Create(new byte[] { 42, 123, 7 }));
 
 					await tr.CommitAsync();
 
@@ -209,15 +211,15 @@ namespace FoundationDB.Client.Tests
 					readVersion = await tr.GetReadVersionAsync();
 					Assert.That(readVersion, Is.GreaterThan(0), "Read version should be > 0");
 
-					bytes = await tr.GetAsync(FdbKey.Ascii("test.hello")); // => 1007 "past_version"
+					bytes = await tr.GetAsync(location.Pack("hello")); // => 1007 "past_version"
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(Encoding.UTF8.GetString(bytes.Array, bytes.Offset, bytes.Count), Is.EqualTo("World!"));
 
-					bytes = await tr.GetAsync(FdbKey.Ascii("test.timestamp"));
+					bytes = await tr.GetAsync(location.Pack("timestamp"));
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(bytes.ToInt64(), Is.EqualTo(ticks));
 
-					bytes = await tr.GetAsync(FdbKey.Ascii("test.blob"));
+					bytes = await tr.GetAsync(location.Pack("blob"));
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(bytes.Array, Is.EqualTo(new byte[] { 42, 123, 7 }));
 				}
@@ -236,13 +238,14 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
+				var location = db.Partition("test");
 
 				long commitedVersion;
 
 				// create first version
 				using (var tr1 = db.BeginTransaction())
 				{
-					tr1.Set(FdbKey.Ascii("test.concurrent"), Slice.Create(new byte[] { 1 }));
+					tr1.Set(location.Pack("concurrent"), Slice.Create(new byte[] { 1 }));
 					await tr1.CommitAsync();
 
 					// get this version
@@ -252,7 +255,7 @@ namespace FoundationDB.Client.Tests
 				// mutate in another transaction
 				using (var tr2 = db.BeginTransaction())
 				{
-					tr2.Set(FdbKey.Ascii("test.concurrent"), Slice.Create(new byte[] { 2 }));
+					tr2.Set(location.Pack("concurrent"), Slice.Create(new byte[] { 2 }));
 					await tr2.CommitAsync();
 				}
 
@@ -264,7 +267,7 @@ namespace FoundationDB.Client.Tests
 					long ver = await tr3.GetReadVersionAsync();
 					Assert.That(ver, Is.EqualTo(commitedVersion), "GetReadVersion should return the same value as SetReadVersion!");
 
-					var bytes = await tr3.GetAsync(FdbKey.Ascii("test.concurrent"));
+					var bytes = await tr3.GetAsync(location.Pack("concurrent"));
 
 					Assert.That(bytes, Is.Not.Null);
 					Assert.That(bytes, Is.EqualTo(new byte[] { 1 }), "Should have seen the first version!");
@@ -285,11 +288,12 @@ namespace FoundationDB.Client.Tests
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				// put test values in a namespace
-				var tuple = FdbTuple.Create("GetRangeTest");
+				var location = db.Partition("Range");
+
 				// cleanup everything
 				using (var tr = db.BeginTransaction())
 				{
-					tr.ClearRange(tuple);
+					tr.ClearRange(location);
 					await tr.CommitAsync();
 				}
 
@@ -301,7 +305,7 @@ namespace FoundationDB.Client.Tests
 				{ 
 					foreach (int i in Enumerable.Range(0, N))
 					{
-						tr.Set(tuple.Append(i), Slice.FromInt32(i));
+						tr.Set(location.Pack(i), Slice.FromInt32(i));
 					}
 
 					await tr.CommitAsync();
@@ -314,7 +318,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginTransaction())
 				{
-					var query = tr.GetRange(tuple.Append(0), tuple.Append(N));
+					var query = tr.GetRange(location.Pack(0), location.Pack(N));
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query, Is.InstanceOf<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>());
 
@@ -333,11 +337,11 @@ namespace FoundationDB.Client.Tests
 						var kvp = items[i];
 
 						// key should be a tuple in the correct order
-						var key = FdbTuple.Unpack(kvp.Key);
+						var key = location.Unpack(kvp.Key);
 
 						if (i % 128 == 0) Console.WriteLine("... " + key.ToString() + " = " + kvp.Value.ToString());
 
-						Assert.That(key.Count, Is.EqualTo(2));
+						Assert.That(key.Count, Is.EqualTo(1));
 						Assert.That(key.Get<int>(-1), Is.EqualTo(i));
 
 						// value should be a guid
@@ -347,10 +351,10 @@ namespace FoundationDB.Client.Tests
 
 				// GetRange by batch
 
-				using(var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction())
 				{
 					var query = tr
-						.GetRange(tuple.Append(0), tuple.Append(N))
+						.GetRange(location.Pack(0), location.Pack(N))
 						.Batched();
 
 					Assert.That(query, Is.Not.Null);

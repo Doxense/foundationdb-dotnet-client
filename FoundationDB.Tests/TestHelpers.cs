@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Tests
 {
 	using FoundationDB.Layers.Tuples;
+	using NUnit.Framework;
 	using System;
 	using System.Threading.Tasks;
 
@@ -38,16 +39,19 @@ namespace FoundationDB.Client.Tests
 
 		public const string TestClusterFile = null; // null will your defaut fdb.cluster file
 		public const string TestDbName = "DB"; // note cannot change this as of Beta2
+		public const string TestPartition = "T"; // set it to some string to restrict the tests to a partition of the database, or null to overwrite everything
 
 		/// <summary>Connect to the local test database</summary>
 		/// <returns></returns>
 		public static Task<FdbDatabase> OpenTestDatabaseAsync()
 		{
-			return Fdb.OpenDatabaseAsync(TestClusterFile, TestDbName);
+			return Fdb.OpenDatabaseAsync(TestClusterFile, TestDbName, string.IsNullOrEmpty(TestPartition) ? FdbSubspace.Empty : new FdbSubspace(TestPartition));
 		}
 
 		public static async Task DumpSubspace(FdbDatabase db, FdbSubspace subspace)
 		{
+			Assert.That(subspace.Tuple.StartsWith(db.Namespace.Tuple), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
+
 			using (var tr = db.BeginTransaction())
 			{
 				Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");

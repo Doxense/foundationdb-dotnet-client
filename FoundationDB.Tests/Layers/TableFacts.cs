@@ -46,12 +46,12 @@ namespace FoundationDB.Layers.Tables.Tests
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 
-				var subspace = new FdbSubspace(FdbTuple.Create("TestTable"));
+				var location = db.Partition("Tables");
 
 				// clear previous values
-				await TestHelpers.DeleteSubspace(db, subspace);
+				await TestHelpers.DeleteSubspace(db, location);
 
-				var table = new FdbTable(subspace);
+				var table = new FdbTable(location.Partition("Foos"));
 
 				string secret ="world:" + Guid.NewGuid().ToString();
 
@@ -72,7 +72,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 				// read value back
@@ -86,7 +86,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				// directly read the value, behind the table's back
 				using (var tr = db.BeginTransaction())
 				{
-					var value = await tr.GetAsync(subspace.Tuple.Append("hello"));
+					var value = await tr.GetAsync(location.Pack("Foos", "hello"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToString(), Is.EqualTo(secret));
 				}
@@ -99,7 +99,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 				// verifiy that it is gone
@@ -109,7 +109,7 @@ namespace FoundationDB.Layers.Tables.Tests
 					Assert.That(value, Is.EqualTo(Slice.Nil));
 
 					// also check directly
-					value = await tr.GetAsync(subspace.Tuple.Append("hello"));
+					value = await tr.GetAsync(location.Pack("Foos", "hello"));
 					Assert.That(value, Is.EqualTo(Slice.Nil));
 				}
 
@@ -122,12 +122,12 @@ namespace FoundationDB.Layers.Tables.Tests
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				var subspace = new FdbSubspace(FdbTuple.Create("TestTable"));
+				var location = db.Partition("Tables");
 
 				// clear previous values
-				await TestHelpers.DeleteSubspace(db, subspace);
+				await TestHelpers.DeleteSubspace(db, location);
 
-				var table = new FdbTable(subspace);
+				var table = new FdbTable(location.Partition("Foos"));
 
 				// write a bunch of keys
 				using (var tr = db.BeginTransaction())
@@ -139,7 +139,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 				// read them back

@@ -46,8 +46,8 @@ namespace FoundationDB.Layers.Tables.Tests
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				var stringSpace = new FdbSubspace("Strings");
-				var dataSpace = new FdbSubspace("Data");
+				var stringSpace = db.Partition("Strings");
+				var dataSpace = db.Partition("Data");
 
 				// clear all previous data
 				await TestHelpers.DeleteSubspace(db, stringSpace);

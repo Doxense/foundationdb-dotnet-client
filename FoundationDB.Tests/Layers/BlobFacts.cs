@@ -38,17 +38,18 @@ namespace FoundationDB.Layers.Blobs.Tests
 	[TestFixture]
 	public class BlobFacts
 	{
-		private readonly FdbSubspace Subspace = new FdbSubspace(FdbTuple.Create("BlobsFromOuterSpace"));
 
 		[Test]
 		public async Task Test_FdbBlob_NotFound_Blob_Is_Empty()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, Subspace);
+				var location = db.Partition("BlobsFromOuterSpace");
 
-				var blob = new FdbBlob(Subspace.Create("Empty"));
+				// clear previous values
+				await TestHelpers.DeleteSubspace(db, location);
+
+				var blob = new FdbBlob(location.Create("Empty"));
 
 				using (var tr = db.BeginTransaction())
 				{
@@ -64,10 +65,12 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, Subspace);
+				var location = db.Partition("BlobsFromOuterSpace");
 
-				var blob = new FdbBlob(Subspace.Create("BobTheBlob"));
+				// clear previous values
+				await TestHelpers.DeleteSubspace(db, location);
+
+				var blob = new FdbBlob(location.Create("BobTheBlob"));
 
 				using (var tr = db.BeginTransaction())
 				{
@@ -79,7 +82,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, Subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 				using(var tr = db.BeginTransaction())
@@ -99,10 +102,12 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, Subspace);
+				var location = db.Partition("BlobsFromOuterSpace");
 
-				var blob = new FdbBlob(Subspace.Create("BigBlob"));
+				// clear previous values
+				await TestHelpers.DeleteSubspace(db, location);
+
+				var blob = new FdbBlob(location.Create("BigBlob"));
 
 				var data = new byte[100 * 1000];
 				for (int i = 0; i < data.Length; i++) data[i] = (byte)i;
@@ -139,10 +144,12 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, Subspace);
+				var location = db.Partition("BlobsFromOuterSpace");
 
-				var blob = new FdbBlob(Subspace.Create("Blob"));
+				// clear previous values
+				await TestHelpers.DeleteSubspace(db, location);
+
+				var blob = new FdbBlob(location.Create("Blob"));
 
 				DateTime created = DateTime.UtcNow;
 				using (var tr = db.BeginTransaction())
@@ -153,7 +160,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, Subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 				using (var tr = db.BeginTransaction())
 				{
@@ -171,7 +178,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, Subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 				using (var tr = db.BeginTransaction())
 				{

@@ -47,15 +47,15 @@ namespace FoundationDB.Layers.Tables.Tests
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 
-				var subspace = new FdbSubspace(FdbTuple.Create("TblVerSeq"));
+				var location = db.Partition("Versions");
 
 				// clear previous values
-				await TestHelpers.DeleteSubspace(db, subspace);
+				await TestHelpers.DeleteSubspace(db, location);
 
 				var table = new FdbVersionedTable<int, string>(
 					"Foos",
-					db, 
-					subspace,
+					db,
+					location.Partition("Foos"),
 					FdbTupleKeyFormatter<int>.Default,
 					new FdbSliceSerializer<string>(
 						(str) => Slice.FromString(str),
@@ -74,7 +74,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 				// read that version
@@ -100,7 +100,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 				// read that new version
@@ -132,7 +132,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 				// read back
@@ -164,15 +164,15 @@ namespace FoundationDB.Layers.Tables.Tests
 
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				var subspace = new FdbSubspace(FdbTuple.Create("TblVerTs"));
+				var location = db.Partition("Versions");
 
 				// clear previous values
-				await TestHelpers.DeleteSubspace(db, subspace);
+				await TestHelpers.DeleteSubspace(db, location);
 
 				var table = new FdbVersionedTable<Guid, string>(
 					"Bars",
 					db,
-					subspace,
+					location.Partition("Bars"),
 					FdbTupleKeyFormatter<Guid>.Default,
 					new FdbSliceSerializer<string>(
 						(str) => Slice.FromString(str),
@@ -208,7 +208,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, subspace);
+				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 

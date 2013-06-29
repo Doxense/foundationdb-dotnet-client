@@ -38,17 +38,17 @@ namespace FoundationDB.Layers.Counters.Tests
 	[TestFixture]
 	public class CounterFacts
 	{
-		private readonly FdbSubspace Subspace = new FdbSubspace(FdbTuple.Create("TestBigCounter"));
-
 		[Test]
 		public async Task Test_FdbCounter_Can_Increment_And_Get_Total()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, Subspace);
+				var location = db.Partition("Counters");
 
-				var c = new FdbCounter(db, Subspace);
+				// clear previous values
+				await TestHelpers.DeleteSubspace(db, location);
+
+				var c = new FdbCounter(db, location.Create("TestBigCounter"));
 
 				for (int i = 0; i < 500; i++)
 				{
@@ -57,12 +57,14 @@ namespace FoundationDB.Layers.Counters.Tests
 					if (i % 50 == 0)
 					{
 						Console.WriteLine("=== " + i);
-						await TestHelpers.DumpSubspace(db, Subspace);
+						await TestHelpers.DumpSubspace(db, location);
 					}
 				}
 
 				Console.WriteLine("=== DONE");
-				await TestHelpers.DumpSubspace(db, Subspace);
+#if DEBUG
+				await TestHelpers.DumpSubspace(db, location);
+#endif
 
 				using (var tr = db.BeginTransaction())
 				{
