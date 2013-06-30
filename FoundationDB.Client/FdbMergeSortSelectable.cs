@@ -40,10 +40,10 @@ namespace FoundationDB.Client
 	public static class FdbMergeSortExtensions
 	{
 
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<Slice, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			trans.EnsuresCanReadOrWrite();
-			return new FdbMergeSortSelectable<TKey, KeyValuePair<Slice, Slice>>(
+			return new FdbMergeSortSelectable<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
 				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
 				default(int?),
 				keySelector,
@@ -52,10 +52,10 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static IFdbAsyncEnumerable<TResult> MergeSort<TKey, TResult>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<Slice, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> MergeSort<TKey, TResult>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			trans.EnsuresCanReadOrWrite();
-			return new FdbMergeSortSelectable<TKey, TResult>(
+			return new FdbMergeSortSelectable<KeyValuePair<Slice, Slice>, TKey, TResult>(
 				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
 				default(int?),
 				keySelector,
@@ -64,10 +64,10 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<Slice, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			trans.EnsuresCanReadOrWrite();
-			return new FdbIntersectIterator<TKey, KeyValuePair<Slice, Slice>>(
+			return new FdbIntersectIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
 				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
 				default(int?),
 				keySelector,
@@ -76,36 +76,58 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<Slice, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			trans.EnsuresCanReadOrWrite();
-			return new FdbIntersectIterator<TKey, TResult>(
+			return new FdbIntersectIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
 				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
 				default(int?),
 				keySelector,
 				resultSelector,
 				keyComparer
+			);
+		}
+
+		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(this IFdbAsyncEnumerable<TResult> first, IFdbAsyncEnumerable<TResult> second, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		{
+			return new FdbIntersectIterator<TResult, TKey, TResult>(
+				new[] { first, second },
+				null,
+				keySelector,
+				TaskHelpers.Cache<TResult>.Identity,
+				keyComparer
+			);
+		}
+
+		public static IFdbAsyncEnumerable<TResult> Intersect<TResult>(this IFdbAsyncEnumerable<TResult> first, IFdbAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
+		{
+			return new FdbIntersectIterator<TResult, TResult, TResult>(
+				new [] { first, second },
+				null,
+				TaskHelpers.Cache<TResult>.Identity,
+				TaskHelpers.Cache<TResult>.Identity,
+				comparer
 			);
 		}
 
 	}
 
-	internal class FdbMergeSortSelectable<TKey, TResult> : FdbQueryMergeIterator<TKey, TResult>
+	internal class FdbMergeSortSelectable<TSource, TKey, TResult> : FdbQueryMergeIterator<TSource, TKey, TResult>
 	{
 
-		public FdbMergeSortSelectable(IEnumerable<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>> sources, int? limit, Func<Slice, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> comparer)
+		public FdbMergeSortSelectable(IEnumerable<IFdbAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 			: base(sources, limit, keySelector, resultSelector, comparer)
 		{ }
 
 		protected override FdbAsyncEnumerable.AsyncIterator<TResult> Clone()
 		{
-			return new FdbMergeSortSelectable<TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
+			return new FdbMergeSortSelectable<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
 		}
 
-		protected override bool FindNext(CancellationToken ct, out int index, out KeyValuePair<Slice, Slice> current)
+		protected override bool FindNext(CancellationToken ct, out int index, out TSource current)
 		{
 			index = -1;
-			current = default(KeyValuePair<Slice, Slice>);
+			current = default(TSource);
 			TKey min = default(TKey);
 
 			for (int i = 0; i < m_iterators.Length; i++)
@@ -135,7 +157,7 @@ namespace FoundationDB.Client
 		/// <summary>Apply a transformation on the results of the merge sort</summary>
 		public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
-			return new FdbMergeSortSelectable<TKey, TNew>(
+			return new FdbMergeSortSelectable<TSource, TKey, TNew>(
 				m_sources,
 				m_limit,
 				m_keySelector,
@@ -153,7 +175,7 @@ namespace FoundationDB.Client
 
 			if (m_limit != null && m_limit < limit) return this;
 
-			return new FdbMergeSortSelectable<TKey, TResult>(
+			return new FdbMergeSortSelectable<TSource, TKey, TResult>(
 				m_sources,
 				limit,
 				m_keySelector,

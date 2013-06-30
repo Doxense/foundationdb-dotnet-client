@@ -40,23 +40,23 @@ namespace FoundationDB.Client
 	/// <summary>Returns only the values for the keys that are in all the sub queries</summary>
 	/// <typeparam name="TKey"></typeparam>
 	/// <typeparam name="TResult"></typeparam>
-	internal class FdbIntersectIterator<TKey, TResult> : FdbQueryMergeIterator<TKey, TResult>
+	internal class FdbIntersectIterator<TSource, TKey, TResult> : FdbQueryMergeIterator<TSource, TKey, TResult>
 	{
-		public FdbIntersectIterator(IEnumerable<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>> sources, int? limit, Func<Slice, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> comparer)
+		public FdbIntersectIterator(IEnumerable<IFdbAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 			: base(sources, limit, keySelector, resultSelector, comparer)
 		{ }
 
 		protected override FdbAsyncEnumerable.AsyncIterator<TResult> Clone()
 		{
-			return new FdbMergeSortSelectable<TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
+			return new FdbMergeSortSelectable<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
 		}
 
-		protected override bool FindNext(CancellationToken ct, out int index, out KeyValuePair<Slice, Slice> current)
+		protected override bool FindNext(CancellationToken ct, out int index, out TSource current)
 		{
 			//Console.WriteLine("FindNext called");
 
 			index = -1;
-			current = default(KeyValuePair<Slice, Slice>);
+			current = default(TSource);
 
 			// we only returns a value if all are equal
 			// if not, find the current max, and advance all iterators that are lower
@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 		/// <summary>Apply a transformation on the results of the intersection</summary>
 		public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
-			return new FdbIntersectIterator<TKey, TNew>(
+			return new FdbIntersectIterator<TSource, TKey, TNew>(
 				m_sources,
 				m_limit,
 				m_keySelector,
@@ -146,7 +146,7 @@ namespace FoundationDB.Client
 
 			if (m_limit != null && m_limit < limit) return this;
 
-			return new FdbIntersectIterator<TKey, TResult>(
+			return new FdbIntersectIterator<TSource, TKey, TResult>(
 				m_sources,
 				limit,
 				m_keySelector,

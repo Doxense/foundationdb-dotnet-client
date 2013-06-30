@@ -232,11 +232,11 @@ namespace FoundationDB.Client.Tests
 				{
 					var merge = tr.MergeSort(
 						lists.Select(list => list.Tuple.ToSelectorPair()),
-						key => location.Unpack(key).Get<int>(-1)
+						kvp => location.Unpack(kvp.Key).Get<int>(-1)
 					);
 
 					Assert.That(merge, Is.Not.Null);
-					Assert.That(merge, Is.InstanceOf<FdbMergeSortSelectable<int, KeyValuePair<Slice, Slice>>>());
+					Assert.That(merge, Is.InstanceOf<FdbMergeSortSelectable<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
 
 					var results = await merge.ToListAsync();
 					Assert.That(results, Is.Not.Null);
@@ -311,11 +311,11 @@ namespace FoundationDB.Client.Tests
 				{
 					var merge = tr.Intersect(
 						lists.Select(list => list.Tuple.ToSelectorPair()),
-						key => location.Unpack(key).Get<int>(-1)
+						kvp => location.Unpack(kvp.Key).Get<int>(-1)
 					);
 
 					Assert.That(merge, Is.Not.Null);
-					Assert.That(merge, Is.InstanceOf<FdbIntersectIterator<int, KeyValuePair<Slice, Slice>>>());
+					Assert.That(merge, Is.InstanceOf<FdbIntersectIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
 
 					var results = await merge.ToListAsync();
 					Assert.That(results, Is.Not.Null);

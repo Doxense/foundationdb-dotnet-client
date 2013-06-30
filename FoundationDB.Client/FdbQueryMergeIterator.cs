@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 	/// <summary>Performs a Merge Sort on several concurrent range queries</summary>
 	/// <typeparam name="TKey">Type of values extracted from the keys, that will be used for sorting</typeparam>
 	/// <typeparam name="TResult">Type of results returned</typeparam>
-	internal abstract class FdbQueryMergeIterator<TKey, TResult> : FdbAsyncEnumerable.AsyncIterator<TResult>
+	internal abstract class FdbQueryMergeIterator<TSource, TKey, TResult> : FdbAsyncEnumerable.AsyncIterator<TResult>
 	{
 		// Takes several range queries that return **SORTED** lists of items
 		// - Make all querie's iterators run concurrently
@@ -49,10 +49,10 @@ namespace FoundationDB.Client
 
 		// The order of the extracted keys MUST be the same as the order of the binary keys ! This algorithm will NOT work if extracted keys are not in the same order as there binary representation !
 
-		protected IEnumerable<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>> m_sources;
-		protected Func<Slice, TKey> m_keySelector;
+		protected IEnumerable<IFdbAsyncEnumerable<TSource>> m_sources;
+		protected Func<TSource, TKey> m_keySelector;
 		protected IComparer<TKey> m_keyComparer;
-		protected Func<KeyValuePair<Slice, Slice>, TResult> m_resultSelector;
+		protected Func<TSource, TResult> m_resultSelector;
 		protected int? m_limit;
 
 		protected IteratorState[] m_iterators;
@@ -61,13 +61,13 @@ namespace FoundationDB.Client
 		protected struct IteratorState
 		{
 			public bool Active;
-			public IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>> Iterator;
+			public IFdbAsyncEnumerator<TSource> Iterator;
 			public Task<bool> Next;
 			public bool HasCurrent;
 			public TKey Current;
 		}
 
-		protected FdbQueryMergeIterator(IEnumerable<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>> sources, int? limit, Func<Slice, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> comparer)
+		protected FdbQueryMergeIterator(IEnumerable<IFdbAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 		{
 			Contract.Requires(sources != null && (limit == null || limit >= 0) && keySelector != null && resultSelector != null);
 			m_sources = sources;
@@ -127,7 +127,7 @@ namespace FoundationDB.Client
 			}
 
 			int index;
-			KeyValuePair<Slice, Slice> current;
+			TSource current;
 
 			do
 			{
@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 							continue;
 						}
 
-						m_iterators[i].Current = m_keySelector(m_iterators[i].Iterator.Current.Key);
+						m_iterators[i].Current = m_keySelector(m_iterators[i].Iterator.Current);
 						m_iterators[i].HasCurrent = true;
 					}
 
@@ -181,7 +181,7 @@ namespace FoundationDB.Client
 			return true;
 		}
 
-		protected abstract bool FindNext(CancellationToken ct, out int index, out KeyValuePair<Slice, Slice> current);
+		protected abstract bool FindNext(CancellationToken ct, out int index, out TSource current);
 
 		protected void AdvanceIterator(int index, CancellationToken ct)
 		{
