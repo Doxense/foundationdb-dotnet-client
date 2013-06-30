@@ -186,6 +186,13 @@ namespace FoundationDB.Layers.Tuples
 			return FdbKey.Increment(tuple.ToSlice());
 		}
 
+		public static FdbKeySelectorPair ToSelectorPair(this IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+
+			return FdbKeySelectorPair.StartsWith(tuple.ToSlice());
+		}
+
 		#endregion
 
 		#region FdbTransaction extensions...

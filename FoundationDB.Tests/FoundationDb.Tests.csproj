@@ -58,6 +58,7 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="ClusterFacts.cs" />
+    <Compile Include="RangeQueryFacts.cs" />
     <Compile Include="ErrorFacts.cs" />
     <Compile Include="KeyFacts.cs" />
     <Compile Include="Layers\BlobFacts.cs" />

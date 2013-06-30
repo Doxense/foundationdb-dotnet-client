@@ -50,6 +50,8 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="Converters\ConversionHelper.cs" />
+    <Compile Include="FdbQueryMergeIterator.cs" />
+    <Compile Include="FdbIntersectIterator.cs" />
     <Compile Include="FdbKeySelectorPair.cs" />
     <Compile Include="FdbMergeSortSelectable.cs" />
     <Compile Include="Fdb.Errors.cs" />
