@@ -42,31 +42,82 @@ using FoundationDB.Linq;
 namespace FoundationDB.Layers.Indexing
 {
 
-	/// <summary>Simple indexe that indexes instances of type <typeparamref name="TElement"/>, by a value of type <typeparamref name="TValue"/> and a reference of type <typeparamref name="TId"/></summary>
-	/// <typeparam name="TElement">Type of document of entity being indexed (User, Order, ForumPost, ...)</typeparam>
-	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
+	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
-	public class FdbSimpleIndex<TValue, TId>
+	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
+	public class FdbSimpleIndex<TId, TValue>
 	{
 
-		public FdbSimpleIndex(FdbSubspace subspace)
+		public FdbSimpleIndex(FdbSubspace subspace, EqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
 			this.Subspace = subspace;
+			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
+			this.IndexNullValues = indexNullValues;
 		}
 
 		public FdbSubspace Subspace { get; private set; }
 
+		public EqualityComparer<TValue> ValueComparer { get; private set; }
+
+		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
+		public bool IndexNullValues { get; private set; }
+
 		public bool Snapshot { get; private set; }
 
-		public void AddOrUpdate(FdbTransaction trans, TId id, TValue value)
+		/// <summary>Insert a newly created entity to the index</summary>
+		/// <param name="trans">Transaction to use</param>
+		/// <param name="id">Id of the new entity (that was never indexed before)</param>
+		/// <param name="value">Value of this entity in the index</param>
+		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and IndexNullValue is false)</returns>
+		public bool Add(FdbTransaction trans, TId id, TValue value)
 		{
-			trans.Set(this.Subspace.Create(value, id), Slice.Empty);
+			if (this.IndexNullValues || value != null)
+			{
+				trans.Set(this.Subspace.Create(value, id), Slice.Empty);
+				return true;
+			}
+			return false;
 		}
 
+		/// <summary>Update the indexed values of an entity</summary>
+		/// <param name="trans">Transaction to use</param>
+		/// <param name="id">Id of the entity that has changed</param>
+		/// <param name="newValue">Previous value of this entity in the index</param>
+		/// <param name="previousValue">New value of this entity in the index</param>
+		/// <returns>True if a change was performed in the index; otherwise false (if <paramref name="previousValue"/> and <paramref name="newValue"/>)</returns>
+		/// <remarks>If <paramref name="newValue"/> and <paramref name="previousValue"/> are identical, then nothing will be done. Otherwise, the old index value will be deleted and the new value will be added</remarks>
+		public bool Update(FdbTransaction trans, TId id, TValue newValue, TValue previousValue)
+		{
+			if (!this.ValueComparer.Equals(newValue, previousValue))
+			{
+				// remove previous value
+				if (this.IndexNullValues || previousValue != null)
+				{
+					trans.Clear(this.Subspace.Pack(previousValue, id));
+				}
+
+				// add new value
+				if (this.IndexNullValues || newValue != null)
+				{
+					trans.Set(this.Subspace.Pack(newValue, id), Slice.Empty);
+				}
+
+				// cannot be both null, so we did at least something)
+				return true;
+			}
+			return false;
+		}
+
+		/// <summary>Remove an entity from the index</summary>
+		/// <param name="trans">Transaction to use</param>
+		/// <param name="id">Id of the entity that has been deleted</param>
+		/// <param name="value">Previous value of the entity in the index</param>
 		public void Remove(FdbTransaction trans, TId id, TValue value)
 		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
 			trans.Clear(this.Subspace.Create(value, id));
 		}
 
@@ -80,14 +131,23 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			var prefix = this.Subspace.Create(value);
-			var results = trans.GetRangeStartsWith(prefix, 0, this.Snapshot, reverse);
-
+			var query = Lookup(trans, value, reverse);
 			//TODO: limits? paging? ...
+			return query.ToListAsync(ct);
+		}
 
-			return results
-				.Keys((key) => FdbTuple.Unpack(key).Get<TId>(-1))
-				.ToListAsync(ct);
+		/// <summary>Returns a query that will return all id of the entities that have the specified value in this index</summary>
+		/// <param name="trans">Transaction to use</param>
+		/// <param name="value">Value to lookup</param>
+		/// <param name="reverse"></param>
+		/// <returns>Range query that returns all the ids of entities that match the value</returns>
+		public IFdbAsyncEnumerable<TId> Lookup(FdbTransaction trans, TValue value, bool reverse = false)
+		{
+			var prefix = this.Subspace.Create(value);
+
+			return trans
+				.GetRangeStartsWith(prefix, 0, this.Snapshot, reverse)
+				.Keys((key) => FdbTuple.Unpack(key).Get<TId>(-1));
 		}
 
 	}
