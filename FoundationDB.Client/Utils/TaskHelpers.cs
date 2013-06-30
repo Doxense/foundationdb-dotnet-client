@@ -49,6 +49,14 @@ namespace FoundationDB.Client.Utils
 		/// <summary>Already completed task that returns true</summary>
 		public static readonly Task<bool> TrueTask = Task.FromResult<bool>(true);
 
+		/// <summary>Returns an already completed boolean task that is either true of false</summary>
+		/// <param name="value">Value of the task</param>
+		/// <returns>Already completed task the returns <paramref name="value"/></returns>
+		public static Task<bool> FromResult(bool value)
+		{
+			return value ? TrueTask : FalseTask;
+		}
+
 		/// <summary>Returns a cached completed task that returns the default value of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
 		/// <returns>Task that is already completed, and returns default(<typeparamref name="T"/>)</returns>

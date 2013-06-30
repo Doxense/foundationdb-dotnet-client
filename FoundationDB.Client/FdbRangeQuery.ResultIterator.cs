@@ -102,7 +102,7 @@ namespace FoundationDB.Client
 				if (m_itemsRemainingInChunk > 0)
 				{ // we need can get another one from the batch
 
-					return ProcessNextItem() ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
+					return TaskHelpers.FromResult(ProcessNextItem());
 				}
 
 				if (m_outOfChunks)

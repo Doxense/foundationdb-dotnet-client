@@ -345,7 +345,7 @@ using System.Threading.Tasks;
 				try
 				{
 					iterator = m_source.GetEnumerator();
-					return iterator != null ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
+					return TaskHelpers.FromResult(iterator != null);
 				}
 				catch(Exception)
 				{

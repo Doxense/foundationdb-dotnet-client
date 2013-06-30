@@ -122,7 +122,7 @@ namespace FoundationDB.Client
 
 				if (this.AtEnd)
 				{ // we already read the last batch !
-					return Completed() ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
+					return TaskHelpers.FromResult(Completed());
 				}
 
 				// slower path, we need to actually read the first batch...
