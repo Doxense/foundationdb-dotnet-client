@@ -144,7 +144,7 @@ namespace FoundationDB.Client
 			if (index >= 0)
 			{
 				current = m_iterators[index].Iterator.Current;
-				if (m_remaining != null && m_remaining.Value > 1)
+				if (m_remaining == null || m_remaining.Value > 1)
 				{ // start getting the next value on this iterator
 					AdvanceIterator(index, ct);
 				}
