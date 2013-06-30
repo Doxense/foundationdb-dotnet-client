@@ -202,23 +202,68 @@ using System.Threading.Tasks;
 
 			#region LINQ...
 
-			public abstract AsyncIterator<TResult> Where(Func<TResult, bool> predicate);
+			public virtual AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
+			{
+				if (predicate == null) throw new ArgumentNullException("predicate");
 
-			public abstract AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate);
+				return FdbAsyncEnumerable.Filter<TResult>(this, predicate);
+			}
 
-			public abstract AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector);
+			public virtual AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+			{
+				if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
 
-			public abstract AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector);
+				return FdbAsyncEnumerable.Filter<TResult>(this, asyncPredicate);
+			}
 
-			public abstract AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector);
+			public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+			{
+				if (selector == null) throw new ArgumentNullException("selector");
 
-			public abstract AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector);
+				return FdbAsyncEnumerable.Map<TResult, TNew>(this, selector);
+			}
 
-			public abstract AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector);
+			public virtual AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
+			{
+				if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			public abstract AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector);
+				return FdbAsyncEnumerable.Map<TResult, TNew>(this, asyncSelector);
+			}
 
-			public abstract AsyncIterator<TResult> Take(int limit);
+			public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
+			{
+				if (selector == null) throw new ArgumentNullException("selector");
+
+				return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, selector);
+			}
+
+			public virtual AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
+			{
+				if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
+
+				return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, asyncSelector);
+			}
+
+			public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+			{
+				if (collectionSelector == null) throw new ArgumentNullException("collectionSelector");
+				if (resultSelector == null) throw new ArgumentNullException("resultSelector");
+
+				return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, collectionSelector, resultSelector);
+			}
+
+			public virtual AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+			{
+				if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
+				if (resultSelector == null) throw new ArgumentNullException("resultSelector");
+
+				return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, asyncCollectionSelector, resultSelector);
+			}
+
+			public virtual AsyncIterator<TResult> Take(int limit)
+			{
+				return FdbAsyncEnumerable.Limit<TResult>(this, limit);
+			}
 
 			public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
 			{
@@ -365,62 +410,18 @@ using System.Threading.Tasks;
 
 			protected override void Cleanup()
 			{
-				var iterator = Interlocked.Exchange(ref m_iterator, null);
-				if (iterator != null)
+				try
 				{
-					iterator.Dispose();
+					var iterator = m_iterator;
+					if (iterator != null)
+					{
+						iterator.Dispose();
+					}
 				}
-			}
-
-			public override AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
-			{
-				if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
-				if (resultSelector == null) throw new ArgumentNullException("resultSelector");
-
-				return new SelectManyAsyncIterator<TResult, TCollection, TNew>(this, null, asyncCollectionSelector, resultSelector);
-			}
-
-			public override AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
-			{
-				if (collectionSelector == null) throw new ArgumentNullException("collectionSelector");
-				if (resultSelector == null) throw new ArgumentNullException("resultSelector");
-
-				return new SelectManyAsyncIterator<TResult, TCollection, TNew>(this, collectionSelector, null, resultSelector);
-			}
-
-			public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, selector);
-			}
-
-			public override AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, asyncSelector);
-			}
-
-			public override AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
-			{
-				return FdbAsyncEnumerable.Map(this, selector);
-			}
-
-			public override AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
-			{
-				return FdbAsyncEnumerable.Map(this, asyncSelector);
-			}
-
-			public override AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
-			{
-				return FdbAsyncEnumerable.Filter(this, predicate);
-			}
-
-			public override AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
-			{
-				return FdbAsyncEnumerable.Filter(this, asyncPredicate);
-			}
-
-			public override AsyncIterator<TResult> Take(int limit)
-			{
-				return FdbAsyncEnumerable.Limit(this, limit);
+				finally
+				{
+					m_iterator = null;
+				}
 			}
 
 		}

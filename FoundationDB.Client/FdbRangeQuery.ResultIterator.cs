@@ -167,42 +167,11 @@ namespace FoundationDB.Client
 
 			public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 			{
-				return FdbAsyncEnumerable.Map(this, selector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
-			{
-				return FdbAsyncEnumerable.Map(this, asyncSelector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TResult> Where(Func<TResult, bool> predicate)
-			{
-				return FdbAsyncEnumerable.Filter(this, predicate);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
-			{
-				return FdbAsyncEnumerable.Filter(this, asyncPredicate);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, selector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, asyncSelector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, asyncCollectionSelector, resultSelector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, collectionSelector, resultSelector);
+				return new ResultIterator<TNew>(
+					m_query,
+					m_transaction,
+					(x) => selector(m_resultTransform(x))
+				);
 			}
 
 			public override FdbAsyncEnumerable.AsyncIterator<TResult> Take(int limit)

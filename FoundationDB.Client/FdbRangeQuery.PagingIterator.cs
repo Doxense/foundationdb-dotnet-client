@@ -213,56 +213,6 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			#region LINQ
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<KeyValuePair<Slice, Slice>[], TNew> selector)
-			{
-				return FdbAsyncEnumerable.Map(this, selector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<KeyValuePair<Slice, Slice>[], CancellationToken, Task<TNew>> asyncSelector)
-			{
-				return FdbAsyncEnumerable.Map(this, asyncSelector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<KeyValuePair<Slice, Slice>[]> Where(Func<KeyValuePair<Slice, Slice>[], bool> predicate)
-			{
-				return FdbAsyncEnumerable.Filter(this, predicate);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<KeyValuePair<Slice, Slice>[]> Where(Func<KeyValuePair<Slice, Slice>[], CancellationToken, Task<bool>> asyncPredicate)
-			{
-				return FdbAsyncEnumerable.Filter(this, asyncPredicate);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TNew>(Func<KeyValuePair<Slice, Slice>[], IEnumerable<TNew>> selector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, selector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TNew>(Func<KeyValuePair<Slice, Slice>[], CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, asyncSelector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<KeyValuePair<Slice, Slice>[], CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<KeyValuePair<Slice, Slice>[], TCollection, TNew> resultSelector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, asyncCollectionSelector, resultSelector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<KeyValuePair<Slice, Slice>[], IEnumerable<TCollection>> collectionSelector, Func<KeyValuePair<Slice, Slice>[], TCollection, TNew> resultSelector)
-			{
-				return FdbAsyncEnumerable.Flatten(this, collectionSelector, resultSelector);
-			}
-
-			public override FdbAsyncEnumerable.AsyncIterator<KeyValuePair<Slice, Slice>[]> Take(int limit)
-			{
-				//note: this would limit the number of *chunks*, not results, so here we need the regular Take(..)
-				return FdbAsyncEnumerable.Limit(this, limit);
-			}
-
-			#endregion
-
 			protected override void Cleanup()
 			{
 				//TODO: should we wait/cancel any pending read task ?
