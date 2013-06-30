@@ -40,6 +40,48 @@ namespace FoundationDB.Layers.Tuples
 			writer.WriteByte(FdbTupleTypes.Nil);
 		}
 
+		/// <summary>Writes an UInt8 at the end, and advance the cursor</summary>
+		/// <param name="value">Unsigned BYTE, 32 bits</param>
+		public static void WriteInt8(FdbBufferWriter writer, byte value)
+		{
+			if (value == 0)
+			{ // zero
+				writer.WriteByte(FdbTupleTypes.IntZero);
+			}
+			else
+			{ // 1..255: frequent for array index
+				writer.WriteByte2(FdbTupleTypes.IntPos1, value);
+			}
+		}
+
+		/// <summary>Writes an Int32 at the end, and advance the cursor</summary>
+		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
+		public static void WriteInt32(FdbBufferWriter writer, int value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // zero
+					writer.WriteByte(FdbTupleTypes.IntZero);
+					return;
+				}
+
+				if (value > 0)
+				{ // 1..255: frequent for array index
+					writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+					return;
+				}
+
+				if (value > -256)
+				{ // -255..-1
+					writer.WriteByte2(FdbTupleTypes.IntNeg1, (byte)(255 + value));
+					return;
+				}
+			}
+
+			WriteInt64Slow(writer, (long)value);
+		}
+
 		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
 		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
 		public static void WriteInt64(FdbBufferWriter writer, long value)
@@ -110,6 +152,27 @@ namespace FoundationDB.Layers.Tuples
 				buffer[p++] = (byte)v;
 			}
 			writer.Position = p;
+		}
+
+		/// <summary>Writes an UInt32 at the end, and advance the cursor</summary>
+		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
+		public static void WriteUInt32(FdbBufferWriter writer, uint value)
+		{
+			if (value <= 255)
+			{
+				if (value == 0)
+				{ // 0
+					writer.WriteByte(FdbTupleTypes.IntZero);
+				}
+				else
+				{ // 1..255
+					writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+				}
+			}
+			else
+			{ // >= 256
+				WriteUInt64Slow(writer, (ulong)value);
+			}
 		}
 
 		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>

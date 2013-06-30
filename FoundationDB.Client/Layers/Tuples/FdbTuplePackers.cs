@@ -236,14 +236,24 @@ namespace FoundationDB.Layers.Tuples
 
 			// false is encoded as 0 (\x14)
 			// true is encoded as -1 (\x13\xfe)
-			FdbTupleParser.WriteInt64(writer, value ? -1L : 0L);
+			FdbTupleParser.WriteInt32(writer, value ? -1 : 0);
+		}
+
+		public static void SerializeTo(FdbBufferWriter writer, bool? value)
+		{
+			Contract.Requires(writer != null);
+
+			if (value.HasValue)
+				FdbTupleParser.WriteInt32(writer, value.Value ? -1 : 0);
+			else
+				FdbTupleParser.WriteNil(writer);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, sbyte value)
 		{
 			Contract.Requires(writer != null);
 
-			FdbTupleParser.WriteInt64(writer, value);
+			FdbTupleParser.WriteInt32(writer, value);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, byte value)
@@ -264,28 +274,28 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(writer != null);
 
-			FdbTupleParser.WriteInt64(writer, value);
+			FdbTupleParser.WriteInt32(writer, value);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, ushort value)
 		{
 			Contract.Requires(writer != null);
 
-			FdbTupleParser.WriteUInt64(writer, value);
+			FdbTupleParser.WriteUInt32(writer, value);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, int value)
 		{
 			Contract.Requires(writer != null);
 
-			FdbTupleParser.WriteInt64(writer, value);
+			FdbTupleParser.WriteInt32(writer, value);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, uint value)
 		{
 			Contract.Requires(writer != null);
 
-			FdbTupleParser.WriteUInt64(writer, value);
+			FdbTupleParser.WriteUInt32(writer, value);
 		}
 
 		public static void SerializeTo(FdbBufferWriter writer, long value)
