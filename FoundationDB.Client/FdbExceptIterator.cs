@@ -50,7 +50,7 @@ namespace FoundationDB.Client
 
 		protected override bool FindNext(CancellationToken ct, out int index, out TSource current)
 		{
-			Console.WriteLine("FindNext called");
+			//Console.WriteLine("FindNext called");
 
 			index = -1;
 			current = default(TSource);
