@@ -33,99 +33,56 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Threading;
 
-	/// <summary>Returns only the values for the keys that are in all the sub queries</summary>
+	/// <summary>Merge all the elements of several ordered queries into one single async sequence</summary>
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
 	/// <typeparam name="TKey">Type of the keys extracted from the source elements</typeparam>
 	/// <typeparam name="TResult">Type of the elements of resulting async sequence</typeparam>
-	internal class FdbIntersectIterator<TSource, TKey, TResult> : FdbQueryMergeIterator<TSource, TKey, TResult>
+	internal class FdbMergeSortIterator<TSource, TKey, TResult> : FdbQueryMergeIterator<TSource, TKey, TResult>
 	{
-		public FdbIntersectIterator(IEnumerable<IFdbAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
+
+		public FdbMergeSortIterator(IEnumerable<IFdbAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 			: base(sources, limit, keySelector, resultSelector, comparer)
 		{ }
 
 		protected override FdbAsyncEnumerable.AsyncIterator<TResult> Clone()
 		{
-			return new FdbIntersectIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
+			return new FdbMergeSortIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
 		}
 
 		protected override bool FindNext(CancellationToken ct, out int index, out TSource current)
 		{
-			//Console.WriteLine("FindNext called");
-
 			index = -1;
 			current = default(TSource);
-
-			// we only returns a value if all are equal
-			// if not, find the current max, and advance all iterators that are lower
-
 			TKey min = default(TKey);
-			TKey max = default(TKey);
 
 			for (int i = 0; i < m_iterators.Length; i++)
 			{
-				if (!m_iterators[i].Active)
-				{ // all must be still active!
-					//Console.WriteLine("> STOP");
-					return false;
-				}
+				if (!m_iterators[i].Active) continue;
 
-				//Console.WriteLine(">> " + i + ": " + m_iterators[i].Iterator.Current + " => " + m_iterators[i].Current);
-
-				TKey key = m_iterators[i].Current;
-				if (index == -1)
+				if (index == -1 || m_keyComparer.Compare(m_iterators[i].Current, min) < 0)
 				{
-					min = max = key;
+					min = m_iterators[i].Current;
 					index = i;
 				}
-				else
-				{
-					if (m_keyComparer.Compare(key, min) < 0) { min = key; }
-					if (m_keyComparer.Compare(key, max) > 0) { max = key; index = i; }
-				}
 			}
 
-			//Console.WriteLine("> index=" + index + "; min=" + min + "; max=" + max);
-
-			if (index == -1)
-			{ // no values ?
-				//Console.WriteLine("> None!");
-				return false;
-			}
-
-			if (m_keyComparer.Compare(min, max) == 0)
-			{ // all equal !
-				// return the value of the first max encountered
-				current = m_iterators[index].Iterator.Current;
-				//Console.WriteLine("> All! #" + index + " = " + current);
-
-				// advance everyone !
-				for (int i = 0; i < m_iterators.Length;i++)
-				{
-					if (m_iterators[i].Active) AdvanceIterator(i, ct);
-				}
-				return true;
-			}
-
-			// advance all the values that are lower than the max
-			//Console.WriteLine("> Different (max is " + index + " at " + max + ")");
-			for (int i = 0; i < m_iterators.Length; i++)
+			if (index >= 0)
 			{
-				if (m_iterators[i].Active && m_keyComparer.Compare(m_iterators[i].Current, max) < 0)
-				{
-					//Console.WriteLine("> advancing " + i);
-					AdvanceIterator(i, ct);
+				current = m_iterators[index].Iterator.Current;
+				if (m_remaining == null || m_remaining.Value > 1)
+				{ // start getting the next value on this iterator
+					AdvanceIterator(index, ct);
 				}
 			}
 
-			// keep searching
-			index = -1;
-			return true;
+			return index != -1;
 		}
 
-		/// <summary>Apply a transformation on the results of the intersection</summary>
+
+		/// <summary>Apply a transformation on the results of the merge sort</summary>
 		public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
-			return new FdbIntersectIterator<TSource, TKey, TNew>(
+			return new FdbMergeSortIterator<TSource, TKey, TNew>(
 				m_sources,
 				m_limit,
 				m_keySelector,
@@ -134,16 +91,16 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Limit the number of elements returned by the intersection</summary>
+		/// <summary>Limit the number of elements returned by the MergeSort</summary>
 		/// <param name="limit">Maximum number of results to return</param>
-		/// <returns>New Intersect that will only return the specified number of results</returns>
+		/// <returns>New MergeSort that will only return the specified number of results</returns>
 		public override FdbAsyncEnumerable.AsyncIterator<TResult> Take(int limit)
 		{
 			if (limit < 0) throw new ArgumentOutOfRangeException("limit", "Value cannot be less than zero");
 
 			if (m_limit != null && m_limit < limit) return this;
 
-			return new FdbIntersectIterator<TSource, TKey, TResult>(
+			return new FdbMergeSortIterator<TSource, TKey, TResult>(
 				m_sources,
 				limit,
 				m_keySelector,
@@ -153,4 +110,5 @@ namespace FoundationDB.Client
 		}
 
 	}
+
 }

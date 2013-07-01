@@ -33,99 +33,82 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Threading;
 
-	/// <summary>Returns only the values for the keys that are in all the sub queries</summary>
+	/// <summary>Returns only the values for the keys that are in the first sub query, but not in the others</summary>
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
 	/// <typeparam name="TKey">Type of the keys extracted from the source elements</typeparam>
 	/// <typeparam name="TResult">Type of the elements of resulting async sequence</typeparam>
-	internal class FdbIntersectIterator<TSource, TKey, TResult> : FdbQueryMergeIterator<TSource, TKey, TResult>
+	internal class FdbExceptIterator<TSource, TKey, TResult> : FdbQueryMergeIterator<TSource, TKey, TResult>
 	{
-		public FdbIntersectIterator(IEnumerable<IFdbAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
+		public FdbExceptIterator(IEnumerable<IFdbAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 			: base(sources, limit, keySelector, resultSelector, comparer)
 		{ }
 
 		protected override FdbAsyncEnumerable.AsyncIterator<TResult> Clone()
 		{
-			return new FdbIntersectIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
+			return new FdbExceptIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
 		}
 
 		protected override bool FindNext(CancellationToken ct, out int index, out TSource current)
 		{
-			//Console.WriteLine("FindNext called");
+			Console.WriteLine("FindNext called");
 
 			index = -1;
 			current = default(TSource);
 
-			// we only returns a value if all are equal
-			// if not, find the current max, and advance all iterators that are lower
+			// we only returns values of the first that are not in the others
 
-			TKey min = default(TKey);
-			TKey max = default(TKey);
+			// - if iterator[0] is complete, then stop
+			// - take X = iterator[0].Current
+			// - set flag_output to true, flag_found to false
+			// - for i in 1..n-1:
+			//   - if iterator[i].Current < X, advance iterator i and set flag_output to false
+			//   - if iterator[i].Current = X, set flag_found to true, flag_output to false
+			// - if flag_output is true then output X
+			// - if flag_found is true then Advance iterator[0]
 
-			for (int i = 0; i < m_iterators.Length; i++)
-			{
-				if (!m_iterators[i].Active)
-				{ // all must be still active!
-					//Console.WriteLine("> STOP");
-					return false;
-				}
-
-				//Console.WriteLine(">> " + i + ": " + m_iterators[i].Iterator.Current + " => " + m_iterators[i].Current);
-
-				TKey key = m_iterators[i].Current;
-				if (index == -1)
-				{
-					min = max = key;
-					index = i;
-				}
-				else
-				{
-					if (m_keyComparer.Compare(key, min) < 0) { min = key; }
-					if (m_keyComparer.Compare(key, max) > 0) { max = key; index = i; }
-				}
-			}
-
-			//Console.WriteLine("> index=" + index + "; min=" + min + "; max=" + max);
-
-			if (index == -1)
-			{ // no values ?
-				//Console.WriteLine("> None!");
+			if (!m_iterators[0].Active)
+			{ // primary sequence is complete
 				return false;
 			}
 
-			if (m_keyComparer.Compare(min, max) == 0)
-			{ // all equal !
-				// return the value of the first max encountered
-				current = m_iterators[index].Iterator.Current;
-				//Console.WriteLine("> All! #" + index + " = " + current);
 
-				// advance everyone !
-				for (int i = 0; i < m_iterators.Length;i++)
-				{
-					if (m_iterators[i].Active) AdvanceIterator(i, ct);
-				}
-				return true;
-			}
+			TKey x = m_iterators[0].Current;
+			bool output = true;
+			bool discard = false;
 
-			// advance all the values that are lower than the max
-			//Console.WriteLine("> Different (max is " + index + " at " + max + ")");
-			for (int i = 0; i < m_iterators.Length; i++)
+			for (int i = 1; i < m_iterators.Length; i++)
 			{
-				if (m_iterators[i].Active && m_keyComparer.Compare(m_iterators[i].Current, max) < 0)
+				if (!m_iterators[i].Active) continue;
+
+				//Console.WriteLine(">> " + i + ": " + m_iterators[i].Iterator.Current + " => " + m_iterators[i].Current);
+
+				int cmp = m_keyComparer.Compare(m_iterators[i].Current, x);
+				if (cmp <= 0)
 				{
-					//Console.WriteLine("> advancing " + i);
+					output = false;
+					if (cmp == 0) discard = true;
 					AdvanceIterator(i, ct);
 				}
 			}
 
-			// keep searching
-			index = -1;
+			if (output)
+			{
+				current = m_iterators[0].Iterator.Current;
+				index = 0;
+			}
+
+			if (output || discard)
+			{
+				AdvanceIterator(0, ct);
+			}
+
 			return true;
 		}
 
 		/// <summary>Apply a transformation on the results of the intersection</summary>
 		public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
-			return new FdbIntersectIterator<TSource, TKey, TNew>(
+			return new FdbExceptIterator<TSource, TKey, TNew>(
 				m_sources,
 				m_limit,
 				m_keySelector,
@@ -143,7 +126,7 @@ namespace FoundationDB.Client
 
 			if (m_limit != null && m_limit < limit) return this;
 
-			return new FdbIntersectIterator<TSource, TKey, TResult>(
+			return new FdbExceptIterator<TSource, TKey, TResult>(
 				m_sources,
 				limit,
 				m_keySelector,

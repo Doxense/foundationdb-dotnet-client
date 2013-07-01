@@ -236,7 +236,7 @@ namespace FoundationDB.Client.Tests
 					);
 
 					Assert.That(merge, Is.Not.Null);
-					Assert.That(merge, Is.InstanceOf<FdbMergeSortSelectable<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
+					Assert.That(merge, Is.InstanceOf<FdbMergeSortIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
 
 					var results = await merge.ToListAsync();
 					Assert.That(results, Is.Not.Null);
@@ -257,7 +257,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Range_Intersect()
 		{
-
 			int K = 3;
 			int N = 100;
 
@@ -268,7 +267,6 @@ namespace FoundationDB.Client.Tests
 
 				// clear!
 				await db.ClearRangeAsync(location);
-
 
 				// create K lists
 				var lists = Enumerable.Range(0, K).Select(i => location.Partition(i)).ToArray();
@@ -328,6 +326,82 @@ namespace FoundationDB.Client.Tests
 					}
 				}
 
+
+			}
+
+		}
+
+		[Test]
+		public async Task Test_Range_Except()
+		{
+			int K = 3;
+			int N = 100;
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+
+				var location = db.Partition("Except");
+
+				// clear!
+				await db.ClearRangeAsync(location);
+
+				// create K lists
+				var lists = Enumerable.Range(0, K).Select(i => location.Partition(i)).ToArray();
+
+				// lists[0] contains all multiples of 1
+				// lists[1] contains all multiples of 2
+				// lists[k-1] contains all multiples of K
+
+				// more generally: lists[k][i] = (..., Intersect, k, i * (k + 1)) = (k, i)
+
+				var series = Enumerable.Range(1, K).Select(k => Enumerable.Range(1, N).Select(x => k * x).ToArray()).ToArray();
+				//foreach(var serie in series)
+				//{
+				//	Console.WriteLine(String.Join(", ", serie));
+				//}
+
+				for (int k = 0; k < K; k++)
+				{
+					//Console.WriteLine("> k = " + k);
+					using (var tr = db.BeginTransaction())
+					{
+						for (int i = 0; i < N; i++)
+						{
+							var key = lists[k].Pack(series[k][i]);
+							var value = FdbTuple.Pack(k, i);
+							//Console.WriteLine("> " + key + " = " + value);
+							tr.Set(key, value);
+						}
+						await tr.CommitAsync();
+					}
+				}
+
+				// Intersect all lists together should produce all integers that are prime numbers
+				IEnumerable<int> xs = series[0];
+				for (int i = 1; i < K; i++) xs = xs.Except(series[i]);
+				var expected = xs.ToArray();
+				Console.WriteLine(String.Join(", ", expected));
+
+				using (var tr = db.BeginTransaction())
+				{
+					var merge = tr.Except(
+						lists.Select(list => list.Tuple.ToSelectorPair()),
+						kvp => location.Unpack(kvp.Key).Get<int>(-1)
+					);
+
+					Assert.That(merge, Is.Not.Null);
+					Assert.That(merge, Is.InstanceOf<FdbExceptIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
+
+					var results = await merge.ToListAsync();
+					Assert.That(results, Is.Not.Null);
+
+					Assert.That(results.Count, Is.EqualTo(expected.Length));
+
+					for (int i = 0; i < results.Count; i++)
+					{
+						Assert.That(location.Unpack(results[i].Key).Get<int>(-1), Is.EqualTo(expected[i]));
+					}
+				}
 
 			}
 
