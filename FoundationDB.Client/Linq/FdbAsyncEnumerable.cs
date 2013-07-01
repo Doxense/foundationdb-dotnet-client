@@ -392,6 +392,15 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
+		public static Task ForEachAsync<T>(this IFdbAsyncEnumerable<T> source, Func<T, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		{
+			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
+
+			return ForEachAsync<T>(source, TaskHelpers.WithCancellation(asyncAction), ct);
+		}
+
+
+		/// <summary>Execute an async action for each element of an async sequence</summary>
 		public static Task ForEachAsync<T>(this IFdbAsyncEnumerable<T> source, Func<T, CancellationToken, Task> asyncAction, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
