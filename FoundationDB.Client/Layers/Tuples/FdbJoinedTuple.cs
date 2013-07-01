@@ -102,6 +102,14 @@ namespace FoundationDB.Layers.Tuples
 			return index < m_split ? this.Head.Get<T>(index) : this.Tail.Get<T>(index - m_split);
 		}
 
+		public T Last<T>()
+		{
+			if (this.Tail.Count > 0)
+				return this.Tail.Last<T>();
+			else
+				return this.Head.Last<T>();
+		}
+
 		IFdbTuple IFdbTuple.Append<T>(T value)
 		{
 			return new FdbLinkedTuple<T>(this, value);

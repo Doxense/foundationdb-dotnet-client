@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Tuples
 				get { return 0; }
 			}
 
-			object IFdbTuple.this[int index]
+			object IReadOnlyList<object>.this[int index]
 			{
 				get { throw new IndexOutOfRangeException(); }
 			}
@@ -66,6 +66,11 @@ namespace FoundationDB.Layers.Tuples
 			public R Get<R>(int index)
 			{
 				throw new IndexOutOfRangeException();
+			}
+
+			public R Last<R>()
+			{
+				throw new InvalidOperationException("Tuple is empty");
 			}
 
 			IFdbTuple IFdbTuple.Append<T1>(T1 value)

@@ -79,6 +79,11 @@ namespace FoundationDB.Layers.Tuples
 			throw new IndexOutOfRangeException();
 		}
 
+		public R Last<R>()
+		{
+			return FdbConverters.Convert<T2, R>(this.Item2);
+		}
+
 		public void PackTo(FdbBufferWriter writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);

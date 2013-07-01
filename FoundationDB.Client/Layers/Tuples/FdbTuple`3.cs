@@ -87,6 +87,11 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		public R Last<R>()
+		{
+			return FdbConverters.Convert<T3, R>(this.Item3);
+		}
+
 		public void PackTo(FdbBufferWriter writer)
 		{
 			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);

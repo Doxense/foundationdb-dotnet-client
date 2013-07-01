@@ -34,15 +34,27 @@ namespace FoundationDB.Layers.Tuples
 	using System.Collections.Generic;
 
 	/// <summary>Represents a Tuple of N elements</summary>
-	public interface IFdbTuple : IEnumerable<object>, IEquatable<IFdbTuple>
+	public interface IFdbTuple : IEnumerable<object>, IEquatable<IFdbTuple>, IReadOnlyCollection<object>
+#if !NET_4_0
+		, IReadOnlyList<object>
+#endif
 	{
 
-		/// <summary>Return the number of "items" in the Tuple</summary>
-		/// <example>
-		/// ("Hello", "World", 123,).Count => 3
-		/// </example>
-		int Count { get; }
+		// Implementation notes:
+		// - Tuples are an immutable list of "objects", that can be indexed from the start or the end (negative indexes)
+		// - Appending to a tuple returns a new tuple (does not mutate the previous)
+		// - Getting the substring of a tuple return a new tuple that tries to reuse the objects of the parent tuple
+		// - There are no guarantees that two different tuples containning the "same" values return the same HashCode, meaning that it should not be used as keys in a Dictionary
 
+		// Performance notes:
+		// - Accessing the Count and Last item should be fast, if possible in O(1)
+		// - Appending should also be fast, if possible O(1)
+		// - Getting the substring of a tuple should as fast as possible, if possible O(1). For list-based tuples, it should return a view of the list (offset/count) and avoid copying the list
+		// - If an operation returns an empty tuple, then it should return the FdbTuple.Empty singleton instance
+		// - If an operation does not change the tuple (like Append(FdbTuple.Empty), or tuple.Substring(0)), then the tuple should return itself
+		// - If the same tuple will be packed frequently, it should be memoized (converted into a FdbMemoizedTuple)
+
+#if NET_4_0
 		/// <summary>[DANGEROUS] Return an item of the tuple, given its position</summary>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
 		/// <returns>Value of the item</returns>
@@ -53,6 +65,7 @@ namespace FoundationDB.Layers.Tuples
 		/// ("Hello", "World", 123,)[-1] => 123L
 		/// </example>
 		object this[int index] { get; }
+#endif
 
 		/// <summary>Return a section of the tuple</summary>
 		/// <param name="start">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
@@ -63,7 +76,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="T">Expected type of the item</typeparam>
 		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
-		/// <returns>Value of the item, adapted to the requested type.</returns>
+		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="T"/>.</returns>
 		/// <exception cref="System.IndexOutOfRangeException">If <paramref name="index"/> is outside the bounds of the tuple</exception>
 		/// <example>
 		/// ("Hello", "World", 123,).Get&lt;string&gt;(0) => "Hello"
@@ -71,6 +84,12 @@ namespace FoundationDB.Layers.Tuples
 		/// ("Hello", "World", 123,).Get&lt;string&gt;(-1) => "123"
 		/// </example>
 		T Get<T>(int index);
+
+		/// <summary>Return the typed value of the last item in the tuple</summary>
+		/// <typeparam name="T">Expected type of the item</typeparam>
+		/// <returns>Value of the last item of <paramref name="typle"/>, adapted into type <typeparamref name="T"/></returns>
+		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
+		T Last<T>();
 
 		/// <summary>Create a new Tuple by appending a new value at the end the this tuple</summary>
 		/// <typeparam name="T">Type of the new value</typeparam>
@@ -88,11 +107,11 @@ namespace FoundationDB.Layers.Tuples
 		/// </example>
 		void CopyTo(object[] array, int offset);
 
-		/// <summary>Write the binary representation of this key at the end of a buffer</summary>
-		/// <param name="buffer">Buffer that will received the packed bytes of this key</param>
+		/// <summary>Appends the packed bytes of this instance to the end of a buffer</summary>
+		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>
 		void PackTo(FdbBufferWriter writer);
 
-		/// <summary>Return the value of the key as a byte buffer</summary>
+		/// <summary>Pack this instance into a Slice</summary>
 		/// <example>
 		/// ("Hello", "World", 123).ToSlice() => '\x02Hello\x00\x02World\x00\x15\x7B'
 		/// </example>

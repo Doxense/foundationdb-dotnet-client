@@ -147,7 +147,7 @@ namespace FoundationDB.Layers.Indexing
 
 			return trans
 				.GetRangeStartsWith(prefix, 0, this.Snapshot, reverse)
-				.Keys((key) => FdbTuple.Unpack(key).Get<TId>(-1));
+				.Keys((key) => FdbTuple.Unpack(key).Last<TId>());
 		}
 
 	}

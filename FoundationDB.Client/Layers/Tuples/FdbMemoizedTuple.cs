@@ -101,6 +101,13 @@ namespace FoundationDB.Layers.Tuples
 			return FdbConverters.ConvertBoxed<R>(this[index]);
 		}
 
+		public R Last<R>()
+		{
+			int n = this.Items.Length;
+			if (n == 0) throw new InvalidOperationException("Tuple is emtpy");
+			return FdbConverters.ConvertBoxed<R>(this.Items[n - 1]);
+		}
+
 		IFdbTuple IFdbTuple.Append<T>(T value)
 		{
 			return this.Append<T>(value);

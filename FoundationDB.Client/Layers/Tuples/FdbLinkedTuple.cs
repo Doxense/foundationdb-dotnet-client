@@ -95,6 +95,11 @@ namespace FoundationDB.Layers.Tuples
 			return this.Head.Get<R>(index);
 		}
 
+		public R Last<R>()
+		{
+			return FdbConverters.Convert<T, R>(this.Tail);
+		}
+
 		IFdbTuple IFdbTuple.Append<R>(R value)
 		{
 			return this.Append<R>(value);

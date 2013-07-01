@@ -175,7 +175,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(chunks.Sum(c => c.Length), Is.EqualTo(N), "Total size should match");
 					Console.WriteLine("Took " + ts.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + chunks.Count.ToString("N0") + " chunks");
 
-					var keys = chunks.SelectMany(chunk => chunk.Select(x => FdbTuple.Unpack(x.Key).Get<int>(-1))).ToArray();
+					var keys = chunks.SelectMany(chunk => chunk.Select(x => FdbTuple.Unpack(x.Key).Last<int>())).ToArray();
 					Assert.That(keys.Length, Is.EqualTo(N));
 					var values = chunks.SelectMany(chunk => chunk.Select(x => x.Value.ToInt32())).ToArray();
 					Assert.That(values.Length, Is.EqualTo(N));
@@ -232,7 +232,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var merge = tr.MergeSort(
 						lists.Select(list => list.Tuple.ToSelectorPair()),
-						kvp => location.Unpack(kvp.Key).Get<int>(-1)
+						kvp => location.Unpack(kvp.Key).Last<int>()
 					);
 
 					Assert.That(merge, Is.Not.Null);
@@ -309,7 +309,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var merge = tr.Intersect(
 						lists.Select(list => list.Tuple.ToSelectorPair()),
-						kvp => location.Unpack(kvp.Key).Get<int>(-1)
+						kvp => location.Unpack(kvp.Key).Last<int>()
 					);
 
 					Assert.That(merge, Is.Not.Null);
@@ -322,7 +322,7 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < results.Count; i++)
 					{
-						Assert.That(location.Unpack(results[i].Key).Get<int>(-1), Is.EqualTo(expected[i]));
+						Assert.That(location.Unpack(results[i].Key).Last<int>(), Is.EqualTo(expected[i]));
 					}
 				}
 
@@ -386,7 +386,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var merge = tr.Except(
 						lists.Select(list => list.Tuple.ToSelectorPair()),
-						kvp => location.Unpack(kvp.Key).Get<int>(-1)
+						kvp => location.Unpack(kvp.Key).Last<int>()
 					);
 
 					Assert.That(merge, Is.Not.Null);
@@ -399,7 +399,7 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < results.Count; i++)
 					{
-						Assert.That(location.Unpack(results[i].Key).Get<int>(-1), Is.EqualTo(expected[i]));
+						Assert.That(location.Unpack(results[i].Key).Last<int>(), Is.EqualTo(expected[i]));
 					}
 				}
 

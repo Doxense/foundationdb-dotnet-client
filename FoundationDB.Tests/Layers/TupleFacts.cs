@@ -118,6 +118,34 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(tn[-6], Is.EqualTo("hello world"));
 		}
 
+		[Test]
+		public void Test_FdbTuple_Last()
+		{
+			// tuple.Last<T>() should be equivalent to tuple.Get<T>(-1)
+
+			var t1 = FdbTuple.Create(1);
+			Assert.That(t1.Last<int>(), Is.EqualTo(1));
+			Assert.That(t1.Last<string>(), Is.EqualTo("1"));
+
+			var t2 = FdbTuple.Create(1, 2);
+			Assert.That(t2.Last<int>(), Is.EqualTo(2));
+			Assert.That(t2.Last<string>(), Is.EqualTo("2"));
+
+			var t3 = FdbTuple.Create(1, 2, 3);
+			Assert.That(t3.Last<int>(), Is.EqualTo(3));
+			Assert.That(t3.Last<string>(), Is.EqualTo("3"));
+
+			var tn = FdbTuple.Create(1, 2, 3, 4);
+			Assert.That(tn.Last<int>(), Is.EqualTo(4));
+			Assert.That(tn.Last<string>(), Is.EqualTo("4"));
+
+			IFdbTuple t = FdbTuple.Empty;
+			Assert.That(() => t.Last<string>(), Throws.InstanceOf<IndexOutOfRangeException>());
+
+			t = null;
+			Assert.That(() => t.Last<string>(), Throws.InstanceOf<ArgumentNullException>());
+		}
+
 		#region Splicing...
 
 		private static void VerifyTuple(string message, IFdbTuple t, object[] expected)

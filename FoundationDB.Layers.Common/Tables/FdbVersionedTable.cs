@@ -183,7 +183,7 @@ namespace FoundationDB.Layers.Tables
 			//TODO: ensure that there is a version at the end !
 
 			// get the last item of the tuple, that should be the version
-			long dbVersion = unpacked.Get<long>(-1);
+			long dbVersion = unpacked.Last<long>();
 
 			return dbVersion;
 		}
