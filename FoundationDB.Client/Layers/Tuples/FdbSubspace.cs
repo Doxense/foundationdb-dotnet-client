@@ -244,18 +244,38 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.UnpackWithoutPrefix(key, this.Tuple.Packed);
 		}
 
+		public T UnpackLast<T>(Slice key)
+		{
+			return FdbTuple.UnpackLastWithoutPrefix<T>(key, this.Tuple.Packed);
+		}
+
 		/// <summary>Unpack an array of keys in tuples, with the subspace prefix removed</summary>
 		/// <param name="keys">Packed version of keys inside this subspace</param>
 		/// <returns>Unpacked tuples that are relative to the current subspace</returns>
 		public IFdbTuple[] Unpack(Slice[] keys)
 		{
 			var tuples = new IFdbTuple[keys.Length];
-			int p = 0;
-			foreach (var key in keys)
+			var prefix = this.Tuple.Packed;
+
+			for (int i = 0; i < keys.Length; i++)
 			{
-				tuples[p++] = FdbTuple.UnpackWithoutPrefix(key, this.Tuple.Packed);
+				tuples[i] = FdbTuple.UnpackWithoutPrefix(keys[i], prefix);
 			}
+
 			return tuples;
+		}
+
+		public T[] UnpackLast<T>(Slice[] keys)
+		{
+			var values = new T[keys.Length];
+			var prefix = this.Tuple.Packed;
+	
+			for (int i = 0; i < keys.Length;i++)
+			{
+				values[i] = FdbTuple.UnpackLastWithoutPrefix<T>(keys[i], prefix);
+			}
+
+			return values;
 		}
 
 		#endregion

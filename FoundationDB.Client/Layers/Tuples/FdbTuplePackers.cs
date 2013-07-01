@@ -630,6 +630,23 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbSlicedTuple(p == 0 ? NoSlices : items, 0, p);
 		}
 
+		/// <summary>Only returns the last item of the tuple</summary>
+		internal static Slice UnpackLast(Slice buffer)
+		{
+			var slicer = new Slicer(buffer);
+
+			Slice item = Slice.Nil;
+
+			Slice current;
+			while ((current = ParseNext(ref slicer)).HasValue)
+			{
+				item = current;
+			}
+
+			if (slicer.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
+			return item;
+		}
+
 		internal static Slice ParseNext(ref Slicer reader)
 		{
 			if (!reader.HasMore) return Slice.Nil;

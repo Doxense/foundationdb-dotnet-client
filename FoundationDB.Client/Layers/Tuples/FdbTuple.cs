@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using FoundationDB.Client;
+using FoundationDB.Client.Converters;
 using FoundationDB.Client.Utils;
 using System;
 using System.Collections.Generic;
@@ -318,6 +319,33 @@ namespace FoundationDB.Layers.Tuples
 
 			// unpack the key, minus the prefix
 			return FdbTuplePackers.Unpack(packedKey.Substring(prefix.Count));
+		}
+
+		/// <summary>Unpack only the last value of a packed tuple</summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="packedKey"></param>
+		/// <returns></returns>
+		public static T UnpackLast<T>(Slice packedKey)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Tuple is empty");
+
+			//TODO: optimzed version ?
+			var slice = FdbTuplePackers.UnpackLast(packedKey);
+			if (!slice.HasValue) throw new InvalidOperationException("Failed to unpack tuple");
+
+			object value = FdbTuplePackers.DeserializeObject(slice);
+			return FdbConverters.ConvertBoxed<T>(value);
+		}
+
+		public static T UnpackLastWithoutPrefix<T>(Slice packedKey, Slice prefix)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+
+			// ensure that the key starts with the prefix
+			if (!packedKey.StartsWith(prefix)) throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
+
+			// unpack the key, minus the prefix
+			return UnpackLast<T>(packedKey.Substring(prefix.Count));
 		}
 
 		#endregion

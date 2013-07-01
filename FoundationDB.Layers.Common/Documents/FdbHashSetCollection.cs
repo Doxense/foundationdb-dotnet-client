@@ -108,7 +108,7 @@ namespace FoundationDB.Layers.Blobs
 				.GetRangeStartsWith(prefix)
 				.ForEachAsync((kvp) =>
 				{
-					string field = FdbTuple.Unpack(kvp.Key).Last<string>();
+					string field = this.Subspace.UnpackLast<string>(kvp.Key);
 					results[field] = kvp.Value;
 				}, ct)
 				.ConfigureAwait(false);

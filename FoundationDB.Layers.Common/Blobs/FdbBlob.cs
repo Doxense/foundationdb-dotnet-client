@@ -83,9 +83,8 @@ namespace FoundationDB.Layers.Blobs
 
 		private long DataKeyOffset(Slice key)
 		{
-			var tuple = FdbTuple.Unpack(key);
 			//TODO: check that the tuple is prefixed by (subspace, 'D',) ?
-			long offset = Int64.Parse(tuple.Last<string>(), CultureInfo.InvariantCulture);
+			long offset = Int64.Parse(this.Subspace.UnpackLast<string>(key), CultureInfo.InvariantCulture);
 			if (offset < 0) throw new InvalidOperationException("Chunk offset value cannot be less than zero");
 			return offset;
 		}
@@ -383,7 +382,7 @@ namespace FoundationDB.Layers.Blobs
 			return trans
 				.GetRangeStartsWith(this.Subspace.Pack(AttributesSuffix))
 				.Select(
-					(key) => FdbTuple.Unpack(key).Last<string>(),
+					(key) => FdbTuple.UnpackLast<string>(key),
 					(value) => value
 				)
 				.ToListAsync();

@@ -409,6 +409,14 @@ namespace FoundationDB.Client
 			return m_namespace.Unpack(key);
 		}
 
+		/// <summary>Unpack a key using the current namespace of the database</summary>
+		/// <param name="key">Key that should fit inside the current namespace of the database</param>
+		/// <returns></returns>
+		public T UnpackLast<T>(Slice key)
+		{
+			return m_namespace.UnpackLast<T>(key);
+		}
+
 		/// <summary>Add the global namespace prefix to a relative key</summary>
 		/// <param name="keyRelative">Key that is relative to the global namespace</param>
 		/// <returns>Key that starts with the global namespace prefix</returns>

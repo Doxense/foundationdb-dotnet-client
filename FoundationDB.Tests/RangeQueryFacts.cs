@@ -232,7 +232,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var merge = tr.MergeSort(
 						lists.Select(list => list.Tuple.ToSelectorPair()),
-						kvp => location.Unpack(kvp.Key).Last<int>()
+						kvp => location.UnpackLast<int>(kvp.Key)
 					);
 
 					Assert.That(merge, Is.Not.Null);
@@ -309,7 +309,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var merge = tr.Intersect(
 						lists.Select(list => list.Tuple.ToSelectorPair()),
-						kvp => location.Unpack(kvp.Key).Last<int>()
+						kvp => location.UnpackLast<int>(kvp.Key)
 					);
 
 					Assert.That(merge, Is.Not.Null);
@@ -322,7 +322,7 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < results.Count; i++)
 					{
-						Assert.That(location.Unpack(results[i].Key).Last<int>(), Is.EqualTo(expected[i]));
+						Assert.That(location.UnpackLast<int>(results[i].Key), Is.EqualTo(expected[i]));
 					}
 				}
 
@@ -386,7 +386,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var merge = tr.Except(
 						lists.Select(list => list.Tuple.ToSelectorPair()),
-						kvp => location.Unpack(kvp.Key).Last<int>()
+						kvp => location.UnpackLast<int>(kvp.Key)
 					);
 
 					Assert.That(merge, Is.Not.Null);
@@ -399,7 +399,7 @@ namespace FoundationDB.Client.Tests
 
 					for (int i = 0; i < results.Count; i++)
 					{
-						Assert.That(location.Unpack(results[i].Key).Last<int>(), Is.EqualTo(expected[i]));
+						Assert.That(location.UnpackLast<int>(results[i].Key), Is.EqualTo(expected[i]));
 					}
 				}
 

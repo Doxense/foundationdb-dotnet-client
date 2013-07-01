@@ -139,11 +139,30 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(tn.Last<int>(), Is.EqualTo(4));
 			Assert.That(tn.Last<string>(), Is.EqualTo("4"));
 
-			IFdbTuple t = FdbTuple.Empty;
-			Assert.That(() => t.Last<string>(), Throws.InstanceOf<IndexOutOfRangeException>());
+			Assert.That(() => FdbTuple.Empty.Last<string>(), Throws.InstanceOf<InvalidOperationException>());
 
-			t = null;
-			Assert.That(() => t.Last<string>(), Throws.InstanceOf<ArgumentNullException>());
+		}
+
+		[Test]
+		public void Test_FdbTuple_UnpackLast()
+		{
+			Slice packed;
+
+			packed = FdbTuple.Pack(1);
+			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("1"));
+
+			packed = FdbTuple.Pack(1, 2);
+			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(2));
+			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("2"));
+
+			packed = FdbTuple.Pack(1, 2, 3);
+			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(3));
+			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("3"));
+
+			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+
 		}
 
 		#region Splicing...
