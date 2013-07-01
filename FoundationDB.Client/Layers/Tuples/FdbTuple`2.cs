@@ -26,16 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using FoundationDB.Client.Converters;
-using FoundationDB.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
+	using FoundationDB.Client.Utils;
+	using System;
+	using System.Collections;
+	using System.Collections.Generic;
+	using System.Diagnostics;
 
 	/// <summary>Tuple that holds a pair of items</summary>
 	/// <typeparam name="T1">Type of the first item</typeparam>
@@ -127,22 +126,39 @@ namespace FoundationDB.Layers.Tuples
 			return "(" + FdbTuple.Stringify(this.Item1) + ", " + FdbTuple.Stringify(this.Item2) + ",)";
 		}
 
-		public override int GetHashCode()
+		public override bool Equals(object obj)
 		{
-			return FdbTuple.CombineHashCode(
-				this.Item1 != null ? this.Item1.GetHashCode() : -1,
-				this.Item2 != null ? this.Item2.GetHashCode() : -1
-			);
+			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
 		public bool Equals(IFdbTuple other)
 		{
-			return other != null && other.Count == 2 && ComparisonHelper.AreSimilar(this.Item1, other[0]) && ComparisonHelper.AreSimilar(this.Item2, other[1]);
+			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
 
-		public override bool Equals(object obj)
+		public override int GetHashCode()
 		{
-			return Equals(obj as IFdbTuple);
+			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+		}
+
+		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+		{
+			if (other == null) return false;
+			if (other is FdbTuple<T1, T2>)
+			{
+				var tuple = (FdbTuple<T1, T2>)other;
+				return comparer.Equals(this.Item1, tuple.Item1)
+					&& comparer.Equals(this.Item2, tuple.Item2);
+			}
+			return FdbTuple.Equals(this, other, comparer);
+		}
+
+		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		{
+			return FdbTuple.CombineHashCodes(
+				comparer.GetHashCode(this.Item1),
+				comparer.GetHashCode(this.Item2)
+			);
 		}
 
 	}

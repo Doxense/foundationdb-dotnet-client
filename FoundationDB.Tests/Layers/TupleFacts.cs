@@ -42,6 +42,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 	public class TupleFacts
 	{
 
+		#region General Use...
+
 		[Test]
 		public void Test_FdbTuple_Create()
 		{
@@ -164,6 +166,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
 
 		}
+
+		#endregion
 
 		#region Splicing...
 
@@ -1033,6 +1037,114 @@ namespace FoundationDB.Layers.Tuples.Tests
 			PerformWriterTest(test, "\0A", "01 00 FF 41 00");
 			PerformWriterTest(test, "A\0\0A", "01 41 00 FF 00 FF 41 00");
 			PerformWriterTest(test, "A\0B\0\xFF", "01 41 00 FF 42 00 FF FF 00");
+		}
+
+		#endregion
+
+		#region Equality / Comparison
+
+		private static void AssertEquality(IFdbTuple x, IFdbTuple y)
+		{
+			Assert.That(x.Equals(y), Is.True, "x.Equals(y)");
+			Assert.That(x.Equals((object)y), Is.True, "x.Equals((object)y)");
+			Assert.That(y.Equals(x), Is.True, "y.Equals(x)");
+			Assert.That(y.Equals((object)x), Is.True, "y.Equals((object)y");
+		}
+
+		private static void AssertInequality(IFdbTuple x, IFdbTuple y)
+		{
+			Assert.That(x.Equals(y), Is.False, "!x.Equals(y)");
+			Assert.That(x.Equals((object)y), Is.False, "!x.Equals((object)y)");
+			Assert.That(y.Equals(x), Is.False, "!y.Equals(x)");
+			Assert.That(y.Equals((object)x), Is.False, "!y.Equals((object)y");
+		}
+
+		[Test]
+		public void Test_FdbTuple_Equals()
+		{
+			var t1 = FdbTuple.Create(1, 2);
+			// self equality
+			AssertEquality(t1, t1);
+
+			var t2 = FdbTuple.Create(1, 2);
+			// same type equality
+			AssertEquality(t1, t2);
+
+			var t3 = FdbTuple.Create(new object[] { 1, 2 });
+			// other tuple type equality
+			AssertEquality(t1, t3);
+
+			var t4 = FdbTuple.Create(1).Append(2);
+			// multi step
+			AssertEquality(t1, t4);
+		}
+
+		[Test]
+		public void Test_FdbTuple_Similar()
+		{
+			var t1 = FdbTuple.Create(1, 2);
+			var t2 = FdbTuple.Create((long)1, (short)2);
+			var t3 = FdbTuple.Create("1", "2");
+			var t4 = FdbTuple.Create(new object[] { 1, 2L });
+			var t5 = FdbTuple.Unpack(Slice.Unescape("<02>1<00><15><02>"));
+
+			AssertEquality(t1, t1);
+			AssertEquality(t1, t2);
+			AssertEquality(t1, t3);
+			AssertEquality(t1, t4);
+			AssertEquality(t1, t5);
+			AssertEquality(t2, t2);
+			AssertEquality(t2, t3);
+			AssertEquality(t2, t4);
+			AssertEquality(t2, t5);
+			AssertEquality(t3, t3);
+			AssertEquality(t3, t4);
+			AssertEquality(t3, t5);
+			AssertEquality(t4, t4);
+			AssertEquality(t4, t5);
+			AssertEquality(t5, t5);
+		}
+
+		[Test]
+		public void Test_FdbTuple_Not_Equal()
+		{
+			var t1 = FdbTuple.Create(1, 2);
+
+			var x1 = FdbTuple.Create(2, 1);
+			var x2 = FdbTuple.Create("11", "22");
+			var x3 = FdbTuple.Create(1, 2, 3);
+			var x4 = FdbTuple.Unpack(Slice.Unescape("<15><01>"));
+
+			AssertInequality(t1, x1);
+			AssertInequality(t1, x2);
+			AssertInequality(t1, x3);
+			AssertInequality(t1, x4);
+
+			AssertInequality(x1, x2);
+			AssertInequality(x1, x3);
+			AssertInequality(x1, x4);
+			AssertInequality(x2, x3);
+			AssertInequality(x2, x4);
+			AssertInequality(x3, x4);
+		}
+
+		[Test]
+		public void Test_FdbTuple_String_AutoCast()
+		{
+			// 'a' ~= "A"
+			AssertEquality(FdbTuple.Create("A"), FdbTuple.Create('A'));
+			AssertInequality(FdbTuple.Create("A"), FdbTuple.Create('B'));
+			AssertInequality(FdbTuple.Create("A"), FdbTuple.Create('a'));
+
+			// ASCII ~= Unicode
+			AssertEquality(FdbTuple.Create("ABC"), FdbTuple.Create(Slice.FromAscii("ABC")));
+			AssertInequality(FdbTuple.Create("ABC"), FdbTuple.Create(Slice.FromAscii("DEF")));
+			AssertInequality(FdbTuple.Create("ABC"), FdbTuple.Create(Slice.FromAscii("abc")));
+
+			// 'a' ~= ASCII 'a'
+			AssertEquality(FdbTuple.Create(Slice.FromAscii("A")), FdbTuple.Create('A'));
+			AssertInequality(FdbTuple.Create(Slice.FromAscii("A")), FdbTuple.Create('B'));
+			AssertInequality(FdbTuple.Create(Slice.FromAscii("A")), FdbTuple.Create('a'));
 		}
 
 		#endregion

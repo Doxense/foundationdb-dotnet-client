@@ -26,16 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using FoundationDB.Client.Converters;
-using FoundationDB.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
-
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
+	using FoundationDB.Client.Utils;
+	using System;
+	using System.Collections;
+	using System.Collections.Generic;
+	using System.Globalization;
+	using System.Text;
 
 	/// <summary>Factory class for Tuples</summary>
 	public static class FdbTuple
@@ -132,6 +132,17 @@ namespace FoundationDB.Layers.Tuples
 			public override bool Equals(object obj)
 			{
 				return Equals(obj as IFdbTuple);
+			}
+
+			bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+			{
+				var tuple = other as IFdbTuple;
+				return tuple != null && tuple.Count == 0;
+			}
+
+			int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+			{
+				return 0;
 			}
 
 		}
@@ -524,12 +535,87 @@ namespace FoundationDB.Layers.Tuples
 			throw new IndexOutOfRangeException(String.Format("Index {0} is outside of the tuple's range (0..{1})", index, count - 1));
 		}
 
-		internal static int CombineHashCode(int h1, int h2)
+		internal static int CombineHashCodes(int h1, int h2)
 		{
-			// h(0) = hash_function(x[0])
-			// h(n) = ROTL(h(n-1), 13) ^ hash_function(x[n])
+			return ((h1 << 5) + h1) ^ h2;
+		}
 
-			return ((h1 << 13) | (h1 >> (32 - 13))) ^ h2;
+		internal static int CombineHashCodes(int h1, int h2, int h3)
+		{
+			int h = ((h1 << 5) + h1) ^ h2;
+			return ((h << 5) + h) ^ h3;
+		}
+
+		internal static int CombineHashCodes(int h1, int h2, int h3, int h4)
+		{
+			return CombineHashCodes(CombineHashCodes(h1, h2), CombineHashCodes(h3, h4));
+		}
+
+		internal static bool Equals(IFdbTuple left, object other, IEqualityComparer comparer)
+		{
+			return object.ReferenceEquals(left, null) ? other == null : FdbTuple.Equals(left, other as IFdbTuple, comparer);
+		}
+
+		internal static bool Equals(IFdbTuple x, IFdbTuple y, IEqualityComparer comparer)
+		{
+			if (object.ReferenceEquals(x, y)) return true;
+			if (object.ReferenceEquals(x, null) || object.ReferenceEquals(y, null)) return false;
+
+			return x.Count == y.Count && DeepEquals(x, y, comparer);
+		}
+
+		internal static bool DeepEquals(IFdbTuple x, IFdbTuple y, IEqualityComparer comparer)
+		{
+			using (var xs = x.GetEnumerator())
+			using (var ys = y.GetEnumerator())
+			{
+				while (xs.MoveNext())
+				{
+					if (!ys.MoveNext()) return false;
+
+					return comparer.Equals(xs.Current, ys.Current);
+				}
+
+				return !ys.MoveNext();
+			}
+		}
+
+		internal static int StructuralGetHashCode(IFdbTuple tuple, IEqualityComparer comparer)
+		{
+			if (object.ReferenceEquals(tuple, null))
+			{
+				return comparer.GetHashCode(null);
+			}
+
+			int h = 0;
+			foreach(var item in tuple)
+			{
+				h = CombineHashCodes(h, comparer.GetHashCode(item));
+			}
+			return h;
+		}
+
+		internal static int StructuralCompare(IFdbTuple x, IFdbTuple y, IComparer comparer)
+		{
+			Contract.Requires(comparer != null);
+
+			if (object.ReferenceEquals(x, y)) return 0;
+			if (object.ReferenceEquals(x, null)) return -1;
+			if (object.ReferenceEquals(y, null)) return 1;
+
+			using (var xs = x.GetEnumerator())
+			using (var ys = y.GetEnumerator())
+			{
+				while (xs.MoveNext())
+				{
+					if (!ys.MoveNext()) return 1;
+
+					int cmp = comparer.Compare(xs.Current, ys.Current);
+					if (cmp != 0) return cmp;
+
+				}
+				return ys.MoveNext() ? -1 : 0;
+			}
 		}
 
 		#endregion

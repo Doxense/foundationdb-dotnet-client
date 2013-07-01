@@ -26,17 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using FoundationDB.Client.Converters;
-using FoundationDB.Client.Utils;
-using System;
-using System.Collections.Generic;
-
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
+	using FoundationDB.Client.Utils;
+	using System;
+	using System.Collections;
+	using System.Collections.Generic;
 
 	/// <summary>Specialized tuple that efficiently maps a key parsed from a Slice</summary>
-	internal sealed class FdbSlicedTuple : IFdbTuple, IEquatable<FdbSlicedTuple>
+	internal sealed class FdbSlicedTuple : IFdbTuple
 	{
 		// FdbTuple.Unpack() splits a key into an array of slices (one for each item). We hold onto these slices, and only deserialize them if needed.
 		// This is helpful because in most cases, the app code will only want to get the last few items (e.g: tuple[-1]) or skip the first few items (some subspace).
@@ -148,52 +148,58 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.ToString(this);
 		}
 
-		public bool Equals(FdbSlicedTuple other)
+		public override bool Equals(object obj)
 		{
-			if (other == null || other.m_count != m_count) return false;
-
-			// compare slices!
-			for (int i = 0; i < m_count; i++)
-			{
-				if (m_slices[i + m_offset] != other.m_slices[i + other.m_offset]) return false;
-			}
-			return false;
+			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
 		public bool Equals(IFdbTuple other)
 		{
-			if (other == null || other.Count != m_count) return false;
-
-			// compare deserialized values
-			int p = 0;
-			foreach (var item in other)
-			{
-				if (p >= m_count) return false; // note: this means the tuple's enumerator is buggy
-				if (!ComparisonHelper.AreSimilar(this[p++], item)) return false;
-			}
-			return p >= m_count;
-		}
-
-		public override bool Equals(object obj)
-		{
-			var tuple = obj as FdbSlicedTuple;
-			if (tuple != null) return Equals(tuple);
-			return Equals(obj as IFdbTuple);
+			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
 
 		public override int GetHashCode()
 		{
-			if (!m_hashCode.HasValue)
+			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+		}
+
+		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)
+		{
+			if (object.ReferenceEquals(this, other)) return true;
+			if (other == null) return false;
+
+			var sliced = other as FdbSlicedTuple;
+			if (!object.ReferenceEquals(sliced, null))
 			{
-				int h = 0;
+				if (sliced.m_count != m_count) return false;
+
+				// compare slices!
 				for (int i = 0; i < m_count; i++)
 				{
-					var item = m_slices[i + m_offset];
-					h = FdbTuple.CombineHashCode(h, item != null ? item.GetHashCode() : -1);
+					if (m_slices[i + m_offset] != sliced.m_slices[i + sliced.m_offset]) return false;
 				}
-				m_hashCode = h;
+				return false;
 			}
-			return m_hashCode.GetValueOrDefault();
+
+			return FdbTuple.Equals(this, other, comparer);
+		}
+
+		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
+		{
+			bool canUseCache = object.ReferenceEquals(comparer, SimilarValueComparer.Default);
+
+			if (m_hashCode.HasValue && canUseCache)
+			{
+				return m_hashCode.Value;
+			}
+
+			int h = 0;
+			for (int i = 0; i < m_count; i++)
+			{
+				h = FdbTuple.CombineHashCodes(h, comparer.GetHashCode(m_slices[i + m_offset]));
+			}
+			if (canUseCache) m_hashCode = h;
+			return h;
 		}
 
 	}

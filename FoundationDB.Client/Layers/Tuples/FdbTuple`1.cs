@@ -26,16 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using FoundationDB.Client.Converters;
-using FoundationDB.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
+	using FoundationDB.Client.Utils;
+	using System;
+	using System.Collections;
+	using System.Collections.Generic;
+	using System.Diagnostics;
 
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
@@ -120,19 +119,34 @@ namespace FoundationDB.Layers.Tuples
 			return "(" + FdbTuple.Stringify(this.Item1) + ",)";
 		}
 
-		public override int GetHashCode()
+		public override bool Equals(object obj)
 		{
-			return this.Item1 != null ? this.Item1.GetHashCode() : -1;
+			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
 		public bool Equals(IFdbTuple other)
 		{
-			return other != null && other.Count == 1 && ComparisonHelper.AreSimilar(this.Item1, other[0]);
+			return other != null && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
 
-		public override bool Equals(object obj)
+		public override int GetHashCode()
 		{
-			return Equals(obj as IFdbTuple);
+			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+		}
+
+		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)
+		{
+			if (other == null) return false;
+			if (other is FdbTuple<T1>)
+			{
+				return comparer.Equals(this.Item1, ((FdbTuple<T1>)other).Item1);
+			}
+			return FdbTuple.Equals(this, other, comparer);
+		}
+
+		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
+		{
+			return comparer.GetHashCode(this.Item1);
 		}
 
 	}

@@ -240,9 +240,8 @@ namespace FoundationDB.Client.Converters
 		/// </example>
 		internal static bool AreSimilar(object x, object y)
 		{
-			if (x == null) return y == null;
-			if (y == null) return false;
 			if (object.ReferenceEquals(x, y)) return true;
+			if (x == null || y == null) return false;
 
 			var comparator = GetTypeComparator(x.GetType(), y.GetType());
 			Contract.Requires(comparator != null);

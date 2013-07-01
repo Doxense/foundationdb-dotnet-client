@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
 	using System;
+	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 
@@ -143,24 +144,54 @@ namespace FoundationDB.Layers.Tuples
 			return this.GetEnumerator();
 		}
 
+		public override bool Equals(object obj)
+		{
+			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
+		}
+
 		public bool Equals(IFdbTuple other)
 		{
-			if (other == null) return false;
-			if (object.ReferenceEquals(this, other)) return true;
-			if (other.Count != m_count) return false;
+			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
+		}
 
-			using(var iter = other.GetEnumerator())
+		public override int GetHashCode()
+		{
+			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+		}
+
+		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+		{
+			if (object.ReferenceEquals(this, other)) return true;
+			if (other == null) return false;
+
+			var tuple = other as IFdbTuple;
+			if (!object.ReferenceEquals(tuple, null))
 			{
-				foreach(var item in this.Head)
+				if (tuple.Count != m_count) return false;
+
+				using (var iter = tuple.GetEnumerator())
 				{
-					if (!iter.MoveNext() || !ComparisonHelper.AreSimilar(item, iter.Current)) return false;
+					foreach (var item in this.Head)
+					{
+						if (!iter.MoveNext() || !comparer.Equals(item, iter.Current)) return false;
+					}
+					foreach (var item in this.Tail)
+					{
+						if (!iter.MoveNext() || !comparer.Equals(item, iter.Current)) return false;
+					}
+					return !iter.MoveNext();
 				}
-				foreach(var item in this.Tail)
-				{
-					if (!iter.MoveNext() || !ComparisonHelper.AreSimilar(item, iter.Current)) return false;
-				}
-				return !iter.MoveNext();
 			}
+
+			return false;
+		}
+
+		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		{
+			return FdbTuple.CombineHashCodes(
+				this.Head != null ? this.Head.GetHashCode(comparer) : 0,
+				this.Tail != null ? this.Tail.GetHashCode(comparer) : 0
+			);
 		}
 	}
 

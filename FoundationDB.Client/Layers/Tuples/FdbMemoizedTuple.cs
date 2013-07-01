@@ -26,15 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using FoundationDB.Client.Converters;
-using FoundationDB.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
+	using FoundationDB.Client.Utils;
+	using System;
+	using System.Collections;
+	using System.Collections.Generic;
+	using System.Diagnostics;
 
 	/// <summary>Represent an immutable tuple where the packed bytes are cached</summary>
 	[DebuggerDisplay("{ToString()}")]
@@ -138,21 +138,38 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.ToString(this.Items, 0, this.Items.Length);
 		}
 
-		public override int GetHashCode()
-		{
-			// The simplest way is to get the hash of the slice...
-			return this.Packed.GetHashCode();
-		}
-
-		public bool Equals(IFdbTuple other)
-		{
-			//TODO!
-			return object.ReferenceEquals(this, other);
-		}
-
 		public override bool Equals(object obj)
 		{
 			return Equals(obj as IFdbTuple);
 		}
+
+		public bool Equals(IFdbTuple other)
+		{
+			if (object.ReferenceEquals(other, null)) return false;
+
+			var memoized = other as FdbMemoizedTuple;
+			if (!object.ReferenceEquals(memoized, null))
+			{
+				return this.Packed.Equals(memoized.Packed);
+			}
+
+			return FdbTuple.Equals(this, other, SimilarValueComparer.Default);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Packed.GetHashCode();
+		}
+
+		bool IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+		{
+			return FdbTuple.Equals(this, other, comparer);
+		}
+
+		int System.Collections.IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		{
+			return FdbTuple.StructuralGetHashCode(this, comparer);
+		}
+
 	}
 }

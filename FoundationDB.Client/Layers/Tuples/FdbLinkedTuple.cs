@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
+	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 
@@ -135,22 +136,45 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.ToString(this);
 		}
 
-		public bool Equals(IFdbTuple other)
-		{
-			//TODO: implemented equality check !
-			return object.ReferenceEquals(other, this);
-		}
-
 		public override bool Equals(object obj)
 		{
-			return Equals(obj as IFdbTuple);
+			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
+		}
+
+		public bool Equals(IFdbTuple other)
+		{
+			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
 		}
 
 		public override int GetHashCode()
 		{
-			return FdbTuple.CombineHashCode(
-				this.Head != null ? this.Head.GetHashCode() : -1,
-				this.Tail != null ? this.Tail.GetHashCode() : -1
+			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+		}
+
+		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
+		{
+			if (object.ReferenceEquals(this, other)) return true;
+			if (other == null) return false;
+
+			var linked = other as FdbLinkedTuple<T>;
+			if (!object.ReferenceEquals(linked, null))
+			{
+				// must have same length
+				if (linked.Count != this.Count) return false;
+				// compare the tail before
+				if (!comparer.Equals(this.Tail, linked.Tail)) return false;
+				// compare the rest
+				return this.Head.Equals(linked.Tail, comparer);
+			}
+
+			return FdbTuple.Equals(this, other, comparer);
+		}
+
+		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		{
+			return FdbTuple.CombineHashCodes(
+				this.Head != null ? this.Head.GetHashCode(comparer) : 0,
+				comparer.GetHashCode(this.Tail)
 			);
 		}
 

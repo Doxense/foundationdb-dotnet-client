@@ -26,18 +26,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using FoundationDB.Client.Converters;
-using FoundationDB.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
+	using FoundationDB.Client.Utils;
+	using System;
+	using System.Collections;
+	using System.Collections.Generic;
+	using System.Linq;
 
 	/// <summary>Tuple that can hold any number of items</summary>
-	public sealed class FdbListTuple : IFdbTuple, IEquatable<FdbListTuple>
+	public sealed class FdbListTuple : IFdbTuple
 	{
 		private static readonly object[] EmptyList = new object[0];
 
@@ -211,31 +211,7 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.ToString(m_items, m_offset, m_count);
 		}
 
-		public override int GetHashCode()
-		{
-			if (!m_hashCode.HasValue)
-			{
-				int h = 0;
-				for (int i = 0; i < m_count; i++)
-				{
-					var item = m_items[i + m_offset];
-					h = FdbTuple.CombineHashCode(h, item != null ? item.GetHashCode() : -1);
-				}
-				m_hashCode = h;
-			}
-			return m_hashCode.GetValueOrDefault();
-		}
-
-		public override bool Equals(object obj)
-		{
-			var tupleList = obj as FdbListTuple;
-			if (tupleList != null) return this.Equals(tupleList);
-			var tuple = obj as IFdbTuple;
-			if (tuple != null) return this.Equals(tuple);
-			return false;
-		}
-
-		private bool CompareItems(IEnumerable<object> theirs)
+		private bool CompareItems(IEnumerable<object> theirs, IEqualityComparer comparer)
 		{
 			int p = 0;
 			foreach (var item in theirs)
@@ -248,34 +224,69 @@ namespace FoundationDB.Layers.Tuples
 				}
 				else
 				{
-					if (!ComparisonHelper.AreSimilar(item, m_items[p + m_offset])) return false;
+					if (!comparer.Equals(item, m_items[p + m_offset])) return false;
 				}
 				p++;
 			}
 			return p >= m_count;
 		}
 
-		public bool Equals(FdbListTuple tuple)
+		public override bool Equals(object obj)
 		{
-			if (object.ReferenceEquals(this, tuple)) return true;
-			if (object.ReferenceEquals(tuple, null) || tuple.m_count != m_count || this.GetHashCode() != tuple.GetHashCode()) return false;
-
-			if (tuple.m_offset == 0 && tuple.m_count == tuple.m_items.Length)
-			{
-				return CompareItems(tuple.m_items);
-			}
-			else
-			{
-				return CompareItems(tuple);
-			}
+			return obj != null && ((IStructuralEquatable)this).Equals(obj, SimilarValueComparer.Default);
 		}
 
-		public bool Equals(IFdbTuple tuple)
+		public bool Equals(IFdbTuple other)
 		{
-			if (object.ReferenceEquals(this, tuple)) return true;
-			if (object.ReferenceEquals(tuple, null) || tuple.Count != m_count) return false;
+			return !object.ReferenceEquals(other, null) && ((IStructuralEquatable)this).Equals(other, SimilarValueComparer.Default);
+		}
 
-			return CompareItems(tuple);
+		public override int GetHashCode()
+		{
+			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+		}
+
+		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)
+		{
+			if (object.ReferenceEquals(this, other)) return true;
+			if (other == null) return false;
+
+			var list = other as FdbListTuple;
+			if (!object.ReferenceEquals(list, null))
+			{
+				if (list.m_count != m_count) return false;
+
+				if (list.m_offset == 0 && list.m_count == list.m_items.Length)
+				{
+					return CompareItems(list.m_items, comparer);
+				}
+				else
+				{
+					return CompareItems(list, comparer);
+				}
+			}
+
+			return FdbTuple.Equals(this, other, comparer);
+		}
+
+		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
+		{
+			// the cached hashcode is only valid for the default comparer!
+			bool canUseCache = object.ReferenceEquals(comparer, SimilarValueComparer.Default);
+			if (m_hashCode.HasValue && canUseCache)
+			{
+				return m_hashCode.Value;
+			}
+
+			int h = 0;
+			for (int i = 0; i < m_count; i++)
+			{
+				var item = m_items[i + m_offset];
+					
+				h = FdbTuple.CombineHashCodes(h, comparer.GetHashCode(item));
+			}
+			if (canUseCache) m_hashCode = h;
+			return h;
 		}
 
 	}

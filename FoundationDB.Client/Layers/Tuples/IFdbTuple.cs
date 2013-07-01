@@ -37,6 +37,7 @@ namespace FoundationDB.Layers.Tuples
 	public interface IFdbTuple : IEnumerable<object>, IEquatable<IFdbTuple>, IReadOnlyCollection<object>
 #if !NET_4_0
 		, IReadOnlyList<object>
+		, System.Collections.IStructuralEquatable
 #endif
 	{
 
