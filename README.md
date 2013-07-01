@@ -110,7 +110,7 @@ If you see the error `Could not copy the file "....\FoundationDb.Client\fdb_c.dl
 
 If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012, and not an earlier version.
 
-The nuget package restore has been enabled on the solution, so it should redownload the missing packages during the first build.
+If you see the error `Unable to locate '...\foundationdb-dotnet-client\.nuget\nuget.exe'` then you need to run the `Enable Nuget Package Restore` entry in the `Project` menu (or right click on the solution) that will reinstall nuget.exe in the .nuget folder. Also, Nuget should should redownload the missing packages during the first build.
 
 How to test
 -----------
