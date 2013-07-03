@@ -83,7 +83,7 @@ namespace FoundationDB.Client.Utils
 
 		#endregion
 
-		#region Requires
+		#region Ensures
 
 		[DebuggerStepThrough]
 		[Conditional("DEBUG")]

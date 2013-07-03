@@ -30,13 +30,14 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
 	using System;
-	using System.Collections.Generic;
-	using System.Globalization;
+	using System.ComponentModel;
 	using System.IO;
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading.Tasks;
 
+	/// <summary>Delimits a section of a byte array</summary>
+	[ImmutableObject(true)]
 	public struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>
 	{
 		#region Static Members...
