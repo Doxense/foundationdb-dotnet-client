@@ -175,7 +175,7 @@ namespace FoundationDB.Client.Native
 			public static extern bool fdb_future_is_error(FutureHandle futureHandle);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_set_callback(FutureHandle future, /*FDBCallback*/ IntPtr callback, IntPtr callbackParameter);
+			public static extern FdbError fdb_future_set_callback(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_future_get_error(FutureHandle future, IntPtr* description);
@@ -345,8 +345,7 @@ namespace FoundationDB.Client.Native
 
 		public static FdbError FutureSetCallback(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter)
 		{
-			var ptrCallback = Marshal.GetFunctionPointerForDelegate(callback);
-			var err = Stubs.fdb_future_set_callback(future, ptrCallback, callbackParameter);
+			var err = Stubs.fdb_future_set_callback(future, callback, callbackParameter);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_set_callback(0x" + future.Handle.ToString("x") + ", 0x" + ptrCallback.ToString("x") + ") => err=" + err);
 #endif
