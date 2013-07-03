@@ -75,7 +75,6 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbSubspace(this.Tuple.Append<T>(value));
 		}
 
-
 		/// <summary>Partition this subspace into a child subspace</summary>
 		/// <typeparam name="T1">Type of the primary subspace key</typeparam>
 		/// <typeparam name="T2">Type of the secondary subspace key</typeparam>
@@ -89,6 +88,23 @@ namespace FoundationDB.Layers.Tuples
 		public FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
 		{
 			return new FdbSubspace(this.Tuple.Concat(new FdbTuple<T1, T2>(value1, value2)));
+		}
+
+
+		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <typeparam name="T1">Type of the primary subspace key</typeparam>
+		/// <typeparam name="T2">Type of the secondary subspace key</typeparam>
+		/// <typeparam name="T2">Type of the tertiary subspace key</typeparam>
+		/// <param name="value1">Value of the primary subspace key</param>
+		/// <param name="value1">Value of the secondary subspace key</param>
+		/// <param name="value1">Value of the tertiary subspace key</param>
+		/// <returns>New subspace that is logically contained by the current subspace</returns>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
+		/// </example>
+		public FdbSubspace Partition<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		{
+			return new FdbSubspace(this.Tuple.Concat(new FdbTuple<T1, T2, T3>(value1, value2, value3)));
 		}
 
 		/// <summary>Parition this subspace by appending a tuple</summary>

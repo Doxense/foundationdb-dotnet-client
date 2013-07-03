@@ -385,6 +385,13 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a new partition of the current database</summary>
+		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
+		public FdbSubspace Partition<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		{
+			return m_namespace.Partition<T1, T2, T3>(value1, value2, value3);
+		}
+
+		/// <summary>Return a new partition of the current database</summary>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="tuple"/></returns>
 		public FdbSubspace Partition(IFdbTuple tuple)
 		{
