@@ -26,31 +26,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Microsoft.Win32.SafeHandles;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDB.Client.Native
 {
+	using System;
+	using System.Threading;
 
 	/// <summary>Wrapper on a FDBDatabase*</summary>
-	internal class DatabaseHandle : FdbSafeHandle
+	internal sealed class DatabaseHandle : FdbSafeHandle
 	{
+
 		public DatabaseHandle()
 			: base()
-		{ }
+		{
+#if DEBUG
+			Interlocked.Increment(ref DebugCounters.DatabaseHandlesTotal);
+			Interlocked.Increment(ref DebugCounters.DatabaseHandles);
+#endif
+		}
 
 		protected override void Destroy(IntPtr handle)
 		{
 			FdbNative.DatabaseDestroy(handle);
+#if DEBUG
+			Interlocked.Decrement(ref DebugCounters.DatabaseHandles);
+#endif
 		}
+
 	}
 
 }

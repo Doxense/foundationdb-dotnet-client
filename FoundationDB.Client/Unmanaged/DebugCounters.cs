@@ -26,32 +26,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if DEBUG
+
 namespace FoundationDB.Client.Native
 {
 	using System;
 	using System.Threading;
 
-	/// <summary>Wrapper on a FDBFuture*</summary>
-	internal sealed class FutureHandle : FdbSafeHandle
+	/// <summary>Simple debug counters container that is used to troubleshoot alloc/free problems...</summary>
+	public static class DebugCounters
 	{
 
-		public FutureHandle()
-			: base()
-		{
-#if DEBUG
-			Interlocked.Increment(ref DebugCounters.FutureHandlesTotal);
-			Interlocked.Increment(ref DebugCounters.FutureHandles);
-#endif
-		}
+		public static long ClusterHandlesTotal = 0;
+		public static long ClusterHandles = 0;
 
-		protected override void Destroy(IntPtr handle)
-		{
-			FdbNative.FutureDestroy(handle);
-#if DEBUG
-			Interlocked.Decrement(ref DebugCounters.FutureHandles);
-#endif
-		}
+		public static long DatabaseHandlesTotal = 0;
+		public static long DatabaseHandles = 0;
+
+		public static long TransactionHandlesTotal = 0;
+		public static long TransactionHandles = 0;
+
+		public static long FutureHandlesTotal = 0;
+		public static long FutureHandles = 0;
+
+		public static long CallbackHandlesTotal = 0;
+		public static long CallbackHandles = 0;
 
 	}
 
 }
+
+#endif

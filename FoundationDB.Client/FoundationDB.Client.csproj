@@ -92,6 +92,7 @@
     <Compile Include="Linq\IFdbAsyncEnumerator.cs" />
     <Compile Include="Linq\IFdbAsyncEnumerable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleParser.cs" />
+    <Compile Include="Unmanaged\DebugCounters.cs" />
     <Compile Include="Utils\Logging.cs" />
     <Compile Include="Utils\FdbSliceSerializer.cs" />
     <Compile Include="Utils\ISliceSerializer.cs" />

@@ -26,22 +26,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
-using System;
 namespace FoundationDB.Client.Native
 {
+	using System;
+	using System.Threading;
 
 	/// <summary>Wrapper on a FDBCluster*</summary>
-	internal class ClusterHandle : FdbSafeHandle
+	internal sealed class ClusterHandle : FdbSafeHandle
 	{
+
 		public ClusterHandle()
 			: base()
-		{ }
+		{
+#if DEBUG
+			Interlocked.Increment(ref DebugCounters.ClusterHandlesTotal);
+			Interlocked.Increment(ref DebugCounters.ClusterHandles);
+#endif
+		}
 
 		protected override void Destroy(IntPtr handle)
 		{
 			FdbNative.ClusterDestroy(handle);
+#if DEBUG
+			Interlocked.Decrement(ref DebugCounters.ClusterHandles);
+#endif
 		}
+
 	}
 
 }
