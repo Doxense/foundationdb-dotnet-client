@@ -152,7 +152,8 @@ namespace FoundationDB.Client
 		/// <param name="rnd">Random generator to use (needs locking if instance is shared)</param>
 		/// <param name="size">Number of random bytes to generate</param>
 		/// <returns>Slice of <paramref name="size"/> bytes takent from <paramref name="rnd"/></returns>
-		internal static Slice Random(Random rnd, int size)
+		/// <remarks>If the <paramref name="rnd"/> instance is shared, then it needs to be locked before calling this method.</remarks>
+		public static Slice Random(Random rnd, int size)
 		{
 			if (rnd == null) throw new ArgumentNullException("rnd");
 			if (size <= 0) return Slice.Empty;
