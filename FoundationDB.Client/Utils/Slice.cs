@@ -366,6 +366,11 @@ namespace FoundationDB.Client
 			return bytes;
 		}
 
+		public SliceStream AsStream()
+		{
+			return new SliceStream(this);
+		}
+
 		/// <summary>Stringify a slice containing only ASCII chars</summary>
 		/// <returns>ASCII string, or null if the slice is null</returns>
 		public string ToAscii()
