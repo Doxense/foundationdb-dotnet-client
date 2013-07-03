@@ -48,6 +48,8 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="Arrays\FdbArray.cs" />
+    <Compile Include="Documents\FdbDocumentHandlers.cs" />
+    <Compile Include="Documents\FdbDocumentCollection.cs" />
     <Compile Include="Documents\FdbHashSetCollection.cs" />
     <Compile Include="Indexes\FdbSimpleIndex.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
