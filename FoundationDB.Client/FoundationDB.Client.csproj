@@ -51,6 +51,7 @@
     </Compile>
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="FdbOperationContext.cs" />
     <Compile Include="FdbMergeQueryExtensions.cs" />
     <Compile Include="FdbExceptIterator.cs" />
     <Compile Include="FdbQueryMergeIterator.cs" />

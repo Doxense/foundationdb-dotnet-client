@@ -67,8 +67,20 @@ namespace FoundationDB.Layers.Tables
 		public Task<Slice> GetAsync(FdbTransaction trans, IFdbTuple id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+			if (id == null) throw new ArgumentNullException("id");
 
 			return trans.GetAsync(MakeKey(id).ToSlice(), snapshot, ct);
+		}
+
+		public Task<Slice> GetAsync(FdbDatabase db, IFdbTuple id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (id == null) throw new ArgumentNullException("id");
+
+			return db.Attempt(
+				(tr) => GetAsync(tr, id, snapshot, ct),
+				ct
+			);
 		}
 
 		#endregion
@@ -78,8 +90,20 @@ namespace FoundationDB.Layers.Tables
 		public void Set(FdbTransaction trans, IFdbTuple id, Slice value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+			if (id == null) throw new ArgumentNullException("id");
 
 			trans.Set(MakeKey(id).ToSlice(), value);
+		}
+
+		public Task SetAsync(FdbDatabase db, IFdbTuple id, Slice value, CancellationToken ct = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (id == null) throw new ArgumentNullException("id");
+
+			return db.Attempt(
+				(tr) => { Set(tr, id, value); },
+				ct
+			);
 		}
 
 		#endregion
@@ -89,8 +113,20 @@ namespace FoundationDB.Layers.Tables
 		public void Clear(FdbTransaction trans, IFdbTuple id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+			if (id == null) throw new ArgumentNullException("id");
 
 			trans.Clear(MakeKey(id));
+		}
+
+		public Task ClearAsync(FdbDatabase db, IFdbTuple id, CancellationToken ct = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (id == null) throw new ArgumentNullException("id");
+
+			return db.Attempt(
+				(tr) => { Clear(tr, id); },
+				ct
+			);
 		}
 
 		#endregion

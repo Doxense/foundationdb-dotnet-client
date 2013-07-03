@@ -26,24 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Microsoft.Win32.SafeHandles;
-using System;
-using System.Collections.Generic;
-using System.Collections.Concurrent;
-using FoundationDB.Client.Native;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Diagnostics;
-using FoundationDB.Layers.Tuples;
-using FoundationDB.Client.Utils;
-
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
+	using System;
+	using System.Collections.Concurrent;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>FoundationDB Database</summary>
 	/// <remarks>Wraps an FDBDatabase* handle</remarks>
@@ -174,93 +165,96 @@ namespace FoundationDB.Client
 		/// <param name="asyncAction">Async action to perform under a new transaction, that receives the transaction as the first parameter, the number of retries (starts at 0) as the second parameter, and a cancellation token as the third parameter. It should throw an OperationCancelledException if it decides to not retry the action</param>
 		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
 		/// <returns>Task that completes when we have successfully completed the action, or fails if a non retryable error occurs</returns>
-		public async Task<TResult> Attempt<TResult>(Func<FdbTransaction, int, CancellationToken, Task<TResult>> asyncAction, CancellationToken ct = default(CancellationToken))
+		internal static async Task<FdbOperationContext> Run(FdbDatabase db, Func<FdbTransaction, FdbOperationContext, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
 		{
 			// this is the equivalent of the "transactionnal" decorator in Python, and maybe also the "Run" method in Java
-
 			//TODO: add 'maxAttempts' or 'maxDuration' optional parameters ?
 
-			var start = DateTime.UtcNow;
-
-			int retries = 0;
-			bool committed = false;
-			TResult res = default(TResult);
-
-			while (!committed && !ct.IsCancellationRequested)
-			{
-				using (var trans = BeginTransaction())
-				{
-					FdbException e = null;
-					try
-					{
-						// call the user provided lambda
-						res = await asyncAction(trans, retries, ct).ConfigureAwait(false);
-
-						// commit the transaction
-						await trans.CommitAsync(ct).ConfigureAwait(false);
-
-						// we are done
-						committed = true;
-					}
-					catch (FdbException x)
-					{
-						x = e;
-					}
-
-					if (e != null)
-					{
-						await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
-					}
-
-					var now = DateTime.UtcNow;
-					var elapsed = now - start;
-					if (elapsed.TotalSeconds >= 1)
-					{
-						Debug.WriteLine("fdb WARNING: long transaction ({0} elapsed in transaction lambda function ({1} retries, {2})", elapsed, retries, committed ? "committed" : "not yet committed");
-					}
-
-					++retries;
-				}
-			}
-			ct.ThrowIfCancellationRequested();
-
-			return res;
+			var context = new FdbOperationContext(db, state);
+			await context.Execute(asyncAction, ct).ConfigureAwait(false);
+			return context;
 		}
 
-		public Task Attempt(Func<FdbTransaction, int, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		public async Task<TResult> Attempt<TResult>(Func<FdbTransaction, Task<TResult>> asyncAction, CancellationToken ct = default(CancellationToken))
 		{
-			return Attempt<object>(async (tr, retry, _) =>
-			{
-				await asyncAction(tr, retry).ConfigureAwait(false);
-				return null;
-			}, ct);
+			var context = await Run(
+				this,
+				async (tr, _context) =>
+				{
+					var func = (Func<FdbTransaction, Task<TResult>>)_context.State;
+					_context.Result = await func(tr).ConfigureAwait(false);
+				},
+				asyncAction,
+				ct
+			).ConfigureAwait(false);
+			return (TResult)context.Result;
+		}
+
+		public async Task<TResult> Attempt<TResult, TState>(Func<FdbTransaction, TState, Task<TResult>> asyncAction, TState state, CancellationToken ct = default(CancellationToken))
+		{
+			var context = await Run(
+				this,
+				async (tr, _context) =>
+				{
+					var prms = (Tuple<Func<FdbTransaction, TState, Task<TResult>>, TState>)_context.State;
+					_context.Result = await prms.Item1(tr, prms.Item2).ConfigureAwait(false);
+				},
+				Tuple.Create(asyncAction, state),
+				ct
+			).ConfigureAwait(false);
+			return (TResult)context.Result;
 		}
 
 		public Task Attempt(Func<FdbTransaction, Task> asyncAction, CancellationToken ct = default(CancellationToken))
 		{
-			return Attempt<object>(async (tr, _, __) =>
-			{
-				await asyncAction(tr).ConfigureAwait(false);
-				return null;
-			}, ct);
+			return Run(
+				this,
+				(tr, _context) =>
+				{
+					var _asyncAction = (Func<FdbTransaction, Task>)_context.State;
+					return _asyncAction(tr);
+				},
+				asyncAction, 
+				ct
+			);
 		}
 
-		public Task Attempt(Action<FdbTransaction, int> action, CancellationToken ct = default(CancellationToken))
+		public Task Attempt<TState>(Func<FdbTransaction, TState, Task> asyncAction, TState state, CancellationToken ct = default(CancellationToken))
 		{
-			return Attempt<bool>((tr, retry, _) =>
-			{
-				action(tr, retry);
-				return Task.FromResult(true);
-			}, ct);
+			return Run(
+				this,
+				(tr, _context) =>
+				{
+					var prms = (Tuple<Func<FdbTransaction, TState, Task>, TState>)_context.State;
+					return prms.Item1(tr, prms.Item2);
+				},
+				Tuple.Create(asyncAction, state),
+				ct
+			);
 		}
 
 		public Task Attempt(Action<FdbTransaction> action, CancellationToken ct = default(CancellationToken))
 		{
-			return Attempt<bool>((tr, _, __) =>
-			{
-				action(tr);
-				return Task.FromResult(true);
-			}, ct);
+			return Run(
+				this,
+				(tr, _context) => TaskHelpers.Inline((Action<FdbTransaction>)_context.State, arg1: tr, ct: _context.Token),
+				action,
+				ct
+			);
+		}
+
+		public Task Attempt<TState>(Action<FdbTransaction, TState> action, TState state, CancellationToken ct = default(CancellationToken))
+		{
+			return Run(
+				this,
+				(tr, _context) =>
+				{
+					var prms = (Tuple<Action<FdbTransaction, TState>, TState>)_context.State;
+					return TaskHelpers.Inline(prms.Item1, arg1: tr, arg2: prms.Item2, ct: _context.Token);
+				},
+				Tuple.Create<Action<FdbTransaction, TState>, TState>(action, state),
+				ct
+			);
 		}
 
 		internal void EnsureTransactionIsValid(FdbTransaction transaction)
