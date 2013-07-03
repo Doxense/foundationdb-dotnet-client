@@ -227,7 +227,7 @@ namespace FoundationDB.Client.Utils
 				// flatten aggregate exceptions
 				if (e is AggregateException) e = (e as AggregateException).Flatten().InnerException;
 
-				string msg = String.Format("Exception in {0} - {2}.", GetObjectUniqueId(obj, method), e.Message);
+				string msg = String.Format("Exception in {0} - {1}.", GetObjectUniqueId(obj, method), e.Message);
 				if (!string.IsNullOrWhiteSpace(e.StackTrace)) msg += "\r\n" + e.StackTrace;
 			}
 		}
