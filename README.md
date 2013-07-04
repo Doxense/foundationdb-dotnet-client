@@ -29,7 +29,7 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
         trans.Set(location.Pack("Hello"), Slice.FromString("World"));
 
         // ("Test", "Count", ) = 42
-        trans.Set(location.Pack("Count", Slice.FromInt32(42));
+        trans.Set(location.Pack("Count"), Slice.FromInt32(42));
         
         // commits the transaction
         await trans.CommitAsync();
