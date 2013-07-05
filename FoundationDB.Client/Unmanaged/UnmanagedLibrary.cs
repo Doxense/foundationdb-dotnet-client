@@ -90,9 +90,8 @@ namespace FoundationDB.Client.Native
 			m_fileName = fileName;
 		}
 
-		public static UnmanagedLibrary LoadLibrary(string fileName)
+		public static UnmanagedLibrary LoadLibrary(string path)
 		{
-			string path = System.IO.Path.GetFullPath(fileName);
 			var handle = NativeMethods.LoadLibrary(path);
 			if (handle == null || handle.IsInvalid)
 			{
@@ -103,7 +102,7 @@ namespace FoundationDB.Client.Native
 				else
 					throw ex;
 			}
-			return new UnmanagedLibrary(handle, fileName);
+			return new UnmanagedLibrary(handle, path);
 		}
 
 		/// <summary>Charge la bonne libraire en fonction de la plateforme (32 bits / x86, ou 64 bits / x64)</summary>

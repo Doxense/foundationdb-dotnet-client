@@ -201,15 +201,23 @@ namespace FoundationDB.Client.Native
 
 		static FdbNative()
 		{
-			try
+			// Impact of NativeLibPath:
+			// - If null, don't preload the library, and let the CLR find the file using the default P/Invoke behavior
+			// - If String.Empty, call win32 LoadLibrary("fdb_c.dll") and let the os find the file (using the standard OS behavior)
+			// - Else, combine the path with "fdb_c.dll" and call LoadLibrary with the resulting (relative or absolute) path
+
+			if (Fdb.Options.NativeLibPath != null)
 			{
-				FdbCLib = UnmanagedLibrary.LoadLibrary(Path.Combine(Fdb.Options.NativeLibPath, FDB_C_DLL));
-			}
-			catch (Exception e)
-			{
-				if (FdbCLib != null) FdbCLib.Dispose();
-				FdbCLib = null;
-				LibraryLoadError = e;
+				try
+				{
+					FdbCLib = UnmanagedLibrary.LoadLibrary(Path.Combine(Fdb.Options.NativeLibPath, FDB_C_DLL));
+				}
+				catch (Exception e)
+				{
+					if (FdbCLib != null) FdbCLib.Dispose();
+					FdbCLib = null;
+					LibraryLoadError = e;
+				}
 			}
 		}
 

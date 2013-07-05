@@ -33,24 +33,53 @@ namespace FoundationDB.Client
 	public static partial class Fdb
 	{
 
+		/// <summary>Global settings for the FoundationDB binding</summary>
 		public static class Options
 		{
 
-			/// <summary>Default path to the native C API library</summary>
-			public static string NativeLibPath = ".";
+			#region Native Library Preloading...
+
+			/// <summary>Custom path from where to load the native C API library. If null, let the CLR find the dll. If String.Empty let Win32's LoadLibrary find the correct dll, else use the specified path to load the library</summary>
+			public static string NativeLibPath = String.Empty;
+
+			/// <summary>Disable preloading of the native C API library. The CLR will handle the binding of the library.</summary>
+			/// <remarks>This MUST be called before calling any other methods !</remarks>
+			public static void DisableNativeLibraryPreloading()
+			{
+				Fdb.Options.NativeLibPath = null;
+			}
+
+			/// <summary>Enable automatic preloading of the native C API library. The operating system will handle the binding of the library</summary>
+			/// <remarks>This MUST be called before calling any other methods !</remarks>
+			public static void EnableNativeLibraryPreloading()
+			{
+				Fdb.Options.NativeLibPath = String.Empty;
+			}
+
+			/// <summary>Preload the native C API library from a specifc path (relative of absolute) where the fdb_c.dll library is located</summary>
+			/// <example>SetNativeLibPath(@".\libs\x64") will attempt to load ".\libs\x64\fdb_c.dll"</example>
+			/// <remarks>This MUST be called before calling any other methods !</remarks>
+			public static void SetNativeLibPath(string path)
+			{
+				if (path == null) throw new ArgumentNullException("path");
+
+				Fdb.Options.NativeLibPath = path;
+			}
+
+			#endregion
+
+			#region Trace Path...
 
 			/// <summary>Default path to the network thread tracing file</summary>
 			public static string TracePath = null;
 
-			public static void SetNativeLibPath(string path)
-			{
-				Fdb.Options.NativeLibPath = path;
-			}
-
-			public static void SetTraceEnable(string outputDirectory)
+			/// <summary>Sets the custom path where the logs will be stored</summary>
+			public static void SetTracePath(string outputDirectory)
 			{
 				Fdb.Options.TracePath = outputDirectory;
 			}
+
+			#endregion
 
 		}
 
