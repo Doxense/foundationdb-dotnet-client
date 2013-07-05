@@ -171,7 +171,7 @@ namespace FoundationDB.Layers.Documents
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt(
+			return db.AttemptAsync(
 				(trans) => LoadAsync(trans, id, ct),
 				ct
 			);

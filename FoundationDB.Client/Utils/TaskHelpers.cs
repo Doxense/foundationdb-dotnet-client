@@ -179,78 +179,26 @@ namespace FoundationDB.Client.Utils
 			}
 		}
 
-		public static Task<R> InlineWithResult<R>(Action action, R result, CancellationToken ct)
+		/// <summary>Runs a synchronous action inline, exposing it as if it was task</summary>
+		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
+		/// <param name="action">Synchronous action that takes a value.</param>
+		/// <param name="ct">Cancellation token</param>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCancelledException</returns>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
+		public static Task Inline<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken ct = default(CancellationToken))
 		{
+			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException("action");
-			if (ct.IsCancellationRequested) return FromCancellation<R>(ct);
+			// for all other exceptions, they will be wrapped in the returned task
+			if (ct.IsCancellationRequested) return FromCancellation<object>(ct);
 			try
 			{
-				action();
-				return Task.FromResult(result);
+				action(arg1, arg2, arg3, arg4, arg5);
+				return TaskHelpers.CompletedTask;
 			}
 			catch (Exception e)
 			{
-				return FromFailure<R>(e, ct);
-			}
-		}
-
-		public static Task<R> InlineWithResult<T1, R>(Action<T1> action, T1 arg1, R result, CancellationToken ct)
-		{
-			if (action == null) throw new ArgumentNullException("action");
-			if (ct.IsCancellationRequested) return FromCancellation<R>(ct);
-			try
-			{
-				action(arg1);
-				return Task.FromResult(result);
-			}
-			catch (Exception e)
-			{
-				return FromFailure<R>(e, ct);
-			}
-		}
-
-		public static Task<R> InlineWithResult<T1, T2, R>(Action<T1, T2> action, T1 arg1, T2 arg2, R result, CancellationToken ct)
-		{
-			if (action == null) throw new ArgumentNullException("action");
-			if (ct.IsCancellationRequested) return FromCancellation<R>(ct);
-			try
-			{
-				action(arg1, arg2);
-				return Task.FromResult(result);
-			}
-			catch (Exception e)
-			{
-				return FromFailure<R>(e, ct);
-			}
-		}
-
-		public static Task<R> InlineWithResult<T1, T2, T3, R>(Action<T1, T2, T3> action, T1 arg1, T2 arg2, T3 arg3, R result, CancellationToken ct)
-		{
-			if (action == null) throw new ArgumentNullException("action");
-			if (ct.IsCancellationRequested) return FromCancellation<R>(ct);
-			try
-			{
-				action(arg1, arg2, arg3);
-				return Task.FromResult(result);
-			}
-			catch (Exception e)
-			{
-				return FromFailure<R>(e, ct);
-			}
-		}
-
-		public static Task<R> InlineWithResult<T1, T2, T3, T4, R>(Action<T1, T2, T3, T4> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, R result, CancellationToken ct)
-		{
-			if (action == null) throw new ArgumentNullException("action");
-			if (ct.IsCancellationRequested) return FromCancellation<R>(ct);
-			try
-			{
-				action(arg1, arg2, arg3, arg4);
-				return Task.FromResult(result);
-			}
-			catch (Exception e)
-			{
-				return FromFailure<R>(e, ct);
+				return FromFailure<object>(e, ct);
 			}
 		}
 

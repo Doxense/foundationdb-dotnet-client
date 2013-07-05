@@ -77,10 +77,7 @@ namespace FoundationDB.Layers.Tables
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt(
-				(tr) => GetAsync(tr, id, snapshot, ct),
-				ct
-			);
+			return db.AttemptAsync(this.GetAsync, id, snapshot, ct);
 		}
 
 		#endregion
@@ -98,12 +95,8 @@ namespace FoundationDB.Layers.Tables
 		public Task SetAsync(FdbDatabase db, IFdbTuple id, Slice value, CancellationToken ct = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
-			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt(
-				(tr) => { Set(tr, id, value); },
-				ct
-			);
+			return db.Attempt(this.Set, id, value, ct);
 		}
 
 		#endregion
