@@ -291,6 +291,22 @@ namespace FoundationDB.Client.Utils
 			return FromException<T>(e);
 		}
 
+		public static void PropagateException<T>(TaskCompletionSource<T> tcs, Exception e)
+		{
+			if (e is OperationCanceledException)
+			{
+				tcs.TrySetCanceled();
+			}
+			else if (e is AggregateException)
+			{
+				tcs.TrySetException((e as AggregateException).Flatten().InnerExceptions);
+			}
+			else
+			{
+				tcs.TrySetException(e);
+			}
+		}
+
 		/// <summary>Safely cancel and dispose a CancellationTokenSource</summary>
 		/// <param name="source">CancellationTokenSource that needs to be cancelled and disposed</param>
 		public static void SafeCancelAndDispose(this CancellationTokenSource source)

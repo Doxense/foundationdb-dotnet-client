@@ -599,5 +599,29 @@ namespace FoundationDB.Linq.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Parallel_Select_Async()
+		{
+
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			var query = new FdbAsyncEnumerable.ParallelSelectAsyncIterator<int, int>(
+				source,
+				async (x, ct) =>
+				{
+					Console.WriteLine("** start " + x);
+					await Task.Delay(100);
+					Console.WriteLine("** stop " + x);
+					return x * x;
+				},
+				5
+			);
+
+			var results = await query.ToListAsync();
+
+			Console.WriteLine(string.Join(", ", results));
+
+		}
+
 	}
 }
