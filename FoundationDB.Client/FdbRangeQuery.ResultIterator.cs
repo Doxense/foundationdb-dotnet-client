@@ -110,7 +110,7 @@ namespace FoundationDB.Client
 #if DEBUG_RANGE_ITERATOR
 					Debug.WriteLine("No more items and it was the last batch");
 #endif
-					return FdbAsyncEnumerable.FalseTask;
+					return TaskHelpers.FalseTask;
 				}
 
 				// slower path, we need to actually read the first batch...

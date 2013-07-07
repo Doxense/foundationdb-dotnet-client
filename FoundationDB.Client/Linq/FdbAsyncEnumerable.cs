@@ -59,7 +59,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (lambda == null) throw new ArgumentNullException("lambda");
 
-			return new EnumerableSequence<T, R>(source, (iterator) => new EnumerableIterator<T, R>(iterator, lambda));
+			return Create<T, R>(source, (iterator) => new EnumerableIterator<T, R>(iterator, lambda));
 		}
 
 		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
@@ -67,7 +67,7 @@ namespace FoundationDB.Linq
 		{
 			if (source == null) throw new ArgumentNullException("source");
 
-			return new EnumerableSequence<T, T>(source, (iterator) => new EnumerableIterator<T, T>(iterator, x => Task.FromResult(x)));
+			return Create<T, T>(source, (iterator) => new EnumerableIterator<T, T>(iterator, x => Task.FromResult(x)));
 		}
 
 		/// <summary>Wraps an async lambda into an async sequence that will return the result of the lambda</summary>
