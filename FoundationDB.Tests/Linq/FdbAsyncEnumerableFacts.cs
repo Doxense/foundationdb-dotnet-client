@@ -31,6 +31,7 @@ namespace FoundationDB.Linq.Tests
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -602,24 +603,48 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_Parallel_Select_Async()
 		{
+			const int MAX_CONCURRENCY = 5;
 
-			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+			var source = Enumerable.Range(1, 10)
+				.ToAsyncEnumerable()
+				.Select(async x => { await Task.Delay(100); return x; });
+
+			int concurrent = 0;
+			var rnd = new Random();
+
+			var sw = Stopwatch.StartNew();
 
 			var query = new FdbAsyncEnumerable.ParallelSelectAsyncIterator<int, int>(
 				source,
 				async (x, ct) =>
 				{
-					Console.WriteLine("** start " + x);
-					await Task.Delay(100);
-					Console.WriteLine("** stop " + x);
-					return x * x;
+					var n = Interlocked.Increment(ref concurrent);
+					Assert.That(n, Is.LessThanOrEqualTo(MAX_CONCURRENCY));
+					try
+					{
+						Console.WriteLine("** " + sw.Elapsed.TotalMilliseconds + " start " + x + " (" + n + ")");
+						int ms;
+						lock (rnd) { ms = rnd.Next(25) + 50; }
+						await Task.Delay(ms);
+						Console.WriteLine("** " + sw.Elapsed.TotalMilliseconds + " stop " + x + " (" + Volatile.Read(ref concurrent) + ")");
+
+						return x * x;
+					}
+					finally
+					{
+						n = Interlocked.Decrement(ref concurrent);
+						Assert.That(n, Is.GreaterThanOrEqualTo(0));
+					}
 				},
-				5
+				maxConcurrency: MAX_CONCURRENCY,
+				scheduler: TaskScheduler.Default
 			);
 
 			var results = await query.ToListAsync();
 
+			Assert.That(Volatile.Read(ref concurrent), Is.EqualTo(0));
 			Console.WriteLine(string.Join(", ", results));
+			Assert.That(results, Is.EqualTo(new int[] { 1, 4, 9, 16, 25, 36, 49, 64, 81, 100 }));
 
 		}
 
