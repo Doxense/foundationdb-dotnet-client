@@ -31,7 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Diagnostics;
 
-	[DebuggerDisplay("Begin={Begin}, End={End}")]
+	[DebuggerDisplay("Start={Start}, Stop={Stop}")]
 	public struct FdbKeySelectorPair
 	{
 		public readonly FdbKeySelector Start;

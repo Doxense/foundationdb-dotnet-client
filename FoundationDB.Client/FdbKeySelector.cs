@@ -32,7 +32,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Text;
 
-	[DebuggerDisplay("Key=[{Key.Count}], OrEqual={OrEqual}, Offset={Offset}")]
+	[DebuggerDisplay("Key={Key}, OrEqual={OrEqual}, Offset={Offset}")]
 	public struct FdbKeySelector
 	{
 		public static readonly FdbKeySelector None = default(FdbKeySelector);

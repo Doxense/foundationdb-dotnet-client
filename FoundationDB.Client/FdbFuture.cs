@@ -65,7 +65,7 @@ namespace FoundationDB.Client
 
 	/// <summary>FDBFuture wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
-	[DebuggerDisplay("Flags={m_flags}")]
+	[DebuggerDisplay("Flags={m_flags}, State={m_tcs.Task.Status}")]
 	public class FdbFuture<T> : IDisposable
 	{
 		// Wraps a FDBFuture* handle and handles the lifetime of the object

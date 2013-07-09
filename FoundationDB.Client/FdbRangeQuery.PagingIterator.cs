@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		/// <typeparam name="TResult">Type of the results returned</typeparam>
-		[DebuggerDisplay("State={m_state}, Iteration={Iteration}, AtEnd={AtEnd}, HasMore={HasMore}")]
+		[DebuggerDisplay("State={m_state}, Current={m_current}, Iteration={Iteration}, AtEnd={AtEnd}, HasMore={HasMore}")]
 		private sealed class PagingIterator : FdbAsyncEnumerable.AsyncIterator<KeyValuePair<Slice, Slice>[]>
 		{
 
