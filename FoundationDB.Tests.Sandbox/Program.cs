@@ -190,23 +190,23 @@ namespace FoundationDB.Tests.Sandbox
 
 						Console.WriteLine("----------");
 
-						//await BenchInsertSmallKeysAsync(db, N, 16); // some guid
-						//await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
-						//await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
+						await BenchInsertSmallKeysAsync(db, N, 16); // some guid
+						await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
+						await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
 						////await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
 						////await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
 						//await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
 
 						////// insert keys in parrallel
-						//await BenchConcurrentInsert(db, 1, 100, 512);
-						//await BenchConcurrentInsert(db, 1, 1000, 512);
-						//await BenchConcurrentInsert(db, 1, 10000, 512);
+						await BenchConcurrentInsert(db, 1, 100, 512);
+						await BenchConcurrentInsert(db, 1, 1000, 512);
+						await BenchConcurrentInsert(db, 1, 10000, 512);
 
-						//await BenchConcurrentInsert(db, 1, N, 16);
-						//await BenchConcurrentInsert(db, 2, N, 16);
-						//await BenchConcurrentInsert(db, 4, N, 16);
-						//await BenchConcurrentInsert(db, 8, N, 16);
-						//await BenchConcurrentInsert(db, 16, N, 16);
+						await BenchConcurrentInsert(db, 1, N, 16);
+						await BenchConcurrentInsert(db, 2, N, 16);
+						await BenchConcurrentInsert(db, 4, N, 16);
+						await BenchConcurrentInsert(db, 8, N, 16);
+						await BenchConcurrentInsert(db, 16, N, 16);
 
 						//await BenchSerialWriteAsync(db, N);
 						//await BenchSerialReadAsync(db, N);
@@ -214,12 +214,12 @@ namespace FoundationDB.Tests.Sandbox
 
 						//await BenchClearAsync(db, N);
 
-						//await BenchUpdateSameKeyLotsOfTimesAsync(db, N);
+						await BenchUpdateSameKeyLotsOfTimesAsync(db, 1000);
 
-						//await BenchUpdateLotsOfKeysAsync(db, N);
+						await BenchUpdateLotsOfKeysAsync(db, 1000);
 
-						//await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 50, 128);
-						//await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 128, 50);
+						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 50, 128);
+						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 128, 50);
 						////await BenchBulkInsertThenBulkReadAsync(db, 1 * 1000 * 1000, 50, 128);
 
 						await BenchMergeSortAsync(db, 100, 3, 20);
@@ -524,6 +524,8 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// continuously update same key by adding a little bit more
 
+			Console.WriteLine("Updating the same list " + N + " times...");
+
 			var list = new byte[N];
 			var update = Stopwatch.StartNew();
 			var key = db.Namespace.Pack("list");
@@ -535,34 +537,40 @@ namespace FoundationDB.Tests.Sandbox
 					trans.Set(key, Slice.Create(list));
 					await trans.CommitAsync();
 				}
+				if (i % 100 == 0) Console.Write("\r> " + i + " / " + N);
 			}
 			update.Stop();
 
-			Console.WriteLine("Took " + update.Elapsed + " to fill a byte[" + N + "] one by one (" + FormatTimeMicro(update.Elapsed.TotalMilliseconds / N) + "/write)");
+			Console.WriteLine("\rTook " + update.Elapsed + " to fill a byte[" + N + "] one by one (" + FormatTimeMicro(update.Elapsed.TotalMilliseconds / N) + "/update)");
 		}
 
 		private static async Task BenchUpdateLotsOfKeysAsync(FdbDatabase db, int N)
 		{
-			// continuously update same key by adding a little bit more
+			// change one byte in a large number of keys
 
 			var location = db.Partition("lists");
 
+			var rnd = new Random();
 			var keys = Enumerable.Range(0, N).Select(x => location.Pack(x)).ToArray();
 
 			Console.WriteLine("> creating " + N + " half filled keys");
 			var segment = new byte[60];
 
-			for (int i = 0; i < (segment.Length >> 1); i++) segment[i] = (byte)(i >> 2);
+			for (int i = 0; i < (segment.Length >> 1); i++) segment[i] = (byte) rnd.Next(256);
 			using (var trans = db.BeginTransaction())
 			{
-				for (int i = 0; i < N; i++)
+				for (int i = 0; i < N; i += 1000)
 				{
-					trans.Set(keys[i], Slice.Create(segment));
+					for (int k = i; k < i + 1000 && k < N; k++)
+					{
+						trans.Set(keys[k], Slice.Create(segment));
+					}
+					await trans.CommitAsync();
+					Console.Write("\r" + i + " / " + N);
 				}
-				await trans.CommitAsync();
 			}
 
-			Console.WriteLine("Changing one byte in each of the " + N + " keys...");
+			Console.WriteLine("\rChanging one byte in each of the " + N + " keys...");
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction())
 			{
@@ -574,9 +582,9 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("CHANGE");
 				for (int i = 0; i < data.Count; i++)
 				{
-					var list = data[i].Value;
-					list.Array[list.Offset + (list.Count >> 1) + 1] = (byte)i;
-					trans.Set(data[i].Key, list);
+					var list = data[i].Value.GetBytes();
+					list[(list.Length >> 1) + 1] = (byte) rnd.Next(256);
+					trans.Set(data[i].Key, Slice.Create(list));
 				}
 
 				Console.WriteLine("COMMIT");
@@ -584,7 +592,7 @@ namespace FoundationDB.Tests.Sandbox
 			}
 			sw.Stop();
 
-			Console.WriteLine("Took " + sw.Elapsed + " to change a byte in " + N + " lists (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + " /write)");
+			Console.WriteLine("Took " + sw.Elapsed + " to patch one byte in " + N + " lists (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + " /update)");
 
 		}
 
