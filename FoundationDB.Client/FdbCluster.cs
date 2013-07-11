@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Diagnostics;
@@ -74,7 +75,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
-		/// <remarks>As of Beta1, the only supported database name is 'DB'</remarks>
+		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, CancellationToken ct = default(CancellationToken))
 		{
 			return OpenDatabaseAsync(databaseName, FdbSubspace.Empty, false, ct);
@@ -102,17 +103,21 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
-		/// <remarks>As of Beta1, the only supported database name is 'DB'</remarks>
+		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		internal Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool ownsCluster, CancellationToken ct)
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
 			if (subspace == null) throw new ArgumentNullException("rootNamespace");
 
+			if (Logging.On) Logging.Info(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connecting to database '{0}' ...", databaseName));
+
 			// BUGBUG: the only accepted name is "DB".
-			// Currently in Beta1, if you create a database with any other name, it will succeed but any transaction performed on it will fail (future will never complete)
+			// Currently in Beta2, if you create a database with any other name, it will succeed but any transaction performed on it will fail (future will never complete)
 			// Hope that it will be changed in the future to return an error code if the name is not valid.
 			if (databaseName != "DB") throw new InvalidOperationException("This version of FoundationDB only allows connections to the 'DB' database");
+
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			var future = FdbNative.ClusterCreateDatabase(m_handle, databaseName);
 
@@ -127,7 +132,8 @@ namespace FoundationDB.Client
 						database.Dispose();
 						throw Fdb.MapToException(err);
 					}
-					//Debug.WriteLine("FutureGetDatabase => 0x" + database.Handle.ToString("x"));
+
+					if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
 
 					return new FdbDatabase(this, database, databaseName, subspace, ownsCluster);
 				},

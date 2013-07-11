@@ -66,7 +66,7 @@ namespace FoundationDB.Client
 	/// <summary>FDBFuture wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
 	[DebuggerDisplay("Flags={m_flags}, State={m_tcs.Task.Status}")]
-	public class FdbFuture<T> : IDisposable
+	public class FdbFuture<T> : TaskCompletionSource<T>, IDisposable
 	{
 		// Wraps a FDBFuture* handle and handles the lifetime of the object
 
@@ -96,8 +96,10 @@ namespace FoundationDB.Client
 		/// <summary>Value of the 'FDBFuture*'</summary>
 		private readonly FutureHandle m_handle;
 
+#if REFACTORED
 		/// <summary>Task that will complete when the FDBFuture completes</summary>
 		private readonly TaskCompletionSource<T> m_tcs;
+#endif
 
 		/// <summary>Func used to extract the result of this FDBFuture</summary>
 		private Func<FutureHandle, T> m_resultSelector;
@@ -120,7 +122,9 @@ namespace FoundationDB.Client
 			if (selector == null) throw new ArgumentNullException("selector");
 
 			m_handle = handle;
+#if REFACTORED
 			m_tcs = new TaskCompletionSource<T>();
+#endif
 			m_resultSelector = selector;
 
 			try
@@ -149,7 +153,7 @@ namespace FoundationDB.Client
 					SetFlag(Flags.COMPLETED);
 					m_resultSelector = null;
 					m_handle.Dispose();
-					m_tcs.TrySetCanceled();
+					this.TrySetCanceled();
 					return;
 				}
 
@@ -189,7 +193,7 @@ namespace FoundationDB.Client
 			{
 				// this is bad news, since we are in the constructor, we need to clear everything
 				SetFlag(Flags.DISPOSED);
-				m_tcs.TrySetCanceled();
+				this.TrySetCanceled();
 				UnregisterCancellationRegistration();
 				m_resultSelector = null;
 				ClearCallback();
@@ -282,11 +286,11 @@ namespace FoundationDB.Client
 		{
 			if (!fromCallback)
 			{
-				m_tcs.TrySetException(e);
+				this.TrySetException(e);
 			}
 			else if (TrySetFlag(Flags.HAS_POSTED_ASYNC_COMPLETION))
 			{
-				PostFailureOnThreadPool(m_tcs, e);
+				PostFailureOnThreadPool(this, e);
 				// and if it fails ?
 			}
 		}
@@ -297,11 +301,11 @@ namespace FoundationDB.Client
 
 			if (!fromCallback)
 			{
-				m_tcs.TrySetCanceled();
+				this.TrySetCanceled();
 			}
 			else if (TrySetFlag(Flags.HAS_POSTED_ASYNC_COMPLETION))
 			{
-				PostCancellationOnThreadPool(m_tcs);
+				PostCancellationOnThreadPool(this);
 				// and if it fails ?
 			}
 		}
@@ -393,11 +397,11 @@ namespace FoundationDB.Client
 							var result = selector(handle);
 							if (!fromCallback)
 							{
-								m_tcs.TrySetResult(result);
+								this.TrySetResult(result);
 							}
 							else if (TrySetFlag(Flags.HAS_POSTED_ASYNC_COMPLETION))
 							{
-								PostCompletionOnThreadPool(m_tcs, result);
+								PostCompletionOnThreadPool(this, result);
 							}
 							return true;
 						}
@@ -438,9 +442,9 @@ namespace FoundationDB.Client
 
 					// ensure that the task always complete !
 					// note: always defer the completion on the threadpool, because we don't want to dead lock here (we can be called by Dispose)
-					if (!m_tcs.Task.IsCompleted && TrySetFlag(Flags.HAS_POSTED_ASYNC_COMPLETION))
+					if (!this.Task.IsCompleted && TrySetFlag(Flags.HAS_POSTED_ASYNC_COMPLETION))
 					{
-						PostCancellationOnThreadPool(m_tcs);
+						PostCancellationOnThreadPool(this);
 					}
 
 					// The only surviving value after this would be a Task and an optional WorkItem on the ThreadPool that will signal it...
@@ -466,7 +470,7 @@ namespace FoundationDB.Client
 			bool fromCallback = Fdb.IsNetworkThread;
 			try
 			{
-				if (!m_tcs.Task.IsCompleted)
+				if (!this.Task.IsCompleted)
 				{
 					TrySetCancelled(fromCallback);
 				}
@@ -498,7 +502,7 @@ namespace FoundationDB.Client
 		public Task<T> AsTask()
 		{
 			if ((Volatile.Read(ref m_flags) & Flags.BLOCKING) != 0) throw new InvalidOperationException("This Future can only be used synchronously!");
-			return m_tcs.Task;
+			return this.Task;
 		}
 
 		/// <summary>Make the Future awaitable</summary>
@@ -529,13 +533,12 @@ namespace FoundationDB.Client
 		/// <returns>Result of the future, or an exception if it failed</returns>
 		public T GetResult()
 		{
-			var task = m_tcs.Task;
-			if (!task.IsCompleted)
+			if (!this.Task.IsCompleted)
 			{ // we need to wait for it to become ready
 
 				Fdb.EnsureNotOnNetworkThread();
 
-				//note: in beta1, this will block forever if there is less then 5% free disk space on db partition... :(
+				//note: in beta2, this will block forever if there is less then 5% free disk space on db partition... :(
 				var err = FdbNative.FutureBlockUntilReady(m_handle);
 				if (Fdb.Failed(err)) throw Fdb.MapToException(err);
 
@@ -544,20 +547,20 @@ namespace FoundationDB.Client
 			}
 
 			// throw underlying exception if it failed
-			if (task.Status == TaskStatus.RanToCompletion)
+			if (this.Task.Status == TaskStatus.RanToCompletion)
 			{
-				return task.Result;
+				return this.Task.Result;
 			}
 
 			// try to preserve the callstack by using the awaiter to throw
 			// note: calling task.Result would throw an AggregateException that is not nice to work with...
-			return m_tcs.Task.GetAwaiter().GetResult();
+			return this.Task.GetAwaiter().GetResult();
 		}
 
 		/// <summary>Synchronously wait for a Future to complete (by blocking the current thread)</summary>
 		public void Wait()
 		{
-			if (m_tcs.Task.Status != TaskStatus.RanToCompletion)
+			if (this.Task.Status != TaskStatus.RanToCompletion)
 			{
 				var _ = GetResult();
 			}

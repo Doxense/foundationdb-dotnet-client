@@ -304,11 +304,11 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
 		public static Task<FdbCluster> OpenClusterAsync(string path = null, CancellationToken ct = default(CancellationToken))
 		{
-			ct.ThrowIfCancellationRequested();
-
 			EnsureIsStarted();
 
 			if (Logging.On) Logging.Info(typeof(Fdb), "OpenClusterAsync", path == null ? "Connecting to default cluster..." : String.Format("Connecting to cluster using '{0}' ...", path));
+
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			//TODO: check path ?
 			var future = FdbNative.CreateCluster(path);
