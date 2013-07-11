@@ -45,9 +45,9 @@ namespace FoundationDB.Linq
 		/// <param name="source">Source async sequence that will be wrapped</param>
 		/// <param name="factory">Factory method called when the outer sequence starts iterating. Must return an async enumerator</param>
 		/// <returns>New async sequence</returns>
-		internal static AsyncSequence<TSource, TResult> Create<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<IFdbAsyncEnumerator<TSource>, IFdbAsyncEnumerator<TResult>> factory)
+		internal static FdbAsyncSequence<TSource, TResult> Create<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<IFdbAsyncEnumerator<TSource>, IFdbAsyncEnumerator<TResult>> factory)
 		{
-			return new AsyncSequence<TSource, TResult>(source, factory);
+			return new FdbAsyncSequence<TSource, TResult>(source, factory);
 		}
 
 		/// <summary>Create a new async sequence that will transform an inner sequence</summary>
@@ -65,14 +65,14 @@ namespace FoundationDB.Linq
 
 		#region Flatten...
 
-		internal static SelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
+		internal static FdbSelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
 		{
-			return new SelectManyAsyncIterator<TSource, TResult>(source, selector, null);
+			return new FdbSelectManyAsyncIterator<TSource, TResult>(source, selector, null);
 		}
 
-		internal static SelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
+		internal static FdbSelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
 		{
-			return new SelectManyAsyncIterator<TSource, TResult>(source, null, asyncSelector);
+			return new FdbSelectManyAsyncIterator<TSource, TResult>(source, null, asyncSelector);
 		}
 
 		internal static SelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
@@ -99,36 +99,36 @@ namespace FoundationDB.Linq
 
 		#region Map...
 
-		internal static WhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, TResult> selector, int? limit = null)
+		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, TResult> selector, int? limit = null)
 		{
-			return new WhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: selector, asyncTransform: null, limit: limit);
+			return new FdbWhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: selector, asyncTransform: null, limit: limit);
 		}
-		internal static WhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, int? limit = null)
+		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, int? limit = null)
 		{
-			return new WhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: null, asyncTransform: asyncSelector, limit: limit);
+			return new FdbWhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: null, asyncTransform: asyncSelector, limit: limit);
 		}
 
 		#endregion
 
 		#region Filter...
 
-		internal static WhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> predicate)
+		internal static FdbWhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> predicate)
 		{
-			return new WhereAsyncIterator<TResult>(source, predicate, null);
+			return new FdbWhereAsyncIterator<TResult>(source, predicate, null);
 		}
 
-		internal static WhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+		internal static FdbWhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
-			return new WhereAsyncIterator<TResult>(source, null, asyncPredicate);
+			return new FdbWhereAsyncIterator<TResult>(source, null, asyncPredicate);
 		}
 
 		#endregion
 
 		#region Limit...
 
-		internal static WhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, int limit)
+		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, int limit)
 		{
-			return new WhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: limit);
+			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: limit);
 		}
 
 		#endregion

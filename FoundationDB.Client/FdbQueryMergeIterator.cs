@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 	/// <summary>Performs a Merge Sort on several concurrent range queries</summary>
 	/// <typeparam name="TKey">Type of values extracted from the keys, that will be used for sorting</typeparam>
 	/// <typeparam name="TResult">Type of results returned</typeparam>
-	internal abstract class FdbQueryMergeIterator<TSource, TKey, TResult> : FdbAsyncEnumerable.AsyncIterator<TResult>
+	internal abstract class FdbQueryMergeIterator<TSource, TKey, TResult> : FdbAsyncIterator<TResult>
 	{
 		// Takes several range queries that return **SORTED** lists of items
 		// - Make all querie's iterators run concurrently

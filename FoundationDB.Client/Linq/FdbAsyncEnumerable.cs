@@ -89,7 +89,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (selector == null) throw new ArgumentNullException("selector");
 
-			var iterator = source as AsyncIterator<TSource>;
+			var iterator = source as FdbAsyncIterator<TSource>;
 			if (iterator != null)
 			{
 				return iterator.SelectMany<TResult>(selector);
@@ -113,7 +113,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			var iterator = source as AsyncIterator<TSource>;
+			var iterator = source as FdbAsyncIterator<TSource>;
 			if (iterator != null)
 			{
 				return iterator.SelectMany<TResult>(asyncSelector);
@@ -129,7 +129,7 @@ namespace FoundationDB.Linq
 			if (collectionSelector == null) throw new ArgumentNullException("collectionSelector");
 			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
 
-			var iterator = source as AsyncIterator<TSource>;
+			var iterator = source as FdbAsyncIterator<TSource>;
 			if (iterator != null)
 			{
 				return iterator.SelectMany<TCollection, TResult>(collectionSelector, resultSelector);
@@ -155,7 +155,7 @@ namespace FoundationDB.Linq
 			if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
 			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
 
-			var iterator = source as AsyncIterator<TSource>;
+			var iterator = source as FdbAsyncIterator<TSource>;
 			if (iterator != null)
 			{
 				return iterator.SelectMany<TCollection, TResult>(asyncCollectionSelector, resultSelector);
@@ -174,7 +174,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (selector == null) throw new ArgumentNullException("selector");
 
-			var iterator = source as AsyncIterator<TSource>;
+			var iterator = source as FdbAsyncIterator<TSource>;
 			if (iterator != null)
 			{
 				return iterator.Select<TResult>(selector);
@@ -215,7 +215,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			var iterator = source as AsyncIterator<TSource>;
+			var iterator = source as FdbAsyncIterator<TSource>;
 			if (iterator != null)
 			{
 				return iterator.Select<TResult>(asyncSelector);
@@ -272,7 +272,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (predicate == null) throw new ArgumentNullException("predicate");
 
-			var iterator = source as AsyncIterator<TResult>;
+			var iterator = source as FdbAsyncIterator<TResult>;
 			if (iterator != null)
 			{
 				return iterator.Where(predicate);
@@ -313,7 +313,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
 
-			var iterator = source as AsyncIterator<TResult>;
+			var iterator = source as FdbAsyncIterator<TResult>;
 			if (iterator != null)
 			{
 				return iterator.Where(asyncPredicate);
@@ -361,7 +361,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (limit < 0) throw new ArgumentOutOfRangeException("limit", "Limit cannot be less than zero");
 
-			var iterator = source as AsyncIterator<TSource>;
+			var iterator = source as FdbAsyncIterator<TSource>;
 			if (iterator != null)
 			{
 				return iterator.Take(limit);
@@ -382,7 +382,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (action == null) throw new ArgumentNullException("action");
 
-			var iterator = source as AsyncIterator<T>;
+			var iterator = source as FdbAsyncIterator<T>;
 			if (iterator != null)
 			{
 				return iterator.ExecuteAsync(action, ct);
@@ -406,7 +406,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
 
-			var iterator = source as AsyncIterator<T>;
+			var iterator = source as FdbAsyncIterator<T>;
 			if (iterator != null)
 			{
 				return iterator.ExecuteAsync(asyncAction, ct);

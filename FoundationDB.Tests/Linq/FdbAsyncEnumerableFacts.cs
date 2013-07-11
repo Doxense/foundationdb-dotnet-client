@@ -153,7 +153,7 @@ namespace FoundationDB.Linq.Tests
 
 			var selected = source.Select(x => x + 1);
 			Assert.That(selected, Is.Not.Null);
-			Assert.That(selected, Is.InstanceOf<FdbAsyncEnumerable.WhereSelectAsyncIterator<int, int>>());
+			Assert.That(selected, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
 
 			var results = await selected.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
@@ -186,7 +186,7 @@ namespace FoundationDB.Linq.Tests
 				return x + 1;
 			});
 			Assert.That(selected, Is.Not.Null);
-			Assert.That(selected, Is.InstanceOf<FdbAsyncEnumerable.WhereSelectAsyncIterator<int, int>>());
+			Assert.That(selected, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
 
 			var results = await selected.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
@@ -219,11 +219,11 @@ namespace FoundationDB.Linq.Tests
 
 			var squares = source.Select(x => (long)x * x);
 			Assert.That(squares, Is.Not.Null);
-			Assert.That(squares, Is.InstanceOf<FdbAsyncEnumerable.WhereSelectAsyncIterator<int, long>>());
+			Assert.That(squares, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, long>>());
 
 			var roots = squares.Select(x => Math.Sqrt(x));
 			Assert.That(roots, Is.Not.Null);
-			Assert.That(roots, Is.InstanceOf<FdbAsyncEnumerable.WhereSelectAsyncIterator<int, double>>());
+			Assert.That(roots, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, double>>());
 
 			var results = await roots.ToListAsync();
 			Assert.That(results, Is.EqualTo(new double[] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
@@ -236,11 +236,11 @@ namespace FoundationDB.Linq.Tests
 
 			var squares = source.Select(x => Task.FromResult((long)x * x));
 			Assert.That(squares, Is.Not.Null);
-			Assert.That(squares, Is.InstanceOf<FdbAsyncEnumerable.WhereSelectAsyncIterator<int, long>>());
+			Assert.That(squares, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, long>>());
 
 			var roots = squares.Select(x => Task.FromResult(Math.Sqrt(x)));
 			Assert.That(roots, Is.Not.Null);
-			Assert.That(roots, Is.InstanceOf<FdbAsyncEnumerable.WhereSelectAsyncIterator<int, double>>());
+			Assert.That(roots, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, double>>());
 
 			var results = await roots.ToListAsync();
 			Assert.That(results, Is.EqualTo(new double[] { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 }));
@@ -253,7 +253,7 @@ namespace FoundationDB.Linq.Tests
 
 			var query = source.Take(10);
 			Assert.That(query, Is.Not.Null);
-			Assert.That(query, Is.InstanceOf<FdbAsyncEnumerable.WhereSelectAsyncIterator<int, int>>());
+			Assert.That(query, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
 
 			var results = await query.ToListAsync();
 			Assert.That(results.Count, Is.EqualTo(10));
@@ -270,7 +270,7 @@ namespace FoundationDB.Linq.Tests
 				.Where(x => x % 2 == 1)
 				.Take(10);
 			Assert.That(query, Is.Not.Null);
-			Assert.That(query, Is.InstanceOf<FdbAsyncEnumerable.WhereSelectAsyncIterator<int, int>>());
+			Assert.That(query, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
 
 			var results = await query.ToListAsync();
 			Assert.That(results.Count, Is.EqualTo(10));
@@ -286,7 +286,7 @@ namespace FoundationDB.Linq.Tests
 				.Take(10)
 				.Where(x => x % 2 == 1);
 			Assert.That(query, Is.Not.Null);
-			Assert.That(query, Is.InstanceOf<FdbAsyncEnumerable.WhereAsyncIterator<int>>());
+			Assert.That(query, Is.InstanceOf<FdbWhereAsyncIterator<int>>());
 
 			var results = await query.ToListAsync();
 			Assert.That(results.Count, Is.EqualTo(5));
@@ -614,7 +614,7 @@ namespace FoundationDB.Linq.Tests
 
 			var sw = Stopwatch.StartNew();
 
-			var query = new FdbAsyncEnumerable.ParallelSelectAsyncIterator<int, int>(
+			var query = new FdbParallelSelectAsyncIterator<int, int>(
 				source,
 				async (x, ct) =>
 				{

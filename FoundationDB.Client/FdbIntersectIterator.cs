@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 			: base(sources, limit, keySelector, resultSelector, comparer)
 		{ }
 
-		protected override FdbAsyncEnumerable.AsyncIterator<TResult> Clone()
+		protected override FdbAsyncIterator<TResult> Clone()
 		{
 			return new FdbIntersectIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
 		}
@@ -123,7 +123,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Apply a transformation on the results of the intersection</summary>
-		public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+		public override FdbAsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 		{
 			return new FdbIntersectIterator<TSource, TKey, TNew>(
 				m_sources,
@@ -137,7 +137,7 @@ namespace FoundationDB.Client
 		/// <summary>Limit the number of elements returned by the intersection</summary>
 		/// <param name="limit">Maximum number of results to return</param>
 		/// <returns>New Intersect that will only return the specified number of results</returns>
-		public override FdbAsyncEnumerable.AsyncIterator<TResult> Take(int limit)
+		public override FdbAsyncIterator<TResult> Take(int limit)
 		{
 			if (limit < 0) throw new ArgumentOutOfRangeException("limit", "Value cannot be less than zero");
 

@@ -28,72 +28,41 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Client.Utils;
 	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
 
-	public static partial class FdbAsyncEnumerable
+	/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
+	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
+	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
+	internal sealed class FdbAsyncSequence<TSource, TResult> : IFdbAsyncEnumerable<TResult>
 	{
-		// Welcome to the wonderful world of the Monads! 
+		public readonly IFdbAsyncEnumerable<TSource> Source;
+		public readonly Func<IFdbAsyncEnumerator<TSource>, IFdbAsyncEnumerator<TResult>> Factory;
 
-		internal abstract class AsyncFilter<TSource, TResult> : AsyncIterator<TResult>
+		public FdbAsyncSequence(IFdbAsyncEnumerable<TSource> source, Func<IFdbAsyncEnumerator<TSource>, IFdbAsyncEnumerator<TResult>> factory)
 		{
-			/// <summary>Source sequence (when in iterable mode)</summary>
-			protected IFdbAsyncEnumerable<TSource> m_source;
-
-			/// <summary>Active iterator on the source (when in terator mode)</summary>
-			protected IFdbAsyncEnumerator<TSource> m_iterator;
-
-			protected AsyncFilter(IFdbAsyncEnumerable<TSource> source)
-			{
-				Contract.Requires(source!= null);
-				m_source = source;
-			}
-
-			protected override Task<bool> OnFirstAsync(CancellationToken ct)
-			{
-				// on the first call to MoveNext, we have to hook up with the source iterator
-
-				IFdbAsyncEnumerator<TSource> iterator = null;
-				try
-				{
-					iterator = m_source.GetEnumerator();
-					return TaskHelpers.FromResult(iterator != null);
-				}
-				catch(Exception)
-				{
-					// whatever happens, make sure that we released the iterator...
-					if (iterator != null)
-					{
-						iterator.Dispose();
-						iterator = null;
-					}
-					throw;
-				}
-				finally
-				{
-					m_iterator = iterator;
-				}
-			}
-
-			protected override void Cleanup()
-			{
-				try
-				{
-					var iterator = m_iterator;
-					if (iterator != null)
-					{
-						iterator.Dispose();
-					}
-				}
-				finally
-				{
-					m_iterator = null;
-				}
-			}
-
+			this.Source = source;
+			this.Factory = factory;
 		}
 
+		public IFdbAsyncEnumerator<TResult> GetEnumerator()
+		{
+			IFdbAsyncEnumerator<TSource> inner = null;
+			try
+			{
+				inner = this.Source.GetEnumerator();
+				if (inner == null) throw new InvalidOperationException("The underlying async sequence returned an empty enumerator");
+
+				var outer = this.Factory(inner);
+				if (outer == null) throw new InvalidOperationException("The async factory returned en empty enumerator");
+
+				return outer;
+			}
+			catch (Exception)
+			{
+				//make sure that the inner iterator gets disposed if something went wrong
+				if (inner != null) inner.Dispose();
+				throw;
+			}
+		}
 	}
 }

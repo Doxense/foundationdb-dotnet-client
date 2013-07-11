@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		/// <typeparam name="TResult">Type of the results returned</typeparam>
 		[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInBatch={m_remainingInBatch}, ReadLastBatch={m_lastBatchRead}")]
-		private sealed class ResultIterator<TResult> : FdbAsyncEnumerable.AsyncIterator<TResult>
+		private sealed class ResultIterator<TResult> : FdbAsyncIterator<TResult>
 		{
 
 			private FdbRangeQuery m_query;
@@ -82,7 +82,7 @@ namespace FoundationDB.Client
 				m_resultTransform = transform;
 			}
 
-			protected override FdbAsyncEnumerable.AsyncIterator<TResult> Clone()
+			protected override FdbAsyncIterator<TResult> Clone()
 			{
 				return new ResultIterator<TResult>(m_query, m_transaction, m_resultTransform);
 			}
@@ -165,7 +165,7 @@ namespace FoundationDB.Client
 
 			#region LINQ
 
-			public override FdbAsyncEnumerable.AsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+			public override FdbAsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
 			{
 				return new ResultIterator<TNew>(
 					m_query,
@@ -174,7 +174,7 @@ namespace FoundationDB.Client
 				);
 			}
 
-			public override FdbAsyncEnumerable.AsyncIterator<TResult> Take(int limit)
+			public override FdbAsyncIterator<TResult> Take(int limit)
 			{
 				return new ResultIterator<TResult>(m_query.Take(limit), m_transaction, m_resultTransform);
 			}
