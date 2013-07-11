@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Tests
 {
+	using FoundationDB.Client.Utils;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
@@ -648,5 +649,69 @@ namespace FoundationDB.Linq.Tests
 
 		}
 
+		[Test]
+		public async Task Test_FdbAsyncBuffer()
+		{
+			const int MAX_CAPACITY = 5;
+
+			var buffer = new FdbAsyncBufferQueue<int>(MAX_CAPACITY);
+
+			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+			{
+				var token = go.Token;
+
+				var rnd = new Random(1234);
+
+				// setup a pump loop
+				var pump = Task.Run(async () =>
+				{
+					while (!token.IsCancellationRequested)
+					{
+						var msg = await buffer.ReceiveAsync(token);
+						if (msg.HasValue)
+						{
+							Console.WriteLine("[consumer] Got value " + msg.Value);
+						}
+						else if (msg.HasValue)
+						{
+							Console.WriteLine("[consumer] Got error: " + msg.Error);
+							msg.ThrowIfFailed();
+							break;
+						}
+						else
+						{
+							Console.WriteLine("[consumer] Done!");
+							break;
+						}
+
+					}
+
+				}, token);
+
+				int i = 0;
+
+				// first 5 calls to enqueue should already be completed
+				while (!token.IsCancellationRequested && i < MAX_CAPACITY * 10)
+				{
+					Console.WriteLine("[PRODUCER] Publishing " + i);
+					await buffer.OnNextAsync(i, token);
+					++i;
+
+					if (rnd.Next(10) < 2)
+					{
+						Console.WriteLine("[PRODUCER] Thinking " + i);
+						await Task.Delay(10);
+					}
+				}
+
+				Console.WriteLine("[PRODUCER] COMPLETED!");
+				buffer.OnCompleted();
+
+				var t = await Task.WhenAny(pump, Task.Delay(TimeSpan.FromSeconds(10), token));
+				Assert.That(t, Is.SameAs(pump));
+
+			}
+		}
 	}
+
 }

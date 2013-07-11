@@ -87,6 +87,11 @@
     <Compile Include="FdbCluster.cs" />
     <Compile Include="FdbFuture.cs" />
     <Compile Include="Fdb.cs" />
+    <Compile Include="Linq\FdbAsyncIteratorPump.cs" />
+    <Compile Include="Utils\AsyncCancellableMutex.cs" />
+    <Compile Include="Utils\FdbAsyncBufferQueue.cs" />
+    <Compile Include="Utils\IFdbAsyncBuffer.cs" />
+    <Compile Include="Utils\Maybe.cs" />
     <Compile Include="Linq\FdbParallelSelectAsyncIterator.cs" />
     <Compile Include="Linq\FdbAsyncEnumerable.EnumerableIterator.cs" />
     <Compile Include="Linq\FdbAsyncEnumerable.EnumerableSequence.cs" />

@@ -70,7 +70,6 @@ namespace FoundationDB.Linq
 			m_limit = limit;
 		}
 
-
 		protected override FdbAsyncIterator<TResult> Clone()
 		{
 			return new FdbWhereSelectAsyncIterator<TSource, TResult>(m_source, m_filter, m_asyncFilter, m_transform, m_asyncTransform, m_limit);
