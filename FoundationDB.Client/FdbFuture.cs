@@ -29,6 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Futures
 #undef DEBUG_FUTURES
 
+// to allow blocking methods on Futures
+#undef ENABLE_BLOCKING_CALLS
+
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Native;
@@ -65,7 +68,7 @@ namespace FoundationDB.Client
 
 	/// <summary>FDBFuture wrapper</summary>
 	/// <typeparam name="T">Type of result</typeparam>
-	[DebuggerDisplay("Flags={m_flags}, State={m_tcs.Task.Status}")]
+	[DebuggerDisplay("Flags={m_flags}, State={this.Task.Status}")]
 	public class FdbFuture<T> : TaskCompletionSource<T>, IDisposable
 	{
 		// Wraps a FDBFuture* handle and handles the lifetime of the object
@@ -75,14 +78,16 @@ namespace FoundationDB.Client
 			/// <summary>The future as completed (either success or failure)</summary>
 			public const int COMPLETED = 1;
 
-			/// <summary>The future is configured in blocking mode (no callback)</summary>
-			public const int BLOCKING = 2;
-
 			/// <summary>The future as been registered for cancellation with a parent CancellationToken</summary>
-			public const int HAS_CTR = 4;
+			public const int HAS_CTR = 2;
 
 			/// <summary>A completion/failure/cancellation has been posted on the thread pool</summary>
-			public const int HAS_POSTED_ASYNC_COMPLETION = 8;
+			public const int HAS_POSTED_ASYNC_COMPLETION = 4;
+
+#if ENABLE_BLOCKING_CALLS
+			/// <summary>The future is configured in blocking mode (no callback)</summary>
+			public const int BLOCKING = 64;
+#endif
 
 			/// <summary>Dispose has been called</summary>
 			public const int DISPOSED = 128;
@@ -95,11 +100,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Value of the 'FDBFuture*'</summary>
 		private readonly FutureHandle m_handle;
-
-#if REFACTORED
-		/// <summary>Task that will complete when the FDBFuture completes</summary>
-		private readonly TaskCompletionSource<T> m_tcs;
-#endif
 
 		/// <summary>Func used to extract the result of this FDBFuture</summary>
 		private Func<FutureHandle, T> m_resultSelector;
@@ -122,9 +122,6 @@ namespace FoundationDB.Client
 			if (selector == null) throw new ArgumentNullException("selector");
 
 			m_handle = handle;
-#if REFACTORED
-			m_tcs = new TaskCompletionSource<T>();
-#endif
 			m_resultSelector = selector;
 
 			try
@@ -162,7 +159,11 @@ namespace FoundationDB.Client
 
 				if (willBlockForResult)
 				{ // this future will be consumed synchronously, no need to schedule a callback
+#if ENABLE_BLOCKING_CALLS
 					SetFlag(Flags.BLOCKING);
+#else
+					throw new InvalidOperationException("Non-async Futures are not supported in this version");
+#endif
 				}
 				else
 				{ // we don't know yet, schedule a callback...
@@ -501,7 +502,9 @@ namespace FoundationDB.Client
 		/// <remarks>The task will either return the result of the future, or an exception</remarks>
 		public Task<T> AsTask()
 		{
+#if ENABLE_BLOCKING_CALLS
 			if ((Volatile.Read(ref m_flags) & Flags.BLOCKING) != 0) throw new InvalidOperationException("This Future can only be used synchronously!");
+#endif
 			return this.Task;
 		}
 
@@ -510,6 +513,8 @@ namespace FoundationDB.Client
 		{
 			return AsTask().GetAwaiter();
 		}
+
+#if ENABLE_BLOCKING_CALLS
 
 		/// <summary>Checks if the FDBFuture is ready</summary>
 		public bool IsReady
@@ -566,40 +571,42 @@ namespace FoundationDB.Client
 			}
 		}
 
+#endif
+
 		#region Helper Methods...
 
-		private static void PostCompletionOnThreadPool(TaskCompletionSource<T> tcs, T result)
+		private static void PostCompletionOnThreadPool(FdbFuture<T> future, T result)
 		{
 			ThreadPool.QueueUserWorkItem(
 				(_state) =>
 				{
-					var prms = (Tuple<TaskCompletionSource<T>, T>)_state;
+					var prms = (Tuple<FdbFuture<T>, T>)_state;
 					prms.Item1.TrySetResult(prms.Item2);
 				},
-				Tuple.Create(tcs, result)
+				Tuple.Create(future, result)
 			);
 		}
 
-		private static void PostFailureOnThreadPool(TaskCompletionSource<T> tcs, Exception e)
+		private static void PostFailureOnThreadPool(FdbFuture<T> future, Exception error)
 		{
 			ThreadPool.QueueUserWorkItem(
 				(_state) =>
 				{
-					var prms = (Tuple<TaskCompletionSource<T>, Exception>)_state;
+					var prms = (Tuple<FdbFuture<T>, Exception>)_state;
 					prms.Item1.TrySetException(prms.Item2);
 				},
-				Tuple.Create(tcs, e)
+				Tuple.Create(future, error)
 			);
 		}
 
-		private static void PostCancellationOnThreadPool(TaskCompletionSource<T> tcs)
+		private static void PostCancellationOnThreadPool(FdbFuture<T> future)
 		{
 			ThreadPool.QueueUserWorkItem(
 				(_state) =>
 				{
 					((TaskCompletionSource<T>)_state).TrySetCanceled();
 				},
-				tcs
+				future
 			);
 		}
 
