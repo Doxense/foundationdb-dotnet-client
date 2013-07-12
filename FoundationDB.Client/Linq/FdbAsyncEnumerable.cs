@@ -372,6 +372,16 @@ namespace FoundationDB.Linq
 
 		#endregion
 
+		#region SelectAsync
+
+		public static IFdbAsyncEnumerable<TResult> SelectAsync<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, int? maxConcurrency = null, TaskScheduler scheduler = null)
+		{
+			//TODO: remove magic number!
+			return new FdbParallelSelectAsyncIterator<TSource, TResult>(source, asyncSelector, maxConcurrency ?? 100, scheduler ?? TaskScheduler.Default);
+		}
+
+		#endregion
+
 		#endregion
 
 		#region Leaving the Monad...

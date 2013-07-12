@@ -606,18 +606,15 @@ namespace FoundationDB.Linq.Tests
 		{
 			const int MAX_CONCURRENCY = 5;
 
-			var source = Enumerable.Range(1, 10)
-				.ToAsyncEnumerable()
-				.Select(async x => { await Task.Delay(100); return x; });
-
 			int concurrent = 0;
 			var rnd = new Random();
 
 			var sw = Stopwatch.StartNew();
 
-			var query = new FdbParallelSelectAsyncIterator<int, int>(
-				source,
-				async (x, ct) =>
+			var query= Enumerable.Range(1, 10)
+				.ToAsyncEnumerable()
+				.Select(async x => { await Task.Delay(100); return x; })
+				.SelectAsync(async (x, ct) =>
 				{
 					var n = Interlocked.Increment(ref concurrent);
 					Assert.That(n, Is.LessThanOrEqualTo(MAX_CONCURRENCY));
