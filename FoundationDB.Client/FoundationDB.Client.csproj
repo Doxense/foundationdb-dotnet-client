@@ -90,6 +90,11 @@
     <Compile Include="Linq\FdbParallelQueryOptions.cs" />
     <Compile Include="Linq\FdbAsyncIteratorPump.cs" />
     <Compile Include="Utils\AsyncCancellableMutex.cs" />
+    <Compile Include="Utils\FdbAnonymousAsyncTarget.cs" />
+    <Compile Include="Utils\IFdbAsyncBatchSource.cs" />
+    <Compile Include="Utils\IFdbAsyncSource.cs" />
+    <Compile Include="Utils\IFdbAsyncBatchTarget.cs" />
+    <Compile Include="Utils\IFdbAsyncTarget.cs" />
     <Compile Include="Utils\FdbAsyncBufferQueue.cs" />
     <Compile Include="Utils\IFdbAsyncBuffer.cs" />
     <Compile Include="Utils\Maybe.cs" />

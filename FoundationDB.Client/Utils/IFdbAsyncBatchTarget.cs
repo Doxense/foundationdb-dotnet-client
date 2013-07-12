@@ -29,57 +29,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Utils
 {
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
-#if !NET_4_0
-	using System.Runtime.ExceptionServices;
-#endif
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Defines a producer/consumer buffer queue that can holds several items before blocking the producer</summary>
+	/// <summary>Defines a target that can receive items in batches, and can throttle the producer</summary>
 	/// <typeparam name="T"></typeparam>
-	interface IFdbAsyncBuffer<T> : IFdbAsyncSource<T>, IFdbAsyncTarget<T>, IFdbAsyncBatchSource<T>, IFdbAsyncBatchTarget<T>
+	interface IFdbAsyncBatchTarget<in T> : IFdbAsyncTarget<T>
 	{
-		/// <summary>Returns the current number of items in the buffer</summary>
-		int Count { get; }
+		//TODO: should we pass a T[] or an IEnumerable<T> ?
 
-		/// <summary>Returns the maximum capacity of the buffer</summary>
-		int Capacity { get; }
-
-		/// <summary>Returns true if the producer is blocked (queue is full)</summary>
-		bool IsProducerBlocked { get; }
-
-		/// <summary>Returns true if the consumer is blocked (queue is empty)</summary>
-		bool IsConsumerBlocked { get; }
-
-		/// <summary>Wait for all the consumers to drain the queue</summary>
-		/// <returns>Task that completes when all consumers have drained the queue</returns>
-		Task DrainAsync();
+		Task OnNextBatchAsync(T[] batch, CancellationToken ct = default(CancellationToken));
 	}
 
-	internal static class FdbAsyncExtensions
-	{
-
-#if !NET_4_0
-		public static void OnError<T>(this IFdbAsyncTarget<T> target, Exception error)
-		{
-			target.OnError(ExceptionDispatchInfo.Capture(error));
-		}
-#endif
-
-		public static void OnNextBatchAsync<T>(this IFdbAsyncBatchTarget<T> target, IEnumerable<T> values, CancellationToken ct = default(CancellationToken))
-		{
-			if (target == null) throw new ArgumentNullException("target");
-			if (values == null) throw new ArgumentNullException("values");
-
-			var batch = values.ToArray();
-			if (batch.Length > 0)
-			{
-				target.OnNextBatchAsync(batch, ct);
-			}
-		}
-
-	}
 
 }

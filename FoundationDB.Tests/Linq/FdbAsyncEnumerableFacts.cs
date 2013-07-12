@@ -34,6 +34,7 @@ namespace FoundationDB.Linq.Tests
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
+	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -621,6 +622,9 @@ namespace FoundationDB.Linq.Tests
 					try
 					{
 						Console.WriteLine("** " + sw.Elapsed.TotalMilliseconds + " start " + x + " (" + n + ")");
+#if DEBUG_STACK_TRACES
+						Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
+#endif
 						int ms;
 						lock (rnd) { ms = rnd.Next(25) + 50; }
 						await Task.Delay(ms);
@@ -652,6 +656,7 @@ namespace FoundationDB.Linq.Tests
 
 			var buffer = new FdbAsyncBufferQueue<int>(MAX_CAPACITY);
 
+			// since this can lock up, we need a global timeout !
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
 			{
 				var token = go.Token;
@@ -663,7 +668,11 @@ namespace FoundationDB.Linq.Tests
 				{
 					while (!token.IsCancellationRequested)
 					{
+						Console.WriteLine("[consumer] start receiving next...");
 						var msg = await buffer.ReceiveAsync(token);
+#if DEBUG_STACK_TRACES
+						Console.WriteLine("[consumer] > " + new StackTrace().ToString().Replace("\r\n", "\r\n[consumer] > "));
+#endif
 						if (msg.HasValue)
 						{
 							Console.WriteLine("[consumer] Got value " + msg.Value);
@@ -690,8 +699,15 @@ namespace FoundationDB.Linq.Tests
 				while (!token.IsCancellationRequested && i < MAX_CAPACITY * 10)
 				{
 					Console.WriteLine("[PRODUCER] Publishing " + i);
+#if DEBUG_STACK_TRACES
+					Console.WriteLine("[PRODUCER] > " + new StackTrace().ToString().Replace("\r\n", "\r\n[PRODUCER] > "));
+#endif
 					await buffer.OnNextAsync(i, token);
 					++i;
+					Console.WriteLine("[PRODUCER] Published");
+#if DEBUG_STACK_TRACES
+					Console.WriteLine("[PRODUCER] > " + new StackTrace().ToString().Replace("\r\n", "\r\n[PRODUCER] > "));
+#endif
 
 					if (rnd.Next(10) < 2)
 					{
@@ -707,6 +723,89 @@ namespace FoundationDB.Linq.Tests
 				Assert.That(t, Is.SameAs(pump));
 
 			}
+		}
+	
+		[Test]
+		public async Task Test_FdbASyncIteratorPump()
+		{
+			const int N = 20;
+
+			var rnd = new Random(1234);
+			var sw = new Stopwatch();
+
+			// the source outputs items while randomly waiting
+			var source = Enumerable.Range(0, N)
+				.ToAsyncEnumerable()
+				.Select(async x =>
+				{
+					if (rnd.Next(10) < 2)
+					{
+						await Task.Delay(15);
+					}
+					Console.WriteLine("[PRODUCER] publishing " + x + " at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+					return x;
+				});
+
+			// since this can lock up, we need a global timeout !
+			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+			{
+				var token = go.Token;
+
+				var items = new List<int>();
+				bool done = false;
+				ExceptionDispatchInfo error = null;
+
+				var queue = new FdbAnonymousAsyncTarget<int>(
+					onNextAsync: (x, ct) =>
+					{
+						Console.WriteLine("[consumer] onNextAsync(" + x + ") at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+#if DEBUG_STACK_TRACES
+						Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
+#endif
+						ct.ThrowIfCancellationRequested();
+						items.Add(x);
+						return TaskHelpers.CompletedTask;
+					},
+					onCompleted: () =>
+					{
+						Console.WriteLine("[consumer] onCompleted() at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+#if DEBUG_STACK_TRACES
+						Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
+#endif
+						done = true;
+					},
+					onError: (x) =>
+					{
+						Console.WriteLine("[consumer] onError()  at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+						Console.WriteLine("[consumer] > " + x);
+						error = x;
+						go.Cancel();
+					}
+				);
+
+				using(var inner = source.GetEnumerator())
+				{
+					var pump = new FdbAsyncIteratorPump<int>(inner, queue);
+
+					Console.WriteLine("[PUMP] Start pumping on #" + Thread.CurrentThread.ManagedThreadId);
+					sw.Start();
+					await pump.PumpAsync(token);
+					sw.Stop();
+					Console.WriteLine("[PUMP] Pumping completed! at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
+
+					// We should have N items, plus 1 message for the completion
+					Assert.That(items.Count, Is.EqualTo(N));
+					Assert.That(done, Is.True);
+					if (error != null) error.Throw();
+
+					for (int i = 0; i < N; i++)
+					{
+						Assert.That(items[i], Is.EqualTo(i));
+					}
+				}
+
+			}
+
 		}
 	}
 

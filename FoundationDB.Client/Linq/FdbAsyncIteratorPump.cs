@@ -30,56 +30,105 @@ namespace FoundationDB.Linq
 {
 	using FoundationDB.Client.Utils;
 	using System;
-	using System.Collections.Concurrent;
-	using System.Collections.Generic;
-	using System.Runtime.ExceptionServices;
+	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Pump that calls MoveNext on an iterator and tries to publish the values in a Producer/Consumer queue</summary>
+	/// <summary>Pump that repeatedly calls MoveNext on an iterator and tries to publish the values in a Producer/Consumer queue</summary>
 	/// <typeparam name="TInput"></typeparam>
-	internal class FdbAsyncIteratorPump<TInput>
+	[DebuggerDisplay("State={m_state}")]
+	internal sealed class FdbAsyncIteratorPump<TInput>
 	{
+		private const int STATE_IDLE = 0;
+		private const int STATE_WAITING_FOR_NEXT = 1;
+		private const int STATE_PUBLISHING_TO_TARGET = 2;
+		private const int STATE_FAILED = 3;
+		private const int STATE_DONE = 4;
 
+		private volatile int m_state;
 		private readonly IFdbAsyncEnumerator<TInput> m_iterator;
-		private readonly IFdbAsyncBuffer<TInput> m_queue;
+		private readonly IFdbAsyncTarget<TInput> m_target;
 
 		public FdbAsyncIteratorPump(
 			IFdbAsyncEnumerator<TInput> iterator,
-			IFdbAsyncBuffer<TInput> queue
+			IFdbAsyncTarget<TInput> target
 		)
 		{
 			Contract.Requires(iterator != null);
-			Contract.Requires(queue != null && queue.Capacity > 0);
+			Contract.Requires(target != null);
 
 			m_iterator = iterator;
-			m_queue = queue;
+			m_target = target;
 		}
 
+		/// <summary>Returns true if the pump has completed (with success or failure)</summary>
+		public bool IsCompleted
+		{
+			get { return m_state >= STATE_FAILED; }
+		}
+
+		internal int State
+		{
+			get { return m_state; }
+		}
+
+		/// <summary>Run the pump until the inner iterator is done, an error occurs, or the cancellation token is fired</summary>
 		public async Task PumpAsync(CancellationToken ct)
 		{
-			try
+			if (m_state != STATE_IDLE)
 			{
+				if (m_state >= STATE_FAILED)
+					throw new InvalidOperationException("The iterator pump has already completed once");
+				else
+					throw new InvalidOperationException("The iterator pump is already running");
+			}
+
+			try
+			{			
 				while (!ct.IsCancellationRequested)
 				{
+					m_state = STATE_WAITING_FOR_NEXT;
 					if (!(await m_iterator.MoveNext(ct).ConfigureAwait(false)))
 					{
-						m_queue.OnCompleted();
+						m_state = STATE_DONE;
+						m_target.OnCompleted();
 						return;
 					}
 
-					await m_queue.OnNextAsync(m_iterator.Current, ct).ConfigureAwait(false);
+					m_state = STATE_PUBLISHING_TO_TARGET;
+					await m_target.OnNextAsync(m_iterator.Current, ct).ConfigureAwait(false);
 				}
 
 				// push the cancellation on the queue
-				m_queue.OnError(new OperationCanceledException(ct));
-
+				OnError(new OperationCanceledException(ct));
+				// and throw!
 			}
 			catch (Exception e)
 			{
-				// push the error on the queue
-				m_queue.OnError(e);
-				return;
+				if (m_state == STATE_FAILED)
+				{ // already signaled the target, just throw
+					throw;
+				}
+
+				// push the error on the queue, and eat the error
+				OnError(e);
+			}
+			finally
+			{
+				if (m_state != STATE_FAILED) m_state = STATE_DONE;
+			}
+		}
+
+		private void OnError(Exception e)
+		{
+			try
+			{
+				m_state = STATE_FAILED;
+				m_target.OnError(e);
+			}
+			catch
+			{
+				//TODO ?
 			}
 		}
 

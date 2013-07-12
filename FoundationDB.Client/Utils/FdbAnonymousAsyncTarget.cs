@@ -29,57 +29,59 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Utils
 {
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
-#if !NET_4_0
 	using System.Runtime.ExceptionServices;
-#endif
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Defines a producer/consumer buffer queue that can holds several items before blocking the producer</summary>
-	/// <typeparam name="T"></typeparam>
-	interface IFdbAsyncBuffer<T> : IFdbAsyncSource<T>, IFdbAsyncTarget<T>, IFdbAsyncBatchSource<T>, IFdbAsyncBatchTarget<T>
-	{
-		/// <summary>Returns the current number of items in the buffer</summary>
-		int Count { get; }
-
-		/// <summary>Returns the maximum capacity of the buffer</summary>
-		int Capacity { get; }
-
-		/// <summary>Returns true if the producer is blocked (queue is full)</summary>
-		bool IsProducerBlocked { get; }
-
-		/// <summary>Returns true if the consumer is blocked (queue is empty)</summary>
-		bool IsConsumerBlocked { get; }
-
-		/// <summary>Wait for all the consumers to drain the queue</summary>
-		/// <returns>Task that completes when all consumers have drained the queue</returns>
-		Task DrainAsync();
-	}
-
-	internal static class FdbAsyncExtensions
+	public class FdbAnonymousAsyncTarget<T> : IFdbAsyncTarget<T>
 	{
 
-#if !NET_4_0
-		public static void OnError<T>(this IFdbAsyncTarget<T> target, Exception error)
-		{
-			target.OnError(ExceptionDispatchInfo.Capture(error));
-		}
+		private readonly Func<T, CancellationToken, Task> m_onNextAsync;
+
+		private readonly Action m_onCompleted;
+
+#if NET_4_0
+		private readonly Action<Exception> m_onError
+#else
+		private readonly Action<ExceptionDispatchInfo> m_onError;
 #endif
 
-		public static void OnNextBatchAsync<T>(this IFdbAsyncBatchTarget<T> target, IEnumerable<T> values, CancellationToken ct = default(CancellationToken))
-		{
-			if (target == null) throw new ArgumentNullException("target");
-			if (values == null) throw new ArgumentNullException("values");
 
-			var batch = values.ToArray();
-			if (batch.Length > 0)
-			{
-				target.OnNextBatchAsync(batch, ct);
-			}
+		public FdbAnonymousAsyncTarget(
+			Func<T, CancellationToken, Task> onNextAsync, 
+			Action onCompleted,
+#if NET_4_0
+			Action<Exception> onError
+#else
+			Action<ExceptionDispatchInfo> onError
+#endif
+		)
+		{
+			m_onNextAsync = onNextAsync;
+			m_onCompleted = onCompleted;
+			m_onError = onError;
 		}
 
+		public Task OnNextAsync(T value, CancellationToken ct = default(CancellationToken))
+		{
+			return m_onNextAsync(value, ct);
+		}
+
+		public void OnCompleted()
+		{
+			m_onCompleted();
+		}
+
+		public void OnError(
+#if NET_4_0
+			Exception error
+#else
+			ExceptionDispatchInfo error
+#endif
+		)
+		{
+			m_onError(error);
+		}
 	}
 
 }

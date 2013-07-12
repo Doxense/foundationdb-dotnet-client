@@ -29,8 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Utils
 {
 	using System;
-	using System.Collections.Concurrent;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -51,15 +51,61 @@ namespace FoundationDB.Client.Utils
 			m_capacity = capacity;
 		}
 
+		#region IFdbAsyncBuffer<T>...
+
+		/// <summary>Returns the current number of items in the queue</summary>
 		public int Count
 		{
-			get { return m_queue.Count; }
+			get
+			{
+				Debugger.NotifyOfCrossThreadDependency();
+				lock (m_lock)
+				{
+					return m_queue.Count;
+				}
+			}
 		}
 
+		/// <summary>Returns the maximum capacity of the queue</summary>
 		public int Capacity
 		{
 			get { return m_capacity; }
 		}
+
+		/// <summary>Returns true if the producer is blocked (queue is full)</summary>
+		public bool IsConsumerBlocked
+		{
+			get
+			{
+				Debugger.NotifyOfCrossThreadDependency();
+				lock (m_lock)
+				{
+					return m_blockedConsumers.Count > 0;
+				}
+			}
+		}
+
+		/// <summary>Returns true if the consumer is blocked (queue is empty)</summary>
+		public bool IsProducerBlocked
+		{
+			get
+			{
+				Debugger.NotifyOfCrossThreadDependency();
+				lock (m_lock)
+				{
+					return m_blockedProducer != null && m_blockedProducer.Task.IsCompleted;
+				}
+			}
+		}
+
+		public Task DrainAsync()
+		{
+			throw new NotImplementedException();
+		}
+
+		#endregion
+
+		#region IFdbAsyncTarget<T>...
 
 		public Task OnNextAsync(T value, CancellationToken ct)
 		{
@@ -95,6 +141,37 @@ namespace FoundationDB.Client.Utils
 			return waiter.Task;
 		}
 
+		public void OnCompleted()
+		{
+			lock (m_lock)
+			{
+				if (m_done) throw new InvalidOperationException("OnCompleted() and OnError() can only be called once");
+				m_done = true;
+				m_queue.Enqueue(Maybe<T>.Empty);
+				WakeUpConsumers_NeedLocking();
+			}
+		}
+
+		public void OnError(
+#if NET_4_0
+			Exception error
+#else
+			ExceptionDispatchInfo error
+#endif
+		)
+		{
+			lock(m_lock)
+			{
+				if (m_done) throw new InvalidOperationException("OnCompleted() and OnError() can only be called once");
+				m_done = true;
+				m_queue.Enqueue(Maybe<T>.FromError(error));
+			}
+		}
+
+		#endregion
+
+		#region IFdbAsyncBatchTarget<T>...
+
 		public async Task OnNextBatchAsync(T[] batch, CancellationToken ct)
 		{
 			if (batch == null) throw new ArgumentNullException("batch");
@@ -104,95 +181,15 @@ namespace FoundationDB.Client.Utils
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			//TODO: optimized version !
-			foreach(var item in batch)
+			foreach (var item in batch)
 			{
 				await OnNextAsync(item, ct).ConfigureAwait(false);
 			}
 		}
 
-		public void OnCompleted()
-		{
-			lock (m_lock)
-			{
-				if (m_done) throw new InvalidOperationException("Complete() can only be called once");
-				m_done = true;
-				m_queue.Enqueue(Maybe<T>.Empty);
-				WakeUpConsumers_NeedLocking();
-			}
-		}
+		#endregion
 
-
-		public void OnError(Exception error)
-		{
-			lock(m_lock)
-			{
-				m_queue.Enqueue(Maybe<T>.FromError(error));
-			}
-		}
-
-#if !NET_4_0
-		public void OnError(ExceptionDispatchInfo error)
-		{
-			lock(m_lock)
-			{
-				m_queue.Enqueue(Maybe<T>.FromError(error));
-			}
-		}
-#endif
-
-		public Task DrainAsync()
-		{
-			throw new NotImplementedException();
-		}
-
-		private bool DrainItems_NeedsLocking(List<Maybe<T>> buffer, int count)
-		{
-			bool gotAny = false;
-			while (m_queue.Count > 0 && buffer.Count < count)
-			{
-				var value = m_queue.Dequeue();
-				buffer.Add(value);
-				if (!value.HasValue) break;
-				gotAny = true;
-			}
-
-			return gotAny;
-		}
-
-		private Task WaitForNextItem_NeedsLocking(CancellationToken ct)
-		{
-			if (m_done) return TaskHelpers.CompletedTask;
-
-			var waiter = new AsyncCancellableMutex(ct);
-			m_blockedConsumers.Add(waiter);
-			return waiter.Task;
-		}
-
-		private void WakeUpProducer_NeedsLocking()
-		{
-			//Console.WriteLine(": should we wake up the producer?");
-			var waiter = Interlocked.Exchange(ref m_blockedProducer, null);
-			if (waiter != null)
-			{
-				//Console.WriteLine(": waking up producer!");
-				waiter.Set(async: true);
-			}
-		}
-
-		private void WakeUpConsumers_NeedLocking()
-		{
-			//Console.WriteLine("# should we wake up the consumers ?");
-			if (m_blockedConsumers.Count > 0)
-			{
-				//Console.WriteLine("# waking up " + m_blockedConsumers.Count + " consumers");
-				var consumers = m_blockedConsumers.ToArray();
-				m_blockedConsumers.Clear();
-				foreach(var consumer in consumers)
-				{
-					consumer.Set(async: true);
-				}
-			}
-		}
+		#region IFdbAsyncSource<T>...
 
 		public Task<Maybe<T>> ReceiveAsync(CancellationToken ct)
 		{
@@ -256,6 +253,10 @@ namespace FoundationDB.Client.Utils
 			}
 		}
 
+		#endregion
+
+		#region IFdbAsyncBatchSource<T>...
+
 		public Task<Maybe<T>[]> ReceiveBatchAsync(int count, CancellationToken ct)
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
@@ -311,6 +312,59 @@ namespace FoundationDB.Client.Utils
 
 			return batch.ToArray();
 		}
+
+		#endregion
+
+		private bool DrainItems_NeedsLocking(List<Maybe<T>> buffer, int count)
+		{
+			bool gotAny = false;
+			while (m_queue.Count > 0 && buffer.Count < count)
+			{
+				var value = m_queue.Dequeue();
+				buffer.Add(value);
+				if (!value.HasValue) break;
+				gotAny = true;
+			}
+
+			return gotAny;
+		}
+
+		private Task WaitForNextItem_NeedsLocking(CancellationToken ct)
+		{
+			if (m_done) return TaskHelpers.CompletedTask;
+
+			var waiter = new AsyncCancellableMutex(ct);
+			m_blockedConsumers.Add(waiter);
+			return waiter.Task;
+		}
+
+		private void WakeUpProducer_NeedsLocking()
+		{
+			//Console.WriteLine(": should we wake up the producer?");
+			var waiter = Interlocked.Exchange(ref m_blockedProducer, null);
+			if (waiter != null)
+			{
+				//Console.WriteLine(": waking up producer!");
+				waiter.Set(async: true);
+			}
+		}
+
+		private void WakeUpConsumers_NeedLocking()
+		{
+			//Console.WriteLine("# should we wake up the consumers ?");
+			if (m_blockedConsumers.Count > 0)
+			{
+				//Console.WriteLine("# waking up " + m_blockedConsumers.Count + " consumers");
+				var consumers = m_blockedConsumers.ToArray();
+				m_blockedConsumers.Clear();
+				foreach (var consumer in consumers)
+				{
+					consumer.Set(async: true);
+				}
+			}
+		}
+
+	
 	}
 
 }

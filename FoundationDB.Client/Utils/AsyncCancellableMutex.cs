@@ -29,13 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Utils
 {
 	using System;
-	using System.Collections.Concurrent;
-	using System.Collections.Generic;
-	using System.Runtime.ExceptionServices;
+	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Implements a mutex that supports cancellation</summary>
+	[DebuggerDisplay("Status={this.Task.Status}, CancellationState=({m_state}, {m_ct.IsCancellationRequested?\"alive\":\"canceled\"})")]
 	internal class AsyncCancellableMutex : TaskCompletionSource<object>
 	{
 		// The consumer just needs to await the Task and will be woken up if someone calls Set(..) / Abort() on the mutex OR if the CancellationToken provided in the ctor is signaled.
