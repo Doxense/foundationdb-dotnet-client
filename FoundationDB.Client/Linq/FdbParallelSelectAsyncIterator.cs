@@ -39,14 +39,16 @@ namespace FoundationDB.Linq
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	internal sealed class FdbParallelSelectAsyncIterator<TSource, TResult> : FdbAsyncFilter<TSource, TResult>
 	{
+		/// <summary>Default max concurrency when doing batch queries</summary>
+		/// <remarks>TODO: this is a placeholder value !</remarks>
+		public const int DefaultMaxConcurrency = 32;
 
 		// The goal is to have an underlying sequence providing "seed" values (say, documents ids from an ongoing mergesort or intersect)
 		// that will kick off tasks for each one (say, a fetch or load for each of the ids) and output the results of these tasks *in order* as they complete
 		// Since we can't spin out too many tasks, we also want to be able to put a cap no the max number of pending tasks
 
 		private Func<TSource, CancellationToken, Task<TResult>> m_taskSelector;
-		private int m_maxConcurrency;
-		private TaskScheduler m_scheduler;
+		private FdbParallelQueryOptions m_options;
 
 		private readonly object m_lock = new object();
 		private CancellationTokenSource m_cts;
@@ -54,27 +56,27 @@ namespace FoundationDB.Linq
 		private volatile bool m_done;
 		private volatile bool m_innerBusy;
 		private Queue<TaskCompletionSource<KeyValuePair<bool, TResult>>> m_pendingTasks;
+		private int m_maxConcurrency;
+		private TaskScheduler m_scheduler;
 
 		public FdbParallelSelectAsyncIterator(
 			IFdbAsyncEnumerable<TSource> source,
 			Func<TSource, CancellationToken, Task<TResult>> taskSelector,
-			int maxConcurrency,
-			TaskScheduler scheduler
+			FdbParallelQueryOptions options
 		)
 			: base(source)
 		{
 			Contract.Requires(source != null);
 			Contract.Requires(taskSelector != null);
-			Contract.Requires(maxConcurrency >= 1);
+			Contract.Requires(options != null);
 
 			m_taskSelector = taskSelector;
-			m_maxConcurrency = maxConcurrency;
-			m_scheduler = scheduler;
+			m_options = options;
 		}
 
 		protected override FdbAsyncIterator<TResult> Clone()
 		{
-			return new FdbParallelSelectAsyncIterator<TSource, TResult>(m_source, m_taskSelector, m_maxConcurrency, m_scheduler);
+			return new FdbParallelSelectAsyncIterator<TSource, TResult>(m_source, m_taskSelector, m_options);
 		}
 
 		private TaskCompletionSource<KeyValuePair<bool, TResult>> TryGetNextSlot()
@@ -176,7 +178,7 @@ namespace FoundationDB.Linq
 						Tuple.Create(tcs, current),
 						m_token,
 						TaskCreationOptions.PreferFairness,
-						m_scheduler ?? TaskScheduler.Default
+						m_scheduler
 					);
 
 					//Console.WriteLine("  looking for another slot...");
@@ -228,24 +230,22 @@ namespace FoundationDB.Linq
 
 		protected override Task<bool> OnFirstAsync(CancellationToken ct)
 		{
-			//Console.WriteLine("[OnFirstAsync] " + Thread.CurrentThread.ManagedThreadId);
-			try
+			lock (m_lock)
 			{
-				lock (m_lock)
-				{
-					m_cts = new CancellationTokenSource();
-					m_token = m_cts.Token;
-					m_pendingTasks = new Queue<TaskCompletionSource<KeyValuePair<bool, TResult>>>();
-					m_innerBusy = false;
-					m_done = false;
-				}
+				m_cts = new CancellationTokenSource();
+				m_token = m_cts.Token;
+				m_pendingTasks = new Queue<TaskCompletionSource<KeyValuePair<bool, TResult>>>();
+				m_innerBusy = false;
+				m_maxConcurrency = m_options.MaxConcurrency ?? DefaultMaxConcurrency;
+				m_scheduler = m_options.Scheduler ?? TaskScheduler.Default;
+				m_done = false;
+			}
 
-				return base.OnFirstAsync(ct);
-			}
-			finally
-			{
-				//Console.WriteLine("[/OnFirstAsync] " + Thread.CurrentThread.ManagedThreadId);
-			}
+			Contract.Ensures(m_pendingTasks != null);
+			Contract.Ensures(m_maxConcurrency >= 1);
+			Contract.Ensures(m_scheduler != null);
+
+			return base.OnFirstAsync(ct);
 		}
 
 		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)

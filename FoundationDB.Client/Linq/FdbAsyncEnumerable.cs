@@ -374,10 +374,12 @@ namespace FoundationDB.Linq
 
 		#region SelectAsync
 
-		public static IFdbAsyncEnumerable<TResult> SelectAsync<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, int? maxConcurrency = null, TaskScheduler scheduler = null)
+		public static IFdbAsyncEnumerable<TResult> SelectAsync<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, FdbParallelQueryOptions options = null)
 		{
-			//TODO: remove magic number!
-			return new FdbParallelSelectAsyncIterator<TSource, TResult>(source, asyncSelector, maxConcurrency ?? 100, scheduler ?? TaskScheduler.Default);
+			if (source == null) throw new ArgumentNullException("source");
+			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
+
+			return new FdbParallelSelectAsyncIterator<TSource, TResult>(source, asyncSelector, options ?? new FdbParallelQueryOptions());
 		}
 
 		#endregion

@@ -634,8 +634,7 @@ namespace FoundationDB.Linq.Tests
 						Assert.That(n, Is.GreaterThanOrEqualTo(0));
 					}
 				},
-				maxConcurrency: MAX_CONCURRENCY,
-				scheduler: TaskScheduler.Default
+				new FdbParallelQueryOptions { MaxConcurrency = MAX_CONCURRENCY }
 			);
 
 			var results = await query.ToListAsync();
