@@ -31,7 +31,6 @@ namespace FoundationDB.Async
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -40,18 +39,11 @@ namespace FoundationDB.Async
 	/// <typeparam name="T"></typeparam>
 	public class AsyncTaskBuffer<T> : AsyncProducerConsumerQueue<Task<T>>, IAsyncSource<T>
 	{
-		public enum OrderingMode
-		{
-			/// <summary>Outputs the results, respecting the arrival order.</summary>
-			ArrivalOrder,
-			/// <summary>Outputs the results in completion order.</summary>
-			CompletionOrder,
-		}
 
 		#region Private Members...
 
 		/// <summary>How should we output results ? In arrival order or in completion order ? </summary>
-		private OrderingMode m_mode;
+		private AsyncOrderingMode m_mode;
 
 		/// <summary>Queue that holds items produced but not yet consumed</summary>
 		/// <remarks>The queue can sometime go over the limit because the Complete/Error message are added without locking</remarks>
@@ -64,10 +56,10 @@ namespace FoundationDB.Async
 
 		#region Constructors...
 
-		public AsyncTaskBuffer(OrderingMode mode, int capacity)
+		public AsyncTaskBuffer(AsyncOrderingMode mode, int capacity)
 			: base(capacity)
 		{
-			if (mode != OrderingMode.ArrivalOrder && mode != OrderingMode.CompletionOrder) throw new ArgumentOutOfRangeException("mode", "Unsupported ordering mode");
+			if (mode != AsyncOrderingMode.ArrivalOrder && mode != AsyncOrderingMode.CompletionOrder) throw new ArgumentOutOfRangeException("mode", "Unsupported ordering mode");
 
 			m_mode = mode;
 		}
@@ -92,7 +84,7 @@ namespace FoundationDB.Async
 
 					Enqueue_NeedsLocking(task);
 
-					if (m_mode == OrderingMode.CompletionOrder)
+					if (m_mode == AsyncOrderingMode.CompletionOrder)
 					{ // we need to observe task completion to wake up the consumer as soon as one is ready !
 
 						if (task.IsCompleted)
@@ -217,7 +209,7 @@ namespace FoundationDB.Async
 				var current = m_queue.First;
 				if (current != null)
 				{
-					if (m_mode == OrderingMode.ArrivalOrder)
+					if (m_mode == AsyncOrderingMode.ArrivalOrder)
 					{
 						if (current.Value == null || current.Value.IsCompleted)
 						{ // it's ready

@@ -53,6 +53,7 @@
     <Compile Include="Async\AsyncProducerConsumerQueue.cs" />
     <Compile Include="Async\AsyncBuffer.cs" />
     <Compile Include="Async\AsyncTaskBuffer.cs" />
+    <Compile Include="Async\AsyncOrderingMode.cs" />
     <Compile Include="Async\IAsyncPump.cs" />
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />

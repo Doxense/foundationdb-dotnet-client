@@ -190,12 +190,12 @@ namespace FoundationDB.Async
 
 		public static AsyncTaskBuffer<T> CreateOrderPreservingAsyncBuffer<T>(int capacity)
 		{
-			return new AsyncTaskBuffer<T>(AsyncTaskBuffer<T>.OrderingMode.ArrivalOrder, capacity);
+			return new AsyncTaskBuffer<T>(AsyncOrderingMode.ArrivalOrder, capacity);
 		}
 
 		public static AsyncTaskBuffer<T> CreateUnorderedAsyncBuffer<T>(int capacity)
 		{
-			return new AsyncTaskBuffer<T>(AsyncTaskBuffer<T>.OrderingMode.CompletionOrder, capacity);
+			return new AsyncTaskBuffer<T>(AsyncOrderingMode.CompletionOrder, capacity);
 		}
 
 		#endregion
