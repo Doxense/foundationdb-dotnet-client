@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Utils
+namespace FoundationDB.Async
 {
 	using System;
 	using System.Diagnostics;
@@ -35,7 +35,7 @@ namespace FoundationDB.Client.Utils
 
 	/// <summary>Implements a mutex that supports cancellation</summary>
 	[DebuggerDisplay("Status={this.Task.Status}, CancellationState=({m_state}, {m_ct.IsCancellationRequested?\"alive\":\"canceled\"})")]
-	internal class AsyncCancellableMutex : TaskCompletionSource<object>
+	public class AsyncCancellableMutex : TaskCompletionSource<object>
 	{
 		// The consumer just needs to await the Task and will be woken up if someone calls Set(..) / Abort() on the mutex OR if the CancellationToken provided in the ctor is signaled.
 		// Optionally, Set() and Abort() can specify if the consumer will be woken up from the ThreadPool (asnyc = true) or probably inline (async = false)

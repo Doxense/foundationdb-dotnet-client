@@ -26,20 +26,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Utils
+namespace FoundationDB.Async
 {
 	using System;
+	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Defines a target that can receive items in batches, and can throttle the producer</summary>
-	/// <typeparam name="T"></typeparam>
-	interface IFdbAsyncBatchTarget<in T> : IFdbAsyncTarget<T>
+	/// <summary>Defines a target that receive items and can throttle the producer</summary>
+	/// <typeparam name="T">Type of values being accepted by the target</typeparam>
+	public interface IAsyncTarget<in T>
 	{
-		//TODO: should we pass a T[] or an IEnumerable<T> ?
+		//note: should OnCompleted and OnError be async or not ?
+		//note2: should we just use a single method that pass a Maybe<T> ?
 
-		Task OnNextBatchAsync(T[] batch, CancellationToken ct = default(CancellationToken));
+		/// <summary>Push a new item onto the target, if it can accept one</summary>
+		/// <param name="value">New value that is being published</param>
+		/// <param name="ct">Cancellation token that is used to abort the call if the target is blocked</param>
+		/// <returns>Task that completes once the target has accepted the new value (or fails if the cancellation token fires)</returns>
+		Task OnNextAsync(T value, CancellationToken ct = default(CancellationToken));
+
+		/// <summary>Notifies the target that the producer is done and that no more values will be published</summary>
+		void OnCompleted();
+
+		/// <summary>Notifies the target that tere was an exception, and that no more values will be published</summary>
+		/// <param name="error">The error that occured</param>
+		void OnError(ExceptionDispatchInfo error);
 	}
-
 
 }

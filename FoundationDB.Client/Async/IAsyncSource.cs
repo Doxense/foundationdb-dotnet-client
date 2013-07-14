@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Utils
+namespace FoundationDB.Async
 {
 	using System;
 	using System.Threading;
@@ -34,7 +34,7 @@ namespace FoundationDB.Client.Utils
 
 	/// <summary>Defines a source that can produce items</summary>
 	/// <typeparam name="T"></typeparam>
-	interface IFdbAsyncSource<T>
+	public interface IAsyncSource<T>
 	{
 		//note: T cannot be covariant because Task<..> is not covariant :(
 

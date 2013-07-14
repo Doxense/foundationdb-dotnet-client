@@ -51,7 +51,6 @@ namespace FoundationDB.Linq
 		private Func<TSource, CancellationToken, Task<TResult>> m_taskSelector;
 		private FdbParallelQueryOptions m_options;
 
-		private readonly object m_lock = new object();
 		private CancellationTokenSource m_cts;
 		private CancellationToken m_token;
 		private volatile bool m_done;
@@ -59,6 +58,13 @@ namespace FoundationDB.Linq
 		private Queue<TaskCompletionSource<KeyValuePair<bool, TResult>>> m_pendingTasks;
 		private int m_maxConcurrency;
 		private TaskScheduler m_scheduler;
+
+		/// <summary>Pump that reads values from the inner iterator</summary>
+		private FdbAsyncIteratorPump<TSource> m_pump;
+		/// <summary>Inner pump task</summary>
+		private Task m_pumpTask;
+		/// <summary>Queue that holds items that are being processed</summary>
+		private AsyncTransformQueue<TSource, TResult> m_processingQueue;
 
 		public FdbParallelSelectAsyncIterator(
 			IFdbAsyncEnumerable<TSource> source,
@@ -79,211 +85,62 @@ namespace FoundationDB.Linq
 		{
 			return new FdbParallelSelectAsyncIterator<TSource, TResult>(m_source, m_taskSelector, m_options);
 		}
-
-		private TaskCompletionSource<KeyValuePair<bool, TResult>> TryGetNextSlot()
+		protected override async Task<bool> OnFirstAsync(CancellationToken ct)
 		{
-			lock (m_lock)
+			if (!await base.OnFirstAsync(ct))
 			{
-				// not if we know we are done
-				if (m_done) return null;
-
-				// not if inner iterator is still busy
-				if (m_innerBusy) return null;
-
-				// not if we have reached our max cap
-				if (m_pendingTasks.Count >= m_maxConcurrency) return null;
-
-				// we have a slot !
-				var tcs = new TaskCompletionSource<KeyValuePair<bool, TResult>>();
-				m_pendingTasks.Enqueue(tcs);
-				//Console.WriteLine(">> got slot #" + m_pendingTasks.Count);
-				return tcs;
-			}
-		}
-
-		private void FetchNextInnerIfPossible(bool runInline, [System.Runtime.CompilerServices.CallerMemberName] string calledFrom = null)
-		{
-			var nextSlot = TryGetNextSlot();
-			if (nextSlot != null)
-			{
-				//Console.WriteLine("*** execute slot " + nextSlot.GetHashCode() + " " + (runInline ? "inline" : "deferred") +" ! " + calledFrom);
-				if (runInline)
-				{
-					var _ = PumpInnerAsync(nextSlot);
-				}
-				else
-				{
-					var _ = Task.Run(() => PumpInnerAsync(nextSlot));
-				}
-			}
-		}
-
-		/// <summary>Waits for a new item from the inner sequence, spin off the task and update its status when it completes</summary>
-		private async Task PumpInnerAsync(TaskCompletionSource<KeyValuePair<bool, TResult>> tcs)
-		{
-			//Console.WriteLine("> ProcessInnerAsync() called");
-
-			TSource current;
-
-			try
-			{
-				//Console.WriteLine(" [PumpInnerAsync] " + Thread.CurrentThread.ManagedThreadId);
-				while (!m_done && !m_cts.IsCancellationRequested)
-				{
-					//Console.WriteLine("  Processing " + tcs.GetHashCode() + " ...");
-					try
-					{
-						lock (m_lock)
-						{
-							Contract.Assert(!m_innerBusy);
-							m_innerBusy = true;
-						}
-
-						//Console.WriteLine("  [inner.MoveNext()] " + Thread.CurrentThread.ManagedThreadId);
-
-						if (!(await m_iterator.MoveNext(m_token).ConfigureAwait(false)))
-						{ // we are done
-							//Console.WriteLine("  [/inner.MoveNext()] EOF" + Thread.CurrentThread.ManagedThreadId);
-							m_done = true;
-							tcs.TrySetResult(new KeyValuePair<bool, TResult>(false, default(TResult)));
-							return;
-						}
-
-						//Console.WriteLine("  [/inner.MoveNext()] Got Next" + Thread.CurrentThread.ManagedThreadId);
-
-						current = m_iterator.Current;
-					}
-					finally
-					{
-						lock (m_lock)
-						{
-							m_innerBusy = false;
-						}
-					}
-
-					if (m_token.IsCancellationRequested)
-					{
-						//Console.WriteLine(">> ct triggered ! => EOF");
-						m_done = true;
-						tcs.TrySetCanceled();
-						return;
-					}
-
-					// Spin off the computation of the task in another thread
-					var _ = Task.Factory.StartNew(
-						async (_state) =>
-						{
-							var prms = (Tuple<TaskCompletionSource<KeyValuePair<bool, TResult>>, TSource>)_state;
-							await ProcessItemAsync(prms.Item1, prms.Item2);
-						},
-						Tuple.Create(tcs, current),
-						m_token,
-						TaskCreationOptions.PreferFairness,
-						m_scheduler
-					);
-
-					//Console.WriteLine("  looking for another slot...");
-
-					// if there is room in the queue, kick off additionnal work
-					tcs = TryGetNextSlot();
-					if (tcs == null) break;
-
-					//Console.WriteLine("  tilt!");
-				}
-			}
-			catch (Exception e)
-			{
-				//Console.WriteLine("> ProcessNextAsync() failed !");
-				m_done = true;
-				TaskHelpers.PropagateException(tcs, e);
-			}
-			finally
-			{
-				//Console.WriteLine(" [/PumpInnerAsync] " + Thread.CurrentThread.ManagedThreadId);
-			}
-		}
-
-		private async Task ProcessItemAsync(TaskCompletionSource<KeyValuePair<bool, TResult>> tcs, TSource current)
-		{
-			Contract.Requires(tcs != null);
-
-			// execute a task for an inner item, and signal the TaskCompletionSource when it is done (or failed)
-
-			try
-			{
-				//Console.WriteLine("  [ProcessItemAsync(" + tcs.GetHashCode() + ", " + current + ")] " + Thread.CurrentThread.ManagedThreadId);
-
-				var result = await m_taskSelector(current, m_token).ConfigureAwait(false);
-
-				tcs.TrySetResult(new KeyValuePair<bool, TResult>(true, result));
-			}
-			catch (Exception e)
-			{
-				//Console.WriteLine("> ProcessNextAsync() failed !");
-				m_done = true;
-				TaskHelpers.PropagateException(tcs, e);
-			}
-			finally
-			{
-				//Console.WriteLine("  [/ProcessItemAsync(" + tcs.GetHashCode() + ", " + current + ")] " + Thread.CurrentThread.ManagedThreadId);
-			}
-		}
-
-		protected override Task<bool> OnFirstAsync(CancellationToken ct)
-		{
-			lock (m_lock)
-			{
-				m_cts = new CancellationTokenSource();
-				m_token = m_cts.Token;
-				m_pendingTasks = new Queue<TaskCompletionSource<KeyValuePair<bool, TResult>>>();
-				m_innerBusy = false;
-				m_maxConcurrency = m_options.MaxConcurrency ?? DefaultMaxConcurrency;
-				m_scheduler = m_options.Scheduler ?? TaskScheduler.Default;
-				m_done = false;
+				return false;
 			}
 
-			Contract.Ensures(m_pendingTasks != null);
-			Contract.Ensures(m_maxConcurrency >= 1);
-			Contract.Ensures(m_scheduler != null);
+			Console.WriteLine("[OnFirstAsync] wiring up inner iterator");
 
-			return base.OnFirstAsync(ct);
+			m_cts = new CancellationTokenSource();
+			m_token = m_cts.Token;
+			m_done = false;
+
+			// we need a queue to hold the pending tasks (and their results)
+			m_processingQueue = new AsyncTransformQueue<TSource, TResult>(m_taskSelector, m_options.MaxConcurrency ?? DefaultMaxConcurrency, m_options.Scheduler);
+
+			// we also need a pump that will work on the inner sequence
+			m_pump = new FdbAsyncIteratorPump<TSource>(m_iterator, m_processingQueue);
+
+			// start pumping
+			m_pumpTask = m_pump.PumpAsync(m_token);
+
+			Console.WriteLine("[OnFirstAsync] pump started");
+
+			Contract.Ensures(m_pumpTask != null);
+
+			return true;
 		}
 
 		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
 		{
-			TaskCompletionSource<KeyValuePair<bool, TResult>> tcs = null;
 			try
 			{
-				//Console.WriteLine("[OnNextAsync] " + Thread.CurrentThread.ManagedThreadId);
+				Console.WriteLine("[OnNextAsync] #" + Thread.CurrentThread.ManagedThreadId);
 
-				lock (m_lock)
+				if (m_done) return false;
+
+				var next = await m_processingQueue.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+
+				if (!next.HasValue)
 				{
-					if (m_pendingTasks.Count == 0)
+					m_done = true;
+					if (next.HasFailed)
 					{
-						if (m_done) return Completed();
-
-						FetchNextInnerIfPossible(true);
+						Console.WriteLine("[OnNextAsync] received failure");
+						return Failed(next.Error);
 					}
-					Contract.Assert(m_pendingTasks.Count > 0);
-					tcs = m_pendingTasks.Peek();
-					Contract.Assert(tcs != null);
+					else
+					{
+						Console.WriteLine("[OnNextAsync] received completion");
+						return Completed();
+					}
 				}
+				Console.WriteLine("[OnNextAsync] received value " + next.Value);
 
-				// wait for the result
-				var result = await tcs.Task.ConfigureAwait(false);
-
-				// we can remove ourselve
-				var t = m_pendingTasks.Dequeue();
-				Contract.Assert(t == tcs);
-
-				if (!result.Key)
-				{ // that was the end of the inner sequence
-					return Completed();
-				}
-
-				//FetchNextInnerIfPossible(false);
-
-				return Publish(result.Value);
+				return Publish(next.Value);
 			}
 			catch (Exception)
 			{
@@ -292,7 +149,7 @@ namespace FoundationDB.Linq
 			}
 			finally
 			{
-				//Console.WriteLine("[/OnNextAsync] " + Thread.CurrentThread.ManagedThreadId);
+				Console.WriteLine("[/OnNextAsync] " + Thread.CurrentThread.ManagedThreadId);
 			}
 		}
 

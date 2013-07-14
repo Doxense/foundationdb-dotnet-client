@@ -26,35 +26,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Utils
+namespace FoundationDB.Async
 {
 	using System;
-	using System.Runtime.ExceptionServices;
-	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Defines a target that receive items and can throttle the producer</summary>
-	/// <typeparam name="T">Type of values being accepted by the target</typeparam>
-	interface IFdbAsyncTarget<in T>
+	/// <summary>Defines a producer/consumer buffer queue that can hold several items before blocking the producer</summary>
+	/// <typeparam name="TInput"></typeparam>
+	interface IAsyncBuffer<TInput, TOutput> : IAsyncTarget<TInput>, IAsyncSource<TOutput>
 	{
-		//note: should OnCompleted and OnError be async or not ?
+		/// <summary>Returns the current number of items in the buffer</summary>
+		int Count { get; }
 
-		/// <summary>Push a new item onto the target, if it can accept one</summary>
-		/// <param name="value">New value that is being published</param>
-		/// <param name="ct">Cancellation token that is used to abort the call if the target is blocked</param>
-		/// <returns>Task that completes once the target has accepted the new value (or fails if the cancellation token fires)</returns>
-		Task OnNextAsync(T value, CancellationToken ct = default(CancellationToken));
+		/// <summary>Returns the maximum capacity of the buffer</summary>
+		int Capacity { get; }
 
-		/// <summary>Notifies the target that the producer is done and that no more values will be published</summary>
-		void OnCompleted();
+		/// <summary>Returns true if the producer is blocked (queue is full)</summary>
+		bool IsProducerBlocked { get; }
 
-		/// <summary>Notifies the target that tere was an exception, and that no more values will be published</summary>
-		/// <param name="error">The error that occured</param>
-#if NET_4_0
-		void OnError(Exception error);
-#else
-		void OnError(ExceptionDispatchInfo error);
-#endif
+		/// <summary>Returns true if the consumer is blocked (queue is empty)</summary>
+		bool IsConsumerBlocked { get; }
+
+		/// <summary>Wait for all the consumers to drain the queue</summary>
+		/// <returns>Task that completes when all consumers have drained the queue</returns>
+		Task DrainAsync();
 	}
 
 }

@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Tests
 {
-	using FoundationDB.Client.Utils;
 	using FoundationDB.Async;
 	using NUnit.Framework;
 	using System;
@@ -608,45 +607,51 @@ namespace FoundationDB.Linq.Tests
 		{
 			const int MAX_CONCURRENCY = 5;
 
-			int concurrent = 0;
-			var rnd = new Random();
+			// since this can lock up, we need a global timeout !
+			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+			{
+				var token = go.Token;
 
-			var sw = Stopwatch.StartNew();
+				int concurrent = 0;
+				var rnd = new Random();
 
-			var query= Enumerable.Range(1, 10)
-				.ToAsyncEnumerable()
-				.Select(async x => { await Task.Delay(100); return x; })
-				.SelectAsync(async (x, ct) =>
-				{
-					var n = Interlocked.Increment(ref concurrent);
-					Assert.That(n, Is.LessThanOrEqualTo(MAX_CONCURRENCY));
-					try
+				var sw = Stopwatch.StartNew();
+
+				var query = Enumerable.Range(1, 10)
+					.ToAsyncEnumerable()
+					.Select(async x => { await Task.Delay(new Random().Next(100)); return x; })
+					.SelectAsync(async (x, ct) =>
 					{
-						Console.WriteLine("** " + sw.Elapsed.TotalMilliseconds + " start " + x + " (" + n + ")");
+						var n = Interlocked.Increment(ref concurrent);
+						Assert.That(n, Is.LessThanOrEqualTo(MAX_CONCURRENCY));
+						try
+						{
+							Console.WriteLine("** " + sw.Elapsed.TotalMilliseconds + " start " + x + " (" + n + ")");
 #if DEBUG_STACK_TRACES
-						Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
+							Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
 #endif
-						int ms;
-						lock (rnd) { ms = rnd.Next(25) + 50; }
-						await Task.Delay(ms);
-						Console.WriteLine("** " + sw.Elapsed.TotalMilliseconds + " stop " + x + " (" + Volatile.Read(ref concurrent) + ")");
+							int ms;
+							lock (rnd) { ms = rnd.Next(25) + 50; }
+							await Task.Delay(ms);
+							Console.WriteLine("** " + sw.Elapsed.TotalMilliseconds + " stop " + x + " (" + Volatile.Read(ref concurrent) + ")");
 
-						return x * x;
-					}
-					finally
-					{
-						n = Interlocked.Decrement(ref concurrent);
-						Assert.That(n, Is.GreaterThanOrEqualTo(0));
-					}
-				},
-				new FdbParallelQueryOptions { MaxConcurrency = MAX_CONCURRENCY }
-			);
+							return x * x;
+						}
+						finally
+						{
+							n = Interlocked.Decrement(ref concurrent);
+							Assert.That(n, Is.GreaterThanOrEqualTo(0));
+						}
+					},
+					new FdbParallelQueryOptions { MaxConcurrency = MAX_CONCURRENCY }
+				);
 
-			var results = await query.ToListAsync();
+				var results = await query.ToListAsync(token);
 
-			Assert.That(Volatile.Read(ref concurrent), Is.EqualTo(0));
-			Console.WriteLine(string.Join(", ", results));
-			Assert.That(results, Is.EqualTo(new int[] { 1, 4, 9, 16, 25, 36, 49, 64, 81, 100 }));
+				Assert.That(Volatile.Read(ref concurrent), Is.EqualTo(0));
+				Console.WriteLine(string.Join(", ", results));
+				Assert.That(results, Is.EqualTo(new int[] { 1, 4, 9, 16, 25, 36, 49, 64, 81, 100 }));
+			}
 
 		}
 
@@ -655,7 +660,7 @@ namespace FoundationDB.Linq.Tests
 		{
 			const int MAX_CAPACITY = 5;
 
-			var buffer = new FdbAsyncBufferQueue<int>(MAX_CAPACITY);
+			var buffer = new AsyncTransformQueue<int, int>((x, _) => Task.FromResult(x * x), MAX_CAPACITY, TaskScheduler.Default);
 
 			// since this can lock up, we need a global timeout !
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
@@ -756,7 +761,7 @@ namespace FoundationDB.Linq.Tests
 				bool done = false;
 				ExceptionDispatchInfo error = null;
 
-				var queue = new FdbAnonymousAsyncTarget<int>(
+				var queue = AsyncHelpers.CreateTarget<int>(
 					onNextAsync: (x, ct) =>
 					{
 						Console.WriteLine("[consumer] onNextAsync(" + x + ") at " + sw.Elapsed.TotalMilliseconds + " on #" + Thread.CurrentThread.ManagedThreadId);
@@ -808,6 +813,7 @@ namespace FoundationDB.Linq.Tests
 			}
 
 		}
+	
 	}
 
 }

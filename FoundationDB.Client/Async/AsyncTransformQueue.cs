@@ -26,8 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Utils
+namespace FoundationDB.Async
 {
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -35,23 +36,31 @@ namespace FoundationDB.Client.Utils
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	internal class FdbAsyncBufferQueue<T> : IFdbAsyncBuffer<T>
+	/// <summary>Implements an async queue that asynchronously transform items, outputing them in arrival order, while throttling the producer</summary>
+	/// <typeparam name="TInput">Type of the input elements (from the inner async iterator)</typeparam>
+	/// <typeparam name="TOutput">Type of the output elements (produced by an async lambda)</typeparam>
+	internal class AsyncTransformQueue<TInput, TOutput> : IAsyncBuffer<TInput, TOutput>
 	{
-		private readonly Queue<Maybe<T>> m_queue = new Queue<Maybe<T>>();
+		private Func<TInput, CancellationToken, Task<TOutput>> m_transform;
+		private readonly Queue<Task<Maybe<TOutput>>> m_queue = new Queue<Task<Maybe<TOutput>>>();
 		private readonly object m_lock = new object();
 		private readonly int m_capacity;
 		private AsyncCancellableMutex m_blockedProducer;
-		private List<AsyncCancellableMutex> m_blockedConsumers = new List<AsyncCancellableMutex>();
+		private AsyncCancellableMutex m_blockedConsumer;
 		private bool m_done;
+		private TaskScheduler m_scheduler;
 
-		public FdbAsyncBufferQueue(int capacity)
+		public AsyncTransformQueue(Func<TInput, CancellationToken, Task<TOutput>> transform, int capacity, TaskScheduler scheduler)
 		{
+			if (transform == null) throw new ArgumentNullException("transform");
 			if (capacity <= 0) throw new ArgumentOutOfRangeException("capacity", "Capacity must be greater than zero");
 
+			m_transform = transform;
 			m_capacity = capacity;
+			m_scheduler = scheduler ?? TaskScheduler.Default;
 		}
 
-		#region IFdbAsyncBuffer<T>...
+		#region IFdbAsyncBuffer<TInput, TOutput>...
 
 		/// <summary>Returns the current number of items in the queue</summary>
 		public int Count
@@ -80,7 +89,7 @@ namespace FoundationDB.Client.Utils
 				Debugger.NotifyOfCrossThreadDependency();
 				lock (m_lock)
 				{
-					return m_blockedConsumers.Count > 0;
+					return m_blockedConsumer != null && m_blockedConsumer.Task.IsCompleted;
 				}
 			}
 		}
@@ -105,33 +114,63 @@ namespace FoundationDB.Client.Utils
 
 		#endregion
 
-		#region IFdbAsyncTarget<T>...
+		#region IFdbAsyncTarget<TInput>...
 
-		public Task OnNextAsync(T value, CancellationToken ct)
+		private static async Task<Maybe<TOutput>> ProcessItemHandler(object state)
+		{
+			try
+			{
+				var prms = (Tuple<AsyncTransformQueue<TInput, TOutput>, TInput, CancellationToken>)state;
+				var task = prms.Item1.m_transform(prms.Item2, prms.Item3);
+				if (!task.IsCompleted)
+				{
+					await task;
+				}
+				return Maybe.FromTask<TOutput>(task);
+			}
+			catch (Exception e)
+			{
+				return Maybe.Error<TOutput>(e);
+			}
+		}
+
+		private static Func<object, Task<Maybe<TOutput>>> s_processItemHandler = new Func<object, Task<Maybe<TOutput>>>(ProcessItemHandler);
+
+		public Task OnNextAsync(TInput value, CancellationToken ct)
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
-
-			//Console.WriteLine("# producing " + value);
 
 			AsyncCancellableMutex waiter;
 			lock(m_lock)
 			{
 				if (m_done) throw new InvalidOperationException("Cannot post more values after calling Complete()");
 
-				//Console.WriteLine("# the queue already has " + m_queue.Count + " element(s) with " + m_blockedConsumers.Count + " blocked consumers");
-
 				if (m_queue.Count < m_capacity)
 				{
-					//Console.WriteLine("# pushing neew value :)");
+					var t = Task.Factory.StartNew(
+						s_processItemHandler,
+						Tuple.Create(this, value, ct),
+						ct, 
+						TaskCreationOptions.PreferFairness, 
+						m_scheduler
+					).Unwrap();
 
-					m_queue.Enqueue(new Maybe<T>(value));
+					m_queue.Enqueue(t);
 
-					WakeUpConsumers_NeedLocking();
+					t.ContinueWith((_t) =>
+					{
+						lock (m_lock)
+						{
+							// we should only wake up the consumers if we are the fist in the queue !
+							if (m_queue.Count > 0 && m_queue.Peek() == _t)
+							{
+								WakeUpConsumer_NeedLocking();
+							}
+						}
+					}, TaskContinuationOptions.ExecuteSynchronously);
 
 					return TaskHelpers.CompletedTask;
 				}
-
-				//Console.WriteLine("# seems full, we need to wait :(");
 
 				// no luck, we need to wait for the queue to become non-full
 				waiter = new AsyncCancellableMutex(ct);
@@ -147,8 +186,11 @@ namespace FoundationDB.Client.Utils
 			{
 				if (m_done) throw new InvalidOperationException("OnCompleted() and OnError() can only be called once");
 				m_done = true;
-				m_queue.Enqueue(Maybe<T>.Empty);
-				WakeUpConsumers_NeedLocking();
+				m_queue.Enqueue(Maybe<TOutput>.EmptyTask);
+				if (m_queue.Count == 1)
+				{
+					WakeUpConsumer_NeedLocking();
+				}
 			}
 		}
 
@@ -164,15 +206,15 @@ namespace FoundationDB.Client.Utils
 			{
 				if (m_done) throw new InvalidOperationException("OnCompleted() and OnError() can only be called once");
 				m_done = true;
-				m_queue.Enqueue(Maybe<T>.FromError(error));
+				m_queue.Enqueue(Task.FromResult(Maybe.Error<TOutput>(error)));
 			}
 		}
 
 		#endregion
 
-		#region IFdbAsyncBatchTarget<T>...
+		#region IFdbAsyncBatchTarget<TInput>...
 
-		public async Task OnNextBatchAsync(T[] batch, CancellationToken ct)
+		public async Task OnNextBatchAsync(TInput[] batch, CancellationToken ct)
 		{
 			if (batch == null) throw new ArgumentNullException("batch");
 
@@ -189,31 +231,35 @@ namespace FoundationDB.Client.Utils
 
 		#endregion
 
-		#region IFdbAsyncSource<T>...
+		#region IFdbAsyncSource<TOutput>...
 
-		public Task<Maybe<T>> ReceiveAsync(CancellationToken ct)
+		public Task<Maybe<TOutput>> ReceiveAsync(CancellationToken ct)
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			// either there are already items in the queue, in which case we return immediately,
-			// or if the queue is empty, then we will have to wait 
+			// if the first item in the queue is completed, we return it immediately (fast path)
+			// if the first item in the queue is not yet completed, we need to wait for it (semi-fast path)
+			// if the queue is empty, we first need to wait for an item to arrive, then wait for it
 
 			Task waiter;
 			lock(m_lock)
 			{
-				//Console.WriteLine(": The queue has " + m_queue.Count + " element(s) and a " + ((m_blockedProducer == null || m_blockedProducer.Task.IsCompleted) ? "non-blocked producer" : "blocked producer"));
-
 				if (m_queue.Count > 0)
 				{
-					//Console.WriteLine(": Taking the first one :)");
+					var task = m_queue.Peek();
+					if (task.IsCompleted)
+					{
+						m_queue.Dequeue();
+						WakeUpProducer_NeedsLocking();
+						return Maybe.Unwrap(task);
+					}
 
-					WakeUpProducer_NeedsLocking();
-
-					return Task.FromResult(m_queue.Dequeue());
+					return ReceiveWhenDoneAsync(task, ct);
 				}
-
-				//Console.WriteLine(": The queue is empty, will need to wait :(");
-				//if (m_blockedProducer != null && m_blockedProducer.Task.IsCompleted) Console.WriteLine(": uhoh, producer is blocked ???");
+				else if (m_done)
+				{ // something went wrong...
+					return Maybe<TOutput>.EmptyTask;
+				}
 
 				waiter = WaitForNextItem_NeedsLocking(ct);
 				Contract.Assert(waiter != null);
@@ -223,45 +269,71 @@ namespace FoundationDB.Client.Utils
 			return ReceiveSlowAsync(waiter, ct);
 		}
 
-		private async Task<Maybe<T>> ReceiveSlowAsync(Task waiter, CancellationToken ct)
+		private async Task<Maybe<TOutput>> ReceiveWhenDoneAsync(Task<Maybe<TOutput>> task, CancellationToken ct)
 		{
-			while (true)
+			try
 			{
-				//Console.WriteLine(": Waiting for one slot to become free...");
-				await waiter.ConfigureAwait(false);
-				//Console.WriteLine(": Got something for me ?");
+				//TODO: use the cancellation token !
+				return await task.ConfigureAwait(false);
+			}
+			catch(Exception e)
+			{
+				return Maybe.Error<TOutput>(e);
+			}
+			finally
+			{
+				var _ = m_queue.Dequeue();
+				WakeUpProducer_NeedsLocking();
+			}
+		}
 
+		private async Task<Maybe<TOutput>> ReceiveSlowAsync(Task waiter, CancellationToken ct)
+		{
+			while (!ct.IsCancellationRequested)
+			{
+				await waiter.ConfigureAwait(false);
+
+				Task<Maybe<TOutput>> task = null;
 				lock (m_lock)
 				{
+
 					if (m_queue.Count > 0)
 					{
-						//Console.WriteLine(": yay !");
-
-						WakeUpProducer_NeedsLocking();
-
-						return m_queue.Dequeue();
+						task = m_queue.Peek();
 					}
-	
-					// someone else took our item !
-					//Console.WriteLine(": nay :(");
+					else if (m_done)
+					{ // something went wrong?
+						return Maybe.Nothing<TOutput>();
+					}
+				}
+
+				if (task != null)
+				{
+					return await ReceiveWhenDoneAsync(task, ct).ConfigureAwait(false);
+				}
+
+				lock(m_lock)
+				{
+					// we need to wait again
 					waiter = WaitForNextItem_NeedsLocking(ct);
 					Contract.Assert(waiter != null);
 				}
 
-				//Console.WriteLine(": got cancelled :(");
-				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 			}
+
+			ct.ThrowIfCancellationRequested();
+			return Maybe.Nothing<TOutput>();
 		}
 
 		#endregion
 
-		#region IFdbAsyncBatchSource<T>...
+		#region IFdbAsyncBatchSource<TOutput>...
 
-		public Task<Maybe<T>[]> ReceiveBatchAsync(int count, CancellationToken ct)
+		public Task<Maybe<TOutput>[]> ReceiveBatchAsync(int count, CancellationToken ct)
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			var batch = new List<Maybe<T>>();
+			var batch = new List<Maybe<TOutput>>();
 
 			// consume everything that is already in the buffer
 			lock(m_lock)
@@ -282,7 +354,7 @@ namespace FoundationDB.Client.Utils
 			return ReceiveBatchSlowAsync(batch, count, ct);
 		}
 
-		private async Task<Maybe<T>[]> ReceiveBatchSlowAsync(List<Maybe<T>> batch, int count, CancellationToken ct)
+		private async Task<Maybe<TOutput>[]> ReceiveBatchSlowAsync(List<Maybe<TOutput>> batch, int count, CancellationToken ct)
 		{
 			// got nothing, wait for at least one
 			while (batch.Count == 0)
@@ -315,14 +387,22 @@ namespace FoundationDB.Client.Utils
 
 		#endregion
 
-		private bool DrainItems_NeedsLocking(List<Maybe<T>> buffer, int count)
+		private bool DrainItems_NeedsLocking(List<Maybe<TOutput>> buffer, int count)
 		{
+			// tries to return all completed tasks at the start of the queue
+
 			bool gotAny = false;
 			while (m_queue.Count > 0 && buffer.Count < count)
 			{
-				var value = m_queue.Dequeue();
-				buffer.Add(value);
-				if (!value.HasValue) break;
+				var task = m_queue.Peek();
+				if (!task.IsCompleted) break; // not yet completed
+
+				// remove it from the queue
+				m_queue.Dequeue();
+
+				var result = Maybe.FromTask(task);
+				buffer.Add(result);
+				if (!result.HasValue) break;
 				gotAny = true;
 			}
 
@@ -333,37 +413,30 @@ namespace FoundationDB.Client.Utils
 		{
 			if (m_done) return TaskHelpers.CompletedTask;
 
+			Contract.Requires(m_blockedConsumer == null || m_blockedConsumer.Task.IsCompleted);
+
 			var waiter = new AsyncCancellableMutex(ct);
-			m_blockedConsumers.Add(waiter);
+			m_blockedConsumer = waiter;
 			return waiter.Task;
 		}
 
 		private void WakeUpProducer_NeedsLocking()
 		{
-			//Console.WriteLine(": should we wake up the producer?");
 			var waiter = Interlocked.Exchange(ref m_blockedProducer, null);
 			if (waiter != null)
 			{
-				//Console.WriteLine(": waking up producer!");
 				waiter.Set(async: true);
 			}
 		}
 
-		private void WakeUpConsumers_NeedLocking()
+		private void WakeUpConsumer_NeedLocking()
 		{
-			//Console.WriteLine("# should we wake up the consumers ?");
-			if (m_blockedConsumers.Count > 0)
+			var waiter = Interlocked.Exchange(ref m_blockedConsumer, null);
+			if (waiter != null)
 			{
-				//Console.WriteLine("# waking up " + m_blockedConsumers.Count + " consumers");
-				var consumers = m_blockedConsumers.ToArray();
-				m_blockedConsumers.Clear();
-				foreach (var consumer in consumers)
-				{
-					consumer.Set(async: true);
-				}
+				waiter.Set(async: true);
 			}
 		}
-
 	
 	}
 

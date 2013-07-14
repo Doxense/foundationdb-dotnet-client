@@ -26,20 +26,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Utils
+#define FULL_DEBUG
+
+namespace FoundationDB.Async
 {
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Defines a source that can produce items in batches</summary>
-	/// <typeparam name="T"></typeparam>
-	interface IFdbAsyncBatchSource<T>
+	/// <summary>Defines a pump that can move items between a source and a target</summary>
+	public interface IAsyncPump<T> : IDisposable
 	{
-		//note: T cannot be covariant because Task<..> is not covariant :(
-		//TODO: should we return a T[] or an IEnumerable<T> ?
+		IAsyncSource<T> Source { get; }
 
-		Task<Maybe<T>[]> ReceiveBatchAsync(int count, CancellationToken ct = default(CancellationToken));
+		IAsyncTarget<T> Target { get; }
+
+		bool IsCompleted { get; }
+
+		Task PumpAsync(CancellationToken ct);
 	}
 
 }

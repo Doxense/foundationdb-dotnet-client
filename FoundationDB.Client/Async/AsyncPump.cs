@@ -28,39 +28,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #undef FULL_DEBUG
 
-namespace FoundationDB.Linq
+namespace FoundationDB.Async
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Pump that repeatedly calls MoveNext on an iterator and tries to publish the values in a Producer/Consumer queue</summary>
-	/// <typeparam name="TInput"></typeparam>
-	[DebuggerDisplay("State={m_state}")]
-	internal sealed class FdbAsyncIteratorPump<TInput>
+	/// <summary>Pumps item from a source, and into a target</summary>
+	public class AsyncPump<T> : IAsyncPump<T>
 	{
 		private const int STATE_IDLE = 0;
 		private const int STATE_WAITING_FOR_NEXT = 1;
 		private const int STATE_PUBLISHING_TO_TARGET = 2;
 		private const int STATE_FAILED = 3;
 		private const int STATE_DONE = 4;
+		private const int STATE_DISPOSED = 5;
 
 		private volatile int m_state;
-		private readonly IFdbAsyncEnumerator<TInput> m_iterator;
-		private readonly IAsyncTarget<TInput> m_target;
+		private readonly IAsyncSource<T> m_source;
+		private readonly IAsyncTarget<T> m_target;
 
-		public FdbAsyncIteratorPump(
-			IFdbAsyncEnumerator<TInput> iterator,
-			IAsyncTarget<TInput> target
+		public AsyncPump(
+			IAsyncSource<T> source,
+			IAsyncTarget<T> target
 		)
 		{
-			Contract.Requires(iterator != null);
+			Contract.Requires(source!= null);
 			Contract.Requires(target != null);
 
-			m_iterator = iterator;
+			m_source = source;
 			m_target = target;
 		}
 
@@ -75,50 +73,60 @@ namespace FoundationDB.Linq
 			get { return m_state; }
 		}
 
-		[Conditional("FULL_DEBUG")]
-		private static void LogDebug(string msg)
-		{
-			Console.WriteLine("[pump] " + msg);
-		}
+		public IAsyncSource<T> Source { get { return m_source; } }
+
+		public IAsyncTarget<T> Target { get { return m_target; } }
 
 		/// <summary>Run the pump until the inner iterator is done, an error occurs, or the cancellation token is fired</summary>
 		public async Task PumpAsync(CancellationToken ct)
 		{
 			if (m_state != STATE_IDLE)
 			{
-				if (m_state >= STATE_FAILED)
-					throw new InvalidOperationException("The iterator pump has already completed once");
+				if (m_state == STATE_DISPOSED)
+				{
+					throw new ObjectDisposedException(null, "Pump has already been disposed");
+				}
+				else if (m_state >= STATE_FAILED)
+				{
+					throw new InvalidOperationException("Pump has already completed once");
+				}
 				else
-					throw new InvalidOperationException("The iterator pump is already running");
+				{
+					throw new InvalidOperationException("Pump is already running");
+				}
 			}
 
 			try
-			{			
-				while (!ct.IsCancellationRequested)
+			{
+				LogPump("Starting pump");
+
+				while (!ct.IsCancellationRequested && m_state != STATE_DISPOSED)
 				{
-					LogDebug("waiting for next");
+					LogPump("waiting for next");
 					m_state = STATE_WAITING_FOR_NEXT;
-					if (!(await m_iterator.MoveNext(ct).ConfigureAwait(false)))
+					var current = await m_source.ReceiveAsync(ct).ConfigureAwait(false);
+
+					LogPump("got item, publishing...");
+					m_state = STATE_PUBLISHING_TO_TARGET;
+
+					await m_target.Publish(current, ct).ConfigureAwait(false);
+
+					if (current.IsEmpty)
 					{
-						LogDebug("completed");
 						m_state = STATE_DONE;
-						m_target.OnCompleted();
+						LogPump("completed");
 						return;
 					}
-
-					LogDebug("got item, publishing...");
-					m_state = STATE_PUBLISHING_TO_TARGET;
-					await m_target.OnNextAsync(m_iterator.Current, ct).ConfigureAwait(false);
 				}
 
 				// push the cancellation on the queue
-				OnError(new OperationCanceledException(ct));
+				throw new OperationCanceledException(ct);
 				// and throw!
 			}
 			catch (Exception e)
 			{
-				LogDebug("failed...");
-				if (m_state == STATE_FAILED)
+				LogPump("failed " + e.Message);
+				if (m_state == STATE_FAILED || e is OperationCanceledException)
 				{ // already signaled the target, just throw
 					throw;
 				}
@@ -128,7 +136,11 @@ namespace FoundationDB.Linq
 			}
 			finally
 			{
-				if (m_state != STATE_FAILED) m_state = STATE_DONE;
+				if (m_state != STATE_DONE && m_state != STATE_DISPOSED)
+				{
+					m_target.OnCompleted();
+				}
+				LogPump("Stopped pump");
 			}
 		}
 
@@ -145,6 +157,21 @@ namespace FoundationDB.Linq
 			}
 		}
 
+		public void Dispose()
+		{
+			m_state = STATE_DISPOSED;
+			GC.SuppressFinalize(this);
+		}
+
+		#region Debugging...
+
+		[Conditional("FULL_DEBUG")]
+		private static void LogPump(string msg)
+		{
+			Console.WriteLine("[pump#" + Thread.CurrentThread.ManagedThreadId + "] " + msg);
+		}
+
+		#endregion
 	}
 
 }

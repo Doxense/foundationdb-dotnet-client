@@ -49,6 +49,12 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="Async\AsyncTransform.cs" />
+    <Compile Include="Async\AsyncProducerConsumerQueue.cs" />
+    <Compile Include="Async\AsyncBuffer.cs" />
+    <Compile Include="Async\AsyncTaskBuffer.cs" />
+    <Compile Include="Async\IAsyncPump.cs" />
+    <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
     <Compile Include="FdbOperationContext.cs" />
@@ -89,15 +95,13 @@
     <Compile Include="Fdb.cs" />
     <Compile Include="Linq\FdbParallelQueryOptions.cs" />
     <Compile Include="Linq\FdbAsyncIteratorPump.cs" />
-    <Compile Include="Utils\AsyncCancellableMutex.cs" />
-    <Compile Include="Utils\FdbAnonymousAsyncTarget.cs" />
-    <Compile Include="Utils\IFdbAsyncBatchSource.cs" />
-    <Compile Include="Utils\IFdbAsyncSource.cs" />
-    <Compile Include="Utils\IFdbAsyncBatchTarget.cs" />
-    <Compile Include="Utils\IFdbAsyncTarget.cs" />
-    <Compile Include="Utils\FdbAsyncBufferQueue.cs" />
-    <Compile Include="Utils\IFdbAsyncBuffer.cs" />
-    <Compile Include="Utils\Maybe.cs" />
+    <Compile Include="Async\AsyncCancellableMutex.cs" />
+    <Compile Include="Async\AsyncHelpers.cs" />
+    <Compile Include="Async\IAsyncSource.cs" />
+    <Compile Include="Async\IAsyncTarget.cs" />
+    <Compile Include="Async\AsyncTransformQueue.cs" />
+    <Compile Include="Async\IAsyncBuffer.cs" />
+    <Compile Include="Async\Maybe.cs" />
     <Compile Include="Linq\FdbParallelSelectAsyncIterator.cs" />
     <Compile Include="Linq\FdbAsyncEnumerable.EnumerableIterator.cs" />
     <Compile Include="Linq\FdbAsyncEnumerable.EnumerableSequence.cs" />
