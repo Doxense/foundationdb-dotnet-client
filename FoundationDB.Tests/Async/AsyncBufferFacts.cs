@@ -180,7 +180,56 @@ namespace FoundationDB.Async.Tests
 			}
 
 		}
-	
+
+		[Test]
+		public async Task Test_FdbAsyncTransform()
+		{
+			// async transform start concurrent tasks for all source items
+
+			const int N = 100;
+			const int MAX_CAPACITY = 5;
+
+			// since this can lock up, we need a global timeout !
+			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+			{
+				var token = go.Token;
+
+				var rnd1 = new Random(1234);
+
+				var queue = AsyncHelpers.CreateOrderPreservingAsyncBuffer<double>(MAX_CAPACITY);
+
+				var transform = new AsyncTransform<int, double>(
+					async (x, _) =>
+					{
+						// each element takes a random time to compute
+						await Task.Delay(5 + rnd1.Next(25));
+						return Math.Sqrt(x);
+					},
+					queue,
+					TaskScheduler.Default
+				);
+
+				var pumpTask = AsyncHelpers.PumpToListAsync(queue, new List<double>(N));
+
+				var rnd2 = new Random(5678);
+
+				for (int i = 0; i < N; i++)
+				{
+					// emulate a batched source
+					if (i % 10 == 0) await Task.Delay(100);
+
+					await transform.OnNextAsync(i, token);
+				}
+				transform.OnCompleted();
+
+				var list = await pumpTask;
+
+				Console.WriteLine("results: " + String.Join(", ", list));
+				Assert.That(list, Is.EqualTo(Enumerable.Range(0, N).Select(x => Math.Sqrt(x)).ToArray()));
+			}
+		}
+
+
 	}
 
 

@@ -30,6 +30,7 @@ namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
 	using System;
+	using System.Collections.Generic;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -168,6 +169,21 @@ namespace FoundationDB.Async
 			}
 		}
 
+		/// <summary>Pump the content of a source into a list</summary>
+		public static async Task<List<T>> PumpToListAsync<T>(this IAsyncSource<T> source, List<T> list = null, CancellationToken ct = default(CancellationToken))
+		{
+			if (list == null) list = new List<T>();
+
+			var target = CreateTarget<T>(
+				(x, _) => list.Add(x),
+				() => { },
+				(e) => { }
+			);
+			await PumpToAsync<T>(source, target, ct);
+			return list;
+		}
+
+
 		#endregion
 
 		#region Buffers...
@@ -180,6 +196,37 @@ namespace FoundationDB.Async
 		public static AsyncTaskBuffer<T> CreateUnorderedAsyncBuffer<T>(int capacity)
 		{
 			return new AsyncTaskBuffer<T>(AsyncTaskBuffer<T>.OrderingMode.CompletionOrder, capacity);
+		}
+
+		#endregion
+
+		#region Transforms...
+
+		public static AsyncTransform<T, R> CreateAsyncTransform<T, R>(Func<T, CancellationToken, Task<R>> transform, IAsyncTarget<Task<R>> target, TaskScheduler scheduler = null)
+		{
+			return new AsyncTransform<T, R>(transform, target, scheduler);
+		}
+
+		public static async Task<List<R>> TransformToListAsync<T, R>(IAsyncSource<T> source, Func<T, CancellationToken, Task<R>> transform, CancellationToken ct = default(CancellationToken), int? maxConcurrency = null, TaskScheduler scheduler = null)
+		{
+			var result = new List<R>();
+
+			using (var queue = CreateOrderPreservingAsyncBuffer<R>(maxConcurrency ?? 32))
+			{
+				using (var pipe = CreateAsyncTransform<T, R>(transform, queue, scheduler))
+				{
+					// start the output pump
+					var output = PumpToListAsync(queue, result, ct);
+
+					// start the intput pump
+					var input = PumpToAsync(source, pipe, ct);
+
+					await Task.WhenAll(input, output);
+
+				}
+			}
+
+			return result;
 		}
 
 		#endregion
