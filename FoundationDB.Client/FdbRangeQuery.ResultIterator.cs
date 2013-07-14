@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Linq;
 	using System;

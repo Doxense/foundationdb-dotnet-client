@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Tests
 {
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Async;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;

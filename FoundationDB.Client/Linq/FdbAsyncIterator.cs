@@ -30,6 +30,7 @@ namespace FoundationDB.Linq
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -233,6 +234,14 @@ namespace FoundationDB.Linq
 			this.Dispose();
 			return false;
 		}
+
+#if !NET_4_0
+		protected bool Failed(ExceptionDispatchInfo e)
+		{
+			this.Dispose();
+			return false;
+		}
+#endif
 
 		protected bool Cancelled(CancellationToken cancellationToken)
 		{

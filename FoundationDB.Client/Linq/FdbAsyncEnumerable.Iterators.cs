@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Client.Utils;
+	using FoundationDB.Async;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
