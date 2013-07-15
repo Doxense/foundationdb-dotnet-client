@@ -210,7 +210,7 @@ namespace FoundationDB.Async.Tests
 					TaskScheduler.Default
 				);
 
-				var pumpTask = AsyncHelpers.PumpToListAsync(queue, new List<double>(N));
+				var pumpTask = AsyncHelpers.PumpToListAsync(queue);
 
 				var rnd2 = new Random(5678);
 

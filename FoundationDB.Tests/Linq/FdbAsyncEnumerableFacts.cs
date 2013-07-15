@@ -98,13 +98,12 @@ namespace FoundationDB.Linq.Tests
 		}
 
 		[Test]
-		public async Task Test_Can_ToListAsync_With_Size_Hint()
+		public async Task Test_Can_ToListAsync_Big()
 		{
-			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+			var source = Enumerable.Range(0, 1000).ToAsyncEnumerable();
 
-			List<int> list = await source.ToListAsync(42);
-			Assert.That(list, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
-			Assert.That(list.Capacity, Is.EqualTo(42));
+			List<int> list = await source.ToListAsync();
+			Assert.That(list, Is.EqualTo(Enumerable.Range(0, 1000).ToList()));
 		}
 
 		[Test]
@@ -114,6 +113,16 @@ namespace FoundationDB.Linq.Tests
 
 			int[] array = await source.ToArrayAsync();
 			Assert.That(array, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
+		}
+
+		[Test]
+		public async Task Test_Can_ToArrayAsync_Big()
+		{
+			var source = Enumerable.Range(0, 1000).ToAsyncEnumerable();
+
+			int[] array = await source.ToArrayAsync();
+
+			Assert.That(array, Is.EqualTo(Enumerable.Range(0, 1000).ToArray()));
 		}
 
 		[Test]

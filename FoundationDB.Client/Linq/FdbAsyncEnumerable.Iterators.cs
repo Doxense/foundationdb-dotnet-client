@@ -31,6 +31,7 @@ namespace FoundationDB.Linq
 	using FoundationDB.Async;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -134,6 +135,126 @@ namespace FoundationDB.Linq
 		#endregion
 
 		#region Run...
+
+		/// <summary>Small buffer that keep a list of chunks that are larger and larger</summary>
+		/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
+		[DebuggerDisplay("Count={Count}, Chunks={this.Chunks.Length}, Current={Index}/{Current.Length}")]
+		internal class Buffer<T>
+		{
+			// We want to avoid growing the same array again and again !
+			// Instead, we grow list of chunks, that grow in size (until a max), and concatenate all the chunks together at the end, once we know the final size
+
+			/// <summary>Default intial capacity, if not specified</summary>
+			const int DefaultCapacity = 16;
+			//TODO: should we use a power of 2 or of 10 for initial capacity? 
+			// Since humans prefer the decimal system, it is more likely that query limit count be set to something like 10, 50, 100 or 1000
+			// but most "human friendly" limits are close to the next power of 2, like 10 ~= 16, 50 ~= 64, 100 ~= 128, 500 ~= 512, 1000 ~= 1024, so we don't waste that much space...
+
+			/// <summary>Maximum size of a chunk</summary>
+			const int MaxChunkSize = 4096;
+
+			/// <summary>Number of items in the buffer</summary>
+			public int Count;
+			/// <summary>Index in the current chunk</summary>
+			public int Index;
+			/// <summary>List of chunks</summary>
+			public T[][] Chunks;
+			/// <summary>Current (and last) chunk</summary>
+			public T[] Current;
+
+			public Buffer(int capacity = 0)
+			{
+				if (capacity <= 0) capacity = DefaultCapacity;
+
+				this.Count = 0;
+				this.Index = 0;
+				this.Chunks = new T[1][];
+				this.Current = new T[capacity];
+				this.Chunks[0] = this.Current;
+			}
+
+			public void Add(T item)
+			{
+				if (this.Index == this.Current.Length)
+				{
+					Grow();
+				}
+
+				checked { ++this.Count; }
+				this.Current[this.Index++] = item;
+			}
+
+			private void Grow()
+			{
+				// Growth rate:
+				// - newly created chunk is always half the total size
+				// - except the first chunk who is set to the inital capacity
+
+				Array.Resize(ref this.Chunks, this.Chunks.Length + 1);
+				this.Current = new T[Math.Min(this.Count, MaxChunkSize)];
+				this.Chunks[this.Chunks.Length - 1] = this.Current;
+				this.Index = 0;
+			}
+
+			public T[] ToArray()
+			{
+				if (this.Count == 0)
+				{ // empty sequence
+					return new T[0];
+				}
+				else if (this.Chunks.Length == 1 && this.Current.Length == this.Count)
+				{ // we are really lucky
+					return this.Current;
+				}
+				else
+				{ // concatenate all the small buffers into one big array
+					var tmp = new T[this.Count];
+					int count = this.Count;
+					int index = 0;
+					for (int i = 0; i < this.Chunks.Length - 1;i++)
+					{
+						var chunk = this.Chunks[i];
+						Array.Copy(chunk, 0, tmp, index, chunk.Length);
+						index += chunk.Length;
+						count -= chunk.Length;
+					}
+					Array.Copy(this.Current, 0, tmp, index, count);
+					return tmp;
+				}
+			}
+
+			public List<T> ToList()
+			{
+				if (this.Count == 0)
+				{ // empty sequence
+					return new List<T>();
+				}
+
+				int count = this.Count;
+				var list = new List<T>(count);
+				if (count > 0)
+				{
+					for (int i = 0; i < this.Chunks.Length - 1; i++)
+					{
+						list.AddRange(this.Chunks[i]);
+						count -= this.Chunks[i].Length;
+					}
+
+					if (count == this.Current.Length)
+					{ // the last chunk fits perfectly
+						list.AddRange(this.Current);
+					}
+					else
+					{ // there is not AddRange(buffer, offset, count) on List<T>, so we copy to a tmp array and AddRange
+						var tmp = new T[count];
+						Array.Copy(this.Current, tmp, count);
+						list.AddRange(tmp);
+					}
+				}
+
+				return list;
+			}
+		}
 
 		/// <summary>Immediately execute an action on each element of an async sequence</summary>
 		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
