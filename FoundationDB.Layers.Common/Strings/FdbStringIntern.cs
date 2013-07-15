@@ -28,21 +28,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #undef DEBUG_STRING_INTERNING
 
-using FoundationDB.Client;
-using FoundationDB.Layers.Tuples;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDB.Layers.Tables
 {
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Security.Cryptography;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
+	[DebuggerDisplay("Subspace={Subspace}")]
 	public class FdbStringIntern
 	{
 		// Based on the stringintern.py implementation at https://github.com/FoundationDB/python-layers/blob/master/lib/stringintern.py
@@ -191,7 +189,7 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>Finds a new free uid that can be used to store a new string in the table</summary>
 		/// <param name="trans">Transaction used to look for and create a new uid</param>
 		/// <returns>Newly created UID that is guaranteed to be globally unique</returns>
-		private async Task<Slice> FindUidAsync(FdbTransaction trans)
+		private async Task<Slice> FindUidAsync(IFdbTransaction trans)
 		{
 			// note: we diverge from stringingern.py here by converting the UID (bytes) into Base64 in the cache.
 			// this allows us to use StringComparer.Ordinal as a comparer for the Dictionary<K, V> and not EqualityComparer<byte[]>
@@ -229,7 +227,7 @@ namespace FoundationDB.Layers.Tables
 		/// <param name="value">String to intern</param>
 		/// <returns>Normalized representation of the string</returns>
 		/// <remarks><paramref name="value"/> must fit within a FoundationDB value</remarks>
-		public Task<Slice> InternAsync(FdbTransaction trans, string value)
+		public Task<Slice> InternAsync(IFdbTransaction trans, string value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (value == null) throw new ArgumentNullException("value");
@@ -257,7 +255,7 @@ namespace FoundationDB.Layers.Tables
 			return InternSlowAsync(trans, value);
 		}
 
-		private async Task<Slice> InternSlowAsync(FdbTransaction trans, string value)
+		private async Task<Slice> InternSlowAsync(IFdbTransaction trans, string value)
 		{
 			var stringKey = StringKey(value);
 
@@ -293,7 +291,7 @@ namespace FoundationDB.Layers.Tables
 		#region Lookup...
 
 		/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
-		public Task<string> LookupAsync(FdbTransaction trans, Slice uid)
+		public Task<string> LookupAsync(IFdbReadTransaction trans, Slice uid)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -310,7 +308,7 @@ namespace FoundationDB.Layers.Tables
 			return LookupSlowAsync(trans, uid);
 		}
 
-		private async Task<string> LookupSlowAsync(FdbTransaction trans, Slice uid)
+		private async Task<string> LookupSlowAsync(IFdbReadTransaction trans, Slice uid)
 		{
 			var valueBytes = await trans.GetAsync(UidKey(uid)).ConfigureAwait(false);
 			if (valueBytes == Slice.Nil) throw new KeyNotFoundException("String intern indentifier not found");

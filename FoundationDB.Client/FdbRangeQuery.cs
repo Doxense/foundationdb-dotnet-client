@@ -34,7 +34,6 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -44,15 +43,15 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
-		internal FdbRangeQuery(FdbTransaction transaction, FdbKeySelectorPair range, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
+		internal FdbRangeQuery(IFdbReadTransaction transaction, FdbKeySelectorPair range, FdbRangeOptions options, bool snapshot)
 		{
 			this.Transaction = transaction;
 			this.Range = range;
-			this.Limit = limit;
-			this.TargetBytes = targetBytes;
-			this.Mode = mode;
+			this.Limit = options.Limit ?? 0;
+			this.TargetBytes = options.TargetBytes ?? 0;
+			this.Mode = options.StreamingMode ?? FdbStreamingMode.WantAll;
 			this.Snapshot = snapshot;
-			this.Reverse = reverse;
+			this.Reverse = options.Reverse ?? false;
 		}
 
 		/// <summary>Copy constructor</summary>
@@ -88,7 +87,7 @@ namespace FoundationDB.Client
 		public bool Reverse { get; private set; }
 
 		/// <summary>Parent transaction used to perform the GetRange operation</summary>
-		internal FdbTransaction Transaction { get; private set; }
+		internal IFdbReadTransaction Transaction { get; private set; }
 
 		/// <summary>True if a row limit has been set; otherwise false.</summary>
 		public bool HasLimit { get { return this.Limit > 0; } }
@@ -138,7 +137,7 @@ namespace FoundationDB.Client
 			};
 		}
 
-		public FdbRangeQuery UseTransaction(FdbTransaction transaction)
+		public FdbRangeQuery UseTransaction(IFdbReadTransaction transaction)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
 

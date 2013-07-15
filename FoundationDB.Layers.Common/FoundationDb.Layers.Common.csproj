@@ -47,6 +47,8 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="Arrays\FdbArray`1.cs" />
+    <Compile Include="Arrays\FdbArrayExtensions.cs" />
     <Compile Include="Arrays\FdbArray.cs" />
     <Compile Include="Documents\FdbDocumentHandlers.cs" />
     <Compile Include="Documents\FdbDocumentCollection.cs" />

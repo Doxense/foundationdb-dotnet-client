@@ -31,16 +31,13 @@ namespace FoundationDB.Layers.Documents.Tests
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Tuples;
+	using Newtonsoft.Json;
+	using Newtonsoft.Json.Linq;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
-	using Newtonsoft.Json;
-	using Newtonsoft.Json.Linq;
-	using System.IO;
-using System.Text;
-using System.Globalization;
 
 	[TestFixture]
 	public class DocumentCollectionFacts

@@ -39,7 +39,7 @@ namespace FoundationDB.Layers.Tuples
 	{
 
 		/// <summary>Clear the entire content of a subspace</summary>
-		public static void ClearRange(this FdbTransaction trans, FdbSubspace subspace)
+		public static void ClearRange(this IFdbTransaction trans, FdbSubspace subspace)
 		{
 			Contract.Requires(trans != null && subspace != null);
 
@@ -47,11 +47,11 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Returns all the keys inside of a subspace</summary>
-		public static FdbRangeQuery GetRangeStartsWith(this FdbTransaction trans, FdbSubspace subspace, int limit = 0, bool snapshot = false, bool reverse = false)
+		public static FdbRangeQuery GetRangeStartsWith(this IFdbReadTransaction trans, FdbSubspace subspace, FdbRangeOptions options = null)
 		{
 			Contract.Requires(trans != null && subspace != null);
 
-			return trans.GetRangeStartsWith(subspace.Tuple, limit, snapshot, reverse);
+			return trans.GetRangeStartsWith(subspace.Tuple, options);
 		}
 
 		/// <summary>Read a key inside a subspace</summary>
@@ -60,11 +60,11 @@ namespace FoundationDB.Layers.Tuples
 		/// tr.GetAsync(new FdbSubspace("Hello"), FdbTuple.Create("World"));
 		/// tr.GetAsync(FdbTuple.Create("Hello", "World"));
 		/// </example>
-		public static Task<Slice> GetAsync(this FdbTransaction trans, FdbSubspace subspace, IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> GetAsync(this IFdbReadTransaction trans, FdbSubspace subspace, IFdbTuple key, CancellationToken ct = default(CancellationToken))
 		{
 			Contract.Requires(trans != null && subspace != null && key != null);
 
-			return trans.GetAsync(subspace.Append(key), snapshot, ct);
+			return trans.GetAsync(subspace.Append(key), ct);
 		}
 
 		/// <summary>Write a key inside a subspace</summary>
@@ -73,7 +73,7 @@ namespace FoundationDB.Layers.Tuples
 		/// tr.Set(new FdbSubspace("Hello"), FdbTuple.Create("World"), some_value);
 		/// tr.Set(FdbTuple.Create("Hello", "World"), some_value);
 		/// </example>
-		public static void Set(this FdbTransaction trans, FdbSubspace subspace, IFdbTuple key, Slice value)
+		public static void Set(this IFdbTransaction trans, FdbSubspace subspace, IFdbTuple key, Slice value)
 		{
 			Contract.Requires(trans != null && subspace != null && key != null);
 

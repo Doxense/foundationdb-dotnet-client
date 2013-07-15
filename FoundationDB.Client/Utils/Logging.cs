@@ -301,7 +301,7 @@ namespace FoundationDB.Client.Utils
 
 			//TODO: custom name for FdbDatabase, FdbTransaction, ... ?
 
-			var tr = obj as FdbTransaction;
+			var tr = obj as IFdbReadTransaction;
 			if (tr != null)
 			{
 				return "FdbTransaction#" + tr.Id.ToString(CultureInfo.InvariantCulture) + suffix;

@@ -26,16 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using FoundationDB.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
+	using System;
+	using System.Collections.Generic;
+	using System.Linq;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>Add extensions methods that deal with tuples on various types</summary>
 	public static class FdbTupleExtensions
@@ -206,43 +205,43 @@ namespace FoundationDB.Layers.Tuples
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static Task<Slice> GetAsync(this FdbTransaction trans, IFdbTuple key, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> GetAsync(this IFdbReadTransaction trans, IFdbTuple key, CancellationToken ct = default(CancellationToken))
 		{
 			Contract.Requires(trans != null);
 			if (key == null) throw new ArgumentNullException("key");
 
-			return trans.GetAsync(key.ToSlice(), snapshot, ct);
+			return trans.GetAsync(key.ToSlice(), ct);
 		}
 
-		public static Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(this FdbTransaction trans, IEnumerable<IFdbTuple> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> keys, CancellationToken ct = default(CancellationToken))
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
 			ct.ThrowIfCancellationRequested();
 
-			return trans.GetBatchIndexedAsync(FdbTuple.BatchPack(keys), snapshot, ct);
+			return trans.GetBatchIndexedAsync(FdbTuple.BatchPack(keys), ct);
 		}
 
-		public static Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(this FdbTransaction trans, IFdbTuple[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(this IFdbReadTransaction trans, IFdbTuple[] keys, CancellationToken ct = default(CancellationToken))
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 			ct.ThrowIfCancellationRequested();
 
-			return trans.GetBatchIndexedAsync(FdbTuple.BatchPack(keys), snapshot, ct);
+			return trans.GetBatchIndexedAsync(FdbTuple.BatchPack(keys), ct);
 		}
 
-		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this FdbTransaction trans, IEnumerable<IFdbTuple> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> keys, CancellationToken ct = default(CancellationToken))
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			return GetBatchAsync(trans, keys.ToArray(), snapshot, ct);
+			return GetBatchAsync(trans, keys.ToArray(), ct);
 		}
 
-		public static async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this FdbTransaction trans, IFdbTuple[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public static async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IFdbTuple[] keys, CancellationToken ct = default(CancellationToken))
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			var indexedResults = await trans.GetBatchIndexedAsync(FdbTuple.BatchPack(keys), snapshot, ct);
+			var indexedResults = await trans.GetBatchIndexedAsync(FdbTuple.BatchPack(keys), ct);
 
 			ct.ThrowIfCancellationRequested();
 
@@ -252,7 +251,7 @@ namespace FoundationDB.Layers.Tuples
 				.ToList();
 		}
 
-		public static FdbRangeQuery GetRange(this FdbTransaction trans, IFdbTuple beginInclusive, IFdbTuple endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
+		public static FdbRangeQuery GetRange(this IFdbReadTransaction trans, IFdbTuple beginInclusive, IFdbTuple endExclusive, FdbRangeOptions options = null)
 		{
 			Contract.Requires(trans != null);
 
@@ -264,30 +263,22 @@ namespace FoundationDB.Layers.Tuples
 					FdbKeySelector.FirstGreaterOrEqual(begin),
 					FdbKeySelector.FirstGreaterOrEqual(end)
 				),
-				limit,
-				0,
-				FdbStreamingMode.WantAll,
-				snapshot,
-				reverse
+				options
 			);
 		}
 
-		public static FdbRangeQuery GetRangeStartsWith(this FdbTransaction trans, IFdbTuple suffix, int limit = 0, bool snapshot = false, bool reverse = false)
+		public static FdbRangeQuery GetRangeStartsWith(this IFdbReadTransaction trans, IFdbTuple suffix, FdbRangeOptions options = null)
 		{
 			Contract.Requires(trans != null);
 			if (suffix == null) throw new ArgumentNullException("suffix");
 
 			return trans.GetRange(
 				FdbKeySelectorPair.StartsWith(suffix.ToSlice()),
-				limit,
-				0,
-				FdbStreamingMode.WantAll,
-				snapshot,
-				reverse
+				options
 			);
 		}
 
-		public static void Set(this FdbTransaction trans, IFdbTuple key, Slice valueBytes)
+		public static void Set(this IFdbTransaction trans, IFdbTuple key, Slice valueBytes)
 		{
 			Contract.Requires(trans != null);
 			if (key == null) throw new ArgumentNullException("key");
@@ -295,7 +286,7 @@ namespace FoundationDB.Layers.Tuples
 			trans.Set(key.ToSlice(), valueBytes);
 		}
 
-		public static void Clear(this FdbTransaction trans, IFdbTuple key)
+		public static void Clear(this IFdbTransaction trans, IFdbTuple key)
 		{
 			Contract.Requires(trans != null);
 			if (key == null) throw new ArgumentNullException("key");
@@ -303,7 +294,7 @@ namespace FoundationDB.Layers.Tuples
 			trans.Clear(key.ToSlice());
 		}
 
-		public static void ClearRange(this FdbTransaction trans, IFdbTuple beginInclusive, IFdbTuple endExclusive)
+		public static void ClearRange(this IFdbTransaction trans, IFdbTuple beginInclusive, IFdbTuple endExclusive)
 		{
 			Contract.Requires(trans != null);
 			if (beginInclusive == null) throw new ArgumentNullException("beginInclusive");
@@ -312,7 +303,7 @@ namespace FoundationDB.Layers.Tuples
 			trans.ClearRange(beginInclusive.ToSlice(), endExclusive.ToSlice());
 		}
 
-		public static void ClearRange(this FdbTransaction trans, IFdbTuple prefix)
+		public static void ClearRange(this IFdbTransaction trans, IFdbTuple prefix)
 		{
 			Contract.Requires(trans != null);
 			if (prefix == null) throw new ArgumentNullException("prefix");

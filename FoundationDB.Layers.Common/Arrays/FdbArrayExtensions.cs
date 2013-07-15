@@ -26,36 +26,34 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tables
+namespace FoundationDB.Layers.Arrays
 {
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
 	using System;
 
-	public static class FdbTableExtensions
+	public static class FdbArrayExtensions
 	{
 
-		public static FdbTable Table(this FdbDatabase db, string tableName)
+		public static FdbArray Array(this FdbDatabase db, string name)
 		{
-			return new FdbTable(db.Partition(tableName));
+			return new FdbArray(db.Partition(name));
 		}
 
-		public static FdbTable Table(this FdbDatabase db, IFdbTuple prefix)
+		public static FdbArray Array(this FdbDatabase db, IFdbTuple prefix)
 		{
-			return new FdbTable(db.Partition(prefix));
+			return new FdbArray(db.Partition(prefix));
 		}
 
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public static FdbArray<TValue> Array<TValue>(this FdbDatabase db, string name, ISliceSerializer<TValue> serializer)
 		{
-			return new FdbTable<TKey, TValue>(db.Partition(tableName), keyReader, valueSerializer);
+			return new FdbArray<TValue>(db.Partition(name), serializer);
 		}
 
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, IFdbTuple prefix, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public static FdbArray<TValue> Array<TValue>(this FdbDatabase db, IFdbTuple prefix, ISliceSerializer<TValue> serializer)
 		{
-			return new FdbTable<TKey, TValue>(db.Partition(prefix), keyReader, valueSerializer);
+			return new FdbArray<TValue>(db.Partition(prefix), serializer);
 		}
-
-
 
 	}
 

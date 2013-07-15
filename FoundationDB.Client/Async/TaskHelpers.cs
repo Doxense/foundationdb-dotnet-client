@@ -91,6 +91,24 @@ namespace FoundationDB.Async
 			return Cache<T>.Default;
 		}
 
+		/// <summary>Continue processing a task, if it succeeded</summary>
+		public static async Task Then<T>(this Task<T> task, Action<T> inlineContinuation)
+		{
+			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateExecption)
+
+			var value = await task.ConfigureAwait(false);
+			inlineContinuation(value);
+		}
+
+		/// <summary>Continue processing a task, if it succeeded</summary>
+		public static async Task<R> Then<T, R>(this Task<T> task, Func<T, R> inlineContinuation)
+		{
+			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateExecption)
+
+			var value = await task.ConfigureAwait(false);
+			return inlineContinuation(value);
+		}
+
 		/// <summary>Runs a synchronous lambda inline, exposing it as if it was task</summary>
 		/// <typeparam name="T1">Type of the result of the lambda</typeparam>
 		/// <param name="lambda">Synchronous lambda function that returns a value, or throws exceptions</param>

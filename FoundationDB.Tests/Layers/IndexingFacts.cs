@@ -30,14 +30,12 @@ namespace FoundationDB.Layers.Tables.Tests
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq;
 	using NUnit.Framework;
-	using System;
 	using System.Collections.Generic;
-	using System.Threading.Tasks;
 	using System.Linq;
-	using FoundationDB.Layers.Indexing;
+	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class IndexingFacts

@@ -32,9 +32,11 @@ namespace FoundationDB.Layers.Tables
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	[DebuggerDisplay("Subspace={Subspace}")]
 	public class FdbTable
 	{
 
@@ -53,7 +55,7 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>Add the namespace in front of an existing tuple</summary>
 		/// <param name="id">Existing tuple</param>
 		/// <returns>(namespace, tuple_items, )</returns>
-		protected virtual IFdbTuple MakeKey(IFdbTuple id)
+		internal virtual IFdbTuple MakeKey(IFdbTuple id)
 		{
 			if (id == null) throw new ArgumentNullException("id");
 
@@ -62,29 +64,17 @@ namespace FoundationDB.Layers.Tables
 
 		#endregion
 
-		#region GetAsync() ...
+		#region Get / Set / Clear...
 
-		public Task<Slice> GetAsync(FdbTransaction trans, IFdbTuple id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(IFdbReadTransaction trans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return trans.GetAsync(MakeKey(id).ToSlice(), snapshot, ct);
+			return trans.GetAsync(MakeKey(id).ToSlice(), ct);
 		}
 
-		public Task<Slice> GetAsync(FdbDatabase db, IFdbTuple id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (id == null) throw new ArgumentNullException("id");
-
-			return db.AttemptAsync(this.GetAsync, id, snapshot, ct);
-		}
-
-		#endregion
-
-		#region Set() ...
-
-		public void Set(FdbTransaction trans, IFdbTuple id, Slice value)
+		public void Set(IFdbTransaction trans, IFdbTuple id, Slice value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -92,18 +82,7 @@ namespace FoundationDB.Layers.Tables
 			trans.Set(MakeKey(id).ToSlice(), value);
 		}
 
-		public Task SetAsync(FdbDatabase db, IFdbTuple id, Slice value, CancellationToken ct = default(CancellationToken))
-		{
-			if (db == null) throw new ArgumentNullException("db");
-
-			return db.Attempt(this.Set, id, value, ct);
-		}
-
-		#endregion
-
-		#region Clear() ...
-
-		public void Clear(FdbTransaction trans, IFdbTuple id)
+		public void Clear(IFdbTransaction trans, IFdbTuple id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -111,27 +90,47 @@ namespace FoundationDB.Layers.Tables
 			trans.Clear(MakeKey(id));
 		}
 
+		public Task<List<KeyValuePair<Slice, Slice>>> GetAllAsync(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			return trans
+				.GetRangeStartsWith(this.Subspace) //TODO: options ?
+				.ToListAsync(ct);
+		}
+
+		#endregion
+
+		#region Transactional...
+
+		public Task<Slice> GetAsync(FdbDatabase db, IFdbTuple id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (id == null) throw new ArgumentNullException("id");
+
+			if (snapshot)
+				return db.Attempt.Snapshot.ReadAsync(this.GetAsync, id, ct);
+			else
+				return db.Attempt.ReadAsync(this.GetAsync, id, ct);
+		}
+
+		public Task SetAsync(FdbDatabase db, IFdbTuple id, Slice value, CancellationToken ct = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+
+			return db.Attempt.Change(this.Set, id, value, ct);
+		}
+
 		public Task ClearAsync(FdbDatabase db, IFdbTuple id, CancellationToken ct = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt(
-				(tr) => { Clear(tr, id); },
-				ct
-			);
+			return db.Attempt.Change(this.Clear, id, ct);
 		}
 
 		#endregion
-	
-		public Task<List<KeyValuePair<Slice, Slice>>> GetAllAsync(FdbTransaction trans, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
 
-			return trans
-				.GetRangeStartsWith(this.Subspace, snapshot: snapshot)
-				.ToListAsync(ct);
-		}
 	}
 
 }

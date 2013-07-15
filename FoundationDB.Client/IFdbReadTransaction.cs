@@ -26,37 +26,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tables
+namespace FoundationDB.Client
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-	public static class FdbTableExtensions
+	/// <summary>Transaction that allows read operations</summary>
+	public interface IFdbReadTransaction
 	{
+		int Id { get; }
 
-		public static FdbTable Table(this FdbDatabase db, string tableName)
-		{
-			return new FdbTable(db.Partition(tableName));
-		}
+		bool IsSnapshot { get; }
 
-		public static FdbTable Table(this FdbDatabase db, IFdbTuple prefix)
-		{
-			return new FdbTable(db.Partition(prefix));
-		}
+		void EnsureCanRead(CancellationToken ct = default(CancellationToken));
 
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
-		{
-			return new FdbTable<TKey, TValue>(db.Partition(tableName), keyReader, valueSerializer);
-		}
+		Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken));
 
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, IFdbTuple prefix, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
-		{
-			return new FdbTable<TKey, TValue>(db.Partition(prefix), keyReader, valueSerializer);
-		}
+		Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct = default(CancellationToken));
 
+		Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken));
 
+		Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct = default(CancellationToken));
 
+		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken));
+
+		FdbRangeQuery GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null);
+
+		FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options = null);
+
+		Task OnErrorAsync(FdbError code, CancellationToken ct = default(CancellationToken));
 	}
 
 }

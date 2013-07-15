@@ -39,11 +39,13 @@ namespace FoundationDB.Client
 
 		#region MergeSort (x OR y)
 
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
-			trans.EnsuresCanReadOrWrite();
+			//TODO: Range options ?
+
+			trans.EnsureCanRead();
 			return new FdbMergeSortIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity,
@@ -51,11 +53,13 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static IFdbAsyncEnumerable<TResult> MergeSort<TKey, TResult>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> MergeSort<TKey, TResult>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
-			trans.EnsuresCanReadOrWrite();
+			//TODO: Range options ?
+
+			trans.EnsureCanRead();
 			return new FdbMergeSortIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				resultSelector,
@@ -67,11 +71,13 @@ namespace FoundationDB.Client
 
 		#region Intersect (x AND y)
 
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
-			trans.EnsuresCanReadOrWrite();
+			//TODO: Range options ?
+
+			trans.EnsureCanRead();
 			return new FdbIntersectIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity,
@@ -79,11 +85,13 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
-			trans.EnsuresCanReadOrWrite();
+			//TODO: Range options ?
+
+			trans.EnsureCanRead();
 			return new FdbIntersectIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				resultSelector,
@@ -117,11 +125,13 @@ namespace FoundationDB.Client
 
 		#region Except (x AND NOT y)
 
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
-			trans.EnsuresCanReadOrWrite();
+			//TODO: Range options ?
+
+			trans.EnsureCanRead();
 			return new FdbExceptIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity,
@@ -129,11 +139,13 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>(this FdbTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
-			trans.EnsuresCanReadOrWrite();
+			//TODO: Range options ?
+
+			trans.EnsureCanRead();
 			return new FdbExceptIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRangeCore(range, 0, 0, FdbStreamingMode.Iterator, false, false)),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				resultSelector,

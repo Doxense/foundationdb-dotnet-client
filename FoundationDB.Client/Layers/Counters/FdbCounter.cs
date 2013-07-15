@@ -29,14 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Counters
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
-	using System.IO;
-	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -107,11 +103,11 @@ namespace FoundationDB.Layers.Counters
 					List<KeyValuePair<Slice, Slice>> shards;
 					if (this.Rng.NextDouble() < 0.5)
 					{
-						shards = await tr.GetRange(loc, this.Subspace.ToRange().End, limit: N, snapshot: true).ToListAsync().ConfigureAwait(false);
+						shards = await tr.Snapshot.GetRange(loc, this.Subspace.ToRange().End, new FdbRangeOptions { Limit = N }).ToListAsync().ConfigureAwait(false);
 					}
 					else
 					{
-						shards = await tr.GetRange(this.Subspace.ToRange().Begin, loc, limit: N, reverse: true, snapshot: true).ToListAsync().ConfigureAwait(false);
+						shards = await tr.Snapshot.GetRange(this.Subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , Reverse = true }).ToListAsync().ConfigureAwait(false);
 					}
 
 					if (shards.Count > 0)
@@ -159,7 +155,7 @@ namespace FoundationDB.Layers.Counters
 		/// </summary>
 		/// <param name="trans"></param>
 		/// <returns></returns>
-		public async Task<long> GetTransactional(FdbTransaction trans, CancellationToken ct = default(CancellationToken))
+		public async Task<long> Read(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -173,26 +169,7 @@ namespace FoundationDB.Layers.Counters
 			return total;
 		}
 
-		/// <summary>
-		/// Get the value of the counter.
-		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
-		/// </summary>
-		/// <param name="trans"></param>
-		/// <returns></returns>
-		public async Task<long> GetSnapshot(FdbTransaction trans, CancellationToken ct = default(CancellationToken))
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-
-			long total = 0;
-			await trans
-				.GetRangeStartsWith(this.Subspace, snapshot: true)
-				.ForEachAsync((kvp) => { checked { total += DecodeInt(kvp.Value); } })
-				.ConfigureAwait(false);
-
-			return total;
-		}
-
-		public void Add(FdbTransaction trans, long x)
+		public void Add(IFdbTransaction trans, long x)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -204,23 +181,33 @@ namespace FoundationDB.Layers.Counters
 			}
 		}
 
-		public async Task AddAsync(long x, CancellationToken ct = default(CancellationToken))
-		{
-			ct.ThrowIfCancellationRequested();
-			using (var trans = this.Database.BeginTransaction())
-			{
-				Add(trans, x);
-				await trans.CommitAsync(ct).ConfigureAwait(false);
-			}
-		}
-
-		public async Task SetTotal(FdbTransaction trans, long x, CancellationToken ct = default(CancellationToken))
+		public async Task SetTotal(IFdbTransaction trans, long x, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			long value = await GetSnapshot(trans, ct).ConfigureAwait(false);
+			long value = await Read(trans, ct).ConfigureAwait(false);
 			Add(trans, x - value);
 		}
+
+		#region Transactionnal ...
+
+		public Task<long> ReadAsync(CancellationToken ct = default(CancellationToken))
+		{
+			return this.Database.Attempt.ReadAsync(this.Read, ct);
+		}
+
+		public Task AddAsync(long x, CancellationToken ct = default(CancellationToken))
+		{
+			return this.Database.Attempt.Change(this.Add, x, ct);
+		}
+
+		public Task SetTotalAsync(long x, CancellationToken ct = default(CancellationToken))
+		{
+			//TODO: snapshot ?
+			return this.Database.Attempt.ChangeAsync(this.SetTotal, x, ct);
+		}
+
+		#endregion
 
 	}
 

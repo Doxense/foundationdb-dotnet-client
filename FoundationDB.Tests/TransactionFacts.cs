@@ -141,6 +141,7 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 		}
+
 		[Test]
 		public async Task Test_Resetting_An_Empty_Transaction_Does_Nothing()
 		{
@@ -229,6 +230,40 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Snapshot_Read()
+		{
+
+			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("test");
+
+				await db.ClearRangeAsync(location);
+
+				// write a bunch of keys
+				await db.Attempt.Change((tr) =>
+				{
+					tr.Set(location.Pack("hello"), Slice.FromString("World!"));
+					tr.Set(location.Pack("foo"), Slice.FromString("bar"));
+				});
+
+				// read them using snapshot
+				using(var tr = db.BeginTransaction())
+				{
+					Slice bytes;
+
+					bytes = await tr.Snapshot.GetAsync(location.Pack("hello"));
+					Assert.That(bytes.ToUnicode(), Is.EqualTo("World!"));
+
+					bytes = await tr.Snapshot.GetAsync(location.Pack("foo"));
+					Assert.That(bytes.ToUnicode(), Is.EqualTo("bar"));
+
+				}
+
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Can_Set_Read_Version()
 		{
 			// Verify that we can set a read version on a transaction
@@ -291,7 +326,7 @@ namespace FoundationDB.Client.Tests
 
 					try
 					{
-						var _ = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), limit: 10).ToListAsync();
+						var _ = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
 						Assert.Fail("Should not have access to system keys by default");
 					}
 					catch (Exception e)
@@ -304,7 +339,7 @@ namespace FoundationDB.Client.Tests
 					// should succeed once system access has been requested
 					tr.WithAccessToSystemKeys();
 
-					var keys = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), limit: 10).ToListAsync();
+					var keys = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
 					Assert.That(keys, Is.Not.Null);
 				}
 

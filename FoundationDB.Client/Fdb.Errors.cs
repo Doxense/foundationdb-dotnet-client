@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 				return new InvalidOperationException("Cannot create a transaction on an invalid database");
 			}
 
-			internal static Exception FailedToRegisterTransactionOnDatabase(FdbTransaction transaction, FdbDatabase db)
+			internal static Exception FailedToRegisterTransactionOnDatabase(IFdbTransaction transaction, FdbDatabase db)
 			{
 				Contract.Requires(transaction != null && db != null);
 				return new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id, db.Name));

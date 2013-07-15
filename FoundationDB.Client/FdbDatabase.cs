@@ -34,12 +34,14 @@ namespace FoundationDB.Client
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Concurrent;
+	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>FoundationDB Database</summary>
 	/// <remarks>Wraps an FDBDatabase* handle</remarks>
-	public class FdbDatabase : IDisposable
+	[DebuggerDisplay("Name={m_name}, Namespace={m_namespace}")]
+	public partial class FdbDatabase : IDisposable
 	{
 		#region Private Fields...
 
@@ -195,240 +197,14 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Run/Attempt...
+		#region Attempt...
 
-		public Task Attempt(Action<FdbTransaction> action, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) => TaskHelpers.Inline((Action<FdbTransaction>)_context.State, arg1: tr, ct: _context.Token),
-				state: action,
-				ct: ct
-			);
-		}
+		private ReadWriteTransactional m_transactional;
 
-		public Task AttemptAsync(Func<FdbTransaction, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		/// <summary>Retryable operations</summary>
+		public ReadWriteTransactional Attempt
 		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var _asyncAction = (Func<FdbTransaction, Task>)_context.State;
-					return _asyncAction(tr);
-				},
-				state: asyncAction,
-				ct: ct
-			);
-		}
-
-		public Task AttemptAsync(Func<FdbTransaction, CancellationToken, Task> asyncAction, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var _asyncAction = (Func<FdbTransaction, CancellationToken, Task>)_context.State;
-					return _asyncAction(tr, _context.Token);
-				},
-				state: asyncAction,
-				ct: ct
-			);
-		}
-
-		public Task<R> AttemptAsync<R>(Func<FdbTransaction, Task<R>> asyncAction, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync<R>(
-				db: this,
-				asyncAction: async (tr, _context) =>
-				{
-					var func = (Func<FdbTransaction, Task<R>>)_context.State;
-					_context.Result = await func(tr).ConfigureAwait(false);
-				},
-				state: asyncAction,
-				ct: ct
-			);
-		}
-
-		public Task Attempt<T1>(Action<FdbTransaction, T1> asyncAction, T1 arg1, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var prms = (Tuple<Action<FdbTransaction, T1>, T1>)_context.State;
-					return TaskHelpers.Inline(prms.Item1, arg1: tr, arg2: prms.Item2, ct: _context.Token);
-				},
-				state: Tuple.Create(asyncAction, arg1),
-				ct: ct
-			);
-		}
-
-		public Task AttemptAsync<T1>(Func<FdbTransaction, T1, Task> asyncAction, T1 arg1, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var prms = (Tuple<Func<FdbTransaction, T1, Task>, T1>)_context.State;
-					return prms.Item1(tr, prms.Item2);
-				},
-				state: Tuple.Create(asyncAction, arg1),
-				ct: ct
-			);
-		}
-
-		public Task<R> AttemptAsync<T1, R>(Func<FdbTransaction, T1, Task<R>> asyncAction, T1 arg1, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync<R>(
-				db: this,
-				asyncAction: async (tr, _context) =>
-				{
-					var prms = (Tuple<Func<FdbTransaction, T1, Task<R>>, T1>)_context.State;
-					_context.Result = await prms.Item1(tr, prms.Item2).ConfigureAwait(false);
-				},
-				state: Tuple.Create(asyncAction, arg1),
-				ct: ct
-			);
-		}
-
-		public Task Attempt<T1, T2>(Action<FdbTransaction, T1, T2> asyncAction, T1 arg1, T2 arg2, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var prms = (Tuple<Action<FdbTransaction, T1, T2>, T1, T2>)_context.State;
-					return TaskHelpers.Inline(prms.Item1, arg1: tr, arg2: prms.Item2, arg3: prms.Item3, ct: _context.Token);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2),
-				ct: ct
-			);
-		}
-
-		public Task AttemptAsync<T1, T2>(Func<FdbTransaction, T1, T2, Task> asyncAction, T1 arg1, T2 arg2, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var prms = (Tuple<Func<FdbTransaction, T1, T2, Task>, T1, T2>)_context.State;
-					return prms.Item1(tr, prms.Item2, prms.Item3);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2),
-				ct: ct
-			);
-		}
-
-		public Task<R> AttemptAsync<T1, T2, R>(Func<FdbTransaction, T1, T2, Task<R>> asyncAction, T1 arg1, T2 arg2, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync<R>(
-				db: this,
-				asyncAction: async (tr, _context) =>
-				{
-					var prms = (Tuple<Func<FdbTransaction, T1, T2, Task<R>>, T1, T2>)_context.State;
-					_context.Result = await prms.Item1(tr, prms.Item2, prms.Item3).ConfigureAwait(false);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2),
-				ct: ct
-			);
-		}
-
-		public Task<R> AttemptAsync<T1, T2, R>(Func<FdbTransaction, T1, T2, CancellationToken, Task<R>> asyncAction, T1 arg1, T2 arg2, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync<R>(
-				db: this,
-				asyncAction: async (tr, _context) =>
-				{
-					var prms = (Tuple<Func<FdbTransaction, T1, T2, CancellationToken, Task<R>>, T1, T2>)_context.State;
-					_context.Result = await prms.Item1(tr, prms.Item2, prms.Item3, _context.Token).ConfigureAwait(false);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2),
-				ct: ct
-			);
-		}
-
-		public Task Attempt<T1, T2, T3>(Action<FdbTransaction, T1, T2, T3> asyncAction, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var prms = (Tuple<Action<FdbTransaction, T1, T2, T3>, T1, T2, T3>)_context.State;
-					return TaskHelpers.Inline(prms.Item1, arg1: tr, arg2: prms.Item2, arg3: prms.Item3, arg4: prms.Item4, ct: _context.Token);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2, arg3),
-				ct: ct
-			);
-		}
-
-		public Task AttemptAsync<T1, T2, T3>(Func<FdbTransaction, T1, T2, T3, Task> asyncAction, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var prms = (Tuple<Func<FdbTransaction, T1, T2, T3, Task>, T1, T2, T3>)_context.State;
-					return prms.Item1(tr, prms.Item2, prms.Item3, prms.Item4);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2, arg3),
-				ct: ct
-			);
-		}
-
-		public Task<R> AttemptAsync<T1, T2, T3, R>(Func<FdbTransaction, T1, T2, T3, Task<R>> asyncAction, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync<R>(
-				db: this,
-				asyncAction: async (tr, _context) =>
-				{
-					var prms = (Tuple<Func<FdbTransaction, T1, T2, T3, Task<R>>, T1, T2, T3>)_context.State;
-					_context.Result = await prms.Item1(tr, prms.Item2, prms.Item3, prms.Item4).ConfigureAwait(false);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2, arg3),
-				ct: ct
-			);
-		}
-
-		public Task Attempt<T1, T2, T3, T4>(Action<FdbTransaction, T1, T2, T3, T4> asyncAction, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var prms = (Tuple<Action<FdbTransaction, T1, T2, T3, T4>, T1, T2, T3, T4>)_context.State;
-					return TaskHelpers.Inline(prms.Item1, arg1: tr, arg2: prms.Item2, arg3: prms.Item3, arg4: prms.Item4, arg5: prms.Item5, ct: _context.Token);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2, arg3, arg4),
-				ct: ct
-			);
-		}
-
-		public Task AttemptAsync<T1, T2, T3, T4>(Func<FdbTransaction, T1, T2, T3, T4, Task> asyncAction, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var prms = (Tuple<Func<FdbTransaction, T1, T2, T3, T4, Task>, T1, T2, T3, T4>)_context.State;
-					return prms.Item1(tr, prms.Item2, prms.Item3, prms.Item4, prms.Item5);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2, arg3, arg4),
-				ct: ct
-			);
-		}
-
-		public Task<R> AttemptAsync<T1, T2, T3, T4, R>(Func<FdbTransaction, T1, T2, T3, T4, Task<R>> asyncAction, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunAsync<R>(
-				this,
-				asyncAction: async (tr, _context) =>
-				{
-					var prms = (Tuple<Func<FdbTransaction, T1, T2, T3, T4, Task<R>>, T1, T2, T3, T4>)_context.State;
-					_context.Result = await prms.Item1(tr, prms.Item2, prms.Item3, prms.Item4, prms.Item5).ConfigureAwait(false);
-				},
-				state: Tuple.Create(asyncAction, arg1, arg2, arg3, arg4),
-				ct: ct
-			);
+			get { return m_transactional ?? (m_transactional = new ReadWriteTransactional(this)); }
 		}
 
 		#endregion

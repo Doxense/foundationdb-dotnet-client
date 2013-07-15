@@ -32,7 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Async;
-	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Linq;
 	using System;
@@ -54,7 +53,7 @@ namespace FoundationDB.Client
 
 			private FdbRangeQuery Query { get; set; }
 
-			private FdbTransaction Transaction { get; set; }
+			private IFdbReadTransaction Transaction { get; set; }
 
 			#endregion
 
@@ -89,7 +88,7 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			public PagingIterator(FdbRangeQuery query, FdbTransaction transaction)
+			public PagingIterator(FdbRangeQuery query, IFdbReadTransaction transaction)
 			{
 				Contract.Requires(query != null);
 
@@ -138,7 +137,7 @@ namespace FoundationDB.Client
 				Contract.Requires(!this.AtEnd);
 				Contract.Requires(this.Iteration >= 0);
 
-				this.Transaction.EnsuresCanReadOrWrite(ct);
+				this.Transaction.EnsureCanRead(ct);
 
 				this.Iteration++;
 
@@ -146,31 +145,35 @@ namespace FoundationDB.Client
 				Debug.WriteLine("FdbRangeQuery.PagingIterator.FetchNextPageAsync(iter=" + this.Iteration + ") started");
 #endif
 
-				var future = FdbNative.TransactionGetRange(this.Transaction.Handle, this.Begin, this.End, this.Remaining.GetValueOrDefault(), this.Query.TargetBytes, this.Query.Mode, this.Iteration, this.Query.Snapshot, this.Query.Reverse);
-				var task = FdbFuture.CreateTaskFromHandle(
-					future,
-					(h) =>
+				var options = new FdbRangeOptions
+				{
+					Limit = this.Remaining.GetValueOrDefault(),
+					TargetBytes = this.Query.TargetBytes,
+					StreamingMode = this.Query.Mode,
+					Reverse = this.Query.Reverse
+				};
+
+				var tr = this.Transaction;
+				if (this.Query.Snapshot)
+				{ // make sure we have the snapshot version !
+					if (tr is FdbTransaction) tr = (tr as FdbTransaction).Snapshot;
+				}
+
+				var task = tr
+					.GetRangeAsync(new FdbKeySelectorPair(this.Begin, this.End), options, this.Iteration, ct)
+					.Then((result) =>
 					{
-						if (this.Transaction == null)
-						{ // disposed ? quietly return
-							return false;
-						}
-
-						//TODO: locking ?
-
-						bool hasMore;
-						var chunk = GetKeyValueArrayResult(h, out hasMore);
-						this.Chunk = chunk;
-						this.RowCount += chunk.Length;
-						this.HasMore = hasMore;
+						this.Chunk = result.Chunk;
+						this.RowCount += result.Chunk.Length;
+						this.HasMore = result.HasMore;
 						// subtract number of row from the remaining allowed
-						if (this.Remaining.HasValue) this.Remaining = this.Remaining.Value - chunk.Length;
+						if (this.Remaining.HasValue) this.Remaining = this.Remaining.Value - result.Chunk.Length;
 
-						this.AtEnd = !hasMore || (this.Remaining.HasValue && this.Remaining.Value <= 0);
+						this.AtEnd = !result.HasMore || (this.Remaining.HasValue && this.Remaining.Value <= 0);
 
 						if (!this.AtEnd)
 						{ // update begin..end so that next call will continue from where we left...
-							var lastKey = chunk[chunk.Length - 1].Key;
+							var lastKey = result.Chunk[result.Chunk.Length - 1].Key;
 							if (this.Query.Reverse)
 							{
 								this.End = FdbKeySelector.FirstGreaterOrEqual(lastKey);
@@ -183,33 +186,16 @@ namespace FoundationDB.Client
 #if DEBUG_RANGE_PAGING
 						Debug.WriteLine("FdbRangeQuery.PagingIterator.FetchNextPageAsync() returned " + this.Chunk.Length + " results (" + this.RowCount + " total) " + (hasMore ? " with more to come" : " and has no more data"));
 #endif
-						if (chunk.Length > 0 && this.Transaction != null)
+						if (result.Chunk.Length > 0 && this.Transaction != null)
 						{
-							return Publish(chunk);
+							return Publish(result.Chunk);
 						}
 						return Completed();
-					},
-					ct
-				);
+					});
 
 				// keep track of this operation
 				this.PendingReadTask = task;
 				return task;
-			}
-
-			/// <summary>Extract a chunk of result from a completed Future</summary>
-			/// <param name="h">Handle to the completed Future</param>
-			/// <param name="more">Receives true if there are more result, or false if all results have been transmited</param>
-			/// <returns></returns>
-			private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more)
-			{
-				KeyValuePair<Slice, Slice>[] result;
-				var err = FdbNative.FutureGetKeyValueArray(h, out result, out more);
-#if DEBUG_RANGE_PAGING
-				Debug.WriteLine("FdbRangeQuery.PagingIterator.GetKeyValueArrayResult() => err=" + err + ", result=" + (result != null ? result.Length : -1) + ", more=" + more);
-#endif
-				Fdb.DieOnError(err);
-				return result;
 			}
 
 			#endregion

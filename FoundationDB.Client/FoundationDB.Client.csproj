@@ -58,6 +58,12 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="IFdbTransaction.cs" />
+    <Compile Include="IFdbReadTransaction.cs" />
+    <Compile Include="FdbRangeChunk.cs" />
+    <Compile Include="FdbTransactionExtensions.cs" />
+    <Compile Include="FdbDatabase.Transactional.cs" />
+    <Compile Include="FdbRangeOptions.cs" />
     <Compile Include="FdbOperationContext.cs" />
     <Compile Include="FdbMergeQueryExtensions.cs" />
     <Compile Include="FdbExceptIterator.cs" />

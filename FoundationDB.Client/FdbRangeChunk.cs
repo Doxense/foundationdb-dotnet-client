@@ -26,37 +26,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tables
+namespace FoundationDB.Client
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
 
-	public static class FdbTableExtensions
+	public struct FdbRangeChunk
 	{
+		public readonly bool HasMore;
+		public readonly KeyValuePair<Slice, Slice>[] Chunk;
+		public readonly int Iteration;
 
-		public static FdbTable Table(this FdbDatabase db, string tableName)
+		public FdbRangeChunk(bool hasMore, KeyValuePair<Slice, Slice>[] chunk, int iteration)
 		{
-			return new FdbTable(db.Partition(tableName));
+			this.HasMore = hasMore;
+			this.Chunk = chunk;
+			this.Iteration = iteration;
 		}
-
-		public static FdbTable Table(this FdbDatabase db, IFdbTuple prefix)
-		{
-			return new FdbTable(db.Partition(prefix));
-		}
-
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
-		{
-			return new FdbTable<TKey, TValue>(db.Partition(tableName), keyReader, valueSerializer);
-		}
-
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, IFdbTuple prefix, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
-		{
-			return new FdbTable<TKey, TValue>(db.Partition(prefix), keyReader, valueSerializer);
-		}
-
-
-
 	}
 
 }

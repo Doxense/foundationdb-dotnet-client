@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 
 			private FdbRangeQuery m_query;
 
-			private FdbTransaction m_transaction;
+			private IFdbReadTransaction m_transaction;
 
 			/// <summary>Lambda used to transform pairs of key/value into the expected result</summary>
 			private Func<KeyValuePair<Slice, Slice>, TResult> m_resultTransform;
@@ -74,7 +74,7 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			public ResultIterator(FdbRangeQuery query, FdbTransaction transaction, Func<KeyValuePair<Slice, Slice>, TResult> transform)
+			public ResultIterator(FdbRangeQuery query, IFdbReadTransaction transaction, Func<KeyValuePair<Slice, Slice>, TResult> transform)
 			{
 				Contract.Requires(query != null && transform != null);
 

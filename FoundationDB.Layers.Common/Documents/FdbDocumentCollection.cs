@@ -77,7 +77,7 @@ namespace FoundationDB.Layers.Documents
 			return prefix.Concat(field).ToSlice();
 		}
 
-		public void Insert(FdbTransaction trans, TDocument document)
+		public void Insert(IFdbTransaction trans, TDocument document)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (document == null) throw new ArgumentNullException("document");
@@ -104,7 +104,7 @@ namespace FoundationDB.Layers.Documents
 			}		
 		}
 
-		public async Task<TDocument> LoadAsync(FdbTransaction trans, TId id, CancellationToken ct = default(CancellationToken))
+		public async Task<TDocument> LoadAsync(IFdbReadTransaction trans, TId id, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id"); // only for ref types
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Documents
 			var prefix = GetDocumentPrefix(id).ToSlice();
 
 			var parts = await trans
-				.GetRangeStartsWith(prefix, 0, true, false)
+				.GetRangeStartsWith(prefix) //TODO: options ?
 				.Select(kvp => new KeyValuePair<IFdbTuple, Slice>(
 					FdbTuple.UnpackWithoutPrefix(kvp.Key, prefix),
 					kvp.Value
@@ -133,7 +133,7 @@ namespace FoundationDB.Layers.Documents
 			return doc;
 		}
 
-		public void Delete(FdbTransaction trans, TId id)
+		public void Delete(IFdbTransaction trans, TId id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -141,7 +141,7 @@ namespace FoundationDB.Layers.Documents
 			trans.ClearRange(GetDocumentPrefix(id));
 		}
 
-		public void Delete(FdbTransaction trans, TDocument document)
+		public void Delete(IFdbTransaction trans, TDocument document)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (document == null) throw new ArgumentNullException("document");
@@ -158,7 +158,7 @@ namespace FoundationDB.Layers.Documents
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			await db.Attempt(
+			await db.Attempt.Change(
 				(trans, _document) => { Insert(trans, _document); },
 				document,
 				ct
@@ -171,7 +171,7 @@ namespace FoundationDB.Layers.Documents
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.AttemptAsync(
+			return db.Attempt.ReadAsync(
 				(trans) => LoadAsync(trans, id, ct),
 				ct
 			);
@@ -182,7 +182,7 @@ namespace FoundationDB.Layers.Documents
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt(
+			return db.Attempt.Change(
 				(tr, _id) => Delete(tr, _id),
 				id,
 				ct

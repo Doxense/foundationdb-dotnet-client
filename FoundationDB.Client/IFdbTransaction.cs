@@ -26,36 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tables
+namespace FoundationDB.Client
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Threading;
 
-	public static class FdbTableExtensions
+	/// <summary>Transaction that allows read and write operations</summary>
+	public interface IFdbTransaction : IFdbReadTransaction
 	{
+		void EnsureCanReadOrWrite(CancellationToken ct = default(CancellationToken));
 
-		public static FdbTable Table(this FdbDatabase db, string tableName)
-		{
-			return new FdbTable(db.Partition(tableName));
-		}
+		void Set(Slice keyBytes, Slice valueBytes);
 
-		public static FdbTable Table(this FdbDatabase db, IFdbTuple prefix)
-		{
-			return new FdbTable(db.Partition(prefix));
-		}
+		void Clear(Slice key);
 
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
-		{
-			return new FdbTable<TKey, TValue>(db.Partition(tableName), keyReader, valueSerializer);
-		}
-
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, IFdbTuple prefix, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
-		{
-			return new FdbTable<TKey, TValue>(db.Partition(prefix), keyReader, valueSerializer);
-		}
-
-
+		void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive);
 
 	}
 

@@ -30,7 +30,6 @@ namespace FoundationDB.Layers.Blobs.Tests
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Threading.Tasks;

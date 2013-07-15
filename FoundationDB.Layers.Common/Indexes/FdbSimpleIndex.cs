@@ -26,25 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-using System.Linq;
-using FoundationDB.Client;
-using FoundationDB.Layers.Tuples;
-using FoundationDB.Linq;
-
 namespace FoundationDB.Layers.Indexing
 {
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
+	[DebuggerDisplay("Subspace={Subspace}")]
 	public class FdbSimpleIndex<TId, TValue>
 	{
 
@@ -64,14 +60,12 @@ namespace FoundationDB.Layers.Indexing
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
 		public bool IndexNullValues { get; private set; }
 
-		public bool Snapshot { get; private set; }
-
 		/// <summary>Insert a newly created entity to the index</summary>
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
 		/// <param name="value">Value of this entity in the index</param>
 		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and IndexNullValue is false)</returns>
-		public bool Add(FdbTransaction trans, TId id, TValue value)
+		public bool Add(IFdbTransaction trans, TId id, TValue value)
 		{
 			if (this.IndexNullValues || value != null)
 			{
@@ -88,7 +82,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="previousValue">New value of this entity in the index</param>
 		/// <returns>True if a change was performed in the index; otherwise false (if <paramref name="previousValue"/> and <paramref name="newValue"/>)</returns>
 		/// <remarks>If <paramref name="newValue"/> and <paramref name="previousValue"/> are identical, then nothing will be done. Otherwise, the old index value will be deleted and the new value will be added</remarks>
-		public bool Update(FdbTransaction trans, TId id, TValue newValue, TValue previousValue)
+		public bool Update(IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
 		{
 			if (!this.ValueComparer.Equals(newValue, previousValue))
 			{
@@ -114,7 +108,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the entity that has been deleted</param>
 		/// <param name="value">Previous value of the entity in the index</param>
-		public void Remove(FdbTransaction trans, TId id, TValue value)
+		public void Remove(IFdbTransaction trans, TId id, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -127,7 +121,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="reverse"></param>
 		/// <param name="ct"></param>
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
-		public Task<List<TId>> LookupAsync(FdbTransaction trans, TValue value, bool reverse = false, CancellationToken ct = default(CancellationToken))
+		public Task<List<TId>> LookupAsync(IFdbReadTransaction trans, TValue value, bool reverse = false, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
@@ -141,12 +135,12 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse"></param>
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
-		public IFdbAsyncEnumerable<TId> Lookup(FdbTransaction trans, TValue value, bool reverse = false)
+		public IFdbAsyncEnumerable<TId> Lookup(IFdbReadTransaction trans, TValue value, bool reverse = false)
 		{
 			var prefix = this.Subspace.Create(value);
 
 			return trans
-				.GetRangeStartsWith(prefix, 0, this.Snapshot, reverse)
+				.GetRangeStartsWith(prefix, new FdbRangeOptions { Reverse = reverse })
 				.Keys((key) => this.Subspace.UnpackLast<TId>(key));
 		}
 

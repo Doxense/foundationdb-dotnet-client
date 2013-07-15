@@ -36,13 +36,14 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
-	using System.IO;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
-	public class FdbTransaction : IDisposable
+	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}")]
+	public class FdbTransaction : IFdbTransaction, IFdbReadTransaction, IDisposable
 	{
 		#region Private Members...
 
@@ -70,7 +71,10 @@ namespace FoundationDB.Client
 		//note: should be use a long instead?
 
 		/// <summary>Cancelletation source specific to this instance.</summary>
-		private CancellationTokenSource m_cts;
+		private readonly CancellationTokenSource m_cts;
+
+		/// <summary>Snapshot version of this transaction (lazily allocated)</summary>
+		private Snapshotted m_snapshotted;
 
 		#endregion
 
@@ -81,7 +85,7 @@ namespace FoundationDB.Client
 			m_database = database;
 			m_id = id;
 			m_handle = handle;
-			m_cts = CancellationTokenSource.CreateLinkedTokenSource(database.Token);
+			m_cts = CancellationTokenSource.CreateLinkedTokenSource(database.Token); //TODO: lazily allocated?
 		}
 
 		#endregion
@@ -91,6 +95,12 @@ namespace FoundationDB.Client
 		/// <summary>Internal local identifier of the transaction</summary>
 		/// <remarks>Should only used for logging/debugging purpose.</remarks>
 		public int Id { get { return m_id; } }
+
+
+		public bool IsSnapshot
+		{
+			get { return false; }
+		}
 
 		/// <summary>Database instance that manages this transaction</summary>
 		public FdbDatabase Database { get { return m_database; } }
@@ -133,7 +143,7 @@ namespace FoundationDB.Client
 		/// <param name="option">Option to set</param>
 		public void SetOption(FdbTransactionOption option)
 		{
-			EnsuresStillValid();
+			EnsureNotFailedOrDisposed();
 
 			unsafe
 			{
@@ -146,7 +156,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Value of the parameter (can be null)</param>
 		public void SetOption(FdbTransactionOption option, string value)
 		{
-			EnsuresStillValid();
+			EnsureNotFailedOrDisposed();
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			unsafe
@@ -163,7 +173,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Value of the parameter</param>
 		public void SetOption(FdbTransactionOption option, long value)
 		{
-			EnsuresStillValid();
+			EnsureNotFailedOrDisposed();
 
 			unsafe
 			{
@@ -183,7 +193,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		public Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken))
 		{
-			EnsuresCanReadOrWrite(ct);
+			EnsureCanReadOrWrite(ct);
 			//TODO: should we also allow being called after commit or rollback ?
 
 			var future = FdbNative.TransactionGetReadVersion(m_handle);
@@ -208,7 +218,7 @@ namespace FoundationDB.Client
 		public long GetCommittedVersion()
 		{
 			//TODO: should we only allow calls if transaction is in state "COMMITTED" ?
-			EnsuresStillValid();
+			EnsureNotFailedOrDisposed();
 
 			long version;
 			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
@@ -221,7 +231,7 @@ namespace FoundationDB.Client
 
 		public void SetReadVersion(long version)
 		{
-			EnsuresCanReadOrWrite();
+			EnsureCanReadOrWrite();
 
 			FdbNative.TransactionSetReadVersion(m_handle, version);
 		}
@@ -269,152 +279,111 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns the value of a particular key</summary>
 		/// <param name="keyBytes">Key to retrieve</param>
-		/// <param name="snapshot"></param>
 		/// <param name="ct">CancellationToken used to cancel this operation</param>
 		/// <returns>Task that will return null if the value of the key if it is found, null if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Task<Slice> GetAsync(Slice keyBytes, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct = default(CancellationToken))
 		{
-			EnsuresCanReadOrWrite(ct);
+			EnsureCanReadOrWrite(ct);
 
-			return GetCoreAsync(keyBytes, snapshot, ct);
+			return GetCoreAsync(keyBytes, snapshot: false, ct: ct);
 		}
 
 		#endregion
 
-		#region Batching...
+		#region GetRangeAsync...
 
-		public async Task<Slice[]> GetBatchValuesAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		/// <summary>Extract a chunk of result from a completed Future</summary>
+		/// <param name="h">Handle to the completed Future</param>
+		/// <param name="more">Receives true if there are more result, or false if all results have been transmited</param>
+		/// <returns></returns>
+		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more)
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			EnsuresCanReadOrWrite(ct);
-
-			//TODO: we should maybe limit the number of concurrent requests, if there are too many keys to read at once ?
-
-			var tasks = new List<Task<Slice>>(keys.Length);
-			for (int i = 0; i < keys.Length; i++)
-			{
-				tasks.Add(GetCoreAsync(keys[i], snapshot, ct));
-			}
-
-			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
-
-			return results;
+			KeyValuePair<Slice, Slice>[] result;
+			var err = FdbNative.FutureGetKeyValueArray(h, out result, out more);
+			Fdb.DieOnError(err);
+			return result;
 		}
 
-		public Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		/// <summary>Asynchronously fetch a new page of results</summary>
+		/// <param name="ct"></param>
+		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
+		internal Task<FdbRangeChunk> GetRangeCoreAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct)
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
+			this.Database.EnsureKeyIsValid(range.Start.Key);
+			this.Database.EnsureKeyIsValid(range.Stop.Key);
 
-			ct.ThrowIfCancellationRequested();
-			return GetBatchIndexedAsync(keys.ToArray(), snapshot, ct);
+			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.WantAll, false);
+			options.EnsureLegalValues();
+
+			var future = FdbNative.TransactionGetRange(this.Handle, range.Start, range.Stop, options.Limit ?? 0, options.TargetBytes ?? 0, options.StreamingMode ?? FdbStreamingMode.WantAll, iteration, snapshot, options.Reverse ?? false);
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				(h) =>
+				{
+					// TODO: quietly return if disposed
+
+					bool hasMore;
+					var chunk = GetKeyValueArrayResult(h, out hasMore);
+
+					return new FdbRangeChunk(hasMore, chunk, iteration);
+				},
+				ct
+			);
 		}
 
-		public async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken))
 		{
-			var results = await GetBatchValuesAsync(keys, snapshot, ct).ConfigureAwait(false);
+			EnsureCanRead(ct);
 
-			return results
-				.Select((data, i) => new KeyValuePair<int, Slice>(i, data))
-				.ToList();
+			return GetRangeCoreAsync(range, options, iteration, snapshot: false, ct: ct);
 		}
 
-		public Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(IEnumerable<Slice> keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<FdbRangeChunk> GetRangeStartsWithAsync(Slice prefix, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken))
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
 
-			ct.ThrowIfCancellationRequested();
-			return GetBatchAsync(keys.ToArray(), snapshot, ct);
-		}
+			EnsureCanRead(ct);
 
-		public async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(Slice[] keys, bool snapshot = false, CancellationToken ct = default(CancellationToken))
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			var indexedResults = await GetBatchIndexedAsync(keys, snapshot, ct).ConfigureAwait(false);
-
-			ct.ThrowIfCancellationRequested();
-
-			return indexedResults
-				.Select((kvp) => new KeyValuePair<Slice, Slice>(keys[kvp.Key], kvp.Value))
-				.ToList();
+			return GetRangeCoreAsync(FdbKeySelectorPair.StartsWith(prefix), options, iteration, snapshot: false, ct: ct);
 		}
 
 		#endregion
 
 		#region GetRange...
 
-		internal FdbRangeQuery GetRangeCore(FdbKeySelectorPair range, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
+		internal FdbRangeQuery GetRangeCore(FdbKeySelectorPair range, FdbRangeOptions options, bool snapshot)
 		{
-			Contract.Requires(limit >= 0 && targetBytes >= 0 && Enum.IsDefined(typeof(FdbStreamingMode), mode));
-
 			this.Database.EnsureKeyIsValid(range.Start.Key);
 			this.Database.EnsureKeyIsValid(range.Stop.Key);
+
+			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.WantAll, false);
+			options.EnsureLegalValues();
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0}'..'{1}'", range.Start.ToString(), range.Stop.ToString()));
 #endif
 
-			return new FdbRangeQuery(this, range, limit, targetBytes, mode, snapshot, reverse);
+			return new FdbRangeQuery(this, range, options, snapshot);
 		}
 
-		public FdbRangeQuery GetRange(Slice beginInclusive, Slice endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
+		public FdbRangeQuery GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null)
 		{
-			EnsuresCanReadOrWrite();
+			EnsureCanReadOrWrite();
 
-			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;
-			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
-
-			return GetRangeCore(
-				FdbKeySelectorPair.Create(
-					FdbKeySelector.FirstGreaterOrEqual(beginInclusive),
-					FdbKeySelector.FirstGreaterOrEqual(endExclusive)
-				),
-				limit,
-				0,
-				FdbStreamingMode.WantAll,
-				snapshot,
-				reverse
-			);
+			return GetRangeCore(range, options, snapshot: false);
 		}
 
-		public FdbRangeQuery GetRangeInclusive(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, int limit = 0, bool snapshot = false, bool reverse = false)
-		{
-			EnsuresCanReadOrWrite();
-
-			return GetRangeCore(FdbKeySelectorPair.Create(beginInclusive, endInclusive + 1), limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
-		}
-
-		public FdbRangeQuery GetRangeStartsWith(Slice prefix, int limit = 0, bool snapshot = false, bool reverse = false)
+		public FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options = null)
 		{
 			if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
 
-			return GetRange(FdbKeySelectorPair.StartsWith(prefix), limit, snapshot, reverse);
-		}
+			EnsureCanReadOrWrite();
 
-		public FdbRangeQuery GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit = 0, bool snapshot = false, bool reverse = false)
-		{
-			EnsuresCanReadOrWrite();
-
-			return GetRangeCore(FdbKeySelectorPair.Create(beginInclusive, endExclusive), limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
-		}
-
-		public FdbRangeQuery GetRange(FdbKeySelectorPair range, int limit = 0, bool snapshot = false, bool reverse = false)
-		{
-			EnsuresCanReadOrWrite();
-
-			return GetRangeCore(range, limit, 0, FdbStreamingMode.WantAll, snapshot, reverse);
-		}
-
-		public FdbRangeQuery GetRange(FdbKeySelectorPair range, int limit, int targetBytes, FdbStreamingMode mode, bool snapshot, bool reverse)
-		{
-			EnsuresCanReadOrWrite();
-
-			return GetRangeCore(range, limit, targetBytes, mode, snapshot, reverse);
+			return GetRangeCore(FdbKeySelectorPair.StartsWith(prefix), options, snapshot: false);
 		}
 
 		#endregion
@@ -450,11 +419,11 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct = default(CancellationToken))
 		{
-			EnsuresCanReadOrWrite(ct);
+			EnsureCanReadOrWrite(ct);
 
-			return GetKeyCoreAsync(selector, snapshot, ct);
+			return GetKeyCoreAsync(selector, snapshot: false, ct: ct);
 		}
 
 		#endregion
@@ -476,27 +445,9 @@ namespace FoundationDB.Client
 
 		public void Set(Slice keyBytes, Slice valueBytes)
 		{
-			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
+			EnsureStilValid(allowFromNetworkThread: true);
 
 			SetCore(keyBytes, valueBytes);
-		}
-
-		public void Set(Slice keyBytes, Stream data)
-		{
-			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
-
-			Slice value = Slice.FromStream(data);
-
-			SetCore(keyBytes, value);
-		}
-
-		public async Task SetAsync(Slice keyBytes, Stream data)
-		{
-			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
-
-			Slice value = await Slice.FromStreamAsync(data).ConfigureAwait(false);
-
-			SetCore(keyBytes, value);
 		}
 
 		#endregion
@@ -517,7 +468,7 @@ namespace FoundationDB.Client
 
 		public void Clear(Slice key)
 		{
-			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
+			EnsureStilValid(allowFromNetworkThread: true);
 
 			ClearCore(key);
 		}
@@ -549,9 +500,40 @@ namespace FoundationDB.Client
 		/// <param name="endKeyExclusive"></param>
 		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
-			EnsuresCanReadOrWrite(allowFromNetworkThread: true);
+			EnsureStilValid(allowFromNetworkThread: true);
 
 			ClearRangeCore(beginKeyInclusive, endKeyExclusive);
+		}
+
+		#endregion
+
+		#region Batching...
+
+		internal async Task<Slice[]> GetBatchValuesCoreAsync(Slice[] keys, bool snapshot, CancellationToken ct)
+		{
+			Contract.Requires(keys != null);
+
+			//TODO: use a FdbAsyncTaskBuffer to throttle the number of concurrent reads !
+			//TODO: add a FdbParallelQueryOptions argument to control the max concurrency
+
+			var tasks = new List<Task<Slice>>(keys.Length);
+			for (int i = 0; i < keys.Length; i++)
+			{
+				tasks.Add(GetCoreAsync(keys[i], snapshot, ct));
+			}
+
+			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
+
+			return results;
+		}
+
+		public Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken))
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			EnsureCanRead(ct);
+
+			return GetBatchValuesCoreAsync(keys, snapshot: false, ct: ct);
 		}
 
 		#endregion
@@ -560,7 +542,7 @@ namespace FoundationDB.Client
 
 		public async Task CommitAsync(CancellationToken ct = default(CancellationToken))
 		{
-			EnsuresCanReadOrWrite(ct);
+			EnsureCanReadOrWrite(ct);
 
 			if (Logging.On) Logging.Verbose(this, "CommitAsync", "Committing transaction...");
 
@@ -592,7 +574,7 @@ namespace FoundationDB.Client
 		public Task OnErrorAsync(FdbError code, CancellationToken ct = default(CancellationToken))
 		{
 			//note: should this be allowed from network thread ?
-			EnsuresCanReadOrWrite(ct);
+			EnsureCanReadOrWrite(ct);
 
 			var future = FdbNative.TransactionOnError(m_handle, code);
 			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
@@ -605,7 +587,7 @@ namespace FoundationDB.Client
 		/// <summary>Reset the transaction to its initial state.</summary>
 		public void Reset()
 		{
-			EnsuresCanReadOrWrite();
+			EnsureCanReadOrWrite();
 
 			FdbNative.TransactionReset(m_handle);
 
@@ -652,11 +634,23 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read operation</summary>
+		public void EnsureCanRead(CancellationToken ct = default(CancellationToken))
+		{
+			EnsureStilValid(ct, allowFromNetworkThread: false);
+		}
+
+		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
+		public void EnsureCanReadOrWrite(CancellationToken ct = default(CancellationToken))
+		{
+			EnsureStilValid(ct, allowFromNetworkThread: false);
+		}
+
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
 		/// <param name="ct">Optionnal CancellationToken that should not be cancelled</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() as already been called on the transaction, or if the database has been closed</exception>
-		public void EnsuresCanReadOrWrite(CancellationToken ct = default(CancellationToken), bool allowFromNetworkThread = false)
+		internal void EnsureStilValid(CancellationToken ct = default(CancellationToken), bool allowFromNetworkThread = false)
 		{
 			// We must not be disposed
 			switch (this.State)
@@ -684,9 +678,11 @@ namespace FoundationDB.Client
 			}
 		}
 
+
+
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing)</summary>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
-		public void EnsuresStillValid()
+		public void EnsureNotFailedOrDisposed()
 		{
 			switch (this.State)
 			{
@@ -735,6 +731,111 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
+
+		#region Snapshot...
+
+		/// <summary>Returns a version of this transaction that perform snapshotted operations</summary>
+		public IFdbReadTransaction Snapshot
+		{
+			get
+			{
+				EnsureNotFailedOrDisposed();
+				return m_snapshotted ?? (m_snapshotted = new Snapshotted(this));
+			}
+		}
+
+		/// <summary>Wrapper on a transaction, that will use Snmapshot mode on all read operations</summary>
+		private sealed class Snapshotted : IFdbReadTransaction
+		{
+			private readonly FdbTransaction m_parent;
+
+			public Snapshotted(FdbTransaction parent)
+			{
+				if (parent == null) throw new ArgumentNullException("parent");
+				m_parent = parent;
+			}
+
+			public int Id
+			{
+				get { return m_parent.Id; }
+			}
+
+			public bool IsSnapshot
+			{
+				get { return true; }
+			}
+
+			public void EnsureCanRead(CancellationToken ct)
+			{
+				m_parent.EnsureCanRead(ct);
+			}
+
+			public Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken))
+			{
+				return m_parent.GetReadVersionAsync(ct);
+			}
+
+			public Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct)
+			{
+				m_parent.EnsureCanReadOrWrite(ct);
+
+				return m_parent.GetCoreAsync(keyBytes, snapshot: true, ct: ct);
+			}
+
+			public Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken))
+			{
+				if (keys == null) throw new ArgumentNullException("keys");
+
+				EnsureCanRead(ct);
+
+				return m_parent.GetBatchValuesCoreAsync(keys, snapshot: true, ct: ct);
+			}
+
+			public Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct)
+			{
+				EnsureCanRead(ct);
+
+				return m_parent.GetKeyCoreAsync(selector, snapshot: true, ct: ct);
+			}
+
+			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken))
+			{
+				EnsureCanRead(ct);
+
+				return m_parent.GetRangeCoreAsync(range, options, iteration, snapshot: true, ct: ct);
+			}
+
+			public FdbRangeQuery GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options)
+			{
+				EnsureCanRead(CancellationToken.None);
+
+				return m_parent.GetRangeCore(FdbKeySelectorPair.Create(beginInclusive, endExclusive), options, snapshot: true);
+			}
+
+			public FdbRangeQuery GetRange(FdbKeySelectorPair range, FdbRangeOptions options)
+			{
+				EnsureCanRead(CancellationToken.None);
+
+				return m_parent.GetRangeCore(range, options, snapshot: true);
+			}
+
+			public FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options)
+			{
+				if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
+
+				EnsureCanRead(CancellationToken.None);
+
+				return m_parent.GetRangeCore(FdbKeySelectorPair.StartsWith(prefix), options, snapshot: true);
+			}
+
+			public Task OnErrorAsync(FdbError code, CancellationToken ct)
+			{
+				return m_parent.OnErrorAsync(code, ct);
+			}
+		}
+
+		#endregion
+
 	}
 
 }

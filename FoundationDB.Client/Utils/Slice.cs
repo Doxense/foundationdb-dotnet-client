@@ -28,12 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.ComponentModel;
 	using System.IO;
 	using System.Runtime.InteropServices;
 	using System.Text;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Delimits a section of a byte array</summary>
@@ -1014,10 +1016,9 @@ namespace FoundationDB.Client
 		/// <summary>Asynchronously read the content of a stream into a slice</summary>
 		/// <param name="data">Source stream, that must be in a readable state</param>
 		/// <returns>Slice containing the stream content (or Slice.Nil if the stream is Stream.Nul)</returns>
-		public static Task<Slice> FromStreamAsync(Stream data)
+		public static Task<Slice> FromStreamAsync(Stream data, CancellationToken ct = default(CancellationToken))
 		{
 			if (data == null) throw new ArgumentNullException("data");
-
 			// special case for empty values
 			if (data == Stream.Null) return Task.FromResult(Slice.Nil);
 			if (data.Length == 0) return Task.FromResult(Slice.Empty);
@@ -1025,6 +1026,8 @@ namespace FoundationDB.Client
 			if (!data.CanRead) throw new ArgumentException("Cannot read from provided stream", "data");
 			if (data.Length > int.MaxValue) throw new InvalidOperationException("Streams of more than 2GB are not supported");
 			//TODO: other checks?
+
+			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<Slice>(ct);
 
 			int length;
 			checked { length = (int)data.Length; }
@@ -1035,7 +1038,7 @@ namespace FoundationDB.Client
 			}
 
 			// read asynchronoulsy
-			return LoadFromBlockingStreamAsync(data, length);
+			return LoadFromBlockingStreamAsync(data, length, 0, ct);
 		}
 
 		/// <summary>Read from a non-blocking stream that already contains all the data in memory (MemoryStream, UnmanagedStream, ...)</summary>
@@ -1107,7 +1110,7 @@ namespace FoundationDB.Client
 		/// <param name="length">Number of bytes to read from the stream</param>
 		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
 		/// <returns>Slice containing the loaded data</returns>
-		private static async Task<Slice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize = 0)
+		private static async Task<Slice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize, CancellationToken ct)
 		{
 			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
@@ -1121,7 +1124,7 @@ namespace FoundationDB.Client
 			while (r > 0)
 			{
 				int c = Math.Max(r, chunkSize);
-				int n = await source.ReadAsync(buffer, p, c);
+				int n = await source.ReadAsync(buffer, p, c, ct);
 				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
 				p += n;
 				r -= n;

@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Tables
 	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -43,6 +44,7 @@ namespace FoundationDB.Layers.Tables
 	/// <summary>Table that can store items and keep all past versions</summary>
 	/// <typeparam name="TId">Type of the unique identifier of an item</typeparam>
 	/// <typeparam name="TValue">Type of the value of an item</typeparam>
+	[DebuggerDisplay("Subspace={Subspace}")]
 	public class FdbVersionedTable<TId, TValue>
 	{
 		private const int METADATA_KEY = 0;
@@ -127,7 +129,7 @@ namespace FoundationDB.Layers.Tables
 
 		/// <summary>Returns the key of the last valid version for this entry that is not after the specified version</summary>
 		/// <remarks>Slice.Nil if not valid version was found, or the key of the matchin version</remarks>
-		protected virtual async Task<long?> GetLastVersionAsync(FdbTransaction trans, TId id, bool snapshot, CancellationToken ct)
+		protected virtual async Task<long?> GetLastVersionAsync(IFdbReadTransaction trans, TId id, CancellationToken ct)
 		{
 			Contract.Requires(trans != null);
 			Contract.Requires(id != null);
@@ -135,7 +137,7 @@ namespace FoundationDB.Layers.Tables
 			// Lookup in the Version subspace
 			var tuple = GetVersionKey(id);
 
-			var value = await trans.GetAsync(tuple, snapshot, ct).ConfigureAwait(false);
+			var value = await trans.GetAsync(tuple, ct).ConfigureAwait(false);
 
 			// if the item does not exist at all, returns null
 			if (value.IsNullOrEmpty) return default(long?);
@@ -148,7 +150,7 @@ namespace FoundationDB.Layers.Tables
 
 		/// <summary>Returns the active revision of an item that was valid at the specified version</summary>
 		/// <remarks>null if no valid version was found, or the version number of the revision if found</remarks>
-		protected virtual async Task<long?> FindVersionAsync(FdbTransaction trans, TId id, long version, bool snapshot, CancellationToken ct)
+		protected virtual async Task<long?> FindVersionAsync(IFdbReadTransaction trans, TId id, long version, CancellationToken ct)
 		{
 			Contract.Requires(trans != null);
 			Contract.Requires(id != null);
@@ -159,7 +161,7 @@ namespace FoundationDB.Layers.Tables
 			var searchKey = FdbKeySelector.LastLessOrEqual(GetItemKey(id, version));
 
 			// Finds the corresponding key...
-			var dbKey = await trans.GetKeyAsync(searchKey, snapshot, ct).ConfigureAwait(false);
+			var dbKey = await trans.GetKeyAsync(searchKey, ct).ConfigureAwait(false);
 
 			// If the key does not exist at all, or if the specified version is "too early", we will get back a key from a previous entry in the db
 			if (!dbKey.PrefixedBy(GetItemKeyPrefix(id).ToSlice()))
@@ -208,44 +210,44 @@ namespace FoundationDB.Layers.Tables
 			return this.VersionsPrefix.Concat(this.KeyReader.Pack(id));
 		}
 
-		protected virtual Task<Slice> GetValueAtVersionAsync(FdbTransaction trans, TId id, long version, bool snapshot, CancellationToken ct)
+		protected virtual Task<Slice> GetValueAtVersionAsync(IFdbReadTransaction trans, TId id, long version, CancellationToken ct)
 		{
 			var tuple = GetItemKey(id, version);
-			return trans.GetAsync(tuple, snapshot, ct);
+			return trans.GetAsync(tuple, ct);
 		}
 
 		#region GetLast() ...
 
-		private async Task<KeyValuePair<long?, TValue>> GetLastCoreAsync(FdbTransaction trans, TId id, bool snapshot, CancellationToken ct)
+		private async Task<KeyValuePair<long?, TValue>> GetLastCoreAsync(IFdbReadTransaction trans, TId id, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
 			// Get the last known version for this key
-			var last = await GetLastVersionAsync(trans, id, snapshot, ct).ConfigureAwait(false);
+			var last = await GetLastVersionAsync(trans, id, ct).ConfigureAwait(false);
 
 			var value = default(TValue);
 			if (last.HasValue)
 			{ // extract the specified value
-				var data = await GetValueAtVersionAsync(trans, id, last.Value, snapshot, ct).ConfigureAwait(false);
+				var data = await GetValueAtVersionAsync(trans, id, last.Value, ct).ConfigureAwait(false);
 				value = this.ValueSerializer.Deserialize(data, default(TValue));
 			}
 
 			return new KeyValuePair<long?, TValue>(last, value);
 		}
 
-		public Task<KeyValuePair<long?, TValue>> GetLastAsync(FdbTransaction trans, TId id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<KeyValuePair<long?, TValue>> GetLastAsync(IFdbReadTransaction trans, TId id, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (id == null) throw new ArgumentNullException("key");
+			if (id == null) throw new ArgumentNullException("id");
 
-			return GetLastCoreAsync(trans, id, snapshot, ct);
+			return GetLastCoreAsync(trans, id, ct);
 		}
 
 		#endregion
 
 		#region GetVersion()...
 
-		private async Task<KeyValuePair<long?, TValue>> GetVersionCoreAsync(FdbTransaction trans, TId id, long version, bool snapshot, CancellationToken ct)
+		private async Task<KeyValuePair<long?, TValue>> GetVersionCoreAsync(IFdbReadTransaction trans, TId id, long version, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -253,18 +255,18 @@ namespace FoundationDB.Layers.Tables
 
 			if (version == long.MaxValue)
 			{ // caller wants the latest
-				dbVersion = await GetLastVersionAsync(trans, id, snapshot, ct).ConfigureAwait(false);
+				dbVersion = await GetLastVersionAsync(trans, id, ct).ConfigureAwait(false);
 			}
 			else
 			{ // find the version alive at this time
-				dbVersion = await FindVersionAsync(trans, id, version, snapshot, ct).ConfigureAwait(false);
+				dbVersion = await FindVersionAsync(trans, id, version, ct).ConfigureAwait(false);
 			}
 
 			if (dbVersion.HasValue)
 			{ // we have found a valid record that contains this version, read the value
 				// note that it could be a deletion
 
-				var data = await GetValueAtVersionAsync(trans, id, dbVersion.Value, snapshot, ct).ConfigureAwait(false);
+				var data = await GetValueAtVersionAsync(trans, id, dbVersion.Value, ct).ConfigureAwait(false);
 				// note: returns Slice.Empty if the value is deleted at this version
 				if (!data.IsNullOrEmpty)
 				{
@@ -281,7 +283,7 @@ namespace FoundationDB.Layers.Tables
 		/// <param name="id">Key of the item to read</param>
 		/// <param name="version">Time at which the item must exist</param>
 		/// <returns>If there was a version at this time, returns a pair with the actual version number and the value. If not, return (null, Slice.Nil). If the value was deleted at this time, returns (version, Slice.Nil)</returns>
-		public Task<KeyValuePair<long?, TValue>> GetVersionAsync(FdbTransaction trans, TId id, long version, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<KeyValuePair<long?, TValue>> GetVersionAsync(IFdbReadTransaction trans, TId id, long version, CancellationToken ct = default(CancellationToken))
 		{
 			// item did not exist yet => (null, Slice.Nil)
 			// item exist at this time => (item.Version, item.Value)
@@ -290,18 +292,18 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			// note: if TKey is a struct, it cannot be null. So we allow 0, false, default(TStruct), ...
-			if (id == null) throw new ArgumentNullException("key");
+			if (id == null) throw new ArgumentNullException("id");
 
 			if (version < 0) throw new ArgumentOutOfRangeException("version", "Version cannot be less than zero");
 
-			return GetVersionCoreAsync(trans, id, version, snapshot, ct);
+			return GetVersionCoreAsync(trans, id, version, ct);
 		}
 
 		#endregion
 
-		#region SetLast() ...
+		#region Contains() ...
 
-		public async Task<bool> Contains(FdbTransaction trans, TId id, long? version = null, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<bool> Contains(IFdbReadTransaction trans, TId id, long? version = null, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -309,32 +311,36 @@ namespace FoundationDB.Layers.Tables
 
 			if (version.HasValue)
 			{
-				dbVersion = await FindVersionAsync(trans, id, version.Value, snapshot, ct).ConfigureAwait(false);
+				dbVersion = await FindVersionAsync(trans, id, version.Value, ct).ConfigureAwait(false);
 			}
 			else
 			{
-				dbVersion = await GetLastVersionAsync(trans, id, snapshot, ct).ConfigureAwait(false);
+				dbVersion = await GetLastVersionAsync(trans, id, ct).ConfigureAwait(false);
 			}
 
 			if (!dbVersion.HasValue) return false;
 
 			// We still need to check if the last version was a deletion
 
-			var data = await GetValueAtVersionAsync(trans, id, dbVersion.Value, snapshot, ct).ConfigureAwait(false);
+			var data = await GetValueAtVersionAsync(trans, id, dbVersion.Value, ct).ConfigureAwait(false);
 
 			return data.IsNullOrEmpty;
 		}
+
+		#endregion
+
+		#region Update or Create...
 
 		/// <summary>Attempts to update the last version of an item, if it exists</summary>
 		/// <param name="id">Key of the item to update</param>
 		/// <param name="value">New value for this item</param>
 		/// <returns>If there are no known versions for this item, return null. Otherwise, update the item and return the version number</returns>
-		public async Task<long?> TryUpdateLastAsync(FdbTransaction trans, TId id, TValue value, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<long?> TryUpdateLastAsync(IFdbTransaction trans, TId id, TValue value, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 
 			// Find the last version
-			var last = await GetLastVersionAsync(trans, id, snapshot, ct);
+			var last = await GetLastVersionAsync(trans, id, ct);
 
 			if (last.HasValue)
 			{
@@ -350,11 +356,11 @@ namespace FoundationDB.Layers.Tables
 		/// <param name="version">Version number (that must exist) of the item to change</param>
 		/// <param name="updater">Func that will be passed the previous value, and return the new value</param>
 		/// <returns>True if the previous version has been changed, false if it did not exist</returns>
-		public async Task<bool> TryUpdateVersionAsync(FdbTransaction trans, TId id, long version, Func<TValue, TValue> updater, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<bool> TryUpdateVersionAsync(IFdbTransaction trans, TId id, long version, Func<TValue, TValue> updater, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 
-			var data = await GetValueAtVersionAsync(trans, id, version, snapshot, ct).ConfigureAwait(false);
+			var data = await GetValueAtVersionAsync(trans, id, version, ct).ConfigureAwait(false);
 			if (!data.HasValue)
 			{ // this version does not exist !
 				return false;
@@ -380,12 +386,12 @@ namespace FoundationDB.Layers.Tables
 		/// <param name="version">New version number of the item</param>
 		/// <param name="value">New value of the item</param>
 		/// <returns>Return the previous version number for this item, or null if it was the first version</returns>
-		public async Task<long?> TryCreateNewVersionAsync(FdbTransaction trans, TId id, long version, TValue value, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<long?> TryCreateNewVersionAsync(IFdbTransaction trans, TId id, long version, TValue value, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 
 			// Ensure that the specified version number is indeed the last value
-			var last = await GetLastVersionAsync(trans, id, snapshot, ct).ConfigureAwait(false);
+			var last = await GetLastVersionAsync(trans, id, ct).ConfigureAwait(false);
 
 			if (last.HasValue && last.Value >= version)
 			{
@@ -413,7 +419,7 @@ namespace FoundationDB.Layers.Tables
 
 		#region List...
 
-		public async Task<List<KeyValuePair<TId, TValue>>> SelectLatestAsync(FdbTransaction trans, bool includeDeleted = false, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public async Task<List<KeyValuePair<TId, TValue>>> SelectLatestAsync(IFdbReadTransaction trans, bool includeDeleted = false, CancellationToken ct = default(CancellationToken))
 		{
 			//REVIEW: pagination ? filtering ???
 
@@ -422,7 +428,7 @@ namespace FoundationDB.Layers.Tables
 			// get all latest versions...
 
 			var versions = await trans
-				.GetRangeStartsWith(this.ItemsPrefix, 0, snapshot)
+				.GetRangeStartsWith(this.ItemsPrefix) //TODO: options ?
 				.Select(
 					(key) => this.KeyReader.Unpack(FdbTuple.UnpackWithoutPrefix(key, this.VersionsPrefix.Packed)),
 					(value) => value.ToInt64()
@@ -435,7 +441,6 @@ namespace FoundationDB.Layers.Tables
 			var indexedResults = await trans
 				.GetBatchIndexedAsync(
 					versions.Select(kvp => GetItemKey(kvp.Key, kvp.Value)),
-					snapshot,
 					ct
 				).ConfigureAwait(false);
 

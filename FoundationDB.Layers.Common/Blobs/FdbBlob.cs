@@ -34,13 +34,14 @@ namespace FoundationDB.Layers.Blobs
 	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Globalization;
 	using System.IO;
-	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
+	[DebuggerDisplay("Subspace={Subspace}")]
 	public class FdbBlob
 	{
 		private const long CHUNK_LARGE = 10000; // all chunks will be not greater than this size
@@ -113,7 +114,7 @@ namespace FoundationDB.Layers.Blobs
 			}
 		}
 
-		private async Task<Chunk> GetChunkAtAsync(FdbTransaction trans, long offset)
+		private async Task<Chunk> GetChunkAtAsync(IFdbTransaction trans, long offset)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
@@ -140,7 +141,7 @@ namespace FoundationDB.Layers.Blobs
 			return new Chunk(chunkKey, chunkData, chunkOffset);
 		}
 
-		private async Task MakeSplitPointAsync(FdbTransaction trans, long offset)
+		private async Task MakeSplitPointAsync(IFdbTransaction trans, long offset)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
@@ -154,14 +155,14 @@ namespace FoundationDB.Layers.Blobs
 			trans.Set(DataKey(offset), chunk.Data.Substring(splitPoint));
 		}
 
-		private async Task MakeSparseAsync(FdbTransaction trans, long start, long end)
+		private async Task MakeSparseAsync(IFdbTransaction trans, long start, long end)
 		{
 			await MakeSplitPointAsync(trans, start).ConfigureAwait(false);
 			await MakeSplitPointAsync(trans, end).ConfigureAwait(false);
 			trans.ClearRange(DataKey(start), DataKey(end));
 		}
 
-		private async Task<bool> TryRemoteSplitPoint(FdbTransaction trans, long offset)
+		private async Task<bool> TryRemoteSplitPoint(IFdbTransaction trans, long offset)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
@@ -179,7 +180,7 @@ namespace FoundationDB.Layers.Blobs
 			return true;
 		}
 
-		private void WriteToSparse(FdbTransaction trans, long offset, Slice data)
+		private void WriteToSparse(IFdbTransaction trans, long offset, Slice data)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
@@ -194,7 +195,7 @@ namespace FoundationDB.Layers.Blobs
 			}
 		}
 
-		private void SetSize(FdbTransaction trans, long size)
+		private void SetSize(IFdbTransaction trans, long size)
 		{
 			Contract.Requires(trans != null && size >= 0);
 
@@ -203,14 +204,14 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 
-		public void Delete(FdbTransaction trans)
+		public void Delete(IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			trans.ClearRange(this.Subspace);
 		}
 
-		public async Task<long?> GetSizeAsync(FdbTransaction trans)
+		public async Task<long?> GetSizeAsync(IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -229,7 +230,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="offset"></param>
 		/// <param name="n"></param>
 		/// <returns></returns>
-		public async Task<Slice> ReadAsync(FdbTransaction trans, long offset, int n)
+		public async Task<Slice> ReadAsync(IFdbTransaction trans, long offset, int n)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentNullException("offset", "Offset cannot be less than zero");
@@ -282,7 +283,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Write data to the blob, starting at offset and overwriting any existing data at that location. The length of the blob is increased if necessary.
 		/// </summary>
-		public async Task WriteAsync(FdbTransaction trans, long offset, Slice data)
+		public async Task WriteAsync(IFdbTransaction trans, long offset, Slice data)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
@@ -304,7 +305,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Append the contents of data onto the end of the blob.
 		/// </summary>
-		public async Task AppendAsync(FdbTransaction trans, Slice data)
+		public async Task AppendAsync(IFdbTransaction trans, Slice data)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -319,7 +320,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Change the blob length to new_length, erasing any data when shrinking, and filling new bytes with 0 when growing.
 		/// </summary>
-		public async Task Truncate(FdbTransaction trans, long newLength)
+		public async Task Truncate(IFdbTransaction trans, long newLength)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (newLength < 0) throw new ArgumentOutOfRangeException("newLength", "Length cannot be less than zero");
@@ -335,7 +336,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>Clear the blob's content (without loosing the attributes)</summary>
 		/// <param name="trans"></param>
 		/// <returns></returns>
-		public void Clear(FdbTransaction trans)
+		public void Clear(IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -346,7 +347,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Sets the value of an attribute of this blob
 		/// </summary>
-		public void SetAttribute(FdbTransaction trans, string name, Slice value)
+		public void SetAttribute(IFdbTransaction trans, string name, Slice value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
@@ -364,7 +365,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Returns the value of an attribute of this blob
 		/// </summary>
-		public Task<Slice> GetAttributeAsync(FdbTransaction trans, string name)
+		public Task<Slice> GetAttributeAsync(IFdbTransaction trans, string name)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
@@ -375,7 +376,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Returns the list of all known attributes for this blob
 		/// </summary>
-		public Task<List<KeyValuePair<string, Slice>>> GetAllAttributesAsync(FdbTransaction trans)
+		public Task<List<KeyValuePair<string, Slice>>> GetAllAttributesAsync(IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -393,7 +394,7 @@ namespace FoundationDB.Layers.Blobs
 		/// </summary>
 		/// <returns></returns>
 		/// <remarks>Warning, do not call this if you know that the blob can be very large, because it will need to feed in memory, and don't exceed 2GB</remarks>
-		public async Task<Slice> ReadToEndAsync(FdbTransaction trans)
+		public async Task<Slice> ReadToEndAsync(IFdbTransaction trans)
 		{
 			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
 
@@ -404,7 +405,7 @@ namespace FoundationDB.Layers.Blobs
 			return await ReadAsync(trans, 0, (int)length.Value);
 		}
 
-		public async Task<Stream> DownloadAsync(FdbTransaction trans, CancellationToken ct = default(CancellationToken))
+		public async Task<Stream> DownloadAsync(IFdbTransaction trans, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -432,7 +433,7 @@ namespace FoundationDB.Layers.Blobs
 			return ms;
 		}
 
-		public async Task Upload(FdbTransaction trans, Slice data)
+		public async Task Upload(IFdbTransaction trans, Slice data)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (!data.HasValue) throw new ArgumentNullException("data");
@@ -441,7 +442,7 @@ namespace FoundationDB.Layers.Blobs
 			await AppendAsync(trans, data).ConfigureAwait(false);
 		}
 
-		public async Task UploadAsync(FdbTransaction trans, Stream stream, CancellationToken ct = default(CancellationToken))
+		public async Task UploadAsync(IFdbTransaction trans, Stream stream, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (stream == null) throw new ArgumentNullException("stream");
@@ -460,7 +461,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Append the content of a stream at the end of the blob
 		/// </summary>
-		public async Task AppendStreamAsync(FdbTransaction trans, Stream stream, CancellationToken ct = default(CancellationToken))
+		public async Task AppendStreamAsync(IFdbTransaction trans, Stream stream, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (stream == null) throw new ArgumentNullException("stream");
