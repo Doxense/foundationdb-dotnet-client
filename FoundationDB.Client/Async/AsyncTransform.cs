@@ -96,7 +96,7 @@ namespace FoundationDB.Async
 			}
 			catch(Exception e)
 			{
-				m_target.OnError(e);
+				m_target.OnError(ExceptionDispatchInfo.Capture(e));
 				return TaskHelpers.FromException<object>(e);
 			}
 		}

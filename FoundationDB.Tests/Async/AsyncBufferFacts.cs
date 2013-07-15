@@ -33,6 +33,7 @@ namespace FoundationDB.Async.Tests
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -126,7 +127,7 @@ namespace FoundationDB.Async.Tests
 
 				var list = new List<int>();
 				bool didComplete = false;
-				Exception error = null;
+				ExceptionDispatchInfo error = null;
 				var target = AsyncHelpers.CreateTarget<int>(
 					(x, ct) =>
 					{
@@ -140,7 +141,7 @@ namespace FoundationDB.Async.Tests
 					},
 					(e) =>
 					{
-						error = e.SourceException;
+						error = e;
 						Console.WriteLine("[target#" + Thread.CurrentThread.ManagedThreadId + "] error " + e.SourceException.ToString());
 					}
 				);
@@ -174,7 +175,7 @@ namespace FoundationDB.Async.Tests
 
 				Console.WriteLine("Result: " + String.Join(", ", list));
 				Assert.That(didComplete, Is.True);
-				Assert.That(error, Is.Null);
+				if (error != null) error.Throw();
 				//note: order doesn't matter, but all should be there
 				Assert.That(list, Is.EquivalentTo(Enumerable.Range(0, N).ToArray()));
 			}
@@ -229,8 +230,52 @@ namespace FoundationDB.Async.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_FdbAsyncPump_Stops_On_First_Error()
+		{
+
+			const int MAX_CAPACITY = 5;
+
+			// since this can lock up, we need a global timeout !
+			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
+			{
+				var token = go.Token;
+
+				var rnd1 = new Random(1234);
+
+				var queue = AsyncHelpers.CreateOrderPreservingAsyncBuffer<int>(MAX_CAPACITY);
+
+				var pumpTask = AsyncHelpers.PumpToListAsync(queue);
+
+				var rnd2 = new Random(5678);
+
+#pragma warning disable 162
+				await queue.OnNextAsync(Task.FromResult(0), token);
+				await queue.OnNextAsync(Task.FromResult(1), token);
+				await queue.OnNextAsync(Task.Run<int>(() => { throw new InvalidOperationException("Oops"); return 123; }));
+				await queue.OnNextAsync(Task.FromResult(3), token);
+				await queue.OnNextAsync(Task.Run<int>(() => { throw new InvalidOperationException("Epic Fail"); return 456; }));
+				queue.OnCompleted();
+#pragma warning restore 162
+
+				try
+				{
+					await pumpTask;
+					Assert.Fail("Pump should throw the last exception encountered");
+				}
+				catch (AssertionException) { throw; }
+				catch(Exception e)
+				{
+					Assert.That(e, Is.InstanceOf<InvalidOperationException>().With.Message.EqualTo("Oops"));
+				}
+			}
+
+		}
+
+
 
 	}
+
 
 
 }

@@ -45,20 +45,13 @@ namespace FoundationDB.Async
 		public readonly T Value;
 
 		/// <summary>If HasValue is false optinally holds an error that was captured</summary>
-		public readonly ExceptionDispatchInfo Error;
+		private readonly object m_errorContainer;
 
-		public Maybe(T value)
+		internal Maybe(bool hasValue, T value, object errorContainer)
 		{
-			this.HasValue = true;
+			this.HasValue = hasValue;
 			this.Value = value;
-			this.Error = null;
-		}
-
-		public Maybe(ExceptionDispatchInfo error)
-		{
-			this.HasValue = false;
-			this.Value = default(T);
-			this.Error = error;
+			m_errorContainer = errorContainer;
 		}
 
 		public static Maybe<T> Empty { get { return default(Maybe<T>); } }
@@ -72,18 +65,59 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>If true, then there is no value and no error</summary>
-		public bool IsEmpty { get { return !this.HasValue && this.Error == null; } }
+		public bool IsEmpty { get { return !this.HasValue && m_errorContainer == null; } }
 
 		/// <summary>If true then there was an error captured</summary>
-		public bool HasFailed { get { return this.Error != null; } }
+		public bool HasFailed { get { return m_errorContainer != null; } }
+
+		public Exception Error
+		{
+			get
+			{
+				var exception = m_errorContainer as Exception;
+				if (exception != null) return exception;
+
+				var edi = m_errorContainer as ExceptionDispatchInfo;
+				if (edi != null) return edi.SourceException;
+
+				return null;
+			}
+		}
+
+		public ExceptionDispatchInfo CapturedError
+		{
+			get
+			{
+				var exception = m_errorContainer as Exception;
+				if (exception != null) return ExceptionDispatchInfo.Capture(exception);
+
+				var edi = m_errorContainer as ExceptionDispatchInfo;
+				if (edi != null) return edi;
+
+				return null;
+			}
+		}
 
 		/// <summary>Rethrows any captured error, if there was one.</summary>
 		public void ThrowIfFailed()
 		{
-			if (this.Error != null)
+			if (m_errorContainer != null)
 			{
-				this.Error.Throw();
+				var exception = m_errorContainer as Exception;
+				if (exception != null)
+				{
+					throw exception;
+				}
+				else
+				{
+					((ExceptionDispatchInfo)m_errorContainer).Throw();
+				}
 			}
+		}
+
+		internal object ErrorContainer
+		{
+			get { return m_errorContainer; }
 		}
 	}
 
@@ -91,7 +125,7 @@ namespace FoundationDB.Async
 	{
 		public static Maybe<T> Return<T>(T value)
 		{
-			return new Maybe<T>(value);
+			return new Maybe<T>(true, value, null);
 		}
 
 		public static Maybe<T> Nothing<T>()
@@ -101,19 +135,19 @@ namespace FoundationDB.Async
 
 		public static Maybe<T> Error<T>(Exception e)
 		{
-			return new Maybe<T>(ExceptionDispatchInfo.Capture(e));
+			return new Maybe<T>(false, default(T), e);
 		}
 
 		public static Maybe<T> Error<T>(ExceptionDispatchInfo e)
 		{
-			return new Maybe<T>(e);
+			return new Maybe<T>(false, default(T), e);
 		}
 
 		public static Maybe<R> Apply<T, R>(T value, Func<T, R> lambda)
 		{
 			try
 			{
-				return new Maybe<R>(lambda(value));
+				return Return<R>(lambda(value));
 			}
 			catch (Exception e)
 			{
@@ -142,7 +176,7 @@ namespace FoundationDB.Async
 			}
 			try
 			{
-				return new Maybe<R>(lambda(value.Value));
+				return Return<R>(lambda(value.Value));
 			}
 			catch (Exception e)
 			{
@@ -174,11 +208,17 @@ namespace FoundationDB.Async
 			{
 				case TaskStatus.RanToCompletion:
 				{
-					return new Maybe<T>(task.Result);
+					return Return<T>(task.Result);
 				}
 				case TaskStatus.Faulted:
 				{
-					return Maybe.Error<T>(task.Exception);
+					// note: we want to have a nice stack, so we unwrap the aggregate exception
+					var aggEx = task.Exception.Flatten();
+					if (aggEx.InnerExceptions.Count == 1)
+					{
+						return Maybe.Error<T>(aggEx.InnerException);
+					}
+					return Maybe.Error<T>(aggEx);
 				}
 				case TaskStatus.Canceled:
 				{

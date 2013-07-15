@@ -38,6 +38,10 @@ namespace FoundationDB.Async
 
 	public static class AsyncHelpers
 	{
+		internal static readonly Action NoOpCompletion = () => { };
+		internal static readonly Action<ExceptionDispatchInfo> NoOpError = (e) => { };
+		internal static readonly Action<ExceptionDispatchInfo> RethrowError = (e) => { e.Throw(); };
+
 		#region Targets...
 
 		public static IAsyncTarget<T> CreateTarget<T>(
@@ -51,16 +55,11 @@ namespace FoundationDB.Async
 
 		public static IAsyncTarget<T> CreateTarget<T>(
 				Action<T, CancellationToken> onNext,
-				Action onCompleted,
-				Action<ExceptionDispatchInfo> onError
+				Action onCompleted = null,
+				Action<ExceptionDispatchInfo> onError = null
 		)
 		{
 			return new AnonymousTarget<T>(onNext, onCompleted, onError);
-		}
-
-		public static void OnError<T>(this IAsyncTarget<T> target, Exception error)
-		{
-			target.OnError(ExceptionDispatchInfo.Capture(error));
 		}
 
 		public static Task Publish<T>(this IAsyncTarget<T> target, Maybe<T> result, CancellationToken ct)
@@ -75,7 +74,7 @@ namespace FoundationDB.Async
 			}
 			else if (result.HasFailed)
 			{
-				target.OnError(result.Error);
+				target.OnError(result.CapturedError);
 				return TaskHelpers.CompletedTask;
 			}
 			else
@@ -136,6 +135,8 @@ namespace FoundationDB.Async
 				Action<ExceptionDispatchInfo> onError
 			)
 			{
+				if (onNext == null) throw new ArgumentNullException("onNext");
+
 				m_onNext = onNext;
 				m_onCompleted = onCompleted;
 				m_onError = onError;
@@ -148,12 +149,18 @@ namespace FoundationDB.Async
 
 			public void OnCompleted()
 			{
-				m_onCompleted();
+				if (m_onCompleted != null)
+				{
+					m_onCompleted();
+				}
 			}
 
 			public void OnError(ExceptionDispatchInfo error)
 			{
-				m_onError(error);
+				if (m_onError != null)
+					m_onError(error);
+				else
+					error.Throw();
 			}
 		}
 
@@ -163,24 +170,28 @@ namespace FoundationDB.Async
 
 		public static async Task PumpToAsync<T>(this IAsyncSource<T> source, IAsyncTarget<T> target, CancellationToken ct = default(CancellationToken))
 		{
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
 			using (var pump = new AsyncPump<T>(source, target))
 			{
-				await pump.PumpAsync(ct);
+				await pump.PumpAsync(stopOnFirstError: true, cancellationToken: ct);
 			}
 		}
 
 		/// <summary>Pump the content of a source into a list</summary>
-		public static async Task<List<T>> PumpToListAsync<T>(this IAsyncSource<T> source, List<T> list = null, CancellationToken ct = default(CancellationToken))
+		public static async Task<List<T>> PumpToListAsync<T>(this IAsyncSource<T> source, CancellationToken ct = default(CancellationToken))
 		{
-			if (list == null) list = new List<T>();
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
+			var buffer = new FoundationDB.Linq.FdbAsyncEnumerable.Buffer<T>();
 
 			var target = CreateTarget<T>(
-				(x, _) => list.Add(x),
-				() => { },
-				(e) => { }
+				(x, _) => buffer.Add(x)
 			);
+
 			await PumpToAsync<T>(source, target, ct);
-			return list;
+
+			return buffer.ToList();
 		}
 
 
@@ -209,24 +220,21 @@ namespace FoundationDB.Async
 
 		public static async Task<List<R>> TransformToListAsync<T, R>(IAsyncSource<T> source, Func<T, CancellationToken, Task<R>> transform, CancellationToken ct = default(CancellationToken), int? maxConcurrency = null, TaskScheduler scheduler = null)
 		{
-			var result = new List<R>();
-
 			using (var queue = CreateOrderPreservingAsyncBuffer<R>(maxConcurrency ?? 32))
 			{
 				using (var pipe = CreateAsyncTransform<T, R>(transform, queue, scheduler))
 				{
 					// start the output pump
-					var output = PumpToListAsync(queue, result, ct);
+					var output = PumpToListAsync(queue, ct);
 
 					// start the intput pump
 					var input = PumpToAsync(source, pipe, ct);
 
 					await Task.WhenAll(input, output);
 
+					return output.Result;
 				}
 			}
-
-			return result;
 		}
 
 		#endregion

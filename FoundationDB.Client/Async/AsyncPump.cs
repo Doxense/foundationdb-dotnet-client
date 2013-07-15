@@ -33,6 +33,7 @@ namespace FoundationDB.Async
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
+	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -49,6 +50,8 @@ namespace FoundationDB.Async
 		private volatile int m_state;
 		private readonly IAsyncSource<T> m_source;
 		private readonly IAsyncTarget<T> m_target;
+
+		private ExceptionDispatchInfo m_error;
 
 		public AsyncPump(
 			IAsyncSource<T> source,
@@ -78,82 +81,103 @@ namespace FoundationDB.Async
 		public IAsyncTarget<T> Target { get { return m_target; } }
 
 		/// <summary>Run the pump until the inner iterator is done, an error occurs, or the cancellation token is fired</summary>
-		public async Task PumpAsync(CancellationToken ct)
+		public async Task PumpAsync(bool stopOnFirstError, CancellationToken cancellationToken)
 		{
 			if (m_state != STATE_IDLE)
 			{
+				// either way, we need to stop !
+				Exception error;
+
 				if (m_state == STATE_DISPOSED)
 				{
-					throw new ObjectDisposedException(null, "Pump has already been disposed");
+					error = new ObjectDisposedException(null, "Pump has already been disposed");
 				}
 				else if (m_state >= STATE_FAILED)
 				{
-					throw new InvalidOperationException("Pump has already completed once");
+					error = new InvalidOperationException("Pump has already completed once");
 				}
 				else
 				{
-					throw new InvalidOperationException("Pump is already running");
+					error = new InvalidOperationException("Pump is already running");
 				}
+
+				try
+				{
+					m_target.OnError(ExceptionDispatchInfo.Capture(error));
+				}
+				catch
+				{
+					m_target.OnCompleted();
+				}
+
+				throw error;
 			}
 
 			try
 			{
 				LogPump("Starting pump");
 
-				while (!ct.IsCancellationRequested && m_state != STATE_DISPOSED)
+				while (!cancellationToken.IsCancellationRequested && m_state != STATE_DISPOSED)
 				{
-					LogPump("waiting for next");
+					LogPump("Waiting for next");
 					m_state = STATE_WAITING_FOR_NEXT;
-					var current = await m_source.ReceiveAsync(ct).ConfigureAwait(false);
+					var current = await m_source.ReceiveAsync(cancellationToken).ConfigureAwait(false);
 
-					LogPump("got item, publishing...");
+					LogPump("Received " + (current.HasValue ? "value" : current.HasFailed ? "error" : "completion") + ", publishing...");
 					m_state = STATE_PUBLISHING_TO_TARGET;
 
-					await m_target.Publish(current, ct).ConfigureAwait(false);
+					await m_target.Publish(current, cancellationToken).ConfigureAwait(false);
 
-					if (current.IsEmpty)
+					if (current.HasFailed && stopOnFirstError)
+					{
+						m_state = STATE_FAILED;
+						LogPump("Stopping after this error");
+						current.ThrowIfFailed();
+					}
+					else if (current.IsEmpty)
 					{
 						m_state = STATE_DONE;
-						LogPump("completed");
+						LogPump("Completed");
 						return;
 					}
 				}
 
-				// push the cancellation on the queue
-				throw new OperationCanceledException(ct);
-				// and throw!
+				// push the cancellation on the queue, and throw
+				throw new OperationCanceledException(cancellationToken);
 			}
 			catch (Exception e)
 			{
-				LogPump("failed " + e.Message);
-				if (m_state == STATE_FAILED || e is OperationCanceledException)
-				{ // already signaled the target, just throw
-					throw;
-				}
+				LogPump("Failed " + e.Message);
 
-				// push the error on the queue, and eat the error
-				OnError(e);
+				switch (m_state)
+				{
+					case STATE_WAITING_FOR_NEXT:
+					{ // push the info to the called
+						try
+						{
+							m_target.OnError(ExceptionDispatchInfo.Capture(e));
+						}
+						catch(Exception x)
+						{
+							LogPump("Failed to notify target of error: " + x.Message);
+							throw;
+						}
+						break;
+					}
+					case STATE_PUBLISHING_TO_TARGET: // the error comes from the target itself, push back to caller!
+					case STATE_FAILED: // we want to notify the caller of some problem
+					{
+						throw;
+					}
+				}
 			}
 			finally
 			{
-				if (m_state != STATE_DONE && m_state != STATE_DISPOSED)
+				if (m_state != STATE_DISPOSED)
 				{
 					m_target.OnCompleted();
 				}
 				LogPump("Stopped pump");
-			}
-		}
-
-		private void OnError(Exception e)
-		{
-			try
-			{
-				m_state = STATE_FAILED;
-				m_target.OnError(e);
-			}
-			catch
-			{
-				//TODO ?
 			}
 		}
 

@@ -34,6 +34,7 @@ namespace FoundationDB.Linq
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
+	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -112,7 +113,7 @@ namespace FoundationDB.Linq
 				}
 
 				// push the cancellation on the queue
-				OnError(new OperationCanceledException(ct));
+				OnError(ExceptionDispatchInfo.Capture(new OperationCanceledException(ct)));
 				// and throw!
 			}
 			catch (Exception e)
@@ -124,7 +125,7 @@ namespace FoundationDB.Linq
 				}
 
 				// push the error on the queue, and eat the error
-				OnError(e);
+				OnError(ExceptionDispatchInfo.Capture(e));
 			}
 			finally
 			{
@@ -132,7 +133,7 @@ namespace FoundationDB.Linq
 			}
 		}
 
-		private void OnError(Exception e)
+		private void OnError(ExceptionDispatchInfo e)
 		{
 			try
 			{

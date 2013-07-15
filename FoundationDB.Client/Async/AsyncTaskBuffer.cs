@@ -215,7 +215,7 @@ namespace FoundationDB.Async
 						{ // it's ready
 
 							m_queue.RemoveFirst();
-							LogConsumer("First task #" + current.Value.Id + "was already " + current.Value.Status);
+							LogConsumer("First task #" + current.Value.Id + " was already " + current.Value.Status);
 							return CompleteTask(current.Value);
 						}
 

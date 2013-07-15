@@ -43,7 +43,7 @@ namespace FoundationDB.Async
 
 		bool IsCompleted { get; }
 
-		Task PumpAsync(CancellationToken ct);
+		Task PumpAsync(bool stopOnFirstError, CancellationToken cancellationToken);
 	}
 
 }
