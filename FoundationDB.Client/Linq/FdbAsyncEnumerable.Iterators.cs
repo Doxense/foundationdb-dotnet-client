@@ -132,6 +132,11 @@ namespace FoundationDB.Linq
 			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: limit);
 		}
 
+		internal static FdbTakeWhileAsyncIterator<TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> condition)
+		{
+			return new FdbTakeWhileAsyncIterator<TResult>(source, condition);
+		}
+
 		#endregion
 
 		#region Run...

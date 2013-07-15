@@ -373,6 +373,24 @@ namespace FoundationDB.Linq
 
 		#endregion
 
+		#region TakeWhile...
+
+		public static IFdbAsyncEnumerable<TSource> TakeWhile<TSource>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, bool> condition)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (condition == null) throw new ArgumentNullException("condition");
+
+			var iterator = source as FdbAsyncIterator<TSource>;
+			if (iterator != null)
+			{
+				return iterator.TakeWhile(condition);
+			}
+
+			return FdbAsyncEnumerable.Limit<TSource>(source, condition);
+		}
+
+		#endregion
+
 		#region SelectAsync
 
 		public static IFdbAsyncEnumerable<TResult> SelectAsync<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, FdbParallelQueryOptions options = null)
@@ -460,6 +478,68 @@ namespace FoundationDB.Linq
 			var list = new List<T>(estimatedSize);
 			await ForEachAsync<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
 			return list.ToArray();
+		}
+
+		public static async Task<TSource> AggregateAsync<TSource>(IFdbAsyncEnumerable<TSource> source, Func<TSource, TSource, TSource> aggregator, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (aggregator == null) throw new ArgumentNullException("aggregator");
+
+			using (var iterator = source.GetEnumerator())
+			{
+				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
+
+				if (!(await iterator.MoveNext(cancellationToken).ConfigureAwait(false)))
+				{
+					throw new InvalidOperationException("The sequence was empty");
+				}
+
+				var item = iterator.Current;
+				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				{
+					item = aggregator(item, iterator.Current);
+				}
+
+				return item;
+			}
+		}
+
+		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>(IFdbAsyncEnumerable<TSource> source, TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> aggregator, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (aggregator == null) throw new ArgumentNullException("aggregator");
+
+			using (var iterator = source.GetEnumerator())
+			{
+				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
+
+				var accumulate = seed;
+				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				{
+					accumulate = aggregator(accumulate, iterator.Current);
+				}
+				return accumulate;
+			}
+		}
+
+		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>(IFdbAsyncEnumerable<TSource> source, TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> aggregator, Func<TAccumulate, TResult> resultSelector, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (aggregator == null) throw new ArgumentNullException("aggregator");
+			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
+
+			var accumulate = seed;
+			using (var iterator = source.GetEnumerator())
+			{
+				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
+
+				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				{
+					accumulate = aggregator(accumulate, iterator.Current);
+				}
+			}
+
+			return resultSelector(accumulate);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>

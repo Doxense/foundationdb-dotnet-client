@@ -188,6 +188,11 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Limit<TResult>(this, limit);
 		}
 
+		public virtual FdbAsyncIterator<TResult> TakeWhile(Func<TResult, bool> condition)
+		{
+			return FdbAsyncEnumerable.Limit<TResult>(this, condition);
+		}
+
 		public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
 		{
 			return FdbAsyncEnumerable.Run<TResult>(this, action, ct);

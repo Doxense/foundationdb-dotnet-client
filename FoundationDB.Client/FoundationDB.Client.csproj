@@ -100,6 +100,7 @@
     <Compile Include="FdbCluster.cs" />
     <Compile Include="FdbFuture.cs" />
     <Compile Include="Fdb.cs" />
+    <Compile Include="Linq\FdbTakeWhileAsyncIterator.cs" />
     <Compile Include="Linq\FdbParallelQueryOptions.cs" />
     <Compile Include="Linq\FdbAsyncIteratorPump.cs" />
     <Compile Include="Async\AsyncCancellableMutex.cs" />
