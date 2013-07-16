@@ -40,11 +40,11 @@ namespace FoundationDB.Layers.Indexing
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
-	[DebuggerDisplay("Subspace={Subspace}")]
-	public class FdbSimpleIndex<TId, TValue>
+	[DebuggerDisplay("Subspace={Subspace}, IndexNullValues={IndexNullValues})")]
+	public class FdbIndex<TId, TValue>
 	{
 
-		public FdbSimpleIndex(FdbSubspace subspace, EqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbIndex(FdbSubspace subspace, EqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
@@ -58,13 +58,14 @@ namespace FoundationDB.Layers.Indexing
 		public EqualityComparer<TValue> ValueComparer { get; private set; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
+		/// <remarks>This has no effect if <typeparam name="TValue" /> is not a reference type</remarks>
 		public bool IndexNullValues { get; private set; }
 
 		/// <summary>Insert a newly created entity to the index</summary>
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
 		/// <param name="value">Value of this entity in the index</param>
-		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and IndexNullValue is false)</returns>
+		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and <see cref="IndexNullValue"/> is false)</returns>
 		public bool Add(IFdbTransaction trans, TId id, TValue value)
 		{
 			if (this.IndexNullValues || value != null)
@@ -133,7 +134,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <summary>Returns a query that will return all id of the entities that have the specified value in this index</summary>
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="value">Value to lookup</param>
-		/// <param name="reverse"></param>
+		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
 		public IFdbAsyncEnumerable<TId> Lookup(IFdbReadTransaction trans, TValue value, bool reverse = false)
 		{

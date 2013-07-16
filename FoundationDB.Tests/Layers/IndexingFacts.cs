@@ -42,6 +42,88 @@ namespace FoundationDB.Layers.Tables.Tests
 	{
 
 		[Test]
+		public async Task Task_Can_Add_Update_Remove_From_Index()
+		{
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("Indexing");
+
+				// clear previous values
+				await TestHelpers.DeleteSubspace(db, location);
+
+
+				var subspace = location.Partition("FoosByColor");
+				var index = new FdbIndex<int, string>(subspace);
+
+				// add items to the index
+				await db.Attempt.Change((tr) =>
+				{
+					index.Add(tr, 1, "red");
+					index.Add(tr, 2, "green");
+					index.Add(tr, 3, "blue");
+					index.Add(tr, 4, "green");
+					index.Add(tr, 5, "yellow");
+				});
+
+#if DEBUG
+				await TestHelpers.DumpSubspace(db, subspace);
+#endif
+
+				// lookup values
+
+				using (var tr = db.BeginTransaction())
+				{
+					var reds = await index.LookupAsync(tr, "red");
+					Assert.That(reds, Is.EqualTo(new int[] { 1 }));
+
+					var greens = await index.LookupAsync(tr, "green");
+					Assert.That(greens, Is.EqualTo(new int[] { 2, 4 }));
+
+					var blues = await index.LookupAsync(tr, "blue");
+					Assert.That(blues, Is.EqualTo(new int[] { 3 }));
+
+					var yellows = await index.LookupAsync(tr, "yellow");
+					Assert.That(yellows, Is.EqualTo(new int[] { 5 }));
+				}
+
+				// update
+
+				await db.Attempt.Change((tr) =>
+				{
+					index.Update(tr, 3, "indigo", "blue");
+					index.Remove(tr, 5, "yellow");
+				});
+
+#if DEBUG
+				await TestHelpers.DumpSubspace(db, subspace);
+#endif
+
+				// check values
+
+				using (var tr = db.BeginTransaction())
+				{
+					var reds = await index.LookupAsync(tr, "red");
+					Assert.That(reds, Is.EqualTo(new int[] { 1 }));
+
+					var greens = await index.LookupAsync(tr, "green");
+					Assert.That(greens, Is.EqualTo(new int[] { 2, 4 }));
+
+					var blues = await index.LookupAsync(tr, "blue");
+					Assert.That(blues.Count, Is.EqualTo(0));
+
+					var yellows = await index.LookupAsync(tr, "yellow");
+					Assert.That(yellows.Count, Is.EqualTo(0));
+
+					var indigos = await index.LookupAsync(tr, "indigo");
+					Assert.That(indigos, Is.EqualTo(new int[] { 3 }));
+				}
+
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Can_Combine_Indexes()
 		{
 
@@ -50,7 +132,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 				var location = db.Partition("Indexing");
 
-								// clear previous values
+				// clear previous values
 				await TestHelpers.DeleteSubspace(db, location);
 
 				// summon our main cast
@@ -64,9 +146,9 @@ namespace FoundationDB.Layers.Tables.Tests
 					new Character { Id = 6, Name = "Catwoman", Brand="DC", IsVilain = default(bool?) },
 				};
 
-				var indexBrand = new FdbSimpleIndex<long, string>(location.Partition("CharactersByBrand"));
-				var indexSuperHero = new FdbSimpleIndex<long, bool>(location.Partition("SuperHeros"));
-				var indexAlignment = new FdbSimpleIndex<long, bool?>(location.Partition("FriendsOrFoe"));
+				var indexBrand = new FdbIndex<long, string>(location.Partition("CharactersByBrand"));
+				var indexSuperHero = new FdbIndex<long, bool>(location.Partition("SuperHeros"));
+				var indexAlignment = new FdbIndex<long, bool?>(location.Partition("FriendsOrFoe"));
 
 				// index everything
 				using(var tr = db.BeginTransaction())

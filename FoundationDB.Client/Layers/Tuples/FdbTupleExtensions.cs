@@ -41,6 +41,18 @@ namespace FoundationDB.Layers.Tuples
 	{
 		#region IFdbTuple extensions...
 
+		/// <summary>Returns true if the tuple is either null or empty</summary>
+		public static bool IsNullOrEmpty(this IFdbTuple tuple)
+		{
+			return tuple == null || tuple.Count == 0;
+		}
+
+		/// <summary>Returns true if the tuple is not null, and contains only one item</summary>
+		public static bool IsSingleton(this IFdbTuple tuple)
+		{
+			return tuple != null && tuple.Count == 1;
+		}
+
 		/// <summary>Returns an array containing all the objects of a tuple</summary>
 		public static object[] ToArray(this IFdbTuple tuple)
 		{
