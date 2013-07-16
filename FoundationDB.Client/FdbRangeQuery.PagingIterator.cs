@@ -156,7 +156,7 @@ namespace FoundationDB.Client
 				var tr = this.Transaction;
 				if (this.Query.Snapshot)
 				{ // make sure we have the snapshot version !
-					if (tr is FdbTransaction) tr = (tr as FdbTransaction).Snapshot;
+					tr = tr.ToSnapshotTransaction();
 				}
 
 				var task = tr

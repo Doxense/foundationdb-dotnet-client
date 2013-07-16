@@ -277,10 +277,12 @@ namespace FoundationDB.Client
 			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
 		}
 
-		/// <summary>Returns the value of a particular key</summary>
-		/// <param name="keyBytes">Key to retrieve</param>
-		/// <param name="ct">CancellationToken used to cancel this operation</param>
-		/// <returns>Task that will return null if the value of the key if it is found, null if the key does not exist, or an exception</returns>
+		/// <summary>
+		/// Reads a value from the database snapshot represented by transaction.
+		/// </summary>
+		/// <param name="keyBytes">Key to be looked up in the database</param>
+		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
+		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
@@ -335,6 +337,16 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by limit, target_bytes, or mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		/// <param name="range">Pair of key selectors defining the beginning and the end of the range</param>
+		/// <param name="options">Optionnal query options (Limit, TargetBytes, StreamingMode, Reverse, ...)</param>
+		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
+		/// <returns></returns>
 		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken))
 		{
 			EnsureCanRead(ct);
@@ -419,6 +431,10 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Resolves a key selector against the keys in the database snapshot represented by transaction.</summary>
+		/// <param name="selector">Key selector to resolve</param>
+		/// <param name="ct">CancellationToken used to cancel this operation</param>
+		/// <returns>Task that will return the key matching the selector, or an exception</returns>
 		public Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct = default(CancellationToken))
 		{
 			EnsureCanReadOrWrite(ct);
@@ -649,36 +665,26 @@ namespace FoundationDB.Client
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
 		/// <param name="ct">Optionnal CancellationToken that should not be cancelled</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
-		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() as already been called on the transaction, or if the database has been closed</exception>
+		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() have already been called on the transaction, or if the database has been closed</exception>
 		internal void EnsureStilValid(CancellationToken ct = default(CancellationToken), bool allowFromNetworkThread = false)
 		{
 			// We must not be disposed
-			switch (this.State)
+			if (this.State != STATE_READY)
 			{
-				case STATE_READY:
-				{
-					// We cannot be called from the network thread (or else we will deadlock)
-					if (!allowFromNetworkThread) Fdb.EnsureNotOnNetworkThread();
-
-					// also checks that the DB has not been disposed behind our back
-					m_database.EnsureTransactionIsValid(this);
-
-					// and finally, the cancellation token should not be signaled
-					if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
-
-					// we are ready to go !
-					return;
-				}
-
-				case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "This transaction has already been disposed and cannot be used anymore");
-				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
-				case STATE_COMMITTED: throw new InvalidOperationException("The transaction has already been committed");
-				case STATE_ROLLEDBACK: throw new InvalidOperationException("The transaction has already been rolled back");
-				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", this.State));
+				ThrowOnInvalidState(this);
 			}
+
+			// The cancellation token should not be signaled
+			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+
+			// We cannot be called from the network thread (or else we will deadlock)
+			if (!allowFromNetworkThread) Fdb.EnsureNotOnNetworkThread();
+
+			// Ensure that the DB is still opened and that this transaction is still registered with it
+			m_database.EnsureTransactionIsValid(this);
+
+			// we are ready to go !
 		}
-
-
 
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing)</summary>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
@@ -686,21 +692,36 @@ namespace FoundationDB.Client
 		{
 			switch (this.State)
 			{
-				case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "This transaction has already been disposed and cannot be used anymore");
-				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
-
 				case STATE_INIT:
 				case STATE_READY:
 				case STATE_COMMITTED:
 				case STATE_ROLLEDBACK:
-					// We are still valid
-					break;
+				{ // We are still valid
+					// checks that the DB has not been disposed behind our back
+					m_database.EnsureTransactionIsValid(this);
+					return;
+				}
 
-				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", this.State));
+				default:
+				{
+					ThrowOnInvalidState(this);
+					return;
+				}
 			}
 
-			// checks that the DB has not been disposed behind our back
-			m_database.EnsureTransactionIsValid(this);
+		}
+
+		internal static void ThrowOnInvalidState(FdbTransaction trans)
+		{
+			switch (trans.State)
+			{
+				case STATE_INIT: throw new InvalidOperationException("The transaction has not been initialized properly");
+				case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "This transaction has already been disposed and cannot be used anymore");
+				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
+				case STATE_COMMITTED: throw new InvalidOperationException("The transaction has already been committed");
+				case STATE_ROLLEDBACK: throw new InvalidOperationException("The transaction has already been rolled back");
+				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", trans.State));
+			}
 		}
 
 		public void Dispose()
@@ -760,6 +781,16 @@ namespace FoundationDB.Client
 				get { return m_parent.Id; }
 			}
 
+			public int Size
+			{
+				get { return m_parent.Size; }
+			}
+
+			public CancellationToken Token
+			{
+				get { return m_parent.Token; }
+			}
+
 			public bool IsSnapshot
 			{
 				get { return true; }
@@ -770,19 +801,39 @@ namespace FoundationDB.Client
 				m_parent.EnsureCanRead(ct);
 			}
 
-			public Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken))
+			public void Reset()
+			{
+				m_parent.Reset();
+			}
+
+			public Task CommitAsync(CancellationToken ct)
+			{
+				return m_parent.CommitAsync(ct);
+			}
+
+			public Task<long> GetReadVersionAsync(CancellationToken ct)
 			{
 				return m_parent.GetReadVersionAsync(ct);
 			}
 
+			public void SetReadVersion(long version)
+			{
+				m_parent.SetReadVersion(version);
+			}
+
+			public long GetCommittedVersion()
+			{
+				return m_parent.GetCommittedVersion();
+			}
+
 			public Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct)
 			{
-				m_parent.EnsureCanReadOrWrite(ct);
+				EnsureCanRead(ct);
 
 				return m_parent.GetCoreAsync(keyBytes, snapshot: true, ct: ct);
 			}
 
-			public Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken))
+			public Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct)
 			{
 				if (keys == null) throw new ArgumentNullException("keys");
 
@@ -798,7 +849,7 @@ namespace FoundationDB.Client
 				return m_parent.GetKeyCoreAsync(selector, snapshot: true, ct: ct);
 			}
 
-			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken))
+			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, CancellationToken ct)
 			{
 				EnsureCanRead(ct);
 

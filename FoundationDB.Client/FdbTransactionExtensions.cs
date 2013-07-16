@@ -38,6 +38,17 @@ namespace FoundationDB.Client
 	public static class FdbTransactionExtensions
 	{
 
+		internal static IFdbReadTransaction ToSnapshotTransaction(this IFdbReadTransaction trans)
+		{
+			if (trans.IsSnapshot) return trans;
+			//TODO: better way at doing this ?
+
+			if (trans is FdbTransaction) return (trans as FdbTransaction).Snapshot;
+
+			throw new InvalidOperationException("This transaction is not in snapshot mode");
+		}
+
+
 		#region Set...
 
 		public static void Set(this IFdbTransaction trans, Slice keyBytes, Stream data)
