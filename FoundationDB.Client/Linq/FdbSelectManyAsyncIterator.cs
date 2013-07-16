@@ -101,7 +101,7 @@ namespace FoundationDB.Linq
 				return Publish(m_batch.Current);
 			}
 
-			return Cancelled(cancellationToken);
+			return Canceled(cancellationToken);
 		}
 
 		protected override void Cleanup()
@@ -201,7 +201,7 @@ namespace FoundationDB.Linq
 				return Publish(m_resultSelector(m_sourceCurrent, m_batch.Current));
 			}
 
-			return Cancelled(cancellationToken);
+			return Canceled(cancellationToken);
 		}
 
 		protected override void Cleanup()

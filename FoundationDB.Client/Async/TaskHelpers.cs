@@ -113,7 +113,7 @@ namespace FoundationDB.Async
 		/// <typeparam name="T1">Type of the result of the lambda</typeparam>
 		/// <param name="lambda">Synchronous lambda function that returns a value, or throws exceptions</param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that either contains the result of the lambda, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCancelledException</returns>
+		/// <returns>Task that either contains the result of the lambda, wraps the exception that was thrown, or is in the canceled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="lambda"/> is null</exception>
 		public static Task<R> Inline<R>(Func<R> lambda, CancellationToken ct = default(CancellationToken))
 		{
@@ -135,7 +135,7 @@ namespace FoundationDB.Async
 		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCancelledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the canceled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
 		public static Task Inline<T1>(Action<T1> action, T1 arg1, CancellationToken ct = default(CancellationToken))
 		{
@@ -158,7 +158,7 @@ namespace FoundationDB.Async
 		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCancelledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the canceled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
 		public static Task Inline<T1, T2>(Action<T1, T2> action, T1 arg1, T2 arg2, CancellationToken ct = default(CancellationToken))
 		{
@@ -181,7 +181,7 @@ namespace FoundationDB.Async
 		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCancelledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the canceled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
 		public static Task Inline<T1, T2, T3>(Action<T1, T2, T3> action, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct = default(CancellationToken))
 		{
@@ -204,7 +204,7 @@ namespace FoundationDB.Async
 		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCancelledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the canceled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
 		public static Task Inline<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct = default(CancellationToken))
 		{
@@ -227,7 +227,7 @@ namespace FoundationDB.Async
 		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
 		/// <param name="ct">Cancellation token</param>
-		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCancelledException</returns>
+		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the canceled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
 		public static Task Inline<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken ct = default(CancellationToken))
 		{
@@ -248,7 +248,7 @@ namespace FoundationDB.Async
 
 		/// <summary>Wraps a classic lambda into one that supports cancellation</summary>
 		/// <param name="lambda">Lambda that does not support cancellation</param>
-		/// <returns>New lambda that will check if the token is cancelled before calling <paramref name="lambda"/></returns>
+		/// <returns>New lambda that will check if the token is canceled before calling <paramref name="lambda"/></returns>
 		public static Func<TSource, CancellationToken, TResult> WithCancellation<TSource, TResult>(Func<TSource, TResult> lambda)
 		{
 			Contract.Requires(lambda != null);
@@ -261,7 +261,7 @@ namespace FoundationDB.Async
 
 		/// <summary>Wraps a classic lambda into one that supports cancellation</summary>
 		/// <param name="lambda">Lambda that does not support cancellation</param>
-		/// <returns>New lambda that will check if the token is cancelled before calling <paramref name="lambda"/></returns>
+		/// <returns>New lambda that will check if the token is canceled before calling <paramref name="lambda"/></returns>
 		public static Func<TSource, CancellationToken, Task<TResult>> WithCancellation<TSource, TResult>(Func<TSource, Task<TResult>> lambda)
 		{
 			Contract.Requires(lambda != null);
@@ -272,26 +272,26 @@ namespace FoundationDB.Async
 			};
 		}
 
-		/// <summary>Returns a cancelled Task that is linked with a cancelled token</summary>
+		/// <summary>Returns a canceled Task that is linked with a canceled token</summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
-		/// <param name="cancellationToken">Cancellation token that should already be cancelled</param>
-		/// <returns>Task in the Cancelled state that is linked with this cancellation token</returns>
+		/// <param name="cancellationToken">Cancellation token that should already be canceled</param>
+		/// <returns>Task in the Canceled state that is linked with this cancellation token</returns>
 		public static Task<T> FromCancellation<T>(CancellationToken cancellationToken)
 		{
 			// There is a Task.FromCancellation<T>() method in the BCL, but unfortunately it is internal :(
-			// The "best" way I've seen to emulate the same behavior, is creating a fake task (with a dummy action) with the same alread-cancelled CancellationToken
-			// This should throw the correct TaskCancelledException that is linked with this token
+			// The "best" way I've seen to emulate the same behavior, is creating a fake task (with a dummy action) with the same alread-canceled CancellationToken
+			// This should throw the correct TaskCanceledException that is linked with this token
 
-			// ensure that it is actually cancelled, so that we don't deadlock
+			// ensure that it is actually canceled, so that we don't deadlock
 			if (!cancellationToken.IsCancellationRequested) throw new InvalidOperationException();
 
 			return new Task<T>(Cache<T>.Nop, cancellationToken);
 		}
 
-		/// <summary>Returns a cancelled Task that is not linked to any particular token</summary>
+		/// <summary>Returns a canceled Task that is not linked to any particular token</summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
-		/// <returns>Task in the Cancelled state</returns>
-		public static Task<T> Cancelled<T>()
+		/// <returns>Task in the Canceled state</returns>
+		public static Task<T> Canceled<T>()
 		{
 			var tcs = new TaskCompletionSource<T>();
 			tcs.TrySetCanceled();
@@ -329,7 +329,7 @@ namespace FoundationDB.Async
 				if (cancellationToken.IsCancellationRequested)
 					return FromCancellation<T>(cancellationToken);
 				else
-					return Cancelled<T>();
+					return Canceled<T>();
 			}
 
 			return FromException<T>(e);
@@ -352,7 +352,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Safely cancel a CancellationTokenSource</summary>
-		/// <param name="source">CancellationTokenSource that needs to be cancelled</param>
+		/// <param name="source">CancellationTokenSource that needs to be canceled</param>
 		public static void SafeCancel(this CancellationTokenSource source)
 		{
 			if (source != null && !source.IsCancellationRequested)
@@ -365,7 +365,7 @@ namespace FoundationDB.Async
 			}
 		}
 		/// <summary>Safely cancel and dispose a CancellationTokenSource</summary>
-		/// <param name="source">CancellationTokenSource that needs to be cancelled and disposed</param>
+		/// <param name="source">CancellationTokenSource that needs to be canceled and disposed</param>
 		public static void SafeCancelAndDispose(this CancellationTokenSource source)
 		{
 			if (source != null)
@@ -386,7 +386,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Safely cancel a CancellationTokenSource, executing the registered callbacks on the thread pool</summary>
-		/// <param name="source">CancellationTokenSource that needs to be cancelled</param>
+		/// <param name="source">CancellationTokenSource that needs to be canceled</param>
 		public static void SafeCancelDefered(this CancellationTokenSource source)
 		{
 			if (source != null)
@@ -396,7 +396,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Safely cancel and dispose a CancellationTokenSource, executing the registered callbacks on the thread pool</summary>
-		/// <param name="source">CancellationTokenSource that needs to be cancelled and disposed</param>
+		/// <param name="source">CancellationTokenSource that needs to be canceled and disposed</param>
 		public static void SafeCancelAndDisposeDefered(this CancellationTokenSource source)
 		{
 			if (source != null)

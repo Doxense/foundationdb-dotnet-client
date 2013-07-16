@@ -86,7 +86,7 @@ namespace FoundationDB.Linq
 				return Publish(current);
 			}
 
-			return Cancelled(cancellationToken);
+			return Canceled(cancellationToken);
 		}
 
 		public override FdbAsyncIterator<TSource> Where(Func<TSource, bool> predicate)

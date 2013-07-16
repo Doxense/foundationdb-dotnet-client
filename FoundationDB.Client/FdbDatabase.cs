@@ -57,7 +57,7 @@ namespace FoundationDB.Client
 		/// <summary>If true, the cluster instance will be disposed at the same time as the current db instance.</summary>
 		private readonly bool m_ownsCluster;
 	
-		/// <summary>Global cancellation source that is cancelled when the current db instance gets disposed.</summary>
+		/// <summary>Global cancellation source that is canceled when the current db instance gets disposed.</summary>
 		private readonly CancellationTokenSource m_cts = new CancellationTokenSource();
 
 		/// <summary>Set to true when the current db instance gets disposed.</summary>
@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 		internal DatabaseHandle Handle { get { return m_handle; } }
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
-		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
+		/// <remarks>The token will be canceled if the database instance is disposed</remarks>
 		public CancellationToken Token { get { return m_cts.Token; } }
 
 		#endregion

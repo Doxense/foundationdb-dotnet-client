@@ -45,8 +45,8 @@ namespace FoundationDB.Async
 		private readonly Queue<Task<Maybe<TOutput>>> m_queue = new Queue<Task<Maybe<TOutput>>>();
 		private readonly object m_lock = new object();
 		private readonly int m_capacity;
-		private AsyncCancellableMutex m_blockedProducer;
-		private AsyncCancellableMutex m_blockedConsumer;
+		private AsyncCancelableMutex m_blockedProducer;
+		private AsyncCancelableMutex m_blockedConsumer;
 		private bool m_done;
 		private TaskScheduler m_scheduler;
 
@@ -140,7 +140,7 @@ namespace FoundationDB.Async
 		{
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			AsyncCancellableMutex waiter;
+			AsyncCancelableMutex waiter;
 			lock(m_lock)
 			{
 				if (m_done) throw new InvalidOperationException("Cannot post more values after calling Complete()");
@@ -173,7 +173,7 @@ namespace FoundationDB.Async
 				}
 
 				// no luck, we need to wait for the queue to become non-full
-				waiter = new AsyncCancellableMutex(ct);
+				waiter = new AsyncCancelableMutex(ct);
 				m_blockedProducer = waiter;
 			}
 
@@ -415,7 +415,7 @@ namespace FoundationDB.Async
 
 			Contract.Requires(m_blockedConsumer == null || m_blockedConsumer.Task.IsCompleted);
 
-			var waiter = new AsyncCancellableMutex(ct);
+			var waiter = new AsyncCancelableMutex(ct);
 			m_blockedConsumer = waiter;
 			return waiter.Task;
 		}

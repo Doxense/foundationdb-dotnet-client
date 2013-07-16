@@ -59,7 +59,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Open_Database_With_Cancelled_Token_Should_Fail()
+		public async Task Test_Open_Database_With_Canceled_Token_Should_Fail()
 		{
 			using (var cts = new CancellationTokenSource())
 			{

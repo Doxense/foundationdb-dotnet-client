@@ -61,7 +61,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">CancellationToken used to cancel the operation (optionnal)</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() have already been called on the transaction, or if the database has been closed</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token has been canceled</exception>
 		void EnsureCanRead(CancellationToken ct = default(CancellationToken));
 
 		/// <summary>

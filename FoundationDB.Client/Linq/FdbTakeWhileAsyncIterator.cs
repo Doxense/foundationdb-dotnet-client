@@ -68,7 +68,7 @@ namespace FoundationDB.Linq
 
 				return Publish(current);
 			}
-			return Cancelled(ct);
+			return Canceled(ct);
 		}
 
 	}

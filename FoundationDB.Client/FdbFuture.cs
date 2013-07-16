@@ -144,9 +144,9 @@ namespace FoundationDB.Client
 				}
 
 				if (ct.IsCancellationRequested)
-				{ // we have already been cancelled
+				{ // we have already been canceled
 
-					// Abort the future and simulate a Cancelled task
+					// Abort the future and simulate a Canceled task
 					SetFlag(Flags.COMPLETED);
 					m_resultSelector = null;
 					m_handle.Dispose();
@@ -296,9 +296,11 @@ namespace FoundationDB.Client
 			}
 		}
 
-		private void TrySetCancelled(bool fromCallback)
+		private void TrySetCanceled(bool fromCallback)
 		{
-			Console.WriteLine("TrySetCancelled(" + fromCallback + ")");
+#if DEBUG_FUTURES
+			Debug.WriteLine("TrySetCanceled(" + fromCallback + ")");
+#endif
 
 			if (!fromCallback)
 			{
@@ -316,7 +318,7 @@ namespace FoundationDB.Client
 			var future = (FdbFuture<T>)state;
 
 #if DEBUG_FUTURES
-			Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancell(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+			Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancel(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
 #endif
 
 			//TODO: we may need to call "transaction.Cancel()" if this becomes available in the API some day...
@@ -410,13 +412,13 @@ namespace FoundationDB.Client
 					}
 				}
 
-				// most probably the future was cancelled or we are shutting down...
-				TrySetCancelled(fromCallback);
+				// most probably the future was canceled or we are shutting down...
+				TrySetCanceled(fromCallback);
 				return false;
 			}
 			catch (ThreadAbortException)
 			{
-				TrySetCancelled(fromCallback);
+				TrySetCanceled(fromCallback);
 				return false;
 			}
 			catch (Exception e)
@@ -473,7 +475,7 @@ namespace FoundationDB.Client
 			{
 				if (!this.Task.IsCompleted)
 				{
-					TrySetCancelled(fromCallback);
+					TrySetCanceled(fromCallback);
 				}
 			}
 			finally

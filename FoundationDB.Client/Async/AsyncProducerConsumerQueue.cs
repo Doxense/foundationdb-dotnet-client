@@ -53,10 +53,10 @@ namespace FoundationDB.Async
 		protected bool m_receivedLast;
 
 		/// <summary>Mutex signaling that the producer is blocked on a full queue</summary>
-		protected AsyncCancellableMutex m_producerLock;
+		protected AsyncCancelableMutex m_producerLock;
 
 		/// <summary>Mutex signaling that the consumer is blocked on an empty queue</summary>
-		protected AsyncCancellableMutex m_consumerLock;
+		protected AsyncCancelableMutex m_consumerLock;
 
 		protected AsyncProducerConsumerQueue(int capacity)
 		{
@@ -82,7 +82,7 @@ namespace FoundationDB.Async
 			}
 			if (m_producerLock == null || m_producerLock.Task.IsCompleted)
 			{
-				m_producerLock = new AsyncCancellableMutex(ct);
+				m_producerLock = new AsyncCancelableMutex(ct);
 			}
 			LogProducer("blocked on full");
 			return m_producerLock.Task;
@@ -109,7 +109,7 @@ namespace FoundationDB.Async
 			}
 			if (m_consumerLock == null || m_consumerLock.Task.IsCompleted)
 			{
-				m_consumerLock = new AsyncCancellableMutex(ct);
+				m_consumerLock = new AsyncCancelableMutex(ct);
 			}
 			LogConsumer("blocked on empty");
 			return m_consumerLock.Task;

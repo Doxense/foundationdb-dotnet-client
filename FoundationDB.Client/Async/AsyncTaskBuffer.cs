@@ -50,7 +50,7 @@ namespace FoundationDB.Async
 		protected LinkedList<Task<T>> m_queue = new LinkedList<Task<T>>();
 
 		/// <summary>Only used in mode CompletionOrder</summary>
-		private AsyncCancellableMutex m_completionLock;
+		private AsyncCancelableMutex m_completionLock;
 
 		#endregion
 
@@ -315,7 +315,7 @@ namespace FoundationDB.Async
 		{
 			if (!IsConsumerAwaitingCompletion)
 			{
-				m_completionLock = new AsyncCancellableMutex(ct);
+				m_completionLock = new AsyncCancelableMutex(ct);
 			}
 			LogConsumer("marked as waiting for task completion");
 			return m_completionLock.Task;

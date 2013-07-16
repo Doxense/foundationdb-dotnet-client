@@ -94,7 +94,7 @@ namespace FoundationDB.Linq
 
 			if (ct.IsCancellationRequested)
 			{
-				return Cancelled(ct);
+				return Canceled(ct);
 			}
 
 			try
@@ -248,7 +248,7 @@ namespace FoundationDB.Linq
 		}
 #endif
 
-		protected bool Cancelled(CancellationToken cancellationToken)
+		protected bool Canceled(CancellationToken cancellationToken)
 		{
 			this.Dispose();
 			cancellationToken.ThrowIfCancellationRequested();

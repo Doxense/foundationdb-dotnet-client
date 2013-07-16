@@ -120,7 +120,7 @@ namespace FoundationDB.Layers.Tables.Tests
 		}
 
 		[Test]
-		public void Test_Connecting_To_Cluster_With_Cancelled_Token_Should_Fail()
+		public void Test_Connecting_To_Cluster_With_Canceled_Token_Should_Fail()
 		{
 			using (var cts = new CancellationTokenSource())
 			{

@@ -164,7 +164,7 @@ namespace FoundationDB.Client
 
 		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
 		/// <param name="db">Database that will be the source of the transactions</param>
-		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCancelledException if it decides to not retry the action</param>
+		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCanceledException if it decides to not retry the action</param>
 		/// <param name="state">Optional state that is passed to the lambda view the context</param>
 		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
 		/// <returns>Task that completes when we have successfully completed the action, or fails if a non retryable error occurs</returns>
@@ -179,7 +179,7 @@ namespace FoundationDB.Client
 
 		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
 		/// <param name="db">Database that will be the source of the transactions</param>
-		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCancelledException if it decides to not retry the action</param>
+		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCanceledException if it decides to not retry the action</param>
 		/// <param name="state">Optional state that is passed to the lambda view the context</param>
 		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
 		/// <returns>Task that completes when we have successfully completed the action, or fails if a non retryable error occurs</returns>
@@ -195,7 +195,7 @@ namespace FoundationDB.Client
 		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
 		/// <typeparam name="TResult">Type of the result returned by the action</typeparam>
 		/// <param name="db">Database that will be the source of the transactions</param>
-		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCancelledException if it decides to not retry the action</param>
+		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCanceledException if it decides to not retry the action</param>
 		/// <param name="state">Optional state that is passed to the lambda view the context</param>
 		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
 		/// <returns>Task that returns a result when we have successfully completed the action, or fails if a non retryable error occurs</returns>
@@ -212,7 +212,7 @@ namespace FoundationDB.Client
 		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
 		/// <typeparam name="TResult">Type of the result returned by the action</typeparam>
 		/// <param name="db">Database that will be the source of the transactions</param>
-		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCancelledException if it decides to not retry the action</param>
+		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCanceledException if it decides to not retry the action</param>
 		/// <param name="state">Optional state that is passed to the lambda view the context</param>
 		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
 		/// <returns>Task that returns a result when we have successfully completed the action, or fails if a non retryable error occurs</returns>

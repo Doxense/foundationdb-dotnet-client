@@ -33,18 +33,20 @@ namespace FoundationDB.Async
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Implements a mutex that supports cancellation</summary>
+	/// <summary>Implements a async mutex that supports cancellation</summary>
 	[DebuggerDisplay("Status={this.Task.Status}, CancellationState=({m_state}, {m_ct.IsCancellationRequested?\"alive\":\"canceled\"})")]
-	public class AsyncCancellableMutex : TaskCompletionSource<object>
+	public class AsyncCancelableMutex : TaskCompletionSource<object>
 	{
 		// The consumer just needs to await the Task and will be woken up if someone calls Set(..) / Abort() on the mutex OR if the CancellationToken provided in the ctor is signaled.
 		// Optionally, Set() and Abort() can specify if the consumer will be woken up from the ThreadPool (asnyc = true) or probably inline (async = false)
+
+		// note: this is not really a mutex because there is no "Reset()" method (not possible to reset a TCS)...
 
 		private static Action<object> s_cancellationCallback = new Action<object>(CancellationHandler);
 
 		private const int CTR_NONE = 0;
 		private const int CTR_REGISTERED = 1;
-		private const int CTR_CANCELLED_OR_DISPOSED = 2;
+		private const int CTR_CANCELED_OR_DISPOSED = 2;
 
 		private int m_state;
 		private CancellationToken m_ct;
@@ -56,15 +58,15 @@ namespace FoundationDB.Async
 		{
 			// the state contains the weak reference on the waiter, that we need to unwrap...
 
-			var weakRef = (WeakReference<AsyncCancellableMutex>)state;
-			AsyncCancellableMutex waiter;
+			var weakRef = (WeakReference<AsyncCancelableMutex>)state;
+			AsyncCancelableMutex waiter;
 			if (weakRef.TryGetTarget(out waiter) && waiter != null)
 			{ // still alive...
 				waiter.Abort(async: true);
 			}
 		}
 
-		public AsyncCancellableMutex(CancellationToken ct)
+		public AsyncCancelableMutex(CancellationToken ct)
 		{
 			if (ct.CanBeCanceled)
 			{
@@ -72,7 +74,7 @@ namespace FoundationDB.Async
 				try
 				{
 					m_state = CTR_REGISTERED;
-					m_ctr = ct.Register(s_cancellationCallback, new WeakReference<AsyncCancellableMutex>(this), useSynchronizationContext: false);
+					m_ctr = ct.Register(s_cancellationCallback, new WeakReference<AsyncCancelableMutex>(this), useSynchronizationContext: false);
 				}
 				catch
 				{
@@ -85,16 +87,16 @@ namespace FoundationDB.Async
 		public void Set(bool async = false)
 		{
 			// we don't really care if the cancellation token has already fired (or is firing at the same time),
-			// because TrySetResult(..) and TrySetCancelled(..) will fight it out by themselves
+			// because TrySetResult(..) and TrySetCanceled(..) will fight it out by themselves
 			// we just need to dispose the registration if it hasn't already been done
-			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELLED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
+			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
 			{
 				m_ctr.Dispose();
 			}
 
 			if (async)
 			{
-				ThreadPool.QueueUserWorkItem((state) => { ((AsyncCancellableMutex)state).TrySetResult(null); }, this);
+				ThreadPool.QueueUserWorkItem((state) => { ((AsyncCancelableMutex)state).TrySetResult(null); }, this);
 			}
 			else
 			{
@@ -104,16 +106,16 @@ namespace FoundationDB.Async
 
 		public void Abort(bool async = false)
 		{
-			// we don't really care if the cancellation token has already fired (or is firing at the same time), because TrySetCancelled(..) will be called either way.
+			// we don't really care if the cancellation token has already fired (or is firing at the same time), because TrySetCanceled(..) will be called either way.
 			// we just need to dispose the registration if it hasn't already been done
-			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELLED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
+			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
 			{
 				m_ctr.Dispose();
 			}
 
 			if (async)
 			{
-				ThreadPool.QueueUserWorkItem((state) => { ((AsyncCancellableMutex)state).TrySetCanceled(); }, this);
+				ThreadPool.QueueUserWorkItem((state) => { ((AsyncCancelableMutex)state).TrySetCanceled(); }, this);
 			}
 			else
 			{

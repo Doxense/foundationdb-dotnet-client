@@ -125,7 +125,7 @@ namespace FoundationDB.Linq
 				return Publish(result);
 			}
 
-			return Cancelled(cancellationToken);
+			return Canceled(cancellationToken);
 		}
 
 		public override FdbAsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)

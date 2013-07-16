@@ -340,7 +340,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
 		public static Task<FdbDatabase> OpenDatabaseAsync(string path, string name, CancellationToken ct = default(CancellationToken))
 		{
 			return OpenDatabaseAsync(path, name, FdbSubspace.Empty, ct);
@@ -353,7 +353,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
 		public static async Task<FdbDatabase> OpenDatabaseAsync(string path, string name, FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
@@ -390,7 +390,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
 		public static Task<FdbDatabase> OpenLocalDatabaseAsync(string name, CancellationToken ct = default(CancellationToken))
 		{
 			return OpenLocalDatabaseAsync(name, FdbSubspace.Empty, ct);
@@ -402,7 +402,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
 		public static async Task<FdbDatabase> OpenLocalDatabaseAsync(string name, FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();

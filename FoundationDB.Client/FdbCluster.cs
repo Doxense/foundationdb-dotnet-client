@@ -74,7 +74,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Cancellation Token</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, CancellationToken ct = default(CancellationToken))
 		{
@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
 		/// <remarks>Any attempt to use a key outside the specified subspace will throw an exception</remarks>
 		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
 		{
@@ -102,7 +102,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">Cancellation Token</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		internal Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool ownsCluster, CancellationToken ct)
 		{
