@@ -119,16 +119,5 @@ namespace FoundationDB.Layers.Tables.Tests
 			return sb.ToString();
 		}
 
-		[Test]
-		public void Test_Connecting_To_Cluster_With_Canceled_Token_Should_Fail()
-		{
-			using (var cts = new CancellationTokenSource())
-			{
-				cts.Cancel();
-
-				Assert.Throws<OperationCanceledException>(() => Fdb.OpenLocalClusterAsync(cts.Token).GetAwaiter().GetResult());
-			}
-		}
-
 	}
 }

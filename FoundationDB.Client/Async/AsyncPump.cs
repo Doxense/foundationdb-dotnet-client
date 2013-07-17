@@ -51,8 +51,6 @@ namespace FoundationDB.Async
 		private readonly IAsyncSource<T> m_source;
 		private readonly IAsyncTarget<T> m_target;
 
-		private ExceptionDispatchInfo m_error;
-
 		public AsyncPump(
 			IAsyncSource<T> source,
 			IAsyncTarget<T> target
