@@ -37,6 +37,9 @@ namespace FoundationDB.Client
 	public partial class FdbTransaction
 	{
 
+		/// <summary>Snapshot version of this transaction (lazily allocated)</summary>
+		private Snapshotted m_snapshotted;
+
 		/// <summary>Returns a version of this transaction that perform snapshotted operations</summary>
 		public IFdbReadTransaction Snapshot
 		{

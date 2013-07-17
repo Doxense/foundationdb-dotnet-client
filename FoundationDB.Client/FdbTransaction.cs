@@ -67,13 +67,10 @@ namespace FoundationDB.Client
 
 		/// <summary>Estimated size of written data (in bytes)</summary>
 		private int m_payloadBytes;
-		//note: should be use a long instead?
+		//TODO: should we use a long instead?
 
 		/// <summary>Cancelletation source specific to this instance.</summary>
 		private readonly CancellationTokenSource m_cts;
-
-		/// <summary>Snapshot version of this transaction (lazily allocated)</summary>
-		private Snapshotted m_snapshotted;
 
 		#endregion
 

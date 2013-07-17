@@ -165,6 +165,11 @@ namespace FoundationDB.Client
 			return FdbAsyncEnumerable.ToListAsync(this, ct);
 		}
 
+		public Task<KeyValuePair<Slice, Slice>[]> ToArrayAsync(CancellationToken ct = default(CancellationToken))
+		{
+			return FdbAsyncEnumerable.ToArrayAsync(this, ct);
+		}
+
 		public IFdbAsyncEnumerable<T> Select<T>(Func<KeyValuePair<Slice, Slice>, T> lambda)
 		{
 			return FdbAsyncEnumerable.Select(this, lambda);
