@@ -61,6 +61,7 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="ClusterFacts.cs" />
+    <Compile Include="DatabaseBulkFacts.cs" />
     <Compile Include="Layers\DocumentCollectionFacts.cs" />
     <Compile Include="Layers\IndexingFacts.cs" />
     <Compile Include="Async\AsyncBufferFacts.cs" />
