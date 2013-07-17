@@ -103,22 +103,19 @@ namespace FoundationDB.Layers.Tables
 
 		#region Transactional...
 
-		public Task<Slice> GetAsync(FdbDatabase db, IFdbTuple id, bool snapshot = false, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(FdbDatabase db, IFdbTuple id, CancellationToken ct = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			if (snapshot)
-				return db.Attempt.Snapshot.ReadAsync(this.GetAsync, id, ct);
-			else
-				return db.Attempt.ReadAsync(this.GetAsync, id, ct);
+			return db.Attempt.ReadAsync((tr) => this.GetAsync(tr, id, ct), ct);
 		}
 
 		public Task SetAsync(FdbDatabase db, IFdbTuple id, Slice value, CancellationToken ct = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Attempt.Change(this.Set, id, value, ct);
+			return db.Attempt.Change((tr) => this.Set(tr, id, value), ct);
 		}
 
 		public Task ClearAsync(FdbDatabase db, IFdbTuple id, CancellationToken ct = default(CancellationToken))
@@ -126,7 +123,7 @@ namespace FoundationDB.Layers.Tables
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt.Change(this.Clear, id, ct);
+			return db.Attempt.Change((tr) => this.Clear(tr, id), ct);
 		}
 
 		#endregion

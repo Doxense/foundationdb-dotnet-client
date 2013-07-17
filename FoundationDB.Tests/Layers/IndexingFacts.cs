@@ -151,16 +151,15 @@ namespace FoundationDB.Layers.Tables.Tests
 				var indexAlignment = new FdbIndex<long, bool?>(location.Partition("FriendsOrFoe"));
 
 				// index everything
-				using(var tr = db.BeginTransaction())
+				await db.Attempt.Change((tr) =>
 				{
-					foreach(var character in characters)
+					foreach (var character in characters)
 					{
 						indexBrand.Add(tr, character.Id, character.Brand);
 						indexSuperHero.Add(tr, character.Id, character.HasSuperPowers);
 						indexAlignment.Add(tr, character.Id, character.IsVilain);
 					}
-					await tr.CommitAsync();
-				}
+				});
 
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);

@@ -40,11 +40,11 @@ namespace FoundationDB.Client
 		/// <summary>The database used by the operation</summary>
 		public FdbDatabase Db { get; private set; }
 
-		/// <summary>If true, pass a Snapshot transaction on read operations</summary>
-		public bool Snapshot { get; private set; }
-
 		/// <summary>The state of the operation (or null)</summary>
 		public object State { get; set; }
+
+		/// <summary>If true, attempts to commit read-only transactions anyway.</summary>
+		public bool CommitReadOnlyTransactions { get; set; }
 
 		/// <summary>Result of the operation (or null)</summary>
 		public object Result { get; set; }
@@ -66,33 +66,57 @@ namespace FoundationDB.Client
 
 		public bool Committed { get; private set; }
 
-		internal FdbOperationContext(FdbDatabase db, object state, bool snapshot)
+		internal FdbOperationContext(FdbDatabase db, object state)
 		{
 			Contract.Requires(db != null);
 
 			this.Db = db;
 			this.State = state;
-			this.Snapshot = snapshot;
 			this.Duration = new Stopwatch();
+		}
+
+		/// <summary>Run the operation until it suceeds, timeouts, or fail with non-retryable error</summary>
+		public Task Execute(Func<IFdbTransaction, Task> asyncAction, CancellationToken ct)
+		{
+			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
+			return ExecuteInternal(asyncAction, ct);
+		}
+
+		/// <summary>Run the operation until it suceeds, timeouts, or fail with non-retryable error</summary>
+		public Task Execute(Func<IFdbTransaction, CancellationToken, Task> asyncAction, CancellationToken ct)
+		{
+			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
+			return ExecuteInternal(asyncAction, ct);
 		}
 
 		/// <summary>Run the operation until it suceeds, timeouts, or fail with non-retryable error</summary>
 		public Task Execute(Func<IFdbTransaction, FdbOperationContext, Task> asyncAction, CancellationToken ct)
 		{
-			Contract.Requires(this.Snapshot == false); // not in snapshot mode!
 			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
-			return ExecuteInternal(asyncAction, null, ct);
+			return ExecuteInternal(asyncAction, ct);
+		}
+
+		public Task Execute(Func<IFdbReadTransaction, Task> asyncAction, CancellationToken ct)
+		{
+			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
+			return ExecuteInternal(asyncAction, ct);
+		}
+
+		public Task Execute(Func<IFdbReadTransaction, CancellationToken, Task> asyncAction, CancellationToken ct)
+		{
+			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
+			return ExecuteInternal(asyncAction, ct);
 		}
 
 		public Task Execute(Func<IFdbReadTransaction, FdbOperationContext, Task> asyncAction, CancellationToken ct)
 		{
 			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
-			return ExecuteInternal(null, asyncAction, ct);
+			return ExecuteInternal(asyncAction, ct);
 		}
 
-		internal async Task ExecuteInternal(Func<IFdbTransaction, FdbOperationContext, Task> asyncWritableAction, Func<IFdbReadTransaction, FdbOperationContext, Task> asyncReadableAction, CancellationToken ct)
+		internal async Task ExecuteInternal(Delegate handler, CancellationToken ct)
 		{
-			Contract.Requires((asyncWritableAction != null) ^ (asyncReadableAction != null));
+			Contract.Requires(handler != null);
 
 			try
 			{
@@ -107,24 +131,47 @@ namespace FoundationDB.Client
 					using (var trans = this.Db.BeginTransaction())
 					{
 						FdbException e = null;
+						bool readOnlyOperation = false;
 						try
 						{
 							// call the user provided lambda
-							if (asyncWritableAction != null)
+							if (handler is Func<IFdbTransaction, Task>)
 							{
-								await asyncWritableAction(trans, this).ConfigureAwait(false);
+								await ((Func<IFdbTransaction, Task>)handler)(trans).ConfigureAwait(false);
 							}
-							else
+							else if (handler is Func<IFdbTransaction,CancellationToken,Task>)
 							{
-								await asyncReadableAction(this.Snapshot ? trans.Snapshot : trans, this).ConfigureAwait(false);
+								await ((Func<IFdbTransaction, CancellationToken, Task>)handler)(trans, this.Token).ConfigureAwait(false);
+							}
+							else if (handler is Func<IFdbTransaction, FdbOperationContext, Task>)
+							{
+								await ((Func<IFdbTransaction, FdbOperationContext, Task>)handler)(trans, this).ConfigureAwait(false);
+							}
+							else if (handler is Func<IFdbReadTransaction, Task>)
+							{
+								readOnlyOperation = true;
+								await ((Func<IFdbTransaction, Task>)handler)(trans).ConfigureAwait(false);
+							}
+							else if (handler is Func<IFdbReadTransaction, CancellationToken, Task>)
+							{
+								readOnlyOperation = true;
+								await ((Func<IFdbTransaction, CancellationToken, Task>)handler)(trans, this.Token).ConfigureAwait(false);
+							}
+							else if (handler is Func<IFdbReadTransaction, FdbOperationContext, Task>)
+							{
+								readOnlyOperation = true;
+								await ((Func<IFdbTransaction, FdbOperationContext, Task>)handler)(trans, this).ConfigureAwait(false);
 							}
 
 							if (this.Abort)
 							{
 								break;
 							}
-							// commit the transaction
-							await trans.CommitAsync(this.Token).ConfigureAwait(false);
+
+							if (!readOnlyOperation || this.CommitReadOnlyTransactions)
+							{ // commit the transaction
+								await trans.CommitAsync(this.Token).ConfigureAwait(false);
+							}
 
 							// we are done
 							this.Committed = true;
@@ -162,68 +209,112 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
-		/// <param name="db">Database that will be the source of the transactions</param>
-		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCanceledException if it decides to not retry the action</param>
-		/// <param name="state">Optional state that is passed to the lambda view the context</param>
-		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
-		/// <returns>Task that completes when we have successfully completed the action, or fails if a non retryable error occurs</returns>
+		public static Task RunReadAsync(FdbDatabase db, Func<IFdbReadTransaction, FdbOperationContext, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		{
+			return new FdbOperationContext(db, state).Execute(asyncAction, ct);
+		}
+
+		public static Task RunReadAsync(FdbDatabase db, Func<IFdbReadTransaction, CancellationToken, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		{
+			return new FdbOperationContext(db, state).Execute(asyncAction, ct);
+		}
+
+		public static Task RunReadAsync(FdbDatabase db, Func<IFdbReadTransaction, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		{
+			return new FdbOperationContext(db, state).Execute(asyncAction, ct);
+		}
+
+		public static async Task<R> RunReadWithResultAsync<R>(FdbDatabase db, Func<IFdbReadTransaction, FdbOperationContext, Task<R>> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		{
+			R result = default(R);
+			Func<IFdbTransaction, FdbOperationContext, Task> handler = async (tr, _context) =>
+			{
+				result = await asyncAction(tr, _context).ConfigureAwait(false);
+			};
+
+			var context = new FdbOperationContext(db, state);
+			await context.Execute(handler, ct).ConfigureAwait(false);
+			return result;
+		}
+
+		public static async Task<R> RunReadWithResultAsync<R>(FdbDatabase db, Func<IFdbReadTransaction, CancellationToken, Task<R>> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		{
+			R result = default(R);
+			Func<IFdbTransaction, FdbOperationContext, Task> handler = async (tr, _context) =>
+			{
+				result = await asyncAction(tr, _context.Token).ConfigureAwait(false);
+			};
+
+			var context = new FdbOperationContext(db, state);
+			await context.Execute(handler, ct).ConfigureAwait(false);
+			return result;
+		}
+
+		public static async Task<R> RunReadWithResultAsync<R>(FdbDatabase db, Func<IFdbReadTransaction, Task<R>> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		{
+			R result = default(R);
+			Func<IFdbTransaction, FdbOperationContext, Task> handler = async (tr, _context) =>
+			{
+				result = await asyncAction(tr).ConfigureAwait(false);
+			};
+
+			var context = new FdbOperationContext(db, state);
+			await context.Execute(handler, ct).ConfigureAwait(false);
+			return result;
+		}
+
 		public static Task RunWriteAsync(FdbDatabase db, Func<IFdbTransaction, FdbOperationContext, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
 		{
-			// this is the equivalent of the "transactionnal" decorator in Python, and maybe also the "Run" method in Java
-			//TODO: add 'maxAttempts' or 'maxDuration' optional parameters ?
-
-			var context = new FdbOperationContext(db, state, false);
-			return context.Execute(asyncAction, ct);
+			return new FdbOperationContext(db, state).Execute(asyncAction, ct);
 		}
 
-		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
-		/// <param name="db">Database that will be the source of the transactions</param>
-		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCanceledException if it decides to not retry the action</param>
-		/// <param name="state">Optional state that is passed to the lambda view the context</param>
-		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
-		/// <returns>Task that completes when we have successfully completed the action, or fails if a non retryable error occurs</returns>
-		public static Task RunReadAsync(FdbDatabase db, bool snapshot, Func<IFdbReadTransaction, FdbOperationContext, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		public static Task RunWriteAsync(FdbDatabase db, Func<IFdbTransaction, CancellationToken, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
 		{
-			// this is the equivalent of the "transactionnal" decorator in Python, and maybe also the "Run" method in Java
-			//TODO: add 'maxAttempts' or 'maxDuration' optional parameters ?
-
-			var context = new FdbOperationContext(db, state, snapshot);
-			return context.Execute(asyncAction, ct);
+			return new FdbOperationContext(db, state).Execute(asyncAction, ct);
 		}
 
-		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
-		/// <typeparam name="TResult">Type of the result returned by the action</typeparam>
-		/// <param name="db">Database that will be the source of the transactions</param>
-		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCanceledException if it decides to not retry the action</param>
-		/// <param name="state">Optional state that is passed to the lambda view the context</param>
-		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
-		/// <returns>Task that returns a result when we have successfully completed the action, or fails if a non retryable error occurs</returns>
-		public static async Task<R> RunWriteAsync<R>(FdbDatabase db, Func<IFdbTransaction, FdbOperationContext, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		public static Task RunWriteAsync(FdbDatabase db, Func<IFdbTransaction, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
 		{
-			// this is the equivalent of the "transactionnal" decorator in Python, and maybe also the "Run" method in Java
-			//TODO: add 'maxAttempts' or 'maxDuration' optional parameters ?
-
-			var context = new FdbOperationContext(db, state, false);
-			await context.Execute(asyncAction, ct).ConfigureAwait(false);
-			return (R) context.Result;
+			return new FdbOperationContext(db, state).Execute(asyncAction, ct);
 		}
 
-		/// <summary>[EXPERIMENTAL] Retry an action in case of merge or temporary database failure</summary>
-		/// <typeparam name="TResult">Type of the result returned by the action</typeparam>
-		/// <param name="db">Database that will be the source of the transactions</param>
-		/// <param name="asyncAction">Async lambda to perform under a new transaction, that receives the transaction as the first parameter, and the context as the second parameter. It should throw an OperationCanceledException if it decides to not retry the action</param>
-		/// <param name="state">Optional state that is passed to the lambda view the context</param>
-		/// <param name="ct">Optionnal cancellation token, that will be passed to the async action as the third parameter</param>
-		/// <returns>Task that returns a result when we have successfully completed the action, or fails if a non retryable error occurs</returns>
-		public static async Task<R> RunReadAsync<R>(FdbDatabase db, bool snapshot, Func<IFdbReadTransaction, FdbOperationContext, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		public static async Task<R> RunWriteWithResultAsync<R>(FdbDatabase db, Func<IFdbTransaction, FdbOperationContext, Task<R>> asyncAction, object state, CancellationToken ct = default(CancellationToken))
 		{
-			// this is the equivalent of the "transactionnal" decorator in Python, and maybe also the "Run" method in Java
-			//TODO: add 'maxAttempts' or 'maxDuration' optional parameters ?
+			R result = default(R);
+			Func<IFdbTransaction, FdbOperationContext, Task> handler = async (tr, _context) =>
+			{
+				result = await asyncAction(tr, _context).ConfigureAwait(false);
+			};
 
-			var context = new FdbOperationContext(db, state, snapshot);
-			await context.Execute(asyncAction, ct).ConfigureAwait(false);
-			return (R)context.Result;
+			var context = new FdbOperationContext(db, state);
+			await context.Execute(handler, ct).ConfigureAwait(false);
+			return result;
+		}
+
+		public static async Task<R> RunWriteWithResultAsync<R>(FdbDatabase db, Func<IFdbTransaction, CancellationToken, Task<R>> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		{
+			R result = default(R);
+			Func<IFdbTransaction, FdbOperationContext, Task> handler = async (tr, _context) =>
+			{
+				result = await asyncAction(tr, _context.Token).ConfigureAwait(false);
+			};
+
+			var context = new FdbOperationContext(db, state);
+			await context.Execute(handler, ct).ConfigureAwait(false);
+			return result;
+		}
+
+		public static async Task<R> RunWriteWithResultAsync<R>(FdbDatabase db, Func<IFdbTransaction, Task<R>> asyncAction, object state, CancellationToken ct = default(CancellationToken))
+		{
+			R result = default(R);
+			Func<IFdbTransaction, FdbOperationContext, Task> handler = async (tr, _context) =>
+			{
+				result = await asyncAction(tr).ConfigureAwait(false);
+			};
+
+			var context = new FdbOperationContext(db, state);
+			await context.Execute(handler, ct).ConfigureAwait(false);
+			return result;
 		}
 
 	}

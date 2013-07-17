@@ -130,13 +130,11 @@ namespace FoundationDB.Layers.Tables.Tests
 				var table = new FdbTable(location.Partition("Foos"));
 
 				// write a bunch of keys
-				using (var tr = db.BeginTransaction())
+				await db.Attempt.Change((tr) =>
 				{
 					table.Set(tr, FdbTuple.Create("foo"), Slice.FromString("foo_value"));
 					table.Set(tr, FdbTuple.Create("bar"), Slice.FromString("bar_value"));
-
-					await tr.CommitAsync();
-				}
+				});
 
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);

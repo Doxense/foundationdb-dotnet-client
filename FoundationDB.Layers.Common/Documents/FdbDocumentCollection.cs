@@ -158,11 +158,7 @@ namespace FoundationDB.Layers.Documents
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			await db.Attempt.Change(
-				(trans, _document) => { Insert(trans, _document); },
-				document,
-				ct
-			);
+			await db.Attempt.Change((tr) => this.Insert(tr, document), ct);
 
 		}
 
@@ -171,10 +167,7 @@ namespace FoundationDB.Layers.Documents
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt.ReadAsync(
-				(trans) => LoadAsync(trans, id, ct),
-				ct
-			);
+			return db.Attempt.ReadAsync((tr) => LoadAsync(tr, id, ct), ct);
 		}
 
 		public Task DeleteAsync(FdbDatabase db, TId id, CancellationToken ct = default(CancellationToken))
@@ -182,11 +175,15 @@ namespace FoundationDB.Layers.Documents
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt.Change(
-				(tr, _id) => Delete(tr, _id),
-				id,
-				ct
-			);
+			return db.Attempt.Change((tr) => this.Delete(tr, id), ct);
+		}
+
+		public Task DeleteAsync(FdbDatabase db, TDocument document, CancellationToken ct = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (document == null) throw new ArgumentNullException("document");
+
+			return db.Attempt.Change((tr) => this.Delete(tr, document), ct);
 		}
 
 		#endregion

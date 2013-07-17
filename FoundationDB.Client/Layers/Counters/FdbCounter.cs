@@ -198,13 +198,12 @@ namespace FoundationDB.Layers.Counters
 
 		public Task AddAsync(long x, CancellationToken ct = default(CancellationToken))
 		{
-			return this.Database.Attempt.Change(this.Add, x, ct);
+			return this.Database.Attempt.Change((tr) => this.Add(tr, x), ct);
 		}
 
 		public Task SetTotalAsync(long x, CancellationToken ct = default(CancellationToken))
 		{
-			//TODO: snapshot ?
-			return this.Database.Attempt.ChangeAsync(this.SetTotal, x, ct);
+			return this.Database.Attempt.ChangeAsync((tr) => this.SetTotal(tr, x, ct), ct);
 		}
 
 		#endregion
