@@ -37,13 +37,12 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}")]
-	public class FdbTransaction : IFdbTransaction, IFdbReadTransaction, IDisposable
+	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadTransaction, IDisposable
 	{
 		#region Private Members...
 
@@ -726,12 +725,6 @@ namespace FoundationDB.Client
 
 		public void Dispose()
 		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		protected virtual void Dispose(bool disposing)
-		{
 			// note: we can be called by user code, or by the FdbDatabase when it is terminating with pending transactions
 			if (Interlocked.Exchange(ref m_state, STATE_DISPOSED) != STATE_DISPOSED)
 			{
@@ -749,140 +742,7 @@ namespace FoundationDB.Client
 					m_cts.Dispose();
 				}
 			}
-		}
-
-		#endregion
-
-		#region Snapshot...
-
-		/// <summary>Returns a version of this transaction that perform snapshotted operations</summary>
-		public IFdbReadTransaction Snapshot
-		{
-			get
-			{
-				EnsureNotFailedOrDisposed();
-				return m_snapshotted ?? (m_snapshotted = new Snapshotted(this));
-			}
-		}
-
-		/// <summary>Wrapper on a transaction, that will use Snmapshot mode on all read operations</summary>
-		private sealed class Snapshotted : IFdbReadTransaction
-		{
-			private readonly FdbTransaction m_parent;
-
-			public Snapshotted(FdbTransaction parent)
-			{
-				if (parent == null) throw new ArgumentNullException("parent");
-				m_parent = parent;
-			}
-
-			public int Id
-			{
-				get { return m_parent.Id; }
-			}
-
-			public int Size
-			{
-				get { return m_parent.Size; }
-			}
-
-			public CancellationToken Token
-			{
-				get { return m_parent.Token; }
-			}
-
-			public bool IsSnapshot
-			{
-				get { return true; }
-			}
-
-			public void EnsureCanRead(CancellationToken ct)
-			{
-				m_parent.EnsureCanRead(ct);
-			}
-
-			public void Reset()
-			{
-				m_parent.Reset();
-			}
-
-			public Task CommitAsync(CancellationToken ct)
-			{
-				return m_parent.CommitAsync(ct);
-			}
-
-			public Task<long> GetReadVersionAsync(CancellationToken ct)
-			{
-				return m_parent.GetReadVersionAsync(ct);
-			}
-
-			public void SetReadVersion(long version)
-			{
-				m_parent.SetReadVersion(version);
-			}
-
-			public long GetCommittedVersion()
-			{
-				return m_parent.GetCommittedVersion();
-			}
-
-			public Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct)
-			{
-				EnsureCanRead(ct);
-
-				return m_parent.GetCoreAsync(keyBytes, snapshot: true, ct: ct);
-			}
-
-			public Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct)
-			{
-				if (keys == null) throw new ArgumentNullException("keys");
-
-				EnsureCanRead(ct);
-
-				return m_parent.GetBatchValuesCoreAsync(keys, snapshot: true, ct: ct);
-			}
-
-			public Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct)
-			{
-				EnsureCanRead(ct);
-
-				return m_parent.GetKeyCoreAsync(selector, snapshot: true, ct: ct);
-			}
-
-			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, CancellationToken ct)
-			{
-				EnsureCanRead(ct);
-
-				return m_parent.GetRangeCoreAsync(range, options, iteration, snapshot: true, ct: ct);
-			}
-
-			public FdbRangeQuery GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options)
-			{
-				EnsureCanRead(CancellationToken.None);
-
-				return m_parent.GetRangeCore(FdbKeySelectorPair.Create(beginInclusive, endExclusive), options, snapshot: true);
-			}
-
-			public FdbRangeQuery GetRange(FdbKeySelectorPair range, FdbRangeOptions options)
-			{
-				EnsureCanRead(CancellationToken.None);
-
-				return m_parent.GetRangeCore(range, options, snapshot: true);
-			}
-
-			public FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options)
-			{
-				if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
-
-				EnsureCanRead(CancellationToken.None);
-
-				return m_parent.GetRangeCore(FdbKeySelectorPair.StartsWith(prefix), options, snapshot: true);
-			}
-
-			public Task OnErrorAsync(FdbError code, CancellationToken ct)
-			{
-				return m_parent.OnErrorAsync(code, ct);
-			}
+			GC.SuppressFinalize(this);
 		}
 
 		#endregion
