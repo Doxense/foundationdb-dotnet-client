@@ -264,6 +264,86 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Regular_Read_With_Concurrent_Change_Should_Conflict()
+		{
+			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("test");
+
+				await db.ClearRangeAsync(location);
+
+				// 
+				await db.Attempt.Change((tr) =>
+				{
+					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
+				});
+
+				using (var trA = db.BeginTransaction())
+				using (var trB = db.BeginTransaction())
+				{
+					// regular read
+					var foo = await trA.GetAsync(location.Pack("foo"));
+					trA.Set(location.Pack("foo"), Slice.FromString("bar"));
+
+					// this will conflict with our read
+					trB.Set(location.Pack("foo"), Slice.FromString("bar"));
+					await trB.CommitAsync();
+
+					// should succeed
+					try
+					{
+						await trA.CommitAsync();
+						Assert.Fail("Commit should conflict !");
+					}
+					catch (AssertionException) { throw; }
+					catch (Exception e)
+					{
+						Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
+					}
+				}
+			}
+
+		}
+
+		[Test]
+		public async Task Test_Snapshot_Read_With_Concurrent_Change_Should_Not_Conflict()
+		{
+
+			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("test");
+
+				await db.ClearRangeAsync(location);
+
+				// 
+				await db.Attempt.Change((tr) =>
+				{
+					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
+				});
+
+				using (var trA = db.BeginTransaction())
+				using (var trB = db.BeginTransaction())
+				{
+					// reading with snapshot mode should not conflict
+					var foo = await trA.Snapshot.GetAsync(location.Pack("foo"));
+					trA.Set(location.Pack("foo"), Slice.FromString("bar"));
+
+					// this would normally conflicts with the previous read if it wasn't a snapshot read
+					trB.Set(location.Pack("foo"), Slice.FromString("bar"));
+					await trB.CommitAsync();
+
+					// should succeed
+					await trA.CommitAsync();
+				}
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Can_Set_Read_Version()
 		{
 			// Verify that we can set a read version on a transaction
