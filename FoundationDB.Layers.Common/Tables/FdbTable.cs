@@ -36,16 +36,21 @@ namespace FoundationDB.Layers.Tables
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	[DebuggerDisplay("Subspace={Subspace}")]
+	[DebuggerDisplay("Name={Name}, Subspace={Subspace}")]
 	public class FdbTable
 	{
 
-		public FdbTable(FdbSubspace subspace)
+		public FdbTable(string name, FdbSubspace subspace)
 		{
+			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
+			this.Name = name;
 			this.Subspace = subspace;
 		}
+
+		/// <summary>Name of the table</summary>
+		public string Name { get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }

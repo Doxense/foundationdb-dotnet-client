@@ -37,22 +37,22 @@ namespace FoundationDB.Layers.Tables
 
 		public static FdbTable Table(this FdbDatabase db, string tableName)
 		{
-			return new FdbTable(db.Partition(tableName));
+			return new FdbTable(tableName, db.Partition(tableName));
 		}
 
-		public static FdbTable Table(this FdbDatabase db, IFdbTuple prefix)
+		public static FdbTable Table(this FdbDatabase db, string tableName, IFdbTuple prefix)
 		{
-			return new FdbTable(db.Partition(prefix));
+			return new FdbTable(tableName, db.Partition(prefix));
 		}
 
 		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
-			return new FdbTable<TKey, TValue>(db.Partition(tableName), keyReader, valueSerializer);
+			return new FdbTable<TKey, TValue>(tableName, db.Partition(tableName), keyReader, valueSerializer);
 		}
 
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, IFdbTuple prefix, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, IFdbTuple prefix, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
-			return new FdbTable<TKey, TValue>(db.Partition(prefix), keyReader, valueSerializer);
+			return new FdbTable<TKey, TValue>(tableName, db.Partition(prefix), keyReader, valueSerializer);
 		}
 
 

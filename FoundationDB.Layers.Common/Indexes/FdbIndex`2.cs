@@ -40,18 +40,22 @@ namespace FoundationDB.Layers.Indexing
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
-	[DebuggerDisplay("Subspace={Subspace}, IndexNullValues={IndexNullValues})")]
+	[DebuggerDisplay("Name={Name}, Subspace={Subspace}, IndexNullValues={IndexNullValues})")]
 	public class FdbIndex<TId, TValue>
 	{
 
-		public FdbIndex(FdbSubspace subspace, EqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbIndex(string name, FdbSubspace subspace, EqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
 		{
+			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
+			this.Name = name;
 			this.Subspace = subspace;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
 		}
+
+		public string Name { get; private set; }
 
 		public FdbSubspace Subspace { get; private set; }
 

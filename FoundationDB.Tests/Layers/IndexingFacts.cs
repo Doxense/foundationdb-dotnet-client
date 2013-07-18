@@ -54,7 +54,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 
 				var subspace = location.Partition("FoosByColor");
-				var index = new FdbIndex<int, string>(subspace);
+				var index = new FdbIndex<int, string>("Foos.ByColor", subspace);
 
 				// add items to the index
 				await db.Attempt.Change((tr) =>
@@ -146,9 +146,9 @@ namespace FoundationDB.Layers.Tables.Tests
 					new Character { Id = 6, Name = "Catwoman", Brand="DC", IsVilain = default(bool?) },
 				};
 
-				var indexBrand = new FdbIndex<long, string>(location.Partition("CharactersByBrand"));
-				var indexSuperHero = new FdbIndex<long, bool>(location.Partition("SuperHeros"));
-				var indexAlignment = new FdbIndex<long, bool?>(location.Partition("FriendsOrFoe"));
+				var indexBrand = new FdbIndex<long, string>("Heroes.ByBrand", location.Partition("CharactersByBrand"));
+				var indexSuperHero = new FdbIndex<long, bool>("Heroes.BySuper", location.Partition("SuperHeros"));
+				var indexAlignment = new FdbIndex<long, bool?>("Heros.ByAlignment", location.Partition("FriendsOrFoe"));
 
 				// index everything
 				await db.Attempt.Change((tr) =>

@@ -38,22 +38,25 @@ namespace FoundationDB.Layers.Tables
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	[DebuggerDisplay("Subspace={Subspace}")]
+	[DebuggerDisplay("Name={Name}, Subspace={Subspace}")]
 	public class FdbTable<TKey, TValue>
 	{
 
-		public FdbTable(FdbSubspace subspace, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public FdbTable(string name, FdbSubspace subspace, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
+			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (keyReader == null) throw new ArgumentNullException("keyReader");
 			if (valueSerializer == null) throw new ArgumentNullException("valueSerializer");
 
-			this.Table = new FdbTable(subspace);
+			this.Table = new FdbTable(name, subspace);
 			this.KeyReader = keyReader;
 			this.ValueSerializer = valueSerializer;
 		}
 
 		#region Public Properties...
+
+		public string Name { get { return this.Table.Name; } }
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get { return this.Table.Subspace; } }
