@@ -274,7 +274,6 @@ namespace FoundationDB.Client.Tests
 
 				await db.ClearRangeAsync(location);
 
-				// 
 				await db.Attempt.Change((tr) =>
 				{
 					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
@@ -291,7 +290,7 @@ namespace FoundationDB.Client.Tests
 					trB.Set(location.Pack("foo"), Slice.FromString("bar"));
 					await trB.CommitAsync();
 
-					// should succeed
+					// should fail with a "not_comitted" error
 					try
 					{
 						await trA.CommitAsync();
@@ -319,7 +318,6 @@ namespace FoundationDB.Client.Tests
 
 				await db.ClearRangeAsync(location);
 
-				// 
 				await db.Attempt.Change((tr) =>
 				{
 					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
