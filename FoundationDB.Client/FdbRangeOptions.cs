@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 
 	/// <summary>Container class for options in a Range query</summary>
-	[DebuggerDisplay("Limit={Limit}, Reverse={Reverse}, TargetBytes={TargetBytes}, StreamingMode={StreamingMode}")]
+	[DebuggerDisplay("Limit={Limit}, Reverse={Reverse}, TargetBytes={TargetBytes}, Mode={Mode}")]
 	public sealed class FdbRangeOptions
 	{
 		#region Public Properties...
@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 		public int? TargetBytes { get; set; }
 
 		/// <summary>Streaming mode</summary>
-		public FdbStreamingMode? StreamingMode { get; set; }
+		public FdbStreamingMode? Mode { get; set; }
 
 		#endregion
 
@@ -65,7 +65,7 @@ namespace FoundationDB.Client
 			this.Limit = options.Limit;
 			this.Reverse = options.Reverse;
 			this.TargetBytes = options.TargetBytes;
-			this.StreamingMode = options.StreamingMode;
+			this.Mode = options.Mode;
 		}
 
 		#endregion
@@ -74,12 +74,12 @@ namespace FoundationDB.Client
 		/// <param name="options">Options provided by the caller (can be null)</param>
 		/// <param name="limit">Default value for Limit if not provided</param>
 		/// <param name="targetBytes">Default TargetBytes for limit if not provided</param>
-		/// <param name="streamingMode">Default value for StreamingMode if not provided</param>
+		/// <param name="mode">Default value for StreamingMode if not provided</param>
 		/// <param name="reverse">Default value for Reverse if not provided</param>
 		/// <returns>Options with all the values filled</returns>
-		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions options, int limit, int targetBytes, FdbStreamingMode streamingMode, bool reverse)
+		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions options, int limit, int targetBytes, FdbStreamingMode mode, bool reverse)
 		{
-			Contract.Requires(limit >= 0 && targetBytes >= 0 && Enum.IsDefined(typeof(FdbStreamingMode), streamingMode));
+			Contract.Requires(limit >= 0 && targetBytes >= 0 && Enum.IsDefined(typeof(FdbStreamingMode), mode));
 
 			if (options == null)
 			{
@@ -87,25 +87,25 @@ namespace FoundationDB.Client
 				{
 					Limit = limit,
 					TargetBytes = targetBytes,
-					StreamingMode = streamingMode,
+					Mode = mode,
 					Reverse = reverse
 				};
 			}
-			else if (options.Limit == null || options.TargetBytes == null || options.StreamingMode == null || options.Reverse == null)
+			else if (options.Limit == null || options.TargetBytes == null || options.Mode == null || options.Reverse == null)
 			{
 				options = new FdbRangeOptions()
 				{
 					Limit = options.Limit ?? limit,
 					TargetBytes = options.TargetBytes ?? targetBytes,
-					StreamingMode = options.StreamingMode ?? streamingMode,
+					Mode = options.Mode ?? mode,
 					Reverse = options.Reverse ?? reverse
 				};
 			}
 
-			Contract.Ensures(options != null && options.Limit != null && options.TargetBytes != null && options.StreamingMode != null && options.Reverse != null);
+			Contract.Ensures(options != null && options.Limit != null && options.TargetBytes != null && options.Mode != null && options.Reverse != null);
 			Contract.Ensures(options.Limit >= 0, null, "Limit cannot be negative");
 			Contract.Ensures(options.TargetBytes >= 0, null, "TargetBytes cannot be negative");
-			Contract.Ensures(options.StreamingMode.HasValue && Enum.IsDefined(typeof(FdbStreamingMode), options.StreamingMode.Value), null, "StreamingMode must be valid");
+			Contract.Ensures(options.Mode.HasValue && Enum.IsDefined(typeof(FdbStreamingMode), options.Mode.Value), null, "Streaming mode must be valid");
 
 			return options;
 		}
@@ -115,7 +115,7 @@ namespace FoundationDB.Client
 		{
 			if (this.Limit < 0) throw new FdbException(FdbError.InvalidOptionValue, "Range Limit cannot be negative");
 			if (this.TargetBytes < 0) throw new FdbException(FdbError.InvalidOptionValue, "Range TargetBytes cannot be negative");
-			if (this.StreamingMode < FdbStreamingMode.WantAll || this.StreamingMode > FdbStreamingMode.Serial) throw new FdbException(FdbError.InvalidOptionValue, "Range StreaminMode must be valid");
+			if (this.Mode < FdbStreamingMode.WantAll || this.Mode > FdbStreamingMode.Serial) throw new FdbException(FdbError.InvalidOptionValue, "Range StreaminMode must be valid");
 		}
 
 		public FdbRangeOptions WithLimit(int limit)
@@ -130,7 +130,7 @@ namespace FoundationDB.Client
 
 		public FdbRangeOptions WithStreamingMode(FdbStreamingMode mode)
 		{
-			return this.StreamingMode == mode ? this : new FdbRangeOptions(this) { StreamingMode = mode };
+			return this.Mode == mode ? this : new FdbRangeOptions(this) { Mode = mode };
 		}
 
 		public FdbRangeOptions Reversed()

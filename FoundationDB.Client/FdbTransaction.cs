@@ -314,10 +314,10 @@ namespace FoundationDB.Client
 			this.Database.EnsureKeyIsValid(range.Start.Key);
 			this.Database.EnsureKeyIsValid(range.Stop.Key);
 
-			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.WantAll, false);
+			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
 			options.EnsureLegalValues();
 
-			var future = FdbNative.TransactionGetRange(this.Handle, range.Start, range.Stop, options.Limit ?? 0, options.TargetBytes ?? 0, options.StreamingMode ?? FdbStreamingMode.WantAll, iteration, snapshot, options.Reverse ?? false);
+			var future = FdbNative.TransactionGetRange(this.Handle, range.Start, range.Stop, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, snapshot, options.Reverse.Value);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) =>

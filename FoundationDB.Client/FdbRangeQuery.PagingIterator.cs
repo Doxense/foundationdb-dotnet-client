@@ -149,7 +149,7 @@ namespace FoundationDB.Client
 				{
 					Limit = this.Remaining.GetValueOrDefault(),
 					TargetBytes = this.Query.TargetBytes,
-					StreamingMode = this.Query.Mode,
+					Mode = this.Query.Mode,
 					Reverse = this.Query.Reverse
 				};
 

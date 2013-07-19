@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 			this.Range = range;
 			this.Limit = options.Limit ?? 0;
 			this.TargetBytes = options.TargetBytes ?? 0;
-			this.Mode = options.StreamingMode ?? FdbStreamingMode.WantAll;
+			this.Mode = options.Mode ?? FdbStreamingMode.WantAll;
 			this.Snapshot = snapshot;
 			this.Reverse = options.Reverse ?? false;
 		}

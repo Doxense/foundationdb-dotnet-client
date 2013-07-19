@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new FdbMergeSortIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity,
@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new FdbMergeSortIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				resultSelector,
@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new FdbIntersectIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity,
@@ -91,7 +91,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new FdbIntersectIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				resultSelector,
@@ -131,7 +131,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new FdbExceptIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity,
@@ -145,7 +145,7 @@ namespace FoundationDB.Client
 
 			trans.EnsureCanRead();
 			return new FdbExceptIterator<KeyValuePair<Slice, Slice>, TKey, TResult>(
-				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { StreamingMode = FdbStreamingMode.Iterator })),
+				ranges.Select(range => trans.GetRange(range, new FdbRangeOptions { Mode = FdbStreamingMode.Iterator })),
 				default(int?),
 				keySelector,
 				resultSelector,
