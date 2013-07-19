@@ -29,12 +29,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions.Tests
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class FdbQueryExpressionFacts
@@ -131,6 +134,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			);
 
 			var expr = FdbQueryExpressions.Intersect(
+				(x) => x,
 				expr1,
 				expr2
 			);
@@ -163,6 +167,40 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Transform));
 			Assert.That(expr.Type, Is.EqualTo(typeof(string)));//TODO: should be IFdbAsyncEnumerable<string> !
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(string)));	
+		}
+
+
+		[Test]
+		public async Task Test_QueryStuff()
+		{
+
+			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+
+				var location = db.Partition("QueryStuff");
+
+				await db.Attempt.Change((tr) =>
+				{
+					tr.Set(location.Pack("Hello"), Slice.FromString("World!"));
+					tr.Set(location.Pack("Narf"), Slice.FromString("Zort"));
+				});
+
+				var query = db.Query()
+					.RangeStartsWith(location.Tuple)
+					.Select(kvp => kvp.Value.ToString());
+
+				Console.WriteLine(query.Expression);
+
+				var iterator = query.GetEnumerator();
+				Console.WriteLine("Results:");
+				while (await iterator.MoveNext(CancellationToken.None))
+				{
+					Console.WriteLine("* " + iterator.Current);
+				}
+				
+
+			}
+
 		}
 
 	}

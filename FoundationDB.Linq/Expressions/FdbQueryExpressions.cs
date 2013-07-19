@@ -33,6 +33,7 @@ namespace FoundationDB.Linq.Expressions
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Linq.Expressions;
+	using System.Reflection;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
 	public static class FdbQueryExpressions
@@ -44,24 +45,40 @@ namespace FoundationDB.Linq.Expressions
 			return new FdbQueryIndexExpression<TId, TValue>(index);
 		}
 
-		public static FdbQueryRangeExpression Range(FdbKeySelectorPair range)
+		public static FdbQueryAsyncEnumerableExpression<T> Sequence<T>(IFdbAsyncEnumerable<T> source)
 		{
-			return new FdbQueryRangeExpression(range);
+			if (source == null) throw new ArgumentNullException("source");
+
+			return new FdbQueryAsyncEnumerableExpression<T>(source);
 		}
 
-		public static FdbQueryRangeExpression Range(FdbKeySelector start, FdbKeySelector stop)
+		public static FdbQuerySingleExpression<T> Single<T>(FdbQuerySequenceExpression<T> sequence, MethodInfo method)
 		{
-			return new FdbQueryRangeExpression(new FdbKeySelectorPair(start, stop));
+			if (sequence == null) throw new ArgumentNullException("sequence");
+			if (method == null) throw new ArgumentNullException("method");
+			//TODO : checj method arg types and return type!
+
+			return new FdbQuerySingleExpression<T>(sequence, method);
 		}
 
-		public static FdbQueryRangeExpression RangeStartsWith(Slice prefix)
+		public static FdbQueryRangeExpression Range(FdbKeySelectorPair range, FdbRangeOptions options = null)
 		{
-			return new FdbQueryRangeExpression(FdbKeySelectorPair.StartsWith(prefix));
+			return new FdbQueryRangeExpression(range, options);
 		}
 
-		public static FdbQueryRangeExpression RangeStartsWith(IFdbTuple tuple)
+		public static FdbQueryRangeExpression Range(FdbKeySelector start, FdbKeySelector stop, FdbRangeOptions options = null)
 		{
-			return new FdbQueryRangeExpression(tuple.ToSelectorPair());
+			return Range(new FdbKeySelectorPair(start, stop), options);
+		}
+
+		public static FdbQueryRangeExpression RangeStartsWith(Slice prefix, FdbRangeOptions options = null)
+		{
+			return Range(FdbKeySelectorPair.StartsWith(prefix), options);
+		}
+
+		public static FdbQueryRangeExpression RangeStartsWith(IFdbTuple tuple, FdbRangeOptions options = null)
+		{
+			return Range(tuple.ToSelectorPair(), options);
 		}
 
 		public static FdbQueryIndexLookupExpression<TId, TValue> Lookup<TId, TValue>(FdbQueryIndexExpression<TId, TValue> index, ExpressionType op, Expression value)
@@ -99,7 +116,7 @@ namespace FoundationDB.Linq.Expressions
 			return new FdbQueryIndexLookupExpression<TId, TValue>(index, binary.NodeType, constant);
 		}
 
-		public static FdbQueryIntersectExpression<T> Intersect<T>(params FdbQuerySequenceExpression<T>[] expressions)
+		public static FdbQueryIntersectExpression<K, T> Intersect<K, T>(Expression<Func<T, K>> keySelector, params FdbQuerySequenceExpression<T>[] expressions)
 		{
 			if (expressions == null) throw new ArgumentNullException("expressions");
 			if (expressions.Length <= 1) throw new ArgumentException("There must be at least two sequences to perform an intersection");
@@ -107,7 +124,7 @@ namespace FoundationDB.Linq.Expressions
 			var type = expressions[0].Type;
 			//TODO: check that all the other have the same type
 
-			return new FdbQueryIntersectExpression<T>(type, expressions);
+			return new FdbQueryIntersectExpression<K, T>(expressions, keySelector, null);
 		}
 
 		public static FdbQueryTransformExpression<T, R> Transform<T, R>(FdbQuerySequenceExpression<T> source, Expression<Func<T, R>> transform)
@@ -118,6 +135,16 @@ namespace FoundationDB.Linq.Expressions
 			if (source.ElementType != typeof(T)) throw new ArgumentException(String.Format("Source sequence has type {0} that is not compatible with transform input type {1}", source.ElementType.Name, typeof(T).Name), "source");
 
 			return new FdbQueryTransformExpression<T, R>(source, transform);
+		}
+
+		public static FdbQueryFilterExpression<T> Filter<T>(FdbQuerySequenceExpression<T> source, Expression<Func<T, bool>> filter)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (filter == null) throw new ArgumentNullException("filter");
+
+			if (source.ElementType != typeof(T)) throw new ArgumentException(String.Format("Source sequence has type {0} that is not compatible with filter input type {1}", source.ElementType.Name, typeof(T).Name), "source");
+
+			return new FdbQueryFilterExpression<T>(source, filter);
 		}
 
 	}

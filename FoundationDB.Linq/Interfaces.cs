@@ -26,42 +26,60 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq.Expressions
+namespace FoundationDB.Linq
 {
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq.Expressions;
 	using System;
+	using System.Collections.Generic;
 	using System.Linq.Expressions;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-	/// <summary>Expression that represent a projection from one type into another</summary>
-	/// <typeparam name="T">Type of elements in the inner sequence</typeparam>
-	/// <typeparam name="R">Type of elements in the outer sequence</typeparam>
-	public class FdbQueryTransformExpression<T, R> : FdbQuerySequenceExpression<R>
+	public interface IFdbAsyncQueryable
 	{
+		Type ElementType { get; }
 
-		internal FdbQueryTransformExpression(FdbQuerySequenceExpression<T> source, Expression<Func<T, R>> transform)
-		{
-			this.Source = source;
-			this.Transform = transform;
-		}
+		FdbQueryExpression Expression { get; }
 
-		public override FdbQueryNodeType NodeType
-		{
-			get { return FdbQueryNodeType.Transform; }
-		}
+		IFdbAsyncQueryProvider Provider { get; }
+	}
 
-		public FdbQuerySequenceExpression<T> Source { get; private set; }
+	public interface IFdbAsyncQueryable<T> : IFdbAsyncQueryable
+	{
+		new FdbQueryExpression<T> Expression { get; }
 
-		public Expression<Func<T, R>> Transform { get; private set; }
+		new IFdbAsyncQueryProvider<T> Provider { get; }
 
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
-		{
-			writer
-				.WriteLine("Transform(")
-				.Enter()
-					.Write(this.Source).WriteLine(",")
-					.Write(this.Transform.ToString()).WriteLine()
-				.Leave().Write(")");
-		}
+	}
 
+	public interface IFdbAsyncSequenceQueryable<T> : IFdbAsyncQueryable<IFdbAsyncEnumerable<T>>, IFdbAsyncEnumerable<T>
+	{
+		new FdbQuerySequenceExpression<T> Expression { get; }
+	}
+
+	public interface IFdbAsyncQueryProvider 
+	{
+		IFdbAsyncQueryable CreateQuery(FdbQueryExpression expression);
+
+		IFdbAsyncQueryable<R> CreateQuery<R>(FdbQueryExpression<R> expression);
+
+		IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression);
+
+		Task<R> Execute<R>(FdbQueryExpression expression, CancellationToken ct = default(CancellationToken));
+	
+	}
+
+	public interface IFdbAsyncQueryProvider<T> : IFdbAsyncQueryProvider
+	{
+		Task<T> ExecuteSingle(FdbQueryExpression<T> expression, CancellationToken ct = default(CancellationToken));
+	}
+
+	public interface IFdbAsyncSequenceQueryProvider<T> : IFdbAsyncQueryProvider
+	{
+		Task<TSequence> ExecuteSequence<TSequence>(FdbQuerySequenceExpression<T> expression, CancellationToken ct = default(CancellationToken))
+			where TSequence : IEnumerable<T>;
 	}
 
 }

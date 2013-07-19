@@ -28,17 +28,33 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
+	using FoundationDB.Client;
 	using System;
+	using System.Linq.Expressions;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-	public enum FdbQueryNodeType
+	/// <summary>Base class of all queries that return a sequence of elements (Ranges, Index lookups, ...)</summary>
+	/// <typeparam name="T">Type of items returned</typeparam>
+	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<IFdbAsyncEnumerable<T>>
 	{
-		Transform = 9001,
-		IndexName,
-		IndexLookup,
-		Range,
-		Intersect,
-		Union,
-		Except,
+
+		// what should be put there ?
+
+		/// <summary>Type of elements returned by the sequence</summary>
+		public Type ElementType { get { return typeof(T); } }
+
+
+		public abstract Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence(IFdbAsyncQueryProvider provider);
+
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle(IFdbAsyncQueryProvider<IFdbAsyncEnumerable<T>> provider)
+		{
+
+			//TODO: compile a "Task.FromResult(GetEnumerator())" ?
+
+			throw new NotSupportedException();
+		}
+
 	}
 
 }

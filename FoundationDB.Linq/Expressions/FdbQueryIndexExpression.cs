@@ -28,41 +28,48 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Indexing;
+	using FoundationDB.Linq.Utils;
 	using System;
-	using System.Collections.Generic;
+	using System.Linq.Expressions;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-	/// <summary>Intersection between two or more sequence</summary>
-	/// <typeparam name="T">Type of the keys returned</typeparam>
-	public sealed class FdbQueryIntersectExpression<T> : FdbQuerySequenceExpression<T>
+	/// <summary>Wrapper on an FdbIndex instance</summary>
+	/// <typeparam name="TId">Type of the Id of entities being indexed</typeparam>
+	/// <typeparam name="TValue">Type of the value of property being indexed for each entity</typeparam>
+	public sealed class FdbQueryIndexExpression<TId, TValue> : FdbQueryExpression<FdbIndex<TId, TValue>>
 	{
 
-		internal FdbQueryIntersectExpression(Type type, FdbQuerySequenceExpression<T>[] expressions)
+		internal FdbQueryIndexExpression(FdbIndex<TId, TValue> index)
 		{
-			this.Expressions = expressions;
+			this.Index = index;
 		}
 
 		public override FdbQueryNodeType NodeType
 		{
-			get { return FdbQueryNodeType.Intersect; }
+			get { return FdbQueryNodeType.IndexName; }
 		}
 
-		internal FdbQuerySequenceExpression<T>[] Expressions { get; private set; }
+		public FdbIndex<TId, TValue> Index { get; private set; }
 
-		public IReadOnlyList<FdbQuerySequenceExpression<T>> Terms { get { return this.Expressions; } }
+		public Type KeyType { get { return typeof(TId); } }
+
+		public Type ValueType { get { return typeof(TValue); } }
+
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<FdbIndex<TId, TValue>>>> CompileSingle(IFdbAsyncQueryProvider<FdbIndex<TId, TValue>> provider)
+		{
+			return Expression.Lambda<Func<IFdbReadTransaction, CancellationToken, Task<FdbIndex<TId, TValue>>>>(
+				Expression.Constant(this.Index),
+				Expression.Parameter(typeof(IFdbReadTransaction)),
+				Expression.Parameter(typeof(CancellationToken))
+			);
+		}
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
 		{
-			writer.WriteLine("Intersect<{0}>(", this.ElementType.Name).Enter();
-
-			for(int i=0;i<this.Expressions.Length;i++)
-			{
-				writer.Write(this.Expressions[i]);
-				if (i + 1 < this.Expressions.Length)
-					writer.WriteLine(",");
-				else
-					writer.WriteLine();
-			}
-			writer.Leave().Write(")");
+			writer.Write("Index[{0}]", this.Index.Name);
 		}
 
 	}

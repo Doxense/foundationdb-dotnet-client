@@ -29,28 +29,61 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using FoundationDB.Linq.Utils;
 	using System;
-	using System.Collections.Generic;
+	using System.Linq.Expressions;
+	using System.Threading;
 
-	/// <summary>Expression that represents a GetRange query using a pair of key selectors</summary>
-	public class FdbQueryRangeExpression : FdbQuerySequenceExpression<KeyValuePair<Slice, Slice>>
+	/// <summary>Expression that represent a projection from one type into another</summary>
+	/// <typeparam name="T">Type of elements in the inner sequence</typeparam>
+	/// <typeparam name="R">Type of elements in the outer sequence</typeparam>
+	public class FdbQueryFilterExpression<T> : FdbQuerySequenceExpression<T>
 	{
 
-		internal FdbQueryRangeExpression(FdbKeySelectorPair range)
+		internal FdbQueryFilterExpression(FdbQuerySequenceExpression<T> source, Expression<Func<T, bool>> filter)
 		{
-			this.Range = range;
+			this.Source = source;
+			this.Filter = filter;
 		}
 
 		public override FdbQueryNodeType NodeType
 		{
-			get { return FdbQueryNodeType.Range; }
+			get { return FdbQueryNodeType.Filter; }
 		}
 
-		public FdbKeySelectorPair Range { get; private set; }
+		public FdbQuerySequenceExpression<T> Source { get; private set; }
+
+		public Expression<Func<T, bool>> Filter { get; private set; }
+
+		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence(IFdbAsyncQueryProvider provider)
+		{
+			var sourceEnumerable = this.Source.CompileSequence(provider);
+
+			var lambda = this.Filter.Compile();
+
+			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+
+			// (tr) => sourceEnumerable(tr).Where(lambda);
+
+			var method = typeof(FdbAsyncEnumerable).GetMethod("Where").MakeGenericMethod(typeof(T));
+
+			var body = Expression.Call(
+				method, 
+				Expression.Invoke(sourceEnumerable, prmTrans), 
+				Expression.Constant(lambda)
+			);
+
+			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>>(body, prmTrans);
+		}
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
 		{
-			writer.Write("Range[{0}, {1}]", this.Range.Start.ToString(), this.Range.Stop.ToString());
+			writer
+				.WriteLine("Filter(")
+				.Enter()
+					.Write(this.Source).WriteLine(",")
+					.WriteLine("On({0})", this.Filter.GetDebugView())
+				.Leave().Write(")");
 		}
 
 	}

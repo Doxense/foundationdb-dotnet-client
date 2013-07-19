@@ -26,9 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq.Expressions
+namespace FoundationDB.Linq.Utils
 {
+	using FoundationDB.Linq.Expressions;
 	using System;
+	using System.Globalization;
+	using System.Linq.Expressions;
 	using System.Text;
 
 	/// <summary>Very simple writer to dump query expressions into a statement usefull for logging/debugging</summary>
@@ -66,8 +69,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public FdbDebugStatementWriter WriteLine()
 		{
-			WriteLine(String.Empty);
-			return this;
+			return WriteLine(String.Empty);
 		}
 
 		public FdbDebugStatementWriter Write(string text)
@@ -80,18 +82,31 @@ namespace FoundationDB.Linq.Expressions
 
 		public FdbDebugStatementWriter WriteLine(string format, params string[] args)
 		{
-			return WriteLine(String.Format(format, args));
+			return WriteLine(String.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
 		public FdbDebugStatementWriter Write(string format, params string[] args)
 		{
-			return Write(String.Format(format, args));
+			return Write(String.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
 		public FdbDebugStatementWriter Write(FdbQueryExpression expression)
 		{
 			expression.AppendDebugStatement(this);
 			return this;
+		}
+
+		public FdbDebugStatementWriter Write(Expression expression)
+		{
+			var constant = expression as ConstantExpression;
+			if (constant != null)
+			{
+				return Write(constant.ToString());
+			}
+			else
+			{
+				return Write(FdbExpressionHelpers.GetDebugView(expression));
+			}
 		}
 
 		private void Indent()

@@ -8,7 +8,7 @@
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>FoundationDB.Linq.Expressions</RootNamespace>
-    <AssemblyName>FoundationDB.Query</AssemblyName>
+    <AssemblyName>FoundationDB.Linq</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -44,16 +44,26 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
-    <Compile Include="FdbQueryRangeExpression.cs" />
-    <Compile Include="FdbQueryTransformExpression.cs" />
-    <Compile Include="FdbQueryIndexLookupExpression.cs" />
-    <Compile Include="FdbQueryIndexExpression.cs" />
-    <Compile Include="FdbQueryIntersectExpression.cs" />
-    <Compile Include="FdbQuerySequenceExpression.cs" />
-    <Compile Include="FdbQueryExpression.cs" />
-    <Compile Include="FdbQueryExpressions.cs" />
-    <Compile Include="FdbDebugStatementWriter.cs" />
-    <Compile Include="FdbQueryNodeType.cs" />
+    <Compile Include="Utils\FdbExpressionHelpers.cs" />
+    <Compile Include="FdbAsyncQuery`1.cs" />
+    <Compile Include="Expressions\FdbQuerySingleExpression.cs" />
+    <Compile Include="Expressions\FdbQueryAsyncEnumerableExpression.cs" />
+    <Compile Include="FdbAsyncSequenceQuery.cs" />
+    <Compile Include="FdbAsyncQuery.cs" />
+    <Compile Include="FdbAsyncQueryable`1.cs" />
+    <Compile Include="Expressions\FdbQueryDatabaseExpression.cs" />
+    <Compile Include="Expressions\FdbQueryFilterExpression.cs" />
+    <Compile Include="Interfaces.cs" />
+    <Compile Include="Expressions\FdbQueryRangeExpression.cs" />
+    <Compile Include="Expressions\FdbQueryTransformExpression.cs" />
+    <Compile Include="Expressions\FdbQueryIndexLookupExpression.cs" />
+    <Compile Include="Expressions\FdbQueryIndexExpression.cs" />
+    <Compile Include="Expressions\FdbQueryIntersectExpression.cs" />
+    <Compile Include="Expressions\FdbQuerySequenceExpression.cs" />
+    <Compile Include="Expressions\FdbQueryExpression.cs" />
+    <Compile Include="Expressions\FdbQueryExpressions.cs" />
+    <Compile Include="Utils\FdbDebugStatementWriter.cs" />
+    <Compile Include="Expressions\FdbQueryNodeType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

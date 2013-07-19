@@ -28,19 +28,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using System;
+	using FoundationDB.Client;
+	using FoundationDB.Linq.Utils;
 
-	/// <summary>Base class of all queries that return a sequence of elements (Ranges, Index lookups, ...)</summary>
-	/// <typeparam name="T">Type of items returned</typeparam>
-	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<T>
+	public sealed class FdbQueryDatabaseExpression : FdbQueryExpression
 	{
 
-		// what should be put there ?
+		internal FdbQueryDatabaseExpression(FdbDatabase db)
+			: base(typeof(FdbDatabase))
+		{
+			this.Database = db;
+		}
 
-		/// <summary>Type of elements returned by the sequence</summary>
-		public Type ElementType { get { return typeof(T); } }
+		public override FdbQueryNodeType NodeType
+		{
+			get { return FdbQueryNodeType.Database; }
+		}
+
+		public FdbDatabase Database { get; private set; }
+
+		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
+		{
+			writer.Write("Database[{0}]", this.Database.Name);
+		}
 
 	}
-
 
 }

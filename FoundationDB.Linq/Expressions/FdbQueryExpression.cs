@@ -26,42 +26,56 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Linq.Expressions
 {
+	using FoundationDB.Client;
+	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Linq.Expressions;
+	using System.Reflection;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
-	/// <typeparam name="TId">Type of the Id of the enties being indexed</typeparam>
-	/// <typeparam name="TValue">Type of the value that will be looked up</typeparam>
-	public class FdbQueryIndexLookupExpression<TId, TValue> : FdbQuerySequenceExpression<TId>
+    public abstract class FdbQueryExpression
+    {
+
+		protected FdbQueryExpression(Type type)
+		{
+			this.Type = type;
+		}
+
+		public Type Type { get; private set; }
+
+		public abstract FdbQueryNodeType NodeType { get; }
+
+		internal abstract void AppendDebugStatement(FdbDebugStatementWriter writer);
+
+		internal string DebugView
+		{
+			get
+			{
+				var writer = new FdbDebugStatementWriter();
+				this.AppendDebugStatement(writer);
+				return writer.ToString();
+			}
+		}
+
+#if DEBUG
+		public override string ToString()
+		{
+			return this.DebugView;
+		}
+#endif
+
+    }
+
+	public abstract class FdbQueryExpression<T> : FdbQueryExpression
 	{
+		protected FdbQueryExpression()
+			: base(typeof(T))
+		{ }
 
-		internal FdbQueryIndexLookupExpression(FdbQueryIndexExpression<TId, TValue> index, ExpressionType op, Expression value)
-		{
-			this.Index = index;
-			this.Operator = op;
-			this.Value = value;
-		}
-
-		public override FdbQueryNodeType NodeType
-		{
-			get { return FdbQueryNodeType.IndexLookup; }
-		}
-
-		public FdbQueryIndexExpression<TId, TValue> Index { get; private set; }
-
-		public ExpressionType Operator { get; private set; }
-
-		public Expression Value { get; private set; }
-
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
-		{
-			writer
-				.Write(this.Index)
-				.Write(".Lookup<{0}>({1}, <{2}> {3})", this.ElementType.Name, this.Operator.ToString(), typeof(TValue).Name, this.Value.ToString());
-		}
+		public abstract Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle(IFdbAsyncQueryProvider<T> provider);
 
 	}
 

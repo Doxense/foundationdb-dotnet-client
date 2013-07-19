@@ -121,6 +121,17 @@ namespace FoundationDB.Client
 			);
 		}
 
+		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(IEnumerable<IFdbAsyncEnumerable<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		{
+			return new FdbIntersectIterator<TResult, TKey, TResult>(
+				sources,
+				null,
+				keySelector,
+				TaskHelpers.Cache<TResult>.Identity,
+				keyComparer
+			);
+		}
+
 		#endregion
 
 		#region Except (x AND NOT y)

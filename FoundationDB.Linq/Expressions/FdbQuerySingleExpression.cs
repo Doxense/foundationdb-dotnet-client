@@ -28,34 +28,54 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Layers.Indexing;
+	using FoundationDB.Client;
+	using FoundationDB.Linq.Utils;
 	using System;
+	using System.Linq.Expressions;
+	using System.Reflection;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-	/// <summary>Wrapper on an FdbIndex instance</summary>
-	/// <typeparam name="TId">Type of the Id of entities being indexed</typeparam>
-	/// <typeparam name="TValue">Type of the value of property being indexed for each entity</typeparam>
-	public sealed class FdbQueryIndexExpression<TId, TValue> : FdbQueryExpression<FdbIndex<TId, TValue>>
+	public class FdbQuerySingleExpression<T> : FdbQueryExpression<T>
 	{
-
-		internal FdbQueryIndexExpression(FdbIndex<TId, TValue> index)
+		public FdbQuerySingleExpression(FdbQuerySequenceExpression<T> sequence, MethodInfo method)
 		{
-			this.Index = index;
+			this.Sequence = sequence;
+			this.Method = method;
 		}
 
 		public override FdbQueryNodeType NodeType
 		{
-			get { return FdbQueryNodeType.IndexName; }
+			get { return FdbQueryNodeType.Single; }
 		}
 
-		public FdbIndex<TId, TValue> Index { get; private set; }
+		public FdbQuerySequenceExpression<T> Sequence { get; private set;}
 
-		public Type KeyType { get { return typeof(TId); } }
+		public MethodInfo Method { get; private set; }
 
-		public Type ValueType { get { return typeof(TValue); } }
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle(IFdbAsyncQueryProvider<T> provider)
+		{
+			var enumerable = this.Sequence.CompileSequence(provider);
+
+			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
+
+			var body = Expression.Call(
+				this.Method,
+				Expression.Invoke(enumerable, prmTrans),
+				prmCancel
+			);
+
+			return Expression.Lambda<Func<IFdbReadTransaction, CancellationToken, Task<T>>>(
+				body,
+				prmTrans,
+				prmCancel
+			);
+		}
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
 		{
-			writer.Write("Index[{0}]", this.Index.Name);
+			writer.Write(this.Sequence).WriteLine(".{0}()", this.Method.Name);
 		}
 
 	}

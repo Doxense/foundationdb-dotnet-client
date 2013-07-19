@@ -26,18 +26,50 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+namespace FoundationDB.Linq.Expressions
+{
+	using FoundationDB.Client;
+	using FoundationDB.Linq.Utils;
+	using System;
+	using System.Linq.Expressions;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-[assembly: AssemblyTitle("FoundationDB.Client")]
-[assembly: AssemblyDescription("")]
-[assembly: AssemblyConfiguration("")]
+	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>
+	{
 
-[assembly: ComVisible(false)]
+		public FdbQueryAsyncEnumerableExpression(IFdbAsyncEnumerable<T> source)
+		{
+			this.Source = source;
+		}
 
-[assembly: Guid("0fce138d-cb61-49fd-bb0a-a0ecb37abe78")]
+		public override FdbQueryNodeType NodeType
+		{
+			get { return FdbQueryNodeType.Sequence; }
+		}
 
-[assembly: InternalsVisibleTo("FoundationDB.Layers.Common, PublicKey=0024000004800000940000000602000000240000525341310004000001000100a9e653303024d91e3e98cdb33228897aebc9aeb0dd5e0890a2362ff08231643525d86e955d52a9be450a9602eedbc1c0eb463d227320a6b6ad1c7129f21353b2b28242d712a0e7b3aaff55c0ab1019c92bea6806b9cf64e93d976143dc57e0a8e73a65c03422ab2624c1220d84f7e88c5a5c3c9edefcf4a76969d458348403ce")]
-[assembly: InternalsVisibleTo("FoundationDB.Linq, PublicKey=0024000004800000940000000602000000240000525341310004000001000100a9e653303024d91e3e98cdb33228897aebc9aeb0dd5e0890a2362ff08231643525d86e955d52a9be450a9602eedbc1c0eb463d227320a6b6ad1c7129f21353b2b28242d712a0e7b3aaff55c0ab1019c92bea6806b9cf64e93d976143dc57e0a8e73a65c03422ab2624c1220d84f7e88c5a5c3c9edefcf4a76969d458348403ce")]
-[assembly: InternalsVisibleTo("FoundationDB.Tests, PublicKey=0024000004800000940000000602000000240000525341310004000001000100a9e653303024d91e3e98cdb33228897aebc9aeb0dd5e0890a2362ff08231643525d86e955d52a9be450a9602eedbc1c0eb463d227320a6b6ad1c7129f21353b2b28242d712a0e7b3aaff55c0ab1019c92bea6806b9cf64e93d976143dc57e0a8e73a65c03422ab2624c1220d84f7e88c5a5c3c9edefcf4a76969d458348403ce")]
+		public IFdbAsyncEnumerable<T> Source { get; private set; }
+
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle(IFdbAsyncQueryProvider<IFdbAsyncEnumerable<T>> provider)
+		{
+			throw new NotImplementedException();
+		}
+
+		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence(IFdbAsyncQueryProvider provider)
+		{
+			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+
+			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>>(
+				Expression.Constant(this.Source), 
+				prmTrans
+			);
+		}
+
+		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
+		{
+			writer.Write("Source<{0}>({1})", typeof(T).Name, this.Source.GetType().Name);
+		}
+
+	}
+
+}

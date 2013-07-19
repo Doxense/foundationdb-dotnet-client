@@ -30,34 +30,19 @@ namespace FoundationDB.Linq.Expressions
 {
 	using System;
 
-    public abstract class FdbQueryExpression
-    {
-
-		protected FdbQueryExpression(Type type)
-		{
-			this.Type = type;
-		}
-
-		public Type Type { get; private set; }
-
-		public abstract FdbQueryNodeType NodeType { get; }
-
-		internal abstract void AppendDebugStatement(FdbDebugStatementWriter writer);
-
-		public override string ToString()
-		{
-			var writer = new FdbDebugStatementWriter();
-			this.AppendDebugStatement(writer);
-			return writer.ToString();
-		}
-    }
-
-	public abstract class FdbQueryExpression<T> : FdbQueryExpression
+	public enum FdbQueryNodeType
 	{
-		protected FdbQueryExpression()
-			: base(typeof(T))
-		{ }
-
+		Database = 9001,
+		Single,
+		Sequence,
+		IndexName,
+		IndexLookup,
+		Transform,
+		Filter,
+		Range,
+		Intersect,
+		Union,
+		Except,
 	}
 
 }
