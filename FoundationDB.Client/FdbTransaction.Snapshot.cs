@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Wrapper on a transaction, that will use Snmapshot mode on all read operations</summary>
-		private sealed class Snapshotted : IFdbReadTransaction
+		private sealed class Snapshotted : IFdbReadTransaction, IDisposable
 		{
 			private readonly FdbTransaction m_parent;
 
@@ -167,6 +167,11 @@ namespace FoundationDB.Client
 			public Task OnErrorAsync(FdbError code, CancellationToken ct)
 			{
 				return m_parent.OnErrorAsync(code, ct);
+			}
+
+			void IDisposable.Dispose()
+			{
+				// NO-OP
 			}
 		}
 
