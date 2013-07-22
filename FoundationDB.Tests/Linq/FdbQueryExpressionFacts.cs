@@ -29,15 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions.Tests
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class FdbQueryExpressionFacts
@@ -63,8 +60,11 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
 			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.IndexLookup));
-			Assert.That(expr.Type, Is.EqualTo(typeof(int)));//TODO: should be IFdbAsyncEnumerable<int> !
+			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
+
+			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
+
 		}
 
 		[Test]
@@ -83,8 +83,11 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
 			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.IndexLookup));
-			Assert.That(expr.Type, Is.EqualTo(typeof(int)));//TODO: should be IFdbAsyncEnumerable<int> !
+			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
+
+			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
+
 		}
 
 		[Test]
@@ -100,8 +103,10 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Range.Stop.Key.ToString(), Is.EqualTo("<02>Foo<00><FF>"));
 
 			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Range));
-			Assert.That(expr.Type, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));//TODO: should be IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> !
-			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));	
+			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
+			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
+
+			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
 		}
 
 		[Test]
@@ -117,7 +122,6 @@ namespace FoundationDB.Linq.Expressions.Tests
 			);
 
 			var expr = FdbQueryExpressions.Intersect(
-				(x) => x,
 				expr1,
 				expr2
 			);
@@ -130,8 +134,41 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Terms[1], Is.SameAs(expr2));
 
 			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Intersect));
-			Assert.That(expr.Type, Is.EqualTo(typeof(int)));//TODO: should be IFdbAsyncEnumerable<int> !
+			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
+
+			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
+		}
+
+		[Test]
+		public void Test_FdbQueryUnionExpression()
+		{
+			var expr1 = FdbQueryExpressions.Lookup(
+				FooBarIndex,
+				(x) => x == "world"
+			);
+			var expr2 = FdbQueryExpressions.Lookup(
+				FooBazIndex,
+				(x) => x == 1234L
+			);
+
+			var expr = FdbQueryExpressions.Union(
+				expr1,
+				expr2
+			);
+			Console.WriteLine(expr);
+
+			Assert.That(expr, Is.Not.Null);
+			Assert.That(expr.Terms, Is.Not.Null);
+			Assert.That(expr.Terms.Count, Is.EqualTo(2));
+			Assert.That(expr.Terms[0], Is.SameAs(expr1));
+			Assert.That(expr.Terms[1], Is.SameAs(expr2));
+
+			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Union));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
+			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
+
+			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
 		}
 
 		[Test]
@@ -148,122 +185,30 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Transform, Is.Not.Null);
 
 			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Transform));
-			Assert.That(expr.Type, Is.EqualTo(typeof(string)));//TODO: should be IFdbAsyncEnumerable<string> !
-			Assert.That(expr.ElementType, Is.EqualTo(typeof(string)));	
-		}
+			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<string>)));
+			Assert.That(expr.ElementType, Is.EqualTo(typeof(string)));
 
-
-		[Test]
-		public async Task Test_QueryStuff()
-		{
-
-			using(var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-
-				var location = db.Partition("Linq");
-
-				await db.Attempt.Change((tr) =>
-				{
-					tr.Set(location.Pack("Hello"), Slice.FromString("World!"));
-					tr.Set(location.Pack("Narf"), Slice.FromString("Zort"));
-				});
-
-				var range = db.Query().RangeStartsWith(location.Tuple);
-				Assert.That(range, Is.InstanceOf<FdbAsyncSequenceQuery<KeyValuePair<Slice, Slice>>>());
-
-				var projection = range.Select(kvp => kvp.Value.ToString());
-				Assert.That(projection, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
-
-				var results = await projection.ToListAsync();
-				Console.WriteLine("ToListAsync() => [ " + String.Join(", ", results) + " ]");
-
-				var count = await projection.CountAsync();
-				Console.WriteLine("CountAsync() => " + count); 
-				Assert.That(count, Is.EqualTo(2));
-
-				var first = await projection.FirstAsync();
-				Console.WriteLine("FirstAsync() => " + first);
-				Assert.That(first, Is.EqualTo("World!"));
-			}
+			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
 		}
 
 		[Test]
-		public async Task Test_Query_Index_Single()
+		public void Test_FdbQueryFilterExpression()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
+			var expr = FdbQueryExpressions.Filter(
+				FdbQueryExpressions.RangeStartsWith(FdbTuple.Create("Hello", "World")),
+				(kvp) => kvp.Value.ToInt32() % 2 == 0
+			);
+			Console.WriteLine(expr);
 
-				var location = db.Partition("Linq");
+			Assert.That(expr, Is.Not.Null);
+			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
+			Assert.That(expr.Filter, Is.Not.Null);
 
-				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition("Foos", "ByColor"));
+			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Filter));
+			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
+			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
 
-				await db.Attempt.Change((tr) =>
-				{
-					index.Add(tr, 1, "red");
-					index.Add(tr, 2, "green");
-					index.Add(tr, 3, "blue");
-					index.Add(tr, 4, "red");
-				});
-
-				// find all elements that are read
-				var lookup = index.Query(db).Lookup(x => x == "red");
-
-				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<long>>());
-				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<long, string>>());
-				Console.WriteLine(lookup.Expression.DebugView);
-
-				var ids = await lookup.ToListAsync();
-				Console.WriteLine("LookupAsync() => [ " + String.Join(", ", ids) + " ]");
-
-			}
-
-		}
-
-
-		[Test]
-		public async Task Test_Query_Index_Range()
-		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-
-				var location = db.Partition("Linq");
-
-				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition("Foos", "ByScore"));
-
-				await db.Attempt.Change((tr) =>
-				{
-					index.Add(tr, "alpha", 10);
-					index.Add(tr, "bravo", 16);
-					index.Add(tr, "charly", 12);
-					index.Add(tr, "echo", 666);
-					index.Add(tr, "foxtrot", 54321);
-					index.Add(tr, "golf", 768);
-					index.Add(tr, "tango", 12345);
-					index.Add(tr, "sierra", 667);
-					index.Add(tr, "victor", 1234);
-					index.Add(tr, "whisky", 9001);
-				});
-
-				// find all up to 100
-				var lookup = index.Query(db).Lookup(x => x <= 100);
-				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
-				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
-
-				var ids = await lookup.ToListAsync();
-				Console.WriteLine(lookup.Expression.DebugView);
-				Console.WriteLine("=> [ " + String.Join(", ", ids) + " ]");
-				
-				// find all that are over nine thousand
-				lookup = index.Query(db).Lookup(x => x >= 9000);
-				Assert.That(lookup, Is.InstanceOf<FdbAsyncSequenceQuery<string>>());
-				Assert.That(lookup.Expression, Is.InstanceOf<FdbQueryIndexLookupExpression<string, int>>());
-
-				ids = await lookup.ToListAsync();
-				Console.WriteLine(lookup.Expression.DebugView);
-				Console.WriteLine("=> [ " + String.Join(", ", ids) + " ]");
-
-			}
-
+			Console.WriteLine(FdbQueryExpressions.ExplainSequence(expr));
 		}
 
 	}

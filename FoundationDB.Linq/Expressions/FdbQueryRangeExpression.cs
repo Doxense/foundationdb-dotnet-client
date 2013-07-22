@@ -60,7 +60,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public FdbRangeOptions Options { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
 

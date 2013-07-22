@@ -53,13 +53,11 @@
     <Compile Include="FdbAsyncSequenceQuery.cs" />
     <Compile Include="FdbAsyncQuery.cs" />
     <Compile Include="FdbAsyncQueryable.cs" />
-    <Compile Include="Expressions\FdbQueryDatabaseExpression.cs" />
     <Compile Include="Expressions\FdbQueryFilterExpression.cs" />
     <Compile Include="Interfaces.cs" />
     <Compile Include="Expressions\FdbQueryRangeExpression.cs" />
     <Compile Include="Expressions\FdbQueryTransformExpression.cs" />
     <Compile Include="Expressions\FdbQueryIndexLookupExpression.cs" />
-    <Compile Include="Expressions\FdbQueryIndexExpression.cs" />
     <Compile Include="Expressions\FdbQueryIntersectExpression.cs" />
     <Compile Include="Expressions\FdbQuerySequenceExpression.cs" />
     <Compile Include="Expressions\FdbQueryExpression.cs" />

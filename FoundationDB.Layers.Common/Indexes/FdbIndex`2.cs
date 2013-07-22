@@ -187,7 +187,7 @@ namespace FoundationDB.Layers.Indexing
 
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Index<{0}>", this.Name);
+			return String.Format(CultureInfo.InvariantCulture, "Index['{0}']", this.Name);
 		}
 
 	}

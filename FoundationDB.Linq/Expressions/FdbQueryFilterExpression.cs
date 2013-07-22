@@ -60,21 +60,19 @@ namespace FoundationDB.Linq.Expressions
 
 		public Expression<Func<T, bool>> Filter { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
 		{
-			var sourceEnumerable = this.Source.CompileSequence(provider);
-
 			var lambda = this.Filter.Compile();
+
+			var enumerable = this.Source.CompileSequence();
 
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
 
 			// (tr) => sourceEnumerable(tr).Where(lambda);
 
-			var method = typeof(FdbAsyncEnumerable).GetMethod("Where").MakeGenericMethod(typeof(T));
-
-			var body = Expression.Call(
-				method, 
-				Expression.Invoke(sourceEnumerable, prmTrans), 
+			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>, Func<T, bool>, IFdbAsyncEnumerable<T>>>(
+				(sequence, predicate) => sequence.Where(predicate),
+				FdbExpressionHelpers.RewriteCall(enumerable, prmTrans),
 				Expression.Constant(lambda)
 			);
 
@@ -87,7 +85,7 @@ namespace FoundationDB.Linq.Expressions
 				.WriteLine("Filter(")
 				.Enter()
 					.Write(this.Source).WriteLine(",")
-					.WriteLine("On({0})", this.Filter.GetDebugView())
+					.WriteLine(this.Filter.ToString())
 				.Leave().Write(")");
 		}
 

@@ -33,6 +33,7 @@ namespace FoundationDB.Linq
 	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Collections.Generic;
+	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -126,24 +127,19 @@ namespace FoundationDB.Linq
 
 		#region Single...
 
-		/// <summary>Cached compiled generator, that can be reused</summary>
-		private Func<IFdbReadTransaction, CancellationToken, Task<T>> m_compiledSingle;
-
-		private Func<IFdbReadTransaction, CancellationToken, Task<T>> CompileSingle()
+		protected Func<IFdbReadTransaction, CancellationToken, Task<T>> CompileSingle(FdbQueryExpression expression)
 		{
-			if (m_compiledSingle == null)
-			{
-				var expr = ((FdbQueryExpression<T>)this.Expression).CompileSingle(this);
-				//Console.WriteLine("Compiled single as:");
-				//Console.WriteLine("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
-				m_compiledSingle = expr.Compile();
-			}
-			return m_compiledSingle;
+			//TODO: caching !
+
+			var expr = ((FdbQueryExpression<T>)expression).CompileSingle();
+			//Console.WriteLine("Compiled single as:");
+			//Console.WriteLine("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
+			return expr.Compile();
 		}
 
 		protected virtual async Task<object> ExecuteSingleInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
-			var generator = CompileSingle();
+			var generator = CompileSingle(expression);
 
 			IFdbTransaction trans = this.Transaction;
 			bool owned = false;
@@ -171,19 +167,14 @@ namespace FoundationDB.Linq
 
 		#region Sequence...
 
-		/// <summary>Cached compiled generator, that can be reused</summary>
-		private Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> m_compiledSequence;
-
-		private Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> CompileSequence()
+		private Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> CompileSequence(FdbQueryExpression expression)
 		{
-			if (m_compiledSequence == null)
-			{
-				var expr = (this.Expression as FdbQuerySequenceExpression<T>).CompileSequence(this);
-				//Console.WriteLine("Compiled sequence as:");
-				//Console.WriteLine("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
-				m_compiledSequence = expr.Compile();
-			}
-			return m_compiledSequence;
+			//TODO: caching !
+
+			var expr = ((FdbQuerySequenceExpression<T>) expression).CompileSequence();
+			//Console.WriteLine("Compiled sequence as:");
+			//Console.WriteLine("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
+			return expr.Compile();
 		}
 
 		public IFdbAsyncEnumerable<T> ToEnumerable()
@@ -193,7 +184,7 @@ namespace FoundationDB.Linq
 
 		internal static IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncSequenceQuery<T> sequence)
 		{
-			var generator = sequence.CompileSequence();
+			var generator = sequence.CompileSequence(sequence.Expression);
 
 			if (sequence.Transaction != null)
 			{
@@ -261,7 +252,7 @@ namespace FoundationDB.Linq
 
 		protected virtual async Task<object> ExecuteSequenceInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
-			var generator = CompileSequence();
+			var generator = CompileSequence(expression);
 
 			IFdbTransaction trans = this.Transaction;
 			bool owned = false;

@@ -55,12 +55,12 @@ namespace FoundationDB.Linq.Expressions
 
 		public IFdbAsyncEnumerable<T> Source { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
 		{
-			return FdbExpressionHelpers.ToTask(CompileSequence(provider));
+			return FdbExpressionHelpers.ToTask(CompileSequence());
 		}
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
 

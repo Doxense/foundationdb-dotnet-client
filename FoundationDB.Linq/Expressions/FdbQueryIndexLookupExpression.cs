@@ -66,7 +66,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public Expression Value { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<TId>>> CompileSequence(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<TId>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
 			Expression body;
@@ -122,12 +122,12 @@ namespace FoundationDB.Linq.Expressions
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
 		{
-			writer.Write("Index[{0}].Lookup<{1}>(({2} x) => x {3} {4})", this.Index.Name, this.ElementType.Name, typeof(TValue).Name, FdbExpressionHelpers.GetOperatorAlias(this.Operator), this.Value.GetDebugView());
+			writer.Write("Index['{0}'].Lookup<{1}>(({2} x) => x {3} {4})", this.Index.Name, this.ElementType.Name, typeof(TValue).Name, FdbExpressionHelpers.GetOperatorAlias(this.Operator), this.Value.GetDebugView());
 		}
 
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Index<{0}>.Lookup({1}, {2})", this.Index.Name, this.Operator, this.Value);
+			return String.Format(CultureInfo.InvariantCulture, "Index['{0}'].Lookup({1}, {2})", this.Index.Name, this.Operator, this.Value);
 		}
 
 	}

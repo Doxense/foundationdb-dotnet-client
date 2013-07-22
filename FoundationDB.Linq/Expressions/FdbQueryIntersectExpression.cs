@@ -34,23 +34,18 @@ namespace FoundationDB.Linq.Expressions
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Linq.Expressions;
+	using System.Reflection;
 	using System.Threading;
 
 	/// <summary>Intersection between two or more sequence</summary>
 	/// <typeparam name="T">Type of the keys returned</typeparam>
-	public sealed class FdbQueryIntersectExpression<K, T> : FdbQuerySequenceExpression<T>
+	public abstract class FdbQueryMergeExpression<T> : FdbQuerySequenceExpression<T>
 	{
 
-		internal FdbQueryIntersectExpression(FdbQuerySequenceExpression<T>[] expressions, Expression<Func<T, K>> keySelector, IComparer<K> keyComparer)
+		internal FdbQueryMergeExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T> keyComparer)
 		{
 			this.Expressions = expressions;
-			this.KeySelector = keySelector;
 			this.KeyComparer = keyComparer;
-		}
-
-		public override FdbQueryNodeType NodeType
-		{
-			get { return FdbQueryNodeType.Intersect; }
 		}
 
 		public override FdbQueryShape Shape
@@ -62,29 +57,50 @@ namespace FoundationDB.Linq.Expressions
 
 		public IReadOnlyList<FdbQuerySequenceExpression<T>> Terms { get { return this.Expressions; } }
 
-		public Expression<Func<T, K>> KeySelector { get; private set; }
+		public IComparer<T> KeyComparer { get; private set; }
 
-		public IComparer<K> KeyComparer { get; private set; }
-
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
 		{
 			// compile the key selector
-			var selector = this.KeySelector.Compile();
-
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
 
 			// get all inner enumerables
 			var enumerables = new Expression[this.Expressions.Length];
 			for(int i=0;i<this.Expressions.Length;i++)
 			{
-				enumerables[i] = Expression.Invoke(this.Expressions[i].CompileSequence(provider), prmTrans);
+				enumerables[i] = FdbExpressionHelpers.RewriteCall(this.Expressions[i].CompileSequence(), prmTrans);
 			}
 
 			var array = Expression.NewArrayInit(typeof(IFdbAsyncEnumerable<T>), enumerables);
-			var method = typeof(FdbMergeQueryExtensions).GetMethod("Intersect").MakeGenericMethod(typeof(T));
+			Expression body;
+			switch (this.NodeType)
+			{
+				case FdbQueryNodeType.Intersect:
+				{
+					body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>[], IComparer<T>, IFdbAsyncEnumerable<T>>>(
+						(sources, comparer) => FdbMergeQueryExtensions.Intersect(sources, comparer),
+						array,
+						Expression.Constant(this.KeyComparer, typeof(IComparer<T>))
+					);
+					break;
+				}
+				case FdbQueryNodeType.Union:
+				{
+					body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>[], IComparer<T>, IFdbAsyncEnumerable<T>>>(
+						(sources, comparer) => FdbMergeQueryExtensions.Union(sources, comparer),
+						array,
+						Expression.Constant(this.KeyComparer, typeof(IComparer<T>))
+					);
+					break;
+				}
+				default:
+				{
+					throw new InvalidOperationException(String.Format("Unsupported index merge mode {0}", this.NodeType));
+				}
+			}
 
 			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>>(
-				Expression.Call(method, array, Expression.Constant(selector), Expression.Constant(this.KeyComparer)),
+				body,
 				prmTrans
 			);
 		
@@ -92,9 +108,7 @@ namespace FoundationDB.Linq.Expressions
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
 		{
-			writer.WriteLine("Intersect<{0}>(", this.ElementType.Name).Enter();
-			writer.WriteLine("On({0}),", this.KeySelector.GetDebugView());
-			writer.WriteLine("From([").Enter();
+			writer.WriteLine("{0}<{1}>(", this.NodeType.ToString(), this.ElementType.Name).Enter();
 			for(int i=0;i<this.Expressions.Length;i++)
 			{
 				writer.Write(this.Expressions[i]);
@@ -103,7 +117,36 @@ namespace FoundationDB.Linq.Expressions
 				else
 					writer.WriteLine();
 			}
-			writer.Leave().WriteLine("])").Leave().Write(")");
+			writer.Leave().Write(")");
+		}
+
+	}
+
+	public sealed class FdbQueryIntersectExpression<T> : FdbQueryMergeExpression<T>
+	{
+
+		internal FdbQueryIntersectExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T> keyComparer)
+			: base(expressions, keyComparer)
+		{ }
+
+		public override FdbQueryNodeType NodeType
+		{
+			get { return FdbQueryNodeType.Intersect; }
+		}
+	}
+
+	/// <summary>Intersection between two or more sequence</summary>
+	/// <typeparam name="T">Type of the keys returned</typeparam>
+	public sealed class FdbQueryUnionExpression<T> : FdbQueryMergeExpression<T>
+	{
+
+		internal FdbQueryUnionExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T> keyComparer)
+			: base(expressions, keyComparer)
+		{ }
+
+		public override FdbQueryNodeType NodeType
+		{
+			get { return FdbQueryNodeType.Union; }
 		}
 
 	}

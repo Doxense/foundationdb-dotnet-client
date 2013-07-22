@@ -128,7 +128,7 @@ namespace FoundationDB.Linq.Expressions
 			return new FdbQueryIndexLookupExpression<TId, TValue>(index, binary.NodeType, constant);
 		}
 
-		public static FdbQueryIntersectExpression<K, T> Intersect<K, T>(Expression<Func<T, K>> keySelector, params FdbQuerySequenceExpression<T>[] expressions)
+		public static FdbQueryIntersectExpression<T> Intersect<T>(params FdbQuerySequenceExpression<T>[] expressions)
 		{
 			if (expressions == null) throw new ArgumentNullException("expressions");
 			if (expressions.Length <= 1) throw new ArgumentException("There must be at least two sequences to perform an intersection");
@@ -136,7 +136,18 @@ namespace FoundationDB.Linq.Expressions
 			var type = expressions[0].Type;
 			//TODO: check that all the other have the same type
 
-			return new FdbQueryIntersectExpression<K, T>(expressions, keySelector, null);
+			return new FdbQueryIntersectExpression<T>(expressions, null);
+		}
+
+		public static FdbQueryUnionExpression<T> Union<T>(params FdbQuerySequenceExpression<T>[] expressions)
+		{
+			if (expressions == null) throw new ArgumentNullException("expressions");
+			if (expressions.Length <= 1) throw new ArgumentException("There must be at least two sequences to perform an intersection");
+
+			var type = expressions[0].Type;
+			//TODO: check that all the other have the same type
+
+			return new FdbQueryUnionExpression<T>(expressions, null);
 		}
 
 		public static FdbQueryTransformExpression<T, R> Transform<T, R>(FdbQuerySequenceExpression<T> source, Expression<Func<T, R>> transform)
@@ -157,6 +168,23 @@ namespace FoundationDB.Linq.Expressions
 			if (source.ElementType != typeof(T)) throw new ArgumentException(String.Format("Source sequence has type {0} that is not compatible with filter input type {1}", source.ElementType.Name, typeof(T).Name), "source");
 
 			return new FdbQueryFilterExpression<T>(source, filter);
+		}
+
+		public static string ExplainSingle<T>(FdbQueryExpression<T> expression, CancellationToken ct)
+		{
+			if (expression.Shape != FdbQueryShape.Single) throw new InvalidOperationException("Invalid sequence shape"); ;
+
+			var expr = expression.CompileSingle();
+			return expr.GetDebugView();
+		}
+
+
+		public static string ExplainSequence<T>(FdbQuerySequenceExpression<T> expression)
+		{
+			if (expression.Shape != FdbQueryShape.Sequence) throw new InvalidOperationException("Invalid sequence shape"); ;
+
+			var expr = expression.CompileSequence();
+			return expr.GetDebugView();
 		}
 
 	}

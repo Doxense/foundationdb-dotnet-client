@@ -67,6 +67,28 @@ namespace FoundationDB.Client
 			);
 		}
 
+		public static IFdbAsyncEnumerable<TResult> Union<TKey, TResult>(IEnumerable<IFdbAsyncEnumerable<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		{
+			return new FdbMergeSortIterator<TResult, TKey, TResult>(
+				sources,
+				null,
+				keySelector,
+				TaskHelpers.Cache<TResult>.Identity,
+				keyComparer
+			);
+		}
+
+		public static IFdbAsyncEnumerable<TResult> Union<TResult>(IEnumerable<IFdbAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
+		{
+			return new FdbMergeSortIterator<TResult, TResult, TResult>(
+				sources,
+				null,
+				TaskHelpers.Cache<TResult>.Identity,
+				TaskHelpers.Cache<TResult>.Identity,
+				keyComparer
+			);
+		}
+
 		#endregion
 
 		#region Intersect (x AND y)
@@ -127,6 +149,17 @@ namespace FoundationDB.Client
 				sources,
 				null,
 				keySelector,
+				TaskHelpers.Cache<TResult>.Identity,
+				keyComparer
+			);
+		}
+
+		public static IFdbAsyncEnumerable<TResult> Intersect<TResult>(IEnumerable<IFdbAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
+		{
+			return new FdbIntersectIterator<TResult, TResult, TResult>(
+				sources,
+				null,
+				TaskHelpers.Cache<TResult>.Identity,
 				TaskHelpers.Cache<TResult>.Identity,
 				keyComparer
 			);

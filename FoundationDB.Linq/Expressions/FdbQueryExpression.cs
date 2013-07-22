@@ -77,7 +77,7 @@ namespace FoundationDB.Linq.Expressions
 			: base(typeof(T))
 		{ }
 
-		public abstract Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle(IFdbAsyncQueryProvider provider);
+		public abstract Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle();
 
 	}
 

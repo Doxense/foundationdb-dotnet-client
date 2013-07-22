@@ -61,14 +61,15 @@ namespace FoundationDB.Linq.Expressions
 
 		public Expression<Func<T, R>> Transform { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<R>>> CompileSequence(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<R>>> CompileSequence()
 		{
-			var sourceEnumerable = this.Source.CompileSequence(provider);
 			var lambda = this.Transform.Compile();
 
-			var enumerable = this.Source.CompileSequence(provider);
+			var enumerable = this.Source.CompileSequence();
 
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+
+			// (tr) => sourceEnumerable(tr).Select(lambda);
 
 			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>, Func<T, R>, IFdbAsyncEnumerable<R>>>(
 				(sequence, selector) => sequence.Select(selector),
@@ -76,10 +77,7 @@ namespace FoundationDB.Linq.Expressions
 				Expression.Constant(lambda)
 			);
 
-			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<R>>>(
-				body,
-				prmTrans
-			);
+			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<R>>>(body, prmTrans);
 		}
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)

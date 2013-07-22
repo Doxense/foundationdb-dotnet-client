@@ -55,7 +55,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public T Value { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle()
 		{
 			return (_, __) => Task.FromResult<T>(this.Value);
 		}

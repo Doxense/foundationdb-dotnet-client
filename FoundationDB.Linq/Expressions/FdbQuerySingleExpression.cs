@@ -64,11 +64,11 @@ namespace FoundationDB.Linq.Expressions
 
 		public Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> Lambda { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<R>>> CompileSingle(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<R>>> CompileSingle()
 		{
 			// We want to generate: (trans, ct) => ExecuteEnumerable(source, lambda, trans, ct);
 
-			var sourceExpr = this.Sequence.CompileSequence(provider);
+			var sourceExpr = this.Sequence.CompileSequence();
 
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
 			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
