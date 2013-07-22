@@ -38,141 +38,16 @@ namespace FoundationDB.Linq
 
 	/// <summary>Async LINQ query that returns an async sequence of items</summary>
 	/// <typeparam name="T">Type of the items in the sequence</typeparam>
-	public sealed class FdbAsyncSequenceQuery<T> : FdbAsyncQuery<IFdbAsyncEnumerable<T>>, IFdbAsyncSequenceQueryable<T>, IFdbAsyncSequenceQueryProvider<T>, IFdbAsyncEnumerable<T>
+	public sealed class FdbAsyncSequenceQuery<T> : FdbAsyncQuery<T>, IFdbAsyncSequenceQueryable<T>
 	{
 
 		public FdbAsyncSequenceQuery(FdbDatabase db, FdbQuerySequenceExpression<T> expression)
 			: base(db, expression)
 		{ }
 
+		public Type ElementType { get { return typeof(T); } }
+
 		public new FdbQuerySequenceExpression<T> Expression { get { return (FdbQuerySequenceExpression<T>)base.Expression; } }
-
-		/// <summary>Cached compiled generator, that can be reused</summary>
-		private Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> m_compiled;
-
-		private Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> Compile()
-		{
-			if (m_compiled == null)
-			{
-				var expr = this.Expression.CompileSequence(this);
-				Console.WriteLine("Compiled as:");
-				Console.WriteLine("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
-				m_compiled = expr.Compile();
-			}
-			return m_compiled;
-		}
-
-		public IFdbAsyncEnumerator<T> GetEnumerator()
-		{
-			var generator = Compile();
-
-			if (this.Transaction != null)
-			{
-				return generator(this.Transaction).GetEnumerator();
-			}
-
-			IFdbTransaction trans = null;
-			IFdbAsyncEnumerator<T> iterator = null;
-			bool success = true;
-			try
-			{
-				trans = this.Database.BeginTransaction();
-				iterator = generator(trans).GetEnumerator();
-
-				return new TransactionIterator(trans, iterator);
-			}
-			catch (Exception)
-			{
-				success = false;
-				throw;
-			}
-			finally
-			{
-				if (!success)
-				{
-					if (iterator != null) iterator.Dispose();
-					if (trans != null) trans.Dispose();
-				}
-			}
-		}
-
-		private class TransactionIterator : IFdbAsyncEnumerator<T>
-		{
-			private readonly IFdbAsyncEnumerator<T> m_iterator;
-			private readonly IFdbTransaction m_transaction;
-
-			public TransactionIterator(IFdbTransaction transaction, IFdbAsyncEnumerator<T> iterator)
-			{
-				m_transaction = transaction;
-				m_iterator = iterator;
-			}
-
-			public Task<bool> MoveNext(CancellationToken cancellationToken)
-			{
-				return m_iterator.MoveNext(cancellationToken);
-			}
-
-			public T Current
-			{
-				get { return m_iterator.Current; }
-			}
-
-			public void Dispose()
-			{
-				try
-				{
-					m_iterator.Dispose();
-				}
-				finally
-				{
-					m_transaction.Dispose();
-				}
-			}
-		}
-
-		Task<TSequence> IFdbAsyncSequenceQueryProvider<T>.ExecuteSequence<TSequence>(FdbQuerySequenceExpression<T> expression, CancellationToken ct)
-		{
-			return ExecuteInternal<TSequence>(expression, ct);
-		}
-
-		protected override async Task<R> ExecuteInternal<R>(FdbQueryExpression expression, CancellationToken ct)
-		{
-			var generator = Compile();
-
-			IFdbTransaction trans = this.Transaction;
-			bool owned = false;
-			try
-			{
-				if (trans == null)
-				{
-					owned = true;
-					trans = this.Database.BeginTransaction();
-				}
-
-				var enumerable = generator(trans);
-
-				object result;
-
-				if (typeof(R).IsInstanceOfType(typeof(T[])))
-				{
-					result = await enumerable.ToArrayAsync(ct).ConfigureAwait(false);
-				}
-				else if (typeof(R).IsInstanceOfType(typeof(ICollection<T>)))
-				{
-					result = await enumerable.ToListAsync(ct).ConfigureAwait(false);
-				}
-				else
-				{
-					throw new InvalidOperationException("Sequence result type is not supported");
-				}
-
-				return (R)result;
-			}
-			finally
-			{
-				if (owned && trans != null) trans.Dispose();
-			}
-		}
 
 	}
 

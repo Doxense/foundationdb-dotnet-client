@@ -29,50 +29,45 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
 	using System;
+	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>
+	public sealed class FdbQueryConstantExpression<T> : FdbQueryExpression<T>
 	{
 
-		public FdbQueryAsyncEnumerableExpression(IFdbAsyncEnumerable<T> source)
+		public FdbQueryConstantExpression(T value)
 		{
-			this.Source = source;
+			this.Value = value;
 		}
 
 		public override FdbQueryNodeType NodeType
 		{
-			get { return FdbQueryNodeType.Sequence; }
+			get { return FdbQueryNodeType.Constant; }
 		}
 
 		public override FdbQueryShape Shape
 		{
-			get { return FdbQueryShape.Sequence; }
+			get { return FdbQueryShape.Single; }
 		}
 
-		public IFdbAsyncEnumerable<T> Source { get; private set; }
+		public T Value { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle(IFdbAsyncQueryProvider provider)
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle(IFdbAsyncQueryProvider provider)
 		{
-			return FdbExpressionHelpers.ToTask(CompileSequence(provider));
+			return (_, __) => Task.FromResult<T>(this.Value);
 		}
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence(IFdbAsyncQueryProvider provider)
+		internal override void AppendDebugStatement(Utils.FdbDebugStatementWriter writer)
 		{
-			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
-
-			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>>(
-				Expression.Constant(this.Source), 
-				prmTrans
-			);
+			writer.Write(Expression.Constant(this.Value, typeof(T)));
 		}
 
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
+		public override string ToString()
 		{
-			writer.Write("Source<{0}>({1})", typeof(T).Name, this.Source.GetType().Name);
+			return String.Format(CultureInfo.InvariantCulture, "Constant({0})", this.Value);
 		}
 
 	}

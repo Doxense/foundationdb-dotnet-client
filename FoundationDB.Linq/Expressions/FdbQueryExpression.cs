@@ -48,6 +48,8 @@ namespace FoundationDB.Linq.Expressions
 
 		public abstract FdbQueryNodeType NodeType { get; }
 
+		public abstract FdbQueryShape Shape { get; }
+
 		internal abstract void AppendDebugStatement(FdbDebugStatementWriter writer);
 
 		internal string DebugView
@@ -75,7 +77,7 @@ namespace FoundationDB.Linq.Expressions
 			: base(typeof(T))
 		{ }
 
-		public abstract Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle(IFdbAsyncQueryProvider<T> provider);
+		public abstract Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle(IFdbAsyncQueryProvider provider);
 
 	}
 

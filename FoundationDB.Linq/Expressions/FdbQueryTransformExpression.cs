@@ -52,6 +52,11 @@ namespace FoundationDB.Linq.Expressions
 			get { return FdbQueryNodeType.Transform; }
 		}
 
+		public override FdbQueryShape Shape
+		{
+			get { return FdbQueryShape.Sequence; }
+		}
+
 		public FdbQuerySequenceExpression<T> Source { get; private set; }
 
 		public Expression<Func<T, R>> Transform { get; private set; }

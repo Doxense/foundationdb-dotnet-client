@@ -96,6 +96,12 @@ namespace FoundationDB.Linq.Utils
 			return this;
 		}
 
+		public FdbDebugStatementWriter WriteLine(FdbQueryExpression expression)
+		{
+			expression.AppendDebugStatement(this);
+			return WriteLine();
+		}
+
 		public FdbDebugStatementWriter Write(Expression expression)
 		{
 			var constant = expression as ConstantExpression;

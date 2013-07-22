@@ -53,6 +53,11 @@ namespace FoundationDB.Linq.Expressions
 			get { return FdbQueryNodeType.Intersect; }
 		}
 
+		public override FdbQueryShape Shape
+		{
+			get { return FdbQueryShape.Sequence; }
+		}
+
 		internal FdbQuerySequenceExpression<T>[] Expressions { get; private set; }
 
 		public IReadOnlyList<FdbQuerySequenceExpression<T>> Terms { get { return this.Expressions; } }

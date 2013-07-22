@@ -31,18 +31,39 @@ namespace FoundationDB.Linq.Expressions
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Linq.Expressions;
 	using System.Reflection;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	/// <summary>Helper class to construct Query Expressions</summary>
 	public static class FdbQueryExpressions
 	{
+
+#if REFACTORED
 		public static FdbQueryIndexExpression<TId, TValue> Index<TId, TValue>(FdbIndex<TId, TValue> index)
 		{
 			if (index == null) throw new ArgumentNullException("index");
 
 			return new FdbQueryIndexExpression<TId, TValue>(index);
+		}
+#endif
+
+		public static FdbQueryConstantExpression<T> Constant<T>(T value)
+		{
+			return new FdbQueryConstantExpression<T>(value);
+		}
+
+		public static FdbQuerySingleExpression<T, R> Single<T, R>(FdbQuerySequenceExpression<T> source, string name, Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (lambda == null) throw new ArgumentNullException("lambda");
+
+			if (name == null) name = lambda.Name ?? "Lambda";
+
+			return new FdbQuerySingleExpression<T, R>(source, name, lambda);
 		}
 
 		public static FdbQueryAsyncEnumerableExpression<T> Sequence<T>(IFdbAsyncEnumerable<T> source)
@@ -50,15 +71,6 @@ namespace FoundationDB.Linq.Expressions
 			if (source == null) throw new ArgumentNullException("source");
 
 			return new FdbQueryAsyncEnumerableExpression<T>(source);
-		}
-
-		public static FdbQuerySingleExpression<T> Single<T>(FdbQuerySequenceExpression<T> sequence, MethodInfo method)
-		{
-			if (sequence == null) throw new ArgumentNullException("sequence");
-			if (method == null) throw new ArgumentNullException("method");
-			//TODO : checj method arg types and return type!
-
-			return new FdbQuerySingleExpression<T>(sequence, method);
 		}
 
 		public static FdbQueryRangeExpression Range(FdbKeySelectorPair range, FdbRangeOptions options = null)
@@ -81,7 +93,7 @@ namespace FoundationDB.Linq.Expressions
 			return Range(tuple.ToSelectorPair(), options);
 		}
 
-		public static FdbQueryIndexLookupExpression<TId, TValue> Lookup<TId, TValue>(FdbQueryIndexExpression<TId, TValue> index, ExpressionType op, Expression value)
+		public static FdbQueryIndexLookupExpression<TId, TValue> Lookup<TId, TValue>(FdbIndex<TId, TValue> index, ExpressionType op, Expression value)
 		{
 			if (index == null) throw new ArgumentNullException("index");
 			if (value == null) throw new ArgumentNullException("value");
@@ -103,7 +115,7 @@ namespace FoundationDB.Linq.Expressions
 			return new FdbQueryIndexLookupExpression<TId, TValue>(index, op, value);
 		}
 
-		public static FdbQueryIndexLookupExpression<TId, TValue> Lookup<TId, TValue>(FdbQueryIndexExpression<TId, TValue> index, Expression<Func<TValue, bool>> expression)
+		public static FdbQueryIndexLookupExpression<TId, TValue> Lookup<TId, TValue>(FdbIndex<TId, TValue> index, Expression<Func<TValue, bool>> expression)
 		{
 			if (index == null) throw new ArgumentNullException("index");
 

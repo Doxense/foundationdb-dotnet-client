@@ -32,6 +32,10 @@ namespace FoundationDB.Linq.Expressions
 
 	public enum FdbQueryNodeType
 	{
+		Invalid = 0,
+
+		Constant = 9,
+
 		Database = 9001,
 		Single,
 		Sequence,
@@ -43,6 +47,16 @@ namespace FoundationDB.Linq.Expressions
 		Intersect,
 		Union,
 		Except,
+	}
+
+	public enum FdbQueryShape
+	{
+		/// <summary>Query does not return anything</summary>
+		Void = 0,
+		/// <summary>Query return a single result</summary>
+		Single,
+		/// <summary>Query return a sequence of elements</summary>
+		Sequence
 	}
 
 }

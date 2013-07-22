@@ -51,6 +51,11 @@ namespace FoundationDB.Linq.Expressions
 			get { return FdbQueryNodeType.Range; }
 		}
 
+		public override FdbQueryShape Shape
+		{
+			get { return FdbQueryShape.Sequence; }
+		}
+
 		public FdbKeySelectorPair Range { get; private set; }
 
 		public FdbRangeOptions Options { get; private set; }

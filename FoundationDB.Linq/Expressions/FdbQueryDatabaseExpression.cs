@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if REFACTORED
+
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
@@ -55,3 +57,5 @@ namespace FoundationDB.Linq.Expressions
 	}
 
 }
+
+#endif

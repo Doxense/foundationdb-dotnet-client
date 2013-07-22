@@ -35,62 +35,16 @@ namespace FoundationDB.Linq
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public class FdbAsyncQuery<T> : FdbAsyncQuery, IFdbAsyncQueryable<T>, IFdbAsyncQueryProvider<T>
+	/// <summary>Query that returns a single element</summary>
+	/// <typeparam name="T">Type of the element returned</typeparam>
+	public class FdbAsyncSingleQuery<T> : FdbAsyncQuery<T>, IFdbAsyncQueryable<T>
 	{
-		public FdbAsyncQuery(FdbDatabase db, FdbQueryExpression<T> expression)
+		public FdbAsyncSingleQuery(FdbDatabase db, FdbQueryExpression<T> expression)
 			: base(db, expression)
 		{ }
 
 		public new FdbQueryExpression<T> Expression { get { return (FdbQueryExpression<T>)base.Expression; } }
 
-		IFdbAsyncQueryProvider<T> IFdbAsyncQueryable<T>.Provider { get { return this; } }
-
-		/// <summary>Cached compiled generator, that can be reused</summary>
-		private Func<IFdbReadTransaction, CancellationToken, Task<T>> m_compiled;
-
-		private Func<IFdbReadTransaction, CancellationToken, Task<T>> Compile()
-		{
-			if (m_compiled == null)
-			{
-				var expr = this.Expression.CompileSingle(this);
-				Console.WriteLine("Compiled as: " + expr.GetDebugView());
-				m_compiled = expr.Compile();
-			}
-			return m_compiled;
-		}
-
-		Task<T> IFdbAsyncQueryProvider<T>.ExecuteSingle(FdbQueryExpression<T> expression, CancellationToken ct)
-		{
-			return ExecuteInternal<T>(expression, ct);
-		}
-
-		protected override async Task<R> ExecuteInternal<R>(FdbQueryExpression expression, CancellationToken ct)
-		{
-			if (typeof(R) != typeof(T)) throw new InvalidOperationException("Return type does not match the sequence");
-
-			var generator = Compile();
-
-			IFdbTransaction trans = this.Transaction;
-			bool owned = false;
-			try
-			{
-				if (trans == null)
-				{
-					owned = true;
-					trans = this.Database.BeginTransaction();
-				}
-
-				T result = await generator(trans, ct).ConfigureAwait(false);
-
-				return (R)(object)result;
-
-			}
-			finally
-			{
-				if (owned && trans != null) trans.Dispose();
-			}
-
-		}
 	}
 
 }

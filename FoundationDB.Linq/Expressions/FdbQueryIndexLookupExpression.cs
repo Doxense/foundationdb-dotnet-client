@@ -43,7 +43,7 @@ namespace FoundationDB.Linq.Expressions
 	public class FdbQueryIndexLookupExpression<TId, TValue> : FdbQuerySequenceExpression<TId>
 	{
 
-		internal FdbQueryIndexLookupExpression(FdbQueryIndexExpression<TId, TValue> index, ExpressionType op, Expression value)
+		internal FdbQueryIndexLookupExpression(FdbIndex<TId, TValue> index, ExpressionType op, Expression value)
 		{
 			this.Index = index;
 			this.Operator = op;
@@ -55,7 +55,12 @@ namespace FoundationDB.Linq.Expressions
 			get { return FdbQueryNodeType.IndexLookup; }
 		}
 
-		public FdbQueryIndexExpression<TId, TValue> Index { get; private set; }
+		public override FdbQueryShape Shape
+		{
+			get { return FdbQueryShape.Sequence; }
+		}
+
+		public FdbIndex<TId, TValue> Index { get; private set; }
 
 		public ExpressionType Operator { get; private set; }
 
@@ -72,13 +77,40 @@ namespace FoundationDB.Linq.Expressions
 				{
 					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TId, TValue>, IFdbReadTransaction, TValue, bool, IFdbAsyncEnumerable<TId>>>(
 						(index, trans, value, reverse) => index.Lookup(trans, value, reverse),
-						Expression.Constant(this.Index.Index),
+						Expression.Constant(this.Index, typeof(FdbIndex<TId, TValue>)),
 						prmTrans,
-						Expression.Constant(this.Value, typeof(TValue)),
+						this.Value,
 						Expression.Constant(false, typeof(bool)) // reverse
 					);
 					break;
 				}
+
+				case ExpressionType.GreaterThan:
+				case ExpressionType.GreaterThanOrEqual:
+				{
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TId, TValue>, IFdbReadTransaction, TValue, bool, IFdbAsyncEnumerable<TId>>>(
+						(index, trans, value, reverse) => index.LookupGreaterThan(trans, value, this.Operator == ExpressionType.GreaterThanOrEqual, reverse),
+						Expression.Constant(this.Index, typeof(FdbIndex<TId, TValue>)),
+						prmTrans,
+						this.Value,
+						Expression.Constant(false, typeof(bool)) // reverse
+					);
+					break;
+				}
+
+				case ExpressionType.LessThan:
+				case ExpressionType.LessThanOrEqual:
+				{
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TId, TValue>, IFdbReadTransaction, TValue, bool, IFdbAsyncEnumerable<TId>>>(
+						(index, trans, value, reverse) => index.LookupLessThan(trans, value, this.Operator == ExpressionType.LessThanOrEqual, reverse),
+						Expression.Constant(this.Index, typeof(FdbIndex<TId, TValue>)),
+						prmTrans,
+						this.Value,
+						Expression.Constant(false, typeof(bool)) // reverse
+					);
+					break;
+				}
+
 				default:
 				{
 					throw new NotImplementedException();
@@ -90,14 +122,12 @@ namespace FoundationDB.Linq.Expressions
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
 		{
-			writer
-				.Write(this.Index)
-				.Write(".Lookup<{0}>({1}, <{2}> {3})", this.ElementType.Name, this.Operator.ToString(), typeof(TValue).Name, this.Value.GetDebugView());
+			writer.Write("Index[{0}].Lookup<{1}>(({2} x) => x {3} {4})", this.Index.Name, this.ElementType.Name, typeof(TValue).Name, FdbExpressionHelpers.GetOperatorAlias(this.Operator), this.Value.GetDebugView());
 		}
 
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Index<{0}>.Lookup({1}, {2})", this.Index.Index.Name, this.Operator, this.Value);
+			return String.Format(CultureInfo.InvariantCulture, "Index<{0}>.Lookup({1}, {2})", this.Index.Name, this.Operator, this.Value);
 		}
 
 	}

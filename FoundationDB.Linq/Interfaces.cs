@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq.Expressions;
 	using System;
@@ -37,28 +38,34 @@ namespace FoundationDB.Linq
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Base inteface of all queryable objects</summary>
 	public interface IFdbAsyncQueryable
 	{
-		Type ElementType { get; }
+		Type Type { get; }
 
 		FdbQueryExpression Expression { get; }
 
 		IFdbAsyncQueryProvider Provider { get; }
 	}
 
+	/// <summary>Queryable that returns a single result of type T</summary>
+	/// <typeparam name="T"></typeparam>
 	public interface IFdbAsyncQueryable<T> : IFdbAsyncQueryable
 	{
 		new FdbQueryExpression<T> Expression { get; }
-
-		new IFdbAsyncQueryProvider<T> Provider { get; }
-
 	}
 
-	public interface IFdbAsyncSequenceQueryable<T> : IFdbAsyncQueryable<IFdbAsyncEnumerable<T>>, IFdbAsyncEnumerable<T>
+	/// <summary>Queryable that returns a sequence of elements of type T</summary>
+	/// <typeparam name="T"></typeparam>
+	public interface IFdbAsyncSequenceQueryable<T> : IFdbAsyncQueryable
 	{
+		/// <summary>Type of elements of the sequence</summary>
+		Type ElementType { get; }
+
 		new FdbQuerySequenceExpression<T> Expression { get; }
 	}
 
+	/// <summary>Query provider</summary>
 	public interface IFdbAsyncQueryProvider 
 	{
 		IFdbAsyncQueryable CreateQuery(FdbQueryExpression expression);
@@ -67,19 +74,25 @@ namespace FoundationDB.Linq
 
 		IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression);
 
-		Task<R> Execute<R>(FdbQueryExpression expression, CancellationToken ct = default(CancellationToken));
-	
+		Task<R> ExecuteAsync<R>(FdbQueryExpression expression, CancellationToken ct = default(CancellationToken));
 	}
 
-	public interface IFdbAsyncQueryProvider<T> : IFdbAsyncQueryProvider
+	/// <summary>Queryable database</summary>
+	public interface IFdbDatabaseQueryable : IFdbAsyncQueryable
 	{
-		Task<T> ExecuteSingle(FdbQueryExpression<T> expression, CancellationToken ct = default(CancellationToken));
+		// Note: this interface is only used to hook extension methods specific to database queries
+
+		FdbDatabase Database { get; }
+
 	}
 
-	public interface IFdbAsyncSequenceQueryProvider<T> : IFdbAsyncQueryProvider
+	/// <summary>Queryable index</summary>
+	public interface IFdbIndexQueryable<TId, TValue> : IFdbAsyncQueryable
 	{
-		Task<TSequence> ExecuteSequence<TSequence>(FdbQuerySequenceExpression<T> expression, CancellationToken ct = default(CancellationToken))
-			where TSequence : IEnumerable<T>;
+		// Note: this interface is only used to hook extension methods specific to index queries
+
+		FdbIndex<TId, TValue> Index { get; }
+
 	}
 
 }

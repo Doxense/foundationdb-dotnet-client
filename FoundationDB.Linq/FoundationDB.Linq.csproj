@@ -44,13 +44,15 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="FdbDatabaseQuery.cs" />
+    <Compile Include="Expressions\FdbQueryConstantExpression.cs" />
     <Compile Include="Utils\FdbExpressionHelpers.cs" />
-    <Compile Include="FdbAsyncQuery`1.cs" />
+    <Compile Include="FdbAsyncSingleQuery.cs" />
     <Compile Include="Expressions\FdbQuerySingleExpression.cs" />
     <Compile Include="Expressions\FdbQueryAsyncEnumerableExpression.cs" />
     <Compile Include="FdbAsyncSequenceQuery.cs" />
     <Compile Include="FdbAsyncQuery.cs" />
-    <Compile Include="FdbAsyncQueryable`1.cs" />
+    <Compile Include="FdbAsyncQueryable.cs" />
     <Compile Include="Expressions\FdbQueryDatabaseExpression.cs" />
     <Compile Include="Expressions\FdbQueryFilterExpression.cs" />
     <Compile Include="Interfaces.cs" />

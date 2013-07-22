@@ -62,6 +62,29 @@ namespace FoundationDB.Linq
 			return new EnumerableSequence<TSource, TResult>(source, factory);
 		}
 
+		public static IFdbAsyncEnumerable<TResult> Create<TResult>(Func<object, IFdbAsyncEnumerator<TResult>> factory, object state = null)
+		{
+			return new AnonymousIterable<TResult>(factory, state);
+		}
+
+		internal sealed class AnonymousIterable<T> : IFdbAsyncEnumerable<T>
+		{
+
+			private readonly Func<object, IFdbAsyncEnumerator<T>> m_factory;
+			private readonly object m_state;
+
+			public AnonymousIterable(Func<object, IFdbAsyncEnumerator<T>> factory, object state)
+			{
+				m_factory = factory;
+				m_state = state;
+			}
+
+			public IFdbAsyncEnumerator<T> GetEnumerator()
+			{
+				return m_factory(m_state);
+			}
+		}
+
 		#endregion
 
 		#region Flatten...

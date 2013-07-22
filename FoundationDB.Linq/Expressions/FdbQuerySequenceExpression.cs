@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Linq.Expressions;
 	using System.Threading;
@@ -38,21 +39,14 @@ namespace FoundationDB.Linq.Expressions
 	/// <typeparam name="T">Type of items returned</typeparam>
 	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<IFdbAsyncEnumerable<T>>
 	{
-
-		// what should be put there ?
-
 		/// <summary>Type of elements returned by the sequence</summary>
 		public Type ElementType { get { return typeof(T); } }
 
-
 		public abstract Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence(IFdbAsyncQueryProvider provider);
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle(IFdbAsyncQueryProvider<IFdbAsyncEnumerable<T>> provider)
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle(IFdbAsyncQueryProvider provider)
 		{
-
-			//TODO: compile a "Task.FromResult(GetEnumerator())" ?
-
-			throw new NotSupportedException();
+			return FdbExpressionHelpers.ToTask(CompileSequence(provider));
 		}
 
 	}

@@ -28,25 +28,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq.Expressions;
+	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Collections.Generic;
-	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public class FdbAsyncQuery : IFdbDatabaseQueryable, IFdbAsyncQueryProvider
+	public abstract class FdbAsyncQuery<T> : IFdbAsyncQueryable, IFdbAsyncQueryProvider
 	{
 
-		internal FdbAsyncQuery(FdbDatabase db)
+		protected FdbAsyncQuery(FdbDatabase db)
 		{
 			this.Database = db;
 		}
 
-		internal FdbAsyncQuery(IFdbTransaction trans)
+		protected FdbAsyncQuery(IFdbTransaction trans)
 		{
 			this.Transaction = trans;
 		}
@@ -69,10 +67,7 @@ namespace FoundationDB.Linq
 
 		public IFdbTransaction Transaction { get; private set; }
 
-		public Type ElementType
-		{
-			get { return this.Expression.Type; }
-		}
+		public virtual Type Type { get { return this.Expression.Type; } }
 
 		IFdbAsyncQueryProvider IFdbAsyncQueryable.Provider
 		{
@@ -81,37 +76,229 @@ namespace FoundationDB.Linq
 
 		public virtual IFdbAsyncQueryable CreateQuery(FdbQueryExpression expression)
 		{
-			if (expression == null) throw new ArgumentNullException("expression");
-
-			return new FdbAsyncQuery(this.Database, expression);
+			// source queries are usually only intended to produce some sort of result
+			throw new NotSupportedException();
 		}
 
-		public virtual IFdbAsyncQueryable<T> CreateQuery<T>(FdbQueryExpression<T> expression)
+		public virtual IFdbAsyncQueryable<R> CreateQuery<R>(FdbQueryExpression<R> expression)
 		{
 			if (expression == null) throw new ArgumentNullException("expression");
 
-			return new FdbAsyncQuery<T>(this.Database, expression);
+			return new FdbAsyncSingleQuery<R>(this.Database, expression);
 		}
 
-		public virtual IFdbAsyncSequenceQueryable<T> CreateSequenceQuery<T>(FdbQuerySequenceExpression<T> expression)
+		public virtual IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression)
 		{
 			if (expression == null) throw new ArgumentNullException("expression");
 
-			return new FdbAsyncSequenceQuery<T>(this.Database, expression);
+			return new FdbAsyncSequenceQuery<R>(this.Database, expression);
 		}
 
-		Task<R> IFdbAsyncQueryProvider.Execute<R>(FdbQueryExpression expression, CancellationToken ct)
+		public async Task<R> ExecuteAsync<R>(FdbQueryExpression expression, CancellationToken ct)
 		{
 			if (expression == null) throw new ArgumentNullException("ct");
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<R>(ct);
+			ct.ThrowIfCancellationRequested();
 
-			return ExecuteInternal<R>(expression, ct);
+			var result = await ExecuteInternal(expression, typeof(R), ct).ConfigureAwait(false);
+			return (R)result;
 		}
 
-		protected virtual Task<R> ExecuteInternal<R>(FdbQueryExpression expression, CancellationToken ct)
+		protected virtual Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
-			throw new NotImplementedException();
+			switch(expression.Shape)
+			{
+				case FdbQueryShape.Single:
+				{
+					if (!expression.Type.IsAssignableFrom(resultType)) throw new InvalidOperationException(String.Format("Return type {0} does not match the sequence type {1}", resultType.Name, expression.Type.Name));
+					return ExecuteSingleInternal(expression, resultType, ct);
+				}
+
+				case FdbQueryShape.Sequence:
+					return ExecuteSequenceInternal(expression, resultType, ct);
+
+				case FdbQueryShape.Void:
+					return Task.FromResult(default(object));
+
+				default:
+					throw new InvalidOperationException("Invalid sequence shape");
+			}
 		}
+
+		#region Single...
+
+		/// <summary>Cached compiled generator, that can be reused</summary>
+		private Func<IFdbReadTransaction, CancellationToken, Task<T>> m_compiledSingle;
+
+		private Func<IFdbReadTransaction, CancellationToken, Task<T>> CompileSingle()
+		{
+			if (m_compiledSingle == null)
+			{
+				var expr = ((FdbQueryExpression<T>)this.Expression).CompileSingle(this);
+				//Console.WriteLine("Compiled single as:");
+				//Console.WriteLine("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
+				m_compiledSingle = expr.Compile();
+			}
+			return m_compiledSingle;
+		}
+
+		protected virtual async Task<object> ExecuteSingleInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		{
+			var generator = CompileSingle();
+
+			IFdbTransaction trans = this.Transaction;
+			bool owned = false;
+			try
+			{
+				if (trans == null)
+				{
+					owned = true;
+					trans = this.Database.BeginTransaction();
+				}
+
+				T result = await generator(trans, ct).ConfigureAwait(false);
+
+				return result;
+
+			}
+			finally
+			{
+				if (owned && trans != null) trans.Dispose();
+			}
+
+		}
+
+		#endregion
+
+		#region Sequence...
+
+		/// <summary>Cached compiled generator, that can be reused</summary>
+		private Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> m_compiledSequence;
+
+		private Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> CompileSequence()
+		{
+			if (m_compiledSequence == null)
+			{
+				var expr = (this.Expression as FdbQuerySequenceExpression<T>).CompileSequence(this);
+				//Console.WriteLine("Compiled sequence as:");
+				//Console.WriteLine("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
+				m_compiledSequence = expr.Compile();
+			}
+			return m_compiledSequence;
+		}
+
+		public IFdbAsyncEnumerable<T> ToEnumerable()
+		{
+			return FdbAsyncEnumerable.Create((state) => GetEnumerator((FdbAsyncSequenceQuery<T>)state));
+		}
+
+		internal static IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncSequenceQuery<T> sequence)
+		{
+			var generator = sequence.CompileSequence();
+
+			if (sequence.Transaction != null)
+			{
+				return generator(sequence.Transaction).GetEnumerator();
+			}
+
+			IFdbTransaction trans = null;
+			IFdbAsyncEnumerator<T> iterator = null;
+			bool success = true;
+			try
+			{
+				trans = sequence.Database.BeginTransaction();
+				iterator = generator(trans).GetEnumerator();
+
+				return new TransactionIterator(trans, iterator);
+			}
+			catch (Exception)
+			{
+				success = false;
+				throw;
+			}
+			finally
+			{
+				if (!success)
+				{
+					if (iterator != null) iterator.Dispose();
+					if (trans != null) trans.Dispose();
+				}
+			}
+		}
+
+		private sealed class TransactionIterator : IFdbAsyncEnumerator<T>
+		{
+			private readonly IFdbAsyncEnumerator<T> m_iterator;
+			private readonly IFdbTransaction m_transaction;
+
+			public TransactionIterator(IFdbTransaction transaction, IFdbAsyncEnumerator<T> iterator)
+			{
+				m_transaction = transaction;
+				m_iterator = iterator;
+			}
+
+			public Task<bool> MoveNext(CancellationToken cancellationToken)
+			{
+				return m_iterator.MoveNext(cancellationToken);
+			}
+
+			public T Current
+			{
+				get { return m_iterator.Current; }
+			}
+
+			public void Dispose()
+			{
+				try
+				{
+					m_iterator.Dispose();
+				}
+				finally
+				{
+					m_transaction.Dispose();
+				}
+			}
+		}
+
+		protected virtual async Task<object> ExecuteSequenceInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		{
+			var generator = CompileSequence();
+
+			IFdbTransaction trans = this.Transaction;
+			bool owned = false;
+			try
+			{
+				if (trans == null)
+				{
+					owned = true;
+					trans = this.Database.BeginTransaction();
+				}
+
+				var enumerable = generator(trans);
+
+				object result;
+
+				if (typeof(T[]).IsAssignableFrom(resultType))
+				{
+					result = await enumerable.ToArrayAsync(ct).ConfigureAwait(false);
+				}
+				else if (typeof(IEnumerable<T>).IsAssignableFrom(resultType))
+				{
+					result = await enumerable.ToListAsync(ct).ConfigureAwait(false);
+				}
+				else
+				{
+					throw new InvalidOperationException(String.Format("Sequence result type {0} is not supported", resultType.Name));
+				}
+
+				return result;
+			}
+			finally
+			{
+				if (owned && trans != null) trans.Dispose();
+			}
+		}
+
+		#endregion
 
 	}
 

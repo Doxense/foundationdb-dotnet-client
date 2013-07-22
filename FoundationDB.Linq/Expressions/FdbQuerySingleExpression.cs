@@ -28,20 +28,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Linq.Utils;
 	using System;
+	using System.Diagnostics.Contracts;
+	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public class FdbQuerySingleExpression<T> : FdbQueryExpression<T>
+	public class FdbQuerySingleExpression<T, R> : FdbQueryExpression<R>
 	{
-		public FdbQuerySingleExpression(FdbQuerySequenceExpression<T> sequence, MethodInfo method)
+		public FdbQuerySingleExpression(FdbQuerySequenceExpression<T> sequence, string name, Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
 		{
 			this.Sequence = sequence;
-			this.Method = method;
+			this.Name = name;
+			this.Lambda = lambda;
 		}
 
 		public override FdbQueryNodeType NodeType
@@ -49,24 +53,37 @@ namespace FoundationDB.Linq.Expressions
 			get { return FdbQueryNodeType.Single; }
 		}
 
+		public override FdbQueryShape Shape
+		{
+			get { return FdbQueryShape.Single; }
+		}
+
 		public FdbQuerySequenceExpression<T> Sequence { get; private set;}
 
-		public MethodInfo Method { get; private set; }
+		public string Name { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle(IFdbAsyncQueryProvider<T> provider)
+		public Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> Lambda { get; private set; }
+
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<R>>> CompileSingle(IFdbAsyncQueryProvider provider)
 		{
-			var enumerable = this.Sequence.CompileSequence(provider);
+			// We want to generate: (trans, ct) => ExecuteEnumerable(source, lambda, trans, ct);
+
+			var sourceExpr = this.Sequence.CompileSequence(provider);
 
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
 			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
 
-			var body = Expression.Call(
-				this.Method,
-				Expression.Invoke(enumerable, prmTrans),
-				prmCancel
-			);
+			var method = typeof(FdbExpressionHelpers).GetMethod("ExecuteEnumerable", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(typeof(T), typeof(R));
+			Contract.Assert(method != null, "ExecuteEnumerable helper method is missing!");
 
-			return Expression.Lambda<Func<IFdbReadTransaction, CancellationToken, Task<T>>>(
+			var body = Expression.Call(
+				method,
+				sourceExpr,
+				this.Lambda,
+				prmTrans,
+				prmCancel);
+
+			return Expression.Lambda<Func<IFdbReadTransaction, CancellationToken, Task<R>>>(
 				body,
 				prmTrans,
 				prmCancel
@@ -75,9 +92,15 @@ namespace FoundationDB.Linq.Expressions
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
 		{
-			writer.Write(this.Sequence).WriteLine(".{0}()", this.Method.Name);
+			writer.WriteLine("{0}(", this.Name).Enter()
+				.WriteLine(this.Sequence)
+			.Leave().Write(")");
 		}
 
+		public override string ToString()
+		{
+			return String.Format(CultureInfo.InvariantCulture, "{0}({1})", this.Name, this.Sequence.ToString());
+		}
 	}
 
 }

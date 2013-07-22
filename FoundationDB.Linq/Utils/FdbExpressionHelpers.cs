@@ -28,13 +28,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Utils
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics.Contracts;
 	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Threading;
+	using System.Threading.Tasks;
 
 	internal static class FdbExpressionHelpers
 	{
@@ -85,6 +88,71 @@ namespace FoundationDB.Linq.Utils
 			return (T)constant.Value;
 
 			throw new NotSupportedException(String.Format("Unsupported expression {1}: '{0}' should return a constant value", expression.GetType().Name, expr.ToString()));
+		}
+
+		private static Task<T> Inline<T>(Func<IFdbReadTransaction, T> func, IFdbReadTransaction trans, CancellationToken ct)
+		{
+			try
+			{
+				if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<T>(ct);
+				return Task.FromResult(func(trans));
+			}
+			catch(Exception e)
+			{
+				return TaskHelpers.FromException<T>(e);
+			}
+		}
+
+		public static Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> ToTask<T>(Expression<Func<IFdbReadTransaction, T>> lambda)
+		{
+			// rewrite a Func<..., T> into a Func<..., Task<T>>
+
+			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
+
+			var body = RewriteCall<Func<IFdbReadTransaction, CancellationToken, Func<IFdbReadTransaction, T>, Task<T>>>(
+				(trans, ct, func) => Inline<T>(func, trans, ct),
+				prmTrans,
+				prmCancel,
+				lambda
+			);
+
+			return Expression.Lambda<Func<IFdbReadTransaction, CancellationToken, Task<T>>>(
+				body,
+				prmTrans,
+				prmCancel
+			);
+		}
+
+		internal static Task<R> ExecuteEnumerable<T, R>(Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> generator, Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>> lambda, IFdbReadTransaction trans, CancellationToken ct)
+		{
+			Contract.Requires(generator != null && lambda != null && trans != null);
+			try
+			{
+				if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<R>(ct);
+				var enumerable = generator(trans);
+				if (enumerable == null) return TaskHelpers.FromException<R>(new InvalidOperationException("Source query returned null"));
+				return lambda(enumerable, ct);
+			}
+			catch (Exception e)
+			{
+				return TaskHelpers.FromException<R>(e);
+			}
+		}
+
+		internal static string GetOperatorAlias(ExpressionType op)
+		{
+			switch (op)
+			{
+				case ExpressionType.Equal: return "==";
+				case ExpressionType.NotEqual: return "!=";
+				case ExpressionType.GreaterThan: return ">";
+				case ExpressionType.GreaterThanOrEqual: return ">=";
+				case ExpressionType.LessThan: return "<";
+				case ExpressionType.LessThanOrEqual: return "<=";
+				default:
+					return op.ToString();
+			}
 		}
 
 		#region Method Call Rewritting...

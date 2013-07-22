@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Indexing
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Globalization;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -142,11 +143,51 @@ namespace FoundationDB.Layers.Indexing
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
 		public IFdbAsyncEnumerable<TId> Lookup(IFdbReadTransaction trans, TValue value, bool reverse = false)
 		{
-			var prefix = this.Subspace.Create(value);
+			var prefix = this.Subspace.Pack(value);
 
 			return trans
 				.GetRangeStartsWith(prefix, new FdbRangeOptions { Reverse = reverse })
 				.Keys((key) => this.Subspace.UnpackLast<TId>(key));
+		}
+
+		public IFdbAsyncEnumerable<TId> LookupGreaterThan(IFdbReadTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		{
+			var space = this.Subspace.Tuple.ToSelectorPair();
+
+			var prefix = this.Subspace.Pack(value);
+			if (!orEqual) prefix = FdbKey.Increment(prefix);
+
+			space = new FdbKeySelectorPair(
+				FdbKeySelector.FirstGreaterThan(prefix),
+				space.Stop
+			);
+
+			return trans
+				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
+				.Keys((key) => this.Subspace.UnpackLast<TId>(key));
+		}
+
+
+		public IFdbAsyncEnumerable<TId> LookupLessThan(IFdbReadTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		{
+			var space = this.Subspace.Tuple.ToSelectorPair();
+
+			var prefix = this.Subspace.Pack(value);
+			if (orEqual) prefix = FdbKey.Increment(prefix);
+
+			space = new FdbKeySelectorPair(
+				space.Start,
+				FdbKeySelector.FirstGreaterThan(prefix)
+			);
+
+			return trans
+				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
+				.Keys((key) => this.Subspace.UnpackLast<TId>(key));
+		}
+
+		public override string ToString()
+		{
+			return String.Format(CultureInfo.InvariantCulture, "Index<{0}>", this.Name);
 		}
 
 	}

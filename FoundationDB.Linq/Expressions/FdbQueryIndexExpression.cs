@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if REFACTORED
+
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
@@ -58,7 +60,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public Type ValueType { get { return typeof(TValue); } }
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<FdbIndex<TId, TValue>>>> CompileSingle(IFdbAsyncQueryProvider<FdbIndex<TId, TValue>> provider)
+		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<FdbIndex<TId, TValue>>>> CompileSingle(IFdbAsyncQueryProvider provider)
 		{
 			return Expression.Lambda<Func<IFdbReadTransaction, CancellationToken, Task<FdbIndex<TId, TValue>>>>(
 				Expression.Constant(this.Index),
@@ -75,3 +77,5 @@ namespace FoundationDB.Linq.Expressions
 	}
 
 }
+
+#endif

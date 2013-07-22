@@ -26,54 +26,36 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq.Expressions
+namespace FoundationDB.Linq
 {
 	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
+	using FoundationDB.Layers.Indexing;
+	using FoundationDB.Linq.Expressions;
 	using System;
-	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>
+	/// <summary>Database query</summary>
+	/// <remarks>Reads data directly from a database</remarks>
+	public sealed class FdbDatabaseQuery : FdbAsyncQuery<FdbDatabase>, IFdbDatabaseQueryable
 	{
+		internal FdbDatabaseQuery(FdbDatabase db)
+			: base(db, FdbQueryExpressions.Constant(db))
+		{ }
 
-		public FdbQueryAsyncEnumerableExpression(IFdbAsyncEnumerable<T> source)
+	}
+
+	/// <summary>Database query</summary>
+	/// <remarks>Reads data directly from a database</remarks>
+	public sealed class FdbIndexQuery<TId, TValue> : FdbAsyncQuery<FdbIndexQuery<TId, TValue>>, IFdbIndexQueryable<TId, TValue>
+	{
+		internal FdbIndexQuery(FdbDatabase db, FdbIndex<TId, TValue> index)
+			: base(db, FdbQueryExpressions.Constant(db))
 		{
-			this.Source = source;
+			this.Index = index;
 		}
 
-		public override FdbQueryNodeType NodeType
-		{
-			get { return FdbQueryNodeType.Sequence; }
-		}
-
-		public override FdbQueryShape Shape
-		{
-			get { return FdbQueryShape.Sequence; }
-		}
-
-		public IFdbAsyncEnumerable<T> Source { get; private set; }
-
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle(IFdbAsyncQueryProvider provider)
-		{
-			return FdbExpressionHelpers.ToTask(CompileSequence(provider));
-		}
-
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence(IFdbAsyncQueryProvider provider)
-		{
-			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
-
-			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>>(
-				Expression.Constant(this.Source), 
-				prmTrans
-			);
-		}
-
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
-		{
-			writer.Write("Source<{0}>({1})", typeof(T).Name, this.Source.GetType().Name);
-		}
+		public FdbIndex<TId, TValue> Index { get; private set; }
 
 	}
 
