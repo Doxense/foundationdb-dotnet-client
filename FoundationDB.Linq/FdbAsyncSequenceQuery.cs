@@ -47,8 +47,6 @@ namespace FoundationDB.Linq
 
 		public Type ElementType { get { return typeof(T); } }
 
-		public new FdbQuerySequenceExpression<T> Expression { get { return (FdbQuerySequenceExpression<T>)base.Expression; } }
-
 	}
 
 }

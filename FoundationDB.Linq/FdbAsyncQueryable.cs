@@ -158,7 +158,7 @@ namespace FoundationDB.Linq
 			if (query == null) throw new ArgumentNullException("query");
 
 			var expr = FdbQueryExpressions.Single<T, int>(
-				query.Expression,
+				(FdbQuerySequenceExpression<T>)query.Expression,
 				"CountAsync",
 				(source, _ct) => source.CountAsync(_ct)
 			);
@@ -173,7 +173,7 @@ namespace FoundationDB.Linq
 			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<T>(ct);
 
 			var expr = FdbQueryExpressions.Single<T, T>(
-				query.Expression,
+				(FdbQuerySequenceExpression<T>)query.Expression,
 				"FirstAsync",
 				(source, _ct) => source.FirstAsync(_ct)
 			);
@@ -188,7 +188,7 @@ namespace FoundationDB.Linq
 			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<T>(ct);
 
 			var expr = FdbQueryExpressions.Single<T, T>(
-				query.Expression,
+				(FdbQuerySequenceExpression<T>)query.Expression,
 				"FirstOrDefaultAsync",
 				(source, _ct) => source.FirstOrDefaultAsync(_ct)
 			);

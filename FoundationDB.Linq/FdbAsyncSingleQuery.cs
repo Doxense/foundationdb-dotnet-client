@@ -43,8 +43,6 @@ namespace FoundationDB.Linq
 			: base(db, expression)
 		{ }
 
-		public new FdbQueryExpression<T> Expression { get { return (FdbQueryExpression<T>)base.Expression; } }
-
 	}
 
 }

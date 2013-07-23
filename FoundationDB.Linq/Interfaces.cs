@@ -50,19 +50,16 @@ namespace FoundationDB.Linq
 
 	/// <summary>Queryable that returns a single result of type T</summary>
 	/// <typeparam name="T"></typeparam>
-	public interface IFdbAsyncQueryable<T> : IFdbAsyncQueryable
+	public interface IFdbAsyncQueryable<out T> : IFdbAsyncQueryable
 	{
-		new FdbQueryExpression<T> Expression { get; }
 	}
 
 	/// <summary>Queryable that returns a sequence of elements of type T</summary>
 	/// <typeparam name="T"></typeparam>
-	public interface IFdbAsyncSequenceQueryable<T> : IFdbAsyncQueryable
+	public interface IFdbAsyncSequenceQueryable<out T> : IFdbAsyncQueryable
 	{
 		/// <summary>Type of elements of the sequence</summary>
 		Type ElementType { get; }
-
-		new FdbQuerySequenceExpression<T> Expression { get; }
 	}
 
 	/// <summary>Query provider</summary>
