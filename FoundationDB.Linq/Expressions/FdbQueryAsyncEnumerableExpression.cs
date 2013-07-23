@@ -43,7 +43,7 @@ namespace FoundationDB.Linq.Expressions
 			this.Source = source;
 		}
 
-		public override FdbQueryNodeType NodeType
+		public override FdbQueryNodeType QueryNodeType
 		{
 			get { return FdbQueryNodeType.Sequence; }
 		}
@@ -54,6 +54,11 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		public IFdbAsyncEnumerable<T> Source { get; private set; }
+
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		{
+			return visitor.VisitAsyncEnumerable(this);
+		}
 
 		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
 		{

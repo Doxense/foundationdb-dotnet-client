@@ -43,7 +43,7 @@ namespace FoundationDB.Linq.Expressions
 			this.Value = value;
 		}
 
-		public override FdbQueryNodeType NodeType
+		public override FdbQueryNodeType QueryNodeType
 		{
 			get { return FdbQueryNodeType.Constant; }
 		}
@@ -54,6 +54,22 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		public T Value { get; private set; }
+
+
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		{
+			return visitor.Visit(this.Reduce());
+		}
+
+		public override bool CanReduce
+		{
+			get { return true; }
+		}
+
+		public override Expression Reduce()
+		{
+			return Expression.Constant(this.Value, typeof(T));
+		}
 
 		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle()
 		{

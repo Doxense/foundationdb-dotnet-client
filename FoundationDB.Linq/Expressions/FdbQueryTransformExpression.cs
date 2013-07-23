@@ -47,7 +47,7 @@ namespace FoundationDB.Linq.Expressions
 			this.Transform = transform;
 		}
 
-		public override FdbQueryNodeType NodeType
+		public override FdbQueryNodeType QueryNodeType
 		{
 			get { return FdbQueryNodeType.Transform; }
 		}
@@ -60,6 +60,11 @@ namespace FoundationDB.Linq.Expressions
 		public FdbQuerySequenceExpression<T> Source { get; private set; }
 
 		public Expression<Func<T, R>> Transform { get; private set; }
+
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		{
+			return visitor.VisitQueryTransform(this);
+		}
 
 		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<R>>> CompileSequence()
 		{

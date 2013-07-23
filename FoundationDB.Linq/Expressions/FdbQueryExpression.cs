@@ -36,19 +36,27 @@ namespace FoundationDB.Linq.Expressions
 	using System.Threading;
 	using System.Threading.Tasks;
 
-    public abstract class FdbQueryExpression
+    public abstract class FdbQueryExpression : Expression
     {
+		private readonly Type m_type;
 
 		protected FdbQueryExpression(Type type)
 		{
-			this.Type = type;
+			m_type = type;
 		}
 
-		public Type Type { get; private set; }
+		public override Type Type { get { return m_type; } }
 
-		public abstract FdbQueryNodeType NodeType { get; }
+		public override ExpressionType NodeType
+		{
+			get { return ExpressionType.Extension; }
+		}
+
+		public abstract FdbQueryNodeType QueryNodeType { get; }
 
 		public abstract FdbQueryShape Shape { get; }
+
+		public abstract Expression Accept(FdbQueryExpressionVisitor visitor);
 
 		internal abstract void AppendDebugStatement(FdbDebugStatementWriter writer);
 
@@ -70,6 +78,65 @@ namespace FoundationDB.Linq.Expressions
 #endif
 
     }
+
+	public abstract class FdbQueryExpressionVisitor:  ExpressionVisitor
+	{
+
+		protected override Expression VisitExtension(Expression node)
+		{
+			var expr = node as FdbQueryExpression;
+			if (expr != null)
+			{
+				return expr.Accept(this);
+			}
+			return base.VisitExtension(node);
+		}
+
+		public virtual Expression Visit(FdbQueryExpression node)
+		{
+			if (node != null)
+			{
+				return node.Accept(this);
+			}
+			return null;
+		}
+
+		protected internal virtual Expression VisitAsyncEnumerable<T>(FdbQueryAsyncEnumerableExpression<T> node)
+		{
+			throw new NotImplementedException();
+		}
+
+		protected internal virtual Expression VisitQueryRange(FdbQueryRangeExpression node)
+		{
+			throw new NotImplementedException();
+		}
+
+		protected internal virtual Expression VisitQueryTransform<T, R>(FdbQueryTransformExpression<T, R> node)
+		{
+			throw new NotImplementedException();
+		}
+
+		protected internal virtual Expression VisitQueryFilter<T>(FdbQueryFilterExpression<T> node)
+		{
+			throw new NotImplementedException();
+		}
+
+		protected internal virtual Expression VisitQuerySignle<T, R>(FdbQuerySingleExpression<T, R> node)
+		{
+			throw new NotImplementedException();
+		}
+
+		protected internal virtual Expression VisitQueryIndexLookup<K, V>(FdbQueryIndexLookupExpression<K, V> node)
+		{
+			throw new NotImplementedException();
+		}
+
+		protected internal virtual Expression VisitQueryMerge<T>(FdbQueryMergeExpression<T> node)
+		{
+			throw new NotImplementedException();
+		}
+
+	}
 
 	public abstract class FdbQueryExpression<T> : FdbQueryExpression
 	{

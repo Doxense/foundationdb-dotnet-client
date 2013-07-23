@@ -59,7 +59,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Value, Is.Not.Null);
 			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
-			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.IndexLookup));
+			Assert.That(expr.QueryNodeType, Is.EqualTo(FdbQueryNodeType.IndexLookup));
 			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
@@ -82,7 +82,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Value, Is.Not.Null);
 			Assert.That(expr.Value, Is.InstanceOf<ConstantExpression>().With.Property("Value").EqualTo("world"));
 
-			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.IndexLookup));
+			Assert.That(expr.QueryNodeType, Is.EqualTo(FdbQueryNodeType.IndexLookup));
 			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
@@ -102,7 +102,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Range.Start.Key.ToString(), Is.EqualTo("<02>Foo<00><00>"));
 			Assert.That(expr.Range.Stop.Key.ToString(), Is.EqualTo("<02>Foo<00><FF>"));
 
-			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Range));
+			Assert.That(expr.QueryNodeType, Is.EqualTo(FdbQueryNodeType.Range));
 			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
 
@@ -133,7 +133,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Terms[0], Is.SameAs(expr1));
 			Assert.That(expr.Terms[1], Is.SameAs(expr2));
 
-			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Intersect));
+			Assert.That(expr.QueryNodeType, Is.EqualTo(FdbQueryNodeType.Intersect));
 			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
@@ -164,7 +164,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Terms[0], Is.SameAs(expr1));
 			Assert.That(expr.Terms[1], Is.SameAs(expr2));
 
-			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Union));
+			Assert.That(expr.QueryNodeType, Is.EqualTo(FdbQueryNodeType.Union));
 			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<int>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(int)));
 
@@ -184,7 +184,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
 			Assert.That(expr.Transform, Is.Not.Null);
 
-			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Transform));
+			Assert.That(expr.QueryNodeType, Is.EqualTo(FdbQueryNodeType.Transform));
 			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<string>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(string)));
 
@@ -204,7 +204,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Assert.That(expr.Source, Is.Not.Null.And.InstanceOf<FdbQueryRangeExpression>());
 			Assert.That(expr.Filter, Is.Not.Null);
 
-			Assert.That(expr.NodeType, Is.EqualTo(FdbQueryNodeType.Filter));
+			Assert.That(expr.QueryNodeType, Is.EqualTo(FdbQueryNodeType.Filter));
 			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>)));
 			Assert.That(expr.ElementType, Is.EqualTo(typeof(KeyValuePair<Slice, Slice>)));
 

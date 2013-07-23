@@ -46,7 +46,7 @@ namespace FoundationDB.Linq.Expressions
 			this.Options = options;
 		}
 
-		public override FdbQueryNodeType NodeType
+		public override FdbQueryNodeType QueryNodeType
 		{
 			get { return FdbQueryNodeType.Range; }
 		}
@@ -59,6 +59,11 @@ namespace FoundationDB.Linq.Expressions
 		public FdbKeySelectorPair Range { get; private set; }
 
 		public FdbRangeOptions Options { get; private set; }
+
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		{
+			return visitor.VisitQueryRange(this);
+		}
 
 		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
 		{
@@ -88,7 +93,8 @@ namespace FoundationDB.Linq.Expressions
 		public override string ToString()
 		{
 			return String.Format(CultureInfo.InvariantCulture, "GetRange({0}, {1})", this.Range.Start.ToString(), this.Range.Stop.ToString());
-		}
+		}
+
 
 	}
 

@@ -59,6 +59,11 @@ namespace FoundationDB.Linq.Expressions
 
 		public IComparer<T> KeyComparer { get; private set; }
 
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		{
+			return visitor.VisitQueryMerge(this);
+		}
+
 		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
 		{
 			// compile the key selector
@@ -73,7 +78,7 @@ namespace FoundationDB.Linq.Expressions
 
 			var array = Expression.NewArrayInit(typeof(IFdbAsyncEnumerable<T>), enumerables);
 			Expression body;
-			switch (this.NodeType)
+			switch (this.QueryNodeType)
 			{
 				case FdbQueryNodeType.Intersect:
 				{
@@ -95,7 +100,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 				default:
 				{
-					throw new InvalidOperationException(String.Format("Unsupported index merge mode {0}", this.NodeType));
+					throw new InvalidOperationException(String.Format("Unsupported index merge mode {0}", this.QueryNodeType));
 				}
 			}
 
@@ -108,7 +113,7 @@ namespace FoundationDB.Linq.Expressions
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
 		{
-			writer.WriteLine("{0}<{1}>(", this.NodeType.ToString(), this.ElementType.Name).Enter();
+			writer.WriteLine("{0}<{1}>(", this.QueryNodeType.ToString(), this.ElementType.Name).Enter();
 			for(int i=0;i<this.Expressions.Length;i++)
 			{
 				writer.Write(this.Expressions[i]);
@@ -129,10 +134,11 @@ namespace FoundationDB.Linq.Expressions
 			: base(expressions, keyComparer)
 		{ }
 
-		public override FdbQueryNodeType NodeType
+		public override FdbQueryNodeType QueryNodeType
 		{
 			get { return FdbQueryNodeType.Intersect; }
 		}
+
 	}
 
 	/// <summary>Intersection between two or more sequence</summary>
@@ -144,7 +150,7 @@ namespace FoundationDB.Linq.Expressions
 			: base(expressions, keyComparer)
 		{ }
 
-		public override FdbQueryNodeType NodeType
+		public override FdbQueryNodeType QueryNodeType
 		{
 			get { return FdbQueryNodeType.Union; }
 		}

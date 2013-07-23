@@ -38,19 +38,19 @@ namespace FoundationDB.Linq.Expressions
 	using System.Threading;
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
-	/// <typeparam name="TId">Type of the Id of the enties being indexed</typeparam>
-	/// <typeparam name="TValue">Type of the value that will be looked up</typeparam>
-	public class FdbQueryIndexLookupExpression<TId, TValue> : FdbQuerySequenceExpression<TId>
+	/// <typeparam name="K">Type of the Id of the enties being indexed</typeparam>
+	/// <typeparam name="V">Type of the value that will be looked up</typeparam>
+	public class FdbQueryIndexLookupExpression<K, V> : FdbQuerySequenceExpression<K>
 	{
 
-		internal FdbQueryIndexLookupExpression(FdbIndex<TId, TValue> index, ExpressionType op, Expression value)
+		internal FdbQueryIndexLookupExpression(FdbIndex<K, V> index, ExpressionType op, Expression value)
 		{
 			this.Index = index;
 			this.Operator = op;
 			this.Value = value;
 		}
 
-		public override FdbQueryNodeType NodeType
+		public override FdbQueryNodeType QueryNodeType
 		{
 			get { return FdbQueryNodeType.IndexLookup; }
 		}
@@ -60,13 +60,18 @@ namespace FoundationDB.Linq.Expressions
 			get { return FdbQueryShape.Sequence; }
 		}
 
-		public FdbIndex<TId, TValue> Index { get; private set; }
+		public FdbIndex<K, V> Index { get; private set; }
 
 		public ExpressionType Operator { get; private set; }
 
 		public Expression Value { get; private set; }
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<TId>>> CompileSequence()
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		{
+			return visitor.VisitQueryIndexLookup(this);
+		}
+
+		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<K>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
 			Expression body;
@@ -75,9 +80,9 @@ namespace FoundationDB.Linq.Expressions
 			{
 				case ExpressionType.Equal:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TId, TValue>, IFdbReadTransaction, TValue, bool, IFdbAsyncEnumerable<TId>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
 						(index, trans, value, reverse) => index.Lookup(trans, value, reverse),
-						Expression.Constant(this.Index, typeof(FdbIndex<TId, TValue>)),
+						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
 						prmTrans,
 						this.Value,
 						Expression.Constant(false, typeof(bool)) // reverse
@@ -88,9 +93,9 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.GreaterThan:
 				case ExpressionType.GreaterThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TId, TValue>, IFdbReadTransaction, TValue, bool, IFdbAsyncEnumerable<TId>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
 						(index, trans, value, reverse) => index.LookupGreaterThan(trans, value, this.Operator == ExpressionType.GreaterThanOrEqual, reverse),
-						Expression.Constant(this.Index, typeof(FdbIndex<TId, TValue>)),
+						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
 						prmTrans,
 						this.Value,
 						Expression.Constant(false, typeof(bool)) // reverse
@@ -101,9 +106,9 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.LessThan:
 				case ExpressionType.LessThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<TId, TValue>, IFdbReadTransaction, TValue, bool, IFdbAsyncEnumerable<TId>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
 						(index, trans, value, reverse) => index.LookupLessThan(trans, value, this.Operator == ExpressionType.LessThanOrEqual, reverse),
-						Expression.Constant(this.Index, typeof(FdbIndex<TId, TValue>)),
+						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
 						prmTrans,
 						this.Value,
 						Expression.Constant(false, typeof(bool)) // reverse
@@ -117,12 +122,12 @@ namespace FoundationDB.Linq.Expressions
 				}
 			}
 
-			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<TId>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<K>>>(body, prmTrans);
 		}
 
 		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
 		{
-			writer.Write("Index['{0}'].Lookup<{1}>(({2} x) => x {3} {4})", this.Index.Name, this.ElementType.Name, typeof(TValue).Name, FdbExpressionHelpers.GetOperatorAlias(this.Operator), this.Value.GetDebugView());
+			writer.Write("Index['{0}'].Lookup<{1}>(({2} x) => x {3} {4})", this.Index.Name, this.ElementType.Name, typeof(V).Name, FdbExpressionHelpers.GetOperatorAlias(this.Operator), this.Value.GetDebugView());
 		}
 
 		public override string ToString()
