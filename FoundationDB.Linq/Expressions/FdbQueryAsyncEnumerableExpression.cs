@@ -75,11 +75,6 @@ namespace FoundationDB.Linq.Expressions
 			);
 		}
 
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
-		{
-			writer.Write("Source<{0}>({1})", typeof(T).Name, this.Source.GetType().Name);
-		}
-
 	}
 
 }

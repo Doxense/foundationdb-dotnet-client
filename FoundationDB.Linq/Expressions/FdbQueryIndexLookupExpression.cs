@@ -125,11 +125,6 @@ namespace FoundationDB.Linq.Expressions
 			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<K>>>(body, prmTrans);
 		}
 
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
-		{
-			writer.Write("Index['{0}'].Lookup<{1}>(({2} x) => x {3} {4})", this.Index.Name, this.ElementType.Name, typeof(V).Name, FdbExpressionHelpers.GetOperatorAlias(this.Operator), this.Value.GetDebugView());
-		}
-
 		public override string ToString()
 		{
 			return String.Format(CultureInfo.InvariantCulture, "Index['{0}'].Lookup({1}, {2})", this.Index.Name, this.Operator, this.Value);

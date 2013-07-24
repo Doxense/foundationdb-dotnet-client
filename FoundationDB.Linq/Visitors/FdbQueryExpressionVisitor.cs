@@ -29,56 +29,74 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Globalization;
 	using System.Linq.Expressions;
+	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public sealed class FdbQueryConstantExpression<T> : FdbQueryExpression<T>
+	public abstract class FdbQueryExpressionVisitor:  ExpressionVisitor
 	{
 
-		public FdbQueryConstantExpression(T value)
+		protected override Expression VisitExtension(Expression node)
 		{
-			this.Value = value;
+			var expr = node as FdbQueryExpression;
+			if (expr != null)
+			{
+				return expr.Accept(this);
+			}
+			return base.VisitExtension(node);
 		}
 
-		public override FdbQueryNodeType QueryNodeType
+		public virtual Expression Visit(FdbQueryExpression node)
 		{
-			get { return FdbQueryNodeType.Constant; }
+			if (node != null)
+			{
+				return node.Accept(this);
+			}
+			return null;
 		}
 
-		public override FdbQueryShape Shape
+		protected internal virtual Expression VisitAsyncEnumerable<T>(FdbQueryAsyncEnumerableExpression<T> node)
 		{
-			get { return FdbQueryShape.Single; }
+			throw new NotImplementedException();
 		}
 
-		public T Value { get; private set; }
-
-
-		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		protected internal virtual Expression VisitQueryRange(FdbQueryRangeExpression node)
 		{
-			return visitor.VisitConstant<T>(this);
+			throw new NotImplementedException();
 		}
 
-		public override bool CanReduce
+		protected internal virtual Expression VisitQueryTransform<T, R>(FdbQueryTransformExpression<T, R> node)
 		{
-			get { return true; }
+			throw new NotImplementedException();
 		}
 
-		public override Expression Reduce()
+		protected internal virtual Expression VisitQueryFilter<T>(FdbQueryFilterExpression<T> node)
 		{
-			return Expression.Constant(this.Value, typeof(T));
+			throw new NotImplementedException();
 		}
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> CompileSingle()
+		protected internal virtual Expression VisitQuerySingle<T, R>(FdbQuerySingleExpression<T, R> node)
 		{
-			return (_, __) => Task.FromResult<T>(this.Value);
+			throw new NotImplementedException();
 		}
 
-		public override string ToString()
+		protected internal virtual Expression VisitQueryIndexLookup<K, V>(FdbQueryIndexLookupExpression<K, V> node)
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Constant({0})", this.Value);
+			throw new NotImplementedException();
+		}
+
+		protected internal virtual Expression VisitQueryMerge<T>(FdbQueryMergeExpression<T> node)
+		{
+			throw new NotImplementedException();
+		}
+
+		protected internal virtual Expression VisitConstant<T>(FdbQueryConstantExpression<T> node)
+		{
+			throw new NotImplementedException();
 		}
 
 	}

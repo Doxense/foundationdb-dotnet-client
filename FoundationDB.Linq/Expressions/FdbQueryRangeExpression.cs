@@ -82,14 +82,6 @@ namespace FoundationDB.Linq.Expressions
 			);
 		}
 
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
-		{
-			writer.WriteLine("Range(").Enter()
-				.WriteLine("Start({0}),", this.Range.Start.ToString())
-				.WriteLine("Stop({0})", this.Range.Stop.ToString())
-			.Leave().Write(")");
-		}
-
 		public override string ToString()
 		{
 			return String.Format(CultureInfo.InvariantCulture, "GetRange({0}, {1})", this.Range.Start.ToString(), this.Range.Stop.ToString());

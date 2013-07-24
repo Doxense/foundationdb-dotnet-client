@@ -66,7 +66,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
-			return visitor.VisitQuerySignle(this);
+			return visitor.VisitQuerySingle(this);
 		}
 
 		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<R>>> CompileSingle()
@@ -93,13 +93,6 @@ namespace FoundationDB.Linq.Expressions
 				prmTrans,
 				prmCancel
 			);
-		}
-
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
-		{
-			writer.WriteLine("{0}(", this.Name).Enter()
-				.WriteLine(this.Sequence)
-			.Leave().Write(")");
 		}
 
 		public override string ToString()

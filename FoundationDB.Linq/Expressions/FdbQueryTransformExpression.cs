@@ -85,16 +85,6 @@ namespace FoundationDB.Linq.Expressions
 			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<R>>>(body, prmTrans);
 		}
 
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
-		{
-			writer
-				.WriteLine("Transform(")
-				.Enter()
-					.Write(this.Source).WriteLine(",")
-					.WriteLine(this.Transform.ToString())
-				.Leave().Write(")");
-		}
-
 	}
 
 }

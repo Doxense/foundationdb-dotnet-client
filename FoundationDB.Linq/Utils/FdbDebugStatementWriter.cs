@@ -50,12 +50,14 @@ namespace FoundationDB.Linq.Utils
 		public FdbDebugStatementWriter Enter()
 		{
 			this.IndentLevel++;
+			if (!this.StartOfLine) WriteLine();
 			return this;
 		}
 
 		public FdbDebugStatementWriter Leave()
 		{
 			this.IndentLevel--;
+			if (!this.StartOfLine) WriteLine();
 			return this;
 		}
 
@@ -88,31 +90,6 @@ namespace FoundationDB.Linq.Utils
 		public FdbDebugStatementWriter Write(string format, params string[] args)
 		{
 			return Write(String.Format(CultureInfo.InvariantCulture, format, args));
-		}
-
-		public FdbDebugStatementWriter Write(FdbQueryExpression expression)
-		{
-			expression.AppendDebugStatement(this);
-			return this;
-		}
-
-		public FdbDebugStatementWriter WriteLine(FdbQueryExpression expression)
-		{
-			expression.AppendDebugStatement(this);
-			return WriteLine();
-		}
-
-		public FdbDebugStatementWriter Write(Expression expression)
-		{
-			var constant = expression as ConstantExpression;
-			if (constant != null)
-			{
-				return Write(constant.ToString());
-			}
-			else
-			{
-				return Write(FdbExpressionHelpers.GetDebugView(expression));
-			}
 		}
 
 		private void Indent()

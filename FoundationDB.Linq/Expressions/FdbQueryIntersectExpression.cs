@@ -111,20 +111,6 @@ namespace FoundationDB.Linq.Expressions
 		
 		}
 
-		internal override void AppendDebugStatement(FdbDebugStatementWriter writer)
-		{
-			writer.WriteLine("{0}<{1}>(", this.QueryNodeType.ToString(), this.ElementType.Name).Enter();
-			for(int i=0;i<this.Expressions.Length;i++)
-			{
-				writer.Write(this.Expressions[i]);
-				if (i + 1 < this.Expressions.Length)
-					writer.WriteLine(",");
-				else
-					writer.WriteLine();
-			}
-			writer.Leave().Write(")");
-		}
-
 	}
 
 	public sealed class FdbQueryIntersectExpression<T> : FdbQueryMergeExpression<T>

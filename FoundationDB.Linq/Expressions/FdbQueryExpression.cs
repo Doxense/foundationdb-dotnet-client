@@ -58,15 +58,13 @@ namespace FoundationDB.Linq.Expressions
 
 		public abstract Expression Accept(FdbQueryExpressionVisitor visitor);
 
-		internal abstract void AppendDebugStatement(FdbDebugStatementWriter writer);
-
 		internal string DebugView
 		{
 			get
 			{
-				var writer = new FdbDebugStatementWriter();
-				this.AppendDebugStatement(writer);
-				return writer.ToString();
+				var builder = new FdbQueryExpressionStringBuilder();
+				builder.Visit(this);
+				return builder.ToString();
 			}
 		}
 
@@ -78,65 +76,6 @@ namespace FoundationDB.Linq.Expressions
 #endif
 
     }
-
-	public abstract class FdbQueryExpressionVisitor:  ExpressionVisitor
-	{
-
-		protected override Expression VisitExtension(Expression node)
-		{
-			var expr = node as FdbQueryExpression;
-			if (expr != null)
-			{
-				return expr.Accept(this);
-			}
-			return base.VisitExtension(node);
-		}
-
-		public virtual Expression Visit(FdbQueryExpression node)
-		{
-			if (node != null)
-			{
-				return node.Accept(this);
-			}
-			return null;
-		}
-
-		protected internal virtual Expression VisitAsyncEnumerable<T>(FdbQueryAsyncEnumerableExpression<T> node)
-		{
-			throw new NotImplementedException();
-		}
-
-		protected internal virtual Expression VisitQueryRange(FdbQueryRangeExpression node)
-		{
-			throw new NotImplementedException();
-		}
-
-		protected internal virtual Expression VisitQueryTransform<T, R>(FdbQueryTransformExpression<T, R> node)
-		{
-			throw new NotImplementedException();
-		}
-
-		protected internal virtual Expression VisitQueryFilter<T>(FdbQueryFilterExpression<T> node)
-		{
-			throw new NotImplementedException();
-		}
-
-		protected internal virtual Expression VisitQuerySignle<T, R>(FdbQuerySingleExpression<T, R> node)
-		{
-			throw new NotImplementedException();
-		}
-
-		protected internal virtual Expression VisitQueryIndexLookup<K, V>(FdbQueryIndexLookupExpression<K, V> node)
-		{
-			throw new NotImplementedException();
-		}
-
-		protected internal virtual Expression VisitQueryMerge<T>(FdbQueryMergeExpression<T> node)
-		{
-			throw new NotImplementedException();
-		}
-
-	}
 
 	public abstract class FdbQueryExpression<T> : FdbQueryExpression
 	{

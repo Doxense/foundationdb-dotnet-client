@@ -150,6 +150,22 @@ namespace FoundationDB.Linq.Utils
 				case ExpressionType.GreaterThanOrEqual: return ">=";
 				case ExpressionType.LessThan: return "<";
 				case ExpressionType.LessThanOrEqual: return "<=";
+
+				case ExpressionType.Negate: return "-";
+				case ExpressionType.Not: return "!";
+
+				case ExpressionType.And: return "&";
+				case ExpressionType.Or: return "|";
+
+				case ExpressionType.AndAlso: return "&&";
+				case ExpressionType.OrElse: return "||";
+
+				case ExpressionType.Add: return "+";
+				case ExpressionType.Subtract: return "-";
+				case ExpressionType.Multiply: return "*";
+				case ExpressionType.Divide: return "/";
+				case ExpressionType.Modulo: return "%";
+
 				default:
 					return op.ToString();
 			}
