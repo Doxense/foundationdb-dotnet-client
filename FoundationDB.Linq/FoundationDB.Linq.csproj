@@ -45,7 +45,6 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="FdbDatabaseQuery.cs" />
-    <Compile Include="Expressions\FdbQueryConstantExpression.cs" />
     <Compile Include="Utils\FdbExpressionHelpers.cs" />
     <Compile Include="FdbAsyncSingleQuery.cs" />
     <Compile Include="Expressions\FdbQuerySingleExpression.cs" />

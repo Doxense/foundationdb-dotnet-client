@@ -136,13 +136,6 @@ namespace FoundationDB.Linq.Expressions
 			return node;
 		}
 
-		protected internal override Expression VisitConstant<T>(FdbQueryConstantExpression<T> node)
-		{
-			Visit(node.Reduce());
-			return node;
-		}
-
-
 		private void VisitExpressions<TExpr>(IList<TExpr> expressions, string open, string close, string sep)
 			where TExpr : Expression
 		{

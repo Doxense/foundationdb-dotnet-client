@@ -94,11 +94,6 @@ namespace FoundationDB.Linq.Expressions
 			throw new NotImplementedException();
 		}
 
-		protected internal virtual Expression VisitConstant<T>(FdbQueryConstantExpression<T> node)
-		{
-			throw new NotImplementedException();
-		}
-
 	}
 
 }

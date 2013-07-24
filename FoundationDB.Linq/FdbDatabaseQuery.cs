@@ -40,8 +40,13 @@ namespace FoundationDB.Linq
 	public sealed class FdbDatabaseQuery : FdbAsyncQuery<FdbDatabase>, IFdbDatabaseQueryable
 	{
 		internal FdbDatabaseQuery(FdbDatabase db)
-			: base(db, FdbQueryExpressions.Constant(db))
+			: base(db)
 		{ }
+
+		protected override Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		{
+			throw new InvalidOperationException("You cannot execute this operation on the whole database. Try calling Range() or RangeStartsWith() on this query to read from the database.");
+		}
 
 	}
 
@@ -50,12 +55,17 @@ namespace FoundationDB.Linq
 	public sealed class FdbIndexQuery<TId, TValue> : FdbAsyncQuery<FdbIndexQuery<TId, TValue>>, IFdbIndexQueryable<TId, TValue>
 	{
 		internal FdbIndexQuery(FdbDatabase db, FdbIndex<TId, TValue> index)
-			: base(db, FdbQueryExpressions.Constant(db))
+			: base(db)
 		{
 			this.Index = index;
 		}
 
 		public FdbIndex<TId, TValue> Index { get; private set; }
+
+		protected override Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
+		{
+			throw new InvalidOperationException("You cannot execute this operation on the whole index. Try calling Lookup() on this query to lookup specific values from the index.");
+		}
 
 	}
 

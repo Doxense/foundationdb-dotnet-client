@@ -42,20 +42,6 @@ namespace FoundationDB.Linq.Expressions
 	public static class FdbQueryExpressions
 	{
 
-#if REFACTORED
-		public static FdbQueryIndexExpression<TId, TValue> Index<TId, TValue>(FdbIndex<TId, TValue> index)
-		{
-			if (index == null) throw new ArgumentNullException("index");
-
-			return new FdbQueryIndexExpression<TId, TValue>(index);
-		}
-#endif
-
-		public static FdbQueryConstantExpression<T> Constant<T>(T value)
-		{
-			return new FdbQueryConstantExpression<T>(value);
-		}
-
 		public static FdbQuerySingleExpression<T, R> Single<T, R>(FdbQuerySequenceExpression<T> source, string name, Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
 		{
 			if (source == null) throw new ArgumentNullException("source");
