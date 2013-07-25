@@ -203,7 +203,8 @@ namespace FoundationDB.Linq.Utils
 
 			public ParameterRewritingVisitor(Dictionary<ParameterExpression, Expression> rewrittenParameters)
 			{
-				this.Parameters = rewrittenParameters.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+				Contract.Requires(rewrittenParameters != null && rewrittenParameters.Count > 0);
+				this.Parameters = rewrittenParameters;
 			}
 
 			protected override Expression VisitParameter(ParameterExpression node)
