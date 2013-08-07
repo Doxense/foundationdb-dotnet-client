@@ -1,4 +1,4 @@
-#region BSD Licence
+ï»¿#region BSD Licence
 /* Copyright (c) 2013, Doxense SARL
 All rights reserved.
 
@@ -26,15 +26,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+namespace FoundationDB.Client
+{
+	using System;
 
-[assembly: AssemblyCompany("Doxense SARL")]
-[assembly: AssemblyProduct("FoundationDB.Client")]
-[assembly: AssemblyCopyright("Copyright © Doxense SARL 2013")]
-[assembly: AssemblyTrademark("")]
-[assembly: AssemblyCulture("")]
+	public enum FdbConflictRangeType
+	{
+		/// <summary>
+		/// Performs an addition of little-endian integers. If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``. The integers to be added must be stored in a little-endian representation.  They can be signed in two's complement representation or unsigned. You can add to an integer at a known offset in the value by prepending the appropriate number of zero bytes to ``param`` and padding with zero bytes to match the length of the value. However, this offset technique requires that you know the addition will not cause the integer field within the value to overflow.
+		/// </summary>
+		Read = 0,
 
-[assembly: AssemblyVersion("0.23.0.0")]
-[assembly: AssemblyFileVersion("0.23.0.0")]
+		/// <summary>
+		/// Performs a bitwise ``and`` operation.  If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
+		/// </summary>
+		Write = 1,
+
+	}
+
+}

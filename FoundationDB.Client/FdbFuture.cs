@@ -373,13 +373,13 @@ namespace FoundationDB.Client
 				{
 					UnregisterCancellationRegistration();
 
-					if (FdbNative.FutureIsError(handle))
+					FdbError err = FdbNative.FutureGetError(handle);
+					if (Fdb.Failed(err))
 					{ // it failed...
 #if DEBUG_FUTURES
-						Debug.WriteLine("Future<" + typeof(T).Name + "> has FAILED");
+						Debug.WriteLine("Future<" + typeof(T).Name + "> has FAILED: " + err);
 #endif
-						var err = FdbNative.FutureGetError(handle);
-						if (err != FdbError.Success)
+						if (err != FdbError.TransactionCancelled)
 						{ // get the exception from the error code
 							var ex = Fdb.MapToException(err);
 							TrySetException(ex, fromCallback);

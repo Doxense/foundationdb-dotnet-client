@@ -58,6 +58,8 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="FdbConflictRangeType.cs" />
+    <Compile Include="FdbMutationType.cs" />
     <Compile Include="FdbDatabase.Bulk.cs" />
     <Compile Include="FdbTransaction.Snapshot.cs" />
     <Compile Include="IFdbTransaction.cs" />
@@ -161,11 +163,6 @@
     <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
     <Compile Include="Async\TaskHelpers.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="fdb_c.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

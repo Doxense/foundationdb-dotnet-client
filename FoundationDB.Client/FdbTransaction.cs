@@ -579,6 +579,35 @@ namespace FoundationDB.Client
 			}
 		}
 
+		internal Task WatchCoreAsync(Slice key, CancellationToken ct)
+		{
+			this.Database.EnsureKeyIsValid(key);
+
+#if DEBUG
+			if (Logging.On) Logging.Verbose(this, "WatchAsync", String.Format("Watching key '{0}'", key.ToString()));
+#endif
+
+			var future = FdbNative.TransactionWatch(m_handle, key);
+			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
+		}
+
+		/// <summary>
+		/// Watch a key for any change in the database
+		/// </summary>
+		/// <param name="key">Key to watch</param>
+		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore</param>
+		/// <returns>Task that completes when the watched key has changed</returns>
+		public Task WatchAsync(Slice key, CancellationToken ct = default(CancellationToken))
+		{
+			//BUGBUG: the Future returned by fdb_transaction_watch outlives the transaction, and should be canceled with fdb_future_cancel() is the caller don't need it anymore
+			// Problem is: we can't cancel a task! Either we force the caller to provide a valid CancellationToken dedicated to the watchdoc, and would be used to cancel the watch,
+			// or we return some sort of Diposable<Task> wrapper that would encapsulate a task, a CancellationTokenSource, and a Cancel() method?
+
+			EnsureCanRead(ct);
+
+			return WatchCoreAsync(key, ct);
+		}
+
 		#endregion
 
 		#region OnError...
