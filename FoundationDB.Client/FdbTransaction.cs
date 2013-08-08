@@ -617,11 +617,16 @@ namespace FoundationDB.Client
 
 		public Task OnErrorAsync(FdbError code, CancellationToken ct = default(CancellationToken))
 		{
-			//note: should this be allowed from network thread ?
-			EnsureCanReadOrWrite(ct);
+			EnsureCanRetry(ct);
 
 			var future = FdbNative.TransactionOnError(m_handle, code);
-			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
+			return FdbFuture.CreateTaskFromHandle<object>(future, (h) =>
+			{
+				// If fdb_transaction_on_error succeeds, that means that the transaction has been reset and is usable again
+				var state = this.State;
+				if (state != STATE_DISPOSED) Interlocked.CompareExchange(ref m_state, STATE_READY, state);
+				return null;
+			}, ct);
 		}
 
 		#endregion
@@ -690,14 +695,20 @@ namespace FoundationDB.Client
 			EnsureStilValid(ct, allowFromNetworkThread: false);
 		}
 
+		/// <summary>Throws if the transaction is not safely retryable</summary>
+		public void EnsureCanRetry(CancellationToken ct = default(CancellationToken))
+		{
+			EnsureStilValid(ct, allowFromNetworkThread: false, allowFailedState: true);
+		}
+
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
 		/// <param name="ct">Optionnal CancellationToken that should not be canceled</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() have already been called on the transaction, or if the database has been closed</exception>
-		internal void EnsureStilValid(CancellationToken ct = default(CancellationToken), bool allowFromNetworkThread = false)
+		internal void EnsureStilValid(CancellationToken ct = default(CancellationToken), bool allowFromNetworkThread = false, bool allowFailedState = false)
 		{
 			// We must not be disposed
-			if (this.State != STATE_READY)
+			if (allowFailedState ? this.State == STATE_DISPOSED : this.State != STATE_READY)
 			{
 				ThrowOnInvalidState(this);
 			}

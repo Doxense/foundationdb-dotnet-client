@@ -126,9 +126,9 @@ namespace FoundationDB.Client
 				this.StartedUtc = DateTime.UtcNow;
 				this.Duration.Start();
 
-				while (!this.Committed && !this.Token.IsCancellationRequested)
+				using (var trans = this.Db.BeginTransaction())
 				{
-					using (var trans = this.Db.BeginTransaction())
+					while (!this.Committed && !this.Token.IsCancellationRequested)
 					{
 						FdbException e = null;
 						bool readOnlyOperation = false;
@@ -178,12 +178,13 @@ namespace FoundationDB.Client
 						}
 						catch (FdbException x)
 						{
-							x = e;
+							e = x;
 						}
 
 						if (e != null)
 						{
 							await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
+							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format("fdb: transaction {0} can be safely retried", trans.Id.ToString()));
 						}
 
 						if (this.Duration.Elapsed.TotalSeconds >= 1)
