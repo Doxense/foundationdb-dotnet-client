@@ -229,6 +229,90 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		/// <summary>Performs (x OP y) and ensure that the result is correct</summary>
+		private async Task PerformAtomicOperationAndCheck(FdbDatabase db, Slice key, int x, FdbMutationType type, int y)
+		{
+
+			int expected = 0;
+			switch(type)
+			{
+				case FdbMutationType.And: expected = x & y; break;
+				case FdbMutationType.Or: expected = x | y; break;
+				case FdbMutationType.Xor: expected = x ^ y; break;
+				case FdbMutationType.Add: expected = x + y; break;
+				default: Assert.Fail("Invalid operation type"); break;
+			}
+
+			// set key = x
+			using(var tr = db.BeginTransaction())
+			{
+				tr.Set(key, Slice.FromFixed32(x));
+				await tr.CommitAsync();
+			}
+
+			// atomic key op y
+			using (var tr = db.BeginTransaction())
+			{
+				tr.Atomic(key, Slice.FromFixed32(y), type);
+				await tr.CommitAsync();
+			}
+
+			// read key
+			using(var tr = db.BeginTransaction())
+			{
+				var data = await tr.GetAsync(key);
+				Assert.That(data.Count, Is.EqualTo(4), "data.Count");
+
+				Console.WriteLine(Slice.FromFixed32(x) + " " + type.ToString() + " " + Slice.FromFixed32(y) + " =?= " + data);
+
+				Assert.That(data.ToInt32(), Is.EqualTo(expected), "0x{0} {1} 0x{2} = 0x{0}", x.ToString("X8"), type.ToString(), y.ToString("X8"), expected.ToString("X8"));
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Perform_Atomic_Operations()
+		{
+			// test that we can perform atomic mutations on keys
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("test", "atomic");
+				await db.ClearRangeAsync(location);
+
+				Slice key;
+
+				key = location.Pack("add");
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Add, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Add, 1);
+				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Add, 0);
+				await PerformAtomicOperationAndCheck(db, key, -2, FdbMutationType.Add, 1);
+				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.Add, 1);
+				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Add, 987654321);
+
+				key = location.Pack("and");
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.And, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.And, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.And, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.And, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.And, 0x018055AA);
+
+				key = location.Pack("or");
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Or, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Or, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.Or, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.Or, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.Or, 0x018055AA);
+
+				key = location.Pack("xor");
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Xor, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Xor, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.Xor, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.Xor, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.Xor, 0x018055AA);
+
+			}
+		}
+
 		[Test]
 		public async Task Test_Can_Snapshot_Read()
 		{

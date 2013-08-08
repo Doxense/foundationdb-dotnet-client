@@ -38,6 +38,8 @@ namespace FoundationDB.Client
 
 		void Set(Slice keyBytes, Slice valueBytes);
 
+		void Atomic(Slice keyBytes, Slice paramBytes, FdbMutationType operationType);
+
 		void Clear(Slice key);
 
 		void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive);

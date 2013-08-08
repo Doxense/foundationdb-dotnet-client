@@ -467,6 +467,33 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Atomic Ops...
+
+		internal void AtomicCore(Slice key, Slice param, FdbMutationType type)
+		{
+			this.Database.EnsureKeyIsValid(key);
+			this.Database.EnsureValueIsValid(param);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", String.Format("Atomic {0} on '{1}' = {2}", type.ToString(), key.ToString(), param.ToString()));
+#endif
+
+			FdbNative.TransactionAtomicOperation(m_handle, key, param, type);
+
+			//TODO: what is the overhead for atomic operations?
+			Interlocked.Add(ref m_payloadBytes, key.Count + param.Count);
+
+		}
+
+		public void Atomic(Slice keyBytes, Slice valueBytes, FdbMutationType operationType)
+		{
+			EnsureStilValid(allowFromNetworkThread: true);
+
+			AtomicCore(keyBytes, valueBytes, operationType);
+		}
+
+		#endregion
+
 		#region Clear...
 
 		internal void ClearCore(Slice key)

@@ -774,6 +774,18 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		public static void TransactionAtomicOperation(TransactionHandle transaction, Slice key, Slice param, FdbMutationType operationType)
+		{
+			fixed (byte* pKey = key.Array)
+			fixed (byte* pParam = param.Array)
+			{
+#if DEBUG_NATIVE_CALLS
+				Debug.WriteLine("fdb_transaction_atomic_op(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', param: '" + FdbKey.Dump(param) + "', " + operationType.ToString() + ")");
+#endif
+				Stubs.fdb_transaction_atomic_op(transaction, pKey + key.Offset, key.Count, pParam + param.Offset, param.Count, operationType);
+			}
+		}
+
 		public static void TransactionClear(TransactionHandle transaction, Slice key)
 		{
 			fixed (byte* pKey = key.Array)

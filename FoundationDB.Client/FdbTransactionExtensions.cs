@@ -74,6 +74,38 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Atomic Ops...
+
+		public static void AtomicAdd(this IFdbTransaction trans, Slice keyBytes, Slice valueBytes)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Atomic(keyBytes, valueBytes, FdbMutationType.Add);
+		}
+
+		public static void AtomicAnd(this IFdbTransaction trans, Slice keyBytes, Slice maskBytes)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Atomic(keyBytes, maskBytes, FdbMutationType.And);
+		}
+
+		public static void AtomicOr(this IFdbTransaction trans, Slice keyBytes, Slice maskBytes)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Atomic(keyBytes, maskBytes, FdbMutationType.Or);
+		}
+
+		public static void AtomicXor(this IFdbTransaction trans, Slice keyBytes, Slice maskBytes)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Atomic(keyBytes, maskBytes, FdbMutationType.Xor);
+		}
+
+		#endregion
+
 		#region GetRange...
 
 		public static FdbRangeQuery GetRange(this IFdbReadTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
