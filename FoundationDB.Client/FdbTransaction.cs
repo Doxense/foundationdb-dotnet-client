@@ -72,6 +72,12 @@ namespace FoundationDB.Client
 		/// <summary>Cancelletation source specific to this instance.</summary>
 		private readonly CancellationTokenSource m_cts;
 
+		/// <summary>Timeout (in ms) of this transaction</summary>
+		private int m_timeout;
+
+		/// <summary>Retry Limit of this transaction</summary>
+		private int m_retryLimit;
+
 		#endregion
 
 		#region Constructors...
@@ -117,6 +123,8 @@ namespace FoundationDB.Client
 
 		#region Options..
 
+		#region Fluent...
+
 		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
 		public FdbTransaction WithAccessToSystemKeys()
 		{
@@ -152,26 +160,50 @@ namespace FoundationDB.Client
 		/// <param name="timeout">Timeout in millisecond, or 0 for infinite timeout</param>
 		public FdbTransaction WithTimeout(int milliseconds)
 		{
-			if (milliseconds < 0) throw new ArgumentOutOfRangeException("milliseconds", milliseconds, "Timeout value cannot be negative");
-			SetOption(FdbTransactionOption.Timeout, milliseconds);
-			//TODO: cache this into a local variable ?
+			this.Timeout = milliseconds;
 			return this;
 		}
 
 		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code. Valid parameter values are ``[-1, INT_MAX]``. If set to -1, will disable the retry limit.</summary>
-		/// <param name="retries"></param>
-		/// <returns></returns>
 		public FdbTransaction WithRetryLimit(int retries)
 		{
-			if (retries < 0) throw new ArgumentOutOfRangeException("retries", retries, "Retry count cannot be negative");
-			SetOption(FdbTransactionOption.RetryLimit, retries);
-			//TODO: cache this into a local variable ?
+			this.RetryLimit = retries;
 			return this;
 		}
 
+		#endregion
+
+		#region Properties...
+
+		/// <summary>Timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
+		public int Timeout
+		{
+			get { return m_timeout; }
+			set
+			{
+				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Timeout value cannot be negative");
+				SetOption(FdbTransactionOption.Timeout, value);
+				m_timeout = value;
+			}
+		}
+
+		/// <summary>Maximum number of retries after which additional calls to onError will throw the most recently seen error code. Valid parameter values are ``[-1, INT_MAX]``. If set to -1, will disable the retry limit.</summary>
+		public int RetryLimit
+		{
+			get { return m_retryLimit; }
+			set
+			{
+				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Retry count cannot be negative");
+				SetOption(FdbTransactionOption.RetryLimit, value);
+				m_retryLimit = value;
+			}
+		}
+
+		#endregion
+
 		/// <summary>Set an option on this transaction that does not take any parameter</summary>
 		/// <param name="option">Option to set</param>
-		public void SetOption(FdbTransactionOption option)
+		internal void SetOption(FdbTransactionOption option)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -184,7 +216,7 @@ namespace FoundationDB.Client
 		/// <summary>Set an option on this transaction that takes a string value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter (can be null)</param>
-		public void SetOption(FdbTransactionOption option, string value)
+		internal void SetOption(FdbTransactionOption option, string value)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -201,7 +233,7 @@ namespace FoundationDB.Client
 		/// <summary>Set an option on this transaction that takes an integer value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter</param>
-		public void SetOption(FdbTransactionOption option, long value)
+		internal void SetOption(FdbTransactionOption option, long value)
 		{
 			EnsureNotFailedOrDisposed();
 

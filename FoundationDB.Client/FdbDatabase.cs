@@ -79,6 +79,12 @@ namespace FoundationDB.Client
 		/// <remarks>This is modifiable, but should always be contained in the global namespace</remarks>
 		private FdbKeyRange m_restrictedKeySpace;
 
+		/// <summary>Default Timeout value for all transactions</summary>
+		private int m_defaultTimeout;
+
+		/// <summary>Default RetryLimit value for all transactions</summary>
+		private int m_defaultRetryLimit;
+
 		#endregion
 
 		#region Constructors...
@@ -150,6 +156,10 @@ namespace FoundationDB.Client
 			{
 				trans = new FdbTransaction(this, id, handle);
 				RegisterTransaction(trans);
+				// set default options..
+				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
+				if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
+				// flag as ready
 				trans.State = FdbTransaction.STATE_READY;
 				return trans;
 			}
@@ -573,6 +583,34 @@ namespace FoundationDB.Client
 			}
 		}
 
+
+		#endregion
+
+		#region Default Transaction Settings...
+
+		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public int DefaultTimeout
+		{
+			get { return m_defaultTimeout; }
+			set
+			{
+				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Timeout value cannot be negative");
+				m_defaultTimeout = value;
+			}
+		}
+
+		/// <summary>Default Retry Limit value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public int DefaultRetryLimit
+		{
+			get { return m_defaultRetryLimit; }
+			set
+			{
+				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "RetryLimit value cannot be negative");
+				m_defaultRetryLimit = value;
+			}
+		}
 
 		#endregion
 

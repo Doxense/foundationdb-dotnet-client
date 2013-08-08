@@ -561,5 +561,67 @@ namespace FoundationDB.Client.Tests
 
 			}
 		}
+	
+		[Test]
+		public async Task Test_Can_Set_Timeout_And_RetryLimit()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+
+				using (var tr = db.BeginTransaction())
+				{
+					Assert.That(tr.Timeout, Is.EqualTo(0), "Timeout (default)");
+					Assert.That(tr.RetryLimit, Is.EqualTo(0), "RetryLimit (default)");
+
+					tr.Timeout = 1000; // 1 sec max
+					tr.RetryLimit = 5; // 5 retries max
+
+					Assert.That(tr.Timeout, Is.EqualTo(1000), "Timeout");
+					Assert.That(tr.RetryLimit, Is.EqualTo(5), "RetryLimit");
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Timeout_And_RetryLimit_Inherits_Default_From_Database()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
+				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
+
+				db.DefaultTimeout = 500;
+				db.DefaultRetryLimit = 3;
+
+				Assert.That(db.DefaultTimeout, Is.EqualTo(500), "db.DefaultTimeout");
+				Assert.That(db.DefaultRetryLimit, Is.EqualTo(3), "db.DefaultRetryLimit");
+
+				// transaction should be already configured with the default options
+
+				using (var tr = db.BeginTransaction())
+				{
+					Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
+					Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
+
+					// changing the default on the db should only affect new transactions
+
+					db.DefaultTimeout = 600;
+					db.DefaultRetryLimit = 4;
+
+					using(var tr2 = db.BeginTransaction())
+					{
+						Assert.That(tr2.Timeout, Is.EqualTo(600), "tr2.Timeout");
+						Assert.That(tr2.RetryLimit, Is.EqualTo(4), "tr2.RetryLimit");
+
+						// original tr should not be affected
+						Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
+						Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
+					}
+
+				}
+
+			}
+		}
+
 	}
 }
