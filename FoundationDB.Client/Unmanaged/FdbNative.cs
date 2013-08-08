@@ -182,6 +182,9 @@ namespace FoundationDB.Client.Native
 			public static extern void fdb_future_destroy(IntPtr future);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
+			public static extern void fdb_future_cancel(FutureHandle future);
+
+			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_future_release_memory(FutureHandle future);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
@@ -337,6 +340,11 @@ namespace FoundationDB.Client.Native
 			{
 				Stubs.fdb_future_destroy(futureHandle);
 			}
+		}
+
+		public static void FutureCancel(FutureHandle futureHandle)
+		{
+			Stubs.fdb_future_cancel(futureHandle);
 		}
 
 		public static void FutureReleaseMemory(FutureHandle futureHandle)

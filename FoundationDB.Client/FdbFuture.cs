@@ -321,9 +321,7 @@ namespace FoundationDB.Client
 			Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancel(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
 #endif
 
-			//TODO: we may need to call "transaction.Cancel()" if this becomes available in the API some day...
-			// right now, the only possibility is to destroy the future handle.
-			future.Abort();
+			future.Cancel();
 		}
 
 		/// <summary>Handler called when a FDBFuture becomes ready</summary>
@@ -462,8 +460,8 @@ namespace FoundationDB.Client
 			return false;
 		}
 
-		/// <summary>Try to abort the task</summary>
-		public void Abort()
+		/// <summary>Try to abort the task (if it is still running)</summary>
+		public void Cancel()
 		{
 			if (HasAnyFlags(Flags.DISPOSED | Flags.COMPLETED))
 			{
@@ -475,6 +473,8 @@ namespace FoundationDB.Client
 			{
 				if (!this.Task.IsCompleted)
 				{
+					FdbNative.FutureCancel(m_handle);
+
 					TrySetCanceled(fromCallback);
 				}
 			}
