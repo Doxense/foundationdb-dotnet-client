@@ -452,7 +452,10 @@ namespace FoundationDB.Client
 #endif
 
 			FdbNative.TransactionSet(m_handle, key, value);
-			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count);
+
+			// There is a 28-byte overhead pet Set(..) in a transaction
+			// cf http://community.foundationdb.com/questions/547/transaction-size-limit
+			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count + 28);
 		}
 
 		public void Set(Slice keyBytes, Slice valueBytes)
