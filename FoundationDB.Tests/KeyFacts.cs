@@ -67,5 +67,116 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.Ascii("Hello") == FdbKey.Ascii("Helloo"), Is.False);
 		}
 
+		[Test]
+		public void Test_Slice_FromInt32()
+		{
+			// 32-bit integers should be encoded in little endian, and with 1, 2 or 4 bytes
+			// 0x12 -> { 12 }
+			// 0x1234 -> { 34 12 }
+			// 0x123456 -> { 56 34 12 00 }
+			// 0x12345678 -> { 78 56 34 12 }
+
+			Assert.That(Slice.FromInt32(0x12).ToHexaString(), Is.EqualTo("12"));
+			Assert.That(Slice.FromInt32(0x1234).ToHexaString(), Is.EqualTo("3412"));
+			Assert.That(Slice.FromInt32(0x123456).ToHexaString(), Is.EqualTo("56341200"));
+			Assert.That(Slice.FromInt32(0x12345678).ToHexaString(), Is.EqualTo("78563412"));
+
+			Assert.That(Slice.FromInt32(0).ToHexaString(), Is.EqualTo("00"));
+			Assert.That(Slice.FromInt32(1).ToHexaString(), Is.EqualTo("01"));
+			Assert.That(Slice.FromInt32(255).ToHexaString(), Is.EqualTo("ff"));
+			Assert.That(Slice.FromInt32(256).ToHexaString(), Is.EqualTo("0001"));
+			Assert.That(Slice.FromInt32(65535).ToHexaString(), Is.EqualTo("ffff"));
+			Assert.That(Slice.FromInt32(65536).ToHexaString(), Is.EqualTo("00000100"));
+			Assert.That(Slice.FromInt32(int.MaxValue).ToHexaString(), Is.EqualTo("ffffff7f"));
+			Assert.That(Slice.FromInt32(int.MinValue).ToHexaString(), Is.EqualTo("00000080"));
+
+		}
+
+		[Test]
+		public void Test_Slice_ToInt32()
+		{
+			Assert.That(Slice.Create(new byte[] { 0x12 }).ToInt32(), Is.EqualTo(0x12));
+			Assert.That(Slice.Create(new byte[] { 0x34, 0x12 }).ToInt32(), Is.EqualTo(0x1234));
+			Assert.That(Slice.Create(new byte[] { 0x56, 0x34, 0x12 }).ToInt32(), Is.EqualTo(0x123456));
+			Assert.That(Slice.Create(new byte[] { 0x56, 0x34, 0x12, 00 }).ToInt32(), Is.EqualTo(0x123456));
+			Assert.That(Slice.Create(new byte[] { 0x78, 0x56, 0x34, 0x12 }).ToInt32(), Is.EqualTo(0x12345678));
+
+			Assert.That(Slice.Create(new byte[] { 0 }).ToInt32(), Is.EqualTo(0));
+			Assert.That(Slice.Create(new byte[] { 255 }).ToInt32(), Is.EqualTo(255));
+			Assert.That(Slice.Create(new byte[] { 0, 1 }).ToInt32(), Is.EqualTo(256));
+			Assert.That(Slice.Create(new byte[] { 255, 255 }).ToInt32(), Is.EqualTo(65535));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 1 }).ToInt32(), Is.EqualTo(1 << 16));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 1, 0 }).ToInt32(), Is.EqualTo(1 << 16));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255 }).ToInt32(), Is.EqualTo((1 << 24) - 1));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 1 }).ToInt32(), Is.EqualTo(1 << 24));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 127 }).ToInt32(), Is.EqualTo(int.MaxValue));
+		}
+
+		[Test]
+		public void Test_Slice_FromInt64()
+		{
+			// 64-bit integers should be encoded in little endian, and with 1, 2, 4 or 8 bytes
+			// 0x12 -> { 12 }
+			// 0x1234 -> { 34 12 }
+			// 0x123456 -> { 56 34 12 00 }
+			// 0x12345678 -> { 78 56 34 12 }
+			// 0x123456789A -> { 9A 78 56 34 12 00 00 00}
+			// 0x123456789ABC -> { BC 9A 78 56 34 12 00 00}
+			// 0x123456789ABCDE -> { DE BC 9A 78 56 34 12 00}
+			// 0x123456789ABCDEF0 -> { F0 DE BC 9A 78 56 34 12 }
+
+			Assert.That(Slice.FromInt64(0x12).ToHexaString(), Is.EqualTo("12"));
+			Assert.That(Slice.FromInt64(0x1234).ToHexaString(), Is.EqualTo("3412"));
+			Assert.That(Slice.FromInt64(0x123456).ToHexaString(), Is.EqualTo("56341200"));
+			Assert.That(Slice.FromInt64(0x12345678).ToHexaString(), Is.EqualTo("78563412"));
+			Assert.That(Slice.FromInt64(0x123456789A).ToHexaString(), Is.EqualTo("9a78563412000000"));
+			Assert.That(Slice.FromInt64(0x123456789ABC).ToHexaString(), Is.EqualTo("bc9a785634120000"));
+			Assert.That(Slice.FromInt64(0x123456789ABCDE).ToHexaString(), Is.EqualTo("debc9a7856341200"));
+			Assert.That(Slice.FromInt64(0x123456789ABCDEF0).ToHexaString(), Is.EqualTo("f0debc9a78563412"));
+
+			Assert.That(Slice.FromInt64(0).ToHexaString(), Is.EqualTo("00"));
+			Assert.That(Slice.FromInt64(1).ToHexaString(), Is.EqualTo("01"));
+			Assert.That(Slice.FromInt64(255).ToHexaString(), Is.EqualTo("ff"));
+			Assert.That(Slice.FromInt64(256).ToHexaString(), Is.EqualTo("0001"));
+			Assert.That(Slice.FromInt64(65535).ToHexaString(), Is.EqualTo("ffff"));
+			Assert.That(Slice.FromInt64(65536).ToHexaString(), Is.EqualTo("00000100"));
+			Assert.That(Slice.FromInt64(int.MaxValue).ToHexaString(), Is.EqualTo("ffffff7f"));
+			Assert.That(Slice.FromInt64(int.MinValue).ToHexaString(), Is.EqualTo("00000080ffffffff"));
+			Assert.That(Slice.FromInt64(1L + int.MaxValue).ToHexaString(), Is.EqualTo("0000008000000000"));
+			Assert.That(Slice.FromInt64(long.MaxValue).ToHexaString(), Is.EqualTo("ffffffffffffff7f"));
+			Assert.That(Slice.FromInt64(long.MinValue).ToHexaString(), Is.EqualTo("0000000000000080"));
+
+		}
+
+		[Test]
+		public void Test_Slice_ToInt64()
+		{
+			Assert.That(Slice.Create(new byte[] { 0x12 }).ToInt64(), Is.EqualTo(0x12));
+			Assert.That(Slice.Create(new byte[] { 0x34, 0x12 }).ToInt64(), Is.EqualTo(0x1234));
+			Assert.That(Slice.Create(new byte[] { 0x56, 0x34, 0x12 }).ToInt64(), Is.EqualTo(0x123456));
+			Assert.That(Slice.Create(new byte[] { 0x56, 0x34, 0x12, 00 }).ToInt64(), Is.EqualTo(0x123456));
+			Assert.That(Slice.Create(new byte[] { 0x78, 0x56, 0x34, 0x12 }).ToInt64(), Is.EqualTo(0x12345678));
+			Assert.That(Slice.Create(new byte[] { 0x9A, 0x78, 0x56, 0x34, 0x12 }).ToInt64(), Is.EqualTo(0x123456789A));
+			Assert.That(Slice.Create(new byte[] { 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }).ToInt64(), Is.EqualTo(0x123456789ABC));
+			Assert.That(Slice.Create(new byte[] { 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }).ToInt64(), Is.EqualTo(0x123456789ABCDE));
+			Assert.That(Slice.Create(new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }).ToInt64(), Is.EqualTo(0x123456789ABCDEF0));
+
+			Assert.That(Slice.Create(new byte[] { 0 }).ToInt64(), Is.EqualTo(0L));
+			Assert.That(Slice.Create(new byte[] { 255 }).ToInt64(), Is.EqualTo(255L));
+			Assert.That(Slice.Create(new byte[] { 0, 1 }).ToInt64(), Is.EqualTo(256L));
+			Assert.That(Slice.Create(new byte[] { 255, 255 }).ToInt64(), Is.EqualTo(65535L));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 1 }).ToInt64(), Is.EqualTo(1L << 16));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 1, 0 }).ToInt64(), Is.EqualTo(1L << 16));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255 }).ToInt64(), Is.EqualTo((1L << 24) - 1));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 1 }).ToInt64(), Is.EqualTo(1L << 24));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 0, 1 }).ToInt64(), Is.EqualTo(1L << 32));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 0, 0, 1 }).ToInt64(), Is.EqualTo(1L << 40));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 0, 0, 0, 1 }).ToInt64(), Is.EqualTo(1L << 48));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }).ToInt64(), Is.EqualTo(1L << 56));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 127 }).ToInt64(), Is.EqualTo(int.MaxValue));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }).ToInt64(), Is.EqualTo(long.MaxValue));
+		}
+
+
 	}
 }

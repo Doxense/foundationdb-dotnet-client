@@ -177,66 +177,73 @@ namespace FoundationDB.Client
 			return new Slice(ByteSprite, value, 1);
 		}
 
+		/// <summary>Encode a signed 32-bit integer into a variable size slice (1, 2 or 4 bytes) in little-endian</summary>
 		public static Slice FromInt32(int value)
 		{
-			//REVIEW: use ZigZag encoding for negative values ? (aka VarInt)
-
 			if (value >= 0)
 			{
 				if (value <= 255)
 				{
-					//TODO: use a cache for these ?
 					return Slice.FromByte((byte)value);
 				}
 				if (value <= 65535)
 				{
-					return new Slice(new byte[] { (byte)(value >> 8), (byte)value }, 0, 2);
+					return new Slice(new byte[] { (byte)value, (byte)(value >> 8) }, 0, 2);
 				}
 			}
 
+			return FromFixed32(value);
+		}
+
+		/// <summary>Encode a signed 32-bit integer into a 4-byte slice in little-endian</summary>
+		public static Slice FromFixed32(int value)
+		{
 			return new Slice(
 				new byte[]
 				{ 
-					(byte)(value >> 24),
-					(byte)(value >> 16),
+					(byte)value,
 					(byte)(value >> 8),
-					(byte)value
+					(byte)(value >> 16),
+					(byte)(value >> 24)
 				},
 				0,
 				4
 			);
 		}
 
+		/// <summary>Encode a signed 64-bit integer into a variable size slice (1, 2, 4 or 8 bytes) in little-endian</summary>
 		public static Slice FromInt64(long value)
 		{
-			//REVIEW: use ZigZag encoding for negative values ? (aka VarInt)
-
 			if (value >= 0 && value <= int.MaxValue)
 			{
 				return FromInt32((int)value);
 			}
+			return FromFixed64(value);
+		}
 
+		/// <summary>Encode a signed 64-bit integer into a 8-byte slice in little-endian</summary>
+		public static Slice FromFixed64(long value)
+		{
 			return new Slice(
 				new byte[]
 				{ 
-					(byte)(value >> 56),
-					(byte)(value >> 48),
-					(byte)(value >> 40),
-					(byte)(value >> 32),
-					(byte)(value >> 24),
-					(byte)(value >> 16),
+					(byte)value,
 					(byte)(value >> 8),
-					(byte)value
+					(byte)(value >> 16),
+					(byte)(value >> 24),
+					(byte)(value >> 32),
+					(byte)(value >> 40),
+					(byte)(value >> 48),
+					(byte)(value >> 56)
 				}, 
 				0, 
 				8
 			);
 		}
 
+		/// <summary>Encode an unsigned 64-bit integer into a variable size slice (1, 2, 4 or 8 bytes) in little-endian</summary>
 		public static Slice FromUInt64(ulong value)
 		{
-			//REVIEW: use ZigZag encoding for negative values ? (aka VarInt)
-
 			if (value <= 255)
 			{
 				//TODO: use a cache for these ?
@@ -244,7 +251,7 @@ namespace FoundationDB.Client
 			}
 			if (value <= 65535)
 			{
-				return new Slice(new byte[] { (byte)(value >> 8), (byte)value }, 0, 2);
+				return new Slice(new byte[] { (byte)value, (byte)(value >> 8) }, 0, 2);
 			}
 
 			if (value <= uint.MaxValue)
@@ -252,16 +259,22 @@ namespace FoundationDB.Client
 				return new Slice(
 					new byte[]
 					{ 
-						(byte)(value >> 24),
-						(byte)(value >> 16),
+						(byte)value,
 						(byte)(value >> 8),
-						(byte)value
+						(byte)(value >> 16),
+						(byte)(value >> 24)
 					},
 					0,
 					4
 				);
 			}
 
+			return FromFixedU64(value);
+		}
+
+		/// <summary>Encode an unsigned 64-bit integer into a 8-byte slice in little-endian</summary>
+		public static Slice FromFixedU64(ulong value)
+		{
 			return new Slice(
 				new byte[]
 				{ 
@@ -533,13 +546,13 @@ namespace FoundationDB.Client
 			if (this.Count > 4) throw new FormatException("Cannot convert slice into an Int32 because it is larger than 4 bytes");
 
 			var buffer = this.Array;
-			int p = this.Offset;
 			int n = this.Count;
+			int p = this.Offset + n - 1;
 			int value = 0;
 
 			while (n-- > 0)
 			{
-				value = (value << 8) | buffer[p++];
+				value = (value << 8) | buffer[p--];
 			}
 			return value;
 		}
@@ -551,13 +564,13 @@ namespace FoundationDB.Client
 			if (this.Count > 4) throw new FormatException("Cannot convert slice into an UInt32 because it is larger than 4 bytes");
 
 			var buffer = this.Array;
-			int p = this.Offset;
 			int n = this.Count;
+			int p = this.Offset + n - 1;
 			uint value = 0;
 
 			while (n-- > 0)
 			{
-				value = (value << 8) | buffer[p++];
+				value = (value << 8) | buffer[p--];
 			}
 			return value;
 		}
@@ -569,13 +582,13 @@ namespace FoundationDB.Client
 			if (this.Count > 8) throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes");
 
 			var buffer = this.Array;
-			int p = this.Offset;
 			int n = this.Count;
+			int p = this.Offset + n - 1;
 			long value = 0;
 
 			while (n-- > 0)
 			{
-				value = (value << 8) | buffer[p++];
+				value = (value << 8) | buffer[p--];
 			}
 
 			return value;
@@ -588,13 +601,13 @@ namespace FoundationDB.Client
 			if (this.Count > 8) throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes");
 
 			var buffer = this.Array;
-			int p = this.Offset;
 			int n = this.Count;
+			int p = this.Offset + n - 1;
 			ulong value = 0;
 
 			while (n-- > 0)
 			{
-				value = (value << 8) | buffer[p++];
+				value = (value << 8) | buffer[p--];
 			}
 
 			return value;
