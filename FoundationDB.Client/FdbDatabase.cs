@@ -259,10 +259,38 @@ namespace FoundationDB.Client
 
 		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
 		/// <param name="size">Max location cache entries</param>
-		public void SetLocationCacheSize(long size)
+		public void SetLocationCacheSize(int size)
 		{
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
+			//TODO: cache this into a local variable ?
 			SetOption(FdbDatabaseOption.LocationCacheSize, size);
+		}
+
+		/// <summary>Set the maximum number of watches allowed to be outstanding on a database connection. Increasing this number could result in increased resource usage. Reducing this number will not cancel any outstanding watches. Defaults to 10000 and cannot be larger than 1000000.</summary>
+		/// <param name="count">Max outstanding watches</param>
+		public void SetMaxWatches(int count)
+		{
+			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
+			//TODO: cache this into a local variable ?
+			SetOption(FdbDatabaseOption.MaxWatches, count);
+		}
+
+		/// <summary>Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
+		/// <param name="hexId">Hexadecimal ID</param>
+		public void SetMachineId(string hexId)
+		{
+			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
+			//TODO: cache this into a local variable ?
+			SetOption(FdbDatabaseOption.MachineId, hexId);
+		}
+
+		/// <summary>Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
+		/// <param name="hexId">Hexadecimal ID</param>
+		public void SetDataCenterId(string hexId)
+		{
+			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
+			//TODO: cache this into a local variable ?
+			SetOption(FdbDatabaseOption.DataCenterId, hexId);
 		}
 
 		#endregion

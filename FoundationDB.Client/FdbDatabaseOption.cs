@@ -39,6 +39,24 @@ namespace FoundationDB.Client
 		/// Parameter: (Int) Max location cache entries
 		/// </summary>
 		LocationCacheSize = 10,
+
+		/// <summary>
+		/// Set the maximum number of watches allowed to be outstanding on a database connection. Increasing this number could result in increased resource usage. Reducing this number will not cancel any outstanding watches. Defaults to 10000 and cannot be larger than 1000000.
+		/// Parameter: (Int) Max outstanding watches
+		/// </summary>
+		MaxWatches = 20,
+
+		/// <summary>
+		/// Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.
+		/// Parameter: (String) Hexadecimal ID
+		/// </summary>
+		MachineId = 21,
+
+		/// <summary>
+		/// Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.
+		/// Parameter: (String) Hexadecimal ID
+		/// </summary>
+		DataCenterId = 22
 	}
 
 }

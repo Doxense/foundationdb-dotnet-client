@@ -48,8 +48,14 @@ namespace FoundationDB.Client
 
 		/// <summary>
 		/// Parameter: Option takes no parameter
-		CausalReadDisable = 21,
 		/// </summary>
+		CausalReadDisable = 21,
+
+		/// <summary>
+		/// The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.
+		/// Parameter: Option takes no parameter
+		/// </summary>
+		NextWriteNoWriteConflictRange = 30,
 
 		/// <summary>
 		/// Parameter: Option takes no parameter
@@ -110,7 +116,19 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Parameter: Option takes no parameter
 		/// </summary>
-		DebugDump = 400
+		DebugDump = 400,
+
+		/// <summary>
+		/// Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.
+		/// Parameter: (Int) value in milliseconds of timeout
+		/// </summary>
+		Timeout = 500,
+
+		/// <summary>
+		/// Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code. Valid parameter values are ``[-1, INT_MAX]``. If set to -1, will disable the retry limit.
+		/// Parameter: (Int) number of times to retry
+		/// </summary>
+		RetryLimit = 501,
 	}
 
 }

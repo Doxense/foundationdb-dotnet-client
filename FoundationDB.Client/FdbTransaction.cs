@@ -118,21 +118,55 @@ namespace FoundationDB.Client
 		#region Options..
 
 		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
-		public void WithAccessToSystemKeys()
+		public FdbTransaction WithAccessToSystemKeys()
 		{
 			SetOption(FdbTransactionOption.AccessSystemKeys);
+			//TODO: cache this into a local variable ?
+			return this;
 		}
 
 		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools</summary>
-		public void WithPrioritySystemImmediate()
+		public FdbTransaction WithPrioritySystemImmediate()
 		{
 			SetOption(FdbTransactionOption.PrioritySystemImmediate);
+			//TODO: cache this into a local variable ?
+			return this;
 		}
 
 		/// <summary>Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work</summary>
-		public void WithPriorityBatch()
+		public FdbTransaction WithPriorityBatch()
 		{
 			SetOption(FdbTransactionOption.PriorityBatch);
+			//TODO: cache this into a local variable ?
+			return this;
+		}
+
+		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
+		/// <param name="timeout">Timeout (with millisecond precision), or TimeSpan.Zero for infinite timeout</param>
+		public FdbTransaction WithTimeout(TimeSpan timeout)
+		{
+			return WithTimeout(timeout == TimeSpan.Zero ? 0 : (int)Math.Ceiling(timeout.TotalMilliseconds));
+		}
+
+		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
+		/// <param name="timeout">Timeout in millisecond, or 0 for infinite timeout</param>
+		public FdbTransaction WithTimeout(int milliseconds)
+		{
+			if (milliseconds < 0) throw new ArgumentOutOfRangeException("milliseconds", milliseconds, "Timeout value cannot be negative");
+			SetOption(FdbTransactionOption.Timeout, milliseconds);
+			//TODO: cache this into a local variable ?
+			return this;
+		}
+
+		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code. Valid parameter values are ``[-1, INT_MAX]``. If set to -1, will disable the retry limit.</summary>
+		/// <param name="retries"></param>
+		/// <returns></returns>
+		public FdbTransaction WithRetryLimit(int retries)
+		{
+			if (retries < 0) throw new ArgumentOutOfRangeException("retries", retries, "Retry count cannot be negative");
+			SetOption(FdbTransactionOption.RetryLimit, retries);
+			//TODO: cache this into a local variable ?
+			return this;
 		}
 
 		/// <summary>Set an option on this transaction that does not take any parameter</summary>
