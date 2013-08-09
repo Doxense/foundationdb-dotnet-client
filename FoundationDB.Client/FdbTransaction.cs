@@ -524,6 +524,12 @@ namespace FoundationDB.Client
 			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count + 28);
 		}
 
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
+		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="keyBytes">Name of the key to be inserted into the database.</param>
+		/// <param name="valueBytes">Value to be inserted into the database.</param>
 		public void Set(Slice keyBytes, Slice valueBytes)
 		{
 			EnsureStilValid(allowFromNetworkThread: true);
@@ -574,6 +580,10 @@ namespace FoundationDB.Client
 			Interlocked.Add(ref m_payloadBytes, key.Count);
 		}
 
+		/// <summary>
+		/// Modify the database snapshot represented by transaction to remove the given key from the database. If the key was not previously present in the database, there is no effect.
+		/// </summary>
+		/// <param name="key">Name of the key to be removed from the database.</param>
 		public void Clear(Slice key)
 		{
 			EnsureStilValid(allowFromNetworkThread: true);
@@ -602,10 +612,10 @@ namespace FoundationDB.Client
 
 		/// <summary>
 		/// Modify the database snapshot represented by transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
-		/// Sets and clears affect the actual database only if transaction is later committed with fdb_transaction_commit().
+		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
 		/// </summary>
-		/// <param name="beginKeyInclusive"></param>
-		/// <param name="endKeyExclusive"></param>
+		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the range to clear.</param>
+		/// <param name="endKeyExclusive">Name of the key specifying the end of the range to clear.</param>
 		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			EnsureStilValid(allowFromNetworkThread: true);
