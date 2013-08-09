@@ -817,6 +817,18 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		public static void TransactionAddConflictRange(TransactionHandle transaction, Slice beginKey, Slice endKey, FdbConflictRangeType type)
+		{
+			fixed (byte* pBeginKey = beginKey.Array)
+			fixed (byte* pEndKey = endKey.Array)
+			{
+#if DEBUG_NATIVE_CALLS
+				Debug.WriteLine("fdb_transaction_add_conflict_range(0x" + transaction.Handle.ToString("x") + ", beginKey: '" + FdbKey.Dump(beginKey) + ", endKey: '" + FdbKey.Dump(endKey) + "', " + type.ToString() + ")");
+#endif
+				Stubs.fdb_transaction_add_conflict_range(transaction, pBeginKey + beginKey.Offset, beginKey.Count, pEndKey + endKey.Offset, endKey.Count, type);
+			}
+		}
+
 		#endregion
 
 	}

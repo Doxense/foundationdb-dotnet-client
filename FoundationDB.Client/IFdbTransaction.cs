@@ -44,6 +44,8 @@ namespace FoundationDB.Client
 
 		void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive);
 
+		void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type);
+
 	}
 
 }

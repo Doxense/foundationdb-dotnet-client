@@ -615,6 +615,38 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Conflict Range...
+
+		internal void AddConflictRangeCore(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
+		{
+			this.Database.EnsureKeyIsValid(beginKeyInclusive);
+			this.Database.EnsureKeyIsValid(endKeyExclusive);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRangeCore", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
+#endif
+
+			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
+			//TODO: how to account for these ?
+			//Interlocked.Add(ref m_payloadBytes, beginKey.Count);
+			//Interlocked.Add(ref m_payloadBytes, endKey.Count);
+		}
+
+		/// <summary>
+		/// Adds a conflict range to a transaction without performing the associated read or write.
+		/// </summary>
+		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the conflict range.</param>
+		/// <param name="endKeyExclusive">Name of the key specifying the end of the conflict range.</param>
+		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
+		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
+		{
+			EnsureStilValid(allowFromNetworkThread: true);
+
+			AddConflictRangeCore(beginKeyInclusive, endKeyExclusive, type);
+		}
+
+		#endregion
+
 		#region Batching...
 
 		internal async Task<Slice[]> GetBatchValuesCoreAsync(Slice[] keys, bool snapshot, CancellationToken ct)
