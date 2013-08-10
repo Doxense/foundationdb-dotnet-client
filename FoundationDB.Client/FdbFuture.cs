@@ -377,7 +377,7 @@ namespace FoundationDB.Client
 #if DEBUG_FUTURES
 						Debug.WriteLine("Future<" + typeof(T).Name + "> has FAILED: " + err);
 #endif
-						if (err != FdbError.TransactionCancelled)
+						if (err != FdbError.TransactionCancelled && err != FdbError.OperationCancelled)
 						{ // get the exception from the error code
 							var ex = Fdb.MapToException(err);
 							TrySetException(ex, fromCallback);

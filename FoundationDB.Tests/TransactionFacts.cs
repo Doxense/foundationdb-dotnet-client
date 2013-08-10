@@ -36,6 +36,7 @@ namespace FoundationDB.Client.Tests
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Text;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	[TestFixture]
@@ -623,5 +624,63 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_Setup_And_Cancel_Watches()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("test", "bigbrother");
+
+				await db.ClearRangeAsync(location);
+
+				var key1 = location.Pack("watched");
+				var key2 = location.Pack("witness");
+
+				await db.Attempt.Change((tr) =>
+				{
+					tr.Set(key1, Slice.FromString("some value"));
+					tr.Set(key2, Slice.FromString("some other value"));
+				});
+
+				using (var cts = new CancellationTokenSource())
+				{
+					Task w1;
+					Task w2;
+
+					using (var tr = db.BeginTransaction())
+					{
+						w1 = tr.WatchAsync(key1, cts.Token);
+						w2 = tr.WatchAsync(key2, cts.Token);
+						Assert.That(w1, Is.Not.Null);
+						Assert.That(w2, Is.Not.Null);
+
+						// note: Watches will get cancelled if the transaction is not committed !
+						await tr.CommitAsync();
+
+					}
+
+					// Watches should survive the transaction
+					await Task.Delay(100);
+					Assert.That(w1.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w1 should survive the transaction without being triggered");
+					Assert.That(w2.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w2 should survive the transaction without being triggered");
+
+					await db.Attempt.Change((tr) => tr.Set(key1, Slice.FromString("some new value")));
+
+					// the first watch should have triggered
+					await Task.Delay(100);
+					Assert.That(w1.Status, Is.EqualTo(TaskStatus.RanToCompletion), "w1 should have been triggered because key1 was changed");
+					Assert.That(w2.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w2 should still be pending because key2 was untouched");
+
+					// cancelling the token associated to the watch should cancel them
+					cts.Cancel();
+
+					await Task.Delay(100);
+					Assert.That(w2.Status, Is.EqualTo(TaskStatus.Canceled), "w2 should have been cancelled");
+
+				}
+
+			}
+
+		}
 	}
 }
