@@ -50,18 +50,24 @@ namespace FoundationDB.Client
 		CommitUnknownResult = 1021,
 		/// <summary>Operation aborted because the transaction was cancelled</summary>
 		TransactionCancelled = 1025,
+		/// <summary>Operation aborted because the transaction timed out</summary>
+		TransactionTimedOut = 1031,
+		/// <summary>Too many watches are currently set</summary>
+		TooManyWatches = 1032,
+		/// <summary>Asynchronous operation cancelled</summary>
+		OperationCancelled = 1101,
 		/// <summary>A platform error occurred</summary>
 		PlatformError = 1500,
 		/// <summary>Large block allocation failed</summary>
 		LargeAllocFailed = 1501,
 		/// <summary>QueryPerformanceCounter doesn’t work</summary>
 		PerformanceCounterError = 1502,
-		/// <summary>Unable to bind to network</summary>
-		BindFailed = 1512,
 		/// <summary>A disk i/o operation failed</summary>
 		IOError = 1510,
 		/// <summary>File not found</summary>
 		FileNotFound = 1511,
+		/// <summary>Unable to bind to network</summary>
+		BindFailed = 1512,
 		/// <summary>File could not be read from</summary>
 		FileNotReadable = 1513,
 		/// <summary>File could not be written to</summary>
@@ -98,6 +104,12 @@ namespace FoundationDB.Client
 		InvalidDatabaseName = 2013,
 		/// <summary>Attribute not found in string</summary>
 		AttributeNotFound = 2014,
+		/// <summary>The future has not been set</summary>
+		FutureNotSet = 2015,
+		/// <summary>The future is not an error</summary>
+		FutureNotError = 2016,
+		/// <summary>The future has been released</summary>
+		FutureReleased = 2017,
 		/// <summary>Incompatible protocol version</summary>
 		IncompatibleProtocolVersion = 2100,
 		/// <summary>Transaction too large</summary>
@@ -126,9 +138,6 @@ namespace FoundationDB.Client
 		UnknownError = 4000,
 		/// <summary>An internal error occurred</summary>
 		InternalError = 4100,
-
-		//TODO: all the other error codes !
-
 	}
 
 }
