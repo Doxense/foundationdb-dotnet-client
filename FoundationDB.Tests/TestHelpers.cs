@@ -92,6 +92,21 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+
+		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message)
+		{
+			try
+			{
+				await asyncTest();
+				Assert.Fail(message);
+			}
+			catch (AssertionException) { throw; }
+			catch(Exception e)
+			{
+				Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(expectedCode));
+			}
+		}
+
 	}
 
 }

@@ -374,16 +374,11 @@ namespace FoundationDB.Client.Tests
 					await trB.CommitAsync();
 
 					// should fail with a "not_comitted" error
-					try
-					{
-						await trA.CommitAsync();
-						Assert.Fail("Commit should conflict !");
-					}
-					catch (AssertionException) { throw; }
-					catch (Exception e)
-					{
-						Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
-					}
+					await TestHelpers.AssertThrowsFdbErrorAsync(
+						() => trA.CommitAsync(),
+						FdbError.NotCommitted,
+						"Commit should conflict !"
+					);
 				}
 			}
 
@@ -652,16 +647,11 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// tr1 should conflict on the second key
-					try
-					{
-						await tr1.CommitAsync();
-						Assert.Fail("Transaction should have resulted in a conflict on key2");
-					}
-					catch (AssertionException) { throw; }
-					catch (Exception e)
-					{
-						Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
-					}
+					await TestHelpers.AssertThrowsFdbErrorAsync(
+						() => tr1.CommitAsync(),
+						FdbError.NotCommitted,
+						"Transaction should have resulted in a conflict on key2"
+					);
 				}
 			}
 		}
@@ -699,16 +689,11 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// tr1 should conflict
-					try
-					{
-						await tr1.CommitAsync();
-						Assert.Fail("Transaction should have resulted in a conflict");
-					}
-					catch (AssertionException) { throw; }
-					catch (Exception e)
-					{
-						Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
-					}
+					await TestHelpers.AssertThrowsFdbErrorAsync(
+						() => tr1.CommitAsync(),
+						FdbError.NotCommitted,
+						"Transaction should have resulted in a conflict"
+					);
 				}
 			}
 		}
@@ -771,5 +756,6 @@ namespace FoundationDB.Client.Tests
 			}
 
 		}
+
 	}
 }
