@@ -118,6 +118,14 @@ namespace FoundationDB.Tests.Sandbox
 				Console.ReadLine();
 			}
 
+			AppDomain.CurrentDomain.UnhandledException += (object sender, UnhandledExceptionEventArgs e) =>
+			{
+				if (e.IsTerminating)
+					Console.Error.WriteLine("Fatal unhandled exception: " + e.ExceptionObject);
+				else
+					Console.Error.WriteLine("Unhandled exception: " + e.ExceptionObject);
+			};
+
 			try
 			{
 				ExecuteAsync(MainAsync);
