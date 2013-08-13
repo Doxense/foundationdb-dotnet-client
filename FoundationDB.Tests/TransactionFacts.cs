@@ -264,8 +264,6 @@ namespace FoundationDB.Client.Tests
 				var data = await tr.GetAsync(key);
 				Assert.That(data.Count, Is.EqualTo(4), "data.Count");
 
-				Console.WriteLine(Slice.FromFixed32(x) + " " + type.ToString() + " " + Slice.FromFixed32(y) + " =?= " + data);
-
 				Assert.That(data.ToInt32(), Is.EqualTo(expected), "0x{0} {1} 0x{2} = 0x{0}", x.ToString("X8"), type.ToString(), y.ToString("X8"), expected.ToString("X8"));
 			}
 		}
@@ -621,6 +619,97 @@ namespace FoundationDB.Client.Tests
 
 				}
 
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Add_Read_Conflict_Range()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("conflict");
+
+				await db.ClearRangeAsync(location);
+
+				var key1 = location.Pack(1);
+				var key2 = location.Pack(2);
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					await tr1.GetAsync(key1);
+					// tr1 writes to one key
+					tr1.Set(key1, Slice.FromString("hello"));
+					// but add the second as a conflict range
+					tr1.AddReadConflictKey(key2);
+
+					using (var tr2 = db.BeginTransaction())
+					{
+						// tr2 writes to the second key
+						tr2.Set(key2, Slice.FromString("world"));
+
+						// tr2 should succeed
+						await tr2.CommitAsync();
+					}
+
+					// tr1 should conflict on the second key
+					try
+					{
+						await tr1.CommitAsync();
+						Assert.Fail("Transaction should have resulted in a conflict on key2");
+					}
+					catch (AssertionException) { throw; }
+					catch (Exception e)
+					{
+						Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
+					}
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Add_Write_Conflict_Range()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("conflict");
+
+				await db.ClearRangeAsync(location);
+
+				var keyConflict = location.Pack(0);
+				var key1 = location.Pack(1);
+				var key2 = location.Pack(2);
+
+				using (var tr1 = db.BeginTransaction())
+				{
+
+					// tr1 reads the conflicting key
+					await tr1.GetAsync(keyConflict);
+					// and writes to key1
+					tr1.Set(key1, Slice.FromString("hello"));
+
+					using (var tr2 = db.BeginTransaction())
+					{
+						// tr2 changes key2, but adds a conflict range on the conflicting key
+						tr2.Set(key2, Slice.FromString("world"));
+
+						// and writes on the third
+						tr2.AddWriteConflictKey(keyConflict);
+
+						await tr2.CommitAsync();
+					}
+
+					// tr1 should conflict
+					try
+					{
+						await tr1.CommitAsync();
+						Assert.Fail("Transaction should have resulted in a conflict");
+					}
+					catch (AssertionException) { throw; }
+					catch (Exception e)
+					{
+						Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
+					}
+				}
 			}
 		}
 

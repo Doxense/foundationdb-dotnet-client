@@ -66,14 +66,6 @@ namespace FoundationDB.Client
 		/// <param name="endKeyExclusive">Name of the key specifying the end of the range to clear.</param>
 		void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive);
 
-		/// <summary>
-		/// Adds a conflict range to a transaction without performing the associated read or write.
-		/// </summary>
-		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the conflict range.</param>
-		/// <param name="endKeyExclusive">Name of the key specifying the end of the conflict range.</param>
-		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type);
-
 	}
 
 }

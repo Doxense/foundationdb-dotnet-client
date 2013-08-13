@@ -138,6 +138,72 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Conflict Ranges...
+
+		/// <summary>
+		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
+		/// </summary>
+		public static void AddReadConflictRange(this IFdbReadTransaction transaction, FdbKeyRange range)
+		{
+			if (transaction == null) throw new ArgumentNullException("transaction");
+
+			transaction.AddConflictRange(range, FdbConflictRangeType.Read);
+		}
+
+		/// <summary>
+		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
+		/// </summary>
+		public static void AddReadConflictRange(this IFdbReadTransaction transaction, Slice beginInclusive, Slice endExclusice)
+		{
+			if (transaction == null) throw new ArgumentNullException("transaction");
+
+			transaction.AddConflictRange(new FdbKeyRange(beginInclusive, endExclusice), FdbConflictRangeType.Read);
+		}
+
+		/// <summary>
+		/// Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
+		/// </summary>
+		public static void AddReadConflictKey(this IFdbReadTransaction transaction, Slice key)
+		{
+			if (transaction == null) throw new ArgumentNullException("transaction");
+
+			var range = FdbKeyRange.FromKey(key);
+
+			transaction.AddConflictRange(range, FdbConflictRangeType.Read);
+		}
+
+		/// <summary>
+		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
+		/// </summary>
+		public static void AddWriteConflictRange(this IFdbReadTransaction transaction, FdbKeyRange range)
+		{
+			if (transaction == null) throw new ArgumentNullException("transaction");
+
+			transaction.AddConflictRange(range, FdbConflictRangeType.Write);
+		}
+
+		/// <summary>
+		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
+		/// </summary>
+		public static void AddWriteConflictRange(this IFdbReadTransaction transaction, Slice beginInclusive, Slice endExclusice)
+		{
+			if (transaction == null) throw new ArgumentNullException("transaction");
+
+			transaction.AddConflictRange(new FdbKeyRange(beginInclusive, endExclusice), FdbConflictRangeType.Write);
+		}
+
+		/// <summary>
+		/// Adds a key to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
+		/// </summary>
+		public static void AddWriteConflictKey(this IFdbReadTransaction transaction, Slice key)
+		{
+			if (transaction == null) throw new ArgumentNullException("transaction");
+
+			transaction.AddConflictRange(FdbKeyRange.FromKey(key), FdbConflictRangeType.Write);
+		}
+
+		#endregion
+
 		#region Batching...
 
 		public static async Task<Slice[]> GetBatchValuesAsync(this IFdbReadTransaction trans, Slice[] keys, CancellationToken ct = default(CancellationToken))

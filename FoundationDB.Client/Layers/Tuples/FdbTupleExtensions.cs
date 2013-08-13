@@ -324,6 +324,50 @@ namespace FoundationDB.Layers.Tuples
 			trans.ClearRange(range.Begin, range.End);
 		}
 
+		/// <summary>
+		/// Adds a tuple prefix to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to any key contained in this tuple prefix could cause the transaction to fail with a conflict.
+		/// </summary>
+		public static void AddReadConflictRange(this IFdbReadTransaction trans, IFdbTuple prefix)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (prefix == null) throw new ArgumentNullException("prefix");
+
+			trans.AddConflictRange(prefix.ToRange(), FdbConflictRangeType.Read);
+		}
+
+		/// <summary>
+		/// Adds a tuple to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
+		/// </summary>
+		public static void AddReadConflictKey(this IFdbReadTransaction trans, IFdbTuple tuple)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (tuple == null) throw new ArgumentNullException("tuple");
+
+			trans.AddConflictRange(FdbKeyRange.FromKey(tuple.ToSlice()), FdbConflictRangeType.Read);
+		}
+
+		/// <summary>
+		/// Adds a tuple prefix to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read any key contained in this tuple prefix could fail with a conflict.
+		/// </summary>
+		public static void AddWriteConflictRange(this IFdbReadTransaction trans, IFdbTuple prefix)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (prefix == null) throw new ArgumentNullException("prefix");
+
+			trans.AddConflictRange(prefix.ToRange(), FdbConflictRangeType.Write);
+		}
+
+		/// <summary>
+		/// Adds a tuple to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
+		/// </summary>
+		public static void AddWriteConflictKey(this IFdbReadTransaction trans, IFdbTuple tuple)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (tuple == null) throw new ArgumentNullException("tuple");
+
+			trans.AddConflictRange(FdbKeyRange.FromKey(tuple.ToSlice()), FdbConflictRangeType.Write);
+		}
+
 		#endregion
 
 	}

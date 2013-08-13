@@ -113,6 +113,13 @@ namespace FoundationDB.Client
 		FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options = null);
 
 		/// <summary>
+		/// Adds a conflict range to a transaction without performing the associated read or write.
+		/// </summary>
+		/// <param name="range">Range of the keys specifying the conflict range. The end key is excluded</param>
+		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
+		void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type);
+
+		/// <summary>
 		/// Reset transaction to its initial state.
 		/// </summary>
 		/// <remarks>This is similar to disposing the transaction and recreating a new one.  The only state that persists through a transaction reset is that which is related to the backoff logic used by OnErrorAsync()</remarks>

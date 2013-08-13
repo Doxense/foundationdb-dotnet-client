@@ -633,13 +633,10 @@ namespace FoundationDB.Client
 			this.Database.EnsureKeyIsValid(endKeyExclusive);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRangeCore", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRangeCore", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
 #endif
 
-			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
-			//TODO: how to account for these ?
-			//Interlocked.Add(ref m_payloadBytes, beginKey.Count);
-			//Interlocked.Add(ref m_payloadBytes, endKey.Count);
+			FdbNative.TransactionAddConflictRange(m_handle, beginKeyInclusive, endKeyExclusive, type);
 		}
 
 		/// <summary>
@@ -648,11 +645,11 @@ namespace FoundationDB.Client
 		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the conflict range.</param>
 		/// <param name="endKeyExclusive">Name of the key specifying the end of the conflict range.</param>
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
+		public void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type)
 		{
 			EnsureStilValid(allowFromNetworkThread: true);
 
-			AddConflictRangeCore(beginKeyInclusive, endKeyExclusive, type);
+			AddConflictRangeCore(range.Begin, range.End, type);
 		}
 
 		#endregion

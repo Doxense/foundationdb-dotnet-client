@@ -164,6 +164,13 @@ namespace FoundationDB.Client
 				return m_parent.GetRangeCore(FdbKeySelectorPair.StartsWith(prefix), options, snapshot: true);
 			}
 
+			public void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type)
+			{
+				EnsureCanRead(CancellationToken.None);
+
+				m_parent.AddConflictRangeCore(range.Begin, range.End, type);
+			}
+
 			public Task OnErrorAsync(FdbError code, CancellationToken ct)
 			{
 				return m_parent.OnErrorAsync(code, ct);
