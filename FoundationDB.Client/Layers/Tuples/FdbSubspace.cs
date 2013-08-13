@@ -147,6 +147,11 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		/// <summary>Create a new key by appending a value to the current tuple</summary>
+		/// <typeparam name="T">Type of the value</typeparam>
+		/// <param name="key">Value that will be appended at the end of the key</param>
+		/// <returns>Key the correspond to the concatenation of the current tuple and <paramref name="key"/></returns>
+		/// <example>tuple.Pack(x) is equivalent to tuple.Append(x).ToSlice()</example>
 		public Slice Pack<T>(T key)
 		{
 			var writer = OpenBuffer();
@@ -154,6 +159,13 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		/// <summary>Create a new key by appending two values to the current tuple</summary>
+		/// <typeparam name="T1">Type of the next to last value</typeparam>
+		/// <typeparam name="T2">Type of the last value</typeparam>
+		/// <param name="key1">Value that will be in the next to last position</param>
+		/// <param name="key2">Value that will be in the last position</param>
+		/// <returns>Key the correspond to the concatenation of the current tuple, <paramref name="key1"/> and <paramref name="key2"/></returns>
+		/// <example>(...,).Pack(x, y) is equivalent to (...,).Append(x).Append(y).ToSlice()</example>
 		public Slice Pack<T1, T2>(T1 key1, T2 key2)
 		{
 			var writer = OpenBuffer();
@@ -162,6 +174,15 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		/// <summary>Create a new key by appending three values to the current tuple</summary>
+		/// <typeparam name="T1">Type of the first value</typeparam>
+		/// <typeparam name="T2">Type of the second value</typeparam>
+		/// <typeparam name="T3">Type of the thrid value</typeparam>
+		/// <param name="key1">Value that will be appended first</param>
+		/// <param name="key2">Value that will be appended second</param>
+		/// <param name="key3">Value that will be appended third</param>
+		/// <returns>Key the correspond to the concatenation of the current tuple, <paramref name="key1"/>, <paramref name="key2"/> and <paramref name="key3"/></returns>
+		/// <example>tuple.Pack(x, y, z) is equivalent to tuple.Append(x).Append(y).Append(z).ToSlice()</example>
 		public Slice Pack<T1, T2, T3>(T1 key1, T2 key2, T3 key3)
 		{
 			var writer = OpenBuffer();
@@ -171,6 +192,17 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		/// <summary>Create a new key by appending three values to the current tuple</summary>
+		/// <typeparam name="T1">Type of the first value</typeparam>
+		/// <typeparam name="T2">Type of the second value</typeparam>
+		/// <typeparam name="T3">Type of the third value</typeparam>
+		/// <typeparam name="T4">Type of the fourth value</typeparam>
+		/// <param name="key1">Value that will be appended first</param>
+		/// <param name="key2">Value that will be appended second</param>
+		/// <param name="key3">Value that will be appended third</param>
+		/// <param name="key4">Value that will be appended fourth</param>
+		/// <returns>Key the correspond to the concatenation of the current tuple, <paramref name="key1"/>, <paramref name="key2"/>, <paramref name="key3"/> and <paramref name="key4"/></returns>
+		/// <example>tuple.Pack(w, x, y, z) is equivalent to tuple.Append(w).Append(x).Append(y).Append(z).ToSlice()</example>
 		public Slice Pack<T1, T2, T3, T4>(T1 key1, T2 key2, T3 key3, T4 key4)
 		{
 			var writer = OpenBuffer();
