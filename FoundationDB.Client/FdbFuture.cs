@@ -179,10 +179,7 @@ namespace FoundationDB.Client
 					Interlocked.Increment(ref DebugCounters.CallbackHandles);
 #endif
 
-					// note: the callback will allocate the future in the heap...
 					var err = FdbNative.FutureSetCallback(handle, callback, IntPtr.Zero);
-					//TODO: schedule some sort of timeout ?
-
 					if (Fdb.Failed(err))
 					{ // uhoh
 						Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
@@ -194,10 +191,10 @@ namespace FoundationDB.Client
 			{
 				// this is bad news, since we are in the constructor, we need to clear everything
 				SetFlag(Flags.DISPOSED);
-				this.TrySetCanceled();
 				UnregisterCancellationRegistration();
 				m_resultSelector = null;
 				ClearCallback();
+				this.TrySetCanceled();
 				throw;
 			}
 			GC.SuppressFinalize(this);
@@ -344,7 +341,7 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
-				TryCleanup(fromCallback: true);
+				TryCleanup();
 			}
 		}
 
@@ -426,38 +423,43 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
-				TryCleanup(fromCallback);
+				TryCleanup();
 			}
 		}
 
-		private bool TryCleanup(bool fromCallback)
+		private bool TryCleanup()
 		{
 			// We try to cleanup the future handle as soon as possible, meaning as soon as we have the result, or an error, or a cancellation
 
 			if (TrySetFlag(Flags.COMPLETED))
 			{
-				try
-				{
-					// unsubscribe from the parent cancellation token if there was one
-					UnregisterCancellationRegistration();
-
-					// ensure that the task always complete !
-					// note: always defer the completion on the threadpool, because we don't want to dead lock here (we can be called by Dispose)
-					if (!this.Task.IsCompleted && TrySetFlag(Flags.HAS_POSTED_ASYNC_COMPLETION))
-					{
-						PostCancellationOnThreadPool(this);
-					}
-
-					// The only surviving value after this would be a Task and an optional WorkItem on the ThreadPool that will signal it...
-				}
-				finally
-				{
-					if (!m_handle.IsClosed) m_handle.Dispose();
-					m_resultSelector = null;
-				}
+				DoCleanup();
 				return true;
 			}
 			return false;
+		}
+
+		private void DoCleanup()
+		{
+			try
+			{
+				// unsubscribe from the parent cancellation token if there was one
+				UnregisterCancellationRegistration();
+
+				// ensure that the task always complete !
+				// note: always defer the completion on the threadpool, because we don't want to dead lock here (we can be called by Dispose)
+				if (!this.Task.IsCompleted && TrySetFlag(Flags.HAS_POSTED_ASYNC_COMPLETION))
+				{
+					PostCancellationOnThreadPool(this);
+				}
+
+				// The only surviving value after this would be a Task and an optional WorkItem on the ThreadPool that will signal it...
+			}
+			finally
+			{
+				if (!m_handle.IsClosed) m_handle.Dispose();
+				m_resultSelector = null;
+			}
 		}
 
 		/// <summary>Try to abort the task (if it is still running)</summary>
@@ -480,7 +482,7 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
-				TryCleanup(fromCallback);
+				TryCleanup();
 			}
 		}
 
@@ -490,7 +492,7 @@ namespace FoundationDB.Client
 			{
 				try
 				{
-					TryCleanup(Fdb.IsNetworkThread);
+					TryCleanup();
 				}
 				finally
 				{
