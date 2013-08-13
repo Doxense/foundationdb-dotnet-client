@@ -47,7 +47,7 @@ namespace FoundationDB.Client
 			this.End = end;
 		}
 
-		/// <summary>Convert a prefix key into a range "key\x00".."key\xFF"</summary>
+		/// <summary>Convert a prefix key into a range ("key\x00".."key\xFF"), or ("key".."key\xFF") if the prefix is included</summary>
 		/// <param name="prefix">Key prefix</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>
 		public static FdbKeyRange FromPrefix(Slice prefix)
@@ -71,6 +71,32 @@ namespace FoundationDB.Client
 			return new FdbKeyRange(
 				new Slice(tmp, 0, n),
 				new Slice(tmp, n, n)
+			);
+		}
+
+		/// <summary>Convert a key into a range that only includes it ("key".."key\x00")</summary>
+		/// <param name="prefix">Key prefix</param>
+		/// <returns>Range including all keys with the specified prefix.</returns>
+		public static FdbKeyRange FromKey(Slice key)
+		{
+			if (key.IsNullOrEmpty)
+			{
+				return FdbKeyRange.None;
+			}
+
+			int n = key.Count;
+			var tmp = new byte[n * 2 + 1];
+
+			// first segment will contain the key
+			key.CopyTo(tmp, 0);
+
+			// second segment will contain the key+ '\x00'
+			key.CopyTo(tmp, n);
+			tmp[n << 1] = 0;
+
+			return new FdbKeyRange(
+				new Slice(tmp, 0, n),
+				new Slice(tmp, n, n + 1)
 			);
 		}
 
