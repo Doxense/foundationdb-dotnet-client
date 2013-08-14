@@ -35,7 +35,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
 	using System;
+	using System.Collections.Concurrent;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.InteropServices;
@@ -84,6 +86,8 @@ namespace FoundationDB.Client
 			/// <summary>A completion/failure/cancellation has been posted on the thread pool</summary>
 			public const int HAS_POSTED_ASYNC_COMPLETION = 4;
 
+			public const int CANCELED = 8;
+
 #if ENABLE_BLOCKING_CALLS
 			/// <summary>The future is configured in blocking mode (no callback)</summary>
 			public const int BLOCKING = 64;
@@ -104,9 +108,8 @@ namespace FoundationDB.Client
 		/// <summary>Func used to extract the result of this FDBFuture</summary>
 		private Func<FutureHandle, T> m_resultSelector;
 
-		/// <summary>Used to pin the callback handler.</summary>
-		/// <remarks>It should be alive at least as long has the future handle, so only call Free() after fdb_future_destroy !</remarks>
-		private GCHandle m_callback;
+		/// <summary>Future key in the callback dictionary</summary>
+		private volatile IntPtr m_key;
 
 		/// <summary>Optionnal registration on the parent Cancellation Token</summary>
 		/// <remarks>Is only valid if FLAG_HAS_CTR is set</remarks>
@@ -171,15 +174,11 @@ namespace FoundationDB.Client
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " will complete later");
 #endif
 
-					// pin the callback to prevent it from behing garbage collected
-					var callback = new FdbFutureCallback(this.CallbackHandler);
-					m_callback = GCHandle.Alloc(callback);
-#if DEBUG
-					Interlocked.Increment(ref DebugCounters.CallbackHandlesTotal);
-					Interlocked.Increment(ref DebugCounters.CallbackHandles);
-#endif
+					// add this instance to the list of pending futures
+					IntPtr prm = RegisterCallback(this);
 
-					var err = FdbNative.FutureSetCallback(handle, callback, IntPtr.Zero);
+					// register the callback handler
+					var err = FdbNative.FutureSetCallback(handle, CallbackHandler, prm);
 					if (Fdb.Failed(err))
 					{ // uhoh
 						Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
@@ -192,9 +191,9 @@ namespace FoundationDB.Client
 				// this is bad news, since we are in the constructor, we need to clear everything
 				SetFlag(Flags.DISPOSED);
 				UnregisterCancellationRegistration();
-				m_resultSelector = null;
-				ClearCallback();
+				UnregisterCallback(this);
 				this.TrySetCanceled();
+
 				throw;
 			}
 			GC.SuppressFinalize(this);
@@ -269,6 +268,7 @@ namespace FoundationDB.Client
 			}
 		}
 
+#if false
 		private void ClearCallback()
 		{
 			if (m_callback.IsAllocated)
@@ -279,6 +279,7 @@ namespace FoundationDB.Client
 #endif
 			}
 		}
+#endif
 
 		private void TrySetException(Exception e, bool fromCallback)
 		{
@@ -321,27 +322,81 @@ namespace FoundationDB.Client
 			future.Cancel();
 		}
 
+		/// <summary>List of all pending futures that have not yet completed</summary>
+		private static readonly ConcurrentDictionary<IntPtr, FdbFuture<T>> s_futures = new ConcurrentDictionary<IntPtr, FdbFuture<T>>();
+
+		/// <summary>Internal counter to generated a unique parameter value for each futures</summary>
+		private static long s_futureCounter = 0;
+
+		/// <summary>Register a future in the callback context and return the corresponding callback parameter</summary>
+		/// <param name="future">Future instance</param>
+		/// <returns>Parameter that can be passed to FutureSetCallback and that uniquely identify this future.</returns>
+		/// <remarks>The caller MUST call ClearCallbackHandler to ensure that the future instance is removed from the list</remarks>
+		private static IntPtr RegisterCallback(FdbFuture<T> future)
+		{
+			Contract.Requires(future != null);
+
+			// generate a new unique id for this future, that will be use to lookup the future instance in the callback handler
+			long id = Interlocked.Increment(ref s_futureCounter);
+			var prm = new IntPtr(id); // note: we assume that we can only run in 64-bit mode, so it is safe to cast a long into an IntPtr
+			// critical region
+			try { }
+			finally
+			{
+				future.m_key = prm;
+				s_futures[prm] = future;
+#if DEBUG
+				Interlocked.Increment(ref DebugCounters.CallbackHandlesTotal);
+				Interlocked.Increment(ref DebugCounters.CallbackHandles);
+#endif
+			}
+			return prm;
+		}
+
+		/// <summary>Remove a future from the callback handler dictionary</summary>
+		/// <param name="future">Future that has just completed, or is being destroyed</param>
+		private static void UnregisterCallback(FdbFuture<T> future)
+		{
+			Contract.Requires(future != null);
+
+			// critical region
+			try
+			{ }
+			finally
+			{
+				var key = Interlocked.Exchange(ref future.m_key, IntPtr.Zero);
+				if (key != IntPtr.Zero)
+				{
+					FdbFuture<T> instance;
+					if (s_futures.TryRemove(key, out instance))
+					{
+#if DEBUG
+						Interlocked.Decrement(ref DebugCounters.CallbackHandles);
+#endif
+					}
+				}
+			}
+		}
+
+		/// <summary>Cached delegate of the future completion callback handler</summary>
+		private static readonly FdbFutureCallback CallbackHandler = new FdbFutureCallback(FutureCompletionCallback);
+
 		/// <summary>Handler called when a FDBFuture becomes ready</summary>
 		/// <param name="futureHandle">Handle on the future that became ready</param>
 		/// <param name="parameter">Paramter to the callback (unused)</param>
-		private void CallbackHandler(IntPtr futureHandle, IntPtr parameter)
+		private static void FutureCompletionCallback(IntPtr futureHandle, IntPtr parameter)
 		{
 #if DEBUG_FUTURES
 			Debug.WriteLine("Future<" + typeof(T).Name + ">.Callback(0x" + futureHandle.ToString("x") + ", " + parameter.ToString("x") + ") has fired on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
 #endif
 
-			//TODO verify if this is our handle ?
-			try
+			FdbFuture<T> future;
+			if (s_futures.TryGetValue(parameter, out future)
+				&& future != null
+				&& future.m_key == parameter)
 			{
-				// won't be needed anymore
-				ClearCallback();
-
-				// note: we are always called from the network thread
-				TrySetTaskResult(fromCallback: true);
-			}
-			finally
-			{
-				TryCleanup();
+				UnregisterCallback(future);
+				future.TrySetTaskResult(fromCallback: true);
 			}
 		}
 
@@ -462,27 +517,37 @@ namespace FoundationDB.Client
 			}
 		}
 
+		private void ClearCallback()
+		{
+			if (m_key != IntPtr.Zero)
+			{
+				UnregisterCallback(this);
+			}
+		}
+
 		/// <summary>Try to abort the task (if it is still running)</summary>
 		public void Cancel()
 		{
-			if (HasAnyFlags(Flags.DISPOSED | Flags.COMPLETED))
+			if (HasAnyFlags(Flags.DISPOSED | Flags.COMPLETED | Flags.CANCELED))
 			{
 				return;
 			}
 
-			bool fromCallback = Fdb.IsNetworkThread;
-			try
+			if (TrySetFlag(Flags.CANCELED))
 			{
-				if (!this.Task.IsCompleted)
+				bool fromCallback = Fdb.IsNetworkThread;
+				try
 				{
-					FdbNative.FutureCancel(m_handle);
-
-					TrySetCanceled(fromCallback);
+					if (!this.Task.IsCompleted)
+					{
+						FdbNative.FutureCancel(m_handle);
+						TrySetCanceled(fromCallback);
+					}
 				}
-			}
-			finally
-			{
-				TryCleanup();
+				finally
+				{
+					TryCleanup();
+				}
 			}
 		}
 
@@ -496,7 +561,7 @@ namespace FoundationDB.Client
 				}
 				finally
 				{
-					ClearCallback();
+					if (m_key != IntPtr.Zero) UnregisterCallback(this);
 				}
 			}
 			GC.SuppressFinalize(this);
