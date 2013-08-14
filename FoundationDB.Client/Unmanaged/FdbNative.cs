@@ -630,6 +630,20 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
+		public static FutureHandle TransactionGetAddressesForKey(TransactionHandle transaction, Slice key)
+		{
+			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "key");
+
+			fixed (byte* ptrKey = key.Array)
+			{
+				var future = Stubs.fdb_transaction_get_addresses_for_key(transaction, ptrKey + key.Offset, key.Count);
+#if DEBUG_NATIVE_CALLS
+				Debug.WriteLine("fdb_transaction_get_addresses_for_key(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.Handle.ToString("x"));
+#endif
+				return future;
+			}
+		}
+
 		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out Slice value)
 		{
 			byte* ptr = null;

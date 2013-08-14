@@ -654,6 +654,51 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region GetAddressesForKey...
+
+		private static string[] GetStringArrayResult(FutureHandle h)
+		{
+			Contract.Requires(h != null);
+
+			string[] result;
+			var err = FdbNative.FutureGetStringArray(h, out result);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[].FutureGetStringArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
+#endif
+			Fdb.DieOnError(err);
+			return result;
+		}
+
+		internal Task<string[]> GetAddressesForKeyCoreAsync(Slice key, CancellationToken ct)
+		{
+			this.Database.EnsureKeyIsValid(key);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyCoreAsync", String.Format("Getting addresses for key '{0}'", key.ToString()));
+#endif
+
+			var future = FdbNative.TransactionGetAddressesForKey(m_handle, key);
+			return FdbFuture.CreateTaskFromHandle(
+				future,
+				(h) => GetStringArrayResult(h),
+				ct
+			);
+		}
+
+		/// <summary>
+		/// Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <param name="key"/> and its associated value
+		/// </summary>
+		/// <param name="key">Name of the key whose location is to be queried.</param>
+		/// <returns>Task that will return an array of strings, or an exception</returns>
+		public Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken ct = default(CancellationToken))
+		{
+			EnsureCanReadOrWrite(ct);
+
+			return GetAddressesForKeyCoreAsync(key, ct: ct);
+		}
+
+		#endregion
+
 		#region Batching...
 
 		internal async Task<Slice[]> GetBatchValuesCoreAsync(Slice[] keys, bool snapshot, CancellationToken ct)

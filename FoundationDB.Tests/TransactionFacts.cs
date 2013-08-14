@@ -819,5 +819,62 @@ namespace FoundationDB.Client.Tests
 
 		}
 
+		[Test]
+		public async Task Test_Can_Get_Addresses_For_Key()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("location_api");
+
+				await db.ClearRangeAsync(location);
+
+				var key1 = location.Pack(1);
+				var key404 = location.Pack(404);
+
+				await db.Attempt.Change((tr) =>
+				{
+					tr.Set(key1, Slice.FromString("one"));
+				});
+
+				// look for the address of key1
+				using (var tr = db.BeginTransaction())
+				{
+					var addresses = await tr.GetAddressesForKeyAsync(key1);
+					Assert.That(addresses, Is.Not.Null);
+					Debug.WriteLine(key1.ToString() + " is stored at: " + String.Join(", ", addresses));
+					Assert.That(addresses.Length, Is.GreaterThan(0));
+					Assert.That(addresses[0], Is.Not.Null.Or.Empty);
+
+					//note: it is difficult to test the returned value, because it depends on the test db configuration
+					// it will most probably be 127.0.0.1 unless you have customized the Test DB settings to point to somewhere else
+					// either way, it should look like a valid IP address (IPv4 or v6?)
+
+					for (int i = 0; i < addresses.Length; i++)
+					{
+						System.Net.IPAddress addr;
+						Assert.That(System.Net.IPAddress.TryParse(addresses[i], out addr), Is.True, "Result address {0} does not seem to be a valid IP address", addresses[i]);
+					}
+				}
+
+				// do the same but for a key that does not exist
+				using (var tr = db.BeginTransaction())
+				{
+					var addresses = await tr.GetAddressesForKeyAsync(key404);
+					Assert.That(addresses, Is.Not.Null);
+					Debug.WriteLine(key404.ToString() + " would be stored at: " + String.Join(", ", addresses));
+
+					// the API still return a list of addresses, probably of servers that would store this value if you would call Set(...)
+
+					for (int i = 0; i < addresses.Length; i++)
+					{
+						System.Net.IPAddress addr;
+						Assert.That(System.Net.IPAddress.TryParse(addresses[i], out addr), Is.True, "Result address {0} does not seem to be a valid IP address", addresses[i]);
+					}
+
+				}
+			}
+
+		}
+
 	}
 }
