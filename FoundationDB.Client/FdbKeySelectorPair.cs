@@ -48,6 +48,11 @@ namespace FoundationDB.Client
 			return new FdbKeySelectorPair(beginInclusive, endExclusive);
 		}
 
+		public static FdbKeySelectorPair Create(FdbKeyRange range)
+		{
+			return new FdbKeySelectorPair(range.BeginIncluded, range.EndExcluded);
+		}
+
 		public static FdbKeySelectorPair StartsWith(Slice prefix)
 		{
 			var range = FdbKeyRange.FromPrefix(prefix);

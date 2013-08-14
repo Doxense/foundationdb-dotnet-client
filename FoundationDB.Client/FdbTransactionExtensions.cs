@@ -115,6 +115,13 @@ namespace FoundationDB.Client
 			return trans.GetRange(FdbKeySelectorPair.Create(beginInclusive, endExclusive), options);
 		}
 
+		public static FdbRangeQuery GetRange(this IFdbReadTransaction trans, FdbKeyRange range, FdbRangeOptions options = null)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			return trans.GetRange(FdbKeySelectorPair.Create(range), options);
+		}
+
 		public static FdbRangeQuery GetRange(this IFdbReadTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null)
 		{
 			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;

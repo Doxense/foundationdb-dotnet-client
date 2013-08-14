@@ -47,8 +47,8 @@ namespace FoundationDB.Client
 			this.End = end;
 		}
 
-		/// <summary>Convert a prefix key into a range ("key\x00".."key\xFF"), or ("key".."key\xFF") if the prefix is included</summary>
-		/// <param name="prefix">Key prefix</param>
+		/// <summary>Create a range that selects all keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
+		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>
 		public static FdbKeyRange FromPrefix(Slice prefix)
 		{
@@ -74,8 +74,34 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Convert a key into a range that only includes it ("key".."key\x00")</summary>
-		/// <param name="prefix">Key prefix</param>
+		/// <summary>Create a range that selects all keys equal to or starting with <paramref name="prefix"/>: ('prefix' &lt;= k &lt; 'key\xFF')</summary>
+		/// <param name="prefix">Key prefix (that will be included in the range)</param>
+		/// <returns>Range including all keys with the specified prefix, and the prefix itself.</returns>
+		public static FdbKeyRange FromPrefixInclusive(Slice prefix)
+		{
+			if (prefix.IsNullOrEmpty)
+			{
+				return prefix.HasValue ? FdbKeyRange.All : FdbKeyRange.None;
+			}
+
+			int n = prefix.Count;
+			var tmp = new byte[checked((n << 1) + 1)];
+
+			// first segment will contain prefix
+			prefix.CopyTo(tmp, 0);
+
+			// second segment will contain prefix + '\xFF'
+			prefix.CopyTo(tmp, n);
+			tmp[n << 1] = 0xFF;
+
+			return new FdbKeyRange(
+				new Slice(tmp, 0, n),
+				new Slice(tmp, n, n + 1)
+			);
+		}
+
+		/// <summary>Create a range that will only return <param name="key"/> ('key' &lt;= k &lt; 'key\x00')</summary>
+		/// <param name="prefix">Key that will be returned by the range</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>
 		public static FdbKeyRange FromKey(Slice key)
 		{
@@ -85,12 +111,12 @@ namespace FoundationDB.Client
 			}
 
 			int n = key.Count;
-			var tmp = new byte[n * 2 + 1];
+			var tmp = new byte[checked((n << 1) + 1)];
 
 			// first segment will contain the key
 			key.CopyTo(tmp, 0);
 
-			// second segment will contain the key+ '\x00'
+			// second segment will contain the key + '\x00'
 			key.CopyTo(tmp, n);
 			tmp[n << 1] = 0;
 
