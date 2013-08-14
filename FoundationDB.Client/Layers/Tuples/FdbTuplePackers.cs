@@ -108,6 +108,12 @@ namespace FoundationDB.Layers.Tuples
 						return;
 					}
 
+					if (value is TimeSpan)
+					{
+						SerializeTo(writer, (TimeSpan)value);
+						return;
+					}
+
 					break;
 				}
 				case TypeCode.DBNull:
