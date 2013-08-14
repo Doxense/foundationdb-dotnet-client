@@ -132,13 +132,6 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Pack...
 
-		public Slice Pack(Slice keyBlob)
-		{
-			var writer = OpenBuffer(keyBlob.Count);
-			writer.WriteBytes(keyBlob);
-			return writer.ToSlice();
-		}
-
 		public Slice Pack(IFdbTuple tuple)
 		{
 			var writer = new FdbBufferWriter();
