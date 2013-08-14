@@ -636,7 +636,7 @@ namespace FoundationDB.Client
 					{
 						if (trans != null && trans.StillAlive)
 						{
-							trans.Rollback();
+							trans.Cancel();
 						}
 					}
 					m_transactions.Clear();

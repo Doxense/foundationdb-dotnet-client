@@ -763,7 +763,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Reset/Rollback...
+		#region Reset/Rollback/Cancel...
 
 		/// <summary>Reset the transaction to its initial state.</summary>
 		public void Reset()
@@ -776,7 +776,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Rollback this transaction, and dispose it. It should not be used after that.</summary>
-		public void Rollback()
+		public void Cancel()
 		{
 			var state = Interlocked.CompareExchange(ref m_state, STATE_ROLLEDBACK, STATE_READY);
 			if (state != STATE_READY)
@@ -794,8 +794,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On) Logging.Verbose(this, "Reset", "Rolling back transaction...");
 
-			// Dispose of the handle
-			if (!m_handle.IsClosed) m_handle.Dispose();
+			FdbNative.TransactionCancel(m_handle);
 
 			if (Logging.On) Logging.Verbose(this, "Reset", "Transaction has been rolled back");
 		}
@@ -890,7 +889,7 @@ namespace FoundationDB.Client
 				case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "This transaction has already been disposed and cannot be used anymore");
 				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
 				case STATE_COMMITTED: throw new InvalidOperationException("The transaction has already been committed");
-				case STATE_ROLLEDBACK: throw new InvalidOperationException("The transaction has already been rolled back");
+				case STATE_ROLLEDBACK: throw new FdbException(FdbError.TransactionCancelled, "The transaction has already been cancelled");
 				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", trans.State));
 			}
 		}

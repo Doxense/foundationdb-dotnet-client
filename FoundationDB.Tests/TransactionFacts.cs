@@ -127,23 +127,6 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Rolling_Back_An_Empty_Transaction_Does_Nothing()
-		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-				using (var tr = db.BeginTransaction())
-				{
-					// do nothing with it
-					tr.Rollback();
-					// => should not fail!
-
-					Assert.That(tr.StillAlive, Is.False);
-					Assert.That(tr.State, Is.EqualTo(FdbTransaction.STATE_ROLLEDBACK));
-				}
-			}
-		}
-
-		[Test]
 		public async Task Test_Resetting_An_Empty_Transaction_Does_Nothing()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
@@ -161,6 +144,85 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 		}
+
+		[Test]
+		public async Task Test_Canceling_An_Empty_Transaction_Does_Nothing()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					// do nothing with it
+					tr.Cancel();
+					// => should not fail!
+
+					Assert.That(tr.StillAlive, Is.False);
+					Assert.That(tr.State, Is.EqualTo(FdbTransaction.STATE_ROLLEDBACK));
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Canceling_Transaction_Before_Commit_Should_Throw_Immediately()
+		{
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("test");
+
+				using(var tr = db.BeginTransaction())
+				{
+					tr.Set(location.Pack(1), Slice.FromString("hello"));
+					tr.Cancel();
+
+					await TestHelpers.AssertThrowsFdbErrorAsync(
+						() => tr.CommitAsync(),
+						FdbError.TransactionCancelled,
+						"Committing an already canceled exception should fail"
+					);
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Canceling_Transaction_During_Commit_Should_Abort_Task()
+		{
+			// we need to simulate some load on the db, to be able to cancel a Commit after it started, but before it completes
+			// => we will try to commit a very large transaction in order to give us some time
+			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("test");
+
+				await db.ClearRangeAsync(location);
+
+				using (var tr = db.BeginTransaction())
+				{
+					// Writes about 1MB of stuff in 100k chunks
+					var value = Slice.Create(100 * 1000);
+					for (int i = 0; i < 10;i++)
+					{
+						tr.Set(location.Pack(i), value);
+					}
+
+					// start commiting
+					var t = tr.CommitAsync();
+
+					if (t.IsCompleted) Assert.Inconclusive("Commit task already completed before having a chance to cancel");
+
+					// but immediately cancel the transaction
+					tr.Cancel();
+
+					await TestHelpers.AssertThrowsFdbErrorAsync(
+						() => t,
+						FdbError.TransactionCancelled,
+						"Cancelling a transaction that is writing to the server should fail the commit task"
+					);
+				}
+			}
+		}
+
 
 		[Test]
 		public async Task Test_Can_Get_Transaction_Read_Version()
