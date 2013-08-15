@@ -36,7 +36,7 @@ namespace FoundationDB.Layers.Tuples
 	public static class FdbTuplePacker<T>
 	{
 
-		private static readonly Action<FdbBufferWriter, T> Serializer;
+		internal static readonly Action<FdbBufferWriter, T> Serializer;
 
 		static FdbTuplePacker()
 		{

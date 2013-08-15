@@ -285,7 +285,7 @@ namespace FoundationDB.Layers.Tuples
 			var writer = new FdbBufferWriter();
 
 			var slice = prefix.ToSlice();
-			var packer = FdbTuplePackers.GetSerializer<T>();
+			var packer = FdbTuplePacker<T>.Serializer;
 
 			//TODO: pre-allocated buffer ?
 			//TODO: use multiple buffers if item count is huge ?
