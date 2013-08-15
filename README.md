@@ -9,7 +9,7 @@ The .NET binding is licensed under the 3-clause BSD Licence.
 
 It requires the .NET 4.5 Framework, and uses the 64-bit C API binding that is licensed by FoundationDB LLC and must be obtained separately.
 
-It currently targets the Beta 2 of FoundationDB (API level 22)
+It currently targets the Beta 3 of FoundationDB (API level 23)
 
 How to use
 ----------
@@ -31,6 +31,12 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
         // ("Test", "Count", ) = 42
         trans.Set(location.Pack("Count"), Slice.FromInt32(42));
         
+        // Atomically add 123 to ("Test", "Total")
+        trans.AtomicAdd(location.Pack("Total"), Slice.FromFixed32(123));
+
+        // Set bits 3, 9 and 30 in the bitmap stored at ("Test", "Bitmap")
+        trans.AtomicOr(location.Pack("Bitmap"), Slice.FromFixed32((1 << 3) | (1 << 9) | (1 << 30)));
+        
         // commits the transaction
         await trans.CommitAsync();
     }
@@ -48,9 +54,9 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
         value = await trans.GetAsync(location.Pack("NotFound"));
         Console.WriteLine(value.HasValue); // -> false
         Console.WriteLine(value == Slice.Nil); // -> true
-        // note: there is also Slice.Empty that is returned for existing keys with not values (used frequently for indexes)
+        // note: there is also Slice.Empty that is returned for existing keys with no value (used frequently for indexes)
         
-        // no writes, so we need to commit
+        // no writes, so we don't need to commit
     }
 
     // We can also do async "LINQ" queries
@@ -96,19 +102,15 @@ How to build
 
 You will need Visual Studio .NET 2012 or 2013 and .NET 4.5 minimum to compile the solution.
 
-You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.com wesite, and copy it in the client project folder.
-
-If you already have installed FoundationDB you can skip to step 3
+You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.com wesite, by installing the client SDK:
 
 * Go to http://foundationdb.com/get/ and download the Windows x64 MSI. You may need to register for the Beta program to have access to these files.
-* Install the MSI, selecting the default options. Note the installation path.
-* Go to `C:\Program Files\foundationdb\bin\` and copy the `fdb_c.dll` into the `FoundationDb.Client\` folder of the VS solution (same folder where the FoundationDb.Client.csproj is)
-* Go up one folder, and open the FoundationDb.Client.sln file in Visual Studio 2012
+* Install the MSI, selecting the default options.
+* Go to `C:\Program Files\foundationdb\bin\` and make sure that `fdb_c.dll` is there.
+* Open the FoundationDb.Client.sln file in Visual Studio 2012.
 * Choose the Release or Debug configuration, and rebuild the solution.
 
-If you see the error `Could not copy the file "....\FoundationDb.Client\fdb_c.dll" because it was not found` please make sure you have followed the previous steps.
-
-If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012, and not an earlier version.
+If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012 or 2013 Preview, and not an earlier version.
 
 If you see the error `Unable to locate '...\foundationdb-dotnet-client\.nuget\nuget.exe'` then you need to run the `Enable Nuget Package Restore` entry in the `Project` menu (or right click on the solution) that will reinstall nuget.exe in the .nuget folder. Also, Nuget should should redownload the missing packages during the first build.
 
@@ -119,12 +121,12 @@ The test project is using NUnit 2.6.2, and requires support for async test metho
 
 If you are using a custom runner or VS plugin (like TestDriven.net), make sure that is has the correct nunit version, and that it is configured to run the test using 64-bit process. The code will NOT work on 32 bit.
 
-WARNING: some tests will clear the local database and you may lose all your data. You can speicify an alternative cluster file to use in `TestHelper.cs` file.
+WARNING: All the tests should work under the ('T',) subspace, but any bug or mistake could end up wiping or corrupting the global keyspace and you may lose all your data. You can specify an alternative cluster file to use in `TestHelper.cs` file.
 
 Implementation Notes
 --------------------
 
-Please refer to http://foundationdb.com/documentation/beta2/ to get an overview on the FoundationDB API, if you haven't already.
+Please refer to http://foundationdb.com/documentation/beta3/ to get an overview on the FoundationDB API, if you haven't already.
 
 This .NET binding as been modeled to be as close as possible to the other bindings (Python especially), while still having a '.NET' style API. 
 
@@ -156,11 +158,15 @@ What is not working:
 * The LINQ API is still a work in progress, and may change a lot.
 * Long running batch or range queries may fail with a `past_version` error if they take too much time.
 
-What should work okay:
+What is working but with some usability problems
+* Active cancellation (outside of timeouts) requires you to create and manage a CancellationTokenSource to be able pass a CancellationToken to the async code.
+* To emulate the @transactional python attribute (that allows you to pass a database or transaction instance) you have to use db.Attempt.Change((tr) => SomeLayer.SomeMethod(tr, ...)) instead of the simpler SomeLayer.SomeMethod(db, ...)
+* Watches are currently wrapped into Task, and cannot be cancelled directly and require passing a valid CancellationToken.
+
+What should work:
 * reading/inserting/clearing keys in the database
 * range queries
 * key selectors
+* atomic operations (add, and, or, xor)
+* watches
 * simple LINQ queries, like Select() or Where() on the result of range queries (to convert Slice key/values into oter types).
-
-
-
