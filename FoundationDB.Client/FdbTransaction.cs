@@ -701,22 +701,19 @@ namespace FoundationDB.Client
 
 		#region Batching...
 
-		internal async Task<Slice[]> GetBatchValuesCoreAsync(Slice[] keys, bool snapshot, CancellationToken ct)
+		internal Task<Slice[]> GetBatchValuesCoreAsync(Slice[] keys, bool snapshot, CancellationToken ct)
 		{
 			Contract.Requires(keys != null);
 
 			//TODO: use a FdbAsyncTaskBuffer to throttle the number of concurrent reads !
 			//TODO: add a FdbParallelQueryOptions argument to control the max concurrency
 
-			var tasks = new List<Task<Slice>>(keys.Length);
+			var tasks = new Task<Slice>[keys.Length];
 			for (int i = 0; i < keys.Length; i++)
 			{
-				tasks.Add(GetCoreAsync(keys[i], snapshot, ct));
+				tasks[i] = GetCoreAsync(keys[i], snapshot, ct);
 			}
-
-			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
-
-			return results;
+			return Task.WhenAll(tasks);
 		}
 
 		public Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken))
