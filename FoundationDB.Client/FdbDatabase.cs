@@ -556,12 +556,23 @@ namespace FoundationDB.Client
 		/// <summary>Returns a string describing the list of the coordinators for the cluster</summary>
 		public async Task<string> GetCoordinatorsAsync()
 		{
-			using (var tr = BeginTransaction())
+			using (var tr = BeginTransaction().WithAccessToSystemKeys())
 			{
-				tr.WithAccessToSystemKeys();
-
-				var result = await tr.GetAsync(Slice.FromAscii("\xFF/coordinators")).ConfigureAwait(false);
+				var result = await tr.GetAsync(Fdb.SystemKeys.Coordinators).ConfigureAwait(false);
 				return result.ToAscii();
+			}
+		}
+
+		/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
+		/// <param name="name">"storage_engine"</param>
+		/// <returns>Value of '\xFF/conf/storage_engine'</returns>
+		public async Task<Slice> GetConfigParameter(string name)
+		{
+			if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty");
+
+			using(var tr = BeginTransaction().WithAccessToSystemKeys())
+			{
+				return await tr.GetAsync(Fdb.SystemKeys.GetConfigKey(name)).ConfigureAwait(false);
 			}
 		}
 
