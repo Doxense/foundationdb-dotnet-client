@@ -756,7 +756,11 @@ namespace FoundationDB.Client
 			}
 		}
 
-		internal Task WatchCoreAsync(Slice key, CancellationToken ct)
+		#endregion
+		
+		#region Watches...
+
+		internal FdbWatch WatchCore(Slice key, CancellationToken ct)
 		{
 			this.Database.EnsureKeyIsValid(key);
 
@@ -765,24 +769,28 @@ namespace FoundationDB.Client
 #endif
 
 			var future = FdbNative.TransactionWatch(m_handle, key);
-			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct);
+			return new FdbWatch(
+				FdbFuture.FromHandle<Slice>(future, (h) => key, ct),
+				key
+			);
 		}
 
 		/// <summary>
-		/// Watch a key for any change in the database
+		/// Watch a key for any change in the database.
 		/// </summary>
 		/// <param name="key">Key to watch</param>
-		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore</param>
-		/// <returns>Task that completes when the watched key has changed</returns>
-		public Task WatchAsync(Slice key, CancellationToken ct = default(CancellationToken))
+		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the return FdbWatch instance</param>
+		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
+		/// <remarks>You can directly await a future, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbFuture&lt;T&gt;.Task"/> property</remarks>
+		public FdbWatch Watch(Slice key, CancellationToken ct = default(CancellationToken))
 		{
-			//BUGBUG: the Future returned by fdb_transaction_watch outlives the transaction, and should be canceled with fdb_future_cancel() is the caller don't need it anymore
-			// Problem is: we can't cancel a task! Either we force the caller to provide a valid CancellationToken dedicated to the watchdoc, and would be used to cancel the watch,
-			// or we return some sort of Diposable<Task> wrapper that would encapsulate a task, a CancellationTokenSource, and a Cancel() method?
-
 			EnsureCanRead(ct);
 
-			return WatchCoreAsync(key, ct);
+			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be canceled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
+			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource everytime),
+			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
+
+			return WatchCore(key, ct);
 		}
 
 		#endregion
