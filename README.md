@@ -9,7 +9,7 @@ The .NET binding is licensed under the 3-clause BSD Licence.
 
 It requires the .NET 4.5 Framework, and uses the 64-bit C API binding that is licensed by FoundationDB LLC and must be obtained separately.
 
-It currently targets the Beta 3 of FoundationDB (API level 23)
+It currently targets version 1.0 FoundationDB (API level 100)
 
 How to use
 ----------
@@ -104,7 +104,7 @@ You will need Visual Studio .NET 2012 or 2013 and .NET 4.5 minimum to compile th
 
 You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.com wesite, by installing the client SDK:
 
-* Go to http://foundationdb.com/get/ and download the Windows x64 MSI. You may need to register for the Beta program to have access to these files.
+* Go to http://foundationdb.com/get/ and download the Windows x64 MSI. You can use the free Community edition that gives you unlimited server processes for development and testing.
 * Install the MSI, selecting the default options.
 * Go to `C:\Program Files\foundationdb\bin\` and make sure that `fdb_c.dll` is there.
 * Open the FoundationDb.Client.sln file in Visual Studio 2012.
@@ -126,7 +126,7 @@ WARNING: All the tests should work under the ('T',) subspace, but any bug or mis
 Implementation Notes
 --------------------
 
-Please refer to http://foundationdb.com/documentation/beta3/ to get an overview on the FoundationDB API, if you haven't already.
+Please refer to http://foundationdb.com/documentation/ to get an overview on the FoundationDB API, if you haven't already.
 
 This .NET binding as been modeled to be as close as possible to the other bindings (Python especially), while still having a '.NET' style API. 
 
