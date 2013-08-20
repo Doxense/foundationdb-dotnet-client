@@ -292,6 +292,47 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Get_Multiple_Values()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+
+				var location = db.Partition("Batch");
+				await db.ClearRangeAsync(location);
+
+				int[] ids = new int[] { 8, 7, 2, 9, 5, 0, 3, 4, 6, 1 };
+
+				using (var tr = db.BeginTransaction())
+				{
+					for (int i = 0; i < ids.Length; i++)
+					{
+						tr.Set(location.Pack(i), Slice.FromString("#" + i.ToString()));
+					}
+					await tr.CommitAsync();
+				}
+
+				using(var tr = db.BeginTransaction())
+				{
+					var keys = ids.Select(id => location.Pack(id)).ToArray();
+
+					var results = await tr.GetValuesAsync(keys);
+
+					Assert.That(results, Is.Not.Null);
+					Assert.That(results.Length, Is.EqualTo(ids.Length));
+
+					Console.WriteLine(String.Join(", ", results));
+
+					for (int i = 0; i < ids.Length;i++)
+					{
+						Assert.That(results[i].ToString(), Is.EqualTo("#" + ids[i].ToString()));
+					}
+
+				}
+
+			}
+		}
+
 		/// <summary>Performs (x OP y) and ensure that the result is correct</summary>
 		private async Task PerformAtomicOperationAndCheck(FdbDatabase db, Slice key, int x, FdbMutationType type, int y)
 		{

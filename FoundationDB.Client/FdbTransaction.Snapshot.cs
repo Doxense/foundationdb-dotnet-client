@@ -118,13 +118,13 @@ namespace FoundationDB.Client
 				return m_parent.GetCoreAsync(keyBytes, snapshot: true, ct: ct);
 			}
 
-			public Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct)
+			public Task<Slice[]> GetValuesAsync(Slice[] keys, CancellationToken ct)
 			{
 				if (keys == null) throw new ArgumentNullException("keys");
 
 				EnsureCanRead(ct);
 
-				return m_parent.GetBatchValuesCoreAsync(keys, snapshot: true, ct: ct);
+				return m_parent.GetValuesCoreAsync(keys, snapshot: true, ct: ct);
 			}
 
 			public Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct)

@@ -76,7 +76,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct = default(CancellationToken));
 
-		Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken));
+		Task<Slice[]> GetValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken));
 
 		/// <summary>
 		/// Resolves a key selector against the keys in the database snapshot represented by transaction.

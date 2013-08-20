@@ -701,7 +701,7 @@ namespace FoundationDB.Client
 
 		#region Batching...
 
-		internal Task<Slice[]> GetBatchValuesCoreAsync(Slice[] keys, bool snapshot, CancellationToken ct)
+		internal Task<Slice[]> GetValuesCoreAsync(Slice[] keys, bool snapshot, CancellationToken ct)
 		{
 			Contract.Requires(keys != null);
 
@@ -716,13 +716,13 @@ namespace FoundationDB.Client
 			return Task.WhenAll(tasks);
 		}
 
-		public Task<Slice[]> GetBatchValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken))
+		public Task<Slice[]> GetValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken))
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
 			EnsureCanRead(ct);
 
-			return GetBatchValuesCoreAsync(keys, snapshot: false, ct: ct);
+			return GetValuesCoreAsync(keys, snapshot: false, ct: ct);
 		}
 
 		#endregion

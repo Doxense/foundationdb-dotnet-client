@@ -242,7 +242,7 @@ namespace FoundationDB.Client
 
 		public static async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(this IFdbReadTransaction trans, Slice[] keys, CancellationToken ct = default(CancellationToken))
 		{
-			var results = await trans.GetBatchValuesAsync(keys, ct).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(keys, ct).ConfigureAwait(false);
 
 			return results
 				.Select((data, i) => new KeyValuePair<int, Slice>(i, data))

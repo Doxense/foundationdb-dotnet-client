@@ -131,7 +131,7 @@ namespace FoundationDB.Layers.Blobs
 
 			var keys = FdbTuple.BatchPack(GetKey(id), fields);
 
-			var values = await trans.GetBatchValuesAsync(keys, ct).ConfigureAwait(false);
+			var values = await trans.GetValuesAsync(keys, ct).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);
 
 			var results = new Dictionary<string, Slice>(values.Length, StringComparer.OrdinalIgnoreCase);
