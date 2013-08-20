@@ -225,41 +225,39 @@ namespace FoundationDB.Layers.Tuples
 			return trans.GetAsync(key.ToSlice(), ct);
 		}
 
-		public static Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> keys, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IFdbTuple[] tuples, CancellationToken ct = default(CancellationToken))
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (tuples == null) throw new ArgumentNullException("tuples");
+
+			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples), ct);
+		}
+
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> tuples, CancellationToken ct = default(CancellationToken))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (tuples == null) throw new ArgumentNullException("tuples");
+
+			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples), ct);
+		}
+
+		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> tuples, CancellationToken ct = default(CancellationToken))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (tuples == null) throw new ArgumentNullException("tuples");
 
 			ct.ThrowIfCancellationRequested();
 
-			return trans.GetBatchIndexedAsync(FdbTuple.BatchPack(keys), ct);
+			return GetBatchAsync(trans, tuples.ToArray(), ct);
 		}
 
-		public static Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(this IFdbReadTransaction trans, IFdbTuple[] keys, CancellationToken ct = default(CancellationToken))
+		public static async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IFdbTuple[] tuples, CancellationToken ct = default(CancellationToken))
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
-			ct.ThrowIfCancellationRequested();
-
-			return trans.GetBatchIndexedAsync(FdbTuple.BatchPack(keys), ct);
-		}
-
-		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> keys, CancellationToken ct = default(CancellationToken))
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			return GetBatchAsync(trans, keys.ToArray(), ct);
-		}
-
-		public static async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IFdbTuple[] keys, CancellationToken ct = default(CancellationToken))
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			var indexedResults = await trans.GetBatchIndexedAsync(FdbTuple.BatchPack(keys), ct);
-
-			ct.ThrowIfCancellationRequested();
+			var results = await GetValuesAsync(trans, tuples, ct).ConfigureAwait(false);
 
 			// maps the index back to the original key
-			return indexedResults
-				.Select((kvp) => new KeyValuePair<IFdbTuple, Slice>(keys[kvp.Key], kvp.Value))
+			return results
+				.Select((value, i) => new KeyValuePair<IFdbTuple, Slice>(tuples[i], value))
 				.ToList();
 		}
 

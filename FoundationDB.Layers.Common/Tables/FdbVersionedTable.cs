@@ -438,20 +438,17 @@ namespace FoundationDB.Layers.Tables
 
 			// now read all the values
 
-			var indexedResults = await trans
-				.GetBatchIndexedAsync(
-					versions.Select(kvp => GetItemKey(kvp.Key, kvp.Value)),
-					ct
-				).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(
+				FdbTuple.BatchPack(versions.Select(kvp => GetItemKey(kvp.Key, kvp.Value))),
+				ct
+			).ConfigureAwait(false);
 
-			var results = indexedResults
-				.Select((kvp) => new KeyValuePair<TId, TValue>(
-					versions[kvp.Key].Key,
-					this.ValueSerializer.Deserialize(kvp.Value, default(TValue))
+			return results
+				.Select((value, i) => new KeyValuePair<TId, TValue>(
+					versions[i].Key,
+					this.ValueSerializer.Deserialize(value, default(TValue))
 				))
 				.ToList();
-
-			return results;
 		}
 
 		#endregion

@@ -213,47 +213,10 @@ namespace FoundationDB.Client
 
 		#region Batching...
 
-		public static async Task<Slice[]> GetBatchValuesAsync(this IFdbReadTransaction trans, Slice[] keys, CancellationToken ct = default(CancellationToken))
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			trans.EnsureCanRead(ct);
-
-			//TODO: we should maybe limit the number of concurrent requests, if there are too many keys to read at once ?
-
-			var tasks = new List<Task<Slice>>(keys.Length);
-			for (int i = 0; i < keys.Length; i++)
-			{
-				tasks.Add(trans.GetAsync(keys[i], ct));
-			}
-
-			var results = await Task.WhenAll(tasks).ConfigureAwait(false);
-
-			return results;
-		}
-
-		public static Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys, CancellationToken ct = default(CancellationToken))
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			ct.ThrowIfCancellationRequested();
-			return trans.GetBatchIndexedAsync(keys.ToArray(), ct);
-		}
-
-		public static async Task<List<KeyValuePair<int, Slice>>> GetBatchIndexedAsync(this IFdbReadTransaction trans, Slice[] keys, CancellationToken ct = default(CancellationToken))
-		{
-			var results = await trans.GetValuesAsync(keys, ct).ConfigureAwait(false);
-
-			return results
-				.Select((data, i) => new KeyValuePair<int, Slice>(i, data))
-				.ToList();
-		}
-
 		public static Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys, CancellationToken ct = default(CancellationToken))
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			ct.ThrowIfCancellationRequested();
 			return trans.GetBatchAsync(keys.ToArray(), ct);
 		}
 
@@ -261,12 +224,12 @@ namespace FoundationDB.Client
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			var indexedResults = await trans.GetBatchIndexedAsync(keys, ct).ConfigureAwait(false);
-
 			ct.ThrowIfCancellationRequested();
 
-			return indexedResults
-				.Select((kvp) => new KeyValuePair<Slice, Slice>(keys[kvp.Key], kvp.Value))
+			var results = await trans.GetValuesAsync(keys, ct).ConfigureAwait(false);
+
+			return results
+				.Select((value, i) => new KeyValuePair<Slice, Slice>(keys[i], value))
 				.ToList();
 		}
 

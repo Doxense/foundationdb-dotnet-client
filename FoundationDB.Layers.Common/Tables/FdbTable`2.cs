@@ -99,6 +99,8 @@ namespace FoundationDB.Layers.Tables
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
+			ct.ThrowIfCancellationRequested();
+
 			var subspace = this.Table.Subspace;
 			var missing = default(TValue);
 
@@ -111,29 +113,16 @@ namespace FoundationDB.Layers.Tables
 				.ToListAsync(ct);
 		}
 
-		public async Task<List<KeyValuePair<TKey, TValue>>> GetBatchIndexedAsync(IFdbReadTransaction trans, IEnumerable<TKey> ids, CancellationToken ct = default(CancellationToken))
+		public async Task<List<TValue>> GetValuesAsync(IFdbReadTransaction trans, IEnumerable<TKey> ids, CancellationToken ct = default(CancellationToken))
 		{
-			var keys = ids.ToArray();
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (ids == null) throw new ArgumentNullException("ids");
 
-			var results = await trans.GetBatchIndexedAsync(keys.Select(GetKeyBytes), ct).ConfigureAwait(false);
+			ct.ThrowIfCancellationRequested();
 
-			//TODO: make it simpler / configurable ?
-			TValue missing = default(TValue);
-
-			return results.Select((kvp) => new KeyValuePair<TKey, TValue>(
-				keys[kvp.Key],
-				this.ValueSerializer.Deserialize(kvp.Value, missing)
-			)).ToList();
-		}
-
-		public async Task<List<TValue>> GetBatchAsync(IFdbReadTransaction trans, IEnumerable<TKey> ids, CancellationToken ct = default(CancellationToken))
-		{
 			var results = await trans.GetBatchAsync(ids.Select(GetKeyBytes), ct).ConfigureAwait(false);
 
-			//TODO: make it simpler / configurable ?
-			TValue missing = default(TValue);
-
-			return results.Select((kvp) => this.ValueSerializer.Deserialize(kvp.Value, missing)).ToList();
+			return results.Select((kvp) => this.ValueSerializer.Deserialize(kvp.Value, default(TValue))).ToList();
 		}
 
 		#endregion

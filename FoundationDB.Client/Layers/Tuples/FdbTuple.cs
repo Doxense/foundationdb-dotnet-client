@@ -259,13 +259,41 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
 		public static Slice[] BatchPack(IEnumerable<IFdbTuple> tuples)
 		{
+			if (tuples == null) throw new ArgumentNullException("tuples");
+
+			// use optimized version for arrays
+			var array = tuples as IFdbTuple[];
+			if (array != null) return BatchPack(array);
+
 			var next = new List<int>();
 			var writer = new FdbBufferWriter();
 
-			//TODO: pre-allocated buffer ?
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach(var tuple in tuples)
+			{
+				tuple.PackTo(writer);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
+		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
+		/// <param name="tuples">Sequence of N-tuples to pack</param>
+		/// <returns>Array containing the buffer segment of each packed tuple</returns>
+		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
+		public static Slice[] BatchPack(IFdbTuple[] tuples)
+		{
+			if (tuples == null) throw new ArgumentNullException("tuples");
+
+			// pre-allocate by supposing that each tuple will take at least 16 bytes
+			var writer = new FdbBufferWriter(tuples.Length * 16);
+			var next = new List<int>(tuples.Length);
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var tuple in tuples)
 			{
 				tuple.PackTo(writer);
 				next.Add(writer.Position);
@@ -281,13 +309,47 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] BatchPack<T>(IFdbTuple prefix, IEnumerable<T> keys)
 		{
-			var next = new List<int>();
-			var writer = new FdbBufferWriter();
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			// use optimized version for arrays
+			var array = keys as T[];
+			if (array != null) return BatchPack<T>(prefix, array);
 
 			var slice = prefix.ToSlice();
+			var next = new List<int>();
+			var writer = new FdbBufferWriter();
 			var packer = FdbTuplePacker<T>.Serializer;
 
-			//TODO: pre-allocated buffer ?
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var key in keys)
+			{
+				writer.WriteBytes(slice);
+				packer(writer, key);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
+		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] BatchPack<T>(IFdbTuple prefix, T[] keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			var slice = prefix.ToSlice();
+
+			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
+			var writer = new FdbBufferWriter(keys.Length * (slice.Count + 8));
+			var next = new List<int>(keys.Length);
+			var packer = FdbTuplePacker<T>.Serializer;
+
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var key in keys)
