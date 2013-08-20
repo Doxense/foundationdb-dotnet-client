@@ -141,7 +141,7 @@ namespace FoundationDB.Client
 #if DEBUG_FUTURES
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already ready");
 #endif
-					TrySetTaskResult(fromCallback: false);
+					HandleCompletion(fromCallback: false);
 					return;
 				}
 
@@ -260,20 +260,19 @@ namespace FoundationDB.Client
 			m_ctr = default(CancellationTokenRegistration);
 		}
 
-#if false
-		private void ClearCallback()
+		private void SetResult(T result, bool fromCallback)
 		{
-			if (m_callback.IsAllocated)
+			if (!fromCallback)
 			{
-				m_callback.Free();
-#if DEBUG
-				Interlocked.Decrement(ref DebugCounters.CallbackHandles);
-#endif
+				this.TrySetResult(result);
+			}
+			else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
+			{
+				PostCompletionOnThreadPool(this, result);
 			}
 		}
-#endif
 
-		private void TrySetException(Exception e, bool fromCallback)
+		private void SetFaulted(Exception e, bool fromCallback)
 		{
 			if (!fromCallback)
 			{
@@ -286,12 +285,8 @@ namespace FoundationDB.Client
 			}
 		}
 
-		private void TrySetCanceled(bool fromCallback)
+		private void SetCanceled(bool fromCallback)
 		{
-#if DEBUG_FUTURES
-			Debug.WriteLine("TrySetCanceled(" + fromCallback + ")");
-#endif
-
 			if (!fromCallback)
 			{
 				this.TrySetCanceled();
@@ -314,6 +309,8 @@ namespace FoundationDB.Client
 				future.Cancel();
 			}
 		}
+
+		#region Callback Management...
 
 		/// <summary>List of all pending futures that have not yet completed</summary>
 		private static readonly ConcurrentDictionary<IntPtr, FdbFuture<T>> s_futures = new ConcurrentDictionary<IntPtr, FdbFuture<T>>();
@@ -389,14 +386,16 @@ namespace FoundationDB.Client
 				&& future.m_key == parameter)
 			{
 				UnregisterCallback(future);
-				future.TrySetTaskResult(fromCallback: true);
+				future.HandleCompletion(fromCallback: true);
 			}
 		}
+
+		#endregion
 
 		/// <summary>Update the Task with the state of a ready Future</summary>
 		/// <param name="future">Future that should be ready</param>
 		/// <returns>True if we got a result, or false in case of error (or invalid state)</returns>
-		private unsafe bool TrySetTaskResult(bool fromCallback)
+		private unsafe void HandleCompletion(bool fromCallback)
 		{
 			// note: if fromCallback is true, we are running on the network thread
 			// this means that we have to signal the TCS from the threadpool, if not continuations on the task may run inline.
@@ -404,7 +403,7 @@ namespace FoundationDB.Client
 
 			if (HasAnyFlags(FdbFuture.Flags.DISPOSED | FdbFuture.Flags.COMPLETED))
 			{
-				return false;
+				return;
 			}
 
 			try
@@ -423,8 +422,8 @@ namespace FoundationDB.Client
 						if (err != FdbError.TransactionCancelled && err != FdbError.OperationCancelled)
 						{ // get the exception from the error code
 							var ex = Fdb.MapToException(err);
-							TrySetException(ex, fromCallback);
-							return false;
+							SetFaulted(ex, fromCallback);
+							return;
 						}
 						//else: will be handle below
 					}
@@ -439,33 +438,23 @@ namespace FoundationDB.Client
 						{
 							//note: result selector will execute from network thread, but this should be our own code that only calls into some fdb_future_get_XXXX(), which should be safe...
 							var result = selector(handle);
-							if (!fromCallback)
-							{
-								this.TrySetResult(result);
-							}
-							else if (TrySetFlag(FdbFuture.Flags.HAS_POSTED_ASYNC_COMPLETION))
-							{
-								PostCompletionOnThreadPool(this, result);
-							}
-							return true;
+							SetResult(result, fromCallback);
+							return;
 						}
 						//else: it will be handled below
 					}
 				}
 
 				// most probably the future was canceled or we are shutting down...
-				TrySetCanceled(fromCallback);
-				return false;
+				SetCanceled(fromCallback);
 			}
 			catch (ThreadAbortException)
 			{
-				TrySetCanceled(fromCallback);
-				return false;
+				SetCanceled(fromCallback);
 			}
 			catch (Exception e)
 			{ // something went wrong
-				TrySetException(e, fromCallback);
-				return false;
+				SetFaulted(e, fromCallback);
 			}
 			finally
 			{
@@ -546,7 +535,7 @@ namespace FoundationDB.Client
 					if (!this.Task.IsCompleted)
 					{
 						FdbNative.FutureCancel(m_handle);
-						TrySetCanceled(fromCallback);
+						SetCanceled(fromCallback);
 					}
 				}
 				finally
@@ -576,7 +565,7 @@ namespace FoundationDB.Client
 
 		private static void PostCompletionOnThreadPool(FdbFuture<T> future, T result)
 		{
-			ThreadPool.QueueUserWorkItem(
+			ThreadPool.UnsafeQueueUserWorkItem(
 				(_state) =>
 				{
 					var prms = (Tuple<FdbFuture<T>, T>)_state;
@@ -588,7 +577,7 @@ namespace FoundationDB.Client
 
 		private static void PostFailureOnThreadPool(FdbFuture<T> future, Exception error)
 		{
-			ThreadPool.QueueUserWorkItem(
+			ThreadPool.UnsafeQueueUserWorkItem(
 				(_state) =>
 				{
 					var prms = (Tuple<FdbFuture<T>, Exception>)_state;
@@ -600,10 +589,10 @@ namespace FoundationDB.Client
 
 		private static void PostCancellationOnThreadPool(FdbFuture<T> future)
 		{
-			ThreadPool.QueueUserWorkItem(
+			ThreadPool.UnsafeQueueUserWorkItem(
 				(_state) =>
 				{
-					((TaskCompletionSource<T>)_state).TrySetCanceled();
+					((FdbFuture<T>)_state).TrySetCanceled();
 				},
 				future
 			);
