@@ -705,15 +705,34 @@ namespace FoundationDB.Client
 		{
 			Contract.Requires(keys != null);
 
-			//TODO: use a FdbAsyncTaskBuffer to throttle the number of concurrent reads !
-			//TODO: add a FdbParallelQueryOptions argument to control the max concurrency
-
-			var tasks = new Task<Slice>[keys.Length];
-			for (int i = 0; i < keys.Length; i++)
+			foreach (var key in keys)
 			{
-				tasks[i] = GetCoreAsync(keys[i], snapshot, ct);
+				this.Database.EnsureKeyIsValid(key);
 			}
-			return Task.WhenAll(tasks);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesCoreAsync", String.Format("Getting batch of {0} values ...", keys.Length.ToString()));
+#endif
+
+			var futures = new FutureHandle[keys.Length];
+			try
+			{
+				for (int i = 0; i < keys.Length; i++)
+				{
+					futures[i] = FdbNative.TransactionGet(m_handle, keys[i], snapshot);
+				}
+			}
+			catch
+			{
+				for (int i = 0; i < keys.Length; i++)
+				{
+					if (futures[i] == null) break;
+					futures[i].Dispose();
+				}
+				throw;
+			}
+			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetValueResultBytes(h), ct);
+
 		}
 
 		public Task<Slice[]> GetValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken))

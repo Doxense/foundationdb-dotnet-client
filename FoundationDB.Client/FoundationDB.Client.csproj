@@ -58,6 +58,8 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="FdbFuture.cs" />
+    <Compile Include="FdbFutureArray.cs" />
     <Compile Include="FdbWatch.cs" />
     <Compile Include="Fdb.System.cs" />
     <Compile Include="FdbConflictRangeType.cs" />
@@ -104,7 +106,7 @@
     <Compile Include="FdbTransaction.cs" />
     <Compile Include="FdbDatabase.cs" />
     <Compile Include="FdbCluster.cs" />
-    <Compile Include="FdbFuture.cs" />
+    <Compile Include="FdbFutureSingle.cs" />
     <Compile Include="Fdb.cs" />
     <Compile Include="Linq\FdbTakeWhileAsyncIterator.cs" />
     <Compile Include="Linq\FdbParallelQueryOptions.cs" />

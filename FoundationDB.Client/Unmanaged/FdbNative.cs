@@ -53,6 +53,9 @@ namespace FoundationDB.Client.Native
 		/// <summary>Exception that was thrown when we last tried to load the native FDB C library (or null if nothing wrong happened)</summary>
 		private static readonly Exception LibraryLoadError;
 
+		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+		public delegate void FdbFutureCallback(IntPtr future, IntPtr parameter);
+
 		/// <summary>Contain all the stubs to the methods exposed by the C API library</summary>
 		[System.Security.SuppressUnmanagedCodeSecurity]
 		public static class Stubs
