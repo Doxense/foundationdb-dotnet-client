@@ -45,7 +45,7 @@ namespace FoundationDB.Layers.Indexing
 	public class FdbIndex<TId, TValue>
 	{
 
-		public FdbIndex(string name, FdbSubspace subspace, EqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -60,7 +60,7 @@ namespace FoundationDB.Layers.Indexing
 
 		public FdbSubspace Subspace { get; private set; }
 
-		public EqualityComparer<TValue> ValueComparer { get; private set; }
+		public IEqualityComparer<TValue> ValueComparer { get; private set; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
 		/// <remarks>This has no effect if <typeparam name="TValue" /> is not a reference type</remarks>
