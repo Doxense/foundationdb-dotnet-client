@@ -917,5 +917,48 @@ namespace FoundationDB.Client.Tests
 
 		}
 
+		[Test]
+		public async Task Test_Can_Get_Boundary_Keys()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				using(var tr = db.BeginTransaction().WithAccessToSystemKeys())
+				{
+					// dump nodes
+					Console.WriteLine("Server List:");
+					var keys = await tr.GetRange(Fdb.SystemKeys.ServerList, Fdb.SystemKeys.ServerList + Fdb.SystemKeys.MaxValue)
+						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.SystemKeys.ServerList.Count), kvp.Value))
+						.ToListAsync();
+					foreach (var key in keys)
+					{
+						// the node id seems to be at offset 8
+						var nodeId = key.Value.Substring(8, 16).ToHexaString();
+						// the machine id seems to be at offset 24
+						var machineId = key.Value.Substring(24, 16).ToHexaString();
+						// the datacenter id seems to be at offset 32
+						var dataCenterId = key.Value.Substring(32, 16).ToHexaString();
+
+						Console.WriteLine("- " + key.Key.ToHexaString() + ": (" + key.Value.Count + ") " + key.Value.ToAsciiOrHexaString());
+						Console.WriteLine("  > node       = " + nodeId);
+						Console.WriteLine("  > machine    = " + machineId);
+						Console.WriteLine("  > datacenter = " + dataCenterId);
+					}
+
+					// dump keyServers
+					Console.WriteLine("Key Servers:");
+					keys = await tr.GetRange(Fdb.SystemKeys.KeyServers, Fdb.SystemKeys.KeyServers + Fdb.SystemKeys.MaxValue)
+						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.SystemKeys.KeyServers.Count), kvp.Value))
+						.ToListAsync();
+					foreach(var key in keys)
+					{
+						// the node id seems to be at offset 12
+						var nodeId = key.Value.Substring(12, 16).ToHexaString();
+
+						Console.WriteLine("- (" + key.Value.Count + ") " + key.Value.ToAsciiOrHexaString() + " : " + nodeId + " = " + key.Key);
+					}
+				}
+			}
+		}
+
 	}
 }
