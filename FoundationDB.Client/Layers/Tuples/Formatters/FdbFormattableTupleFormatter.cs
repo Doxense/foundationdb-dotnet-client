@@ -26,37 +26,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tables
+namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using System;
 
-	public static class FdbTableExtensions
+	/// <summary>Specialized formatter for types that implement ITupleFormattable</summary>
+	internal sealed class FdbFormattableTupleFormatter<T> : ITupleFormatter<T>
+		where T : ITupleFormattable, new()
 	{
-
-		public static FdbTable Table(this FdbDatabase db, string tableName)
+		public IFdbTuple ToTuple(T key)
 		{
-			return new FdbTable(tableName, db.Partition(tableName));
+			if (key == null) return null;
+			return key.ToTuple();
 		}
 
-		public static FdbTable Table(this FdbDatabase db, string tableName, IFdbTuple prefix)
+		public T FromTuple(IFdbTuple tuple)
 		{
-			return new FdbTable(tableName, db.Partition(prefix));
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			var key = new T();
+			key.FromTuple(tuple);
+			return key;
 		}
-
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, ITupleFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
-		{
-			return new FdbTable<TKey, TValue>(tableName, db.Partition(tableName), keyReader, valueSerializer);
-		}
-
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, IFdbTuple prefix, ITupleFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
-		{
-			return new FdbTable<TKey, TValue>(tableName, db.Partition(prefix), keyReader, valueSerializer);
-		}
-
-
-
 	}
 
 }

@@ -1149,6 +1149,98 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 		#endregion
 
+		#region Formatters
+
+		private class Thing : ITupleFormattable
+		{
+			public Thing()
+			{ }
+
+			public int Foo { get; set; }
+			public string Bar { get; set; }
+
+			IFdbTuple ITupleFormattable.ToTuple()
+			{
+				return FdbTuple.Create(this.Foo, this.Bar);
+			}
+
+			void ITupleFormattable.FromTuple(IFdbTuple tuple)
+			{
+				this.Foo = tuple.Get<int>(0);
+				this.Bar = tuple.Get<string>(1);
+			}
+		}
+
+		[Test]
+		public void Test_Default_FdbTupleFormatter_For_Common_Types()
+		{
+
+			// common simple types
+			Assert.That(FdbTupleFormatter<int>.Default, Is.InstanceOf<FdbGenericTupleFormatter<int>>());
+			Assert.That(FdbTupleFormatter<bool>.Default, Is.InstanceOf<FdbGenericTupleFormatter<bool>>());
+			Assert.That(FdbTupleFormatter<string>.Default, Is.InstanceOf<FdbGenericTupleFormatter<string>>());
+
+			// corner cases
+			Assert.That(FdbTupleFormatter<IFdbTuple>.Default, Is.InstanceOf<FdbAnonymousTupleFormatter<IFdbTuple>>());
+			Assert.That(FdbTupleFormatter<FdbMemoizedTuple>.Default, Is.InstanceOf<FdbAnonymousTupleFormatter<FdbMemoizedTuple>>());
+
+			// ITupleFormattable types
+			Assert.That(FdbTupleFormatter<Thing>.Default, Is.InstanceOf<FdbFormattableTupleFormatter<Thing>>());
+		}
+
+		[Test]
+		public void Test_Format_Common_Types()
+		{
+			Assert.That(FdbTupleFormatter<int>.Default.ToTuple(123), Is.EqualTo(FdbTuple.Create(123)));
+			Assert.That(FdbTupleFormatter<int>.Default.FromTuple(FdbTuple.Create(123)), Is.EqualTo(123));
+
+			Assert.That(FdbTupleFormatter<bool>.Default.ToTuple(true), Is.EqualTo(FdbTuple.Create(true)));
+			Assert.That(FdbTupleFormatter<bool>.Default.FromTuple(FdbTuple.Create(true)), Is.True);
+
+			Assert.That(FdbTupleFormatter<string>.Default.ToTuple("hello"), Is.EqualTo(FdbTuple.Create<string>("hello")));
+			Assert.That(FdbTupleFormatter<string>.Default.FromTuple(FdbTuple.Create("hello")), Is.EqualTo("hello"));
+
+			var t = FdbTuple.Create(new object[] { "hello", 123, false });
+			Assert.That(FdbTupleFormatter<IFdbTuple>.Default.ToTuple(t), Is.SameAs(t));
+			Assert.That(FdbTupleFormatter<IFdbTuple>.Default.FromTuple(t), Is.SameAs(t));
+
+			var thing = new Thing { Foo = 123, Bar = "hello" };
+			Assert.That(FdbTupleFormatter<Thing>.Default.ToTuple(thing), Is.EqualTo(FdbTuple.Create(123, "hello")));
+
+			var thing2 = FdbTupleFormatter<Thing>.Default.FromTuple(FdbTuple.Create(456, "world"));
+			Assert.That(thing2, Is.Not.Null);
+			Assert.That(thing2.Foo, Is.EqualTo(456));
+			Assert.That(thing2.Bar, Is.EqualTo("world"));
+
+		}
+
+		[Test]
+		public void Test_Create_Appender_Formatter()
+		{
+			// create an appender formatter that will always add the values after the same prefix
+
+			var fmtr = FdbTupleFormatter<int>.CreateAppender(FdbTuple.Create("hello", "world"));
+			Assert.That(fmtr, Is.InstanceOf<FdbAnonymousTupleFormatter<int>>());
+
+			Assert.That(fmtr.ToTuple(123), Is.EqualTo(FdbTuple.Create("hello", "world", 123)));
+			Assert.That(fmtr.ToTuple(456), Is.EqualTo(FdbTuple.Create("hello", "world", 456)));
+			Assert.That(fmtr.ToTuple(-1), Is.EqualTo(FdbTuple.Create("hello", "world", -1)));
+
+			Assert.That(fmtr.FromTuple(FdbTuple.Create("hello", "world", 42)), Is.EqualTo(42));
+			Assert.That(fmtr.FromTuple(FdbTuple.Create("hello", "world", -1)), Is.EqualTo(-1));
+
+			Assert.That(() => fmtr.FromTuple(null), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => fmtr.FromTuple(FdbTuple.Empty), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => fmtr.FromTuple(FdbTuple.Create("hello", "world", 42, 77)), Throws.InstanceOf<ArgumentException>(), "Too many values");
+			Assert.That(() => fmtr.FromTuple(FdbTuple.Create("hello_world", 42)), Throws.InstanceOf<ArgumentException>(), "not enough values");
+			Assert.That(() => fmtr.FromTuple(FdbTuple.Create("world", "hello", "42")), Throws.InstanceOf<ArgumentException>(), "incorrect type");
+			Assert.That(() => fmtr.FromTuple(FdbTuple.Create(42)), Throws.InstanceOf<ArgumentException>(), "missing prefix");
+			Assert.That(() => fmtr.FromTuple(FdbTuple.Create("extra", "hello", "world", 42)), Throws.InstanceOf<ArgumentException>(), "prefix must match exactly");
+			Assert.That(() => fmtr.FromTuple(FdbTuple.Create("Hello", "World", 42)), Throws.InstanceOf<ArgumentException>(), "case sensitive");
+		}
+
+		#endregion
+
 		#region Bench....
 
 		[Test]

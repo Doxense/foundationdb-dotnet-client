@@ -30,10 +30,17 @@ namespace FoundationDB.Layers.Tuples
 {
 	using System;
 
-	public interface ITupleKeyFormatter<TKey>
+	/// <summary>
+	/// Defines a generalized method to convert a custom type into a tuple and back
+	/// </summary>
+	public interface ITupleFormattable
 	{
-		IFdbTuple Pack(TKey key);
-		TKey Unpack(IFdbTuple tuple);
+		/// <summary>Return the tuple representation of this instance</summary>
+		IFdbTuple ToTuple();
+
+		/// <summary>Load a tuple representation into a newly created instance</summary>
+		/// <param name="tuple"></param>
+		void FromTuple(IFdbTuple tuple);
 	}
 
 }

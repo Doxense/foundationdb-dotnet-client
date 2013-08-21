@@ -56,7 +56,7 @@ namespace FoundationDB.Layers.Tables.Tests
 					"Foos",
 					db,
 					location.Partition("Foos"),
-					FdbTupleKeyFormatter<int>.Default,
+					FdbTupleFormatter<int>.Default,
 					new FdbSliceSerializer<string>(
 						(str) => Slice.FromString(str),
 						(slice) => slice.ToUnicode()
@@ -173,7 +173,7 @@ namespace FoundationDB.Layers.Tables.Tests
 					"Bars",
 					db,
 					location.Partition("Bars"),
-					FdbTupleKeyFormatter<Guid>.Default,
+					FdbTupleFormatter<Guid>.Default,
 					new FdbSliceSerializer<string>(
 						(str) => Slice.FromString(str),
 						(slice) => slice.ToUnicode()

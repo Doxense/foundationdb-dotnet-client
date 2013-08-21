@@ -26,37 +26,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tables
+namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using System;
 
-	public static class FdbTableExtensions
+	/// <summary>Customer formatter that will called the provided lambda functions to convert to and from a tuple</summary>
+	internal sealed class FdbAnonymousTupleFormatter<T> : ITupleFormatter<T>
 	{
+		private readonly Func<T, IFdbTuple> m_to;
+		private readonly Func<IFdbTuple, T> m_from;
 
-		public static FdbTable Table(this FdbDatabase db, string tableName)
+		public FdbAnonymousTupleFormatter(Func<T, IFdbTuple> to, Func<IFdbTuple, T> from)
 		{
-			return new FdbTable(tableName, db.Partition(tableName));
+			if (to == null) throw new ArgumentNullException("to");
+			if (from == null) throw new ArgumentNullException("from");
+
+			m_to = to;
+			m_from = from;
 		}
 
-		public static FdbTable Table(this FdbDatabase db, string tableName, IFdbTuple prefix)
+		public IFdbTuple ToTuple(T key)
 		{
-			return new FdbTable(tableName, db.Partition(prefix));
+			return m_to(key);
 		}
 
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, ITupleFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public T FromTuple(IFdbTuple tuple)
 		{
-			return new FdbTable<TKey, TValue>(tableName, db.Partition(tableName), keyReader, valueSerializer);
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			return m_from(tuple);
 		}
-
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, IFdbTuple prefix, ITupleFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
-		{
-			return new FdbTable<TKey, TValue>(tableName, db.Partition(prefix), keyReader, valueSerializer);
-		}
-
-
-
 	}
 
 }

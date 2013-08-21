@@ -30,20 +30,21 @@ namespace FoundationDB.Layers.Tuples
 {
 	using System;
 
-	/// <summary>Simple key formatter that maps a value into a singleton tuple, and back</summary>
-	public sealed class FdbTupleKeyFormatter<T> : ITupleKeyFormatter<T>
+	/// <summary>
+	/// Defines methods to support converting keys into/from tuples
+	/// </summary>
+	/// <typeparam name="TKey">Type of the keys</typeparam>
+	public interface ITupleFormatter<TKey>
 	{
-		public static readonly ITupleKeyFormatter<T> Default = new FdbTupleKeyFormatter<T>();
+		/// <summary>Convert a key into a tuple sequence</summary>
+		/// <param name="key">Key to convert to a tuple</param>
+		/// <returns>Tuple that represent the key (can contain a single item for primitive keys, or several items for composite keys)</returns>
+		IFdbTuple ToTuple(TKey key);
 
-		public IFdbTuple Pack(T key)
-		{
-			return FdbTuple.Create(key);
-		}
-
-		public T Unpack(IFdbTuple tuple)
-		{
-			return tuple.Get<T>(0);
-		}
+		/// <summary>Convert a tuple sequence into a key</summary>
+		/// <param name="tuple">Tuple to convert back into a key</param>
+		/// <returns>Key that corresponds to the tuple</returns>
+		TKey FromTuple(IFdbTuple tuple);
 	}
 
 }

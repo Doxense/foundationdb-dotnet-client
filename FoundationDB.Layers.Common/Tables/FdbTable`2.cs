@@ -42,7 +42,7 @@ namespace FoundationDB.Layers.Tables
 	public class FdbTable<TKey, TValue>
 	{
 
-		public FdbTable(string name, FdbSubspace subspace, ITupleKeyFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public FdbTable(string name, FdbSubspace subspace, ITupleFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -62,7 +62,7 @@ namespace FoundationDB.Layers.Tables
 		public FdbSubspace Subspace { get { return this.Table.Subspace; } }
 		
 		/// <summary>Class that can pack/unpack keys into/from tuples</summary>
-		public ITupleKeyFormatter<TKey> KeyReader { get; private set; }
+		public ITupleFormatter<TKey> KeyReader { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		public ISliceSerializer<TValue> ValueSerializer { get; private set; }
@@ -75,14 +75,14 @@ namespace FoundationDB.Layers.Tables
 
 		internal IFdbTuple MakeKey(TKey key)
 		{
-			return this.Table.MakeKey(this.KeyReader.Pack(key));
+			return this.Table.MakeKey(this.KeyReader.ToTuple(key));
 		}
 
 		public async Task<TValue> GetAsync(IFdbReadTransaction trans, TKey key, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			Slice data = await this.Table.GetAsync(trans, this.KeyReader.Pack(key), ct).ConfigureAwait(false);
+			Slice data = await this.Table.GetAsync(trans, this.KeyReader.ToTuple(key), ct).ConfigureAwait(false);
 
 			if (!data.HasValue) return default(TValue);
 			return this.ValueSerializer.Deserialize(data, default(TValue));
@@ -92,7 +92,7 @@ namespace FoundationDB.Layers.Tables
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			this.Table.Set(trans, this.KeyReader.Pack(key), this.ValueSerializer.Serialize(value));
+			this.Table.Set(trans, this.KeyReader.ToTuple(key), this.ValueSerializer.Serialize(value));
 		}
 
 		public Task<List<KeyValuePair<TKey, TValue>>> GetAllAsync(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Tables
 			return trans
 				.GetRangeStartsWith(this.Subspace) //TODO: options?
 				.Select(
-					(key) => this.KeyReader.Unpack(subspace.Unpack(key)),
+					(key) => this.KeyReader.FromTuple(subspace.Unpack(key)),
 					(value) => this.ValueSerializer.Deserialize(value, missing)
 				)
 				.ToListAsync(ct);

@@ -95,6 +95,10 @@
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
     <Compile Include="Layers\Counters\FdbCounter.cs" />
+    <Compile Include="Layers\Tuples\Formatters\FdbAnonymousTupleFormatter.cs" />
+    <Compile Include="Layers\Tuples\Formatters\FdbGenericTupleFormatter.cs" />
+    <Compile Include="Layers\Tuples\Formatters\FdbFormattableTupleFormatter.cs" />
+    <Compile Include="Layers\Tuples\Formatters\ITupleFormattable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleComparisons.cs" />
     <Compile Include="Layers\Tuples\FdbJoinedTuple.cs" />
     <Compile Include="Layers\Tuples\FdbSubspaceExtensions.cs" />
@@ -154,8 +158,8 @@
     <Compile Include="Unmanaged\UnmanagedLibrary.cs" />
     <Compile Include="Converters\FdbConverters.cs" />
     <Compile Include="Converters\IFdbConverter.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleKeyFormatter.cs" />
-    <Compile Include="Layers\Tuples\ITupleKeyFormatter.cs" />
+    <Compile Include="Layers\Tuples\Formatters\FdbTupleFormatter.cs" />
+    <Compile Include="Layers\Tuples\Formatters\ITupleFormatter.cs" />
     <Compile Include="Layers\Tuples\FdbTupleTypes.cs" />
     <Compile Include="Layers\Tuples\FdbTuplePackers.cs" />
     <Compile Include="Layers\Tuples\FdbSlicedTuple.cs" />
