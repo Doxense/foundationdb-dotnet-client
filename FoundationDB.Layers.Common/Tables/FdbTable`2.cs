@@ -73,9 +73,9 @@ namespace FoundationDB.Layers.Tables
 
 		#region Public Methods...
 
-		internal Slice GetKeyBytes(TKey key)
+		internal IFdbTuple MakeKey(TKey key)
 		{
-			return this.Table.MakeKey(this.KeyReader.Pack(key)).ToSlice();
+			return this.Table.MakeKey(this.KeyReader.Pack(key));
 		}
 
 		public async Task<TValue> GetAsync(IFdbReadTransaction trans, TKey key, CancellationToken ct = default(CancellationToken))
@@ -120,9 +120,9 @@ namespace FoundationDB.Layers.Tables
 
 			ct.ThrowIfCancellationRequested();
 
-			var results = await trans.GetBatchAsync(ids.Select(GetKeyBytes), ct).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(ids.Select(MakeKey), ct).ConfigureAwait(false);
 
-			return results.Select((kvp) => this.ValueSerializer.Deserialize(kvp.Value, default(TValue))).ToList();
+			return results.Select((value) => this.ValueSerializer.Deserialize(value, default(TValue))).ToList();
 		}
 
 		#endregion

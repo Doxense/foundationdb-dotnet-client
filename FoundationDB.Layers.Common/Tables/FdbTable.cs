@@ -76,7 +76,7 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return trans.GetAsync(MakeKey(id).ToSlice(), ct);
+			return trans.GetAsync(MakeKey(id), ct);
 		}
 
 		public void Set(IFdbTransaction trans, IFdbTuple id, Slice value)
@@ -84,7 +84,7 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Set(MakeKey(id).ToSlice(), value);
+			trans.Set(MakeKey(id), value);
 		}
 
 		public void Clear(IFdbTransaction trans, IFdbTuple id)
