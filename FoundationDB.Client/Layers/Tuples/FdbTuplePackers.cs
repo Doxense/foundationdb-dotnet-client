@@ -67,6 +67,15 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
+			if (typeof(ITupleFormattable).IsAssignableFrom(type))
+			{
+				method = typeof(FdbTuplePackers).GetMethod("SerializeFormattableTo", BindingFlags.Static | BindingFlags.Public);
+				if (method != null)
+				{
+					return method.CreateDelegate(typeof(Action<,>).MakeGenericType(typeArgs));
+				}
+			}
+
 			// TODO: look for a static SerializeTo(BWB, T) method on the type itself ?
 
 			// no luck..
@@ -182,6 +191,14 @@ namespace FoundationDB.Layers.Tuples
 					SerializeTo(writer, (DateTime)value);
 					return;
 				}
+			}
+
+			var fmt = value as ITupleFormattable;
+			if (fmt != null)
+			{
+				var tuple = fmt.ToTuple();
+				tuple.PackTo(writer);
+				return;
 			}
 
 			// Not Supported ?
@@ -365,6 +382,15 @@ namespace FoundationDB.Layers.Tuples
 			tuple.PackTo(writer);
 		}
 
+		public static void SerializeFormattableTo(FdbBufferWriter writer, ITupleFormattable formattable)
+		{
+			Contract.Requires(writer != null && formattable != null);
+
+			var tuple = formattable.ToTuple();
+			if (tuple == null) throw new InvalidOperationException(String.Format("Custom formatter {0}.ToTuple() cannot return null", formattable.GetType().Name));
+			tuple.PackTo(writer);
+		}
+
 		#endregion
 
 		#region Deserializers...
@@ -508,6 +534,24 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			throw new FormatException("Cannot convert slice into this type");
+		}
+
+		public static T DeserializeFormattable<T>(Slice slice)
+			where T : ITupleFormattable, new()
+		{
+			var tuple = FdbTuple.Unpack(slice);
+			var value = new T();
+			value.FromTuple(tuple);
+			return value;
+		}
+
+		public static T DeserializeFormattable<T>(Slice slice, Func<T> factory)
+			where T : ITupleFormattable
+		{
+			var tuple = FdbTuple.Unpack(slice);
+			var value = factory();
+			value.FromTuple(tuple);
+			return value;
 		}
 
 		public static int DeserializeInt32(Slice slice)

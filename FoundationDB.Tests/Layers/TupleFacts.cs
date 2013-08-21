@@ -824,6 +824,40 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 		}
 
+		[Test]
+		public void Test_FdbTuple_Serialize_ITupleFormattable()
+		{
+			// types that implement ITupleFormattable should be packed by calling ToTuple() and then packing the returned tuple
+
+			Slice packed;
+
+			packed = FdbTuplePacker<Thing>.Serialize(new Thing { Foo = 123, Bar = "hello" });
+			Assert.That(packed.ToString(), Is.EqualTo("<15>{<02>hello<00>"));
+
+			packed = FdbTuplePacker<Thing>.Serialize(new Thing());
+			Assert.That(packed.ToString(), Is.EqualTo("<14><00>"));
+		}
+
+		[Test]
+		public void Test_FdbTuple_Deserialize_ITupleFormattable()
+		{
+			Slice slice;
+			Thing thing;
+
+			slice = Slice.Unescape("<16><01><C8><02>world<00>");
+			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
+			Assert.That(thing, Is.Not.Null);
+			Assert.That(thing.Foo, Is.EqualTo(456));
+			Assert.That(thing.Bar, Is.EqualTo("world"));
+
+			slice = Slice.Unescape("<14><00>");
+			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
+			Assert.That(thing, Is.Not.Null);
+			Assert.That(thing.Foo, Is.EqualTo(0));
+			Assert.That(thing.Bar, Is.EqualTo(null));
+
+		}
+
 		#endregion
 
 		#region FdbTupleParser
@@ -1151,26 +1185,6 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 		#region Formatters
 
-		private class Thing : ITupleFormattable
-		{
-			public Thing()
-			{ }
-
-			public int Foo { get; set; }
-			public string Bar { get; set; }
-
-			IFdbTuple ITupleFormattable.ToTuple()
-			{
-				return FdbTuple.Create(this.Foo, this.Bar);
-			}
-
-			void ITupleFormattable.FromTuple(IFdbTuple tuple)
-			{
-				this.Foo = tuple.Get<int>(0);
-				this.Bar = tuple.Get<string>(1);
-			}
-		}
-
 		[Test]
 		public void Test_Default_FdbTupleFormatter_For_Common_Types()
 		{
@@ -1326,6 +1340,27 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		#endregion
+
+		private class Thing : ITupleFormattable
+		{
+			public Thing()
+			{ }
+
+			public int Foo { get; set; }
+			public string Bar { get; set; }
+
+			IFdbTuple ITupleFormattable.ToTuple()
+			{
+				return FdbTuple.Create(this.Foo, this.Bar);
+			}
+
+			void ITupleFormattable.FromTuple(IFdbTuple tuple)
+			{
+				this.Foo = tuple.Get<int>(0);
+				this.Bar = tuple.Get<string>(1);
+			}
+		}
+	
 	}
 
 
