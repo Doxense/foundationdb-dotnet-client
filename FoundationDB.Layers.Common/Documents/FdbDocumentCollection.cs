@@ -65,7 +65,7 @@ namespace FoundationDB.Layers.Documents
 		/// <returns></returns>
 		protected virtual IFdbTuple GetDocumentPrefix(TId id)
 		{
-			return this.Subspace.Create(id);
+			return this.Subspace.Append(id);
 		}
 
 		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>

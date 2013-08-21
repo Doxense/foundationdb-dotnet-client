@@ -62,12 +62,12 @@ namespace FoundationDB.Layers.Arrays
 
 		public IFdbTuple Key(int index)
 		{
-			return this.Subspace.Create<int>(index);
+			return this.Subspace.Append<int>(index);
 		}
 
 		public IFdbTuple Key(long index)
 		{
-			return this.Subspace.Create<long>(index);
+			return this.Subspace.Append<long>(index);
 		}
 
 		#endregion

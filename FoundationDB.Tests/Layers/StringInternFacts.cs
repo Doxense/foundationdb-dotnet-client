@@ -58,11 +58,11 @@ namespace FoundationDB.Layers.Tables.Tests
 				// insert a bunch of strings
 				using (var tr = db.BeginTransaction())
 				{
-					tr.Set(dataSpace.Create("a"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Create("b"), await stringTable.InternAsync(tr, "dog"));
-					tr.Set(dataSpace.Create("c"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Create("d"), await stringTable.InternAsync(tr, "cat"));
-					tr.Set(dataSpace.Create("e"), await stringTable.InternAsync(tr, "cat"));
+					tr.Set(dataSpace.Append("a"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Append("b"), await stringTable.InternAsync(tr, "dog"));
+					tr.Set(dataSpace.Append("c"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Append("d"), await stringTable.InternAsync(tr, "cat"));
+					tr.Set(dataSpace.Append("e"), await stringTable.InternAsync(tr, "cat"));
 
 					await tr.CommitAsync();
 				}
@@ -75,11 +75,11 @@ namespace FoundationDB.Layers.Tables.Tests
 				// check the contents of the data
 				using (var tr = db.BeginTransaction())
 				{
-					var uid_a = await tr.GetAsync(dataSpace.Create("a"));
-					var uid_b = await tr.GetAsync(dataSpace.Create("b"));
-					var uid_c = await tr.GetAsync(dataSpace.Create("c"));
-					var uid_d = await tr.GetAsync(dataSpace.Create("d"));
-					var uid_e = await tr.GetAsync(dataSpace.Create("e"));
+					var uid_a = await tr.GetAsync(dataSpace.Append("a"));
+					var uid_b = await tr.GetAsync(dataSpace.Append("b"));
+					var uid_c = await tr.GetAsync(dataSpace.Append("c"));
+					var uid_d = await tr.GetAsync(dataSpace.Append("d"));
+					var uid_e = await tr.GetAsync(dataSpace.Append("e"));
 
 					// a, b, d should be different
 					Assert.That(uid_b, Is.Not.EqualTo(uid_a));

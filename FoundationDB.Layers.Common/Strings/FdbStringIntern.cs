@@ -95,8 +95,8 @@ namespace FoundationDB.Layers.Tables
 
 			this.Subspace = subspace;
 
-			this.StringUidPrefix = subspace.Create(String2UidKey).Memoize();
-			this.UidStringPrefix = subspace.Create(Uid2StringKey).Memoize();
+			this.StringUidPrefix = subspace.Append(String2UidKey).Memoize();
+			this.UidStringPrefix = subspace.Append(Uid2StringKey).Memoize();
 		}
 
 		public FdbSubspace Subspace { get; private set; }

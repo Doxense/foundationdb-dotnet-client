@@ -75,7 +75,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (this.IndexNullValues || value != null)
 			{
-				trans.Set(this.Subspace.Create(value, id), Slice.Empty);
+				trans.Set(this.Subspace.Append(value, id), Slice.Empty);
 				return true;
 			}
 			return false;
@@ -118,7 +118,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Clear(this.Subspace.Create(value, id));
+			trans.Clear(this.Subspace.Append(value, id));
 		}
 
 		/// <summary>Returns a list of ids matching a specific value</summary>

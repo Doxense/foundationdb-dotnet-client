@@ -89,9 +89,9 @@ namespace FoundationDB.Layers.Tables
 			this.KeyReader = keyReader;
 			this.ValueSerializer = valueSerializer;
 
-			this.MetadataPrefix = this.Subspace.Create(METADATA_KEY).Memoize();
-			this.ItemsPrefix = this.Subspace.Create(ITEMS_KEY).Memoize();
-			this.VersionsPrefix = this.Subspace.Create(LAST_VERSIONS_KEY).Memoize();
+			this.MetadataPrefix = this.Subspace.Append(METADATA_KEY).Memoize();
+			this.ItemsPrefix = this.Subspace.Append(ITEMS_KEY).Memoize();
+			this.VersionsPrefix = this.Subspace.Append(LAST_VERSIONS_KEY).Memoize();
 		}
 
 		public async Task<bool> OpenOrCreateAsync()

@@ -215,7 +215,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="value">Value of the key to append</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the specified value</returns>
 		/// <example>new FdbSubspace(["Users",]).Append(123) => ["Users",123,]</example>
-		public FdbLinkedTuple<T> Create<T>(T value)
+		public FdbLinkedTuple<T> Append<T>(T value)
 		{
 			return new FdbLinkedTuple<T>(this.Tuple, value);
 		}
@@ -227,7 +227,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="value2">Value of the second key</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, and second value</returns>
 		/// <example>new FdbSubspace(["Users",]).Append("ContactsById", 123) => ["Users","ContactsById",123,]</example>
-		public IFdbTuple Create<T1, T2>(T1 value1, T2 value2)
+		public IFdbTuple Append<T1, T2>(T1 value1, T2 value2)
 		{
 			return this.Tuple.Concat(new FdbTuple<T1, T2>(value1, value2));
 		}
@@ -241,7 +241,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="value3">Value of the third key</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, second and third value</returns>
 		/// <example>new FdbSubspace(["Users",]).Append("ContactsById", 123, "Bob") => ("Users","ContactsById",123,"Bob")</example>
-		public IFdbTuple Create<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		public IFdbTuple Append<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
 			return this.Tuple.Concat(new FdbTuple<T1, T2, T3>(value1, value2, value3));
 		}
@@ -250,7 +250,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="items">Liste of values to append after the subspace</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the list of items</returns>
 		/// <example>new FdbSubspace(["Users",]).Append("ContactsById", 123, 456, 789) => ("Users","ContactsById",123,456,789,)</example>
-		public IFdbTuple Create(params object[] items)
+		public IFdbTuple Append(params object[] items)
 		{
 			return this.Tuple.Concat(FdbTuple.Create(items));
 		}
@@ -264,7 +264,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="value3">Value of the third and last key</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, second and third value</returns>
 		/// <example>new FdbSubspace(["Users",]).Append("User123", "ContactsById", 456) => ("Users","User123","ContactsById",456,)</example>
-		public IFdbTuple Append(IFdbTuple value)
+		public IFdbTuple Concat(IFdbTuple value)
 		{
 			if (value == null) throw new ArgumentNullException("value");
 

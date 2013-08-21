@@ -64,7 +64,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(trans != null && subspace != null && key != null);
 
-			return trans.GetAsync(subspace.Append(key), ct);
+			return trans.GetAsync(subspace.Concat(key), ct);
 		}
 
 		/// <summary>Write a key inside a subspace</summary>
@@ -77,7 +77,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(trans != null && subspace != null && key != null);
 
-			trans.Set(subspace.Append(key), value);
+			trans.Set(subspace.Concat(key), value);
 		}
 
 	}

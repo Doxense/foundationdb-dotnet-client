@@ -142,7 +142,7 @@ namespace FoundationDB.Client.Tests
 
 				// can use a tuple as prefix
 				db.RestrictKeySpace(
-					db.Namespace.Create("prefix")
+					db.Namespace.Append("prefix")
 				);
 				Assert.That(db.Extract(db.KeySpace.Begin).ToString(), Is.EqualTo("<02>prefix<00><00>"));
 				Assert.That(db.Extract(db.KeySpace.End).ToString(), Is.EqualTo("<02>prefix<00><FF>"));
