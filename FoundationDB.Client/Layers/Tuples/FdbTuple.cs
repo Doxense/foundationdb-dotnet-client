@@ -385,8 +385,6 @@ namespace FoundationDB.Layers.Tuples
 		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked key is outside the specified prefix</exception>
 		public static IFdbTuple UnpackWithoutPrefix(Slice packedKey, Slice prefix)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-
 			// ensure that the key starts with the prefix
 			if (!packedKey.StartsWith(prefix)) throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
 
@@ -412,8 +410,6 @@ namespace FoundationDB.Layers.Tuples
 
 		public static T UnpackLastWithoutPrefix<T>(Slice packedKey, Slice prefix)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-
 			// ensure that the key starts with the prefix
 			if (!packedKey.StartsWith(prefix)) throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
 
