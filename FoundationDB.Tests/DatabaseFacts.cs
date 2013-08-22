@@ -112,6 +112,27 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_FdbDatabase_Key_Validation()
+		{
+			using(var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			{
+				// IsKeyValid
+				Assert.That(db.IsKeyValid(Slice.Nil), Is.False, "Null key is invalid");
+				Assert.That(db.IsKeyValid(Slice.Empty), Is.True, "Empty key is allowed");
+				Assert.That(db.IsKeyValid(Slice.FromString("hello")), Is.True);
+				Assert.That(db.IsKeyValid(Slice.Create(Fdb.MaxKeySize + 1)), Is.False, "Key is too large");
+				Assert.That(db.IsKeyValid(Fdb.SystemKeys.Coordinators), Is.True, "System keys are valid");
+
+				// EnsureKeyIsValid
+				Assert.That(() => db.EnsureKeyIsValid(Slice.Nil), Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => db.EnsureKeyIsValid(Slice.Empty), Throws.Nothing);
+				Assert.That(() => db.EnsureKeyIsValid(Slice.FromString("hello")), Throws.Nothing);
+				Assert.That(() => db.EnsureKeyIsValid(Slice.Create(Fdb.MaxKeySize + 1)), Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => db.EnsureKeyIsValid(Fdb.SystemKeys.Coordinators), Throws.Nothing);
+			}
+		}
+
+		[Test]
 		public async Task Test_Can_Get_Coordinators()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())

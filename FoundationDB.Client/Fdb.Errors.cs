@@ -44,9 +44,9 @@ namespace FoundationDB.Client
 
 			#region Keys / Values...
 
-			internal static Exception KeyCannotBeNullOrEmpty(Slice key)
+			internal static Exception KeyCannotBeNull(Slice key)
 			{
-				return new ArgumentException(key.Array == null ? "Key cannot be null." : "Key cannot be empty.", "key");
+				return new ArgumentException("Key cannot be null.", "key");
 			}
 
 			internal static Exception KeyIsTooBig(Slice key)

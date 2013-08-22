@@ -465,7 +465,7 @@ namespace FoundationDB.Client
 		public bool IsKeyValid(Slice key)
 		{
 			// key is legal if...
-			return !key.IsNullOrEmpty					// has some data in it
+			return key.HasValue							// is not null (note: empty key is allowed)
 				&& key.Count <= Fdb.MaxKeySize			// not too big
 				&& m_namespace.Contains(key)			// not outside the namespace
 				&& m_restrictedKeySpace.Test(key, endIncluded: true) == 0; // not outside the restricted key space
@@ -486,9 +486,9 @@ namespace FoundationDB.Client
 		internal Exception ValidateKey(Slice key)
 		{
 			// null or empty keys are not allowed
-			if (key.IsNullOrEmpty)
+			if (!key.HasValue)
 			{
-				return Fdb.Errors.KeyCannotBeNullOrEmpty(key);
+				return Fdb.Errors.KeyCannotBeNull(key);
 			}
 
 			// key cannot be larger than maximum allowed key size
