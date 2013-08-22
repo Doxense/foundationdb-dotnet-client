@@ -676,7 +676,11 @@ namespace FoundationDB.Client.Native
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_key(0x" + future.Handle.ToString("x") + ") => err=" + err + ", keyLength=" + keyLength);
 #endif
-			key = Slice.Create(ptr, keyLength);
+
+			// note: fdb_future_get_key is allowed to return NULL for the empty key (not to be confused with a key that has an empty value)
+			Contract.Assert(keyLength >= 0 && keyLength <= Fdb.MaxKeySize);
+			key = keyLength <= 0 ? Slice.Empty : Slice.Create(ptr, keyLength);
+
 			return err;
 		}
 
