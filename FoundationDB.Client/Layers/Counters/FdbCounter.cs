@@ -40,8 +40,13 @@ namespace FoundationDB.Layers.Counters
 	/// Represents an integer value which can be incremented without conflict.
 	/// Uses a sharded representation (which scales with contention) along with background coalescing..
 	/// </summary>
+	[Obsolete("This is obsoleted by atomic operations")]
 	public class FdbCounter
 	{
+		// from https://github.com/FoundationDB/python-layers/blob/master/lib/counter.py
+		// NOTE: This is obsoleted for most practical purposes by the addition of atomic 
+		// operations (transaction.add()) to FoundationDB 0.3.0, which do the same
+		// thing more efficiently.
 
 		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
 		private readonly Random Rng = new Random();
