@@ -368,6 +368,11 @@ namespace FoundationDB.Layers.Tuples
 			return FdbKeyRange.FromPrefix(this.Tuple.Append(tuple).ToSlice());
 		}
 
+		public FdbKeySelectorPair ToSelectorPair()
+		{
+			return this.Tuple.ToSelectorPair();
+		}
+
 		internal FdbBufferWriter OpenBuffer(int extraBytes = 0)
 		{
 			var writer = new FdbBufferWriter();

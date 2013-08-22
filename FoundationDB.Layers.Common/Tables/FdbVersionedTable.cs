@@ -114,7 +114,7 @@ namespace FoundationDB.Layers.Tables
 
 				// not found ? initialize!
 				// get (Subspace, 00) and (Subspace, FF)
-				var bounds = this.Subspace.Tuple.ToRange();
+				var bounds = this.Subspace.ToRange();
 				tr.Set(bounds.Begin, Slice.Empty);
 				tr.Set(bounds.End, Slice.Empty);
 				tr.Set(this.MetadataPrefix.Append("Name"), Slice.FromString(this.Name));

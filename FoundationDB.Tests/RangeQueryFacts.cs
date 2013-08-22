@@ -231,7 +231,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction())
 				{
 					var merge = tr.MergeSort(
-						lists.Select(list => list.Tuple.ToSelectorPair()),
+						lists.Select(list => list.ToSelectorPair()),
 						kvp => location.UnpackLast<int>(kvp.Key)
 					);
 
@@ -308,7 +308,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction())
 				{
 					var merge = tr.Intersect(
-						lists.Select(list => list.Tuple.ToSelectorPair()),
+						lists.Select(list => list.ToSelectorPair()),
 						kvp => location.UnpackLast<int>(kvp.Key)
 					);
 
@@ -385,7 +385,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction())
 				{
 					var merge = tr.Except(
-						lists.Select(list => list.Tuple.ToSelectorPair()),
+						lists.Select(list => list.ToSelectorPair()),
 						kvp => location.UnpackLast<int>(kvp.Key)
 					);
 

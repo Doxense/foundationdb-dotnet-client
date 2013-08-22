@@ -152,14 +152,12 @@ namespace FoundationDB.Layers.Indexing
 
 		public IFdbAsyncEnumerable<TId> LookupGreaterThan(IFdbReadTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var space = this.Subspace.Tuple.ToSelectorPair();
-
 			var prefix = this.Subspace.Pack(value);
 			if (!orEqual) prefix = FdbKey.Increment(prefix);
 
-			space = new FdbKeySelectorPair(
+			var space = new FdbKeySelectorPair(
 				FdbKeySelector.FirstGreaterThan(prefix),
-				space.Stop
+				this.Subspace.ToSelectorPair().Stop
 			);
 
 			return trans
@@ -170,13 +168,11 @@ namespace FoundationDB.Layers.Indexing
 
 		public IFdbAsyncEnumerable<TId> LookupLessThan(IFdbReadTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var space = this.Subspace.Tuple.ToSelectorPair();
-
 			var prefix = this.Subspace.Pack(value);
 			if (orEqual) prefix = FdbKey.Increment(prefix);
 
-			space = new FdbKeySelectorPair(
-				space.Start,
+			var space = new FdbKeySelectorPair(
+				this.Subspace.ToSelectorPair().Start,
 				FdbKeySelector.FirstGreaterThan(prefix)
 			);
 
