@@ -65,7 +65,7 @@ namespace FoundationDB.Client
 		void EnsureCanRead(CancellationToken ct = default(CancellationToken));
 
 		/// <summary>
-		/// Reads a value from the database snapshot represented by transaction.
+		/// Reads a value from the database snapshot represented by by the current transaction.
 		/// </summary>
 		/// <param name="keyBytes">Key to be looked up in the database</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
@@ -76,10 +76,16 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct = default(CancellationToken));
 
+		/// <summary>
+		/// Reads several values from the database snapshot represented by the current transaction
+		/// </summary>
+		/// <param name="keys">Keys to be looked up in the database</param>
+		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
+		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
 		Task<Slice[]> GetValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken));
 
 		/// <summary>
-		/// Resolves a key selector against the keys in the database snapshot represented by transaction.
+		/// Resolves a key selector against the keys in the database snapshot represented by the current transaction.
 		/// </summary>
 		/// <param name="selector">Key selector to resolve</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
@@ -106,7 +112,9 @@ namespace FoundationDB.Client
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
 		FdbRangeQuery GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null);
 
-		/// <summary>Create a new range query that will read all key-value pairs that starts with a particular prefix in the database snapshot represented by the transaction</summary>
+		/// <summary>
+		/// Create a new range query that will read all key-value pairs that starts with a particular prefix in the database snapshot represented by the transaction
+		/// </summary>
 		/// <param name="prefix">Prefix of all keys that will match this query</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs that have the specified prefix</returns>

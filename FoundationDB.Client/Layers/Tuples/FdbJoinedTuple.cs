@@ -36,7 +36,7 @@ namespace FoundationDB.Layers.Tuples
 	using System.Collections.Generic;
 	using System.Diagnostics;
 
-	/// <summary>Tuple that is represents the concatenation of two tuples</summary>
+	/// <summary>Tuple that represents the concatenation of two tuples</summary>
 	[DebuggerDisplay("{ToString()}")]
 	public sealed class FdbJoinedTuple : IFdbTuple
 	{
