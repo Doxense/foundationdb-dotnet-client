@@ -84,7 +84,6 @@
     <Compile Include="FdbRangeQuery.ResultIterator.cs" />
     <Compile Include="FdbRangeQuery.PagingIterator.cs" />
     <Compile Include="FdbException.cs" />
-    <Compile Include="FdbTimeoutManager.cs" />
     <Compile Include="FdbRangeQuery.cs" />
     <Compile Include="FdbKeyRange.cs" />
     <Compile Include="FdbKey.cs" />
