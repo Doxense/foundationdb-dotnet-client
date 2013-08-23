@@ -26,23 +26,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using FoundationDB.Async;
 namespace FoundationDB.Linq
 {
 
-	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
-	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
-
-	/// <summary>
-	/// Asynchronous version of the IEnumerable&lt;T&gt; interface, allowing elements of the enumerable sequence to be retrieved asynchronously.
-	/// </summary>
-	/// <typeparam name="T">Element type.</typeparam>
-	public interface IFdbAsyncEnumerable<out T>
+	public interface IFdbAsyncEnumerable<out T> : IAsyncEnumerable<T>
 	{
+
 		/// <summary>
 		/// Gets an asynchronous enumerator over the sequence.
 		/// </summary>
+		/// <param name="mode">Defines how the enumerator will be used by the caller. The source provider can use the mode to optimize how the results are produced.</param>
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
-		IFdbAsyncEnumerator<T> GetEnumerator();
+		IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncMode mode = FdbAsyncMode.Default);
+
 	}
 
 }

@@ -32,25 +32,40 @@ namespace FoundationDB.Client
 
 	public enum FdbStreamingMode
 	{
-		// Client intends to consume the entire range and would like it all transferred as early as possible.
+
+		/// <summary>
+		/// Client intends to consume the entire range and would like it all transferred as early as possible. 
+		/// </summary>
 		WantAll = -2,
 
-		// The default. The client doesn't know how much of the range it is likely to used and wants different performance concerns to be balanced. Only a small portion of data is transferred to the client initially (in order to minimize costs if the client doesn't read the entire range), and as the caller iterates over more items in the range larger batches will be transferred in order to minimize latency.
+		/// <summary>
+		/// The default. The client doesn't know how much of the range it is likely to used and wants different performance concerns to be balanced. Only a small portion of data is transferred to the client initially (in order to minimize costs if the client doesn't read the entire range), and as the caller iterates over more items in the range larger batches will be transferred in order to minimize latency.
+		/// </summary>
 		Iterator = -1,
 
-		// Infrequently used. The client has passed a specific row limit and wants that many rows delivered in a single batch. Because of iterator operation in client drivers make request batches transparent to the user, consider WANT_ALL StreamingMode instead. A row limit must be specified if this mode is used.
+		/// <summary>
+		/// Infrequently used. The client has passed a specific row limit and wants that many rows delivered in a single batch. Because of iterator operation in client drivers make request batches transparent to the user, consider WANT_ALL StreamingMode instead. A row limit must be specified if this mode is used.
+		/// </summary>
 		Exact = 0,
 
-		// Infrequently used. Transfer data in batches small enough to not be much more expensive than reading individual rows, to minimize cost if iteration stops early.
+		/// <summary>
+		/// Infrequently used. Transfer data in batches small enough to not be much more expensive than reading individual rows, to minimize cost if iteration stops early.
+		/// </summary>
 		Small = 1,
 
-		// Infrequently used. Transfer data in batches sized in between small and large. Usually the default
+		/// <summary>
+		/// Infrequently used. Transfer data in batches sized in between small and large. Usually the default
+		/// </summary>
 		Medium = 2,
 
-		// Infrequently used. Transfer data in batches large enough to be, in a high-concurrency environment, nearly as efficient as possible. If the client stops iteration early, some disk and network bandwidth may be wasted. The batch size may still be too small to allow a single client to get high throughput from the database, so if that is what you need consider the SERIAL StreamingMode.
+		/// <summary>
+		/// Infrequently used. Transfer data in batches large enough to be, in a high-concurrency environment, nearly as efficient as possible. If the client stops iteration early, some disk and network bandwidth may be wasted. The batch size may still be too small to allow a single client to get high throughput from the database, so if that is what you need consider the SERIAL StreamingMode.
+		/// </summary>
 		Large = 3,
 
-		// Transfer data in batches large enough that an individual client can get reasonable read bandwidth from the database. If the client stops iteration early, considerable disk and network bandwidth may be wasted.
+		/// <summary>
+		/// Transfer data in batches large enough that an individual client can get reasonable read bandwidth from the database. If the client stops iteration early, considerable disk and network bandwidth may be wasted.
+		/// </summary>
 		Serial = 4
 	}
 

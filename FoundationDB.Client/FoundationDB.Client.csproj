@@ -111,6 +111,9 @@
     <Compile Include="FdbCluster.cs" />
     <Compile Include="FdbFutureSingle.cs" />
     <Compile Include="Fdb.cs" />
+    <Compile Include="Async\IAsyncEnumerator.cs" />
+    <Compile Include="Async\IAsyncEnumerable.cs" />
+    <Compile Include="Linq\FdbAsyncMode.cs" />
     <Compile Include="Linq\FdbTakeWhileAsyncIterator.cs" />
     <Compile Include="Linq\FdbParallelQueryOptions.cs" />
     <Compile Include="Linq\FdbAsyncIteratorPump.cs" />

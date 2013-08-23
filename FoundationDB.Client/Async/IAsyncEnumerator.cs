@@ -26,51 +26,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq
+namespace FoundationDB.Async
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public static partial class FdbAsyncEnumerable
+	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
+	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
+
+	/// <summary>
+	/// Asynchronous version of the IEnumerator&lt;T&gt; interface, allowing elements to be retrieved asynchronously.
+	/// </summary>
+	/// <typeparam name="T">Element type.</typeparam>
+	public interface IAsyncEnumerator<out T> : IDisposable
 	{
+		/// <summary>
+		/// Advances the enumerator to the next element in the sequence, returning the result asynchronously.
+		/// </summary>
+		/// <param name="cancellationToken">Cancellation token that can be used to cancel the operation.</param>
+		/// <returns>
+		/// Task containing the result of the operation: true if the enumerator was successfully advanced 
+		/// to the next element; false if the enumerator has passed the end of the sequence.
+		/// </returns>
+		Task<bool> MoveNext(CancellationToken cancellationToken);
 
-		/// <summary>An empty sequence</summary>
-		private sealed class EmptySequence<TSource> : IFdbAsyncEnumerable<TSource>, IFdbAsyncEnumerator<TSource>
-		{
-			public static readonly EmptySequence<TSource> Default = new EmptySequence<TSource>();
-
-			private EmptySequence()
-			{ }
-
-			Task<bool> IAsyncEnumerator<TSource>.MoveNext(CancellationToken cancellationToken)
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-				return TaskHelpers.FalseTask;
-			}
-
-			TSource IAsyncEnumerator<TSource>.Current
-			{
-				get { throw new InvalidOperationException("This sequence is emty"); }
-			}
-
-			void IDisposable.Dispose()
-			{
-				// NOOP!
-			}
-
-			public IAsyncEnumerator<TSource> GetEnumerator()
-			{
-				return this;
-			}
-
-			public IFdbAsyncEnumerator<TSource> GetEnumerator(FdbAsyncMode mode)
-			{
-				return this;
-			}
-		}
-
+		/// <summary>
+		/// Gets the current element in the iteration.
+		/// </summary>
+		T Current { get; }
 	}
+
 }

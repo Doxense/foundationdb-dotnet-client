@@ -419,7 +419,7 @@ namespace FoundationDB.Linq
 				return iterator.ExecuteAsync(action, ct);
 			}
 
-			return Run<T>(source, action, ct);
+			return Run<T>(source, FdbAsyncMode.All, action, ct);
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
@@ -574,7 +574,7 @@ namespace FoundationDB.Linq
 			bool found = false;
 			T last = default(T);
 
-			await Run<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
+			await Run<T>(source, FdbAsyncMode.All, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
 
 			if (!found) throw new InvalidOperationException("The sequence was empty");
 			return last;
@@ -586,7 +586,7 @@ namespace FoundationDB.Linq
 			bool found = false;
 			T last = default(T);
 
-			await Run<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
+			await Run<T>(source, FdbAsyncMode.All, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
 
 			return found ? last : default(T);
 		}
@@ -596,7 +596,7 @@ namespace FoundationDB.Linq
 		{
 			int count = 0;
 
-			await Run<T>(source, (_) => { ++count; }, ct).ConfigureAwait(false);
+			await Run<T>(source, FdbAsyncMode.All, (_) => { ++count; }, ct).ConfigureAwait(false);
 
 			return count;
 		}
@@ -608,7 +608,7 @@ namespace FoundationDB.Linq
 
 			int count = 0;
 
-			await Run<T>(source, (x) =>
+			await Run<T>(source, FdbAsyncMode.All, (x) =>
 			{ 
 				if (predicate(x)) ++count;
 			}, ct).ConfigureAwait(false);

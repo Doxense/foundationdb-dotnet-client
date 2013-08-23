@@ -79,7 +79,12 @@ namespace FoundationDB.Linq
 				m_state = state;
 			}
 
-			public IFdbAsyncEnumerator<T> GetEnumerator()
+			public IAsyncEnumerator<T> GetEnumerator()
+			{
+				return this.GetEnumerator(FdbAsyncMode.Default);
+			}
+
+			public IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncMode _)
 			{
 				return m_factory(m_state);
 			}
@@ -287,10 +292,11 @@ namespace FoundationDB.Linq
 		/// <summary>Immediately execute an action on each element of an async sequence</summary>
 		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 		/// <param name="source">Source async sequence</param>
+		/// <param name="mode">If different than default, can be used to optimise the way the source will produce the items</param>
 		/// <param name="action">Action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
-		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, Action<TSource> action, CancellationToken ct)
+		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, FdbAsyncMode mode, Action<TSource> action, CancellationToken ct)
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (action == null) throw new ArgumentNullException("action");
@@ -298,7 +304,7 @@ namespace FoundationDB.Linq
 			ct.ThrowIfCancellationRequested();
 
 			long count = 0;
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(mode))
 			{
 				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
 
@@ -369,7 +375,7 @@ namespace FoundationDB.Linq
 		/// <returns>Value of the first element of the <paramref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
 		internal static async Task<TSource> Head<TSource>(IFdbAsyncEnumerable<TSource> source, bool single, bool orDefault, CancellationToken ct)
 		{
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
 				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
 

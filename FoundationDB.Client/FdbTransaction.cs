@@ -434,7 +434,7 @@ namespace FoundationDB.Client
 			this.Database.EnsureKeyIsValid(range.Start.Key);
 			this.Database.EnsureKeyIsValid(range.Stop.Key);
 
-			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.WantAll, false);
+			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
 			options.EnsureLegalValues();
 
 #if DEBUG

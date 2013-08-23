@@ -28,49 +28,38 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
 
-	public static partial class FdbAsyncEnumerable
+	/// <summary>
+	/// Defines the intent of a consumer of an async iterator
+	/// </summary>
+	public enum FdbAsyncMode
 	{
+		/// <summary>
+		/// Use the default settings. The provider will make no attempt at optimizing the query.
+		/// </summary>
+		Default = 0,
 
-		/// <summary>An empty sequence</summary>
-		private sealed class EmptySequence<TSource> : IFdbAsyncEnumerable<TSource>, IFdbAsyncEnumerator<TSource>
-		{
-			public static readonly EmptySequence<TSource> Default = new EmptySequence<TSource>();
+		/// <summary>
+		/// The query will be consumed by chunks and may be aborted at any point. The provider will produce small chunks of data for the first few reads but should still be efficient if the caller consume all the sequence.
+		/// </summary>
+		/// 
+		Iterator,
 
-			private EmptySequence()
-			{ }
+		/// <summary>
+		/// The query will consume all the items in the source. The provider will produce large chunks of data immediately, and reduce the number of pages needed to consume the sequence.
+		/// </summary>
+		All,
 
-			Task<bool> IAsyncEnumerator<TSource>.MoveNext(CancellationToken cancellationToken)
-			{
-				cancellationToken.ThrowIfCancellationRequested();
-				return TaskHelpers.FalseTask;
-			}
+		/// <summary>
+		/// The query will consume the first element (or a very small fraction) of the source. The provider will only produce data in small chunks and expect the caller to abort after one or two iterations. This can also be used to reduce the latency of the first result.
+		/// </summary>
+		Head,
 
-			TSource IAsyncEnumerator<TSource>.Current
-			{
-				get { throw new InvalidOperationException("This sequence is emty"); }
-			}
-
-			void IDisposable.Dispose()
-			{
-				// NOOP!
-			}
-
-			public IAsyncEnumerator<TSource> GetEnumerator()
-			{
-				return this;
-			}
-
-			public IFdbAsyncEnumerator<TSource> GetEnumerator(FdbAsyncMode mode)
-			{
-				return this;
-			}
-		}
+		/// <summary>
+		/// The query will consume all (or most of) the items of a very large sequence of data. The provider will use the appropriate page size in ordre to optimize the bandwith.
+		/// </summary>
+		Bulk,
 
 	}
+
 }

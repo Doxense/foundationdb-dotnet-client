@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
+	using FoundationDB.Async;
 	using System;
 	using System.Collections.Generic;
 	using System.Runtime.ExceptionServices;
@@ -47,18 +48,26 @@ namespace FoundationDB.Linq
 
 		protected TResult m_current;
 		protected int m_state;
+		protected FdbAsyncMode m_mode;
 
 		#region IFdbAsyncEnumerable<TResult>...
 
-		public IFdbAsyncEnumerator<TResult> GetEnumerator()
+		public IAsyncEnumerator<TResult> GetEnumerator()
+		{
+			return this.GetEnumerator(FdbAsyncMode.Default);
+		}
+
+		public IFdbAsyncEnumerator<TResult> GetEnumerator(FdbAsyncMode mode)
 		{
 			// reuse the same instance the first time
 			if (Interlocked.CompareExchange(ref m_state, STATE_INIT, STATE_SEQ) == STATE_SEQ)
 			{
+				m_mode = mode;
 				return this;
 			}
 			// create a new one
 			var iter = Clone();
+			iter.m_mode = mode;
 			Volatile.Write(ref iter.m_state, STATE_INIT);
 			return iter;
 		}
@@ -195,7 +204,7 @@ namespace FoundationDB.Linq
 
 		public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
 		{
-			return FdbAsyncEnumerable.Run<TResult>(this, action, ct);
+			return FdbAsyncEnumerable.Run<TResult>(this, FdbAsyncMode.All, action, ct);
 		}
 
 		public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
