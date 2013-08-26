@@ -43,7 +43,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(trans != null && subspace != null);
 
-			trans.ClearRange(subspace.Tuple);
+			trans.ClearRange(FdbKeyRange.StartsWith(subspace.Key));
 		}
 
 		/// <summary>Returns all the keys inside of a subspace</summary>
@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(trans != null && subspace != null);
 
-			return trans.GetRangeStartsWith(subspace.Tuple, options);
+			return trans.GetRange(FdbKeyRange.StartsWith(subspace.Key), options);
 		}
 
 		/// <summary>Read a key inside a subspace</summary>

@@ -57,7 +57,7 @@ namespace FoundationDB.Client.Tests
 				Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
 				int count = 0;
 				await tr
-					.GetRangeStartsWith(subspace.Tuple)
+					.GetRange(FdbKeyRange.FromPrefixInclusive(subspace.Key))
 					.ForEachAsync((key, value) =>
 					{
 						++count;

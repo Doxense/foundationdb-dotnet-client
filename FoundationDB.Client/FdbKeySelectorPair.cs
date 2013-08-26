@@ -45,12 +45,26 @@ namespace FoundationDB.Client
 
 		public static FdbKeySelectorPair Create(FdbKeySelector beginInclusive, FdbKeySelector endExclusive)
 		{
-			return new FdbKeySelectorPair(beginInclusive, endExclusive);
+			return new FdbKeySelectorPair(
+				beginInclusive, 
+				endExclusive
+			);
+		}
+
+		public static FdbKeySelectorPair Create(Slice begin, Slice end)
+		{
+			return new FdbKeySelectorPair(
+				FdbKeySelector.FirstGreaterOrEqual(begin),
+				FdbKeySelector.FirstGreaterOrEqual(end)
+			);
 		}
 
 		public static FdbKeySelectorPair Create(FdbKeyRange range)
 		{
-			return new FdbKeySelectorPair(range.BeginIncluded, range.EndExcluded);
+			return new FdbKeySelectorPair(
+				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
+				FdbKeySelector.FirstGreaterOrEqual(range.End)
+			);
 		}
 
 		public static FdbKeySelectorPair StartsWith(Slice prefix)
