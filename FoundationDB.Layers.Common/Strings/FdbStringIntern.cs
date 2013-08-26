@@ -95,26 +95,26 @@ namespace FoundationDB.Layers.Tables
 
 			this.Subspace = subspace;
 
-			this.StringUidPrefix = subspace.Append(String2UidKey).Memoize();
-			this.UidStringPrefix = subspace.Append(Uid2StringKey).Memoize();
+			this.StringUidPrefix = subspace.Partition(String2UidKey);
+			this.UidStringPrefix = subspace.Partition(Uid2StringKey);
 		}
 
 		public FdbSubspace Subspace { get; private set; }
 
-		protected FdbMemoizedTuple StringUidPrefix { get; private set; }
+		protected FdbSubspace StringUidPrefix { get; private set; }
 
-		protected FdbMemoizedTuple UidStringPrefix { get; private set; }
+		protected FdbSubspace UidStringPrefix { get; private set; }
 
 		#region Private Helpers...
 
-		public IFdbTuple UidKey(Slice uid)
+		public Slice UidKey(Slice uid)
 		{
-			return this.UidStringPrefix.Append(uid);
+			return this.UidStringPrefix.Pack(uid);
 		}
 
-		public IFdbTuple StringKey(string value)
+		public Slice StringKey(string value)
 		{
-			return this.StringUidPrefix.Append(value);
+			return this.StringUidPrefix.Pack(value);
 		}
 
 		/// <summary>Evict a random value from the cache</summary>

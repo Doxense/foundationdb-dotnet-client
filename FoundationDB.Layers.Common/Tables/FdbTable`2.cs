@@ -73,7 +73,7 @@ namespace FoundationDB.Layers.Tables
 
 		#region Public Methods...
 
-		internal IFdbTuple MakeKey(TKey key)
+		internal Slice MakeKey(TKey key)
 		{
 			return this.Table.MakeKey(this.KeyReader.ToTuple(key));
 		}

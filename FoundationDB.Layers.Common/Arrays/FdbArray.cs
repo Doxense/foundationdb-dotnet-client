@@ -50,24 +50,14 @@ namespace FoundationDB.Layers.Arrays
 
 		#region Key management...
 
-		public Slice GetKeyBytes(int key)
+		public Slice Key(int index)
 		{
-			return this.Subspace.Pack<int>(key);
+			return this.Subspace.Pack<int>(index);
 		}
 
-		public Slice GetKeyBytes(long key)
+		public Slice Key(long index)
 		{
-			return this.Subspace.Pack<long>(key);
-		}
-
-		public IFdbTuple Key(int index)
-		{
-			return this.Subspace.Append<int>(index);
-		}
-
-		public IFdbTuple Key(long index)
-		{
-			return this.Subspace.Append<long>(index);
+			return this.Subspace.Pack<long>(index);
 		}
 
 		#endregion
@@ -76,22 +66,22 @@ namespace FoundationDB.Layers.Arrays
 
 		public Task<Slice> GetAsync(IFdbReadTransaction trans, int key, CancellationToken ct = default(CancellationToken))
 		{
-			return trans.GetAsync(GetKeyBytes(key), ct);
+			return trans.GetAsync(Key(key), ct);
 		}
 
 		public Task<Slice> GetAsync(IFdbReadTransaction trans, long key, CancellationToken ct = default(CancellationToken))
 		{
-			return trans.GetAsync(GetKeyBytes(key), ct);
+			return trans.GetAsync(Key(key), ct);
 		}
 
 		public void Set(IFdbTransaction trans, int key, Slice value)
 		{
-			trans.Set(GetKeyBytes(key), value);
+			trans.Set(Key(key), value);
 		}
 
 		public void Set(IFdbTransaction trans, long key, Slice value)
 		{
-			trans.Set(GetKeyBytes(key), value);
+			trans.Set(Key(key), value);
 		}
 
 		public void Clear(IFdbTransaction trans)

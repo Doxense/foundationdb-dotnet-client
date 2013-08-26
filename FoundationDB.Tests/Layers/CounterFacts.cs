@@ -46,7 +46,7 @@ namespace FoundationDB.Layers.Counters.Tests
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, location);
 
-				var c = new FdbCounter(db, location.Append("TestBigCounter"));
+				var c = new FdbCounter(db, location.Partition("TestBigCounter"));
 
 				for (int i = 0; i < 500; i++)
 				{

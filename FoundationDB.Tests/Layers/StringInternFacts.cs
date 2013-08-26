@@ -58,11 +58,11 @@ namespace FoundationDB.Layers.Tables.Tests
 				// insert a bunch of strings
 				using (var tr = db.BeginTransaction())
 				{
-					tr.Set(dataSpace.Append("a"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Append("b"), await stringTable.InternAsync(tr, "dog"));
-					tr.Set(dataSpace.Append("c"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Append("d"), await stringTable.InternAsync(tr, "cat"));
-					tr.Set(dataSpace.Append("e"), await stringTable.InternAsync(tr, "cat"));
+					tr.Set(dataSpace.Pack("a"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Pack("b"), await stringTable.InternAsync(tr, "dog"));
+					tr.Set(dataSpace.Pack("c"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Pack("d"), await stringTable.InternAsync(tr, "cat"));
+					tr.Set(dataSpace.Pack("e"), await stringTable.InternAsync(tr, "cat"));
 
 					await tr.CommitAsync();
 				}
@@ -75,11 +75,11 @@ namespace FoundationDB.Layers.Tables.Tests
 				// check the contents of the data
 				using (var tr = db.BeginTransaction())
 				{
-					var uid_a = await tr.GetAsync(dataSpace.Append("a"));
-					var uid_b = await tr.GetAsync(dataSpace.Append("b"));
-					var uid_c = await tr.GetAsync(dataSpace.Append("c"));
-					var uid_d = await tr.GetAsync(dataSpace.Append("d"));
-					var uid_e = await tr.GetAsync(dataSpace.Append("e"));
+					var uid_a = await tr.GetAsync(dataSpace.Pack("a"));
+					var uid_b = await tr.GetAsync(dataSpace.Pack("b"));
+					var uid_c = await tr.GetAsync(dataSpace.Pack("c"));
+					var uid_d = await tr.GetAsync(dataSpace.Pack("d"));
+					var uid_e = await tr.GetAsync(dataSpace.Pack("e"));
 
 					// a, b, d should be different
 					Assert.That(uid_b, Is.Not.EqualTo(uid_a));
@@ -105,18 +105,6 @@ namespace FoundationDB.Layers.Tables.Tests
 					Assert.That(str_e, Is.EqualTo(str_d));
 				}
 			}
-		}
-
-		private static string DumpHex(Slice seg)
-		{
-			var sb = new StringBuilder();
-			int n = seg.Count;
-			int i = seg.Offset;
-			while (n-- > 0)
-			{
-				sb.Append(seg.Array[i++].ToString("x2"));
-			}
-			return sb.ToString();
 		}
 
 	}

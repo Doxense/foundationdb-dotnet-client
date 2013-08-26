@@ -131,14 +131,6 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Pack...
 
-		public Slice Pack(IFdbTuple tuple)
-		{
-			var writer = new FdbBufferWriter();
-			writer.WriteBytes(this.Tuple.Packed);
-			tuple.PackTo(writer);
-			return writer.ToSlice();
-		}
-
 		/// <summary>Create a new key by appending a value to the current tuple</summary>
 		/// <typeparam name="T">Type of the value</typeparam>
 		/// <param name="key">Value that will be appended at the end of the key</param>
@@ -146,6 +138,11 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>tuple.Pack(x) is equivalent to tuple.Append(x).ToSlice()</example>
 		public Slice Pack<T>(T key)
 		{
+#if DEBUG
+			// Frequent mistake: t1.Append(t2) does NOT mean "append t2's items at the end of t1", but "append t2 itself as an element of t1" which is currently not supported.
+			if (typeof(IFdbTuple).IsAssignableFrom(typeof(T))) throw new InvalidOperationException("Packing a tuple as a single item at the end of anoter tuple is currently not properly supported. If you meant to append the items of the tuple, then you need to call subspace.Concat(tuple).ToSlice() instead.");
+#endif
+
 			var writer = OpenBuffer();
 			FdbTuplePacker<T>.SerializeTo(writer, key);
 			return writer.ToSlice();
@@ -207,7 +204,7 @@ namespace FoundationDB.Layers.Tuples
 
 		#endregion
 
-		#region Create/Append...
+		#region Append...
 
 		/// <summary>Append the subspace suffix to a key and return the full path</summary>
 		/// <typeparam name="T">Type of the key to append</typeparam>
@@ -216,6 +213,11 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>new FdbSubspace(["Users",]).Append(123) => ["Users",123,]</example>
 		public FdbLinkedTuple<T> Append<T>(T value)
 		{
+#if DEBUG
+			// Frequent mistake: t1.Append(t2) does NOT mean "append t2's items at the end of t1", but "append t2 itself as an element of t1" which is currently not supported.
+			if (typeof(IFdbTuple).IsAssignableFrom(typeof(T))) throw new InvalidOperationException("Appending a tuple as a single item inside anoter tuple is currently not properly supported. If you meant to append the items of the tuple, then you need to call subspace.Concat(tuple) instead.");
+#endif
+
 			return new FdbLinkedTuple<T>(this.Tuple, value);
 		}
 
@@ -254,15 +256,25 @@ namespace FoundationDB.Layers.Tuples
 			return this.Tuple.Concat(FdbTuple.Create(items));
 		}
 
-		/// <summary>Append the subspace suffix to a triplet of keys and return the full path</summary>
-		/// <typeparam name="T1">Type of the first key to append</typeparam>
-		/// <typeparam name="T2">Type of the second key to append</typeparam>
-		/// <typeparam name="T3">Type of the third key to append</typeparam>
-		/// <param name="value1">Value of the first key</param>
-		/// <param name="value2">Value of the second key</param>
-		/// <param name="value3">Value of the third and last key</param>
+		#endregion
+
+		#region Concat
+
+		/// <summary>Concatenate the subspace with the specified binary suffix</summary>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, second and third value</returns>
 		/// <example>new FdbSubspace(["Users",]).Append("User123", "ContactsById", 456) => ("Users","User123","ContactsById",456,)</example>
+		public Slice Concat(Slice suffix)
+		{
+			var writer = OpenBuffer(suffix.Count);
+			writer.WriteBytes(suffix);
+			return writer.ToSlice();
+		}
+
+		/// <summary>Concatenate the subspace with the specified tuple, and return a new tuple.</summary>
+		/// <param name="value">Tuple whose items will be appended at the end of the current tuple</param>
+		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, second and third value</returns>
+		/// <example>new FdbSubspace(["Users",]).Append("User123", "ContactsById", 456) => ("Users","User123","ContactsById",456,)</example>
+		/// <remarks>Calling 'subspace.Concat(tuple)' is equivalent to calling 'subspace.Append(tuple.Item1).Append(tuple.Item2)....Append(tuple.ItemN)'</remarks>
 		public IFdbTuple Concat(IFdbTuple value)
 		{
 			if (value == null) throw new ArgumentNullException("value");
@@ -322,26 +334,9 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Slice Manipulation...
 
-		/// <summary>Append a Slice to the tuple and returned the combined packed value</summary>
-		/// <param name="suffix">Binary suffix that will be appended</param>
-		/// <returns>New slice that contains the tuple followed by the binary suffix</returns>
-		/// <remarks>Warning: this can created invalid tuples that will not be parsable! Only append "valid" tuple binary data or parse the keys manually</remarks>
-		public Slice Concat(Slice suffix)
-		{
-			if (suffix.IsNullOrEmpty)
-			{
-				if (!suffix.HasValue) return Slice.Nil;
-
-				// note: we do not want to expose the packed bytes in case the suffix is empty, so we will always return a copy !
-				return this.Tuple.Packed.Memoize();
-			}
-
-			return this.Tuple.Packed.Concat(suffix);
-		}
-
-		/// <summary>Extract the namespace prefix from a binary key, and return the rest of the key, or Slice.Nil if the key does not fit inside the namespace</summary>
-		/// <param name="key"></param>
-		/// <returns></returns>
+		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
+		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>
+		/// <returns>Binary suffix of the (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>
 		public Slice Extract(Slice key)
 		{
 			if (!key.HasValue) return Slice.Nil;
