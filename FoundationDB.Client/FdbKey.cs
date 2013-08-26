@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
@@ -140,6 +141,64 @@ namespace FoundationDB.Client
 			return new Slice(tmp, 0, tmp.Length);
 		}
 
+		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] Merge<T>(Slice prefix, IEnumerable<T> keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			// use optimized version for arrays
+			var array = keys as T[];
+			if (array != null) return Merge<T>(prefix, array);
+
+			var next = new List<int>();
+			var writer = new FdbBufferWriter();
+			var packer = FdbTuplePacker<T>.Serializer;
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var key in keys)
+			{
+				if (prefix.Count > 0) writer.WriteBytes(prefix);
+				packer(writer, key);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
+
+		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] Merge<T>(Slice prefix, T[] keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
+			var writer = new FdbBufferWriter(keys.Length * (prefix.Count + 8));
+			var next = new List<int>(keys.Length);
+			var packer = FdbTuplePacker<T>.Serializer;
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var key in keys)
+			{
+				if (prefix.Count > 0) writer.WriteBytes(prefix);
+				packer(writer, key);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
 		/// <summary>Split a buffer containing multiple contiguous segments into an array of segments</summary>
 		/// <param name="buffer">Buffer containing all the segments</param>
 		/// <param name="start">Offset of the start of the first segment</param>
@@ -244,6 +303,22 @@ namespace FoundationDB.Client
 		public static IEnumerable<IEnumerable<KeyValuePair<int, int>>> Batched(int offset, int count, int workers, int batchSize)
 		{
 			return new BatchIterator(offset, count, workers, batchSize);
+		}
+
+		internal static string Dump(Slice key)
+		{
+			if (!key.IsNullOrEmpty)
+			{
+				try
+				{
+					var tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key);
+					return tuple.ToString();
+				}
+				catch { }
+			}
+
+			return Slice.Dump(key);
+
 		}
 
 	}
