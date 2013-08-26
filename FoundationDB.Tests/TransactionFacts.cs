@@ -612,7 +612,7 @@ namespace FoundationDB.Client.Tests
 			{
 				var space = db.Partition(123);
 
-				db.RestrictKeySpace(space.Tuple);
+				db.RestrictKeySpace(space.Key);
 			
 				Assert.That(db.ValidateKey(space.Pack("hello")), Is.Null, "key inside range should be ok");
 
@@ -626,7 +626,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db.ValidateKey(db.Partition(124).Pack("hello")), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange), "key after the range should be denied");
 
 				// the range prefix itself is not allowed
-				Assert.That(db.ValidateKey(space.Tuple.Packed), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange), "Range prefix itself is not allowed");
+				Assert.That(db.ValidateKey(space.Key), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange), "Range prefix itself is not allowed");
 
 				// check that methods also respect the key range
 				using (var tr = db.BeginTransaction())
@@ -648,7 +648,7 @@ namespace FoundationDB.Client.Tests
 
 					// should not allow the prefix itself
 					Assert.That(
-						Assert.Throws<FdbException>(() => tr.Set(space.Tuple, Slice.Empty)),
+						Assert.Throws<FdbException>(() => tr.Set(space.Key, Slice.Empty)),
 						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
 					);
 

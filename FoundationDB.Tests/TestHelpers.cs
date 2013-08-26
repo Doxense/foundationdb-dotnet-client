@@ -87,7 +87,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var tr = db.BeginTransaction())
 			{
-				tr.ClearRange(subspace.Tuple);
+				tr.ClearRange(subspace);
 				await tr.CommitAsync();
 			}
 		}

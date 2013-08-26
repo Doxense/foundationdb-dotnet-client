@@ -41,21 +41,21 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Store a memoized version of the tuple to speed up serialization</summary>
 		public FdbMemoizedTuple Tuple { get; private set; }
 
+		/// <summary>Return the packed binary prefix of this subspace</summary>
+		public Slice Key { get { return this.Tuple.Packed; } }
+
 		#region Constructors...
 
-		public FdbSubspace(string prefix)
+		/// <summary>Create a new subspace that wraps a Tuple</summary>
+		/// <param name="tuple"></param>
+		public FdbSubspace(IFdbTuple tuple)
 		{
-			this.Tuple = new FdbTuple<string>(prefix).Memoize();
+			this.Tuple = (tuple ?? FdbTuple.Empty).Memoize();
 		}
 
-		public FdbSubspace(IFdbTuple prefix)
+		internal FdbSubspace Copy()
 		{
-			this.Tuple = prefix.Memoize();
-		}
-
-		internal FdbSubspace(FdbSubspace parent)
-		{
-			this.Tuple = parent.Tuple.Copy();
+			return new FdbSubspace(this.Tuple.Copy());
 		}
 
 		#endregion
@@ -89,7 +89,6 @@ namespace FoundationDB.Layers.Tuples
 		{
 			return new FdbSubspace(this.Tuple.Concat(new FdbTuple<T1, T2>(value1, value2)));
 		}
-
 
 		/// <summary>Partition this subspace into a child subspace</summary>
 		/// <typeparam name="T1">Type of the primary subspace key</typeparam>
@@ -282,12 +281,12 @@ namespace FoundationDB.Layers.Tuples
 		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked tuple is not contained in this subspace</exception>
 		public IFdbTuple Unpack(Slice key)
 		{
-			return FdbTuple.UnpackWithoutPrefix(key, this.Tuple.Packed);
+			return FdbTuple.UnpackWithoutPrefix(key, this.Key);
 		}
 
 		public T UnpackLast<T>(Slice key)
 		{
-			return FdbTuple.UnpackLastWithoutPrefix<T>(key, this.Tuple.Packed);
+			return FdbTuple.UnpackLastWithoutPrefix<T>(key, this.Key);
 		}
 
 		/// <summary>Unpack an array of keys in tuples, with the subspace prefix removed</summary>
@@ -296,7 +295,7 @@ namespace FoundationDB.Layers.Tuples
 		public IFdbTuple[] Unpack(Slice[] keys)
 		{
 			var tuples = new IFdbTuple[keys.Length];
-			var prefix = this.Tuple.Packed;
+			var prefix = this.Key;
 
 			for (int i = 0; i < keys.Length; i++)
 			{
@@ -309,7 +308,7 @@ namespace FoundationDB.Layers.Tuples
 		public T[] UnpackLast<T>(Slice[] keys)
 		{
 			var values = new T[keys.Length];
-			var prefix = this.Tuple.Packed;
+			var prefix = this.Key;
 	
 			for (int i = 0; i < keys.Length;i++)
 			{
@@ -376,8 +375,8 @@ namespace FoundationDB.Layers.Tuples
 		internal FdbBufferWriter OpenBuffer(int extraBytes = 0)
 		{
 			var writer = new FdbBufferWriter();
-			if (extraBytes > 0) writer.EnsureBytes(extraBytes + this.Tuple.PackedSize);
-			writer.WriteBytes(this.Tuple.Packed);
+			if (extraBytes > 0) writer.EnsureBytes(extraBytes + this.Key.Count);
+			writer.WriteBytes(this.Key);
 			return writer;
 		}
 
