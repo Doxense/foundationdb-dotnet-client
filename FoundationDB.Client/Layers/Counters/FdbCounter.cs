@@ -178,7 +178,7 @@ namespace FoundationDB.Layers.Counters
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Set(this.Subspace.Pack(FdbTuple.Create(RandomId())), EncodeInt(x));
+			trans.Set(this.Subspace.Pack(RandomId()), EncodeInt(x));
 
 			if (this.Rng.NextDouble() < 0.1)
 			{
