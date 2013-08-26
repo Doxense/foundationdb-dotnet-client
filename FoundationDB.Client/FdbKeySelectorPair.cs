@@ -31,7 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Diagnostics;
 
-	[DebuggerDisplay("Start={Start}, Stop={Stop}")]
+	[DebuggerDisplay("[ToString()]")]
 	public struct FdbKeySelectorPair
 	{
 		public readonly FdbKeySelector Start;
@@ -61,6 +61,11 @@ namespace FoundationDB.Client
 				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
 				FdbKeySelector.FirstGreaterThan(range.End)
 			);
+		}
+
+		public override string ToString()
+		{
+			return "[" + this.Start.ToString() + ", " + this.Stop.ToString() + ")";
 		}
 
 	}

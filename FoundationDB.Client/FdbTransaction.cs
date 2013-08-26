@@ -438,7 +438,7 @@ namespace FoundationDB.Client
 			options.EnsureLegalValues();
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0}'..'{1}'", range.Start.ToString(), range.Stop.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", range.Start.ToString(), range.Stop.ToString()));
 #endif
 
 			return new FdbRangeQuery(this, range, options, snapshot);
@@ -547,7 +547,7 @@ namespace FoundationDB.Client
 			this.Database.EnsureValueIsValid(param);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", String.Format("Atomic {0} on '{1}' = {2}", type.ToString(), key.ToString(), param.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", String.Format("Atomic {0} on '{1}' = {2}", type.ToString(), FdbKey.Dump(key), Slice.Dump(param)));
 #endif
 
 			FdbNative.TransactionAtomicOperation(m_handle, key, param, type);

@@ -32,7 +32,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Text;
 
-	[DebuggerDisplay("Key={Key}, OrEqual={OrEqual}, Offset={Offset}")]
+	[DebuggerDisplay("{ToString()}")]
 	public struct FdbKeySelector
 	{
 		public static readonly FdbKeySelector None = default(FdbKeySelector);
@@ -51,12 +51,24 @@ namespace FoundationDB.Client
 		public override string ToString()
 		{
 			var sb = new StringBuilder();
-			sb.Append("{\"");
-			sb.Append(this.Key.ToString());
-			sb.Append(this.OrEqual ? "\", true, " : "\", false, ");
-			if (Offset > 0) sb.Append('+');
-			sb.Append(Offset);
-			sb.Append('}');
+			int offset = this.Offset;
+			if (offset < 1)
+			{
+				sb.Append(this.OrEqual ? "lLE( " : "lLT( ");
+			}
+			else
+			{
+				--offset;
+				sb.Append(this.OrEqual ? "fGT( " : "fGE( ");
+			}
+			sb.Append(FdbKey.Dump(this.Key));
+			sb.Append(" )");
+
+			if (offset > 0) 
+				sb.Append(" + ").Append(offset.ToString());
+			else if (offset < 0)
+				sb.Append(" - ").Append((-offset).ToString());
+
 			return sb.ToString();
 		}
 
