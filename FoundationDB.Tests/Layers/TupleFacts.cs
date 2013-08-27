@@ -685,6 +685,40 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_FdbTuple_Serialize_Alias()
+		{
+			Assert.That(
+				FdbTuple.Pack(FdbTupleAlias.System).ToString(),
+				Is.EqualTo("<FF>")
+			);
+
+			Assert.That(
+				FdbTuple.Pack(FdbTupleAlias.Directory).ToString(),
+				Is.EqualTo("<FE>")
+			);
+
+			Assert.That(
+				FdbTuple.Pack(FdbTupleAlias.Zero).ToString(),
+				Is.EqualTo("<00>")
+			);
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_Deserialize_Alias()
+		{
+			Slice slice;
+
+			slice = Slice.Unescape("<FF>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(FdbTupleAlias.System));
+
+			slice = Slice.Unescape("<FE>");
+			Assert.That(FdbTuplePackers.DeserializeObject(slice), Is.EqualTo(FdbTupleAlias.Directory));
+
+			//note: FdbTupleAlias.Start is <00> and will be deserialized as null
+		}
+
+		[Test]
 		public void Test_FdbTuple_SameBytes()
 		{
 			IFdbTuple t1 = FdbTuple.Create("hello world");

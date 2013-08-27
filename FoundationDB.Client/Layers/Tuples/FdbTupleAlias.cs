@@ -26,48 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-
 namespace FoundationDB.Layers.Tuples
 {
+	using System;
 
-	internal static class FdbTupleTypes
+	/// <summary>Special tuple values</summary>
+	public enum FdbTupleAlias
 	{
-		/// <summary>Null/Empty/Void</summary>
-		internal const byte Nil = (byte)0;
+		//TODO: find a better name!
 
-		/// <summary>ASCII String</summary>
-		internal const byte Bytes = (byte)1;
-
-		/// <summary>UTF-8 String</summary>
-		internal const byte Utf8 = (byte)2;
-
-		/// <summary>128 bits GUID [CUSTOM EXTENSION]</summary>
-		internal const byte Guid = (byte)3;
-
-		internal const byte IntNeg8 = (byte)12;
-		internal const byte IntNeg7 = (byte)13;
-		internal const byte IntNeg6 = (byte)14;
-		internal const byte IntNeg5 = (byte)15;
-		internal const byte IntNeg4 = (byte)16;
-		internal const byte IntNeg3 = (byte)17;
-		internal const byte IntNeg2 = (byte)18;
-		internal const byte IntNeg1 = (byte)19;
-		internal const byte IntZero = (byte)20;
-		internal const byte IntPos1 = (byte)21;
-		internal const byte IntPos2 = (byte)22;
-		internal const byte IntPos3 = (byte)23;
-		internal const byte IntPos4 = (byte)24;
-		internal const byte IntPos5 = (byte)25;
-		internal const byte IntPos6 = (byte)26;
-		internal const byte IntPos7 = (byte)27;
-		internal const byte IntPos8 = (byte)28;
-
-		/// <summary>Base value for integer types (20 +/- n)</summary>
-		internal const int IntBase = 20;
-
-		internal const int AliasDirectory = (byte)254;
-		internal const int AliasSystem = (byte)255;
+		/// <summary>Alias that represents the Null or Min value '\0' when used in the last position.</summary>
+		Zero = 0,
+		/// <summary>Alias that represents the value '\xFE', frequently used by the Directory Layer</summary>
+		Directory = 254,
+		/// <summary>Alias that represents the Max value '\xFF', also used by the System Keys when in the first position</summary>
+		System = 255
 	}
 
 }

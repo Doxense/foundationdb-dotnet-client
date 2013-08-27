@@ -133,6 +133,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<int, long>((value) => (long)value);
 			RegisterUnsafe<int, ulong>((value) => (ulong)value);
 			RegisterUnsafe<int, bool>((value) => value != 0);
+			RegisterUnsafe<int, FdbTupleAlias>((value) => (FdbTupleAlias)value);
 
 			RegisterUnsafe<uint, Slice>((value) => Slice.FromUInt64(value));
 			RegisterUnsafe<uint, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
@@ -186,6 +187,9 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<TimeSpan, long>((value) => value.Ticks);
 			RegisterUnsafe<TimeSpan, double>((value) => value.TotalSeconds);
 
+			RegisterUnsafe<FdbTupleAlias, int>((value) => (int)value);
+			RegisterUnsafe<FdbTupleAlias, Slice>((value) => Slice.FromByte((byte)value));
+
 			//REVIEW: this should go in the Tuples layer !
 			RegisterUnsafe<Slice, byte[]>((value) => value.GetBytes());
 			RegisterUnsafe<Slice, string>((value) => value.ToAscii());
@@ -195,6 +199,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<Slice, ulong>((value) => value.ToUInt64());
 			RegisterUnsafe<Slice, Guid>((value) => value.ToGuid());
 			RegisterUnsafe<Slice, TimeSpan>((value) => TimeSpan.FromTicks(value.ToInt64()));
+			RegisterUnsafe<Slice, FdbTupleAlias>((value) => (FdbTupleAlias)value.ToByte());
 		}
 
 		/// <summary>Helper method to throw an exception when we don't know how to convert from <paramref name="source"/> to <paramref name="destination"/></summary>
