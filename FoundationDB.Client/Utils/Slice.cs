@@ -539,6 +539,13 @@ namespace FoundationDB.Client
 			return new string(chars, 0, chars.Length);
 		}
 
+		public byte ToByte()
+		{
+			if (this.Count == 0) return 0;
+			if (this.Count > 1) throw new FormatException("Cannot convert slice into a Byte because it is larger than 1 byte");
+			return this.Array[this.Offset];
+		}
+
 		public int ToInt32()
 		{
 			if (this.IsNullOrEmpty) return 0;
