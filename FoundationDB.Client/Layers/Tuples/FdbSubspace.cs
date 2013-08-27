@@ -287,15 +287,23 @@ namespace FoundationDB.Layers.Tuples
 		#region Unpack...
 
 		/// <summary>Unpack a key into a tuple, with the subspace prefix removed</summary>
-		/// <param name="key">Packed version of a key inside this subspace</param>
-		/// <returns>Unpacked tuple that are relative to the current subspace</returns>
+		/// <param name="key">Packed version of a key that should fit inside this subspace.</param>
+		/// <returns>Unpacked tuple that are relative to the current subspace, or null if the key is equal to Slice.Nil</returns>
 		/// <example>new Subspace("Foo").Unpack(FdbTuple.Pack("Foo", "Bar", 123)) => ("Bar", 123,) </example>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked tuple is not contained in this subspace</exception>
 		public IFdbTuple Unpack(Slice key)
 		{
+			// We special case 'Slice.Nil' because it is returned by GetAsync(..) when the key does not exist
+			// This is to simplifiy decoding logic where the caller could do "var foo = FdbTuple.Unpack(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
+			if (!key.HasValue) return null;
+
 			return FdbTuple.UnpackWithoutPrefix(key, this.Key);
 		}
 
+		/// <summary>Unpack a key into a tuple, and return only the last element</summary>
+		/// <typeparam name="T">Expected type of the last element</typeparam>
+		/// <param name="key">Packed version of a key that should fit inside this subspace</param>
+		/// <returns>Converted value of the last element of the tuple</returns>
 		public T UnpackLast<T>(Slice key)
 		{
 			return FdbTuple.UnpackLastWithoutPrefix<T>(key, this.Key);
@@ -307,24 +315,39 @@ namespace FoundationDB.Layers.Tuples
 		public IFdbTuple[] Unpack(Slice[] keys)
 		{
 			var tuples = new IFdbTuple[keys.Length];
-			var prefix = this.Key;
 
-			for (int i = 0; i < keys.Length; i++)
+			if (keys.Length > 0)
 			{
-				tuples[i] = FdbTuple.UnpackWithoutPrefix(keys[i], prefix);
+				var prefix = this.Key;
+				for (int i = 0; i < keys.Length; i++)
+				{
+					if (keys[i].HasValue)
+					{
+						tuples[i] = FdbTuple.UnpackWithoutPrefix(keys[i], prefix);
+					}
+				}
 			}
 
 			return tuples;
 		}
 
+		/// <summary>Unpack an array of key into tuples, and return an array with only the last elements of each tuple</summary>
+		/// <typeparam name="T">Expected type of the last element of all the keys</typeparam>
+		/// <param name="keys">Array of packed keys that should all fit inside this subspace</param>
+		/// <returns>Array containing the converted values of the last elements of each tuples</returns>
 		public T[] UnpackLast<T>(Slice[] keys)
 		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
 			var values = new T[keys.Length];
-			var prefix = this.Key;
-	
-			for (int i = 0; i < keys.Length;i++)
+
+			if (keys.Length > 0)
 			{
-				values[i] = FdbTuple.UnpackLastWithoutPrefix<T>(keys[i], prefix);
+				var prefix = this.Key;
+				for (int i = 0; i < keys.Length; i++)
+				{
+					values[i] = FdbTuple.UnpackLastWithoutPrefix<T>(keys[i], prefix);
+				}
 			}
 
 			return values;
