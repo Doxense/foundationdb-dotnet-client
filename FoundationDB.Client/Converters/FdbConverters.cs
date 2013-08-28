@@ -146,6 +146,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<long, Slice>((value) => Slice.FromInt64(value));
 			RegisterUnsafe<long, byte[]>((value) => Slice.FromInt64(value).GetBytes());
 			RegisterUnsafe<long, string>((value) => value.ToString(CultureInfo.InvariantCulture));
+			RegisterUnsafe<long, short>((value) => { checked { return (short)value; } });
 			RegisterUnsafe<long, int>((value) => { checked { return (int)value; } });
 			RegisterUnsafe<long, uint>((value) => { return (uint)value; });
 			RegisterUnsafe<long, ulong>((value) => { return (ulong)value; });
