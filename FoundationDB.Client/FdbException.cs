@@ -36,7 +36,7 @@ namespace FoundationDB.Client
 	public class FdbException : Exception
 	{
 
-		internal FdbException(FdbError errorCode)
+		public FdbException(FdbError errorCode)
 			: this(errorCode, Fdb.GetErrorMessage(errorCode), null)
 		{
 		}

@@ -149,6 +149,12 @@ namespace FoundationDB.Client
 			return this;
 		}
 
+		public FdbTransaction WithNextWriteNoWriteConflictRange()
+		{
+			SetOption(FdbTransactionOption.NextWriteNoWriteConflictRange);
+			return this;
+		}
+
 		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
 		/// <param name="timeout">Timeout (with millisecond precision), or TimeSpan.Zero for infinite timeout</param>
 		public FdbTransaction WithTimeout(TimeSpan timeout)
@@ -837,9 +843,12 @@ namespace FoundationDB.Client
 		/// <summary>Reset the transaction to its initial state.</summary>
 		public void Reset()
 		{
-			EnsureCanReadOrWrite();
+			EnsureCanRetry();
 
 			FdbNative.TransactionReset(m_handle);
+
+			var state = this.State;
+			if (state != STATE_DISPOSED) Interlocked.CompareExchange(ref m_state, STATE_READY, state);
 
 			if (Logging.On) Logging.Verbose(this, "Reset", "Transaction has been reset");
 		}
