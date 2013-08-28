@@ -196,6 +196,16 @@ namespace FoundationDB.Client
 			return FdbAsyncEnumerable.Select(this, (kvp) => transform(extractKey(kvp.Key), extractValue(kvp.Value)));
 		}
 
+		public Task<bool> NoneAsync(CancellationToken ct = default(CancellationToken))
+		{
+			// we can optimize by using Limit = 1!
+
+			var query = this;
+			if (query.Limit != 1) query = query.Take(1);
+
+			return FdbAsyncEnumerable.NoneAsync(query, ct);
+		}
+
 		public IFdbAsyncEnumerable<Slice> Keys()
 		{
 			return FdbAsyncEnumerable.Select(this, kvp => kvp.Key);

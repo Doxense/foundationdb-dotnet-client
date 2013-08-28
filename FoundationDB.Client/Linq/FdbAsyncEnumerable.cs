@@ -617,6 +617,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Determines whether an async sequence contains any elements.</summary>
+		/// <remarks>This is the logical equivalent to "source.Count() > 0" but can be better optimized by some providers</remarks>
 		public static async Task<bool> AnyAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -644,6 +645,37 @@ namespace FoundationDB.Linq
 				}
 			}
 			return false;
+		}
+
+		/// <summary>Determines wether an async sequence contains no elements at all.</summary>
+		/// <remarks>This is the logical equivalent to "source.Count() == 0" or "!source.Any()" but can be better optimized by some providers</remarks>
+		public static async Task<bool> NoneAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			ct.ThrowIfCancellationRequested();
+
+			using (var iterator = source.GetEnumerator())
+			{
+				return !(await iterator.MoveNext(ct).ConfigureAwait(false));
+			}
+		}
+
+		/// <summary>Determines whether none of the elements of an async sequence satisfies a condition.</summary>
+		public static async Task<bool> NoneAsync<T>(this IFdbAsyncEnumerable<T> source, Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			ct.ThrowIfCancellationRequested();
+
+			using (var iterator = source.GetEnumerator())
+			{
+				while (await iterator.MoveNext(ct).ConfigureAwait(false))
+				{
+					if (predicate(iterator.Current)) return false;
+				}
+			}
+			return true;
 		}
 
 		#endregion
