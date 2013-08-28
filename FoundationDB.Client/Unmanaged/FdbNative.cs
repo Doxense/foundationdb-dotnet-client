@@ -621,7 +621,7 @@ namespace FoundationDB.Client.Native
 
 		public static FutureHandle TransactionGetKey(TransactionHandle transaction, FdbKeySelector selector, bool snapshot)
 		{
-			if (selector.Key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "selector");
+			if (!selector.Key.HasValue) throw new ArgumentException("Key cannot be null", "selector");
 
 			fixed (byte* ptrKey = selector.Key.Array)
 			{
