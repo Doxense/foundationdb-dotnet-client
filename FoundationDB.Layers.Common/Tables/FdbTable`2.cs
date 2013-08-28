@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tables
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
@@ -93,6 +94,13 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			this.Table.Set(trans, this.KeyReader.ToTuple(key), this.ValueSerializer.Serialize(value));
+		}
+
+		public void Clear(IFdbTransaction trans, TKey key)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			this.Table.Clear(trans, this.KeyReader.ToTuple(key));
 		}
 
 		public Task<List<KeyValuePair<TKey, TValue>>> GetAllAsync(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
