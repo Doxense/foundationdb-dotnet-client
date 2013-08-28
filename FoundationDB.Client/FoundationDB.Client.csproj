@@ -94,6 +94,9 @@
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
     <Compile Include="Layers\Counters\FdbCounter.cs" />
+    <Compile Include="Layers\Directories\FdbDirectorySubspace.cs" />
+    <Compile Include="Layers\Directories\FdbHighContentionAllocator.cs" />
+    <Compile Include="Layers\Directories\FdbDirectoryLayer.cs" />
     <Compile Include="Layers\Tuples\FdbTupleAlias.cs" />
     <Compile Include="Layers\Tuples\Formatters\FdbAnonymousTupleFormatter.cs" />
     <Compile Include="Layers\Tuples\Formatters\FdbGenericTupleFormatter.cs" />

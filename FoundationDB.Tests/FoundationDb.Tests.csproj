@@ -62,6 +62,8 @@
     </Compile>
     <Compile Include="ClusterFacts.cs" />
     <Compile Include="DatabaseBulkFacts.cs" />
+    <Compile Include="Layers\SubspaceFacts.cs" />
+    <Compile Include="Layers\DirectoryFacts.cs" />
     <Compile Include="Layers\DocumentCollectionFacts.cs" />
     <Compile Include="Layers\IndexingFacts.cs" />
     <Compile Include="Async\AsyncBufferFacts.cs" />

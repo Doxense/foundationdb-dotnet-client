@@ -753,6 +753,12 @@ namespace FoundationDB.Layers.Tuples
 				{ // <03>(16 bytes)
 					return reader.ReadBytes(17);
 				}
+
+				case FdbTupleTypes.AliasDirectory:
+				case FdbTupleTypes.AliasSystem:
+				{ // <FE> or <FF>
+					return reader.ReadBytes(1);
+				}
 			}
 
 			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)

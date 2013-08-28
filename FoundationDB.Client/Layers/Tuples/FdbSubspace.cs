@@ -116,6 +116,7 @@ namespace FoundationDB.Layers.Tuples
 		public FdbSubspace Partition(IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple.Count == 0) return this;
 			return new FdbSubspace(this.Tuple.Concat(tuple));
 		}
 

@@ -408,6 +408,8 @@ namespace FoundationDB.Layers.Tuples
 			if (item is Slice) return ((Slice)item).ToAsciiOrHexaString();
 			if (item is byte[]) return Slice.Create(item as byte[]).ToAsciiOrHexaString();
 
+			if (item is FdbTupleAlias) return "{" + item.ToString() + "}";
+
 			var f = item as IFormattable;
 			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);
 
