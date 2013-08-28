@@ -899,6 +899,8 @@ namespace FoundationDB.Client
 		/// <summary>Implicitly converts a Slice into an ArraySegment&lt;byte&gt;</summary>
 		public static implicit operator ArraySegment<byte>(Slice value)
 		{
+			if (!value.HasValue)
+				return default(ArraySegment<byte>);
 			return new ArraySegment<byte>(value.Array, value.Offset, value.Count);
 		}
 
