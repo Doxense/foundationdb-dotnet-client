@@ -531,7 +531,7 @@ namespace FoundationDB.Client
 			while(n-- > 0)
 			{
 				byte b = buffer[p++];
-				if (b < 32 || b > 127) return ToHexaString(' ');
+				if (b < 32 || b > 127) return "<" + ToHexaString(' ') + ">";
 				chars[i++] = (char)b;
 			}
 			chars[0] = '\'';
