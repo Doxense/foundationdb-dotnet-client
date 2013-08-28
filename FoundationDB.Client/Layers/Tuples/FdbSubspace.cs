@@ -283,6 +283,16 @@ namespace FoundationDB.Layers.Tuples
 			return this.Tuple.Concat(value);
 		}
 
+		/// <summary>Append the subspace suffix to the tuple created from key</summary>
+		/// <param name="value1">Value of the first key</param>
+		/// <returns>Tuple that starts with the subspace's suffix, followed by the toTuple</returns>
+		public IFdbTuple Concat(ITupleFormattable value)
+		{
+			if (value == null) throw new ArgumentNullException("value");
+
+			return this.Tuple.Concat(value.ToTuple());
+		}
+
 		#endregion
 
 		#region Unpack...
