@@ -49,7 +49,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>
-		/// Returns a byte string that
+		/// Returns a 64-bit integer that
 		/// 1) has never and will never be returned by another call to this
 		///    method on the same subspace
 		/// 2) is nearly as short as possible given the above
@@ -86,7 +86,11 @@ namespace FoundationDB.Layers.Directories
 			while (true)
 			{
 				// Find a random free slot in the current window...
-				long candidate = start + m_rnd.Next(window);
+				long candidate;
+				lock (m_rnd)
+				{
+					candidate = start + m_rnd.Next(window);
+				}
 
 				// test if the key is used
 				var key = this.Recent.Pack(candidate);
