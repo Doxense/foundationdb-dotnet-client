@@ -28,10 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Directories
 {
+	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Threading.Tasks;
 
+	[DebuggerDisplay("Path={this.Path}, Prefix={this.Key}")]
 	public class FdbDirectorySubspace : FdbSubspace
 	{
 
@@ -52,5 +57,47 @@ namespace FoundationDB.Layers.Directories
 		public FdbDirectoryLayer DirectoryLayer { get; private set; }
 
 		public string Layer { get; private set; }
+
+		public void CheckLayer(string layer)
+		{
+			if (!string.IsNullOrEmpty(layer) && !string.IsNullOrEmpty(this.Layer) && layer != this.Layer)
+				throw new InvalidOperationException("The directory was created with an incompatible layer.");
+		}
+
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, IFdbTuple prefix = null)
+		{
+			return this.DirectoryLayer.CreateOrOpenAsync(tr, this.Path.Concat(subPath), layer, prefix);
+		}
+
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null)
+		{
+			return this.DirectoryLayer.OpenAsync(tr, this.Path.Concat(subPath), layer);
+		}
+
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, IFdbTuple prefix = null)
+		{
+			return this.DirectoryLayer.CreateAsync(tr, this.Path.Concat(subPath), layer, prefix);
+		}
+
+		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, IFdbTuple newPath)
+		{
+			return this.DirectoryLayer.MoveAsync(tr, this.Path, newPath);
+		}
+
+		public Task RemoveAsync(IFdbTransaction tr)
+		{
+			return this.DirectoryLayer.RemoveAsync(tr, this.Path);
+		}
+
+		public Task<List<IFdbTuple>> ListAsync(IFdbReadTransaction tr)
+		{
+			return this.DirectoryLayer.ListAsync(tr, this.Path);
+		}
+
+		public override string ToString()
+		{
+			return "DirectorySubspace(" + this.Path + ", " + this.Key + ")";
+		}
+
 	}
 }

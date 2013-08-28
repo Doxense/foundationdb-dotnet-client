@@ -33,21 +33,34 @@ namespace FoundationDB.Layers.Directories
 	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Threading.Tasks;
 
-	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
+	/// <summary>Provides a FdbDirectoryLayer class for managing directories in FoundationDB.
+	/// Directories are a recommended approach for administering layers and applications. Directories work in conjunction with subspaces. Each layer or application should create or open at least one directory with which to manage its subspace(s).
+	/// Directories are identified by paths (specified as tuples) analogous to the paths in a Unix-like file system. Each directory has an associated subspace that is used to store content. The layer uses a high-contention allocator to efficiently map each path to a short prefix for its corresponding subspace.
+	/// <see cref="FdbDirectorLayer"/> exposes methods to create, open, move, remove, or list directories. Creating or opening a directory returns the corresponding subspace.
+	/// The <see cref="FdbDirectorySubspace"/> class represents subspaces that store the contents of a directory. An instance of <see cref="FdbDirectorySubspace"/> can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.
+	/// </summary>
+	[DebuggerDisplay("Nodes={this.NodeSubspace}, Contents={this.ContentsSubspace}")]
 	public class FdbDirectoryLayer
 	{
 		private const int SUBDIRS = 0;
 		private static readonly Slice LayerSuffix = Slice.FromAscii("layer");
 
+		/// <summary>Subspace where the content of each folder will be stored</summary>
 		public FdbSubspace ContentSubspace { get; private set; }
 
+		/// <summary>Subspace where all the metadata nodes for each folder will be stored</summary>
 		public FdbSubspace NodeSubspace { get; private set; }
 
+		/// <summary>Root node of the directory</summary>
 		internal FdbSubspace RootNode { get; private set; }
 
+		/// <summary>Allocated used to generated prefix for new content</summary>
 		internal FdbHighContentionAllocator Allocator { get; private set; }
+
+		#region Constructors...
 
 		public FdbDirectoryLayer(FdbSubspace nodeSubspace = null, FdbSubspace contentSubspace = null)
 		{
@@ -61,19 +74,16 @@ namespace FoundationDB.Layers.Directories
 			this.Allocator = new FdbHighContentionAllocator(nodeSubspace.Partition(Slice.FromAscii("hca")));
 		}
 
+		#endregion
+
+		#region Public Methods...
+
 		/// <summary>
 		/// Opens the directory with the given path.
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If prefix is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="path"></param>
-		/// <param name="layer"></param>
-		/// <param name="prefix"></param>
-		/// <param name="allowCreate"></param>
-		/// <param name="allowOpen"></param>
-		/// <returns></returns>
 		public async Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, IFdbTuple prefix = null, bool allowCreate = true, bool allowOpen = true)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -139,10 +149,6 @@ namespace FoundationDB.Layers.Directories
 		/// Opens the directory with the given <paramref name="path"/>.
 		/// An error is raised if the directory does not exist, or if a layer is specified and a different layer was specified when the directory was created.
 		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="path"></param>
-		/// <param name="layer"></param>
-		/// <returns></returns>
 		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null)
 		{
 			return CreateOrOpenAsync(tr, path, layer, prefix: null, allowCreate: false, allowOpen: true);
@@ -154,11 +160,6 @@ namespace FoundationDB.Layers.Directories
 		/// If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.
 		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="path"></param>
-		/// <param name="layer"></param>
-		/// <param name="prefix"></param>
-		/// <returns></returns>
 		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, IFdbTuple prefix = null)
 		{
 			return CreateOrOpenAsync(tr, path, layer, prefix: prefix, allowCreate: true, allowOpen: false);
@@ -169,10 +170,6 @@ namespace FoundationDB.Layers.Directories
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
         /// An error is raised if the old directory does not exist, a directory already exists at `new_path`, or the parent directory of `new_path` does not exist.
 		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="oldPath"></param>
-		/// <param name="newPath"></param>
-		/// <returns></returns>
 		public async Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, IFdbTuple oldPath, IFdbTuple newPath)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -207,9 +204,6 @@ namespace FoundationDB.Layers.Directories
 		/// Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="path"></param>
-		/// <returns></returns>
 		public async Task RemoveAsync(IFdbTransaction tr, IFdbTuple path)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -224,6 +218,9 @@ namespace FoundationDB.Layers.Directories
 			await RemoveFromParent(tr, path).ConfigureAwait(false);
 		}
 
+		/// <summary>
+		/// Returns the list of subdirectories of directory at <paramref name="path"/>
+		/// </summary>
 		public async Task<List<IFdbTuple>> ListAsync(IFdbReadTransaction tr, IFdbTuple path = null)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -243,6 +240,10 @@ namespace FoundationDB.Layers.Directories
 				.ToListAsync()
 				.ConfigureAwait(false);
 		}
+
+		#endregion
+
+		#region Internal Helpers...
 
 		private async Task<FdbSubspace> NodeContainingKey(IFdbReadTransaction tr, Slice key)
 		{
@@ -294,14 +295,6 @@ namespace FoundationDB.Layers.Directories
 			return n;
 		}
 
-		private static Slice GetSubDirKey(FdbSubspace parent, IFdbTuple path, int index)
-		{
-			// for a path equal to ("foo","bar","baz") and index = -1, we need to generate (parent, SUBDIRS, "baz")
-			// but since the last item of path can be of any type, we will use tuple splicing to copy the last item without changing its type
-
-			return parent.Append(SUBDIRS).Concat(path.Substring(index, 1)).ToSlice();
-		}
-
 		private IFdbAsyncEnumerable<KeyValuePair<IFdbTuple, FdbSubspace>> SubdirNamesAndNodes(IFdbReadTransaction tr, FdbSubspace node)
 		{
 			var sd = node.Partition(SUBDIRS);
@@ -336,68 +329,25 @@ namespace FoundationDB.Layers.Directories
 			if (prefix.IsNullOrEmpty) return false;
 			if (await NodeContainingKey(tr, prefix).ConfigureAwait(false) != null) return false;
 
-			return !(await tr
+			return await tr
 				.GetRange(
 					this.NodeSubspace.Pack(FdbTuple.Pack(prefix)),
-					this.NodeSubspace.Pack(FdbTuple.Pack(FdbKey.Increment(prefix))),
-					new FdbRangeOptions { Limit = 1 }
+					this.NodeSubspace.Pack(FdbTuple.Pack(FdbKey.Increment(prefix)))
 				)
-				.AnyAsync()
-				.ConfigureAwait(false)
-			);
+				.NoneAsync()
+				.ConfigureAwait(false);
 		}
 
-	}
-
-	public static class FdbDirectoryExtensions
-	{
-
-		public static FdbDirectoryLayer OpenDirectory(this FdbDatabase db)
+		private static Slice GetSubDirKey(FdbSubspace parent, IFdbTuple path, int index)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			// returns a Directory that uses the namespace of the DB for the content, and stores the node under the "\xFE" prefix.
-			return new FdbDirectoryLayer(db.Partition(FdbTupleAlias.Directory), db.Namespace);
+			// for a path equal to ("foo","bar","baz") and index = -1, we need to generate (parent, SUBDIRS, "baz")
+			// but since the last item of path can be of any type, we will use tuple splicing to copy the last item without changing its type
+
+			return parent.Append(SUBDIRS).Concat(path.Substring(index, 1)).ToSlice();
 		}
 
-		public static FdbDirectoryLayer OpenDirectory(this FdbDatabase db, FdbSubspace global)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (global == null) throw new ArgumentNullException("global");
+		#endregion
 
-			return new FdbDirectoryLayer(global.Partition(FdbTupleAlias.Directory), global);
-		}
-
-		public static FdbDirectoryLayer OpenDirectory(this FdbDatabase db, IFdbTuple nodePrefix, IFdbTuple contentPrefix)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (nodePrefix == null) throw new ArgumentNullException("nodePrefix");
-			if (contentPrefix == null) throw new ArgumentNullException("contentPrefix");
-
-			// note: both tuples are relative to the db global namespace
-			return new FdbDirectoryLayer(db.Namespace.Partition(nodePrefix), db.Namespace.Partition(contentPrefix));
-		}
-
-
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null, IFdbTuple prefix = null)
-		{
-			return db.Attempt.ChangeAsync((tr) => directory.CreateOrOpenAsync(tr, path, layer, prefix));
-		}
-
-		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null, IFdbTuple prefix = null)
-		{
-			return db.Attempt.ChangeAsync((tr) => directory.CreateAsync(tr, path, layer, prefix));
-		}
-
-		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null)
-		{
-			// note: we will not write to the transaction
-			return db.Attempt.ChangeAsync((tr) => directory.OpenAsync(tr, path, layer));
-		}
-
-		public static Task<List<IFdbTuple>> ListAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path)
-		{
-			return db.Attempt.ReadAsync((tr) => directory.ListAsync(tr, path));
-		}
 	}
 
 }
