@@ -333,9 +333,9 @@ namespace FoundationDB.Layers.Tuples
 			buffer[p++] = type;
 			if (n > 0)
 			{
-				if (n == value.Length)
+				if (n == count)
 				{ // no NULs in the string, can copy all at once
-					System.Buffer.BlockCopy(value, 0, buffer, p, n);
+					System.Buffer.BlockCopy(value, offset, buffer, p, n);
 					p += n;
 				}
 				else
