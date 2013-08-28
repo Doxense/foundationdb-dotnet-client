@@ -153,6 +153,29 @@ namespace FoundationDB.Client
 					Reverse = this.Query.Reverse
 				};
 
+				// select the appropriate streaming mode if purpose is not default
+				switch(m_mode)
+				{
+					case FdbAsyncMode.Iterator:
+					{
+						// the caller is responsible for calling MoveNext(..) and deciding if it wants to continue or not..
+						options.Mode = FdbStreamingMode.Iterator;
+						break;
+					}
+					case FdbAsyncMode.All:
+					{ 
+						// we are in a ToList or ForEach, we want to read everything in as few chunks as possible
+						options.Mode = FdbStreamingMode.WantAll;
+						break;
+					}
+					case FdbAsyncMode.Head:
+					{
+						// the caller only expect one (or zero) values
+						options.Mode = FdbStreamingMode.Small;
+						break;
+					}
+				}
+
 				var tr = this.Transaction;
 				if (this.Query.Snapshot)
 				{ // make sure we have the snapshot version !

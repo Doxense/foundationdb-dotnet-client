@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, location);
 
-				var table = new FdbTable("Foos", location);
+				var table = new FdbTable("Foos", location.Partition("Foos"));
 
 				string secret ="world:" + Guid.NewGuid().ToString();
 

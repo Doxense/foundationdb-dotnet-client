@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
+	using FoundationDB.Async;
 	using System;
 	using System.Collections.Generic;
 
@@ -48,7 +49,12 @@ namespace FoundationDB.Linq
 				this.Factory = factory;
 			}
 
-			public IFdbAsyncEnumerator<TResult> GetEnumerator()
+			public IAsyncEnumerator<TResult> GetEnumerator()
+			{
+				return this.GetEnumerator(FdbAsyncMode.Default);
+			}
+
+			public IFdbAsyncEnumerator<TResult> GetEnumerator(FdbAsyncMode _)
 			{
 				IEnumerator<TSource> inner = null;
 				try

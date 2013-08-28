@@ -531,12 +531,19 @@ namespace FoundationDB.Client
 			while(n-- > 0)
 			{
 				byte b = buffer[p++];
-				if (b < 32 || b > 127) return ToHexaString(' ');
+				if (b < 32 || b > 127) return "<" + ToHexaString(' ') + ">";
 				chars[i++] = (char)b;
 			}
 			chars[0] = '\'';
 			chars[chars.Length - 1] = '\'';
 			return new string(chars, 0, chars.Length);
+		}
+
+		public byte ToByte()
+		{
+			if (this.Count == 0) return 0;
+			if (this.Count > 1) throw new FormatException("Cannot convert slice into a Byte because it is larger than 1 byte");
+			return this.Array[this.Offset];
 		}
 
 		public int ToInt32()
@@ -892,6 +899,8 @@ namespace FoundationDB.Client
 		/// <summary>Implicitly converts a Slice into an ArraySegment&lt;byte&gt;</summary>
 		public static implicit operator ArraySegment<byte>(Slice value)
 		{
+			if (!value.HasValue)
+				return default(ArraySegment<byte>);
 			return new ArraySegment<byte>(value.Array, value.Offset, value.Count);
 		}
 

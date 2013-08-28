@@ -84,7 +84,7 @@ namespace FoundationDB.Linq
 		/// <param name="query">Source database query</param>
 		/// <param name="prefix">Shared prefix</param>
 		/// <returns>Query that will return the keys that share the specified <paramref name="prefix"/></returns>
-		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> RangeStartsWith(this IFdbDatabaseQueryable query, IFdbTuple prefix)
+		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> RangeStartsWith(this IFdbDatabaseQueryable query, Slice prefix)
 		{
 			if (query == null) throw new ArgumentNullException("query");
 

@@ -94,6 +94,11 @@
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
     <Compile Include="Layers\Counters\FdbCounter.cs" />
+    <Compile Include="Layers\Directories\FdbDirectoryExtensions.cs" />
+    <Compile Include="Layers\Directories\FdbDirectorySubspace.cs" />
+    <Compile Include="Layers\Directories\FdbHighContentionAllocator.cs" />
+    <Compile Include="Layers\Directories\FdbDirectoryLayer.cs" />
+    <Compile Include="Layers\Tuples\FdbTupleAlias.cs" />
     <Compile Include="Layers\Tuples\Formatters\FdbAnonymousTupleFormatter.cs" />
     <Compile Include="Layers\Tuples\Formatters\FdbGenericTupleFormatter.cs" />
     <Compile Include="Layers\Tuples\Formatters\FdbFormattableTupleFormatter.cs" />
@@ -111,6 +116,9 @@
     <Compile Include="FdbCluster.cs" />
     <Compile Include="FdbFutureSingle.cs" />
     <Compile Include="Fdb.cs" />
+    <Compile Include="Async\IAsyncEnumerator.cs" />
+    <Compile Include="Async\IAsyncEnumerable.cs" />
+    <Compile Include="Linq\FdbAsyncMode.cs" />
     <Compile Include="Linq\FdbTakeWhileAsyncIterator.cs" />
     <Compile Include="Linq\FdbParallelQueryOptions.cs" />
     <Compile Include="Linq\FdbAsyncIteratorPump.cs" />

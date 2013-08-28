@@ -310,27 +310,8 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice[] BatchPack<T>(IFdbTuple prefix, IEnumerable<T> keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
-			if (keys == null) throw new ArgumentNullException("keys");
 
-			// use optimized version for arrays
-			var array = keys as T[];
-			if (array != null) return BatchPack<T>(prefix, array);
-
-			var slice = prefix.ToSlice();
-			var next = new List<int>();
-			var writer = new FdbBufferWriter();
-			var packer = FdbTuplePacker<T>.Serializer;
-
-			//TODO: use multiple buffers if item count is huge ?
-
-			foreach (var key in keys)
-			{
-				writer.WriteBytes(slice);
-				packer(writer, key);
-				next.Add(writer.Position);
-			}
-
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return FdbKey.Merge<T>(prefix.ToSlice(), keys);
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -341,25 +322,8 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice[] BatchPack<T>(IFdbTuple prefix, T[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
-			if (keys == null) throw new ArgumentNullException("keys");
 
-			var slice = prefix.ToSlice();
-
-			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var writer = new FdbBufferWriter(keys.Length * (slice.Count + 8));
-			var next = new List<int>(keys.Length);
-			var packer = FdbTuplePacker<T>.Serializer;
-
-			//TODO: use multiple buffers if item count is huge ?
-
-			foreach (var key in keys)
-			{
-				writer.WriteBytes(slice);
-				packer(writer, key);
-				next.Add(writer.Position);
-			}
-
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return FdbKey.Merge<T>(prefix.ToSlice(), keys);
 		}
 
 		#endregion
@@ -443,6 +407,8 @@ namespace FoundationDB.Layers.Tuples
 
 			if (item is Slice) return ((Slice)item).ToAsciiOrHexaString();
 			if (item is byte[]) return Slice.Create(item as byte[]).ToAsciiOrHexaString();
+
+			if (item is FdbTupleAlias) return "{" + item.ToString() + "}";
 
 			var f = item as IFormattable;
 			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);

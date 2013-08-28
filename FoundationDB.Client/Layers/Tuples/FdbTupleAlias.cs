@@ -26,52 +26,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Counters.Tests
+namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
 	using System;
-	using System.Threading.Tasks;
 
-	[TestFixture]
-	public class CounterFacts
+	/// <summary>Special tuple values</summary>
+	public enum FdbTupleAlias
 	{
-		[Test]
-		public async Task Test_FdbCounter_Can_Increment_And_Get_Total()
-		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-				var location = db.Partition("Counters");
+		//TODO: find a better name!
 
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
-
-				var c = new FdbCounter(db, location.Partition("TestBigCounter"));
-
-				for (int i = 0; i < 500; i++)
-				{
-					await c.AddAsync(1);
-
-					if (i % 50 == 0)
-					{
-						Console.WriteLine("=== " + i);
-						await TestHelpers.DumpSubspace(db, location);
-					}
-				}
-
-				Console.WriteLine("=== DONE");
-#if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
-#endif
-
-				using (var tr = db.BeginTransaction())
-				{
-					long v = await c.Read(tr.Snapshot);
-					Assert.That(v, Is.EqualTo(500));
-				}
-			}
-		}
-
+		/// <summary>Alias that represents the Null or Min value '\0' when used in the last position.</summary>
+		Zero = 0,
+		/// <summary>Alias that represents the value '\xFE', frequently used by the Directory Layer</summary>
+		Directory = 254,
+		/// <summary>Alias that represents the Max value '\xFF', also used by the System Keys when in the first position</summary>
+		System = 255
 	}
 
 }

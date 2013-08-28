@@ -26,52 +26,32 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Counters.Tests
+namespace FoundationDB.Layers.Tuples.Tests
 {
+	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
+	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class CounterFacts
+	public class SubspaceFacts
 	{
+
 		[Test]
-		public async Task Test_FdbCounter_Can_Increment_And_Get_Total()
+		public void Test_Empty_Subspace_Is_Empty()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-				var location = db.Partition("Counters");
+			var subspace = FdbSubspace.Empty;
+			Assert.That(subspace, Is.Not.Null, "FdbSubspace.Empty should not return null");
+			Assert.That(FdbSubspace.Empty, Is.SameAs(subspace), "FdbSubspace.Empty is a singleton");
 
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
+			Assert.That(subspace.Key.Count, Is.EqualTo(0), "FdbSubspace.Empty.Key should be equal to Slice.Empty");
+			Assert.That(subspace.Key.HasValue, Is.True, "FdbSubspace.Empty.Key should be equal to Slice.Empty");
 
-				var c = new FdbCounter(db, location.Partition("TestBigCounter"));
-
-				for (int i = 0; i < 500; i++)
-				{
-					await c.AddAsync(1);
-
-					if (i % 50 == 0)
-					{
-						Console.WriteLine("=== " + i);
-						await TestHelpers.DumpSubspace(db, location);
-					}
-				}
-
-				Console.WriteLine("=== DONE");
-#if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
-#endif
-
-				using (var tr = db.BeginTransaction())
-				{
-					long v = await c.Read(tr.Snapshot);
-					Assert.That(v, Is.EqualTo(500));
-				}
-			}
+			Assert.That(subspace.Tuple, Is.Not.Null, "FdbSubspace.Empty.Tuple should not be null");
+			Assert.That(subspace.Tuple.Count, Is.EqualTo(0), "FdbSubspace.Empty.Tuple should be empty");
 		}
-
 	}
 
 }

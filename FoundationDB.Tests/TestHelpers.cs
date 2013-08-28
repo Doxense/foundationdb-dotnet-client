@@ -45,19 +45,19 @@ namespace FoundationDB.Client.Tests
 		/// <returns></returns>
 		public static Task<FdbDatabase> OpenTestDatabaseAsync()
 		{
-			return Fdb.OpenDatabaseAsync(TestClusterFile, TestDbName, string.IsNullOrEmpty(TestPartition) ? FdbSubspace.Empty : new FdbSubspace(TestPartition));
+			return Fdb.OpenDatabaseAsync(TestClusterFile, TestDbName, string.IsNullOrEmpty(TestPartition) ? FdbSubspace.Empty : new FdbSubspace(FdbTuple.Create(TestPartition)));
 		}
 
 		public static async Task DumpSubspace(FdbDatabase db, FdbSubspace subspace)
 		{
-			Assert.That(subspace.Tuple.StartsWith(db.Namespace.Tuple), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
+			Assert.That(subspace.Key.StartsWith(db.Namespace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
 
 			using (var tr = db.BeginTransaction())
 			{
 				Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
 				int count = 0;
 				await tr
-					.GetRangeStartsWith(subspace.Tuple)
+					.GetRange(FdbKeyRange.FromPrefixInclusive(subspace.Key))
 					.ForEachAsync((key, value) =>
 					{
 						++count;
@@ -87,7 +87,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var tr = db.BeginTransaction())
 			{
-				tr.ClearRange(subspace.Tuple);
+				tr.ClearRange(subspace);
 				await tr.CommitAsync();
 			}
 		}

@@ -45,13 +45,13 @@ namespace FoundationDB.Linq
 			private EmptySequence()
 			{ }
 
-			Task<bool> IFdbAsyncEnumerator<TSource>.MoveNext(CancellationToken cancellationToken)
+			Task<bool> IAsyncEnumerator<TSource>.MoveNext(CancellationToken cancellationToken)
 			{
 				cancellationToken.ThrowIfCancellationRequested();
 				return TaskHelpers.FalseTask;
 			}
 
-			TSource IFdbAsyncEnumerator<TSource>.Current
+			TSource IAsyncEnumerator<TSource>.Current
 			{
 				get { throw new InvalidOperationException("This sequence is emty"); }
 			}
@@ -61,7 +61,12 @@ namespace FoundationDB.Linq
 				// NOOP!
 			}
 
-			public IFdbAsyncEnumerator<TSource> GetEnumerator()
+			public IAsyncEnumerator<TSource> GetEnumerator()
+			{
+				return this;
+			}
+
+			public IFdbAsyncEnumerator<TSource> GetEnumerator(FdbAsyncMode mode)
 			{
 				return this;
 			}

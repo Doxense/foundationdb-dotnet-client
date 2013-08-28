@@ -67,13 +67,13 @@ namespace FoundationDB.Layers.Tables
 		public ISliceSerializer<TValue> ValueSerializer { get; private set; }
 
 		/// <summary>(Subspace, METADATA_KEY, attr_name) = attr_value</summary>
-		protected FdbMemoizedTuple MetadataPrefix { get; private set; }
+		protected FdbSubspace MetadataPrefix { get; private set; }
 
 		/// <summary>(Subspace, ITEMS_KEY, key, version) = Contains the value of a specific version of the key, or empty if the last change was a deletion</summary>
-		protected FdbMemoizedTuple ItemsPrefix { get; private set; }
+		protected FdbSubspace ItemsPrefix { get; private set; }
 
 		/// <summary>(Subspace, LATEST_VERSIONS_KEY, key) = Contains the last version for this specific key</summary>
-		protected FdbMemoizedTuple VersionsPrefix { get; private set; }
+		protected FdbSubspace VersionsPrefix { get; private set; }
 
 		public FdbVersionedTable(string name, FdbDatabase database, FdbSubspace subspace, ITupleFormatter<TId> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
@@ -89,9 +89,9 @@ namespace FoundationDB.Layers.Tables
 			this.KeyReader = keyReader;
 			this.ValueSerializer = valueSerializer;
 
-			this.MetadataPrefix = this.Subspace.Append(METADATA_KEY).Memoize();
-			this.ItemsPrefix = this.Subspace.Append(ITEMS_KEY).Memoize();
-			this.VersionsPrefix = this.Subspace.Append(LAST_VERSIONS_KEY).Memoize();
+			this.MetadataPrefix = subspace.Partition(METADATA_KEY);
+			this.ItemsPrefix = subspace.Partition(ITEMS_KEY);
+			this.VersionsPrefix = subspace.Partition(LAST_VERSIONS_KEY);
 		}
 
 		public async Task<bool> OpenOrCreateAsync()
@@ -102,10 +102,10 @@ namespace FoundationDB.Layers.Tables
 				// (Susbspace, 0, Name) = Table Name
 				// (Subspace, ) + \FF = end marker (= "")
 
-				var key = await tr.GetAsync(this.MetadataPrefix).ConfigureAwait(false);
+				var key = await tr.GetAsync(this.MetadataPrefix.Key).ConfigureAwait(false);
 				// it should be (Subspace, 0)
 
-				if (key == this.MetadataPrefix.ToSlice())
+				if (key == this.MetadataPrefix.Key)
 				{ // seems ok
 
 					//TODO: check table name, check metadata ?
@@ -117,9 +117,9 @@ namespace FoundationDB.Layers.Tables
 				var bounds = this.Subspace.ToRange();
 				tr.Set(bounds.Begin, Slice.Empty);
 				tr.Set(bounds.End, Slice.Empty);
-				tr.Set(this.MetadataPrefix.Append("Name"), Slice.FromString(this.Name));
-				tr.Set(this.MetadataPrefix.Append("KeyType"), Slice.FromString(typeof(TId).FullName));
-				tr.Set(this.MetadataPrefix.Append("ValueType"), Slice.FromString(typeof(TValue).FullName));
+				tr.Set(this.MetadataPrefix.Pack("Name"), Slice.FromString(this.Name));
+				tr.Set(this.MetadataPrefix.Pack("KeyType"), Slice.FromString(typeof(TId).FullName));
+				tr.Set(this.MetadataPrefix.Pack("ValueType"), Slice.FromString(typeof(TValue).FullName));
 
 				await tr.CommitAsync().ConfigureAwait(false);
 
@@ -164,7 +164,7 @@ namespace FoundationDB.Layers.Tables
 			var dbKey = await trans.GetKeyAsync(searchKey, ct).ConfigureAwait(false);
 
 			// If the key does not exist at all, or if the specified version is "too early", we will get back a key from a previous entry in the db
-			if (!dbKey.PrefixedBy(GetItemKeyPrefix(id).ToSlice()))
+			if (!dbKey.PrefixedBy(GetItemKeyPrefix(id)))
 			{ // foreign key => "not found"
 				return default(long?);
 			}
@@ -193,21 +193,21 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>Compute the key prefix for all versions of an item</summary>
 		/// <param name="id">Item key</param>
 		/// <returns>(Subspace, ITEMS_KEY, key, )</returns>
-		protected virtual IFdbTuple GetItemKeyPrefix(TId id)
+		protected virtual Slice GetItemKeyPrefix(TId id)
 		{
-			return this.ItemsPrefix.Concat(this.KeyReader.ToTuple(id));
+			return this.ItemsPrefix.Concat(this.KeyReader.ToTuple(id)).ToSlice();
 		}
 
-		protected virtual IFdbTuple GetItemKey(TId id, long version)
+		protected virtual Slice GetItemKey(TId id, long version)
 		{
-			return GetItemKeyPrefix(id).Append(version);
+			return this.ItemsPrefix.Concat(this.KeyReader.ToTuple(id)).Append(version).ToSlice();
 		}
 
 		/// <summary>Compute the key that holds the last known version number of an item</summary>
 		/// <returns>(Subspace, LAST_VERSION_KEY, key, )</returns>
-		protected virtual IFdbTuple GetVersionKey(TId id)
+		protected virtual Slice GetVersionKey(TId id)
 		{
-			return this.VersionsPrefix.Concat(this.KeyReader.ToTuple(id));
+			return this.VersionsPrefix.Concat(this.KeyReader.ToTuple(id)).ToSlice();
 		}
 
 		protected virtual Task<Slice> GetValueAtVersionAsync(IFdbReadTransaction trans, TId id, long version, CancellationToken ct)
@@ -430,7 +430,7 @@ namespace FoundationDB.Layers.Tables
 			var versions = await trans
 				.GetRangeStartsWith(this.ItemsPrefix) //TODO: options ?
 				.Select(
-					(key) => this.KeyReader.FromTuple(FdbTuple.UnpackWithoutPrefix(key, this.VersionsPrefix.Packed)),
+					(key) => this.KeyReader.FromTuple(FdbTuple.UnpackWithoutPrefix(key, this.VersionsPrefix.Key)),
 					(value) => value.ToInt64()
 				)
 				.ToListAsync(ct)
@@ -439,7 +439,7 @@ namespace FoundationDB.Layers.Tables
 			// now read all the values
 
 			var results = await trans.GetValuesAsync(
-				FdbTuple.BatchPack(versions.Select(kvp => GetItemKey(kvp.Key, kvp.Value))),
+				versions.Select(kvp => GetItemKey(kvp.Key, kvp.Value)).ToArray(),
 				ct
 			).ConfigureAwait(false);
 

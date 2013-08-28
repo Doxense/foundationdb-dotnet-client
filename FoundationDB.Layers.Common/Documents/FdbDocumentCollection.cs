@@ -63,9 +63,9 @@ namespace FoundationDB.Layers.Documents
 		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		protected virtual IFdbTuple GetDocumentPrefix(TId id)
+		protected virtual FdbSubspace GetDocumentPrefix(TId id)
 		{
-			return this.Subspace.Append(id);
+			return this.Subspace.Partition(id);
 		}
 
 		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>
@@ -99,7 +99,7 @@ namespace FoundationDB.Layers.Documents
 			{
 				if (part.Value != Slice.Nil)
 				{
-					trans.Set(GetFieldKey(prefix, part.Key), part.Value);
+					trans.Set(prefix.Concat(part.Key), part.Value);
 				}
 			}		
 		}
@@ -109,12 +109,12 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id"); // only for ref types
 
-			var prefix = GetDocumentPrefix(id).ToSlice();
+			var prefix = GetDocumentPrefix(id);
 
 			var parts = await trans
 				.GetRangeStartsWith(prefix) //TODO: options ?
 				.Select(kvp => new KeyValuePair<IFdbTuple, Slice>(
-					FdbTuple.UnpackWithoutPrefix(kvp.Key, prefix),
+					FdbTuple.UnpackWithoutPrefix(kvp.Key, prefix.Key),
 					kvp.Value
 				))
 				.ToArrayAsync(ct);

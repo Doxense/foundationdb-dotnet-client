@@ -145,6 +145,17 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Clear...
+
+		public static void ClearRange(this IFdbTransaction trans, FdbKeyRange range)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.ClearRange(range.Begin, range.End);
+		}
+
+		#endregion
+
 		#region Conflict Ranges...
 
 		/// <summary>
@@ -213,11 +224,28 @@ namespace FoundationDB.Client
 
 		#region Batching...
 
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys, CancellationToken ct = default(CancellationToken))
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			ct.ThrowIfCancellationRequested();
+
+			var array = keys as Slice[];
+			if (array == null) array = keys.ToArray();
+
+			return trans.GetValuesAsync(array, ct);
+		}
+
 		public static Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys, CancellationToken ct = default(CancellationToken))
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			return trans.GetBatchAsync(keys.ToArray(), ct);
+			ct.ThrowIfCancellationRequested();
+
+			var array = keys as Slice[];
+			if (array == null) array = keys.ToArray();
+
+			return trans.GetBatchAsync(array, ct);
 		}
 
 		public static async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, Slice[] keys, CancellationToken ct = default(CancellationToken))

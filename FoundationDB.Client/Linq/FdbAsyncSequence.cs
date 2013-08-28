@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
+	using FoundationDB.Async;
 	using System;
 
 	/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
@@ -44,12 +45,17 @@ namespace FoundationDB.Linq
 			this.Factory = factory;
 		}
 
-		public IFdbAsyncEnumerator<TResult> GetEnumerator()
+		public IAsyncEnumerator<TResult> GetEnumerator()
+		{
+			return this.GetEnumerator(FdbAsyncMode.Default);
+		}
+
+		public IFdbAsyncEnumerator<TResult> GetEnumerator(FdbAsyncMode mode)
 		{
 			IFdbAsyncEnumerator<TSource> inner = null;
 			try
 			{
-				inner = this.Source.GetEnumerator();
+				inner = this.Source.GetEnumerator(mode);
 				if (inner == null) throw new InvalidOperationException("The underlying async sequence returned an empty enumerator");
 
 				var outer = this.Factory(inner);

@@ -26,52 +26,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Counters.Tests
+namespace FoundationDB.Async
 {
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
-	using System;
-	using System.Threading.Tasks;
 
-	[TestFixture]
-	public class CounterFacts
+	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
+	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
+
+	/// <summary>
+	/// Asynchronous version of the IEnumerable&lt;T&gt; interface, allowing elements of the enumerable sequence to be retrieved asynchronously.
+	/// </summary>
+	/// <typeparam name="T">Element type.</typeparam>
+	public interface IAsyncEnumerable<out T>
 	{
-		[Test]
-		public async Task Test_FdbCounter_Can_Increment_And_Get_Total()
-		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-				var location = db.Partition("Counters");
-
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
-
-				var c = new FdbCounter(db, location.Partition("TestBigCounter"));
-
-				for (int i = 0; i < 500; i++)
-				{
-					await c.AddAsync(1);
-
-					if (i % 50 == 0)
-					{
-						Console.WriteLine("=== " + i);
-						await TestHelpers.DumpSubspace(db, location);
-					}
-				}
-
-				Console.WriteLine("=== DONE");
-#if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
-#endif
-
-				using (var tr = db.BeginTransaction())
-				{
-					long v = await c.Read(tr.Snapshot);
-					Assert.That(v, Is.EqualTo(500));
-				}
-			}
-		}
-
+		/// <summary>
+		/// Gets an asynchronous enumerator over the sequence.
+		/// </summary>
+		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
+		IAsyncEnumerator<T> GetEnumerator();
 	}
 
 }

@@ -175,7 +175,7 @@ namespace FoundationDB.Tests.Sandbox
 					Console.WriteLine("> Connected!");
 
 					Console.WriteLine("Opening database 'DB'...");
-					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, new FdbSubspace(SUBSPACE)))
+					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, new FdbSubspace(FdbTuple.Create(SUBSPACE))))
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 

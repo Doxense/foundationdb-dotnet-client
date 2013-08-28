@@ -60,11 +60,11 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>Add the namespace in front of an existing tuple</summary>
 		/// <param name="id">Existing tuple</param>
 		/// <returns>(namespace, tuple_items, )</returns>
-		internal virtual IFdbTuple MakeKey(IFdbTuple id)
+		internal virtual Slice MakeKey(IFdbTuple id)
 		{
 			if (id == null) throw new ArgumentNullException("id");
 
-			return this.Subspace.Concat(id);
+			return this.Subspace.Concat(id).ToSlice();
 		}
 
 		#endregion

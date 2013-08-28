@@ -65,6 +65,9 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Base value for integer types (20 +/- n)</summary>
 		internal const int IntBase = 20;
+
+		internal const int AliasDirectory = (byte)254;
+		internal const int AliasSystem = (byte)255;
 	}
 
 }

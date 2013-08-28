@@ -61,7 +61,7 @@ namespace FoundationDB.Linq.Tests
 					tr.Set(location.Pack("Narf"), Slice.FromString("Zort"));
 				});
 
-				var range = db.Query().RangeStartsWith(location.Tuple);
+				var range = db.Query().RangeStartsWith(location.Key);
 				Assert.That(range, Is.InstanceOf<FdbAsyncSequenceQuery<KeyValuePair<Slice, Slice>>>());
 				Assert.That(range.Expression, Is.InstanceOf<FdbQueryRangeExpression>());
 				Console.WriteLine(range.Expression.DebugView);

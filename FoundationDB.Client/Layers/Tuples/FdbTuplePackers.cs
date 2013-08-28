@@ -123,6 +123,12 @@ namespace FoundationDB.Layers.Tuples
 						return;
 					}
 
+					if (value is FdbTupleAlias)
+					{
+						SerializeTo(writer, (FdbTupleAlias)value);
+						return;
+					}
+
 					break;
 				}
 				case TypeCode.DBNull:
@@ -374,6 +380,13 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteGuid(writer, value);
 		}
 
+		public static void SerializeTo(FdbBufferWriter writer, FdbTupleAlias value)
+		{
+			Contract.Requires(Enum.IsDefined(typeof(FdbTupleAlias), value));
+
+			writer.WriteByte((byte)value);
+		}
+
 		public static void SerializeTupleTo<TTuple>(FdbBufferWriter writer, TTuple tuple)
 			where TTuple : IFdbTuple
 		{
@@ -533,6 +546,12 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
+			if (type >= FdbTupleTypes.AliasDirectory)
+			{
+				if (type == FdbTupleTypes.AliasSystem) return FdbTupleAlias.System;
+				return FdbTupleAlias.Directory;
+			}
+
 			throw new FormatException("Cannot convert slice into this type");
 		}
 
@@ -657,6 +676,12 @@ namespace FoundationDB.Layers.Tuples
 			throw new FormatException("Cannot convert slice into this type");
 		}
 
+		public static FdbTupleAlias DeserializeAlias(Slice slice)
+		{
+			if (slice.Count != 1) throw new FormatException("Cannot convert slice into this type");
+			return (FdbTupleAlias)slice[0];
+		}
+
 		internal static FdbSlicedTuple Unpack(Slice buffer)
 		{
 			var slicer = new Slicer(buffer);
@@ -727,6 +752,12 @@ namespace FoundationDB.Layers.Tuples
 				case FdbTupleTypes.Guid:
 				{ // <03>(16 bytes)
 					return reader.ReadBytes(17);
+				}
+
+				case FdbTupleTypes.AliasDirectory:
+				case FdbTupleTypes.AliasSystem:
+				{ // <FE> or <FF>
+					return reader.ReadBytes(1);
 				}
 			}
 

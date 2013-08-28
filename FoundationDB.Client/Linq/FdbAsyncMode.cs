@@ -26,51 +26,39 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Counters.Tests
+namespace FoundationDB.Linq
 {
-	using FoundationDB.Client.Tests;
-	using NUnit.Framework;
-	using System;
-	using System.Threading.Tasks;
 
-	[TestFixture]
-	public class CounterFacts
+	/// <summary>
+	/// Defines the intent of a consumer of an async iterator
+	/// </summary>
+	public enum FdbAsyncMode
 	{
-		[Test]
-		public async Task Test_FdbCounter_Can_Increment_And_Get_Total()
-		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-				var location = db.Partition("Counters");
+		/// <summary>
+		/// Use the default settings. The provider will make no attempt at optimizing the query.
+		/// </summary>
+		Default = 0,
 
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
+		/// <summary>
+		/// The query will be consumed by chunks and may be aborted at any point. The provider will produce small chunks of data for the first few reads but should still be efficient if the caller consume all the sequence.
+		/// </summary>
+		/// 
+		Iterator,
 
-				var c = new FdbCounter(db, location.Partition("TestBigCounter"));
+		/// <summary>
+		/// The query will consume all the items in the source. The provider will produce large chunks of data immediately, and reduce the number of pages needed to consume the sequence.
+		/// </summary>
+		All,
 
-				for (int i = 0; i < 500; i++)
-				{
-					await c.AddAsync(1);
+		/// <summary>
+		/// The query will consume the first element (or a very small fraction) of the source. The provider will only produce data in small chunks and expect the caller to abort after one or two iterations. This can also be used to reduce the latency of the first result.
+		/// </summary>
+		Head,
 
-					if (i % 50 == 0)
-					{
-						Console.WriteLine("=== " + i);
-						await TestHelpers.DumpSubspace(db, location);
-					}
-				}
-
-				Console.WriteLine("=== DONE");
-#if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
-#endif
-
-				using (var tr = db.BeginTransaction())
-				{
-					long v = await c.Read(tr.Snapshot);
-					Assert.That(v, Is.EqualTo(500));
-				}
-			}
-		}
+		/// <summary>
+		/// The query will consume all (or most of) the items of a very large sequence of data. The provider will use the appropriate page size in ordre to optimize the bandwith.
+		/// </summary>
+		Bulk,
 
 	}
 

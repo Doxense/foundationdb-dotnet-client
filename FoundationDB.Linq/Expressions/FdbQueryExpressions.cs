@@ -71,6 +71,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public static FdbQueryRangeExpression RangeStartsWith(Slice prefix, FdbRangeOptions options = null)
 		{
+			// starts_with('A') means ['A', B')
 			return Range(FdbKeySelectorPair.StartsWith(prefix), options);
 		}
 

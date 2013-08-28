@@ -100,8 +100,8 @@ namespace FoundationDB.Client
 			m_cluster = cluster;
 			m_handle = handle;
 			m_name = name;
-			m_namespace = subspace != null ? new FdbSubspace(subspace) : FdbSubspace.Empty;
-			m_namespaceCopy = new FdbSubspace(m_namespace);
+			m_namespace = subspace ?? FdbSubspace.Empty;
+			m_namespaceCopy = subspace.Copy();
 			m_ownsCluster = ownsCluster;
 		}
 

@@ -59,9 +59,9 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
-		protected virtual IFdbTuple GetKey(IFdbTuple id)
+		protected virtual Slice GetKey(IFdbTuple id)
 		{
-			return this.Subspace.Concat(id);
+			return this.Subspace.Concat(id).ToSlice();
 		}
 
 		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>
@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Blobs
 			if (id == null) throw new ArgumentNullException("id");
 			if (fields == null) throw new ArgumentNullException("fields");
 
-			var keys = FdbTuple.BatchPack(GetKey(id), fields);
+			var keys = FdbKey.Merge(GetKey(id), fields);
 
 			var values = await trans.GetValuesAsync(keys, ct).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);
@@ -193,7 +193,7 @@ namespace FoundationDB.Layers.Blobs
 			if (id == null) throw new ArgumentNullException("id");
 
 			// remove all fields of the hash
-			trans.ClearRange(GetKey(id));
+			trans.ClearRange(FdbKeyRange.StartsWith(GetKey(id)));
 		}
 
 		/// <summary>Remove one or more fields of an hashset</summary>

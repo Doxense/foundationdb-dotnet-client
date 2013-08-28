@@ -47,6 +47,19 @@ namespace FoundationDB.Client
 			this.End = end;
 		}
 
+		public static FdbKeyRange StartsWith(Slice prefix)
+		{
+			if (prefix.Count == 1 && prefix[0] == 0xFF)
+			{ // "" => ("", "\xFF")
+				return new FdbKeyRange(FdbKey.MaxValue, Fdb.SystemKeys.MaxValue);
+			}
+
+			return new FdbKeyRange(
+				prefix,
+				FdbKey.Increment(prefix)
+			);
+		}
+
 		/// <summary>Create a range that selects all keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
 		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>

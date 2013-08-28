@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 			this.Range = range;
 			this.Limit = options.Limit ?? 0;
 			this.TargetBytes = options.TargetBytes ?? 0;
-			this.Mode = options.Mode ?? FdbStreamingMode.WantAll;
+			this.Mode = options.Mode ?? FdbStreamingMode.Iterator;
 			this.Snapshot = snapshot;
 			this.Reverse = options.Reverse ?? false;
 		}
@@ -153,11 +153,17 @@ namespace FoundationDB.Client
 
 		private bool m_gotUsedOnce;
 
-		public IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>> GetEnumerator()
+		public IAsyncEnumerator<KeyValuePair<Slice, Slice>> GetEnumerator()
+		{
+			return this.GetEnumerator(FdbAsyncMode.Default);
+		}
+
+		public IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>> GetEnumerator(FdbAsyncMode mode)
 		{
 			if (m_gotUsedOnce) throw new InvalidOperationException("This query has already been executed once. Reusing the same query object would re-run the query on the server. If you need to data multiple times, you should call ToListAsync() one time, and then reuse this list using normal LINQ to Object operators.");
 			m_gotUsedOnce = true;
-			return new ResultIterator<KeyValuePair<Slice, Slice>>(this, this.Transaction, TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity).GetEnumerator();
+
+			return new ResultIterator<KeyValuePair<Slice, Slice>>(this, this.Transaction, TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity).GetEnumerator(mode);
 		}
 
 		public Task<List<KeyValuePair<Slice, Slice>>> ToListAsync(CancellationToken ct = default(CancellationToken))
@@ -188,6 +194,16 @@ namespace FoundationDB.Client
 		public IFdbAsyncEnumerable<R> Select<K, V, R>(Func<Slice, K> extractKey, Func<Slice, V> extractValue, Func<K, V, R> transform)
 		{
 			return FdbAsyncEnumerable.Select(this, (kvp) => transform(extractKey(kvp.Key), extractValue(kvp.Value)));
+		}
+
+		public Task<bool> NoneAsync(CancellationToken ct = default(CancellationToken))
+		{
+			// we can optimize by using Limit = 1!
+
+			var query = this;
+			if (query.Limit != 1) query = query.Take(1);
+
+			return FdbAsyncEnumerable.NoneAsync(query, ct);
 		}
 
 		public IFdbAsyncEnumerable<Slice> Keys()
@@ -238,9 +254,14 @@ namespace FoundationDB.Client
 				m_query = query;
 			}
 
-			public IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>[]> GetEnumerator()
+			public IAsyncEnumerator<KeyValuePair<Slice, Slice>[]> GetEnumerator()
 			{
-				return new FdbRangeQuery.PagingIterator(m_query, null).GetEnumerator();
+				return this.GetEnumerator(FdbAsyncMode.Default);
+			}
+
+			public IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>[]> GetEnumerator(FdbAsyncMode mode)
+			{
+				return new FdbRangeQuery.PagingIterator(m_query, null).GetEnumerator(mode);
 			}
 
 		}

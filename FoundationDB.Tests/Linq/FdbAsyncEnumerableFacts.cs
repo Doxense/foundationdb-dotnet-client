@@ -137,6 +137,9 @@ namespace FoundationDB.Linq.Tests
 			bool any = await empty.AnyAsync();
 			Assert.That(any, Is.False);
 
+			bool none = await empty.NoneAsync();
+			Assert.That(none, Is.True);
+
 			int count = await empty.CountAsync();
 			Assert.That(count, Is.EqualTo(0));
 		}
@@ -152,6 +155,9 @@ namespace FoundationDB.Linq.Tests
 
 			bool any = await singleton.AnyAsync();
 			Assert.That(any, Is.True);
+
+			bool none = await singleton.NoneAsync();
+			Assert.That(none, Is.False);
 
 			int count = await singleton.CountAsync();
 			Assert.That(count, Is.EqualTo(1));
@@ -487,6 +493,36 @@ namespace FoundationDB.Linq.Tests
 
 			any = await FdbAsyncEnumerable.Empty<int>().AnyAsync(x => x == 42);
 			Assert.That(any, Is.False);
+		}
+
+		[Test]
+		public async Task Test_Can_None()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+			bool none = await source.NoneAsync();
+			Assert.That(none, Is.False);
+
+			source = Enumerable.Range(0, 1).ToAsyncEnumerable();
+			none = await source.NoneAsync();
+			Assert.That(none, Is.False);
+
+			none = await FdbAsyncEnumerable.Empty<int>().NoneAsync();
+			Assert.That(none, Is.True);
+		}
+
+		[Test]
+		public async Task Test_Can_None_With_Predicate()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			bool any = await source.NoneAsync(x => x % 2 == 1);
+			Assert.That(any, Is.False);
+
+			any = await source.NoneAsync(x => x < 0);
+			Assert.That(any, Is.True);
+
+			any = await FdbAsyncEnumerable.Empty<int>().NoneAsync(x => x == 42);
+			Assert.That(any, Is.True);
 		}
 
 		[Test]
