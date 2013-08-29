@@ -222,8 +222,9 @@ namespace Tester
 					IFdbTuple inst = FdbTuple.Unpack(i.Value);
 					string op = inst.Get<string>(0);
 
-					if (op != "PUSH" && op != "SWAP")
-						Console.WriteLine(op);
+					/*if (op != "PUSH" && op != "SWAP")
+						Console.WriteLine(op);*/
+
 					IFdbReadTransaction tr = this.tr;
 
 					bool useDb = op.EndsWith("_DATABASE");
@@ -320,7 +321,7 @@ namespace Tester
 								options.Limit = (int?)(long?)items[1];
 								options.Reverse = (long)items[2] != 0;
 								options.Mode = (FdbStreamingMode)(long)items[3];
-								await PushRangeAsync(tr.GetRangeStartsWith(stringToSlice(items[0]), options));
+								await PushRangeAsync(tr.GetRange(FdbKeyRange.StartsWith(stringToSlice(items[0])), options));
 							}
 							else if (op == "GET_RANGE_SELECTOR")
 							{
@@ -387,10 +388,9 @@ namespace Tester
 							}
 							else if (op == "CLEAR_RANGE_STARTS_WITH")
 							{
-								// Don't know if there is a good way to do this, so I'm faking it
 								var items = await PopAsync(1);
 								Slice prefix = stringToSlice(items[0]);
-								((FdbTransaction)tr).ClearRange(prefix, StrInc(prefix));
+								((FdbTransaction)tr).ClearRange(FdbKeyRange.StartsWith(prefix));
 								isMutation = true;
 							}
 							else if (op == "READ_CONFLICT_RANGE" || op == "WRITE_CONFLICT_RANGE")
@@ -451,9 +451,9 @@ namespace Tester
 								long num = (long)(await PopAsync(1))[0];
 								var items = await PopAsync((int)num);
 
-								FdbSubspace subspace = new FdbSubspace(FdbTuple.Create((IEnumerable<object>)items));
-								stack.Add(subspace.ToRange().Begin.ToByteString());
-								stack.Add(subspace.ToRange().End.ToByteString());
+								FdbKeyRange range = FdbTuple.Create((IEnumerable<object>)items).ToRange();
+								stack.Add(range.Begin.ToByteString());
+								stack.Add(range.End.ToByteString());
 							}
 							else if (op == "START_THREAD")
 							{
