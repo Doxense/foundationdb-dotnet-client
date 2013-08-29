@@ -63,6 +63,20 @@ namespace FoundationDB.Layers.Tuples
 		#region Partition...
 
 		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <param name="formattable">a ITupleFormattable, <paramref name="formattable"/>.ToTuple() will be used for this partition</param>
+		/// <returns>New subspace that is creating by combining the namespace prefix and <paramref name="formattable"/></returns>
+		/// <remarks>Subspace([Foo, ]).Partition(Bar) is equivalent to Subspace([Foo, Bar, ])</remarks>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
+		/// </example>
+		public FdbSubspace Partition(ITupleFormattable formattable)
+		{
+			if (formattable == null) throw new ArgumentNullException("formattable");
+
+			return new FdbSubspace(this.Tuple.Concat(formattable.ToTuple()));
+		}
+
+		/// <summary>Partition this subspace into a child subspace</summary>
 		/// <typeparam name="T">Type of the child subspace key</typeparam>
 		/// <param name="value">Value of the child subspace</param>
 		/// <returns>New subspace that is logically contained by the current subspace</returns>
