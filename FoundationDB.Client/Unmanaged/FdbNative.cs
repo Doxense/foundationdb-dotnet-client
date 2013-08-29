@@ -177,7 +177,7 @@ namespace FoundationDB.Client.Native
 			public static extern void fdb_transaction_cancel(TransactionHandle transaction);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern void fdb_transaction_add_conflict_range(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, FdbConflictRangeType type);
+			public static extern FdbError fdb_transaction_add_conflict_range(TransactionHandle transaction, byte* beginKeyName, int beginKeyNameLength, byte* endKeyName, int endKeyNameLength, FdbConflictRangeType type);
 
 			// Future
 
@@ -838,7 +838,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static void TransactionAddConflictRange(TransactionHandle transaction, Slice beginKey, Slice endKey, FdbConflictRangeType type)
+		public static FdbError TransactionAddConflictRange(TransactionHandle transaction, Slice beginKey, Slice endKey, FdbConflictRangeType type)
 		{
 			fixed (byte* pBeginKey = beginKey.Array)
 			fixed (byte* pEndKey = endKey.Array)
@@ -846,7 +846,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_add_conflict_range(0x" + transaction.Handle.ToString("x") + ", beginKey: '" + FdbKey.Dump(beginKey) + ", endKey: '" + FdbKey.Dump(endKey) + "', " + type.ToString() + ")");
 #endif
-				Stubs.fdb_transaction_add_conflict_range(transaction, pBeginKey + beginKey.Offset, beginKey.Count, pEndKey + endKey.Offset, endKey.Count, type);
+				return Stubs.fdb_transaction_add_conflict_range(transaction, pBeginKey + beginKey.Offset, beginKey.Count, pEndKey + endKey.Offset, endKey.Count, type);
 			}
 		}
 
