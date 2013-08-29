@@ -8,6 +8,26 @@ using System.Threading.Tasks;
 using FoundationDB.Client;
 using FoundationDB.Layers.Tuples;
 
+using Utils;
+
+namespace Utils
+{
+	public static class EncodingHelper
+	{
+		public static readonly Encoding ASCII_8_BIT = Encoding.GetEncoding(28591);
+
+		public static string ToByteString(this Slice slice)
+		{
+			return ASCII_8_BIT.GetString(slice.Array, slice.Offset, slice.Count);
+		}
+
+		public static Slice FromByteString(string text)
+		{
+			return text == null ? Slice.Nil : text.Length == 0 ? Slice.Empty : Slice.Create(ASCII_8_BIT.GetBytes(text));
+		}
+	}
+}
+
 namespace Tester
 {
 	class Program
@@ -73,7 +93,7 @@ namespace Tester
 			lastVersion = 0;
 		}
 
-		string Printable(string val)
+		static string Printable(string val)
 		{
 			return new string(val.SelectMany((b) =>
 			{
@@ -86,9 +106,9 @@ namespace Tester
 			}).ToArray());
 		}
 
-		string Printable(Slice val)
+		static string Printable(Slice val)
 		{
-			return Printable(val.ToAscii());
+			return Printable(val.ToByteString());
 		}
 
 		string StrInc(string val)
@@ -113,7 +133,7 @@ namespace Tester
 
 		Slice StrInc(Slice val)
 		{
-			return Slice.FromAscii(StrInc(val.ToAscii()));
+			return EncodingHelper.FromByteString(StrInc(val.ToByteString()));
 		}
 
 		Slice stringToSlice(object str)
@@ -121,7 +141,7 @@ namespace Tester
 			if (str is Slice)
 				return (Slice)str;
 			else
-				return Slice.FromAscii((string)str);
+				return EncodingHelper.FromByteString((string)str);
 		}
 
 		private async Task<List<object>> PopAsync(int num)
@@ -138,7 +158,7 @@ namespace Tester
 						if (!val.HasValue)
 							items.Add("RESULT_NOT_PRESENT");
 						else
-							items.Add(val.ToAscii());
+							items.Add(val.ToByteString());
 					}
 					else if (item is Task)
 					{
@@ -151,7 +171,7 @@ namespace Tester
 				catch (FdbException e)
 				{
 					Console.WriteLine("FdbError (" + (int)e.Code + "): " + e.Message);
-					items.Add(FdbTuple.Pack(System.Text.Encoding.ASCII.GetBytes("ERROR"), System.Text.Encoding.ASCII.GetBytes(((int)e.Code).ToString())).ToAscii());
+					items.Add(FdbTuple.Pack(EncodingHelper.ASCII_8_BIT.GetBytes("ERROR"), EncodingHelper.ASCII_8_BIT.GetBytes(((int)e.Code).ToString())).ToByteString());
 				}
 
 				stack.RemoveAt(stack.Count() - 1);
@@ -178,24 +198,19 @@ namespace Tester
 				tuple = FdbTuple.Create(results.SelectMany((r) => new object[] { r.Key, r.Value }));
 			}
 
-			/*int i = 0;
-			foreach(var obj in tuple) {
-				Console.Out.WriteLine(++i + ": " + Printable((Slice)obj));
-			}*/
-
-			stack.Add(tuple.ToSlice().ToAscii());
+			stack.Add(tuple.ToSlice().ToByteString());
 		}
 
 		private async Task RunAsync()
 		{
-			await db.Attempt.ReadAsync(async (tr) => instructions = await tr.GetRangeStartsWith(FdbTuple.Create(Slice.FromString(prefix))).ToListAsync());
+			await db.Attempt.ReadAsync(async (tr) => instructions = await tr.GetRangeStartsWith(FdbTuple.Create(EncodingHelper.FromByteString(prefix))).ToListAsync());
 
 			foreach(var i in instructions) 
 			{
 				IFdbTuple inst = FdbTuple.Unpack(i.Value);
 				string op = inst.Get<string>(0);
 
-				Console.Out.WriteLine(op);
+				//Console.WriteLine(op);
 				IFdbReadTransaction tr = this.tr;
 
 				bool useDb = op.EndsWith("_DATABASE");
@@ -305,7 +320,7 @@ namespace Tester
 					else if (op == "ATOMIC_OP")
 					{
 						var items = await PopAsync(3);
-						string mutationType = stringToSlice(items[0]).ToAscii();
+						string mutationType = stringToSlice(items[0]).ToByteString();
 
 						switch(mutationType) 
 						{
@@ -395,30 +410,27 @@ namespace Tester
 					{
 						long num = (long)(await PopAsync(1))[0];
 						var items = await PopAsync((int)num);
-						stack.Add(FdbTuple.Create((IEnumerable<object>)items).ToSlice().ToAscii());
+						stack.Add(FdbTuple.Create((IEnumerable<object>)items).ToSlice().ToByteString());
 					}
 					else if (op == "TUPLE_UNPACK")
 					{
 						var items = await PopAsync(1);
 						foreach (var t in FdbTuple.Unpack(stringToSlice(items[0])))
-							stack.Add(FdbTuple.Pack(t).ToAscii());
+							stack.Add(FdbTuple.Pack(t).ToByteString());
 					}
 					else if (op == "TUPLE_RANGE")
 					{
 						long num = (long)(await PopAsync(1))[0];
 						var items = await PopAsync((int)num);
 
-						foreach (var it in items)
-							Console.Out.WriteLine(it);
-
 						FdbSubspace subspace = new FdbSubspace(FdbTuple.Create((IEnumerable<object>)items));
-						stack.Add(subspace.ToRange().Begin.ToAscii());
-						stack.Add(subspace.ToRange().End.ToAscii());
+						stack.Add(subspace.ToRange().Begin.ToByteString());
+						stack.Add(subspace.ToRange().End.ToByteString());
 					}
 					else if (op == "START_THREAD")
 					{
 						var items = await PopAsync(1);
-						Program p = new Program(db, stringToSlice(items[0]).ToAscii());
+						Program p = new Program(db, stringToSlice(items[0]).ToByteString());
 						subTasks.Add(p.RunAsync());
 					}
 					else if (op == "WAIT_EMPTY")
@@ -454,7 +466,7 @@ namespace Tester
 				catch (FdbException e)
 				{
 					Console.WriteLine("FdbError (" + (int)e.Code + "): " + e.Message);
-					stack.Add(FdbTuple.Pack(System.Text.Encoding.ASCII.GetBytes("ERROR"), System.Text.Encoding.ASCII.GetBytes(((int)e.Code).ToString())).ToAscii());
+					stack.Add(FdbTuple.Pack(EncodingHelper.ASCII_8_BIT.GetBytes("ERROR"), EncodingHelper.ASCII_8_BIT.GetBytes(((int)e.Code).ToString())).ToByteString());
 				}
 				catch (Exception e)
 				{
