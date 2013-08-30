@@ -111,7 +111,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (!allowCreate) throw new InvalidOperationException("The directory does not exist.");
 
-			if (prefix == null)
+			if (prefix.IsNullOrEmpty)
 			{
 				long id = await this.Allocator.AllocateAsync(tr).ConfigureAwait(false);
 				prefix = FdbTuple.Pack(id);
