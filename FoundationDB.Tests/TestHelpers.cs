@@ -59,6 +59,7 @@ namespace FoundationDB.Client.Tests
 					.GetRange(FdbKeyRange.FromPrefixInclusive(subspace.Key))
 					.ForEachAsync((key, value) =>
 					{
+						key = db.Extract(key);
 						++count;
 						string keyDump = null;
 						try
