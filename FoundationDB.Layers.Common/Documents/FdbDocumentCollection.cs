@@ -99,7 +99,7 @@ namespace FoundationDB.Layers.Documents
 			{
 				if (part.Value != Slice.Nil)
 				{
-					trans.Set(prefix.Concat(part.Key), part.Value);
+					trans.Set(prefix.Pack(part.Key), part.Value);
 				}
 			}		
 		}

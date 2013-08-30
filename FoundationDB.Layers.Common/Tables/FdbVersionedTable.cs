@@ -195,19 +195,19 @@ namespace FoundationDB.Layers.Tables
 		/// <returns>(Subspace, ITEMS_KEY, key, )</returns>
 		protected virtual Slice GetItemKeyPrefix(TId id)
 		{
-			return this.ItemsPrefix.Concat(this.KeyReader.ToTuple(id)).ToSlice();
+			return this.ItemsPrefix.Pack(this.KeyReader.ToTuple(id));
 		}
 
 		protected virtual Slice GetItemKey(TId id, long version)
 		{
-			return this.ItemsPrefix.Concat(this.KeyReader.ToTuple(id)).Append(version).ToSlice();
+			return this.ItemsPrefix.Pack(this.KeyReader.ToTuple(id), version);
 		}
 
 		/// <summary>Compute the key that holds the last known version number of an item</summary>
 		/// <returns>(Subspace, LAST_VERSION_KEY, key, )</returns>
 		protected virtual Slice GetVersionKey(TId id)
 		{
-			return this.VersionsPrefix.Concat(this.KeyReader.ToTuple(id)).ToSlice();
+			return this.VersionsPrefix.Pack(this.KeyReader.ToTuple(id));
 		}
 
 		protected virtual Task<Slice> GetValueAtVersionAsync(IFdbReadTransaction trans, TId id, long version, CancellationToken ct)

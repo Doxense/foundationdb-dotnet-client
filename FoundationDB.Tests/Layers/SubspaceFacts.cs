@@ -69,7 +69,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(subspace.Pack(FdbTuple.Create("hello", 123)).ToString(), Is.EqualTo("*<FF><00><7F><02>hello<00><15>{"));
 
 			// if we derive a tuple from this subspace, it should keep the binary prefix when converted to a key
-			var t = subspace.Append("world", 123, false);
+			var t = subspace.Create("world", 123, false);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Subspace, Is.SameAs(subspace));
 			Assert.That(t.Count, Is.EqualTo(3));
@@ -105,7 +105,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(subspace.Pack("world").ToString(), Is.EqualTo("<02>hello<00><02>world<00>"));
 
 			// even though the subspace prefix is a tuple, appending to it will only return the new items
-			var t = subspace.Append("world", 123, false);
+			var t = subspace.Create("world", 123, false);
 			Assert.That(t, Is.Not.Null);
 			Assert.That(t.Count, Is.EqualTo(3));
 			Assert.That(t.Get<string>(0), Is.EqualTo("world"));
@@ -139,7 +139,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(child.Key.ToString(), Is.EqualTo("<FE><02>hca<00>"));
 
 			// create a tuple from this child subspace
-			var tuple = child.Append(123);
+			var tuple = child.Create(123);
 			Assert.That(tuple, Is.Not.Null);
 			Assert.That(tuple.ToSlice().ToString(), Is.EqualTo("<FE><02>hca<00><15>{"));
 
@@ -148,7 +148,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t1.ToSlice().ToString(), Is.EqualTo("<FE><02>hca<00><15>{<14>"));
 
 			// check that we could also create the same key starting from the parent subspace
-			var t2 = parent.Append("hca", 123, false);
+			var t2 = parent.Create("hca", 123, false);
 			Assert.That(t2.ToSlice(), Is.EqualTo(t1.ToSlice()));
 		}
 

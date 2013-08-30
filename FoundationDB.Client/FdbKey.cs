@@ -199,6 +199,33 @@ namespace FoundationDB.Client
 			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
+		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] Merge<T>(Slice prefix, Slice[] keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			// we can pre-allocate exactly the buffer by computing the total size of all keys
+			var writer = new FdbBufferWriter(keys.Sum(key => key.Count) + keys.Length * prefix.Count);
+			var next = new List<int>(keys.Length);
+			var packer = FdbTuplePacker<T>.Serializer;
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var key in keys)
+			{
+				if (prefix.Count > 0) writer.WriteBytes(prefix);
+				writer.WriteBytes(key);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
 		/// <summary>Split a buffer containing multiple contiguous segments into an array of segments</summary>
 		/// <param name="buffer">Buffer containing all the segments</param>
 		/// <param name="start">Offset of the start of the first segment</param>

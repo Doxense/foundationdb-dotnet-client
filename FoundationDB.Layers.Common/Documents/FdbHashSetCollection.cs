@@ -61,7 +61,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <returns></returns>
 		protected virtual Slice GetKey(IFdbTuple id)
 		{
-			return this.Subspace.Concat(id).ToSlice();
+			return this.Subspace.Pack(id);
 		}
 
 		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>
