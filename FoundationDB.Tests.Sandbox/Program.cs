@@ -186,8 +186,8 @@ namespace FoundationDB.Tests.Sandbox
 						// clear everything
 						using (var tr = db.BeginTransaction())
 						{
-							Console.WriteLine("Clearing subspace " + db.Namespace + " ...");
-							tr.ClearRange(db.Namespace);
+							Console.WriteLine("Clearing subspace " + db.GlobalSpace + " ...");
+							tr.ClearRange(db.GlobalSpace);
 							await tr.CommitAsync();
 							Console.WriteLine("> Database cleared");
 						}
@@ -273,7 +273,7 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			Console.WriteLine("Starting new transaction...");
 
-			var location = db.Namespace;
+			var location = db.GlobalSpace;
 
 			using (var trans = db.BeginTransaction())
 			{
@@ -536,7 +536,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			var list = new byte[N];
 			var update = Stopwatch.StartNew();
-			var key = db.Namespace.Pack("list");
+			var key = db.GlobalSpace.Pack("list");
 			for (int i = 0; i < N; i++)
 			{
 				list[i] = (byte)i;

@@ -64,7 +64,7 @@ namespace FoundationDB.Layers.Directories
 				throw new InvalidOperationException("The directory was created with an incompatible layer.");
 		}
 
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, IFdbTuple prefix = null)
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice))
 		{
 			return this.DirectoryLayer.CreateOrOpenAsync(tr, this.Path.Concat(subPath), layer, prefix);
 		}
@@ -74,7 +74,7 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.OpenAsync(tr, this.Path.Concat(subPath), layer);
 		}
 
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, IFdbTuple prefix = null)
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice))
 		{
 			return this.DirectoryLayer.CreateAsync(tr, this.Path.Concat(subPath), layer, prefix);
 		}

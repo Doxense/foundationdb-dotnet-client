@@ -70,7 +70,7 @@ namespace FoundationDB.Client
 				return new FdbException(
 					FdbError.KeyOutsideLegalRange,
 #if DEBUG
-					String.Format("An attempt was made to use a key '{2}' that is outside of the global namespace {0} of database '{1}'", db.Namespace.ToString(), db.Name, key.ToString())
+					String.Format("An attempt was made to use a key '{2}' that is outside of the global namespace {0} of database '{1}'", db.GlobalSpace.ToString(), db.Name, key.ToString())
 #else
 					String.Format("An attempt was made to use a key that is outside of the global namespace {0} of database '{1}'", db.Namespace.ToString(), db.Name)
 #endif

@@ -309,7 +309,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return the global namespace used by this database instance</summary>
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
-		public FdbSubspace Namespace
+		public FdbSubspace GlobalSpace
 		{
 			get
 			{

@@ -84,7 +84,7 @@ namespace FoundationDB.Layers.Directories
 		/// If prefix is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
-		public async Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, IFdbTuple prefix = null, bool allowCreate = true, bool allowOpen = true)
+		public async Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (path == null) throw new ArgumentNullException("path");
@@ -114,10 +114,10 @@ namespace FoundationDB.Layers.Directories
 			if (prefix == null)
 			{
 				long id = await this.Allocator.AllocateAsync(tr).ConfigureAwait(false);
-				prefix = FdbTuple.Create(id);
+				prefix = FdbTuple.Pack(id);
 			}
 
-			if (!(await IsPrefixFree(tr, prefix.ToSlice()).ConfigureAwait(false)))
+			if (!(await IsPrefixFree(tr, prefix).ConfigureAwait(false)))
 			{
 				throw new InvalidOperationException("The given prefix is already in use.");
 			}
@@ -135,8 +135,8 @@ namespace FoundationDB.Layers.Directories
 
 			if (parentNode == null) throw new InvalidOperationException("The parent directory doesn't exist.");
 
-			var node = NodeWithPrefix(prefix.ToSlice());
-			tr.Set(GetSubDirKey(parentNode, path, -1), prefix.ToSlice());
+			var node = NodeWithPrefix(prefix);
+			tr.Set(GetSubDirKey(parentNode, path, -1), prefix);
 			if (!string.IsNullOrEmpty(layer))
 			{
 				tr.Set(node.Pack(LayerSuffix), Slice.FromString(layer));
@@ -151,7 +151,7 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null)
 		{
-			return CreateOrOpenAsync(tr, path, layer, prefix: null, allowCreate: false, allowOpen: true);
+			return CreateOrOpenAsync(tr, path, layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true);
 		}
 
 		/// <summary>
@@ -160,7 +160,7 @@ namespace FoundationDB.Layers.Directories
 		/// If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.
 		/// </summary>
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, IFdbTuple prefix = null)
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
 		{
 			return CreateOrOpenAsync(tr, path, layer, prefix: prefix, allowCreate: true, allowOpen: false);
 		}

@@ -36,7 +36,7 @@ namespace FoundationDB.Layers.Tuples
 	public class FdbSubspace
 	{
 		/// <summary>Empty subspace, that does not add any prefix to the keys</summary>
-		public static readonly FdbSubspace Empty = new FdbSubspace(FdbTuple.Empty);
+		public static readonly FdbSubspace Empty = new FdbSubspace(Slice.Empty);
 
 		/// <summary>Return the packed binary prefix of this subspace</summary>
 		public Slice Key { get; private set; }
@@ -53,6 +53,17 @@ namespace FoundationDB.Layers.Tuples
 		public FdbSubspace(IFdbTuple tuple)
 		{
 			this.Key = tuple.ToSlice().Memoize();
+		}
+
+
+		public static FdbSubspace Create(Slice slice)
+		{
+			return new FdbSubspace(slice);
+		}
+
+		public static FdbSubspace Create(string name)
+		{
+			return new FdbSubspace(FdbTuple.Create(name));
 		}
 
 		internal FdbSubspace Copy()
