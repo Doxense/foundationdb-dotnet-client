@@ -38,43 +38,87 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Empty subspace, that does not add any prefix to the keys</summary>
 		public static readonly FdbSubspace Empty = new FdbSubspace(FdbTuple.Empty);
 
-		/// <summary>Store a memoized version of the tuple to speed up serialization</summary>
-		public FdbMemoizedTuple Tuple { get; private set; }
-
 		/// <summary>Return the packed binary prefix of this subspace</summary>
-		public Slice Key { get { return this.Tuple.Packed; } }
+		public Slice Key { get; private set; }
 
 		#region Constructors...
+
+		public FdbSubspace(Slice key)
+		{
+			this.Key = key.Memoize();
+		}
 
 		/// <summary>Create a new subspace that wraps a Tuple</summary>
 		/// <param name="tuple"></param>
 		public FdbSubspace(IFdbTuple tuple)
 		{
-			this.Tuple = (tuple ?? FdbTuple.Empty).Memoize();
+			this.Key = tuple.ToSlice().Memoize();
 		}
 
 		internal FdbSubspace Copy()
 		{
-			return new FdbSubspace(this.Tuple.Copy());
+			return new FdbSubspace(this.Key);
+		}
+
+		internal static Slice Concat(Slice prefix, Slice key)
+		{
+			return prefix + key;
+		}
+
+		internal static Slice Concat(Slice prefix, IFdbTuple tuple)
+		{
+			if (tuple == null || tuple.Count == 0) return prefix;
+
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			if (tuple != null)
+			{
+				tuple.PackTo(writer);
+			}
+			return writer.ToSlice();
+		}
+
+		internal static Slice Concat<T>(Slice prefix, T value)
+		{
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			FdbTuplePacker<T>.Serializer(writer, value);
+			return writer.ToSlice();			
+		}
+
+		internal static Slice Concat<T1, T2>(Slice prefix, T1 value1, T2 value2)
+		{
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			FdbTuplePacker<T1>.Serializer(writer, value1);
+			FdbTuplePacker<T2>.Serializer(writer, value2);
+			return writer.ToSlice();
+		}
+
+		internal static Slice Concat<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
+		{
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			FdbTuplePacker<T1>.Serializer(writer, value1);
+			FdbTuplePacker<T2>.Serializer(writer, value2);
+			FdbTuplePacker<T3>.Serializer(writer, value3);
+			return writer.ToSlice();
+		}
+
+		internal static Slice Concat<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
+		{
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			FdbTuplePacker<T1>.Serializer(writer, value1);
+			FdbTuplePacker<T2>.Serializer(writer, value2);
+			FdbTuplePacker<T3>.Serializer(writer, value3);
+			FdbTuplePacker<T4>.Serializer(writer, value4);
+			return writer.ToSlice();
 		}
 
 		#endregion
 
 		#region Partition...
-
-		/// <summary>Partition this subspace into a child subspace</summary>
-		/// <param name="formattable">a ITupleFormattable, <paramref name="formattable"/>.ToTuple() will be used for this partition</param>
-		/// <returns>New subspace that is creating by combining the namespace prefix and <paramref name="formattable"/></returns>
-		/// <remarks>Subspace([Foo, ]).Partition(Bar) is equivalent to Subspace([Foo, Bar, ])</remarks>
-		/// <example>
-		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
-		/// </example>
-		public FdbSubspace Partition(ITupleFormattable formattable)
-		{
-			if (formattable == null) throw new ArgumentNullException("formattable");
-
-			return new FdbSubspace(this.Tuple.Concat(formattable.ToTuple()));
-		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
 		/// <typeparam name="T">Type of the child subspace key</typeparam>
@@ -86,7 +130,7 @@ namespace FoundationDB.Layers.Tuples
 		/// </example>
 		public FdbSubspace Partition<T>(T value)
 		{
-			return new FdbSubspace(this.Tuple.Append<T>(value));
+			return new FdbSubspace(FdbSubspace.Concat<T>(this.Key, value));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -101,7 +145,7 @@ namespace FoundationDB.Layers.Tuples
 		/// </example>
 		public FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
 		{
-			return new FdbSubspace(this.Tuple.Concat(new FdbTuple<T1, T2>(value1, value2)));
+			return new FdbSubspace(FdbSubspace.Concat<T1, T2>(this.Key, value1, value2));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -117,7 +161,7 @@ namespace FoundationDB.Layers.Tuples
 		/// </example>
 		public FdbSubspace Partition<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
-			return new FdbSubspace(this.Tuple.Concat(new FdbTuple<T1, T2, T3>(value1, value2, value3)));
+			return new FdbSubspace(FdbSubspace.Concat(this.Key, new FdbTuple<T1, T2, T3>(value1, value2, value3)));
 		}
 
 		/// <summary>Parition this subspace by appending a tuple</summary>
@@ -131,7 +175,22 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 			if (tuple.Count == 0) return this;
-			return new FdbSubspace(this.Tuple.Concat(tuple));
+			return new FdbSubspace(FdbSubspace.Concat(this.Key, tuple));
+		}
+
+		/// <summary>Partition this subspace into a child subspace</summary>
+		/// <param name="formattable">a ITupleFormattable, <paramref name="formattable"/>.ToTuple() will be used for this partition</param>
+		/// <returns>New subspace that is creating by combining the namespace prefix and <paramref name="formattable"/></returns>
+		/// <remarks>Subspace([Foo, ]).Partition(Bar) is equivalent to Subspace([Foo, Bar, ])</remarks>
+		/// <example>
+		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
+		/// </example>
+		public FdbSubspace Partition(ITupleFormattable formattable)
+		{
+			if (formattable == null) throw new ArgumentNullException("formattable");
+			var tuple = formattable.ToTuple();
+			if (tuple == null) throw new InvalidOperationException("Formattable item returned an empty tuple");
+			return Partition(tuple);
 		}
 
 		/// <summary>Returns true if <paramref name="key"/> is contained withing this subspace's tuple (or is equal to tuple itself)</summary>
@@ -139,12 +198,25 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns></returns>
 		public bool Contains(Slice key)
 		{
-			return key.HasValue && key.StartsWith(this.Tuple.Packed);
+			return key.HasValue && key.StartsWith(this.Key);
 		}
 
 		#endregion
 
 		#region Pack...
+
+		public Slice Pack(IFdbTuple tuple)
+		{
+			return FdbSubspace.Concat(this.Key, tuple);
+		}
+
+		public Slice Pack(ITupleFormattable item)
+		{
+			if (item == null) throw new ArgumentNullException("item");
+			var tuple = item.ToTuple();
+			if (tuple == null) throw new InvalidOperationException("The item returned an empty tuple");
+			return FdbSubspace.Concat(this.Key, tuple);
+		}
 
 		/// <summary>Create a new key by appending a value to the current tuple</summary>
 		/// <typeparam name="T">Type of the value</typeparam>
@@ -153,14 +225,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>tuple.Pack(x) is equivalent to tuple.Append(x).ToSlice()</example>
 		public Slice Pack<T>(T key)
 		{
-#if DEBUG
-			// Frequent mistake: t1.Append(t2) does NOT mean "append t2's items at the end of t1", but "append t2 itself as an element of t1" which is currently not supported.
-			if (typeof(IFdbTuple).IsAssignableFrom(typeof(T))) throw new InvalidOperationException("Packing a tuple as a single item at the end of anoter tuple is currently not properly supported. If you meant to append the items of the tuple, then you need to call subspace.Concat(tuple).ToSlice() instead.");
-#endif
-
-			var writer = OpenBuffer();
-			FdbTuplePacker<T>.SerializeTo(writer, key);
-			return writer.ToSlice();
+			return FdbSubspace.Concat<T>(this.Key, key);
 		}
 
 		/// <summary>Create a new key by appending two values to the current tuple</summary>
@@ -172,10 +237,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>(...,).Pack(x, y) is equivalent to (...,).Append(x).Append(y).ToSlice()</example>
 		public Slice Pack<T1, T2>(T1 key1, T2 key2)
 		{
-			var writer = OpenBuffer();
-			FdbTuplePacker<T1>.SerializeTo(writer, key1);
-			FdbTuplePacker<T2>.SerializeTo(writer, key2);
-			return writer.ToSlice();
+			return FdbSubspace.Concat<T1, T2>(this.Key, key1, key2);
 		}
 
 		/// <summary>Create a new key by appending three values to the current tuple</summary>
@@ -189,11 +251,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>tuple.Pack(x, y, z) is equivalent to tuple.Append(x).Append(y).Append(z).ToSlice()</example>
 		public Slice Pack<T1, T2, T3>(T1 key1, T2 key2, T3 key3)
 		{
-			var writer = OpenBuffer();
-			FdbTuplePacker<T1>.SerializeTo(writer, key1);
-			FdbTuplePacker<T2>.SerializeTo(writer, key2);
-			FdbTuplePacker<T3>.SerializeTo(writer, key3);
-			return writer.ToSlice();
+			return FdbSubspace.Concat<T1, T2, T3>(this.Key, key1, key2, key3);
 		}
 
 		/// <summary>Create a new key by appending three values to the current tuple</summary>
@@ -209,31 +267,33 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>tuple.Pack(w, x, y, z) is equivalent to tuple.Append(w).Append(x).Append(y).Append(z).ToSlice()</example>
 		public Slice Pack<T1, T2, T3, T4>(T1 key1, T2 key2, T3 key3, T4 key4)
 		{
-			var writer = OpenBuffer();
-			FdbTuplePacker<T1>.SerializeTo(writer, key1);
-			FdbTuplePacker<T2>.SerializeTo(writer, key2);
-			FdbTuplePacker<T3>.SerializeTo(writer, key3);
-			FdbTuplePacker<T4>.SerializeTo(writer, key4);
-			return writer.ToSlice();
+			return FdbSubspace.Concat<T1, T2, T3, T4>(this.Key, key1, key2, key3, key4);
 		}
 
 		#endregion
 
 		#region Append...
 
+		public FdbSubspaceTuple ToTuple()
+		{
+			return new FdbSubspaceTuple(this, FdbTuple.Empty);
+		}
+
+		[Obsolete("Will be renamed to Create()")]
+		public FdbSubspaceTuple Append(IFdbTuple tuple)
+		{
+			return new FdbSubspaceTuple(this, tuple);
+		}
+
 		/// <summary>Append the subspace suffix to a key and return the full path</summary>
 		/// <typeparam name="T">Type of the key to append</typeparam>
 		/// <param name="value">Value of the key to append</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the specified value</returns>
 		/// <example>new FdbSubspace(["Users",]).Append(123) => ["Users",123,]</example>
-		public FdbLinkedTuple<T> Append<T>(T value)
+		[Obsolete("Will be renamed to Create()")]
+		public FdbSubspaceTuple Append<T>(T value)
 		{
-#if DEBUG
-			// Frequent mistake: t1.Append(t2) does NOT mean "append t2's items at the end of t1", but "append t2 itself as an element of t1" which is currently not supported.
-			if (typeof(IFdbTuple).IsAssignableFrom(typeof(T))) throw new InvalidOperationException("Appending a tuple as a single item inside anoter tuple is currently not properly supported. If you meant to append the items of the tuple, then you need to call subspace.Concat(tuple) instead.");
-#endif
-
-			return new FdbLinkedTuple<T>(this.Tuple, value);
+			return new FdbSubspaceTuple(this, FdbTuple.Create<T>(value));
 		}
 
 		/// <summary>Append the subspace suffix to a pair of keys and return the full path</summary>
@@ -243,9 +303,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="value2">Value of the second key</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, and second value</returns>
 		/// <example>new FdbSubspace(["Users",]).Append("ContactsById", 123) => ["Users","ContactsById",123,]</example>
-		public IFdbTuple Append<T1, T2>(T1 value1, T2 value2)
+		[Obsolete("Will be renamed to Create()")]
+		public FdbSubspaceTuple Append<T1, T2>(T1 value1, T2 value2)
 		{
-			return this.Tuple.Concat(new FdbTuple<T1, T2>(value1, value2));
+			return new FdbSubspaceTuple(this, FdbTuple.Create<T1, T2>(value1, value2));
 		}
 
 		/// <summary>Append the subspace suffix to a triplet of keys and return the full path</summary>
@@ -257,18 +318,20 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="value3">Value of the third key</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, second and third value</returns>
 		/// <example>new FdbSubspace(["Users",]).Append("ContactsById", 123, "Bob") => ("Users","ContactsById",123,"Bob")</example>
-		public IFdbTuple Append<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		[Obsolete("Will be renamed to Create()")]
+		public FdbSubspaceTuple Append<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
-			return this.Tuple.Concat(new FdbTuple<T1, T2, T3>(value1, value2, value3));
+			return new FdbSubspaceTuple(this, FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
 		}
 
 		/// <summary>Append the subspace suffix to a list of keys and return the full path</summary>
 		/// <param name="items">Liste of values to append after the subspace</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the list of items</returns>
 		/// <example>new FdbSubspace(["Users",]).Append("ContactsById", 123, 456, 789) => ("Users","ContactsById",123,456,789,)</example>
-		public IFdbTuple Append(params object[] items)
+		[Obsolete("Will be renamed to Create()")]
+		public FdbSubspaceTuple Append(params object[] items)
 		{
-			return this.Tuple.Concat(FdbTuple.Create(items));
+			return new FdbSubspaceTuple(this, FdbTuple.Create(items));
 		}
 
 		#endregion
@@ -290,21 +353,23 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the first, second and third value</returns>
 		/// <example>new FdbSubspace(["Users",]).Append("User123", "ContactsById", 456) => ("Users","User123","ContactsById",456,)</example>
 		/// <remarks>Calling 'subspace.Concat(tuple)' is equivalent to calling 'subspace.Append(tuple.Item1).Append(tuple.Item2)....Append(tuple.ItemN)'</remarks>
-		public IFdbTuple Concat(IFdbTuple value)
+		[Obsolete("Will be renamed to Create()")]
+		public FdbSubspaceTuple Concat(IFdbTuple value)
 		{
 			if (value == null) throw new ArgumentNullException("value");
 
-			return this.Tuple.Concat(value);
+			return new FdbSubspaceTuple(this, value);
 		}
 
 		/// <summary>Append the subspace suffix to the tuple created from key</summary>
 		/// <param name="value1">Value of the first key</param>
 		/// <returns>Tuple that starts with the subspace's suffix, followed by the toTuple</returns>
-		public IFdbTuple Concat(ITupleFormattable value)
+		[Obsolete("Will be renamed to Create()")]
+		public FdbSubspaceTuple Concat(ITupleFormattable value)
 		{
 			if (value == null) throw new ArgumentNullException("value");
 
-			return this.Tuple.Concat(value.ToTuple());
+			return new FdbSubspaceTuple(this, value.ToTuple());
 		}
 
 		#endregion
@@ -322,7 +387,7 @@ namespace FoundationDB.Layers.Tuples
 			// This is to simplifiy decoding logic where the caller could do "var foo = FdbTuple.Unpack(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
 			if (!key.HasValue) return null;
 
-			return FdbTuple.UnpackWithoutPrefix(key, this.Key);
+			return new FdbSubspaceTuple(this, FdbTuple.UnpackWithoutPrefix(key, this.Key));
 		}
 
 		/// <summary>Unpack a key into a tuple, and return only the last element</summary>
@@ -348,7 +413,7 @@ namespace FoundationDB.Layers.Tuples
 				{
 					if (keys[i].HasValue)
 					{
-						tuples[i] = FdbTuple.UnpackWithoutPrefix(keys[i], prefix);
+						tuples[i] = new FdbSubspaceTuple(this, FdbTuple.UnpackWithoutPrefix(keys[i], prefix));
 					}
 				}
 			}
@@ -389,30 +454,30 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (!key.HasValue) return Slice.Nil;
 
-			if (!key.StartsWith(this.Tuple.Packed))
+			if (!key.StartsWith(this.Key))
 			{
 				// or should we throw ?
 				return Slice.Nil;
 			}
 
-			return key.Substring(this.Tuple.PackedSize);
+			return key.Substring(this.Key.Count);
 		}
 
 		#endregion
 
 		public FdbKeyRange ToRange()
 		{
-			return this.Tuple.ToRange();
+			return FdbKeyRange.FromPrefix(this.Key);
 		}
 
 		public FdbKeyRange ToRange(IFdbTuple tuple)
 		{
-			return FdbKeyRange.FromPrefix(this.Tuple.Append(tuple).ToSlice());
+			return FdbKeyRange.FromPrefix(FdbSubspace.Concat(this.Key, tuple));
 		}
 
 		public FdbKeySelectorPair ToSelectorPair()
 		{
-			return this.Tuple.ToSelectorPair();
+			return FdbKeySelectorPair.Create(ToRange());
 		}
 
 		internal FdbBufferWriter OpenBuffer(int extraBytes = 0)
@@ -425,19 +490,19 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return this.Tuple.ToString();
+			return this.Key.ToString();
 		}
 
 		public override int GetHashCode()
 		{
-			return this.Tuple.GetHashCode();
+			return this.Key.GetHashCode();
 		}
 
 		public override bool Equals(object obj)
 		{
 			if (object.ReferenceEquals(obj, this)) return true;
-			if (obj is FdbSubspace) return this.Tuple.Equals((obj as FdbSubspace).Tuple);
-			if (obj is IFdbTuple) return this.Tuple.Equals(obj as IFdbTuple);
+			if (obj is FdbSubspace) return this.Key.Equals((obj as FdbSubspace).Key);
+			if (obj is Slice) return this.Key.Equals((Slice)obj);
 			return false;
 		}
 	
