@@ -44,6 +44,12 @@ namespace FoundationDB.Client
 		/// <summary>Bigest possible key ('\xFF'), excluding the system keys</summary>
 		public static readonly Slice MaxValue = Slice.FromByte(255);
 
+		/// <summary>Default Directory Layer prefix ('\xFE')</summary>
+		public static readonly Slice Directory = Slice.FromByte(254);
+
+		/// <summary>Default System prefix ('\xFF')</summary>
+		public static readonly Slice System = Slice.FromByte(255);
+
 		/// <summary>Converts an ASCII string into a binary slice (ony byte per character)</summary>
 		/// <param name="value">String that should only contain ASCII characters (0..127)</param>
 		/// <returns>Slice with ony byte per character</returns>

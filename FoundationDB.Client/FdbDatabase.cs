@@ -71,9 +71,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
 		/// <remarks>This is readonly and is set when creating the database instance</remarks>
-		private readonly FdbSubspace m_namespace;
+		private readonly FdbSubspace m_globalSpace;
 		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
-		private readonly FdbSubspace m_namespaceCopy;
+		private readonly FdbSubspace m_globalSpaceCopy;
 
 		/// <summary>Contains the bounds of the allowed key space. Any key that is outside of the bound should be rejected</summary>
 		/// <remarks>This is modifiable, but should always be contained in the global namespace</remarks>
@@ -100,8 +100,8 @@ namespace FoundationDB.Client
 			m_cluster = cluster;
 			m_handle = handle;
 			m_name = name;
-			m_namespace = subspace ?? FdbSubspace.Empty;
-			m_namespaceCopy = subspace.Copy();
+			m_globalSpace = subspace ?? FdbSubspace.Empty;
+			m_globalSpaceCopy = subspace.Copy();
 			m_ownsCluster = ownsCluster;
 		}
 
@@ -314,7 +314,7 @@ namespace FoundationDB.Client
 			get
 			{
 				// return a copy of the subspace
-				return m_namespaceCopy;
+				return m_globalSpaceCopy;
 			}
 		}
 
@@ -324,38 +324,38 @@ namespace FoundationDB.Client
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="value"/></returns>
 		public FdbSubspace Partition<T>(T value)
 		{
-			return m_namespace.Partition<T>(value);
+			return m_globalSpace.Partition<T>(value);
 		}
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
 		public FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
 		{
-			return m_namespace.Partition<T1, T2>(value1, value2);
+			return m_globalSpace.Partition<T1, T2>(value1, value2);
 		}
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
 		public FdbSubspace Partition<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
-			return m_namespace.Partition<T1, T2, T3>(value1, value2, value3);
+			return m_globalSpace.Partition<T1, T2, T3>(value1, value2, value3);
 		}
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="tuple"/></returns>
 		public FdbSubspace Partition(IFdbTuple tuple)
 		{
-			return m_namespace.Partition(tuple);
+			return m_globalSpace.Partition(tuple);
 		}
 
 		public Slice Pack<T>(T key)
 		{
-			return m_namespace.Pack<T>(key);
+			return m_globalSpace.Pack<T>(key);
 		}
 
 		public Slice Pack<T1, T2>(T1 key1, T2 key2)
 		{
-			return m_namespace.Pack<T1, T2>(key1, key2);
+			return m_globalSpace.Pack<T1, T2>(key1, key2);
 		}
 
 		/// <summary>Unpack a key using the current namespace of the database</summary>
@@ -363,7 +363,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public IFdbTuple Unpack(Slice key)
 		{
-			return m_namespace.Unpack(key);
+			return m_globalSpace.Unpack(key);
 		}
 
 		/// <summary>Unpack a key using the current namespace of the database</summary>
@@ -371,7 +371,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public T UnpackLast<T>(Slice key)
 		{
-			return m_namespace.UnpackLast<T>(key);
+			return m_globalSpace.UnpackLast<T>(key);
 		}
 
 		/// <summary>Add the global namespace prefix to a relative key</summary>
@@ -385,7 +385,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public Slice Concat(Slice keyRelative)
 		{
-			return m_namespace.Concat(keyRelative);
+			return m_globalSpace.Concat(keyRelative);
 		}
 
 		/// <summary>Remove the global namespace prefix of this database form the key, and return the rest of the bytes, or Slice.Nil is the key is outside the namespace</summary>
@@ -400,7 +400,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public Slice Extract(Slice keyAbsolute)
 		{
-			return m_namespace.Extract(keyAbsolute);
+			return m_globalSpace.Extract(keyAbsolute);
 		}
 
 		/// <summary>Restrict access to only the keys contained inside the specified range</summary>
@@ -418,7 +418,7 @@ namespace FoundationDB.Client
 			}
 
 			// clip the bounds of the range with the global namespace
-			var globalRange = m_namespace.ToRange();
+			var globalRange = m_globalSpace.ToRange();
 			if (begin < globalRange.Begin) begin = globalRange.Begin;
 			if (end > globalRange.End) end = globalRange.End;
 
@@ -448,7 +448,7 @@ namespace FoundationDB.Client
 			RestrictKeySpace(prefix != null ? prefix.ToRange(includePrefix: false) : FdbKeyRange.None);
 		}
 
-		/// <summary>Returns the current key space</summary>
+		/// <summary>Returns the current allowed key space</summary>
 		/// <remarks>Makes a copy of the keys, so you should not call this property a lot</remarks>
 		public FdbKeyRange KeySpace
 		{
@@ -467,7 +467,7 @@ namespace FoundationDB.Client
 			// key is legal if...
 			return key.HasValue							// is not null (note: empty key is allowed)
 				&& key.Count <= Fdb.MaxKeySize			// not too big
-				&& m_namespace.Contains(key)			// not outside the namespace
+				&& m_globalSpace.Contains(key)			// not outside the namespace
 				&& m_restrictedKeySpace.Test(key, endIncluded: true) == 0; // not outside the restricted key space
 		}
 
@@ -505,7 +505,7 @@ namespace FoundationDB.Client
 			}
 
 			// first, it MUST start with the root prefix of this database (if any)
-			if (!m_namespace.Contains(key))
+			if (!m_globalSpace.Contains(key))
 			{
 				return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
 			}

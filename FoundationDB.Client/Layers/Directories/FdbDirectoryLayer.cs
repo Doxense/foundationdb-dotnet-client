@@ -64,7 +64,7 @@ namespace FoundationDB.Layers.Directories
 
 		public FdbDirectoryLayer(FdbSubspace nodeSubspace = null, FdbSubspace contentSubspace = null)
 		{
-			if (nodeSubspace == null) nodeSubspace = new FdbSubspace(FdbTuple.Create(FdbTupleAlias.Directory));
+			if (nodeSubspace == null) nodeSubspace = new FdbSubspace(FdbKey.Directory);
 			if (contentSubspace == null) contentSubspace = FdbSubspace.Empty;
 
 			this.ContentSubspace = contentSubspace;

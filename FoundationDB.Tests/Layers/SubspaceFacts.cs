@@ -49,6 +49,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(subspace.Key.Count, Is.EqualTo(0), "FdbSubspace.Empty.Key should be equal to Slice.Empty");
 			Assert.That(subspace.Key.HasValue, Is.True, "FdbSubspace.Empty.Key should be equal to Slice.Empty");
 
+			Assert.That(subspace.Copy(), Is.Not.SameAs(subspace));
 		}
 
 		[Test]
@@ -57,6 +58,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 			var subspace = new FdbSubspace(Slice.Create(new byte[] { 42, 255, 0, 127 }));
 
 			Assert.That(subspace.Key.ToString(), Is.EqualTo("*<FF><00><7F>"));
+			Assert.That(subspace.Copy(), Is.Not.SameAs(subspace));
+			Assert.That(subspace.Copy().Key, Is.EqualTo(subspace.Key));
 
 			// concat(Slice) should append the slice to the binary prefix directly
 			Assert.That(subspace.Concat(Slice.FromInt32(0x01020304)).ToString(), Is.EqualTo("*<FF><00><7F><04><03><02><01>"));
@@ -86,15 +89,33 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t2.Get<string>(0), Is.EqualTo("world"));
 			Assert.That(t2.Get<int>(1), Is.EqualTo(123));
 			Assert.That(t2.Get<bool>(2), Is.False);
-
 		}
-	
+
+		[Test]
+		public void Test_Cannot_Create_Or_Partition_Subspace_With_Slice_Nil()
+		{
+			Assert.That(() => new FdbSubspace(Slice.Nil), Throws.ArgumentException);
+			Assert.That(() => FdbSubspace.Create(Slice.Nil), Throws.ArgumentException);
+			Assert.That(() => FdbSubspace.Empty[Slice.Nil], Throws.ArgumentException);
+			Assert.That(() => FdbSubspace.Create(FdbKey.Directory)[Slice.Nil], Throws.ArgumentException);
+		}
+
+		[Test]
+		public void Test_Cannot_Create_Or_Partition_Subspace_With_Null_Tuple()
+		{
+			Assert.That(() => new FdbSubspace(default(IFdbTuple)), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => FdbSubspace.Empty[default(IFdbTuple)], Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => FdbSubspace.Create(FdbKey.Directory)[default(IFdbTuple)], Throws.InstanceOf<ArgumentNullException>());
+		}
+
 		[Test]
 		public void Test_Subspace_With_Tuple_Prefix()
 		{
 			var subspace = new FdbSubspace(FdbTuple.Create("hello"));
 
 			Assert.That(subspace.Key.ToString(), Is.EqualTo("<02>hello<00>"));
+			Assert.That(subspace.Copy(), Is.Not.SameAs(subspace));
+			Assert.That(subspace.Copy().Key, Is.EqualTo(subspace.Key));
 
 			// concat(Slice) should append the slice to the tuple prefix directly
 			Assert.That(subspace.Concat(Slice.FromInt32(0x01020304)).ToString(), Is.EqualTo("<02>hello<00><04><03><02><01>"));
@@ -127,7 +148,35 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Subspace_Partitioning()
+		public void Test_Subspace_Partitioning_With_Binary_Suffix()
+		{
+			// start from a parent subspace
+			var parent = FdbSubspace.Empty;
+			Assert.That(parent.Key.ToString(), Is.EqualTo("<empty>"));
+
+			// create a child subspace using a tuple
+			var child = parent[FdbKey.Directory];
+			Assert.That(child, Is.Not.Null);
+			Assert.That(child.Key.ToString(), Is.EqualTo("<FE>"));
+
+			// create a key from this child subspace
+			var key = child.Concat(Slice.FromFixed32(0x01020304));
+			Assert.That(key.ToString(), Is.EqualTo("<FE><04><03><02><01>"));
+
+			// create another child
+			var grandChild = child[Slice.FromAscii("hello")];
+			Assert.That(grandChild, Is.Not.Null);
+			Assert.That(grandChild.Key.ToString(), Is.EqualTo("<FE>hello"));
+
+			key = grandChild.Concat(Slice.FromFixed32(0x01020304));
+			Assert.That(key.ToString(), Is.EqualTo("<FE>hello<04><03><02><01>"));
+
+			// cornercase
+			Assert.That(child[Slice.Empty].Key, Is.EqualTo(child.Key));
+		}
+
+		[Test]
+		public void Test_Subspace_Partitioning_With_Tuple_Suffix()
 		{
 			// start from a parent subspace
 			var parent = new FdbSubspace(Slice.Create(new byte[] { 254 }));
@@ -147,9 +196,13 @@ namespace FoundationDB.Layers.Tuples.Tests
 			var t1 = tuple.Append(false);
 			Assert.That(t1.ToSlice().ToString(), Is.EqualTo("<FE><02>hca<00><15>{<14>"));
 
-			// check that we could also create the same key starting from the parent subspace
+			// check that we could also create the same tuple starting from the parent subspace
 			var t2 = parent.Create("hca", 123, false);
 			Assert.That(t2.ToSlice(), Is.EqualTo(t1.ToSlice()));
+
+			// cornercase
+			Assert.That(child[FdbTuple.Empty].Key, Is.EqualTo(child.Key));
+
 		}
 
 	}

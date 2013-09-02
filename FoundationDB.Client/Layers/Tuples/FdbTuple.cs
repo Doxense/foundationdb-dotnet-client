@@ -384,6 +384,60 @@ namespace FoundationDB.Layers.Tuples
 
 		#endregion
 
+		#region Concat...
+		
+		//note: they are equivalent to the Pack<...>() methods, they only take a binary prefix
+
+		public static Slice Concat(Slice prefix, IFdbTuple tuple)
+		{
+			if (tuple == null || tuple.Count == 0) return prefix;
+
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			tuple.PackTo(writer);
+			return writer.ToSlice();
+		}
+
+		public static Slice Concat<T>(Slice prefix, T value)
+		{
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			FdbTuplePacker<T>.Serializer(writer, value);
+			return writer.ToSlice();
+		}
+
+		public static Slice Concat<T1, T2>(Slice prefix, T1 value1, T2 value2)
+		{
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			FdbTuplePacker<T1>.Serializer(writer, value1);
+			FdbTuplePacker<T2>.Serializer(writer, value2);
+			return writer.ToSlice();
+		}
+
+		public static Slice Concat<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
+		{
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			FdbTuplePacker<T1>.Serializer(writer, value1);
+			FdbTuplePacker<T2>.Serializer(writer, value2);
+			FdbTuplePacker<T3>.Serializer(writer, value3);
+			return writer.ToSlice();
+		}
+
+		public static Slice Concat<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
+		{
+			var writer = new FdbBufferWriter();
+			writer.WriteBytes(prefix);
+			FdbTuplePacker<T1>.Serializer(writer, value1);
+			FdbTuplePacker<T2>.Serializer(writer, value2);
+			FdbTuplePacker<T3>.Serializer(writer, value3);
+			FdbTuplePacker<T4>.Serializer(writer, value4);
+			return writer.ToSlice();
+		}
+
+		#endregion
+
 		#region Internal Helpers...
 
 		/// <summary>Converts any object into a displayble string, for logging/debugging purpose</summary>

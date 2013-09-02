@@ -42,8 +42,9 @@ namespace FoundationDB.Layers.Directories
 		public static FdbDirectoryLayer OpenDirectory(this FdbDatabase db)
 		{
 			if (db == null) throw new ArgumentNullException("db");
+
 			// returns a Directory that uses the namespace of the DB for the content, and stores the node under the "\xFE" prefix.
-			return new FdbDirectoryLayer(db.Partition(FdbTupleAlias.Directory), db.GlobalSpace);
+			return new FdbDirectoryLayer(db.GlobalSpace[FdbKey.Directory], db.GlobalSpace);
 		}
 
 		public static FdbDirectoryLayer OpenDirectory(this FdbDatabase db, FdbSubspace global)
@@ -51,7 +52,9 @@ namespace FoundationDB.Layers.Directories
 			if (db == null) throw new ArgumentNullException("db");
 			if (global == null) throw new ArgumentNullException("global");
 
-			return new FdbDirectoryLayer(global.Partition(FdbTupleAlias.Directory), global);
+			if (!db.GlobalSpace.Contains(global.Key)) throw new ArgumentOutOfRangeException("global", "The directory subspace must be contained in the global namespace of the database");
+
+			return new FdbDirectoryLayer(global[FdbKey.Directory], global);
 		}
 
 		public static FdbDirectoryLayer OpenDirectory(this FdbDatabase db, IFdbTuple nodePrefix, IFdbTuple contentPrefix)
