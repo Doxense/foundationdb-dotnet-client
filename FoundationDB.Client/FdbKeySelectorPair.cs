@@ -69,7 +69,7 @@ namespace FoundationDB.Client
 
 		public static FdbKeySelectorPair StartsWith(Slice prefix)
 		{
-			var range = FdbKeyRange.FromPrefix(prefix);
+			var range = FdbKeyRange.PrefixedBy(prefix);
 
 			return new FdbKeySelectorPair(
 				FdbKeySelector.FirstGreaterOrEqual(range.Begin),

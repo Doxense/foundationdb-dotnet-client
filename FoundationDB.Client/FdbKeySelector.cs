@@ -110,12 +110,19 @@ namespace FoundationDB.Client
 			return new FdbKeySelector(key, true, 1);
 		}
 
+		/// <summary>Return a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
+		/// <param name="key"></param>
+		/// <returns></returns>
 		public static FdbKeySelector FirstGreaterOrEqual(Slice key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
 			return new FdbKeySelector(key, false, 1);
 		}
 
+		/// <summary>Add a value to the selector's offset</summary>
+		/// <param name="selector">ex: fGE('abc')</param>
+		/// <param name="offset">ex: 7</param>
+		/// <returns>fGE('abc')+7</returns>
 		public static FdbKeySelector operator +(FdbKeySelector selector, int offset)
 		{
 			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset + offset);

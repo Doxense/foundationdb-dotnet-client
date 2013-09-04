@@ -466,12 +466,12 @@ namespace FoundationDB.Layers.Tuples
 
 		public FdbKeyRange ToRange()
 		{
-			return FdbKeyRange.FromPrefix(m_rawPrefix);
+			return FdbKeyRange.Descendants(m_rawPrefix);
 		}
 
 		public FdbKeyRange ToRange(IFdbTuple tuple)
 		{
-			return FdbKeyRange.FromPrefix(FdbTuple.Concat(m_rawPrefix, tuple));
+			return FdbKeyRange.Descendants(FdbTuple.Concat(m_rawPrefix, tuple));
 		}
 
 		public FdbKeySelectorPair ToSelectorPair()

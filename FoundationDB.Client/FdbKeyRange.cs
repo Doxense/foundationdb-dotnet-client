@@ -39,6 +39,7 @@ namespace FoundationDB.Client
 		public static FdbKeyRange All { get { return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue); } }
 
 		public readonly Slice Begin;
+
 		public readonly Slice End;
 
 		public FdbKeyRange(Slice begin, Slice end)
@@ -47,75 +48,92 @@ namespace FoundationDB.Client
 			this.End = end;
 		}
 
+		/// <summary>Create a range that will return all keys starting with <paramref name="prefix"/>: ('prefix' &lt;= k &lt; strinc('prefix'))</summary>
+		/// <param name="prefix"></param>
+		/// <returns></returns>
 		public static FdbKeyRange StartsWith(Slice prefix)
 		{
+			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+
+			if (prefix.Count == 0)
+			{ // "" => [ "", "\xFF\xFF" )
+				return new FdbKeyRange(Slice.Empty, Fdb.SystemKeys.MaxValue);
+			}
+
 			if (prefix.Count == 1 && prefix[0] == 0xFF)
-			{ // "" => ("", "\xFF")
+			{ // "\xFF" => ["\xFF", "\xFF\xFF")
 				return new FdbKeyRange(FdbKey.MaxValue, Fdb.SystemKeys.MaxValue);
 			}
 
+			// prefix => [ prefix, prefix + 1 )
 			return new FdbKeyRange(
 				prefix,
 				FdbKey.Increment(prefix)
 			);
 		}
 
-		/// <summary>Create a range that selects all keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
+		/// <summary>Create a range that selects all keys starting with <paramref name="prefix"/>, but not the prefix itself: ('prefix\x00' &lt;= k &lt; string('prefix')</summary>
 		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>
-		public static FdbKeyRange FromPrefix(Slice prefix)
+		public static FdbKeyRange PrefixedBy(Slice prefix)
 		{
-			if (prefix.IsNullOrEmpty)
-			{
-				return prefix.HasValue ? FdbKeyRange.All : FdbKeyRange.None;
+			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+
+			if (prefix.Count == 0)
+			{ // "" => ["\0", "\xFF\xFF")
+				return new FdbKeyRange(FdbKey.MinValue, Fdb.SystemKeys.MaxValue);
 			}
 
-			int n = prefix.Count + 1;
-
-			var tmp = new byte[n << 1];
-			// first segment will contain prefix + '\x00'
-			prefix.CopyTo(tmp, 0);
-			tmp[n - 1] = 0;
-
-			// second segment will contain prefix + '\xFF'
-			prefix.CopyTo(tmp, n);
-			tmp[(n << 1) - 1] = 0xFF;
-
+			// prefix => [ prefix."\0", prefix + 1)
 			return new FdbKeyRange(
-				new Slice(tmp, 0, n),
-				new Slice(tmp, n, n)
+				prefix + FdbKey.MinValue,
+				FdbKey.Increment(prefix)
 			);
 		}
 
-		/// <summary>Create a range that selects all keys equal to or starting with <paramref name="prefix"/>: ('prefix' &lt;= k &lt; 'key\xFF')</summary>
-		/// <param name="prefix">Key prefix (that will be included in the range)</param>
-		/// <returns>Range including all keys with the specified prefix, and the prefix itself.</returns>
-		public static FdbKeyRange FromPrefixInclusive(Slice prefix)
-		{
-			if (prefix.IsNullOrEmpty)
-			{
-				return prefix.HasValue ? FdbKeyRange.All : FdbKeyRange.None;
-			}
-
-			int n = prefix.Count;
-			var tmp = new byte[checked((n << 1) + 1)];
-
-			// first segment will contain prefix
-			prefix.CopyTo(tmp, 0);
-
-			// second segment will contain prefix + '\xFF'
-			prefix.CopyTo(tmp, n);
-			tmp[n << 1] = 0xFF;
-
-			return new FdbKeyRange(
-				new Slice(tmp, 0, n),
-				new Slice(tmp, n, n + 1)
-			);
-		}
-
-		/// <summary>Create a range that will only return <param name="key"/> ('key' &lt;= k &lt; 'key\x00')</summary>
-		/// <param name="prefix">Key that will be returned by the range</param>
+		/// <summary>Create a range that selects all the descendant keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
+		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>
+		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
+		public static FdbKeyRange Descendants(Slice prefix)
+		{
+			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+
+			if (prefix.Count == 0)
+			{ // "" => [ \0, \xFF )
+				return FdbKeyRange.All;
+			}
+
+			// prefix => [ prefix."\0", prefix."\xFF" )
+			return new FdbKeyRange(
+				prefix + FdbKey.MinValue,
+				prefix + FdbKey.MaxValue
+			);
+		}
+
+		/// <summary>Create a range that selects all the descendant keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
+		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
+		/// <returns>Range including all keys with the specified prefix.</returns>
+		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
+		public static FdbKeyRange DescendantsAndSelf(Slice prefix)
+		{
+			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+
+			if (prefix.Count == 0)
+			{ // "" => [ \0, \xFF )
+				return FdbKeyRange.All;
+			}
+
+			// prefix => [ prefix."\0", prefix."\xFF" )
+			return new FdbKeyRange(
+				prefix,
+				prefix + FdbKey.MaxValue
+			);
+		}
+
+		/// <summary>Create a range that will only return <param name="key"/> itself ('key' &lt;= k &lt; 'key\x00')</summary>
+		/// <param name="prefix">Key that will be returned by the range</param>
+		/// <returns>Range that only return the specified key.</returns>
 		public static FdbKeyRange FromKey(Slice key)
 		{
 			if (key.IsNullOrEmpty)

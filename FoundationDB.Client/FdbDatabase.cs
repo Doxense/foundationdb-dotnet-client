@@ -440,7 +440,7 @@ namespace FoundationDB.Client
 
 		public void RestrictKeySpace(Slice prefix)
 		{
-			RestrictKeySpace(FdbKeyRange.FromPrefix(prefix));
+			RestrictKeySpace(FdbKeyRange.Descendants(prefix));
 		}
 
 		public void RestrictKeySpace(IFdbTuple prefix)

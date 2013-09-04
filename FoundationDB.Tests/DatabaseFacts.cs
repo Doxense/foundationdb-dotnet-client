@@ -218,7 +218,7 @@ namespace FoundationDB.Client.Tests
 
 				// can directly specify a range
 				db.RestrictKeySpace(
-					FdbKeyRange.FromPrefix(db.Concat(Slice.Create(new byte[] { 1, 2, 3 })))
+					FdbKeyRange.PrefixedBy(db.Concat(Slice.Create(new byte[] { 1, 2, 3 })))
 				);
 				Assert.That(db.Extract(db.KeySpace.Begin).ToString(), Is.EqualTo("<01><02><03><00>"));
 				Assert.That(db.Extract(db.KeySpace.End).ToString(), Is.EqualTo("<01><02><03><FF>"));
