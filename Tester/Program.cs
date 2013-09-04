@@ -30,6 +30,18 @@ namespace Utils
 
 namespace Tester
 {
+	public class StackEntry
+	{
+		public int instructionIndex;
+		public Object value;
+
+		public StackEntry(int instructionIndex, Object value)
+		{
+			this.instructionIndex = instructionIndex;
+			this.value = value;
+		}
+	}
+
 	class Program
 	{
 		private FdbDatabase db;
@@ -39,7 +51,7 @@ namespace Tester
 		private long lastVersion;
 
 		private List<KeyValuePair<Slice, Slice>> instructions;
-		private List<Object> stack;
+		private List<StackEntry> stack;
 
 		private static List<Task> subTasks = new List<Task>();
 		private static Random rng = new Random(0);
@@ -76,12 +88,12 @@ namespace Tester
 
 			FdbDatabase db = await Fdb.OpenDatabaseAsync(clusterFile, "DB");
 			Program p = new Program(db, prefix);
-			await p.RunAsync();
+			int result = await p.RunAsync();
 
-			foreach (Task subTask in subTasks)
-			{
-				await subTask;
-			}
+			foreach (Task<int> subTask in subTasks)
+				result = Math.Max(await subTask, result);
+
+			Environment.ExitCode = result;
 		}
 
 		Program(FdbDatabase db, string prefix)
@@ -89,7 +101,7 @@ namespace Tester
 			this.db = db;
 			this.prefix = prefix;
 
-			stack = new List<object>();
+			stack = new List<StackEntry>();
 			lastVersion = 0;
 		}
 
@@ -144,53 +156,61 @@ namespace Tester
 				return EncodingHelper.FromByteString((string)str);
 		}
 
-		private static void HandleFdbError(FdbException e, List<object> items) 
+		private static void HandleFdbError(FdbException e, int instructionIndex, List<StackEntry> items) 
 		{
-			Console.WriteLine("FdbError (" + (int)e.Code + "): " + e.Message);
-			items.Add(FdbTuple.Pack(EncodingHelper.ASCII_8_BIT.GetBytes("ERROR"), EncodingHelper.ASCII_8_BIT.GetBytes(((int)e.Code).ToString())).ToByteString());
+			//Console.WriteLine("FdbError (" + (int)e.Code + "): " + e.Message);
+			items.Add(new StackEntry(instructionIndex, FdbTuple.Pack(EncodingHelper.ASCII_8_BIT.GetBytes("ERROR"), EncodingHelper.ASCII_8_BIT.GetBytes(((int)e.Code).ToString())).ToByteString()));
 		}
 
-		private void AddSlice(Slice slice, List<object> items = null)
+		private void AddSlice(int instructionIndex, Slice slice, List<StackEntry> items = null)
 		{
 			if (items == null)
 				items = stack;
-			
+
 			if (!slice.HasValue)
-				items.Add("RESULT_NOT_PRESENT");
+				items.Add(new StackEntry(instructionIndex, "RESULT_NOT_PRESENT"));
 			else
-				items.Add(slice.ToByteString());
+				items.Add(new StackEntry(instructionIndex, slice.ToByteString()));
 		}
 
-		private async Task<List<object>> PopAsync(int num)
+		private async Task<List<Object>> PopAsync(int num, bool includeMetadata = false)
 		{
-			List<object> items = new List<object>();
+			List<StackEntry> items = new List<StackEntry>();
 			for (int i = 0; i < num; ++i)
 			{
 				var item = stack.Last();
 				try
 				{
-					if (item is Task<Slice>)
-						AddSlice(await (Task<Slice>)item, items);
-					else if (item is Task)
+					if (item.value is Task<Slice>)
+						AddSlice(item.instructionIndex, await (Task<Slice>)item.value, items);
+					else if (item.value is Task)
 					{
-						await (Task)item;
-						items.Add("RESULT_NOT_PRESENT");
+						await (Task)item.value;
+						items.Add(new StackEntry(item.instructionIndex, "RESULT_NOT_PRESENT"));
 					}
 					else
 						items.Add(item);
 				}
 				catch (FdbException e)
 				{
-					HandleFdbError(e, items);
+					HandleFdbError(e, item.instructionIndex, items);
+				}
+				catch (System.OperationCanceledException)
+				{
+					// TODO: Getting the bindings to throw a TransactionCancelled error instead of OperationCanceledException in the case handled here would be better
+					HandleFdbError(new FdbException(FdbError.TransactionCancelled), item.instructionIndex, items);
 				}
 
 				stack.RemoveAt(stack.Count() - 1);
 			}
 
-			return items;
+			if (includeMetadata)
+				return items.ToList<Object>();
+			else
+				return items.Select((item) => item.value).ToList();
 		}
 
-		private async Task PushRangeAsync(FdbRangeQuery query)
+		private async Task PushRangeAsync(int instructionIndex, FdbRangeQuery query)
 		{
 			IFdbTuple tuple;
 
@@ -208,18 +228,32 @@ namespace Tester
 				tuple = FdbTuple.Create(results.SelectMany((r) => new object[] { r.Key, r.Value }));
 			}
 
-			stack.Add(tuple.ToSlice().ToByteString());
+			stack.Add(new StackEntry(instructionIndex, tuple.ToSlice().ToByteString()));
 		}
 
-		private async Task RunAsync()
+		private static async Task IgnoreCancelled(Func<Task> f)
+		{
+			try
+			{
+				await f();
+			}
+			catch (FdbException e)
+			{
+				// Cancellation in C# is a little different than in the other bindings, so we sometimes have to ignore this error
+				if (e.Code != FdbError.TransactionCancelled)
+					throw e;
+			}
+		}
+
+		private async Task<int> RunAsync()
 		{
 			try
 			{
 				await db.Attempt.ReadAsync(async (tr) => instructions = await tr.GetRangeStartsWith(FdbTuple.Create(EncodingHelper.FromByteString(prefix))).ToListAsync());
 
-				foreach (var i in instructions)
+				for(int instructionIndex = 0; instructionIndex < instructions.Count; ++instructionIndex)
 				{
-					IFdbTuple inst = FdbTuple.Unpack(i.Value);
+					IFdbTuple inst = FdbTuple.Unpack(instructions[instructionIndex].Value);
 					string op = inst.Get<string>(0);
 
 					/*if (op != "PUSH" && op != "SWAP")
@@ -251,7 +285,7 @@ namespace Tester
 						try
 						{
 							if (op == "PUSH")
-								stack.Add(inst[1]);
+								stack.Add(new StackEntry(instructionIndex, inst[1]));
 							else if (op == "DUP")
 								stack.Add(stack.Last());
 							else if (op == "EMPTY_STACK")
@@ -273,17 +307,22 @@ namespace Tester
 							else if (op == "SUB")
 							{
 								var items = await PopAsync(2);
-								stack.Add((long)items[0] - (long)items[1]);
+								stack.Add(new StackEntry(instructionIndex, (long)items[0] - (long)items[1]));
 							}
 							else if (op == "WAIT_FUTURE")
-								stack.Add((await PopAsync(1))[0]);
+								stack.Add((StackEntry)(await PopAsync(1, true))[0]);
 							else if (op == "NEW_TRANSACTION")
 								this.tr = db.BeginTransaction();
 							else if (op == "ON_ERROR")
 							{
 								var items = await PopAsync(1);
 								long errorCode = (long)items[0];
-								stack.Add(tr.OnErrorAsync((FdbError)errorCode));
+
+								// The .NET bindings convert this error code to a different exception which we don't handle
+								if (errorCode == 1501)
+									HandleFdbError(new FdbException((FdbError)errorCode), instructionIndex, stack);
+								else
+									stack.Add(new StackEntry(instructionIndex, tr.OnErrorAsync((FdbError)errorCode)));
 							}
 							else if (op == "GET")
 							{
@@ -291,28 +330,45 @@ namespace Tester
 								var task = tr.GetAsync(stringToSlice(items[0]));
 
 								if (useDb)
-									AddSlice(await task);
+									AddSlice(instructionIndex, await task);
 								else
-									stack.Add(task);
+									stack.Add(new StackEntry(instructionIndex, task));
 							}
 							else if (op == "GET_KEY")
 							{
 								var items = await PopAsync(3);
 								var task = tr.GetKeyAsync(new FdbKeySelector(stringToSlice(items[0]), (long)items[1] != 0, (int)(long)items[2]));
 
-								if(useDb)
-									AddSlice(await task);
+								if (useDb)
+									AddSlice(instructionIndex, await task);
 								else
-									stack.Add(task);
+									stack.Add(new StackEntry(instructionIndex, task));
 							}
 							else if (op == "GET_RANGE")
 							{
 								var items = await PopAsync(5);
+								Slice begin = stringToSlice(items[0]);
+								Slice end = stringToSlice(items[1]);
+
 								FdbRangeOptions options = new FdbRangeOptions();
 								options.Limit = (int?)(long?)items[2];
 								options.Reverse = (long)items[3] != 0;
 								options.Mode = (FdbStreamingMode)(long)items[4];
-								await PushRangeAsync(tr.GetRange(stringToSlice(items[0]), stringToSlice(items[1]), options));
+
+								// We have to check for this now because the .NET bindings will prefer TransactionCancelled to ExactModeWithoutLimits, but the binding tester expects the opposite
+								if ((options.Limit == null || options.Limit == 0) && options.Mode == FdbStreamingMode.Exact)
+									throw new FdbException(FdbError.ExactModeWithoutLimits);
+
+								// We have to check for this now because the .NET bindings will prefer TransactionCancelled to InvertedRange, but the binding tester expects the opposite
+								/*if (end < begin)
+									Console.Write("Inverted ");
+								Console.WriteLine("Range: " + Printable(begin) + " - " + Printable(end));
+								if (end < begin)
+								{
+									throw new FdbException(FdbError.InvertedRange);
+								}*/
+
+								await PushRangeAsync(instructionIndex, tr.GetRange(stringToSlice(items[0]), stringToSlice(items[1]), options));
 							}
 							else if (op == "GET_RANGE_STARTS_WITH")
 							{
@@ -321,7 +377,12 @@ namespace Tester
 								options.Limit = (int?)(long?)items[1];
 								options.Reverse = (long)items[2] != 0;
 								options.Mode = (FdbStreamingMode)(long)items[3];
-								await PushRangeAsync(tr.GetRange(FdbKeyRange.StartsWith(stringToSlice(items[0])), options));
+
+								// We have to check for this now because the .NET bindings will prefer TransactionCancelled to ExactModeWithoutLimits, but the binding tester expects the opposite
+								if ((options.Limit == null || options.Limit == 0) && options.Mode == FdbStreamingMode.Exact)
+									throw new FdbException(FdbError.ExactModeWithoutLimits);
+
+								await PushRangeAsync(instructionIndex, tr.GetRange(FdbKeyRange.StartsWith(stringToSlice(items[0])), options));
 							}
 							else if (op == "GET_RANGE_SELECTOR")
 							{
@@ -334,41 +395,52 @@ namespace Tester
 								options.Reverse = (long)items[7] != 0;
 								options.Mode = (FdbStreamingMode)(long)items[8];
 
-								await PushRangeAsync(tr.GetRange(begin, end, options));
+								// We have to check for this now because the .NET bindings will prefer TransactionCancelled to ExactModeWithoutLimits, but the binding tester expects the opposite
+								if ((options.Limit == null || options.Limit == 0) && options.Mode == FdbStreamingMode.Exact)
+									throw new FdbException(FdbError.ExactModeWithoutLimits);
+
+								await PushRangeAsync(instructionIndex, tr.GetRange(begin, end, options));
 							}
 							else if (op == "GET_READ_VERSION")
 							{
 								lastVersion = await tr.GetReadVersionAsync();
-								stack.Add("GOT_READ_VERSION");
+								stack.Add(new StackEntry(instructionIndex, "GOT_READ_VERSION"));
 							}
 							else if (op == "SET")
 							{
-								var items = await PopAsync(2);
-								((FdbTransaction)tr).Set(stringToSlice(items[0]), stringToSlice(items[1]));
+								await IgnoreCancelled(async () =>
+								{
+									var items = await PopAsync(2);
+									((FdbTransaction)tr).Set(stringToSlice(items[0]), stringToSlice(items[1]));
+								});
+
 								isMutation = true;
 							}
 							else if (op == "ATOMIC_OP")
 							{
-								var items = await PopAsync(3);
-								string mutationType = stringToSlice(items[0]).ToByteString();
-
-								switch (mutationType)
+								await IgnoreCancelled(async () =>
 								{
-									case "ADD":
-										((FdbTransaction)tr).AtomicAdd(stringToSlice(items[0]), stringToSlice(items[1]));
-										break;
-									case "AND":
-										((FdbTransaction)tr).AtomicAnd(stringToSlice(items[0]), stringToSlice(items[1]));
-										break;
-									case "OR":
-										((FdbTransaction)tr).AtomicOr(stringToSlice(items[0]), stringToSlice(items[1]));
-										break;
-									case "XOR":
-										((FdbTransaction)tr).AtomicXor(stringToSlice(items[0]), stringToSlice(items[1]));
-										break;
-									default:
-										throw new Exception("Invalid ATOMIC_OP: " + mutationType);
-								}
+									var items = await PopAsync(3);
+									string mutationType = stringToSlice(items[0]).ToByteString();
+
+									switch (mutationType)
+									{
+										case "ADD":
+											((FdbTransaction)tr).AtomicAdd(stringToSlice(items[0]), stringToSlice(items[1]));
+											break;
+										case "AND":
+											((FdbTransaction)tr).AtomicAnd(stringToSlice(items[0]), stringToSlice(items[1]));
+											break;
+										case "OR":
+											((FdbTransaction)tr).AtomicOr(stringToSlice(items[0]), stringToSlice(items[1]));
+											break;
+										case "XOR":
+											((FdbTransaction)tr).AtomicXor(stringToSlice(items[0]), stringToSlice(items[1]));
+											break;
+										default:
+											throw new Exception("Invalid ATOMIC_OP: " + mutationType);
+									}
+								});
 
 								isMutation = true;
 							}
@@ -376,54 +448,83 @@ namespace Tester
 								tr.SetReadVersion(lastVersion);
 							else if (op == "CLEAR")
 							{
-								var items = await PopAsync(1);
-								((FdbTransaction)tr).Clear(stringToSlice(items[0]));
+								await IgnoreCancelled(async () =>
+								{
+									var items = await PopAsync(1);
+									((FdbTransaction)tr).Clear(stringToSlice(items[0]));
+								});
+
 								isMutation = true;
 							}
 							else if (op == "CLEAR_RANGE")
 							{
-								var items = await PopAsync(2);
-								((FdbTransaction)tr).ClearRange(stringToSlice(items[0]), stringToSlice(items[1]));
+								await IgnoreCancelled(async () =>
+								{
+									var items = await PopAsync(2);
+									Slice begin = stringToSlice(items[0]);
+									Slice end = stringToSlice(items[1]);
+
+									// We have to check for this now because the .NET bindings will prefer TransactionCancelled to InvertedRange, but the binding tester expects the opposite
+									/*if (end < begin)
+										throw new FdbException(FdbError.InvertedRange);*/
+
+									((FdbTransaction)tr).ClearRange(stringToSlice(items[0]), stringToSlice(items[1]));
+								});
+
 								isMutation = true;
 							}
 							else if (op == "CLEAR_RANGE_STARTS_WITH")
 							{
-								var items = await PopAsync(1);
-								Slice prefix = stringToSlice(items[0]);
-								((FdbTransaction)tr).ClearRange(FdbKeyRange.StartsWith(prefix));
+								await IgnoreCancelled(async () =>
+								{
+									var items = await PopAsync(1);
+									Slice prefix = stringToSlice(items[0]);
+									((FdbTransaction)tr).ClearRange(FdbKeyRange.StartsWith(prefix));
+								});
+
 								isMutation = true;
 							}
 							else if (op == "READ_CONFLICT_RANGE" || op == "WRITE_CONFLICT_RANGE")
 							{
-								var items = await PopAsync(2);
-								FdbKeyRange range = new FdbKeyRange(stringToSlice(items[0]), stringToSlice(items[1]));
+								await IgnoreCancelled(async () =>
+								{
+									var items = await PopAsync(2);
 
-								if (op == "READ_CONFLICT_RANGE")
-									((FdbTransaction)tr).AddReadConflictRange(range);
-								else
-									((FdbTransaction)tr).AddWriteConflictRange(range);
+									FdbKeyRange range = new FdbKeyRange(stringToSlice(items[0]), stringToSlice(items[1]));
 
-								stack.Add("SET_CONFLICT_RANGE");
+									// We have to check for this now because the .NET bindings will prefer TransactionCancelled to InvertedRange, but the binding tester expects the opposite
+									/*if (range.End < range.Begin)
+										throw new FdbException(FdbError.InvertedRange);*/
+
+									if (op == "READ_CONFLICT_RANGE")
+										((FdbTransaction)tr).AddReadConflictRange(range);
+									else
+										((FdbTransaction)tr).AddWriteConflictRange(range);
+								});
+
+								stack.Add(new StackEntry(instructionIndex, "SET_CONFLICT_RANGE"));
 							}
 							else if (op == "READ_CONFLICT_KEY" || op == "WRITE_CONFLICT_KEY")
 							{
-								var items = await PopAsync(1);
-								Slice key = stringToSlice(items[0]);
+								await IgnoreCancelled(async () =>
+								{
+									var items = await PopAsync(1);
+									Slice key = stringToSlice(items[0]);
 
-								if (op == "READ_CONFLICT_KEY")
-									((FdbTransaction)tr).AddReadConflictKey(key);
-								else
-									((FdbTransaction)tr).AddWriteConflictKey(key);
+									if (op == "READ_CONFLICT_KEY")
+										((FdbTransaction)tr).AddReadConflictKey(key);
+									else
+										((FdbTransaction)tr).AddWriteConflictKey(key);
+								});
 
-								stack.Add("SET_CONFLICT_KEY");
+								stack.Add(new StackEntry(instructionIndex, "SET_CONFLICT_KEY"));
 							}
 							else if (op == "DISABLE_WRITE_CONFLICT")
 								((FdbTransaction)tr).WithNextWriteNoWriteConflictRange();
 							else if (op == "COMMIT")
 							{
 								await ((FdbTransaction)tr).CommitAsync();
-								stack.Add("RESULT_NOT_PRESENT");
-								tr.Reset();
+								stack.Add(new StackEntry(instructionIndex, "RESULT_NOT_PRESENT"));
 							}
 							else if (op == "RESET")
 								tr.Reset();
@@ -432,19 +533,19 @@ namespace Tester
 							else if (op == "GET_COMMITTED_VERSION")
 							{
 								lastVersion = tr.GetCommittedVersion();
-								stack.Add("GOT_COMMITTED_VERSION");
+								stack.Add(new StackEntry(instructionIndex, "GOT_COMMITTED_VERSION"));
 							}
 							else if (op == "TUPLE_PACK")
 							{
 								long num = (long)(await PopAsync(1))[0];
 								var items = await PopAsync((int)num);
-								stack.Add(FdbTuple.Create((IEnumerable<object>)items).ToSlice().ToByteString());
+								stack.Add(new StackEntry(instructionIndex, FdbTuple.Create((IEnumerable<object>)items).ToSlice().ToByteString()));
 							}
 							else if (op == "TUPLE_UNPACK")
 							{
 								var items = await PopAsync(1);
 								foreach (var t in FdbTuple.Unpack(stringToSlice(items[0])))
-									stack.Add(FdbTuple.Pack(t).ToByteString());
+									stack.Add(new StackEntry(instructionIndex, FdbTuple.Pack(t).ToByteString()));
 							}
 							else if (op == "TUPLE_RANGE")
 							{
@@ -452,8 +553,8 @@ namespace Tester
 								var items = await PopAsync((int)num);
 
 								FdbKeyRange range = FdbTuple.Create((IEnumerable<object>)items).ToRange();
-								stack.Add(range.Begin.ToByteString());
-								stack.Add(range.End.ToByteString());
+								stack.Add(new StackEntry(instructionIndex, range.Begin.ToByteString()));
+								stack.Add(new StackEntry(instructionIndex, range.End.ToByteString()));
 							}
 							else if (op == "START_THREAD")
 							{
@@ -476,11 +577,33 @@ namespace Tester
 									}
 								});
 
-								stack.Add("WAITED_FOR_EMPTY");
+								stack.Add(new StackEntry(instructionIndex, "WAITED_FOR_EMPTY"));
 							}
 							else if (op == "UNIT_TESTS")
 							{
 								// TODO
+							}
+							else if (op == "LOG_STACK")
+							{
+								Slice prefix = stringToSlice((await PopAsync(1))[0]);
+								List<Object> items = await PopAsync(stack.Count, true);
+								for (int i = 0; i < items.Count; ++i)
+								{
+									if (i % 100 == 0)
+									{
+										await tr.CommitAsync();
+										tr.Reset();
+									}
+
+									StackEntry entry = (StackEntry)items[items.Count - i - 1];
+									Slice value = stringToSlice(entry.value);
+									if (value.Count > 40000)
+										value = value.Substring(0, 40000);
+									((FdbTransaction)tr).Set(prefix + FdbTuple.Pack(i, entry.instructionIndex), FdbTuple.Pack(value));
+								}
+
+								await tr.CommitAsync();
+								tr.Reset();
 							}
 							else
 								throw new Exception("Unknown op " + op);
@@ -490,7 +613,7 @@ namespace Tester
 								if (isMutation)
 								{
 									await tr.CommitAsync();
-									stack.Add("RESULT_NOT_PRESENT");
+									stack.Add(new StackEntry(instructionIndex, "RESULT_NOT_PRESENT"));
 								}
 
 								retry = false;
@@ -502,7 +625,7 @@ namespace Tester
 							if (useDb)
 								onErrorTask = tr.OnErrorAsync(e.Code);
 							else
-								HandleFdbError(e, stack);
+								HandleFdbError(e, instructionIndex, stack);
 						}
 						if (onErrorTask != null)
 						{
@@ -512,20 +635,20 @@ namespace Tester
 							}
 							catch (FdbException e)
 							{
-								HandleFdbError(e, stack);
+								HandleFdbError(e, instructionIndex, stack);
 								retry = false;
 							}
 						}
 					}
 				}
 			}
-
 			catch (Exception e)
 			{
 				Console.WriteLine("Error: " + e.Message);
-				return;
+				return 2;
 			}
 
+			return 0;
 		}
 	}
 }
