@@ -159,7 +159,7 @@ namespace Tester
 		private static void HandleFdbError(FdbException e, int instructionIndex, List<StackEntry> items) 
 		{
 			//Console.WriteLine("FdbError (" + (int)e.Code + "): " + e.Message);
-			items.Add(new StackEntry(instructionIndex, FdbTuple.Pack(EncodingHelper.ASCII_8_BIT.GetBytes("ERROR"), EncodingHelper.ASCII_8_BIT.GetBytes(((int)e.Code).ToString())).ToByteString()));
+			items.Add(new StackEntry(instructionIndex, FdbTuple.Pack(EncodingHelper.ASCII_8_BIT.GetBytes("ERROR"), EncodingHelper.ASCII_8_BIT.GetBytes(((int)e.Code).ToString()))));
 		}
 
 		private void AddSlice(int instructionIndex, Slice slice, List<StackEntry> items = null)
@@ -168,9 +168,9 @@ namespace Tester
 				items = stack;
 
 			if (!slice.HasValue)
-				items.Add(new StackEntry(instructionIndex, "RESULT_NOT_PRESENT"));
+				items.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("RESULT_NOT_PRESENT")));
 			else
-				items.Add(new StackEntry(instructionIndex, slice.ToByteString()));
+				items.Add(new StackEntry(instructionIndex, slice));
 		}
 
 		private async Task<List<Object>> PopAsync(int num, bool includeMetadata = false)
@@ -186,7 +186,7 @@ namespace Tester
 					else if (item.value is Task)
 					{
 						await (Task)item.value;
-						items.Add(new StackEntry(item.instructionIndex, "RESULT_NOT_PRESENT"));
+						items.Add(new StackEntry(item.instructionIndex, EncodingHelper.FromByteString("RESULT_NOT_PRESENT")));
 					}
 					else
 						items.Add(item);
@@ -228,7 +228,7 @@ namespace Tester
 				tuple = FdbTuple.Create(results.SelectMany((r) => new object[] { r.Key, r.Value }));
 			}
 
-			stack.Add(new StackEntry(instructionIndex, tuple.ToSlice().ToByteString()));
+			stack.Add(new StackEntry(instructionIndex, tuple.ToSlice()));
 		}
 
 		private static async Task IgnoreCancelled(Func<Task> f)
@@ -404,7 +404,7 @@ namespace Tester
 							else if (op == "GET_READ_VERSION")
 							{
 								lastVersion = await tr.GetReadVersionAsync();
-								stack.Add(new StackEntry(instructionIndex, "GOT_READ_VERSION"));
+								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("GOT_READ_VERSION")));
 							}
 							else if (op == "SET")
 							{
@@ -493,8 +493,8 @@ namespace Tester
 									FdbKeyRange range = new FdbKeyRange(stringToSlice(items[0]), stringToSlice(items[1]));
 
 									// We have to check for this now because the .NET bindings will prefer TransactionCancelled to InvertedRange, but the binding tester expects the opposite
-									/*if (range.End < range.Begin)
-										throw new FdbException(FdbError.InvertedRange);*/
+									if (range.End < range.Begin)
+										throw new FdbException(FdbError.InvertedRange);
 
 									if (op == "READ_CONFLICT_RANGE")
 										((FdbTransaction)tr).AddReadConflictRange(range);
@@ -502,7 +502,7 @@ namespace Tester
 										((FdbTransaction)tr).AddWriteConflictRange(range);
 								});
 
-								stack.Add(new StackEntry(instructionIndex, "SET_CONFLICT_RANGE"));
+								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("SET_CONFLICT_RANGE")));
 							}
 							else if (op == "READ_CONFLICT_KEY" || op == "WRITE_CONFLICT_KEY")
 							{
@@ -517,14 +517,14 @@ namespace Tester
 										((FdbTransaction)tr).AddWriteConflictKey(key);
 								});
 
-								stack.Add(new StackEntry(instructionIndex, "SET_CONFLICT_KEY"));
+								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("SET_CONFLICT_KEY")));
 							}
 							else if (op == "DISABLE_WRITE_CONFLICT")
 								((FdbTransaction)tr).WithNextWriteNoWriteConflictRange();
 							else if (op == "COMMIT")
 							{
 								await ((FdbTransaction)tr).CommitAsync();
-								stack.Add(new StackEntry(instructionIndex, "RESULT_NOT_PRESENT"));
+								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("RESULT_NOT_PRESENT")));
 							}
 							else if (op == "RESET")
 								tr.Reset();
@@ -533,19 +533,19 @@ namespace Tester
 							else if (op == "GET_COMMITTED_VERSION")
 							{
 								lastVersion = tr.GetCommittedVersion();
-								stack.Add(new StackEntry(instructionIndex, "GOT_COMMITTED_VERSION"));
+								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("GOT_COMMITTED_VERSION")));
 							}
 							else if (op == "TUPLE_PACK")
 							{
 								long num = (long)(await PopAsync(1))[0];
 								var items = await PopAsync((int)num);
-								stack.Add(new StackEntry(instructionIndex, FdbTuple.Create((IEnumerable<object>)items).ToSlice().ToByteString()));
+								stack.Add(new StackEntry(instructionIndex, FdbTuple.Create((IEnumerable<object>)items).ToSlice()));
 							}
 							else if (op == "TUPLE_UNPACK")
 							{
 								var items = await PopAsync(1);
 								foreach (var t in FdbTuple.Unpack(stringToSlice(items[0])))
-									stack.Add(new StackEntry(instructionIndex, FdbTuple.Pack(t).ToByteString()));
+									stack.Add(new StackEntry(instructionIndex, FdbTuple.Pack(t)));
 							}
 							else if (op == "TUPLE_RANGE")
 							{
@@ -553,8 +553,8 @@ namespace Tester
 								var items = await PopAsync((int)num);
 
 								FdbKeyRange range = FdbTuple.Create((IEnumerable<object>)items).ToRange();
-								stack.Add(new StackEntry(instructionIndex, range.Begin.ToByteString()));
-								stack.Add(new StackEntry(instructionIndex, range.End.ToByteString()));
+								stack.Add(new StackEntry(instructionIndex, range.Begin));
+								stack.Add(new StackEntry(instructionIndex, range.End));
 							}
 							else if (op == "START_THREAD")
 							{
@@ -577,7 +577,7 @@ namespace Tester
 									}
 								});
 
-								stack.Add(new StackEntry(instructionIndex, "WAITED_FOR_EMPTY"));
+								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("WAITED_FOR_EMPTY")));
 							}
 							else if (op == "UNIT_TESTS")
 							{
@@ -596,10 +596,10 @@ namespace Tester
 									}
 
 									StackEntry entry = (StackEntry)items[items.Count - i - 1];
-									Slice value = stringToSlice(entry.value);
-									if (value.Count > 40000)
-										value = value.Substring(0, 40000);
-									((FdbTransaction)tr).Set(prefix + FdbTuple.Pack(i, entry.instructionIndex), FdbTuple.Pack(value));
+									Slice packedValue = FdbTuple.Pack(entry.value);
+									if (packedValue.Count > 40000)
+										packedValue = packedValue.Substring(0, 40000);
+									((FdbTransaction)tr).Set(prefix + FdbTuple.Pack(i, entry.instructionIndex), packedValue);
 								}
 
 								await tr.CommitAsync();
@@ -613,7 +613,7 @@ namespace Tester
 								if (isMutation)
 								{
 									await tr.CommitAsync();
-									stack.Add(new StackEntry(instructionIndex, "RESULT_NOT_PRESENT"));
+									stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("RESULT_NOT_PRESENT")));
 								}
 
 								retry = false;
