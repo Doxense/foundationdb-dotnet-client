@@ -106,8 +106,8 @@ namespace FoundationDB.Client
 			protected override Task<bool> OnFirstAsync(CancellationToken ct)
 			{
 				this.Remaining = this.Query.Limit > 0 ? this.Query.Limit : default(int?);
-				this.Begin = this.Query.Range.Start;
-				this.End = this.Query.Range.Stop;
+				this.Begin = this.Query.Range.Begin;
+				this.End = this.Query.Range.End;
 
 				return TaskHelpers.TrueTask;
 			}

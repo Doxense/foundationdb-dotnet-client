@@ -268,7 +268,7 @@ namespace FoundationDB.Client
 
 		public override string ToString()
 		{
-			return "(" + this.Range.Start.ToString() + " ... " + this.Range.Stop.ToString() + ")";
+			return "(" + this.Range.Begin.ToString() + " ... " + this.Range.End.ToString() + ")";
 		}
 
 	}

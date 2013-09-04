@@ -99,8 +99,8 @@ namespace FoundationDB.Linq.Expressions.Tests
 			Console.WriteLine(expr);
 
 			Assert.That(expr, Is.Not.Null);
-			Assert.That(expr.Range.Start.Key.ToString(), Is.EqualTo("<02>Foo<00><00>"));
-			Assert.That(expr.Range.Stop.Key.ToString(), Is.EqualTo("<02>Foo<00><FF>"));
+			Assert.That(expr.Range.Begin.Key.ToString(), Is.EqualTo("<02>Foo<00><00>"));
+			Assert.That(expr.Range.End.Key.ToString(), Is.EqualTo("<02>Foo<00><FF>"));
 
 			Assert.That(expr.QueryNodeType, Is.EqualTo(FdbQueryNodeType.Range));
 			Assert.That(expr.Type, Is.EqualTo(typeof(IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>)));

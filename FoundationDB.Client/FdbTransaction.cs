@@ -377,13 +377,13 @@ namespace FoundationDB.Client
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
 		internal Task<FdbRangeChunk> GetRangeCoreAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct)
 		{
-			this.Database.EnsureKeyIsValid(range.Start.Key);
-			this.Database.EnsureKeyIsValid(range.Stop.Key);
+			this.Database.EnsureKeyIsValid(range.Begin.Key);
+			this.Database.EnsureKeyIsValid(range.End.Key);
 
 			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
 			options.EnsureLegalValues();
 
-			var future = FdbNative.TransactionGetRange(this.Handle, range.Start, range.Stop, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, snapshot, options.Reverse.Value);
+			var future = FdbNative.TransactionGetRange(this.Handle, range.Begin, range.End, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, snapshot, options.Reverse.Value);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) =>
@@ -431,8 +431,8 @@ namespace FoundationDB.Client
 
 		internal FdbRangeQuery GetRangeCore(FdbKeySelectorPair range, FdbRangeOptions options, bool snapshot)
 		{
-			this.Database.EnsureKeyIsValid(range.Start.Key);
-			this.Database.EnsureKeyIsValid(range.Stop.Key);
+			this.Database.EnsureKeyIsValid(range.Begin.Key);
+			this.Database.EnsureKeyIsValid(range.End.Key);
 
 			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
 			options.EnsureLegalValues();
