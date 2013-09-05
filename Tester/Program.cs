@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -45,7 +46,7 @@ namespace Tester
 	class Program
 	{
 		private FdbDatabase db;
-		private FdbTransaction tr;
+		private FdbTransaction transaction;
 		private string prefix;
 
 		private long lastVersion;
@@ -226,7 +227,7 @@ namespace Tester
 			else
 			{
 				var results = await query.ToListAsync();
-				tuple = FdbTuple.Create(results.SelectMany((r) => new Slice[] { r.Key, r.Value }));
+				tuple = FdbTuple.Create(results.SelectMany((r) => new object[] { r.Key, r.Value }));
 			}
 
 			stack.Add(new StackEntry(instructionIndex, tuple.ToSlice()));
@@ -255,8 +256,8 @@ namespace Tester
 			}
 			finally
 			{
-				this.tr = db.BeginTransaction();
-				tr = this.tr;
+				this.transaction = db.BeginTransaction();
+				tr = this.transaction;
 			}
 
 			return tr;
@@ -276,7 +277,7 @@ namespace Tester
 					//if (op != "PUSH" && op != "SWAP")
 						//Console.WriteLine(op);
 
-					IFdbReadTransaction tr = this.tr;
+					IFdbReadTransaction tr = this.transaction;
 
 					bool useDb = op.EndsWith("_DATABASE");
 					bool isMutation = false;
@@ -289,7 +290,7 @@ namespace Tester
 					bool snapshot = op.EndsWith("_SNAPSHOT");
 					if (snapshot)
 					{
-						tr = this.tr.Snapshot;
+						tr = this.transaction.Snapshot;
 						op = op.Substring(0, op.Length - 9);
 					}
 
@@ -330,7 +331,7 @@ namespace Tester
 								stack.Add((StackEntry)(await PopAsync(1, true))[0]);
 							else if (op == "NEW_TRANSACTION")
 							{
-								this.tr = db.BeginTransaction();
+								this.transaction = db.BeginTransaction();
 								committedVersion = -1;
 							}
 							else if (op == "ON_ERROR")
@@ -605,7 +606,34 @@ namespace Tester
 							}
 							else if (op == "UNIT_TESTS")
 							{
-								// TODO
+								try
+								{
+									db.SetLocationCacheSize(100001);
+
+									FdbTransaction trTest = db.BeginTransaction();
+									trTest.WithPrioritySystemImmediate();
+									trTest.WithPriorityBatch();
+									//trTest.WithCausalReadRisky();
+									//trTest.WithCausalWriteRisky();
+									//trTest.WithReadYourWritesDisable();
+									//trTest.WithReadAheadDisable();
+									trTest.WithAccessToSystemKeys();
+									//trTest.WithDurabilityDevNullIsWebScale();
+									trTest.WithTimeout(1000);
+									trTest.Timeout = 2000;
+									trTest.WithRetryLimit(5);
+									trTest.RetryLimit = 6;
+
+									Slice val = await trTest.GetAsync(EncodingHelper.FromByteString("\xff"));
+									await tr.CommitAsync();
+
+									await TestWatches();
+									await TestLocality();
+								}
+								catch (FdbException e)
+								{
+									throw new Exception("Unit tests failed: " + e.Message, e);
+								}
 							}
 							else if (op == "LOG_STACK")
 							{
@@ -669,6 +697,49 @@ namespace Tester
 			}
 
 			return 0;
+		}
+
+		private async Task TestWatches()
+		{
+			FdbTransaction tr = db.BeginTransaction();
+
+			tr.Set(EncodingHelper.FromByteString("w0"), EncodingHelper.FromByteString("0"));
+
+			await tr.CommitAsync();
+			tr = db.BeginTransaction();
+
+			List<FdbWatch> watches = new List<FdbWatch>();
+			watches.Add(tr.Watch(EncodingHelper.FromByteString("w0")));
+			watches.Add(tr.Watch(EncodingHelper.FromByteString("w1")));
+
+			await Task.Delay(1000);
+
+			foreach (FdbWatch w in watches)
+				Debug.Assert(!w.HasChanged);
+
+			tr.Set(EncodingHelper.FromByteString("w0"), EncodingHelper.FromByteString("0"));
+			tr.Clear(EncodingHelper.FromByteString("w1"));
+			await tr.CommitAsync();
+			tr = db.BeginTransaction();
+
+			await Task.Delay(5000);
+
+			foreach(FdbWatch w in watches)
+				Debug.Assert(!w.HasChanged);
+
+			tr.Set(EncodingHelper.FromByteString("w0"), EncodingHelper.FromByteString("a"));
+			tr.Set(EncodingHelper.FromByteString("w1"), EncodingHelper.FromByteString("b"));
+
+			await tr.CommitAsync();
+
+			foreach (FdbWatch w in watches)
+				await w;
+		}
+
+		private async Task TestLocality()
+		{
+			// Locality not fully implemented
+			await Task.Yield();
 		}
 	}
 }
