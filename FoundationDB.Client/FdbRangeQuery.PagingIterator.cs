@@ -171,7 +171,7 @@ namespace FoundationDB.Client
 					case FdbAsyncMode.Head:
 					{
 						// the caller only expect one (or zero) values
-						options.Mode = FdbStreamingMode.Small;
+						options.Mode = FdbStreamingMode.Iterator;
 						break;
 					}
 				}
