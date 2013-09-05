@@ -149,6 +149,13 @@ namespace FoundationDB.Client
 			return this;
 		}
 
+		/// <summary>The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.</summary>
+		public FdbTransaction WithNextWriteNoWriteConflictRange()
+		{
+			SetOption(FdbTransactionOption.NextWriteNoWriteConflictRange);
+			return this;
+		}
+
 		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
 		/// <param name="timeout">Timeout (with millisecond precision), or TimeSpan.Zero for infinite timeout</param>
 		public FdbTransaction WithTimeout(TimeSpan timeout)
