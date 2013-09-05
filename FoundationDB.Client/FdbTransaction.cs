@@ -171,6 +171,13 @@ namespace FoundationDB.Client
 			return this;
 		}
 
+		/// <summary>The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.</summary>
+		public FdbTransaction WithNextWriteNoWriteConflictRange()
+		{
+			SetOption(FdbTransactionOption.NextWriteNoWriteConflictRange);
+			return this;
+		}
+
 		#endregion
 
 		#region Properties...
@@ -838,9 +845,12 @@ namespace FoundationDB.Client
 		/// <summary>Reset the transaction to its initial state.</summary>
 		public void Reset()
 		{
-			EnsureCanReadOrWrite();
+			EnsureCanRetry();
 
 			FdbNative.TransactionReset(m_handle);
+
+			var state = this.State;
+			if (state != STATE_DISPOSED) Interlocked.CompareExchange(ref m_state, STATE_READY, state);
 
 			if (Logging.On) Logging.Verbose(this, "Reset", "Transaction has been reset");
 		}
