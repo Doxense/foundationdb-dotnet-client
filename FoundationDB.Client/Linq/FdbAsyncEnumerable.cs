@@ -430,7 +430,6 @@ namespace FoundationDB.Linq
 			return ForEachAsync<T>(source, TaskHelpers.WithCancellation(asyncAction), ct);
 		}
 
-
 		/// <summary>Execute an async action for each element of an async sequence</summary>
 		public static Task ForEachAsync<T>(this IFdbAsyncEnumerable<T> source, Func<T, CancellationToken, Task> asyncAction, CancellationToken ct = default(CancellationToken))
 		{

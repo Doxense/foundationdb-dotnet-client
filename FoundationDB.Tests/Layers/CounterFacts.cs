@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Counters.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
+	[Obsolete]
 	public class CounterFacts
 	{
 		[Test]
