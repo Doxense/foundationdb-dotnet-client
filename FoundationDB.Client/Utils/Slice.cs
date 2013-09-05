@@ -294,15 +294,30 @@ namespace FoundationDB.Client
 
 		public static Slice FromGuid(Guid value)
 		{
-			//TODO: optimize !
-			return new Slice(value.ToByteArray(), 0, 16);
+			// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
+			// => we will convert the GUID into a UUID under the hood, and hope that it gets converted back when read from the db
+
+			return new Uuid(value).ToSlice();
 		}
 
+		/// <summary>Create a 16-byte slice containing an RFC 4122 compliant 128-bit UUID</summary>
+		/// <param name="value"></param>
+		/// <returns></returns>
+		public static Slice FromUuid(Uuid value)
+		{
+			// UUID should already be in the RFC 4122 ordering
+			return value.ToSlice();
+		}
+
+		/// <summary>Dangerously create a slice containing string converted to ASCII. All non-ASCII characters may be corrupted or converted to '?'</summary>
+		/// <remarks>WARNING: if you put a string that contains non-ASCII chars, it will be silently corrupted! This should only be used to store keywords or 'safe' strings.
+		/// Note: depending on your default codepage, chars from 128 to 255 may be preserved, but only if they are decoded using the same codepage at the other end !</remarks>
 		public static Slice FromAscii(string text)
 		{
 			return text == null ? Slice.Nil : text.Length == 0 ? Slice.Empty : Slice.Create(Encoding.Default.GetBytes(text));
 		}
 
+		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/></summary>
 		public static Slice FromString(string value)
 		{
 			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Encoding.UTF8.GetBytes(value));
@@ -519,10 +534,13 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
-		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex dump of the slice. It should only be used for logging and troubleshooting !</summary>
-		/// <returns></returns>
+		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <returns>Returns either "'abc'" or "&lt;00 42 7F&gt;". Returns "''" for Slice.Empty, and "" for Slice.Nil</returns>
 		public string ToAsciiOrHexaString()
 		{
+			//REVIEW: rename this to ToFriendlyString() ? or ToLoggableString() ?
+			if (this.Count == 0) return this.HasValue ? "''" : String.Empty;
+
 			var buffer = this.Array;
 			int n = this.Count;
 			int p = this.Offset;
@@ -641,14 +659,15 @@ namespace FoundationDB.Client
 
 		public Guid ToGuid()
 		{
+			if (this.IsNullOrEmpty) return default(Guid);
+
 			if (this.Count == 16)
 			{ // direct byte array
-				byte[] tmp;
-				if (this.Offset == 0 && this.Array.Length == 16)
-					tmp = this.Array;
-				else
-					tmp = this.GetBytes();
-				return new Guid(tmp);
+
+				// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
+				// we need to swap the byte order of the Data1, Data2 and Data3 chunks, to ensure that Guid.ToString() will return the proper value.
+
+				return new Uuid(this).ToGuid();
 			}
 
 			if (this.Count == 44)
@@ -657,6 +676,23 @@ namespace FoundationDB.Client
 			}
 
 			throw new FormatException("Cannot convert slice into a Guid because it has an incorrect size");
+		}
+
+		public Uuid ToUuid()
+		{
+			if (this.IsNullOrEmpty) return default(Uuid);
+
+			if (this.Count == 16)
+			{
+				return new Uuid(this);
+			}
+
+			if (this.Count == 44)
+			{
+				return Uuid.Parse(this.ToAscii());
+			}
+
+			throw new FormatException("Cannot convert slice into Uuid because it has an incorrect size");
 		}
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>

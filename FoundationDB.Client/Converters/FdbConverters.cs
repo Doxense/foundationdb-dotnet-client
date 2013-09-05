@@ -168,6 +168,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<string, long>((value) => string.IsNullOrEmpty(value) ? default(long) : Int64.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string, ulong>((value) => string.IsNullOrEmpty(value) ? default(ulong) : UInt64.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string, Guid>((value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
+			RegisterUnsafe<string, Uuid>((value) => string.IsNullOrEmpty(value) ? default(Uuid) : Uuid.Parse(value));
 			RegisterUnsafe<string, bool>((value) => string.IsNullOrEmpty(value) ? default(bool) : Boolean.Parse(value));
 
 			RegisterUnsafe<byte[], Slice>((value) => Slice.Create(value));
@@ -176,12 +177,19 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<byte[], uint>((value) => value == null ? 0U : Slice.Create(value).ToUInt32());
 			RegisterUnsafe<byte[], long>((value) => value == null ? 0L : Slice.Create(value).ToInt64());
 			RegisterUnsafe<byte[], ulong>((value) => value == null ? 0UL : Slice.Create(value).ToUInt64());
-			RegisterUnsafe<byte[], Guid>((value) => value == null || value.Length == 0 ? Guid.Empty : new Guid(value));
+			RegisterUnsafe<byte[], Guid>((value) => value == null || value.Length == 0 ? default(Guid) : new Uuid(value).ToGuid());
+			RegisterUnsafe<byte[], Uuid>((value) => value == null || value.Length == 0 ? default(Uuid) : new Uuid(value));
 			RegisterUnsafe<byte[], TimeSpan>((value) => value == null ? TimeSpan.Zero : TimeSpan.FromTicks(Slice.Create(value).ToInt64()));
 
 			RegisterUnsafe<Guid, Slice>((value) => Slice.FromGuid(value));
-			RegisterUnsafe<Guid, byte[]>((value) => value.ToByteArray());
-			RegisterUnsafe<Guid, string>((value) => value.ToString(null));
+			RegisterUnsafe<Guid, byte[]>((value) => Slice.FromGuid(value).GetBytes());
+			RegisterUnsafe<Guid, string>((value) => value.ToString("D", null));
+			RegisterUnsafe<Guid, Uuid>((value) => new Uuid(value));
+
+			RegisterUnsafe<Uuid, Slice>((value) => value.ToSlice());
+			RegisterUnsafe<Uuid, byte[]>((value) => value.ToByteArray());
+			RegisterUnsafe<Uuid, string>((value) => value.ToString("D", null));
+			RegisterUnsafe<Uuid, Guid>((value) => value.ToGuid());
 
 			RegisterUnsafe<TimeSpan, Slice>((value) => Slice.FromInt64(value.Ticks));
 			RegisterUnsafe<TimeSpan, byte[]>((value) => Slice.FromInt64(value.Ticks).GetBytes());
@@ -199,6 +207,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<Slice, long>((value) => value.ToInt64());
 			RegisterUnsafe<Slice, ulong>((value) => value.ToUInt64());
 			RegisterUnsafe<Slice, Guid>((value) => value.ToGuid());
+			RegisterUnsafe<Slice, Uuid>((value) => value.ToUuid());
 			RegisterUnsafe<Slice, TimeSpan>((value) => TimeSpan.FromTicks(value.ToInt64()));
 			RegisterUnsafe<Slice, FdbTupleAlias>((value) => (FdbTupleAlias)value.ToByte());
 		}

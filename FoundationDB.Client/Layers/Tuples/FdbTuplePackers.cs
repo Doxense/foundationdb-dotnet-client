@@ -380,6 +380,13 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteGuid(writer, value);
 		}
 
+		public static void SerializeTo(FdbBufferWriter writer, Uuid value)
+		{
+			Contract.Requires(writer != null);
+
+			FdbTupleParser.WriteUuid(writer, value);
+		}
+
 		public static void SerializeTo(FdbBufferWriter writer, FdbTupleAlias value)
 		{
 			Contract.Requires(Enum.IsDefined(typeof(FdbTupleAlias), value));
@@ -524,8 +531,8 @@ namespace FoundationDB.Layers.Tuples
 				throw new FormatException("Slice has invalid size for a guid");
 			}
 
-			//TODO: optimize !
-			return new Guid(slice.GetBytes(1, 16));
+			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
+			return new Uuid(slice.GetBytes(1, 16)).ToGuid();
 		}
 
 		public static object DeserializeObject(Slice slice)

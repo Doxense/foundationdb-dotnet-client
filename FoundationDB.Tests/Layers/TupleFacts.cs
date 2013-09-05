@@ -499,12 +499,14 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Guids()
 		{
-			// Guids are stored with prefix '03' followed by 16 bytes (the result of guid.GetBytes())
+			// Guids are stored with prefix '03' followed by 16 bytes formatted according to RFC 4122
+
+			// System.Guid are stored in Little-Endian, but RFC 4122's UUIDs are stored in Big Endian, so per convention we will swap them
 
 			Slice packed;
 
 			// note: new Guid(bytes from 0 to 15) => "03020100-0504-0706-0809-0a0b0c0d0e0f";
-			packed = FdbTuple.Create(Guid.Parse("03020100-0504-0706-0809-0a0b0c0d0e0f")).ToSlice();
+			packed = FdbTuple.Create(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")).ToSlice();
 			Assert.That(packed.ToString(), Is.EqualTo("<03><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 
 			packed = FdbTuple.Create(Guid.Empty).ToSlice();
@@ -515,15 +517,14 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Deserialize_Guids()
 		{
-			// Guids are stored with prefix '03' followed by 16 bytes (the result of guid.GetBytes())
+			// Guids are stored with prefix '03' followed by 16 bytes
 			// we also accept byte arrays (prefix '01') if they are of length 16
 
 			IFdbTuple packed;
 
-			// note: new Guid(bytes from 0 to 15) => "03020100-0504-0706-0809-0a0b0c0d0e0f";
 			packed = FdbTuple.Unpack(Slice.Unescape("<03><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
-			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Parse("03020100-0504-0706-0809-0a0b0c0d0e0f")));
-			Assert.That(packed[0], Is.EqualTo(Guid.Parse("03020100-0504-0706-0809-0a0b0c0d0e0f")));
+			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
+			Assert.That(packed[0], Is.EqualTo(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
 
 			packed = FdbTuple.Unpack(Slice.Unescape("<03><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
 			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Empty));
@@ -534,17 +535,55 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Parse("03020100-0504-0706-0809-0a0b0c0d0e0f")));
 			//note: t[0] returns a string, not a GUID
 
-#if DOES_NOT_WORK
-			// byte array (note: 00 are escaped !)
-			packed = FdbTuple.Unpack(Slice.Unescape("<01><00><FF><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F><00>"));
-			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Parse("03020100-0504-0706-0809-0a0b0c0d0e0f")));
-			//note: t[0] returns a string, not a GUID
-#endif
-
 			// null maps to Guid.Empty
 			packed = FdbTuple.Unpack(Slice.Unescape("<00>"));
 			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Empty));
 			//note: t[0] returns null, not a GUID
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_Serialize_Uuids()
+		{
+			// UUIDs are stored with prefix '03' followed by 16 bytes formatted according to RFC 4122
+
+			Slice packed;
+
+			// note: new Guid(bytes from 0 to 15) => "03020100-0504-0706-0809-0a0b0c0d0e0f";
+			packed = FdbTuple.Create(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")).ToSlice();
+			Assert.That(packed.ToString(), Is.EqualTo("<03><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+
+			packed = FdbTuple.Create(Uuid.Empty).ToSlice();
+			Assert.That(packed.ToString(), Is.EqualTo("<03><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_Deserialize_Uuids()
+		{
+			// UUIDs are stored with prefix '03' followed by 16 bytes (the result of uuid.ToByteArray())
+			// we also accept byte arrays (prefix '01') if they are of length 16
+
+			IFdbTuple packed;
+
+			// note: new Uuid(bytes from 0 to 15) => "00010203-0405-0607-0809-0a0b0c0d0e0f";
+			packed = FdbTuple.Unpack(Slice.Unescape("<03><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
+			Assert.That(packed[0], Is.EqualTo(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
+
+			packed = FdbTuple.Unpack(Slice.Unescape("<03><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
+			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Empty));
+			Assert.That(packed[0], Is.EqualTo(Uuid.Empty));
+
+			// unicode string
+			packed = FdbTuple.Unpack(Slice.Unescape("<02>00010203-0405-0607-0809-0a0b0c0d0e0f<00>"));
+			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
+			//note: t[0] returns a string, not a UUID
+
+			// null maps to Uuid.Empty
+			packed = FdbTuple.Unpack(Slice.Unescape("<00>"));
+			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Empty));
+			//note: t[0] returns null, not a UUID
 
 		}
 
