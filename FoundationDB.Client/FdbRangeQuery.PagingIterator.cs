@@ -154,7 +154,7 @@ namespace FoundationDB.Client
 				};
 
 				// select the appropriate streaming mode if purpose is not default
-				switch (m_mode)
+				switch(m_mode)
 				{
 					case FdbAsyncMode.Iterator:
 					{
@@ -163,11 +163,9 @@ namespace FoundationDB.Client
 						break;
 					}
 					case FdbAsyncMode.All:
-					{
+					{ 
 						// we are in a ToList or ForEach, we want to read everything in as few chunks as possible
-						if (options.Mode == FdbStreamingMode.Iterator)
-							options.Mode = FdbStreamingMode.WantAll;
-
+						options.Mode = FdbStreamingMode.WantAll;
 						break;
 					}
 					case FdbAsyncMode.Head:
