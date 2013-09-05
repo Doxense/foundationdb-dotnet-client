@@ -187,48 +187,6 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Can_Change_Restricted_Key_Space()
-		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-				Assert.That(db.KeySpace.Begin, Is.EqualTo(Slice.Nil));
-				Assert.That(db.KeySpace.End, Is.EqualTo(Slice.Nil));
-
-				// can set min and max
-				db.RestrictKeySpace(
-					db.Pack("alpha"),
-					db.Pack("omega")
-				);
-				Assert.That(db.Extract(db.KeySpace.Begin).ToString(), Is.EqualTo("<02>alpha<00>"));
-				Assert.That(db.Extract(db.KeySpace.End).ToString(), Is.EqualTo("<02>omega<00>"));
-
-				// can use a tuple as prefix
-				db.RestrictKeySpace(
-					db.GlobalSpace.Pack("prefix")
-				);
-				Assert.That(db.Extract(db.KeySpace.Begin).ToString(), Is.EqualTo("<02>prefix<00><00>"));
-				Assert.That(db.Extract(db.KeySpace.End).ToString(), Is.EqualTo("<02>prefix<00><FF>"));
-
-				// can use a slice as a prefix
-				db.RestrictKeySpace(
-					db.GlobalSpace.Concat(Slice.FromHexa("BEEF"))
-				);
-				Assert.That(db.Extract(db.KeySpace.Begin).ToString(), Is.EqualTo("<BE><EF><00>"));
-				Assert.That(db.Extract(db.KeySpace.End).ToString(), Is.EqualTo("<BE><EF><FF>"));
-
-				// can directly specify a range
-				db.RestrictKeySpace(
-					FdbKeyRange.PrefixedBy(db.Concat(Slice.Create(new byte[] { 1, 2, 3 })))
-				);
-				Assert.That(db.Extract(db.KeySpace.Begin).ToString(), Is.EqualTo("<01><02><03><00>"));
-				Assert.That(db.Extract(db.KeySpace.End).ToString(), Is.EqualTo("<01><02><03><FF>"));
-
-				// throws if bounds are reversed
-				Assert.Throws<ArgumentException>(() => db.RestrictKeySpace(Slice.FromAscii("Z"), Slice.FromAscii("A")));
-			}		
-		}
-
-		[Test]
 		public async Task Test_Can_Change_Location_Cache_Size()
 		{
 			// New in Beta2

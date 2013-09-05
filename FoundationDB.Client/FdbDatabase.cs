@@ -75,10 +75,6 @@ namespace FoundationDB.Client
 		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
 		private readonly FdbSubspace m_globalSpaceCopy;
 
-		/// <summary>Contains the bounds of the allowed key space. Any key that is outside of the bound should be rejected</summary>
-		/// <remarks>This is modifiable, but should always be contained in the global namespace</remarks>
-		private FdbKeyRange m_restrictedKeySpace;
-
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
 
@@ -403,72 +399,15 @@ namespace FoundationDB.Client
 			return m_globalSpace.Extract(keyAbsolute);
 		}
 
-		/// <summary>Restrict access to only the keys contained inside the specified range</summary>
-		/// <param name="range"></param>
-		/// <remarks>This is "opt-in" security, and should not be relied on to ensure safety of the database. It should only be seen as a safety net to defend yourself from logical bugs in your code while dealing with multi-tenancy issues</remarks>
-		public void RestrictKeySpace(FdbKeyRange range)
-		{
-			var begin = range.Begin;
-			var end = range.End;
-
-			// Ensure that end is not less then begin
-			if (begin.HasValue && end.HasValue && begin > end)
-			{
-				throw Fdb.Errors.EndKeyOfRangeCannotBeLessThanBeginKey(range);
-			}
-
-			// clip the bounds of the range with the global namespace
-			var globalRange = m_globalSpace.ToRange();
-			if (begin < globalRange.Begin) begin = globalRange.Begin;
-			if (end > globalRange.End) end = globalRange.End;
-
-			// copy the bounds so that nobody can change them behind our back
-			m_restrictedKeySpace = new FdbKeyRange(begin.Memoize(), end.Memoize());
-		}
-
-		/// <summary>Restrict access to only the keys contained inside the specified bounds.</summary>
-		/// <param name="beginInclusive">If non-null, only allow keys that are bigger than or equal to this key</param>
-		/// <param name="endInclusive">If non-null, only allow keys that are less than or equal to this key</param>
-		/// <remarks>
-		/// The keys should fit inside the global namespace of the current db. If they don't, they will be clipped to fit inside the range.
-		/// IMPORTANT: This is "opt-in" security, and should not be relied on to ensure safety of the database. It should only be seen as a safety net to defend yourself from logical bugs in your code while dealing with multi-tenancy issues
-		/// </remarks>
-		public void RestrictKeySpace(Slice beginInclusive, Slice endInclusive)
-		{
-			RestrictKeySpace(new FdbKeyRange(beginInclusive, endInclusive));
-		}
-
-		public void RestrictKeySpace(Slice prefix)
-		{
-			RestrictKeySpace(FdbKeyRange.Descendants(prefix));
-		}
-
-		public void RestrictKeySpace(IFdbTuple prefix)
-		{
-			RestrictKeySpace(prefix != null ? prefix.ToRange(includePrefix: false) : FdbKeyRange.None);
-		}
-
-		/// <summary>Returns the current allowed key space</summary>
-		/// <remarks>Makes a copy of the keys, so you should not call this property a lot</remarks>
-		public FdbKeyRange KeySpace
-		{
-			get
-			{
-				// return a copy, in order not to expose the internal slice buffers
-				return new FdbKeyRange(m_restrictedKeySpace.Begin.Memoize(), m_restrictedKeySpace.End.Memoize());
-			}
-		}
-
 		/// <summary>Test if a key is allowed to be used with this database instance</summary>
 		/// <param name="key">Key to test</param>
-		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, is contained in the root namespace of this database instance, and is inside the bounds of the optionnal restricted key space. Otherwise, returns false.</returns>
+		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
 		public bool IsKeyValid(Slice key)
 		{
 			// key is legal if...
 			return key.HasValue							// is not null (note: empty key is allowed)
 				&& key.Count <= Fdb.MaxKeySize			// not too big
-				&& m_globalSpace.Contains(key)			// not outside the namespace
-				&& m_restrictedKeySpace.Test(key, endIncluded: true) == 0; // not outside the restricted key space
+				&& m_globalSpace.Contains(key);			// not outside the namespace
 		}
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -480,9 +419,9 @@ namespace FoundationDB.Client
 			if (ex != null) throw ex;
 		}
 
-		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="key">Key to verify</param>
-		/// <returns>An exception if the key is outside of the allowed keyspace of this database</exception>
+		/// <returns>An exception if the key is outside of the allowed key space of this database</exception>
 		internal Exception ValidateKey(Slice key)
 		{
 			// null or empty keys are not allowed
@@ -508,13 +447,6 @@ namespace FoundationDB.Client
 			if (!m_globalSpace.Contains(key))
 			{
 				return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
-			}
-
-			// test if the key is inside the restrictied key space
-			int x = m_restrictedKeySpace.Test(key, endIncluded: true); // returns -1/+1 if outside, 0 if inside
-			if (x != 0)
-			{
-				return Fdb.Errors.InvalidKeyOutsideDatabaseRestrictedKeySpace(this, key, greaterThan: x > 0);
 			}
 
 			return null;
