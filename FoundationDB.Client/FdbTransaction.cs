@@ -445,7 +445,7 @@ namespace FoundationDB.Client
 			options.EnsureLegalValues();
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", range.Start.ToString(), range.Stop.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", range.Begin.ToString(), range.End.ToString()));
 #endif
 
 			return new FdbRangeQuery(this, range, options, snapshot);
