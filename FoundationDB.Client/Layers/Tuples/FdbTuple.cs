@@ -440,6 +440,46 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Internal Helpers...
 
+		/// <summary>Create a range that selects all the descendant keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
+		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
+		/// <returns>Range including all keys with the specified prefix.</returns>
+		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
+		public static FdbKeyRange Descendants(Slice prefix)
+		{
+			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+
+			if (prefix.Count == 0)
+			{ // "" => [ \0, \xFF )
+				return FdbKeyRange.All;
+			}
+
+			// prefix => [ prefix."\0", prefix."\xFF" )
+			return new FdbKeyRange(
+				prefix + FdbKey.MinValue,
+				prefix + FdbKey.MaxValue
+			);
+		}
+
+		/// <summary>Create a range that selects all the descendant keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
+		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
+		/// <returns>Range including all keys with the specified prefix.</returns>
+		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
+		public static FdbKeyRange DescendantsAndSelf(Slice prefix)
+		{
+			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+
+			if (prefix.Count == 0)
+			{ // "" => [ \0, \xFF )
+				return FdbKeyRange.All;
+			}
+
+			// prefix => [ prefix."\0", prefix."\xFF" )
+			return new FdbKeyRange(
+				prefix,
+				prefix + FdbKey.MaxValue
+			);
+		}
+
 		/// <summary>Converts any object into a displayble string, for logging/debugging purpose</summary>
 		/// <param name="item">Object to stringify</param>
 		/// <returns>String representation of the object</returns>

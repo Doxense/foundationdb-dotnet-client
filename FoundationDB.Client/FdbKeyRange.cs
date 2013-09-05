@@ -91,46 +91,6 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Create a range that selects all the descendant keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
-		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
-		/// <returns>Range including all keys with the specified prefix.</returns>
-		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
-		public static FdbKeyRange Descendants(Slice prefix)
-		{
-			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
-
-			if (prefix.Count == 0)
-			{ // "" => [ \0, \xFF )
-				return FdbKeyRange.All;
-			}
-
-			// prefix => [ prefix."\0", prefix."\xFF" )
-			return new FdbKeyRange(
-				prefix + FdbKey.MinValue,
-				prefix + FdbKey.MaxValue
-			);
-		}
-
-		/// <summary>Create a range that selects all the descendant keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
-		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
-		/// <returns>Range including all keys with the specified prefix.</returns>
-		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
-		public static FdbKeyRange DescendantsAndSelf(Slice prefix)
-		{
-			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
-
-			if (prefix.Count == 0)
-			{ // "" => [ \0, \xFF )
-				return FdbKeyRange.All;
-			}
-
-			// prefix => [ prefix."\0", prefix."\xFF" )
-			return new FdbKeyRange(
-				prefix,
-				prefix + FdbKey.MaxValue
-			);
-		}
-
 		/// <summary>Create a range that will only return <param name="key"/> itself ('key' &lt;= k &lt; 'key\x00')</summary>
 		/// <param name="prefix">Key that will be returned by the range</param>
 		/// <returns>Range that only return the specified key.</returns>
