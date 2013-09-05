@@ -844,12 +844,9 @@ namespace FoundationDB.Client
 		/// <summary>Reset the transaction to its initial state.</summary>
 		public void Reset()
 		{
-			EnsureCanRetry();
+			EnsureCanReadOrWrite();
 
 			FdbNative.TransactionReset(m_handle);
-
-			var state = this.State;
-			if (state != STATE_DISPOSED) Interlocked.CompareExchange(ref m_state, STATE_READY, state);
 
 			if (Logging.On) Logging.Verbose(this, "Reset", "Transaction has been reset");
 		}

@@ -49,6 +49,7 @@ namespace Tester
 		private string prefix;
 
 		private long lastVersion;
+		private long committedVersion = -1;
 
 		private List<KeyValuePair<Slice, Slice>> instructions;
 		private List<StackEntry> stack;
@@ -245,6 +246,27 @@ namespace Tester
 			}
 		}
 
+		private void ForceReset(FdbTransaction tr)
+		{
+			try
+			{
+				tr.EnsureCanReadOrWrite();
+			}
+			catch (Exception)
+			{
+				try
+				{
+					committedVersion = tr.GetCommittedVersion();
+				}
+				catch (Exception) { }
+
+				this.tr = db.BeginTransaction();
+				tr = this.tr;
+			}
+
+			tr.Reset();
+		}
+
 		private async Task<int> RunAsync()
 		{
 			try
@@ -312,7 +334,10 @@ namespace Tester
 							else if (op == "WAIT_FUTURE")
 								stack.Add((StackEntry)(await PopAsync(1, true))[0]);
 							else if (op == "NEW_TRANSACTION")
+							{
 								this.tr = db.BeginTransaction();
+								committedVersion = -1;
+							}
 							else if (op == "ON_ERROR")
 							{
 								var items = await PopAsync(1);
@@ -527,12 +552,16 @@ namespace Tester
 								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("RESULT_NOT_PRESENT")));
 							}
 							else if (op == "RESET")
-								tr.Reset();
+								ForceReset((FdbTransaction)tr);
 							else if (op == "CANCEL")
 								((FdbTransaction)tr).Cancel();
 							else if (op == "GET_COMMITTED_VERSION")
 							{
-								lastVersion = tr.GetCommittedVersion();
+								if (committedVersion > 0)
+									lastVersion = committedVersion;
+								else
+									lastVersion = tr.GetCommittedVersion();
+
 								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("GOT_COMMITTED_VERSION")));
 							}
 							else if (op == "TUPLE_PACK")
@@ -592,7 +621,7 @@ namespace Tester
 									if (i % 100 == 0)
 									{
 										await tr.CommitAsync();
-										tr.Reset();
+										tr = db.BeginTransaction();
 									}
 
 									StackEntry entry = (StackEntry)items[items.Count - i - 1];
@@ -603,7 +632,7 @@ namespace Tester
 								}
 
 								await tr.CommitAsync();
-								tr.Reset();
+								ForceReset((FdbTransaction)tr);
 							}
 							else
 								throw new Exception("Unknown op " + op);
