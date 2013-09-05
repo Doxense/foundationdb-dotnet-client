@@ -324,5 +324,71 @@ namespace FoundationDB.Client.Tests
 			uuid = Uuid.NewUuid();
 			Assert.That(Slice.FromUuid(uuid).ToUuid(), Is.EqualTo(uuid));
 		}
+
+		[Test]
+		public void Test_Slice_FromFixed32()
+		{
+			// FromFixed32 always produce 4 bytes and uses Little Endian
+
+			Assert.That(Slice.FromFixed32(0).GetBytes(), Is.EqualTo(new byte[4]));
+			Assert.That(Slice.FromFixed32(1).GetBytes(), Is.EqualTo(new byte[] { 1, 0, 0, 0 }));
+			Assert.That(Slice.FromFixed32(256).GetBytes(), Is.EqualTo(new byte[] { 0, 1, 0, 0 }));
+			Assert.That(Slice.FromFixed32(65536).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 1, 0 }));
+			Assert.That(Slice.FromFixed32(16777216).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 1 }));
+			Assert.That(Slice.FromFixed32(short.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 127, 0, 0 }));
+			Assert.That(Slice.FromFixed32(int.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 127 }));
+
+			Assert.That(Slice.FromFixed32(-1).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255 }));
+			Assert.That(Slice.FromFixed32(-256).GetBytes(), Is.EqualTo(new byte[] { 0, 255, 255, 255 }));
+			Assert.That(Slice.FromFixed32(-65536).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 255, 255 }));
+			Assert.That(Slice.FromFixed32(-16777216).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 255 }));
+			Assert.That(Slice.FromFixed32(int.MinValue).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 128 }));
+
+			var rnd = new Random();
+			for (int i = 0; i < 1000; i++)
+			{
+				int x = rnd.Next() * (rnd.Next(2) == 0 ? +1 : -1);
+				Slice s = Slice.FromFixed32(x);
+				Assert.That(s.Count, Is.EqualTo(4));
+				Assert.That(s.ToInt32(), Is.EqualTo(x));
+			}
+		}
+
+		[Test]
+		public void Test_Slice_FromFixed64()
+		{
+			// FromFixed64 always produce 8 bytes and uses Little Endian
+
+			Assert.That(Slice.FromFixed64(0L).GetBytes(), Is.EqualTo(new byte[8]));
+			Assert.That(Slice.FromFixed64(1L).GetBytes(), Is.EqualTo(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixed64(1L << 8).GetBytes(), Is.EqualTo(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixed64(1L << 16).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixed64(1L << 24).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixed64(1L << 32).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 }));
+			Assert.That(Slice.FromFixed64(1L << 40).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 }));
+			Assert.That(Slice.FromFixed64(1L << 48).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 }));
+			Assert.That(Slice.FromFixed64(1L << 56).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }));
+			Assert.That(Slice.FromFixed64(short.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 127, 0, 0, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixed64(int.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 127, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixed64(long.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }));
+
+			Assert.That(Slice.FromFixed64(-1L).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }));
+			Assert.That(Slice.FromFixed64(-256L).GetBytes(), Is.EqualTo(new byte[] { 0, 255, 255, 255, 255, 255, 255, 255 }));
+			Assert.That(Slice.FromFixed64(-65536L).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 255, 255, 255, 255, 255, 255 }));
+			Assert.That(Slice.FromFixed64(-16777216L).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 255, 255, 255, 255, 255 }));
+			Assert.That(Slice.FromFixed64(-2147483648L).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 255, 255, 255, 255, 255 }));
+			Assert.That(Slice.FromFixed64(long.MinValue).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 0, 0, 128 }));
+
+			var rnd = new Random();
+			for (int i = 0; i < 1000; i++)
+			{
+				long x = (long)rnd.Next() * rnd.Next() * (rnd.Next(2) == 0 ? +1 : -1);
+				Slice s = Slice.FromFixed64(x);
+				Assert.That(s.Count, Is.EqualTo(8));
+				Assert.That(s.ToInt64(), Is.EqualTo(x));
+			}
+		}
+
+
 	}
 }

@@ -292,6 +292,9 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Create a 16-byte slice containing a System.Guid encoding according to RFC 4122 (Big Endian)</summary>
+		/// <remarks>WARNING: Slice.FromGuid(guid).GetBytes() will not produce the same result as guid.ToByteArray() !
+		/// If you need to produce Microsoft compatible byte arrays, use Slice.Create(guid.ToByteArray()) but then you shoud NEVER use Slice.ToGuid() to decode such a value !</remarks>
 		public static Slice FromGuid(Guid value)
 		{
 			// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
@@ -301,8 +304,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a 16-byte slice containing an RFC 4122 compliant 128-bit UUID</summary>
-		/// <param name="value"></param>
-		/// <returns></returns>
+		/// <remarks>You should never call this method on a slice created from the result of calling System.Guid.ToByteArray() !</remarks>
 		public static Slice FromUuid(Uuid value)
 		{
 			// UUID should already be in the RFC 4122 ordering
@@ -323,6 +325,10 @@ namespace FoundationDB.Client
 			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Encoding.UTF8.GetBytes(value));
 		}
 
+		/// <summary>Create a slice that holds the UTF-8 encoded representation of <paramref name="value"/></summary>
+		/// <param name="value"></param>
+		/// <returns>The returned slice is only guaranteed to hold 1 byte for ASCII chars (0..127). For non-ASCII chars, the size can be from 1 to 6 bytes.
+		/// If you need to use ASCII chars, you should use Slice.FromByte() instead</returns>
 		public static Slice FromChar(char value)
 		{
 			if (value < 128)
@@ -333,18 +339,24 @@ namespace FoundationDB.Client
 			// note: Encoding.UTF8.GetMaxByteCount(1) returns 6, but allocate 8 to stay aligned
 			var tmp = new byte[8];
 			int n = Encoding.UTF8.GetBytes(new char[] { value }, 0, 1, tmp, 0);
-			return new Slice(tmp, 0, n);
+			return n == 1 ? FromByte(tmp[0]) : new Slice(tmp, 0, n);
 		}
 
+		/// <summary>Convert an hexadecimal digit (0-9A-Fa-f) into the corresponding decimal value</summary>
+		/// <param name="c">Hexadecimal digit (case insensitive)</param>
+		/// <returns>Decimal value between 0 and 15, or an exception</returns>
 		private static int NibbleToDecimal(char c)
 		{
 			int x = c - 48;
 			if (x < 10) return x;
 			if (x >= 17 && x <= 42) return x - 7;
 			if (x >= 49 && x <= 74) return x - 39;
-			throw new FormatException("Input is not valid hexadecimal");
+			throw new FormatException("Input is not a valid hexadecimal digit");
 		}
 
+		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
+		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
+		/// <returns>Slice containing the decoded byte array, or an exeception if the string is empty or has an odd length</returns>
 		public static Slice FromHexa(string hexaString)
 		{
 			if (string.IsNullOrEmpty(hexaString)) return hexaString == null ? Slice.Nil : Slice.Empty;
@@ -397,6 +409,12 @@ namespace FoundationDB.Client
 			return bytes;
 		}
 
+		/// <summary>Return a stream that wraps this slice</summary>
+		/// <returns>Stream that will read the slice from the start.</returns>
+		/// <remarks>
+		/// You can use this method to convert text into specific encodings, load bitmaps (JPEG, PNG, ...), or any serialization format that requires a Stream or TextReader instance.
+		/// Disposing this stream will have no effect on the slice.
+		/// </remarks>
 		public SliceStream AsStream()
 		{
 			return new SliceStream(this);
@@ -440,52 +458,6 @@ namespace FoundationDB.Client
 			return Encoding.UTF8.GetString(this.Array, this.Offset + offset, count);
 		}
 
-		private static ArraySegment<byte> UnescapeByteString(byte[] buffer, int offset, int count)
-		{
-			// check for nulls
-			int p = offset;
-			int end = offset + count;
-
-			while (p < end)
-			{
-				if (buffer[p] == 0)
-				{ // found a 0, switch to slow path
-					return UnescapeByteStringSlow(buffer, offset, count, p - offset);
-				}
-				++p;
-			}
-			// buffer is clean, we can return it as-is
-			return new ArraySegment<byte>(buffer, offset, count);
-		}
-
-		private static ArraySegment<byte> UnescapeByteStringSlow(byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
-		{
-			var tmp = new byte[count];
-
-			int p = offset;
-			int end = offset + count;
-			int i = 0;
-
-			if (offsetOfFirstZero > 0)
-			{
-				Buffer.BlockCopy(buffer, offset, tmp, 0, offsetOfFirstZero);
-				p += offsetOfFirstZero;
-			}
-
-			while (p < end)
-			{
-				byte b = buffer[p++];
-				if (b == 0)
-				{ // skip next FF
-					//TODO: check that next byte really is 0xFF
-					++p;
-				}
-				tmp[i++] = b;
-			}
-
-			return new ArraySegment<byte>(tmp, 0, p - offset);
-		}
-
 		/// <summary>Converts a slice using Base64 encoding</summary>
 		public string ToBase64()
 		{
@@ -514,7 +486,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
-		/// <returns>"0123456789abcdef"</returns>
+		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
+		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
 		public string ToHexaString(char sep)
 		{
 			if (this.IsNullOrEmpty) return this.Array == null ? null : String.Empty;
