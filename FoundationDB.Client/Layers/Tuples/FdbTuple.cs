@@ -376,6 +376,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			// ensure that the key starts with the prefix
 			if (!packedKey.StartsWith(prefix)) throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
+			if (packedKey.Count == prefix.Count) throw new InvalidOperationException("Cannot unpack the last element of an empty tuple");
 
 			// unpack the key, minus the prefix
 			return UnpackLast<T>(packedKey.Substring(prefix.Count));

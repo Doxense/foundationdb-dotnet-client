@@ -638,11 +638,11 @@ namespace FoundationDB.Client.Tests
 
 					// should not allow outside of the space
 					Assert.That(
-						Assert.Throws<FdbException>(() => tr.Set(db.Namespace.Pack(122), Slice.Empty), "Key is less than minimum allowed"),
+						Assert.Throws<FdbException>(() => tr.Set(db.GlobalSpace.Pack(122), Slice.Empty), "Key is less than minimum allowed"),
 						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
 					);
 					Assert.That(
-						Assert.Throws<FdbException>(() => tr.Set(db.Namespace.Pack(124), Slice.Empty), "Key is more than maximum allowed"),
+						Assert.Throws<FdbException>(() => tr.Set(db.GlobalSpace.Pack(124), Slice.Empty), "Key is more than maximum allowed"),
 						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
 					);
 

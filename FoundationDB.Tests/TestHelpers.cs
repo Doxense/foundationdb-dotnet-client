@@ -37,12 +37,11 @@ namespace FoundationDB.Client.Tests
 	{
 		// change these to target a specific test cluster
 
-		public const string TestClusterFile = null; // null will your defaut fdb.cluster file
-		public const string TestDbName = "DB"; // note cannot change this as of Beta2
-		public const string TestPartition = "T"; // set it to some string to restrict the tests to a partition of the database, or null to overwrite everything
+		public const string TestClusterFile = null;
+		public const string TestDbName = "DB";
+		public const string TestPartition = "T"; 
 
 		/// <summary>Connect to the local test database</summary>
-		/// <returns></returns>
 		public static Task<FdbDatabase> OpenTestDatabaseAsync()
 		{
 			return Fdb.OpenDatabaseAsync(TestClusterFile, TestDbName, string.IsNullOrEmpty(TestPartition) ? FdbSubspace.Empty : new FdbSubspace(FdbTuple.Create(TestPartition)));
@@ -50,7 +49,7 @@ namespace FoundationDB.Client.Tests
 
 		public static async Task DumpSubspace(FdbDatabase db, FdbSubspace subspace)
 		{
-			Assert.That(subspace.Key.StartsWith(db.Namespace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
+			Assert.That(subspace.Key.StartsWith(db.GlobalSpace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
 
 			using (var tr = db.BeginTransaction())
 			{
@@ -60,6 +59,7 @@ namespace FoundationDB.Client.Tests
 					.GetRange(FdbKeyRange.FromPrefixInclusive(subspace.Key))
 					.ForEachAsync((key, value) =>
 					{
+						key = db.Extract(key);
 						++count;
 						string keyDump = null;
 						try
@@ -91,7 +91,6 @@ namespace FoundationDB.Client.Tests
 				await tr.CommitAsync();
 			}
 		}
-
 
 		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message)
 		{

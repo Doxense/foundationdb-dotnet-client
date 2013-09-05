@@ -41,12 +41,12 @@ namespace FoundationDB.Client
 		{
 		}
 
-		internal FdbException(FdbError errorCode, string message)
+		public FdbException(FdbError errorCode, string message)
 			: this(errorCode, message, null)
 		{		
 		}
 
-		internal FdbException(FdbError errorCode, string message, Exception innerException)
+		public FdbException(FdbError errorCode, string message, Exception innerException)
 			: base(message, innerException)
 		{
 			this.Code = errorCode;

@@ -43,7 +43,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			// returns a Directory that uses the namespace of the DB for the content, and stores the node under the "\xFE" prefix.
-			return new FdbDirectoryLayer(db.Partition(FdbTupleAlias.Directory), db.Namespace);
+			return new FdbDirectoryLayer(db.Partition(FdbTupleAlias.Directory), db.GlobalSpace);
 		}
 
 		public static FdbDirectoryLayer OpenDirectory(this FdbDatabase db, FdbSubspace global)
@@ -61,7 +61,7 @@ namespace FoundationDB.Layers.Directories
 			if (contentPrefix == null) throw new ArgumentNullException("contentPrefix");
 
 			// note: both tuples are relative to the db global namespace
-			return new FdbDirectoryLayer(db.Namespace.Partition(nodePrefix), db.Namespace.Partition(contentPrefix));
+			return new FdbDirectoryLayer(db.GlobalSpace.Partition(nodePrefix), db.GlobalSpace.Partition(contentPrefix));
 		}
 
 		/// <summary>
@@ -70,12 +70,12 @@ namespace FoundationDB.Layers.Directories
 		/// If prefix is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null, IFdbTuple prefix = null)
+		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
 		{
 			return db.Attempt.ChangeAsync((tr) => directory.CreateOrOpenAsync(tr, path, layer, prefix));
 		}
 
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectorySubspace subspace, FdbDatabase db, IFdbTuple path, string layer = null, IFdbTuple prefix = null)
+		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectorySubspace subspace, FdbDatabase db, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
 		{
 			return db.Attempt.ChangeAsync((tr) => subspace.CreateOrOpenAsync(tr, path, layer, prefix));
 		}
@@ -86,12 +86,12 @@ namespace FoundationDB.Layers.Directories
 		/// If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null, IFdbTuple prefix = null)
+		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
 		{
 			return db.Attempt.ChangeAsync((tr) => directory.CreateAsync(tr, path, layer, prefix));
 		}
 
-		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectorySubspace subspace, FdbDatabase db, IFdbTuple path, string layer = null, IFdbTuple prefix = null)
+		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectorySubspace subspace, FdbDatabase db, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
 		{
 			return db.Attempt.ChangeAsync((tr) => subspace.CreateAsync(tr, path, layer, prefix));
 		}

@@ -146,6 +146,47 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
+		{
+			// using a tuple prefix
+			using(var db = await Fdb.OpenLocalDatabaseAsync("DB", new FdbSubspace(FdbTuple.Create("test"))))
+			{
+				Assert.That(db, Is.Not.Null);
+				Assert.That(db.GlobalSpace, Is.Not.Null);
+				Assert.That(db.GlobalSpace.Key.ToString(), Is.EqualTo("<02>test<00>"));
+
+				var subspace = db.Partition("hello");
+				Assert.That(subspace.Key.ToString(), Is.EqualTo("<02>test<00><02>hello<00>"));
+
+				// keys inside the global space are invlaid
+				Assert.That(db.IsKeyValid(FdbTuple.Pack("test", 123)), Is.True);
+
+				// keys outside the global space are invlaid
+				Assert.That(db.IsKeyValid(Slice.Create(new byte[] { 42 })), Is.False);
+			}
+
+			// using a random binary prefix
+			using (var db = await Fdb.OpenLocalDatabaseAsync("DB", new FdbSubspace(Slice.Create(new byte[] { 42, 255, 0, 90 }))))
+			{
+				Assert.That(db, Is.Not.Null);
+				Assert.That(db.GlobalSpace, Is.Not.Null);
+				Assert.That(db.GlobalSpace.Key.ToString(), Is.EqualTo("*<FF><00>Z"));
+
+				var subspace = db.Partition("hello");
+				Assert.That(subspace.Key.ToString(), Is.EqualTo("*<FF><00>Z<02>hello<00>"));
+
+				// keys inside the global space are invlaid
+				Assert.That(db.IsKeyValid(Slice.Unescape("*<FF><00>Z123")), Is.True);
+
+				// keys outside the global space are invlaid
+				Assert.That(db.IsKeyValid(Slice.Create(new byte[] { 123 })), Is.False);
+				Assert.That(db.IsKeyValid(Slice.Unescape("*<FF>")), Is.False);
+
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Can_Change_Restricted_Key_Space()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
@@ -163,14 +204,14 @@ namespace FoundationDB.Client.Tests
 
 				// can use a tuple as prefix
 				db.RestrictKeySpace(
-					db.Namespace.Append("prefix")
+					db.GlobalSpace.Pack("prefix")
 				);
 				Assert.That(db.Extract(db.KeySpace.Begin).ToString(), Is.EqualTo("<02>prefix<00><00>"));
 				Assert.That(db.Extract(db.KeySpace.End).ToString(), Is.EqualTo("<02>prefix<00><FF>"));
 
 				// can use a slice as a prefix
 				db.RestrictKeySpace(
-					db.Namespace.Concat(Slice.FromHexa("BEEF"))
+					db.GlobalSpace.Concat(Slice.FromHexa("BEEF"))
 				);
 				Assert.That(db.Extract(db.KeySpace.Begin).ToString(), Is.EqualTo("<BE><EF><00>"));
 				Assert.That(db.Extract(db.KeySpace.End).ToString(), Is.EqualTo("<BE><EF><FF>"));

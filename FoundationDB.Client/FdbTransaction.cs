@@ -149,6 +149,7 @@ namespace FoundationDB.Client
 			return this;
 		}
 
+		/// <summary>The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.</summary>
 		public FdbTransaction WithNextWriteNoWriteConflictRange()
 		{
 			SetOption(FdbTransactionOption.NextWriteNoWriteConflictRange);
