@@ -226,7 +226,7 @@ namespace Tester
 			else
 			{
 				var results = await query.ToListAsync();
-				tuple = FdbTuple.Create(results.SelectMany((r) => new object[] { r.Key, r.Value }));
+				tuple = FdbTuple.Create(results.SelectMany((r) => new Slice[] { r.Key, r.Value }));
 			}
 
 			stack.Add(new StackEntry(instructionIndex, tuple.ToSlice()));
@@ -246,25 +246,20 @@ namespace Tester
 			}
 		}
 
-		private void ForceReset(FdbTransaction tr)
+		private async Task<FdbTransaction> CommitAndReset(FdbTransaction tr)
 		{
 			try
 			{
-				tr.EnsureCanReadOrWrite();
+				await ((FdbTransaction)tr).CommitAsync();
+				committedVersion = tr.GetCommittedVersion();
 			}
-			catch (Exception)
+			finally
 			{
-				try
-				{
-					committedVersion = tr.GetCommittedVersion();
-				}
-				catch (Exception) { }
-
 				this.tr = db.BeginTransaction();
 				tr = this.tr;
 			}
 
-			tr.Reset();
+			return tr;
 		}
 
 		private async Task<int> RunAsync()
@@ -278,8 +273,8 @@ namespace Tester
 					IFdbTuple inst = FdbTuple.Unpack(instructions[instructionIndex].Value);
 					string op = inst.Get<string>(0);
 
-					/*if (op != "PUSH" && op != "SWAP")
-						Console.WriteLine(op);*/
+					//if (op != "PUSH" && op != "SWAP")
+						//Console.WriteLine(op);
 
 					IFdbReadTransaction tr = this.tr;
 
@@ -548,11 +543,11 @@ namespace Tester
 								((FdbTransaction)tr).WithNextWriteNoWriteConflictRange();
 							else if (op == "COMMIT")
 							{
-								await ((FdbTransaction)tr).CommitAsync();
+								await CommitAndReset((FdbTransaction)tr);
 								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("RESULT_NOT_PRESENT")));
 							}
 							else if (op == "RESET")
-								ForceReset((FdbTransaction)tr);
+								tr.Reset();
 							else if (op == "CANCEL")
 								((FdbTransaction)tr).Cancel();
 							else if (op == "GET_COMMITTED_VERSION")
@@ -619,10 +614,7 @@ namespace Tester
 								for (int i = 0; i < items.Count; ++i)
 								{
 									if (i % 100 == 0)
-									{
-										await tr.CommitAsync();
-										tr = db.BeginTransaction();
-									}
+										tr = await CommitAndReset((FdbTransaction)tr);
 
 									StackEntry entry = (StackEntry)items[items.Count - i - 1];
 									Slice packedValue = FdbTuple.Pack(entry.value);
@@ -631,8 +623,7 @@ namespace Tester
 									((FdbTransaction)tr).Set(prefix + FdbTuple.Pack(i, entry.instructionIndex), packedValue);
 								}
 
-								await tr.CommitAsync();
-								ForceReset((FdbTransaction)tr);
+								await CommitAndReset((FdbTransaction)tr);
 							}
 							else
 								throw new Exception("Unknown op " + op);
