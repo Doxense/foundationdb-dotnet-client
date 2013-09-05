@@ -117,6 +117,12 @@ namespace FoundationDB.Layers.Tuples
 						return;
 					}
 
+					if (value is Uuid)
+					{
+						SerializeTo(writer, (Uuid)value);
+						return;
+					}
+
 					if (value is TimeSpan)
 					{
 						SerializeTo(writer, (TimeSpan)value);

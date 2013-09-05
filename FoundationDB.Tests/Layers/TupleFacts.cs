@@ -1345,7 +1345,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 				int s = 1 + (int)Math.Sqrt(rnd.Next(128));
 				for (int j = 0; j < s; j++)
 				{
-					switch (rnd.Next(10))
+					switch (rnd.Next(11))
 					{
 						case 0: tuple = tuple.Append<int>(rnd.Next(255)); break;
 						case 1: tuple = tuple.Append<int>(-1 - rnd.Next(255)); break;
@@ -1355,8 +1355,9 @@ namespace FoundationDB.Layers.Tuples.Tests
 						case 5: tuple = tuple.Append(new string('A', 1 + rnd.Next(16))); break;
 						case 6: tuple = tuple.Append(new string('B', 8 + (int)Math.Sqrt(rnd.Next(1024)))); break;
 						case 7: tuple = tuple.Append(Guid.NewGuid()); break;
-						case 8: { var buf = new byte[rnd.Next((int)Math.Sqrt(256))]; rnd.NextBytes(buf); tuple = tuple.Append(buf); break; }
-						case 9: tuple = tuple.Append(default(string)); break;
+						case 8: tuple = tuple.Append(Uuid.NewUuid()); break;
+						case 9: { var buf = new byte[rnd.Next((int)Math.Sqrt(256))]; rnd.NextBytes(buf); tuple = tuple.Append(buf); break; }
+						case 10: tuple = tuple.Append(default(string)); break;
 					}
 				}
 				tuples.Add(tuple);
