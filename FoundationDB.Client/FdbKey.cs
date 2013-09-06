@@ -121,17 +121,22 @@ namespace FoundationDB.Client
 			if (!slice.HasValue) throw new ArgumentException("Cannot increment null buffer");
 
 			int lastNonFFByte;
-			for (lastNonFFByte = slice.Count - 1; lastNonFFByte >= 0; --lastNonFFByte)
-				if (slice[lastNonFFByte] != 0xFF)
+			var tmp = slice.GetBytes();
+			for (lastNonFFByte = tmp.Length - 1; lastNonFFByte >= 0; --lastNonFFByte)
+			{
+				if (tmp[lastNonFFByte] != 0xFF)
+				{
+					++tmp[lastNonFFByte];
 					break;
+				}
+			}
 
 			if (lastNonFFByte < 0)
+			{
 				throw Fdb.Errors.CannotIncrementKey();
+			}
 
-			var tmp = slice.GetBytes(0, lastNonFFByte + 1);
-			++tmp[lastNonFFByte];
-
-			return new Slice(tmp, 0, tmp.Length);
+			return new Slice(tmp, 0, lastNonFFByte + 1);
 		}
 
 		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
