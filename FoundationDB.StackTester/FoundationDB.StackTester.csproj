@@ -7,8 +7,8 @@
     <ProjectGuid>{39927A08-6BD4-4F4A-9A2F-2BEB84AB8D83}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Tester</RootNamespace>
-    <AssemblyName>Tester</AssemblyName>
+    <RootNamespace>FoundationDB.StackTester</RootNamespace>
+    <AssemblyName>StackTester</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -42,7 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Program.cs" />
+    <Compile Include="StackTester.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -52,6 +52,10 @@
     <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj">
       <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
       <Name>FoundationDB.Client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\FoundationDB.StackTesterLib\FoundationDB.StackTesterLib.csproj">
+      <Project>{be9fb27e-32aa-42c6-afbc-a6994b7274cf}</Project>
+      <Name>FoundationDB.StackTesterLib</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

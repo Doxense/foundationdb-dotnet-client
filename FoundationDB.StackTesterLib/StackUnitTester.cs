@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using FoundationDB.Client;
 using FoundationDB.Layers.Tuples;
 
-using Utils;
+using FoundationDB.StackTester.Utils;
 
-namespace Utils
+namespace FoundationDB.StackTester.Utils
 {
 	public static class EncodingHelper
 	{
@@ -29,7 +28,7 @@ namespace Utils
 	}
 }
 
-namespace Tester
+namespace FoundationDB.StackTester
 {
 	public class StackEntry
 	{
@@ -43,68 +42,45 @@ namespace Tester
 		}
 	}
 
-	class Program
+	[TestClass]
+	public class StackUnitTester
 	{
 		private FdbDatabase db;
 		private FdbTransaction transaction;
 		private string prefix;
 
-		private long lastVersion;
+		private long lastVersion = 0;
 		private long committedVersion = -1;
 
 		private List<KeyValuePair<Slice, Slice>> instructions;
-		private List<StackEntry> stack;
+		private List<StackEntry> stack = new List<StackEntry>();
 
 		private static List<Task> subTasks = new List<Task>();
 		private static Random rng = new Random(0);
 
-		static void Main(string[] args)
-		{
-			try
-			{
-				ExecuteAsync(() => MainAsync(args));
-			}
-			catch (Exception e)
-			{
-				if (e is AggregateException) e = (e as AggregateException).Flatten().InnerException;
-				Console.Error.WriteLine("Run Error:");
-				Console.Error.WriteLine(e.ToString());
-				Environment.ExitCode = -1;
-			}
-
-			/*Console.WriteLine("[PRESS A KEY TO EXIT]");
-			Console.ReadKey();*/
-		}
-
-		private static void ExecuteAsync(Func<Task> code)
-		{
-			Task.Run(code).GetAwaiter().GetResult();
-		}
-
-		private static async Task MainAsync(string[] args)
-		{
-			Fdb.Start();
-
-			string prefix = args[0];
-			string clusterFile = args.Length > 2 ? args[1] : null;
-
-			FdbDatabase db = await Fdb.OpenDatabaseAsync(clusterFile, "DB");
-			Program p = new Program(db, prefix);
-			int result = await p.RunAsync();
-
-			foreach (Task<int> subTask in subTasks)
-				result = Math.Max(await subTask, result);
-
-			Environment.ExitCode = result;
-		}
-
-		Program(FdbDatabase db, string prefix)
+		public StackUnitTester(FdbDatabase db, string prefix)
 		{
 			this.db = db;
 			this.prefix = prefix;
+		}
 
-			stack = new List<StackEntry>();
-			lastVersion = 0;
+		public StackUnitTester(string prefix, string clusterFile)
+		{
+			Fdb.Start();
+			this.db = Task.Run(() => Fdb.OpenDatabaseAsync(clusterFile, "DB")).GetAwaiter().GetResult();
+			this.prefix = prefix;
+		}
+
+		public StackUnitTester() : this("test_spec", null) { }
+
+		[TestMethod]
+		public void RunTest()
+		{
+			Task.Run(async () => {
+				await RunTestAsync();
+				foreach (Task subTask in subTasks)
+					await subTask;
+			}).GetAwaiter().GetResult();
 		}
 
 		static string Printable(string val)
@@ -263,7 +239,8 @@ namespace Tester
 			return tr;
 		}
 
-		private async Task<int> RunAsync()
+
+		public async Task RunTestAsync()
 		{
 			try
 			{
@@ -584,8 +561,8 @@ namespace Tester
 							else if (op == "START_THREAD")
 							{
 								var items = await PopAsync(1);
-								Program p = new Program(db, stringToSlice(items[0]).ToByteString());
-								subTasks.Add(p.RunAsync());
+								StackUnitTester tester = new StackUnitTester(db, stringToSlice(items[0]).ToByteString());
+								subTasks.Add(tester.RunTestAsync());
 							}
 							else if (op == "WAIT_EMPTY")
 							{
@@ -693,10 +670,8 @@ namespace Tester
 			catch (Exception e)
 			{
 				Console.WriteLine("Error: " + e.Message);
-				return 2;
+				throw;
 			}
-
-			return 0;
 		}
 
 		private async Task TestWatches()
@@ -715,7 +690,7 @@ namespace Tester
 			await Task.Delay(1000);
 
 			foreach (FdbWatch w in watches)
-				Debug.Assert(!w.HasChanged);
+				Assert.IsFalse(w.HasChanged, "Watch triggered early 1");
 
 			tr.Set(EncodingHelper.FromByteString("w0"), EncodingHelper.FromByteString("0"));
 			tr.Clear(EncodingHelper.FromByteString("w1"));
@@ -724,8 +699,11 @@ namespace Tester
 
 			await Task.Delay(5000);
 
-			foreach(FdbWatch w in watches)
-				Debug.Assert(!w.HasChanged);
+			foreach (FdbWatch w in watches)
+			{
+				Console.WriteLine(w.HasChanged);
+				Assert.IsFalse(w.HasChanged, "Watch triggered early 2");
+			}
 
 			tr.Set(EncodingHelper.FromByteString("w0"), EncodingHelper.FromByteString("a"));
 			tr.Set(EncodingHelper.FromByteString("w1"), EncodingHelper.FromByteString("b"));
