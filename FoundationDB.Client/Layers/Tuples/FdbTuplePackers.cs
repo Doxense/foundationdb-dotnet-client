@@ -88,7 +88,7 @@ namespace FoundationDB.Layers.Tuples
 
 		}
 
-		public static void SerializeTo(FdbBufferWriter writer, object value)
+		public static void SerializeObjectTo(FdbBufferWriter writer, object value)
 		{
 			if (writer == null) throw new ArgumentNullException("writer");
 

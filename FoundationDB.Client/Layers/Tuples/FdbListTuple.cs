@@ -195,7 +195,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			for (int i = 0; i < m_count; i++)
 			{
-				FdbTuplePackers.SerializeTo(writer, m_items[i + m_offset]);
+				FdbTuplePackers.SerializeObjectTo(writer, m_items[i + m_offset]);
 			}
 		}
 

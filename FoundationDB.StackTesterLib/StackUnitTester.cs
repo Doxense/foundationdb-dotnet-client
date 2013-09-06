@@ -203,7 +203,7 @@ namespace FoundationDB.StackTester
 			else
 			{
 				var results = await query.ToListAsync();
-				tuple = FdbTuple.Create(results.SelectMany((r) => new object[] { r.Key, r.Value }));
+				tuple = FdbTuple.FromEnumerable(results.SelectMany((r) => new object[] { r.Key, r.Value }));
 			}
 
 			stack.Add(new StackEntry(instructionIndex, tuple.ToSlice()));
@@ -541,20 +541,20 @@ namespace FoundationDB.StackTester
 							{
 								long num = (long)(await PopAsync(1))[0];
 								var items = await PopAsync((int)num);
-								stack.Add(new StackEntry(instructionIndex, FdbTuple.Create((IEnumerable<object>)items).ToSlice()));
+								stack.Add(new StackEntry(instructionIndex, FdbTuple.FromEnumerable(items).ToSlice()));
 							}
 							else if (op == "TUPLE_UNPACK")
 							{
 								var items = await PopAsync(1);
 								foreach (var t in FdbTuple.Unpack(stringToSlice(items[0])))
-									stack.Add(new StackEntry(instructionIndex, FdbTuple.Pack(t)));
+									stack.Add(new StackEntry(instructionIndex, FdbTuple.PackBoxed(t)));
 							}
 							else if (op == "TUPLE_RANGE")
 							{
 								long num = (long)(await PopAsync(1))[0];
 								var items = await PopAsync((int)num);
 
-								FdbKeyRange range = FdbTuple.Create((IEnumerable<object>)items).ToRange();
+								FdbKeyRange range = FdbTuple.FromEnumerable(items).ToRange();
 								stack.Add(new StackEntry(instructionIndex, range.Begin));
 								stack.Add(new StackEntry(instructionIndex, range.End));
 							}
@@ -622,7 +622,7 @@ namespace FoundationDB.StackTester
 										tr = await CommitAndReset((FdbTransaction)tr);
 
 									StackEntry entry = (StackEntry)items[items.Count - i - 1];
-									Slice packedValue = FdbTuple.Pack(entry.value);
+									Slice packedValue = FdbTuple.PackBoxed(entry.value);
 									if (packedValue.Count > 40000)
 										packedValue = packedValue.Substring(0, 40000);
 									((FdbTransaction)tr).Set(prefix + FdbTuple.Pack(i, entry.instructionIndex), packedValue);
@@ -700,10 +700,7 @@ namespace FoundationDB.StackTester
 			await Task.Delay(5000);
 
 			foreach (FdbWatch w in watches)
-			{
-				Console.WriteLine(w.HasChanged);
 				Assert.IsFalse(w.HasChanged, "Watch triggered early 2");
-			}
 
 			tr.Set(EncodingHelper.FromByteString("w0"), EncodingHelper.FromByteString("a"));
 			tr.Set(EncodingHelper.FromByteString("w1"), EncodingHelper.FromByteString("b"));
