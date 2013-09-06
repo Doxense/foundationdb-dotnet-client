@@ -86,7 +86,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public object this[int index]
 		{
-			get { return FdbTuplePackers.DeserializeObject(GetSlice(index)); }
+			get { return FdbTuplePackers.DeserializeBoxed(GetSlice(index)); }
 		}
 
 		public IFdbTuple this[int? from, int? to]
@@ -103,13 +103,15 @@ namespace FoundationDB.Layers.Tuples
 
 		public R Get<R>(int index)
 		{
-			return FdbConverters.ConvertBoxed<R>(FdbTuplePackers.DeserializeObject(GetSlice(index)));
+			// TODO: skip the boxing/unboxing and natively convert the Slice into an R
+			return FdbConverters.ConvertBoxed<R>(FdbTuplePackers.DeserializeBoxed(GetSlice(index)));
 		}
 
 		public R Last<R>()
 		{
 			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
-			return FdbConverters.ConvertBoxed<R>(FdbTuplePackers.DeserializeObject(m_slices[m_offset + m_count - 1]));
+			// TODO: skip the boxing/unboxing and natively convert the Slice into an R
+			return FdbConverters.ConvertBoxed<R>(FdbTuplePackers.DeserializeBoxed(m_slices[m_offset + m_count - 1]));
 		}
 
 		public Slice GetSlice(int index)
@@ -126,7 +128,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			for (int i = 0; i < m_count;i++)
 			{
-				array[i + offset] = FdbTuplePackers.DeserializeObject(m_slices[i + m_offset]);
+				array[i + offset] = FdbTuplePackers.DeserializeBoxed(m_slices[i + m_offset]);
 			}
 		}
 
@@ -134,7 +136,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			for (int i = 0; i < m_count; i++)
 			{
-				yield return FdbTuplePackers.DeserializeObject(m_slices[i + m_offset]);
+				yield return FdbTuplePackers.DeserializeBoxed(m_slices[i + m_offset]);
 			}
 		}
 

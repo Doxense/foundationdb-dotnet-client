@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Text;
@@ -352,14 +353,30 @@ namespace FoundationDB.Layers.Tuples
 			writer.Position = p + 1;
 		}
 
-		/// <summary>Writes a GUID encoded as a 16-byte UUID</summary>
+		/// <summary>Writes a RFC 4122 encoded 16-byte Microsoft GUID</summary>
 		public static void WriteGuid(FdbBufferWriter writer, Guid value)
 		{
 			writer.EnsureBytes(17);
 			writer.UnsafeWriteByte(FdbTupleTypes.Guid);
 			unsafe
 			{
-				byte* ptr = (byte*)&value;
+				// UUIDs are stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid
+
+				byte* ptr = stackalloc byte[16];
+				Uuid.Write(value, ptr);
+				writer.UnsafeWriteBytes(ptr, 16);
+			}
+		}
+
+		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
+		public static void WriteUuid(FdbBufferWriter writer, Uuid value)
+		{
+			writer.EnsureBytes(17);
+			writer.UnsafeWriteByte(FdbTupleTypes.Guid);
+			unsafe
+			{
+				byte* ptr = stackalloc byte[16];
+				value.WriteTo(ptr);
 				writer.UnsafeWriteBytes(ptr, 16);
 			}
 		}

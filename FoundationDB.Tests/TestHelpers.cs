@@ -49,14 +49,14 @@ namespace FoundationDB.Client.Tests
 
 		public static async Task DumpSubspace(FdbDatabase db, FdbSubspace subspace)
 		{
-			Assert.That(subspace.Key.StartsWith(db.GlobalSpace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
+			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
 
 			using (var tr = db.BeginTransaction())
 			{
 				Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
 				int count = 0;
 				await tr
-					.GetRange(FdbKeyRange.FromPrefixInclusive(subspace.Key))
+					.GetRange(FdbKeyRange.StartsWith(subspace.Key))
 					.ForEachAsync((key, value) =>
 					{
 						key = db.Extract(key);

@@ -38,23 +38,57 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Empty subspace, that does not add any prefix to the keys</summary>
 		public static readonly FdbSubspace Empty = new FdbSubspace(Slice.Empty);
 
-		/// <summary>Return the packed binary prefix of this subspace</summary>
-		public Slice Key { get; private set; }
+		/// <summary>Binary prefix of this subspace</summary>
+		private readonly Slice m_rawPrefix;
+
+		/// <summary>Returns the binary prefix of this subspace</summary>
+		public Slice Key { get { return m_rawPrefix; } }
 
 		#region Constructors...
 
-		public FdbSubspace(Slice key)
+		public FdbSubspace(Slice rawPrefix)
 		{
-			this.Key = key.Memoize();
+			if (!rawPrefix.HasValue) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "rawPrefix");
+			m_rawPrefix = rawPrefix.Memoize();
 		}
 
 		/// <summary>Create a new subspace that wraps a Tuple</summary>
 		/// <param name="tuple"></param>
 		public FdbSubspace(IFdbTuple tuple)
 		{
-			this.Key = tuple.ToSlice().Memoize();
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			m_rawPrefix = tuple.ToSlice().Memoize();
 		}
 
+		/// <summary>Create a new subspace of the current subspace</summary>
+		/// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
+		public FdbSubspace this[Slice suffix]
+		{
+			// note: there is a difference with the Pyton layer because here we don't use Tuple encoding, but just concat the slices together.
+			// the .NET equivalent of the subspace.__getitem__(self, name) method would be subspace.Partition<Slice>(name) or subspace[FdbTuple.Create<Slice>(name)] !
+			get
+			{
+				if (!suffix.HasValue) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "suffix");
+				return FdbSubspace.Create(m_rawPrefix + suffix);
+			}
+		}
+
+		/// <summary>Create a new subspace of the current subspace</summary>
+		/// <param name="tuple">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
+		public FdbSubspace this[IFdbTuple tuple]
+		{
+			get
+			{
+				if (tuple == null) throw new ArgumentNullException("tuple");
+				return new FdbSubspace(FdbTuple.Concat(m_rawPrefix, tuple));
+			}
+		}
+
+		#endregion
+
+		#region Static Prefix Helpers...
 
 		public static FdbSubspace Create(Slice slice)
 		{
@@ -63,68 +97,13 @@ namespace FoundationDB.Layers.Tuples
 
 		public static FdbSubspace Create(string name)
 		{
+			//REVIEW: should use ASCII or Unicode for the name ?
 			return new FdbSubspace(FdbTuple.Create(name));
 		}
 
 		internal FdbSubspace Copy()
 		{
-			return new FdbSubspace(this.Key);
-		}
-
-		internal static Slice Concat(Slice prefix, Slice key)
-		{
-			return prefix + key;
-		}
-
-		internal static Slice Concat(Slice prefix, IFdbTuple tuple)
-		{
-			if (tuple == null || tuple.Count == 0) return prefix;
-
-			var writer = new FdbBufferWriter();
-			writer.WriteBytes(prefix);
-			if (tuple != null)
-			{
-				tuple.PackTo(writer);
-			}
-			return writer.ToSlice();
-		}
-
-		internal static Slice Concat<T>(Slice prefix, T value)
-		{
-			var writer = new FdbBufferWriter();
-			writer.WriteBytes(prefix);
-			FdbTuplePacker<T>.Serializer(writer, value);
-			return writer.ToSlice();			
-		}
-
-		internal static Slice Concat<T1, T2>(Slice prefix, T1 value1, T2 value2)
-		{
-			var writer = new FdbBufferWriter();
-			writer.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Serializer(writer, value1);
-			FdbTuplePacker<T2>.Serializer(writer, value2);
-			return writer.ToSlice();
-		}
-
-		internal static Slice Concat<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
-		{
-			var writer = new FdbBufferWriter();
-			writer.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Serializer(writer, value1);
-			FdbTuplePacker<T2>.Serializer(writer, value2);
-			FdbTuplePacker<T3>.Serializer(writer, value3);
-			return writer.ToSlice();
-		}
-
-		internal static Slice Concat<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
-		{
-			var writer = new FdbBufferWriter();
-			writer.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Serializer(writer, value1);
-			FdbTuplePacker<T2>.Serializer(writer, value2);
-			FdbTuplePacker<T3>.Serializer(writer, value3);
-			FdbTuplePacker<T4>.Serializer(writer, value4);
-			return writer.ToSlice();
+			return new FdbSubspace(m_rawPrefix);
 		}
 
 		#endregion
@@ -141,7 +120,7 @@ namespace FoundationDB.Layers.Tuples
 		/// </example>
 		public FdbSubspace Partition<T>(T value)
 		{
-			return new FdbSubspace(FdbSubspace.Concat<T>(this.Key, value));
+			return new FdbSubspace(FdbTuple.Concat<T>(m_rawPrefix, value));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -156,7 +135,7 @@ namespace FoundationDB.Layers.Tuples
 		/// </example>
 		public FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
 		{
-			return new FdbSubspace(FdbSubspace.Concat<T1, T2>(this.Key, value1, value2));
+			return new FdbSubspace(FdbTuple.Concat<T1, T2>(m_rawPrefix, value1, value2));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -172,7 +151,7 @@ namespace FoundationDB.Layers.Tuples
 		/// </example>
 		public FdbSubspace Partition<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
-			return new FdbSubspace(FdbSubspace.Concat(this.Key, new FdbTuple<T1, T2, T3>(value1, value2, value3)));
+			return new FdbSubspace(FdbTuple.Concat(m_rawPrefix, new FdbTuple<T1, T2, T3>(value1, value2, value3)));
 		}
 
 		/// <summary>Parition this subspace by appending a tuple</summary>
@@ -186,7 +165,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 			if (tuple.Count == 0) return this;
-			return new FdbSubspace(FdbSubspace.Concat(this.Key, tuple));
+			return new FdbSubspace(FdbTuple.Concat(m_rawPrefix, tuple));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -205,11 +184,10 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Returns true if <paramref name="key"/> is contained withing this subspace's tuple (or is equal to tuple itself)</summary>
-		/// <param name="key"></param>
-		/// <returns></returns>
+		/// <remarks>The key Slice.Nil is not contained by any subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
 		public bool Contains(Slice key)
 		{
-			return key.HasValue && key.StartsWith(this.Key);
+			return key.HasValue && key.StartsWith(m_rawPrefix);
 		}
 
 		#endregion
@@ -218,7 +196,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public Slice Pack(IFdbTuple tuple)
 		{
-			return FdbSubspace.Concat(this.Key, tuple);
+			return FdbTuple.Concat(m_rawPrefix, tuple);
 		}
 
 		public Slice Pack(ITupleFormattable item)
@@ -226,7 +204,16 @@ namespace FoundationDB.Layers.Tuples
 			if (item == null) throw new ArgumentNullException("item");
 			var tuple = item.ToTuple();
 			if (tuple == null) throw new InvalidOperationException("The item returned an empty tuple");
-			return FdbSubspace.Concat(this.Key, tuple);
+			return FdbTuple.Concat(m_rawPrefix, tuple);
+		}
+
+		/// <summary>Create a new key by appending a value to the current tuple</summary>
+		/// <param name="key">Value that will be appended at the end of the key</param>
+		/// <returns>Key the correspond to the concatenation of the current tuple and <paramref name="key"/></returns>
+		/// <example>tuple.PackBoxed(x) is the non-generic equivalent of tuple.Pack&lt;object&gt;(tuple)</example>
+		public Slice PackBoxed(object item)
+		{
+			return FdbTuple.ConcatBoxed(m_rawPrefix, item);
 		}
 
 		/// <summary>Create a new key by appending a value to the current tuple</summary>
@@ -236,7 +223,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>tuple.Pack(x) is equivalent to tuple.Append(x).ToSlice()</example>
 		public Slice Pack<T>(T key)
 		{
-			return FdbSubspace.Concat<T>(this.Key, key);
+			return FdbTuple.Concat<T>(m_rawPrefix, key);
 		}
 
 		/// <summary>Create a new key by appending two values to the current tuple</summary>
@@ -248,7 +235,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>(...,).Pack(x, y) is equivalent to (...,).Append(x).Append(y).ToSlice()</example>
 		public Slice Pack<T1, T2>(T1 key1, T2 key2)
 		{
-			return FdbSubspace.Concat<T1, T2>(this.Key, key1, key2);
+			return FdbTuple.Concat<T1, T2>(m_rawPrefix, key1, key2);
 		}
 
 		/// <summary>Create a new key by appending three values to the current tuple</summary>
@@ -262,7 +249,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>tuple.Pack(x, y, z) is equivalent to tuple.Append(x).Append(y).Append(z).ToSlice()</example>
 		public Slice Pack<T1, T2, T3>(T1 key1, T2 key2, T3 key3)
 		{
-			return FdbSubspace.Concat<T1, T2, T3>(this.Key, key1, key2, key3);
+			return FdbTuple.Concat<T1, T2, T3>(m_rawPrefix, key1, key2, key3);
 		}
 
 		/// <summary>Create a new key by appending three values to the current tuple</summary>
@@ -278,7 +265,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>tuple.Pack(w, x, y, z) is equivalent to tuple.Append(w).Append(x).Append(y).Append(z).ToSlice()</example>
 		public Slice Pack<T1, T2, T3, T4>(T1 key1, T2 key2, T3 key3, T4 key4)
 		{
-			return FdbSubspace.Concat<T1, T2, T3, T4>(this.Key, key1, key2, key3, key4);
+			return FdbTuple.Concat<T1, T2, T3, T4>(m_rawPrefix, key1, key2, key3, key4);
 		}
 
 		#endregion
@@ -298,6 +285,11 @@ namespace FoundationDB.Layers.Tuples
 		public FdbSubspaceTuple Create(IFdbTuple tuple)
 		{
 			return new FdbSubspaceTuple(this, tuple);
+		}
+
+		public FdbSubspaceTuple CreateBoxed(object value)
+		{
+			return new FdbSubspaceTuple(this, FdbTuple.CreateBoxed(value));
 		}
 
 		/// <summary>Convert a formattable item into a tuple that is attached to this subspace.</summary>
@@ -372,7 +364,7 @@ namespace FoundationDB.Layers.Tuples
 			// This is to simplifiy decoding logic where the caller could do "var foo = FdbTuple.Unpack(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
 			if (!key.HasValue) return null;
 
-			return new FdbSubspaceTuple(this, FdbTuple.UnpackWithoutPrefix(key, this.Key));
+			return new FdbSubspaceTuple(this, FdbTuple.UnpackWithoutPrefix(key, m_rawPrefix));
 		}
 
 		/// <summary>Unpack a key into a tuple, and return only the last element</summary>
@@ -382,7 +374,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <example>new Subspace([FE]).UnpackLast&lt;int&gt;([FE 02 'H' 'e' 'l' 'l' 'o' 00 15 1]) => (int) 1</example>
 		public T UnpackLast<T>(Slice key)
 		{
-			return FdbTuple.UnpackLastWithoutPrefix<T>(key, this.Key);
+			return FdbTuple.UnpackLastWithoutPrefix<T>(key, m_rawPrefix);
 		}
 
 		/// <summary>Unpack an array of keys in tuples, with the subspace prefix removed</summary>
@@ -394,7 +386,7 @@ namespace FoundationDB.Layers.Tuples
 
 			if (keys.Length > 0)
 			{
-				var prefix = this.Key;
+				var prefix = m_rawPrefix;
 				for (int i = 0; i < keys.Length; i++)
 				{
 					if (keys[i].HasValue)
@@ -419,7 +411,7 @@ namespace FoundationDB.Layers.Tuples
 
 			if (keys.Length > 0)
 			{
-				var prefix = this.Key;
+				var prefix = m_rawPrefix;
 				for (int i = 0; i < keys.Length; i++)
 				{
 					values[i] = FdbTuple.UnpackLastWithoutPrefix<T>(keys[i], prefix);
@@ -447,7 +439,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array of keys each prefixed by the subspace key</returns>
 		public Slice[] Concat(Slice[] keys)
 		{
-			return FdbKey.Merge(this.Key, keys);
+			return FdbKey.Merge(m_rawPrefix, keys);
 		}
 
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
@@ -458,13 +450,13 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (!key.HasValue) return Slice.Nil;
 
-			if (!key.StartsWith(this.Key))
+			if (!key.StartsWith(m_rawPrefix))
 			{
 				// or should we throw ?
 				return Slice.Nil;
 			}
 
-			return key.Substring(this.Key.Count);
+			return key.Substring(m_rawPrefix.Count);
 		}
 
 		/// <summary>Remove the subspace prefix from a batch of binary keys, and only return the tail, or Slice.Nil if a key does not fit inside the namespace</summary>
@@ -488,12 +480,12 @@ namespace FoundationDB.Layers.Tuples
 
 		public FdbKeyRange ToRange()
 		{
-			return FdbKeyRange.FromPrefix(this.Key);
+			return FdbTuple.Descendants(m_rawPrefix);
 		}
 
 		public FdbKeyRange ToRange(IFdbTuple tuple)
 		{
-			return FdbKeyRange.FromPrefix(FdbSubspace.Concat(this.Key, tuple));
+			return FdbTuple.Descendants(FdbTuple.Concat(m_rawPrefix, tuple));
 		}
 
 		public FdbKeySelectorPair ToSelectorPair()
@@ -504,26 +496,26 @@ namespace FoundationDB.Layers.Tuples
 		internal FdbBufferWriter OpenBuffer(int extraBytes = 0)
 		{
 			var writer = new FdbBufferWriter();
-			if (extraBytes > 0) writer.EnsureBytes(extraBytes + this.Key.Count);
-			writer.WriteBytes(this.Key);
+			if (extraBytes > 0) writer.EnsureBytes(extraBytes + m_rawPrefix.Count);
+			writer.WriteBytes(m_rawPrefix);
 			return writer;
 		}
 
 		public override string ToString()
 		{
-			return this.Key.ToString();
+			return m_rawPrefix.ToString();
 		}
 
 		public override int GetHashCode()
 		{
-			return this.Key.GetHashCode();
+			return m_rawPrefix.GetHashCode();
 		}
 
 		public override bool Equals(object obj)
 		{
 			if (object.ReferenceEquals(obj, this)) return true;
-			if (obj is FdbSubspace) return this.Key.Equals((obj as FdbSubspace).Key);
-			if (obj is Slice) return this.Key.Equals((Slice)obj);
+			if (obj is FdbSubspace) return m_rawPrefix.Equals((obj as FdbSubspace).Key);
+			if (obj is Slice) return m_rawPrefix.Equals((Slice)obj);
 			return false;
 		}
 	

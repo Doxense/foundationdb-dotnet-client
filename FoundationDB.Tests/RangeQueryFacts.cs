@@ -86,7 +86,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query, Is.InstanceOf<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>());
 
-					Console.WriteLine("Getting range " + query.Range.Start + " -> " + query.Range.Stop + " ...");
+					Console.WriteLine("Getting range " + query.Range.Begin + " -> " + query.Range.End + " ...");
 
 					var ts = Stopwatch.StartNew();
 					var items = await query.ToListAsync();

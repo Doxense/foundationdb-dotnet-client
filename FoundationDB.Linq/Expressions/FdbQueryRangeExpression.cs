@@ -84,7 +84,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "GetRange({0}, {1})", this.Range.Start.ToString(), this.Range.Stop.ToString());
+			return String.Format(CultureInfo.InvariantCulture, "GetRange({0}, {1})", this.Range.Begin.ToString(), this.Range.End.ToString());
 		}
 
 

@@ -292,22 +292,43 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Create a 16-byte slice containing a System.Guid encoding according to RFC 4122 (Big Endian)</summary>
+		/// <remarks>WARNING: Slice.FromGuid(guid).GetBytes() will not produce the same result as guid.ToByteArray() !
+		/// If you need to produce Microsoft compatible byte arrays, use Slice.Create(guid.ToByteArray()) but then you shoud NEVER use Slice.ToGuid() to decode such a value !</remarks>
 		public static Slice FromGuid(Guid value)
 		{
-			//TODO: optimize !
-			return new Slice(value.ToByteArray(), 0, 16);
+			// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
+			// => we will convert the GUID into a UUID under the hood, and hope that it gets converted back when read from the db
+
+			return new Uuid(value).ToSlice();
 		}
 
+		/// <summary>Create a 16-byte slice containing an RFC 4122 compliant 128-bit UUID</summary>
+		/// <remarks>You should never call this method on a slice created from the result of calling System.Guid.ToByteArray() !</remarks>
+		public static Slice FromUuid(Uuid value)
+		{
+			// UUID should already be in the RFC 4122 ordering
+			return value.ToSlice();
+		}
+
+		/// <summary>Dangerously create a slice containing string converted to ASCII. All non-ASCII characters may be corrupted or converted to '?'</summary>
+		/// <remarks>WARNING: if you put a string that contains non-ASCII chars, it will be silently corrupted! This should only be used to store keywords or 'safe' strings.
+		/// Note: depending on your default codepage, chars from 128 to 255 may be preserved, but only if they are decoded using the same codepage at the other end !</remarks>
 		public static Slice FromAscii(string text)
 		{
 			return text == null ? Slice.Nil : text.Length == 0 ? Slice.Empty : Slice.Create(Encoding.Default.GetBytes(text));
 		}
 
+		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/></summary>
 		public static Slice FromString(string value)
 		{
 			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Encoding.UTF8.GetBytes(value));
 		}
 
+		/// <summary>Create a slice that holds the UTF-8 encoded representation of <paramref name="value"/></summary>
+		/// <param name="value"></param>
+		/// <returns>The returned slice is only guaranteed to hold 1 byte for ASCII chars (0..127). For non-ASCII chars, the size can be from 1 to 6 bytes.
+		/// If you need to use ASCII chars, you should use Slice.FromByte() instead</returns>
 		public static Slice FromChar(char value)
 		{
 			if (value < 128)
@@ -318,18 +339,24 @@ namespace FoundationDB.Client
 			// note: Encoding.UTF8.GetMaxByteCount(1) returns 6, but allocate 8 to stay aligned
 			var tmp = new byte[8];
 			int n = Encoding.UTF8.GetBytes(new char[] { value }, 0, 1, tmp, 0);
-			return new Slice(tmp, 0, n);
+			return n == 1 ? FromByte(tmp[0]) : new Slice(tmp, 0, n);
 		}
 
+		/// <summary>Convert an hexadecimal digit (0-9A-Fa-f) into the corresponding decimal value</summary>
+		/// <param name="c">Hexadecimal digit (case insensitive)</param>
+		/// <returns>Decimal value between 0 and 15, or an exception</returns>
 		private static int NibbleToDecimal(char c)
 		{
 			int x = c - 48;
 			if (x < 10) return x;
 			if (x >= 17 && x <= 42) return x - 7;
 			if (x >= 49 && x <= 74) return x - 39;
-			throw new FormatException("Input is not valid hexadecimal");
+			throw new FormatException("Input is not a valid hexadecimal digit");
 		}
 
+		/// <summary>Convert an hexadecimal encoded string ("1234AA7F") into a slice</summary>
+		/// <param name="hexaString">String contains a sequence of pairs of hexadecimal digits with no separating spaces.</param>
+		/// <returns>Slice containing the decoded byte array, or an exeception if the string is empty or has an odd length</returns>
 		public static Slice FromHexa(string hexaString)
 		{
 			if (string.IsNullOrEmpty(hexaString)) return hexaString == null ? Slice.Nil : Slice.Empty;
@@ -382,6 +409,12 @@ namespace FoundationDB.Client
 			return bytes;
 		}
 
+		/// <summary>Return a stream that wraps this slice</summary>
+		/// <returns>Stream that will read the slice from the start.</returns>
+		/// <remarks>
+		/// You can use this method to convert text into specific encodings, load bitmaps (JPEG, PNG, ...), or any serialization format that requires a Stream or TextReader instance.
+		/// Disposing this stream will have no effect on the slice.
+		/// </remarks>
 		public SliceStream AsStream()
 		{
 			return new SliceStream(this);
@@ -425,52 +458,6 @@ namespace FoundationDB.Client
 			return Encoding.UTF8.GetString(this.Array, this.Offset + offset, count);
 		}
 
-		private static ArraySegment<byte> UnescapeByteString(byte[] buffer, int offset, int count)
-		{
-			// check for nulls
-			int p = offset;
-			int end = offset + count;
-
-			while (p < end)
-			{
-				if (buffer[p] == 0)
-				{ // found a 0, switch to slow path
-					return UnescapeByteStringSlow(buffer, offset, count, p - offset);
-				}
-				++p;
-			}
-			// buffer is clean, we can return it as-is
-			return new ArraySegment<byte>(buffer, offset, count);
-		}
-
-		private static ArraySegment<byte> UnescapeByteStringSlow(byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
-		{
-			var tmp = new byte[count];
-
-			int p = offset;
-			int end = offset + count;
-			int i = 0;
-
-			if (offsetOfFirstZero > 0)
-			{
-				Buffer.BlockCopy(buffer, offset, tmp, 0, offsetOfFirstZero);
-				p += offsetOfFirstZero;
-			}
-
-			while (p < end)
-			{
-				byte b = buffer[p++];
-				if (b == 0)
-				{ // skip next FF
-					//TODO: check that next byte really is 0xFF
-					++p;
-				}
-				tmp[i++] = b;
-			}
-
-			return new ArraySegment<byte>(tmp, 0, p - offset);
-		}
-
 		/// <summary>Converts a slice using Base64 encoding</summary>
 		public string ToBase64()
 		{
@@ -499,7 +486,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Converts a slice into a string with each byte encoded into hexadecimal (uppercase) separated by a char</summary>
-		/// <returns>"0123456789abcdef"</returns>
+		/// <param name="sep">Character used to separate the hexadecimal pairs (ex: ' ')</param>
+		/// <returns>"01 23 45 67 89 ab cd ef"</returns>
 		public string ToHexaString(char sep)
 		{
 			if (this.IsNullOrEmpty) return this.Array == null ? null : String.Empty;
@@ -519,10 +507,13 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
-		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex dump of the slice. It should only be used for logging and troubleshooting !</summary>
-		/// <returns></returns>
+		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
+		/// <returns>Returns either "'abc'" or "&lt;00 42 7F&gt;". Returns "''" for Slice.Empty, and "" for Slice.Nil</returns>
 		public string ToAsciiOrHexaString()
 		{
+			//REVIEW: rename this to ToFriendlyString() ? or ToLoggableString() ?
+			if (this.Count == 0) return this.HasValue ? "''" : String.Empty;
+
 			var buffer = this.Array;
 			int n = this.Count;
 			int p = this.Offset;
@@ -641,14 +632,15 @@ namespace FoundationDB.Client
 
 		public Guid ToGuid()
 		{
+			if (this.IsNullOrEmpty) return default(Guid);
+
 			if (this.Count == 16)
 			{ // direct byte array
-				byte[] tmp;
-				if (this.Offset == 0 && this.Array.Length == 16)
-					tmp = this.Array;
-				else
-					tmp = this.GetBytes();
-				return new Guid(tmp);
+
+				// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
+				// we need to swap the byte order of the Data1, Data2 and Data3 chunks, to ensure that Guid.ToString() will return the proper value.
+
+				return new Uuid(this).ToGuid();
 			}
 
 			if (this.Count == 44)
@@ -657,6 +649,23 @@ namespace FoundationDB.Client
 			}
 
 			throw new FormatException("Cannot convert slice into a Guid because it has an incorrect size");
+		}
+
+		public Uuid ToUuid()
+		{
+			if (this.IsNullOrEmpty) return default(Uuid);
+
+			if (this.Count == 16)
+			{
+				return new Uuid(this);
+			}
+
+			if (this.Count == 44)
+			{
+				return Uuid.Parse(this.ToAscii());
+			}
+
+			throw new FormatException("Cannot convert slice into Uuid because it has an incorrect size");
 		}
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>

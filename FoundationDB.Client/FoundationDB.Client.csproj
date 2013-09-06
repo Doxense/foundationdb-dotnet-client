@@ -147,6 +147,7 @@
     <Compile Include="Linq\IFdbAsyncEnumerable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleParser.cs" />
     <Compile Include="Unmanaged\DebugCounters.cs" />
+    <Compile Include="Utils\Uuid.cs" />
     <Compile Include="Utils\SliceListStream.cs" />
     <Compile Include="Utils\SliceStream.cs" />
     <Compile Include="Utils\Logging.cs" />

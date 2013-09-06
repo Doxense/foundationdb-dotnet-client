@@ -34,13 +34,13 @@ namespace FoundationDB.Client
 	[DebuggerDisplay("[ToString()]")]
 	public struct FdbKeySelectorPair
 	{
-		public readonly FdbKeySelector Start;
-		public readonly FdbKeySelector Stop;
+		public readonly FdbKeySelector Begin;
+		public readonly FdbKeySelector End;
 
 		public FdbKeySelectorPair(FdbKeySelector beginInclusive, FdbKeySelector endExclusive)
 		{
-			this.Start = beginInclusive;
-			this.Stop = endExclusive;
+			this.Begin = beginInclusive;
+			this.End = endExclusive;
 		}
 
 		public static FdbKeySelectorPair Create(FdbKeySelector beginInclusive, FdbKeySelector endExclusive)
@@ -69,7 +69,7 @@ namespace FoundationDB.Client
 
 		public static FdbKeySelectorPair StartsWith(Slice prefix)
 		{
-			var range = FdbKeyRange.FromPrefix(prefix);
+			var range = FdbKeyRange.PrefixedBy(prefix);
 
 			return new FdbKeySelectorPair(
 				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
@@ -79,7 +79,7 @@ namespace FoundationDB.Client
 
 		public override string ToString()
 		{
-			return "[" + this.Start.ToString() + ", " + this.Stop.ToString() + ")";
+			return "[" + this.Begin.ToString() + ", " + this.End.ToString() + ")";
 		}
 
 	}

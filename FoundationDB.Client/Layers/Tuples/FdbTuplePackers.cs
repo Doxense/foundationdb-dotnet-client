@@ -50,6 +50,11 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
+			if (type == typeof(object))
+			{ // return a generic serializer that will inspect the runtime type of the object
+				return new Action<FdbBufferWriter, object>(FdbTuplePackers.SerializeObjectTo);
+			}
+
 			var typeArgs = new[] { typeof(FdbBufferWriter), type };
 			var method = typeof(FdbTuplePackers).GetMethod("SerializeTo", BindingFlags.Static | BindingFlags.Public, null, typeArgs, null);
 			if (method != null)
@@ -114,6 +119,12 @@ namespace FoundationDB.Layers.Tuples
 					if (value is Guid)
 					{
 						SerializeTo(writer, (Guid)value);
+						return;
+					}
+
+					if (value is Uuid)
+					{
+						SerializeTo(writer, (Uuid)value);
 						return;
 					}
 
@@ -380,6 +391,13 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteGuid(writer, value);
 		}
 
+		public static void SerializeTo(FdbBufferWriter writer, Uuid value)
+		{
+			Contract.Requires(writer != null);
+
+			FdbTupleParser.WriteUuid(writer, value);
+		}
+
 		public static void SerializeTo(FdbBufferWriter writer, FdbTupleAlias value)
 		{
 			Contract.Requires(Enum.IsDefined(typeof(FdbTupleAlias), value));
@@ -524,11 +542,11 @@ namespace FoundationDB.Layers.Tuples
 				throw new FormatException("Slice has invalid size for a guid");
 			}
 
-			//TODO: optimize !
-			return new Guid(slice.GetBytes(1, 16));
+			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
+			return new Uuid(slice.GetBytes(1, 16)).ToGuid();
 		}
 
-		public static object DeserializeObject(Slice slice)
+		public static object DeserializeBoxed(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 

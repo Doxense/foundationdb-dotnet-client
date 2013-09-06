@@ -84,8 +84,8 @@ namespace FoundationDB.Linq.Expressions
 		protected internal override Expression VisitQueryRange(FdbQueryRangeExpression node)
 		{
 			m_writer.WriteLine("Range(").Enter()
-				.WriteLine("Start({0}),", node.Range.Start.ToString())
-				.WriteLine("Stop({0})", node.Range.Stop.ToString())
+				.WriteLine("Start({0}),", node.Range.Begin.ToString())
+				.WriteLine("Stop({0})", node.Range.End.ToString())
 			.Leave().Write(")");
 
 			return node;

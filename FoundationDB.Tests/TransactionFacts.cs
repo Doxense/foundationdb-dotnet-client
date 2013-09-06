@@ -606,60 +606,6 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Cannot_Read_Or_Write_Outside_Of_Restricted_Key_Space()
-		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-				var space = db.Partition(123);
-
-				db.RestrictKeySpace(space.Key);
-			
-				Assert.That(db.ValidateKey(space.Pack("hello")), Is.Null, "key inside range should be ok");
-
-				// bounds should be allowed
-				var range = space.ToRange();
-				Assert.That(db.ValidateKey(range.Begin), Is.Null, "range + '\\0' should be allowed");
-				Assert.That(db.ValidateKey(range.End), Is.Null, "range + '\\FF' should be allowed");
-
-				// before/after should be denied
-				Assert.That(db.ValidateKey(db.Partition(122).Pack("hello")), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange), "key before the range should be denied");
-				Assert.That(db.ValidateKey(db.Partition(124).Pack("hello")), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange), "key after the range should be denied");
-
-				// the range prefix itself is not allowed
-				Assert.That(db.ValidateKey(space.Key), Is.InstanceOf<FdbException>().And.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange), "Range prefix itself is not allowed");
-
-				// check that methods also respect the key range
-				using (var tr = db.BeginTransaction())
-				{
-					// should allow writing inside the space
-					tr.Set(space.Pack("hello"), Slice.Empty);
-					tr.Set(range.Begin, Slice.Empty);
-					tr.Set(range.End, Slice.Empty);
-
-					// should not allow outside of the space
-					Assert.That(
-						Assert.Throws<FdbException>(() => tr.Set(db.GlobalSpace.Pack(122), Slice.Empty), "Key is less than minimum allowed"),
-						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
-					);
-					Assert.That(
-						Assert.Throws<FdbException>(() => tr.Set(db.GlobalSpace.Pack(124), Slice.Empty), "Key is more than maximum allowed"),
-						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
-					);
-
-					// should not allow the prefix itself
-					Assert.That(
-						Assert.Throws<FdbException>(() => tr.Set(space.Key, Slice.Empty)),
-						Has.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange)
-					);
-
-					// check that the commit does not blow up
-					await tr.CommitAsync();
-				}
-
-			}
-		}
-	
-		[Test]
 		public async Task Test_Can_Set_Timeout_And_RetryLimit()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())

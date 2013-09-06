@@ -72,18 +72,8 @@ namespace FoundationDB.Client
 #if DEBUG
 					String.Format("An attempt was made to use a key '{2}' that is outside of the global namespace {0} of database '{1}'", db.GlobalSpace.ToString(), db.Name, key.ToString())
 #else
-					String.Format("An attempt was made to use a key that is outside of the global namespace {0} of database '{1}'", db.Namespace.ToString(), db.Name)
+					String.Format("An attempt was made to use a key that is outside of the global namespace {0} of database '{1}'", db.GlobalSpace.ToString(), db.Name)
 #endif
-				);
-			}
-
-			internal static Exception InvalidKeyOutsideDatabaseRestrictedKeySpace(FdbDatabase db, Slice key, bool greaterThan)
-			{
-				Contract.Requires(db != null);
-				return new FdbException(FdbError.KeyOutsideLegalRange,
-					greaterThan
-					? String.Format("Key is outside the allowed key space for this database ({0} > {1})", key.ToString(), db.KeySpace.End.ToString())
-					: String.Format("Key is outside the allowed key space for this database ({0} < {1})", key.ToString(), db.KeySpace.Begin.ToString())
 				);
 			}
 
