@@ -100,10 +100,9 @@ namespace FoundationDB.Client
 #endif
 			}
 
-			internal static Exception CannotIncrementMaxKey()
+			internal static Exception CannotIncrementKey()
 			{
-				return new OverflowException("Cannot increment key because it is already equal to the maximum possible value (0xFF)");
-			}
+				return new OverflowException("Incremented key must contain at least one byte not equal to 0xFF");			}
 		}
 
 	}

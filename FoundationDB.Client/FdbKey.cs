@@ -106,44 +106,31 @@ namespace FoundationDB.Client
 			return Slice.Create(data, offset, count);
 		}
 
-		/// <summary>Increment the last byte of the slice</summary>
+		/// <summary>Returns the first key lexicographically that does not have the passed in <paramref name="slice"/> as a prefix</summary>
 		/// <param name="slice">Slice to increment</param>
-		/// <returns>New slice that is guaranteed to be lexicographically higher than <paramref name="slice"/>. If <paramref name="Slice"/> is empty, then the slice [ 0x00 ] is returned.</returns>
+		/// <returns>New slice that is guaranteed to be the first key lexicographically higher than <paramref name="slice"/> which does not have <paramref name="slice"/> as a prefix</returns>
 		/// <remarks>If the last byte is already equal to 0xFF, it will rollover to 0x00 and the next byte will be incremented.</remarks>
 		/// <exception cref="System.ArgumentException">If the Slice is equal to Slice.Nil</exception>
-		/// <exception cref="System.OverflowException">If the Slice is equal to [ 0xFF ] (maximum allowed key)</exception>
+		/// <exception cref="System.OverflowException">If the Slice is the empty string or consists only of 0xFF bytes</exception>
 		/// <example>
 		/// FdbKey.Increment(Slice.FromString("ABC")) => "ABD"
-		/// FdbKey.Increment(Slice.FromHexa("01 FF")) => { 02 00 }
+		/// FdbKey.Increment(Slice.FromHexa("01 FF")) => { 02 }
 		/// </example>
 		public static Slice Increment(Slice slice)
 		{
 			if (!slice.HasValue) throw new ArgumentException("Cannot increment null buffer");
 
-			// "" => "\x00" ?
-			if (slice.Count == 0) return Slice.FromByte(0);
-
-			// TODO: let say we have Increment({xx yy 00 FF})
-			// Should we return {xx yy 01 00}, or should we remove the trailing 0 and return {xx yy 01} instead ?
-			// Since {xx yy 00 FF} < {xx yy 01} < {xx yy 01 00}, the smaller one is "closer" to the key than the larger one...
-
-			// copy the bytes from initial slice
-			var tmp = slice.GetBytes();
-
-			int p = tmp.Length - 1;
-			while (p >= 0)
-			{
-				byte c = (byte)((tmp[p] + 1) & 0xFF);
-				if (c > 0)
-				{
-					tmp[p] = c;
+			int lastNonFFByte;
+			for (lastNonFFByte = slice.Count - 1; lastNonFFByte >= 0; --lastNonFFByte)
+				if (slice[lastNonFFByte] != 0xFF)
 					break;
-				}
-				tmp[p] = 0;
-				--p;
-			}
 
-			if (p < 0) throw Fdb.Errors.CannotIncrementMaxKey();
+			if (lastNonFFByte < 0)
+				throw Fdb.Errors.CannotIncrementKey();
+
+			var tmp = slice.GetBytes(slice.Offset, lastNonFFByte + 1);
+			++tmp[lastNonFFByte];
+
 			return new Slice(tmp, 0, tmp.Length);
 		}
 
