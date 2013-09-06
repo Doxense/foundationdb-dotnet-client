@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 			if (!slice.HasValue) throw new ArgumentException("Cannot increment null buffer");
 
 			int lastNonFFByte;
-			var tmp = slice.GetBytes(); 
+			var tmp = slice.GetBytes();
 			for (lastNonFFByte = tmp.Length - 1; lastNonFFByte >= 0; --lastNonFFByte)
 			{
 				if (tmp[lastNonFFByte] != 0xFF)
