@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 			if (lastNonFFByte < 0)
 				throw Fdb.Errors.CannotIncrementKey();
 
-			var tmp = slice.GetBytes(slice.Offset, lastNonFFByte + 1);
+			var tmp = slice.GetBytes(0, lastNonFFByte + 1);
 			++tmp[lastNonFFByte];
 
 			return new Slice(tmp, 0, tmp.Length);
