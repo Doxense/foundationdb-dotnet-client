@@ -50,6 +50,11 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
+			if (type == typeof(object))
+			{ // return a generic serializer that will inspect the runtime type of the object
+				return new Action<FdbBufferWriter, object>(FdbTuplePackers.SerializeObjectTo);
+			}
+
 			var typeArgs = new[] { typeof(FdbBufferWriter), type };
 			var method = typeof(FdbTuplePackers).GetMethod("SerializeTo", BindingFlags.Static | BindingFlags.Public, null, typeArgs, null);
 			if (method != null)
@@ -541,7 +546,7 @@ namespace FoundationDB.Layers.Tuples
 			return new Uuid(slice.GetBytes(1, 16)).ToGuid();
 		}
 
-		public static object DeserializeObject(Slice slice)
+		public static object DeserializeBoxed(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 

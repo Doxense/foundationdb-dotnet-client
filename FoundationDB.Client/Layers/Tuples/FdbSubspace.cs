@@ -208,6 +208,15 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Create a new key by appending a value to the current tuple</summary>
+		/// <param name="key">Value that will be appended at the end of the key</param>
+		/// <returns>Key the correspond to the concatenation of the current tuple and <paramref name="key"/></returns>
+		/// <example>tuple.PackBoxed(x) is the non-generic equivalent of tuple.Pack&lt;object&gt;(tuple)</example>
+		public Slice PackBoxed(object item)
+		{
+			return FdbTuple.ConcatBoxed(m_rawPrefix, item);
+		}
+
+		/// <summary>Create a new key by appending a value to the current tuple</summary>
 		/// <typeparam name="T">Type of the value</typeparam>
 		/// <param name="key">Value that will be appended at the end of the key</param>
 		/// <returns>Key the correspond to the concatenation of the current tuple and <paramref name="key"/></returns>
@@ -276,6 +285,11 @@ namespace FoundationDB.Layers.Tuples
 		public FdbSubspaceTuple Create(IFdbTuple tuple)
 		{
 			return new FdbSubspaceTuple(this, tuple);
+		}
+
+		public FdbSubspaceTuple CreateBoxed(object value)
+		{
+			return new FdbSubspaceTuple(this, FdbTuple.CreateBoxed(value));
 		}
 
 		/// <summary>Convert a formattable item into a tuple that is attached to this subspace.</summary>
