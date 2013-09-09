@@ -455,16 +455,16 @@ namespace FoundationDB.Client
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
 		/// <param name="key">Key to verify</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal void EnsureKeyIsValid(Slice key)
+		internal void EnsureKeyIsValid(Slice key, bool endExclusive = false)
 		{
-			var ex = ValidateKey(key);
+			var ex = ValidateKey(key, endExclusive);
 			if (ex != null) throw ex;
 		}
 
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="key">Key to verify</param>
 		/// <returns>An exception if the key is outside of the allowed key space of this database</exception>
-		internal Exception ValidateKey(Slice key)
+		internal Exception ValidateKey(Slice key, bool endExclusive = false)
 		{
 			// null or empty keys are not allowed
 			if (!key.HasValue)
@@ -488,7 +488,12 @@ namespace FoundationDB.Client
 			// first, it MUST start with the root prefix of this database (if any)
 			if (!m_globalSpace.Contains(key))
 			{
-				return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
+				// special case: if endExclusive is true (we are validating the end key of a ClearRange),
+				// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let is slide
+				if (!key.Equals(FdbKey.Increment(m_globalSpace.Key)))
+				{
+					return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
+				}
 			}
 
 			return null;
