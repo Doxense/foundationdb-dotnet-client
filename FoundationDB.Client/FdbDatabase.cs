@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Async;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Concurrent;
@@ -80,6 +81,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Default RetryLimit value for all transactions</summary>
 		private int m_defaultRetryLimit;
+
+		/// <summary>Root directory used by this database instance (or null if none)</summary>
+		private FdbDirectoryLayer m_directory;
 
 		#endregion
 
@@ -306,6 +310,28 @@ namespace FoundationDB.Client
 		#endregion
 
 		#region Key Space Management...
+
+		public FdbDirectoryLayer Directory { get { return m_directory; } }
+
+		public void UseDirectory(FdbDirectoryLayer directoryLayer)
+		{
+			if (directoryLayer == null) throw new ArgumentNullException("directoryLayer");
+			m_directory = directoryLayer;
+		}
+
+		public FdbDirectoryLayer UseDirectory(FdbSubspace nodes, FdbSubspace content)
+		{
+			if (nodes == null) throw new ArgumentNullException("nodes");
+			if (content == null) throw new ArgumentNullException("content");
+
+			// ensure that both subspaces are reachable
+			if (!m_globalSpace.Contains(nodes.Key)) throw new ArgumentOutOfRangeException("nodes", "The Nodes subspace must be contained inside the Global Space of this database.");
+			if (!m_globalSpace.Contains(content.Key)) throw new ArgumentOutOfRangeException("content", "The Content subspace must be contained inside the Global Space of this database.");
+
+			var dl = new FdbDirectoryLayer(nodes, content);
+			m_directory = dl;
+			return dl;
+		}
 
 		/// <summary>Return the global namespace used by this database instance</summary>
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
