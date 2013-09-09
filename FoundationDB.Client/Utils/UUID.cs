@@ -35,7 +35,7 @@ namespace FoundationDB.Client
 	/// <summary>RFC 4122 compliant 128-bit UUID</summary>
 	/// <remarks>You should use this type if you are primarily exchanged UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>
 	[ImmutableObject(true), StructLayout(LayoutKind.Explicit), Serializable]
-	public struct Uuid : IFormattable, IComparable, IEquatable<Uuid>, IComparable<Uuid>
+	public struct Uuid : IFormattable, IComparable, IEquatable<Uuid>, IComparable<Uuid>, IEquatable<Guid>
 	{
 		// This is just a wrapper struct on System.Guid that makes sure that ToByteArray() and Parse(byte[]) and new(byte[]) will parse according to RFC 4122 (http://www.ietf.org/rfc/rfc4122.txt)
 		// For performance reasons, we will store the UUID as a System.GUID (Microsoft in-memory format), and swap the bytes when needed.
@@ -219,7 +219,14 @@ namespace FoundationDB.Client
 		{
 			get
 			{
-				return (m_node0 << 40) | (m_node1 << 32) | (m_node2 << 24) | (m_node3 << 16) | (m_node4 << 8) | m_node5;
+				long node;
+				node = ((long)m_node0) << 40;
+				node |= ((long)m_node1) << 32;
+				node |= ((long)m_node2) << 24;
+				node |= ((long)m_node3) << 16;
+				node |= ((long)m_node4) << 8;
+				node |= (long)m_node5;
+				return node;
 			}
 		}
 
@@ -337,12 +344,20 @@ namespace FoundationDB.Client
 
 		public override bool Equals(object obj)
 		{
-			return obj != null && obj is Guid && m_packed == ((Guid)obj);
+			if (obj == null) return false;
+			if (obj is Uuid) return m_packed == ((Uuid)obj);
+			if (obj is Guid) return m_packed == ((Guid)obj);
+			return false;
 		}
 
 		public bool Equals(Uuid other)
 		{
 			return m_packed == other.m_packed;
+		}
+
+		public bool Equals(Guid other)
+		{
+			return m_packed == other;
 		}
 
 		public static bool operator ==(Uuid a, Uuid b)
@@ -353,6 +368,26 @@ namespace FoundationDB.Client
 		public static bool operator !=(Uuid a, Uuid b)
 		{
 			return a.m_packed != b.m_packed;
+		}
+
+		public static bool operator ==(Uuid a, Guid b)
+		{
+			return a.m_packed == b;
+		}
+
+		public static bool operator !=(Uuid a, Guid b)
+		{
+			return a.m_packed != b;
+		}
+
+		public static bool operator ==(Guid a, Uuid b)
+		{
+			return a == b.m_packed;
+		}
+
+		public static bool operator !=(Guid a, Uuid b)
+		{
+			return a != b.m_packed;
 		}
 
 		public override int GetHashCode()

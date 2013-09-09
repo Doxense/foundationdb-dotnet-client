@@ -61,6 +61,7 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="ClusterFacts.cs" />
+    <Compile Include="UuidFacts.cs" />
     <Compile Include="SliceFacts.cs" />
     <Compile Include="DatabaseBulkFacts.cs" />
     <Compile Include="Layers\SubspaceFacts.cs" />
