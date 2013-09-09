@@ -72,15 +72,6 @@ namespace FoundationDB.Client
 		/// <summary>Number of bytes in the slice</summary>
 		public readonly int Count;
 
-		internal Slice(byte[] array)
-		{
-			Contract.Requires(array != null);
-
-			this.Array = array;
-			this.Offset = 0;
-			this.Count = array != null ? array.Length : 0;
-		}
-
 		internal Slice(byte[] array, int offset, int count)
 		{
 			Contract.Requires(array != null);
@@ -737,11 +728,6 @@ namespace FoundationDB.Client
 		private static void FailIndexOutOfBound(int index)
 		{
 			throw new IndexOutOfRangeException("Index is outside the slice");
-		}
-
-		internal byte GetByte(int index)
-		{
-			return this.Array[UnsafeMapToOffset(index)];
 		}
 
 		/// <summary>Copy this slice into another buffer</summary>

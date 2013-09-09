@@ -244,6 +244,72 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public void Test_Slice_FromUInt64()
+		{
+			// 64-bit integers should be encoded in little endian, and with 1, 2, 4 or 8 bytes
+			// 0x12 -> { 12 }
+			// 0x1234 -> { 34 12 }
+			// 0x123456 -> { 56 34 12 00 }
+			// 0x12345678 -> { 78 56 34 12 }
+			// 0x123456789A -> { 9A 78 56 34 12 00 00 00}
+			// 0x123456789ABC -> { BC 9A 78 56 34 12 00 00}
+			// 0x123456789ABCDE -> { DE BC 9A 78 56 34 12 00}
+			// 0x123456789ABCDEF0 -> { F0 DE BC 9A 78 56 34 12 }
+
+			Assert.That(Slice.FromUInt64(0x12UL).ToHexaString(), Is.EqualTo("12"));
+			Assert.That(Slice.FromUInt64(0x1234UL).ToHexaString(), Is.EqualTo("3412"));
+			Assert.That(Slice.FromUInt64(0x123456UL).ToHexaString(), Is.EqualTo("56341200"));
+			Assert.That(Slice.FromUInt64(0x12345678UL).ToHexaString(), Is.EqualTo("78563412"));
+			Assert.That(Slice.FromUInt64(0x123456789AUL).ToHexaString(), Is.EqualTo("9a78563412000000"));
+			Assert.That(Slice.FromUInt64(0x123456789ABCUL).ToHexaString(), Is.EqualTo("bc9a785634120000"));
+			Assert.That(Slice.FromUInt64(0x123456789ABCDEUL).ToHexaString(), Is.EqualTo("debc9a7856341200"));
+			Assert.That(Slice.FromUInt64(0x123456789ABCDEF0UL).ToHexaString(), Is.EqualTo("f0debc9a78563412"));
+
+			Assert.That(Slice.FromUInt64(0UL).ToHexaString(), Is.EqualTo("00"));
+			Assert.That(Slice.FromUInt64(1UL).ToHexaString(), Is.EqualTo("01"));
+			Assert.That(Slice.FromUInt64(255UL).ToHexaString(), Is.EqualTo("ff"));
+			Assert.That(Slice.FromUInt64(256UL).ToHexaString(), Is.EqualTo("0001"));
+			Assert.That(Slice.FromUInt64(ushort.MaxValue).ToHexaString(), Is.EqualTo("ffff"));
+			Assert.That(Slice.FromUInt64(65536UL).ToHexaString(), Is.EqualTo("00000100"));
+			Assert.That(Slice.FromUInt64(int.MaxValue).ToHexaString(), Is.EqualTo("ffffff7f"));
+			Assert.That(Slice.FromUInt64(uint.MaxValue).ToHexaString(), Is.EqualTo("ffffffff"));
+			Assert.That(Slice.FromUInt64(long.MaxValue).ToHexaString(), Is.EqualTo("ffffffffffffff7f"));
+			Assert.That(Slice.FromUInt64(ulong.MaxValue).ToHexaString(), Is.EqualTo("ffffffffffffffff"));
+
+		}
+
+		[Test]
+		public void Test_Slice_ToUInt64()
+		{
+			Assert.That(Slice.Create(new byte[] { 0x12 }).ToUInt64(), Is.EqualTo(0x12));
+			Assert.That(Slice.Create(new byte[] { 0x34, 0x12 }).ToUInt64(), Is.EqualTo(0x1234));
+			Assert.That(Slice.Create(new byte[] { 0x56, 0x34, 0x12 }).ToUInt64(), Is.EqualTo(0x123456));
+			Assert.That(Slice.Create(new byte[] { 0x56, 0x34, 0x12, 00 }).ToUInt64(), Is.EqualTo(0x123456));
+			Assert.That(Slice.Create(new byte[] { 0x78, 0x56, 0x34, 0x12 }).ToUInt64(), Is.EqualTo(0x12345678));
+			Assert.That(Slice.Create(new byte[] { 0x9A, 0x78, 0x56, 0x34, 0x12 }).ToUInt64(), Is.EqualTo(0x123456789A));
+			Assert.That(Slice.Create(new byte[] { 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }).ToUInt64(), Is.EqualTo(0x123456789ABC));
+			Assert.That(Slice.Create(new byte[] { 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }).ToUInt64(), Is.EqualTo(0x123456789ABCDE));
+			Assert.That(Slice.Create(new byte[] { 0xF0, 0xDE, 0xBC, 0x9A, 0x78, 0x56, 0x34, 0x12 }).ToUInt64(), Is.EqualTo(0x123456789ABCDEF0));
+
+			Assert.That(Slice.Create(new byte[] { 0 }).ToUInt64(), Is.EqualTo(0UL));
+			Assert.That(Slice.Create(new byte[] { 255 }).ToUInt64(), Is.EqualTo(255UL));
+			Assert.That(Slice.Create(new byte[] { 0, 1 }).ToUInt64(), Is.EqualTo(256UL));
+			Assert.That(Slice.Create(new byte[] { 255, 255 }).ToUInt64(), Is.EqualTo(65535UL));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 1 }).ToUInt64(), Is.EqualTo(1UL << 16));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 1, 0 }).ToUInt64(), Is.EqualTo(1UL << 16));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255 }).ToUInt64(), Is.EqualTo((1UL << 24) - 1));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 1 }).ToUInt64(), Is.EqualTo(1UL << 24));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 0, 1 }).ToUInt64(), Is.EqualTo(1UL << 32));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 0, 0, 1 }).ToUInt64(), Is.EqualTo(1UL << 40));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 0, 0, 0, 1 }).ToUInt64(), Is.EqualTo(1UL << 48));
+			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }).ToUInt64(), Is.EqualTo(1UL << 56));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 127 }).ToUInt64(), Is.EqualTo(int.MaxValue));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 255 }).ToUInt64(), Is.EqualTo(uint.MaxValue));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }).ToUInt64(), Is.EqualTo(long.MaxValue));
+			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }).ToUInt64(), Is.EqualTo(ulong.MaxValue));
+		}
+
+		[Test]
 		public void Test_Slice_FromGuid()
 		{
 			// Verify that System.GUID are stored as UUIDs using RFC 4122, and not their natural in-memory format
