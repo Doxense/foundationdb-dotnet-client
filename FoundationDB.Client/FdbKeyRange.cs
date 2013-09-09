@@ -84,6 +84,11 @@ namespace FoundationDB.Client
 				return new FdbKeyRange(FdbKey.MinValue, Fdb.SystemKeys.MaxValue);
 			}
 
+			if (prefix.Count == 1 && prefix[0] == 0xFF)
+			{ // "\xFF" => ["\xFF\x00", "\xFF\xFF")
+				return new FdbKeyRange(Fdb.SystemKeys.MinValue, Fdb.SystemKeys.MaxValue);
+			}
+
 			// prefix => [ prefix."\0", prefix + 1)
 			return new FdbKeyRange(
 				prefix + FdbKey.MinValue,
