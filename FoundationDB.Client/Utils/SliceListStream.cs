@@ -164,6 +164,9 @@ namespace FoundationDB.Client
 			if (m_indexOfCurrentSlice >= m_slices.Length) return false;
 
 			m_offsetInCurrentSlice = 0;
+			++m_indexOfCurrentSlice;
+
+			// skip empty slices
 			while (m_indexOfCurrentSlice < m_slices.Length && m_slices[m_indexOfCurrentSlice].Count == 0)
 			{
 				++m_indexOfCurrentSlice;
@@ -204,7 +207,7 @@ namespace FoundationDB.Client
 			{
 				if (m_offsetInCurrentSlice >= m_slices[m_indexOfCurrentSlice].Count && !AdvanceToNextSlice())
 				{
-					return read;
+					break;
 				}
 
 				var slice = m_slices[m_indexOfCurrentSlice];
@@ -230,6 +233,7 @@ namespace FoundationDB.Client
 
 				m_offsetInCurrentSlice += remaining;
 				m_position += remaining;
+				offset += remaining;
 				read += remaining;
 				count -= remaining;
 			}
