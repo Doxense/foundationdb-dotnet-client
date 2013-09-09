@@ -50,6 +50,7 @@
     <Compile Include="Arrays\FdbArray`1.cs" />
     <Compile Include="Arrays\FdbArrayExtensions.cs" />
     <Compile Include="Arrays\FdbArray.cs" />
+    <Compile Include="Counters\FdbCounter.cs" />
     <Compile Include="Documents\FdbDocumentHandlers.cs" />
     <Compile Include="Documents\FdbDocumentCollection.cs" />
     <Compile Include="Documents\FdbHashSetCollection.cs" />
