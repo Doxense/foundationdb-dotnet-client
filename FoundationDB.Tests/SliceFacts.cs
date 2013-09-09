@@ -35,6 +35,7 @@ namespace FoundationDB.Client.Tests
 	using System.IO;
 	using System.Linq;
 	using System.Text;
+	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class SliceFacts
@@ -424,6 +425,63 @@ namespace FoundationDB.Client.Tests
 
 		private static readonly string UNICODE_TEXT = "Thïs Ïs à strîng thât contaÎns somé ùnicodè charactêrs and should be encoded in UTF-8: よろしくお願いします";
 		private static readonly byte[] UNICODE_BYTES = Encoding.UTF8.GetBytes(UNICODE_TEXT);
+
+		[Test]
+		public void Test_Slice_FromStream()
+		{
+			Slice slice;
+
+			using(var ms = new MemoryStream(UNICODE_BYTES))
+			{
+				slice = Slice.FromStream(ms);
+			}
+			Assert.That(slice.Count, Is.EqualTo(UNICODE_BYTES.Length));
+			Assert.That(slice.GetBytes(), Is.EqualTo(UNICODE_BYTES));
+			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
+
+			Assert.That(() => Slice.FromStream(null), Throws.InstanceOf<ArgumentNullException>(), "Should throw if null");
+			Assert.That(Slice.FromStream(Stream.Null), Is.EqualTo(Slice.Nil), "Stream.Null should return Slice.Nil");
+
+			using(var ms = new MemoryStream())
+			{
+				ms.Close();
+				Assert.That(() => Slice.FromStream(ms), Throws.InstanceOf<InvalidOperationException>(), "Reading from a disposed stream should throw");
+			}
+		}
+
+		[Test]
+		public async Task Test_Slice_FromStreamAsync()
+		{
+			Slice slice;
+
+			// Reading from a MemoryStream should use the non-async path
+			using (var ms = new MemoryStream(UNICODE_BYTES))
+			{
+				slice = await Slice.FromStreamAsync(ms);
+			}
+			Assert.That(slice.Count, Is.EqualTo(UNICODE_BYTES.Length));
+			Assert.That(slice.GetBytes(), Is.EqualTo(UNICODE_BYTES));
+			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
+
+			// Reading from a FileStream should use the async path
+			var tmp = Path.GetTempFileName();
+			try
+			{
+				File.WriteAllBytes(tmp, UNICODE_BYTES);
+				using(var fs = File.OpenRead(tmp))
+				{
+					slice = await Slice.FromStreamAsync(fs);
+				}
+			}
+			finally
+			{
+				File.Delete(tmp);
+			}
+
+			Assert.That(slice.Count, Is.EqualTo(UNICODE_BYTES.Length));
+			Assert.That(slice.GetBytes(), Is.EqualTo(UNICODE_BYTES));
+			Assert.That(slice.ToUnicode(), Is.EqualTo(UNICODE_TEXT));
+		}
 
 		[Test]
 		public void Test_SliceStream_Basics()

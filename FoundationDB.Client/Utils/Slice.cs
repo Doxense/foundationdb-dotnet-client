@@ -1026,9 +1026,9 @@ namespace FoundationDB.Client
 
 			// special case for empty values
 			if (data == Stream.Null) return Slice.Nil;
-			if (data.Length == 0) return Slice.Empty;
+			if (!data.CanRead) throw new InvalidOperationException("Cannot read from provided stream");
 
-			if (!data.CanRead) throw new ArgumentException("Cannot read from provided stream", "data");
+			if (data.Length == 0) return Slice.Empty;
 			if (data.Length > int.MaxValue) throw new InvalidOperationException("Streams of more than 2GB are not supported");
 			//TODO: other checks?
 
@@ -1154,7 +1154,7 @@ namespace FoundationDB.Client
 			int r = length;
 			while (r > 0)
 			{
-				int c = Math.Max(r, chunkSize);
+				int c = Math.Min(r, chunkSize);
 				int n = await source.ReadAsync(buffer, p, c, ct);
 				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
 				p += n;
