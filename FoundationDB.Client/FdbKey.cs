@@ -202,7 +202,7 @@ namespace FoundationDB.Client
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] Merge<T>(Slice prefix, Slice[] keys)
+		public static Slice[] Merge(Slice prefix, Slice[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -210,7 +210,6 @@ namespace FoundationDB.Client
 			// we can pre-allocate exactly the buffer by computing the total size of all keys
 			var writer = new FdbBufferWriter(keys.Sum(key => key.Count) + keys.Length * prefix.Count);
 			var next = new List<int>(keys.Length);
-			var packer = FdbTuplePacker<T>.Serializer;
 
 			//TODO: use multiple buffers if item count is huge ?
 

@@ -29,8 +29,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Tests
 {
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
+	using System.Linq;
+	using System.Text;
 
 	[TestFixture]
 	public class KeyFacts
@@ -67,5 +70,44 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.Ascii("Hello") == FdbKey.Ascii("Helloo"), Is.False);
 		}
 
+		[Test]
+		public void Test_FdbKey_Merge()
+		{
+			// get a bunch of random slices
+			var rnd = new Random();
+			var slices = Enumerable.Range(0, 16).Select(x => Slice.Random(rnd, 4 + rnd.Next(32))).ToArray();
+
+			var merged = FdbKey.Merge(Slice.FromByte(42), slices);
+			Assert.That(merged, Is.Not.Null);
+			Assert.That(merged.Length, Is.EqualTo(slices.Length));
+
+			for (int i = 0; i < slices.Length; i++)
+			{
+				var expected = Slice.FromByte(42) + slices[i];
+				Assert.That(merged[i], Is.EqualTo(expected));
+
+				Assert.That(merged[i].Array, Is.SameAs(merged[0].Array), "All slices should be stored in the same buffer");
+				if (i > 0) Assert.That(merged[i].Offset, Is.EqualTo(merged[i - 1].Offset + merged[i - 1].Count), "All slices should be contiguous");
+			}
+		}
+
+		[Test]
+		public void Test_FdbKey_Merge_Of_T()
+		{
+			string[] words = new string[] { "hello", "world", "très bien", "断トツ", "abc\0def", null, String.Empty };
+
+			var merged = FdbKey.Merge(Slice.FromByte(42), words);
+			Assert.That(merged, Is.Not.Null);
+			Assert.That(merged.Length, Is.EqualTo(words.Length));
+
+			for (int i = 0; i < words.Length; i++)
+			{
+				var expected = Slice.FromByte(42) + FdbTuple.Pack(words[i]);
+				Assert.That(merged[i], Is.EqualTo(expected));
+
+				Assert.That(merged[i].Array, Is.SameAs(merged[0].Array), "All slices should be stored in the same buffer");
+				if (i > 0) Assert.That(merged[i].Offset, Is.EqualTo(merged[i - 1].Offset + merged[i - 1].Count), "All slices should be contiguous");
+			}
+		}
 	}
 }
