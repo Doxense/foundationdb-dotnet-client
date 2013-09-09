@@ -50,10 +50,10 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.Ascii(key), Is.EqualTo("Hello\xFF"));
 
 			key = FdbKey.Increment(FdbKey.Ascii("Hello\xFF"));
-			Assert.That(FdbKey.Ascii(key), Is.EqualTo("Hellp\x00"));
+			Assert.That(FdbKey.Ascii(key), Is.EqualTo("Hellp"));
 
 			key = FdbKey.Increment(FdbKey.Ascii("A\xFF\xFF\xFF"));
-			Assert.That(FdbKey.Ascii(key), Is.EqualTo("B\x00\x00\x00"));
+			Assert.That(FdbKey.Ascii(key), Is.EqualTo("B"));
 
 		}
 
