@@ -83,7 +83,7 @@ namespace FoundationDB.Client
 		private int m_defaultRetryLimit;
 
 		/// <summary>Root directory used by this database instance (or null if none)</summary>
-		private FdbDirectoryLayer m_directory;
+		private FdbRootDirectory m_rootDirectory;
 
 		#endregion
 
@@ -103,6 +103,9 @@ namespace FoundationDB.Client
 			m_globalSpace = subspace ?? FdbSubspace.Empty;
 			m_globalSpaceCopy = subspace.Copy();
 			m_ownsCluster = ownsCluster;
+
+			// pre-initialize the directory to the default location (depending on the subspace)
+			UseDefaultRootDirectory();
 		}
 
 		#endregion
@@ -309,17 +312,17 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Key Space Management...
+		#region Directory Layer...
 
-		public FdbDirectoryLayer Directory { get { return m_directory; } }
+		public FdbRootDirectory Root { get { return m_rootDirectory; } }
 
-		public void UseDirectory(FdbDirectoryLayer directoryLayer)
+		public void UseRootDirectory(FdbDirectoryLayer directoryLayer)
 		{
 			if (directoryLayer == null) throw new ArgumentNullException("directoryLayer");
-			m_directory = directoryLayer;
+			m_rootDirectory = new FdbRootDirectory(this, directoryLayer);
 		}
 
-		public FdbDirectoryLayer UseDirectory(FdbSubspace nodes, FdbSubspace content)
+		public void UseRootDirectory(FdbSubspace nodes, FdbSubspace content)
 		{
 			if (nodes == null) throw new ArgumentNullException("nodes");
 			if (content == null) throw new ArgumentNullException("content");
@@ -329,9 +332,18 @@ namespace FoundationDB.Client
 			if (!m_globalSpace.Contains(content.Key)) throw new ArgumentOutOfRangeException("content", "The Content subspace must be contained inside the Global Space of this database.");
 
 			var dl = new FdbDirectoryLayer(nodes, content);
-			m_directory = dl;
-			return dl;
+			m_rootDirectory = new FdbRootDirectory(this, dl);
 		}
+
+		public void UseDefaultRootDirectory()
+		{
+			var dl = new FdbDirectoryLayer(this.GlobalSpace[FdbKey.Directory], this.GlobalSpace);
+			m_rootDirectory = new FdbRootDirectory(this, dl);
+		}
+
+		#endregion
+
+		#region Key Space Management...
 
 		/// <summary>Return the global namespace used by this database instance</summary>
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>

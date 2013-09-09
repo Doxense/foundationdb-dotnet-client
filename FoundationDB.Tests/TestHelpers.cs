@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
+	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
@@ -44,8 +45,29 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Connect to the local test database</summary>
 		public static Task<FdbDatabase> OpenTestDatabaseAsync()
 		{
-			return Fdb.OpenDatabaseAsync(TestClusterFile, TestDbName, string.IsNullOrEmpty(TestPartition) ? FdbSubspace.Empty : new FdbSubspace(FdbTuple.Create(TestPartition)));
+			return Fdb.OpenDatabaseAsync(TestClusterFile, TestDbName, new FdbSubspace(FdbTuple.Pack(Slice.FromAscii(TestPartition))));
 		}
+
+		public static async Task<FdbDirectorySubspace> GetCleanDirectory(FdbDatabase db, params string[] path)
+		{
+			IFdbTuple tuple;
+			if (path.Length == 0)
+				tuple = FdbTuple.Empty;
+			else if (path.Length == 1)
+				tuple = FdbTuple.Create(path[0]);
+			else
+				tuple = FdbTuple.FromArray(path, 0, path.Length);
+
+			// remove previous
+			await db.Root.RemoveAsync(tuple);
+
+			// create new
+			var subspace = await db.Root.CreateAsync(tuple);
+			Assert.That(subspace, Is.Not.Null);
+			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True);
+			return subspace;
+		}
+
 
 		public static async Task DumpSubspace(FdbDatabase db, FdbSubspace subspace)
 		{
