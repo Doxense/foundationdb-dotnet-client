@@ -267,6 +267,8 @@ namespace FoundationDB.Client
 		/// <param name="size">Max location cache entries</param>
 		public void SetLocationCacheSize(int size)
 		{
+			if (size < 0) throw new FdbException(FdbError.InvalidOptionValue, "Location cache size must be a positive integer");
+
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			SetOption(FdbDatabaseOption.LocationCacheSize, size);
@@ -276,6 +278,8 @@ namespace FoundationDB.Client
 		/// <param name="count">Max outstanding watches</param>
 		public void SetMaxWatches(int count)
 		{
+			if (count < 0) throw new FdbException(FdbError.InvalidOptionValue, "Maximum outstanding watches count must be a positive integer");
+
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			SetOption(FdbDatabaseOption.MaxWatches, count);
