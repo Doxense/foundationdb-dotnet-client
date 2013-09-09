@@ -392,6 +392,36 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public void Test_Slice_FromFixedU64()
+		{
+			// FromFixed64 always produce 8 bytes and uses Little Endian
+
+			Assert.That(Slice.FromFixedU64(0UL).GetBytes(), Is.EqualTo(new byte[8]));
+			Assert.That(Slice.FromFixedU64(1UL).GetBytes(), Is.EqualTo(new byte[] { 1, 0, 0, 0, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixedU64(1UL << 8).GetBytes(), Is.EqualTo(new byte[] { 0, 1, 0, 0, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixedU64(1UL << 16).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 1, 0, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixedU64(1UL << 24).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 1, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixedU64(1UL << 32).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 1, 0, 0, 0 }));
+			Assert.That(Slice.FromFixedU64(1UL << 40).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 1, 0, 0 }));
+			Assert.That(Slice.FromFixedU64(1UL << 48).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 0, 1, 0 }));
+			Assert.That(Slice.FromFixedU64(1UL << 56).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }));
+			Assert.That(Slice.FromFixedU64(ushort.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 0, 0, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixedU64(int.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 127, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixedU64(uint.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255, 0, 0, 0, 0 }));
+			Assert.That(Slice.FromFixedU64(long.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }));
+			Assert.That(Slice.FromFixedU64(ulong.MaxValue).GetBytes(), Is.EqualTo(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }));
+
+			var rnd = new Random();
+			for (int i = 0; i < 1000; i++)
+			{
+				ulong x = (ulong)rnd.Next() * (ulong)rnd.Next();
+				Slice s = Slice.FromFixedU64(x);
+				Assert.That(s.Count, Is.EqualTo(8));
+				Assert.That(s.ToUInt64(), Is.EqualTo(x));
+			}
+		}
+
 		private static readonly string UNICODE_TEXT = "Thïs Ïs à strîng thât contaÎns somé ùnicodè charactêrs and should be encoded in UTF-8: よろしくお願いします";
 		private static readonly byte[] UNICODE_BYTES = Encoding.UTF8.GetBytes(UNICODE_TEXT);
 
