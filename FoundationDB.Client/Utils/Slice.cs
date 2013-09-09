@@ -643,7 +643,7 @@ namespace FoundationDB.Client
 				return new Uuid(this).ToGuid();
 			}
 
-			if (this.Count == 44)
+			if (this.Count == 36)
 			{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
 				return Guid.Parse(this.ToAscii());
 			}
@@ -660,7 +660,7 @@ namespace FoundationDB.Client
 				return new Uuid(this);
 			}
 
-			if (this.Count == 44)
+			if (this.Count == 36)
 			{
 				return Uuid.Parse(this.ToAscii());
 			}

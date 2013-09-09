@@ -284,6 +284,10 @@ namespace FoundationDB.Client.Tests
 			// round-trip
 			guid = Guid.NewGuid();
 			Assert.That(Slice.FromGuid(guid).ToGuid(), Is.EqualTo(guid));
+
+			Assert.That(Slice.FromAscii(guid.ToString()).ToGuid(), Is.EqualTo(guid), "String literals should also be converted if they match the expected format");
+
+			Assert.That(() => Slice.FromAscii("random text").ToGuid(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
@@ -327,6 +331,11 @@ namespace FoundationDB.Client.Tests
 			// round-trip
 			uuid = Uuid.NewUuid();
 			Assert.That(Slice.FromUuid(uuid).ToUuid(), Is.EqualTo(uuid));
+
+			Assert.That(Slice.FromAscii(uuid.ToString()).ToUuid(), Is.EqualTo(uuid), "String literals should also be converted if they match the expected format");
+
+			Assert.That(() => Slice.FromAscii("random text").ToUuid(), Throws.InstanceOf<FormatException>());
+
 		}
 
 		[Test]
