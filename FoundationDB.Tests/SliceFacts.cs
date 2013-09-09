@@ -376,7 +376,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(Slice.FromFixed64(-256L).GetBytes(), Is.EqualTo(new byte[] { 0, 255, 255, 255, 255, 255, 255, 255 }));
 			Assert.That(Slice.FromFixed64(-65536L).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 255, 255, 255, 255, 255, 255 }));
 			Assert.That(Slice.FromFixed64(-16777216L).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 255, 255, 255, 255, 255 }));
-			Assert.That(Slice.FromFixed64(-2147483648L).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 255, 255, 255, 255, 255 }));
+			Assert.That(Slice.FromFixed64(-4294967296L).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 255, 255, 255, 255 }));
 			Assert.That(Slice.FromFixed64(long.MinValue).GetBytes(), Is.EqualTo(new byte[] { 0, 0, 0, 0, 0, 0, 0, 128 }));
 
 			var rnd = new Random();
