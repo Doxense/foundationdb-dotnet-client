@@ -255,7 +255,7 @@ namespace FoundationDB.Linq
 				m_asyncFilter,
 				m_transform,
 				m_asyncTransform,
-				m_limit
+				limit
 			);
 		}
 
