@@ -54,8 +54,8 @@ namespace FoundationDB.StackTester
 
 		private List<KeyValuePair<Slice, Slice>> instructions;
 		private List<StackEntry> stack = new List<StackEntry>();
+		private List<Task> subTasks = new List<Task>();
 
-		private static List<Task> subTasks = new List<Task>();
 		private static Random rng = new Random(0);
 
 		public StackUnitTester(FdbDatabase db, string prefix)
@@ -66,6 +66,7 @@ namespace FoundationDB.StackTester
 
 		public StackUnitTester(string prefix, string clusterFile)
 		{
+			Fdb.Options.SetTracePath(".");
 			Fdb.Start();
 			this.db = Task.Run(() => Fdb.OpenDatabaseAsync(clusterFile, "DB")).GetAwaiter().GetResult();
 			this.prefix = prefix;
@@ -424,16 +425,16 @@ namespace FoundationDB.StackTester
 									switch (mutationType)
 									{
 										case "ADD":
-											((FdbTransaction)tr).AtomicAdd(stringToSlice(items[0]), stringToSlice(items[1]));
+											((FdbTransaction)tr).AtomicAdd(stringToSlice(items[1]), stringToSlice(items[2]));
 											break;
 										case "AND":
-											((FdbTransaction)tr).AtomicAnd(stringToSlice(items[0]), stringToSlice(items[1]));
+											((FdbTransaction)tr).AtomicAnd(stringToSlice(items[1]), stringToSlice(items[2]));
 											break;
 										case "OR":
-											((FdbTransaction)tr).AtomicOr(stringToSlice(items[0]), stringToSlice(items[1]));
+											((FdbTransaction)tr).AtomicOr(stringToSlice(items[1]), stringToSlice(items[2]));
 											break;
 										case "XOR":
-											((FdbTransaction)tr).AtomicXor(stringToSlice(items[0]), stringToSlice(items[1]));
+											((FdbTransaction)tr).AtomicXor(stringToSlice(items[1]), stringToSlice(items[2]));
 											break;
 										default:
 											throw new Exception("Invalid ATOMIC_OP: " + mutationType);
@@ -679,6 +680,7 @@ namespace FoundationDB.StackTester
 			FdbTransaction tr = db.BeginTransaction();
 
 			tr.Set(EncodingHelper.FromByteString("w0"), EncodingHelper.FromByteString("0"));
+			tr.Clear(EncodingHelper.FromByteString("w1"));
 
 			await tr.CommitAsync();
 			tr = db.BeginTransaction();

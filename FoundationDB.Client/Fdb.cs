@@ -445,6 +445,7 @@ namespace FoundationDB.Client
 				}
 			};
 			AppDomain.CurrentDomain.DomainUnload += s_appDomainUnloadHandler;
+			AppDomain.CurrentDomain.ProcessExit += s_appDomainUnloadHandler;
 			//TODO: should we also register with AppDomain.ProcessExit event ?
 
 			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", FdbNative.FDB_API_VERSION));
@@ -459,7 +460,7 @@ namespace FoundationDB.Client
 
 				unsafe
 				{
-					var data = FdbNative.ToNativeString(Fdb.Options.TracePath, nullTerminated: true);
+					var data = FdbNative.ToNativeString(Fdb.Options.TracePath, nullTerminated: false);
 					fixed (byte* ptr = data.Array)
 					{
 						DieOnError(FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr + data.Offset, data.Count));

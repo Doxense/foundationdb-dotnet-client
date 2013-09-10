@@ -520,10 +520,10 @@ namespace FoundationDB.Client
 				return Fdb.Errors.ValueCannotBeNull(value);
 			}
 
-			if (value.Count > Fdb.MaxValueSize)
+			/*if (value.Count > Fdb.MaxValueSize)
 			{
 				return Fdb.Errors.ValueIsTooBig(value);
-			}
+			}*/
 
 			return null;
 		}
