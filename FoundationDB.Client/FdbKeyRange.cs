@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public bool Contains(Slice key)
 		{
-			return key.CompareTo(this.Begin) >= 0 && key.CompareTo(this.End) <= 0;
+			return key.CompareTo(this.Begin) >= 0 && key.CompareTo(this.End) < 0;
 		}
 
 		public override string ToString()
