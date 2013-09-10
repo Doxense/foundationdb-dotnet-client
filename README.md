@@ -19,10 +19,10 @@ How to use
 // Connect to the db "DB" using the default cluster file
 using (var db = await Fdb.OpenAsync())
 {
-    // we will use a "Test" subspace for all our data
-    var location = await db.Partition("Test");
+    // we will use a "Test" subspace to isolate our test data
+    var location = db.Partition("Test");
     
-    // starts a transaction to write some keys to the db
+    // we need a transaction to be able to make changes to the db
     using (var trans = db.BeginTransaction())
     {
         // ("Test", "Hello", ) = "World"
@@ -37,11 +37,11 @@ using (var db = await Fdb.OpenAsync())
         // Set bits 3, 9 and 30 in the bitmap stored at ("Test", "Bitmap")
         trans.AtomicOr(location.Pack("Bitmap"), Slice.FromFixed32((1 << 3) | (1 << 9) | (1 << 30)));
         
-        // commits the transaction
+        // commit the changes to the db
         await trans.CommitAsync();
     }
-
-    // starts another transaction to read some keys
+    
+    // we also need a transaction to read from the db
     using (var trans = db.BeginTransaction())
     {  
         // Read ("Test", "Hello", ) as a string
@@ -52,42 +52,43 @@ using (var db = await Fdb.OpenAsync())
         value = await trans.GetAsync(location.Pack("Count"));
         Console.WriteLine(value.ToInt32()); // -> 42
     
-        // missing values return Slice.Nil, that is the equivalent of "no value"
+        // missing keys give a result of Slice.Nil, which is the equivalent of "no value"
         value = await trans.GetAsync(location.Pack("NotFound"));
         Console.WriteLine(value.HasValue); // -> false
         Console.WriteLine(value == Slice.Nil); // -> true
         // note: there is also Slice.Empty that is returned for existing keys with no value (used frequently for indexes)
         
-        // no writes, so we don't need to commit
+        // no writes, so we don't have to commit the transaction.
     }
 
     // We can also do async "LINQ" queries
     using (var trans = db.BeginTransaction())
     {
-        // create a list prefix
-        var list = location.Create("List");
+        // create a child partition for our list
+        var list = location.Partition("List");
     
-        // add some data to the list
+        // add some data to the list: ("Test", "List", index) = value
         trans.Set(list.Pack(0), Slice.FromString("AAA"));
         trans.Set(list.Pack(1), Slice.FromString("BBB"));
         trans.Set(list.Pack(2), Slice.FromString("CCC"));
     
-        // do a range query on the list prefix, that returns the pairs (int index, string value).        
+        // do a range query on the list partition, that will return the pairs (int index, string value).
         var results = await (trans.
-            // ask for all keys prefixed by the tuple ("Test", "List", )
+            // ask for all keys prefixed by the tuple '("Test", "List", )'
             .GetRangeStartsWith(list)
             // transform the results (KeyValuePair<Slice, Slice>) into something nicer
             .Select((kvp) => 
                 new KeyValuePair<int, string>(
                     // unpack the tuple and returns the last item as an int
-                    location.Unpack(kvp.Key).Get<int>(-1),
+                    list.UnpackLast<int>(kvp.Key),
                     // convert the value into an unicode string
                     kvp.Value.ToUnicode() 
                 ))
             // only get even values (note: this will execute on the client, the query will still need to fetch ALL the values)
             .Where((kvp) => kvp.Key % 2 == 0)
             // actually execute the query, and return a List<KeyValuePair<int, string>> with the results
-            .ToListAsync());
+            .ToListAsync()
+        );
 
        // list.Count -> 2
        // list[0] -> <int, string>(0, "AAA")
