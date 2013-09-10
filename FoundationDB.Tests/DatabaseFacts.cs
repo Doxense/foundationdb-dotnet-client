@@ -260,5 +260,20 @@ namespace FoundationDB.Client.Tests
 				Assert.That(() => db.SetLocationCacheSize(-123), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidOptionValue).And.Property("Success").False);
 			}
 		}
+
+		[Test]
+		public async Task Test_Database_Instance_Should_Have_Default_Root_Directory()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				Assert.That(db.Root, Is.Not.Null);
+				Assert.That(db.Root.Db, Is.SameAs(db));
+				Assert.That(db.Root.Directory, Is.Not.Null);
+				Assert.That(db.Root.Directory.ContentSubspace, Is.Not.Null);
+				Assert.That(db.Root.Directory.ContentSubspace.Key, Is.EqualTo(db.GlobalSpace.Key));
+				Assert.That(db.Root.Directory.NodeSubspace, Is.Not.Null);
+				Assert.That(db.Root.Directory.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace[Slice.FromByte(254)]));
+			}
+		}
 	}
 }
