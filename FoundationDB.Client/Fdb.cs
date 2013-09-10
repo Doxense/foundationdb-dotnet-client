@@ -459,7 +459,7 @@ namespace FoundationDB.Client
 
 				unsafe
 				{
-					var data = FdbNative.ToNativeString(Fdb.Options.TracePath, nullTerminated: true);
+					var data = FdbNative.ToNativeString(Fdb.Options.TracePath, nullTerminated: false);
 					fixed (byte* ptr = data.Array)
 					{
 						DieOnError(FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr + data.Offset, data.Count));
