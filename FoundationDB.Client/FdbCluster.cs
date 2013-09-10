@@ -112,11 +112,6 @@ namespace FoundationDB.Client
 
 			if (Logging.On) Logging.Info(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connecting to database '{0}' ...", databaseName));
 
-			// BUGBUG: the only accepted name is "DB".
-			// Currently in Beta2, if you create a database with any other name, it will succeed but any transaction performed on it will fail (future will never complete)
-			// Hope that it will be changed in the future to return an error code if the name is not valid.
-			if (databaseName != "DB") throw new InvalidOperationException("This version of FoundationDB only allows connections to the 'DB' database");
-
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			var future = FdbNative.ClusterCreateDatabase(m_handle, databaseName);
