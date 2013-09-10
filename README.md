@@ -1,11 +1,11 @@
 FoundationDB.Net Client
 =======================
 
-This is a prototype .NET wrapper for FoundationDB Client C API
+This is a C#/.NET binding for FoundationDB.
 
 **THIS IS STILL IN BETA. The API is still changing a lot at the moment, and you should probably not use it in production just yet**
 
-The .NET binding is licensed under the 3-clause BSD Licence. 
+This code is licensed under the 3-clause BSD Licence. 
 
 It requires the .NET 4.5 Framework, and uses the 64-bit C API binding that is licensed by FoundationDB LLC and must be obtained separately.
 
@@ -95,8 +95,6 @@ using (var db = await Fdb.OpenAsync())
     }
     
 }
-
-
 ```
 
 How to build
