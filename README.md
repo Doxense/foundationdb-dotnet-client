@@ -3,7 +3,7 @@ FoundationDB.Net Client
 
 This is a prototype .NET wrapper for FoundationDB Client C API
 
-**THIS IS PROTOTYPE QUALITY, DO NOT USE IN PRODUCTION**
+**THIS IS STILL IN BETA. The API is still changing a lot at the moment, and you should probably not use it in production just yet**
 
 The .NET binding is licensed under the 3-clause BSD Licence. 
 
@@ -16,11 +16,11 @@ How to use
 
 ```CSharp
 
-// Connect to the db "DB" using the default local cluster file
-using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+// Connect to the db "DB" using the default cluster file
+using (var db = await Fdb.OpenAsync())
 {
-    // we will use a subspace for all our data
-    var location = db.Partition("Test");
+    // we will use a "Test" subspace for all our data
+    var location = await db.Partition("Test");
     
     // starts a transaction to write some keys to the db
     using (var trans = db.BeginTransaction())
@@ -44,9 +44,11 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
     // starts another transaction to read some keys
     using (var trans = db.BeginTransaction())
     {  
+        // Read ("Test", "Hello", ) as a string
         Slice value = await trans.GetAsync(location.Pack("Hello"));
-        Console.WriteLine(value.ToUnicode()); // -> Hello
+        Console.WriteLine(value.ToUnicode()); // -> World
     
+        // Read ("Test", "Count", ) as an int
         value = await trans.GetAsync(location.Pack("Count"));
         Console.WriteLine(value.ToInt32()); // -> 42
     
@@ -110,7 +112,7 @@ You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb
 * Open the FoundationDb.Client.sln file in Visual Studio 2012.
 * Choose the Release or Debug configuration, and rebuild the solution.
 
-If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012 or 2013 Preview, and not an earlier version.
+If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012 or 2013 RC, and not an earlier version.
 
 If you see the error `Unable to locate '...\foundationdb-dotnet-client\.nuget\nuget.exe'` then you need to run the `Enable Nuget Package Restore` entry in the `Project` menu (or right click on the solution) that will reinstall nuget.exe in the .nuget folder. Also, Nuget should should redownload the missing packages during the first build.
 
