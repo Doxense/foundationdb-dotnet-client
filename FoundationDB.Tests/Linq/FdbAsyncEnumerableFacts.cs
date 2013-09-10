@@ -859,6 +859,277 @@ namespace FoundationDB.Linq.Tests
 
 		}
 	
+		private static async Task VerifyResult<T>(Func<Task<T>> asyncQuery, Func<T> referenceQuery, IQueryable<T> witness, string label)
+		{
+			Exception asyncError = null;
+			Exception referenceError = null;
+
+			T asyncResult = default(T);
+			T referenceResult = default(T);
+
+			try { asyncResult = await asyncQuery().ConfigureAwait(false); }
+			catch (Exception e) { asyncError = e; }
+
+			try { referenceResult = referenceQuery(); }
+			catch (Exception e) { referenceError = e; }
+
+			if (asyncError != null)
+			{
+				if (referenceError == null) Assert.Fail("{0}(): The async query failed but not there reference query {1} : {2}", label, witness.Expression, asyncError.ToString());
+				//TODO: compare exception types ?
+			}
+			else if (referenceError != null)
+			{
+				Assert.Fail("{0}(): The referency query {1} failed ({2}) but the async query returned: {3}", label, witness.Expression, referenceError.Message, asyncResult);
+			}
+			else
+			{
+				try
+				{
+					Assert.That(asyncResult, Is.EqualTo(referenceResult), "{0}(): {1}", label, witness.Expression);
+				}
+				catch(AssertionException x)
+				{
+					Console.WriteLine("FAIL: " + witness.Expression + "\r\n >  " + x.Message);
+				}
+			}
+
+		}
+
+		private static async Task VerifySequence<T, TSeq>(Func<Task<TSeq>> asyncQuery, Func<TSeq> referenceQuery, IQueryable<T> witness, string label)
+			where TSeq : class, IEnumerable<T>
+		{
+			Exception asyncError = null;
+			Exception referenceError = null;
+
+			TSeq asyncResult = null;
+			TSeq referenceResult = null;
+
+			try { asyncResult = await asyncQuery().ConfigureAwait(false); }
+			catch (Exception e) { asyncError = e; }
+
+			try { referenceResult = referenceQuery(); }
+			catch (Exception e) { referenceError = e; }
+
+			if (asyncError != null)
+			{
+				if (referenceError == null) Assert.Fail("{0}(): The async query failed but not there reference query {1} : {2}", label, witness.Expression, asyncError.ToString());
+				//TODO: compare exception types ?
+			}
+			else if (referenceError != null)
+			{
+				Assert.Fail("{0}(): The referency query {1} failed ({2}) but the async query returned: {3}", label, witness.Expression, referenceError.Message, asyncResult);
+			}
+			else
+			{
+				try
+				{
+					Assert.That(asyncResult, Is.EqualTo(referenceResult), "{0}(): {1}", label, witness.Expression);
+				}
+				catch (AssertionException x)
+				{
+					Console.WriteLine("FAIL: " + witness.Expression + "\r\n >  " + x.Message);
+				}
+			}
+
+		}
+
+		[Test]
+		public async Task Test_AsyncLinq_vs_LinqToObject()
+		{
+			// Construct a random async query in parallel with the equivalent LINQ-to-Object and ensure that they produce the same result
+
+			// Then we call each of these methods: Count(), ToList(), ToArray(), First(), FirstOrDefault(), Single(), SingleOrDefault(), All(), None(), Any()
+			// * if they produce a result, it must match
+			// * if one fail, the other must also fail with an equivalent error (ex: Single() if the collection as more than one).
+
+			// note: we will also create a third LINQ query using lambda expressions, just to be able to have a nicer ToString() in case of errors
+
+			int[] SourceOfInts = new int[] { 1, 7, 42, -456, 123, int.MaxValue, -1, 1023, 0, short.MinValue, 5, 13, -273, 2013, 4534, -999 };
+			
+			const int N = 1000;
+
+			var rnd = new Random(); // new Random(1234)
+
+			for(int i=0;i<N;i++)
+			{
+
+				IFdbAsyncEnumerable<int> query = SourceOfInts.ToAsyncEnumerable();
+				IEnumerable<int> reference = SourceOfInts;
+				IQueryable<int> witness = Queryable.AsQueryable(SourceOfInts);
+
+				// optional where
+				switch (rnd.Next(6))
+				{
+					case 0:
+					{ // keep about 50% of the items
+						query = query.Where(x => x > 0);
+						reference = reference.Where(x => x > 0);
+						witness = witness.Where(x => x > 0);
+						break;
+					}
+					case 1:
+					{ // keep no items at all
+						query = query.Where(x => false);
+						reference = reference.Where(x => false);
+						witness = witness.Where(x => false);
+						break;
+					}
+					case 2:
+					{ // keep only one item
+						query = query.Where(x => x == 42);
+						reference = reference.Where(x => x == 42);
+						witness = witness.Where(x => x == 42);
+						break;
+					}
+				}
+
+				// optional transform (keep the type)
+				if (rnd.Next(5) == 0)
+				{
+					query = query.Select(x => x >> 1);
+					reference = reference.Select(x => x >> 1);
+					witness = witness.Select(x => x >> 1);
+				}
+
+				// optional transform that change the type (and back)
+				if (rnd.Next(3) == 0)
+				{
+					var sq = query.Select(x => x.ToString());
+					var sr = reference.Select(x => x.ToString());
+					var sw = witness.Select(x => x.ToString());
+
+					// optional where
+					if (rnd.Next(2) == 0)
+					{
+						sq = sq.Where(s => s.Length <= 2);
+						sr = sr.Where(s => s.Length <= 2);
+						sw = sw.Where(s => s.Length <= 2);
+					}
+
+					// convert back
+					query = sq.Select(x => Int32.Parse(x));
+					reference = sr.Select(x => Int32.Parse(x));
+					witness = sw.Select(x => Int32.Parse(x));
+				}
+
+				// optional Skip
+#if false // TODO !
+				switch (rnd.Next(10))
+				{
+					case 0:
+					{ // skip a few
+						query = query.Skip(3);
+						reference = reference.Skip(3);
+						witness = witness.Skip(3);
+						break;
+					}
+					case 1:
+					{ // only take 1 
+						query = query.Skip(1);
+						reference = reference.Skip(1);
+						witness = witness.Skip(1);
+						break;
+					}
+				}
+#endif
+
+				// optional Take
+				switch(rnd.Next(10))
+				{
+					case 0:
+					{ // only take a few
+						query = query.Take(3);
+						reference = reference.Take(3);
+						witness = witness.Take(3);
+						break;
+					}
+					case 1:
+					{ // only take 1 
+						query = query.Take(1);
+						reference = reference.Take(1);
+						witness = witness.Take(1);
+						break;
+					}
+				}
+
+				// => ensure that results are coherent
+
+				await VerifyResult(
+					() => query.CountAsync(),
+					() => reference.Count(),
+					witness,
+					"Count"
+				);
+
+				await VerifySequence(
+					() => query.ToListAsync(),
+					() => reference.ToList(),
+					witness,
+					"ToList"
+				);
+
+				await VerifySequence(
+					() => query.ToArrayAsync(),
+					() => reference.ToArray(),
+					witness,
+					"ToArray"
+				);
+
+				await VerifyResult(
+					() => query.FirstAsync(),
+					() => reference.First(),
+					witness,
+					"First"
+				);
+
+				await VerifyResult(
+					() => query.FirstOrDefaultAsync(),
+					() => reference.FirstOrDefault(),
+					witness,
+					"FirstOrDefault"
+				);
+
+				await VerifyResult(
+					() => query.SingleAsync(),
+					() => reference.Single(),
+					witness,
+					"Single"
+				);
+
+				await VerifyResult(
+					() => query.SingleOrDefaultAsync(),
+					() => reference.SingleOrDefault(),
+					witness,
+					"SingleOrDefault"
+				);
+
+				await VerifyResult(
+					() => query.LastAsync(),
+					() => reference.Last(),
+					witness,
+					"Last"
+				);
+
+				await VerifyResult(
+					() => query.LastOrDefaultAsync(),
+					() => reference.LastOrDefault(),
+					witness,
+					"LastOrDefault"
+				);
+
+				await VerifyResult(
+					() => query.NoneAsync(),
+					() => !reference.Any(),
+					witness.Select(x => false), // makes the compiler happy
+					"None"
+				);
+
+			}
+			
+
+		}
+
 	}
 
 }

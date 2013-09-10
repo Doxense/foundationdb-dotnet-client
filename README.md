@@ -1,11 +1,11 @@
 FoundationDB.Net Client
 =======================
 
-This is a prototype .NET wrapper for FoundationDB Client C API
+This is a C#/.NET binding for FoundationDB.
 
-**THIS IS PROTOTYPE QUALITY, DO NOT USE IN PRODUCTION**
+**THIS IS STILL IN BETA. The API is still changing a lot at the moment, and you should probably not use it in production just yet**
 
-The .NET binding is licensed under the 3-clause BSD Licence. 
+This code is licensed under the 3-clause BSD Licence. 
 
 It requires the .NET 4.5 Framework, and uses the 64-bit C API binding that is licensed by FoundationDB LLC and must be obtained separately.
 
@@ -16,13 +16,13 @@ How to use
 
 ```CSharp
 
-// Connect to the db "DB" using the default local cluster file
-using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+// Connect to the db "DB" using the default cluster file
+using (var db = await Fdb.OpenAsync())
 {
-    // we will use a subspace for all our data
+    // we will use a "Test" subspace to isolate our test data
     var location = db.Partition("Test");
     
-    // starts a transaction to write some keys to the db
+    // we need a transaction to be able to make changes to the db
     using (var trans = db.BeginTransaction())
     {
         // ("Test", "Hello", ) = "World"
@@ -37,55 +37,58 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
         // Set bits 3, 9 and 30 in the bitmap stored at ("Test", "Bitmap")
         trans.AtomicOr(location.Pack("Bitmap"), Slice.FromFixed32((1 << 3) | (1 << 9) | (1 << 30)));
         
-        // commits the transaction
+        // commit the changes to the db
         await trans.CommitAsync();
     }
-
-    // starts another transaction to read some keys
+    
+    // we also need a transaction to read from the db
     using (var trans = db.BeginTransaction())
     {  
+        // Read ("Test", "Hello", ) as a string
         Slice value = await trans.GetAsync(location.Pack("Hello"));
-        Console.WriteLine(value.ToUnicode()); // -> Hello
+        Console.WriteLine(value.ToUnicode()); // -> World
     
+        // Read ("Test", "Count", ) as an int
         value = await trans.GetAsync(location.Pack("Count"));
         Console.WriteLine(value.ToInt32()); // -> 42
     
-        // missing values return Slice.Nil, that is the equivalent of "no value"
+        // missing keys give a result of Slice.Nil, which is the equivalent of "no value"
         value = await trans.GetAsync(location.Pack("NotFound"));
         Console.WriteLine(value.HasValue); // -> false
         Console.WriteLine(value == Slice.Nil); // -> true
         // note: there is also Slice.Empty that is returned for existing keys with no value (used frequently for indexes)
         
-        // no writes, so we don't need to commit
+        // no writes, so we don't have to commit the transaction.
     }
 
     // We can also do async "LINQ" queries
     using (var trans = db.BeginTransaction())
     {
-        // create a list prefix
-        var list = location.Create("List");
+        // create a child partition for our list
+        var list = location.Partition("List");
     
-        // add some data to the list
+        // add some data to the list: ("Test", "List", index) = value
         trans.Set(list.Pack(0), Slice.FromString("AAA"));
         trans.Set(list.Pack(1), Slice.FromString("BBB"));
         trans.Set(list.Pack(2), Slice.FromString("CCC"));
     
-        // do a range query on the list prefix, that returns the pairs (int index, string value).        
+        // do a range query on the list partition, that will return the pairs (int index, string value).
         var results = await (trans.
-            // ask for all keys prefixed by the tuple ("Test", "List", )
+            // ask for all keys prefixed by the tuple '("Test", "List", )'
             .GetRangeStartsWith(list)
             // transform the results (KeyValuePair<Slice, Slice>) into something nicer
             .Select((kvp) => 
                 new KeyValuePair<int, string>(
                     // unpack the tuple and returns the last item as an int
-                    location.Unpack(kvp.Key).Get<int>(-1),
+                    list.UnpackLast<int>(kvp.Key),
                     // convert the value into an unicode string
                     kvp.Value.ToUnicode() 
                 ))
             // only get even values (note: this will execute on the client, the query will still need to fetch ALL the values)
             .Where((kvp) => kvp.Key % 2 == 0)
             // actually execute the query, and return a List<KeyValuePair<int, string>> with the results
-            .ToListAsync());
+            .ToListAsync()
+        );
 
        // list.Count -> 2
        // list[0] -> <int, string>(0, "AAA")
@@ -93,8 +96,6 @@ using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
     }
     
 }
-
-
 ```
 
 How to build
@@ -110,7 +111,7 @@ You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb
 * Open the FoundationDb.Client.sln file in Visual Studio 2012.
 * Choose the Release or Debug configuration, and rebuild the solution.
 
-If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012 or 2013 Preview, and not an earlier version.
+If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012 or 2013 RC, and not an earlier version.
 
 If you see the error `Unable to locate '...\foundationdb-dotnet-client\.nuget\nuget.exe'` then you need to run the `Enable Nuget Package Restore` entry in the `Project` menu (or right click on the solution) that will reinstall nuget.exe in the .nuget folder. Also, Nuget should should redownload the missing packages during the first build.
 

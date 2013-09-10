@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Async;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Concurrent;
@@ -81,6 +82,9 @@ namespace FoundationDB.Client
 		/// <summary>Default RetryLimit value for all transactions</summary>
 		private int m_defaultRetryLimit;
 
+		/// <summary>Root directory used by this database instance (or null if none)</summary>
+		private FdbRootDirectory m_rootDirectory;
+
 		#endregion
 
 		#region Constructors...
@@ -99,6 +103,9 @@ namespace FoundationDB.Client
 			m_globalSpace = subspace ?? FdbSubspace.Empty;
 			m_globalSpaceCopy = subspace.Copy();
 			m_ownsCluster = ownsCluster;
+
+			// pre-initialize the directory to the default location (depending on the subspace)
+			UseDefaultRootDirectory();
 		}
 
 		#endregion
@@ -267,6 +274,8 @@ namespace FoundationDB.Client
 		/// <param name="size">Max location cache entries</param>
 		public void SetLocationCacheSize(int size)
 		{
+			if (size < 0) throw new FdbException(FdbError.InvalidOptionValue, "Location cache size must be a positive integer");
+
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			SetOption(FdbDatabaseOption.LocationCacheSize, size);
@@ -276,6 +285,8 @@ namespace FoundationDB.Client
 		/// <param name="count">Max outstanding watches</param>
 		public void SetMaxWatches(int count)
 		{
+			if (count < 0) throw new FdbException(FdbError.InvalidOptionValue, "Maximum outstanding watches count must be a positive integer");
+
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			SetOption(FdbDatabaseOption.MaxWatches, count);
@@ -297,6 +308,37 @@ namespace FoundationDB.Client
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			SetOption(FdbDatabaseOption.DataCenterId, hexId);
+		}
+
+		#endregion
+
+		#region Directory Layer...
+
+		public FdbRootDirectory Root { get { return m_rootDirectory; } }
+
+		public void UseRootDirectory(FdbDirectoryLayer directoryLayer)
+		{
+			if (directoryLayer == null) throw new ArgumentNullException("directoryLayer");
+			m_rootDirectory = new FdbRootDirectory(this, directoryLayer);
+		}
+
+		public void UseRootDirectory(FdbSubspace nodes, FdbSubspace content)
+		{
+			if (nodes == null) throw new ArgumentNullException("nodes");
+			if (content == null) throw new ArgumentNullException("content");
+
+			// ensure that both subspaces are reachable
+			if (!m_globalSpace.Contains(nodes.Key)) throw new ArgumentOutOfRangeException("nodes", "The Nodes subspace must be contained inside the Global Space of this database.");
+			if (!m_globalSpace.Contains(content.Key)) throw new ArgumentOutOfRangeException("content", "The Content subspace must be contained inside the Global Space of this database.");
+
+			var dl = new FdbDirectoryLayer(nodes, content);
+			m_rootDirectory = new FdbRootDirectory(this, dl);
+		}
+
+		public void UseDefaultRootDirectory()
+		{
+			var dl = new FdbDirectoryLayer(this.GlobalSpace[FdbKey.Directory], this.GlobalSpace);
+			m_rootDirectory = new FdbRootDirectory(this, dl);
 		}
 
 		#endregion
@@ -413,16 +455,16 @@ namespace FoundationDB.Client
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
 		/// <param name="key">Key to verify</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal void EnsureKeyIsValid(Slice key)
+		internal void EnsureKeyIsValid(Slice key, bool endExclusive = false)
 		{
-			var ex = ValidateKey(key);
+			var ex = ValidateKey(key, endExclusive);
 			if (ex != null) throw ex;
 		}
 
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="key">Key to verify</param>
 		/// <returns>An exception if the key is outside of the allowed key space of this database</exception>
-		internal Exception ValidateKey(Slice key)
+		internal Exception ValidateKey(Slice key, bool endExclusive = false)
 		{
 			// null or empty keys are not allowed
 			if (!key.HasValue)
@@ -446,7 +488,12 @@ namespace FoundationDB.Client
 			// first, it MUST start with the root prefix of this database (if any)
 			if (!m_globalSpace.Contains(key))
 			{
-				return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
+				// special case: if endExclusive is true (we are validating the end key of a ClearRange),
+				// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let is slide
+				if (!key.Equals(FdbKey.Increment(m_globalSpace.Key)))
+				{
+					return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
+				}
 			}
 
 			return null;

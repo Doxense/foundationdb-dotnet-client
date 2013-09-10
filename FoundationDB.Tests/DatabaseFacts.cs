@@ -44,7 +44,7 @@ namespace FoundationDB.Client.Tests
 		{
 			//README: if your test db is remote and you don't have a local running fdb instance, this test will fail and you should ignore this.
 
-			using (var cluster = await Fdb.OpenLocalClusterAsync())
+			using (var cluster = await Fdb.CreateClusterAsync())
 			{
 				Assert.That(cluster, Is.Not.Null);
 				Assert.That(cluster.Path, Is.Null);
@@ -63,7 +63,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var cts = new CancellationTokenSource())
 			{
-				using (var cluster = await Fdb.OpenLocalClusterAsync(cts.Token))
+				using (var cluster = await Fdb.CreateClusterAsync(cts.Token))
 				{
 					cts.Cancel();
 					Assert.Throws<OperationCanceledException>(() => cluster.OpenDatabaseAsync("DB", cts.Token).GetAwaiter().GetResult());
@@ -79,7 +79,7 @@ namespace FoundationDB.Client.Tests
 
 			// Don't forget to update this test if in the future the API allows for other names !
 
-			using (var cluster = await Fdb.OpenLocalClusterAsync())
+			using (var cluster = await Fdb.CreateClusterAsync())
 			{
 				Assert.That(() => cluster.OpenDatabaseAsync("SomeOtherName").GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
 			}
@@ -90,7 +90,7 @@ namespace FoundationDB.Client.Tests
 		{
 			//README: if your test database is remote, and you don't have FDB running locally, this test will fail and you should ignore this one.
 
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await Fdb.OpenAsync(CancellationToken.None))
 			{
 				Assert.That(db, Is.Not.Null, "Should return a valid database");
 				Assert.That(db.Cluster, Is.Not.Null, "FdbDatabase should have its own Cluster instance");
@@ -114,7 +114,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_FdbDatabase_Key_Validation()
 		{
-			using(var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using(var db = await Fdb.OpenAsync())
 			{
 				// IsKeyValid
 				Assert.That(db.IsKeyValid(Slice.Nil), Is.False, "Null key is invalid");
@@ -149,7 +149,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
-			using(var db = await Fdb.OpenLocalDatabaseAsync("DB", new FdbSubspace(FdbTuple.Create("test"))))
+			using(var db = await Fdb.OpenAsync(null, "DB", new FdbSubspace(FdbTuple.Create("test"))))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);
@@ -166,7 +166,7 @@ namespace FoundationDB.Client.Tests
 			}
 
 			// using a random binary prefix
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB", new FdbSubspace(Slice.Create(new byte[] { 42, 255, 0, 90 }))))
+			using (var db = await Fdb.OpenAsync(null, "DB", new FdbSubspace(Slice.Create(new byte[] { 42, 255, 0, 90 }))))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);

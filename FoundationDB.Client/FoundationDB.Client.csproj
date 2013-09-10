@@ -93,8 +93,8 @@
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
-    <Compile Include="Layers\Counters\FdbCounter.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryExtensions.cs" />
+    <Compile Include="Layers\Directories\FdbRootDirectory.cs" />
     <Compile Include="Layers\Directories\FdbDirectorySubspace.cs" />
     <Compile Include="Layers\Directories\FdbHighContentionAllocator.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryLayer.cs" />

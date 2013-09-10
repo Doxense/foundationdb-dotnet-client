@@ -72,15 +72,6 @@ namespace FoundationDB.Client
 		/// <summary>Number of bytes in the slice</summary>
 		public readonly int Count;
 
-		internal Slice(byte[] array)
-		{
-			Contract.Requires(array != null);
-
-			this.Array = array;
-			this.Offset = 0;
-			this.Count = array != null ? array.Length : 0;
-		}
-
 		internal Slice(byte[] array, int offset, int count)
 		{
 			Contract.Requires(array != null);
@@ -277,15 +268,15 @@ namespace FoundationDB.Client
 		{
 			return new Slice(
 				new byte[]
-				{ 
-					(byte)(value >> 56),
-					(byte)(value >> 48),
-					(byte)(value >> 40),
-					(byte)(value >> 32),
-					(byte)(value >> 24),
-					(byte)(value >> 16),
+				{
+					(byte)value,
 					(byte)(value >> 8),
-					(byte)value
+					(byte)(value >> 16),
+					(byte)(value >> 24),
+					(byte)(value >> 32),
+					(byte)(value >> 40),
+					(byte)(value >> 48),
+					(byte)(value >> 56)
 				},
 				0,
 				8
@@ -643,7 +634,7 @@ namespace FoundationDB.Client
 				return new Uuid(this).ToGuid();
 			}
 
-			if (this.Count == 44)
+			if (this.Count == 36)
 			{ // string representation (ex: "da846709-616d-4e82-bf55-d1d3e9cde9b1")
 				return Guid.Parse(this.ToAscii());
 			}
@@ -660,7 +651,7 @@ namespace FoundationDB.Client
 				return new Uuid(this);
 			}
 
-			if (this.Count == 44)
+			if (this.Count == 36)
 			{
 				return Uuid.Parse(this.ToAscii());
 			}
@@ -737,11 +728,6 @@ namespace FoundationDB.Client
 		private static void FailIndexOutOfBound(int index)
 		{
 			throw new IndexOutOfRangeException("Index is outside the slice");
-		}
-
-		internal byte GetByte(int index)
-		{
-			return this.Array[UnsafeMapToOffset(index)];
 		}
 
 		/// <summary>Copy this slice into another buffer</summary>
@@ -1026,9 +1012,9 @@ namespace FoundationDB.Client
 
 			// special case for empty values
 			if (data == Stream.Null) return Slice.Nil;
-			if (data.Length == 0) return Slice.Empty;
+			if (!data.CanRead) throw new InvalidOperationException("Cannot read from provided stream");
 
-			if (!data.CanRead) throw new ArgumentException("Cannot read from provided stream", "data");
+			if (data.Length == 0) return Slice.Empty;
 			if (data.Length > int.MaxValue) throw new InvalidOperationException("Streams of more than 2GB are not supported");
 			//TODO: other checks?
 
@@ -1154,7 +1140,7 @@ namespace FoundationDB.Client
 			int r = length;
 			while (r > 0)
 			{
-				int c = Math.Max(r, chunkSize);
+				int c = Math.Min(r, chunkSize);
 				int n = await source.ReadAsync(buffer, p, c, ct);
 				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
 				p += n;

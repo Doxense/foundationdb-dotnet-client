@@ -605,7 +605,7 @@ namespace FoundationDB.Client
 		internal void ClearRangeCore(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			this.Database.EnsureKeyIsValid(beginKeyInclusive);
-			this.Database.EnsureKeyIsValid(endKeyExclusive);
+			this.Database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRangeCore", String.Format("Clearing Range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString()));
@@ -637,7 +637,7 @@ namespace FoundationDB.Client
 		internal void AddConflictRangeCore(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
 		{
 			this.Database.EnsureKeyIsValid(beginKeyInclusive);
-			this.Database.EnsureKeyIsValid(endKeyExclusive);
+			this.Database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRangeCore", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
@@ -845,9 +845,10 @@ namespace FoundationDB.Client
 		/// <summary>Reset the transaction to its initial state.</summary>
 		public void Reset()
 		{
-			EnsureCanReadOrWrite();
+			EnsureCanRetry();
 
 			FdbNative.TransactionReset(m_handle);
+			m_state = STATE_READY;
 
 			if (Logging.On) Logging.Verbose(this, "Reset", "Transaction has been reset");
 		}

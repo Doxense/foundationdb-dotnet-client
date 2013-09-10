@@ -41,7 +41,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Connect_To_Local_Cluster()
 		{
-			using(var cluster = await Fdb.OpenLocalClusterAsync())
+			using(var cluster = await Fdb.CreateClusterAsync())
 			{
 				Assert.That(cluster, Is.Not.Null, "Should return a valid object");
 				Assert.That(cluster.Path, Is.Null, "FdbCluster.Path should be null");
@@ -55,7 +55,7 @@ namespace FoundationDB.Client.Tests
 			{
 				cts.Cancel();
 
-				Assert.Throws<OperationCanceledException>(() => Fdb.OpenLocalClusterAsync(cts.Token).GetAwaiter().GetResult());
+				Assert.Throws<OperationCanceledException>(() => Fdb.CreateClusterAsync(cts.Token).GetAwaiter().GetResult());
 			}
 		}
 

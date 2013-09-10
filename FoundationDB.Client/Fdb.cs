@@ -290,28 +290,32 @@ namespace FoundationDB.Client
 
 		#region Cluster...
 
-		/// <summary>Opens a connection to the local FDB cluster</summary>
-		/// <param name="ct"></param>
-		/// <returns></returns>
-		public static Task<FdbCluster> OpenLocalClusterAsync(CancellationToken ct = default(CancellationToken))
+		/// <summary>Opens a connection to a FoundationDB cluster using the default cluster file</summary>
+		/// <param name="ct">Token used to abort the operation</param>
+		/// <returns>Task that will return an FdbCluster, or an exception</returns>
+		public static Task<FdbCluster> CreateClusterAsync(CancellationToken ct = default(CancellationToken))
 		{
 			//BUGBUG: does 'null' means Local? or does it mean the default config file that may or may not point to the local cluster ??
-			return OpenClusterAsync(null, ct);
+			return CreateClusterAsync(null, ct);
 		}
 
 		/// <summary>Opens a connection to an FDB Cluster</summary>
-		/// <param name="path">Path to the 'fdb.cluster' file, or null for default</param>
+		/// <param name="clusterFile">Path to the 'fdb.cluster' file, or null for the default cluster file</param>
+		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
-		public static Task<FdbCluster> OpenClusterAsync(string path = null, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbCluster> CreateClusterAsync(string clusterFile, CancellationToken ct = default(CancellationToken))
 		{
 			EnsureIsStarted();
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "OpenClusterAsync", path == null ? "Connecting to default cluster..." : String.Format("Connecting to cluster using '{0}' ...", path));
+			// convert "" to null
+			if (string.IsNullOrEmpty(clusterFile)) clusterFile = null;
+
+			if (Logging.On) Logging.Info(typeof(Fdb), "CreateClusterAsync", clusterFile == null ? "Connecting to default cluster..." : String.Format("Connecting to cluster using '{0}' ...", clusterFile));
 
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			//TODO: check path ?
-			var future = FdbNative.CreateCluster(path);
+			var future = FdbNative.CreateCluster(clusterFile);
 
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
@@ -323,7 +327,7 @@ namespace FoundationDB.Client
 						cluster.Dispose();
 						throw MapToException(err);
 					}
-					return new FdbCluster(cluster, path);
+					return new FdbCluster(cluster, clusterFile);
 				},
 				ct
 			);
@@ -333,92 +337,72 @@ namespace FoundationDB.Client
 
 		#region Database...
 
-		/// <summary>Open a database on the specified cluster</summary>
-		/// <param name="path">Path to the 'fdb.cluster' file, or null for default</param>
-		/// <param name="name">Name of the database. Must be 'DB'</param>
-		/// <param name="ct">Cancellation Token</param>
+		/// <summary>
+		/// Open the "DB" database on the cluster specified by the default cluster file
+		/// </summary>
+		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
-		public static Task<FdbDatabase> OpenDatabaseAsync(string path, string name, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDatabase> OpenAsync(CancellationToken ct = default(CancellationToken))
 		{
-			return OpenDatabaseAsync(path, name, FdbSubspace.Empty, ct);
+			return OpenAsync(clusterFile: null, dbName: null, globalSpace: FdbSubspace.Empty, ct: ct);
 		}
 
-		/// <summary>Open a database on the specified cluster</summary>
-		/// <param name="path">Path to the 'fdb.cluster' file, or null for default</param>
-		/// <param name="name">Name of the database. Must be 'DB'</param>
+		/// <summary>
+		/// Open the "DB" database on the cluster specified by the default cluster file, and with the specified global space
+		/// </summary>
+		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
+		/// <param name="ct">Token used to abort the operation</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
+		public static Task<FdbDatabase> OpenAsync(FdbSubspace globalSpace, CancellationToken ct = default(CancellationToken))
+		{
+			return OpenAsync(clusterFile: null, dbName: null, globalSpace: globalSpace, ct: ct);
+		}
+
+		/// <summary>
+		/// Open a database on the specified cluster
+		/// </summary>
+		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
+		/// <param name="dbName">Name of the database, or "DB" if not specified.</param>
 		/// <param name="ct">Cancellation Token</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
+		/// <remarks>As of 1.0, the only supported database name is "DB"</remarks>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="dbName"/> is anything other than "DB"</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
-		public static async Task<FdbDatabase> OpenDatabaseAsync(string path, string name, FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDatabase> OpenAsync(string clusterFile, string dbName, CancellationToken ct = default(CancellationToken))
+		{
+			return OpenAsync(clusterFile, dbName, FdbSubspace.Empty, ct);
+		}
+
+		/// <summary>
+		/// Open a database on the specified cluster
+		/// </summary>
+		/// <param name="clusterFile">Path to the 'fdb.cluster' file, or null for default</param>
+		/// <param name="dbName">Name of the database. Must be 'DB'</param>
+		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
+		/// <param name="ct">Token used to abort the operation</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		/// <remarks>As of 1.0, the only supported database name is 'DB'</remarks>
+		/// <exception cref="System.InvalidOperationException">If <paramref name="dbName"/> is anything other than 'DB'</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
+		public static async Task<FdbDatabase> OpenAsync(string clusterFile, string dbName, FdbSubspace globalSpace, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();
 
-			subspace = subspace ?? FdbSubspace.Empty;
+			dbName = dbName ?? "DB";
+			globalSpace = globalSpace ?? FdbSubspace.Empty;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "OpenDatabaseAsync", String.Format("Connecting to database '{0}' using cluster file '{1}' and subspace '{2}' ...", name, path, subspace.ToString()));
+			if (Logging.On) Logging.Info(typeof(Fdb), "OpenAsync", String.Format("Connecting to database '{0}' using cluster file '{1}' and subspace '{2}' ...", dbName, clusterFile, globalSpace.ToString()));
 
 			FdbCluster cluster = null;
 			FdbDatabase db = null;
 			bool success = false;
 			try
 			{
-				cluster = await OpenClusterAsync(path, ct).ConfigureAwait(false);
+				cluster = await CreateClusterAsync(clusterFile, ct).ConfigureAwait(false);
 				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseAsync(name, subspace, true, ct).ConfigureAwait(false);
-				success = true;
-				return db;
-			}
-			finally
-			{
-				if (!success)
-				{
-					// cleanup the cluter if something went wrong
-					if (db != null) db.Dispose();
-					if (cluster != null) cluster.Dispose();
-				}
-			}
-		}
-
-		/// <summary>Open a database on the local cluster</summary>
-		/// <param name="name">Name of the database. Must be 'DB'</param>
-		/// <param name="ct">Cancellation Token</param>
-		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
-		public static Task<FdbDatabase> OpenLocalDatabaseAsync(string name, CancellationToken ct = default(CancellationToken))
-		{
-			return OpenLocalDatabaseAsync(name, FdbSubspace.Empty, ct);
-		}
-
-		/// <summary>Open a database on the local cluster</summary>
-		/// <param name="name">Name of the database. Must be 'DB'</param>
-		/// <param name="ct">Cancellation Token</param>
-		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		/// <exception cref="System.InvalidOperationException">If <paramref name="name"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
-		public static async Task<FdbDatabase> OpenLocalDatabaseAsync(string name, FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
-		{
-			ct.ThrowIfCancellationRequested();
-
-			subspace = subspace ?? FdbSubspace.Empty;
-
-			if (Logging.On) Logging.Info(typeof(Fdb), "OpenLocalDatabaseAsync", String.Format("Connecting to local database '{0}' ...", name));
-
-			FdbCluster cluster = null;
-			FdbDatabase db = null;
-			bool success = false;
-			try
-			{
-				cluster = await OpenLocalClusterAsync(ct).ConfigureAwait(false);
-				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseAsync(name, subspace, true, ct).ConfigureAwait(false);
+				db = await cluster.OpenDatabaseAsync(dbName, globalSpace, true, ct).ConfigureAwait(false);
 				success = true;
 				return db;
 			}

@@ -38,6 +38,9 @@ namespace FoundationDB.Client
 			/// <summary>"\xFF\xFF"</summary>
 			public static readonly Slice MaxValue = Slice.FromAscii("\xFF\xFF");
 
+			/// <summary>"\xFF\xFF"</summary>
+			public static readonly Slice MinValue = Slice.FromAscii("\xFF\x00");
+
 			/// <summary>"\xFF/conf/..."</summary>
 			public static readonly Slice ConfigPrefix = Slice.FromAscii("\xFF/conf/");
 
