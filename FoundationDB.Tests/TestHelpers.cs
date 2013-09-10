@@ -45,7 +45,8 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Connect to the local test database</summary>
 		public static Task<FdbDatabase> OpenTestDatabaseAsync()
 		{
-			return Fdb.OpenDatabaseAsync(TestClusterFile, TestDbName, new FdbSubspace(FdbTuple.Pack(Slice.FromAscii(TestPartition))));
+			var subspace = new FdbSubspace(FdbTuple.Pack(Slice.FromAscii(TestPartition)));
+			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace);
 		}
 
 		public static async Task<FdbDirectorySubspace> GetCleanDirectory(FdbDatabase db, params string[] path)

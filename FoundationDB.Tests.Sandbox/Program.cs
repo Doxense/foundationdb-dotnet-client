@@ -170,7 +170,7 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("> Up and running");
 
 				Console.WriteLine("Connecting to local cluster...");
-				using (var cluster = await Fdb.OpenClusterAsync(CLUSTER_FILE))
+				using (var cluster = await Fdb.CreateClusterAsync(CLUSTER_FILE))
 				{
 					Console.WriteLine("> Connected!");
 
@@ -255,7 +255,7 @@ namespace FoundationDB.Tests.Sandbox
 		{
 
 			// Connect to the "DB" database on the local cluster
-			using (var db = await Fdb.OpenLocalDatabaseAsync("DB"))
+			using (var db = await Fdb.OpenAsync())
 			{
 
 				// Writes some data in to the database
