@@ -141,13 +141,6 @@ namespace FoundationDB.Client
 				return m_parent.GetRangeCoreAsync(range, options, iteration, snapshot: true, ct: ct);
 			}
 
-			public FdbRangeQuery GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options)
-			{
-				EnsureCanRead(CancellationToken.None);
-
-				return m_parent.GetRangeCore(FdbKeySelectorPair.Create(beginInclusive, endExclusive), options, snapshot: true);
-			}
-
 			public FdbRangeQuery GetRange(FdbKeySelectorPair range, FdbRangeOptions options)
 			{
 				EnsureCanRead(CancellationToken.None);
