@@ -90,15 +90,132 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Slice_Create_With_Byte_Array()
 		{
+			Assert.That(Slice.Create(default(byte[])).GetBytes(), Is.EqualTo(null));
 			Assert.That(Slice.Create(new byte[0]).GetBytes(), Is.EqualTo(new byte[0]));
 			Assert.That(Slice.Create(new byte[] { 1, 2, 3 }).GetBytes(), Is.EqualTo(new byte[] { 1, 2, 3 }));
 
 			// the array return by GetBytes() should not be the same array that was passed to Create !
 			byte[] tmp = Guid.NewGuid().ToByteArray(); // create a 16-byte array
 			var slice = Slice.Create(tmp);
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(0));
+			Assert.That(slice.Count, Is.EqualTo(tmp.Length));
 			// they should be equal, but not the same !
 			Assert.That(slice.GetBytes(), Is.EqualTo(tmp));
 			Assert.That(slice.GetBytes(), Is.Not.SameAs(tmp));
+
+			// create from a slice of the array
+			slice = Slice.Create(tmp, 4, 7);
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(4));
+			Assert.That(slice.Count, Is.EqualTo(7));
+			var buf = new byte[7];
+			Array.Copy(tmp, 4, buf, 0, 7);
+			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
+
+			Assert.That(Slice.Create(default(byte[])), Is.EqualTo(Slice.Nil));
+			Assert.That(Slice.Create(new byte[0]), Is.EqualTo(Slice.Empty));
+		}
+
+		[Test]
+		public void Test_Slice_Create_Validates_Arguments()
+		{
+			// null array only allowed with offset=0 and count=0
+			Assert.That(() => Slice.Create(null, 0, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Create(null, 1, 0), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Create(null, 1, 1), Throws.InstanceOf<ArgumentException>());
+
+			// empty array only allowed with offset=0 and count=0
+			Assert.That(() => Slice.Create(new byte[0], 0, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Create(new byte[0], 1, 0), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Create(new byte[0], 1, 1), Throws.InstanceOf<ArgumentException>());
+
+			// last item must fit in the buffer
+			Assert.That(() => Slice.Create(new byte[3], 0, 4), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Create(new byte[3], 1, 3), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Create(new byte[3], 3, 1), Throws.InstanceOf<ArgumentException>());
+
+			// negative arguments
+			//TODO: should we allow negative indexing where Slice.Create(..., -1, 1) would mean "the last byte" ?
+			Assert.That(() => Slice.Create(new byte[3], -1, 1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Create(new byte[3], 0, -1), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => Slice.Create(new byte[3], -1, -1), Throws.InstanceOf<ArgumentException>());
+		}
+
+		[Test]
+		public void Test_Slice_Create_With_ArraySegment()
+		{
+			Slice slice;
+			byte[] tmp = Guid.NewGuid().ToByteArray();
+
+			slice = Slice.Create(new ArraySegment<byte>(tmp));
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(0));
+			Assert.That(slice.Count, Is.EqualTo(tmp.Length));
+			// they should be equal, but not the same !
+			Assert.That(slice.GetBytes(), Is.EqualTo(tmp));
+			Assert.That(slice.GetBytes(), Is.Not.SameAs(tmp));
+
+			slice = Slice.Create(new ArraySegment<byte>(tmp, 4, 7));
+			Assert.That(slice.Array, Is.SameAs(tmp));
+			Assert.That(slice.Offset, Is.EqualTo(4));
+			Assert.That(slice.Count, Is.EqualTo(7));
+			var buf = new byte[7];
+			Array.Copy(tmp, 4, buf, 0, 7);
+			Assert.That(slice.GetBytes(), Is.EqualTo(buf));
+
+			Assert.That(Slice.Create(default(ArraySegment<byte>)), Is.EqualTo(Slice.Nil));
+			Assert.That(Slice.Create(new ArraySegment<byte>(new byte[0])), Is.EqualTo(Slice.Empty));
+		}
+
+		[Test]
+		public void Test_Slice_Pseudo_Random()
+		{
+			Slice slice;
+			var rng = new Random();
+
+			slice = Slice.Random(rng, 16);
+			Assert.That(slice.Array, Is.Not.Null);
+			Assert.That(slice.Array.Length, Is.GreaterThanOrEqualTo(16));
+			Assert.That(slice.Offset, Is.EqualTo(0));
+			Assert.That(slice.Count, Is.EqualTo(16));
+			// can't really test random data, appart from checking that it's not filled with zeroes
+			Assert.That(slice.GetBytes(), Is.Not.All.EqualTo(0));
+
+			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
+
+			Assert.That(() => Slice.Random(default(System.Random), 16), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentException>());
+		}
+
+		[Test]
+		public void Test_Slice_Cryptographic_Random()
+		{
+			Slice slice;
+			var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+
+			// normal
+			slice = Slice.Random(rng, 16);
+			Assert.That(slice.Array, Is.Not.Null);
+			Assert.That(slice.Array.Length, Is.GreaterThanOrEqualTo(16));
+			Assert.That(slice.Offset, Is.EqualTo(0));
+			Assert.That(slice.Count, Is.EqualTo(16));
+			// can't really test random data, appart from checking that it's not filled with zeroes
+			Assert.That(slice.GetBytes(), Is.Not.All.EqualTo(0));
+
+			// non-zero bytes
+			// we can't 100% test that, unless with a lot of iterations...
+			for (int i = 0; i < 256; i++)
+			{
+				Assert.That(
+					Slice.Random(rng, 256, nonZeroBytes: true).GetBytes(),
+					Is.All.Not.EqualTo(0)
+				);
+			}
+
+			Assert.That(Slice.Random(rng, 0), Is.EqualTo(Slice.Empty));
+			Assert.That(() => Slice.Random(default(System.Security.Cryptography.RandomNumberGenerator), 16), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => Slice.Random(rng, -1), Throws.InstanceOf<ArgumentException>());
 		}
 
 		[Test]

@@ -226,7 +226,7 @@ namespace FoundationDB.Layers.Queues
 			return tr.GetRange(range, new FdbRangeOptions { Limit = numItems });
 		}
 
-		private async Task<bool> FullfillConflictedPops(FdbDatabase db, CancellationToken ct)
+		private async Task<bool> FulfillConflictedPops(FdbDatabase db, CancellationToken ct)
 		{
 			int numPops = 100;
 
@@ -235,8 +235,8 @@ namespace FoundationDB.Layers.Queues
 			using(var tr = db.BeginTransaction())
 			{
 				var ts = await Task.WhenAll(
-					GetWaitingPops(tr, numPops).ToListAsync(ct),
-					GetWaitingPops(tr, numPops).ToListAsync(ct)
+					GetWaitingPops(tr.Snapshot, numPops).ToListAsync(ct),
+					GetItems(tr.Snapshot, numPops).ToListAsync(ct)
 				).ConfigureAwait(false);
 
 				var pops = ts[0];
@@ -285,7 +285,7 @@ namespace FoundationDB.Layers.Queues
 
 		private async Task<Slice> PopHighContentionAsync(FdbDatabase db, CancellationToken ct)
 		{
-			TimeSpan backOff = TimeSpan.FromMilliseconds(10);
+			int backOff = 10;
 			Slice waitKey = Slice.Empty;
 
 			ct.ThrowIfCancellationRequested();
@@ -310,7 +310,7 @@ namespace FoundationDB.Layers.Queues
 				}
 				catch(FdbException e)
 				{
-					// note: cannot await inside a catch(..) block, so flag the error and process is below
+					// note: cannot await inside a catch(..) block, so flag the error and process it below
 					error = e;
 				}
 
@@ -332,14 +332,14 @@ namespace FoundationDB.Layers.Queues
 					error = null;
 					try
 					{
-						while(!(await FullfillConflictedPops(db, ct).ConfigureAwait(false)))
+						while(!(await FulfillConflictedPops(db, ct).ConfigureAwait(false)))
 						{
 							//NOP ?
 						}
 					}
 					catch(FdbException e)
 					{
-						// cannot await in catch(..) block so process is it below
+						// cannot await in catch(..) block so process it below
 						error = e;
 					}
 
@@ -358,19 +358,20 @@ namespace FoundationDB.Layers.Queues
 					try
 					{
 						tr.Reset();
-						var value = await tr.GetAsync(waitKey).ConfigureAwait(false);
-						var result = await tr.GetAsync(resultKey).ConfigureAwait(false);
+
+						var tmp = await tr.GetValuesAsync(new Slice[] { waitKey, resultKey }).ConfigureAwait(false);
+						var value = tmp[0];
+						var result = tmp[1];
 
 						// If waitKey is present, then we have not been fulfilled
 						if (value.HasValue)
 						{
-							await Task.Delay(backOff).ConfigureAwait(false);
-							backOff = backOff + backOff;
-							if (backOff > TimeSpan.FromSeconds(1)) backOff = TimeSpan.FromSeconds(1);
+							await Task.Delay(backOff, ct).ConfigureAwait(false);
+							backOff = Math.Min(1000, backOff * 2);
 							continue;
 						}
 
-						if (!result.HasValue)
+						if (result.IsNullOrEmpty)
 						{
 							return Slice.Nil;
 						}
