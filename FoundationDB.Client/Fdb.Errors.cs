@@ -44,24 +44,24 @@ namespace FoundationDB.Client
 
 			#region Keys / Values...
 
-			internal static Exception KeyCannotBeNull(Slice key)
+			internal static Exception KeyCannotBeNull(string paramName = "key")
 			{
-				return new ArgumentException("Key cannot be null.", "key");
+				return new ArgumentException("Key cannot be null.", paramName);
 			}
 
-			internal static Exception KeyIsTooBig(Slice key)
+			internal static Exception KeyIsTooBig(Slice key, string paramName = "key")
 			{
-				return new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, Fdb.MaxKeySize), "key");
+				return new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, Fdb.MaxKeySize), paramName);
 			}
 
-			internal static Exception ValueCannotBeNull(Slice value)
+			internal static Exception ValueCannotBeNull(Slice value, string paramName = "value")
 			{
-				throw new ArgumentException("Value cannot be null", "value");
+				throw new ArgumentException("Value cannot be null", paramName);
 			}
 
-			internal static Exception ValueIsTooBig(Slice value)
+			internal static Exception ValueIsTooBig(Slice value, string paramName = "value")
 			{
-				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), "value");
+				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), paramName);
 			}
 
 			internal static Exception InvalidKeyOutsideDatabaseNamespace(FdbDatabase db, Slice key)

@@ -469,7 +469,7 @@ namespace FoundationDB.Client
 			// null or empty keys are not allowed
 			if (!key.HasValue)
 			{
-				return Fdb.Errors.KeyCannotBeNull(key);
+				return Fdb.Errors.KeyCannotBeNull();
 			}
 
 			// key cannot be larger than maximum allowed key size
