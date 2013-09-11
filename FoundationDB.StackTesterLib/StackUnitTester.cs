@@ -351,7 +351,7 @@ namespace FoundationDB.StackTester
 					if (errorCode == 1501)
 						HandleFdbError(new FdbException((FdbError)errorCode), instructionIndex, stack);
 					else
-						stack.Add(new StackEntry(instructionIndex, tr.OnErrorAsync((FdbError)errorCode)));
+						stack.Add(new StackEntry(instructionIndex, ((FdbTransaction)tr).OnErrorAsync((FdbError)errorCode)));
 				}
 				else if (op == "GET")
 				{
@@ -495,7 +495,7 @@ namespace FoundationDB.StackTester
 					});
 				}
 				else if (op == "SET_READ_VERSION")
-					tr.SetReadVersion(lastVersion);
+					((FdbTransaction)tr).SetReadVersion(lastVersion);
 				else if (op == "CLEAR")
 				{
 					await IgnoreCancelled(async () =>
@@ -581,7 +581,7 @@ namespace FoundationDB.StackTester
 					stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("RESULT_NOT_PRESENT")));
 				}
 				else if (op == "RESET")
-					tr.Reset();
+					((FdbTransaction)tr).Reset();
 				else if (op == "CANCEL")
 					((FdbTransaction)tr).Cancel();
 				else if (op == "GET_COMMITTED_VERSION")
@@ -589,7 +589,7 @@ namespace FoundationDB.StackTester
 					if (committedVersion > 0)
 						lastVersion = committedVersion;
 					else
-						lastVersion = tr.GetCommittedVersion();
+						lastVersion = ((FdbTransaction)tr).GetCommittedVersion();
 
 					stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("GOT_COMMITTED_VERSION")));
 				}
@@ -658,7 +658,7 @@ namespace FoundationDB.StackTester
 						trTest.RetryLimit = 6;
 
 						Slice val = await trTest.GetAsync(EncodingHelper.FromByteString("\xff"));
-						await tr.CommitAsync();
+						await ((FdbTransaction)tr).CommitAsync();
 
 						await TestWatches();
 						await TestLocality();
