@@ -146,7 +146,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Canceling_An_Empty_Transaction_Does_Nothing()
+		public async Task Test_Cancelling_An_Empty_Transaction_Does_Nothing()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
@@ -163,7 +163,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Canceling_Transaction_Before_Commit_Should_Throw_Immediately()
+		public async Task Test_Cancelling_Transaction_Before_Commit_Should_Throw_Immediately()
 		{
 
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
@@ -178,14 +178,14 @@ namespace FoundationDB.Client.Tests
 					await TestHelpers.AssertThrowsFdbErrorAsync(
 						() => tr.CommitAsync(),
 						FdbError.TransactionCancelled,
-						"Committing an already canceled exception should fail"
+						"Committing an already cancelled exception should fail"
 					);
 				}
 			}
 		}
 
 		[Test]
-		public async Task Test_Canceling_Transaction_During_Commit_Should_Abort_Task()
+		public async Task Test_Cancelling_Transaction_During_Commit_Should_Abort_Task()
 		{
 			// we need to simulate some load on the db, to be able to cancel a Commit after it started, but before it completes
 			// => we will try to commit a very large transaction in order to give us some time

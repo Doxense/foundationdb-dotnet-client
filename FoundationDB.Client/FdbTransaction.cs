@@ -116,7 +116,7 @@ namespace FoundationDB.Client
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
 		public int Size { get { return m_payloadBytes; } }
 
-		/// <summary>Cancellation Token that is canceled when the transaction is disposed</summary>
+		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
 		public CancellationToken Token { get { return m_cts.Token; } }
 
 		#endregion
@@ -813,7 +813,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead(ct);
 
-			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be canceled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
+			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be cancelled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
 			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource everytime),
 			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
 
@@ -911,7 +911,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
-		/// <param name="ct">Optionnal CancellationToken that should not be canceled</param>
+		/// <param name="ct">Optionnal CancellationToken that should not be cancelled</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() have already been called on the transaction, or if the database has been closed</exception>
 		internal void EnsureStilValid(CancellationToken ct = default(CancellationToken), bool allowFromNetworkThread = false, bool allowFailedState = false)

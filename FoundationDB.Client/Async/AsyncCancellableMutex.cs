@@ -34,7 +34,7 @@ namespace FoundationDB.Async
 	using System.Threading.Tasks;
 
 	/// <summary>Implements a async mutex that supports cancellation</summary>
-	[DebuggerDisplay("Status={this.Task.Status}, CancellationState=({m_state}, {m_ct.IsCancellationRequested?\"alive\":\"canceled\"})")]
+	[DebuggerDisplay("Status={this.Task.Status}, CancellationState=({m_state}, {m_ct.IsCancellationRequested?\"alive\":\"cancelled\"})")]
 	public class AsyncCancelableMutex : TaskCompletionSource<object>
 	{
 		// The consumer just needs to await the Task and will be woken up if someone calls Set(..) / Abort() on the mutex OR if the CancellationToken provided in the ctor is signaled.
@@ -46,7 +46,7 @@ namespace FoundationDB.Async
 
 		private const int CTR_NONE = 0;
 		private const int CTR_REGISTERED = 1;
-		private const int CTR_CANCELED_OR_DISPOSED = 2;
+		private const int CTR_CANCELLED_OR_DISPOSED = 2;
 
 		private int m_state;
 		private CancellationToken m_ct;
@@ -89,7 +89,7 @@ namespace FoundationDB.Async
 			// we don't really care if the cancellation token has already fired (or is firing at the same time),
 			// because TrySetResult(..) and TrySetCanceled(..) will fight it out by themselves
 			// we just need to dispose the registration if it hasn't already been done
-			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
+			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELLED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
 			{
 				m_ctr.Dispose();
 			}
@@ -108,7 +108,7 @@ namespace FoundationDB.Async
 		{
 			// we don't really care if the cancellation token has already fired (or is firing at the same time), because TrySetCanceled(..) will be called either way.
 			// we just need to dispose the registration if it hasn't already been done
-			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
+			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELLED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
 			{
 				m_ctr.Dispose();
 			}

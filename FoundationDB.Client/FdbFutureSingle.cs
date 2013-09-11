@@ -80,7 +80,7 @@ namespace FoundationDB.Client
 				if (ct.CanBeCanceled)
 				{
 					if (ct.IsCancellationRequested)
-					{ // we have already been canceled
+					{ // we have already been cancelled
 
 #if DEBUG_FUTURES
 						Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " will complete later");
@@ -212,7 +212,7 @@ namespace FoundationDB.Client
 					}
 				}
 
-				// most probably the future was canceled or we are shutting down...
+				// most probably the future was cancelled or we are shutting down...
 				SetCanceled(fromCallback);
 			}
 			catch (Exception e)
