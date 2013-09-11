@@ -68,7 +68,7 @@ namespace FoundationDB.Layers.Directories
 			return this.Directory.MoveAsync(this.Db, oldPath, newPath, ct);
 		}
 
-		public Task RemoveAsync(IFdbTuple path, CancellationToken ct = default(CancellationToken))
+		public Task<bool> RemoveAsync(IFdbTuple path, CancellationToken ct = default(CancellationToken))
 		{
 			return this.Directory.RemoveAsync(this.Db, path, ct);
 		}
@@ -77,6 +77,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			return this.Directory.ListAsync(this.Db, path, ct);
 		}
+
 	}
 
 }

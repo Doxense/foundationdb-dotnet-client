@@ -290,31 +290,30 @@ namespace FoundationDB.Client
 
 		#region Cluster...
 
-		/// <summary>Opens a connection to a FoundationDB cluster using the default cluster file</summary>
+		/// <summary>Opens a connection to an existing FoundationDB cluster using the default cluster file</summary>
 		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
 		public static Task<FdbCluster> CreateClusterAsync(CancellationToken ct = default(CancellationToken))
 		{
-			//BUGBUG: does 'null' means Local? or does it mean the default config file that may or may not point to the local cluster ??
 			return CreateClusterAsync(null, ct);
 		}
 
-		/// <summary>Opens a connection to an FDB Cluster</summary>
-		/// <param name="clusterFile">Path to the 'fdb.cluster' file, or null for the default cluster file</param>
+		/// <summary>Opens a connection to an existing FDB Cluster</summary>
+		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
 		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
 		public static Task<FdbCluster> CreateClusterAsync(string clusterFile, CancellationToken ct = default(CancellationToken))
 		{
 			EnsureIsStarted();
 
-			// convert "" to null
+			// "" should also be considered to mean "default cluster file"
 			if (string.IsNullOrEmpty(clusterFile)) clusterFile = null;
 
 			if (Logging.On) Logging.Info(typeof(Fdb), "CreateClusterAsync", clusterFile == null ? "Connecting to default cluster..." : String.Format("Connecting to cluster using '{0}' ...", clusterFile));
 
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			//TODO: check path ?
+			//TODO: check the path ? (exists, readable, ...)
 			var future = FdbNative.CreateCluster(clusterFile);
 
 			return FdbFuture.CreateTaskFromHandle(future,
@@ -378,7 +377,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Open a database on the specified cluster
 		/// </summary>
-		/// <param name="clusterFile">Path to the 'fdb.cluster' file, or null for default</param>
+		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
 		/// <param name="dbName">Name of the database. Must be 'DB'</param>
 		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
 		/// <param name="ct">Token used to abort the operation</param>
