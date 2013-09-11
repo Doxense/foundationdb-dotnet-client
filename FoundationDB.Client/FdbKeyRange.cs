@@ -69,11 +69,6 @@ namespace FoundationDB.Client
 		{
 			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
 
-			if (prefix.Count == 1 && prefix[0] == 0xFF)
-			{ // "\xFF" => ["\xFF\x00", "\xFF\xFF")
-				return new FdbKeyRange(Fdb.SystemKeys.MinValue, Fdb.SystemKeys.MaxValue);
-			}
-
 			// prefix => [ prefix."\0", prefix + 1)
 			return new FdbKeyRange(
 				prefix + FdbKey.MinValue,
