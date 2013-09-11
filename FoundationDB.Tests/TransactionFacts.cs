@@ -197,21 +197,22 @@ namespace FoundationDB.Client.Tests
 
 				await db.ClearRangeAsync(location);
 
+				var rnd = new Random();
+
 				using (var tr = db.BeginTransaction())
 				{
-					// Writes about 1MB of stuff in 100k chunks
-					var value = Slice.Create(100 * 1000);
-					for (int i = 0; i < 10;i++)
+					// Writes about 5 MB of stuff in 100k chunks
+					for (int i = 0; i < 50; i++)
 					{
-						tr.Set(location.Pack(i), value);
+						tr.Set(location.Pack(i), Slice.Random(rnd, 100 * 1000));
 					}
 
 					// start commiting
 					var t = tr.CommitAsync();
 
+					// but almost immediately cancel the transaction
+					await Task.Delay(1);
 					if (t.IsCompleted) Assert.Inconclusive("Commit task already completed before having a chance to cancel");
-
-					// but immediately cancel the transaction
 					tr.Cancel();
 
 					await TestHelpers.AssertThrowsFdbErrorAsync(
@@ -223,6 +224,52 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Cancelling_Token_During_Commit_Should_Abort_Task()
+		{
+			// we need to simulate some load on the db, to be able to cancel the token passed to Commit after it started, but before it completes
+			// => we will try to commit a very large transaction in order to give us some time
+			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("test");
+
+				await db.ClearRangeAsync(location);
+
+				var rnd = new Random();
+
+				using(var cts = new CancellationTokenSource())
+				using (var tr = db.BeginTransaction())
+				{
+					// Writes about 5 MB of stuff in 100k chunks
+					for (int i = 0; i < 50; i++)
+					{
+						tr.Set(location.Pack(i), Slice.Random(rnd, 100 * 1000));
+					}
+
+					// start commiting with a cancellation token
+					var t = tr.CommitAsync(cts.Token);
+
+					// but almost immediately cancel the token source
+					await Task.Delay(1);
+
+					if (t.IsCompleted) Assert.Inconclusive("Commit task already completed before having a chance to cancel");
+					cts.Cancel();
+
+					try
+					{
+						await t;
+						Assert.Fail("Cancelling a token passed to CommitAsync that is still pending should cancel the task");
+					}
+					catch (AssertionException) { throw; }
+					catch (Exception e)
+					{
+						Assert.That(e, Is.InstanceOf<TaskCanceledException>());
+					}
+				}
+			}
+		}
 
 		[Test]
 		public async Task Test_Can_Get_Transaction_Read_Version()

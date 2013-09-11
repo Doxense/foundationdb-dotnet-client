@@ -36,7 +36,7 @@ namespace FoundationDB.Layers.Tuples
 	using System.Collections.Generic;
 	using System.Linq;
 
-	/// <summary>Tuple that can hold any number of items</summary>
+	/// <summary>Tuple that can hold any number of untyped items</summary>
 	public sealed class FdbListTuple : IFdbTuple
 	{
 		private static readonly object[] EmptyList = new object[0];
