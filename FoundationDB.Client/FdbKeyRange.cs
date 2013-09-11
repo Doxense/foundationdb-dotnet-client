@@ -36,7 +36,7 @@ namespace FoundationDB.Client
 	{
 		public static FdbKeyRange None { get { return default(FdbKeyRange); } }
 
-		public static FdbKeyRange All { get { return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue); } }
+		//public static FdbKeyRange All { get { return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue); } }
 
 		public readonly Slice Begin;
 
@@ -55,16 +55,6 @@ namespace FoundationDB.Client
 		{
 			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
 
-			if (prefix.Count == 0)
-			{ // "" => [ "", "\xFF\xFF" )
-				return new FdbKeyRange(Slice.Empty, Fdb.SystemKeys.MaxValue);
-			}
-
-			if (prefix.Count == 1 && prefix[0] == 0xFF)
-			{ // "\xFF" => ["\xFF", "\xFF\xFF")
-				return new FdbKeyRange(FdbKey.MaxValue, Fdb.SystemKeys.MaxValue);
-			}
-
 			// prefix => [ prefix, prefix + 1 )
 			return new FdbKeyRange(
 				prefix,
@@ -78,11 +68,6 @@ namespace FoundationDB.Client
 		public static FdbKeyRange PrefixedBy(Slice prefix)
 		{
 			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
-
-			if (prefix.Count == 0)
-			{ // "" => ["\0", "\xFF\xFF")
-				return new FdbKeyRange(FdbKey.MinValue, Fdb.SystemKeys.MaxValue);
-			}
 
 			if (prefix.Count == 1 && prefix[0] == 0xFF)
 			{ // "\xFF" => ["\xFF\x00", "\xFF\xFF")

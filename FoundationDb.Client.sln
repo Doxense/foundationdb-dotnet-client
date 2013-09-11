@@ -26,6 +26,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{4788B3
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Linq", "FoundationDB.Linq\FoundationDB.Linq.csproj", "{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.StackTester", "FoundationDB.StackTester\FoundationDB.StackTester.csproj", "{39927A08-6BD4-4F4A-9A2F-2BEB84AB8D83}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.StackTesterLib", "FoundationDB.StackTesterLib\FoundationDB.StackTesterLib.csproj", "{BE9FB27E-32AA-42C6-AFBC-A6994B7274CF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -52,6 +56,14 @@ Global
 		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{39927A08-6BD4-4F4A-9A2F-2BEB84AB8D83}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{39927A08-6BD4-4F4A-9A2F-2BEB84AB8D83}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{39927A08-6BD4-4F4A-9A2F-2BEB84AB8D83}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{39927A08-6BD4-4F4A-9A2F-2BEB84AB8D83}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE9FB27E-32AA-42C6-AFBC-A6994B7274CF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE9FB27E-32AA-42C6-AFBC-A6994B7274CF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE9FB27E-32AA-42C6-AFBC-A6994B7274CF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE9FB27E-32AA-42C6-AFBC-A6994B7274CF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

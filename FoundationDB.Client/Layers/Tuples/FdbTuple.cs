@@ -493,7 +493,7 @@ namespace FoundationDB.Layers.Tuples
 
 			if (prefix.Count == 0)
 			{ // "" => [ \0, \xFF )
-				return FdbKeyRange.All;
+				return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue);
 			}
 
 			// prefix => [ prefix."\0", prefix."\xFF" )
@@ -513,7 +513,7 @@ namespace FoundationDB.Layers.Tuples
 
 			if (prefix.Count == 0)
 			{ // "" => [ \0, \xFF )
-				return FdbKeyRange.All;
+				return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue);
 			}
 
 			// prefix => [ prefix."\0", prefix."\xFF" )
