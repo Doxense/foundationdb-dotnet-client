@@ -69,11 +69,11 @@ namespace FoundationDB.Client
 
 		public static FdbKeySelectorPair StartsWith(Slice prefix)
 		{
-			var range = FdbKeyRange.PrefixedBy(prefix);
+			var range = FdbKeyRange.StartsWith(prefix);
 
 			return new FdbKeySelectorPair(
 				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
-				FdbKeySelector.FirstGreaterThan(range.End)
+				FdbKeySelector.FirstGreaterOrEqual(range.End)
 			);
 		}
 
