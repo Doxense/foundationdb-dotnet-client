@@ -56,7 +56,7 @@ namespace FoundationDB.StackTester
 		private List<StackEntry> stack = new List<StackEntry>();
 		private List<Task> subTasks = new List<Task>();
 
-		private static Random rng = new Random(0);
+		private static Random random = new Random(0);
 
 		public StackUnitTester(FdbDatabase db, string prefix)
 		{
@@ -68,7 +68,7 @@ namespace FoundationDB.StackTester
 		{
 			Fdb.Options.SetTracePath(".");
 			Fdb.Start();
-			this.db = Task.Run(() => Fdb.OpenDatabaseAsync(clusterFile, "DB")).GetAwaiter().GetResult();
+			this.db = Task.Run(() => Fdb.OpenAsync(clusterFile, "DB")).GetAwaiter().GetResult();
 			this.prefix = prefix;
 		}
 
@@ -193,7 +193,7 @@ namespace FoundationDB.StackTester
 		{
 			IFdbTuple tuple;
 
-			if (rng.NextDouble() < 0.5)
+			if (random.NextDouble() < 0.5)
 			{
 				tuple = FdbTuple.Empty;
 				await query.ForEachAsync((r) => {
@@ -326,12 +326,21 @@ namespace FoundationDB.StackTester
 							else if (op == "GET")
 							{
 								var items = await PopAsync(1);
-								var task = tr.GetAsync(stringToSlice(items[0]));
-
-								if (useDb)
-									AddSlice(instructionIndex, await task);
+								if (random.NextDouble() < 0.5)
+								{
+									var kvPairs = await tr.GetBatchAsync(new Slice[] { stringToSlice(items[0]) });
+									Assert.AreEqual(kvPairs.Count, 1, "GetBatch returned wrong number of results: " + kvPairs.Count);
+									AddSlice(instructionIndex, kvPairs[0].Value);
+								}
 								else
-									stack.Add(new StackEntry(instructionIndex, task));
+								{
+									var task = tr.GetAsync(stringToSlice(items[0]));
+
+									if (useDb)
+										AddSlice(instructionIndex, await task);
+									else
+										stack.Add(new StackEntry(instructionIndex, task));
+								}
 							}
 							else if (op == "GET_KEY")
 							{
@@ -358,15 +367,6 @@ namespace FoundationDB.StackTester
 								if ((options.Limit == null || options.Limit == 0) && options.Mode == FdbStreamingMode.Exact)
 									throw new FdbException(FdbError.ExactModeWithoutLimits);
 
-								// We have to check for this now because the .NET bindings will prefer TransactionCancelled to InvertedRange, but the binding tester expects the opposite
-								/*if (end < begin)
-									Console.Write("Inverted ");
-								Console.WriteLine("Range: " + Printable(begin) + " - " + Printable(end));
-								if (end < begin)
-								{
-									throw new FdbException(FdbError.InvertedRange);
-								}*/
-
 								await PushRangeAsync(instructionIndex, tr.GetRange(stringToSlice(items[0]), stringToSlice(items[1]), options));
 							}
 							else if (op == "GET_RANGE_STARTS_WITH")
@@ -381,7 +381,13 @@ namespace FoundationDB.StackTester
 								if ((options.Limit == null || options.Limit == 0) && options.Mode == FdbStreamingMode.Exact)
 									throw new FdbException(FdbError.ExactModeWithoutLimits);
 
-								await PushRangeAsync(instructionIndex, tr.GetRange(FdbKeyRange.StartsWith(stringToSlice(items[0])), options));
+								FdbRangeQuery rangeQuery;
+								if (random.NextDouble() < 0.5)
+									rangeQuery = tr.GetRange(FdbKeyRange.StartsWith(stringToSlice(items[0])), options);
+								else
+									rangeQuery = tr.GetRangeStartsWith(stringToSlice(items[0]), options);
+
+								await PushRangeAsync(instructionIndex, rangeQuery);
 							}
 							else if (op == "GET_RANGE_SELECTOR")
 							{
@@ -398,7 +404,13 @@ namespace FoundationDB.StackTester
 								if ((options.Limit == null || options.Limit == 0) && options.Mode == FdbStreamingMode.Exact)
 									throw new FdbException(FdbError.ExactModeWithoutLimits);
 
-								await PushRangeAsync(instructionIndex, tr.GetRange(begin, end, options));
+								FdbRangeQuery rangeQuery;
+								if (random.NextDouble() < 0.5)
+									rangeQuery = tr.GetRange(begin, end, options);
+								else
+									rangeQuery = tr.GetRangeInclusive(begin, end-1, options);
+
+								await PushRangeAsync(instructionIndex, rangeQuery);
 							}
 							else if (op == "GET_READ_VERSION")
 							{
@@ -496,9 +508,19 @@ namespace FoundationDB.StackTester
 										throw new FdbException(FdbError.InvertedRange);
 
 									if (op == "READ_CONFLICT_RANGE")
-										((FdbTransaction)tr).AddReadConflictRange(range);
+									{
+										if (random.NextDouble() < 0.5)
+											((FdbTransaction)tr).AddReadConflictRange(range);
+										else
+											((FdbTransaction)tr).AddReadConflictRange(range.Begin, range.End);
+									}
 									else
-										((FdbTransaction)tr).AddWriteConflictRange(range);
+									{
+										if(random.NextDouble() < 0.5)
+											((FdbTransaction)tr).AddWriteConflictRange(range);
+										else
+											((FdbTransaction)tr).AddWriteConflictRange(range.Begin, range.End);
+									}
 								});
 
 								stack.Add(new StackEntry(instructionIndex, EncodingHelper.FromByteString("SET_CONFLICT_RANGE")));
