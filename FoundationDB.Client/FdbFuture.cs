@@ -55,7 +55,7 @@ namespace FoundationDB.Client
 			public const int HAS_POSTED_ASYNC_COMPLETION = 2;
 
 			/// <summary>The future has been cancelled from an external source (manually, or via then CancellationTokeb)</summary>
-			public const int CANCELED = 4;
+			public const int CANCELLED = 4;
 
 			/// <summary>The future has been constructed, and is listening for the callbacks</summary>
 			public const int READY = 64;
@@ -440,12 +440,12 @@ namespace FoundationDB.Client
 		/// <summary>Try to abort the task (if it is still running)</summary>
 		public void Cancel()
 		{
-			if (HasAnyFlags(FdbFuture.Flags.DISPOSED | FdbFuture.Flags.COMPLETED | FdbFuture.Flags.CANCELED))
+			if (HasAnyFlags(FdbFuture.Flags.DISPOSED | FdbFuture.Flags.COMPLETED | FdbFuture.Flags.CANCELLED))
 			{
 				return;
 			}
 
-			if (TrySetFlag(FdbFuture.Flags.CANCELED))
+			if (TrySetFlag(FdbFuture.Flags.CANCELLED))
 			{
 				bool fromCallback = Fdb.IsNetworkThread;
 				try

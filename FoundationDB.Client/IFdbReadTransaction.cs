@@ -42,11 +42,6 @@ namespace FoundationDB.Client
 		int Id { get; }
 
 		/// <summary>
-		/// Estimated payload size of the transaction (in bytes)
-		/// </summary>
-		int Size { get; }
-
-		/// <summary>
 		/// If true, the transaction is operating in Snapshot mode
 		/// </summary>
 		bool IsSnapshot { get; }
@@ -61,7 +56,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">CancellationToken used to cancel the operation (optionnal)</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() have already been called on the transaction, or if the database has been closed</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token has been canceled</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
 		void EnsureCanRead(CancellationToken ct = default(CancellationToken));
 
 		/// <summary>
@@ -121,65 +116,9 @@ namespace FoundationDB.Client
 		FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options = null);
 
 		/// <summary>
-		/// Adds a conflict range to a transaction without performing the associated read or write.
-		/// </summary>
-		/// <param name="range">Range of the keys specifying the conflict range. The end key is excluded</param>
-		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type);
-
-		/// <summary>
-		/// Reset transaction to its initial state.
-		/// </summary>
-		/// <remarks>This is similar to disposing the transaction and recreating a new one.  The only state that persists through a transaction reset is that which is related to the backoff logic used by OnErrorAsync()</remarks>
-		void Reset();
-
-		/// <summary>
-		/// Attempts to commit the sets and clears previously applied to the database snapshot represented by this transaction to the actual database. 
-		/// The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. 
-		/// If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.
-		/// </summary>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
-		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
-		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
-		Task CommitAsync(CancellationToken ct = default(CancellationToken));
-		//TODO: should this be moved to IFdbTransaction instead ? Since readonly transaction don't do anything to the db, is there a point in exposing CommitAsync ? Caller would need an IFdbTransaction to change things anyway.
-
-		/// <summary>
-		/// Retrieves the database version number at which a given transaction was committed.
-		/// </summary>
-		/// <returns></returns>
-		/// <remarks>
-		/// CommitAsync() must have been called on this transaction and the resulting task must have completed successfully before this function is callged, or the behavior is undefined.
-		/// Read-only transactions do not modify the database when committed and will have a committed version of -1.
-		/// Keep in mind that a transaction which reads keys and then sets them to their current values may be optimized to a read-only transaction.
-		/// </remarks>
-		long GetCommittedVersion();
-
-		/// <summary>
-		/// ets the snapshot read version used by a transaction. This is not needed in simple cases.
-		/// </summary>
-		/// <param name="version">Read version to use in this transaction</param>
-		/// <remarks>
-		/// If the given version is too old, subsequent reads will fail with error_code_past_version; if it is too new, subsequent reads may be delayed indefinitely and/or fail with error_code_future_version.
-		/// If any of Get*() methods have been called on this transaction already, the result is undefined.
-		/// </remarks>
-		void SetReadVersion(long version);
-
-		/// <summary>
 		/// Returns this transaction snapshot read version.
 		/// </summary>
 		Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken));
-
-		/// <summary>
-		/// Implements the recommended retry and backoff behavior for a transaction.
-		/// 
-		/// This function knows which of the error codes generated by other query functions represent temporary error conditions and which represent application errors that should be handled by the application. 
-		/// It also implements an exponential backoff strategy to avoid swamping the database cluster with excessive retries when there is a high level of conflict between transactions.
-		/// </summary>
-		/// <param name="code">FdbError code thrown by the previous command</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
-		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retryable.</returns>
-		Task OnErrorAsync(FdbError code, CancellationToken ct = default(CancellationToken));
 
 	}
 

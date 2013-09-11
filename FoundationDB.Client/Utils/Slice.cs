@@ -107,8 +107,19 @@ namespace FoundationDB.Client
 		/// <param name="count">Number of bytes</param>
 		public static Slice Create(byte[] buffer, int offset, int count)
 		{
-			if (buffer == null) return Nil;
-			if (count == 0) return Empty;
+			if (buffer == null)
+			{
+				if (offset != 0) throw new ArgumentException("offset");
+				if (count != 0) throw new ArgumentNullException("count");
+				return Nil;
+			}
+
+			if (count == 0)
+			{
+				if (offset != 0) throw new ArgumentException("offset");
+				return Empty;
+			}
+
 			if (offset < 0 || offset >= buffer.Length) throw new ArgumentException("offset");
 			if (count < 0 || offset + count > buffer.Length) throw new ArgumentException("count");
 			return new Slice(buffer, offset, count);
@@ -129,8 +140,14 @@ namespace FoundationDB.Client
 		/// <returns>Slice with a managed copy of the data</returns>
 		internal static unsafe Slice Create(byte* ptr, int count)
 		{
-			if (ptr == null) return Slice.Nil;
-			if (count <= 0) return Slice.Empty;
+			if (count < 0) throw new ArgumentException("count");
+
+			if (count == 0)
+			{
+				return ptr == null ? Slice.Nil : Slice.Empty;
+			}
+
+			if (ptr == null) throw new ArgumentException("count");
 
 			if (count == 1)
 			{
@@ -142,19 +159,41 @@ namespace FoundationDB.Client
 			return new Slice(bytes, 0, count);
 		}
 
-		/// <summary>Create a new slice fille with random bytes taken from a random number generator</summary>
-		/// <param name="rnd">Random generator to use (needs locking if instance is shared)</param>
-		/// <param name="size">Number of random bytes to generate</param>
-		/// <returns>Slice of <paramref name="size"/> bytes takent from <paramref name="rnd"/></returns>
-		/// <remarks>If the <paramref name="rnd"/> instance is shared, then it needs to be locked before calling this method.</remarks>
-		public static Slice Random(Random rnd, int size)
+		/// <summary>Create a new slice filled with random bytes taken from a random number generator</summary>
+		/// <param name="prng">Pseudo random generator to use (needs locking if instance is shared)</param>
+		/// <param name="count">Number of random bytes to generate</param>
+		/// <returns>Slice of <paramref name="count"/> bytes taken from <paramref name="prng"/></returns>
+		/// <remarks>Warning: <see cref="System.Random"/> is not thread-safe ! If the <paramref name="prng"/> instance is shared between threads, then it needs to be locked before calling this method.</remarks>
+		public static Slice Random(Random prng, int count)
 		{
-			if (rnd == null) throw new ArgumentNullException("rnd");
-			if (size <= 0) return Slice.Empty;
+			if (prng == null) throw new ArgumentNullException("prng");
+			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be negative");
+			if (count == 0) return Slice.Empty;
 
-			var bytes = new byte[size];
-			rnd.NextBytes(bytes);
-			return new Slice(bytes, 0, size);
+			var bytes = new byte[count];
+			prng.NextBytes(bytes);
+			return new Slice(bytes, 0, count);
+		}
+
+		/// <summary>Create a new slice filled with random bytes taken from a cryptographic random number generator</summary>
+		/// <param name="rng">Random generator to use (needs locking if instance is shared)</param>
+		/// <param name="count">Number of random bytes to generate</param>
+		/// <returns>Slice of <paramref name="count"/> bytes taken from <paramref name="rng"/></returns>
+		/// <remarks>Warning: All RNG implementations may not be thread-safe ! If the <paramref name="rng"/> instance is shared between threads, then it may need to be locked before calling this method.</remarks>
+		public static Slice Random(System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
+		{
+			if (rng == null) throw new ArgumentNullException("rng");
+			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be negative");
+			if (count == 0) return Slice.Empty;
+
+			var bytes = new byte[count];
+
+			if (nonZeroBytes)
+				rng.GetNonZeroBytes(bytes);
+			else
+				rng.GetBytes(bytes);
+
+			return new Slice(bytes, 0, count);
 		}
 
 		/// <summary>Decode a Base64 encoded string into a slice</summary>
@@ -420,16 +459,6 @@ namespace FoundationDB.Client
 			return Encoding.Default.GetString(this.Array, this.Offset, this.Count);
 		}
 
-		/// <summary>Stringify a slice containing only ASCII chars</summary>
-		/// <returns>ASCII string, or null if the slice is null</returns>
-		public string ToAscii(int offset, int count)
-		{
-			//TODO: check args
-			if (count == 0) return String.Empty;
-
-			return Encoding.Default.GetString(this.Array, this.Offset + offset, count);
-		}
-
 		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
 		/// <returns>Unicode string, or null if the slice is null</returns>
 		public string ToUnicode()
@@ -437,16 +466,6 @@ namespace FoundationDB.Client
 			if (this.IsNullOrEmpty) return this.HasValue ? String.Empty : default(string);
 
 			return Encoding.UTF8.GetString(this.Array, this.Offset, this.Count);
-		}
-
-		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
-		/// <returns>Unicode string, or null if the slice is null</returns>
-		public string ToUnicode(int offset, int count)
-		{
-			//TODO: check args
-			if (count == 0) return String.Empty;
-
-			return Encoding.UTF8.GetString(this.Array, this.Offset + offset, count);
 		}
 
 		/// <summary>Converts a slice using Base64 encoding</summary>

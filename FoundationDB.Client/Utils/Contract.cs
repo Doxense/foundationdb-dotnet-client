@@ -39,7 +39,7 @@ namespace FoundationDB.Client.Utils
 
 		[DebuggerStepThrough]
 		[Conditional("DEBUG")]
-#if NET_4_5
+#if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
 		public static void Requires(bool condition)
@@ -49,7 +49,7 @@ namespace FoundationDB.Client.Utils
 
 		[DebuggerStepThrough]
 		[Conditional("DEBUG")]
-#if NET_4_5
+#if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
 		public static void Requires(bool condition, string test, string message)
@@ -63,7 +63,7 @@ namespace FoundationDB.Client.Utils
 
 		[DebuggerStepThrough]
 		[Conditional("DEBUG")]
-#if NET_4_5
+#if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
 		public static void Assert(bool condition)
@@ -73,7 +73,7 @@ namespace FoundationDB.Client.Utils
 
 		[DebuggerStepThrough]
 		[Conditional("DEBUG")]
-#if NET_4_5
+#if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
 		public static void Assert(bool condition, string test, string message)
@@ -87,7 +87,7 @@ namespace FoundationDB.Client.Utils
 
 		[DebuggerStepThrough]
 		[Conditional("DEBUG")]
-#if NET_4_5
+#if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
 		public static void Ensures(bool condition)
@@ -97,7 +97,7 @@ namespace FoundationDB.Client.Utils
 
 		[DebuggerStepThrough]
 		[Conditional("DEBUG")]
-#if NET_4_5
+#if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
 		public static void Ensures(bool condition, string test, string message)

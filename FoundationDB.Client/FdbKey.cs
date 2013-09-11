@@ -50,62 +50,6 @@ namespace FoundationDB.Client
 		/// <summary>Default System prefix ('\xFF')</summary>
 		public static readonly Slice System = Slice.FromByte(255);
 
-		/// <summary>Converts an ASCII string into a binary slice (ony byte per character)</summary>
-		/// <param name="value">String that should only contain ASCII characters (0..127)</param>
-		/// <returns>Slice with ony byte per character</returns>
-		/// <remarks>All non-ASCII chars will be truncated to the lower 8 bits !!</remarks>
-		public static Slice Ascii(string value)
-		{
-			if (string.IsNullOrEmpty(value)) throw new ArgumentException("Key cannot be null or emtpy", "value");
-
-			//TODO: how to handle non-ASCII chars ? (>=128)
-			// => we should throw if char >= 128, to force use of unicode string for everything that is not a keyword !
-
-			var bytes = new byte[value.Length];
-			for (int i = 0; i < value.Length; i++)
-			{
-				bytes[i] = (byte)value[i];
-			}
-			return Slice.Create(bytes);
-		}
-
-		/// <summary>Decode an ASCII encoded key into a string</summary>
-		/// <param name="key">ASCII bytes</param>
-		/// <returns>Decoded string</returns>
-		public static string Ascii(Slice key)
-		{
-			return key.ToAscii();
-		}
-
-		/// <summary>Converts a string into an UTF-8 encoded key</summary>
-		/// <param name="value">String to convert</param>
-		/// <returns>Key that is the UTF-8 representation of the string</returns>
-		public static Slice Unicode(string value)
-		{
-			if (string.IsNullOrEmpty(value)) throw new ArgumentNullException("value");
-			return Slice.Create(Encoding.UTF8.GetBytes(value));
-		}
-
-		/// <summary>Decode an UTF-8 encoded key into a string</summary>
-		/// <param name="key">UTF-8 bytes</param>
-		/// <returns>Decoded string</returns>
-		public static string Unicode(Slice key)
-		{
-			return key.ToUnicode();
-		}
-
-		public static Slice Binary(byte[] value)
-		{
-			if (value == null || value.Length == 0) throw new ArgumentException("Key cannot be null or empty", "value");
-			return Slice.Create(value);
-		}
-
-		public static Slice Binary(byte[] data, int offset, int count)
-		{
-			if (data == null || count == 0) throw new ArgumentException("Key cannot be null or empty", "value");
-			return Slice.Create(data, offset, count);
-		}
-
 		/// <summary>Returns the first key lexicographically that does not have the passed in <paramref name="slice"/> as a prefix</summary>
 		/// <param name="slice">Slice to increment</param>
 		/// <returns>New slice that is guaranteed to be the first key lexicographically higher than <paramref name="slice"/> which does not have <paramref name="slice"/> as a prefix</returns>
@@ -118,7 +62,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public static Slice Increment(Slice slice)
 		{
-			if (!slice.HasValue) throw new ArgumentException("Cannot increment null buffer");
+			if (!slice.HasValue) throw new ArgumentException("Cannot increment null buffer", "slice");
 
 			int lastNonFFByte;
 			var tmp = slice.GetBytes();
@@ -249,7 +193,7 @@ namespace FoundationDB.Client
 		/// <param name="batchSize">Maximum size of each batch</param>
 		/// <returns>Collection of B batches each containing at most <paramref name="batchSize"/> contiguous indices, counting from <paramref name="offset"/> to (<paramref name="offset"/> + <paramref name="count"/> - 1)</returns>
 		/// <example>Batched(0, 100, 20) => [ {0..19}, {20..39}, {40..59}, {60..79}, {80..99} ]</example>
-		public static IEnumerable<IEnumerable<int>> Batched(int offset, int count, int batchSize)
+		public static IEnumerable<IEnumerable<int>> BatchedRange(int offset, int count, int batchSize)
 		{
 			while (count > 0)
 			{
@@ -324,6 +268,14 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>
+		/// Split range of indexes into a fixed number of 'worker' sequence, that will consume batches in parallel
+		/// </summary>
+		/// <param name="offset">Offset from which to start counting</param>
+		/// <param name="count">Total number of values that will be returned</param>
+		/// <param name="workers">Number of concurrent workers that will take batches from the pool</param>
+		/// <param name="batchSize">Maximum size of each batch</param>
+		/// <returns>List of '<paramref name="workers"/>' enumerables that all fetch batches of values from the same common pool. All enumerables will stop when the last batch as been consumed by the last worker.</returns>
 		public static IEnumerable<IEnumerable<KeyValuePair<int, int>>> Batched(int offset, int count, int workers, int batchSize)
 		{
 			return new BatchIterator(offset, count, workers, batchSize);

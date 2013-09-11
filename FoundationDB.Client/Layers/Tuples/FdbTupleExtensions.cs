@@ -325,7 +325,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>
 		/// Adds a tuple prefix to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to any key contained in this tuple prefix could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictRange(this IFdbReadTransaction trans, IFdbTuple prefix)
+		public static void AddReadConflictRange(this IFdbTransaction trans, IFdbTuple prefix)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (prefix == null) throw new ArgumentNullException("prefix");
@@ -336,7 +336,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>
 		/// Adds a tuple to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictKey(this IFdbReadTransaction trans, IFdbTuple tuple)
+		public static void AddReadConflictKey(this IFdbTransaction trans, IFdbTuple tuple)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuple == null) throw new ArgumentNullException("tuple");
@@ -347,7 +347,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>
 		/// Adds a tuple prefix to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read any key contained in this tuple prefix could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictRange(this IFdbReadTransaction trans, IFdbTuple prefix)
+		public static void AddWriteConflictRange(this IFdbTransaction trans, IFdbTuple prefix)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (prefix == null) throw new ArgumentNullException("prefix");
@@ -358,7 +358,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>
 		/// Adds a tuple to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictKey(this IFdbReadTransaction trans, IFdbTuple tuple)
+		public static void AddWriteConflictKey(this IFdbTransaction trans, IFdbTuple tuple)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuple == null) throw new ArgumentNullException("tuple");

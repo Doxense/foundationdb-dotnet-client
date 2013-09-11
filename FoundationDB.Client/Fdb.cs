@@ -341,7 +341,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		public static Task<FdbDatabase> OpenAsync(CancellationToken ct = default(CancellationToken))
 		{
 			return OpenAsync(clusterFile: null, dbName: null, globalSpace: FdbSubspace.Empty, ct: ct);
@@ -353,7 +353,7 @@ namespace FoundationDB.Client
 		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
 		/// <param name="ct">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		public static Task<FdbDatabase> OpenAsync(FdbSubspace globalSpace, CancellationToken ct = default(CancellationToken))
 		{
 			return OpenAsync(clusterFile: null, dbName: null, globalSpace: globalSpace, ct: ct);
@@ -368,7 +368,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <remarks>As of 1.0, the only supported database name is "DB"</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="dbName"/> is anything other than "DB"</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		public static Task<FdbDatabase> OpenAsync(string clusterFile, string dbName, CancellationToken ct = default(CancellationToken))
 		{
 			return OpenAsync(clusterFile, dbName, FdbSubspace.Empty, ct);
@@ -384,7 +384,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <remarks>As of 1.0, the only supported database name is 'DB'</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="dbName"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is canceled</exception>
+		/// <exception cref="System.OperationCanceledException">If the token <paramref name="ct"/> is cancelled</exception>
 		public static async Task<FdbDatabase> OpenAsync(string clusterFile, string dbName, FdbSubspace globalSpace, CancellationToken ct = default(CancellationToken))
 		{
 			ct.ThrowIfCancellationRequested();

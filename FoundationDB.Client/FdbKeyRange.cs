@@ -34,9 +34,7 @@ namespace FoundationDB.Client
 	[DebuggerDisplay("Begin={Begin}, End={End}")]
 	public struct FdbKeyRange
 	{
-		public static FdbKeyRange None { get { return default(FdbKeyRange); } }
-
-		//public static FdbKeyRange All { get { return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue); } }
+		public static FdbKeyRange Empty { get { return default(FdbKeyRange); } }
 
 		public readonly Slice Begin;
 
@@ -53,7 +51,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public static FdbKeyRange StartsWith(Slice prefix)
 		{
-			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+			if (!prefix.HasValue) throw Fdb.Errors.KeyCannotBeNull("prefix");
 
 			// prefix => [ prefix, prefix + 1 )
 			return new FdbKeyRange(
@@ -67,7 +65,7 @@ namespace FoundationDB.Client
 		/// <returns>Range including all keys with the specified prefix.</returns>
 		public static FdbKeyRange PrefixedBy(Slice prefix)
 		{
-			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+			if (!prefix.HasValue) throw Fdb.Errors.KeyCannotBeNull("prefix");
 
 			// prefix => [ prefix."\0", prefix + 1)
 			return new FdbKeyRange(
@@ -81,45 +79,17 @@ namespace FoundationDB.Client
 		/// <returns>Range that only return the specified key.</returns>
 		public static FdbKeyRange FromKey(Slice key)
 		{
-			if (key.IsNullOrEmpty)
-			{
-				return FdbKeyRange.None;
+			if (!key.HasValue) throw Fdb.Errors.KeyCannotBeNull();
+
+			if (key.Count == 0)
+			{ // "" => [ "", "\x00" )
+				return new FdbKeyRange(Slice.Empty, FdbKey.MinValue);
 			}
-
-			int n = key.Count;
-			var tmp = new byte[checked((n << 1) + 1)];
-
-			// first segment will contain the key
-			key.CopyTo(tmp, 0);
-
-			// second segment will contain the key + '\x00'
-			key.CopyTo(tmp, n);
-			tmp[n << 1] = 0;
-
+			// key => [ key, key + '\0' )
 			return new FdbKeyRange(
-				new Slice(tmp, 0, n),
-				new Slice(tmp, n, n + 1)
+				key,
+				key + FdbKey.MinValue
 			);
-		}
-
-		public FdbKeySelector BeginIncluded
-		{
-			get { return FdbKeySelector.FirstGreaterOrEqual(this.Begin); }
-		}
-
-		public FdbKeySelector BeginExcluded
-		{
-			get { return FdbKeySelector.FirstGreaterThan(this.Begin); }
-		}
-
-		public FdbKeySelector EndIncluded
-		{
-			get { return FdbKeySelector.FirstGreaterThan(this.End); }
-		}
-
-		public FdbKeySelector EndExcluded
-		{
-			get { return FdbKeySelector.FirstGreaterOrEqual(this.End); }
 		}
 
 		/// <summary>Returns true, if the key is contained in the range</summary>
@@ -128,11 +98,6 @@ namespace FoundationDB.Client
 		public bool Contains(Slice key)
 		{
 			return key.CompareTo(this.Begin) >= 0 && key.CompareTo(this.End) < 0;
-		}
-
-		public override string ToString()
-		{
-			return "{\"" + this.Begin.ToString() + "\", \"" + this.End.ToString() + "}";
 		}
 
 		/// <summary>Test if <paramref name="key"/> is contained inside the range</summary>
@@ -147,6 +112,12 @@ namespace FoundationDB.Client
 			if (!this.End.IsNullOrEmpty && key.CompareTo(this.End) >= (endIncluded ? 1 : 0)) return +1;
 			return 0;
 		}
+
+		public override string ToString()
+		{
+			return "{\"" + this.Begin.ToString() + "\", \"" + this.End.ToString() + "}";
+		}
+	
 	}
 
 }
