@@ -26,72 +26,64 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Queues
+namespace FoundationDB.Layers.Collections
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
+	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>
-	/// Provides a high-contention Queue class with typed values
-	/// </summary>
-	/// <typeparam name="T">Type of the items stored in the queue</typeparam>
-	public class FdbQueue<T>
+	[DebuggerDisplay("Subspace={Subspace}")]
+	public class FdbArray<TValue>
 	{
-
-		internal FdbQueue Queue { get; private set; }
-
-		public FdbQueue(FdbSubspace subspace)
-			: this(subspace, true)
-		{ }
-
-		public FdbQueue(FdbSubspace subspace, bool highContention)
+		public FdbArray(FdbSubspace subspace, ISliceSerializer<TValue> serializer)
 		{
-			this.Queue = new FdbQueue(subspace, highContention);
+			if (subspace == null) throw new ArgumentNullException("subspace");
+
+			this.Array = new FdbArray(subspace);
+			this.Serializer = serializer;
 		}
 
-		protected virtual Slice EncodeValue(T value)
+		/// <summary>Subspace used as a prefix for all items in this array</summary>
+		public FdbSubspace Subspace { get { return this.Array.Subspace; } }
+
+		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
+		public ISliceSerializer<TValue> Serializer { get; private set; }
+
+		internal FdbArray Array { get; private set; }
+
+		#region Get / Set / Clear
+
+		public Task<TValue> GetAsync(IFdbReadTransaction trans, int key, CancellationToken ct = default(CancellationToken))
 		{
-			return FdbTuple.Pack(value);
+			return this.Array.GetAsync(trans, key, ct).Then((bytes) => this.Serializer.Deserialize(bytes, default(TValue)));
 		}
 
-		protected virtual T DecodeValue(Slice packed)
+		public Task<TValue> GetAsync(IFdbReadTransaction trans, long key, CancellationToken ct = default(CancellationToken))
 		{
-			if (packed.IsNullOrEmpty) return default(T);
-
-			//REVIEW: we could use an UnpackSingle<T> that checks that there's only one value ..?
-			return FdbTuple.UnpackLast<T>(packed);
+			return this.Array.GetAsync(trans, key, ct).Then((bytes) => this.Serializer.Deserialize(bytes, default(TValue)));
 		}
 
-		public void ClearAsync(IFdbTransaction tr)
+		public void Set(IFdbTransaction trans, int key, TValue value)
 		{
-			this.Queue.ClearAsync(tr);
+			this.Array.Set(trans, key, this.Serializer.Serialize(value));
 		}
 
-		public Task PushAsync(IFdbTransaction tr, T value, CancellationToken ct = default(CancellationToken))
+		public void Set(IFdbTransaction trans, long key, TValue value)
 		{
-			return this.Queue.PushAsync(tr, EncodeValue(value), ct);
+			this.Array.Set(trans, key, this.Serializer.Serialize(value));
 		}
 
-		public async Task<T> PopAsync(FdbDatabase db, CancellationToken ct = default(CancellationToken))
+		public void Clear(IFdbTransaction trans)
 		{
-			return DecodeValue(await this.Queue.PopAsync(db, ct).ConfigureAwait(false));
+			this.Array.Clear(trans);
 		}
 
-		public Task<bool> EmptyAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
-		{
-			return this.Queue.EmptyAsync(tr, ct);
-		}
+		#endregion
 
-		public async Task<T> PeekAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
-		{
-			return DecodeValue(await this.Queue.PeekAsync(tr, ct).ConfigureAwait(false));
-		}
 	}
 
 }

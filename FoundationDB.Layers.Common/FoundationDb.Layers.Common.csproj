@@ -47,18 +47,18 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
-    <Compile Include="Arrays\FdbArray`1.cs" />
-    <Compile Include="Arrays\FdbArrayExtensions.cs" />
-    <Compile Include="Arrays\FdbArray.cs" />
+    <Compile Include="Collections\FdbArray`1.cs" />
+    <Compile Include="Collections\FdbArrayExtensions.cs" />
+    <Compile Include="Collections\FdbArray.cs" />
     <Compile Include="Counters\FdbCounter.cs" />
     <Compile Include="Documents\FdbDocumentHandlers.cs" />
     <Compile Include="Documents\FdbDocumentCollection.cs" />
     <Compile Include="Documents\FdbHashSetCollection.cs" />
     <Compile Include="Indexes\FdbIndex`2.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Queues\FdbQueue`1.cs" />
-    <Compile Include="Queues\FdbQueueTransactionals.cs" />
-    <Compile Include="Queues\FdbQueue.cs" />
+    <Compile Include="Collections\FdbQueue`1.cs" />
+    <Compile Include="Collections\FdbQueueTransactionals.cs" />
+    <Compile Include="Collections\FdbQueue.cs" />
     <Compile Include="Strings\FdbStringIntern.cs" />
     <Compile Include="Blobs\FdbBlob.cs" />
     <Compile Include="Tables\FdbTable.cs" />

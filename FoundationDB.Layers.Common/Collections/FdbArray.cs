@@ -26,9 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Arrays
+namespace FoundationDB.Layers.Collections
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
 	using System;
@@ -37,49 +36,57 @@ namespace FoundationDB.Layers.Arrays
 	using System.Threading.Tasks;
 
 	[DebuggerDisplay("Subspace={Subspace}")]
-	public class FdbArray<TValue>
+	public class FdbArray
 	{
-		public FdbArray(FdbSubspace subspace, ISliceSerializer<TValue> serializer)
+
+		public FdbArray(FdbSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Array = new FdbArray(subspace);
-			this.Serializer = serializer;
+			this.Subspace = subspace;
 		}
 
-		/// <summary>Subspace used as a prefix for all items in this array</summary>
-		public FdbSubspace Subspace { get { return this.Array.Subspace; } }
+		public FdbSubspace Subspace { get; private set; }
 
-		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public ISliceSerializer<TValue> Serializer { get; private set; }
+		#region Key management...
 
-		internal FdbArray Array { get; private set; }
+		public Slice Key(int index)
+		{
+			return this.Subspace.Pack<int>(index);
+		}
+
+		public Slice Key(long index)
+		{
+			return this.Subspace.Pack<long>(index);
+		}
+
+		#endregion
 
 		#region Get / Set / Clear
 
-		public Task<TValue> GetAsync(IFdbReadTransaction trans, int key, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(IFdbReadTransaction trans, int key, CancellationToken ct = default(CancellationToken))
 		{
-			return this.Array.GetAsync(trans, key, ct).Then((bytes) => this.Serializer.Deserialize(bytes, default(TValue)));
+			return trans.GetAsync(Key(key), ct);
 		}
 
-		public Task<TValue> GetAsync(IFdbReadTransaction trans, long key, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(IFdbReadTransaction trans, long key, CancellationToken ct = default(CancellationToken))
 		{
-			return this.Array.GetAsync(trans, key, ct).Then((bytes) => this.Serializer.Deserialize(bytes, default(TValue)));
+			return trans.GetAsync(Key(key), ct);
 		}
 
-		public void Set(IFdbTransaction trans, int key, TValue value)
+		public void Set(IFdbTransaction trans, int key, Slice value)
 		{
-			this.Array.Set(trans, key, this.Serializer.Serialize(value));
+			trans.Set(Key(key), value);
 		}
 
-		public void Set(IFdbTransaction trans, long key, TValue value)
+		public void Set(IFdbTransaction trans, long key, Slice value)
 		{
-			this.Array.Set(trans, key, this.Serializer.Serialize(value));
+			trans.Set(Key(key), value);
 		}
 
 		public void Clear(IFdbTransaction trans)
 		{
-			this.Array.Clear(trans);
+			trans.ClearRange(this.Subspace);
 		}
 
 		#endregion
