@@ -66,11 +66,6 @@ namespace FoundationDB.Client
 				get { return m_parent.Id; }
 			}
 
-			public int Size
-			{
-				get { return m_parent.Size; }
-			}
-
 			public CancellationToken Token
 			{
 				get { return m_parent.Token; }
@@ -86,29 +81,9 @@ namespace FoundationDB.Client
 				m_parent.EnsureCanRead(ct);
 			}
 
-			public void Reset()
-			{
-				m_parent.Reset();
-			}
-
-			public Task CommitAsync(CancellationToken ct)
-			{
-				return m_parent.CommitAsync(ct);
-			}
-
 			public Task<long> GetReadVersionAsync(CancellationToken ct)
 			{
 				return m_parent.GetReadVersionAsync(ct);
-			}
-
-			public void SetReadVersion(long version)
-			{
-				m_parent.SetReadVersion(version);
-			}
-
-			public long GetCommittedVersion()
-			{
-				return m_parent.GetCommittedVersion();
 			}
 
 			public Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct)
@@ -155,18 +130,6 @@ namespace FoundationDB.Client
 				EnsureCanRead(CancellationToken.None);
 
 				return m_parent.GetRangeCore(FdbKeySelectorPair.StartsWith(prefix), options, snapshot: true);
-			}
-
-			public void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type)
-			{
-				EnsureCanRead(CancellationToken.None);
-
-				m_parent.AddConflictRangeCore(range.Begin, range.End, type);
-			}
-
-			public Task OnErrorAsync(FdbError code, CancellationToken ct)
-			{
-				return m_parent.OnErrorAsync(code, ct);
 			}
 
 			void IDisposable.Dispose()

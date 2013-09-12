@@ -161,7 +161,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictRange(this IFdbReadTransaction transaction, FdbKeyRange range)
+		public static void AddReadConflictRange(this IFdbTransaction transaction, FdbKeyRange range)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
 
@@ -171,7 +171,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictRange(this IFdbReadTransaction transaction, Slice beginInclusive, Slice endExclusice)
+		public static void AddReadConflictRange(this IFdbTransaction transaction, Slice beginInclusive, Slice endExclusice)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
 
@@ -181,7 +181,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictKey(this IFdbReadTransaction transaction, Slice key)
+		public static void AddReadConflictKey(this IFdbTransaction transaction, Slice key)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
 
@@ -193,7 +193,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictRange(this IFdbReadTransaction transaction, FdbKeyRange range)
+		public static void AddWriteConflictRange(this IFdbTransaction transaction, FdbKeyRange range)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
 
@@ -203,7 +203,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictRange(this IFdbReadTransaction transaction, Slice beginInclusive, Slice endExclusice)
+		public static void AddWriteConflictRange(this IFdbTransaction transaction, Slice beginInclusive, Slice endExclusice)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
 
@@ -213,7 +213,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a key to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictKey(this IFdbReadTransaction transaction, Slice key)
+		public static void AddWriteConflictKey(this IFdbTransaction transaction, Slice key)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
 
