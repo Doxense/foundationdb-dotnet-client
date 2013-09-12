@@ -61,7 +61,7 @@ namespace FoundationDB.Layers.Directories
 			var kv = await trans.ToSnapshotTransaction()
 				.GetRange(this.Counters.ToRange(), new FdbRangeOptions { Limit = 1, Reverse = true })
 				.SingleOrDefaultAsync();
-			if (!kv.Key.IsNullOrEmpty)
+			if (kv.Key.IsPresent)
 			{
 				start = this.Counters.UnpackLast<long>(kv.Key);
 				count = kv.Value.ToInt64();

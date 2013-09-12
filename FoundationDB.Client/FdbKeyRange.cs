@@ -128,8 +128,8 @@ namespace FoundationDB.Client
 		{
 			// note: if the range is empty (Begin = End = Slice.Empty) then it should return 0
 
-			if (!this.Begin.IsNullOrEmpty && key.CompareTo(this.Begin) < 0) return -1;
-			if (!this.End.IsNullOrEmpty && key.CompareTo(this.End) >= (endIncluded ? 1 : 0)) return +1;
+			if (this.Begin.IsPresent && key.CompareTo(this.Begin) < 0) return -1;
+			if (this.End.IsPresent && key.CompareTo(this.End) >= (endIncluded ? 1 : 0)) return +1;
 			return 0;
 		}
 

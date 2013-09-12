@@ -283,7 +283,7 @@ namespace FoundationDB.Client
 
 		internal static string Dump(Slice key)
 		{
-			if (!key.IsNullOrEmpty)
+			if (key.IsPresent)
 			{
 				try
 				{

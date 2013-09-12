@@ -268,7 +268,7 @@ namespace FoundationDB.Layers.Tables
 
 				var data = await GetValueAtVersionAsync(trans, id, dbVersion.Value, ct).ConfigureAwait(false);
 				// note: returns Slice.Empty if the value is deleted at this version
-				if (!data.IsNullOrEmpty)
+				if (data.IsPresent)
 				{
 					var value = this.ValueSerializer.Deserialize(data, default(TValue));
 					return new KeyValuePair<long?, TValue>(dbVersion, value);
