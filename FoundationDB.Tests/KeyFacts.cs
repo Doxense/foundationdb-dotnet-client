@@ -80,8 +80,8 @@ namespace FoundationDB.Client.Tests
 
 			// corner cases
 			Assert.That(() => FdbKey.Increment(Slice.Nil), Throws.InstanceOf<ArgumentException>().With.Property("ParamName").EqualTo("slice"));
-			Assert.That(() => FdbKey.Increment(Slice.Empty), Throws.InstanceOf<OverflowException>());
-			Assert.That(() => FdbKey.Increment(Slice.FromAscii("\xFF")), Throws.InstanceOf<OverflowException>());
+			Assert.That(() => FdbKey.Increment(Slice.Empty), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => FdbKey.Increment(Slice.FromAscii("\xFF")), Throws.InstanceOf<ArgumentException>());
 
 		}
 
@@ -281,22 +281,19 @@ namespace FoundationDB.Client.Tests
 		{
 			FdbKeyRange range;
 
-			// "" => [ "", "\xFF\xFF" )
-			range = FdbKeyRange.StartsWith(Slice.Empty);
-			Assert.That(range.Begin, Is.EqualTo(Slice.Empty));
-			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("\xFF\xFF")));
-
 			// "abc" => [ "abc", "abd" )
 			range = FdbKeyRange.StartsWith(Slice.FromAscii("abc"));
 			Assert.That(range.Begin, Is.EqualTo(Slice.FromAscii("abc")));
 			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("abd")));
 
-			// "\xFF" => [ "\xFF", "\xFF\xFF" )
-			range = FdbKeyRange.StartsWith(Slice.FromAscii("\xFF"));
-			Assert.That(range.Begin, Is.EqualTo(Slice.FromAscii("\xFF")));
-			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("\xFF\xFF")));
+			// "" => ArgumentException
+			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.Empty), Throws.InstanceOf<ArgumentException>());
 
-			Assert.That(() => FdbKeyRange.StartsWith(Slice.Nil), Throws.InstanceOf<ArgumentException>());
+			// "\xFF" => ArgumentException
+			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.FromAscii("\xFF")), Throws.InstanceOf<ArgumentException>());
+
+			// null => ArgumentException
+			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.Nil), Throws.InstanceOf<ArgumentException>());
 		}
 
 		[Test]
@@ -304,21 +301,18 @@ namespace FoundationDB.Client.Tests
 		{
 			FdbKeyRange range;
 
-			// "" => [ "\x00", "\xFF\xFF" )
-			range = FdbKeyRange.PrefixedBy(Slice.Empty);
-			Assert.That(range.Begin, Is.EqualTo(Slice.FromAscii("\x00")));
-			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("\xFF\xFF")));
-
 			// "abc" => [ "abc\x00", "abd" )
 			range = FdbKeyRange.PrefixedBy(Slice.FromAscii("abc"));
 			Assert.That(range.Begin, Is.EqualTo(Slice.FromAscii("abc\x00")));
 			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("abd")));
 
-			// "\xFF" => [ "\xFF\x00", "\xFF\xFF" )
-			range = FdbKeyRange.PrefixedBy(Slice.FromAscii("\xFF"));
-			Assert.That(range.Begin, Is.EqualTo(Slice.FromAscii("\xFF\x00")));
-			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("\xFF\xFF")));
+			// "" => ArgumentException
+			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.Empty), Throws.InstanceOf<ArgumentException>());
 
+			// "\xFF" => ArgumentException
+			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.FromAscii("\xFF")), Throws.InstanceOf<ArgumentException>());
+
+			// null => ArgumentException
 			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.Nil), Throws.InstanceOf<ArgumentException>());
 		}
 

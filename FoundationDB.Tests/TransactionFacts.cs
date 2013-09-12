@@ -632,7 +632,7 @@ namespace FoundationDB.Client.Tests
 
 					try
 					{
-						var _ = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
+						var _ = await tr.GetRange(Slice.FromAscii("\xFF"), Slice.FromAscii("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
 						Assert.Fail("Should not have access to system keys by default");
 					}
 					catch (Exception e)
@@ -645,7 +645,7 @@ namespace FoundationDB.Client.Tests
 					// should succeed once system access has been requested
 					tr.WithAccessToSystemKeys();
 
-					var keys = await tr.GetRangeStartsWith(Slice.FromAscii("\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
+					var keys = await tr.GetRange(Slice.FromAscii("\xFF"), Slice.FromAscii("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
 					Assert.That(keys, Is.Not.Null);
 				}
 
