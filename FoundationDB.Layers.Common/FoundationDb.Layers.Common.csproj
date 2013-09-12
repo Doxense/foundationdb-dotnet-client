@@ -50,6 +50,9 @@
     <Compile Include="Collections\FdbArray`1.cs" />
     <Compile Include="Collections\FdbArrayExtensions.cs" />
     <Compile Include="Collections\FdbArray.cs" />
+    <Compile Include="Collections\FdbVectorTransactionals.cs" />
+    <Compile Include="Collections\FdbVector`1.cs" />
+    <Compile Include="Collections\FdbVector.cs" />
     <Compile Include="Counters\FdbCounter.cs" />
     <Compile Include="Documents\FdbDocumentHandlers.cs" />
     <Compile Include="Documents\FdbDocumentCollection.cs" />
