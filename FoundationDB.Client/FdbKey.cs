@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public static Slice Increment(Slice slice)
 		{
-			if (!slice.HasValue) throw new ArgumentException("Cannot increment null buffer", "slice");
+			if (slice.IsNull) throw new ArgumentException("Cannot increment null buffer", "slice");
 
 			int lastNonFFByte;
 			var tmp = slice.GetBytes();
@@ -105,7 +105,7 @@ namespace FoundationDB.Client
 
 			foreach (var key in keys)
 			{
-				if (prefix.Count > 0) writer.WriteBytes(prefix);
+				if (prefix.IsPresent) writer.WriteBytes(prefix);
 				packer(writer, key);
 				next.Add(writer.Position);
 			}
@@ -133,7 +133,7 @@ namespace FoundationDB.Client
 
 			foreach (var key in keys)
 			{
-				if (prefix.Count > 0) writer.WriteBytes(prefix);
+				if (prefix.IsPresent) writer.WriteBytes(prefix);
 				packer(writer, key);
 				next.Add(writer.Position);
 			}
@@ -159,7 +159,7 @@ namespace FoundationDB.Client
 
 			foreach (var key in keys)
 			{
-				if (prefix.Count > 0) writer.WriteBytes(prefix);
+				if (prefix.IsPresent) writer.WriteBytes(prefix);
 				writer.WriteBytes(key);
 				next.Add(writer.Position);
 			}

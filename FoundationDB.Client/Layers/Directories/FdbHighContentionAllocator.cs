@@ -96,7 +96,7 @@ namespace FoundationDB.Layers.Directories
 				var key = this.Recent.Pack(candidate);
 				var value = await trans.GetAsync(key).ConfigureAwait(false);
 
-				if (!value.HasValue)
+				if (value.IsNull)
 				{ // free slot
 
 					// mark as used

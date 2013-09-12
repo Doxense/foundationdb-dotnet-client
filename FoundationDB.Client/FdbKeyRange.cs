@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public static FdbKeyRange StartsWith(Slice prefix)
 		{
-			if (!prefix.HasValue) throw Fdb.Errors.KeyCannotBeNull("prefix");
+			if (prefix.IsNull) throw Fdb.Errors.KeyCannotBeNull("prefix");
 
 			if (prefix.Count == 0)
 			{ // "" => [ "", "\xFF\xFF" )
@@ -75,7 +75,7 @@ namespace FoundationDB.Client
 		/// <returns>Range including all keys with the specified prefix.</returns>
 		public static FdbKeyRange PrefixedBy(Slice prefix)
 		{
-			if (!prefix.HasValue) throw Fdb.Errors.KeyCannotBeNull("prefix");
+			if (prefix.IsNull) throw Fdb.Errors.KeyCannotBeNull("prefix");
 
 			if (prefix.Count == 0)
 			{ // "" => ["\0", "\xFF\xFF")
@@ -99,7 +99,7 @@ namespace FoundationDB.Client
 		/// <returns>Range that only return the specified key.</returns>
 		public static FdbKeyRange FromKey(Slice key)
 		{
-			if (!key.HasValue) throw Fdb.Errors.KeyCannotBeNull();
+			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 
 			if (key.Count == 0)
 			{ // "" => [ "", "\x00" )

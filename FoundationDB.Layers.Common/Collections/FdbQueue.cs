@@ -118,13 +118,13 @@ namespace FoundationDB.Layers.Collections
 
 		public async Task<bool> EmptyAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
 		{
-			return !(await GetFirstItemAsync(tr, ct).ConfigureAwait(false)).Key.HasValue;
+			return (await GetFirstItemAsync(tr, ct).ConfigureAwait(false)).Key.IsNull;
 		}
 
 		public async Task<Slice> PeekAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
 		{
 			var firstItem = await GetFirstItemAsync(tr, ct).ConfigureAwait(false);
-			if (!firstItem.Key.HasValue)
+			if (firstItem.Key.IsNull)
 			{
 				return Slice.Nil;
 			}
@@ -188,7 +188,7 @@ namespace FoundationDB.Layers.Collections
 		private async Task<Slice> PopSimpleAsync(IFdbTransaction tr, CancellationToken ct)
 		{
 			var firstItem = await GetFirstItemAsync(tr, ct).ConfigureAwait(false);
-			if (!firstItem.Key.HasValue) return Slice.Nil;
+			if (firstItem.Key.IsNull) return Slice.Nil;
 
 			tr.Clear(firstItem.Key);
 			return firstItem.Value;
@@ -297,7 +297,7 @@ namespace FoundationDB.Layers.Collections
 				{
 					// Check if there are other people waiting to be popped. If so, we cannot pop before them.
 					waitKey = await AddConflictedPopAsync(tr, forced: false, ct: ct).ConfigureAwait(false);
-					if (!waitKey.HasValue)
+					if (waitKey.IsNull)
 					{ // No one else was waiting to be popped
 						var item = await PopSimpleAsync(tr, ct).ConfigureAwait(false);
 						await tr.CommitAsync(ct).ConfigureAwait(false);

@@ -150,7 +150,7 @@ namespace FoundationDB.Client
 
 			public FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options)
 			{
-				if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
+				if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
 
 				EnsureCanRead(CancellationToken.None);
 

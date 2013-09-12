@@ -208,7 +208,7 @@ namespace FoundationDB.Layers.Tables
 					continue;
 
 				var candidate = await trans.GetAsync(UidKey(slice)).ConfigureAwait(false);
-				if (!candidate.HasValue)
+				if (candidate.IsNull)
 					return slice;
 
 				++tries;
@@ -295,7 +295,7 @@ namespace FoundationDB.Layers.Tables
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			if (!uid.HasValue) throw new ArgumentException("String uid cannot be nil", "uid");
+			if (uid.IsNull) throw new ArgumentException("String uid cannot be nil", "uid");
 
 			if (uid.IsEmpty) return Task.FromResult(String.Empty);
 

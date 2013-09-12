@@ -167,7 +167,7 @@ namespace FoundationDB.Client
 			++m_indexOfCurrentSlice;
 
 			// skip empty slices
-			while (m_indexOfCurrentSlice < m_slices.Length && m_slices[m_indexOfCurrentSlice].Count == 0)
+			while (m_indexOfCurrentSlice < m_slices.Length && m_slices[m_indexOfCurrentSlice].IsNullOrEmpty)
 			{
 				++m_indexOfCurrentSlice;
 			}

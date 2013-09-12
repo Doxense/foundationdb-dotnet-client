@@ -370,8 +370,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Unpacked tuple</returns>
 		public static IFdbTuple Unpack(Slice packedKey)
 		{
-			if (!packedKey.HasValue) return null;
-			if (packedKey.IsEmpty) return FdbTuple.Empty;
+			if (packedKey.IsNullOrEmpty) return packedKey.HasValue ? FdbTuple.Empty : null;
 
 			return FdbTuplePackers.Unpack(packedKey);
 		}
@@ -401,7 +400,7 @@ namespace FoundationDB.Layers.Tuples
 
 			//TODO: optimzed version ?
 			var slice = FdbTuplePackers.UnpackLast(packedKey);
-			if (!slice.HasValue) throw new InvalidOperationException("Failed to unpack tuple");
+			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack tuple");
 
 			object value = FdbTuplePackers.DeserializeBoxed(slice);
 			return FdbConverters.ConvertBoxed<T>(value);
@@ -489,7 +488,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
 		public static FdbKeyRange Descendants(Slice prefix)
 		{
-			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+			if (prefix.IsNull) throw new ArgumentNullException("prefix");
 
 			if (prefix.Count == 0)
 			{ // "" => [ \0, \xFF )
@@ -509,7 +508,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
 		public static FdbKeyRange DescendantsAndSelf(Slice prefix)
 		{
-			if (!prefix.HasValue) throw new ArgumentNullException("prefix");
+			if (prefix.IsNull) throw new ArgumentNullException("prefix");
 
 			if (prefix.Count == 0)
 			{ // "" => [ \0, \xFF )

@@ -119,7 +119,7 @@ namespace FoundationDB.Layers.Blobs
 			Contract.Requires(trans != null && offset >= 0);
 
 			var chunkKey = await trans.GetKeyAsync(FdbKeySelector.LastLessOrEqual(DataKey(offset))).ConfigureAwait(false);
-			if (!chunkKey.HasValue)
+			if (chunkKey.IsNull)
 			{ // nothing before (sparse)
 				return default(Chunk);
 			}
@@ -269,7 +269,7 @@ namespace FoundationDB.Layers.Blobs
 						int rEnd = end - delta;
 
 						var intersect = chunkData[rStart, rEnd];
-						if (intersect.Count > 0)
+						if (intersect.IsPresent)
 						{ // copy the data that fits
 							intersect.CopyTo(buffer, start);
 						}
@@ -436,7 +436,7 @@ namespace FoundationDB.Layers.Blobs
 		public async Task Upload(IFdbTransaction trans, Slice data)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (!data.HasValue) throw new ArgumentNullException("data");
+			if (data.IsNull) throw new ArgumentNullException("data");
 
 			await Truncate(trans, 0).ConfigureAwait(false);
 			await AppendAsync(trans, data).ConfigureAwait(false);

@@ -361,7 +361,7 @@ namespace FoundationDB.Layers.Tables
 			ct.ThrowIfCancellationRequested();
 
 			var data = await GetValueAtVersionAsync(trans, id, version, ct).ConfigureAwait(false);
-			if (!data.HasValue)
+			if (data.IsNull)
 			{ // this version does not exist !
 				return false;
 			}
@@ -404,7 +404,7 @@ namespace FoundationDB.Layers.Tables
 			Slice data = this.ValueSerializer.Serialize(value);
 
 			//HACK to emulate Delete, remove me!
-			if (!data.HasValue) data = Slice.Empty;
+			if (data.IsNull) data = Slice.Empty;
 			//end of ugly hack
 
 			// (subspace, ITEMS_KEY, key, version) = data

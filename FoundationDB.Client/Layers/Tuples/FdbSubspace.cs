@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public FdbSubspace(Slice rawPrefix)
 		{
-			if (!rawPrefix.HasValue) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "rawPrefix");
+			if (rawPrefix.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "rawPrefix");
 			m_rawPrefix = rawPrefix.Memoize();
 		}
 
@@ -69,7 +69,7 @@ namespace FoundationDB.Layers.Tuples
 			// the .NET equivalent of the subspace.__getitem__(self, name) method would be subspace.Partition<Slice>(name) or subspace[FdbTuple.Create<Slice>(name)] !
 			get
 			{
-				if (!suffix.HasValue) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "suffix");
+				if (suffix.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "suffix");
 				return FdbSubspace.Create(m_rawPrefix + suffix);
 			}
 		}
@@ -362,7 +362,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			// We special case 'Slice.Nil' because it is returned by GetAsync(..) when the key does not exist
 			// This is to simplifiy decoding logic where the caller could do "var foo = FdbTuple.Unpack(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
-			if (!key.HasValue) return null;
+			if (key.IsNull) return null;
 
 			return new FdbSubspaceTuple(this, FdbTuple.UnpackWithoutPrefix(key, m_rawPrefix));
 		}
@@ -448,7 +448,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <remarks>This is the inverse operation of <see cref="FdbSubspace.Concat(Slice)"/></remarks>
 		public Slice Extract(Slice key)
 		{
-			if (!key.HasValue) return Slice.Nil;
+			if (key.IsNull) return Slice.Nil;
 
 			if (!key.StartsWith(m_rawPrefix))
 			{

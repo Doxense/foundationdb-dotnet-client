@@ -405,12 +405,19 @@ namespace FoundationDB.Client
 		/// <remarks>An empty slice is NOT considered null</remarks>
 		public bool HasValue { get { return this.Array != null; } }
 
+		/// <summary>Returns true if the slice is null</summary>
+		/// <remarks>An empty slice is NOT considered null</remarks>
+		public bool IsNull { get { return this.Array == null; } }
+
 		/// <summary>Return true if the slice is not null but contains 0 bytes</summary>
 		/// <remarks>A null slice is NOT empty</remarks>
 		public bool IsEmpty { get { return this.Count == 0 && this.Array != null; } }
 
-		/// <summary>Returns true if the slice does not contain at least 1 byte</summary>
+		/// <summary>Returns true if the slice is null or empty, or false if it contains at least one byte</summary>
 		public bool IsNullOrEmpty { get { return this.Count == 0; } }
+
+		/// <summary>Returns true if the slice contains at least one byte, or false if it is null or empty</summary>
+		public bool IsPresent { get { return this.Count > 0; } }
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of the slice, or null</returns>

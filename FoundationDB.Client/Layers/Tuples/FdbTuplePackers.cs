@@ -225,7 +225,7 @@ namespace FoundationDB.Layers.Tuples
 		public static void SerializeTo(FdbBufferWriter writer, Slice value)
 		{
 			Contract.Requires(writer != null);
-			if (!value.HasValue)
+			if (value.IsNull)
 			{
 				FdbTupleParser.WriteNil(writer);
 			}

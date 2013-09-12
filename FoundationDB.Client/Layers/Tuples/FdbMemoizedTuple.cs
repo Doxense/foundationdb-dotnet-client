@@ -62,7 +62,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public void PackTo(FdbBufferWriter writer)
 		{
-			if (this.Packed.Count > 0)
+			if (this.Packed.IsPresent)
 			{
 				writer.WriteBytes(this.Packed);
 			}

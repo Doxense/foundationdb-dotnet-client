@@ -285,7 +285,7 @@ namespace FoundationDB.Tests.Sandbox
 
 				Console.WriteLine("Getting 'hello'...");
 				var result = await trans.GetAsync(location.Pack("hello"));
-				if (!result.HasValue)
+				if (result.IsNull)
 					Console.WriteLine("> hello NOT FOUND");
 				else
 					Console.WriteLine("> hello = " + result.ToString());

@@ -425,7 +425,7 @@ namespace FoundationDB.Client
 
 		public Task<FdbRangeChunk> GetRangeStartsWithAsync(Slice prefix, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken))
 		{
-			if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
+			if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
 
 			EnsureCanRead(ct);
 
@@ -460,7 +460,7 @@ namespace FoundationDB.Client
 
 		public FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options = null)
 		{
-			if (!prefix.HasValue) throw new ArgumentOutOfRangeException("prefix");
+			if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
 
 			EnsureCanReadOrWrite();
 

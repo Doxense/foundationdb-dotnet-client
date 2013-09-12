@@ -85,7 +85,7 @@ namespace FoundationDB.Layers.Tables
 
 			Slice data = await this.Table.GetAsync(trans, this.KeyReader.ToTuple(key), ct).ConfigureAwait(false);
 
-			if (!data.HasValue) return default(TValue);
+			if (data.IsNull) return default(TValue);
 			return this.ValueSerializer.Deserialize(data, default(TValue));
 		}
 

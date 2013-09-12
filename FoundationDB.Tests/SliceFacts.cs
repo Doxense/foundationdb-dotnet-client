@@ -50,8 +50,11 @@ namespace FoundationDB.Client.Tests
 			Assert.That(Slice.Nil.Offset, Is.EqualTo(0));
 			Assert.That(Slice.Nil.Array, Is.Null);
 
-			Assert.That(Slice.Nil.IsNullOrEmpty, Is.True);
+			Assert.That(Slice.Nil.IsNull, Is.True);
 			Assert.That(Slice.Nil.HasValue, Is.False);
+			Assert.That(Slice.Nil.IsEmpty, Is.False);
+			Assert.That(Slice.Nil.IsNullOrEmpty, Is.True);
+			Assert.That(Slice.Nil.IsPresent, Is.False);
 
 			Assert.That(Slice.Nil.GetBytes(), Is.Null);
 			Assert.That(Slice.Nil.ToAscii(), Is.Null);
@@ -69,13 +72,38 @@ namespace FoundationDB.Client.Tests
 			Assert.That(Slice.Empty.Array, Is.Not.Null);
 			Assert.That(Slice.Empty.Array.Length, Is.EqualTo(0));
 
-			Assert.That(Slice.Empty.IsNullOrEmpty, Is.True);
+			Assert.That(Slice.Empty.IsNull, Is.False);
 			Assert.That(Slice.Empty.HasValue, Is.True);
+			Assert.That(Slice.Empty.IsEmpty, Is.True);
+			Assert.That(Slice.Empty.IsNullOrEmpty, Is.True);
+			Assert.That(Slice.Empty.IsPresent, Is.False);
 
 			Assert.That(Slice.Empty.GetBytes(), Is.EqualTo(new byte[0]));
 			Assert.That(Slice.Empty.ToAscii(), Is.EqualTo(String.Empty));
 			Assert.That(Slice.Empty.ToUnicode(), Is.EqualTo(String.Empty));
 			Assert.That(Slice.Empty.ToAsciiOrHexaString(), Is.EqualTo("''"));
+		}
+
+		[Test]
+		public void Test_Slice_With_Content()
+		{
+			Slice slice = Slice.FromAscii("ABC");
+
+			Assert.That(slice.Count, Is.EqualTo(3));
+			Assert.That(slice.Offset, Is.EqualTo(0));
+			Assert.That(slice.Array, Is.Not.Null);
+			Assert.That(slice.Array.Length, Is.GreaterThanOrEqualTo(3));
+
+			Assert.That(slice.IsNull, Is.False);
+			Assert.That(slice.HasValue, Is.True);
+			Assert.That(slice.IsEmpty, Is.False);
+			Assert.That(slice.IsNullOrEmpty, Is.False);
+			Assert.That(slice.IsPresent, Is.True);
+
+			Assert.That(slice.GetBytes(), Is.EqualTo(new byte[3] { 65, 66, 67 }));
+			Assert.That(slice.ToAscii(), Is.EqualTo("ABC"));
+			Assert.That(slice.ToUnicode(), Is.EqualTo("ABC"));
+			Assert.That(slice.ToAsciiOrHexaString(), Is.EqualTo("'ABC'"));
 		}
 
 		[Test]

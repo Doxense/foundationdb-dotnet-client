@@ -467,7 +467,7 @@ namespace FoundationDB.Client
 		internal Exception ValidateKey(Slice key, bool endExclusive = false)
 		{
 			// null or empty keys are not allowed
-			if (!key.HasValue)
+			if (key.IsNull)
 			{
 				return Fdb.Errors.KeyCannotBeNull();
 			}
@@ -502,7 +502,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
 		internal static bool IsSystemKey(Slice key)
 		{
-			return key.Count > 0 && key.Array[key.Offset] == 0xFF;
+			return key.IsPresent && key.Array[key.Offset] == 0xFF;
 		}
 
 		/// <summary>Ensures that a serialized value is valid</summary>
@@ -515,7 +515,7 @@ namespace FoundationDB.Client
 
 		internal Exception ValidateValue(Slice value)
 		{
-			if (!value.HasValue)
+			if (value.IsNull)
 			{
 				return Fdb.Errors.ValueCannotBeNull(value);
 			}
