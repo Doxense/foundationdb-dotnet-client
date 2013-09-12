@@ -490,7 +490,7 @@ namespace FoundationDB.Client
 			{
 				// special case: if endExclusive is true (we are validating the end key of a ClearRange),
 				// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let is slide
-				if (!key.Equals(FdbKey.Increment(m_globalSpace.Key)))
+				if (!endExclusive || !key.Equals(FdbKey.Increment(m_globalSpace.Key)))
 				{
 					return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
 				}
