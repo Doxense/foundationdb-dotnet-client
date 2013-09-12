@@ -156,7 +156,7 @@ namespace FoundationDB.Client
 		long GetCommittedVersion();
 
 		/// <summary>
-		/// ets the snapshot read version used by a transaction. This is not needed in simple cases.
+		/// Sets the snapshot read version used by a transaction. This is not needed in simple cases.
 		/// </summary>
 		/// <param name="version">Read version to use in this transaction</param>
 		/// <remarks>
