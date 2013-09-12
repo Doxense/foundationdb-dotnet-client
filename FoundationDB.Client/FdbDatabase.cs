@@ -386,11 +386,13 @@ namespace FoundationDB.Client
 			return m_globalSpace.Partition(tuple);
 		}
 
+		/// <summary>Create a new key by appending a value to the global namespace</summary>
 		public Slice Pack<T>(T key)
 		{
 			return m_globalSpace.Pack<T>(key);
 		}
 
+		/// <summary>Create a new key by appending two values to the global namespace</summary>
 		public Slice Pack<T1, T2>(T1 key1, T2 key2)
 		{
 			return m_globalSpace.Pack<T1, T2>(key1, key2);
@@ -398,7 +400,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Unpack a key using the current namespace of the database</summary>
 		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		/// <returns></returns>
 		public IFdbTuple Unpack(Slice key)
 		{
 			return m_globalSpace.Unpack(key);
@@ -406,7 +407,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Unpack a key using the current namespace of the database</summary>
 		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		/// <returns></returns>
 		public T UnpackLast<T>(Slice key)
 		{
 			return m_globalSpace.UnpackLast<T>(key);
@@ -454,6 +454,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
 		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
 		internal void EnsureKeyIsValid(Slice key, bool endExclusive = false)
 		{
@@ -463,6 +464,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <returns>An exception if the key is outside of the allowed key space of this database</exception>
 		internal Exception ValidateKey(Slice key, bool endExclusive = false)
 		{

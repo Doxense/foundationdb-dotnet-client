@@ -66,19 +66,25 @@ namespace FoundationDB.Client.Utils
 
 		#region Constructors...
 
+		/// <summary>Create a new empty binary buffer</summary>
 		public FdbBufferWriter()
 		{ }
 
+		/// <summary>Create a new empty binary buffer with an initial allocated size</summary>
+		/// <param name="capacity"></param>
 		public FdbBufferWriter(int capacity)
 		{
 			this.Buffer = new byte[capacity];
 		}
 
+		/// <summary>Create a new binary writer using an existing buffer</summary>
+		/// <param name="buffer"></param>
 		public FdbBufferWriter(byte[] buffer)
 		{
 			this.Buffer = buffer;
 		}
 
+		/// <summary>Create a new binary writer using an existing buffer and with the cursor to a specific location</summary>
 		public FdbBufferWriter(byte[] buffer, int index)
 		{
 			this.Buffer = buffer;
@@ -407,9 +413,6 @@ namespace FoundationDB.Client.Utils
 		}
 
 		/// <summary>Append a segment of bytes to the end of the buffer</summary>
-		/// <param name="data"></param>
-		/// <param name="offset"></param>
-		/// <param name="count"></param>
 		public void WriteBytes(Slice data)
 		{
 			Contract.Requires(data.HasValue);
@@ -644,7 +647,7 @@ namespace FoundationDB.Client.Utils
 		}
 
 		/// <summary>Returns the position of the most significant bit (0-based) in a 32-bit integer</summary>
-		/// <param name="value">32-bit integer</param>
+		/// <param name="v">32-bit integer</param>
 		/// <returns>Index of the most significant bit (0-based)</returns>
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

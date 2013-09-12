@@ -457,7 +457,7 @@ namespace FoundationDB.Linq
 			return buffer.ToList();
 		}
 
-		/// <summary>Return a list of all the elements from an async sequence</summary>
+		/// <summary>Return an array with all the elements from an async sequence</summary>
 		public static async Task<T[]> ToArrayAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
 			Contract.Requires(source != null);

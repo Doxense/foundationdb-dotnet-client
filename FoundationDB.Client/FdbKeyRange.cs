@@ -31,15 +31,24 @@ namespace FoundationDB.Client
 	using System;
 	using System.Diagnostics;
 
+	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]
 	public struct FdbKeyRange
 	{
+		/// <summary>Returns an empty pair of keys</summary>
 		public static FdbKeyRange Empty { get { return default(FdbKeyRange); } }
 
+		/// <summary>Start of the range</summary>
 		public readonly Slice Begin;
 
+		/// <summary>End of the range</summary>
 		public readonly Slice End;
 
+		/// <summary>
+		/// Create a new range of keys
+		/// </summary>
+		/// <param name="begin">Start of range (usually included)</param>
+		/// <param name="end">End of range (usually excluded)</param>
 		public FdbKeyRange(Slice begin, Slice end)
 		{
 			this.Begin = begin;
@@ -94,8 +103,8 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Create a range that will only return <param name="key"/> itself ('key' &lt;= k &lt; 'key\x00')</summary>
-		/// <param name="prefix">Key that will be returned by the range</param>
+		/// <summary>Create a range that will only return <paramref name="key"/> itself ('key' &lt;= k &lt; 'key\x00')</summary>
+		/// <param name="key">Key that will be returned by the range</param>
 		/// <returns>Range that only return the specified key.</returns>
 		public static FdbKeyRange FromKey(Slice key)
 		{
@@ -133,6 +142,7 @@ namespace FoundationDB.Client
 			return 0;
 		}
 
+		/// <summary>Returns a printable version of the range</summary>
 		public override string ToString()
 		{
 			return "{\"" + this.Begin.ToString() + "\", \"" + this.End.ToString() + "}";

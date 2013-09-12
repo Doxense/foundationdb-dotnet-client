@@ -80,8 +80,9 @@ namespace FoundationDB.Client.Native
 		/// <summary>
 		/// Constructor to load a dll and be responible for freeing it.
 		/// </summary>
+		/// <param name="handle">Handle to the loaded library</param>
 		/// <param name="fileName">full path name of dll to load</param>
-		/// <exception cref="System.IO.FileNotFound">if fileName can't be found</exception>
+		/// <exception cref="System.IO.FileNotFoundException">if fileName can't be found</exception>
 		/// <remarks>Throws exceptions on failure. Most common failure would be file-not-found, or
 		/// that the file is not a  loadable image.</remarks>
 		private UnmanagedLibrary(SafeLibraryHandle handle, string fileName)

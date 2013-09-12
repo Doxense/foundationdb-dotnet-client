@@ -43,7 +43,7 @@ namespace FoundationDB.Async
 
 			public static readonly Task<T> Default = Task.FromResult<T>(default(T));
 
-			/// <summary>Returns a lambda function that returns the default value of <typeparam name="T"/></summary>
+			/// <summary>Returns a lambda function that returns the default value of <typeparamref name="T"/></summary>
 			public static Func<T> Nop
 			{
 				get
@@ -53,7 +53,7 @@ namespace FoundationDB.Async
 				}
 			}
 
-			/// <summary>Returns the identity function for <typeparam name="T"/></summary>
+			/// <summary>Returns the identity function for <typeparamref name="T"/></summary>
 			public static Func<T, T> Identity
 			{
 				get
@@ -110,7 +110,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Runs a synchronous lambda inline, exposing it as if it was task</summary>
-		/// <typeparam name="T1">Type of the result of the lambda</typeparam>
+		/// <typeparam name="R">Type of the result of the lambda</typeparam>
 		/// <param name="lambda">Synchronous lambda function that returns a value, or throws exceptions</param>
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that either contains the result of the lambda, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
@@ -134,6 +134,7 @@ namespace FoundationDB.Async
 		/// <summary>Runs a synchronous action inline, exposing it as if it was task</summary>
 		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
+		/// <param name="arg1">Argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
@@ -155,8 +156,11 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Runs a synchronous action inline, exposing it as if it was task</summary>
-		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
+		/// <typeparam name="T1">Type of the first parameter of the lambda</typeparam>
+		/// <typeparam name="T2">Type of the second parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
+		/// <param name="arg1">First argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg2">Second argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
@@ -178,8 +182,13 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Runs a synchronous action inline, exposing it as if it was task</summary>
-		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
+		/// <typeparam name="T1">Type of the first parameter of the lambda</typeparam>
+		/// <typeparam name="T2">Type of the second parameter of the lambda</typeparam>
+		/// <typeparam name="T3">Type of the third parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
+		/// <param name="arg1">First argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg2">Second argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg3">Third argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
@@ -201,8 +210,15 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Runs a synchronous action inline, exposing it as if it was task</summary>
-		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
+		/// <typeparam name="T1">Type of the first parameter of the lambda</typeparam>
+		/// <typeparam name="T2">Type of the second parameter of the lambda</typeparam>
+		/// <typeparam name="T3">Type of the third parameter of the lambda</typeparam>
+		/// <typeparam name="T4">Type of the fourth parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
+		/// <param name="arg1">First argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg2">Second argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg3">Third argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg4">Fourth argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
@@ -224,8 +240,17 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Runs a synchronous action inline, exposing it as if it was task</summary>
-		/// <typeparam name="T1">Type of the parameter of the lambda</typeparam>
+		/// <typeparam name="T1">Type of the first parameter of the lambda</typeparam>
+		/// <typeparam name="T2">Type of the second parameter of the lambda</typeparam>
+		/// <typeparam name="T3">Type of the third parameter of the lambda</typeparam>
+		/// <typeparam name="T4">Type of the fourth parameter of the lambda</typeparam>
+		/// <typeparam name="T5">Type of the fifth parameter of the lambda</typeparam>
 		/// <param name="action">Synchronous action that takes a value.</param>
+		/// <param name="arg1">First argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg2">Second argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg3">Third argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg4">Fourth argument that will be passed to <paramref name="action"/></param>
+		/// <param name="arg5">Fifth argument that will be passed to <paramref name="action"/></param>
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>

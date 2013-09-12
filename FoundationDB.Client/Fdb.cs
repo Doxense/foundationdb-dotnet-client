@@ -59,6 +59,7 @@ namespace FoundationDB.Client
 		/// <summary>Maximum size of total written keys and values by a transaction</summary>
 		internal const int MaxTransactionWriteSize = 10 * 1024 * 1024;
 
+		/// <summary>Returns the maximum API version currently supported by this binding</summary>
 		public static int GetMaxApiVersion()
 		{
 			return FdbNative.GetMaxApiVersion();

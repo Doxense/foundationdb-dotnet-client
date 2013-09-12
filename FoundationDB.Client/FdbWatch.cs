@@ -52,18 +52,22 @@ namespace FoundationDB.Client
 			m_key = key;
 		}
 
+		/// <summary>Key that is being watched</summary>
 		public Slice Key { get { return m_key; } }
 
+		/// <summary>Returns true if the watch is still active, or false if it fired or was cancelled</summary>
 		public bool IsAlive
 		{
 			get { return m_future != null && !m_future.Task.IsCompleted; }
 		}
 
+		/// <summary>Returns true if the watch has fired signaling that the key may have changed in the database</summary>
 		public bool HasChanged
 		{
 			get { return m_future != null && m_future.Task.Status == TaskStatus.RanToCompletion; }
 		}
 
+		/// <summary>Task that will complete when the watch fires, or is cancelled. It will return the watched key, or an exception.</summary>
 		public Task<Slice> Task
 		{
 			get
@@ -72,8 +76,11 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Returns an awaiter for the Watch</summary>
 		public TaskAwaiter<Slice> GetAwaiter()
 		{
+			//note: this is to make "await" work directly on the FdbWatch instance, without needing to do "await watch.Task"
+
 			if (m_future != null)
 			{
 				if (m_future.HasFlag(FdbFuture.Flags.DISPOSED))
@@ -85,6 +92,7 @@ namespace FoundationDB.Client
 			throw new InvalidOperationException("Cannot await an empty watch");
 		}
 
+		/// <summary>Cancel the watch. It will immediately stop monitoring the key. Has no effect if the watch has already fired</summary>
 		public void Cancel()
 		{
 			if (m_future != null)
@@ -93,6 +101,7 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Dispose the resources allocated by the watch.</summary>
 		public void Dispose()
 		{
 			if (m_future != null)

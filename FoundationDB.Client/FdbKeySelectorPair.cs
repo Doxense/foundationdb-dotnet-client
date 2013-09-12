@@ -31,18 +31,26 @@ namespace FoundationDB.Client
 	using System;
 	using System.Diagnostics;
 
+	/// <summary>Represents of pair of key selectors that range 'GetKey(Begin) &lt;= key &lt; GetKey(End)'</summary>
 	[DebuggerDisplay("[ToString()]")]
 	public struct FdbKeySelectorPair
 	{
+		/// <summary>Start of the range</summary>
 		public readonly FdbKeySelector Begin;
+
+		/// <summary>End of the range</summary>
 		public readonly FdbKeySelector End;
 
+		/// <summary>Create a new pair of key selectors</summary>
+		/// <param name="beginInclusive">Selector for key from which to start iterating</param>
+		/// <param name="endExclusive">Selector for key where to stop iterating</param>
 		public FdbKeySelectorPair(FdbKeySelector beginInclusive, FdbKeySelector endExclusive)
 		{
 			this.Begin = beginInclusive;
 			this.End = endExclusive;
 		}
 
+		/// <summary>Factory method for a pair of key selectors</summary>
 		public static FdbKeySelectorPair Create(FdbKeySelector beginInclusive, FdbKeySelector endExclusive)
 		{
 			return new FdbKeySelectorPair(
@@ -51,6 +59,7 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
 		public static FdbKeySelectorPair Create(Slice begin, Slice end)
 		{
 			return new FdbKeySelectorPair(
@@ -59,6 +68,7 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
 		public static FdbKeySelectorPair Create(FdbKeyRange range)
 		{
 			return new FdbKeySelectorPair(
@@ -67,6 +77,7 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Create a new pair of key selectors that will select all the keys that start with the specified prefix</summary>
 		public static FdbKeySelectorPair StartsWith(Slice prefix)
 		{
 			var range = FdbKeyRange.StartsWith(prefix);
@@ -77,6 +88,7 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Returns a printable version of the pair of key selectors</summary>
 		public override string ToString()
 		{
 			return "[" + this.Begin.ToString() + ", " + this.End.ToString() + ")";
