@@ -269,10 +269,9 @@ namespace FoundationDB.Layers.Directories
 			var kvp = await tr
 				.GetRange(
 					this.NodeSubspace.ToRange().Begin,
-					this.NodeSubspace.Pack(FdbTuple.Pack(key)) + FdbKey.MinValue,
-					new FdbRangeOptions { Reverse = true, Limit = 1 }
+					this.NodeSubspace.Pack(FdbTuple.Pack(key)) + FdbKey.MinValue
 				)
-				.SingleOrDefaultAsync()
+				.LastOrDefaultAsync(ct)
 				.ConfigureAwait(false);
 
 			var k = this.NodeSubspace.Unpack(kvp.Key);
@@ -312,10 +311,10 @@ namespace FoundationDB.Layers.Directories
 			var sd = node.Partition(SUBDIRS);
 			return tr
 				.GetRange(sd.ToRange())
-				.Select(
-					key => sd.Unpack(key),
-					value => NodeWithPrefix(value)
-				);
+				.Select(kvp => new KeyValuePair<IFdbTuple, FdbSubspace>(
+					sd.Unpack(kvp.Key),
+					NodeWithPrefix(kvp.Value)
+				));
 		}
 
 		private async Task RemoveFromParent(IFdbTransaction tr, IFdbTuple path, CancellationToken ct)

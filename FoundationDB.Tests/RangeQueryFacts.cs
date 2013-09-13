@@ -52,14 +52,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				// put test values in a namespace
-				var location = db.Partition("Range");
-
-				// cleanup everything
-				using (var tr = db.BeginTransaction())
-				{
-					tr.ClearRange(location);
-					await tr.CommitAsync();
-				}
+				var location = await TestHelpers.GetCleanDirectory(db, "range");
 
 				// insert all values (batched)
 				Console.WriteLine("Inserting " + N.ToString("N0") + " keys...");
@@ -84,9 +77,16 @@ namespace FoundationDB.Client.Tests
 				{
 					var query = tr.GetRange(location.Pack(0), location.Pack(N));
 					Assert.That(query, Is.Not.Null);
-					Assert.That(query, Is.InstanceOf<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>());
+					Assert.That(query.Transaction, Is.SameAs(tr));
+					Assert.That(query.Range.Begin.Key, Is.EqualTo(location.Pack(0)));
+					Assert.That(query.Range.End.Key, Is.EqualTo(location.Pack(N)));
+					Assert.That(query.Limit, Is.EqualTo(0));
+					Assert.That(query.TargetBytes, Is.EqualTo(0));
+					Assert.That(query.Reverse, Is.False);
+					Assert.That(query.Mode, Is.EqualTo(FdbStreamingMode.Iterator));
+					Assert.That(query.Snapshot, Is.False);
 
-					Console.WriteLine("Getting range " + query.Range.Begin + " -> " + query.Range.End + " ...");
+					Console.WriteLine("Getting range " + query.Range.ToString() + " ...");
 
 					var ts = Stopwatch.StartNew();
 					var items = await query.ToListAsync();
@@ -117,76 +117,128 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Can_Get_Range_Batched()
+		public async Task Test_Can_Get_Range_First_Single_And_Last()
 		{
-			// test that we can get a range of keys
-
-			const int N = 1000; // total item count
-
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				// put test values in a namespace
-				var location = db.Partition("Range");
+				var location = await TestHelpers.GetCleanDirectory(db, "range");
 
-				// cleanup everything
+				var a = location.Partition("a");
+				var b = location.Partition("b");
+				var c = location.Partition("c");
+
+				// insert a bunch of keys under 'a', only one under 'b', and nothing under 'c'
 				using (var tr = db.BeginTransaction())
 				{
-					tr.ClearRange(location);
+					for (int i = 0; i < 10; i++)
+					{
+						tr.Set(a.Pack(i), Slice.FromInt32(i));
+					}
+					tr.Set(b.Pack(0), Slice.FromInt32(42));
 					await tr.CommitAsync();
 				}
 
-				// insert all values (batched)
-				Console.WriteLine("Inserting " + N.ToString("N0") + " keys...");
-				var insert = Stopwatch.StartNew();
+				KeyValuePair<Slice, Slice> res;
 
+				// A: more then one item
+				using(var tr = db.BeginTransaction())
+				{
+					var query = tr.GetRange(a.ToRange());
+
+					// should return the first one
+					res = await query.FirstOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(a.Pack(0)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(0)));
+
+					// should return the first one
+					res = await query.FirstAsync();
+					Assert.That(res.Key, Is.EqualTo(a.Pack(0)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(0)));
+
+					// should return the last one
+					res = await query.LastOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(a.Pack(9)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(9)));
+
+					// should return the last one
+					res = await query.LastAsync();
+					Assert.That(res.Key, Is.EqualTo(a.Pack(9)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(9)));
+
+					// should fail because there is more than one
+					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.SingleOrDefaultAsync(), "SingleOrDefaultAsync should throw if the range returns more than 1 result");
+
+					// should fail because there is more than one
+					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.SingleAsync(), "SingleAsync should throw if the range returns more than 1 result");
+				}
+
+				// B: exactly one item
 				using (var tr = db.BeginTransaction())
 				{
-					foreach (int i in Enumerable.Range(0, N))
-					{
-						tr.Set(location.Pack(i), Slice.FromInt32(i));
-					}
+					var query = tr.GetRange(b.ToRange());
 
-					await tr.CommitAsync();
+					// should return the first one
+					res = await query.FirstOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(b.Pack(0)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
+
+					// should return the first one
+					res = await query.FirstAsync();
+					Assert.That(res.Key, Is.EqualTo(b.Pack(0)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
+
+					// should return the last one
+					res = await query.LastOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(b.Pack(0)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
+
+					// should return the last one
+					res = await query.LastAsync();
+					Assert.That(res.Key, Is.EqualTo(b.Pack(0)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
+
+					// should return the first one
+					res = await query.SingleOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(b.Pack(0)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
+
+					// should return the first one
+					res = await query.SingleAsync();
+					Assert.That(res.Key, Is.EqualTo(b.Pack(0)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(42)));
 				}
-				insert.Stop();
 
-				Console.WriteLine("Committed " + N + " keys in " + insert.Elapsed.TotalMilliseconds.ToString("N1") + " ms");
-
-				// GetRange by batch
-
+				// C: no items
 				using (var tr = db.BeginTransaction())
 				{
-					var query = tr
-						.GetRange(location.Pack(0), location.Pack(N))
-						.Batched();
+					var query = tr.GetRange(c.ToRange());
 
-					Assert.That(query, Is.Not.Null);
-					Assert.That(query, Is.InstanceOf<IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>[]>>());
+					// should return nothing
+					res = await query.FirstOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(Slice.Nil));
+					Assert.That(res.Value, Is.EqualTo(Slice.Nil));
 
-					var ts = Stopwatch.StartNew();
-					var chunks = await query.ToListAsync();
-					ts.Stop();
+					// should return the first one
+					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.FirstAsync(), "FirstAsync should throw if the range returns nothing");
 
-					Assert.That(chunks, Is.Not.Null);
-					Assert.That(chunks.Count, Is.GreaterThan(0), "Should at least return one chunk");
-					Console.WriteLine("Got " + chunks.Count + " chunks");
-					Assert.That(chunks, Is.All.Not.Null, "Should nether return null chunks");
-					Assert.That(chunks, Is.All.Not.Empty, "Should nether return empty chunks");
-					Assert.That(chunks.Sum(c => c.Length), Is.EqualTo(N), "Total size should match");
-					Console.WriteLine("Took " + ts.Elapsed.TotalMilliseconds.ToString("N1") + " ms to get " + chunks.Count.ToString("N0") + " chunks");
+					// should return the last one
+					res = await query.LastOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(Slice.Nil));
+					Assert.That(res.Value, Is.EqualTo(Slice.Nil));
 
-					var keys = chunks.SelectMany(chunk => chunk.Select(x => FdbTuple.Unpack(x.Key).Last<int>())).ToArray();
-					Assert.That(keys.Length, Is.EqualTo(N));
-					var values = chunks.SelectMany(chunk => chunk.Select(x => x.Value.ToInt32())).ToArray();
-					Assert.That(values.Length, Is.EqualTo(N));
+					// should return the last one
+					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.LastAsync(), "LastAsync should throw if the range returns nothing");
 
-					for (int i = 0; i < N; i++)
-					{
-						Assert.That(keys[i], Is.EqualTo(i));
-						Assert.That(values[i], Is.EqualTo(i));
-					}
+					// should fail because there is more than one
+					res = await query.SingleOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(Slice.Nil));
+					Assert.That(res.Value, Is.EqualTo(Slice.Nil));
 
+					// should fail because there is none
+					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.SingleAsync(), "SingleAsync should throw if the range returns nothing");
 				}
+
 			}
 		}
 

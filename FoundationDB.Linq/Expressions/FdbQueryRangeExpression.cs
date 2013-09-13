@@ -69,7 +69,7 @@ namespace FoundationDB.Linq.Expressions
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
 
-			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbReadTransaction, FdbKeySelectorPair, FdbRangeOptions, FdbRangeQuery>>(
+			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbReadTransaction, FdbKeySelectorPair, FdbRangeOptions, FdbRangeQuery<KeyValuePair<Slice, Slice>>>>(
 				(trans, range, options) => trans.GetRange(range, options),
 				prmTrans,
 				Expression.Constant(this.Range, typeof(FdbKeySelectorPair)),

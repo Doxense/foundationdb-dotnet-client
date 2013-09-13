@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public partial class FdbRangeQuery
+	public partial class FdbRangeQuery<T>
 	{
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 
 			#region Iterable Properties...
 
-			private FdbRangeQuery Query { get; set; }
+			private FdbRangeQuery<T> Query { get; set; }
 
 			private IFdbReadTransaction Transaction { get; set; }
 
@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			public PagingIterator(FdbRangeQuery query, IFdbReadTransaction transaction)
+			public PagingIterator(FdbRangeQuery<T> query, IFdbReadTransaction transaction)
 			{
 				Contract.Requires(query != null);
 

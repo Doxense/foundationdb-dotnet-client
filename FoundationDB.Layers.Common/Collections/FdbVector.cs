@@ -117,9 +117,9 @@ namespace FoundationDB.Layers.Collections
 			ct.ThrowIfCancellationRequested();
 
 			return tr
-				.GetRange(this.Subspace.ToRange(), new FdbRangeOptions { Reverse = true, Limit = 1 })
+				.GetRange(this.Subspace.ToRange())
 				.Values()
-				.FirstOrDefaultAsync(ct);
+				.LastOrDefaultAsync(ct);
 		}
 
 		/// <summary>
@@ -233,7 +233,7 @@ namespace FoundationDB.Layers.Collections
 			var end = this.Subspace.ToRange().End;
 
 			var output = await tr
-				.GetRange(start, end, new FdbRangeOptions { Limit = 1 })
+				.GetRange(start, end)
 				.FirstOrDefaultAsync(ct)
 				.ConfigureAwait(false);
 

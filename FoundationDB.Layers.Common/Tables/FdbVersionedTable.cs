@@ -429,10 +429,10 @@ namespace FoundationDB.Layers.Tables
 
 			var versions = await trans
 				.GetRangeStartsWith(this.ItemsPrefix) //TODO: options ?
-				.Select(
-					(key) => this.KeyReader.FromTuple(FdbTuple.UnpackWithoutPrefix(key, this.VersionsPrefix.Key)),
-					(value) => value.ToInt64()
-				)
+				.Select((kvp) => new KeyValuePair<TId, long>(
+					this.KeyReader.FromTuple(FdbTuple.UnpackWithoutPrefix(kvp.Key, this.VersionsPrefix.Key)),
+					kvp.Value.ToInt64()
+				))
 				.ToListAsync(ct)
 				.ConfigureAwait(false);
 

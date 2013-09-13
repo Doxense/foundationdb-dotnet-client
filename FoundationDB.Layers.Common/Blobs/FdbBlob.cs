@@ -382,10 +382,10 @@ namespace FoundationDB.Layers.Blobs
 
 			return trans
 				.GetRangeStartsWith(this.Subspace.Pack(AttributesSuffix))
-				.Select(
-					(key) => FdbTuple.UnpackLast<string>(key),
-					(value) => value
-				)
+				.Select((kvp) => new KeyValuePair<string, Slice>(
+					this.Subspace.UnpackLast<string>(kvp.Key),
+					kvp.Value
+				))
 				.ToListAsync();
 		}
 

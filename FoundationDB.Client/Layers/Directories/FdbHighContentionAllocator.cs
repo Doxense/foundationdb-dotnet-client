@@ -59,8 +59,9 @@ namespace FoundationDB.Layers.Directories
 			// find the current window size, by reading the last entry in the 'counters' subspace
 			long start = 0, count = 0;
 			var kv = await trans.ToSnapshotTransaction()
-				.GetRange(this.Counters.ToRange(), new FdbRangeOptions { Limit = 1, Reverse = true })
-				.SingleOrDefaultAsync();
+				.GetRange(this.Counters.ToRange())
+				.LastOrDefaultAsync();
+
 			if (kv.Key.IsPresent)
 			{
 				start = this.Counters.UnpackLast<long>(kv.Key);

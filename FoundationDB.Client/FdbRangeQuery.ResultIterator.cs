@@ -40,21 +40,21 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public partial class FdbRangeQuery
+	public partial class FdbRangeQuery<T>
 	{
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
 		/// <typeparam name="TResult">Type of the results returned</typeparam>
 		[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInBatch={m_remainingInBatch}, ReadLastBatch={m_lastBatchRead}")]
-		private sealed class ResultIterator<TResult> : FdbAsyncIterator<TResult>
+		private sealed class ResultIterator : FdbAsyncIterator<T>
 		{
 
-			private FdbRangeQuery m_query;
+			private FdbRangeQuery<T> m_query;
 
 			private IFdbReadTransaction m_transaction;
 
 			/// <summary>Lambda used to transform pairs of key/value into the expected result</summary>
-			private Func<KeyValuePair<Slice, Slice>, TResult> m_resultTransform;
+			private Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
 
 
 			/// <summary>Iterator used to read chunks from the database</summary>
@@ -74,7 +74,7 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			public ResultIterator(FdbRangeQuery query, IFdbReadTransaction transaction, Func<KeyValuePair<Slice, Slice>, TResult> transform)
+			public ResultIterator(FdbRangeQuery<T> query, IFdbReadTransaction transaction, Func<KeyValuePair<Slice, Slice>, T> transform)
 			{
 				Contract.Requires(query != null && transform != null);
 
@@ -83,9 +83,9 @@ namespace FoundationDB.Client
 				m_resultTransform = transform;
 			}
 
-			protected override FdbAsyncIterator<TResult> Clone()
+			protected override FdbAsyncIterator<T> Clone()
 			{
-				return new ResultIterator<TResult>(m_query, m_transaction, m_resultTransform);
+				return new ResultIterator(m_query, m_transaction, m_resultTransform);
 			}
 
 			protected override Task<bool> OnFirstAsync(CancellationToken ct)
@@ -166,18 +166,22 @@ namespace FoundationDB.Client
 
 			#region LINQ
 
-			public override FdbAsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+			public override FdbAsyncIterator<R> Select<R>(Func<T, R> selector)
 			{
-				return new ResultIterator<TNew>(
-					m_query,
+				var query = new FdbRangeQuery<R>(
 					m_transaction,
-					(x) => selector(m_resultTransform(x))
+					m_query.Range,
+					(x) => selector(m_resultTransform(x)),
+					m_query.Snapshot,
+					m_query.Options
 				);
+
+				return new FdbRangeQuery<R>.ResultIterator(query, m_transaction, query.Transform);
 			}
 
-			public override FdbAsyncIterator<TResult> Take(int limit)
+			public override FdbAsyncIterator<T> Take(int limit)
 			{
-				return new ResultIterator<TResult>(m_query.Take(limit), m_transaction, m_resultTransform);
+				return new ResultIterator(m_query.Take(limit), m_transaction, m_resultTransform);
 			}
 
 			#endregion

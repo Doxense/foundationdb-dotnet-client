@@ -167,8 +167,7 @@ namespace FoundationDB.Layers.Counters
 			long total = 0;
 			await trans
 				.GetRangeStartsWith(this.Subspace)
-				.Values()
-				.ForEachAsync((v) => { checked { total += DecodeInt(v); } })
+				.ForEachAsync((kvp) => { checked { total += DecodeInt(kvp.Value); } })
 				.ConfigureAwait(false);
 
 			return total;

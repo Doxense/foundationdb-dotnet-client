@@ -108,21 +108,21 @@ namespace FoundationDB.Client
 
 		#region GetRange...
 
-		public static FdbRangeQuery GetRange(this IFdbReadTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans.GetRange(FdbKeySelectorPair.Create(beginInclusive, endExclusive), options);
 		}
 
-		public static FdbRangeQuery GetRange(this IFdbReadTransaction trans, FdbKeyRange range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadTransaction trans, FdbKeyRange range, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans.GetRange(FdbKeySelectorPair.Create(range), options);
 		}
 
-		public static FdbRangeQuery GetRange(this IFdbReadTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null)
 		{
 			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;
 			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
@@ -136,7 +136,7 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static FdbRangeQuery GetRangeInclusive(this IFdbReadTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endInclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeInclusive(this IFdbReadTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endInclusive, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 

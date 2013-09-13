@@ -181,8 +181,7 @@ namespace FoundationDB.Layers.Collections
 		private Task<KeyValuePair<Slice, Slice>> GetFirstItemAsync(IFdbReadTransaction tr, CancellationToken ct)
 		{
 			var range = this.QueueItem.ToRange();
-
-			return tr.GetRange(range, new FdbRangeOptions { Limit = 1 }).SingleOrDefaultAsync(ct);
+			return tr.GetRange(range).FirstOrDefaultAsync(ct);
 		}
 
 		private async Task<Slice> PopSimpleAsync(IFdbTransaction tr, CancellationToken ct)
@@ -214,13 +213,13 @@ namespace FoundationDB.Layers.Collections
 			return waitKey;
 		}
 
-		private FdbRangeQuery GetWaitingPops(IFdbReadTransaction tr, int numPops)
+		private FdbRangeQuery<KeyValuePair<Slice, Slice>> GetWaitingPops(IFdbReadTransaction tr, int numPops)
 		{
 			var range = this.ConflictedPop.ToRange();
 			return tr.GetRange(range, new FdbRangeOptions { Limit = numPops });
 		}
 
-		private FdbRangeQuery GetItems(IFdbReadTransaction tr, int numItems)
+		private FdbRangeQuery<KeyValuePair<Slice, Slice>> GetItems(IFdbReadTransaction tr, int numItems)
 		{
 			var range = this.QueueItem.ToRange();
 			return tr.GetRange(range, new FdbRangeOptions { Limit = numItems });

@@ -436,7 +436,7 @@ namespace FoundationDB.Client
 
 		#region GetRange...
 
-		internal FdbRangeQuery GetRangeCore(FdbKeySelectorPair range, FdbRangeOptions options, bool snapshot)
+		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(FdbKeySelectorPair range, FdbRangeOptions options, bool snapshot)
 		{
 			this.Database.EnsureKeyIsValid(range.Begin.Key);
 			this.Database.EnsureKeyIsValid(range.End.Key);
@@ -448,17 +448,17 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", range.Begin.ToString(), range.End.ToString()));
 #endif
 
-			return new FdbRangeQuery(this, range, options, snapshot);
+			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, range, (kvp) => kvp, snapshot, options);
 		}
 
-		public FdbRangeQuery GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null)
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null)
 		{
 			EnsureCanReadOrWrite();
 
 			return GetRangeCore(range, options, snapshot: false);
 		}
 
-		public FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options = null)
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(Slice prefix, FdbRangeOptions options = null)
 		{
 			if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
 

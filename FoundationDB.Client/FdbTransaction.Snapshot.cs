@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -123,14 +124,14 @@ namespace FoundationDB.Client
 				return m_parent.GetRangeCoreAsync(range, options, iteration, snapshot: true, ct: ct);
 			}
 
-			public FdbRangeQuery GetRange(FdbKeySelectorPair range, FdbRangeOptions options)
+			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options)
 			{
 				EnsureCanRead(CancellationToken.None);
 
 				return m_parent.GetRangeCore(range, options, snapshot: true);
 			}
 
-			public FdbRangeQuery GetRangeStartsWith(Slice prefix, FdbRangeOptions options)
+			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(Slice prefix, FdbRangeOptions options)
 			{
 				if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
 

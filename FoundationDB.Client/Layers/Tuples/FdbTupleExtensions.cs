@@ -210,7 +210,6 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Returns the value of a particular key</summary>
 		/// <param name="key">Key to retrieve</param>
-		/// <param name="snapshot"></param>
 		/// <param name="ct">CancellationToken used to cancel this operation</param>
 		/// <returns>Task that will return the value of the key if it is found, null if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
@@ -261,7 +260,7 @@ namespace FoundationDB.Layers.Tuples
 				.ToList();
 		}
 
-		public static FdbRangeQuery GetRange(this IFdbReadTransaction trans, IFdbTuple beginInclusive, IFdbTuple endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadTransaction trans, IFdbTuple beginInclusive, IFdbTuple endExclusive, FdbRangeOptions options = null)
 		{
 			Contract.Requires(trans != null);
 
@@ -277,7 +276,7 @@ namespace FoundationDB.Layers.Tuples
 			);
 		}
 
-		public static FdbRangeQuery GetRangeStartsWith(this IFdbReadTransaction trans, IFdbTuple suffix, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadTransaction trans, IFdbTuple suffix, FdbRangeOptions options = null)
 		{
 			Contract.Requires(trans != null);
 			if (suffix == null) throw new ArgumentNullException("suffix");

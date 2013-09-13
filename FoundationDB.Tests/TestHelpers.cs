@@ -89,9 +89,9 @@ namespace FoundationDB.Client.Tests
 			int count = 0;
 			await tr
 				.GetRange(FdbKeyRange.StartsWith(subspace.Key))
-				.ForEachAsync((key, value) =>
+				.ForEachAsync((kvp) =>
 				{
-					key = subspace.Extract(key);
+					var key = subspace.Extract(kvp.Key);
 					++count;
 					string keyDump = null;
 					try
@@ -105,7 +105,7 @@ namespace FoundationDB.Client.Tests
 						keyDump = "'" + key.ToString() + "'";
 					}
 						
-					Console.WriteLine("- " + keyDump + " = " + value.ToString());
+					Console.WriteLine("- " + keyDump + " = " + kvp.Value.ToString());
 				});
 
 			if (count == 0)

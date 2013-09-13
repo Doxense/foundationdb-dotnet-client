@@ -114,10 +114,10 @@ namespace FoundationDB.Layers.Tables
 
 			return trans
 				.GetRangeStartsWith(this.Subspace) //TODO: options?
-				.Select(
-					(key) => this.KeyReader.FromTuple(subspace.Unpack(key)),
-					(value) => this.ValueSerializer.Deserialize(value, missing)
-				)
+				.Select((kvp) => new KeyValuePair<TKey, TValue>(
+					this.KeyReader.FromTuple(subspace.Unpack(kvp.Key)),
+					this.ValueSerializer.Deserialize(kvp.Value, missing)
+				))
 				.ToListAsync(ct);
 		}
 

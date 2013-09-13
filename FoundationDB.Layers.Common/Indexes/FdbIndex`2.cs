@@ -147,7 +147,7 @@ namespace FoundationDB.Layers.Indexing
 
 			return trans
 				.GetRangeStartsWith(prefix, new FdbRangeOptions { Reverse = reverse })
-				.Keys((key) => this.Subspace.UnpackLast<TId>(key));
+				.Select((kvp) => this.Subspace.UnpackLast<TId>(kvp.Key));
 		}
 
 		public IFdbAsyncEnumerable<TId> LookupGreaterThan(IFdbReadTransaction trans, TValue value, bool orEqual, bool reverse = false)
@@ -162,7 +162,7 @@ namespace FoundationDB.Layers.Indexing
 
 			return trans
 				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Keys((key) => this.Subspace.UnpackLast<TId>(key));
+				.Select((kvp) => this.Subspace.UnpackLast<TId>(kvp.Key));
 		}
 
 
@@ -178,7 +178,7 @@ namespace FoundationDB.Layers.Indexing
 
 			return trans
 				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Keys((key) => this.Subspace.UnpackLast<TId>(key));
+				.Select((kvp) => this.Subspace.UnpackLast<TId>(kvp.Key));
 		}
 
 		public override string ToString()

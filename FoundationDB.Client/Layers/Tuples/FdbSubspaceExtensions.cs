@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
 	using System;
+	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -47,7 +48,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Returns all the keys inside of a subspace</summary>
-		public static FdbRangeQuery GetRangeStartsWith(this IFdbReadTransaction trans, FdbSubspace subspace, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadTransaction trans, FdbSubspace subspace, FdbRangeOptions options = null)
 		{
 			Contract.Requires(trans != null && subspace != null);
 
