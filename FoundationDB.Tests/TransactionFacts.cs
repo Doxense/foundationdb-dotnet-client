@@ -340,6 +340,80 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Resolve_Key_Selector()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("keys");
+				await db.ClearRangeAsync(location);
+
+				var minKey = location.Key + FdbKey.MinValue;
+				var maxKey = location.Key + FdbKey.MaxValue;
+
+				#region Insert a bunch of keys ...
+				using (var tr = db.BeginTransaction())
+				{
+					// keys
+					// - (test,) + \0
+					// - (test, 0) .. (test, 19)
+					// - (test,) + \xFF
+					tr.Set(minKey, Slice.FromString("min"));
+					for (int i = 0; i < 20; i++)
+					{
+						tr.Set(location.Pack(i), Slice.FromString(i.ToString()));
+					}
+					tr.Set(maxKey, Slice.FromString("max"));
+					await tr.CommitAsync();
+				}
+				#endregion
+
+				using (var tr = db.BeginTransaction())
+				{
+					FdbKeySelector sel;
+
+					// >= 0
+					sel = FdbKeySelector.FirstGreaterOrEqual(location.Pack(0));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Pack(0)), "fGE(0) should return 0");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(minKey), "fGE(0)-1 should return minKey");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(1)), "fGE(0)+1 should return 1");
+
+					// > 0
+					sel = FdbKeySelector.FirstGreaterThan(location.Pack(0));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Pack(1)), "fGT(0) should return 1");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(0)), "fGT(0)-1 should return 0");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(2)), "fGT(0)+1 should return 2");
+
+					// <= 10
+					sel = FdbKeySelector.LastLessOrEqual(location.Pack(10));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Pack(10)), "lLE(10) should return 10");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(9)), "lLE(10)-1 should return 9");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(11)), "lLE(10)+1 should return 11");
+
+					// < 10
+					sel = FdbKeySelector.LastLessThan(location.Pack(10));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Pack(9)), "lLT(10) should return 9");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(8)), "lLT(10)-1 should return 8");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(10)), "lLT(10)+1 should return 10");
+
+					// < 0
+					sel = FdbKeySelector.LastLessThan(location.Pack(0));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(minKey), "lLT(0) should return minKey");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(0)), "lLT(0)+1 should return 0");
+
+					// >= 20
+					sel = FdbKeySelector.FirstGreaterOrEqual(location.Pack(20));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(maxKey), "fGE(20) should return maxKey");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(19)), "fGE(20)-1 should return 19");
+
+					// > 19
+					sel = FdbKeySelector.FirstGreaterThan(location.Pack(19));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(maxKey), "fGT(19) should return maxKey");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(19)), "fGT(19)-1 should return 19");
+				}
+			}
+		}
+
+		[Test]
 		public async Task Test_Get_Multiple_Values()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
