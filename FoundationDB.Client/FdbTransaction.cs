@@ -525,7 +525,7 @@ namespace FoundationDB.Client
 			}
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysCoreAsync", String.Format("Getting batch of {0} keys ...", keys.Length.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysCoreAsync", String.Format("Getting batch of {0} keys ...", selectors.Length.ToString()));
 #endif
 
 			var futures = new FutureHandle[selectors.Length];
