@@ -77,15 +77,18 @@ namespace FoundationDB.Client
 			return new FdbFutureSingle<T>(handle, handle.IsInvalid ? null : selector, ct);
 		}
 
-		/// <summary>Create a new FdbFuture&lt;<typeparamref name="T"/>&gt; from an FDBFuture* pointer</summary>
-		/// <typeparam name="T">Type of the result of the task</typeparam>
-		/// <param name="handle">FDBFuture* pointer</param>
-		/// <param name="selector">Func that will be called to get the result once the future completes (and did not fail)</param>
+		/// <summary>Create a new FdbFutureArray&lt;<typeparamref name="T"/>&gt; from an array of FDBFuture* pointers</summary>
+		/// <typeparam name="T">Type of the items of the arrayreturn by the task</typeparam>
+		/// <param name="handles">Array of FDBFuture* pointers</param>
+		/// <param name="selector">Func that will be called for each future that complete (and did not fail)</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
-		/// <returns>Object that tracks the execution of the FDBFuture handle</returns>
+		/// <returns>Object that tracks the execution of all the FDBFuture handles</returns>
 		public static FdbFutureArray<T> FromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
 		{
+			if (handles == null) throw new ArgumentNullException("handles");
 			if (selector == null) throw new ArgumentNullException("selector");
+
+			if (handles.Length == 0) throw new ArgumentException("There must be at least on handle to create a FdbFutureArray<T>", "handles");
 
 			return new FdbFutureArray<T>(handles, selector, ct);
 		}
@@ -101,14 +104,21 @@ namespace FoundationDB.Client
 			return FromHandle(handle, continuation, ct).Task;
 		}
 
-		/// <summary>Wrap a FdbFuture&lt;<typeparamref name="T"/>&gt; handle into a Task&lt;<typeparamref name="T"/>&gt;</summary>
+		/// <summary>Wrap multiple FdbFuture&lt;<typeparamref name="T"/>&gt; handles into a single Task&lt;<typeparamref name="T"/>[]&gt;</summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
-		/// <param name="handle">FDBFuture* pointer</param>
-		/// <param name="continuation">Lambda that will be called once the future completes sucessfully, to extract the result from the future handle.</param>
+		/// <param name="handles">Array of FDBFuture* pointers</param>
+		/// <param name="continuation">Lambda that will be called once for each future that completes sucessfully, to extract the result from the future handle.</param>
 		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
-		/// <returns>Task that will either return the result of the continuation lambda, or an exception</returns>
+		/// <returns>Task that will either return all the results of the continuation lambdas, or an exception</returns>
+		/// <remarks>If at least one future fails, the whole task will fail.</remarks>
 		public static Task<T[]> CreateTaskFromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> continuation, CancellationToken ct)
 		{
+			if (handles == null) throw new ArgumentNullException("handles");
+			if (continuation == null) throw new ArgumentNullException("continuation");
+
+			// Special case, because FdbFutureArray<T> does not support empty arrays
+			if (handles.Length == 0) return Task.FromResult<T[]>(new T[0]);
+
 			return FromHandleArray(handles, continuation, ct).Task;
 		}
 
