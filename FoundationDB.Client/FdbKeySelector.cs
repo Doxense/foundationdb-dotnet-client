@@ -54,15 +54,15 @@ namespace FoundationDB.Client
 			int offset = this.Offset;
 			if (offset < 1)
 			{
-				sb.Append(this.OrEqual ? "lLE( " : "lLT( ");
+				sb.Append(this.OrEqual ? "lLE{" : "lLT{");
 			}
 			else
 			{
 				--offset;
-				sb.Append(this.OrEqual ? "fGT( " : "fGE( ");
+				sb.Append(this.OrEqual ? "fGT{" : "fGE{");
 			}
 			sb.Append(FdbKey.Dump(this.Key));
-			sb.Append(" )");
+			sb.Append("}");
 
 			if (offset > 0) 
 				sb.Append(" + ").Append(offset.ToString());

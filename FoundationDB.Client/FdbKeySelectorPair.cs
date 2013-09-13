@@ -91,7 +91,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a printable version of the pair of key selectors</summary>
 		public override string ToString()
 		{
-			return "[" + this.Begin.ToString() + ", " + this.End.ToString() + ")";
+			return "[ " + this.Begin.ToString() + ", " + this.End.ToString() + " )";
 		}
 
 	}

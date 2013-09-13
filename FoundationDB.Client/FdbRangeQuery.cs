@@ -300,9 +300,10 @@ namespace FoundationDB.Client
 
 		}
 
+		/// <summary>Returns a printable version of the range query</summary>
 		public override string ToString()
 		{
-			return "(" + this.Range.Begin.ToString() + " ... " + this.Range.End.ToString() + ")";
+			return String.Format("Range({0}, {1}, {2})", this.Range.ToString(), this.Limit.ToString(), this.Reverse ? "reverse" : "forward");
 		}
 
 	}
