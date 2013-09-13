@@ -236,6 +236,18 @@ namespace FoundationDB.Client
 			return trans.GetValuesAsync(array, ct);
 		}
 
+		public static Task<Slice[]> GetKeysAsync(this IFdbReadTransaction trans, IEnumerable<FdbKeySelector> selectors, CancellationToken ct = default(CancellationToken))
+		{
+			if (selectors == null) throw new ArgumentNullException("selectors");
+
+			ct.ThrowIfCancellationRequested();
+
+			var array = selectors as FdbKeySelector[];
+			if (array == null) array = selectors.ToArray();
+
+			return trans.GetKeysAsync(array, ct);
+		}
+
 		public static Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys, CancellationToken ct = default(CancellationToken))
 		{
 			if (keys == null) throw new ArgumentNullException("keys");

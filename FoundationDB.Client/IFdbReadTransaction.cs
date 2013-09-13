@@ -88,6 +88,14 @@ namespace FoundationDB.Client
 		Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct = default(CancellationToken));
 
 		/// <summary>
+		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
+		/// </summary>
+		/// <param name="selectors">Key selectors to resolve</param>
+		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
+		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
+		Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, CancellationToken ct = default(CancellationToken));
+
+		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
 		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
 		/// and lexicographically less than the key resolved by the end key selector.

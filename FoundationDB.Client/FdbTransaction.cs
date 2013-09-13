@@ -506,9 +506,60 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
 		public Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct = default(CancellationToken))
 		{
-			EnsureCanReadOrWrite(ct);
+			EnsureCanRead(ct);
 
 			return GetKeyCoreAsync(selector, snapshot: false, ct: ct);
+		}
+
+		#endregion
+
+		#region GetKeys..
+
+		internal Task<Slice[]> GetKeysCoreAsync(FdbKeySelector[] selectors, bool snapshot, CancellationToken ct)
+		{
+			Contract.Requires(selectors != null);
+
+			foreach (var selector in selectors)
+			{
+				this.Database.EnsureKeyIsValid(selector.Key);
+			}
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysCoreAsync", String.Format("Getting batch of {0} keys ...", keys.Length.ToString()));
+#endif
+
+			var futures = new FutureHandle[selectors.Length];
+			try
+			{
+				for (int i = 0; i < selectors.Length; i++)
+				{
+					futures[i] = FdbNative.TransactionGetKey(m_handle, selectors[i], snapshot);
+				}
+			}
+			catch
+			{
+				for (int i = 0; i < selectors.Length; i++)
+				{
+					if (futures[i] == null) break;
+					futures[i].Dispose();
+				}
+				throw;
+			}
+			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetKeyResult(h), ct);
+
+		}
+
+		/// <summary>
+		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
+		/// </summary>
+		/// <param name="selectors">Key selectors to resolve</param>
+		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
+		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
+		public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, CancellationToken ct = default(CancellationToken))
+		{
+			EnsureCanRead(ct);
+
+			return GetKeysCoreAsync(selectors, snapshot: false, ct: ct);
 		}
 
 		#endregion
@@ -740,7 +791,6 @@ namespace FoundationDB.Client
 				throw;
 			}
 			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetValueResultBytes(h), ct);
-
 		}
 
 		public Task<Slice[]> GetValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken))

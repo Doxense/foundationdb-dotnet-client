@@ -109,6 +109,13 @@ namespace FoundationDB.Client
 				return m_parent.GetKeyCoreAsync(selector, snapshot: true, ct: ct);
 			}
 
+			public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, CancellationToken ct)
+			{
+				EnsureCanRead(ct);
+
+				return m_parent.GetKeysCoreAsync(selectors, snapshot:true, ct: ct);
+			}
+
 			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, CancellationToken ct)
 			{
 				EnsureCanRead(ct);

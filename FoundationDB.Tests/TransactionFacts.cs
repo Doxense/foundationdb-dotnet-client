@@ -454,6 +454,61 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Get_Multiple_Keys()
+		{
+			const int N = 20;
+
+			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+
+				var location = db.Partition("keys");
+				await db.ClearRangeAsync(location);
+
+				var minKey = location.Key + FdbKey.MinValue;
+				var maxKey = location.Key + FdbKey.MaxValue;
+
+				#region Insert a bunch of keys ...
+				using (var tr = db.BeginTransaction())
+				{
+					// keys
+					// - (test,) + \0
+					// - (test, 0) .. (test, N-1)
+					// - (test,) + \xFF
+					tr.Set(minKey, Slice.FromString("min"));
+					for (int i = 0; i < 20; i++)
+					{
+						tr.Set(location.Pack(i), Slice.FromString(i.ToString()));
+					}
+					tr.Set(maxKey, Slice.FromString("max"));
+					await tr.CommitAsync();
+				}
+				#endregion
+
+				using (var tr = db.BeginTransaction())
+				{
+					var selectors = Enumerable.Range(0, N).Select((i) => FdbKeySelector.FirstGreaterOrEqual(location.Pack(i))).ToArray();
+
+					// GetKeysAsync([])
+					var results = await tr.GetKeysAsync(selectors);
+					Assert.That(results, Is.Not.Null);
+					Assert.That(results.Length, Is.EqualTo(20));
+					for (int i = 0; i < N; i++)
+					{
+						Assert.That(results[i], Is.EqualTo(location.Pack(i)));
+					}
+
+					// GetKeysAsync(cast to enumerable)
+					var results2 = await tr.GetKeysAsync((IEnumerable<FdbKeySelector>)selectors);
+					Assert.That(results2, Is.EqualTo(results));
+
+					// GetKeysAsync(real enumerable)
+					var results3 = await tr.GetKeysAsync(selectors.Select(x => x));
+					Assert.That(results3, Is.EqualTo(results));
+				}
+			}
+		}
+
 		/// <summary>Performs (x OP y) and ensure that the result is correct</summary>
 		private async Task PerformAtomicOperationAndCheck(FdbDatabase db, Slice key, int x, FdbMutationType type, int y)
 		{
