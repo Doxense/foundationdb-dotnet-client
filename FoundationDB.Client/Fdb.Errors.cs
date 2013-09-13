@@ -102,7 +102,7 @@ namespace FoundationDB.Client
 
 			internal static Exception CannotIncrementKey()
 			{
-				return new OverflowException("Incremented key must contain at least one byte not equal to 0xFF");
+				return new ArgumentException("Key must contain at least one byte not equal to 0xFF");
 			}
 		}
 
