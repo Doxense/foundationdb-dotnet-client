@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Tests
 {
 	using FoundationDB.Async;
+	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
@@ -620,30 +621,14 @@ namespace FoundationDB.Linq.Tests
 				Assert.That(res, Is.True);
 
 				// second move next should fail
-				try
-				{
-					res = await iterator.MoveNext(CancellationToken.None);
-					Assert.Fail("Should have failed");
-				}
-				catch (AssertionException) { throw; }
-				catch (Exception e)
-				{
-					Assert.That(e, Is.InstanceOf<FormatException>().And.Message.EqualTo("KABOOM"));
-				}
+				var x = await TestHelpers.AssertThrowsAsync<FormatException>(() => iterator.MoveNext(CancellationToken.None), "Should have failed");
+				Assert.That(x.Message, Is.EqualTo("KABOOM"));
 
 				// accessing current should rethrow the exception
 				Assert.That(() => iterator.Current, Throws.InstanceOf<InvalidOperationException>());
 
 				// another attempt at MoveNext should fail immediately but with a different error
-				try
-				{
-					res = await iterator.MoveNext(CancellationToken.None);
-				}
-				catch (AssertionException) { throw; }
-				catch (Exception e)
-				{
-					Assert.That(e, Is.InstanceOf<InvalidOperationException>());
-				}
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => iterator.MoveNext(CancellationToken.None));
 			}
 		}
 

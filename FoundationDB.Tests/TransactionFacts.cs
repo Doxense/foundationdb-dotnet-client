@@ -257,16 +257,7 @@ namespace FoundationDB.Client.Tests
 					if (t.IsCompleted) Assert.Inconclusive("Commit task already completed before having a chance to cancel");
 					cts.Cancel();
 
-					try
-					{
-						await t;
-						Assert.Fail("Cancelling a token passed to CommitAsync that is still pending should cancel the task");
-					}
-					catch (AssertionException) { throw; }
-					catch (Exception e)
-					{
-						Assert.That(e, Is.InstanceOf<TaskCanceledException>());
-					}
+					await TestHelpers.AssertThrowsAsync<TaskCanceledException>(() => t, "Cancelling a token passed to CommitAsync that is still pending should cancel the task");
 				}
 			}
 		}
