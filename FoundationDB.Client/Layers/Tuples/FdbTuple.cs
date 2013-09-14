@@ -35,6 +35,7 @@ namespace FoundationDB.Layers.Tuples
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Globalization;
+	using System.Linq;
 	using System.Text;
 
 	/// <summary>Factory class for Tuples</summary>
@@ -175,22 +176,35 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Create a new N-tuple, from N items</summary>
-		/// <param name="items">Array of items to wrap in a tuple</param>
-		/// <remarks>If the original array is mutated, the tuple will replect the changes!</remarks>
+		/// <param name="items">Items to wrap in a tuple</param>
+		/// <remarks>If you already have an array of items, you should call <see cref="CreateRange(object[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
 		public static IFdbTuple Create(params object[] items)
+		{
+			if (items == null) throw new ArgumentNullException("items");
+
+			//note: this is a convenience method for people that wants to pass more than 3 args arguments, and not have to call CreateRange(object[]) method
+
+			if (items.Length == 0) return FdbTuple.Empty;
+
+			// We don't copy the array, and rely on the fact that the array was created by the compiler and that nobody will get a reference on it.
+			return new FdbListTuple(items, 0, items.Length);
+		}
+
+		/// <summary>Create a new N-tuple that wraps an array of untyped items</summary>
+		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
+		public static IFdbTuple Wrap(object[] items)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 
 			if (items.Length == 0) return FdbTuple.Empty;
 
 			// review: should be create a copy ?
-			// can mutate if passed a pre-allocated array: { var foo = new objec[123]; Create(foo); foo[42] = "bad"; }
 			return new FdbListTuple(items, 0, items.Length);
 		}
 
-		/// <summary>Create a new N-tuple, from a section of an array of items</summary>
-		/// <remarks>If the original array is mutated, the tuple will replect the changes!</remarks>
-		public static IFdbTuple FromArray(object[] items, int offset, int count)
+		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
+		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
+		public static IFdbTuple Wrap(object[] items, int offset, int count)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
@@ -204,8 +218,32 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbListTuple(items, offset, count);
 		}
 
+		/// <summary>Create a new N-tuple, from an array of untyped items</summary>
+		public static IFdbTuple CreateRange(object[] items)
+		{
+			if (items == null) throw new ArgumentNullException("items");
+
+			return CreateRange(items, 0, items.Length);
+		}
+
+		/// <summary>Create a new N-tuple, from a section of an array of untyped items</summary>
+		public static IFdbTuple CreateRange(object[] items, int offset, int count)
+		{
+			if (items == null) throw new ArgumentNullException("items");
+			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
+			if (count < 0) throw new ArgumentOutOfRangeException("count", "Count cannot be less than zero");
+			if (offset + count > items.Length) throw new ArgumentOutOfRangeException("count", "Source array is too small");
+
+			if (count == 0) return FdbTuple.Empty;
+
+			// copy the items
+			var tmp = new object[count];
+			Array.Copy(items, offset, tmp, 0, count);
+			return new FdbListTuple(tmp, 0, count);
+		}
+
 		/// <summary>Create a new N-tuple from a sequence of items</summary>
-		public static IFdbTuple FromEnumerable(IEnumerable<object> items)
+		public static IFdbTuple CreateRange(IEnumerable<object> items)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 
@@ -214,6 +252,45 @@ namespace FoundationDB.Layers.Tuples
 			if (tuple == null)
 			{
 				tuple = new FdbListTuple(items);
+			}
+			return tuple;
+		}
+
+		/// <summary>Create a new N-tuple, from an array of typed items</summary>
+		public static IFdbTuple CreateRange<T>(T[] items)
+		{
+			if (items == null) throw new ArgumentNullException("items");
+
+			return CreateRange<T>(items, 0, items.Length);
+		}
+
+		/// <summary>Create a new N-tuple, from a section of an array of typed items</summary>
+		public static IFdbTuple CreateRange<T>(T[] items, int offset, int count)
+		{
+			if (items == null) throw new ArgumentNullException("items");
+			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
+			if (count < 0) throw new ArgumentOutOfRangeException("count", "Count cannot be less than zero");
+			if (offset + count > items.Length) throw new ArgumentOutOfRangeException("count", "Source array is too small");
+
+			if (count == 0) return FdbTuple.Empty;
+
+			// copy the items
+			var tmp = new object[count];
+			Array.Copy(items, offset, tmp, 0, count);
+			return new FdbListTuple(tmp, 0, count);
+		}
+
+		/// <summary>Create a new N-tuple from a sequence of typed items</summary>
+		public static IFdbTuple CreateRange<T>(IEnumerable<T> items)
+		{
+			if (items == null) throw new ArgumentNullException("items");
+
+			// may already be a tuple (because it implements IE<obj>)
+			var tuple = items as IFdbTuple;
+			if (tuple == null)
+			{
+				object[] tmp = items.Cast<object>().ToArray();
+				tuple = new FdbListTuple(tmp, 0, tmp.Length);
 			}
 			return tuple;
 		}

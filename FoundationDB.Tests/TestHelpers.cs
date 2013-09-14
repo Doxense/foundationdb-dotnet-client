@@ -57,7 +57,7 @@ namespace FoundationDB.Client.Tests
 			else if (path.Length == 1)
 				tuple = FdbTuple.Create(path[0]);
 			else
-				tuple = FdbTuple.FromArray(path, 0, path.Length);
+				tuple = FdbTuple.CreateRange(path, 0, path.Length);
 
 			// remove previous
 			await db.Root.RemoveAsync(tuple);

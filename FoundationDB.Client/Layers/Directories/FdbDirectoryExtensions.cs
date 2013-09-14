@@ -166,28 +166,28 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (path == null) throw new ArgumentNullException("path");
-			return directory.CreateOrOpenAsync(db, FdbTuple.FromArray(path, 0, path.Length));
+			return directory.CreateOrOpenAsync(db, FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
 		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectoryLayer directory, FdbDatabase db, params string[] path)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (path == null) throw new ArgumentNullException("path");
-			return directory.OpenAsync(db, FdbTuple.FromArray(path, 0, path.Length));
+			return directory.OpenAsync(db, FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
 		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectoryLayer directory, FdbDatabase db, params string[] path)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (path == null) throw new ArgumentNullException("path");
-			return directory.OpenAsync(db, FdbTuple.FromArray(path, 0, path.Length));
+			return directory.OpenAsync(db, FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
 		public static Task<bool> RemoveAsync(this FdbDirectoryLayer directory, FdbDatabase db, params string[] path)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (path == null) throw new ArgumentNullException("path");
-			return directory.RemoveAsync(db, FdbTuple.FromArray(path, 0, path.Length));
+			return directory.RemoveAsync(db, FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
 		//
@@ -196,28 +196,28 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (root == null) throw new ArgumentNullException("root");
 			if (path == null) throw new ArgumentNullException("path");
-			return root.CreateOrOpenAsync(FdbTuple.FromArray(path, 0, path.Length));
+			return root.CreateOrOpenAsync(FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
 		public static Task<FdbDirectorySubspace> OpenAsync(this FdbRootDirectory root, params string[] path)
 		{
 			if (root == null) throw new ArgumentNullException("root");
 			if (path == null) throw new ArgumentNullException("path");
-			return root.OpenAsync(FdbTuple.FromArray(path, 0, path.Length));
+			return root.OpenAsync(FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
 		public static Task<FdbDirectorySubspace> CreateAsync(this FdbRootDirectory root, params string[] path)
 		{
 			if (root == null) throw new ArgumentNullException("root");
 			if (path == null) throw new ArgumentNullException("path");
-			return root.OpenAsync(FdbTuple.FromArray(path, 0, path.Length));
+			return root.OpenAsync(FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
 		public static Task<bool> RemoveAsync(this FdbRootDirectory root, params string[] path)
 		{
 			if (root == null) throw new ArgumentNullException("root");
 			if (path == null) throw new ArgumentNullException("path");
-			return root.RemoveAsync(FdbTuple.FromArray(path, 0, path.Length));
+			return root.RemoveAsync(FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
 	}

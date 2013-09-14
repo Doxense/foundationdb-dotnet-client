@@ -811,12 +811,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 			);
 
 			Assert.That(
-				FdbTuple.FromArray(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }, 1, 2).ToSlice().ToString(),
+				FdbTuple.CreateRange(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }, 1, 2).ToSlice().ToString(),
 				Is.EqualTo("<15>{<14>")
 			);
 
 			Assert.That(
-				FdbTuple.FromEnumerable(new List<object> { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }).ToSlice().ToString(),
+				FdbTuple.CreateRange(new List<object> { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }).ToSlice().ToString(),
 				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
 			);
 
