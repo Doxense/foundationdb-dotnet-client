@@ -191,7 +191,6 @@ namespace FoundationDB.Layers.Collections
 
 			long currentSize = await ComputeSizeAsync(tr, ct).ConfigureAwait(false);
 
-			//BUGBUG: python implemention does "i1 > currentSize" which looks like a bug to me ?
 			if (index1 >= currentSize || index2 >= currentSize) throw new IndexOutOfRangeException(String.Format("Indices ({0}, {1}) are out of range", index1, index2));
 
 			var vs = await tr.GetValuesAsync(new[] { k1, k2 }, ct).ConfigureAwait(false);
