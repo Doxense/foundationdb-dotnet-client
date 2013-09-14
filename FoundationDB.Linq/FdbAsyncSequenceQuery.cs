@@ -47,6 +47,11 @@ namespace FoundationDB.Linq
 
 		public Type ElementType { get { return typeof(T); } }
 
+		public IFdbAsyncEnumerable<T> ToEnumerable(FdbAsyncMode mode = FdbAsyncMode.Default)
+		{
+			return FdbAsyncEnumerable.Create((_) => GetEnumerator(this, mode));
+		}
+
 	}
 
 }

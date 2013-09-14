@@ -177,18 +177,13 @@ namespace FoundationDB.Linq
 			return expr.Compile();
 		}
 
-		public IFdbAsyncEnumerable<T> ToEnumerable()
-		{
-			return FdbAsyncEnumerable.Create((state) => GetEnumerator((FdbAsyncSequenceQuery<T>)state));
-		}
-
-		internal static IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncSequenceQuery<T> sequence)
+		internal static IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncSequenceQuery<T> sequence, FdbAsyncMode mode)
 		{
 			var generator = sequence.CompileSequence(sequence.Expression);
 
 			if (sequence.Transaction != null)
 			{
-				return generator(sequence.Transaction).GetEnumerator();
+				return generator(sequence.Transaction).GetEnumerator(mode);
 			}
 
 			IFdbTransaction trans = null;
