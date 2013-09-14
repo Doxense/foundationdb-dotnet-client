@@ -169,7 +169,7 @@ namespace FoundationDB.Linq
 
 		#region Run...
 
-		/// <summary>Small buffer that keep a list of chunks that are larger and larger</summary>
+		/// <summary>Small buffer that keeps a list of chunks that are larger and larger</summary>
 		/// <typeparam name="T">Type of elements stored in the buffer</typeparam>
 		[DebuggerDisplay("Count={Count}, Chunks={this.Chunks.Length}, Current={Index}/{Current.Length}")]
 		internal class Buffer<T>
@@ -179,7 +179,7 @@ namespace FoundationDB.Linq
 
 			/// <summary>Default intial capacity, if not specified</summary>
 			const int DefaultCapacity = 16;
-			//TODO: should we use a power of 2 or of 10 for initial capacity? 
+			//REVIEW: should we use a power of 2 or of 10 for initial capacity? 
 			// Since humans prefer the decimal system, it is more likely that query limit count be set to something like 10, 50, 100 or 1000
 			// but most "human friendly" limits are close to the next power of 2, like 10 ~= 16, 50 ~= 64, 100 ~= 128, 500 ~= 512, 1000 ~= 1024, so we don't waste that much space...
 
@@ -303,12 +303,14 @@ namespace FoundationDB.Linq
 
 			ct.ThrowIfCancellationRequested();
 
+			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
+
 			long count = 0;
 			using (var iterator = source.GetEnumerator(mode))
 			{
 				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct).ConfigureAwait(false))
+				while (await iterator.MoveNext(ct))
 				{
 					action(iterator.Current);
 					++count;
@@ -323,18 +325,20 @@ namespace FoundationDB.Linq
 		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
-		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task> action, CancellationToken ct)
+		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, FdbAsyncMode mode, Func<TSource, CancellationToken, Task> action, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
+			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
+
 			long count = 0;
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(mode))
 			{
 				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct).ConfigureAwait(false))
+				while (await iterator.MoveNext(ct))
 				{
-					await action(iterator.Current, ct).ConfigureAwait(false);
+					await action(iterator.Current, ct);
 					++count;
 				}
 			}
@@ -347,19 +351,21 @@ namespace FoundationDB.Linq
 		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
-		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, Func<TSource, Task> action, CancellationToken ct)
+		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, FdbAsyncMode mode, Func<TSource, Task> action, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
+			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
+
 			long count = 0;
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(mode))
 			{
 				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
 
-				while (await iterator.MoveNext(ct).ConfigureAwait(false))
+				while (await iterator.MoveNext(ct))
 				{
 					ct.ThrowIfCancellationRequested();
-					await action(iterator.Current).ConfigureAwait(false);
+					await action(iterator.Current);
 					++count;
 				}
 			}
@@ -375,16 +381,20 @@ namespace FoundationDB.Linq
 		/// <returns>Value of the first element of the <paramref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
 		internal static async Task<TSource> Head<TSource>(IFdbAsyncEnumerable<TSource> source, bool single, bool orDefault, CancellationToken ct)
 		{
+			ct.ThrowIfCancellationRequested();
+
+			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
+
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
 				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
 
-				if (await iterator.MoveNext(ct).ConfigureAwait(false))
+				if (await iterator.MoveNext(ct))
 				{
 					TSource first = iterator.Current;
 					if (single)
 					{
-						if (await iterator.MoveNext(ct).ConfigureAwait(false)) throw new InvalidOperationException("The sequence contained more than one element");
+						if (await iterator.MoveNext(ct)) throw new InvalidOperationException("The sequence contained more than one element");
 					}
 					return first;
 				}

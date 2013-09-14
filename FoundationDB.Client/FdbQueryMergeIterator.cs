@@ -84,6 +84,10 @@ namespace FoundationDB.Client
 				return TaskHelpers.FromResult(Completed());
 			}
 
+			// even if the caller only wants the first, we will probably need to read more than that...
+			var mode = m_mode;
+			if (mode == FdbAsyncMode.Head) mode = FdbAsyncMode.Iterator;
+
 			var sources = m_sources.ToArray();
 			var iterators = new IteratorState[sources.Length];
 			try
@@ -93,7 +97,7 @@ namespace FoundationDB.Client
 				{
 					var state = new IteratorState();
 					state.Active = true;
-					state.Iterator = sources[i].GetEnumerator();
+					state.Iterator = sources[i].GetEnumerator(mode);
 					state.Next = state.Iterator.MoveNext(ct);
 
 					iterators[i] = state;

@@ -442,7 +442,7 @@ namespace FoundationDB.Linq
 				return iterator.ExecuteAsync(asyncAction, ct);
 			}
 
-			return Run<T>(source, asyncAction, ct);
+			return Run<T>(source, FdbAsyncMode.All, asyncAction, ct);
 		}
 
 		/// <summary>Return a list of all the elements from an async sequence</summary>
@@ -484,7 +484,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
 
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
 			{
 				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
 
@@ -508,7 +508,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
 
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
 			{
 				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
 
@@ -528,7 +528,7 @@ namespace FoundationDB.Linq
 			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
 
 			var accumulate = seed;
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
 			{
 				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
 
@@ -623,7 +623,7 @@ namespace FoundationDB.Linq
 
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
 				return await iterator.MoveNext(ct).ConfigureAwait(false);
 			}
@@ -636,7 +636,7 @@ namespace FoundationDB.Linq
 
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
 				while (await iterator.MoveNext(ct).ConfigureAwait(false))
 				{
@@ -654,7 +654,7 @@ namespace FoundationDB.Linq
 
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
 				return !(await iterator.MoveNext(ct).ConfigureAwait(false));
 			}
@@ -667,7 +667,7 @@ namespace FoundationDB.Linq
 
 			ct.ThrowIfCancellationRequested();
 
-			using (var iterator = source.GetEnumerator())
+			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
 				while (await iterator.MoveNext(ct).ConfigureAwait(false))
 				{

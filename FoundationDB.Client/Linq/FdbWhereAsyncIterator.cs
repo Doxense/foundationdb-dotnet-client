@@ -149,7 +149,10 @@ namespace FoundationDB.Linq
 
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			using (var iter = m_source.GetEnumerator())
+			var mode = m_mode;
+			if (mode == FdbAsyncMode.Head) mode = FdbAsyncMode.Iterator;
+
+			using (var iter = m_source.GetEnumerator(mode))
 			{
 				if (m_filter != null)
 				{
@@ -185,7 +188,10 @@ namespace FoundationDB.Linq
 
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			using (var iter = m_source.GetEnumerator())
+			var mode = m_mode;
+			if (mode == FdbAsyncMode.Head) mode = FdbAsyncMode.Iterator;
+
+			using (var iter = m_source.GetEnumerator(mode))
 			{
 				if (m_filter != null)
 				{

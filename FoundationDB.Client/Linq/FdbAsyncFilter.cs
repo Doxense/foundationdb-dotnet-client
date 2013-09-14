@@ -55,7 +55,12 @@ namespace FoundationDB.Linq
 			IFdbAsyncEnumerator<TSource> iterator = null;
 			try
 			{
-				iterator = m_source.GetEnumerator();
+				// filtering changes the number of items, so that means that, even if the underlying caller wants one item, we may need to read more.
+				// => change all "Head" requests into "Iterator" to prevent any wrong optimizations by the underlying source (ex: using a too small batch size)
+				var mode = m_mode;
+				if (mode == FdbAsyncMode.Head) mode = FdbAsyncMode.Iterator;
+
+				iterator = m_source.GetEnumerator(mode);
 				return TaskHelpers.FromResult(iterator != null);
 			}
 			catch (Exception)

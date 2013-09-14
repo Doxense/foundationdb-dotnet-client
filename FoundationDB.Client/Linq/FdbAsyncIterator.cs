@@ -36,7 +36,6 @@ namespace FoundationDB.Linq
 	using System.Threading.Tasks;
 
 	/// <summary>Base class for all async iterators</summary>
-	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	internal abstract class FdbAsyncIterator<TResult> : IFdbAsyncEnumerable<TResult>, IFdbAsyncEnumerator<TResult>
 	{
@@ -209,7 +208,7 @@ namespace FoundationDB.Linq
 
 		public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
 		{
-			return FdbAsyncEnumerable.Run<TResult>(this, asyncAction, ct);
+			return FdbAsyncEnumerable.Run<TResult>(this, FdbAsyncMode.All, asyncAction, ct);
 		}
 
 		#endregion
