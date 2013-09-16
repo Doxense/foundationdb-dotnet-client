@@ -47,6 +47,7 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="Blobs\FdbBlobTransactionals.cs" />
     <Compile Include="Collections\FdbArray`1.cs" />
     <Compile Include="Collections\FdbArrayExtensions.cs" />
     <Compile Include="Collections\FdbArray.cs" />

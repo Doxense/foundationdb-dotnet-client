@@ -89,7 +89,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 					long? size = await blob.GetSizeAsync(tr);
 					Assert.That(size, Is.EqualTo(20));
 
-					Slice data = await blob.ReadToEndAsync(tr);
+					Slice data = await blob.ReadAsync(tr, 0, (int)(size ?? 0));
 					Assert.That(data.ToUnicode(), Is.EqualTo("Attack of the Blobs!"));
 				}
 
@@ -135,57 +135,6 @@ namespace FoundationDB.Layers.Blobs.Tests
 					}
 				}
 
-			}
-		}
-
-		[Test]
-		public async Task Test_FdbBlob_Can_Set_Attributes()
-		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
-			{
-				var location = db.Partition("BlobsFromOuterSpace");
-
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
-
-				var blob = new FdbBlob(location.Partition("Blob"));
-
-				DateTime created = DateTime.UtcNow;
-				using (var tr = db.BeginTransaction())
-				{
-					await blob.AppendAsync(tr, Slice.FromString("This is the value of the blob."));
-					blob.SetAttribute(tr, "LastUpdated", Slice.FromInt64(created.Ticks));
-					await tr.CommitAsync();
-				}
-
-#if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
-#endif
-				using (var tr = db.BeginTransaction())
-				{
-					var value = await blob.GetAttributeAsync(tr, "LastUpdated");
-					Assert.That(value.HasValue, Is.True, "Attribute should exist");
-					Assert.That(value.ToInt64(), Is.EqualTo(created.Ticks));
-				}
-
-				DateTime updated = DateTime.UtcNow;
-				using (var tr = db.BeginTransaction())
-				{
-					await blob.AppendAsync(tr, Slice.FromString(" With some extra bytes."));
-					blob.SetAttribute(tr, "LastUpdated", Slice.FromInt64(updated.Ticks));
-					await tr.CommitAsync();
-				}
-
-#if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
-#endif
-				using (var tr = db.BeginTransaction())
-				{
-					var value = await blob.GetAttributeAsync(tr, "LastUpdated");
-					Assert.That(value.HasValue, Is.True, "Attribute should exist");
-					Assert.That(value.ToInt64(), Is.Not.EqualTo(created.Ticks), "Attribute should have changed");
-					Assert.That(value.ToInt64(), Is.EqualTo(updated.Ticks));
-				}
 			}
 		}
 

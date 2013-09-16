@@ -31,12 +31,9 @@ namespace FoundationDB.Layers.Blobs
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.IO;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -63,42 +60,36 @@ namespace FoundationDB.Layers.Blobs
 			this.Subspace = subspace;
 		}
 
-		public FdbBlob(IFdbTuple tuple)
-		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
-
-			this.Subspace = new FdbSubspace(tuple);
-		}
-
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
 
 		/// <summary>Returns the key for data chunk at the specified offset</summary>
 		/// <param name="offset"></param>
 		/// <returns>123 => (subspace, 'D', "             123")</returns>
-		private Slice DataKey(long offset)
+		protected virtual Slice DataKey(long offset)
 		{
 			//note: python code uses "%16d" % offset, which pads the value with spaces.. Not sure why ?
 			return this.Subspace.Pack(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
 		}
 
-		private long DataKeyOffset(Slice key)
+		protected virtual long DataKeyOffset(Slice key)
 		{
-			//TODO: check that the tuple is prefixed by (subspace, 'D',) ?
 			long offset = Int64.Parse(this.Subspace.UnpackLast<string>(key), CultureInfo.InvariantCulture);
 			if (offset < 0) throw new InvalidOperationException("Chunk offset value cannot be less than zero");
 			return offset;
 		}
 
-		private Slice SizeKey()
+		protected virtual Slice SizeKey()
 		{
 			return this.Subspace.Pack(SizeSuffix);
 		}
 
-		private Slice AttributeKey(string name)
+		protected virtual Slice AttributeKey(string name)
 		{
 			return this.Subspace.Pack(AttributesSuffix, name);
 		}
+
+		#region Internal Helpers...
 
 		private struct Chunk
 		{
@@ -114,11 +105,11 @@ namespace FoundationDB.Layers.Blobs
 			}
 		}
 
-		private async Task<Chunk> GetChunkAtAsync(IFdbTransaction trans, long offset)
+		private async Task<Chunk> GetChunkAtAsync(IFdbTransaction trans, long offset, CancellationToken ct)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
-			var chunkKey = await trans.GetKeyAsync(FdbKeySelector.LastLessOrEqual(DataKey(offset))).ConfigureAwait(false);
+			var chunkKey = await trans.GetKeyAsync(FdbKeySelector.LastLessOrEqual(DataKey(offset)), ct).ConfigureAwait(false);
 			if (chunkKey.IsNull)
 			{ // nothing before (sparse)
 				return default(Chunk);
@@ -131,7 +122,7 @@ namespace FoundationDB.Layers.Blobs
 
 			long chunkOffset = DataKeyOffset(chunkKey);
 
-			Slice chunkData = await trans.GetAsync(chunkKey).ConfigureAwait(false);
+			Slice chunkData = await trans.GetAsync(chunkKey, ct).ConfigureAwait(false);
 
 			if (chunkOffset + chunkData.Count <= offset)
 			{ // in sparse region after chunk
@@ -141,11 +132,11 @@ namespace FoundationDB.Layers.Blobs
 			return new Chunk(chunkKey, chunkData, chunkOffset);
 		}
 
-		private async Task MakeSplitPointAsync(IFdbTransaction trans, long offset)
+		private async Task MakeSplitPointAsync(IFdbTransaction trans, long offset, CancellationToken ct)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
-			var chunk = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
+			var chunk = await GetChunkAtAsync(trans, offset, ct).ConfigureAwait(false);
 			if (chunk.Key == Slice.Nil) return; // already sparse
 			if (chunk.Offset == offset) return; // already a split point
 
@@ -155,21 +146,21 @@ namespace FoundationDB.Layers.Blobs
 			trans.Set(DataKey(offset), chunk.Data.Substring(splitPoint));
 		}
 
-		private async Task MakeSparseAsync(IFdbTransaction trans, long start, long end)
+		private async Task MakeSparseAsync(IFdbTransaction trans, long start, long end, CancellationToken ct)
 		{
-			await MakeSplitPointAsync(trans, start).ConfigureAwait(false);
-			await MakeSplitPointAsync(trans, end).ConfigureAwait(false);
+			await MakeSplitPointAsync(trans, start, ct).ConfigureAwait(false);
+			await MakeSplitPointAsync(trans, end, ct).ConfigureAwait(false);
 			trans.ClearRange(DataKey(start), DataKey(end));
 		}
 
-		private async Task<bool> TryRemoteSplitPoint(IFdbTransaction trans, long offset)
+		private async Task<bool> TryRemoteSplitPointAsync(IFdbTransaction trans, long offset, CancellationToken ct)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
-			var b = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
+			var b = await GetChunkAtAsync(trans, offset, ct).ConfigureAwait(false);
 			if (b.Offset == 0 || b.Key == Slice.Nil) return false; // in sparse region, or at beginning
 
-			var a = await GetChunkAtAsync(trans, b.Offset - 1).ConfigureAwait(false);
+			var a = await GetChunkAtAsync(trans, b.Offset - 1, ct).ConfigureAwait(false);
 			if (a.Key == Slice.Nil) return false; // no previous chunk
 
 			if (a.Offset + a.Data.Count != b.Offset) return false; // chunks can't be joined
@@ -203,7 +194,11 @@ namespace FoundationDB.Layers.Blobs
 			trans.Set(SizeKey(), Slice.FromString(size.ToString()));
 		}
 
+		#endregion
 
+		/// <summary>
+		/// Delete all key-value pairs associated with the blob.
+		/// </summary>
 		public void Delete(IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -211,31 +206,35 @@ namespace FoundationDB.Layers.Blobs
 			trans.ClearRange(this.Subspace);
 		}
 
-		public async Task<long?> GetSizeAsync(IFdbTransaction trans)
+		/// <summary>
+		/// Get the size (in bytes) of the blob.
+		/// </summary>
+		/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
+		public async Task<long?> GetSizeAsync(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			Slice value = await trans.GetAsync(SizeKey()).ConfigureAwait(false);
+			Slice value = await trans.GetAsync(SizeKey(), ct).ConfigureAwait(false);
 
 			if (value.IsNullOrEmpty) return default(long?);
 
 			//note: python code stores the size as a string
-			return Int64.Parse(value.ToUnicode());
+			long size = Int64.Parse(value.ToAscii());
+			if (size < 0) throw new InvalidOperationException("The internal blob size cannot be negative");
+			return size;
 		}
 
 		/// <summary>
 		/// Read from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer then n bytes are returned when the end of the blob is reached).
 		/// </summary>
-		/// <param name="trans"></param>
-		/// <param name="offset"></param>
-		/// <param name="n"></param>
-		/// <returns></returns>
-		public async Task<Slice> ReadAsync(IFdbTransaction trans, long offset, int n)
+		public async Task<Slice> ReadAsync(IFdbReadTransaction trans, long offset, int n, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentNullException("offset", "Offset cannot be less than zero");
 
-			long? size = await GetSizeAsync(trans).ConfigureAwait(false);
+			ct.ThrowIfCancellationRequested();
+
+			long? size = await GetSizeAsync(trans, ct).ConfigureAwait(false);
 			if (size == null) return Slice.Nil; // not found
 
 			if (offset >= size.Value)
@@ -274,222 +273,71 @@ namespace FoundationDB.Layers.Blobs
 							intersect.CopyTo(buffer, start);
 						}
 					}
-				})
+				}, ct)
 				.ConfigureAwait(false);
 
 			return new Slice(buffer, 0, buffer.Length);
 		}
 
 		/// <summary>
-		/// Write data to the blob, starting at offset and overwriting any existing data at that location. The length of the blob is increased if necessary.
+		/// Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.
 		/// </summary>
-		public async Task WriteAsync(IFdbTransaction trans, long offset, Slice data)
+		public async Task WriteAsync(IFdbTransaction trans, long offset, Slice data, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
 
+			ct.ThrowIfCancellationRequested();
+
 			if (data.IsNullOrEmpty) return;
 
 			long end = offset + data.Count;
-			await MakeSparseAsync(trans, offset, end).ConfigureAwait(false);
+			await MakeSparseAsync(trans, offset, end, ct).ConfigureAwait(false);
 			WriteToSparse(trans, offset, data);
-			await TryRemoteSplitPoint(trans, offset).ConfigureAwait(false);
+			await TryRemoteSplitPointAsync(trans, offset, ct).ConfigureAwait(false);
 
-			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
+			long oldLength = (await GetSizeAsync(trans, ct).ConfigureAwait(false)) ?? 0;
 			if (end > oldLength)
-				SetSize(trans, end); // lengthen file if necessary
+			{ // lengthen file if necessary
+				SetSize(trans, end);
+			}
 			else
-				await TryRemoteSplitPoint(trans, end).ConfigureAwait(false); // write end needs to be merged
+			{ // write end needs to be merged
+				await TryRemoteSplitPointAsync(trans, end, ct).ConfigureAwait(false);
+			}
 		}
 
 		/// <summary>
-		/// Append the contents of data onto the end of the blob.
+		/// Append the contents of <paramref name="data"/> onto the end of the blob.
 		/// </summary>
-		public async Task AppendAsync(IFdbTransaction trans, Slice data)
+		public async Task AppendAsync(IFdbTransaction trans, Slice data, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
+			ct.ThrowIfCancellationRequested();
+
 			if (data.IsNullOrEmpty) return;
 
-			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
+			long oldLength = (await GetSizeAsync(trans, ct).ConfigureAwait(false)) ?? 0;
 			WriteToSparse(trans, oldLength, data);
-			await TryRemoteSplitPoint(trans, oldLength).ConfigureAwait(false);
+			await TryRemoteSplitPointAsync(trans, oldLength, ct).ConfigureAwait(false);
 			SetSize(trans, oldLength + data.Count);
 		}
 
 		/// <summary>
-		/// Change the blob length to new_length, erasing any data when shrinking, and filling new bytes with 0 when growing.
+		/// Change the blob length to <paramref name="newLength"/>, erasing any data when shrinking, and filling new bytes with 0 when growing.
 		/// </summary>
-		public async Task Truncate(IFdbTransaction trans, long newLength)
+		public async Task TruncateAsync(IFdbTransaction trans, long newLength, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (newLength < 0) throw new ArgumentOutOfRangeException("newLength", "Length cannot be less than zero");
 
-			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
+			long? length = await GetSizeAsync(trans, ct).ConfigureAwait(false);
 			if (length != null)
 			{
-				await MakeSparseAsync(trans, newLength, length.Value).ConfigureAwait(false);
+				await MakeSparseAsync(trans, newLength, length.Value, ct).ConfigureAwait(false);
 			}
 			SetSize(trans, newLength);
-		}
-
-		/// <summary>Clear the blob's content (without loosing the attributes)</summary>
-		/// <param name="trans"></param>
-		/// <returns></returns>
-		public void Clear(IFdbTransaction trans)
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-
-			trans.ClearRange(FdbKeyRange.StartsWith(this.Subspace.Pack(DataSuffix)));
-			SetSize(trans, 0);
-		}
-
-		/// <summary>
-		/// Sets the value of an attribute of this blob
-		/// </summary>
-		public void SetAttribute(IFdbTransaction trans, string name, Slice value)
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
-
-			if (value.HasValue)
-			{
-				trans.Set(AttributeKey(name), value);
-			}
-			else
-			{
-				trans.Clear(AttributeKey(name));
-			}
-		}
-
-		/// <summary>
-		/// Returns the value of an attribute of this blob
-		/// </summary>
-		public Task<Slice> GetAttributeAsync(IFdbTransaction trans, string name)
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
-
-			return trans.GetAsync(AttributeKey(name));
-		}
-
-		/// <summary>
-		/// Returns the list of all known attributes for this blob
-		/// </summary>
-		public Task<List<KeyValuePair<string, Slice>>> GetAllAttributesAsync(IFdbTransaction trans)
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-
-			return trans
-				.GetRangeStartsWith(this.Subspace.Pack(AttributesSuffix))
-				.Select((kvp) => new KeyValuePair<string, Slice>(
-					this.Subspace.UnpackLast<string>(kvp.Key),
-					kvp.Value
-				))
-				.ToListAsync();
-		}
-
-		/// <summary>
-		/// Read the entire content of the blob into a slice
-		/// </summary>
-		/// <returns></returns>
-		/// <remarks>Warning, do not call this if you know that the blob can be very large, because it will need to feed in memory, and don't exceed 2GB</remarks>
-		public async Task<Slice> ReadToEndAsync(IFdbTransaction trans)
-		{
-			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
-
-			if (length == null) return Slice.Nil;
-			if (length.Value == 0) return Slice.Empty;
-			if (length.Value > int.MaxValue) throw new InvalidOperationException(String.Format("Cannot read blob of size {0} because it is over 2 GB", length.Value));
-
-			return await ReadAsync(trans, 0, (int)length.Value);
-		}
-
-		public async Task<Stream> DownloadAsync(IFdbTransaction trans, CancellationToken ct = default(CancellationToken))
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-
-			ct.ThrowIfCancellationRequested();
-
-			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
-
-			if (length == null) return Stream.Null;
-
-			if (length.Value > int.MaxValue) throw new InvalidOperationException("Cannot download blobs of more than GB");
-
-			var ms = new MemoryStream((int)length.Value);
-
-			await trans
-				.GetRangeStartsWith(this.Subspace.Pack(DataSuffix))
-				.ForEachAsync((chunk) =>
-				{
-					long offset = DataKeyOffset(chunk.Key);
-					ms.Seek(offset, SeekOrigin.Begin);
-					ms.Write(chunk.Value.Array, chunk.Value.Offset, chunk.Value.Count);
-				}, ct)
-				.ConfigureAwait(false);
-
-			ms.Seek(0, SeekOrigin.Begin);
-			return ms;
-		}
-
-		public async Task Upload(IFdbTransaction trans, Slice data)
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (data.IsNull) throw new ArgumentNullException("data");
-
-			await Truncate(trans, 0).ConfigureAwait(false);
-			await AppendAsync(trans, data).ConfigureAwait(false);
-		}
-
-		public async Task UploadAsync(IFdbTransaction trans, Stream stream, CancellationToken ct = default(CancellationToken))
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (stream == null) throw new ArgumentNullException("stream");
-			if (!stream.CanRead) throw new InvalidOperationException("Cannot read from the stream");
-
-			ct.ThrowIfCancellationRequested();
-
-			Clear(trans);
-
-			if (stream != Stream.Null)
-			{
-				await AppendStreamAsync(trans, stream, ct).ConfigureAwait(false);
-			}
-		}
-
-		/// <summary>
-		/// Append the content of a stream at the end of the blob
-		/// </summary>
-		public async Task AppendStreamAsync(IFdbTransaction trans, Stream stream, CancellationToken ct = default(CancellationToken))
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (stream == null) throw new ArgumentNullException("stream");
-			if (!stream.CanRead) throw new InvalidOperationException("Cannot read from the stream");
-
-			ct.ThrowIfCancellationRequested();
-
-			long length = stream.Length;
-			if (length >= 0)
-			{
-
-				byte[] buffer = new byte[Math.Min(length, CHUNK_LARGE)];
-
-				//TODO: find a way to detect large spans of zeros, and create a sparse blob ?
-
-				long read = 0;
-				while (true)
-				{
-					int n = await stream.ReadAsync(buffer, 0, buffer.Length, ct).ConfigureAwait(false);
-					if (n == 0) break;
-
-					ct.ThrowIfCancellationRequested();
-					await AppendAsync(trans, new Slice(buffer, 0, n)).ConfigureAwait(false);
-
-					read += n;
-				}
-			}
-
 		}
 
 	}
