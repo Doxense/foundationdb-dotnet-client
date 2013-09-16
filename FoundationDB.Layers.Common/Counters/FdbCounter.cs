@@ -30,7 +30,6 @@ namespace FoundationDB.Layers.Counters
 {
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
@@ -50,6 +49,9 @@ namespace FoundationDB.Layers.Counters
 
 		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
 		private readonly Random Rng = new Random();
+
+		/// <summary>Flag use to know if a background coalescing is already running</summary>
+		private int m_coalesceRunning;
 
 		/// <summary>
 		/// Create a new object representing a binary large object (blob).
@@ -77,24 +79,26 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
 
+		/// <summary>Database instance that is used to perform background coalescing of the counter</summary>
 		public FdbDatabase Database { get; private set; }
 
-		private Slice EncodeInt(long i)
+		protected virtual Slice EncodeInt(long i)
 		{
 			return FdbTuple.Pack(i);
 		}
 
-		private long DecodeInt(Slice s)
+		protected virtual long DecodeInt(Slice s)
 		{
-			return FdbTuple.Unpack(s).Get<long>(0);
+			//TODO: UnpackSingle<T> ?
+			return FdbTuple.UnpackLast<long>(s);
 		}
 
-		private Slice RandomId()
+		protected virtual Slice RandomId()
 		{
 			return Slice.Random(this.Rng, 20);
 		}
 
-		private async Task Coalesce(int N)
+		private async Task Coalesce(int N, CancellationToken ct)
 		{
 			long total = 0;
 
@@ -108,11 +112,11 @@ namespace FoundationDB.Layers.Counters
 					List<KeyValuePair<Slice, Slice>> shards;
 					if (this.Rng.NextDouble() < 0.5)
 					{
-						shards = await tr.Snapshot.GetRange(loc, this.Subspace.ToRange().End, new FdbRangeOptions { Limit = N }).ToListAsync().ConfigureAwait(false);
+						shards = await tr.Snapshot.GetRange(loc, this.Subspace.ToRange().End, new FdbRangeOptions { Limit = N }).ToListAsync(ct).ConfigureAwait(false);
 					}
 					else
 					{
-						shards = await tr.Snapshot.GetRange(this.Subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , Reverse = true }).ToListAsync().ConfigureAwait(false);
+						shards = await tr.Snapshot.GetRange(this.Subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , Reverse = true }).ToListAsync(ct).ConfigureAwait(false);
 					}
 
 					if (shards.Count > 0)
@@ -121,18 +125,15 @@ namespace FoundationDB.Layers.Counters
 						foreach (var shard in shards)
 						{
 							checked { total += DecodeInt(shard.Value); }
-							await tr.GetAsync(shard.Key).ConfigureAwait(false); // real read for isolation
+							await tr.GetAsync(shard.Key, ct).ConfigureAwait(false); // real read for isolation
 							tr.Clear(shard.Key);
 						}
 
 						tr.Set(this.Subspace.Pack(FdbTuple.Create(RandomId())), EncodeInt(total));
 
-						// note: no .wait() on the commit below--this just goes off
-						// into the ether and hopefully sometimes works :)
-
-						// note: contrary to the pytonh impl, we will await the commit, and rely on the caller to not wait to the Coalesce task itself to complete.
+						// note: contrary to the python impl, we will await the commit, and rely on the caller to not wait to the Coalesce task itself to complete.
 						// That way, the transaction will live as long as the task, and we ensure that it gets disposed at some time
-						await tr.CommitAsync().ConfigureAwait(false);
+						await tr.CommitAsync(ct).ConfigureAwait(false);
 					}
 				}
 				catch (FdbException)
@@ -143,74 +144,91 @@ namespace FoundationDB.Layers.Counters
 			}
 		}
 
-		private void BackgroundCoalesce(int n)
+		private void BackgroundCoalesce(int n, CancellationToken ct)
 		{
-			// fire and forget
-			Coalesce(n).ContinueWith((t) =>
+			// only coalesce if it is not already running
+			if (Interlocked.CompareExchange(ref m_coalesceRunning, 1, 0) == 0)
 			{
-				// observe any exceptions
-				if (t.IsFaulted) { var x = t.Exception; }
-				//TODO: logging ?
-			});
+				try
+				{
+					// fire and forget
+					var _ = Task
+						.Run(() => Coalesce(n, ct), ct)
+						.ContinueWith((t) =>
+						{
+							// reset the flag
+							Volatile.Write(ref m_coalesceRunning, 0);
+
+							// observe any exceptions
+							if (t.IsFaulted) { var x = t.Exception; }
+							//TODO: logging ?
+						});
+				}
+				catch (Exception)
+				{ // something went wrong starting the background coesle
+					Volatile.Write(ref m_coalesceRunning, 1);
+					throw;
+				}
+			}
 		}
 
 		/// <summary>
 		/// Get the value of the counter.
 		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
 		/// </summary>
-		/// <param name="trans"></param>
-		/// <returns></returns>
-		public async Task<long> Read(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
+		public async Task<long> GetTransactional(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			long total = 0;
 			await trans
-				.GetRangeStartsWith(this.Subspace)
-				.ForEachAsync((kvp) => { checked { total += DecodeInt(kvp.Value); } })
+				.GetRange(this.Subspace.ToRange())
+				.ForEachAsync((kvp) => { checked { total += DecodeInt(kvp.Value); } }, ct)
 				.ConfigureAwait(false);
 
 			return total;
 		}
 
+		/// <summary>
+		/// Get the value of the counter with snapshot isolation (no transaction conflicts).
+		/// </summary>
+		public Task<long> GetSnapshot(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			return GetTransactional(trans.ToSnapshotTransaction(), ct);
+		}
+
+		/// <summary>
+		/// Add the value x to the counter.
+		/// </summary>
 		public void Add(IFdbTransaction trans, long x)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			trans.Set(this.Subspace.Pack(RandomId()), EncodeInt(x));
 
-			if (this.Rng.NextDouble() < 0.1)
+			// decide if we must coalesce
+			//note: Random() is not thread-safe so we must lock
+			bool coalesce;
+			lock (this.Rng) { coalesce = this.Rng.NextDouble() < 0.1; }
+			if (coalesce)
 			{
-				BackgroundCoalesce(20);
+				//REVIEW: 20 is too small if there is a lot of activity on the counter !
+				BackgroundCoalesce(20, CancellationToken.None);
 			}
 		}
 
+		/// <summary>
+		/// Set the counter to value x.
+		/// </summary>
 		public async Task SetTotal(IFdbTransaction trans, long x, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			long value = await Read(trans, ct).ConfigureAwait(false);
+			long value = await GetSnapshot(trans, ct).ConfigureAwait(false);
 			Add(trans, x - value);
 		}
-
-		#region Transactionnal ...
-
-		public Task<long> ReadAsync(CancellationToken ct = default(CancellationToken))
-		{
-			return this.Database.Attempt.ReadAsync(this.Read, ct);
-		}
-
-		public Task AddAsync(long x, CancellationToken ct = default(CancellationToken))
-		{
-			return this.Database.Attempt.Change((tr) => this.Add(tr, x), ct);
-		}
-
-		public Task SetTotalAsync(long x, CancellationToken ct = default(CancellationToken))
-		{
-			return this.Database.Attempt.ChangeAsync((tr) => this.SetTotal(tr, x, ct), ct);
-		}
-
-		#endregion
 
 	}
 

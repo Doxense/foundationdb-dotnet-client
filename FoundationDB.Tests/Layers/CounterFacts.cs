@@ -31,47 +31,116 @@ namespace FoundationDB.Layers.Counters.Tests
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 	using System;
+	using System.Diagnostics;
+	using System.Linq;
 	using System.Threading.Tasks;
 
 	[TestFixture]
 	[Obsolete]
 	public class CounterFacts
 	{
+
 		[Test]
-		public async Task Test_FdbCounter_Can_Increment_And_Get_Total()
+		public async Task Test_FdbCounter_Can_Increment_And_SetTotal()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("Counters");
+				var location = await TestHelpers.GetCleanDirectory(db, "counters", "simple");
 
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
+				var counter = new FdbCounter(db, location);
 
-				var c = new FdbCounter(db, location.Partition("TestBigCounter"));
+				await counter.AddAsync(100);
+				Assert.That(await counter.GetSnapshotAsync(), Is.EqualTo(100));
 
-				for (int i = 0; i < 500; i++)
+				await counter.AddAsync(-10);
+				Assert.That(await counter.GetSnapshotAsync(), Is.EqualTo(90));
+
+				await counter.SetTotalAsync(500);
+				Assert.That(await counter.GetSnapshotAsync(), Is.EqualTo(500));
+			}
+		}
+
+		[Test]
+		public async Task Bench_FdbCounter_Increment_Sequentially()
+		{
+			const int N = 100;
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = await TestHelpers.GetCleanDirectory(db, "counters", "big");
+
+				var c = new FdbCounter(db, location);
+
+				Console.WriteLine("Doing " + N + " inserts in one thread...");
+
+				var sw = Stopwatch.StartNew();
+				for (int i = 0; i < N; i++)
 				{
 					await c.AddAsync(1);
-
-					if (i % 50 == 0)
-					{
-						Console.WriteLine("=== " + i);
-						await TestHelpers.DumpSubspace(db, location);
-					}
 				}
+				sw.Stop();
 
-				Console.WriteLine("=== DONE");
+				Console.WriteLine("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / N).ToString("N0") + " µs/add)");
+
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 
-				using (var tr = db.BeginTransaction())
-				{
-					long v = await c.Read(tr.Snapshot);
-					Assert.That(v, Is.EqualTo(500));
-				}
+				Assert.That(await c.GetSnapshotAsync(), Is.EqualTo(N));
 			}
+
 		}
+
+		[Test]
+		public async Task Bench_FdbCounter_Increment_Concurrently()
+		{
+			const int W = 50;
+			const int B = 100;
+			const int N = B * W;
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = await TestHelpers.GetCleanDirectory(db, "counters", "big");
+
+				var c = new FdbCounter(db, location);
+
+				Console.WriteLine("Doing " + W + " x " + B + " inserts in " + W + " threads...");
+
+				var signal = new TaskCompletionSource<object>();
+
+				var workers = Enumerable.Range(0, W)
+					.Select(async (id) =>
+					{
+						await signal.Task;
+
+						for (int i = 0; i < B; i++)
+						{
+							await c.AddAsync(1);
+						}
+					}).ToArray();
+
+				var sw = Stopwatch.StartNew();
+				// start
+				var _ = Task.Run(() => signal.TrySetResult(null));
+				// wait
+				await Task.WhenAll(workers);
+				sw.Stop();
+				Console.WriteLine("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / B).ToString("N0") + " µs/add)");
+
+				Assert.That(await c.GetSnapshotAsync(), Is.EqualTo(N));
+
+				// wait a bit, in case there was some coalesce still running...
+				await Task.Delay(200);
+				Assert.That(await c.GetSnapshotAsync(), Is.EqualTo(N));
+
+#if DEBUG
+				await TestHelpers.DumpSubspace(db, location);
+#endif
+
+			}
+
+		}
+
 
 	}
 
