@@ -64,7 +64,8 @@
     <Compile Include="Collections\FdbQueue`1.cs" />
     <Compile Include="Collections\FdbQueueTransactionals.cs" />
     <Compile Include="Collections\FdbQueue.cs" />
-    <Compile Include="Strings\FdbStringIntern.cs" />
+    <Compile Include="Interning\FdbStringInternTransactionals.cs" />
+    <Compile Include="Interning\FdbStringIntern.cs" />
     <Compile Include="Blobs\FdbBlob.cs" />
     <Compile Include="Tables\FdbTable.cs" />
     <Compile Include="Tables\FdbTableExtensions.cs" />
