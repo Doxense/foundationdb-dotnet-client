@@ -37,4 +37,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCulture("")]
 
 [assembly: AssemblyVersion("0.100.0.0")]
-[assembly: AssemblyFileVersion("0.100.0.0")]
+[assembly: AssemblyFileVersion("0.100.0.0")] //TODO: change this to "x.y.z.build_number" in a build step of your favorite C.I. build server
