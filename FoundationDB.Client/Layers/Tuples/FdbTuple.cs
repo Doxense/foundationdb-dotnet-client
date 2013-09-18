@@ -571,18 +571,15 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Internal Helpers...
 
-		/// <summary>Create a range that selects all the descendant keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
-		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
-		/// <returns>Range including all keys with the specified prefix.</returns>
-		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
-		public static FdbKeyRange Descendants(Slice prefix)
+		/// <summary>Create a range that selects all tuples that are stored under the specified subspace: 'prefix\x00' &lt;= k &lt; 'prefix\xFF'</summary>
+		/// <param name="prefix">Subspace binary prefix (that will be excluded from the range)</param>
+		/// <returns>Range including all possible tuples starting with the specified prefix.</returns>
+		/// <remarks>FdbTuple.ToRange(Slice.FromAscii("abc")) returns the range [ 'abc\x00', 'abc\xFF' )</remarks>
+		public static FdbKeyRange ToRange(Slice prefix)
 		{
 			if (prefix.IsNull) throw new ArgumentNullException("prefix");
 
-			if (prefix.Count == 0)
-			{ // "" => [ \0, \xFF )
-				return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue);
-			}
+			//note: there is no guarantee that prefix is a valid packed tuple (could be any exotic binary prefix)
 
 			// prefix => [ prefix."\0", prefix."\xFF" )
 			return new FdbKeyRange(
@@ -591,23 +588,20 @@ namespace FoundationDB.Layers.Tuples
 			);
 		}
 
-		/// <summary>Create a range that selects all the descendant keys starting with <paramref name="prefix"/>: ('prefix\x00' &lt;= k &lt; 'prefix\xFF')</summary>
-		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
-		/// <returns>Range including all keys with the specified prefix.</returns>
-		/// <remarks>This is mostly used when the keys correspond to packed tuples</remarks>
-		public static FdbKeyRange DescendantsAndSelf(Slice prefix)
+		/// <summary>
+		/// Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'
+		/// </summary>
+		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
+		public static FdbKeyRange ToRange(IFdbTuple tuple)
 		{
-			if (prefix.IsNull) throw new ArgumentNullException("prefix");
+			if (tuple == null) throw new ArgumentNullException("tuple");
 
-			if (prefix.Count == 0)
-			{ // "" => [ \0, \xFF )
-				return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue);
-			}
+			// tuple => [ packed."\0", packed."\xFF" )
+			var packed = tuple.ToSlice();
 
-			// prefix => [ prefix."\0", prefix."\xFF" )
 			return new FdbKeyRange(
-				prefix,
-				prefix + FdbKey.MaxValue
+				packed + FdbKey.MinValue,
+				packed + FdbKey.MaxValue
 			);
 		}
 
