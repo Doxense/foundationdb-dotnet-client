@@ -26,15 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tables.Tests
+namespace FoundationDB.Layers.Interning.Tests
 {
-	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
-	using System.Text;
-	using System.Threading;
 	using System.Threading.Tasks;
 
 	[TestFixture]

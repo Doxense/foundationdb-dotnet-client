@@ -663,7 +663,6 @@ namespace FoundationDB.Client.Tests
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				var location = db.Partition("test");
-
 				await db.ClearRangeAsync(location);
 
 				await db.Attempt.Change((tr) =>
@@ -687,6 +686,78 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 
+		}
+
+		[Test]
+		public async Task Test_GetRange_With_Concurrent_Change_Should_Conflict()
+		{
+			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+
+				var loc = db.Partition("test");
+
+				await db.Attempt.Change((tr) =>
+				{
+					tr.ClearRange(loc);
+					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+				});
+
+				// we will read the first key from [0, 100), expected 50
+				// but another transaction will insert 42, in effect changing the result of our range
+				// => this should conflict the GetRange
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					// [0, 100) limit 1 => 50
+					await tr1
+						.GetRange(loc.Pack("foo"), loc.Pack("foo", 100))
+						.FirstOrDefaultAsync();
+
+					// 42 < 50 > conflict !!!
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(loc.Pack("foo", 42), Slice.FromAscii("forty-two"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(loc.Pack("bar"), Slice.Empty);
+
+					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(42) in TR2 should have conflicted with the GetRange(0, 100) in TR1");
+				}
+
+				// if the other transaction insert something AFTER 50, then the result of our GetRange would not change (because of the implied limit = 1)
+				// => this should NOT conflict the GetRange
+				// note that if we write something in the range (0, 100) but AFTER 50, it should not conflict because we are doing a limit=1
+
+				await db.Attempt.Change((tr) =>
+				{
+					tr.ClearRange(loc);
+					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+				});
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					// [0, 100) limit 1 => 50
+					await tr1
+						.GetRange(loc.Pack("foo"), loc.Pack("foo", 100))
+						.FirstOrDefaultAsync();
+
+					// 77 > 50 => no conflict
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(loc.Pack("foo", 77), Slice.FromAscii("docm"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(loc.Pack("bar"), Slice.Empty);
+
+					// should not conflict!
+					await tr1.CommitAsync();
+				}
+
+			}
 		}
 
 		[Test]

@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #undef DEBUG_STRING_INTERNING
 
-namespace FoundationDB.Layers.Tables
+namespace FoundationDB.Layers.Interning
 {
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
@@ -48,7 +48,6 @@ namespace FoundationDB.Layers.Tables
 		private const int CacheLimitBytes = 10 * 1000 * 1000;
 
 		// note: the python layer uses 'S' and 'U' as ascii string, so we need to use Slice and not chars to respect the tuple serialization
-
 		private static readonly Slice String2UidKey = Slice.FromChar('S');
 		private static readonly Slice Uid2StringKey = Slice.FromChar('U');
 
@@ -65,7 +64,7 @@ namespace FoundationDB.Layers.Tables
 
 			public bool Equals(Uid other)
 			{
-				return other.HashCode == this.HashCode && other.Slice.Equals(this.Slice);
+				return !object.ReferenceEquals(other, null) && other.HashCode == this.HashCode && other.Slice.Equals(this.Slice);
 			}
 
 			public override bool Equals(object obj)
@@ -86,7 +85,6 @@ namespace FoundationDB.Layers.Tables
 
 		private readonly Random m_rnd = new Random();
 		private readonly RandomNumberGenerator m_prng = RandomNumberGenerator.Create();
-
 		private readonly ReaderWriterLockSlim m_lock = new ReaderWriterLockSlim();
 
 		public FdbStringIntern(FdbSubspace subspace)
@@ -95,62 +93,67 @@ namespace FoundationDB.Layers.Tables
 
 			this.Subspace = subspace;
 
-			this.StringUidPrefix = subspace.Partition(String2UidKey);
-			this.UidStringPrefix = subspace.Partition(Uid2StringKey);
 		}
 
 		public FdbSubspace Subspace { get; private set; }
 
-		protected FdbSubspace StringUidPrefix { get; private set; }
-
-		protected FdbSubspace UidStringPrefix { get; private set; }
-
 		#region Private Helpers...
 
-		public Slice UidKey(Slice uid)
+		protected virtual Slice UidKey(Slice uid)
 		{
-			return this.UidStringPrefix.Pack(uid);
+			return this.Subspace.Pack(Uid2StringKey, uid);
 		}
 
-		public Slice StringKey(string value)
+		protected virtual Slice StringKey(string value)
 		{
-			return this.StringUidPrefix.Pack(value);
+			return this.Subspace.Pack(String2UidKey, value);
 		}
 
 		/// <summary>Evict a random value from the cache</summary>
 		private void EvictCache()
 		{
-			if (m_uidsInCache.Count == 0)
+			m_lock.EnterWriteLock();
+			try
 			{
-				throw new InvalidOperationException("Cannot evict from empty cache");
+				if (m_uidsInCache.Count == 0)
+				{
+					//note: there is probably a desync between the content of the cache, and the value of m_bytesCached !
+					throw new InvalidOperationException("Cannot evict from empty cache");
+				}
+
+				// Random eviction
+				// note: Random is not thread-safe, but we are in a write-lock so we are ok
+				int i = m_rnd.Next(m_uidsInCache.Count);
+
+				// remove from uids_in_cache
+				var uidKey = m_uidsInCache[i];
+				m_uidsInCache[i] = m_uidsInCache[m_uidsInCache.Count - 1];
+				m_uidsInCache.RemoveAt(m_uidsInCache.Count - 1);
+
+				// remove from caches, account for bytes
+				string value;
+				if (!m_uidStringCache.TryGetValue(uidKey, out value) || value == null)
+				{
+					throw new InvalidOperationException("Error in cache evication: string not found");
+				}
+
+				m_uidStringCache.Remove(uidKey);
+				m_stringUidCache.Remove(value);
+
+				// tries to get an accurante idea of the in-memory size: chars are 2-byte in .NET, but the UID key is 1-byte
+				int size = checked ((value.Length * 2) + uidKey.Slice.Count);
+				Interlocked.Add(ref m_bytesCached, -size);
 			}
-
-			// Random eviction
-			int i = m_rnd.Next(m_uidsInCache.Count);
-
-			// remove from uids_in_cache
-			var uidKey = m_uidsInCache[i];
-			m_uidsInCache[i] = m_uidsInCache[m_uidsInCache.Count - 1];
-			m_uidsInCache.RemoveAt(m_uidsInCache.Count - 1);
-
-			// remove from caches, account for bytes
-			string value;
-			if (!m_uidStringCache.TryGetValue(uidKey, out value) || value == null)
+			finally
 			{
-				throw new InvalidOperationException("Error in cache evication: string not found");
+				m_lock.ExitWriteLock();
 			}
-
-			m_uidStringCache.Remove(uidKey);
-			m_stringUidCache.Remove(value);
-
-			int size = (value.Length * 2) + uidKey.Slice.Count;
-			Interlocked.Add(ref m_bytesCached, -size);
 		}
 
 		/// <summary>Add a value in the cache</summary>
 		private void AddToCache(string value, Slice uid)
 		{
-			while (m_bytesCached > CacheLimitBytes)
+			while (Volatile.Read(ref m_bytesCached) > CacheLimitBytes)
 			{
 				EvictCache();
 			}
@@ -189,25 +192,24 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>Finds a new free uid that can be used to store a new string in the table</summary>
 		/// <param name="trans">Transaction used to look for and create a new uid</param>
 		/// <returns>Newly created UID that is guaranteed to be globally unique</returns>
-		private async Task<Slice> FindUidAsync(IFdbTransaction trans)
+		private async Task<Slice> FindUidAsync(IFdbTransaction trans, CancellationToken ct)
 		{
-			// note: we diverge from stringingern.py here by converting the UID (bytes) into Base64 in the cache.
-			// this allows us to use StringComparer.Ordinal as a comparer for the Dictionary<K, V> and not EqualityComparer<byte[]>
-
 			const int MAX_TRIES = 256;
 
 			int tries = 0;
 			while (tries < MAX_TRIES)
 			{
 				// note: we diverge from the python sample layer by not expanding the size at each retry, in order to ensure that value size keeps as small as possible
-				var bytes = new byte[3 + (tries >> 1)];
-				m_prng.GetBytes(bytes);
+				Slice slice;
+				lock (m_prng)
+				{ // note: not all PRNG implementations are thread-safe !
+					slice = Slice.Random(m_prng, 4 + (tries >> 1));
+				}
 
-				var slice = Slice.Create(bytes);
 				if (m_uidStringCache.ContainsKey(new Uid(slice)))
 					continue;
 
-				var candidate = await trans.GetAsync(UidKey(slice)).ConfigureAwait(false);
+				var candidate = await trans.GetAsync(UidKey(slice), ct).ConfigureAwait(false);
 				if (candidate.IsNull)
 					return slice;
 
@@ -226,11 +228,13 @@ namespace FoundationDB.Layers.Tables
 		/// <param name="trans">Fdb transaction</param>
 		/// <param name="value">String to intern</param>
 		/// <returns>Normalized representation of the string</returns>
-		/// <remarks><paramref name="value"/> must fit within a FoundationDB value</remarks>
-		public Task<Slice> InternAsync(IFdbTransaction trans, string value)
+		/// <remarks>The length of the string <paramref name="value"/> must not exceed the maximum FoundationDB value size</remarks>
+		public Task<Slice> InternAsync(IFdbTransaction trans, string value, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (value == null) throw new ArgumentNullException("value");
+
+			ct.ThrowIfCancellationRequested();
 
 			if (value.Length == 0) return Task.FromResult(Slice.Empty);
 
@@ -252,22 +256,22 @@ namespace FoundationDB.Layers.Tables
 			Debug.WriteLine("_ not in cache, taking slow route...");
 #endif
 
-			return InternSlowAsync(trans, value);
+			return InternSlowAsync(trans, value, ct);
 		}
 
-		private async Task<Slice> InternSlowAsync(IFdbTransaction trans, string value)
+		private async Task<Slice> InternSlowAsync(IFdbTransaction trans, string value, CancellationToken ct)
 		{
 			var stringKey = StringKey(value);
 
-			var uid = await trans.GetAsync(stringKey).ConfigureAwait(false);
+			var uid = await trans.GetAsync(stringKey, ct).ConfigureAwait(false);
 			if (uid == Slice.Nil)
 			{
 #if DEBUG_STRING_INTERNING
 				Debug.WriteLine("_ not found in db, will create...");
 #endif
 
-				uid = await FindUidAsync(trans).ConfigureAwait(false);
-				if (uid == Slice.Nil) throw new InvalidOperationException("Failed to allocate a new uid while attempting to intern a string");
+				uid = await FindUidAsync(trans, ct).ConfigureAwait(false);
+				if (uid.IsNull) throw new InvalidOperationException("Failed to allocate a new uid while attempting to intern a string");
 #if DEBUG_STRING_INTERNING
 				Debug.WriteLine("> using new uid " + uid.ToBase64());
 #endif
@@ -291,11 +295,12 @@ namespace FoundationDB.Layers.Tables
 		#region Lookup...
 
 		/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
-		public Task<string> LookupAsync(IFdbReadTransaction trans, Slice uid)
+		public Task<string> LookupAsync(IFdbReadTransaction trans, Slice uid, CancellationToken ct = default(CancellationToken))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-
 			if (uid.IsNull) throw new ArgumentException("String uid cannot be nil", "uid");
+
+			ct.ThrowIfCancellationRequested();
 
 			if (uid.IsEmpty) return Task.FromResult(String.Empty);
 
@@ -305,13 +310,13 @@ namespace FoundationDB.Layers.Tables
 				return Task.FromResult(value);
 			}
 
-			return LookupSlowAsync(trans, uid);
+			return LookupSlowAsync(trans, uid, ct);
 		}
 
-		private async Task<string> LookupSlowAsync(IFdbReadTransaction trans, Slice uid)
+		private async Task<string> LookupSlowAsync(IFdbReadTransaction trans, Slice uid, CancellationToken ct)
 		{
-			var valueBytes = await trans.GetAsync(UidKey(uid)).ConfigureAwait(false);
-			if (valueBytes == Slice.Nil) throw new KeyNotFoundException("String intern indentifier not found");
+			var valueBytes = await trans.GetAsync(UidKey(uid), ct).ConfigureAwait(false);
+			if (valueBytes.IsNull) throw new KeyNotFoundException("String intern indentifier not found");
 
 			string value = valueBytes.ToUnicode();
 			AddToCache(value, uid);
