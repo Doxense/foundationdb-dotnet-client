@@ -547,25 +547,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Transactional Methods..
-
-		/// <summary>Clear the entire content of a subspace</summary>
-		public async Task ClearRangeAsync(FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
-		{
-			Contract.Requires(subspace != null);
-
-			ct.ThrowIfCancellationRequested();
-
-			using(var trans = this.BeginTransaction())
-			{
-				trans.ClearRange(subspace);
-				await trans.CommitAsync(ct).ConfigureAwait(false);
-			}
-		}
-
-
-		#endregion
-
 		#region Default Transaction Settings...
 
 		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>

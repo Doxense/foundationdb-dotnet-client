@@ -47,6 +47,15 @@ namespace FoundationDB.Layers.Tuples
 			trans.ClearRange(FdbKeyRange.StartsWith(subspace.Key));
 		}
 
+		/// <summary>Clear the entire content of a subspace</summary>
+		public static Task ClearRangeAsync(this FdbDatabase db, FdbSubspace subspace, CancellationToken ct = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (subspace == null) throw new ArgumentNullException("subspace");
+
+			return db.WriteAsync((tr) => ClearRange(tr, subspace), ct);
+		}
+
 		/// <summary>Returns all the keys inside of a subspace</summary>
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadTransaction trans, FdbSubspace subspace, FdbRangeOptions options = null)
 		{
