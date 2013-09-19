@@ -54,9 +54,9 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Ensure thats the transaction is in a valid state for issuing read operations.
 		/// </summary>
-		/// <param name="ct">CancellationToken used to cancel the operation (optionnal)</param>
-		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
-		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() have already been called on the transaction, or if the database has been closed</exception>
+		/// <param name="ct">Optional cancellation token that should not be in a cancelled state</param>
+		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
+		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
 		void EnsureCanRead(CancellationToken ct = default(CancellationToken));
 
@@ -66,7 +66,7 @@ namespace FoundationDB.Client
 		/// <param name="keyBytes">Key to be looked up in the database</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
-		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
+		/// <exception cref="System.ArgumentException">If the <paramref name="keyBytes"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>

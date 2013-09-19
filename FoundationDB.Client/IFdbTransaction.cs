@@ -35,6 +35,13 @@ namespace FoundationDB.Client
 	/// <summary>Transaction that allows read and write operations</summary>
 	public interface IFdbTransaction : IFdbReadTransaction
 	{
+		/// <summary>
+		/// Ensure thats the transaction is in a valid state for issuing read and write operations.
+		/// </summary>
+		/// <param name="ct">Optional cancellation token that should not be in a cancelled state</param>
+		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
+		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
+		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
 		void EnsureCanReadOrWrite(CancellationToken ct = default(CancellationToken));
 
 		/// <summary>
