@@ -80,7 +80,7 @@ namespace FoundationDB.Client.Tests
 
 				Console.WriteLine("Reading everything back...");
 
-				var stored = await db.Attempt.ReadAsync((tr) =>
+				var stored = await db.ReadAsync((tr) =>
 				{
 					return tr.GetRangeStartsWith(location).ToArrayAsync();
 				});

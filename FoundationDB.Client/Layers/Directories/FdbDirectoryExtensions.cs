@@ -79,12 +79,12 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ChangeAsync((tr, _ctx) => directory.CreateOrOpenAsync(tr, path, layer, prefix, allowCreate, allowOpen, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => directory.CreateOrOpenAsync(tr, path, layer, prefix, allowCreate, allowOpen, _ctx.Token), ct);
 		}
 
 		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectorySubspace subspace, FdbDatabase db, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ChangeAsync((tr, _ctx) => subspace.CreateOrOpenAsync(tr, path, layer, prefix, allowCreate, allowOpen, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => subspace.CreateOrOpenAsync(tr, path, layer, prefix, allowCreate, allowOpen, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -95,12 +95,12 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ChangeAsync((tr, _ctx) => directory.CreateAsync(tr, path, layer, prefix, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => directory.CreateAsync(tr, path, layer, prefix, _ctx.Token), ct);
 		}
 
 		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectorySubspace subspace, FdbDatabase db, IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ChangeAsync((tr, _ctx) => subspace.CreateAsync(tr, path, layer, prefix, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => subspace.CreateAsync(tr, path, layer, prefix, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -110,13 +110,13 @@ namespace FoundationDB.Layers.Directories
 		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, string layer = null, CancellationToken ct = default(CancellationToken))
 		{
 			// note: we will not write to the transaction
-			return db.Attempt.ChangeAsync((tr, _ctx) => directory.OpenAsync(tr, path, layer, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => directory.OpenAsync(tr, path, layer, _ctx.Token), ct);
 		}
 
 		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectorySubspace subspace, FdbDatabase db, IFdbTuple path, string layer = null, CancellationToken ct = default(CancellationToken))
 		{
 			// note: we will not write to the transaction
-			return db.Attempt.ChangeAsync((tr, _ctx) => subspace.OpenAsync(tr, path, layer, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => subspace.OpenAsync(tr, path, layer, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -126,12 +126,12 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<FdbDirectorySubspace> MoveAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple oldPath, IFdbTuple newPath, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ChangeAsync((tr, _ctx) => directory.MoveAsync(tr, oldPath, newPath, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => directory.MoveAsync(tr, oldPath, newPath, _ctx.Token), ct);
 		}
 
 		public static Task<FdbDirectorySubspace> MoveAsync(this FdbDirectorySubspace subspace, FdbDatabase db, IFdbTuple newPath, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ChangeAsync((tr, _ctx) => subspace.MoveAsync(tr, newPath, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => subspace.MoveAsync(tr, newPath, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -140,22 +140,22 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		public static Task<bool> RemoveAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ChangeAsync((tr, _ctx) => directory.RemoveAsync(tr, path, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => directory.RemoveAsync(tr, path, _ctx.Token), ct);
 		}
 
 		public static Task RemoveAsync(this FdbDirectorySubspace subspace, FdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ChangeAsync((tr, _ctx) => subspace.RemoveAsync(tr, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => subspace.RemoveAsync(tr, _ctx.Token), ct);
 		}
 
 		public static Task<List<IFdbTuple>> ListAsync(this FdbDirectoryLayer directory, FdbDatabase db, IFdbTuple path, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ReadAsync((tr, _ctx) => directory.ListAsync(tr, path, _ctx.Token), ct);
+			return db.ReadAsync((tr, _ctx) => directory.ListAsync(tr, path, _ctx.Token), ct);
 		}
 
 		public static Task<List<IFdbTuple>> ListAsync(this FdbDirectorySubspace subspace, FdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Attempt.ReadAsync((tr, _ctx) => subspace.ListAsync(tr, _ctx.Token), ct);
+			return db.ReadAsync((tr, _ctx) => subspace.ListAsync(tr, _ctx.Token), ct);
 		}
 
 		// string paths

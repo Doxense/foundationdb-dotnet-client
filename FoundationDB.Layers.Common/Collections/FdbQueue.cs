@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Collections
 			}
 			else
 			{
-				return db.Attempt.ChangeAsync((tr, _ctx) => this.PopSimpleAsync(tr, _ctx.Token), ct);
+				return db.ChangeAsync((tr, _ctx) => this.PopSimpleAsync(tr, _ctx.Token), ct);
 			}
 		}
 
@@ -195,7 +195,7 @@ namespace FoundationDB.Layers.Collections
 
 		private Task<Slice> AddConflictedPopAsync(FdbDatabase db, bool forced, CancellationToken ct)
 		{
-			return db.Attempt.ChangeAsync((tr, _ctx) => AddConflictedPopAsync(tr, forced, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => AddConflictedPopAsync(tr, forced, _ctx.Token), ct);
 		}
 
 		private async Task<Slice> AddConflictedPopAsync(IFdbTransaction tr, bool forced, CancellationToken ct)

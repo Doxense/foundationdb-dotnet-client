@@ -210,18 +210,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Attempt...
-
-		private ReadWriteTransactional m_transactional;
-
-		/// <summary>Retryable operations</summary>
-		public ReadWriteTransactional Attempt
-		{
-			get { return m_transactional ?? (m_transactional = new ReadWriteTransactional(this)); }
-		}
-
-		#endregion
-
 		#region Database Options...
 
 		/// <summary>Set a parameter-less option on this database</summary>

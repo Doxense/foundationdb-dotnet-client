@@ -42,7 +42,7 @@ namespace FoundationDB.Layers.Counters
 		/// </summary>
 		public static Task<long> GetTransactionalAsync(this FdbCounter self, CancellationToken ct = default(CancellationToken))
 		{
-			return self.Database.Attempt.ReadAsync((tr, _ctx) => self.GetTransactional(tr, _ctx.Token), ct);
+			return self.Database.ReadAsync((tr, _ctx) => self.GetTransactional(tr, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -50,7 +50,7 @@ namespace FoundationDB.Layers.Counters
 		/// </summary>
 		public static Task<long> GetSnapshotAsync(this FdbCounter self, CancellationToken ct = default(CancellationToken))
 		{
-			return self.Database.Attempt.ReadAsync((tr, _ctx) => self.GetSnapshot(tr, _ctx.Token), ct);
+			return self.Database.ReadAsync((tr, _ctx) => self.GetSnapshot(tr, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -58,7 +58,7 @@ namespace FoundationDB.Layers.Counters
 		/// </summary>
 		public static Task AddAsync(this FdbCounter self, long x, CancellationToken ct = default(CancellationToken))
 		{
-			return self.Database.Attempt.Change((tr) => self.Add(tr, x), ct);
+			return self.Database.Change((tr) => self.Add(tr, x), ct);
 		}
 
 		/// <summary>
@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Counters
 		/// </summary>
 		public static Task SetTotalAsync(this FdbCounter self, long x, CancellationToken ct = default(CancellationToken))
 		{
-			return self.Database.Attempt.ChangeAsync((tr) => self.SetTotal(tr, x, ct), ct);
+			return self.Database.ChangeAsync((tr) => self.SetTotal(tr, x, ct), ct);
 		}
 
 	}

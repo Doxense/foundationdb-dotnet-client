@@ -106,7 +106,7 @@ using System.Threading.Tasks;
 							break;
 						}
 
-						await m_parent.Attempt.Change((tr) =>
+						await m_parent.Change((tr) =>
 						{
 							foreach (var pair in chunk)
 							{

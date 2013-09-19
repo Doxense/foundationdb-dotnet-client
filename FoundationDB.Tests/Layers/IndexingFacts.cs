@@ -57,7 +57,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				var index = new FdbIndex<int, string>("Foos.ByColor", subspace);
 
 				// add items to the index
-				await db.Attempt.Change((tr) =>
+				await db.Change((tr) =>
 				{
 					index.Add(tr, 1, "red");
 					index.Add(tr, 2, "green");
@@ -89,7 +89,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 				// update
 
-				await db.Attempt.Change((tr) =>
+				await db.Change((tr) =>
 				{
 					index.Update(tr, 3, "indigo", "blue");
 					index.Remove(tr, 5, "yellow");
@@ -151,7 +151,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				var indexAlignment = new FdbIndex<long, bool?>("Heros.ByAlignment", location.Partition("FriendsOrFoe"));
 
 				// index everything
-				await db.Attempt.Change((tr) =>
+				await db.Change((tr) =>
 				{
 					foreach (var character in characters)
 					{

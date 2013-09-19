@@ -113,14 +113,14 @@ namespace FoundationDB.Layers.Tables
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt.ReadAsync((tr) => this.GetAsync(tr, id, ct), ct);
+			return db.ReadAsync((tr) => this.GetAsync(tr, id, ct), ct);
 		}
 
 		public Task SetAsync(FdbDatabase db, IFdbTuple id, Slice value, CancellationToken ct = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Attempt.Change((tr) => this.Set(tr, id, value), ct);
+			return db.Change((tr) => this.Set(tr, id, value), ct);
 		}
 
 		public Task ClearAsync(FdbDatabase db, IFdbTuple id, CancellationToken ct = default(CancellationToken))
@@ -128,7 +128,7 @@ namespace FoundationDB.Layers.Tables
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Attempt.Change((tr) => this.Clear(tr, id), ct);
+			return db.Change((tr) => this.Clear(tr, id), ct);
 		}
 
 		#endregion

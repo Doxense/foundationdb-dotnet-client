@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Attempt.Change((tr) => blob.Delete(tr), ct);
+			return db.Change((tr) => blob.Delete(tr), ct);
 		}
 
 		/// <summary>
@@ -58,7 +58,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Attempt.ReadAsync((tr, _ctx) => blob.GetSizeAsync(tr, _ctx.Token), ct);
+			return db.ReadAsync((tr, _ctx) => blob.GetSizeAsync(tr, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -69,7 +69,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Attempt.ReadAsync((tr, _ctx) => blob.ReadAsync(tr, offset, n, _ctx.Token), ct);
+			return db.ReadAsync((tr, _ctx) => blob.ReadAsync(tr, offset, n, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -80,7 +80,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Attempt.ChangeAsync((tr, _ctx) => blob.WriteAsync(tr, offset, data, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => blob.WriteAsync(tr, offset, data, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Attempt.ChangeAsync((tr, _ctx) => blob.AppendAsync(tr, data, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => blob.AppendAsync(tr, data, _ctx.Token), ct);
 		}
 
 		/// <summary>
@@ -102,7 +102,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Attempt.ChangeAsync((tr, _ctx) => blob.TruncateAsync(tr, newLength, _ctx.Token), ct);
+			return db.ChangeAsync((tr, _ctx) => blob.TruncateAsync(tr, newLength, _ctx.Token), ct);
 		}
 	}
 

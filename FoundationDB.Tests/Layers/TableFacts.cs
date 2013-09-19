@@ -130,7 +130,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				var table = new FdbTable("Foos", location.Partition("Foos"));
 
 				// write a bunch of keys
-				await db.Attempt.Change((tr) =>
+				await db.Change((tr) =>
 				{
 					table.Set(tr, FdbTuple.Create("foo"), Slice.FromString("foo_value"));
 					table.Set(tr, FdbTuple.Create("bar"), Slice.FromString("bar_value"));

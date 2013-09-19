@@ -55,7 +55,7 @@ namespace FoundationDB.Linq.Tests
 
 				await db.ClearRangeAsync(location);
 
-				await db.Attempt.Change((tr) =>
+				await db.Change((tr) =>
 				{
 					tr.Set(location.Pack("Hello"), Slice.FromString("World!"));
 					tr.Set(location.Pack("Narf"), Slice.FromString("Zort"));
@@ -96,7 +96,7 @@ namespace FoundationDB.Linq.Tests
 
 				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition("Foos", "ByColor"));
 
-				await db.Attempt.Change((tr) =>
+				await db.Change((tr) =>
 				{
 					index.Add(tr, 1, "red");
 					index.Add(tr, 2, "green");
@@ -130,7 +130,7 @@ namespace FoundationDB.Linq.Tests
 
 				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition("Foos", "ByScore"));
 
-				await db.Attempt.Change((tr) =>
+				await db.Change((tr) =>
 				{
 					index.Add(tr, "alpha", 10);
 					index.Add(tr, "bravo", 16);
