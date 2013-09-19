@@ -43,14 +43,14 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Change((tr) => queue.ClearAsync(tr), ct);
+			return db.WriteAsync((tr) => queue.ClearAsync(tr), ct);
 		}
 
 		public static Task ClearAsync<T>(this FdbQueue<T> queue, FdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Change((tr) => queue.ClearAsync(tr), ct);
+			return db.WriteAsync((tr) => queue.ClearAsync(tr), ct);
 		}
 
 		public static Task<bool> EmptyAsync(this FdbQueue queue, FdbDatabase db, CancellationToken ct = default(CancellationToken))
@@ -71,14 +71,14 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.ChangeAsync((tr, _ctx) => queue.PushAsync(tr, value, _ctx.Token), ct);
+			return db.ReadWriteAsync((tr, _ctx) => queue.PushAsync(tr, value, _ctx.Token), ct);
 		}
 
 		public static Task PushAsync<T>(this FdbQueue<T> queue, FdbDatabase db, T value, CancellationToken ct = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.ChangeAsync((tr, _ctx) => queue.PushAsync(tr, value, _ctx.Token), ct);
+			return db.ReadWriteAsync((tr, _ctx) => queue.PushAsync(tr, value, _ctx.Token), ct);
 		}
 
 		public static Task<Slice> PeekAsync(this FdbQueue queue, FdbDatabase db, CancellationToken ct = default(CancellationToken))
@@ -92,7 +92,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.ChangeAsync((tr, _ctx) => queue.PeekAsync(tr, _ctx.Token), ct);
+			return db.ReadWriteAsync((tr, _ctx) => queue.PeekAsync(tr, _ctx.Token), ct);
 		}
 
 	}

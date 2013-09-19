@@ -40,22 +40,22 @@ namespace FoundationDB.Layers.Collections
 
 		public static Task ClearAsync(this FdbVector vector, FdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Change((tr) => vector.Clear(tr), ct);
+			return db.WriteAsync((tr) => vector.Clear(tr), ct);
 		}
 
 		public static Task ClearAsync<T>(this FdbVector<T> vector, FdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Change((tr) => vector.Clear(tr), ct);
+			return db.WriteAsync((tr) => vector.Clear(tr), ct);
 		}
 
 		public static Task ResizeAsync(this FdbVector vector, FdbDatabase db, long length, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ChangeAsync((tr) => vector.ResizeAsync(tr, length), ct);
+			return db.ReadWriteAsync((tr) => vector.ResizeAsync(tr, length), ct);
 		}
 
 		public static Task ResizeAsync<T>(this FdbVector<T> vector, FdbDatabase db, long length, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ChangeAsync((tr) => vector.ResizeAsync(tr, length), ct);
+			return db.ReadWriteAsync((tr) => vector.ResizeAsync(tr, length), ct);
 		}
 
 		#endregion
@@ -64,22 +64,22 @@ namespace FoundationDB.Layers.Collections
 
 		public static Task<Slice> PopAsync(this FdbVector vector, FdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ChangeAsync((tr) => vector.PopAsync(tr), ct);
+			return db.ReadWriteAsync((tr) => vector.PopAsync(tr), ct);
 		}
 
 		public static Task<T> PopAsync<T>(this FdbVector<T> vector, FdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ChangeAsync((tr) => vector.PopAsync(tr), ct);
+			return db.ReadWriteAsync((tr) => vector.PopAsync(tr), ct);
 		}
 
 		public static Task PushAsync(this FdbVector vector, FdbDatabase db, long index, Slice value, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Change((tr) => vector.Set(tr, index, value), ct);
+			return db.WriteAsync((tr) => vector.Set(tr, index, value), ct);
 		}
 
 		public static Task PushAsync<T>(this FdbVector<T> vector, FdbDatabase db, long index, T value, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Change((tr) => vector.Set(tr, index, value), ct);
+			return db.WriteAsync((tr) => vector.Set(tr, index, value), ct);
 		}
 
 		#endregion
@@ -98,12 +98,12 @@ namespace FoundationDB.Layers.Collections
 
 		public static Task SetAsync(this FdbVector vector, FdbDatabase db, long index, Slice value, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Change((tr) => vector.Set(tr, index, value), ct);
+			return db.WriteAsync((tr) => vector.Set(tr, index, value), ct);
 		}
 
 		public static Task SetAsync<T>(this FdbVector<T> vector, FdbDatabase db, long index, T value, CancellationToken ct = default(CancellationToken))
 		{
-			return db.Change((tr) => vector.Set(tr, index, value), ct);
+			return db.WriteAsync((tr) => vector.Set(tr, index, value), ct);
 		}
 
 		#endregion

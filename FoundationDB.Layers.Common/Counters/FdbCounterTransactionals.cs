@@ -58,7 +58,7 @@ namespace FoundationDB.Layers.Counters
 		/// </summary>
 		public static Task AddAsync(this FdbCounter self, long x, CancellationToken ct = default(CancellationToken))
 		{
-			return self.Database.Change((tr) => self.Add(tr, x), ct);
+			return self.Database.WriteAsync((tr) => self.Add(tr, x), ct);
 		}
 
 		/// <summary>
@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Counters
 		/// </summary>
 		public static Task SetTotalAsync(this FdbCounter self, long x, CancellationToken ct = default(CancellationToken))
 		{
-			return self.Database.ChangeAsync((tr) => self.SetTotal(tr, x, ct), ct);
+			return self.Database.ReadWriteAsync((tr) => self.SetTotal(tr, x, ct), ct);
 		}
 
 	}

@@ -593,7 +593,7 @@ namespace FoundationDB.Client.Tests
 				await db.ClearRangeAsync(location);
 
 				// write a bunch of keys
-				await db.Change((tr) =>
+				await db.WriteAsync((tr) =>
 				{
 					tr.Set(location.Pack("hello"), Slice.FromString("World!"));
 					tr.Set(location.Pack("foo"), Slice.FromString("bar"));
@@ -627,7 +627,7 @@ namespace FoundationDB.Client.Tests
 
 				await db.ClearRangeAsync(location);
 
-				await db.Change((tr) =>
+				await db.WriteAsync((tr) =>
 				{
 					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
 				});
@@ -665,7 +665,7 @@ namespace FoundationDB.Client.Tests
 				var location = db.Partition("test");
 				await db.ClearRangeAsync(location);
 
-				await db.Change((tr) =>
+				await db.WriteAsync((tr) =>
 				{
 					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
 				});
@@ -696,7 +696,7 @@ namespace FoundationDB.Client.Tests
 
 				var loc = db.Partition("test");
 
-				await db.Change((tr) =>
+				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
 					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
@@ -730,7 +730,7 @@ namespace FoundationDB.Client.Tests
 				// => this should NOT conflict the GetRange
 				// note that if we write something in the range (0, 100) but AFTER 50, it should not conflict because we are doing a limit=1
 
-				await db.Change((tr) =>
+				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
 					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
@@ -997,7 +997,7 @@ namespace FoundationDB.Client.Tests
 				var key1 = location.Pack("watched");
 				var key2 = location.Pack("witness");
 
-				await db.Change((tr) =>
+				await db.WriteAsync((tr) =>
 				{
 					tr.Set(key1, Slice.FromString("some value"));
 					tr.Set(key2, Slice.FromString("some other value"));
@@ -1025,7 +1025,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(w1.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w1 should survive the transaction without being triggered");
 					Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w2 should survive the transaction without being triggered");
 
-					await db.Change((tr) => tr.Set(key1, Slice.FromString("some new value")));
+					await db.WriteAsync((tr) => tr.Set(key1, Slice.FromString("some new value")));
 
 					// the first watch should have triggered
 					await Task.Delay(100);
@@ -1056,7 +1056,7 @@ namespace FoundationDB.Client.Tests
 				var key1 = location.Pack(1);
 				var key404 = location.Pack(404);
 
-				await db.Change((tr) =>
+				await db.WriteAsync((tr) =>
 				{
 					tr.Set(key1, Slice.FromString("one"));
 				});

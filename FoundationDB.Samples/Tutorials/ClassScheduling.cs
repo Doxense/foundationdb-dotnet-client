@@ -60,7 +60,7 @@ namespace FoundationDB.Samples.Tutorials
 			// clear all previous values
 			await db.ClearRangeAsync(this.Subspace, ct);
 			// insert all the classes
-			await db.Change((tr) =>
+			await db.WriteAsync((tr) =>
 			{
 				foreach (var c in this.ClassNames)
 				{
@@ -163,14 +163,14 @@ namespace FoundationDB.Samples.Tutorials
 						case "add":
 						{
 							string @class = allClasses[rnd.Next(allClasses.Count)];
-							await db.ChangeAsync((tr) => Signup(tr, student, @class), ct);
+							await db.ReadWriteAsync((tr) => Signup(tr, student, @class), ct);
 							myClasses.Add(@class);
 							break;
 						}
 						case "drop":
 						{
 							string @class = allClasses[rnd.Next(allClasses.Count)];
-							await db.ChangeAsync((tr) => Drop(tr, student, @class), ct);
+							await db.ReadWriteAsync((tr) => Drop(tr, student, @class), ct);
 							myClasses.Remove(@class);
 							break;
 						}
@@ -178,7 +178,7 @@ namespace FoundationDB.Samples.Tutorials
 						{
 							string oldClass = allClasses[rnd.Next(allClasses.Count)];
 							string newClass = allClasses[rnd.Next(allClasses.Count)];
-							await db.ChangeAsync((tr) => Switch(tr, student, oldClass, newClass), ct);
+							await db.ReadWriteAsync((tr) => Switch(tr, student, oldClass, newClass), ct);
 							myClasses.Remove(oldClass);
 							myClasses.Add(newClass);
 							break;

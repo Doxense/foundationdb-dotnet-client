@@ -120,7 +120,7 @@ namespace FoundationDB.Layers.Tables
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.Change((tr) => this.Set(tr, id, value), ct);
+			return db.WriteAsync((tr) => this.Set(tr, id, value), ct);
 		}
 
 		public Task ClearAsync(FdbDatabase db, IFdbTuple id, CancellationToken ct = default(CancellationToken))
@@ -128,7 +128,7 @@ namespace FoundationDB.Layers.Tables
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.Change((tr) => this.Clear(tr, id), ct);
+			return db.WriteAsync((tr) => this.Clear(tr, id), ct);
 		}
 
 		#endregion
