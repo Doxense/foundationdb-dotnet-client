@@ -190,6 +190,48 @@ namespace FoundationDB.Layers.Directories
 			}
 		}
 
+		[Test]
+		public async Task Test_Move_Folder()
+		{
+			// Create a folder ("foo", "bar", "baz") and ensure that all the parent folder are also creating and linked properly
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				// we will put everything under a custom namespace
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location);
+
+				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
+				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
+
+
+				// create a folder at ('Foo',)
+				var original = await directory.CreateOrOpenAsync(db, FdbTuple.Create("Foo"));
+				Assert.That(original, Is.Not.Null);
+				Assert.That(original.Path, Is.EqualTo(FdbTuple.Create("Foo")));
+
+				// rename/move it as ('Bar',)
+				var renamed = await original.MoveAsync(db, FdbTuple.Create("Bar"));
+				Assert.That(renamed, Is.Not.Null);
+				Assert.That(renamed.Path, Is.EqualTo(FdbTuple.Create("Bar")));
+				Assert.That(renamed.Key, Is.EqualTo(original.Key));
+
+				// opening the old path should fail
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.OpenAsync(db, FdbTuple.Create("Foo")));
+
+				// opening the new path should succeed
+				var folder = await directory.OpenAsync(db, FdbTuple.Create("Bar"));
+				Assert.That(folder, Is.Not.Null);
+				Assert.That(folder.Path, Is.EqualTo(renamed.Path));
+				Assert.That(folder.Key, Is.EqualTo(renamed.Key));
+
+				// moving the folder under itself should fail
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => folder.MoveAsync(db, FdbTuple.Create("Bar", "Baz")));
+			}
+		}
+
+
+
 	}
 
 }

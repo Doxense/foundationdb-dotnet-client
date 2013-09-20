@@ -206,7 +206,11 @@ namespace FoundationDB.Layers.Directories
 
 			ct.ThrowIfCancellationRequested();
 
-			//REVIEW: if oldPath == newPath, the exception message below will be misleading. Should we no-op or throw in this case ?
+			if (newPath.StartsWith(oldPath))
+			{
+				throw new InvalidOperationException("The destination directory cannot be a subdirectory of the source directory.");
+			}
+
 			if ((await Find(tr, newPath, ct).ConfigureAwait(false)) != null)
 			{
 				throw new InvalidOperationException("The destination directory already exists. Remove it first.");
