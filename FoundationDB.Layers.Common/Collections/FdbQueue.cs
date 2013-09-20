@@ -71,6 +71,9 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
 
+		/// <summary>
+		/// If true, the queue is operating in High Contention mode
+		/// </summary>
 		public bool HighContention { get; private set; }
 
 		internal FdbSubspace ConflictedPop { get; private set; }
@@ -92,17 +95,17 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>
 		/// Push a single item onto the queue.
 		/// </summary>
-		public async Task PushAsync(IFdbTransaction tr, Slice value, CancellationToken ct = default(CancellationToken))
+		public async Task PushAsync(IFdbTransaction tr, Slice value)
 		{
-			long index = await GetNextIndexAsync(tr.ToSnapshotTransaction(), this.QueueItem, ct).ConfigureAwait(false);
+			long index = await GetNextIndexAsync(tr.ToSnapshotTransaction(), this.QueueItem).ConfigureAwait(false);
 
-			await PushAtAsync(tr, value, index, ct).ConfigureAwait(false);
+			await PushAtAsync(tr, value, index).ConfigureAwait(false);
 		}
 
 		/// <summary>
 		/// Pop the next item from the queue. Cannot be composed with other functions in a single transaction.
 		/// </summary>
-		public Task<Slice> PopAsync(FdbDatabase db, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> PopAsync(FdbDatabase db, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -112,18 +115,18 @@ namespace FoundationDB.Layers.Collections
 			}
 			else
 			{
-				return db.ReadWriteAsync((tr, _ctx) => this.PopSimpleAsync(tr, _ctx.Token), ct);
+				return db.ReadWriteAsync((tr) => this.PopSimpleAsync(tr), ct);
 			}
 		}
 
-		public async Task<bool> EmptyAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public async Task<bool> EmptyAsync(IFdbReadTransaction tr)
 		{
-			return (await GetFirstItemAsync(tr, ct).ConfigureAwait(false)).Key.IsNull;
+			return (await GetFirstItemAsync(tr).ConfigureAwait(false)).Key.IsNull;
 		}
 
-		public async Task<Slice> PeekAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public async Task<Slice> PeekAsync(IFdbReadTransaction tr)
 		{
-			var firstItem = await GetFirstItemAsync(tr, ct).ConfigureAwait(false);
+			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
 			if (firstItem.Key.IsNull)
 			{
 				return Slice.Nil;
@@ -149,7 +152,7 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
-		private async Task PushAtAsync(IFdbTransaction tr, Slice value, long index, CancellationToken ct)
+		private async Task PushAtAsync(IFdbTransaction tr, Slice value, long index)
 		{
 			// Items are pushed on the queue at an (index, randomID) pair. Items pushed at the
 			// same time will have the same index, and so their ordering will be random.
@@ -157,18 +160,15 @@ namespace FoundationDB.Layers.Collections
 			// during the push)
 
 			Slice key = this.QueueItem.Pack(index, this.RandId());
-			await tr.GetAsync(key, ct).ConfigureAwait(false);
+			await tr.GetAsync(key).ConfigureAwait(false);
 			tr.Set(key, value);
 		}
 
-		private async Task<long> GetNextIndexAsync(IFdbReadTransaction tr, FdbSubspace subspace, CancellationToken ct)
+		private async Task<long> GetNextIndexAsync(IFdbReadTransaction tr, FdbSubspace subspace)
 		{
 			var range = subspace.ToRange();
 
-			var lastKey = await tr.GetKeyAsync(
-				FdbKeySelector.LastLessThan(range.End),
-				ct
-			).ConfigureAwait(false);
+			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
 
 			if (lastKey < range.Begin)
 			{
@@ -178,15 +178,15 @@ namespace FoundationDB.Layers.Collections
 			return subspace.Unpack(lastKey).Get<long>(0) + 1;
 		}
 
-		private Task<KeyValuePair<Slice, Slice>> GetFirstItemAsync(IFdbReadTransaction tr, CancellationToken ct)
+		private Task<KeyValuePair<Slice, Slice>> GetFirstItemAsync(IFdbReadTransaction tr)
 		{
 			var range = this.QueueItem.ToRange();
-			return tr.GetRange(range).FirstOrDefaultAsync(ct);
+			return tr.GetRange(range).FirstOrDefaultAsync();
 		}
 
-		private async Task<Slice> PopSimpleAsync(IFdbTransaction tr, CancellationToken ct)
+		private async Task<Slice> PopSimpleAsync(IFdbTransaction tr)
 		{
-			var firstItem = await GetFirstItemAsync(tr, ct).ConfigureAwait(false);
+			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
 			if (firstItem.Key.IsNull) return Slice.Nil;
 
 			tr.Clear(firstItem.Key);
@@ -195,12 +195,12 @@ namespace FoundationDB.Layers.Collections
 
 		private Task<Slice> AddConflictedPopAsync(FdbDatabase db, bool forced, CancellationToken ct)
 		{
-			return db.ReadWriteAsync((tr, _ctx) => AddConflictedPopAsync(tr, forced, _ctx.Token), ct);
+			return db.ReadWriteAsync((tr) => AddConflictedPopAsync(tr, forced), ct);
 		}
 
-		private async Task<Slice> AddConflictedPopAsync(IFdbTransaction tr, bool forced, CancellationToken ct)
+		private async Task<Slice> AddConflictedPopAsync(IFdbTransaction tr, bool forced)
 		{
-			long index = await GetNextIndexAsync(tr.ToSnapshotTransaction(), this.ConflictedPop, ct).ConfigureAwait(false);
+			long index = await GetNextIndexAsync(tr.ToSnapshotTransaction(), this.ConflictedPop).ConfigureAwait(false);
 
 			if (index == 0 && !forced)
 			{
@@ -229,13 +229,11 @@ namespace FoundationDB.Layers.Collections
 		{
 			int numPops = 100;
 
-			ct.ThrowIfCancellationRequested();
-
-			using(var tr = db.BeginTransaction())
+			using(var tr = db.BeginTransaction(ct))
 			{
 				var ts = await Task.WhenAll(
-					GetWaitingPops(tr.Snapshot, numPops).ToListAsync(ct),
-					GetItems(tr.Snapshot, numPops).ToListAsync(ct)
+					GetWaitingPops(tr.Snapshot, numPops).ToListAsync(),
+					GetItems(tr.Snapshot, numPops).ToListAsync()
 				).ConfigureAwait(false);
 
 				var pops = ts[0];
@@ -254,8 +252,8 @@ namespace FoundationDB.Layers.Collections
 					var storageKey = this.ConflictedItemKey(key[1]);
 
 					tr.Set(storageKey, kvp.Value);
-					tasks.Add(tr.GetAsync(kvp.Key, ct));
-					tasks.Add(tr.GetAsync(pop.Key, ct));
+					tasks.Add(tr.GetAsync(kvp.Key));
+					tasks.Add(tr.GetAsync(pop.Key));
 					tr.Clear(pop.Key);
 					tr.Clear(kvp.Key);
 
@@ -266,7 +264,7 @@ namespace FoundationDB.Layers.Collections
 				{
 					while(i < pops.Count)
 					{
-						tasks.Add(tr.GetAsync(pops[i].Key, ct));
+						tasks.Add(tr.GetAsync(pops[i].Key));
 						tr.Clear(pops[i].Key);
 						++i;
 					}
@@ -276,7 +274,7 @@ namespace FoundationDB.Layers.Collections
 				await Task.WhenAll(tasks).ConfigureAwait(false);
 
 				// commit
-				await tr.CommitAsync(ct).ConfigureAwait(false);
+				await tr.CommitAsync().ConfigureAwait(false);
 
 				return pops.Count < numPops;
 			}
@@ -289,22 +287,22 @@ namespace FoundationDB.Layers.Collections
 
 			ct.ThrowIfCancellationRequested();
 
-			using(var tr = db.BeginTransaction())
+			using(var tr = db.BeginTransaction(ct))
 			{
 				FdbException error = null;
 				try
 				{
 					// Check if there are other people waiting to be popped. If so, we cannot pop before them.
-					waitKey = await AddConflictedPopAsync(tr, forced: false, ct: ct).ConfigureAwait(false);
+					waitKey = await AddConflictedPopAsync(tr, forced: false).ConfigureAwait(false);
 					if (waitKey.IsNull)
 					{ // No one else was waiting to be popped
-						var item = await PopSimpleAsync(tr, ct).ConfigureAwait(false);
-						await tr.CommitAsync(ct).ConfigureAwait(false);
+						var item = await PopSimpleAsync(tr).ConfigureAwait(false);
+						await tr.CommitAsync().ConfigureAwait(false);
 						return item;
 					}
 					else
 					{
-						await tr.CommitAsync(ct).ConfigureAwait(false);
+						await tr.CommitAsync().ConfigureAwait(false);
 					}
 				}
 				catch(FdbException e)
@@ -349,7 +347,7 @@ namespace FoundationDB.Layers.Collections
 						// that case, we proceed to check whether our request has been fulfilled.
 						// Otherwise, we handle the error in the usual fashion.
 
-						await tr.OnErrorAsync(error.Code, ct).ConfigureAwait(false);
+						await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
 						continue;
 					}
 
@@ -376,7 +374,7 @@ namespace FoundationDB.Layers.Collections
 						}
 
 						tr.Clear(resultKey);
-						await tr.CommitAsync(ct).ConfigureAwait(false);
+						await tr.CommitAsync().ConfigureAwait(false);
 						return result;
 
 					}
@@ -387,7 +385,7 @@ namespace FoundationDB.Layers.Collections
 
 					if (error != null)
 					{
-						await tr.OnErrorAsync(error.Code, ct).ConfigureAwait(false);
+						await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
 					}
 				}
 

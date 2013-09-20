@@ -48,29 +48,7 @@ namespace FoundationDB.Client
 		{
 			return FdbOperationContext.RunReadAsync(
 				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var _asyncAction = (Func<IFdbReadTransaction, Task>)_context.State;
-					return _asyncAction(tr);
-				},
-				state: asyncAction,
-				ct: ct
-			);
-		}
-
-		/// <summary>
-		/// Executes the provided async lambda function with a new read-only transaction
-		/// </summary>
-		public Task ReadAsync(Func<IFdbReadTransaction, CancellationToken, Task> asyncAction, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunReadAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var _asyncAction = (Func<IFdbReadTransaction, CancellationToken, Task>)_context.State;
-					return _asyncAction(tr, _context.Token);
-				},
-				state: asyncAction,
+				asyncAction: asyncAction,
 				ct: ct
 			);
 		}
@@ -82,34 +60,7 @@ namespace FoundationDB.Client
 		{
 			return FdbOperationContext.RunReadWithResultAsync<R>(
 				db: this,
-				asyncAction:asyncAction,
-				state: null,
-				ct: ct
-			);
-		}
-
-		/// <summary>
-		/// Executes the provided async lambda function with a new read-only transaction
-		/// </summary>
-		public Task<R> ReadAsync<R>(Func<IFdbReadTransaction, CancellationToken, Task<R>> asyncAction, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunReadWithResultAsync<R>(
-				db: this,
 				asyncAction: asyncAction,
-				state: null,
-				ct: ct
-			);
-		}
-
-		/// <summary>
-		/// Executes the provided async lambda function with a new read-only transaction
-		/// </summary>
-		public Task<R> ReadAsync<R>(Func<IFdbReadTransaction, FdbOperationContext, Task<R>> asyncAction, object state = null, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunReadWithResultAsync<R>(
-				db: this,
-				asyncAction: asyncAction,
-				state: state,
 				ct: ct
 			);
 		}
@@ -122,18 +73,7 @@ namespace FoundationDB.Client
 		{
 			return FdbOperationContext.RunWriteAsync(
 				db: this,
-				asyncAction: (tr, _context) => TaskHelpers.Inline((Action<IFdbTransaction>)_context.State, arg1: tr, ct: _context.Token),
-				state: action,
-				ct: ct
-			);
-		}
-
-		public Task WriteAsync(Action<IFdbTransaction, FdbOperationContext> action, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunWriteAsync(
-				db: this,
-				asyncAction: (tr, _context) => TaskHelpers.Inline((Action<IFdbTransaction, FdbOperationContext>)_context.State, arg1: tr, arg2: _context, ct: _context.Token),
-				state: action,
+				action: action,
 				ct: ct
 			);
 		}
@@ -142,36 +82,7 @@ namespace FoundationDB.Client
 		{
 			return FdbOperationContext.RunWriteAsync(
 				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var _asyncAction = (Func<IFdbTransaction, Task>)_context.State;
-					return _asyncAction(tr);
-				},
-				state: asyncAction,
-				ct: ct
-			);
-		}
-
-		public Task ReadWriteAsync(Func<IFdbTransaction, CancellationToken, Task> asyncAction, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunWriteAsync(
-				db: this,
-				asyncAction: (tr, _context) =>
-				{
-					var _asyncAction = (Func<IFdbTransaction, CancellationToken, Task>)_context.State;
-					return _asyncAction(tr, _context.Token);
-				},
-				state: asyncAction,
-				ct: ct
-			);
-		}
-
-		public Task ReadWriteAsync(Func<IFdbTransaction, FdbOperationContext, Task> asyncAction, object state = null, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunWriteAsync(
-				db: this,
 				asyncAction: asyncAction,
-				state: state,
 				ct: ct
 			);
 		}
@@ -181,27 +92,6 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunWriteWithResultAsync<R>(
 				db: this,
 				asyncAction: asyncAction,
-				state: null,
-				ct: ct
-			);
-		}
-
-		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, CancellationToken, Task<R>> asyncAction, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunWriteWithResultAsync<R>(
-				db: this,
-				asyncAction: asyncAction,
-				state: null,
-				ct: ct
-			);
-		}
-
-		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, FdbOperationContext, Task<R>> asyncAction, object state = null, CancellationToken ct = default(CancellationToken))
-		{
-			return FdbOperationContext.RunWriteWithResultAsync<R>(
-				db: this,
-				asyncAction: asyncAction,
-				state: state,
 				ct: ct
 			);
 		}

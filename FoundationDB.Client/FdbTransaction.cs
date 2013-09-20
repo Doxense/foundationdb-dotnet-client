@@ -57,7 +57,10 @@ namespace FoundationDB.Client
 		private int m_state;
 
 		/// <summary>Parent database for this transaction</summary>
-		private readonly FdbDatabase m_database;
+		//private readonly FdbDatabase m_database;
+
+		/// <summary>Context of the transaction when running inside a retry loop, or other custom scenario</summary>
+		private readonly FdbOperationContext m_context;
 
 		/// <summary>Unique internal id for this transaction (for debugging purpose)</summary>
 		private readonly int m_id;
@@ -67,10 +70,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Estimated size of written data (in bytes)</summary>
 		private int m_payloadBytes;
-		//TODO: should we use a long instead?
-
-		/// <summary>Cancelletation source specific to this instance.</summary>
-		private readonly CancellationTokenSource m_cts;
 
 		/// <summary>Timeout (in ms) of this transaction</summary>
 		private int m_timeout;
@@ -78,16 +77,27 @@ namespace FoundationDB.Client
 		/// <summary>Retry Limit of this transaction</summary>
 		private int m_retryLimit;
 
+		/// <summary>Cancelletation source specific to this instance.</summary>
+		private readonly CancellationTokenSource m_cts;
+
+		/// <summary>CancellationToken that should be used for all async operations executing inside this transaction</summary>
+		private CancellationToken m_token;
+
 		#endregion
 
 		#region Constructors...
 
-		internal FdbTransaction(FdbDatabase database, int id, TransactionHandle handle)
+		internal FdbTransaction(FdbOperationContext context, int id, TransactionHandle handle)
 		{
-			m_database = database;
+			Contract.Requires(context != null && handle != null);
+
+			m_context = context;
+			//m_database = database;
 			m_id = id;
 			m_handle = handle;
-			m_cts = CancellationTokenSource.CreateLinkedTokenSource(database.Token); //TODO: lazily allocated?
+
+			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Token);
+			m_token = m_cts.Token;
 		}
 
 		#endregion
@@ -101,8 +111,11 @@ namespace FoundationDB.Client
 		/// <summary>Always returns false. Use the <see cref="FdbTransaction.Snapshot"/> property to get a different view of this transaction that will perform snapshot reads.</summary>
 		public bool IsSnapshot { get { return false; } }
 
+		/// <summary>Returns the context of this transaction</summary>
+		public FdbOperationContext Context { get { return m_context; } }
+
 		/// <summary>Database instance that manages this transaction</summary>
-		public FdbDatabase Database { get { return m_database; } }
+		public FdbDatabase Database { get { return m_context.Db; } }
 
 		/// <summary>Native FDB_TRANSACTION* handle</summary>
 		internal TransactionHandle Handle { get { return m_handle; } }
@@ -114,7 +127,7 @@ namespace FoundationDB.Client
 		public int Size { get { return m_payloadBytes; } }
 
 		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
-		public CancellationToken Token { get { return m_cts.Token; } }
+		public CancellationToken Token { get { return m_token; } }
 
 		#endregion
 
@@ -257,9 +270,9 @@ namespace FoundationDB.Client
 		#region Versions...
 
 		/// <summary>Returns this transaction snapshot read version.</summary>
-		public Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken))
+		public Task<long> GetReadVersionAsync()
 		{
-			EnsureCanReadOrWrite(ct);
+			EnsureCanReadOrWrite();
 			//TODO: should we also allow being called after commit or rollback ?
 
 			var future = FdbNative.TransactionGetReadVersion(m_handle);
@@ -274,7 +287,7 @@ namespace FoundationDB.Client
 					Fdb.DieOnError(err);
 					return version;
 				},
-				ct
+				m_token
 			);
 		}
 
@@ -331,7 +344,7 @@ namespace FoundationDB.Client
 			return result;
 		}
 
-		internal Task<Slice> GetCoreAsync(Slice key, bool snapshot, CancellationToken ct)
+		internal Task<Slice> GetCoreAsync(Slice key, bool snapshot)
 		{
 			this.Database.EnsureKeyIsValid(key);
 
@@ -340,7 +353,7 @@ namespace FoundationDB.Client
 #endif
 
 			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
-			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), ct);
+			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), m_token);
 		}
 
 		/// <summary>
@@ -353,11 +366,11 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(Slice keyBytes)
 		{
-			EnsureCanReadOrWrite(ct);
+			EnsureCanReadOrWrite();
 
-			return GetCoreAsync(keyBytes, snapshot: false, ct: ct);
+			return GetCoreAsync(keyBytes, snapshot: false);
 		}
 
 		#endregion
@@ -379,7 +392,7 @@ namespace FoundationDB.Client
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <param name="ct"></param>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-		internal Task<FdbRangeChunk> GetRangeCoreAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken ct)
+		internal Task<FdbRangeChunk> GetRangeCoreAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, bool snapshot)
 		{
 			this.Database.EnsureKeyIsValid(range.Begin.Key);
 			this.Database.EnsureKeyIsValid(range.End.Key);
@@ -399,7 +412,7 @@ namespace FoundationDB.Client
 
 					return new FdbRangeChunk(hasMore, chunk, iteration);
 				},
-				ct
+				m_token
 			);
 		}
 
@@ -413,20 +426,20 @@ namespace FoundationDB.Client
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns></returns>
-		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken))
+		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
 		{
-			EnsureCanRead(ct);
+			EnsureCanRead();
 
-			return GetRangeCoreAsync(range, options, iteration, snapshot: false, ct: ct);
+			return GetRangeCoreAsync(range, options, iteration, snapshot: false);
 		}
 
-		public Task<FdbRangeChunk> GetRangeStartsWithAsync(Slice prefix, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken))
+		public Task<FdbRangeChunk> GetRangeStartsWithAsync(Slice prefix, FdbRangeOptions options = null, int iteration = 0)
 		{
 			if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
 
-			EnsureCanRead(ct);
+			EnsureCanRead();
 
-			return GetRangeCoreAsync(FdbKeySelectorPair.StartsWith(prefix), options, iteration, snapshot: false, ct: ct);
+			return GetRangeCoreAsync(FdbKeySelectorPair.StartsWith(prefix), options, iteration, snapshot: false);
 		}
 
 		#endregion
@@ -481,7 +494,7 @@ namespace FoundationDB.Client
 			return result;
 		}
 
-		internal Task<Slice> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot, CancellationToken ct)
+		internal Task<Slice> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot)
 		{
 			this.Database.EnsureKeyIsValid(selector.Key);
 
@@ -493,7 +506,7 @@ namespace FoundationDB.Client
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) => GetKeyResult(h),
-				ct
+				m_token
 			);
 		}
 
@@ -501,18 +514,18 @@ namespace FoundationDB.Client
 		/// <param name="selector">Key selector to resolve</param>
 		/// <param name="ct">CancellationToken used to cancel this operation</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
-		public Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetKeyAsync(FdbKeySelector selector)
 		{
-			EnsureCanRead(ct);
+			EnsureCanRead();
 
-			return GetKeyCoreAsync(selector, snapshot: false, ct: ct);
+			return GetKeyCoreAsync(selector, snapshot: false);
 		}
 
 		#endregion
 
 		#region GetKeys..
 
-		internal Task<Slice[]> GetKeysCoreAsync(FdbKeySelector[] selectors, bool snapshot, CancellationToken ct)
+		internal Task<Slice[]> GetKeysCoreAsync(FdbKeySelector[] selectors, bool snapshot)
 		{
 			Contract.Requires(selectors != null);
 
@@ -542,7 +555,7 @@ namespace FoundationDB.Client
 				}
 				throw;
 			}
-			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetKeyResult(h), ct);
+			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetKeyResult(h), m_token);
 
 		}
 
@@ -552,11 +565,11 @@ namespace FoundationDB.Client
 		/// <param name="selectors">Key selectors to resolve</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, CancellationToken ct = default(CancellationToken))
+		public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
 		{
-			EnsureCanRead(ct);
+			EnsureCanRead();
 
-			return GetKeysCoreAsync(selectors, snapshot: false, ct: ct);
+			return GetKeysCoreAsync(selectors, snapshot: false);
 		}
 
 		#endregion
@@ -725,7 +738,7 @@ namespace FoundationDB.Client
 			return result;
 		}
 
-		internal Task<string[]> GetAddressesForKeyCoreAsync(Slice key, CancellationToken ct)
+		internal Task<string[]> GetAddressesForKeyCoreAsync(Slice key)
 		{
 			this.Database.EnsureKeyIsValid(key);
 
@@ -737,7 +750,7 @@ namespace FoundationDB.Client
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) => GetStringArrayResult(h),
-				ct
+				m_token
 			);
 		}
 
@@ -746,18 +759,18 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
-		public Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken ct = default(CancellationToken))
+		public Task<string[]> GetAddressesForKeyAsync(Slice key)
 		{
-			EnsureCanReadOrWrite(ct);
+			EnsureCanReadOrWrite();
 
-			return GetAddressesForKeyCoreAsync(key, ct: ct);
+			return GetAddressesForKeyCoreAsync(key);
 		}
 
 		#endregion
 
 		#region Batching...
 
-		internal Task<Slice[]> GetValuesCoreAsync(Slice[] keys, bool snapshot, CancellationToken ct)
+		internal Task<Slice[]> GetValuesCoreAsync(Slice[] keys, bool snapshot)
 		{
 			Contract.Requires(keys != null);
 
@@ -787,16 +800,16 @@ namespace FoundationDB.Client
 				}
 				throw;
 			}
-			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetValueResultBytes(h), ct);
+			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetValueResultBytes(h), m_token);
 		}
 
-		public Task<Slice[]> GetValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken))
+		public Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			EnsureCanRead(ct);
+			EnsureCanRead();
 
-			return GetValuesCoreAsync(keys, snapshot: false, ct: ct);
+			return GetValuesCoreAsync(keys, snapshot: false);
 		}
 
 		#endregion
@@ -811,9 +824,9 @@ namespace FoundationDB.Client
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
-		public async Task CommitAsync(CancellationToken ct = default(CancellationToken))
+		public async Task CommitAsync()
 		{
-			EnsureCanReadOrWrite(ct);
+			EnsureCanReadOrWrite();
 
 			if (Logging.On) Logging.Verbose(this, "CommitAsync", "Committing transaction...");
 
@@ -821,7 +834,7 @@ namespace FoundationDB.Client
 			try
 			{
 				var future = FdbNative.TransactionCommit(m_handle);
-				await FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, ct).ConfigureAwait(false);
+				await FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, m_token).ConfigureAwait(false);
 
 				if (Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY) == STATE_READY)
 				{
@@ -850,6 +863,10 @@ namespace FoundationDB.Client
 			if (Logging.On) Logging.Verbose(this, "WatchAsync", String.Format("Watching key '{0}'", key.ToString()));
 #endif
 
+			//BUGBUG: we need to mix the ct with m_token if they are different ?
+			// This is just a temporary hack
+			if (!ct.CanBeCanceled) ct = m_token;
+
 			var future = FdbNative.TransactionWatch(m_handle, key);
 			return new FdbWatch(
 				FdbFuture.FromHandle<Slice>(future, (h) => key, ct),
@@ -864,9 +881,10 @@ namespace FoundationDB.Client
 		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the return FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
 		/// <remarks>You can directly await an FdbWatch, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbWatch.Task"/> property</remarks>
-		public FdbWatch Watch(Slice key, CancellationToken ct = default(CancellationToken))
+		public FdbWatch Watch(Slice key, CancellationToken ct)
 		{
-			EnsureCanRead(ct);
+			ct.ThrowIfCancellationRequested();
+			EnsureCanRead();
 
 			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be cancelled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
 			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource everytime),
@@ -888,9 +906,9 @@ namespace FoundationDB.Client
 		/// <param name="code">FdbError code thrown by the previous command</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retryable.</returns>
-		public Task OnErrorAsync(FdbError code, CancellationToken ct = default(CancellationToken))
+		public Task OnErrorAsync(FdbError code)
 		{
-			EnsureCanRetry(ct);
+			EnsureCanRetry();
 
 			var future = FdbNative.TransactionOnError(m_handle, code);
 			return FdbFuture.CreateTaskFromHandle<object>(future, (h) =>
@@ -899,7 +917,7 @@ namespace FoundationDB.Client
 				var state = this.State;
 				if (state != STATE_DISPOSED) Interlocked.CompareExchange(ref m_state, STATE_READY, state);
 				return null;
-			}, ct);
+			}, m_token);
 		}
 
 		#endregion
@@ -957,28 +975,30 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read operation</summary>
-		public void EnsureCanRead(CancellationToken ct = default(CancellationToken))
+		public void EnsureCanRead()
 		{
-			EnsureStilValid(ct, allowFromNetworkThread: false);
+			EnsureStilValid(allowFromNetworkThread: false);
 		}
 
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
-		public void EnsureCanReadOrWrite(CancellationToken ct = default(CancellationToken))
+		public void EnsureCanReadOrWrite()
 		{
-			EnsureStilValid(ct, allowFromNetworkThread: false);
+			EnsureStilValid(allowFromNetworkThread: false);
 		}
 
 		/// <summary>Throws if the transaction is not safely retryable</summary>
-		public void EnsureCanRetry(CancellationToken ct = default(CancellationToken))
+		public void EnsureCanRetry()
 		{
-			EnsureStilValid(ct, allowFromNetworkThread: false, allowFailedState: true);
+			EnsureStilValid(allowFromNetworkThread: false, allowFailedState: true);
 		}
 
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
 		/// <param name="ct">Optionnal CancellationToken that should not be cancelled</param>
+		/// <param name="allowFromNetworkThread">If true, this operation is allowed to run from a callback on the network thread and should NEVER block.</param>
+		/// <param name="allowFailedState">If true, this operation can run even if the transaction is in a failed state.</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If CommitAsync() or Rollback() have already been called on the transaction, or if the database has been closed</exception>
-		internal void EnsureStilValid(CancellationToken ct = default(CancellationToken), bool allowFromNetworkThread = false, bool allowFailedState = false)
+		internal void EnsureStilValid(bool allowFromNetworkThread = false, bool allowFailedState = false)
 		{
 			// We must not be disposed
 			if (allowFailedState ? this.State == STATE_DISPOSED : this.State != STATE_READY)
@@ -987,13 +1007,13 @@ namespace FoundationDB.Client
 			}
 
 			// The cancellation token should not be signaled
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			m_token.ThrowIfCancellationRequested();
 
 			// We cannot be called from the network thread (or else we will deadlock)
 			if (!allowFromNetworkThread) Fdb.EnsureNotOnNetworkThread();
 
 			// Ensure that the DB is still opened and that this transaction is still registered with it
-			m_database.EnsureTransactionIsValid(this);
+			m_context.Db.EnsureTransactionIsValid(this);
 
 			// we are ready to go !
 		}
@@ -1010,7 +1030,7 @@ namespace FoundationDB.Client
 				case STATE_ROLLEDBACK:
 				{ // We are still valid
 					// checks that the DB has not been disposed behind our back
-					m_database.EnsureTransactionIsValid(this);
+					m_context.Db.EnsureTransactionIsValid(this);
 					return;
 				}
 
@@ -1047,7 +1067,7 @@ namespace FoundationDB.Client
 			{
 				try
 				{
-					m_database.UnregisterTransaction(this);
+					m_context.Db.UnregisterTransaction(this);
 					m_cts.SafeCancelAndDispose();
 
 					if (Logging.On) Logging.Verbose(this, "Dispose", String.Format("Transaction #{0} has been disposed", m_id));
@@ -1056,6 +1076,7 @@ namespace FoundationDB.Client
 				{
 					// Dispose of the handle
 					if (!m_handle.IsClosed) m_handle.Dispose();
+					if (!m_context.Shared) m_context.Dispose();
 					m_cts.Dispose();
 				}
 			}

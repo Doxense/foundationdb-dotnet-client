@@ -61,12 +61,12 @@ namespace FoundationDB.Layers.Collections
 			return FdbTuple.UnpackLast<T>(value);
 		}
 
-		public Task<long> SizeAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public Task<long> SizeAsync(IFdbReadTransaction tr)
 		{
 			return this.Vector.SizeAsync(tr);
 		}
 
-		public Task EmptyAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public Task EmptyAsync(IFdbReadTransaction tr)
 		{
 			return this.Vector.EmptyAsync(tr);
 		}
@@ -76,12 +76,12 @@ namespace FoundationDB.Layers.Collections
 			this.Vector.Clear(tr);
 		}
 
-		public Task PushAsync(IFdbTransaction tr, T value, CancellationToken ct = default(CancellationToken))
+		public Task PushAsync(IFdbTransaction tr, T value)
 		{
 			return this.Vector.PushAsync(tr, EncodeValue(value));
 		}
 
-		public async Task<T> PopAsync(IFdbTransaction tr, CancellationToken ct = default(CancellationToken))
+		public async Task<T> PopAsync(IFdbTransaction tr)
 		{
 			return DecodeValue(await this.Vector.PopAsync(tr).ConfigureAwait(false));
 		}
@@ -91,17 +91,17 @@ namespace FoundationDB.Layers.Collections
 			this.Vector.Set(tr, index, EncodeValue(value));
 		}
 
-		public async Task<T> GetAsync(IFdbReadTransaction tr, long index, CancellationToken ct = default(CancellationToken))
+		public async Task<T> GetAsync(IFdbReadTransaction tr, long index)
 		{
 			return DecodeValue(await this.Vector.GetAsync(tr, index).ConfigureAwait(false));
 		}
 
-		public Task ResizeAsync(IFdbTransaction tr, long length, CancellationToken ct = default(CancellationToken))
+		public Task ResizeAsync(IFdbTransaction tr, long length)
 		{
 			return this.Vector.ResizeAsync(tr, length);
 		}
 
-		public Task SwapAsync(IFdbTransaction tr, int index1, int index2, CancellationToken ct = default(CancellationToken))
+		public Task SwapAsync(IFdbTransaction tr, int index1, int index2)
 		{
 			return this.Vector.SwapAsync(tr, index1, index2);
 		}

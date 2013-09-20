@@ -63,11 +63,11 @@ namespace FoundationDB.Client
 			trans.Set(keyBytes, value);
 		}
 
-		public static async Task SetAsync(this IFdbTransaction trans, Slice keyBytes, Stream data, CancellationToken ct = default(CancellationToken))
+		public static async Task SetAsync(this IFdbTransaction trans, Slice keyBytes, Stream data)
 		{
-			trans.EnsureCanReadOrWrite(ct);
+			trans.EnsureCanReadOrWrite();
 
-			Slice value = await Slice.FromStreamAsync(data, ct).ConfigureAwait(false);
+			Slice value = await Slice.FromStreamAsync(data, trans.Token).ConfigureAwait(false);
 
 			trans.Set(keyBytes, value);
 		}
@@ -224,49 +224,41 @@ namespace FoundationDB.Client
 
 		#region Batching...
 
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
-
-			ct.ThrowIfCancellationRequested();
 
 			var array = keys as Slice[];
 			if (array == null) array = keys.ToArray();
 
-			return trans.GetValuesAsync(array, ct);
+			return trans.GetValuesAsync(array);
 		}
 
-		public static Task<Slice[]> GetKeysAsync(this IFdbReadTransaction trans, IEnumerable<FdbKeySelector> selectors, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice[]> GetKeysAsync(this IFdbReadTransaction trans, IEnumerable<FdbKeySelector> selectors)
 		{
 			if (selectors == null) throw new ArgumentNullException("selectors");
-
-			ct.ThrowIfCancellationRequested();
 
 			var array = selectors as FdbKeySelector[];
 			if (array == null) array = selectors.ToArray();
 
-			return trans.GetKeysAsync(array, ct);
+			return trans.GetKeysAsync(array);
 		}
 
-		public static Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys, CancellationToken ct = default(CancellationToken))
+		public static Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
-
-			ct.ThrowIfCancellationRequested();
 
 			var array = keys as Slice[];
 			if (array == null) array = keys.ToArray();
 
-			return trans.GetBatchAsync(array, ct);
+			return trans.GetBatchAsync(array);
 		}
 
-		public static async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, Slice[] keys, CancellationToken ct = default(CancellationToken))
+		public static async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, Slice[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			ct.ThrowIfCancellationRequested();
-
-			var results = await trans.GetValuesAsync(keys, ct).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(keys).ConfigureAwait(false);
 
 			return results
 				.Select((value, i) => new KeyValuePair<Slice, Slice>(keys[i], value))

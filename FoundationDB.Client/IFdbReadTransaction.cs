@@ -58,7 +58,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
-		void EnsureCanRead(CancellationToken ct = default(CancellationToken));
+		void EnsureCanRead();
 
 		/// <summary>
 		/// Reads a value from the database snapshot represented by by the current transaction.
@@ -70,7 +70,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct = default(CancellationToken));
+		Task<Slice> GetAsync(Slice keyBytes);
 
 		/// <summary>
 		/// Reads several values from the database snapshot represented by the current transaction
@@ -78,7 +78,7 @@ namespace FoundationDB.Client
 		/// <param name="keys">Keys to be looked up in the database</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
-		Task<Slice[]> GetValuesAsync(Slice[] keys, CancellationToken ct = default(CancellationToken));
+		Task<Slice[]> GetValuesAsync(Slice[] keys);
 
 		/// <summary>
 		/// Resolves a key selector against the keys in the database snapshot represented by the current transaction.
@@ -86,7 +86,7 @@ namespace FoundationDB.Client
 		/// <param name="selector">Key selector to resolve</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
-		Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct = default(CancellationToken));
+		Task<Slice> GetKeyAsync(FdbKeySelector selector);
 
 		/// <summary>
 		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
@@ -94,7 +94,7 @@ namespace FoundationDB.Client
 		/// <param name="selectors">Key selectors to resolve</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, CancellationToken ct = default(CancellationToken));
+		Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors);
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
@@ -106,7 +106,7 @@ namespace FoundationDB.Client
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns></returns>
-		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0, CancellationToken ct = default(CancellationToken));
+		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0);
 		
 		/// <summary>
 		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction
@@ -127,7 +127,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Returns this transaction snapshot read version.
 		/// </summary>
-		Task<long> GetReadVersionAsync(CancellationToken ct = default(CancellationToken));
+		Task<long> GetReadVersionAsync();
 
 	}
 

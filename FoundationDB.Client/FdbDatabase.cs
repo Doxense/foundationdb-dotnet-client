@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB Database</summary>
 	/// <remarks>Wraps an FDBDatabase* handle</remarks>
 	[DebuggerDisplay("Name={m_name}, Namespace={m_namespace}")]
-	public partial class FdbDatabase : IDisposable
+	public partial class FdbDatabase : IFdbTransactional, IDisposable
 	{
 		#region Private Fields...
 
@@ -130,7 +130,7 @@ namespace FoundationDB.Client
 		#region Transaction Management...
 
 		/// <summary>Start a new transaction on this database</summary>
-		/// <returns>New transaction</returns>
+		/// <returns>New transaction instance</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
 		/// <example>
 		/// using(var tr = db.BeginTransaction())
@@ -140,6 +140,20 @@ namespace FoundationDB.Client
 		/// }</example>
 		public FdbTransaction BeginTransaction()
 		{
+			return BeginTransaction(new FdbOperationContext(this, CancellationToken.None));
+		}
+
+		public FdbTransaction BeginTransaction(CancellationToken ct)
+		{
+			return BeginTransaction(new FdbOperationContext(this, ct));
+		}
+
+		/// <summary>Start a new transaction on this database, with an optional context</summary>
+		/// <param name="context">Optional context in which the transaction will run</param>
+		internal FdbTransaction BeginTransaction(FdbOperationContext context)
+		{
+			Contract.Requires(context != null && context.Db == this);
+
 			if (m_handle.IsInvalid) throw Fdb.Errors.CannotCreateTransactionOnInvalidDatabase();
 			ThrowIfDisposed();
 
@@ -157,7 +171,7 @@ namespace FoundationDB.Client
 			FdbTransaction trans = null;
 			try
 			{
-				trans = new FdbTransaction(this, id, handle);
+				trans = new FdbTransaction(context, id, handle);
 				RegisterTransaction(trans);
 				// set default options..
 				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;

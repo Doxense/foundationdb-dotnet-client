@@ -77,56 +77,56 @@ namespace FoundationDB.Client
 				get { return true; }
 			}
 
-			public void EnsureCanRead(CancellationToken ct)
+			public void EnsureCanRead()
 			{
-				m_parent.EnsureCanRead(ct);
+				m_parent.EnsureCanRead();
 			}
 
-			public Task<long> GetReadVersionAsync(CancellationToken ct)
+			public Task<long> GetReadVersionAsync()
 			{
-				return m_parent.GetReadVersionAsync(ct);
+				return m_parent.GetReadVersionAsync();
 			}
 
-			public Task<Slice> GetAsync(Slice keyBytes, CancellationToken ct)
+			public Task<Slice> GetAsync(Slice keyBytes)
 			{
-				EnsureCanRead(ct);
+				EnsureCanRead();
 
-				return m_parent.GetCoreAsync(keyBytes, snapshot: true, ct: ct);
+				return m_parent.GetCoreAsync(keyBytes, snapshot: true);
 			}
 
-			public Task<Slice[]> GetValuesAsync(Slice[] keys, CancellationToken ct)
+			public Task<Slice[]> GetValuesAsync(Slice[] keys)
 			{
 				if (keys == null) throw new ArgumentNullException("keys");
 
-				EnsureCanRead(ct);
+				EnsureCanRead();
 
-				return m_parent.GetValuesCoreAsync(keys, snapshot: true, ct: ct);
+				return m_parent.GetValuesCoreAsync(keys, snapshot: true);
 			}
 
-			public Task<Slice> GetKeyAsync(FdbKeySelector selector, CancellationToken ct)
+			public Task<Slice> GetKeyAsync(FdbKeySelector selector)
 			{
-				EnsureCanRead(ct);
+				EnsureCanRead();
 
-				return m_parent.GetKeyCoreAsync(selector, snapshot: true, ct: ct);
+				return m_parent.GetKeyCoreAsync(selector, snapshot: true);
 			}
 
-			public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, CancellationToken ct)
+			public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
 			{
-				EnsureCanRead(ct);
+				EnsureCanRead();
 
-				return m_parent.GetKeysCoreAsync(selectors, snapshot:true, ct: ct);
+				return m_parent.GetKeysCoreAsync(selectors, snapshot:true);
 			}
 
-			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, CancellationToken ct)
+			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration)
 			{
-				EnsureCanRead(ct);
+				EnsureCanRead();
 
-				return m_parent.GetRangeCoreAsync(range, options, iteration, snapshot: true, ct: ct);
+				return m_parent.GetRangeCoreAsync(range, options, iteration, snapshot: true);
 			}
 
 			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options)
 			{
-				EnsureCanRead(CancellationToken.None);
+				EnsureCanRead();
 
 				return m_parent.GetRangeCore(range, options, snapshot: true);
 			}
@@ -135,7 +135,7 @@ namespace FoundationDB.Client
 			{
 				if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
 
-				EnsureCanRead(CancellationToken.None);
+				EnsureCanRead();
 
 				return m_parent.GetRangeCore(FdbKeySelectorPair.StartsWith(prefix), options, snapshot: true);
 			}

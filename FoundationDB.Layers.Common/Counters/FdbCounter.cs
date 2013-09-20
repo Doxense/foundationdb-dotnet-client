@@ -102,7 +102,7 @@ namespace FoundationDB.Layers.Counters
 		{
 			long total = 0;
 
-			using (var tr = this.Database.BeginTransaction())
+			using (var tr = this.Database.BeginTransaction(ct))
 			{
 				try
 				{
@@ -112,11 +112,11 @@ namespace FoundationDB.Layers.Counters
 					List<KeyValuePair<Slice, Slice>> shards;
 					if (this.Rng.NextDouble() < 0.5)
 					{
-						shards = await tr.Snapshot.GetRange(loc, this.Subspace.ToRange().End, new FdbRangeOptions { Limit = N }).ToListAsync(ct).ConfigureAwait(false);
+						shards = await tr.Snapshot.GetRange(loc, this.Subspace.ToRange().End, new FdbRangeOptions { Limit = N }).ToListAsync().ConfigureAwait(false);
 					}
 					else
 					{
-						shards = await tr.Snapshot.GetRange(this.Subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , Reverse = true }).ToListAsync(ct).ConfigureAwait(false);
+						shards = await tr.Snapshot.GetRange(this.Subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , Reverse = true }).ToListAsync().ConfigureAwait(false);
 					}
 
 					if (shards.Count > 0)
@@ -125,7 +125,7 @@ namespace FoundationDB.Layers.Counters
 						foreach (var shard in shards)
 						{
 							checked { total += DecodeInt(shard.Value); }
-							await tr.GetAsync(shard.Key, ct).ConfigureAwait(false); // real read for isolation
+							await tr.GetAsync(shard.Key).ConfigureAwait(false); // real read for isolation
 							tr.Clear(shard.Key);
 						}
 
@@ -133,7 +133,7 @@ namespace FoundationDB.Layers.Counters
 
 						// note: contrary to the python impl, we will await the commit, and rely on the caller to not wait to the Coalesce task itself to complete.
 						// That way, the transaction will live as long as the task, and we ensure that it gets disposed at some time
-						await tr.CommitAsync(ct).ConfigureAwait(false);
+						await tr.CommitAsync().ConfigureAwait(false);
 					}
 				}
 				catch (FdbException)
@@ -176,14 +176,14 @@ namespace FoundationDB.Layers.Counters
 		/// Get the value of the counter.
 		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
 		/// </summary>
-		public async Task<long> GetTransactional(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
+		public async Task<long> GetTransactional(IFdbReadTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			long total = 0;
 			await trans
 				.GetRange(this.Subspace.ToRange())
-				.ForEachAsync((kvp) => { checked { total += DecodeInt(kvp.Value); } }, ct)
+				.ForEachAsync((kvp) => { checked { total += DecodeInt(kvp.Value); } })
 				.ConfigureAwait(false);
 
 			return total;
@@ -192,11 +192,11 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>
 		/// Get the value of the counter with snapshot isolation (no transaction conflicts).
 		/// </summary>
-		public Task<long> GetSnapshot(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
+		public Task<long> GetSnapshot(IFdbReadTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			return GetTransactional(trans.ToSnapshotTransaction(), ct);
+			return GetTransactional(trans.ToSnapshotTransaction());
 		}
 
 		/// <summary>
@@ -222,11 +222,11 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>
 		/// Set the counter to value x.
 		/// </summary>
-		public async Task SetTotal(IFdbTransaction trans, long x, CancellationToken ct = default(CancellationToken))
+		public async Task SetTotal(IFdbTransaction trans, long x)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			long value = await GetSnapshot(trans, ct).ConfigureAwait(false);
+			long value = await GetSnapshot(trans).ConfigureAwait(false);
 			Add(trans, x - value);
 		}
 

@@ -59,6 +59,7 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="IFdbTransactional.cs" />
     <Compile Include="FdbFuture.cs" />
     <Compile Include="FdbFutureArray.cs" />
     <Compile Include="FdbWatch.cs" />
@@ -94,7 +95,7 @@
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
-    <Compile Include="Layers\Directories\FdbDirectoryExtensions.cs" />
+    <Compile Include="Layers\Directories\FdbDirectoryTransactionals.cs" />
     <Compile Include="Layers\Directories\FdbRootDirectory.cs" />
     <Compile Include="Layers\Directories\FdbDirectorySubspace.cs" />
     <Compile Include="Layers\Directories\FdbHighContentionAllocator.cs" />

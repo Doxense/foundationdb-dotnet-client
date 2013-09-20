@@ -73,9 +73,9 @@ namespace FoundationDB.Layers.Collections
 			this.Queue.ClearAsync(tr);
 		}
 
-		public Task PushAsync(IFdbTransaction tr, T value, CancellationToken ct = default(CancellationToken))
+		public Task PushAsync(IFdbTransaction tr, T value)
 		{
-			return this.Queue.PushAsync(tr, EncodeValue(value), ct);
+			return this.Queue.PushAsync(tr, EncodeValue(value));
 		}
 
 		public async Task<T> PopAsync(FdbDatabase db, CancellationToken ct = default(CancellationToken))
@@ -83,14 +83,14 @@ namespace FoundationDB.Layers.Collections
 			return DecodeValue(await this.Queue.PopAsync(db, ct).ConfigureAwait(false));
 		}
 
-		public Task<bool> EmptyAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public Task<bool> EmptyAsync(IFdbReadTransaction tr)
 		{
-			return this.Queue.EmptyAsync(tr, ct);
+			return this.Queue.EmptyAsync(tr);
 		}
 
-		public async Task<T> PeekAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public async Task<T> PeekAsync(IFdbReadTransaction tr)
 		{
-			return DecodeValue(await this.Queue.PeekAsync(tr, ct).ConfigureAwait(false));
+			return DecodeValue(await this.Queue.PeekAsync(tr).ConfigureAwait(false));
 		}
 	}
 

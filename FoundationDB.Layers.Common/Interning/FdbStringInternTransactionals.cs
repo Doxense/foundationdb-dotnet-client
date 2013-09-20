@@ -43,7 +43,7 @@ namespace FoundationDB.Layers.Interning
 		/// <remarks>The length of the string <paramref name="value"/> must not exceed the maximum FoundationDB value size</remarks>
 		public static Task<Slice> InternAsync(this FdbStringIntern self, FdbDatabase db, string value, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ReadWriteAsync((tr, _ctx) => self.InternAsync(tr, value, _ctx.Token), ct);
+			return db.ReadWriteAsync((tr) => self.InternAsync(tr, value), ct);
 		}
 
 		/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Interning
 		/// <returns>Original value of the interned string, or an exception if it does it does not exist</returns>
 		public static Task<string> LookupAsync(this FdbStringIntern self, FdbDatabase db, Slice uid, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ReadAsync((tr, _ctx) => self.LookupAsync(tr, uid, _ctx.Token), ct);
+			return db.ReadAsync((tr) => self.LookupAsync(tr, uid), ct);
 		}
 
 	}

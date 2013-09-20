@@ -240,7 +240,7 @@ namespace FoundationDB.Client.Tests
 				var rnd = new Random();
 
 				using(var cts = new CancellationTokenSource())
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(cts.Token))
 				{
 					// Writes about 5 MB of stuff in 100k chunks
 					for (int i = 0; i < 50; i++)
@@ -249,7 +249,7 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// start commiting with a cancellation token
-					var t = tr.CommitAsync(cts.Token);
+					var t = tr.CommitAsync();
 
 					// but almost immediately cancel the token source
 					await Task.Delay(1);

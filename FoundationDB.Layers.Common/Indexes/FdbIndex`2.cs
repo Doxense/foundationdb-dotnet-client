@@ -127,13 +127,11 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="reverse"></param>
 		/// <param name="ct"></param>
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
-		public Task<List<TId>> LookupAsync(IFdbReadTransaction trans, TValue value, bool reverse = false, CancellationToken ct = default(CancellationToken))
+		public Task<List<TId>> LookupAsync(IFdbReadTransaction trans, TValue value, bool reverse = false)
 		{
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
-
 			var query = Lookup(trans, value, reverse);
 			//TODO: limits? paging? ...
-			return query.ToListAsync(ct);
+			return query.ToListAsync();
 		}
 
 		/// <summary>Returns a query that will return all id of the entities that have the specified value in this index</summary>
@@ -141,16 +139,16 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
-		public IFdbAsyncEnumerable<TId> Lookup(IFdbReadTransaction trans, TValue value, bool reverse = false)
+		public FdbRangeQuery<TId> Lookup(IFdbReadTransaction trans, TValue value, bool reverse = false)
 		{
 			var prefix = this.Subspace.Pack(value);
 
 			return trans
-				.GetRangeStartsWith(prefix, new FdbRangeOptions { Reverse = reverse })
+				.GetRange(FdbKeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
 				.Select((kvp) => this.Subspace.UnpackLast<TId>(kvp.Key));
 		}
 
-		public IFdbAsyncEnumerable<TId> LookupGreaterThan(IFdbReadTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public FdbRangeQuery<TId> LookupGreaterThan(IFdbReadTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var prefix = this.Subspace.Pack(value);
 			if (!orEqual) prefix = FdbKey.Increment(prefix);
@@ -166,7 +164,7 @@ namespace FoundationDB.Layers.Indexing
 		}
 
 
-		public IFdbAsyncEnumerable<TId> LookupLessThan(IFdbReadTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		public FdbRangeQuery<TId> LookupLessThan(IFdbReadTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var prefix = this.Subspace.Pack(value);
 			if (orEqual) prefix = FdbKey.Increment(prefix);

@@ -58,7 +58,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.ReadAsync((tr, _ctx) => blob.GetSizeAsync(tr, _ctx.Token), ct);
+			return db.ReadAsync((tr) => blob.GetSizeAsync(tr), ct);
 		}
 
 		/// <summary>
@@ -69,7 +69,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.ReadAsync((tr, _ctx) => blob.ReadAsync(tr, offset, n, _ctx.Token), ct);
+			return db.ReadAsync((tr) => blob.ReadAsync(tr, offset, n), ct);
 		}
 
 		/// <summary>
@@ -80,7 +80,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.ReadWriteAsync((tr, _ctx) => blob.WriteAsync(tr, offset, data, _ctx.Token), ct);
+			return db.ReadWriteAsync((tr) => blob.WriteAsync(tr, offset, data), ct);
 		}
 
 		/// <summary>
@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.ReadWriteAsync((tr, _ctx) => blob.AppendAsync(tr, data, _ctx.Token), ct);
+			return db.ReadWriteAsync((tr) => blob.AppendAsync(tr, data), ct);
 		}
 
 		/// <summary>
@@ -102,7 +102,7 @@ namespace FoundationDB.Layers.Blobs
 			if (blob == null) throw new ArgumentNullException("blob");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.ReadWriteAsync((tr, _ctx) => blob.TruncateAsync(tr, newLength, _ctx.Token), ct);
+			return db.ReadWriteAsync((tr) => blob.TruncateAsync(tr, newLength), ct);
 		}
 	}
 

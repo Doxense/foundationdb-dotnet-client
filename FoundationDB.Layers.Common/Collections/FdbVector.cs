@@ -82,12 +82,11 @@ namespace FoundationDB.Layers.Collections
 		/// </summary>
 		/// <param name="tr"></param>
 		/// <returns></returns>
-		public Task<long> SizeAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public Task<long> SizeAsync(IFdbReadTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
-			ct.ThrowIfCancellationRequested();
 
-			return ComputeSizeAsync(tr, ct);
+			return ComputeSizeAsync(tr);
 		}
 
 		/// <summary>
@@ -96,12 +95,11 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="tr"></param>
 		/// <param name="value"></param>
 		/// <returns></returns>
-		public async Task PushAsync(IFdbTransaction tr, Slice value, CancellationToken ct = default(CancellationToken))
+		public async Task PushAsync(IFdbTransaction tr, Slice value)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
-			ct.ThrowIfCancellationRequested();
 
-			var size = await ComputeSizeAsync(tr, ct).ConfigureAwait(false);
+			var size = await ComputeSizeAsync(tr).ConfigureAwait(false);
 
 			tr.Set(GetKeyAt(size), value);
 		}
@@ -111,15 +109,14 @@ namespace FoundationDB.Layers.Collections
 		/// </summary>
 		/// <param name="tr"></param>
 		/// <returns></returns>
-		public Task<Slice> BackAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> BackAsync(IFdbReadTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
-			ct.ThrowIfCancellationRequested();
 
 			return tr
 				.GetRange(this.Subspace.ToRange())
 				.Values()
-				.LastOrDefaultAsync(ct);
+				.LastOrDefaultAsync();
 		}
 
 		/// <summary>
@@ -127,9 +124,9 @@ namespace FoundationDB.Layers.Collections
 		/// </summary>
 		/// <param name="tr"></param>
 		/// <returns></returns>
-		public Task<Slice> FrontAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> FrontAsync(IFdbReadTransaction tr)
 		{
-			return GetAsync(tr, 0, ct);
+			return GetAsync(tr, 0);
 		}
 
 		/// <summary>
@@ -137,10 +134,9 @@ namespace FoundationDB.Layers.Collections
 		/// </summary>
 		/// <param name="tr"></param>
 		/// <returns></returns>
-		public async Task<Slice> PopAsync(IFdbTransaction tr, CancellationToken ct = default(CancellationToken))
+		public async Task<Slice> PopAsync(IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
-			ct.ThrowIfCancellationRequested();
 
 			var keyRange = this.Subspace.ToRange();
 
@@ -149,7 +145,7 @@ namespace FoundationDB.Layers.Collections
 			// to the default value
 			var lastTwo = await tr
 				.GetRange(keyRange, new FdbRangeOptions { Reverse = true, Limit = 2 })
-				.ToListAsync(ct)
+				.ToListAsync()
 				.ConfigureAwait(false);
 
 			// Vector was empty
@@ -179,21 +175,20 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="index1"></param>
 		/// <param name="index2"></param>
 		/// <returns></returns>
-		public async Task SwapAsync(IFdbTransaction tr, long index1, long index2, CancellationToken ct = default(CancellationToken))
+		public async Task SwapAsync(IFdbTransaction tr, long index1, long index2)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
-			ct.ThrowIfCancellationRequested();
 
 			if (index1 < 0 || index2 < 0) throw new IndexOutOfRangeException(String.Format("Indices ({0}, {1}) must be positive", index1, index2));
 
 			var k1 = GetKeyAt(index1);
 			var k2 = GetKeyAt(index2);
 
-			long currentSize = await ComputeSizeAsync(tr, ct).ConfigureAwait(false);
+			long currentSize = await ComputeSizeAsync(tr).ConfigureAwait(false);
 
 			if (index1 >= currentSize || index2 >= currentSize) throw new IndexOutOfRangeException(String.Format("Indices ({0}, {1}) are out of range", index1, index2));
 
-			var vs = await tr.GetValuesAsync(new[] { k1, k2 }, ct).ConfigureAwait(false);
+			var vs = await tr.GetValuesAsync(new[] { k1, k2 }).ConfigureAwait(false);
 			var v1 = vs[0];
 			var v2 = vs[1];
 
@@ -222,18 +217,17 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="tr"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		public async Task<Slice> GetAsync(IFdbReadTransaction tr, long index, CancellationToken ct = default(CancellationToken))
+		public async Task<Slice> GetAsync(IFdbReadTransaction tr, long index)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (index < 0) throw new IndexOutOfRangeException(String.Format("Index {0} must be positive", index));
-			ct.ThrowIfCancellationRequested();
 
 			var start = GetKeyAt(index);
 			var end = this.Subspace.ToRange().End;
 
 			var output = await tr
 				.GetRange(start, end)
-				.FirstOrDefaultAsync(ct)
+				.FirstOrDefaultAsync()
 				.ConfigureAwait(false);
 
 			if (output.Key.HasValue)
@@ -259,10 +253,11 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="endIndex"></param>
 		/// <param name="step"></param>
 		/// <returns></returns>
-		public IFdbAsyncEnumerable<Slice> GetRangeAsync(IFdbReadTransaction tr, long startIndex, long endIndex, long step, CancellationToken ct = default(CancellationToken))
+		public IFdbAsyncEnumerable<Slice> GetRangeAsync(IFdbReadTransaction tr, long startIndex, long endIndex, long step)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
-			ct.ThrowIfCancellationRequested();
+
+			//BUGUBG: implement FdbVector.GetRangeAsync() !
 
 			throw new NotImplementedException();
 		}
@@ -286,12 +281,11 @@ namespace FoundationDB.Layers.Collections
 		/// </summary>
 		/// <param name="tr"></param>
 		/// <returns></returns>
-		public async Task<bool> EmptyAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public async Task<bool> EmptyAsync(IFdbReadTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
-			ct.ThrowIfCancellationRequested();
 
-			return (await ComputeSizeAsync(tr, ct).ConfigureAwait(false)) == 0;
+			return (await ComputeSizeAsync(tr).ConfigureAwait(false)) == 0;
 		}
 
 		/// <summary>
@@ -300,19 +294,18 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="tr"></param>
 		/// <param name="length"></param>
 		/// <returns></returns>
-		public async Task ResizeAsync(IFdbTransaction tr, long length, CancellationToken ct = default(CancellationToken))
+		public async Task ResizeAsync(IFdbTransaction tr, long length)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
-			ct.ThrowIfCancellationRequested();
 
-			long currentSize = await ComputeSizeAsync(tr, ct).ConfigureAwait(false);
+			long currentSize = await ComputeSizeAsync(tr).ConfigureAwait(false);
 
 			if (length < currentSize)
 			{
 				tr.ClearRange(GetKeyAt(length), this.Subspace.ToRange().End);
 
 				// Check if the new end of the vector was being sparsely represented
-				if (await ComputeSizeAsync(tr, ct).ConfigureAwait(false) < length)
+				if (await ComputeSizeAsync(tr).ConfigureAwait(false) < length)
 				{
 					tr.Set(GetKeyAt(length - 1), this.DefaultValue);
 				}
@@ -332,13 +325,13 @@ namespace FoundationDB.Layers.Collections
 
 		//
 
-		private async Task<long> ComputeSizeAsync(IFdbReadTransaction tr, CancellationToken ct)
+		private async Task<long> ComputeSizeAsync(IFdbReadTransaction tr)
 		{
 			Contract.Requires(tr != null);
 
 			var keyRange = this.Subspace.ToRange();
 
-			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(keyRange.End), ct).ConfigureAwait(false);
+			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(keyRange.End)).ConfigureAwait(false);
 
 			if (lastKey < keyRange.Begin)
 			{

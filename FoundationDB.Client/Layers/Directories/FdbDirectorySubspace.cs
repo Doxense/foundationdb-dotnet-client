@@ -41,7 +41,7 @@ namespace FoundationDB.Layers.Directories
 	public class FdbDirectorySubspace : FdbSubspace
 	{
 
-		internal FdbDirectorySubspace(IFdbTuple path, IFdbTuple prefix, FdbDirectoryLayer directoryLayer, string layer)
+		internal FdbDirectorySubspace(IFdbTuple path, Slice prefix, FdbDirectoryLayer directoryLayer, string layer)
 			: base(prefix)
 		{
 			Contract.Requires(path != null);
@@ -65,34 +65,34 @@ namespace FoundationDB.Layers.Directories
 				throw new InvalidOperationException("The directory was created with an incompatible layer.");
 		}
 
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true)
 		{
-			return this.DirectoryLayer.CreateOrOpenAsync(tr, this.Path.Concat(subPath), layer, prefix, allowCreate, allowOpen, ct);
+			return this.DirectoryLayer.CreateOrOpenAsync(tr, this.Path.Concat(subPath), layer, prefix, allowCreate, allowOpen);
 		}
 
-		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null)
 		{
-			return this.DirectoryLayer.OpenAsync(tr, this.Path.Concat(subPath), layer, ct);
+			return this.DirectoryLayer.OpenAsync(tr, this.Path.Concat(subPath), layer);
 		}
 
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice), CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice))
 		{
-			return this.DirectoryLayer.CreateAsync(tr, this.Path.Concat(subPath), layer, prefix, ct);
+			return this.DirectoryLayer.CreateAsync(tr, this.Path.Concat(subPath), layer, prefix);
 		}
 
-		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, IFdbTuple newPath, CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, IFdbTuple newPath)
 		{
-			return this.DirectoryLayer.MoveAsync(tr, this.Path, newPath, ct);
+			return this.DirectoryLayer.MoveAsync(tr, this.Path, newPath);
 		}
 
-		public Task<bool> RemoveAsync(IFdbTransaction tr, CancellationToken ct = default(CancellationToken))
+		public Task<bool> RemoveAsync(IFdbTransaction tr)
 		{
-			return this.DirectoryLayer.RemoveAsync(tr, this.Path, ct);
+			return this.DirectoryLayer.RemoveAsync(tr, this.Path);
 		}
 
-		public Task<List<IFdbTuple>> ListAsync(IFdbReadTransaction tr, CancellationToken ct = default(CancellationToken))
+		public Task<List<IFdbTuple>> ListAsync(IFdbReadTransaction tr)
 		{
-			return this.DirectoryLayer.ListAsync(tr, this.Path, ct);
+			return this.DirectoryLayer.ListAsync(tr, this.Path);
 		}
 
 		public override string ToString()

@@ -104,7 +104,7 @@ namespace FoundationDB.Layers.Documents
 			}		
 		}
 
-		public async Task<TDocument> LoadAsync(IFdbReadTransaction trans, TId id, CancellationToken ct = default(CancellationToken))
+		public async Task<TDocument> LoadAsync(IFdbReadTransaction trans, TId id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id"); // only for ref types
@@ -117,14 +117,12 @@ namespace FoundationDB.Layers.Documents
 					FdbTuple.UnpackWithoutPrefix(kvp.Key, prefix.Key),
 					kvp.Value
 				))
-				.ToArrayAsync(ct);
+				.ToArrayAsync();
 
 			if (parts == null || parts.Length == 0)
 			{ // document not found
 				return default(TDocument);
 			}
-
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
 			var packed = this.Converter.Build(parts);
 			if (packed == null) throw new InvalidOperationException();
@@ -167,7 +165,7 @@ namespace FoundationDB.Layers.Documents
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.ReadAsync((tr) => LoadAsync(tr, id, ct), ct);
+			return db.ReadAsync((tr) => LoadAsync(tr, id), ct);
 		}
 
 		public Task DeleteAsync(FdbDatabase db, TId id, CancellationToken ct = default(CancellationToken))

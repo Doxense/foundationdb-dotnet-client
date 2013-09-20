@@ -64,14 +64,14 @@ namespace FoundationDB.Layers.Collections
 
 		#region Get / Set / Clear
 
-		public Task<Slice> GetAsync(IFdbReadTransaction trans, int key, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(IFdbReadTransaction trans, int key)
 		{
-			return trans.GetAsync(Key(key), ct);
+			return trans.GetAsync(Key(key));
 		}
 
-		public Task<Slice> GetAsync(IFdbReadTransaction trans, long key, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(IFdbReadTransaction trans, long key)
 		{
-			return trans.GetAsync(Key(key), ct);
+			return trans.GetAsync(Key(key));
 		}
 
 		public void Set(IFdbTransaction trans, int key, Slice value)

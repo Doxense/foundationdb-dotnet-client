@@ -70,11 +70,11 @@ namespace FoundationDB.Layers.Tuples
 		/// tr.GetAsync(new FdbSubspace("Hello"), FdbTuple.Create("World"));
 		/// tr.GetAsync(FdbTuple.Create("Hello", "World"));
 		/// </example>
-		public static Task<Slice> GetAsync(this IFdbReadTransaction trans, FdbSubspace subspace, IFdbTuple key, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> GetAsync(this IFdbReadTransaction trans, FdbSubspace subspace, IFdbTuple key)
 		{
 			Contract.Requires(trans != null && subspace != null && key != null);
 
-			return trans.GetAsync(subspace.Pack(key), ct);
+			return trans.GetAsync(subspace.Pack(key));
 		}
 
 		/// <summary>Write a key inside a subspace</summary>

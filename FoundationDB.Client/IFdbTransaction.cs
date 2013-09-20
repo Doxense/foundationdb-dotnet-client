@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
-		void EnsureCanReadOrWrite(CancellationToken ct = default(CancellationToken));
+		void EnsureCanReadOrWrite();
 
 		/// <summary>
 		/// Estimated payload size of the transaction (in bytes)
@@ -100,7 +100,7 @@ namespace FoundationDB.Client
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
-		Task CommitAsync(CancellationToken ct = default(CancellationToken));
+		Task CommitAsync();
 
 		/// <summary>
 		/// Retrieves the database version number at which a given transaction was committed.
@@ -132,7 +132,7 @@ namespace FoundationDB.Client
 		/// <param name="code">FdbError code thrown by the previous command</param>
 		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retryable.</returns>
-		Task OnErrorAsync(FdbError code, CancellationToken ct = default(CancellationToken));
+		Task OnErrorAsync(FdbError code);
 
 	}
 

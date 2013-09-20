@@ -85,20 +85,20 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="field">Name of the field to read</param>
 		/// <returns>Value of the corresponding field, or Slice.Nil if it the hashset does not exist, or doesn't have a field with this name</returns>
-		public Task<Slice> GetValueAsync(IFdbReadTransaction trans, IFdbTuple id, string field, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetValueAsync(IFdbReadTransaction trans, IFdbTuple id, string field)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 			if (string.IsNullOrEmpty(field)) throw new ArgumentNullException("field");
 
-			return trans.GetAsync(GetFieldKey(id, field), ct);
+			return trans.GetAsync(GetFieldKey(id, field));
 		}
 
 		/// <summary>Return all fields of an hashset</summary>
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>Dictionary containing, for all fields, their associated values</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadTransaction trans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
+		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadTransaction trans, IFdbTuple id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Blobs
 				{
 					string field = this.Subspace.UnpackLast<string>(kvp.Key);
 					results[field] = kvp.Value;
-				}, ct)
+				})
 				.ConfigureAwait(false);
 
 			return results;
@@ -123,7 +123,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="fields">List of the fields to read</param>
 		/// <returns>Dictionary containing the values of the selected fields, or Slice.Empty if that particular field does not exist.</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadTransaction trans, IFdbTuple id, string[] fields, CancellationToken ct = default(CancellationToken))
+		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadTransaction trans, IFdbTuple id, string[] fields)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -131,7 +131,7 @@ namespace FoundationDB.Layers.Blobs
 
 			var keys = FdbKey.Merge(GetKey(id), fields);
 
-			var values = await trans.GetValuesAsync(keys, ct).ConfigureAwait(false);
+			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);
 
 			var results = new Dictionary<string, Slice>(values.Length, StringComparer.OrdinalIgnoreCase);

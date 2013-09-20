@@ -71,12 +71,12 @@ namespace FoundationDB.Layers.Tables
 
 		#region Get / Set / Clear...
 
-		public Task<Slice> GetAsync(IFdbReadTransaction trans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
+		public Task<Slice> GetAsync(IFdbReadTransaction trans, IFdbTuple id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return trans.GetAsync(MakeKey(id), ct);
+			return trans.GetAsync(MakeKey(id));
 		}
 
 		public void Set(IFdbTransaction trans, IFdbTuple id, Slice value)
@@ -95,13 +95,13 @@ namespace FoundationDB.Layers.Tables
 			trans.Clear(MakeKey(id));
 		}
 
-		public Task<List<KeyValuePair<Slice, Slice>>> GetAllAsync(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
+		public Task<List<KeyValuePair<Slice, Slice>>> GetAllAsync(IFdbReadTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRangeStartsWith(this.Subspace) //TODO: options ?
-				.ToListAsync(ct);
+				.GetRange(this.Subspace.ToRange()) //TODO: options ?
+				.ToListAsync();
 		}
 
 		#endregion
@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Tables
 			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.ReadAsync((tr) => this.GetAsync(tr, id, ct), ct);
+			return db.ReadAsync((tr) => this.GetAsync(tr, id), ct);
 		}
 
 		public Task SetAsync(FdbDatabase db, IFdbTuple id, Slice value, CancellationToken ct = default(CancellationToken))

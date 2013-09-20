@@ -96,7 +96,7 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location);
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = db.OpenDirectory(location);
+				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
 
 				Assert.That(directory.ContentSubspace, Is.Not.Null);
 				Assert.That(directory.ContentSubspace.Key, Is.EqualTo(location.Key));
@@ -150,7 +150,7 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location);
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = db.OpenDirectory(location);
+				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
 
 				FdbDirectorySubspace folder;
 				using (var tr = db.BeginTransaction())
@@ -203,7 +203,6 @@ namespace FoundationDB.Layers.Directories
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
 				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
-
 
 				// create a folder at ('Foo',)
 				var original = await directory.CreateOrOpenAsync(db, FdbTuple.Create("Foo"));

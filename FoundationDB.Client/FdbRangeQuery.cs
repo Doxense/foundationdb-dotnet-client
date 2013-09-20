@@ -190,15 +190,15 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a list of all the elements of the range results</summary>
-		public Task<List<T>> ToListAsync(CancellationToken ct = default(CancellationToken))
+		public Task<List<T>> ToListAsync()
 		{
-			return FdbAsyncEnumerable.ToListAsync(this, ct);
+			return FdbAsyncEnumerable.ToListAsync(this, this.Transaction.Token);
 		}
 
 		/// <summary>Return an array with all the elements of the range results</summary>
-		public Task<T[]> ToArrayAsync(CancellationToken ct = default(CancellationToken))
+		public Task<T[]> ToArrayAsync()
 		{
-			return FdbAsyncEnumerable.ToArrayAsync(this, ct);
+			return FdbAsyncEnumerable.ToArrayAsync(this, this.Transaction.Token);
 		}
 
 		internal FdbRangeQuery<R> Map<R>(Func<KeyValuePair<Slice, Slice>, R> transform)
@@ -227,73 +227,71 @@ namespace FoundationDB.Client
 			return FdbAsyncEnumerable.Where(this, predicate);
 		}
 
-		public Task<T> FirstOrDefaultAsync(CancellationToken ct = default(CancellationToken))
+		public Task<T> FirstOrDefaultAsync()
 		{
 			// we can optimize this by passing Limit=1
-			return HeadAsync(single: false, orDefault: true, ct: ct);
+			return HeadAsync(single: false, orDefault: true);
 		}
 
-		public Task<T> FirstAsync(CancellationToken ct = default(CancellationToken))
+		public Task<T> FirstAsync()
 		{
 			// we can optimize this by passing Limit=1
-			return HeadAsync(single: false, orDefault: false, ct: ct);
+			return HeadAsync(single: false, orDefault: false);
 		}
 
-		public Task<T> LastOrDefaultAsync(CancellationToken ct = default(CancellationToken))
+		public Task<T> LastOrDefaultAsync()
 		{
 			// we can optimize by reversing the current query and calling FirstOrDefault !
-			return this.Reversed().HeadAsync(single:false, orDefault:true, ct: ct);
+			return this.Reversed().HeadAsync(single:false, orDefault:true);
 		}
 
-		public Task<T> LastAsync(CancellationToken ct = default(CancellationToken))
+		public Task<T> LastAsync()
 		{
 			// we can optimize this by reversing the current query and calling First !
-			return this.Reversed().HeadAsync(single: false, orDefault:false, ct: ct);
+			return this.Reversed().HeadAsync(single: false, orDefault:false);
 		}
 
-		public Task<T> SingleOrDefaultAsync(CancellationToken ct = default(CancellationToken))
+		public Task<T> SingleOrDefaultAsync()
 		{
 			// we can optimize this by passing Limit=2
-			return HeadAsync(single: true, orDefault: true, ct: ct);
+			return HeadAsync(single: true, orDefault: true);
 		}
 
-		public Task<T> SingleAsync(CancellationToken ct = default(CancellationToken))
+		public Task<T> SingleAsync()
 		{
 			// we can optimize this by passing Limit=2
-			return HeadAsync(single: true, orDefault: false, ct: ct);
+			return HeadAsync(single: true, orDefault: false);
 		}
 
 		/// <summary>Return true if the range query returns at least one element, or false if there was no result.</summary>
-		public Task<bool> AnyAsync(CancellationToken ct = default(CancellationToken))
+		public Task<bool> AnyAsync()
 		{
 			// we can optimize this by using Limit = 1
-			return AnyOrNoneAsync(true, ct);
+			return AnyOrNoneAsync(any: true);
 		}
 
 		/// <summary>Return true if the range query does not return any valid elements, or false if there was at least one result.</summary>
 		/// <remarks>This is a convenience method that is there to help porting layer code from other languages. This is strictly equivalent to calling "!(await query.AnyAsync())".</remarks>
-		public Task<bool> NoneAsync(CancellationToken ct = default(CancellationToken))
+		public Task<bool> NoneAsync()
 		{
 			// we can optimize this by using Limit = 1
-			return AnyOrNoneAsync(false, ct);
+			return AnyOrNoneAsync(any: false);
 		}
 
 		/// <summary>Execute an action on each key/value pair of the range results</summary>
-		public Task ForEachAsync(Action<T> action, CancellationToken ct = default(CancellationToken))
+		public Task ForEachAsync(Action<T> action)
 		{
-			return FdbAsyncEnumerable.ForEachAsync(this, action, ct);
+			return FdbAsyncEnumerable.ForEachAsync(this, action, this.Transaction.Token);
 		}
 
-		internal async Task<T> HeadAsync(bool single, bool orDefault, CancellationToken ct)
+		internal async Task<T> HeadAsync(bool single, bool orDefault)
 		{
 			// Optimized code path for First/Last/Single variants where we can be smart and only ask for 1 or 2 results from the db
-
-			ct.ThrowIfCancellationRequested();
 
 			// we can use the EXACT streaming mode with Limit = 1|2, and it will work if TargetBytes is 0
 			if (this.TargetBytes != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
-				return await FdbAsyncEnumerable.Head(this, single, orDefault, ct).ConfigureAwait(false);
+				return await FdbAsyncEnumerable.Head(this, single, orDefault, this.Transaction.Token).ConfigureAwait(false);
 			}
 
 			var options = new FdbRangeOptions()
@@ -305,7 +303,7 @@ namespace FoundationDB.Client
 			};
 
 			var tr = this.Snapshot ? this.Transaction.ToSnapshotTransaction() : this.Transaction;
-			var results = await tr.GetRangeAsync(this.Range, options, 0, ct).ConfigureAwait(false);
+			var results = await tr.GetRangeAsync(this.Range, options, 0).ConfigureAwait(false);
 
 			if (results.Chunk.Length == 0)
 			{ // no result
@@ -322,19 +320,17 @@ namespace FoundationDB.Client
 			return this.Transform(results.Chunk[0]);
 		}
 
-		internal async Task<bool> AnyOrNoneAsync(bool any, CancellationToken ct)
+		internal async Task<bool> AnyOrNoneAsync(bool any)
 		{
 			// Optimized code path for Any/None where we can be smart and only ask for 1 from the db
-
-			ct.ThrowIfCancellationRequested();
 
 			// we can use the EXACT streaming mode with Limit = 1, and it will work if TargetBytes is 0
 			if (this.TargetBytes != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
 				if (any)
-					return await FdbAsyncEnumerable.AnyAsync(this, ct);
+					return await FdbAsyncEnumerable.AnyAsync(this, this.Transaction.Token);
 				else
-					return await FdbAsyncEnumerable.NoneAsync(this, ct);
+					return await FdbAsyncEnumerable.NoneAsync(this, this.Transaction.Token);
 			}
 
 			var options = new FdbRangeOptions()
@@ -346,7 +342,7 @@ namespace FoundationDB.Client
 			};
 
 			var tr = this.Snapshot ? this.Transaction.ToSnapshotTransaction() : this.Transaction;
-			var results = await tr.GetRangeAsync(this.Range, options, 0, ct).ConfigureAwait(false);
+			var results = await tr.GetRangeAsync(this.Range, options, 0).ConfigureAwait(false);
 
 			return any ? results.Chunk.Length > 0 : results.Chunk.Length == 0;
 		}

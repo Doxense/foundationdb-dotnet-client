@@ -216,43 +216,41 @@ namespace FoundationDB.Layers.Tuples
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static Task<Slice> GetAsync(this IFdbReadTransaction trans, IFdbTuple key, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> GetAsync(this IFdbReadTransaction trans, IFdbTuple key)
 		{
 			Contract.Requires(trans != null);
 			if (key == null) throw new ArgumentNullException("key");
 
-			return trans.GetAsync(key.ToSlice(), ct);
+			return trans.GetAsync(key.ToSlice());
 		}
 
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IFdbTuple[] tuples, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IFdbTuple[] tuples)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
-			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples), ct);
+			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples));
 		}
 
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> tuples, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> tuples)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
-			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples), ct);
+			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples));
 		}
 
-		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> tuples, CancellationToken ct = default(CancellationToken))
+		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> tuples)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
-			ct.ThrowIfCancellationRequested();
-
-			return GetBatchAsync(trans, tuples.ToArray(), ct);
+			return GetBatchAsync(trans, tuples.ToArray());
 		}
 
-		public static async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IFdbTuple[] tuples, CancellationToken ct = default(CancellationToken))
+		public static async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IFdbTuple[] tuples)
 		{
-			var results = await GetValuesAsync(trans, tuples, ct).ConfigureAwait(false);
+			var results = await GetValuesAsync(trans, tuples).ConfigureAwait(false);
 
 			// maps the index back to the original key
 			return results

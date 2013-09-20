@@ -79,11 +79,11 @@ namespace FoundationDB.Layers.Tables
 			return this.Table.MakeKey(this.KeyReader.ToTuple(key));
 		}
 
-		public async Task<TValue> GetAsync(IFdbReadTransaction trans, TKey key, CancellationToken ct = default(CancellationToken))
+		public async Task<TValue> GetAsync(IFdbReadTransaction trans, TKey key)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			Slice data = await this.Table.GetAsync(trans, this.KeyReader.ToTuple(key), ct).ConfigureAwait(false);
+			Slice data = await this.Table.GetAsync(trans, this.KeyReader.ToTuple(key)).ConfigureAwait(false);
 
 			if (data.IsNull) return default(TValue);
 			return this.ValueSerializer.Deserialize(data, default(TValue));
@@ -103,11 +103,9 @@ namespace FoundationDB.Layers.Tables
 			this.Table.Clear(trans, this.KeyReader.ToTuple(key));
 		}
 
-		public Task<List<KeyValuePair<TKey, TValue>>> GetAllAsync(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
+		public Task<List<KeyValuePair<TKey, TValue>>> GetAllAsync(IFdbReadTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-
-			ct.ThrowIfCancellationRequested();
 
 			var subspace = this.Table.Subspace;
 			var missing = default(TValue);
@@ -118,17 +116,15 @@ namespace FoundationDB.Layers.Tables
 					this.KeyReader.FromTuple(subspace.Unpack(kvp.Key)),
 					this.ValueSerializer.Deserialize(kvp.Value, missing)
 				))
-				.ToListAsync(ct);
+				.ToListAsync();
 		}
 
-		public async Task<List<TValue>> GetValuesAsync(IFdbReadTransaction trans, IEnumerable<TKey> ids, CancellationToken ct = default(CancellationToken))
+		public async Task<List<TValue>> GetValuesAsync(IFdbReadTransaction trans, IEnumerable<TKey> ids)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");
 
-			ct.ThrowIfCancellationRequested();
-
-			var results = await trans.GetValuesAsync(ids.Select(MakeKey), ct).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(ids.Select(MakeKey)).ConfigureAwait(false);
 
 			return results.Select((value) => this.ValueSerializer.Deserialize(value, default(TValue))).ToList();
 		}

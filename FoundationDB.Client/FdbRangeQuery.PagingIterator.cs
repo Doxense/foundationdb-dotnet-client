@@ -137,7 +137,8 @@ namespace FoundationDB.Client
 				Contract.Requires(!this.AtEnd);
 				Contract.Requires(this.Iteration >= 0);
 
-				this.Transaction.EnsureCanRead(ct);
+				ct.ThrowIfCancellationRequested();
+				this.Transaction.EnsureCanRead();
 
 				this.Iteration++;
 
@@ -182,8 +183,9 @@ namespace FoundationDB.Client
 					tr = tr.ToSnapshotTransaction();
 				}
 
+				//BUGBUG: mix the custom cancellation token with the transaction, is it is diffent !
 				var task = tr
-					.GetRangeAsync(new FdbKeySelectorPair(this.Begin, this.End), options, this.Iteration, ct)
+					.GetRangeAsync(new FdbKeySelectorPair(this.Begin, this.End), options, this.Iteration)
 					.Then((result) =>
 					{
 						this.Chunk = result.Chunk;

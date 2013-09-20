@@ -26,49 +26,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Counters
+namespace FoundationDB.Client
 {
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	[Obsolete("This is obsoleted by atomic operations")]
-	public static class FdbCounterTransactionals
+	public interface IFdbReadOnlyTransactional
 	{
+		Task ReadAsync(Func<IFdbReadTransaction, Task> handler, CancellationToken ct = default(CancellationToken));
+		Task<R> ReadAsync<R>(Func<IFdbReadTransaction, Task<R>> handler, CancellationToken ct = default(CancellationToken));
+	}
 
-		/// <summary>
-		/// Get the value of the counter.
-		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
-		/// </summary>
-		public static Task<long> GetTransactionalAsync(this FdbCounter self, CancellationToken ct = default(CancellationToken))
-		{
-			return self.Database.ReadAsync((tr) => self.GetTransactional(tr), ct);
-		}
-
-		/// <summary>
-		/// Get the value of the counter with snapshot isolation (no transaction conflicts).
-		/// </summary>
-		public static Task<long> GetSnapshotAsync(this FdbCounter self, CancellationToken ct = default(CancellationToken))
-		{
-			return self.Database.ReadAsync((tr) => self.GetSnapshot(tr), ct);
-		}
-
-		/// <summary>
-		/// Add the value x to the counter.
-		/// </summary>
-		public static Task AddAsync(this FdbCounter self, long x, CancellationToken ct = default(CancellationToken))
-		{
-			return self.Database.WriteAsync((tr) => self.Add(tr, x), ct);
-		}
-
-		/// <summary>
-		/// Set the counter to value x.
-		/// </summary>
-		public static Task SetTotalAsync(this FdbCounter self, long x, CancellationToken ct = default(CancellationToken))
-		{
-			return self.Database.ReadWriteAsync((tr) => self.SetTotal(tr, x), ct);
-		}
-
+	public interface IFdbTransactional : IFdbReadOnlyTransactional
+	{
+		Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken ct = default(CancellationToken));
+		Task ReadWriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken ct = default(CancellationToken));
+		Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> handler, CancellationToken ct = default(CancellationToken));
 	}
 
 }

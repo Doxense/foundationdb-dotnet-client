@@ -105,11 +105,11 @@ namespace FoundationDB.Layers.Blobs
 			}
 		}
 
-		private async Task<Chunk> GetChunkAtAsync(IFdbTransaction trans, long offset, CancellationToken ct)
+		private async Task<Chunk> GetChunkAtAsync(IFdbTransaction trans, long offset)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
-			var chunkKey = await trans.GetKeyAsync(FdbKeySelector.LastLessOrEqual(DataKey(offset)), ct).ConfigureAwait(false);
+			var chunkKey = await trans.GetKeyAsync(FdbKeySelector.LastLessOrEqual(DataKey(offset))).ConfigureAwait(false);
 			if (chunkKey.IsNull)
 			{ // nothing before (sparse)
 				return default(Chunk);
@@ -122,7 +122,7 @@ namespace FoundationDB.Layers.Blobs
 
 			long chunkOffset = DataKeyOffset(chunkKey);
 
-			Slice chunkData = await trans.GetAsync(chunkKey, ct).ConfigureAwait(false);
+			Slice chunkData = await trans.GetAsync(chunkKey).ConfigureAwait(false);
 
 			if (chunkOffset + chunkData.Count <= offset)
 			{ // in sparse region after chunk
@@ -132,11 +132,11 @@ namespace FoundationDB.Layers.Blobs
 			return new Chunk(chunkKey, chunkData, chunkOffset);
 		}
 
-		private async Task MakeSplitPointAsync(IFdbTransaction trans, long offset, CancellationToken ct)
+		private async Task MakeSplitPointAsync(IFdbTransaction trans, long offset)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
-			var chunk = await GetChunkAtAsync(trans, offset, ct).ConfigureAwait(false);
+			var chunk = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
 			if (chunk.Key == Slice.Nil) return; // already sparse
 			if (chunk.Offset == offset) return; // already a split point
 
@@ -146,21 +146,21 @@ namespace FoundationDB.Layers.Blobs
 			trans.Set(DataKey(offset), chunk.Data.Substring(splitPoint));
 		}
 
-		private async Task MakeSparseAsync(IFdbTransaction trans, long start, long end, CancellationToken ct)
+		private async Task MakeSparseAsync(IFdbTransaction trans, long start, long end)
 		{
-			await MakeSplitPointAsync(trans, start, ct).ConfigureAwait(false);
-			await MakeSplitPointAsync(trans, end, ct).ConfigureAwait(false);
+			await MakeSplitPointAsync(trans, start).ConfigureAwait(false);
+			await MakeSplitPointAsync(trans, end).ConfigureAwait(false);
 			trans.ClearRange(DataKey(start), DataKey(end));
 		}
 
-		private async Task<bool> TryRemoteSplitPointAsync(IFdbTransaction trans, long offset, CancellationToken ct)
+		private async Task<bool> TryRemoteSplitPointAsync(IFdbTransaction trans, long offset)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
-			var b = await GetChunkAtAsync(trans, offset, ct).ConfigureAwait(false);
+			var b = await GetChunkAtAsync(trans, offset).ConfigureAwait(false);
 			if (b.Offset == 0 || b.Key == Slice.Nil) return false; // in sparse region, or at beginning
 
-			var a = await GetChunkAtAsync(trans, b.Offset - 1, ct).ConfigureAwait(false);
+			var a = await GetChunkAtAsync(trans, b.Offset - 1).ConfigureAwait(false);
 			if (a.Key == Slice.Nil) return false; // no previous chunk
 
 			if (a.Offset + a.Data.Count != b.Offset) return false; // chunks can't be joined
@@ -210,11 +210,11 @@ namespace FoundationDB.Layers.Blobs
 		/// Get the size (in bytes) of the blob.
 		/// </summary>
 		/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
-		public async Task<long?> GetSizeAsync(IFdbReadTransaction trans, CancellationToken ct = default(CancellationToken))
+		public async Task<long?> GetSizeAsync(IFdbReadTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			Slice value = await trans.GetAsync(SizeKey(), ct).ConfigureAwait(false);
+			Slice value = await trans.GetAsync(SizeKey()).ConfigureAwait(false);
 
 			if (value.IsNullOrEmpty) return default(long?);
 
@@ -227,14 +227,12 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Read from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer then n bytes are returned when the end of the blob is reached).
 		/// </summary>
-		public async Task<Slice> ReadAsync(IFdbReadTransaction trans, long offset, int n, CancellationToken ct = default(CancellationToken))
+		public async Task<Slice> ReadAsync(IFdbReadTransaction trans, long offset, int n)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentNullException("offset", "Offset cannot be less than zero");
 
-			ct.ThrowIfCancellationRequested();
-
-			long? size = await GetSizeAsync(trans, ct).ConfigureAwait(false);
+			long? size = await GetSizeAsync(trans).ConfigureAwait(false);
 			if (size == null) return Slice.Nil; // not found
 
 			if (offset >= size.Value)
@@ -273,7 +271,7 @@ namespace FoundationDB.Layers.Blobs
 							intersect.CopyTo(buffer, start);
 						}
 					}
-				}, ct)
+				})
 				.ConfigureAwait(false);
 
 			return new Slice(buffer, 0, buffer.Length);
@@ -282,60 +280,56 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.
 		/// </summary>
-		public async Task WriteAsync(IFdbTransaction trans, long offset, Slice data, CancellationToken ct = default(CancellationToken))
+		public async Task WriteAsync(IFdbTransaction trans, long offset, Slice data)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
 
-			ct.ThrowIfCancellationRequested();
-
 			if (data.IsNullOrEmpty) return;
 
 			long end = offset + data.Count;
-			await MakeSparseAsync(trans, offset, end, ct).ConfigureAwait(false);
+			await MakeSparseAsync(trans, offset, end).ConfigureAwait(false);
 			WriteToSparse(trans, offset, data);
-			await TryRemoteSplitPointAsync(trans, offset, ct).ConfigureAwait(false);
+			await TryRemoteSplitPointAsync(trans, offset).ConfigureAwait(false);
 
-			long oldLength = (await GetSizeAsync(trans, ct).ConfigureAwait(false)) ?? 0;
+			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
 			if (end > oldLength)
 			{ // lengthen file if necessary
 				SetSize(trans, end);
 			}
 			else
 			{ // write end needs to be merged
-				await TryRemoteSplitPointAsync(trans, end, ct).ConfigureAwait(false);
+				await TryRemoteSplitPointAsync(trans, end).ConfigureAwait(false);
 			}
 		}
 
 		/// <summary>
 		/// Append the contents of <paramref name="data"/> onto the end of the blob.
 		/// </summary>
-		public async Task AppendAsync(IFdbTransaction trans, Slice data, CancellationToken ct = default(CancellationToken))
+		public async Task AppendAsync(IFdbTransaction trans, Slice data)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			ct.ThrowIfCancellationRequested();
-
 			if (data.IsNullOrEmpty) return;
 
-			long oldLength = (await GetSizeAsync(trans, ct).ConfigureAwait(false)) ?? 0;
+			long oldLength = (await GetSizeAsync(trans).ConfigureAwait(false)) ?? 0;
 			WriteToSparse(trans, oldLength, data);
-			await TryRemoteSplitPointAsync(trans, oldLength, ct).ConfigureAwait(false);
+			await TryRemoteSplitPointAsync(trans, oldLength).ConfigureAwait(false);
 			SetSize(trans, oldLength + data.Count);
 		}
 
 		/// <summary>
 		/// Change the blob length to <paramref name="newLength"/>, erasing any data when shrinking, and filling new bytes with 0 when growing.
 		/// </summary>
-		public async Task TruncateAsync(IFdbTransaction trans, long newLength, CancellationToken ct = default(CancellationToken))
+		public async Task TruncateAsync(IFdbTransaction trans, long newLength)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (newLength < 0) throw new ArgumentOutOfRangeException("newLength", "Length cannot be less than zero");
 
-			long? length = await GetSizeAsync(trans, ct).ConfigureAwait(false);
+			long? length = await GetSizeAsync(trans).ConfigureAwait(false);
 			if (length != null)
 			{
-				await MakeSparseAsync(trans, newLength, length.Value, ct).ConfigureAwait(false);
+				await MakeSparseAsync(trans, newLength, length.Value).ConfigureAwait(false);
 			}
 			SetSize(trans, newLength);
 		}

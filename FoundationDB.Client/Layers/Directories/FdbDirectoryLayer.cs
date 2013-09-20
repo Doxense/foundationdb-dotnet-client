@@ -97,19 +97,17 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="allowCreate">If the directory does not exist, it will be created if <paramref name="allowCreate"/> is true, or an exception will be thrown if it is false</param>
 		/// <param name="allowOpen">If the directory already exists, it will be opened if <paramref name="allowOpened"/> is true, or an exception will be thrown if it is false</param>
 		/// <param name="ct">Token used to abort this operation</param>
-		public async Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken ct = default(CancellationToken))
+		public async Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (path == null) throw new ArgumentNullException("path");
-
-			ct.ThrowIfCancellationRequested();
 
 			if (path.Count == 0)
 			{ // Root directory contains node metadata and so may not be opened.
 				throw new ArgumentException("path", "The root directory may not be opened.");
 			}
 
-			var existingNode = await Find(tr, path, ct).ConfigureAwait(false);
+			var existingNode = await Find(tr, path).ConfigureAwait(false);
 
 			if (existingNode != null)
 			{
@@ -132,7 +130,7 @@ namespace FoundationDB.Layers.Directories
 				prefix = this.ContentSubspace.Pack(id);
 			}
 
-			if (!(await IsPrefixFree(tr, prefix, ct).ConfigureAwait(false)))
+			if (!(await IsPrefixFree(tr, prefix).ConfigureAwait(false)))
 			{
 				throw new InvalidOperationException("The given prefix is already in use.");
 			}
@@ -141,7 +139,7 @@ namespace FoundationDB.Layers.Directories
 			FdbSubspace parentNode;
 			if (path.Count > 1)
 			{
-				var parentSubspace = await CreateOrOpenAsync(tr, path.Substring(0, path.Count - 1), ct: ct).ConfigureAwait(false);
+				var parentSubspace = await CreateOrOpenAsync(tr, path.Substring(0, path.Count - 1)).ConfigureAwait(false);
 				parentNode = NodeWithPrefix(parentSubspace.Key);
 			}
 			else
@@ -170,9 +168,9 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the directory to open.</param>
 		/// <param name="layer">Optional layer id of the directory. If it is different than the layer specified when creating the directory, an exception will be thrown.</param>
 		/// <param name="ct">Token used to abort this operation</param>
-		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null)
 		{
-			return CreateOrOpenAsync(tr, path, layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, ct: ct);
+			return CreateOrOpenAsync(tr, path, layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true);
 		}
 
 		/// <summary>
@@ -184,9 +182,9 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
 		/// <param name="ct">Token used to abort this operation</param>
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
 		{
-			return CreateOrOpenAsync(tr, path, layer, prefix: prefix, allowCreate: true, allowOpen: false, ct: ct);
+			return CreateOrOpenAsync(tr, path, layer, prefix: prefix, allowCreate: true, allowOpen: false);
 		}
 
 		/// <summary>
@@ -198,38 +196,36 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="oldPath">Path of the directory to move</param>
 		/// <param name="newPath">New path of the directory</param>
 		/// <param name="ct">Token used to abort this operation</param>
-		public async Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, IFdbTuple oldPath, IFdbTuple newPath, CancellationToken ct = default(CancellationToken))
+		public async Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, IFdbTuple oldPath, IFdbTuple newPath)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (oldPath == null) throw new ArgumentNullException("oldPath");
 			if (newPath == null) throw new ArgumentNullException("newPath");
-
-			ct.ThrowIfCancellationRequested();
 
 			if (newPath.StartsWith(oldPath))
 			{
 				throw new InvalidOperationException("The destination directory cannot be a subdirectory of the source directory.");
 			}
 
-			if ((await Find(tr, newPath, ct).ConfigureAwait(false)) != null)
+			if ((await Find(tr, newPath).ConfigureAwait(false)) != null)
 			{
 				throw new InvalidOperationException("The destination directory already exists. Remove it first.");
 			}
 
-			var oldNode = await Find(tr, oldPath, ct).ConfigureAwait(false);
+			var oldNode = await Find(tr, oldPath).ConfigureAwait(false);
 			if (oldNode == null)
 			{
 				throw new InvalidOperationException("The source directory dos not exist.");
 			}
 
-			var parentNode = await Find(tr, newPath.Substring(0, newPath.Count - 1), ct).ConfigureAwait(false);
+			var parentNode = await Find(tr, newPath.Substring(0, newPath.Count - 1)).ConfigureAwait(false);
 			if (parentNode == null)
 			{
 				throw new InvalidOperationException("The parent of the destination directory does not exist. Create it first.");
 			}
 
-			tr.Set(GetSubDirKey(parentNode, newPath, -1), ContentsOfNode(oldNode, null, null).Key);
-			await RemoveFromParent(tr, oldPath, ct).ConfigureAwait(false);
+			tr.Set(GetSubDirKey(parentNode, newPath, -1), this.NodeSubspace.UnpackLast<Slice>(oldNode.Key));
+			await RemoveFromParent(tr, oldPath).ConfigureAwait(false);
 
 			var k = await tr.GetAsync(oldNode.Pack(LayerSuffix)).ConfigureAwait(false);
 			return ContentsOfNode(oldNode, newPath, k.ToUnicode());
@@ -242,21 +238,19 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
 		/// <param name="ct">Token used to abort this operation</param>
-		public async Task<bool> RemoveAsync(IFdbTransaction tr, IFdbTuple path, CancellationToken ct = default(CancellationToken))
+		public async Task<bool> RemoveAsync(IFdbTransaction tr, IFdbTuple path)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
-			ct.ThrowIfCancellationRequested();
-
-			var n = await Find(tr, path, ct).ConfigureAwait(false);
+			var n = await Find(tr, path).ConfigureAwait(false);
 			if (n == null)
 			{
 				//throw new InvalidOperationException("The directory doesn't exist.");
 				return false;
 			}
 
-			await RemoveRecursive(tr, n, ct).ConfigureAwait(false);
-			await RemoveFromParent(tr, path, ct).ConfigureAwait(false);
+			await RemoveRecursive(tr, n).ConfigureAwait(false);
+			await RemoveFromParent(tr, path).ConfigureAwait(false);
 			return true;
 		}
 
@@ -266,15 +260,13 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
 		/// <param name="ct">Token used to abort this operation</param>
-		public async Task<List<IFdbTuple>> ListAsync(IFdbReadTransaction tr, IFdbTuple path = null, CancellationToken ct = default(CancellationToken))
+		public async Task<List<IFdbTuple>> ListAsync(IFdbReadTransaction tr, IFdbTuple path = null)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
-			ct.ThrowIfCancellationRequested();
-
 			path = path ?? FdbTuple.Empty;
 
-			var node = await Find(tr, path, ct).ConfigureAwait(false);
+			var node = await Find(tr, path).ConfigureAwait(false);
 
 			if (node == null)
 			{
@@ -292,7 +284,7 @@ namespace FoundationDB.Layers.Directories
 
 		#region Internal Helpers...
 
-		private async Task<FdbSubspace> NodeContainingKey(IFdbReadTransaction tr, Slice key, CancellationToken ct)
+		private async Task<FdbSubspace> NodeContainingKey(IFdbReadTransaction tr, Slice key)
 		{
 			// Right now this is only used for _is_prefix_free(), but if we add
 			// parent pointers to directory nodes, it could also be used to find a
@@ -306,7 +298,7 @@ namespace FoundationDB.Layers.Directories
 					this.NodeSubspace.ToRange().Begin,
 					this.NodeSubspace.Pack(FdbTuple.Pack(key)) + FdbKey.MinValue
 				)
-				.LastOrDefaultAsync(ct)
+				.LastOrDefaultAsync()
 				.ConfigureAwait(false);
 
 			var k = this.NodeSubspace.Unpack(kvp.Key);
@@ -328,13 +320,13 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns a new Directory Subspace given its node subspace, path and layer id</summary>
 		private FdbDirectorySubspace ContentsOfNode(FdbSubspace node, IFdbTuple path, string layer)
 		{
-			var prefix = FdbTuple.Unpack(this.NodeSubspace.UnpackLast<Slice>(node.Key));
+			var prefix = this.NodeSubspace.UnpackLast<Slice>(node.Key);
 			return new FdbDirectorySubspace(path, prefix, this, layer);
 		}
 
 		/// <summary>Finds a node subspace, given its path, by walking the tree from the root</summary>
 		/// <returns>Node if it was found, or null</returns>
-		private async Task<FdbSubspace> Find(IFdbReadTransaction tr, IFdbTuple path, CancellationToken ct)
+		private async Task<FdbSubspace> Find(IFdbReadTransaction tr, IFdbTuple path)
 		{
 			var n = this.RootNode;
 			for (int i = 0; i < path.Count; i++)
@@ -359,9 +351,9 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Remove an existing node from its parents</summary>
 		/// <returns>True if the parent node was found, otherwise false</returns>
-		private async Task<bool> RemoveFromParent(IFdbTransaction tr, IFdbTuple path, CancellationToken ct)
+		private async Task<bool> RemoveFromParent(IFdbTransaction tr, IFdbTuple path)
 		{
-			var parent = await Find(tr, path.Substring(0, path.Count - 1), ct).ConfigureAwait(false);
+			var parent = await Find(tr, path.Substring(0, path.Count - 1)).ConfigureAwait(false);
 			if (parent != null)
 			{
 				tr.Clear(GetSubDirKey(parent, path, -1));
@@ -375,23 +367,23 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="node"></param>
 		/// <param name="ct"></param>
 		/// <returns></returns>
-		private async Task RemoveRecursive(IFdbTransaction tr, FdbSubspace node, CancellationToken ct)
+		private async Task RemoveRecursive(IFdbTransaction tr, FdbSubspace node)
 		{
 			//note: we could use Task.WhenAll to remove the children, but there is a risk of task explosion if the subtree is very large...
-			await SubdirNamesAndNodes(tr, node).ForEachAsync((kvp) => RemoveRecursive(tr, kvp.Value, ct)).ConfigureAwait(false);
+			await SubdirNamesAndNodes(tr, node).ForEachAsync((kvp) => RemoveRecursive(tr, kvp.Value)).ConfigureAwait(false);
 
 			tr.ClearRange(FdbKeyRange.StartsWith(ContentsOfNode(node, FdbTuple.Empty, null).Key));
 			tr.ClearRange(node.ToRange());
 		}
 
-		private async Task<bool> IsPrefixFree(IFdbReadTransaction tr, Slice prefix, CancellationToken ct)
+		private async Task<bool> IsPrefixFree(IFdbReadTransaction tr, Slice prefix)
 		{
 			// Returns true if the given prefix does not "intersect" any currently
 			// allocated prefix (including the root node). This means that it neither
 			// contains any other prefix nor is contained by any other prefix.
 
 			if (prefix.IsNullOrEmpty) return false;
-			if (await NodeContainingKey(tr, prefix, ct).ConfigureAwait(false) != null) return false;
+			if (await NodeContainingKey(tr, prefix).ConfigureAwait(false) != null) return false;
 
 			return await tr
 				.GetRange(
