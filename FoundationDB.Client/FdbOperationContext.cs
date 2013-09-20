@@ -158,6 +158,10 @@ namespace FoundationDB.Client
 							{
 								await ((Func<IFdbTransaction, FdbOperationContext, Task>)handler)(trans, this).ConfigureAwait(false);
 							}
+							else if (handler is Action<IFdbTransaction, FdbOperationContext>)
+							{
+								((Action<IFdbTransaction, FdbOperationContext>)handler)(trans, this);
+							}
 							else if (handler is Func<IFdbReadTransaction, Task>)
 							{
 								readOnlyOperation = true;
@@ -172,6 +176,10 @@ namespace FoundationDB.Client
 							{
 								readOnlyOperation = true;
 								await ((Func<IFdbTransaction, FdbOperationContext, Task>)handler)(trans, this).ConfigureAwait(false);
+							}
+							else
+							{
+								throw new NotSupportedException(String.Format("Cannot execute delegates of type {0}", handler.GetType().Name));
 							}
 
 							if (this.Abort)
@@ -303,6 +311,12 @@ namespace FoundationDB.Client
 		public static Task RunWriteAsync(FdbDatabase db, Func<IFdbTransaction, Task> asyncAction, object state, CancellationToken ct = default(CancellationToken))
 		{
 			return new FdbOperationContext(db, state).ExecuteInternal(asyncAction, ct);
+		}
+
+		/// <summary>Run a write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
+		public static Task RunWriteAsync(FdbDatabase db, Action<IFdbTransaction, FdbOperationContext> action, object state, CancellationToken ct = default(CancellationToken))
+		{
+			return new FdbOperationContext(db, state).ExecuteInternal(action, ct);
 		}
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
