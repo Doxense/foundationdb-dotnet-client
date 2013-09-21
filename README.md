@@ -3,13 +3,13 @@ FoundationDB.Net Client
 
 This is a C#/.NET binding for FoundationDB.
 
-**THIS IS STILL IN BETA. The API is still changing a lot at the moment, and you should probably not use it in production just yet**
-
 This code is licensed under the 3-clause BSD Licence. 
 
 It requires the .NET 4.5 Framework, and uses the 64-bit C API binding that is licensed by FoundationDB LLC and must be obtained separately.
 
 It currently targets version 1.0 FoundationDB (API level 100)
+
+The core C#/.NET binding API (FoundationDB.Client namespace) is relatively stable but is subject to change. Modifications of any of the APIs will be accompanied by a change to the binding's assembly version. As a result, clients that are compiled against one version of the binding will not run when linked against another version of the binding.
 
 How to use
 ----------
