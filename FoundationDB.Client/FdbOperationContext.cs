@@ -89,52 +89,6 @@ namespace FoundationDB.Client
 			this.Token = token;
 		}
 
-#if REFACTORED
-
-		/// <summary>Run the operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public Task Execute(Func<IFdbTransaction, Task> asyncAction, CancellationToken ct)
-		{
-			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
-			return ExecuteInternal(asyncAction, ct);
-		}
-
-		/// <summary>Run the operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public Task Execute(Func<IFdbTransaction, CancellationToken, Task> asyncAction, CancellationToken ct)
-		{
-			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
-			return ExecuteInternal(asyncAction, ct);
-		}
-
-		/// <summary>Run the operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public Task Execute(Func<IFdbTransaction, FdbOperationContext, Task> asyncAction, CancellationToken ct)
-		{
-			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
-			return ExecuteInternal(asyncAction, ct);
-		}
-
-		/// <summary>Run the operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public Task Execute(Func<IFdbReadTransaction, Task> asyncAction, CancellationToken ct)
-		{
-			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
-			return ExecuteInternal(asyncAction, ct);
-		}
-
-		/// <summary>Run the operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public Task Execute(Func<IFdbReadTransaction, CancellationToken, Task> asyncAction, CancellationToken ct)
-		{
-			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
-			return ExecuteInternal(asyncAction, ct);
-		}
-
-		/// <summary>Run the operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public Task Execute(Func<IFdbReadTransaction, FdbOperationContext, Task> asyncAction, CancellationToken ct)
-		{
-			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
-			return ExecuteInternal(asyncAction, ct);
-		}
-
-#endif
-
 		internal async Task ExecuteInternal(Delegate handler)
 		{
 			Contract.Requires(handler != null);

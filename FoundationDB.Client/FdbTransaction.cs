@@ -56,9 +56,6 @@ namespace FoundationDB.Client
 		/// <summary>Current state of the transaction</summary>
 		private int m_state;
 
-		/// <summary>Parent database for this transaction</summary>
-		//private readonly FdbDatabase m_database;
-
 		/// <summary>Context of the transaction when running inside a retry loop, or other custom scenario</summary>
 		private readonly FdbOperationContext m_context;
 
