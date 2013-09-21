@@ -78,7 +78,7 @@ namespace FoundationDB.Samples.Tutorials
 		{
 			return tr.GetRange(this.Subspace.ToRange(FdbTuple.Create("class")))
 				.Where(kvp => { int _; return Int32.TryParse(kvp.Value.ToAscii(), out _); }) // (step 3)
-				.Select(kvp => this.Subspace.UnpackLast<string>(kvp.Key))
+				.Select(kvp => this.Subspace.UnpackSingle<string>(kvp.Key))
 				.ToListAsync();
 		}
 

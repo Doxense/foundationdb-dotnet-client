@@ -624,7 +624,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Deserialize a slice into a type that implements ITupleFormattable, using a custom factory method</summary>
 		/// <typeparam name="T">Type of a class that must implement ITupleFormattable</typeparam>
 		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <param name="factory">Lambda that will be called to construct a new instance of values of type <typeparam name="T"/></param>
+		/// <param name="factory">Lambda that will be called to construct a new instance of values of type <typeparamref name="T"/></param>
 		/// <returns>Decoded value of type <typeparamref name="T"/></returns>
 		public static T DeserializeFormattable<T>(Slice slice, Func<T> factory)
 			where T : ITupleFormattable
@@ -755,6 +755,9 @@ namespace FoundationDB.Layers.Tuples
 			return (FdbTupleAlias)slice[0];
 		}
 
+		/// <summary>Unpack a tuple from a buffer</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with zero or more elements</param>
+		/// <returns>Decoded tuple</returns>
 		internal static FdbSlicedTuple Unpack(Slice buffer)
 		{
 			var slicer = new Slicer(buffer);
@@ -778,7 +781,22 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbSlicedTuple(p == 0 ? NoSlices : items, 0, p);
 		}
 
-		/// <summary>Only returns the last item of the tuple</summary>
+		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
+		/// <param name="buffer">Slice that should contain the packed representation of a singleton tuple</param>
+		/// <returns>Decoded slice of the single element in the singleton tuple</returns>
+		internal static Slice UnpackSingle(Slice buffer)
+		{
+			var slicer = new Slicer(buffer);
+
+			var current = ParseNext(ref slicer);
+			if (slicer.HasMore) throw new FormatException("Parsing of singleton tuple failed before reaching the end of the key");
+
+			return current;
+		}
+
+		/// <summary>Only returns the last item of a packed tuple</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
+		/// <returns>Raw slice corresponding to the last element of the tuple</returns>
 		internal static Slice UnpackLast(Slice buffer)
 		{
 			var slicer = new Slicer(buffer);
@@ -795,6 +813,9 @@ namespace FoundationDB.Layers.Tuples
 			return item;
 		}
 
+		/// <summary>Decode the next token from a packed tuple</summary>
+		/// <param name="reader">Parser from wich to read the next token</param>
+		/// <returns>Token decoded, or Slice.Nil if there was no more data in the buffer</returns>
 		internal static Slice ParseNext(ref Slicer reader)
 		{
 			if (!reader.HasMore) return Slice.Nil;

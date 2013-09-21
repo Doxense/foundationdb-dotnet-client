@@ -379,6 +379,16 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.UnpackLastWithoutPrefix<T>(key, m_rawPrefix);
 		}
 
+		/// <summary>Unpack a key into a singleton tuple, and return the single element</summary>
+		/// <typeparam name="T">Expected type of the only element</typeparam>
+		/// <param name="key">Packed version of a key that should fit inside this subspace</param>
+		/// <returns>Converted value of the only element in the tuple. Throws an exception if the tuple is empty or contains more than one element</returns>
+		/// <example>new Subspace([FE]).UnpackSingle&lt;int&gt;([FE 02 'H' 'e' 'l' 'l' 'o' 00]) => (string) "Hello"</example>
+		public T UnpackSingle<T>(Slice key)
+		{
+			return FdbTuple.UnpackLastWithoutPrefix<T>(key, m_rawPrefix);
+		}
+
 		/// <summary>Unpack an array of keys in tuples, with the subspace prefix removed</summary>
 		/// <param name="keys">Packed version of keys inside this subspace</param>
 		/// <returns>Unpacked tuples that are relative to the current subspace</returns>
@@ -417,6 +427,28 @@ namespace FoundationDB.Layers.Tuples
 				for (int i = 0; i < keys.Length; i++)
 				{
 					values[i] = FdbTuple.UnpackLastWithoutPrefix<T>(keys[i], prefix);
+				}
+			}
+
+			return values;
+		}
+
+		/// <summary>Unpack an array of key into singleton tuples, and return an array with value of each tuple</summary>
+		/// <typeparam name="T">Expected type of the only element of all the keys</typeparam>
+		/// <param name="keys">Array of packed keys that should all fit inside this subspace</param>
+		/// <returns>Array containing the converted values of the only elements of each tuples. Throws an exception if one key contains more than one element</returns>
+		public T[] UnpackSingle<T>(Slice[] keys)
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			var values = new T[keys.Length];
+
+			if (keys.Length > 0)
+			{
+				var prefix = m_rawPrefix;
+				for (int i = 0; i < keys.Length; i++)
+				{
+					values[i] = FdbTuple.UnpackSingleWithoutPrefix<T>(keys[i], prefix);
 				}
 			}
 

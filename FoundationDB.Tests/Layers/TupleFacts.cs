@@ -148,6 +148,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_UnpackLast()
 		{
+			// should only work with tuples having at least one element
+
 			Slice packed;
 
 			packed = FdbTuple.Pack(1);
@@ -164,6 +166,27 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_UnpackSingle()
+		{
+			// should only work with tuples having exactly one element
+
+			Slice packed;
+
+			packed = FdbTuple.Pack(1);
+			Assert.That(FdbTuple.UnpackSingle<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.UnpackSingle<string>(packed), Is.EqualTo("1"));
+
+			packed = FdbTuple.Pack("Hello\0World");
+			Assert.That(FdbTuple.UnpackSingle<string>(packed), Is.EqualTo("Hello\0World"));
+
+			Assert.That(() => FdbTuple.UnpackSingle<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.UnpackSingle<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2, 3)), Throws.InstanceOf<FormatException>());
 
 		}
 

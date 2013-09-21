@@ -30,11 +30,14 @@ namespace FoundationDB.Client
 {
 	using System;
 
+	/// <summary>Helper class that holds the internal state used to parse tuples from slices</summary>
 	public struct Slicer
 	{
 
+		/// <summary>Buffer containing the tuple being parsed</summary>
 		public readonly Slice Buffer;
 
+		/// <summary>Current position inside the buffer</summary>
 		public int Position;
 
 		public Slicer(Slice buffer)
@@ -43,19 +46,23 @@ namespace FoundationDB.Client
 			this.Position = 0;
 		}
 
+		/// <summary>Returns true if there are more bytes to parse</summary>
 		public bool HasMore { get { return this.Position < this.Buffer.Count; } }
 
+		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
 		public void EnsureBytes(int count)
 		{
 			if (count < 0 || count > this.Buffer.Count - this.Position) throw new ArgumentOutOfRangeException("count");
 		}
 
+		/// <summary>Return the value of the next byte in the buffer, or -1 if we reached the end</summary>
 		public int PeekByte()
 		{
 			int p = this.Position;
 			return p < this.Buffer.Count ? this.Buffer[p] : -1;
 		}
 
+		/// <summary>Skip the next <paramref name="count"/> bytes of the buffer</summary>
 		public void Skip(int count)
 		{
 			EnsureBytes(count);
@@ -63,6 +70,7 @@ namespace FoundationDB.Client
 			this.Position += count;
 		}
 
+		/// <summary>Read the next byte from the buffer</summary>
 		public byte ReadByte()
 		{
 			EnsureBytes(1);
@@ -73,6 +81,7 @@ namespace FoundationDB.Client
 			return b;
 		}
 
+		/// <summary>Read the next <paramref name="count"/> bytes from the buffer</summary>
 		public Slice ReadBytes(int count)
 		{
 			EnsureBytes(count);
@@ -82,6 +91,7 @@ namespace FoundationDB.Client
 			return this.Buffer.Substring(p, count);
 		}
 
+		/// <summary>Read an encoded nul-terminated byte array from the buffer</summary>
 		public Slice ReadByteString()
 		{
 			var buffer = this.Buffer.Array;

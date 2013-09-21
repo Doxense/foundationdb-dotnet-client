@@ -57,8 +57,7 @@ namespace FoundationDB.Layers.Collections
 		protected virtual T DecodeValue(Slice value)
 		{
 			if (value.IsNullOrEmpty) return default(T);
-			//TOOD: UnpackSingle<T> ?
-			return FdbTuple.UnpackLast<T>(value);
+			return FdbTuple.UnpackSingle<T>(value);
 		}
 
 		public Task<long> SizeAsync(IFdbReadTransaction tr)

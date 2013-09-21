@@ -89,8 +89,7 @@ namespace FoundationDB.Layers.Counters
 
 		protected virtual long DecodeInt(Slice s)
 		{
-			//TODO: UnpackSingle<T> ?
-			return FdbTuple.UnpackLast<long>(s);
+			return FdbTuple.UnpackSingle<long>(s);
 		}
 
 		protected virtual Slice RandomId()

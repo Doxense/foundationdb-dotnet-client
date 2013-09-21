@@ -224,7 +224,7 @@ namespace FoundationDB.Layers.Directories
 				throw new InvalidOperationException("The parent of the destination directory does not exist. Create it first.");
 			}
 
-			tr.Set(GetSubDirKey(parentNode, newPath, -1), this.NodeSubspace.UnpackLast<Slice>(oldNode.Key));
+			tr.Set(GetSubDirKey(parentNode, newPath, -1), this.NodeSubspace.UnpackSingle<Slice>(oldNode.Key));
 			await RemoveFromParent(tr, oldPath).ConfigureAwait(false);
 
 			var k = await tr.GetAsync(oldNode.Pack(LayerSuffix)).ConfigureAwait(false);
@@ -302,7 +302,7 @@ namespace FoundationDB.Layers.Directories
 				.ConfigureAwait(false);
 
 			var k = this.NodeSubspace.Unpack(kvp.Key);
-			if (kvp.Key.HasValue && key.StartsWith(this.NodeSubspace.UnpackLast<Slice>(kvp.Key)))
+			if (kvp.Key.HasValue && key.StartsWith(this.NodeSubspace.UnpackSingle<Slice>(kvp.Key)))
 			{
 				return new FdbSubspace(k);
 			}
@@ -320,7 +320,7 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns a new Directory Subspace given its node subspace, path and layer id</summary>
 		private FdbDirectorySubspace ContentsOfNode(FdbSubspace node, IFdbTuple path, string layer)
 		{
-			var prefix = this.NodeSubspace.UnpackLast<Slice>(node.Key);
+			var prefix = this.NodeSubspace.UnpackSingle<Slice>(node.Key);
 			return new FdbDirectorySubspace(path, prefix, this, layer);
 		}
 

@@ -64,8 +64,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (packed.IsNullOrEmpty) return default(T);
 
-			//REVIEW: we could use an UnpackSingle<T> that checks that there's only one value ..?
-			return FdbTuple.UnpackLast<T>(packed);
+			return FdbTuple.UnpackSingle<T>(packed);
 		}
 
 		public void ClearAsync(IFdbTransaction tr)
