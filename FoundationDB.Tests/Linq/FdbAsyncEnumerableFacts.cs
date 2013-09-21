@@ -177,22 +177,6 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(results, Is.EqualTo(new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
 		}
 
-#if REFACTORING_IN_PROGRESS
-
-		[Test]
-		public async Task Test_Can_Select_Sync_With_Index()
-		{
-			var source = Enumerable.Range(100, 10).ToAsyncEnumerable();
-
-			var selected = source.Select((x, i) => x + i);
-			Assert.That(selected, Is.Not.Null);
-
-			var results = await selected.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 100, 102, 104, 106, 108, 110, 112, 114, 116, 118 }));
-		}
-
-#endif
-
 		[Test]
 		public async Task Test_Can_Select_Async()
 		{
@@ -209,26 +193,6 @@ namespace FoundationDB.Linq.Tests
 			var results = await selected.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 }));
 		}
-
-#if REFACTORING_IN_PROGRESS
-
-		[Test]
-		public async Task Test_Can_Select_Async_With_Index()
-		{
-			var source = Enumerable.Range(100, 10).ToAsyncEnumerable();
-
-			var selected = source.Select(async (x, i) =>
-			{
-				await Task.Delay(10);
-				return x + i;
-			});
-			Assert.That(selected, Is.Not.Null);
-
-			var results = await selected.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 100, 102, 104, 106, 108, 110, 112, 114, 116, 118 }));
-		}
-
-#endif
 
 		[Test]
 		public async Task Test_Can_Select_Multiple_Times()
@@ -334,22 +298,6 @@ namespace FoundationDB.Linq.Tests
 			var results = await query.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
 		}
-
-#if REFACTORING_IN_PROGRESS
-
-		[Test]
-		public async Task Test_Can_Where_Indexed()
-		{
-			var source = Enumerable.Range(42, 10).ToAsyncEnumerable();
-
-			var query = source.Where((x, i) => i == 0 || i == 3 || i == 6);
-			Assert.That(query, Is.Not.Null);
-
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 42, 45, 48 }));
-		}
-
-#endif
 
 		[Test]
 		public async Task Test_Can_Get_First()
