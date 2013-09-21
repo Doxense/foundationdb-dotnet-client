@@ -46,14 +46,16 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Constructors...
 
+		/// <summary>Create a new subspace from a binary prefix</summary>
+		/// <param name="rawPrefix">Prefix of the new subspace</param>
 		public FdbSubspace(Slice rawPrefix)
 		{
 			if (rawPrefix.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "rawPrefix");
 			m_rawPrefix = rawPrefix.Memoize();
 		}
 
-		/// <summary>Create a new subspace that wraps a Tuple</summary>
-		/// <param name="tuple"></param>
+		/// <summary>Create a new subspace from a Tuple prefix</summary>
+		/// <param name="tuple">Tuple packed to produce the prefix</param>
 		public FdbSubspace(IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");

@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Return the typed value of the last item in the tuple</summary>
 		/// <typeparam name="T">Expected type of the item</typeparam>
-		/// <returns>Value of the last item of <paramref name="typle"/>, adapted into type <typeparamref name="T"/></returns>
+		/// <returns>Value of the last item of this tuple, adapted into type <typeparamref name="T"/></returns>
 		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
 		T Last<T>();
 

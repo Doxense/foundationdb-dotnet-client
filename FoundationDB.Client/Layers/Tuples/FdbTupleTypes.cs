@@ -31,6 +31,9 @@ using System;
 namespace FoundationDB.Layers.Tuples
 {
 
+	/// <summary>
+	/// Constants for the various tuple value types
+	/// </summary>
 	internal static class FdbTupleTypes
 	{
 		/// <summary>Null/Empty/Void</summary>

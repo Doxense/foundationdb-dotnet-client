@@ -35,7 +35,9 @@ namespace FoundationDB.Async
 	using System.Threading;
 	using System.Threading.Tasks;
 
-
+	/// <summary>
+	/// Helper methods for creating and manipulating async sequences.
+	/// </summary>
 	public static class AsyncHelpers
 	{
 		internal static readonly Action NoOpCompletion = () => { };

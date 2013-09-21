@@ -32,15 +32,11 @@ namespace FoundationDB.Async
 	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
 	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
 
-	/// <summary>
-	/// Asynchronous version of the IEnumerable&lt;T&gt; interface, allowing elements of the enumerable sequence to be retrieved asynchronously.
-	/// </summary>
+	/// <summary>Asynchronous version of the <see cref="System.Collections.Generic.IEnumerable&lt;T&gt;"/> interface, allowing elements of the enumerable sequence to be retrieved asynchronously.</summary>
 	/// <typeparam name="T">Element type.</typeparam>
 	public interface IAsyncEnumerable<out T>
 	{
-		/// <summary>
-		/// Gets an asynchronous enumerator over the sequence.
-		/// </summary>
+		/// <summary>Gets an asynchronous enumerator over the sequence.</summary>
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
 		IAsyncEnumerator<T> GetEnumerator();
 	}

@@ -35,7 +35,7 @@ namespace FoundationDB.Layers.Tuples
 	using System.Collections;
 	using System.Collections.Generic;
 
-	/// <summary>Specialized tuple that efficiently maps a key parsed from a Slice</summary>
+	/// <summary>Lazily-evaluated tuple that was unpacked from a key</summary>
 	internal sealed class FdbSlicedTuple : IFdbTuple
 	{
 		// FdbTuple.Unpack() splits a key into an array of slices (one for each item). We hold onto these slices, and only deserialize them if needed.

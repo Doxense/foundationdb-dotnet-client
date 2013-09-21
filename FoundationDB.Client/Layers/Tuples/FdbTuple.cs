@@ -455,9 +455,9 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuplePackers.Unpack(packedKey);
 		}
 
-		/// <summary>Unpack a key that should be contained inside a prefix tuple</summary>
+		/// <summary>Unpack a tuple from a serialized key, after removing the prefix</summary>
 		/// <param name="packedKey">Packed key</param>
-		/// <param name="prefix">Expected prefix of the key</param>
+		/// <param name="prefix">Expected prefix of the key (that is not part of the tuple)</param>
 		/// <returns>Unpacked tuple (minus the prefix) or an exception if the key is outside the prefix</returns>
 		/// <exception cref="System.ArgumentNullException">If prefix is null</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked key is outside the specified prefix</exception>
@@ -471,9 +471,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Unpack only the last value of a packed tuple</summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="packedKey"></param>
-		/// <returns></returns>
+		/// <typeparam name="T">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
+		/// <returns>Decoded value of the last item in the tuple</returns>
 		public static T UnpackLast<T>(Slice packedKey)
 		{
 			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Tuple is empty");
@@ -486,6 +486,11 @@ namespace FoundationDB.Layers.Tuples
 			return FdbConverters.ConvertBoxed<T>(value);
 		}
 
+		/// <summary>Unpack only the last value of a packed tuple, after removing the prefix</summary>
+		/// <typeparam name="T">Type of the last value in the decoded tuple</typeparam>
+		/// <param name="packedKey">Slice composed of <paramref name="prefix"/> followed by a packed tuple</param>
+		/// <param name="prefix">Expected prefix of the key (that is not part of the tuple)</param>
+		/// <returns>Decoded value of the last item in the tuple</returns>
 		public static T UnpackLastWithoutPrefix<T>(Slice packedKey, Slice prefix)
 		{
 			// ensure that the key starts with the prefix

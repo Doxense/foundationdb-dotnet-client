@@ -156,7 +156,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Returns a substring of the current tuple</summary>
 		/// <param name="tuple">Current tuple</param>
 		/// <param name="offset">Offset from the start of the current tuple (negative value means from the end)</param>
-		/// <returns>Tuple that contains only the last <param name="count"/> items of the current tuple</returns>
+		/// <returns>Tuple that contains only the items past the first <param name="offset"/> items of the current tuple</returns>
 		public static IFdbTuple Substring(this IFdbTuple tuple, int offset)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
@@ -191,6 +191,8 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.StartsWith(left, right);
 		}
 
+		/// <summary>Returns a key that is immediately after the packed representation of this tuple</summary>
+		/// <remarks>This is the equivalent of manually packing the tuple and incrementing the resulting slice</remarks>
 		public static Slice Increment(this IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
@@ -210,7 +212,6 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Returns the value of a particular key</summary>
 		/// <param name="key">Key to retrieve</param>
-		/// <param name="ct">CancellationToken used to cancel this operation</param>
 		/// <returns>Task that will return the value of the key if it is found, null if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the key is null or empty</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>

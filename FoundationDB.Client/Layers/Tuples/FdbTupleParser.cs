@@ -33,8 +33,11 @@ namespace FoundationDB.Layers.Tuples
 	using System;
 	using System.Text;
 
+	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
 	public static class FdbTupleParser
 	{
+		// TODO: this class does not really contain anything that read or parse, should be renamed into FdbTupleEncoder ?
+
 		/// <summary>Writes a null value at the end, and advance the cursor</summary>
 		public static void WriteNil(FdbBufferWriter writer)
 		{
@@ -42,6 +45,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes an UInt8 at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Unsigned BYTE, 32 bits</param>
 		public static void WriteInt8(FdbBufferWriter writer, byte value)
 		{
@@ -56,6 +60,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes an Int32 at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
 		public static void WriteInt32(FdbBufferWriter writer, int value)
 		{
@@ -84,6 +89,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
 		public static void WriteInt64(FdbBufferWriter writer, long value)
 		{
@@ -156,6 +162,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes an UInt32 at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
 		public static void WriteUInt32(FdbBufferWriter writer, uint value)
 		{
@@ -177,6 +184,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
 		public static void WriteUInt64(FdbBufferWriter writer, ulong value)
 		{

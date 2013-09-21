@@ -44,8 +44,14 @@ namespace FoundationDB.Layers.Tuples
 	[DebuggerDisplay("{ToString()}")]
 	public struct FdbTuple<T1, T2, T3> : IFdbTuple
 	{
+		// This is mostly used by code that create a lot of temporary triplet, to reduce the pressure on the Garbage Collector by allocating them on the stack.
+		// Please note that if you return an FdbTuple<T> as an IFdbTuple, it will be boxed by the CLR and all memory gains will be lost
+
+		/// <summary>First element of the triplet</summary>
 		public readonly T1 Item1;
+		/// <summary>Second element of the triplet</summary>
 		public readonly T2 Item2;
+		/// <summary>Third and last elemnt of the triplet</summary>
 		public readonly T3 Item3;
 
 		public FdbTuple(T1 item1, T2 item2, T3 item3)

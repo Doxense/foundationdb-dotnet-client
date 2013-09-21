@@ -37,12 +37,19 @@ namespace FoundationDB.Async
 	/// <summary>Defines a pump that can move items between a source and a target</summary>
 	public interface IAsyncPump<T> : IDisposable
 	{
+		/// <summary>Source of the pump (that produces new items)</summary>
 		IAsyncSource<T> Source { get; }
 
+		/// <summary>Target of the tump (that will consume the items)</summary>
 		IAsyncTarget<T> Target { get; }
 
+		/// <summary>True if all the items of the source have been consumed by the target</summary>
 		bool IsCompleted { get; }
 
+		/// <summary>Consume all the items of the source by passing them to the Target</summary>
+		/// <param name="stopOnFirstError">If true, aborts on the first error. If false, continue processing items until the source has finished.</param>
+		/// <param name="cancellationToken">Cancellation token that can be used to abort the pump at any time. Any unprocessed items will be lost.</param>
+		/// <returns>Task that will complete successfully if all the items from the source have been processed by the target, or fails if an error occured or the pump was cancelled.</returns>
 		Task PumpAsync(bool stopOnFirstError, CancellationToken cancellationToken);
 	}
 

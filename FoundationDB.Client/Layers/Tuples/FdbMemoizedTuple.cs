@@ -36,7 +36,7 @@ namespace FoundationDB.Layers.Tuples
 	using System.Collections.Generic;
 	using System.Diagnostics;
 
-	/// <summary>Represent an immutable tuple where the packed bytes are cached</summary>
+	/// <summary>Represents an immutable tuple where the packed bytes are cached</summary>
 	[DebuggerDisplay("{ToString()}")]
 	public sealed class FdbMemoizedTuple : IFdbTuple
 	{

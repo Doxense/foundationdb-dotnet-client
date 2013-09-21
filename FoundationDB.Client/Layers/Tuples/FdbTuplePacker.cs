@@ -33,6 +33,8 @@ using System;
 namespace FoundationDB.Layers.Tuples
 {
 
+	/// <summary>Helper class that can serialize values of type <typeparamref name="T"/> to the tuple binary format</summary>
+	/// <typeparam name="T">Type of values to be serialized</typeparam>
 	public static class FdbTuplePacker<T>
 	{
 
@@ -45,11 +47,18 @@ namespace FoundationDB.Layers.Tuples
 			if (Serializer == null) throw new InvalidOperationException(String.Format("Does not know how to serialize values of type {0} into keys", typeof(T).Name));
 		}
 
+		/// <summary>Serialize a <typeparamref name="T"/> into a binary buffer</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">Value that will be serialized</param>
+		/// <remarks>The buffer does not need to be preallocated.</remarks>
 		public static void SerializeTo(FdbBufferWriter writer, T value)
 		{
-			Serializer(writer, value);
+			FdbTuplePacker<T>.Serializer(writer, value);
 		}
 
+		/// <summary>Serialize a <typeparamref name="T"/> into a slices</summary>
+		/// <param name="value">Value that will be serialized</param>
+		/// <returns>Slice that contains the binary representation of <paramref name="value"/></returns>
 		public static Slice Serialize(T value)
 		{
 			var writer = new FdbBufferWriter();

@@ -35,12 +35,16 @@ namespace FoundationDB.Layers.Tuples
 	using System.Reflection;
 	using System.Text;
 
+	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
 	public static class FdbTuplePackers
 	{
 		private static readonly Slice[] NoSlices = new Slice[0];
 
 		#region Serializers...
 
+		/// <summary>Returns a lambda that will be abl to serialize values of type <typeparamref name="T"/></summary>
+		/// <typeparam name="T">Type of values to serialize</typeparam>
+		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
 		public static Action<FdbBufferWriter, T> GetSerializer<T>()
 		{
 			return (Action<FdbBufferWriter, T>)GetSerializerFor(typeof(T));
@@ -88,6 +92,10 @@ namespace FoundationDB.Layers.Tuples
 
 		}
 
+		/// <summary>Serialize an untyped object, by checking its type at runtime</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">Untyped value whose type will be inspected at runtime</param>
+		/// <remarks>May throw at runtime if the type is not supported</remarks>
 		public static void SerializeObjectTo(FdbBufferWriter writer, object value)
 		{
 			if (writer == null) throw new ArgumentNullException("writer");
@@ -222,6 +230,7 @@ namespace FoundationDB.Layers.Tuples
 			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0}", type.Name));
 		}
 
+		/// <summary>Writes a slice as a byte[] array</summary>
 		public static void SerializeTo(FdbBufferWriter writer, Slice value)
 		{
 			Contract.Requires(writer != null);
@@ -239,18 +248,21 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		/// <summary>Writes a byte[] array</summary>
 		public static void SerializeTo(FdbBufferWriter writer, byte[] value)
 		{
 			Contract.Requires(writer != null);
 			FdbTupleParser.WriteBytes(writer, value);
 		}
 
+		/// <summary>Writes an array segment as a byte[] array</summary>
 		public static void SerializeTo(FdbBufferWriter writer, ArraySegment<byte> value)
 		{
 			Contract.Requires(writer != null);
 			SerializeTo(writer, Slice.Create(value.Array, value.Offset, value.Count));
 		}
 
+		/// <summary>Writes a char as Unicode string</summary>
 		public static void SerializeTo(FdbBufferWriter writer, char value)
 		{
 			Contract.Requires(writer != null);
@@ -270,15 +282,20 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		/// <summary>Writes a boolean as an integer</summary>
+		/// <remarks>Uses 0 for false, and -1 for true</remarks>
 		public static void SerializeTo(FdbBufferWriter writer, bool value)
 		{
 			Contract.Requires(writer != null);
+
+			//REVIEW: should we use 1 or -1 for "true" ? In either cases it will be 2 bytes ...
 
 			// false is encoded as 0 (\x14)
 			// true is encoded as -1 (\x13\xfe)
 			FdbTupleParser.WriteInt32(writer, value ? -1 : 0);
 		}
 
+		/// <summary>Writes a boolean as an integer or null</summary>
 		public static void SerializeTo(FdbBufferWriter writer, bool? value)
 		{
 			Contract.Requires(writer != null);
@@ -289,6 +306,7 @@ namespace FoundationDB.Layers.Tuples
 				FdbTupleParser.WriteNil(writer);
 		}
 
+		/// <summary>Writes a signed byte as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, sbyte value)
 		{
 			Contract.Requires(writer != null);
@@ -296,6 +314,7 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteInt32(writer, value);
 		}
 
+		/// <summary>Writes an unsigned byte as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, byte value)
 		{
 			Contract.Requires(writer != null);
@@ -310,6 +329,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		/// <summary>Writes a signed word as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, short value)
 		{
 			Contract.Requires(writer != null);
@@ -317,6 +337,7 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteInt32(writer, value);
 		}
 
+		/// <summary>Writes an unsigned word as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, ushort value)
 		{
 			Contract.Requires(writer != null);
@@ -324,6 +345,7 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteUInt32(writer, value);
 		}
 
+		/// <summary>Writes a signed int as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, int value)
 		{
 			Contract.Requires(writer != null);
@@ -331,6 +353,7 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteInt32(writer, value);
 		}
 
+		/// <summary>Writes an unsigned int as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, uint value)
 		{
 			Contract.Requires(writer != null);
@@ -338,11 +361,13 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteUInt32(writer, value);
 		}
 
+		/// <summary>Writes a signed long as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, long value)
 		{
 			FdbTupleParser.WriteInt64(writer, value);
 		}
 
+		/// <summary>Writes an unsigned long as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, ulong value)
 		{
 			Contract.Requires(writer != null);
@@ -350,6 +375,7 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteUInt64(writer, value);
 		}
 
+		/// <summary>Writes a string as an Unicode string</summary>
 		public static void SerializeTo(FdbBufferWriter writer, string value)
 		{
 			Contract.Requires(writer != null);
@@ -368,6 +394,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		/// <summary>Writes a DateTime converted to a number of ticks encoded as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, DateTime value)
 		{
 			Contract.Requires(writer != null);
@@ -376,6 +403,7 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteInt64(writer, value.Ticks);
 		}
 
+		/// <summary>Writes a TimeSpan converted to a number of ticks encoded as an integer</summary>
 		public static void SerializeTo(FdbBufferWriter writer, TimeSpan value)
 		{
 			Contract.Requires(writer != null);
@@ -384,6 +412,7 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteInt64(writer, value.Ticks);
 		}
 
+		/// <summary>Writes a Guid as a 128-bit UUID</summary>
 		public static void SerializeTo(FdbBufferWriter writer, Guid value)
 		{
 			Contract.Requires(writer != null);
@@ -391,6 +420,7 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteGuid(writer, value);
 		}
 
+		/// <summary>Writes a Uuid as a 128-bit UUID</summary>
 		public static void SerializeTo(FdbBufferWriter writer, Uuid value)
 		{
 			Contract.Requires(writer != null);
@@ -546,6 +576,10 @@ namespace FoundationDB.Layers.Tuples
 			return new Uuid(slice.GetBytes(1, 16)).ToGuid();
 		}
 
+		/// <summary>Deserialize a packed element into an object by choosing the most appropriate type at runtime</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <returns>Decoded element, in the type that is the best fit.</returns>
+		/// <remarks>You should avoid working with untyped values as much as possible! Blindly casting the returned object may be problematic because this method may need to return very large intergers as Int64 or even UInt64.</remarks>
 		public static object DeserializeBoxed(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
@@ -573,6 +607,11 @@ namespace FoundationDB.Layers.Tuples
 			throw new FormatException("Cannot convert slice into this type");
 		}
 
+		/// <summary>Deserialize a slice into a type that implements ITupleFormattable</summary>
+		/// <typeparam name="T">Type of a class that must implement ITupleFormattable and have a default constructor</typeparam>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <returns>Decoded value of type <typeparamref name="T"/></returns>
+		/// <remarks>The type must have a default parameter-less constructor in order to be created.</remarks>
 		public static T DeserializeFormattable<T>(Slice slice)
 			where T : ITupleFormattable, new()
 		{
@@ -582,6 +621,11 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
+		/// <summary>Deserialize a slice into a type that implements ITupleFormattable, using a custom factory method</summary>
+		/// <typeparam name="T">Type of a class that must implement ITupleFormattable</typeparam>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <param name="factory">Lambda that will be called to construct a new instance of values of type <typeparam name="T"/></param>
+		/// <returns>Decoded value of type <typeparamref name="T"/></returns>
 		public static T DeserializeFormattable<T>(Slice slice, Func<T> factory)
 			where T : ITupleFormattable
 		{
@@ -591,6 +635,9 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
+		/// <summary>Deserialize a slice into an Int32</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <returns></returns>
 		public static int DeserializeInt32(Slice slice)
 		{
 			checked
@@ -599,6 +646,8 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		/// <summary>Deserialize a slice into an Int64</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
 		public static long DeserializeInt64(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return 0L; //TODO: fail ?
@@ -619,6 +668,8 @@ namespace FoundationDB.Layers.Tuples
 			throw new FormatException("Cannot convert slice into this type");
 		}
 
+		/// <summary>Deserialize a slice into an UInt32</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
 		public static uint DeserializeUInt32(Slice slice)
 		{
 			checked
@@ -627,6 +678,8 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		/// <summary>Deserialize a slice into an UInt64</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
 		public static ulong DeserializeUInt64(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return 0UL; //TODO: fail ?
@@ -647,6 +700,8 @@ namespace FoundationDB.Layers.Tuples
 			throw new FormatException("Cannot convert slice into this type");
 		}
 
+		/// <summary>Deserialize a slice into a Unicode string</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
 		public static string DeserializeString(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;

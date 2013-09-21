@@ -34,6 +34,8 @@ namespace FoundationDB.Layers.Tuples
 	public enum FdbTupleAlias
 	{
 		//TODO: find a better name!
+		//TODO: maybe remove this ? This was needed before refactoring the Subspaces to handle binary prefix...
+		// only helps in parsing hybrid keys that are part tuple, part suffix (like \x00, \xFF added for ranges, or \xFE added for the DirectoryLayer)
 
 		/// <summary>Alias that represents the Null or Min value '\0' when used in the last position.</summary>
 		Zero = 0,

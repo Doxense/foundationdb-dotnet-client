@@ -36,7 +36,6 @@ namespace FoundationDB.Layers.Tuples
 	using System.Diagnostics;
 
 	/// <summary>Tuple that is rooted under an existing subspace (that can have an arbitrary binary prefix)</summary>
-	/// <typeparam name="T">Type of the last value of the tuple</typeparam>
 	[DebuggerDisplay("{ToString()}")]
 	public sealed class FdbSubspaceTuple : IFdbTuple
 	{

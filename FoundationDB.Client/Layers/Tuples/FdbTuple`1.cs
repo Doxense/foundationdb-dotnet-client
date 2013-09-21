@@ -41,7 +41,10 @@ namespace FoundationDB.Layers.Tuples
 	[DebuggerDisplay("{ToString()}")]
 	public struct FdbTuple<T1> : IFdbTuple
 	{
+		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
+		// Please note that if you return an FdbTuple<T> as an IFdbTuple, it will be boxed by the CLR and all memory gains will be lost
 
+		/// <summary>First and only item in the tuple</summary>
 		public readonly T1 Item1;
 
 		public FdbTuple(T1 item1)

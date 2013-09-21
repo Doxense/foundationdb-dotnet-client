@@ -35,15 +35,11 @@ namespace FoundationDB.Async
 	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
 	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
 
-	/// <summary>
-	/// Asynchronous version of the IEnumerator&lt;T&gt; interface, allowing elements to be retrieved asynchronously.
-	/// </summary>
+	/// <summary>Asynchronous version of the <see cref="System.Collections.Generic.IEnumerator&lt;T&gt;"/> interface, allowing elements to be retrieved asynchronously.</summary>
 	/// <typeparam name="T">Element type.</typeparam>
 	public interface IAsyncEnumerator<out T> : IDisposable
 	{
-		/// <summary>
-		/// Advances the enumerator to the next element in the sequence, returning the result asynchronously.
-		/// </summary>
+		/// <summary>Advances the enumerator to the next element in the sequence, returning the result asynchronously.</summary>
 		/// <param name="cancellationToken">Cancellation token that can be used to cancel the operation.</param>
 		/// <returns>
 		/// Task containing the result of the operation: true if the enumerator was successfully advanced 
@@ -51,9 +47,7 @@ namespace FoundationDB.Async
 		/// </returns>
 		Task<bool> MoveNext(CancellationToken cancellationToken);
 
-		/// <summary>
-		/// Gets the current element in the iteration.
-		/// </summary>
+		/// <summary>Gets the current element in the iteration.</summary>
 		T Current { get; }
 	}
 

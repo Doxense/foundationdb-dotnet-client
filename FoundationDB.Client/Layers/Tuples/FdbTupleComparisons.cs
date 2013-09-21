@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Tuples
 	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
 
+	/// <summary>Helper class for tuple comparisons</summary>
 	public static class FdbTupleComparisons
 	{
 		/// <summary>Tuple comparer that treats similar values as equal ("123" = 123 = 123L = 123.0d)</summary>

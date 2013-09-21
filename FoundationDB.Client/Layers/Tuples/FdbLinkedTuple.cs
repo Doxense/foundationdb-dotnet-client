@@ -43,10 +43,16 @@ namespace FoundationDB.Layers.Tuples
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 
-		public readonly IFdbTuple Head;
-		public readonly int Depth;
+		/// <summary>Value of the last element of the tuple</summary>
 		public readonly T Tail;
 
+		/// <summary>Link to the parent tuple that contains the head.</summary>
+		public readonly IFdbTuple Head;
+
+		/// <summary>Cached size of the size of the Head tuple. Add 1 to get the size of this tuple.</summary>
+		public readonly int Depth;
+
+		/// <summary>Append a new value at the end of an existing tuple</summary>
 		internal FdbLinkedTuple(IFdbTuple head, T tail)
 		{
 			Contract.Requires(head != null);
@@ -56,12 +62,14 @@ namespace FoundationDB.Layers.Tuples
 			this.Depth = head.Count;
 		}
 
+		/// <summary>Pack this tuple into a buffer</summary>
 		public void PackTo(FdbBufferWriter writer)
 		{
 			this.Head.PackTo(writer);
 			FdbTuplePacker<T>.SerializeTo(writer, this.Tail);
 		}
 
+		/// <summary>Pack this tuple into a slice</summary>
 		public Slice ToSlice()
 		{
 			var writer = new FdbBufferWriter();
@@ -69,6 +77,7 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		/// <summary>Returns the number of elements in this tuple</summary>
 		public int Count
 		{
 			get { return this.Depth + 1; }
