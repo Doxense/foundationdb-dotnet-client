@@ -400,7 +400,6 @@ namespace FoundationDB.Client
 		/// Reads a value from the database snapshot represented by transaction.
 		/// </summary>
 		/// <param name="keyBytes">Key to be looked up in the database</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the <paramref name="keyBytes"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
@@ -430,7 +429,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Asynchronously fetch a new page of results</summary>
-		/// <param name="ct"></param>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
 		internal Task<FdbRangeChunk> GetRangeCoreAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, bool snapshot)
 		{
@@ -464,7 +462,6 @@ namespace FoundationDB.Client
 		/// <param name="range">Pair of key selectors defining the beginning and the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, StreamingMode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns></returns>
 		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
 		{
@@ -552,7 +549,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>
-		/// <param name="ct">CancellationToken used to cancel this operation</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
 		public Task<Slice> GetKeyAsync(FdbKeySelector selector)
 		{
@@ -603,7 +599,6 @@ namespace FoundationDB.Client
 		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
 		/// </summary>
 		/// <param name="selectors">Key selectors to resolve</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
 		public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
 		{
@@ -861,7 +856,6 @@ namespace FoundationDB.Client
 		/// The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. 
 		/// If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.
 		/// </summary>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
 		public async Task CommitAsync()
@@ -944,7 +938,6 @@ namespace FoundationDB.Client
 		/// It also implements an exponential backoff strategy to avoid swamping the database cluster with excessive retries when there is a high level of conflict between transactions.
 		/// </summary>
 		/// <param name="code">FdbError code thrown by the previous command</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retryable.</returns>
 		public Task OnErrorAsync(FdbError code)
 		{
@@ -1033,7 +1026,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
-		/// <param name="ct">Optionnal CancellationToken that should not be cancelled</param>
 		/// <param name="allowFromNetworkThread">If true, this operation is allowed to run from a callback on the network thread and should NEVER block.</param>
 		/// <param name="allowFailedState">If true, this operation can run even if the transaction is in a failed state.</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>

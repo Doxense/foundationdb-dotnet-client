@@ -125,7 +125,6 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="trans"></param>
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse"></param>
-		/// <param name="ct"></param>
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
 		public Task<List<TId>> LookupAsync(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{

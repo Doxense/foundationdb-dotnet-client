@@ -95,8 +95,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="layer">If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.</param>
 		/// <param name="prefix">If a prefix is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically inside then Content subspace.</param>
 		/// <param name="allowCreate">If the directory does not exist, it will be created if <paramref name="allowCreate"/> is true, or an exception will be thrown if it is false</param>
-		/// <param name="allowOpen">If the directory already exists, it will be opened if <paramref name="allowOpened"/> is true, or an exception will be thrown if it is false</param>
-		/// <param name="ct">Token used to abort this operation</param>
+		/// <param name="allowOpen">If the directory already exists, it will be opened if <paramref name="allowOpen"/> is true, or an exception will be thrown if it is false</param>
 		public async Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -167,7 +166,6 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to open.</param>
 		/// <param name="layer">Optional layer id of the directory. If it is different than the layer specified when creating the directory, an exception will be thrown.</param>
-		/// <param name="ct">Token used to abort this operation</param>
 		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null)
 		{
 			return CreateOrOpenAsync(tr, path, layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true);
@@ -181,7 +179,6 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		/// <param name="ct">Token used to abort this operation</param>
 		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
 		{
 			return CreateOrOpenAsync(tr, path, layer, prefix: prefix, allowCreate: true, allowOpen: false);
@@ -195,7 +192,6 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="oldPath">Path of the directory to move</param>
 		/// <param name="newPath">New path of the directory</param>
-		/// <param name="ct">Token used to abort this operation</param>
 		public async Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, IFdbTuple oldPath, IFdbTuple newPath)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -237,7 +233,6 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		/// <param name="ct">Token used to abort this operation</param>
 		public async Task<bool> RemoveAsync(IFdbTransaction tr, IFdbTuple path)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -259,7 +254,6 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
-		/// <param name="ct">Token used to abort this operation</param>
 		public async Task<List<IFdbTuple>> ListAsync(IFdbReadOnlyTransaction tr, IFdbTuple path = null)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -365,7 +359,6 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Resursively remove a node and all its children</summary>
 		/// <param name="tr"></param>
 		/// <param name="node"></param>
-		/// <param name="ct"></param>
 		/// <returns></returns>
 		private async Task RemoveRecursive(IFdbTransaction tr, FdbSubspace node)
 		{

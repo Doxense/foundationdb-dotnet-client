@@ -59,7 +59,6 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Ensure thats the transaction is in a valid state for issuing read operations.
 		/// </summary>
-		/// <param name="ct">Optional cancellation token that should not be in a cancelled state</param>
 		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
@@ -69,7 +68,6 @@ namespace FoundationDB.Client
 		/// Reads a value from the database snapshot represented by by the current transaction.
 		/// </summary>
 		/// <param name="keyBytes">Key to be looked up in the database</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
 		/// <exception cref="System.ArgumentException">If the <paramref name="keyBytes"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
@@ -81,7 +79,6 @@ namespace FoundationDB.Client
 		/// Reads several values from the database snapshot represented by the current transaction
 		/// </summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
 		Task<Slice[]> GetValuesAsync(Slice[] keys);
 
@@ -89,7 +86,6 @@ namespace FoundationDB.Client
 		/// Resolves a key selector against the keys in the database snapshot represented by the current transaction.
 		/// </summary>
 		/// <param name="selector">Key selector to resolve</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
 		Task<Slice> GetKeyAsync(FdbKeySelector selector);
 
@@ -97,7 +93,6 @@ namespace FoundationDB.Client
 		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
 		/// </summary>
 		/// <param name="selectors">Key selectors to resolve</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
 		Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors);
 
@@ -109,7 +104,6 @@ namespace FoundationDB.Client
 		/// <param name="range">Pair of key selectors defining the beginning and the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns></returns>
 		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0);
 		

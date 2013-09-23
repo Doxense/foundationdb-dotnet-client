@@ -70,6 +70,10 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.CreateOrOpenAsync(tr, this.Path.Concat(subPath), layer, prefix, allowCreate, allowOpen);
 		}
 
+		/// <summary>
+		/// Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the directory does not exist, or if a layer is specified and a different layer was specified when the directory was created.
+		/// </summary>
 		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null)
 		{
 			return this.DirectoryLayer.OpenAsync(tr, this.Path.Concat(subPath), layer);
@@ -80,16 +84,28 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.CreateAsync(tr, this.Path.Concat(subPath), layer, prefix);
 		}
 
+		/// <summary>
+		/// Moves the current directory to <paramref name="newPath"/>.
+		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
+		/// </summary>
 		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, IFdbTuple newPath)
 		{
 			return this.DirectoryLayer.MoveAsync(tr, this.Path, newPath);
 		}
 
+		/// <summary>
+		/// Removes the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
 		public Task<bool> RemoveAsync(IFdbTransaction tr)
 		{
 			return this.DirectoryLayer.RemoveAsync(tr, this.Path);
 		}
 
+		/// <summary>
+		/// Returns the list of all the subdirectories of the current directory.
+		/// </summary>
 		public Task<List<IFdbTuple>> ListAsync(IFdbReadOnlyTransaction tr)
 		{
 			return this.DirectoryLayer.ListAsync(tr, this.Path);

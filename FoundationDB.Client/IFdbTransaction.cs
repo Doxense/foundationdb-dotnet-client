@@ -38,7 +38,6 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Ensure thats the transaction is in a valid state for issuing read and write operations.
 		/// </summary>
-		/// <param name="ct">Optional cancellation token that should not be in a cancelled state</param>
 		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
@@ -97,7 +96,6 @@ namespace FoundationDB.Client
 		/// The commit may or may not succeed – in particular, if a conflicting transaction previously committed, then the commit must fail in order to preserve transactional isolation. 
 		/// If the commit does succeed, the transaction is durably committed to the database and all subsequently started transactions will observe its effects.
 		/// </summary>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Task that succeeds if the transaction was comitted successfully, or fails if the transaction failed to commit.</returns>
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
 		Task CommitAsync();
@@ -130,7 +128,6 @@ namespace FoundationDB.Client
 		/// It also implements an exponential backoff strategy to avoid swamping the database cluster with excessive retries when there is a high level of conflict between transactions.
 		/// </summary>
 		/// <param name="code">FdbError code thrown by the previous command</param>
-		/// <param name="ct">CancellationToken used to cancel this operation (optionnal)</param>
 		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retryable.</returns>
 		Task OnErrorAsync(FdbError code);
 
