@@ -90,7 +90,7 @@ namespace FoundationDB.Linq.Utils
 			throw new NotSupportedException(String.Format("Unsupported expression {1}: '{0}' should return a constant value", expression.GetType().Name, expr.ToString()));
 		}
 
-		private static Task<T> Inline<T>(Func<IFdbReadTransaction, T> func, IFdbReadTransaction trans, CancellationToken ct)
+		private static Task<T> Inline<T>(Func<IFdbReadOnlyTransaction, T> func, IFdbReadOnlyTransaction trans, CancellationToken ct)
 		{
 			try
 			{
@@ -103,28 +103,28 @@ namespace FoundationDB.Linq.Utils
 			}
 		}
 
-		public static Expression<Func<IFdbReadTransaction, CancellationToken, Task<T>>> ToTask<T>(Expression<Func<IFdbReadTransaction, T>> lambda)
+		public static Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>> ToTask<T>(Expression<Func<IFdbReadOnlyTransaction, T>> lambda)
 		{
 			// rewrite a Func<..., T> into a Func<..., Task<T>>
 
-			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
 
-			var body = RewriteCall<Func<IFdbReadTransaction, CancellationToken, Func<IFdbReadTransaction, T>, Task<T>>>(
+			var body = RewriteCall<Func<IFdbReadOnlyTransaction, CancellationToken, Func<IFdbReadOnlyTransaction, T>, Task<T>>>(
 				(trans, ct, func) => Inline<T>(func, trans, ct),
 				prmTrans,
 				prmCancel,
 				lambda
 			);
 
-			return Expression.Lambda<Func<IFdbReadTransaction, CancellationToken, Task<T>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>>(
 				body,
 				prmTrans,
 				prmCancel
 			);
 		}
 
-		internal static Task<R> ExecuteEnumerable<T, R>(Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> generator, Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>> lambda, IFdbReadTransaction trans, CancellationToken ct)
+		internal static Task<R> ExecuteEnumerable<T, R>(Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> generator, Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>> lambda, IFdbReadOnlyTransaction trans, CancellationToken ct)
 		{
 			Contract.Requires(generator != null && lambda != null && trans != null);
 			try

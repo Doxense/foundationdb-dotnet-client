@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 		private Snapshotted m_snapshotted;
 
 		/// <summary>Returns a version of this transaction that perform snapshotted operations</summary>
-		public IFdbReadTransaction Snapshot
+		public IFdbReadOnlyTransaction Snapshot
 		{
 			get
 			{
@@ -52,7 +52,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Wrapper on a transaction, that will use Snmapshot mode on all read operations</summary>
-		private sealed class Snapshotted : IFdbReadTransaction, IDisposable
+		private sealed class Snapshotted : IFdbReadOnlyTransaction, IDisposable
 		{
 			private readonly FdbTransaction m_parent;
 

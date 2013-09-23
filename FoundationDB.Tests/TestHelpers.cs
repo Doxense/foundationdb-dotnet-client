@@ -81,7 +81,7 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		public static async Task DumpSubspace(IFdbReadTransaction tr, FdbSubspace subspace)
+		public static async Task DumpSubspace(IFdbReadOnlyTransaction tr, FdbSubspace subspace)
 		{
 			Assert.That(tr, Is.Not.Null);
 

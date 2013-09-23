@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Tables
 
 		/// <summary>Returns the key of the last valid version for this entry that is not after the specified version</summary>
 		/// <remarks>Slice.Nil if not valid version was found, or the key of the matchin version</remarks>
-		protected virtual async Task<long?> GetLastVersionAsync(IFdbReadTransaction trans, TId id)
+		protected virtual async Task<long?> GetLastVersionAsync(IFdbReadOnlyTransaction trans, TId id)
 		{
 			Contract.Requires(trans != null);
 			Contract.Requires(id != null);
@@ -150,7 +150,7 @@ namespace FoundationDB.Layers.Tables
 
 		/// <summary>Returns the active revision of an item that was valid at the specified version</summary>
 		/// <remarks>null if no valid version was found, or the version number of the revision if found</remarks>
-		protected virtual async Task<long?> FindVersionAsync(IFdbReadTransaction trans, TId id, long version)
+		protected virtual async Task<long?> FindVersionAsync(IFdbReadOnlyTransaction trans, TId id, long version)
 		{
 			Contract.Requires(trans != null);
 			Contract.Requires(id != null);
@@ -210,7 +210,7 @@ namespace FoundationDB.Layers.Tables
 			return this.VersionsPrefix.Pack(this.KeyReader.ToTuple(id));
 		}
 
-		protected virtual Task<Slice> GetValueAtVersionAsync(IFdbReadTransaction trans, TId id, long version)
+		protected virtual Task<Slice> GetValueAtVersionAsync(IFdbReadOnlyTransaction trans, TId id, long version)
 		{
 			var tuple = GetItemKey(id, version);
 			return trans.GetAsync(tuple);
@@ -218,7 +218,7 @@ namespace FoundationDB.Layers.Tables
 
 		#region GetLast() ...
 
-		private async Task<KeyValuePair<long?, TValue>> GetLastCoreAsync(IFdbReadTransaction trans, TId id)
+		private async Task<KeyValuePair<long?, TValue>> GetLastCoreAsync(IFdbReadOnlyTransaction trans, TId id)
 		{
 			// Get the last known version for this key
 			var last = await GetLastVersionAsync(trans, id).ConfigureAwait(false);
@@ -233,7 +233,7 @@ namespace FoundationDB.Layers.Tables
 			return new KeyValuePair<long?, TValue>(last, value);
 		}
 
-		public Task<KeyValuePair<long?, TValue>> GetLastAsync(IFdbReadTransaction trans, TId id)
+		public Task<KeyValuePair<long?, TValue>> GetLastAsync(IFdbReadOnlyTransaction trans, TId id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -245,7 +245,7 @@ namespace FoundationDB.Layers.Tables
 
 		#region GetVersion()...
 
-		private async Task<KeyValuePair<long?, TValue>> GetVersionCoreAsync(IFdbReadTransaction trans, TId id, long version)
+		private async Task<KeyValuePair<long?, TValue>> GetVersionCoreAsync(IFdbReadOnlyTransaction trans, TId id, long version)
 		{
 			long? dbVersion;
 
@@ -279,7 +279,7 @@ namespace FoundationDB.Layers.Tables
 		/// <param name="id">Key of the item to read</param>
 		/// <param name="version">Time at which the item must exist</param>
 		/// <returns>If there was a version at this time, returns a pair with the actual version number and the value. If not, return (null, Slice.Nil). If the value was deleted at this time, returns (version, Slice.Nil)</returns>
-		public Task<KeyValuePair<long?, TValue>> GetVersionAsync(IFdbReadTransaction trans, TId id, long version)
+		public Task<KeyValuePair<long?, TValue>> GetVersionAsync(IFdbReadOnlyTransaction trans, TId id, long version)
 		{
 			// item did not exist yet => (null, Slice.Nil)
 			// item exist at this time => (item.Version, item.Value)
@@ -299,7 +299,7 @@ namespace FoundationDB.Layers.Tables
 
 		#region Contains() ...
 
-		public async Task<bool> Contains(IFdbReadTransaction trans, TId id, long? version = null)
+		public async Task<bool> Contains(IFdbReadOnlyTransaction trans, TId id, long? version = null)
 		{
 			long? dbVersion;
 
@@ -407,7 +407,7 @@ namespace FoundationDB.Layers.Tables
 
 		#region List...
 
-		public async Task<List<KeyValuePair<TId, TValue>>> SelectLatestAsync(IFdbReadTransaction trans, bool includeDeleted = false)
+		public async Task<List<KeyValuePair<TId, TValue>>> SelectLatestAsync(IFdbReadOnlyTransaction trans, bool includeDeleted = false)
 		{
 			//REVIEW: pagination ? filtering ???
 

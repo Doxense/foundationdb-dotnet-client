@@ -260,7 +260,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
 		/// <param name="ct">Token used to abort this operation</param>
-		public async Task<List<IFdbTuple>> ListAsync(IFdbReadTransaction tr, IFdbTuple path = null)
+		public async Task<List<IFdbTuple>> ListAsync(IFdbReadOnlyTransaction tr, IFdbTuple path = null)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -284,7 +284,7 @@ namespace FoundationDB.Layers.Directories
 
 		#region Internal Helpers...
 
-		private async Task<FdbSubspace> NodeContainingKey(IFdbReadTransaction tr, Slice key)
+		private async Task<FdbSubspace> NodeContainingKey(IFdbReadOnlyTransaction tr, Slice key)
 		{
 			// Right now this is only used for _is_prefix_free(), but if we add
 			// parent pointers to directory nodes, it could also be used to find a
@@ -326,7 +326,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Finds a node subspace, given its path, by walking the tree from the root</summary>
 		/// <returns>Node if it was found, or null</returns>
-		private async Task<FdbSubspace> Find(IFdbReadTransaction tr, IFdbTuple path)
+		private async Task<FdbSubspace> Find(IFdbReadOnlyTransaction tr, IFdbTuple path)
 		{
 			var n = this.RootNode;
 			for (int i = 0; i < path.Count; i++)
@@ -338,7 +338,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Returns the list of names and nodes of all children of the specified node</summary>
-		private IFdbAsyncEnumerable<KeyValuePair<IFdbTuple, FdbSubspace>> SubdirNamesAndNodes(IFdbReadTransaction tr, FdbSubspace node)
+		private IFdbAsyncEnumerable<KeyValuePair<IFdbTuple, FdbSubspace>> SubdirNamesAndNodes(IFdbReadOnlyTransaction tr, FdbSubspace node)
 		{
 			var sd = node.Partition(SUBDIRS);
 			return tr
@@ -376,7 +376,7 @@ namespace FoundationDB.Layers.Directories
 			tr.ClearRange(node.ToRange());
 		}
 
-		private async Task<bool> IsPrefixFree(IFdbReadTransaction tr, Slice prefix)
+		private async Task<bool> IsPrefixFree(IFdbReadOnlyTransaction tr, Slice prefix)
 		{
 			// Returns true if the given prefix does not "intersect" any currently
 			// allocated prefix (including the root node). This means that it neither

@@ -85,7 +85,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="field">Name of the field to read</param>
 		/// <returns>Value of the corresponding field, or Slice.Nil if it the hashset does not exist, or doesn't have a field with this name</returns>
-		public Task<Slice> GetValueAsync(IFdbReadTransaction trans, IFdbTuple id, string field)
+		public Task<Slice> GetValueAsync(IFdbReadOnlyTransaction trans, IFdbTuple id, string field)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -98,7 +98,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>Dictionary containing, for all fields, their associated values</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadTransaction trans, IFdbTuple id)
+		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadOnlyTransaction trans, IFdbTuple id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -123,7 +123,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="fields">List of the fields to read</param>
 		/// <returns>Dictionary containing the values of the selected fields, or Slice.Empty if that particular field does not exist.</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadTransaction trans, IFdbTuple id, string[] fields)
+		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadOnlyTransaction trans, IFdbTuple id, string[] fields)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -221,7 +221,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>List of all fields. If the list is empty, the hashset does not exist</returns>
-		public Task<List<string>> GetKeys(IFdbReadTransaction trans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
+		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
 		{
 			//note: As of Beta2, FDB does not have a fdb_get_range that only return the keys. That means that we will have to also read the values from the db, in order to just get the names of the fields :(
 			//TODO: find a way to optimize this ?

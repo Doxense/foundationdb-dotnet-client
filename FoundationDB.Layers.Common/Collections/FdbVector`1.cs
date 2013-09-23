@@ -60,12 +60,12 @@ namespace FoundationDB.Layers.Collections
 			return FdbTuple.UnpackSingle<T>(value);
 		}
 
-		public Task<long> SizeAsync(IFdbReadTransaction tr)
+		public Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
 		{
 			return this.Vector.SizeAsync(tr);
 		}
 
-		public Task EmptyAsync(IFdbReadTransaction tr)
+		public Task EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
 			return this.Vector.EmptyAsync(tr);
 		}
@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Collections
 			this.Vector.Set(tr, index, EncodeValue(value));
 		}
 
-		public async Task<T> GetAsync(IFdbReadTransaction tr, long index)
+		public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
 			return DecodeValue(await this.Vector.GetAsync(tr, index).ConfigureAwait(false));
 		}

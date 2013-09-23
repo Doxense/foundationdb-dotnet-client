@@ -104,7 +104,7 @@ namespace FoundationDB.Layers.Documents
 			}		
 		}
 
-		public async Task<TDocument> LoadAsync(IFdbReadTransaction trans, TId id)
+		public async Task<TDocument> LoadAsync(IFdbReadOnlyTransaction trans, TId id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id"); // only for ref types

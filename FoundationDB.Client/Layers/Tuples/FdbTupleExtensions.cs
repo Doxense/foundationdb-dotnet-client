@@ -217,7 +217,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static Task<Slice> GetAsync(this IFdbReadTransaction trans, IFdbTuple key)
+		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, IFdbTuple key)
 		{
 			Contract.Requires(trans != null);
 			if (key == null) throw new ArgumentNullException("key");
@@ -225,7 +225,7 @@ namespace FoundationDB.Layers.Tuples
 			return trans.GetAsync(key.ToSlice());
 		}
 
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IFdbTuple[] tuples)
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransaction trans, IFdbTuple[] tuples)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
@@ -233,7 +233,7 @@ namespace FoundationDB.Layers.Tuples
 			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples));
 		}
 
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> tuples)
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransaction trans, IEnumerable<IFdbTuple> tuples)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
@@ -241,7 +241,7 @@ namespace FoundationDB.Layers.Tuples
 			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples));
 		}
 
-		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<IFdbTuple> tuples)
+		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadOnlyTransaction trans, IEnumerable<IFdbTuple> tuples)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
@@ -249,7 +249,7 @@ namespace FoundationDB.Layers.Tuples
 			return GetBatchAsync(trans, tuples.ToArray());
 		}
 
-		public static async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IFdbTuple[] tuples)
+		public static async Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadOnlyTransaction trans, IFdbTuple[] tuples)
 		{
 			var results = await GetValuesAsync(trans, tuples).ConfigureAwait(false);
 
@@ -259,7 +259,7 @@ namespace FoundationDB.Layers.Tuples
 				.ToList();
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadTransaction trans, IFdbTuple beginInclusive, IFdbTuple endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, IFdbTuple beginInclusive, IFdbTuple endExclusive, FdbRangeOptions options = null)
 		{
 			Contract.Requires(trans != null);
 
@@ -275,7 +275,7 @@ namespace FoundationDB.Layers.Tuples
 			);
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadTransaction trans, IFdbTuple suffix, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, IFdbTuple suffix, FdbRangeOptions options = null)
 		{
 			Contract.Requires(trans != null);
 			if (suffix == null) throw new ArgumentNullException("suffix");

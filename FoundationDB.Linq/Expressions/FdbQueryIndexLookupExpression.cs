@@ -71,16 +71,16 @@ namespace FoundationDB.Linq.Expressions
 			return visitor.VisitQueryIndexLookup(this);
 		}
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<K>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<K>>> CompileSequence()
 		{
-			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 			Expression body;
 
 			switch (this.Operator)
 			{
 				case ExpressionType.Equal:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
 						(index, trans, value, reverse) => index.Lookup(trans, value, reverse),
 						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
 						prmTrans,
@@ -93,7 +93,7 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.GreaterThan:
 				case ExpressionType.GreaterThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
 						(index, trans, value, reverse) => index.LookupGreaterThan(trans, value, this.Operator == ExpressionType.GreaterThanOrEqual, reverse),
 						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
 						prmTrans,
@@ -106,7 +106,7 @@ namespace FoundationDB.Linq.Expressions
 				case ExpressionType.LessThan:
 				case ExpressionType.LessThanOrEqual:
 				{
-					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
+					body = FdbExpressionHelpers.RewriteCall<Func<FdbIndex<K, V>, IFdbReadOnlyTransaction, V, bool, IFdbAsyncEnumerable<K>>>(
 						(index, trans, value, reverse) => index.LookupLessThan(trans, value, this.Operator == ExpressionType.LessThanOrEqual, reverse),
 						Expression.Constant(this.Index, typeof(FdbIndex<K, V>)),
 						prmTrans,
@@ -122,7 +122,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 			}
 
-			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<K>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<K>>>(body, prmTrans);
 		}
 
 		public override string ToString()

@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>Transaction that allows read and write operations</summary>
-	public interface IFdbTransaction : IFdbReadTransaction
+	public interface IFdbTransaction : IFdbReadOnlyTransaction
 	{
 		/// <summary>
 		/// Ensure thats the transaction is in a valid state for issuing read and write operations.

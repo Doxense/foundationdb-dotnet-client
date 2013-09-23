@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}")]
-	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadTransaction, IDisposable
+	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadOnlyTransaction, IDisposable
 	{
 		#region Private Members...
 

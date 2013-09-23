@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
-		internal FdbRangeQuery(IFdbReadTransaction transaction, FdbKeySelectorPair range, Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, FdbRangeOptions options)
+		internal FdbRangeQuery(IFdbReadOnlyTransaction transaction, FdbKeySelectorPair range, Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, FdbRangeOptions options)
 		{
 			this.Transaction = transaction;
 			this.Range = range;
@@ -84,7 +84,7 @@ namespace FoundationDB.Client
 		public bool Reverse { get { return this.Options.Reverse ?? false; } }
 
 		/// <summary>Parent transaction used to perform the GetRange operation</summary>
-		internal IFdbReadTransaction Transaction { get; private set; }
+		internal IFdbReadOnlyTransaction Transaction { get; private set; }
 
 		internal Func<KeyValuePair<Slice, Slice>, T> Transform { get; private set; }
 
@@ -156,7 +156,7 @@ namespace FoundationDB.Client
 		/// <summary>Force the query to use a specific transaction</summary>
 		/// <param name="transaction">Transaction to use when executing this query</param>
 		/// <returns>A new query object that will use the specified transaction when executed</returns>
-		public FdbRangeQuery<T> UseTransaction(IFdbReadTransaction transaction)
+		public FdbRangeQuery<T> UseTransaction(IFdbReadOnlyTransaction transaction)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
 

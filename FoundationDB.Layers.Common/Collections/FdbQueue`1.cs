@@ -82,12 +82,12 @@ namespace FoundationDB.Layers.Collections
 			return DecodeValue(await this.Queue.PopAsync(db, ct).ConfigureAwait(false));
 		}
 
-		public Task<bool> EmptyAsync(IFdbReadTransaction tr)
+		public Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
 			return this.Queue.EmptyAsync(tr);
 		}
 
-		public async Task<T> PeekAsync(IFdbReadTransaction tr)
+		public async Task<T> PeekAsync(IFdbReadOnlyTransaction tr)
 		{
 			return DecodeValue(await this.Queue.PeekAsync(tr).ConfigureAwait(false));
 		}

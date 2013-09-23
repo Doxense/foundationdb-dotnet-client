@@ -71,7 +71,7 @@ namespace FoundationDB.Layers.Tables
 
 		#region Get / Set / Clear...
 
-		public Task<Slice> GetAsync(IFdbReadTransaction trans, IFdbTuple id)
+		public Task<Slice> GetAsync(IFdbReadOnlyTransaction trans, IFdbTuple id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -95,7 +95,7 @@ namespace FoundationDB.Layers.Tables
 			trans.Clear(MakeKey(id));
 		}
 
-		public Task<List<KeyValuePair<Slice, Slice>>> GetAllAsync(IFdbReadTransaction trans)
+		public Task<List<KeyValuePair<Slice, Slice>>> GetAllAsync(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 

@@ -79,7 +79,7 @@ namespace FoundationDB.Layers.Tables
 			return this.Table.MakeKey(this.KeyReader.ToTuple(key));
 		}
 
-		public async Task<TValue> GetAsync(IFdbReadTransaction trans, TKey key)
+		public async Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, TKey key)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -103,7 +103,7 @@ namespace FoundationDB.Layers.Tables
 			this.Table.Clear(trans, this.KeyReader.ToTuple(key));
 		}
 
-		public Task<List<KeyValuePair<TKey, TValue>>> GetAllAsync(IFdbReadTransaction trans)
+		public Task<List<KeyValuePair<TKey, TValue>>> GetAllAsync(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -119,7 +119,7 @@ namespace FoundationDB.Layers.Tables
 				.ToListAsync();
 		}
 
-		public async Task<List<TValue>> GetValuesAsync(IFdbReadTransaction trans, IEnumerable<TKey> ids)
+		public async Task<List<TValue>> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");

@@ -42,9 +42,9 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Type of elements returned by the sequence</summary>
 		public Type ElementType { get { return typeof(T); } }
 
-		public abstract Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence();
+		public abstract Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence();
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
+		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
 		{
 			return FdbExpressionHelpers.ToTask(CompileSequence());
 		}

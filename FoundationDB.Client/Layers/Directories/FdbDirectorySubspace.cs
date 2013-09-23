@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.RemoveAsync(tr, this.Path);
 		}
 
-		public Task<List<IFdbTuple>> ListAsync(IFdbReadTransaction tr)
+		public Task<List<IFdbTuple>> ListAsync(IFdbReadOnlyTransaction tr)
 		{
 			return this.DirectoryLayer.ListAsync(tr, this.Path);
 		}

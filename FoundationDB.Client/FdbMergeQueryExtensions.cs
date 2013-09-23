@@ -39,7 +39,7 @@ namespace FoundationDB.Client
 
 		#region MergeSort (x OR y)
 
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 
@@ -53,7 +53,7 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static IFdbAsyncEnumerable<TResult> MergeSort<TKey, TResult>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> MergeSort<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 
@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 
 		#region Intersect (x AND y)
 
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 
@@ -107,7 +107,7 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 
@@ -169,7 +169,7 @@ namespace FoundationDB.Client
 
 		#region Except (x AND NOT y)
 
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 
@@ -183,7 +183,7 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>(this IFdbReadTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 

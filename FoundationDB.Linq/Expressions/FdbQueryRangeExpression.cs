@@ -65,18 +65,18 @@ namespace FoundationDB.Linq.Expressions
 			return visitor.VisitQueryRange(this);
 		}
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
 		{
-			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
-			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbReadTransaction, FdbKeySelectorPair, FdbRangeOptions, FdbRangeQuery<KeyValuePair<Slice, Slice>>>>(
+			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbReadOnlyTransaction, FdbKeySelectorPair, FdbRangeOptions, FdbRangeQuery<KeyValuePair<Slice, Slice>>>>(
 				(trans, range, options) => trans.GetRange(range, options),
 				prmTrans,
 				Expression.Constant(this.Range, typeof(FdbKeySelectorPair)),
 				Expression.Constant(this.Options, typeof(FdbRangeOptions))
 			);
 
-			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>>(
 				body,
 				prmTrans
 			);

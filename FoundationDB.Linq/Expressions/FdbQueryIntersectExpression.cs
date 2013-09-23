@@ -64,10 +64,10 @@ namespace FoundationDB.Linq.Expressions
 			return visitor.VisitQueryMerge(this);
 		}
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
 		{
 			// compile the key selector
-			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
 			// get all inner enumerables
 			var enumerables = new Expression[this.Expressions.Length];
@@ -104,7 +104,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 			}
 
-			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>>(
 				body,
 				prmTrans
 			);

@@ -57,7 +57,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Returns all the keys inside of a subspace</summary>
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadTransaction trans, FdbSubspace subspace, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, FdbSubspace subspace, FdbRangeOptions options = null)
 		{
 			Contract.Requires(trans != null && subspace != null);
 
@@ -70,7 +70,7 @@ namespace FoundationDB.Layers.Tuples
 		/// tr.GetAsync(new FdbSubspace("Hello"), FdbTuple.Create("World"));
 		/// tr.GetAsync(FdbTuple.Create("Hello", "World"));
 		/// </example>
-		public static Task<Slice> GetAsync(this IFdbReadTransaction trans, FdbSubspace subspace, IFdbTuple key)
+		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, FdbSubspace subspace, IFdbTuple key)
 		{
 			Contract.Requires(trans != null && subspace != null && key != null);
 

@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Collections
 		/// </summary>
 		/// <param name="tr"></param>
 		/// <returns></returns>
-		public Task<long> SizeAsync(IFdbReadTransaction tr)
+		public Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -109,7 +109,7 @@ namespace FoundationDB.Layers.Collections
 		/// </summary>
 		/// <param name="tr"></param>
 		/// <returns></returns>
-		public Task<Slice> BackAsync(IFdbReadTransaction tr)
+		public Task<Slice> BackAsync(IFdbReadOnlyTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -124,7 +124,7 @@ namespace FoundationDB.Layers.Collections
 		/// </summary>
 		/// <param name="tr"></param>
 		/// <returns></returns>
-		public Task<Slice> FrontAsync(IFdbReadTransaction tr)
+		public Task<Slice> FrontAsync(IFdbReadOnlyTransaction tr)
 		{
 			return GetAsync(tr, 0);
 		}
@@ -217,7 +217,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="tr"></param>
 		/// <param name="index"></param>
 		/// <returns></returns>
-		public async Task<Slice> GetAsync(IFdbReadTransaction tr, long index)
+		public async Task<Slice> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (index < 0) throw new IndexOutOfRangeException(String.Format("Index {0} must be positive", index));
@@ -253,7 +253,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="endIndex"></param>
 		/// <param name="step"></param>
 		/// <returns></returns>
-		public IFdbAsyncEnumerable<Slice> GetRangeAsync(IFdbReadTransaction tr, long startIndex, long endIndex, long step)
+		public IFdbAsyncEnumerable<Slice> GetRangeAsync(IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -281,7 +281,7 @@ namespace FoundationDB.Layers.Collections
 		/// </summary>
 		/// <param name="tr"></param>
 		/// <returns></returns>
-		public async Task<bool> EmptyAsync(IFdbReadTransaction tr)
+		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -325,7 +325,7 @@ namespace FoundationDB.Layers.Collections
 
 		//
 
-		private async Task<long> ComputeSizeAsync(IFdbReadTransaction tr)
+		private async Task<long> ComputeSizeAsync(IFdbReadOnlyTransaction tr)
 		{
 			Contract.Requires(tr != null);
 

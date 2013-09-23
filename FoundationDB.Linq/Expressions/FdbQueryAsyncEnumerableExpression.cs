@@ -60,16 +60,16 @@ namespace FoundationDB.Linq.Expressions
 			return visitor.VisitAsyncEnumerable(this);
 		}
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
+		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
 		{
 			return FdbExpressionHelpers.ToTask(CompileSequence());
 		}
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
 		{
-			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
-			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>>(
 				Expression.Constant(this.Source), 
 				prmTrans
 			);

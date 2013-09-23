@@ -66,13 +66,13 @@ namespace FoundationDB.Linq.Expressions
 			return visitor.VisitQueryTransform(this);
 		}
 
-		public override Expression<Func<IFdbReadTransaction, IFdbAsyncEnumerable<R>>> CompileSequence()
+		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<R>>> CompileSequence()
 		{
 			var lambda = this.Transform.Compile();
 
 			var enumerable = this.Source.CompileSequence();
 
-			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
 			// (tr) => sourceEnumerable(tr).Select(lambda);
 
@@ -82,7 +82,7 @@ namespace FoundationDB.Linq.Expressions
 				Expression.Constant(lambda)
 			);
 
-			return Expression.Lambda<Func<IFdbReadTransaction, IFdbAsyncEnumerable<R>>>(body, prmTrans);
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<R>>>(body, prmTrans);
 		}
 
 	}

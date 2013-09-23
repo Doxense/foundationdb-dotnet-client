@@ -167,7 +167,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			}
 		}
 
-		private static async Task PrintVector(FdbVector vector, IFdbReadTransaction tr)
+		private static async Task PrintVector(FdbVector vector, IFdbReadOnlyTransaction tr)
 		{
 			bool first = true;
 			var sb = new StringBuilder();

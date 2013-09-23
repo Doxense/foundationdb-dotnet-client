@@ -57,12 +57,12 @@ namespace FoundationDB.Layers.Collections
 
 		#region Get / Set / Clear
 
-		public Task<TValue> GetAsync(IFdbReadTransaction trans, int key)
+		public Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, int key)
 		{
 			return this.Array.GetAsync(trans, key).Then((bytes) => this.Serializer.Deserialize(bytes, default(TValue)));
 		}
 
-		public Task<TValue> GetAsync(IFdbReadTransaction trans, long key)
+		public Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, long key)
 		{
 			return this.Array.GetAsync(trans, key).Then((bytes) => this.Serializer.Deserialize(bytes, default(TValue)));
 		}

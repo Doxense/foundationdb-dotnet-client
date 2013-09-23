@@ -120,7 +120,7 @@ namespace FoundationDB.Client
 							{
 								((Action<IFdbTransaction>)handler)(trans);
 							}
-							else if (handler is Func<IFdbReadTransaction, Task>)
+							else if (handler is Func<IFdbReadOnlyTransaction, Task>)
 							{
 								readOnlyOperation = true;
 								await ((Func<IFdbTransaction, Task>)handler)(trans).ConfigureAwait(false);
@@ -189,13 +189,13 @@ namespace FoundationDB.Client
 		#region Read-Only operations...
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunReadAsync(FdbDatabase db, Func<IFdbReadTransaction, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static Task RunReadAsync(FdbDatabase db, Func<IFdbReadOnlyTransaction, Task> asyncAction, CancellationToken ct = default(CancellationToken))
 		{
 			return new FdbOperationContext(db, ct).ExecuteInternal(asyncAction);
 		}
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunReadWithResultAsync<R>(FdbDatabase db, Func<IFdbReadTransaction, Task<R>> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static async Task<R> RunReadWithResultAsync<R>(FdbDatabase db, Func<IFdbReadOnlyTransaction, Task<R>> asyncAction, CancellationToken ct = default(CancellationToken))
 		{
 			R result = default(R);
 			Func<IFdbTransaction, Task> handler = async (tr) =>

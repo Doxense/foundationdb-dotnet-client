@@ -175,7 +175,7 @@ namespace FoundationDB.Layers.Counters
 		/// Get the value of the counter.
 		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
 		/// </summary>
-		public async Task<long> GetTransactional(IFdbReadTransaction trans)
+		public async Task<long> GetTransactional(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -191,7 +191,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>
 		/// Get the value of the counter with snapshot isolation (no transaction conflicts).
 		/// </summary>
-		public Task<long> GetSnapshot(IFdbReadTransaction trans)
+		public Task<long> GetSnapshot(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 

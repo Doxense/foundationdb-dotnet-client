@@ -210,7 +210,7 @@ namespace FoundationDB.Layers.Blobs
 		/// Get the size (in bytes) of the blob.
 		/// </summary>
 		/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
-		public async Task<long?> GetSizeAsync(IFdbReadTransaction trans)
+		public async Task<long?> GetSizeAsync(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -227,7 +227,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Read from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer then n bytes are returned when the end of the blob is reached).
 		/// </summary>
-		public async Task<Slice> ReadAsync(IFdbReadTransaction trans, long offset, int n)
+		public async Task<Slice> ReadAsync(IFdbReadOnlyTransaction trans, long offset, int n)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentNullException("offset", "Offset cannot be less than zero");

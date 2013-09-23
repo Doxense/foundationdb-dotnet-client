@@ -26,64 +26,26 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq.Expressions
+namespace FoundationDB.Client
 {
-	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
 	using System;
-	using System.Linq.Expressions;
-	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-    public abstract class FdbQueryExpression : Expression
-    {
-		private readonly Type m_type;
-
-		protected FdbQueryExpression(Type type)
-		{
-			m_type = type;
-		}
-
-		public override Type Type { get { return m_type; } }
-
-		public override ExpressionType NodeType
-		{
-			get { return ExpressionType.Extension; }
-		}
-
-		public abstract FdbQueryNodeType QueryNodeType { get; }
-
-		public abstract FdbQueryShape Shape { get; }
-
-		public abstract Expression Accept(FdbQueryExpressionVisitor visitor);
-
-		internal string DebugView
-		{
-			get
-			{
-				var builder = new FdbQueryExpressionStringBuilder();
-				builder.Visit(this);
-				return builder.ToString();
-			}
-		}
-
-#if DEBUG
-		public override string ToString()
-		{
-			return this.DebugView;
-		}
-#endif
-
-    }
-
-	public abstract class FdbQueryExpression<T> : FdbQueryExpression
+	/// <summary>Transactional context that can execute read-only transactions</summary>
+	public interface IFdbReadOnlyTransactional
 	{
-		protected FdbQueryExpression()
-			: base(typeof(T))
-		{ }
+		//note: since there are no non-async read methods on transactions, there is no need for an override that takes an Action<....>
 
-		public abstract Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>> CompileSingle();
+		/// <summary>
+		/// Runs a transactional lambda function inside a read-only transaction context, with optional retry-logic.
+		/// </summary>
+		Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken ct = default(CancellationToken));
+
+		/// <summary>
+		/// Runs a transactional lambda function inside a read-only transaction context, with optional retry-logic.
+		/// </summary>
+		Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken ct = default(CancellationToken));
 
 	}
 

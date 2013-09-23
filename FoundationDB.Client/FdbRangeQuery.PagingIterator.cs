@@ -53,7 +53,7 @@ namespace FoundationDB.Client
 
 			private FdbRangeQuery<T> Query { get; set; }
 
-			private IFdbReadTransaction Transaction { get; set; }
+			private IFdbReadOnlyTransaction Transaction { get; set; }
 
 			#endregion
 
@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			public PagingIterator(FdbRangeQuery<T> query, IFdbReadTransaction transaction)
+			public PagingIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction)
 			{
 				Contract.Requires(query != null);
 

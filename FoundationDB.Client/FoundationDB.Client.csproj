@@ -59,6 +59,7 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="IFdbReadOnlyTransactional.cs" />
     <Compile Include="IFdbTransactional.cs" />
     <Compile Include="FdbFuture.cs" />
     <Compile Include="FdbFutureArray.cs" />
@@ -69,7 +70,7 @@
     <Compile Include="FdbDatabase.Bulk.cs" />
     <Compile Include="FdbTransaction.Snapshot.cs" />
     <Compile Include="IFdbTransaction.cs" />
-    <Compile Include="IFdbReadTransaction.cs" />
+    <Compile Include="IFdbReadOnlyTransaction.cs" />
     <Compile Include="FdbRangeChunk.cs" />
     <Compile Include="FdbTransactionExtensions.cs" />
     <Compile Include="FdbDatabase.Transactional.cs" />

@@ -127,7 +127,7 @@ namespace FoundationDB.Linq
 
 		#region Single...
 
-		protected Func<IFdbReadTransaction, CancellationToken, Task<T>> CompileSingle(FdbQueryExpression expression)
+		protected Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>> CompileSingle(FdbQueryExpression expression)
 		{
 			//TODO: caching !
 
@@ -167,7 +167,7 @@ namespace FoundationDB.Linq
 
 		#region Sequence...
 
-		private Func<IFdbReadTransaction, IFdbAsyncEnumerable<T>> CompileSequence(FdbQueryExpression expression)
+		private Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> CompileSequence(FdbQueryExpression expression)
 		{
 			//TODO: caching !
 

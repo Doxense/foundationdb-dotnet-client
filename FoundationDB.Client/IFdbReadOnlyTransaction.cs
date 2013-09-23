@@ -34,7 +34,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>Transaction that allows read operations</summary>
-	public interface IFdbReadTransaction : IDisposable
+	public interface IFdbReadOnlyTransaction : IDisposable
 	{
 		/// <summary>
 		/// Local id of the transaction

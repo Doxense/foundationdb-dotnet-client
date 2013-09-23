@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 	public static class FdbTransactionExtensions
 	{
 
-		internal static IFdbReadTransaction ToSnapshotTransaction(this IFdbReadTransaction trans)
+		internal static IFdbReadOnlyTransaction ToSnapshotTransaction(this IFdbReadOnlyTransaction trans)
 		{
 			if (trans.IsSnapshot) return trans;
 			//TODO: better way at doing this ?
@@ -108,21 +108,21 @@ namespace FoundationDB.Client
 
 		#region GetRange...
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans.GetRange(FdbKeySelectorPair.Create(beginInclusive, endExclusive), options);
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadTransaction trans, FdbKeyRange range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeyRange range, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans.GetRange(FdbKeySelectorPair.Create(range), options);
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null)
 		{
 			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;
 			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
@@ -136,7 +136,7 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeInclusive(this IFdbReadTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endInclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeInclusive(this IFdbReadOnlyTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endInclusive, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -224,7 +224,7 @@ namespace FoundationDB.Client
 
 		#region Batching...
 
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys)
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
@@ -234,7 +234,7 @@ namespace FoundationDB.Client
 			return trans.GetValuesAsync(array);
 		}
 
-		public static Task<Slice[]> GetKeysAsync(this IFdbReadTransaction trans, IEnumerable<FdbKeySelector> selectors)
+		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelector> selectors)
 		{
 			if (selectors == null) throw new ArgumentNullException("selectors");
 
@@ -244,7 +244,7 @@ namespace FoundationDB.Client
 			return trans.GetKeysAsync(array);
 		}
 
-		public static Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, IEnumerable<Slice> keys)
+		public static Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
@@ -254,7 +254,7 @@ namespace FoundationDB.Client
 			return trans.GetBatchAsync(array);
 		}
 
-		public static async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadTransaction trans, Slice[] keys)
+		public static async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadOnlyTransaction trans, Slice[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 

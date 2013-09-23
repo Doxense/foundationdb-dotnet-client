@@ -293,7 +293,7 @@ namespace FoundationDB.Layers.Interning
 		#region Lookup...
 
 		/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
-		public Task<string> LookupAsync(IFdbReadTransaction trans, Slice uid)
+		public Task<string> LookupAsync(IFdbReadOnlyTransaction trans, Slice uid)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (uid.IsNull) throw new ArgumentException("String uid cannot be nil", "uid");
@@ -309,7 +309,7 @@ namespace FoundationDB.Layers.Interning
 			return LookupSlowAsync(trans, uid);
 		}
 
-		private async Task<string> LookupSlowAsync(IFdbReadTransaction trans, Slice uid)
+		private async Task<string> LookupSlowAsync(IFdbReadOnlyTransaction trans, Slice uid)
 		{
 			var valueBytes = await trans.GetAsync(UidKey(uid)).ConfigureAwait(false);
 			if (valueBytes.IsNull) throw new KeyNotFoundException("String intern indentifier not found");

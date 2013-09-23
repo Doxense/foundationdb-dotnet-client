@@ -69,13 +69,13 @@ namespace FoundationDB.Linq.Expressions
 			return visitor.VisitQuerySingle(this);
 		}
 
-		public override Expression<Func<IFdbReadTransaction, CancellationToken, Task<R>>> CompileSingle()
+		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<R>>> CompileSingle()
 		{
 			// We want to generate: (trans, ct) => ExecuteEnumerable(source, lambda, trans, ct);
 
 			var sourceExpr = this.Sequence.CompileSequence();
 
-			var prmTrans = Expression.Parameter(typeof(IFdbReadTransaction), "trans");
+			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 			var prmCancel = Expression.Parameter(typeof(CancellationToken), "ct");
 
 			var method = typeof(FdbExpressionHelpers).GetMethod("ExecuteEnumerable", BindingFlags.Static | BindingFlags.NonPublic).MakeGenericMethod(typeof(T), typeof(R));
@@ -88,7 +88,7 @@ namespace FoundationDB.Linq.Expressions
 				prmTrans,
 				prmCancel);
 
-			return Expression.Lambda<Func<IFdbReadTransaction, CancellationToken, Task<R>>>(
+			return Expression.Lambda<Func<IFdbReadOnlyTransaction, CancellationToken, Task<R>>>(
 				body,
 				prmTrans,
 				prmCancel
