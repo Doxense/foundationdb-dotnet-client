@@ -73,7 +73,6 @@
     <Compile Include="IFdbReadOnlyTransaction.cs" />
     <Compile Include="FdbRangeChunk.cs" />
     <Compile Include="FdbTransactionExtensions.cs" />
-    <Compile Include="FdbDatabase.Transactional.cs" />
     <Compile Include="FdbRangeOptions.cs" />
     <Compile Include="FdbOperationContext.cs" />
     <Compile Include="FdbMergeQueryExtensions.cs" />
