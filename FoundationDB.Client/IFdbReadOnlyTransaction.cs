@@ -43,6 +43,11 @@ namespace FoundationDB.Client
 		int Id { get; }
 
 		/// <summary>
+		/// Context of this transaction.
+		/// </summary>
+		FdbOperationContext Context { get; }
+
+		/// <summary>
 		/// If true, the transaction is operating in Snapshot mode
 		/// </summary>
 		bool IsSnapshot { get; }

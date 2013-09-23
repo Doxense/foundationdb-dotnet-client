@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 		public FdbDatabase Db { get; private set; }
 
 		/// <summary>If true, attempts to commit read-only transactions anyway.</summary>
-		public bool CommitReadOnlyTransactions { get; set; }
+		public bool CommitReadOnlyTransactions { get; internal set; }
 
 		/// <summary>Result of the operation (or null)</summary>
 		public object Result { get; set; }
@@ -65,11 +65,13 @@ namespace FoundationDB.Client
 		/// <summary>Time spent since the start of the first attempt</summary>
 		public Stopwatch Duration { get; private set; }
 
-		/// <summary>If true, the transactino has been committed successfully</summary>
+		/// <summary>If true, the transaction has been committed successfully</summary>
 		public bool Committed { get; private set; }
 
+		/// <summary>If true, the lifetime of the context is handled by an external retry loop. If false, the context is linked to the lifetime of the transaction instance.</summary>
 		internal bool Shared { get; private set; }
 
+		/// <summary>Internal source of cancellation, able to abort any pending IO operations attached to this transaction</summary>
 		internal CancellationTokenSource TokenSource { get; private set; }
 
 		internal FdbOperationContext(FdbDatabase db, CancellationToken ct)

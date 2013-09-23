@@ -67,6 +67,11 @@ namespace FoundationDB.Client
 				get { return m_parent.Id; }
 			}
 
+			public FdbOperationContext Context
+			{
+				get { return m_parent.Context; }
+			}
+
 			public CancellationToken Token
 			{
 				get { return m_parent.Token; }
