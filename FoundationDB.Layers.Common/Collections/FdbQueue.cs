@@ -52,6 +52,7 @@ namespace FoundationDB.Layers.Collections
 		/// Only keys within the subspace will be used by the object. 
 		/// Other clients of the database should refrain from modifying the subspace.</summary>
 		/// <param name="subspace">Subspace to be used for storing the blob data and metadata</param>
+		/// <param name="highContention">If true, uses a high-contention mode designed for a large number of concurrent popping clients. If false, uses a simpler strategy that is intended for only one concurrent popping client.</param>
 		public FdbQueue(FdbSubspace subspace, bool highContention)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -119,11 +120,17 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
+		/// <summary>
+		/// Test whether the queue is empty.
+		/// </summary>
 		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
 			return (await GetFirstItemAsync(tr).ConfigureAwait(false)).Key.IsNull;
 		}
 
+		/// <summary>
+		/// Get the value of the next item in the queue without popping it.
+		/// </summary>
 		public async Task<Slice> PeekAsync(IFdbReadOnlyTransaction tr)
 		{
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
