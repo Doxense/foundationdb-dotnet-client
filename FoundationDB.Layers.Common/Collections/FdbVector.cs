@@ -37,9 +37,7 @@ namespace FoundationDB.Layers.Collections
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>
-	/// Represents a potentially sparse array in FoundationDB.
-	/// </summary>
+	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
 	public class FdbVector
 	{
 		// from https://github.com/FoundationDB/python-layers/blob/master/lib/vector.py
@@ -60,6 +58,9 @@ namespace FoundationDB.Layers.Collections
 		// - vector.py uses Thread Local Storage that does not work well with async and Tasks in .NET
 		//   so we wont be able to 'store' the current transaction in the vector object itself
 
+		/// <summary>Create a new sparse Vector</summary>
+		/// <param name="subspace">Subspace where the vector will be stored</param>
+		/// <param name="defaultValue">Default value for sparse entries</param>
 		public FdbVector(FdbSubspace subspace, Slice defaultValue)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -68,20 +69,20 @@ namespace FoundationDB.Layers.Collections
 			this.DefaultValue = defaultValue;
 		}
 
+		/// <summary>Create a new sparse Vector</summary>
+		/// <param name="subspace">Subspace where the vector will be stored</param>
+		/// <remarks>Sparse entries will be assigned the value Slice.Empty</remarks>
 		public FdbVector(FdbSubspace subspace)
 			: this(subspace, Slice.Empty)
 		{ }
 
-		/// <summary>Subspace used as a prefix for all items in this table</summary>
+		/// <summary>Subspace used as a prefix for all items in this vector</summary>
 		public FdbSubspace Subspace { get; private set; }
 
+		/// <summary>Default value for sparse entries</summary>
 		public Slice DefaultValue { get; private set; }
 
-		/// <summary>
-		/// Get the number of items in the Vector. This number includes the sparsely represented items.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <returns></returns>
+		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
 		public Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -89,12 +90,7 @@ namespace FoundationDB.Layers.Collections
 			return ComputeSizeAsync(tr);
 		}
 
-		/// <summary>
-		/// Push a single item onto the end of the Vector.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="value"></param>
-		/// <returns></returns>
+		/// <summary>Push a single item onto the end of the Vector.</summary>
 		public async Task PushAsync(IFdbTransaction tr, Slice value)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -104,11 +100,7 @@ namespace FoundationDB.Layers.Collections
 			tr.Set(GetKeyAt(size), value);
 		}
 
-		/// <summary>
-		/// Get the value of the last item in the Vector.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <returns></returns>
+		/// <summary>Get the value of the last item in the Vector.</summary>
 		public Task<Slice> BackAsync(IFdbReadOnlyTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -119,21 +111,13 @@ namespace FoundationDB.Layers.Collections
 				.LastOrDefaultAsync();
 		}
 
-		/// <summary>
-		/// Get the value of the first item in the Vector.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <returns></returns>
+		/// <summary>Get the value of the first item in the Vector.</summary>
 		public Task<Slice> FrontAsync(IFdbReadOnlyTransaction tr)
 		{
 			return GetAsync(tr, 0);
 		}
 
-		/// <summary>
-		/// Get and pops the last item off the Vector.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <returns></returns>
+		/// <summary>Get and pops the last item off the Vector.</summary>
 		public async Task<Slice> PopAsync(IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -168,13 +152,7 @@ namespace FoundationDB.Layers.Collections
 			return lastTwo[0].Value;
 		}
 
-		/// <summary>
-		/// Swap the items at positions i1 and i2.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="index1"></param>
-		/// <param name="index2"></param>
-		/// <returns></returns>
+		/// <summary>Swap the items at positions i1 and i2.</summary>
 		public async Task SwapAsync(IFdbTransaction tr, long index1, long index2)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -211,12 +189,7 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
-		/// <summary>
-		/// Get the item at the specified index.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="index"></param>
-		/// <returns></returns>
+		/// <summary>Get the item at the specified index.</summary>
 		public async Task<Slice> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -245,14 +218,7 @@ namespace FoundationDB.Layers.Collections
 			throw new IndexOutOfRangeException(String.Format("Index {0} out of range", index));
 		}
 
-		/// <summary>
-		/// Get a range of items in the Vector, returned as an async sequence.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="startIndex"></param>
-		/// <param name="endIndex"></param>
-		/// <param name="step"></param>
-		/// <returns></returns>
+		/// <summary>[NOT YET IMPLEMENTED] Get a range of items in the Vector, returned as an async sequence.</summary>
 		public IFdbAsyncEnumerable<Slice> GetRangeAsync(IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -262,13 +228,7 @@ namespace FoundationDB.Layers.Collections
 			throw new NotImplementedException();
 		}
 
-		/// <summary>
-		/// Set the value at a particular index in the Vector.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="index"></param>
-		/// <param name="value"></param>
-		/// <returns></returns>
+		/// <summary>Set the value at a particular index in the Vector.</summary>
 		public void Set(IFdbTransaction tr, long index, Slice value)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -276,11 +236,7 @@ namespace FoundationDB.Layers.Collections
 			tr.Set(GetKeyAt(index), value);
 		}
 
-		/// <summary>
-		/// Test whether the Vector is empty.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <returns></returns>
+		/// <summary>Test whether the Vector is empty.</summary>
 		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -288,12 +244,7 @@ namespace FoundationDB.Layers.Collections
 			return (await ComputeSizeAsync(tr).ConfigureAwait(false)) == 0;
 		}
 
-		/// <summary>
-		/// Grow or shrink the size of the Vector.
-		/// </summary>
-		/// <param name="tr"></param>
-		/// <param name="length"></param>
-		/// <returns></returns>
+		/// <summary>Grow or shrink the size of the Vector.</summary>
 		public async Task ResizeAsync(IFdbTransaction tr, long length)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -316,6 +267,7 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
+		/// <summary>Remove all items from the Vector.</summary>
 		public void Clear(IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -323,7 +275,7 @@ namespace FoundationDB.Layers.Collections
 			tr.ClearRange(this.Subspace);
 		}
 
-		//
+		#region Private Helpers...
 
 		private async Task<long> ComputeSizeAsync(IFdbReadOnlyTransaction tr)
 		{
@@ -345,6 +297,8 @@ namespace FoundationDB.Layers.Collections
 		{
 			return this.Subspace.Pack(index);
 		}
+
+		#endregion
 	}
 
 }

@@ -47,12 +47,9 @@ namespace FoundationDB.Layers.Collections
 		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
 		private readonly Random Rng = new Random();
 
-		/// <summary>
-		/// Create a new object representing a binary large object (blob).
-		/// Only keys within the subspace will be used by the object. 
-		/// Other clients of the database should refrain from modifying the subspace.</summary>
-		/// <param name="subspace">Subspace to be used for storing the blob data and metadata</param>
-		/// <param name="highContention">If true, uses a high-contention mode designed for a large number of concurrent popping clients. If false, uses a simpler strategy that is intended for only one concurrent popping client.</param>
+		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
+		/// <param name="subspace">Subspace where the queue will be stored</param>
+		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
 		public FdbQueue(FdbSubspace subspace, bool highContention)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -65,6 +62,8 @@ namespace FoundationDB.Layers.Collections
 			this.QueueItem = subspace.Partition(Slice.FromAscii("item"));
 		}
 
+		/// <summary>Create a new High Contention Queue</summary>
+		/// <param name="subspace">Subspace where the queue will be stored</param>
 		public FdbQueue(FdbSubspace subspace)
 			: this(subspace, true)
 		{ }
@@ -72,9 +71,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
 
-		/// <summary>
-		/// If true, the queue is operating in High Contention mode
-		/// </summary>
+		/// <summary>If true, the queue is operating in High Contention mode that will scale better with a lot of popping clients.</summary>
 		public bool HighContention { get; private set; }
 
 		internal FdbSubspace ConflictedPop { get; private set; }
@@ -83,9 +80,7 @@ namespace FoundationDB.Layers.Collections
 
 		internal FdbSubspace QueueItem { get; private set; }
 
-		/// <summary>
-		/// Remove all items from the queue.
-		/// </summary>
+		/// <summary>Remove all items from the queue.</summary>
 		public void ClearAsync(IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
@@ -93,9 +88,7 @@ namespace FoundationDB.Layers.Collections
 			tr.ClearRange(this.Subspace);
 		}
 
-		/// <summary>
-		/// Push a single item onto the queue.
-		/// </summary>
+		/// <summary>Push a single item onto the queue.</summary>
 		public async Task PushAsync(IFdbTransaction tr, Slice value)
 		{
 			long index = await GetNextIndexAsync(tr.ToSnapshotTransaction(), this.QueueItem).ConfigureAwait(false);
@@ -103,9 +96,7 @@ namespace FoundationDB.Layers.Collections
 			await PushAtAsync(tr, value, index).ConfigureAwait(false);
 		}
 
-		/// <summary>
-		/// Pop the next item from the queue. Cannot be composed with other functions in a single transaction.
-		/// </summary>
+		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
 		public Task<Slice> PopAsync(FdbDatabase db, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
@@ -120,17 +111,13 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
-		/// <summary>
-		/// Test whether the queue is empty.
-		/// </summary>
+		/// <summary>Test whether the queue is empty.</summary>
 		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
 			return (await GetFirstItemAsync(tr).ConfigureAwait(false)).Key.IsNull;
 		}
 
-		/// <summary>
-		/// Get the value of the next item in the queue without popping it.
-		/// </summary>
+		/// <summary>Get the value of the next item in the queue without popping it.</summary>
 		public async Task<Slice> PeekAsync(IFdbReadOnlyTransaction tr)
 		{
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
@@ -403,6 +390,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		#endregion
+
 	}
 
 }

@@ -36,74 +36,146 @@ namespace FoundationDB.Layers.Collections
 	public static class FdbVectorTransactionals
 	{
 
+		#region Empty / Size
+
+		/// <summary>Remove all items from the Vector.</summary>
+		public static Task<bool> EmptyAsync(this FdbVector vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		{
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadAsync((tr) => vector.EmptyAsync(tr), ct);
+		}
+
+		/// <summary>Remove all items from the Vector.</summary>
+		public static Task<bool> EmptyAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		{
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadAsync((tr) => vector.EmptyAsync(tr), ct);
+		}
+
+		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
+		public static Task<long> SizeAsync(this FdbVector vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		{
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadAsync((tr) => vector.SizeAsync(tr), ct);
+		}
+
+		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
+		public static Task<long> SizeAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		{
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadAsync((tr) => vector.SizeAsync(tr), ct);
+		}
+
+		#endregion
+
 		#region Clear / Resize
 
-		public static Task ClearAsync(this FdbVector vector, FdbDatabase db, CancellationToken ct = default(CancellationToken))
+		/// <summary>Remove all items from the Vector.</summary>
+		public static Task ClearAsync(this FdbVector vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
-			return db.WriteAsync((tr) => vector.Clear(tr), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.WriteAsync((tr) => vector.Clear(tr), ct);
 		}
 
-		public static Task ClearAsync<T>(this FdbVector<T> vector, FdbDatabase db, CancellationToken ct = default(CancellationToken))
+		/// <summary>Remove all items from the Vector.</summary>
+		public static Task ClearAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
-			return db.WriteAsync((tr) => vector.Clear(tr), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.WriteAsync((tr) => vector.Clear(tr), ct);
 		}
 
-		public static Task ResizeAsync(this FdbVector vector, FdbDatabase db, long length, CancellationToken ct = default(CancellationToken))
+		/// <summary>Grow or shrink the size of the Vector.</summary>
+		public static Task ResizeAsync(this FdbVector vector, IFdbTransactional dbOrTrans, long length, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ReadWriteAsync((tr) => vector.ResizeAsync(tr, length), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadWriteAsync((tr) => vector.ResizeAsync(tr, length), ct);
 		}
 
-		public static Task ResizeAsync<T>(this FdbVector<T> vector, FdbDatabase db, long length, CancellationToken ct = default(CancellationToken))
+		/// <summary>Grow or shrink the size of the Vector.</summary>
+		public static Task ResizeAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, long length, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ReadWriteAsync((tr) => vector.ResizeAsync(tr, length), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadWriteAsync((tr) => vector.ResizeAsync(tr, length), ct);
 		}
 
 		#endregion
 
 		#region Push / Pop
 
-		public static Task<Slice> PopAsync(this FdbVector vector, FdbDatabase db, CancellationToken ct = default(CancellationToken))
+		/// <summary>Get and pops the last item off the Vector.</summary>
+		public static Task<Slice> PopAsync(this FdbVector vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ReadWriteAsync((tr) => vector.PopAsync(tr), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadWriteAsync((tr) => vector.PopAsync(tr), ct);
 		}
 
-		public static Task<T> PopAsync<T>(this FdbVector<T> vector, FdbDatabase db, CancellationToken ct = default(CancellationToken))
+		/// <summary>Get and pops the last item off the Vector.</summary>
+		public static Task<T> PopAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ReadWriteAsync((tr) => vector.PopAsync(tr), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadWriteAsync((tr) => vector.PopAsync(tr), ct);
 		}
 
-		public static Task PushAsync(this FdbVector vector, FdbDatabase db, long index, Slice value, CancellationToken ct = default(CancellationToken))
+		/// <summary>Push a single item onto the end of the Vector.</summary>
+		public static Task PushAsync(this FdbVector vector, IFdbTransactional dbOrTrans, Slice value, CancellationToken ct = default(CancellationToken))
 		{
-			return db.WriteAsync((tr) => vector.Set(tr, index, value), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadWriteAsync((tr) => vector.PushAsync(tr, value), ct);
 		}
 
-		public static Task PushAsync<T>(this FdbVector<T> vector, FdbDatabase db, long index, T value, CancellationToken ct = default(CancellationToken))
+		/// <summary>Push a single item onto the end of the Vector.</summary>
+		public static Task PushAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, T value, CancellationToken ct = default(CancellationToken))
 		{
-			return db.WriteAsync((tr) => vector.Set(tr, index, value), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadWriteAsync((tr) => vector.PushAsync(tr, value), ct);
 		}
 
 		#endregion
 
 		#region Get / Set
 
-		public static Task<Slice> GetAsync(this FdbVector vector, FdbDatabase db, long index, CancellationToken ct = default(CancellationToken))
+		/// <summary>Get the item at the specified index.</summary>
+		public static Task<Slice> GetAsync(this FdbVector vector, IFdbReadOnlyTransactional dbOrTrans, long index, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ReadAsync((tr) => vector.GetAsync(tr, index), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadAsync((tr) => vector.GetAsync(tr, index), ct);
 		}
 
-		public static Task<T> GetAsync<T>(this FdbVector<T> vector, FdbDatabase db, long index, CancellationToken ct = default(CancellationToken))
+		/// <summary>Get the item at the specified index.</summary>
+		public static Task<T> GetAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, long index, CancellationToken ct = default(CancellationToken))
 		{
-			return db.ReadAsync((tr) => vector.GetAsync(tr, index), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadAsync((tr) => vector.GetAsync(tr, index), ct);
 		}
 
-		public static Task SetAsync(this FdbVector vector, FdbDatabase db, long index, Slice value, CancellationToken ct = default(CancellationToken))
+		/// <summary>Set the value at a particular index in the Vector.</summary>
+		public static Task SetAsync(this FdbVector vector, IFdbTransactional dbOrTrans, long index, Slice value, CancellationToken ct = default(CancellationToken))
 		{
-			return db.WriteAsync((tr) => vector.Set(tr, index, value), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.WriteAsync((tr) => vector.Set(tr, index, value), ct);
 		}
 
-		public static Task SetAsync<T>(this FdbVector<T> vector, FdbDatabase db, long index, T value, CancellationToken ct = default(CancellationToken))
+		/// <summary>Set the value at a particular index in the Vector.</summary>
+		public static Task SetAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, long index, T value, CancellationToken ct = default(CancellationToken))
 		{
-			return db.WriteAsync((tr) => vector.Set(tr, index, value), ct);
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.WriteAsync((tr) => vector.Set(tr, index, value), ct);
 		}
 
 		#endregion

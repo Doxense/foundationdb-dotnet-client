@@ -39,9 +39,7 @@ namespace FoundationDB.Layers.Collections
 
 	public static class FdbQueueTransactionals
 	{
-		/// <summary>
-		/// Remove all items from the queue.
-		/// </summary>
+		/// <summary>Remove all items from the queue.</summary>
 		public static Task ClearAsync(this FdbQueue queue, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
@@ -49,9 +47,7 @@ namespace FoundationDB.Layers.Collections
 			return dbOrTrans.WriteAsync((tr) => queue.ClearAsync(tr), ct);
 		}
 
-		/// <summary>
-		/// Remove all items from the queue.
-		/// </summary>
+		/// <summary>Remove all items from the queue.</summary>
 		public static Task ClearAsync<T>(this FdbQueue<T> queue, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("db");
@@ -59,6 +55,7 @@ namespace FoundationDB.Layers.Collections
 			return dbOrTrans.WriteAsync((tr) => queue.ClearAsync(tr), ct);
 		}
 
+		/// <summary>Test whether the queue is empty.</summary>
 		public static Task<bool> EmptyAsync(this FdbQueue queue, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("db");
@@ -66,6 +63,7 @@ namespace FoundationDB.Layers.Collections
 			return dbOrTrans.ReadAsync((tr) => queue.EmptyAsync(tr), ct);
 		}
 
+		/// <summary>Test whether the queue is empty.</summary>
 		public static Task<bool> EmptyAsync<T>(this FdbQueue<T> queue, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("db");
@@ -73,6 +71,7 @@ namespace FoundationDB.Layers.Collections
 			return dbOrTrans.ReadAsync((tr) => queue.EmptyAsync(tr), ct);
 		}
 
+		/// <summary>Push a single item onto the queue.</summary>
 		public static Task PushAsync(this FdbQueue queue, IFdbTransactional dbOrTrans, Slice value, CancellationToken ct = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("db");
@@ -80,6 +79,7 @@ namespace FoundationDB.Layers.Collections
 			return dbOrTrans.ReadWriteAsync((tr) => queue.PushAsync(tr, value), ct);
 		}
 
+		/// <summary>Push a single item onto the queue.</summary>
 		public static Task PushAsync<T>(this FdbQueue<T> queue, IFdbTransactional dbOrTrans, T value, CancellationToken ct = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("db");
@@ -87,6 +87,7 @@ namespace FoundationDB.Layers.Collections
 			return dbOrTrans.ReadWriteAsync((tr) => queue.PushAsync(tr, value), ct);
 		}
 
+		/// <summary>Get the value of the next item in the queue without popping it.</summary>
 		public static Task<Slice> PeekAsync(this FdbQueue queue, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("db");
@@ -94,6 +95,7 @@ namespace FoundationDB.Layers.Collections
 			return dbOrTrans.ReadAsync((tr) => queue.PeekAsync(tr), ct);
 		}
 
+		/// <summary>Get the value of the next item in the queue without popping it.</summary>
 		public static Task<T> PeekAsync<T>(this FdbQueue<T> queue, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("db");
