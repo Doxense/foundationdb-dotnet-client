@@ -32,57 +32,73 @@ namespace FoundationDB.Layers.Collections
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	[DebuggerDisplay("Subspace={Subspace}")]
-	public class FdbArray<TValue>
+	public class FdbArray<T>
 	{
-		public FdbArray(FdbSubspace subspace, ISliceSerializer<TValue> serializer)
-		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Array = new FdbArray(subspace);
-			this.Serializer = serializer;
-		}
+		/// <summary>Internal array used for storage</summary>
+		internal FdbArray Array { get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this array</summary>
 		public FdbSubspace Subspace { get { return this.Array.Subspace; } }
 
-		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public ISliceSerializer<TValue> Serializer { get; private set; }
-
-		internal FdbArray Array { get; private set; }
-
-		#region Get / Set / Clear
-
-		public Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, int key)
+		public FdbArray(FdbSubspace subspace)
 		{
-			return this.Array.GetAsync(trans, key).Then((bytes) => this.Serializer.Deserialize(bytes, default(TValue)));
+			if (subspace == null) throw new ArgumentNullException("subspace");
+
+			this.Array = new FdbArray(subspace);
 		}
 
-		public Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, long key)
+		protected virtual Slice EncodeValue(T value)
 		{
-			return this.Array.GetAsync(trans, key).Then((bytes) => this.Serializer.Deserialize(bytes, default(TValue)));
+			return FdbTuple.Pack<T>(value);
 		}
 
-		public void Set(IFdbTransaction trans, int key, TValue value)
+		protected virtual T DecodeValue(Slice packed)
 		{
-			this.Array.Set(trans, key, this.Serializer.Serialize(value));
+			if (packed.IsNullOrEmpty) return default(T);
+			return FdbTuple.UnpackSingle<T>(packed);
 		}
 
-		public void Set(IFdbTransaction trans, long key, TValue value)
+		public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
-			this.Array.Set(trans, key, this.Serializer.Serialize(value));
+			return DecodeValue(await this.Array.GetAsync(tr, index).ConfigureAwait(false));
 		}
 
-		public void Clear(IFdbTransaction trans)
+		public void Set(IFdbTransaction tr, long index, T value)
 		{
-			this.Array.Clear(trans);
+			this.Array.Set(tr, index, EncodeValue(value));
 		}
 
-		#endregion
+		public void Clear(IFdbTransaction tr)
+		{
+			this.Array.Clear(tr);
+		}
+
+		public Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
+		{
+			return this.Array.SizeAsync(tr);
+		}
+
+		public Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
+		{
+			return this.Array.EmptyAsync(tr);
+		}
+
+		public FdbRangeQuery<KeyValuePair<long, T>> GetAll(IFdbReadOnlyTransaction tr)
+		{
+			return this.Array
+				.GetAll(tr)
+				.Select(kvp => new KeyValuePair<long, T>(
+					kvp.Key,
+					DecodeValue(kvp.Value)
+				));
+		}
 
 	}
 

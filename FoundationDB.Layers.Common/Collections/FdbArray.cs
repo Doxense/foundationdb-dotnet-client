@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Collections
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -46,47 +47,60 @@ namespace FoundationDB.Layers.Collections
 			this.Subspace = subspace;
 		}
 
+		/// <summary>Subspace used as a prefix for all items in this array</summary>
 		public FdbSubspace Subspace { get; private set; }
-
-		#region Key management...
-
-		public Slice Key(int index)
-		{
-			return this.Subspace.Pack<int>(index);
-		}
-
-		public Slice Key(long index)
-		{
-			return this.Subspace.Pack<long>(index);
-		}
-
-		#endregion
 
 		#region Get / Set / Clear
 
-		public Task<Slice> GetAsync(IFdbReadOnlyTransaction trans, int key)
+		public Task<Slice> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
-			return trans.GetAsync(Key(key));
+			if (tr == null) throw new ArgumentNullException("tr");
+			if (index < 0) throw new IndexOutOfRangeException("Array index must be a positive integer.");
+
+			return tr.GetAsync(this.Subspace.Pack<long>(index));
 		}
 
-		public Task<Slice> GetAsync(IFdbReadOnlyTransaction trans, long key)
+		public void Set(IFdbTransaction tr, long index, Slice value)
 		{
-			return trans.GetAsync(Key(key));
+			if (tr == null) throw new ArgumentNullException("tr");
+			if (index < 0) throw new IndexOutOfRangeException("Array index must be a positive integer.");
+
+			tr.Set(this.Subspace.Pack<long>(index), value);
 		}
 
-		public void Set(IFdbTransaction trans, int key, Slice value)
+		public void Clear(IFdbTransaction tr)
 		{
-			trans.Set(Key(key), value);
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			tr.ClearRange(this.Subspace);
 		}
 
-		public void Set(IFdbTransaction trans, long key, Slice value)
+		public async Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
 		{
-			trans.Set(Key(key), value);
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			var keyRange = this.Subspace.ToRange();
+			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(keyRange.End)).ConfigureAwait(false);
+			return lastKey < keyRange.Begin ? 0 : this.Subspace.UnpackSingle<long>(lastKey) + 1;
 		}
 
-		public void Clear(IFdbTransaction trans)
+		public Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
-			trans.ClearRange(this.Subspace);
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			return tr.GetRange(this.Subspace.ToRange()).AnyAsync();
+		}
+
+		public FdbRangeQuery<KeyValuePair<long, Slice>> GetAll(IFdbReadOnlyTransaction tr)
+		{
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			return tr
+				.GetRange(this.Subspace.ToRange())
+				.Select(kvp => new KeyValuePair<long, Slice>(
+					this.Subspace.UnpackSingle<long>(kvp.Key),
+					kvp.Value
+				));
 		}
 
 		#endregion
