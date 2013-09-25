@@ -578,7 +578,6 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			packed = FdbTuple.Create(Uuid.Empty).ToSlice();
 			Assert.That(packed.ToString(), Is.EqualTo("<03><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
-
 		}
 
 		[Test]
@@ -744,6 +743,61 @@ namespace FoundationDB.Layers.Tuples.Tests
 				FdbTuple.Create(long.MinValue).ToSlice().ToString(),
 				Is.EqualTo("<0C><7F><FF><FF><FF><FF><FF><FF><FF>")
 			);
+		}
+
+		[Test]
+		public void Test_FdbTuple_Serialize_Booleans()
+		{
+			// False is 0, True is 1
+
+			Slice packed;
+
+			// bool
+			packed = FdbTuple.Pack(false);
+			Assert.That(packed.ToString(), Is.EqualTo("<14>"));
+			packed = FdbTuple.Pack(true);
+			Assert.That(packed.ToString(), Is.EqualTo("<15><01>"));
+
+			// bool?
+			packed = FdbTuple.Pack(default(bool?));
+			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
+			packed = FdbTuple.Pack((bool?)false);
+			Assert.That(packed.ToString(), Is.EqualTo("<14>"));
+			packed = FdbTuple.Pack((bool?)true);
+			Assert.That(packed.ToString(), Is.EqualTo("<15><01>"));
+
+			// tuple containing bools
+			packed = FdbTuple.Create<bool>(true).ToSlice();
+			Assert.That(packed.ToString(), Is.EqualTo("<15><01>"));
+			packed = FdbTuple.Create<bool, bool?, bool?>(true, null, false).ToSlice();
+			Assert.That(packed.ToString(), Is.EqualTo("<15><01><00><14>"));
+		}
+
+		[Test]
+		public void Test_FdbTuple_Deserialize_Booleans()
+		{
+			// Null, 0, and empty byte[]/strings are equivalent to False. All others are equivalent to True
+
+			// Falsy...
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<00>")), Is.EqualTo(false), "Null => False");
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<14>")), Is.EqualTo(false), "0 => False");
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<01><00>")), Is.EqualTo(false), "byte[0] => False");
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<02><00>")), Is.EqualTo(false), "String.Empty => False");
+
+			// Truthy
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<15><01>")), Is.EqualTo(true), "1 => True");
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<13><FE>")), Is.EqualTo(true), "-1 => True");
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<01>Hello<00>")), Is.EqualTo(true), "'Hello' => True");
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<02>Hello<00>")), Is.EqualTo(true), "\"Hello\" => True");
+			Assert.That(FdbTuple.UnpackSingle<bool>(FdbTuple.Pack(123456789)), Is.EqualTo(true), "random int => True");
+
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<02>True<00>")), Is.EqualTo(true), "\"True\" => True");
+			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<02>False<00>")), Is.EqualTo(true), "\"False\" => True ***");
+			// note: even though it would be tempting to convert the string "false" to False, it is not a standard behavior accross all bindings
+
+			// When decoded to object, though, they should return 0 and 1
+			Assert.That(FdbTuplePackers.DeserializeBoxed(FdbTuple.Pack(false)), Is.EqualTo(0));
+			Assert.That(FdbTuplePackers.DeserializeBoxed(FdbTuple.Pack(true)), Is.EqualTo(1));
 		}
 
 		[Test]
@@ -1580,6 +1634,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 		{
 			const int N = 100 * 1000;
 
+			Slice FUNKY_ASCII = Slice.FromAscii("bonjour\x00le\x00\xFFmonde");
+			string FUNKY_STRING = "hello\x00world";
+			string UNICODE_STRING = "héllø 世界";
+
 			Console.Write("Creating " + N.ToString("N0") + " random tuples...");
 			var tuples = new List<IFdbTuple>(N);
 			var rnd = new Random(777);
@@ -1590,7 +1648,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 				int s = 1 + (int)Math.Sqrt(rnd.Next(128));
 				for (int j = 0; j < s; j++)
 				{
-					switch (rnd.Next(12))
+					switch (rnd.Next(16))
 					{
 						case 0: tuple = tuple.Append<int>(rnd.Next(255)); break;
 						case 1: tuple = tuple.Append<int>(-1 - rnd.Next(255)); break;
@@ -1599,64 +1657,74 @@ namespace FoundationDB.Layers.Tuples.Tests
 						case 4: tuple = tuple.Append<long>((rnd.Next(int.MaxValue) << 32) | rnd.Next(int.MaxValue)); break;
 						case 5: tuple = tuple.Append(new string('A', 1 + rnd.Next(16))); break;
 						case 6: tuple = tuple.Append(new string('B', 8 + (int)Math.Sqrt(rnd.Next(1024)))); break;
-						case 7: tuple = tuple.Append(Guid.NewGuid()); break;
-						case 8: tuple = tuple.Append(Uuid.NewUuid()); break;
-						case 9: { var buf = new byte[rnd.Next((int)Math.Sqrt(256))]; rnd.NextBytes(buf); tuple = tuple.Append(buf); break; }
-						case 10: tuple = tuple.Append(default(string)); break;
-						case 11: tuple = tuple.Append<object>("hello"); break;
+						case 7: tuple = tuple.Append<string>(UNICODE_STRING); break;
+						case 8: tuple = tuple.Append<string>(FUNKY_STRING); break;
+						case 9: tuple = tuple.Append<Slice>(FUNKY_ASCII); break;
+						case 10: tuple = tuple.Append(Guid.NewGuid()); break;
+						case 11: tuple = tuple.Append(Uuid.NewUuid()); break;
+						case 12: { var buf = new byte[1 + (int)Math.Sqrt(rnd.Next(1024))]; rnd.NextBytes(buf); tuple = tuple.Append(buf); break; }
+						case 13: tuple = tuple.Append(default(string)); break;
+						case 14: tuple = tuple.Append<object>("hello"); break;
+						case 15: tuple = tuple.Append<bool>(rnd.Next(2) == 0); break;
 					}
 				}
 				tuples.Add(tuple);
 			}
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
 			Console.WriteLine(" > " + tuples.Sum(x => x.Count).ToString("N0") + " items");
 			Console.WriteLine(" > "  + tuples[42]);
+			Console.WriteLine();
 
 			Console.Write("Packing tuples...");
 			sw.Restart();
 			var slices = FdbTuple.BatchPack(tuples);
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
 			Console.WriteLine(" > " + (N / sw.Elapsed.TotalSeconds).ToString("N0") + " tps");
 			Console.WriteLine(" > " + slices.Sum(x => x.Count).ToString("N0") + " bytes");
 			Console.WriteLine(" > " + slices[42]);
+			Console.WriteLine();
 
 			Console.Write("Unpacking tuples...");
 			sw.Restart();
 			var unpacked = slices.Select(slice => FdbTuple.Unpack(slice)).ToList();
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
 			Console.WriteLine(" > " + (N / sw.Elapsed.TotalSeconds).ToString("N0") + " tps");
 			Console.WriteLine(" > " + unpacked[42]);
+			Console.WriteLine();
 
 			Console.Write("Comparing ...");
 			sw.Restart();
 			tuples.Zip(unpacked, (x, y) => x.Equals(y)).All(b => b);
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
+			Console.WriteLine();
 
 			Console.Write("Tuples.ToString ...");
 			sw.Restart();
 			var strings = tuples.Select(x => x.ToString()).ToList();
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
 			Console.WriteLine(" > " + strings.Sum(x => x.Length).ToString("N0") + " chars");
 			Console.WriteLine(" > " + strings[42]);
+			Console.WriteLine();
 
 			Console.Write("Unpacked.ToString ...");
 			sw.Restart();
 			strings = unpacked.Select(x => x.ToString()).ToList();
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
 			Console.WriteLine(" > " + strings.Sum(x => x.Length).ToString("N0") + " chars");
 			Console.WriteLine(" > " + strings[42]);
+			Console.WriteLine();
 
 			Console.Write("Memoizing ...");
 			sw.Restart();
 			var memoized = tuples.Select(x => x.Memoize()).ToList();
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds);
+			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
 		}
 
 		#endregion

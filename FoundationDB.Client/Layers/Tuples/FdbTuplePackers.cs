@@ -288,11 +288,16 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(writer != null);
 
-			//REVIEW: should we use 1 or -1 for "true" ? In either cases it will be 2 bytes ...
+			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
 
-			// false is encoded as 0 (\x14)
-			// true is encoded as -1 (\x13\xfe)
-			FdbTupleParser.WriteInt32(writer, value ? -1 : 0);
+			if (value)
+			{ // true => 15 01
+				writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)1);
+			}
+			else
+			{ // false => 14
+				writer.WriteByte(FdbTupleTypes.IntZero);
+			}
 		}
 
 		/// <summary>Writes a boolean as an integer or null</summary>
@@ -300,10 +305,18 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(writer != null);
 
-			if (value.HasValue)
-				FdbTupleParser.WriteInt32(writer, value.Value ? -1 : 0);
-			else
+			if (value == null)
+			{ // null => 00
 				FdbTupleParser.WriteNil(writer);
+			}
+			else if (value.Value)
+			{ // true => 15 01
+				writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)1);
+			}
+			else
+			{ // false => 14
+				writer.WriteByte(FdbTupleTypes.IntZero);
+			}
 		}
 
 		/// <summary>Writes a signed byte as an integer</summary>
