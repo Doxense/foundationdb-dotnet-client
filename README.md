@@ -129,7 +129,7 @@ Implementation Notes
 
 Please refer to http://foundationdb.com/documentation/ to get an overview on the FoundationDB API, if you haven't already.
 
-This .NET binding as been modeled to be as close as possible to the other bindings (Python especially), while still having a '.NET' style API. 
+This .NET binding has been modeled to be as close as possible to the other bindings (Python especially), while still having a '.NET' style API. 
 
 There were a few design goals, that you may agree with or not:
 * Reducing the need to allocate byte[] as much as possible. To achieve that, I'm using a 'Slice' struct that is a glorified `ArraySegment<byte>`. All allocations made during a request try to use a single underlying byte[] array, and split it into several chunks.
@@ -150,8 +150,6 @@ The following files will be required by your application
 Known Limitations
 -----------------
 
-As this is still a work in progress, this should not be used for any production or serious work. Also, the API may (will!) probably change a lot.
-
 What is not working:
 * Differences on the tuple layers between Python and .NET that need ironing.
 * Timeouts are currently NOT implemented !
@@ -161,8 +159,7 @@ What is not working:
 
 What is working but with some usability problems
 * Active cancellation (outside of timeouts) requires you to create and manage a CancellationTokenSource to be able pass a CancellationToken to the async code.
-* To emulate the @transactional python attribute (that allows you to pass a database or transaction instance) you have to use db.Attempt.Change((tr) => SomeLayer.SomeMethod(tr, ...)) instead of the simpler SomeLayer.SomeMethod(db, ...)
-* Watches are currently wrapped into Task, and cannot be cancelled directly and require passing a valid CancellationToken.
+* To emulate the @transactional python attribute (that allows you to pass a database or transaction instance) you have to use db.ReadWriteAsync((tr) => SomeLayer.SomeMethod(tr, ...)) instead of the simpler SomeLayer.SomeMethod(db, ...)
 
 What should work:
 * reading/inserting/clearing keys in the database
