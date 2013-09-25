@@ -932,6 +932,8 @@ namespace FoundationDB.Client
 			return new Slice(value.Array, value.Offset, value.Count);
 		}
 
+		#region Slice arithmetics...
+
 		/// <summary>Compare two slices for equality</summary>
 		/// <returns>True if the slice contains the same bytes</returns>
 		public static bool operator ==(Slice a, Slice b)
@@ -987,7 +989,48 @@ namespace FoundationDB.Client
 
 			return new Slice(s.Array, s.Offset, s.Count - n);
 		}
-		
+
+		// note: We also need overloads with Nullable<Slice>'s to be able to do things like "if (slice == null)", "if (slice != null)" or "if (null != slice)".
+		// For structs that have "==" / "!=" operators, the compiler will think that when you write "slice == null", you really mean "(Slice?)slice == default(Slice?)", and that would ALWAYS false if you don't have specialized overloads to intercept.
+
+		public static bool operator ==(Slice? a, Slice? b)
+		{
+			return a.GetValueOrDefault().Equals(b.GetValueOrDefault());
+		}
+
+		public static bool operator !=(Slice? a, Slice? b)
+		{
+			return !a.GetValueOrDefault().Equals(b.GetValueOrDefault());
+		}
+
+		public static bool operator <(Slice? a, Slice? b)
+		{
+			return a.GetValueOrDefault() < b.GetValueOrDefault();
+		}
+
+		public static bool operator <=(Slice? a, Slice? b)
+		{
+			return a.GetValueOrDefault() <= b.GetValueOrDefault();
+		}
+
+		public static bool operator >(Slice? a, Slice? b)
+		{
+			return a.GetValueOrDefault() > b.GetValueOrDefault();
+		}
+
+		public static bool operator >=(Slice? a, Slice? b)
+		{
+			return a.GetValueOrDefault() >= b.GetValueOrDefault();
+		}
+
+		public static Slice operator +(Slice? a, Slice? b)
+		{
+			// note: makes "slice + null" work!
+			return a.GetValueOrDefault().Concat(b.GetValueOrDefault());
+		}
+
+		#endregion
+
 		/// <summary>Returns a printable representation of the key</summary>
 		/// <remarks>You can roundtrip the result of calling slice.ToString() by passing it to <see cref="Slice.Unescape"/>(string) and get back the original slice.</remarks>
 		public override string ToString()
@@ -1258,7 +1301,7 @@ namespace FoundationDB.Client
 			Contract.Requires(rightOffset >= 0);
 			Contract.Requires(count >= 0);
 
-			if (left == null) return object.ReferenceEquals(right, null);
+			if (left == null || right == null) return left == right;
 			if (object.ReferenceEquals(left, right)) return leftOffset == rightOffset;
 
 			//TODO: ensure that there are enough bytes on both sides
