@@ -643,6 +643,62 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public void Test_Slice_Equality()
+		{
+
+			var a = Slice.Create(new byte[] { 1, 2, 3 });
+			var b = Slice.Create(new byte[] { 1, 2, 3 });
+			var c = Slice.Create(new byte[] { 0, 1, 2, 3, 4 }, 1, 3);
+			var x = Slice.Create(new byte[] { 4, 5, 6 });
+			var y = Slice.Create(new byte[] { 1, 2, 3 }, 0, 2);
+			var z = Slice.Create(new byte[] { 1, 2, 3, 4 });
+
+			// equals
+			Assert.That(a, Is.EqualTo(a));
+			Assert.That(a, Is.EqualTo(b));
+			Assert.That(a, Is.EqualTo(c));
+			Assert.That(b, Is.EqualTo(a));
+			Assert.That(b, Is.EqualTo(b));
+			Assert.That(b, Is.EqualTo(c));
+			Assert.That(c, Is.EqualTo(a));
+			Assert.That(c, Is.EqualTo(b));
+			Assert.That(c, Is.EqualTo(c));
+
+			// not equals
+			Assert.That(a, Is.Not.EqualTo(x));
+			Assert.That(a, Is.Not.EqualTo(y));
+			Assert.That(a, Is.Not.EqualTo(z));
+		}
+
+		[Test]
+		public void Test_Slice_Equality_Corner_Cases()
+		{
+			Assert.That(Slice.Create(null), Is.EqualTo(Slice.Nil));
+			Assert.That(Slice.Create(new byte[0]), Is.EqualTo(Slice.Empty));
+			
+			Assert.That(Slice.Create(null) == Slice.Nil, Is.True, "null == Nil");
+			Assert.That(Slice.Create(null) == Slice.Empty, Is.False, "null != Empty");
+			Assert.That(Slice.Create(new byte[0]) == Slice.Empty, Is.True, "[0] == Empty");
+			Assert.That(Slice.Create(new byte[0]) == Slice.Nil, Is.False, "[0] != Nill");
+
+			// "slice == null" should be the equivalent to "slice.IsNull" so only true for Slice.Nil
+			Assert.That(Slice.Nil == null, Is.True, "'Slice.Nil == null' is true");
+			Assert.That(Slice.Empty == null, Is.False, "'Slice.Empty == null' is false");
+			Assert.That(Slice.FromByte(1) == null, Is.False, "'{1} == null' is false");
+			Assert.That(null == Slice.Nil, Is.True, "'Slice.Nil == null' is true");
+			Assert.That(null == Slice.Empty, Is.False, "'Slice.Empty == null' is false");
+			Assert.That(null == Slice.FromByte(1), Is.False, "'{1} == null' is false");
+
+			// "slice != null" should be the equivalent to "slice.HasValue" so only false for Slice.Nil
+			Assert.That(Slice.Nil != null, Is.False, "'Slice.Nil != null' is false");
+			Assert.That(Slice.Empty != null, Is.True, "'Slice.Empty != null' is true");
+			Assert.That(Slice.FromByte(1) != null, Is.True, "'{1} != null' is true");
+			Assert.That(null != Slice.Nil, Is.False, "'Slice.Nil != null' is false");
+			Assert.That(null != Slice.Empty, Is.True, "'Slice.Empty != null' is true");
+			Assert.That(null != Slice.FromByte(1), Is.True, "'{1} != null' is true");
+		}
+		
 		private static readonly string UNICODE_TEXT = "Thïs Ïs à strîng thât contaÎns somé ùnicodè charactêrs and should be encoded in UTF-8: よろしくお願いします";
 		private static readonly byte[] UNICODE_BYTES = Encoding.UTF8.GetBytes(UNICODE_TEXT);
 
