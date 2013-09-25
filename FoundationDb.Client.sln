@@ -28,6 +28,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Linq", "Founda
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Samples", "FoundationDB.Samples\FoundationDB.Samples.csproj", "{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Layers.Messaging", "FoundationDB.Layers.Messaging\FoundationDB.Layers.Messaging.csproj", "{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +60,10 @@ Global
 		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

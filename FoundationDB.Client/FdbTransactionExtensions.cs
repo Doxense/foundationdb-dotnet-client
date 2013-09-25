@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 	public static class FdbTransactionExtensions
 	{
 
-		internal static IFdbReadOnlyTransaction ToSnapshotTransaction(this IFdbReadOnlyTransaction trans)
+		public static IFdbReadOnlyTransaction ToSnapshotTransaction(this IFdbReadOnlyTransaction trans)
 		{
 			if (trans.IsSnapshot) return trans;
 			//TODO: better way at doing this ?
