@@ -381,7 +381,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] PackRange<T>(Slice prefix, params T[] keys)
+		public static Slice[] PackRange<T>(Slice prefix, T[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -433,7 +433,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		public static Slice[] PackRange(params IFdbTuple[] tuples)
+		public static Slice[] PackRange(IFdbTuple[] tuples)
 		{
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
@@ -469,7 +469,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] PackRange<T>(IFdbTuple prefix, params T[] keys)
+		public static Slice[] PackRange<T>(IFdbTuple prefix, T[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 
@@ -491,7 +491,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] PackBoxedRange(Slice prefix, params object[] keys)
+		public static Slice[] PackBoxedRange(Slice prefix, object[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 
@@ -513,7 +513,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] PackBoxedRange(IFdbTuple prefix, params object[] keys)
+		public static Slice[] PackBoxedRange(IFdbTuple prefix, object[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 

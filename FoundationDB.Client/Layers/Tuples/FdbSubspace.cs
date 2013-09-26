@@ -302,7 +302,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public Slice[] PackRange<T>(params T[] keys)
+		public Slice[] PackRange<T>(T[] keys)
 		{
 			return FdbTuple.PackRange<T>(m_rawPrefix, keys);
 		}
