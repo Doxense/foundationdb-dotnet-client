@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 	public static class FdbTransactionExtensions
 	{
 
-		internal static IFdbReadOnlyTransaction ToSnapshotTransaction(this IFdbReadOnlyTransaction trans)
+		public static IFdbReadOnlyTransaction ToSnapshotTransaction(this IFdbReadOnlyTransaction trans)
 		{
 			if (trans.IsSnapshot) return trans;
 			//TODO: better way at doing this ?
@@ -115,11 +115,21 @@ namespace FoundationDB.Client
 			return trans.GetRange(FdbKeySelectorPair.Create(beginInclusive, endExclusive), options);
 		}
 
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, bool reverse = false)
+		{
+			return GetRange(trans, beginInclusive, endExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
+		}
+
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeyRange range, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans.GetRange(FdbKeySelectorPair.Create(range), options);
+		}
+
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeyRange range, int limit, bool reverse = false)
+		{
+			return GetRange(trans, range, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null)
@@ -136,11 +146,9 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeInclusive(this IFdbReadOnlyTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endInclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, int limit, bool reverse = false)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-
-			return trans.GetRange(FdbKeySelectorPair.Create(beginInclusive, endInclusive + 1), options);
+			return GetRange(trans, beginInclusive, endExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		#endregion

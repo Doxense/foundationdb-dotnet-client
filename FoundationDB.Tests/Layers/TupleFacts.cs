@@ -1160,71 +1160,99 @@ namespace FoundationDB.Layers.Tuples.Tests
 			};
 
 			// array version
-			slices = FdbTuple.BatchPack(tuples);
+			slices = FdbTuple.PackRange(tuples);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(tuples.Length));
 			Assert.That(slices, Is.EqualTo(tuples.Select(t => t.ToSlice()).ToArray()));
 
 			// IEnumerable version that is passed an array
-			slices = FdbTuple.BatchPack((IEnumerable<IFdbTuple>)tuples);
+			slices = FdbTuple.PackRange((IEnumerable<IFdbTuple>)tuples);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(tuples.Length));
 			Assert.That(slices, Is.EqualTo(tuples.Select(t => t.ToSlice()).ToArray()));
 
 			// IEnumerable version but with a "real" enumerable 
-			slices = FdbTuple.BatchPack(tuples.Select(t => t));
+			slices = FdbTuple.PackRange(tuples.Select(t => t));
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(tuples.Length));
 			Assert.That(slices, Is.EqualTo(tuples.Select(t => t.ToSlice()).ToArray()));
 		}
 
 		[Test]
-		public void Test_FdbTuple_BatchPack_Generic()
+		public void Test_FdbTuple_PackRange_Of_T()
 		{
 			Slice[] slices;
+
+			#region PackRange(Tuple, ...)
+
 			var tuple = FdbTuple.Create("hello");
 			int[] items = new int[] { 1, 2, 3, 123, -1, int.MaxValue };
 
 			// array version
-			slices = FdbTuple.BatchPack<int>(tuple, items);
+			slices = FdbTuple.PackRange<int>(tuple, items);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
 
 			// IEnumerable version that is passed an array
-			slices = FdbTuple.BatchPack<int>(tuple, (IEnumerable<int>)items);
+			slices = FdbTuple.PackRange<int>(tuple, (IEnumerable<int>)items);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
 
 			// IEnumerable version but with a "real" enumerable 
-			slices = FdbTuple.BatchPack<int>(tuple, items.Select(t => t));
+			slices = FdbTuple.PackRange<int>(tuple, items.Select(t => t));
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
+
+			#endregion
+
+			#region PackRange(Slice, ...)
+
+			string[] words = new string[] { "hello", "world", "très bien", "断トツ", "abc\0def", null, String.Empty };
+
+			var merged = FdbTuple.PackRange(Slice.FromByte(42), words);
+			Assert.That(merged, Is.Not.Null);
+			Assert.That(merged.Length, Is.EqualTo(words.Length));
+
+			for (int i = 0; i < words.Length; i++)
+			{
+				var expected = Slice.FromByte(42) + FdbTuple.Pack(words[i]);
+				Assert.That(merged[i], Is.EqualTo(expected));
+
+				Assert.That(merged[i].Array, Is.SameAs(merged[0].Array), "All slices should be stored in the same buffer");
+				if (i > 0) Assert.That(merged[i].Offset, Is.EqualTo(merged[i - 1].Offset + merged[i - 1].Count), "All slices should be contiguous");
+			}
+
+			// corner cases
+			Assert.That(() => FdbTuple.PackRange<int>(Slice.Empty, default(int[])), Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
+			Assert.That(() => FdbTuple.PackRange<int>(Slice.Empty, default(IEnumerable<int>)), Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
+
+			#endregion
 		}
 
 		[Test]
-		public void Test_FdbTuple_BatchPackBoxed()
+		public void Test_FdbTuple_PackBoxedRange()
 		{
 			Slice[] slices;
 			var tuple = FdbTuple.Create("hello");
 			object[] items = new object[] { "world", 123, false, Guid.NewGuid(), long.MinValue };
 
 			// array version
-			slices = FdbTuple.BatchPackBoxed(tuple, items);
+			slices = FdbTuple.PackBoxedRange(tuple, items);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
 
 			// IEnumerable version that is passed an array
-			slices = FdbTuple.BatchPackBoxed(tuple, (IEnumerable<object>)items);
+			slices = FdbTuple.PackBoxedRange(tuple, (IEnumerable<object>)items);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
 
 			// IEnumerable version but with a "real" enumerable 
-			slices = FdbTuple.BatchPackBoxed(tuple, items.Select(t => t));
+			slices = FdbTuple.PackBoxedRange(tuple, items.Select(t => t));
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
@@ -1678,7 +1706,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			Console.Write("Packing tuples...");
 			sw.Restart();
-			var slices = FdbTuple.BatchPack(tuples);
+			var slices = FdbTuple.PackRange(tuples);
 			sw.Stop();
 			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
 			Console.WriteLine(" > " + (N / sw.Elapsed.TotalSeconds).ToString("N0") + " tps");

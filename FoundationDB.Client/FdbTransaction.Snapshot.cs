@@ -136,15 +136,6 @@ namespace FoundationDB.Client
 				return m_parent.GetRangeCore(range, options, snapshot: true);
 			}
 
-			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(Slice prefix, FdbRangeOptions options)
-			{
-				if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
-
-				EnsureCanRead();
-
-				return m_parent.GetRangeCore(FdbKeySelectorPair.StartsWith(prefix), options, snapshot: true);
-			}
-
 			void IDisposable.Dispose()
 			{
 				// NO-OP

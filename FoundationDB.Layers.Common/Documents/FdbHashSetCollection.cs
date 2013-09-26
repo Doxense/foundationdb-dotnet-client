@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Blobs
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
 
 			await trans
-				.GetRangeStartsWith(prefix)
+				.GetRange(FdbKeyRange.StartsWith(prefix))
 				.ForEachAsync((kvp) =>
 				{
 					string field = this.Subspace.UnpackLast<string>(kvp.Key);
@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Blobs
 			if (id == null) throw new ArgumentNullException("id");
 			if (fields == null) throw new ArgumentNullException("fields");
 
-			var keys = FdbKey.Merge(GetKey(id), fields);
+			var keys = FdbTuple.PackRange(GetKey(id), fields);
 
 			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);
@@ -233,7 +233,7 @@ namespace FoundationDB.Layers.Blobs
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
 
 			return trans
-				.GetRangeStartsWith(prefix)
+				.GetRange(FdbKeyRange.StartsWith(prefix))
 				.Select((kvp) => ParseFieldKey(FdbTuple.Unpack(kvp.Key)))
 				.ToListAsync(ct);
 		}

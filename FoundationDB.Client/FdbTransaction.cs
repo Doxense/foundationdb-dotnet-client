@@ -470,15 +470,6 @@ namespace FoundationDB.Client
 			return GetRangeCoreAsync(range, options, iteration, snapshot: false);
 		}
 
-		public Task<FdbRangeChunk> GetRangeStartsWithAsync(Slice prefix, FdbRangeOptions options = null, int iteration = 0)
-		{
-			if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
-
-			EnsureCanRead();
-
-			return GetRangeCoreAsync(FdbKeySelectorPair.StartsWith(prefix), options, iteration, snapshot: false);
-		}
-
 		#endregion
 
 		#region GetRange...
@@ -503,15 +494,6 @@ namespace FoundationDB.Client
 			EnsureCanReadOrWrite();
 
 			return GetRangeCore(range, options, snapshot: false);
-		}
-
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(Slice prefix, FdbRangeOptions options = null)
-		{
-			if (prefix.IsNull) throw new ArgumentOutOfRangeException("prefix");
-
-			EnsureCanReadOrWrite();
-
-			return GetRangeCore(FdbKeySelectorPair.StartsWith(prefix), options, snapshot: false);
 		}
 
 		#endregion

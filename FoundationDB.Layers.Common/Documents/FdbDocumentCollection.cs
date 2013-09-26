@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Documents
 			var prefix = GetDocumentPrefix(id);
 
 			var parts = await trans
-				.GetRangeStartsWith(prefix) //TODO: options ?
+				.GetRange(FdbKeyRange.StartsWith(prefix.Key)) //TODO: options ?
 				.Select(kvp => new KeyValuePair<IFdbTuple, Slice>(
 					FdbTuple.UnpackWithoutPrefix(kvp.Key, prefix.Key),
 					kvp.Value

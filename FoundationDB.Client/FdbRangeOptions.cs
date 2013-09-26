@@ -58,6 +58,15 @@ namespace FoundationDB.Client
 		public FdbRangeOptions()
 		{ }
 
+		/// <summary>Create a new set of options</summary>
+		public FdbRangeOptions(int? limit, bool? reverse = null, int? targetBytes = null, FdbStreamingMode? mode = null)
+		{
+			this.Limit = limit;
+			this.Reverse = reverse;
+			this.TargetBytes = targetBytes;
+			this.Mode = mode;
+		}
+
 		/// <summary>Copy an existing set of options</summary>
 		/// <param name="options"></param>
 		public FdbRangeOptions(FdbRangeOptions options)

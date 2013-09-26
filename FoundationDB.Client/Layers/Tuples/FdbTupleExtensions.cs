@@ -230,7 +230,7 @@ namespace FoundationDB.Layers.Tuples
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
-			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples));
+			return trans.GetValuesAsync(FdbTuple.PackRange(tuples));
 		}
 
 		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransaction trans, IEnumerable<IFdbTuple> tuples)
@@ -238,7 +238,7 @@ namespace FoundationDB.Layers.Tuples
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
-			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples));
+			return trans.GetValuesAsync(FdbTuple.PackRange(tuples));
 		}
 
 		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadOnlyTransaction trans, IEnumerable<IFdbTuple> tuples)
@@ -266,24 +266,15 @@ namespace FoundationDB.Layers.Tuples
 			var begin = beginInclusive != null ? beginInclusive.ToSlice() : FdbKey.MinValue;
 			var end = endExclusive != null ? endExclusive.ToSlice() : FdbKey.MaxValue;
 
-			return trans.GetRange(
-				FdbKeySelectorPair.Create(
-					FdbKeySelector.FirstGreaterOrEqual(begin),
-					FdbKeySelector.FirstGreaterOrEqual(end)
-				),
-				options
-			);
+			return trans.GetRange(begin, end, options);
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, IFdbTuple suffix, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, IFdbTuple beginInclusive, IFdbTuple endExclusive, int limit, bool reverse = false)
 		{
-			Contract.Requires(trans != null);
-			if (suffix == null) throw new ArgumentNullException("suffix");
+			var begin = beginInclusive != null ? beginInclusive.ToSlice() : FdbKey.MinValue;
+			var end = endExclusive != null ? endExclusive.ToSlice() : FdbKey.MaxValue;
 
-			return trans.GetRange(
-				FdbKeySelectorPair.StartsWith(suffix.ToSlice()),
-				options
-			);
+			return trans.GetRange(begin, end, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		public static void Set(this IFdbTransaction trans, IFdbTuple key, Slice valueBytes)
