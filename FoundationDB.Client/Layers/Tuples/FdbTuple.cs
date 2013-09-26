@@ -480,6 +480,28 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] PackBoxedRange(Slice prefix, IEnumerable<object> keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+
+			return PackRange<object>(prefix, keys);
+		}
+
+		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] PackBoxedRange(Slice prefix, params object[] keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+
+			return PackRange<object>(prefix, keys);
+		}
+
+		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] PackBoxedRange(IFdbTuple prefix, IEnumerable<object> keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");

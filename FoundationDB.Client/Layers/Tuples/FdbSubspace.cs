@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
 	using System;
+	using System.Collections.Generic;
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
 	public class FdbSubspace
@@ -268,6 +269,59 @@ namespace FoundationDB.Layers.Tuples
 		public Slice Pack<T1, T2, T3, T4>(T1 key1, T2 key2, T3 key3, T4 key4)
 		{
 			return FdbTuple.Concat<T1, T2, T3, T4>(m_rawPrefix, key1, key2, key3, key4);
+		}
+
+		/// <summary>Merge a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public Slice[] Merge(IEnumerable<Slice> keys)
+		{
+			return FdbKey.Merge(m_rawPrefix, keys);
+		}
+
+		/// <summary>Merge an array of keys with the subspace's prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="keys">Array of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public Slice[] Merge(params Slice[] keys)
+		{
+			return FdbKey.Merge(m_rawPrefix, keys);
+		}
+
+		/// <summary>Merge a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public Slice[] PackRange<T>(IEnumerable<T> keys)
+		{
+			return FdbTuple.PackRange<T>(m_rawPrefix, keys);
+		}
+
+		/// <summary>Merge a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public Slice[] PackRange<T>(params T[] keys)
+		{
+			return FdbTuple.PackRange<T>(m_rawPrefix, keys);
+		}
+
+		/// <summary>Pack a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public Slice[] PackBoxedRange(IEnumerable<object> keys)
+		{
+			return FdbTuple.PackBoxedRange(Slice.Empty, keys);
+		}
+
+		/// <summary>Pack a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public Slice[] PackBoxedRange(object[] keys)
+		{
+			//note: cannot use "params object[]" because it may conflict with PackRange(IEnumerable<object>)
+			return FdbTuple.PackBoxedRange(Slice.Empty, keys);
 		}
 
 		#endregion
