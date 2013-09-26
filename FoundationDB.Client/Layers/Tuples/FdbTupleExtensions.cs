@@ -230,7 +230,7 @@ namespace FoundationDB.Layers.Tuples
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
-			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples));
+			return trans.GetValuesAsync(FdbTuple.PackRange(tuples));
 		}
 
 		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransaction trans, IEnumerable<IFdbTuple> tuples)
@@ -238,7 +238,7 @@ namespace FoundationDB.Layers.Tuples
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
-			return trans.GetValuesAsync(FdbTuple.BatchPack(tuples));
+			return trans.GetValuesAsync(FdbTuple.PackRange(tuples));
 		}
 
 		public static Task<List<KeyValuePair<IFdbTuple, Slice>>> GetBatchAsync(this IFdbReadOnlyTransaction trans, IEnumerable<IFdbTuple> tuples)

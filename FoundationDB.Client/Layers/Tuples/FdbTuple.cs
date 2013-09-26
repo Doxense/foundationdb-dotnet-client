@@ -346,17 +346,74 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] PackRange<T>(Slice prefix, IEnumerable<T> keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			// use optimized version for arrays
+			var array = keys as T[];
+			if (array != null) return PackRange<T>(prefix, array);
+
+			var next = new List<int>();
+			var writer = new FdbBufferWriter();
+			var packer = FdbTuplePacker<T>.Serializer;
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var key in keys)
+			{
+				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				packer(writer, key);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
+		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] PackRange<T>(Slice prefix, params T[] keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
+			var writer = new FdbBufferWriter(keys.Length * (prefix.Count + 8));
+			var next = new List<int>(keys.Length);
+			var packer = FdbTuplePacker<T>.Serializer;
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var key in keys)
+			{
+				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				packer(writer, key);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
 		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		public static Slice[] BatchPack(IEnumerable<IFdbTuple> tuples)
+		public static Slice[] PackRange(IEnumerable<IFdbTuple> tuples)
 		{
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
 			// use optimized version for arrays
 			var array = tuples as IFdbTuple[];
-			if (array != null) return BatchPack(array);
+			if (array != null) return PackRange(array);
 
 			var next = new List<int>();
 			var writer = new FdbBufferWriter();
@@ -376,7 +433,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack([ ("Foo", 1), ("Foo", 2) ]) => [ "\x02Foo\x00\x15\x01", "\x02Foo\x00\x15\x02" ] </example>
-		public static Slice[] BatchPack(params IFdbTuple[] tuples)
+		public static Slice[] PackRange(params IFdbTuple[] tuples)
 		{
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
@@ -396,25 +453,15 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] BatchPackBoxed(IFdbTuple prefix, IEnumerable<object> keys)
+		public static Slice[] PackRange<T>(IFdbTuple prefix, IEnumerable<T> keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 
-			return FdbKey.Merge<object>(prefix.ToSlice(), keys);
-		}
-
-		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] BatchPackBoxed(IFdbTuple prefix, params object[] keys)
-		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-
-			return FdbKey.Merge<object>(prefix.ToSlice(), keys);
+			return PackRange<T>(prefix.ToSlice(), keys);
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -422,23 +469,33 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] BatchPack<T>(IFdbTuple prefix, IEnumerable<T> keys)
+		public static Slice[] PackRange<T>(IFdbTuple prefix, params T[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 
-			return FdbKey.Merge<T>(prefix.ToSlice(), keys);
+			return PackRange<T>(prefix.ToSlice(), keys);
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] BatchPack<T>(IFdbTuple prefix, params T[] keys)
+		public static Slice[] PackBoxedRange(IFdbTuple prefix, IEnumerable<object> keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 
-			return FdbKey.Merge<T>(prefix.ToSlice(), keys);
+			return PackRange<object>(prefix.ToSlice(), keys);
+		}
+
+		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] PackBoxedRange(IFdbTuple prefix, params object[] keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+
+			return PackRange<object>(prefix.ToSlice(), keys);
 		}
 
 		#endregion

@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Blobs
 			if (id == null) throw new ArgumentNullException("id");
 			if (fields == null) throw new ArgumentNullException("fields");
 
-			var keys = FdbKey.Merge(GetKey(id), fields);
+			var keys = FdbTuple.PackRange(GetKey(id), fields);
 
 			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);

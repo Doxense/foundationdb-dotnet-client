@@ -83,68 +83,10 @@ namespace FoundationDB.Client
 			return new Slice(tmp, 0, lastNonFFByte + 1);
 		}
 
-		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] Merge<T>(Slice prefix, IEnumerable<T> keys)
-		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			// use optimized version for arrays
-			var array = keys as T[];
-			if (array != null) return Merge<T>(prefix, array);
-
-			var next = new List<int>();
-			var writer = new FdbBufferWriter();
-			var packer = FdbTuplePacker<T>.Serializer;
-
-			//TODO: use multiple buffers if item count is huge ?
-
-			foreach (var key in keys)
-			{
-				if (prefix.IsPresent) writer.WriteBytes(prefix);
-				packer(writer, key);
-				next.Add(writer.Position);
-			}
-
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
-		}
-
-
-		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] Merge<T>(Slice prefix, T[] keys)
-		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var writer = new FdbBufferWriter(keys.Length * (prefix.Count + 8));
-			var next = new List<int>(keys.Length);
-			var packer = FdbTuplePacker<T>.Serializer;
-
-			//TODO: use multiple buffers if item count is huge ?
-
-			foreach (var key in keys)
-			{
-				if (prefix.IsPresent) writer.WriteBytes(prefix);
-				packer(writer, key);
-				next.Add(writer.Position);
-			}
-
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
-		}
-
-		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
+		/// <param name="keys">Array of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] Merge(Slice prefix, Slice[] keys)
 		{
@@ -154,6 +96,37 @@ namespace FoundationDB.Client
 			// we can pre-allocate exactly the buffer by computing the total size of all keys
 			var writer = new FdbBufferWriter(keys.Sum(key => key.Count) + keys.Length * prefix.Count);
 			var next = new List<int>(keys.Length);
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var key in keys)
+			{
+				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				writer.WriteBytes(key);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
+		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="T">Type of the keys</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] Merge(Slice prefix, IEnumerable<Slice> keys)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			// use optimized version for arrays
+			var array = keys as Slice[];
+			if (array != null) return Merge(prefix, array);
+
+			// pre-allocate with a count if we can get one...
+			var coll = keys as ICollection<Slice>;
+			var next = coll == null ? new List<int>() : new List<int>(coll.Count);
+			var writer = new FdbBufferWriter();
 
 			//TODO: use multiple buffers if item count is huge ?
 
