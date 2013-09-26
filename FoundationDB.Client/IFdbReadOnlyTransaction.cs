@@ -116,14 +116,6 @@ namespace FoundationDB.Client
 		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null);
 
 		/// <summary>
-		/// Create a new range query that will read all key-value pairs that starts with a particular prefix in the database snapshot represented by the transaction
-		/// </summary>
-		/// <param name="prefix">Prefix of all keys that will match this query</param>
-		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
-		/// <returns>Range query that, once executed, will return all the key-value pairs that have the specified prefix</returns>
-		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(Slice prefix, FdbRangeOptions options = null);
-
-		/// <summary>
 		/// Returns this transaction snapshot read version.
 		/// </summary>
 		Task<long> GetReadVersionAsync();

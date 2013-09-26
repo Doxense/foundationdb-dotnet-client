@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Blobs
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
 
 			await trans
-				.GetRangeStartsWith(prefix)
+				.GetRange(FdbKeyRange.StartsWith(prefix))
 				.ForEachAsync((kvp) =>
 				{
 					string field = this.Subspace.UnpackLast<string>(kvp.Key);
@@ -233,7 +233,7 @@ namespace FoundationDB.Layers.Blobs
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
 
 			return trans
-				.GetRangeStartsWith(prefix)
+				.GetRange(FdbKeyRange.StartsWith(prefix))
 				.Select((kvp) => ParseFieldKey(FdbTuple.Unpack(kvp.Key)))
 				.ToListAsync(ct);
 		}
