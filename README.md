@@ -150,7 +150,7 @@ The following files will be required by your application
 Known Limitations
 -----------------
 
-* While the .NET API supports UUIDs in Tuples, none of the other bindings currently do. As a result, packed Tuples with UUIDs will not be able to be unpacked in other bindings.
+* While the .NET API supports UUIDs in the Tuple layer, none of the other bindings currently do. As a result, packed Tuples with UUIDs will not be able to be unpacked in other bindings.
 * The LINQ API is still a work in progress, and may change a lot. Simple LINQ queries, like Select() or Where() on the result of range queries (to convert Slice key/values into oter types) should work.
 * You cannot unload the fdb C native client from the process once the netork thread has started. You can stop the network thread once, but it does not support being restarted.
 * FoundationDB does not support long running batch or range queries if they take too much time. Such queries will fail with a 'past_version' error.
