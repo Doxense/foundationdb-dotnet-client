@@ -59,6 +59,7 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="FdbDatabaseTransactionals.cs" />
     <Compile Include="IFdbDatabase.cs" />
     <Compile Include="IFdbReadOnlyTransactional.cs" />
     <Compile Include="IFdbReadOnlyDatabase.cs" />

@@ -91,7 +91,7 @@ namespace FoundationDB.Client
 			this.Token = token;
 		}
 
-		internal async Task ExecuteInternal(Delegate handler)
+		internal async Task ExecuteInternal(Delegate handler, Delegate onDone)
 		{
 			Contract.Requires(handler != null);
 
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 							}
 							else
 							{
-								throw new NotSupportedException(String.Format("Cannot execute delegates of type {0}", handler.GetType().Name));
+								throw new NotSupportedException(String.Format("Cannot execute handler of type {0}", handler.GetType().Name));
 							}
 
 							if (this.Abort)
@@ -144,6 +144,30 @@ namespace FoundationDB.Client
 
 							// we are done
 							this.Committed = true;
+
+							if (onDone != null)
+							{
+								if (onDone is Action<IFdbReadOnlyTransaction>)
+								{
+									((Action<IFdbReadOnlyTransaction>)onDone)(trans);
+								}
+								else if (onDone is Action<IFdbTransaction>)
+								{
+									((Action<IFdbTransaction>)onDone)(trans);
+								}
+								else if (onDone is Func<IFdbReadOnlyTransaction, Task>)
+								{
+									await ((Func<IFdbReadOnlyTransaction, Task>)onDone)(trans).ConfigureAwait(false);
+								}
+								else if (onDone is Func<IFdbTransaction, Task>)
+								{
+									await ((Func<IFdbTransaction, Task>)onDone)(trans).ConfigureAwait(false);
+								}
+								else
+								{
+									throw new NotSupportedException(String.Format("Cannot execute completion handler of type {0}", handler.GetType().Name));
+								}
+							}
 						}
 						catch (FdbException x)
 						{
@@ -191,13 +215,13 @@ namespace FoundationDB.Client
 		#region Read-Only operations...
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunReadAsync(FdbDatabase db, Func<IFdbReadOnlyTransaction, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static Task RunReadAsync(FdbDatabase db, Func<IFdbReadOnlyTransaction, Task> asyncAction, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
-			return new FdbOperationContext(db, ct).ExecuteInternal(asyncAction);
+			return new FdbOperationContext(db, ct).ExecuteInternal(asyncAction, onDone);
 		}
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunReadWithResultAsync<R>(FdbDatabase db, Func<IFdbReadOnlyTransaction, Task<R>> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static async Task<R> RunReadWithResultAsync<R>(FdbDatabase db, Func<IFdbReadOnlyTransaction, Task<R>> asyncAction, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
 		{
 			R result = default(R);
 			Func<IFdbTransaction, Task> handler = async (tr) =>
@@ -206,7 +230,7 @@ namespace FoundationDB.Client
 			};
 
 			var context = new FdbOperationContext(db, ct);
-			await context.ExecuteInternal(handler).ConfigureAwait(false);
+			await context.ExecuteInternal(handler, onDone).ConfigureAwait(false);
 			return result;
 		}
 
@@ -215,19 +239,19 @@ namespace FoundationDB.Client
 		#region Read/Write operations...
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunWriteAsync(FdbDatabase db, Func<IFdbTransaction, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static Task RunWriteAsync(FdbDatabase db, Func<IFdbTransaction, Task> asyncAction, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
-			return new FdbOperationContext(db, ct).ExecuteInternal(asyncAction);
+			return new FdbOperationContext(db, ct).ExecuteInternal(asyncAction, onDone);
 		}
 
 		/// <summary>Run a write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunWriteAsync(FdbDatabase db, Action<IFdbTransaction> action, CancellationToken ct = default(CancellationToken))
+		public static Task RunWriteAsync(FdbDatabase db, Action<IFdbTransaction> action, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
-			return new FdbOperationContext(db, ct).ExecuteInternal(action);
+			return new FdbOperationContext(db, ct).ExecuteInternal(action, onDone);
 		}
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunWriteWithResultAsync<R>(FdbDatabase db, Func<IFdbTransaction, Task<R>> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static async Task<R> RunWriteWithResultAsync<R>(FdbDatabase db, Func<IFdbTransaction, Task<R>> asyncAction, Action<IFdbTransaction> onDone, CancellationToken ct)
 		{
 			R result = default(R);
 			Func<IFdbTransaction, Task> handler = async (tr) =>
@@ -236,7 +260,7 @@ namespace FoundationDB.Client
 			};
 
 			var context = new FdbOperationContext(db, ct);
-			await context.ExecuteInternal(handler).ConfigureAwait(false);
+			await context.ExecuteInternal(handler, onDone).ConfigureAwait(false);
 			return result;
 		}
 

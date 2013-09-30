@@ -42,10 +42,14 @@ namespace FoundationDB.Client
 		/// </summary>
 		Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken ct = default(CancellationToken));
 
+		Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct = default(CancellationToken));
+
 		/// <summary>
 		/// Runs a transactional lambda function inside a read-only transaction context, with optional retry-logic.
 		/// </summary>
 		Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken ct = default(CancellationToken));
+
+		Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct = default(CancellationToken));
 
 	}
 

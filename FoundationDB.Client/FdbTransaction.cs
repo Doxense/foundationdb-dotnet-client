@@ -144,6 +144,15 @@ namespace FoundationDB.Client
 			return asyncHandler(this);
 		}
 
+		async Task IFdbReadOnlyTransactional.ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
+		{
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			ct.ThrowIfCancellationRequested();
+
+			await asyncHandler(this);
+			if (onDone != null) onDone(this);
+		}
+
 		Task<R> IFdbReadOnlyTransactional.ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken ct)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
@@ -152,11 +161,32 @@ namespace FoundationDB.Client
 			return asyncHandler(this);
 		}
 
+		async Task<R> IFdbReadOnlyTransactional.ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
+		{
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			ct.ThrowIfCancellationRequested();
+
+			var result = await asyncHandler(this);
+			if (onDone != null) onDone(this);
+			return result;
+		}
+
 		Task IFdbTransactional.WriteAsync(Action<IFdbTransaction> handler, CancellationToken ct)
 		{
 			if (handler == null) throw new ArgumentNullException("handler");
 
 			return TaskHelpers.Inline<IFdbTransaction>(handler, this, ct);
+		}
+
+		Task IFdbTransactional.WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken ct)
+		{
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			return TaskHelpers.Inline((tr, _handler, _onDone) =>
+			{
+				_handler(tr);
+				if (onDone != null) _onDone(tr);
+			}, this, handler, onDone, ct);
 		}
 
 		Task IFdbTransactional.ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken ct)
@@ -167,12 +197,31 @@ namespace FoundationDB.Client
 			return asyncHandler(this);
 		}
 
+		async Task IFdbTransactional.ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
+		{
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			ct.ThrowIfCancellationRequested();
+
+			await asyncHandler(this);
+			onDone(this);
+		}
+
 		Task<R> IFdbTransactional.ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken ct)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
 			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<R>(ct);
 
 			return asyncHandler(this);
+		}
+
+		async Task<R> IFdbTransactional.ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
+		{
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			ct.ThrowIfCancellationRequested();
+
+			var result = await asyncHandler(this);
+			onDone(this);
+			return result;
 		}
 
 		#endregion
