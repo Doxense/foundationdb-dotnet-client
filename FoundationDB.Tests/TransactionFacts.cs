@@ -157,7 +157,7 @@ namespace FoundationDB.Client.Tests
 					// => should not fail!
 
 					Assert.That(tr.StillAlive, Is.False);
-					Assert.That(tr.State, Is.EqualTo(FdbTransaction.STATE_ROLLEDBACK));
+					Assert.That(tr.State, Is.EqualTo(FdbTransaction.STATE_CANCELED));
 				}
 			}
 		}

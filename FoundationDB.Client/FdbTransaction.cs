@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 		internal const int STATE_INIT = 0;
 		internal const int STATE_READY = 1;
 		internal const int STATE_COMMITTED = 2;
-		internal const int STATE_ROLLEDBACK = 3;
+		internal const int STATE_CANCELED = 3;
 		internal const int STATE_FAILED = 4;
 		internal const int STATE_DISPOSED = -1;
 
@@ -944,34 +944,36 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRetry();
 
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Reset", "Resetting transaction");
+
 			FdbNative.TransactionReset(m_handle);
 			m_state = STATE_READY;
 
-			if (Logging.On) Logging.Verbose(this, "Reset", "Transaction has been reset");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Reset", "Transaction has been reset");
 		}
 
 		/// <summary>Rollback this transaction, and dispose it. It should not be used after that.</summary>
 		public void Cancel()
 		{
-			var state = Interlocked.CompareExchange(ref m_state, STATE_ROLLEDBACK, STATE_READY);
+			var state = Interlocked.CompareExchange(ref m_state, STATE_CANCELED, STATE_READY);
 			if (state != STATE_READY)
 			{
 				switch(state)
 				{
-					case STATE_ROLLEDBACK: break; // already the case !
+					case STATE_CANCELED: return; // already the case !
 
-					case STATE_COMMITTED: throw new InvalidOperationException("Cannot rollback transaction that has already been committed");
-					case STATE_FAILED: throw new InvalidOperationException("Cannot rollback transaction because it is in a failed state");
-					case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "Cannot rollback transaction because it already has been disposed");
-					default: throw new InvalidOperationException(String.Format("Cannot rollback transaction because it is in unknown state {0}", state));
+					case STATE_COMMITTED: throw new InvalidOperationException("Cannot cancel transaction that has already been committed");
+					case STATE_FAILED: throw new InvalidOperationException("Cannot cancel transaction because it is in a failed state");
+					case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "Cannot cancel transaction because it already has been disposed");
+					default: throw new InvalidOperationException(String.Format("Cannot cancel transaction because it is in unknown state {0}", state));
 				}
 			}
 
-			if (Logging.On) Logging.Verbose(this, "Reset", "Rolling back transaction...");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Cancel", "Canceling transaction...");
 
 			FdbNative.TransactionCancel(m_handle);
 
-			if (Logging.On) Logging.Verbose(this, "Reset", "Transaction has been rolled back");
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Cancel", "Transaction has been canceled");
 		}
 
 		#endregion
@@ -1041,7 +1043,7 @@ namespace FoundationDB.Client
 				case STATE_INIT:
 				case STATE_READY:
 				case STATE_COMMITTED:
-				case STATE_ROLLEDBACK:
+				case STATE_CANCELED:
 				{ // We are still valid
 					// checks that the DB has not been disposed behind our back
 					m_context.Db.EnsureTransactionIsValid(this);
@@ -1065,7 +1067,7 @@ namespace FoundationDB.Client
 				case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "This transaction has already been disposed and cannot be used anymore");
 				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
 				case STATE_COMMITTED: throw new InvalidOperationException("The transaction has already been committed");
-				case STATE_ROLLEDBACK: throw new FdbException(FdbError.TransactionCancelled, "The transaction has already been cancelled");
+				case STATE_CANCELED: throw new FdbException(FdbError.TransactionCancelled, "The transaction has already been cancelled");
 				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", trans.State));
 			}
 		}
