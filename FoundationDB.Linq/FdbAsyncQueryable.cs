@@ -60,7 +60,7 @@ namespace FoundationDB.Linq
 		/// <summary>Start a query on a database</summary>
 		/// <param name="db">Source database</param>
 		/// <returns>Query that will use this database as a source</returns>
-		public static IFdbDatabaseQueryable Query(this FdbDatabase db)
+		public static IFdbDatabaseQueryable Query(this IFdbDatabase db)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
@@ -97,7 +97,7 @@ namespace FoundationDB.Linq
 
 		#region Index Queries...
 
-		public static IFdbIndexQueryable<TId, TValue> Query<TId, TValue>(this FdbIndex<TId, TValue> index, FdbDatabase db)
+		public static IFdbIndexQueryable<TId, TValue> Query<TId, TValue>(this FdbIndex<TId, TValue> index, IFdbDatabase db)
 		{
 			if (index == null) throw new ArgumentNullException("index");
 			if (db == null) throw new ArgumentNullException("db");

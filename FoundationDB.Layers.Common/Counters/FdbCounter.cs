@@ -58,7 +58,7 @@ namespace FoundationDB.Layers.Counters
 		/// Only keys within the subspace will be used by the object. 
 		/// Other clients of the database should refrain from modifying the subspace.</summary>
 		/// <param name="subspace">Subspace to be used for storing the blob data and metadata</param>
-		public FdbCounter(FdbDatabase db, FdbSubspace subspace)
+		public FdbCounter(IFdbDatabase db, FdbSubspace subspace)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -67,7 +67,7 @@ namespace FoundationDB.Layers.Counters
 			this.Subspace = subspace;
 		}
 
-		public FdbCounter(FdbDatabase db, IFdbTuple tuple)
+		public FdbCounter(IFdbDatabase db, IFdbTuple tuple)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (tuple == null) throw new ArgumentNullException("tuple");
@@ -80,7 +80,7 @@ namespace FoundationDB.Layers.Counters
 		public FdbSubspace Subspace { get; private set; }
 
 		/// <summary>Database instance that is used to perform background coalescing of the counter</summary>
-		public FdbDatabase Database { get; private set; }
+		public IFdbDatabase Database { get; private set; }
 
 		protected virtual Slice EncodeInt(long i)
 		{

@@ -175,7 +175,7 @@ namespace FoundationDB.Client
 		/// <param name="readOnly">If true, only read operations are allowed, and all write attempts will throw.</param>
 		internal FdbTransaction CreateNewTransaction(FdbOperationContext context, bool readOnly)
 		{
-			Contract.Requires(context != null && context.Db == this);
+			Contract.Requires(context != null && context.Database == this);
 
 			if (m_handle.IsInvalid) throw Fdb.Errors.CannotCreateTransactionOnInvalidDatabase();
 			ThrowIfDisposed();

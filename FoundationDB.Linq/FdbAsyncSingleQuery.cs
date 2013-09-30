@@ -39,7 +39,7 @@ namespace FoundationDB.Linq
 	/// <typeparam name="T">Type of the element returned</typeparam>
 	public class FdbAsyncSingleQuery<T> : FdbAsyncQuery<T>, IFdbAsyncQueryable<T>
 	{
-		public FdbAsyncSingleQuery(FdbDatabase db, FdbQueryExpression<T> expression)
+		public FdbAsyncSingleQuery(IFdbDatabase db, FdbQueryExpression<T> expression)
 			: base(db, expression)
 		{ }
 

@@ -198,7 +198,7 @@ namespace FoundationDB.Layers.Messaging
 		}
 
 		/// <summary>Run the worker loop</summary>
-		public async Task RunWorkerAsync(FdbDatabase db, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
+		public async Task RunWorkerAsync(IFdbDatabase db, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
 		{
 			Slice workerId = Slice.Nil;
 			Slice taskId = Slice.Nil;
@@ -335,7 +335,7 @@ namespace FoundationDB.Layers.Messaging
 			}
 		}
 
-		private async Task RunTask(FdbDatabase db, Slice taskId, Slice taskBody, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
+		private async Task RunTask(IFdbDatabase db, Slice taskId, Slice taskBody, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
 		{
 			var sw = Stopwatch.StartNew();
 			try

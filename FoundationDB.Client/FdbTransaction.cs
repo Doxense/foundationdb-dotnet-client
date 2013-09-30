@@ -90,7 +90,7 @@ namespace FoundationDB.Client
 		internal FdbTransaction(FdbOperationContext context, int id, TransactionHandle handle, bool readOnly)
 		{
 			Contract.Requires(context != null && handle != null);
-			Contract.Requires(context.Db != null && context.Db is FdbDatabase);
+			Contract.Requires(context.Database != null && context.Database is FdbDatabase);
 
 			m_context = context;
 			m_id = id;
@@ -116,7 +116,7 @@ namespace FoundationDB.Client
 		public FdbOperationContext Context { get { return m_context; } }
 
 		/// <summary>Database instance that manages this transaction</summary>
-		public FdbDatabase Database { get { return (FdbDatabase) m_context.Db; } }
+		public FdbDatabase Database { get { return (FdbDatabase) m_context.Database; } }
 
 		/// <summary>Native FDB_TRANSACTION* handle</summary>
 		internal TransactionHandle Handle { get { return m_handle; } }

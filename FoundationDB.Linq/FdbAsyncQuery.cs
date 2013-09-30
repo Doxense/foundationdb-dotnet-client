@@ -40,7 +40,7 @@ namespace FoundationDB.Linq
 	public abstract class FdbAsyncQuery<T> : IFdbAsyncQueryable, IFdbAsyncQueryProvider
 	{
 
-		protected FdbAsyncQuery(FdbDatabase db)
+		protected FdbAsyncQuery(IFdbDatabase db)
 		{
 			this.Database = db;
 		}
@@ -50,7 +50,7 @@ namespace FoundationDB.Linq
 			this.Transaction = trans;
 		}
 
-		internal FdbAsyncQuery(FdbDatabase db, FdbQueryExpression expression)
+		internal FdbAsyncQuery(IFdbDatabase db, FdbQueryExpression expression)
 		{
 			this.Database = db;
 			this.Expression = expression;
@@ -64,7 +64,7 @@ namespace FoundationDB.Linq
 
 		public FdbQueryExpression Expression { get; private set; }
 
-		public FdbDatabase Database { get; private set; }
+		public IFdbDatabase Database { get; private set; }
 
 		public IFdbTransaction Transaction { get; private set; }
 

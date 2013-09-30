@@ -93,7 +93,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public async Task<T> PopAsync(FdbDatabase db, CancellationToken ct = default(CancellationToken))
+		public async Task<T> PopAsync(IFdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
 			return DecodeValue(await this.Queue.PopAsync(db, ct).ConfigureAwait(false));
 		}

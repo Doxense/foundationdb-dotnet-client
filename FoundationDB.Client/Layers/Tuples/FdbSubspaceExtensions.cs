@@ -48,12 +48,12 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Clear the entire content of a subspace</summary>
-		public static Task ClearRangeAsync(this FdbDatabase db, FdbSubspace subspace, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task ClearRangeAsync(this IFdbTransactional dbOrTrans, FdbSubspace subspace, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("db");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			return db.WriteAsync((tr) => ClearRange(tr, subspace), cancellationToken);
+			return dbOrTrans.WriteAsync((tr) => ClearRange(tr, subspace), cancellationToken);
 		}
 
 		/// <summary>Returns all the keys inside of a subspace</summary>

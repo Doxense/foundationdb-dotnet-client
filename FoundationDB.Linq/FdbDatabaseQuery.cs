@@ -37,9 +37,9 @@ namespace FoundationDB.Linq
 
 	/// <summary>Database query</summary>
 	/// <remarks>Reads data directly from a database</remarks>
-	public sealed class FdbDatabaseQuery : FdbAsyncQuery<FdbDatabase>, IFdbDatabaseQueryable
+	public sealed class FdbDatabaseQuery : FdbAsyncQuery<IFdbDatabase>, IFdbDatabaseQueryable
 	{
-		internal FdbDatabaseQuery(FdbDatabase db)
+		internal FdbDatabaseQuery(IFdbDatabase db)
 			: base(db)
 		{ }
 
@@ -54,7 +54,7 @@ namespace FoundationDB.Linq
 	/// <remarks>Reads data directly from a database</remarks>
 	public sealed class FdbIndexQuery<TId, TValue> : FdbAsyncQuery<FdbIndexQuery<TId, TValue>>, IFdbIndexQueryable<TId, TValue>
 	{
-		internal FdbIndexQuery(FdbDatabase db, FdbIndex<TId, TValue> index)
+		internal FdbIndexQuery(IFdbDatabase db, FdbIndex<TId, TValue> index)
 			: base(db)
 		{
 			this.Index = index;

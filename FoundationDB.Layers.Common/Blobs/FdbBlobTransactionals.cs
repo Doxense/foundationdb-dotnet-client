@@ -42,67 +42,67 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Delete all key-value pairs associated with the blob.
 		/// </summary>
-		public static Task DeleteAsync(this FdbBlob blob, FdbDatabase db, CancellationToken ct = default(CancellationToken))
+		public static Task DeleteAsync(this FdbBlob blob, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException("blob");
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return db.WriteAsync((tr) => blob.Delete(tr), ct);
+			return dbOrTrans.WriteAsync((tr) => blob.Delete(tr), ct);
 		}
 
 		/// <summary>
 		/// Get the size (in bytes) of the blob.
 		/// </summary>
-		public static Task<long?> GetSizeAsync(this FdbBlob blob, FdbDatabase db, CancellationToken ct = default(CancellationToken))
+		public static Task<long?> GetSizeAsync(this FdbBlob blob, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException("blob");
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return db.ReadAsync((tr) => blob.GetSizeAsync(tr), ct);
+			return dbOrTrans.ReadAsync((tr) => blob.GetSizeAsync(tr), ct);
 		}
 
 		/// <summary>
 		/// Read from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer then n bytes are returned when the end of the blob is reached).
 		/// </summary>
-		public static Task<Slice> ReadAsync(this FdbBlob blob, FdbDatabase db, long offset, int n, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> ReadAsync(this FdbBlob blob, IFdbReadOnlyTransactional dbOrTrans, long offset, int n, CancellationToken ct = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException("blob");
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return db.ReadAsync((tr) => blob.ReadAsync(tr, offset, n), ct);
+			return dbOrTrans.ReadAsync((tr) => blob.ReadAsync(tr, offset, n), ct);
 		}
 
 		/// <summary>
 		/// Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.
 		/// </summary>
-		public static Task WriteAsync(this FdbBlob blob, FdbDatabase db, long offset, Slice data, CancellationToken ct = default(CancellationToken))
+		public static Task WriteAsync(this FdbBlob blob, IFdbTransactional dbOrTrans, long offset, Slice data, CancellationToken ct = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException("blob");
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return db.ReadWriteAsync((tr) => blob.WriteAsync(tr, offset, data), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => blob.WriteAsync(tr, offset, data), ct);
 		}
 
 		/// <summary>
 		/// Append the contents of <paramref name="data"/> onto the end of the blob.
 		/// </summary>
-		public static Task AppendAsync(this FdbBlob blob, FdbDatabase db, Slice data, CancellationToken ct = default(CancellationToken))
+		public static Task AppendAsync(this FdbBlob blob, IFdbTransactional dbOrTrans, Slice data, CancellationToken ct = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException("blob");
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return db.ReadWriteAsync((tr) => blob.AppendAsync(tr, data), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => blob.AppendAsync(tr, data), ct);
 		}
 
 		/// <summary>
 		/// Change the blob length to <paramref name="newLength"/>, erasing any data when shrinking, and filling new bytes with 0 when growing.
 		/// </summary>
-		public static Task TruncateAsync(this FdbBlob blob, FdbDatabase db, long newLength, CancellationToken ct = default(CancellationToken))
+		public static Task TruncateAsync(this FdbBlob blob, IFdbTransactional dbOrTrans, long newLength, CancellationToken ct = default(CancellationToken))
 		{
 			if (blob == null) throw new ArgumentNullException("blob");
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return db.ReadWriteAsync((tr) => blob.TruncateAsync(tr, newLength), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => blob.TruncateAsync(tr, newLength), ct);
 		}
 	}
 

@@ -31,31 +31,70 @@ namespace FoundationDB.Layers.Tables
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Threading;
+	using System.Threading.Tasks;
 
-	public static class FdbTableExtensions
+	public static class FdbTableTransactionals
 	{
 
-		public static FdbTable Table(this FdbDatabase db, string tableName)
+		#region FdbTable...
+
+		public static Task<Slice> GetAsync(this FdbTable table, IFdbReadOnlyTransactional dbOrTrans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
 		{
-			return new FdbTable(tableName, db.Partition(tableName));
+			if (table == null) throw new ArgumentNullException("table");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (id == null) throw new ArgumentNullException("id");
+
+			return dbOrTrans.ReadAsync((tr) => table.GetAsync(tr, id), ct);
 		}
 
-		public static FdbTable Table(this FdbDatabase db, string tableName, IFdbTuple prefix)
+		public static Task SetAsync(this FdbTable table, IFdbTransactional dbOrTrans, IFdbTuple id, Slice value, CancellationToken ct = default(CancellationToken))
 		{
-			return new FdbTable(tableName, db.Partition(prefix));
+			if (table == null) throw new ArgumentNullException("table");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (id == null) throw new ArgumentNullException("id");
+
+			return dbOrTrans.WriteAsync((tr) => table.Set(tr, id, value), ct);
 		}
 
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, ITupleFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public static Task ClearAsync(this FdbTable table, IFdbTransactional dbOrTrans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
 		{
-			return new FdbTable<TKey, TValue>(tableName, db.Partition(tableName), keyReader, valueSerializer);
+			if (table == null) throw new ArgumentNullException("table");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (id == null) throw new ArgumentNullException("id");
+
+			return dbOrTrans.WriteAsync((tr) => table.Clear(tr, id), ct);
 		}
 
-		public static FdbTable<TKey, TValue> Table<TKey, TValue>(this FdbDatabase db, string tableName, IFdbTuple prefix, ITupleFormatter<TKey> keyReader, ISliceSerializer<TValue> valueSerializer)
+		#endregion
+
+		#region FdbTable<K, V>...
+
+		public static Task<TValue> GetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbReadOnlyTransactional dbOrTrans, TKey id, CancellationToken ct = default(CancellationToken))
 		{
-			return new FdbTable<TKey, TValue>(tableName, db.Partition(prefix), keyReader, valueSerializer);
+			if (table == null) throw new ArgumentNullException("table");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadAsync((tr) => table.GetAsync(tr, id), ct);
 		}
 
+		public static Task SetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbTransactional dbOrTrans, TKey id, TValue value, CancellationToken ct = default(CancellationToken))
+		{
+			if (table == null) throw new ArgumentNullException("table");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
+			return dbOrTrans.WriteAsync((tr) => table.Set(tr, id, value), ct);
+		}
+
+		public static Task ClearAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbTransactional dbOrTrans, TKey id, CancellationToken ct = default(CancellationToken))
+		{
+			if (table == null) throw new ArgumentNullException("table");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.WriteAsync((tr) => table.Clear(tr, id), ct);
+		}
+
+		#endregion
 
 	}
 

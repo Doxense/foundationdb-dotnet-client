@@ -267,7 +267,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				Assert.That(db.Root, Is.Not.Null);
-				Assert.That(db.Root.Db, Is.SameAs(db));
+				Assert.That(db.Root.Database, Is.SameAs(db));
 				Assert.That(db.Root.Directory, Is.Not.Null);
 				Assert.That(db.Root.Directory.ContentSubspace, Is.Not.Null);
 				Assert.That(db.Root.Directory.ContentSubspace.Key, Is.EqualTo(db.GlobalSpace.Key));

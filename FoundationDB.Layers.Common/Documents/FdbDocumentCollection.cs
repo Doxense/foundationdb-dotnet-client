@@ -152,36 +152,36 @@ namespace FoundationDB.Layers.Documents
 
 		#region Transactional...
 
-		public async Task InsertAsync(FdbDatabase db, TDocument document, CancellationToken ct = default(CancellationToken))
+		public async Task InsertAsync(IFdbTransactional dbOrTrans, TDocument document, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			await db.WriteAsync((tr) => this.Insert(tr, document), ct);
+			await dbOrTrans.WriteAsync((tr) => this.Insert(tr, document), cancellationToken);
 
 		}
 
-		public Task<TDocument> LoadAsync(FdbDatabase db, TId id, CancellationToken ct = default(CancellationToken))
+		public Task<TDocument> LoadAsync(IFdbReadOnlyTransactional dbOrTrans, TId id, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.ReadAsync((tr) => LoadAsync(tr, id), ct);
+			return dbOrTrans.ReadAsync((tr) => LoadAsync(tr, id), cancellationToken);
 		}
 
-		public Task DeleteAsync(FdbDatabase db, TId id, CancellationToken ct = default(CancellationToken))
+		public Task DeleteAsync(IFdbTransactional dbOrTrans, TId id, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return db.WriteAsync((tr) => this.Delete(tr, id), ct);
+			return dbOrTrans.WriteAsync((tr) => this.Delete(tr, id), cancellationToken);
 		}
 
-		public Task DeleteAsync(FdbDatabase db, TDocument document, CancellationToken ct = default(CancellationToken))
+		public Task DeleteAsync(IFdbTransactional dbOrTrans, TDocument document, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (document == null) throw new ArgumentNullException("document");
 
-			return db.WriteAsync((tr) => this.Delete(tr, document), ct);
+			return dbOrTrans.WriteAsync((tr) => this.Delete(tr, document), cancellationToken);
 		}
 
 		#endregion

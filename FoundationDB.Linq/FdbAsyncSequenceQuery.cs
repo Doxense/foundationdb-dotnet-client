@@ -41,7 +41,7 @@ namespace FoundationDB.Linq
 	public sealed class FdbAsyncSequenceQuery<T> : FdbAsyncQuery<T>, IFdbAsyncSequenceQueryable<T>
 	{
 
-		public FdbAsyncSequenceQuery(FdbDatabase db, FdbQuerySequenceExpression<T> expression)
+		public FdbAsyncSequenceQuery(IFdbDatabase db, FdbQuerySequenceExpression<T> expression)
 			: base(db, expression)
 		{ }
 

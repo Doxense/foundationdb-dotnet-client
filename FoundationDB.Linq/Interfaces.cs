@@ -79,7 +79,7 @@ namespace FoundationDB.Linq
 	{
 		// Note: this interface is only used to hook extension methods specific to database queries
 
-		FdbDatabase Database { get; }
+		IFdbDatabase Database { get; }
 
 	}
 

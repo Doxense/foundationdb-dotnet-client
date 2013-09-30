@@ -39,43 +39,43 @@ namespace FoundationDB.Layers.Directories
 	[DebuggerDisplay("Nodes={Directory.NodeSubspace}, Contents={Directory.ContentsSubspace}")]
 	public class FdbRootDirectory
 	{
-		public IFdbDatabase Db { get; private set; }
+		public IFdbDatabase Database { get; private set; }
 		internal FdbDirectoryLayer Directory { get; private set; }
 
 		public FdbRootDirectory(IFdbDatabase db, FdbDirectoryLayer directory)
 		{
-			this.Db = db;
+			this.Database = db;
 			this.Directory = directory;
 		}
 
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.CreateOrOpenAsync(this.Db, path, layer, prefix, allowCreate, allowOpen, cancellationToken);
+			return this.Directory.CreateOrOpenAsync(this.Database, path, layer, prefix, allowCreate, allowOpen, cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> OpenAsync(IFdbTuple path, string layer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.OpenAsync(this.Db, path, layer, cancellationToken);
+			return this.Directory.OpenAsync(this.Database, path, layer, cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> CreateAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.CreateAsync(this.Db, path, layer, prefix, cancellationToken);
+			return this.Directory.CreateAsync(this.Database, path, layer, prefix, cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> MoveAsync(IFdbTuple oldPath, IFdbTuple newPath, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.MoveAsync(this.Db, oldPath, newPath, cancellationToken);
+			return this.Directory.MoveAsync(this.Database, oldPath, newPath, cancellationToken);
 		}
 
 		public Task<bool> RemoveAsync(IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.RemoveAsync(this.Db, path, cancellationToken);
+			return this.Directory.RemoveAsync(this.Database, path, cancellationToken);
 		}
 
 		public Task<List<IFdbTuple>> ListAsync(IFdbTuple path = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.ListAsync(this.Db, path, cancellationToken);
+			return this.Directory.ListAsync(this.Database, path, cancellationToken);
 		}
 
 	}

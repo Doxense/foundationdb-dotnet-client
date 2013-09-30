@@ -56,7 +56,7 @@ namespace FoundationDB.Layers.Messaging
 			}
 		}
 
-		private async Task RunAsync(FdbDatabase db, FdbSubspace location, CancellationToken ct, Action done, int N, int K, int W)
+		private async Task RunAsync(IFdbDatabase db, FdbSubspace location, CancellationToken ct, Action done, int N, int K, int W)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 

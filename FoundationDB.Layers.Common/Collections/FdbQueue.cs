@@ -97,7 +97,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public Task<Slice> PopAsync(FdbDatabase db, CancellationToken ct)
+		public Task<Slice> PopAsync(IFdbDatabase db, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -187,7 +187,7 @@ namespace FoundationDB.Layers.Collections
 			return firstItem.Value;
 		}
 
-		private Task<Slice> AddConflictedPopAsync(FdbDatabase db, bool forced, CancellationToken ct)
+		private Task<Slice> AddConflictedPopAsync(IFdbDatabase db, bool forced, CancellationToken ct)
 		{
 			return db.ReadWriteAsync((tr) => AddConflictedPopAsync(tr, forced), ct);
 		}
@@ -219,7 +219,7 @@ namespace FoundationDB.Layers.Collections
 			return tr.GetRange(range, new FdbRangeOptions { Limit = numItems });
 		}
 
-		private async Task<bool> FulfillConflictedPops(FdbDatabase db, CancellationToken ct)
+		private async Task<bool> FulfillConflictedPops(IFdbDatabase db, CancellationToken ct)
 		{
 			int numPops = 100;
 
@@ -274,7 +274,7 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
-		private async Task<Slice> PopHighContentionAsync(FdbDatabase db, CancellationToken ct)
+		private async Task<Slice> PopHighContentionAsync(IFdbDatabase db, CancellationToken ct)
 		{
 			int backOff = 10;
 			Slice waitKey = Slice.Empty;
