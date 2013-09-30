@@ -65,6 +65,9 @@ namespace FoundationDB.Client
 		/// <summary>FDB_TRANSACTION* handle</summary>
 		private readonly TransactionHandle m_handle;
 
+		/// <summary>True if the transaction has been opened in read-only mode</summary>
+		private bool m_readOnly;
+
 		/// <summary>Estimated size of written data (in bytes)</summary>
 		private int m_payloadBytes;
 
@@ -84,7 +87,7 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		internal FdbTransaction(FdbOperationContext context, int id, TransactionHandle handle)
+		internal FdbTransaction(FdbOperationContext context, int id, TransactionHandle handle, bool readOnly)
 		{
 			Contract.Requires(context != null && handle != null);
 
@@ -92,6 +95,7 @@ namespace FoundationDB.Client
 			//m_database = database;
 			m_id = id;
 			m_handle = handle;
+			m_readOnly = readOnly;
 
 			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Token);
 			m_token = m_cts.Token;
@@ -125,6 +129,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
 		public CancellationToken Token { get { return m_token; } }
+
+		public bool IsReadOnly { get { return m_readOnly; } }
 
 		#endregion
 
@@ -260,7 +266,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Set an option on this transaction that does not take any parameter</summary>
 		/// <param name="option">Option to set</param>
-		internal void SetOption(FdbTransactionOption option)
+		public void SetOption(FdbTransactionOption option)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -273,7 +279,7 @@ namespace FoundationDB.Client
 		/// <summary>Set an option on this transaction that takes a string value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter (can be null)</param>
-		internal void SetOption(FdbTransactionOption option, string value)
+		public void SetOption(FdbTransactionOption option, string value)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -290,7 +296,7 @@ namespace FoundationDB.Client
 		/// <summary>Set an option on this transaction that takes an integer value</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="value">Value of the parameter</param>
-		internal void SetOption(FdbTransactionOption option, long value)
+		public void SetOption(FdbTransactionOption option, long value)
 		{
 			EnsureNotFailedOrDisposed();
 
@@ -312,7 +318,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		public Task<long> GetReadVersionAsync()
 		{
-			EnsureCanReadOrWrite();
+			EnsureCanRead();
 			//TODO: should we also allow being called after commit or rollback ?
 
 			var future = FdbNative.TransactionGetReadVersion(m_handle);
@@ -348,9 +354,13 @@ namespace FoundationDB.Client
 			return version;
 		}
 
+		/// <summary>
+		/// Sets the snapshot read version used by a transaction. This is not needed in simple cases.
+		/// </summary>
 		public void SetReadVersion(long version)
 		{
-			EnsureCanReadOrWrite();
+			//Note: this is in IFdbTransaction but it looks like it could also be used for reading ?
+			EnsureCanWrite();
 
 			FdbNative.TransactionSetReadVersion(m_handle, version);
 		}
@@ -407,7 +417,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
 		public Task<Slice> GetAsync(Slice keyBytes)
 		{
-			EnsureCanReadOrWrite();
+			EnsureCanRead();
 
 			return GetCoreAsync(keyBytes, snapshot: false);
 		}
@@ -491,7 +501,7 @@ namespace FoundationDB.Client
 
 		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null)
 		{
-			EnsureCanReadOrWrite();
+			EnsureCanRead();
 
 			return GetRangeCore(range, options, snapshot: false);
 		}
@@ -617,7 +627,7 @@ namespace FoundationDB.Client
 		/// <param name="valueBytes">Value to be inserted into the database.</param>
 		public void Set(Slice keyBytes, Slice valueBytes)
 		{
-			EnsureStilValid(allowFromNetworkThread: true);
+			EnsureCanWrite();
 
 			SetCore(keyBytes, valueBytes);
 		}
@@ -644,7 +654,7 @@ namespace FoundationDB.Client
 
 		public void Atomic(Slice keyBytes, Slice valueBytes, FdbMutationType operationType)
 		{
-			EnsureStilValid(allowFromNetworkThread: true);
+			EnsureCanWrite();
 
 			AtomicCore(keyBytes, valueBytes, operationType);
 		}
@@ -671,7 +681,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Name of the key to be removed from the database.</param>
 		public void Clear(Slice key)
 		{
-			EnsureStilValid(allowFromNetworkThread: true);
+			EnsureCanWrite();
 
 			ClearCore(key);
 		}
@@ -703,7 +713,7 @@ namespace FoundationDB.Client
 		/// <param name="endKeyExclusive">Name of the key specifying the end of the range to clear.</param>
 		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
-			EnsureStilValid(allowFromNetworkThread: true);
+			EnsureCanWrite();
 
 			ClearRangeCore(beginKeyInclusive, endKeyExclusive);
 		}
@@ -728,12 +738,11 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a conflict range to a transaction without performing the associated read or write.
 		/// </summary>
-		/// <param name="beginKeyInclusive">Name of the key specifying the beginning of the conflict range.</param>
-		/// <param name="endKeyExclusive">Name of the key specifying the end of the conflict range.</param>
+		/// <param name="range">Range that will be marked as conflicting.</param>
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
 		public void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type)
 		{
-			EnsureStilValid(allowFromNetworkThread: true);
+			EnsureCanWrite();
 
 			AddConflictRangeCore(range.Begin, range.End, type);
 		}
@@ -778,7 +787,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an array of strings, or an exception</returns>
 		public Task<string[]> GetAddressesForKeyAsync(Slice key)
 		{
-			EnsureCanReadOrWrite();
+			EnsureCanRead();
 
 			return GetAddressesForKeyCoreAsync(key);
 		}
@@ -820,6 +829,9 @@ namespace FoundationDB.Client
 			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetValueResultBytes(h), m_token);
 		}
 
+		/// <summary>
+		/// Reads several values from the database snapshot represented by the current transaction
+		/// </summary>
 		public Task<Slice[]> GetValuesAsync(Slice[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -842,7 +854,7 @@ namespace FoundationDB.Client
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
 		public async Task CommitAsync()
 		{
-			EnsureCanReadOrWrite();
+			EnsureCanWrite();
 
 			if (Logging.On) Logging.Verbose(this, "CommitAsync", "Committing transaction...");
 
@@ -994,13 +1006,16 @@ namespace FoundationDB.Client
 		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read operation</summary>
 		public void EnsureCanRead()
 		{
-			EnsureStilValid(allowFromNetworkThread: false);
+			// note: read operations are async, so they can NOT be called from the network without deadlocking the system !
+			EnsureStilValid(allowFromNetworkThread: false, allowFailedState: false);
 		}
 
-		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
-		public void EnsureCanReadOrWrite()
+		/// <summary>Throws if the transaction is not a valid state (for writing) and that we can proceed with a write operation</summary>
+		public void EnsureCanWrite()
 		{
-			EnsureStilValid(allowFromNetworkThread: false);
+			if (m_readOnly) ThrowReadOnlyTransaction(this);
+			// note: write operations are not async, and cannnot block, so it is (somewhat) safe to call them from the network thread itself.
+			EnsureStilValid(allowFromNetworkThread: true, allowFailedState: false);
 		}
 
 		/// <summary>Throws if the transaction is not safely retryable</summary>
@@ -1070,6 +1085,11 @@ namespace FoundationDB.Client
 				case STATE_CANCELED: throw new FdbException(FdbError.TransactionCancelled, "The transaction has already been cancelled");
 				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", trans.State));
 			}
+		}
+
+		internal static void ThrowReadOnlyTransaction(FdbTransaction trans)
+		{
+			throw new InvalidOperationException("Cannot write to a read-only transaction");
 		}
 
 		/// <summary>

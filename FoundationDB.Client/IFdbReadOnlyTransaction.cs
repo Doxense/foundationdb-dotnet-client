@@ -52,6 +52,9 @@ namespace FoundationDB.Client
 		/// </summary>
 		bool IsSnapshot { get; }
 
+		/// <summary>Return a Snapshotted version of this transaction, or the transaction itself it is already operating in Snapshot mode.</summary>
+		IFdbReadOnlyTransaction Snapshot { get; }
+
 		/// <summary>Cancellation Token linked to the life time of the transaction</summary>
 		/// <remarks>Will be triggered if the transaction is aborted or disposed</remarks>
 		CancellationToken Token { get; }
@@ -119,6 +122,23 @@ namespace FoundationDB.Client
 		/// Returns this transaction snapshot read version.
 		/// </summary>
 		Task<long> GetReadVersionAsync();
+
+		/// <summary>Cancels the transaction. All pending or future uses of the transaction will return a TransactionCancelled error code. The transaction can be used again after it is reset.</summary>
+		void Cancel();
+
+		/// <summary>Set an option on this transaction that does not take any parameter</summary>
+		/// <param name="option">Option to set</param>
+		void SetOption(FdbTransactionOption option);
+	
+		/// <summary>Set an option on this transaction that takes a string value</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter (can be null)</param>
+		void SetOption(FdbTransactionOption option, string value);
+
+		/// <summary>Set an option on this transaction that takes an integer value</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter</param>
+		void SetOption(FdbTransactionOption option, long value);
 
 	}
 

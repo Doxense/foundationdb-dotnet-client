@@ -180,7 +180,7 @@ namespace FoundationDB.Client
 				var tr = this.Transaction;
 				if (this.Query.Snapshot)
 				{ // make sure we have the snapshot version !
-					tr = tr.ToSnapshotTransaction();
+					tr = tr.Snapshot;
 				}
 
 				//BUGBUG: mix the custom cancellation token with the transaction, is it is diffent !

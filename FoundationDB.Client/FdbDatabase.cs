@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB Database</summary>
 	/// <remarks>Wraps an FDBDatabase* handle</remarks>
 	[DebuggerDisplay("Name={m_name}, Namespace={m_namespace}")]
-	public partial class FdbDatabase : IFdbTransactional, IDisposable
+	public partial class FdbDatabase : IFdbDatabase, IFdbTransactional, IDisposable
 	{
 		#region Private Fields...
 
@@ -130,27 +130,50 @@ namespace FoundationDB.Client
 		#region Transaction Management...
 
 		/// <summary>Start a new transaction on this database</summary>
-		/// <returns>New transaction instance</returns>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
 		/// <example>
-		/// using(var tr = db.BeginTransaction())
+		/// using(var tr = db.BeginTransaction(CancellationToken.None))
 		/// {
 		///		tr.Set(Slice.FromString("Hello"), Slice.FromString("World"));
+		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		public FdbTransaction BeginTransaction()
+		public FdbTransaction BeginTransaction(CancellationToken ct = default(CancellationToken))
 		{
-			return BeginTransaction(new FdbOperationContext(this, CancellationToken.None));
+			return BeginTransaction(new FdbOperationContext(this, ct), readOnly: false);
 		}
 
-		public FdbTransaction BeginTransaction(CancellationToken ct)
+		IFdbTransaction IFdbDatabase.BeginTransaction(CancellationToken ct)
 		{
-			return BeginTransaction(new FdbOperationContext(this, ct));
+			return this.BeginTransaction(ct);
+		}
+
+		/// <summary>Start a new read-only transaction on this database</summary>
+		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <returns>New transaction instance that can read from the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		/// <example>
+		/// using(var tr = db.BeginReadOnlyTransaction(CancellationToken.None))
+		/// {
+		///		var result = await tr.Get(Slice.FromString("Hello"));
+		///		var items = await tr.GetRange(FdbKeyRange.StartsWith(Slice.FromString("ABC"))).ToListAsync();
+		/// }</example>
+		public FdbTransaction BeginReadOnlyTransaction(CancellationToken ct = default(CancellationToken))
+		{
+			return BeginTransaction(new FdbOperationContext(this, ct), readOnly: true);
+		}
+
+		IFdbReadOnlyTransaction IFdbReadOnlyDatabase.BeginReadOnlyTransaction(CancellationToken ct)
+		{
+			return this.BeginReadOnlyTransaction(ct);
 		}
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>
 		/// <param name="context">Optional context in which the transaction will run</param>
-		internal FdbTransaction BeginTransaction(FdbOperationContext context)
+		/// <param name="readOnly">If true, only read operations are allowed, and all write attempts will throw.</param>
+		internal FdbTransaction BeginTransaction(FdbOperationContext context, bool readOnly)
 		{
 			Contract.Requires(context != null && context.Db == this);
 
@@ -171,7 +194,7 @@ namespace FoundationDB.Client
 			FdbTransaction trans = null;
 			try
 			{
-				trans = new FdbTransaction(context, id, handle);
+				trans = new FdbTransaction(context, id, handle, readOnly);
 				RegisterTransaction(trans);
 				// set default options..
 				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
@@ -628,8 +651,9 @@ namespace FoundationDB.Client
 		/// <summary>Returns a string describing the list of the coordinators for the cluster</summary>
 		public async Task<string> GetCoordinatorsAsync()
 		{
-			using (var tr = BeginTransaction().WithAccessToSystemKeys())
+			using (var tr = BeginTransaction())
 			{
+				tr.SetOption(FdbTransactionOption.AccessSystemKeys);
 				var result = await tr.GetAsync(Fdb.SystemKeys.Coordinators).ConfigureAwait(false);
 				return result.ToAscii();
 			}
@@ -642,8 +666,9 @@ namespace FoundationDB.Client
 		{
 			if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty");
 
-			using(var tr = BeginTransaction().WithAccessToSystemKeys())
+			using(var tr = BeginTransaction())
 			{
+				tr.SetOption(FdbTransactionOption.AccessSystemKeys);
 				return await tr.GetAsync(Fdb.SystemKeys.GetConfigKey(name)).ConfigureAwait(false);
 			}
 		}

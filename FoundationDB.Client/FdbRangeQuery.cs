@@ -302,7 +302,7 @@ namespace FoundationDB.Client
 				Reverse = this.Reverse
 			};
 
-			var tr = this.Snapshot ? this.Transaction.ToSnapshotTransaction() : this.Transaction;
+			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
 			var results = await tr.GetRangeAsync(this.Range, options, 0).ConfigureAwait(false);
 
 			if (results.Chunk.Length == 0)
@@ -341,7 +341,7 @@ namespace FoundationDB.Client
 				Reverse = this.Reverse
 			};
 
-			var tr = this.Snapshot ? this.Transaction.ToSnapshotTransaction() : this.Transaction;
+			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
 			var results = await tr.GetRangeAsync(this.Range, options, 0).ConfigureAwait(false);
 
 			return any ? results.Chunk.Length > 0 : results.Chunk.Length == 0;

@@ -51,12 +51,14 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction())
 				{
 					Assert.That(tr, Is.Not.Null, "BeginTransaction should return a valid instance");
+					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
 					Assert.That(tr.State == FdbTransaction.STATE_READY, "Transaction should be in ready state");
 					Assert.That(tr.StillAlive, Is.True, "Transaction should be alive");
 					Assert.That(tr.Handle.IsInvalid, Is.False, "Transaction handle should be valid");
 					Assert.That(tr.Handle.IsClosed, Is.False, "Transaction handle should not be closed");
 					Assert.That(tr.Database, Is.SameAs(db), "Transaction should reference the parent Database");
 					Assert.That(tr.Size, Is.EqualTo(0), "Estimated size should be zero");
+					Assert.That(tr.IsReadOnly, Is.False, "Transaction is not read-only");
 
 					// manually dispose the transaction
 					tr.Dispose();
@@ -71,6 +73,26 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 		
+		[Test]
+		public async Task Test_Creating_A_ReadOnly_Transaction_Throws_When_Writing()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				using (var tr = db.BeginReadOnlyTransaction())
+				{
+					Assert.That(tr, Is.Not.Null);
+					Assert.That(tr.IsReadOnly, Is.True, "Transaction should be marked as readonly");
+
+					var location = db.Partition("ReadOnly");
+
+					Assert.That(() => tr.Set(location.Pack("Hello"), Slice.Empty), Throws.InvalidOperationException);
+					Assert.That(() => tr.Clear(location.Pack("Hello")), Throws.InvalidOperationException);
+					Assert.That(() => tr.ClearRange(location.Pack("ABC"), location.Pack("DEF")), Throws.InvalidOperationException);
+					Assert.That(() => tr.Atomic(location.Pack("Counter"), Slice.FromFixed32(1), FdbMutationType.Add), Throws.InvalidOperationException);
+				}
+			}
+		}
+
 		[Test]
 		public async Task Test_Creating_Concurrent_Transactions_Are_Independent()
 		{

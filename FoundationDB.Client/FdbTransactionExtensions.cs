@@ -38,17 +38,6 @@ namespace FoundationDB.Client
 	public static class FdbTransactionExtensions
 	{
 
-		public static IFdbReadOnlyTransaction ToSnapshotTransaction(this IFdbReadOnlyTransaction trans)
-		{
-			if (trans.IsSnapshot) return trans;
-			//TODO: better way at doing this ?
-
-			if (trans is FdbTransaction) return (trans as FdbTransaction).Snapshot;
-
-			throw new InvalidOperationException("This transaction is not in snapshot mode");
-		}
-
-
 		#region Set...
 
 		public static void Set(this IFdbTransaction trans, Slice keyBytes, Stream data)
@@ -56,7 +45,7 @@ namespace FoundationDB.Client
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (data == null) throw new ArgumentNullException("data");
 
-			trans.EnsureCanReadOrWrite();
+			trans.EnsureCanWrite();
 
 			Slice value = Slice.FromStream(data);
 
@@ -65,7 +54,7 @@ namespace FoundationDB.Client
 
 		public static async Task SetAsync(this IFdbTransaction trans, Slice keyBytes, Stream data)
 		{
-			trans.EnsureCanReadOrWrite();
+			trans.EnsureCanWrite();
 
 			Slice value = await Slice.FromStreamAsync(data, trans.Token).ConfigureAwait(false);
 
@@ -155,6 +144,11 @@ namespace FoundationDB.Client
 
 		#region Clear...
 
+		/// <summary>
+		/// Modify the database snapshot represented by this transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
+		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		/// <param name="range">Pair of keys defining the range to clear.</param>
 		public static void ClearRange(this IFdbTransaction trans, FdbKeyRange range)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -232,6 +226,11 @@ namespace FoundationDB.Client
 
 		#region Batching...
 
+		/// <summary>
+		/// Reads several values from the database snapshot represented by the current transaction
+		/// </summary>
+		/// <param name="keys">Sequence of keys to be looked up in the database</param>
+		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
 		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -242,6 +241,11 @@ namespace FoundationDB.Client
 			return trans.GetValuesAsync(array);
 		}
 
+		/// <summary>
+		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
+		/// </summary>
+		/// <param name="selectors">Sequence of key selectors to resolve</param>
+		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
 		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelector> selectors)
 		{
 			if (selectors == null) throw new ArgumentNullException("selectors");

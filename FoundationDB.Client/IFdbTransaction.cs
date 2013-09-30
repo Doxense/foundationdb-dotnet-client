@@ -36,12 +36,12 @@ namespace FoundationDB.Client
 	public interface IFdbTransaction : IFdbReadOnlyTransaction
 	{
 		/// <summary>
-		/// Ensure thats the transaction is in a valid state for issuing read and write operations.
+		/// Ensure thats the transaction is in a valid state for issuing write operations.
 		/// </summary>
 		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>
 		/// <exception cref="System.InvalidOperationException">If the transaction as already been committed, or if the database connection has been closed</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token has been cancelled</exception>
-		void EnsureCanReadOrWrite();
+		void EnsureCanWrite();
 
 		/// <summary>
 		/// Estimated payload size of the transaction (in bytes)

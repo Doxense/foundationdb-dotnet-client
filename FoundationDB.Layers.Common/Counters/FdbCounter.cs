@@ -195,7 +195,7 @@ namespace FoundationDB.Layers.Counters
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			return GetTransactional(trans.ToSnapshotTransaction());
+			return GetTransactional(trans.Snapshot);
 		}
 
 		/// <summary>

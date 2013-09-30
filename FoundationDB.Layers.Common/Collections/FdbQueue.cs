@@ -91,7 +91,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Push a single item onto the queue.</summary>
 		public async Task PushAsync(IFdbTransaction tr, Slice value)
 		{
-			long index = await GetNextIndexAsync(tr.ToSnapshotTransaction(), this.QueueItem).ConfigureAwait(false);
+			long index = await GetNextIndexAsync(tr.Snapshot, this.QueueItem).ConfigureAwait(false);
 
 			await PushAtAsync(tr, value, index).ConfigureAwait(false);
 		}
@@ -194,7 +194,7 @@ namespace FoundationDB.Layers.Collections
 
 		private async Task<Slice> AddConflictedPopAsync(IFdbTransaction tr, bool forced)
 		{
-			long index = await GetNextIndexAsync(tr.ToSnapshotTransaction(), this.ConflictedPop).ConfigureAwait(false);
+			long index = await GetNextIndexAsync(tr.Snapshot, this.ConflictedPop).ConfigureAwait(false);
 
 			if (index == 0 && !forced)
 			{

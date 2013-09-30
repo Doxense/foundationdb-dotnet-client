@@ -82,6 +82,11 @@ namespace FoundationDB.Client
 				get { return true; }
 			}
 
+			public IFdbReadOnlyTransaction Snapshot
+			{
+				get { return this; }
+			}
+
 			public void EnsureCanRead()
 			{
 				m_parent.EnsureCanRead();
@@ -134,6 +139,26 @@ namespace FoundationDB.Client
 				EnsureCanRead();
 
 				return m_parent.GetRangeCore(range, options, snapshot: true);
+			}
+
+			public void Cancel()
+			{
+				m_parent.Cancel();
+			}
+
+			public void SetOption(FdbTransactionOption option)
+			{
+				m_parent.SetOption(option);
+			}
+
+			public void SetOption(FdbTransactionOption option, string value)
+			{
+				m_parent.SetOption(option, value);
+			}
+
+			public void SetOption(FdbTransactionOption option, long value)
+			{
+				m_parent.SetOption(option, value);
 			}
 
 			void IDisposable.Dispose()

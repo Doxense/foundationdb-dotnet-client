@@ -125,7 +125,7 @@ namespace FoundationDB.Client
 							else if (handler is Func<IFdbReadOnlyTransaction, Task>)
 							{
 								readOnlyOperation = true;
-								await ((Func<IFdbTransaction, Task>)handler)(trans).ConfigureAwait(false);
+								await ((Func<IFdbReadOnlyTransaction, Task>)handler)(trans).ConfigureAwait(false);
 							}
 							else
 							{
