@@ -5,9 +5,7 @@ using FoundationDB.Layers.Tuples;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -86,27 +84,26 @@ namespace FoundationDB.Layers.Messaging
 #endif
 		}
 
-		private async Task<Slice> FindRandomItem(IFdbTransaction tr, FdbSubspace ring)
+		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, FdbSubspace ring)
 		{
 			var range = ring.ToRange();
 
 			// start from a random position around the ring
 			Slice key = ring.Pack(GetRandomId());
 
-			var candidate = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(key)).ConfigureAwait(false);
+			// We want to find the next item in the clockwise direction. If we reach the end of the ring, we "wrap around" by starting again from the start
+			// => So we do find_next(key <= x < MAX) and if that does not produce any result, we do a find_next(MIN <= x < key)
 
-			if (candidate >= range.End)
-			{ // nothing found until the end of the ring, we need to wrap around and look from the start of the ring...
+			// When the ring only contains a few items (or is empty), there is more than 50% change that we wont find anything in the first read.
+			// To reduce the latency for this case, we will issue both range reads at the same time, and discard the second one if the first returned something.
+			// This should reduce the latency in half when the ring is empty, or when it contains only items before the random key.
 
-				candidate = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(range.Begin)).ConfigureAwait(false);
+			var candidates = await Task.WhenAll(
+				tr.GetRange(key, range.End).FirstOrDefaultAsync(),
+				tr.GetRange(range.Begin, key).FirstOrDefaultAsync()
+			).ConfigureAwait(false);
 
-				if (candidate >= key)
-				{ // we wrapped around without finding anything
-					candidate = Slice.Nil;
-				}
-			}
-
-			return candidate.IsNullOrEmpty ? Slice.Nil : candidate;
+			return candidates[0].Key != null ? candidates[0] : candidates[1];
 		}
 
 		private Slice GetQueueKey(string queueName)
@@ -138,166 +135,163 @@ namespace FoundationDB.Layers.Messaging
 
 			// get the current size of the queue
 			var range = FdbTuple.ToRange(queue);
-			var lastKey = await tr.ToSnapshotTransaction().GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
+			var lastKey = await tr.Snapshot.GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
 			int count = lastKey < range.Begin ? 0 : FdbTuple.UnpackWithoutPrefix(lastKey, queue).Get<int>(0) + 1;
 
 			// set the value
 			tr.Set(FdbTuple.Concat(queue, count, GetRandomId()), taskId);
 		}
 
-		private async Task<Slice> PopQueueAsync(IFdbTransaction tr, Slice queue)
-		{
-			var firstItem = await tr.GetRange(FdbTuple.ToRange(queue)).FirstOrDefaultAsync().ConfigureAwait(false);
-			if (firstItem.Key.IsNull) return Slice.Nil;
-
-			tr.Clear(firstItem.Key);
-			return firstItem.Value;
-		}
-
+		/// <summary>Add and Schedule a new Task in the worker pool</summary>
+		/// <param name="dbOrTrans">Either a database or a transaction</param>
+		/// <param name="queueName"></param>
+		/// <param name="taskId"></param>
+		/// <param name="taskBody"></param>
+		/// <param name="ct"></param>
+		/// <returns></returns>
 		public async Task ScheduleTaskAsync(IFdbTransactional dbOrTrans, string queueName, Slice taskId, Slice taskBody, CancellationToken ct = default(CancellationToken))
 		{
 			await dbOrTrans.ReadWriteAsync(async (tr) =>
 			{
+				Interlocked.Increment(ref m_schedulingAttempts);
+#if DEBUG
 				if (tr.Context.Retries > 0) Console.WriteLine("# retry n°" + tr.Context.Retries + " for task " + taskId.ToAsciiOrHexaString());
+#endif
 
 				// store the task body
 				tr.Set(this.TaskStore.Pack(taskId), taskBody);
 
 				// find a random worker from the idle ring
-				var key = await FindRandomItem(tr, this.IdleRing).ConfigureAwait(false);
+				var randomWorkerKey = await FindRandomItem(tr, this.IdleRing).ConfigureAwait(false);
 
-				if (key.IsPresent)
+				if (randomWorkerKey.Key != null)
 				{
-					Slice index = this.IdleRing.UnpackSingle<Slice>(key);
-#if LOGLOG
-					Console.WriteLine("> [producer] found idle worker at " + index.ToAsciiOrHexaString() + ", assigning task " + taskId.ToAsciiOrHexaString());
-#endif
+					Slice workerId = this.IdleRing.UnpackSingle<Slice>(randomWorkerKey.Key);
 
 					// remove worker from the idle ring
-					tr.Clear(this.IdleRing.Pack(index));
+					tr.Clear(this.IdleRing.Pack(workerId));
 					// assign task to the worker
-					tr.Set(this.BusyRing.Pack(index), taskId);
+					tr.Set(this.BusyRing.Pack(workerId), taskId);
 #if LOG_SCHEDULING_IN_DB
 					tr.Set(this.DebugScheduleLog.Pack(taskId), Slice.FromString("Assigned to worker at " + index.ToAsciiOrHexaString() + " (#" + tr.Context.Retries + ")"));
 #endif
 				}
 				else
 				{
-					key = GetQueueKey(queueName);
+					var queueKey = GetQueueKey(queueName);
 #if LOGLOG
-					Console.WriteLine("> [producer] found no idle workers, pushing task " + taskId.ToAsciiOrHexaString() + " to unassigned queue at " + key.ToAsciiOrHexaString());
+					Console.WriteLine("> [producer] found no idle workers, pushing task " + taskId.ToAsciiOrHexaString() + " to unassigned queue at " + queueKey.ToAsciiOrHexaString());
 #endif
-				
-					await PushQueueAsync(tr, this.UnassignedTaskRing.Pack(key), taskId);
+
+					await PushQueueAsync(tr, this.UnassignedTaskRing.Pack(queueKey), taskId).ConfigureAwait(false);
 
 #if LOG_SCHEDULING_IN_DB
-					tr.Set(this.DebugScheduleLog.Pack(taskId), Slice.FromString("Pushed on queue '" + queueName + "' at " + key.ToAsciiOrHexaString() + " (#" + tr.Context.Retries + ")"));
+					tr.Set(this.DebugScheduleLog.Pack(taskId), Slice.FromString("Pushed on queue '" + queueName + "' at " + queueKey.ToAsciiOrHexaString() + " (#" + tr.Context.Retries + ")"));
 #endif
 				}
-			}, ct).ConfigureAwait(false);
-
-			Interlocked.Increment(ref m_schedulingMessages);
+			}, 
+			onDone: (tr) =>
+			{
+				Interlocked.Increment(ref m_schedulingMessages);
+			},
+			ct: ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Run the worker loop</summary>
 		public async Task RunWorkerAsync(FdbDatabase db, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
 		{
-			Slice myId = Slice.Nil;
+			Slice workerId = Slice.Nil;
 			Slice taskId = Slice.Nil;
+			Slice taskBody = Slice.Nil;
+			Slice previousTaskId = Slice.Nil;
 			FdbWatch watch = default(FdbWatch);
-
-			Stopwatch idleTimer = Stopwatch.StartNew();
 
 			Interlocked.Increment(ref m_workers);
 			try
 			{
-
 				while (true)
 				{
+					//TODO: how do we clear the previousTaskId from the db in case of cancellation ?
 					ct.ThrowIfCancellationRequested();
 
-					await db.ReadWriteAsync(async (tr) =>
-					{
-						// look for an already assigned task
-						taskId = Slice.Nil;
-						if (myId.IsPresent)
+					Slice myId = Slice.Nil;
+
+					await db.ReadWriteAsync(
+						async (tr) =>
 						{
-							taskId = await tr.GetAsync(this.BusyRing.Pack(myId)).ConfigureAwait(false);
-						}
+							myId = workerId;
+							taskId = Slice.Nil;
+							taskBody = Slice.Nil;
+							watch = default(FdbWatch);
 
-						if (taskId.IsNullOrEmpty)
-						{ // We aren't already assigned a task, so get an item from a random queue
+							if (previousTaskId != null)
+							{ // we need to clean up the previous task
+								Console.WriteLine("Clearing previous task: " + previousTaskId);
+								tr.Clear(this.TaskStore.Pack(previousTaskId));
+							}
 
-							var key = await FindRandomItem(tr, this.UnassignedTaskRing).ConfigureAwait(false);
-
-							if (key.IsPresent)
-							{
-								// pop the Task from the queue
-								taskId = await tr.GetAsync(key).ConfigureAwait(false);
-								tr.Clear(key);
+							if (myId.IsPresent)
+							{ // look for an already assigned task
+								taskId = await tr.GetAsync(this.BusyRing.Pack(myId)).ConfigureAwait(false);
 							}
 
 							if (taskId.IsPresent)
-							{ // mark this worker as busy
-								// note: we need a random id so generate one if it is the first time...
-								if (!myId.IsPresent) myId = GetRandomId();
-								tr.Set(this.BusyRing.Pack(myId), taskId);
+							{ // We aren't already assigned a task, so get an item from a random queue
+
+								// Find a random queue and peek the first Task in one step
+								// > this works because if we find a result it is guranteed to be the first item in the queue
+								var key = await FindRandomItem(tr, this.UnassignedTaskRing).ConfigureAwait(false);
+
+								if (key.Key != null)
+								{ // pop the Task from the queue
+									taskId = key.Value;
+									tr.Clear(key.Key);
+								}
+
+								if (taskId.IsPresent)
+								{ // mark this worker as busy
+									// note: we need a random id so generate one if it is the first time...
+									if (!myId.IsPresent) myId = GetRandomId();
+									tr.Set(this.BusyRing.Pack(myId), taskId);
+								}
+								else if (myId.IsPresent)
+								{ // remove ourselves from the busy ring
+									tr.Clear(this.BusyRing.Pack(myId));
+								}
 							}
-							else if (myId.IsPresent)
-							{ // remove ourselves from the busy ring
+
+							if (taskId.IsPresent)
+							{ // get the task body
+
+								Console.WriteLine("> Fetching body for task " + taskId);
+								taskBody = await tr.GetAsync(this.TaskStore.Pack(taskId)).ConfigureAwait(false);
+								Console.WriteLine("> got " + taskBody);
+#if LOG_SCHEDULING_IN_DB
+								tr.Set(this.DebugWorkLog.Pack(taskId), Slice.FromString("Being processed by worker with id " + myId.ToAsciiOrHexaString()));
+#endif
+							}
+							else
+							{ // There are no unassigned task, so enter the idle_worker_ring and wait for a task to be asssigned to us
+
+								// choose a new random position on the idle ring
+								myId = GetRandomId();
+
+								var watchKey = this.IdleRing.Pack(myId);
+								tr.Set(watchKey, Slice.Empty);
 								tr.Clear(this.BusyRing.Pack(myId));
+								watch = tr.Watch(watchKey, ct);
 							}
-						}
 
-						if (taskId.IsNullOrEmpty)
-						{ // There are no unassigned task, so enter the idle_worker_ring and wait for a task to be asssigned to us
+						},
+						onDone: (tr) =>
+						{ // we have successfully acquired some work, or got a watch
+							previousTaskId = Slice.Nil;
+							workerId = myId;
+						},
+						ct: ct
+					).ConfigureAwait(false);
 
-							// choose a new random position on the idle ring
-							myId = GetRandomId();
-
-							var watchKey = this.IdleRing.Pack(myId);
-							tr.Set(watchKey, Slice.Empty);
-							watch = tr.Watch(watchKey, ct);
-						}
-
-#if LOG_SCHEDULING_IN_DB
-						if (taskId.IsPresent)
-						{
-							tr.Set(this.DebugWorkLog.Pack(taskId), Slice.FromString("Being processed by worker with id " + myId.ToAsciiOrHexaString()));
-						}
-#endif
-
-					}, ct).ConfigureAwait(false);
-
-
-					if (taskId.IsPresent)
-					{
-						idleTimer.Stop();
-						try
-						{
-							await RunTask(db, taskId, handler, ct);
-						}
-						catch (Exception e)
-						{
-							Console.Error.WriteLine("Task[" + taskId.ToAsciiOrHexaString() + "] failed: " + e.ToString());
-						}
-						finally
-						{
-							idleTimer.Restart();
-						}
-
-						// clear the work
-						await db.WriteAsync((tr) =>
-						{
-							tr.Clear(this.BusyRing.Pack(myId));
-							tr.Clear(this.TaskStore.Pack(taskId));
-#if LOG_SCHEDULING_IN_DB
-							tr.Set(this.DebugWorkLog.Pack(taskId), Slice.FromString("Completed by worker with id " + myId.ToAsciiOrHexaString()));
-#endif
-						}, ct);
-
-					}
-					else
+					if (taskId.IsNullOrEmpty)
 					{ // wait for someone to wake us up...
 						Interlocked.Increment(ref m_idleWorkers);
 						try
@@ -309,34 +303,44 @@ namespace FoundationDB.Layers.Messaging
 							Interlocked.Decrement(ref m_idleWorkers);
 						}
 					}
+					else
+					{
+						Console.WriteLine("Got task " + taskId);
+						previousTaskId = taskId;
+
+						if (taskBody.IsNull)
+						{ // the task has been dropped?
+							// TODO: loggin?
+							Console.WriteLine("[####] Task[" + taskId.ToAsciiOrHexaString() + "] has vanished?");
+						}
+						else
+						{
+							try
+							{
+								await RunTask(db, taskId, taskBody, handler, ct);
+							}
+							catch (Exception e)
+							{
+								//TODO: logging?
+								Console.Error.WriteLine("Task[" + taskId.ToAsciiOrHexaString() + "] failed: " + e.ToString());
+							}
+						}
+					}
 				}
 			}
 			finally
 			{
+				//TODO: we should ensure that the last processed task is properly removed from the db before leaving !
 				Interlocked.Decrement(ref m_workers);
 			}
 		}
 
-		private async Task RunTask(FdbDatabase db, Slice taskId, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
+		private async Task RunTask(FdbDatabase db, Slice taskId, Slice taskBody, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
 		{
 			var sw = Stopwatch.StartNew();
 			try
 			{
 				Interlocked.Increment(ref m_workerTasksReceived);
-
-				// get the task body !
-				var taskBody = await db.ReadAsync((tr) =>
-				{
-					if (tr.Context.Retries > 0) Console.WriteLine("#RETRY#");
-					return tr.GetAsync(this.TaskStore.Pack(taskId));
-				}, ct).ConfigureAwait(false);
-				//var taskBody = Slice.FromString("fooooo");
-
-				if (taskBody.IsNull)
-				{ // the task has been dropped?
-					Console.WriteLine("[####] Task[" + taskId.ToAsciiOrHexaString() + "] has vanished?");
-					return;
-				}
 
 				//TODO: custom TaskScheduler for task execution ?
 				await handler("Queue??", taskId, taskBody, ct).ConfigureAwait(false);
@@ -349,189 +353,6 @@ namespace FoundationDB.Layers.Messaging
 				Interlocked.Add(ref m_workerBusyTime, sw.ElapsedTicks);
 			}
 		}
-
-	}
-
-
-	public class WorkerPoolTest
-	{
-
-		public void Main()
-		{
-
-			ThreadPool.SetMinThreads(Environment.ProcessorCount, Environment.ProcessorCount);
-
-			Fdb.Start();
-			var cts = new CancellationTokenSource();
-			try
-			{
-				string clusterFile = null;
-				//string clusterFile = @"c:\temp\fdb\nuc.cluster";
-				string dbName = "DB";
-				using (var db = Fdb.OpenAsync(clusterFile, dbName).GetAwaiter().GetResult())
-				{
-					var location = db.Root.CreateOrOpenAsync(FdbTuple.Create("T", "WorkerPool")).GetAwaiter().GetResult();
-					db.ClearRangeAsync(location).GetAwaiter().GetResult();
-
-					// failsafe: remove this when not debugging problems !
-					cts.CancelAfter(TimeSpan.FromSeconds(60));
-
-					const int N = 100; // msg/publiser
-					const int K = 16; // publishers
-					const int W = 16; // workers
-
-					RunAsync(db, location, cts.Token, () => cts.Cancel(), N, K, W).GetAwaiter().GetResult();
-				};
-			}
-			catch (TaskCanceledException)
-			{
-				Console.WriteLine("CANCELED");
-			}
-			catch(Exception e)
-			{
-				cts.Cancel();
-				Console.Error.WriteLine("CRASH: " + e.ToString());
-				Console.Error.WriteLine();
-			}
-			finally
-			{
-				Fdb.Stop();
-			}
-		}
-
-		private async Task RunAsync(FdbDatabase db, FdbSubspace location, CancellationToken ct, Action done, int N, int K, int W)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-
-			var workerPool = new FdbWorkerPool(location);
-			Console.WriteLine("workerPool at " + location.Key.ToAsciiOrHexaString());
-
-			var workerSignal = new TaskCompletionSource<object>();
-			var clientSignal = new TaskCompletionSource<object>();
-
-			int taskCounter = 0;
-
-			int msgSent = 0;
-			int msgReceived = 0;
-
-			Func<string, Slice, Slice, CancellationToken, Task> handler = async (queue, id, body, _ct) => 
-			{
-				Interlocked.Increment(ref msgReceived);
-
-				//await Task.Delay(10 + Math.Abs(id.GetHashCode()) % 50);
-				await Task.Delay(10);
-
-			};
-
-			Func<int, Task> worker = async (id) =>
-			{
-				await workerSignal.Task;
-				Console.WriteLine("Worker #" + id + " is starting");
-				try
-				{
-					await workerPool.RunWorkerAsync(db, handler, ct);
-				}
-				finally
-				{
-					Console.WriteLine("Worker #" + id + " has stopped");
-				}
-			};
-
-			Func<int, Task> client = async (id) =>
-			{
-				await clientSignal.Task;
-				await Task.Delay(10);
-
-				var rnd = new Random(id * 111);
-				for (int i = 0; i < N; i++)
-				{
-					var taskId = Slice.FromString("T" + Interlocked.Increment(ref taskCounter));
-					string queueName = "Q_" + rnd.Next(16).ToString();
-					var taskBody = Slice.FromString("Message " + (i + 1) + " of " + N + " from client #" + id + " on queue " + queueName);
-
-					await workerPool.ScheduleTaskAsync(db, queueName, taskId, taskBody, ct);
-					Interlocked.Increment(ref msgSent);
-
-					//if (i > 0 && i % 10 == 0) Console.WriteLine("@@@ Client#" + id + " pushed " + (i + 1) + " / " + N + " messages");
-
-					switch(rnd.Next(5))
-					{
-						case 0: await Task.Delay(10); break;
-						case 1: await Task.Delay(100); break;
-						case 2: await Task.Delay(500); break;
-					}
-				}
-				Console.WriteLine("@@@ Client#" + id + " has finished!");
-			};
-
-			Func<string, Task> dump = async (label) =>
-			{
-				Console.WriteLine("<dump label='" + label + "' key='" + location.Key.ToAsciiOrHexaString() + "'>");
-				using (var tr = db.BeginTransaction(ct))
-				{
-					await tr.Snapshot
-						.GetRange(FdbKeyRange.StartsWith(location.Key))
-						.ForEachAsync((kvp) =>
-						{
-							Console.WriteLine(" - " + FdbTuple.Unpack(location.Extract(kvp.Key)) + " = " + kvp.Value.ToAsciiOrHexaString());
-						});
-				}
-				Console.WriteLine("</dump>");
-			};
-
-			var workers = Enumerable.Range(0, W).Select((i) => worker(i)).ToArray();
-			var clients = Enumerable.Range(0, K).Select((i) => client(i)).ToArray();
-
-			DateTime start = DateTime.Now;
-			DateTime last = start;
-			int lastHandled = -1;
-			using (var timer = new Timer((_) =>
-			{
-				var now = DateTime.Now;
-				Console.WriteLine("@@@ T=" + now.Subtract(start) + ", sent: " + msgSent.ToString("N0") + ", recv: " + msgReceived.ToString("N0"));
-				Console.WriteLine("### Workers: " + workerPool.IdleWorkers + " / " + workerPool.ActiveWorkers + " (" + new string('#', workerPool.IdleWorkers) + new string('.', workerPool.ActiveWorkers - workerPool.IdleWorkers) + "), sent: " + workerPool.MessageScheduled.ToString("N0") + ", recv: " + workerPool.MessageReceived.ToString("N0") + ", delta: " + (workerPool.MessageScheduled - workerPool.MessageReceived).ToString("N0") + ", busy: " + workerPool.WorkerBusyTime + " (avg " + workerPool.WorkerAverageBusyDuration.TotalMilliseconds.ToString("N3") + " ms)");
-
-				if (now.Subtract(last).TotalSeconds >= 10)
-				{
-					//dump("timer").GetAwaiter().GetResult();
-					last = now;
-					if (lastHandled == msgReceived)
-					{ // STALL ?
-						Console.WriteLine("STALL! ");
-						done();
-					}
-					lastHandled = msgReceived;
-				}
-
-				if (msgReceived >= K * N)
-				{
-					dump("complete").GetAwaiter().GetResult();
-					done();
-				}
-
-
-			}, null, 1000, 1000))
-			{
-
-				var sw = Stopwatch.StartNew();
-
-				// start the workers
-				await Task.Run(() => workerSignal.SetResult(null));
-				await Task.Delay(500);
-
-				await dump("workers started");
-
-				// start the clients
-				await Task.Run(() => clientSignal.SetResult(null));
-
-				await Task.WhenAll(clients);
-				Console.WriteLine("Clients completed after " + sw.Elapsed);
-
-				await Task.WhenAll(workers);
-				Console.WriteLine("Workers completed after " + sw.Elapsed);
-			}
-		}
-
 
 	}
 
