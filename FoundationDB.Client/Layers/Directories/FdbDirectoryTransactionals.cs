@@ -46,16 +46,16 @@ namespace FoundationDB.Layers.Directories
 		/// If prefix is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			return dbOrTrans.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, layer, prefix, allowCreate, allowOpen), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, layer, prefix, allowCreate, allowOpen), cancellationToken);
 		}
 
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			return dbOrTrans.ReadWriteAsync((tr) => subspace.CreateOrOpenAsync(tr, path, layer, prefix, allowCreate, allowOpen), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => subspace.CreateOrOpenAsync(tr, path, layer, prefix, allowCreate, allowOpen), cancellationToken);
 		}
 
 		/// <summary>
@@ -64,37 +64,37 @@ namespace FoundationDB.Layers.Directories
 		/// If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			return dbOrTrans.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, layer, prefix), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, layer, prefix), cancellationToken);
 		}
 
-		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			return dbOrTrans.ReadWriteAsync((tr) => subspace.CreateAsync(tr, path, layer, prefix), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => subspace.CreateAsync(tr, path, layer, prefix), cancellationToken);
 		}
 
 		/// <summary>
 		/// Opens the directory with the given <paramref name="path"/>.
 		/// An error is raised if the directory does not exist, or if a layer is specified and a different layer was specified when the directory was created.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			// note: we will not write to the transaction
-			return dbOrTrans.ReadWriteAsync((tr) => directory.OpenAsync(tr, path, layer), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => directory.OpenAsync(tr, path, layer), cancellationToken);
 		}
 
 		/// <summary>
 		/// Opens a subdirectory with the given <paramref name="path"/>.
 		/// An exception is thrown if the directory does not exist, or if a layer is specified and a different layer was specified when the directory was created.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, IFdbTuple path, string layer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			// note: this should only read from the transaction
-			return dbOrTrans.ReadWriteAsync((tr) => subspace.OpenAsync(tr, path, layer), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => subspace.OpenAsync(tr, path, layer), cancellationToken);
 		}
 
 		/// <summary>
@@ -102,53 +102,53 @@ namespace FoundationDB.Layers.Directories
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if the old directory does not exist, a directory already exists at `new_path`, or the parent directory of `new_path` does not exist.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> MoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple oldPath, IFdbTuple newPath, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDirectorySubspace> MoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple oldPath, IFdbTuple newPath, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			return dbOrTrans.ReadWriteAsync((tr) => directory.MoveAsync(tr, oldPath, newPath), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => directory.MoveAsync(tr, oldPath, newPath), cancellationToken);
 		}
 
-		public static Task<FdbDirectorySubspace> MoveAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, IFdbTuple newPath, CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDirectorySubspace> MoveAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, IFdbTuple newPath, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			return dbOrTrans.ReadWriteAsync((tr) => subspace.MoveAsync(tr, newPath), ct);
-		}
-
-		/// <summary>
-		/// Removes the directory, its contents, and all subdirectories.
-		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
-		/// </summary>
-		public static Task<bool> RemoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, CancellationToken ct = default(CancellationToken))
-		{
-			return dbOrTrans.ReadWriteAsync((tr) => directory.RemoveAsync(tr, path), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => subspace.MoveAsync(tr, newPath), cancellationToken);
 		}
 
 		/// <summary>
 		/// Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		public static Task RemoveAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		public static Task<bool> RemoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return dbOrTrans.ReadWriteAsync((tr) => directory.RemoveAsync(tr, path), cancellationToken);
+		}
+
+		/// <summary>
+		/// Removes the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		public static Task RemoveAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			return dbOrTrans.ReadWriteAsync((tr) => subspace.RemoveAsync(tr), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => subspace.RemoveAsync(tr), cancellationToken);
 		}
 
 		/// <summary>
 		/// Returns the list of subdirectories of directory at <paramref name="path"/>
 		/// </summary>
-		public static Task<List<IFdbTuple>> ListAsync(this FdbDirectoryLayer directory, IFdbReadOnlyTransactional dbOrTrans, IFdbTuple path, CancellationToken ct = default(CancellationToken))
+		public static Task<List<IFdbTuple>> ListAsync(this FdbDirectoryLayer directory, IFdbReadOnlyTransactional dbOrTrans, IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			return dbOrTrans.ReadAsync((tr) => directory.ListAsync(tr, path), ct);
+			return dbOrTrans.ReadAsync((tr) => directory.ListAsync(tr, path), cancellationToken);
 		}
 
 		/// <summary>
 		/// Returns the list of all the subdirectories of the current directory.
 		/// </summary>
-		public static Task<List<IFdbTuple>> ListAsync(this FdbDirectorySubspace subspace, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		public static Task<List<IFdbTuple>> ListAsync(this FdbDirectorySubspace subspace, IFdbReadOnlyTransactional dbOrTrans, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			return dbOrTrans.ReadAsync((tr) => subspace.ListAsync(tr), ct);
+			return dbOrTrans.ReadAsync((tr) => subspace.ListAsync(tr), cancellationToken);
 		}
 
 		// string paths

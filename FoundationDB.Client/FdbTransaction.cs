@@ -90,9 +90,9 @@ namespace FoundationDB.Client
 		internal FdbTransaction(FdbOperationContext context, int id, TransactionHandle handle, bool readOnly)
 		{
 			Contract.Requires(context != null && handle != null);
+			Contract.Requires(context.Db != null && context.Db is FdbDatabase);
 
 			m_context = context;
-			//m_database = database;
 			m_id = id;
 			m_handle = handle;
 			m_readOnly = readOnly;
@@ -116,7 +116,7 @@ namespace FoundationDB.Client
 		public FdbOperationContext Context { get { return m_context; } }
 
 		/// <summary>Database instance that manages this transaction</summary>
-		public FdbDatabase Database { get { return m_context.Db; } }
+		public FdbDatabase Database { get { return (FdbDatabase) m_context.Db; } }
 
 		/// <summary>Native FDB_TRANSACTION* handle</summary>
 		internal TransactionHandle Handle { get { return m_handle; } }
@@ -130,55 +130,56 @@ namespace FoundationDB.Client
 		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
 		public CancellationToken Token { get { return m_token; } }
 
+		/// <summary>Returns true if this transaction only supports read operations, or false if it supports both read and write operations</summary>
 		public bool IsReadOnly { get { return m_readOnly; } }
 
 		#endregion
 
 		#region Transactionals...
 
-		Task IFdbReadOnlyTransactional.ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken ct)
+		Task IFdbReadOnlyTransactional.ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(ct);
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
 
 			return asyncHandler(this);
 		}
 
-		async Task IFdbReadOnlyTransactional.ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
+		async Task IFdbReadOnlyTransactional.ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			ct.ThrowIfCancellationRequested();
+			cancellationToken.ThrowIfCancellationRequested();
 
 			await asyncHandler(this);
 			if (onDone != null) onDone(this);
 		}
 
-		Task<R> IFdbReadOnlyTransactional.ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken ct)
+		Task<R> IFdbReadOnlyTransactional.ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<R>(ct);
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<R>(cancellationToken);
 
 			return asyncHandler(this);
 		}
 
-		async Task<R> IFdbReadOnlyTransactional.ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken ct)
+		async Task<R> IFdbReadOnlyTransactional.ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			ct.ThrowIfCancellationRequested();
+			cancellationToken.ThrowIfCancellationRequested();
 
 			var result = await asyncHandler(this);
 			if (onDone != null) onDone(this);
 			return result;
 		}
 
-		Task IFdbTransactional.WriteAsync(Action<IFdbTransaction> handler, CancellationToken ct)
+		Task IFdbTransactional.WriteAsync(Action<IFdbTransaction> handler, CancellationToken cancellationToken)
 		{
 			if (handler == null) throw new ArgumentNullException("handler");
 
-			return TaskHelpers.Inline<IFdbTransaction>(handler, this, ct);
+			return TaskHelpers.Inline<IFdbTransaction>(handler, this, cancellationToken);
 		}
 
-		Task IFdbTransactional.WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken ct)
+		Task IFdbTransactional.WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (handler == null) throw new ArgumentNullException("handler");
 
@@ -186,38 +187,38 @@ namespace FoundationDB.Client
 			{
 				_handler(tr);
 				if (onDone != null) _onDone(tr);
-			}, this, handler, onDone, ct);
+			}, this, handler, onDone, cancellationToken);
 		}
 
-		Task IFdbTransactional.ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken ct)
+		Task IFdbTransactional.ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(ct);
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
 
 			return asyncHandler(this);
 		}
 
-		async Task IFdbTransactional.ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
+		async Task IFdbTransactional.ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			ct.ThrowIfCancellationRequested();
+			cancellationToken.ThrowIfCancellationRequested();
 
 			await asyncHandler(this);
 			onDone(this);
 		}
 
-		Task<R> IFdbTransactional.ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken ct)
+		Task<R> IFdbTransactional.ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<R>(ct);
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<R>(cancellationToken);
 
 			return asyncHandler(this);
 		}
 
-		async Task<R> IFdbTransactional.ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken ct)
+		async Task<R> IFdbTransactional.ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
-			ct.ThrowIfCancellationRequested();
+			cancellationToken.ThrowIfCancellationRequested();
 
 			var result = await asyncHandler(this);
 			onDone(this);
@@ -875,7 +876,7 @@ namespace FoundationDB.Client
 		
 		#region Watches...
 
-		internal FdbWatch WatchCore(Slice key, CancellationToken ct)
+		internal FdbWatch WatchCore(Slice key, CancellationToken cancellationToken)
 		{
 			this.Database.EnsureKeyIsValid(key);
 
@@ -885,11 +886,11 @@ namespace FoundationDB.Client
 
 			//BUGBUG: we need to mix the ct with m_token if they are different ?
 			// This is just a temporary hack
-			if (!ct.CanBeCanceled) ct = m_token;
+			if (!cancellationToken.CanBeCanceled) cancellationToken = m_token;
 
 			var future = FdbNative.TransactionWatch(m_handle, key);
 			return new FdbWatch(
-				FdbFuture.FromHandle<Slice>(future, (h) => key, ct),
+				FdbFuture.FromHandle<Slice>(future, (h) => key, cancellationToken),
 				key
 			);
 		}
@@ -898,19 +899,19 @@ namespace FoundationDB.Client
 		/// Watch a key for any change in the database.
 		/// </summary>
 		/// <param name="key">Key to watch</param>
-		/// <param name="ct">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
+		/// <param name="cancellationToken">CancellationToken used to abort the watch if the caller doesn't want to wait anymore. Note that you can manually cancel the watch by calling Cancel() on the returned FdbWatch instance</param>
 		/// <returns>FdbWatch that can be awaited and will complete when the key has changed in the database, or cancellation occurs. You can call Cancel() at any time if you are not interested in watching the key anymore. You MUST always call Dispose() if the watch completes or is cancelled, to ensure that resources are released properly.</returns>
 		/// <remarks>You can directly await an FdbWatch, or obtain a Task&lt;Slice&gt; by reading the <see cref="FdbWatch.Task"/> property</remarks>
-		public FdbWatch Watch(Slice key, CancellationToken ct)
+		public FdbWatch Watch(Slice key, CancellationToken cancellationToken)
 		{
-			ct.ThrowIfCancellationRequested();
+			cancellationToken.ThrowIfCancellationRequested();
 			EnsureCanRead();
 
 			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be cancelled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
 			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource everytime),
 			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
 
-			return WatchCore(key, ct);
+			return WatchCore(key, cancellationToken);
 		}
 
 		#endregion
@@ -1036,7 +1037,7 @@ namespace FoundationDB.Client
 			if (!allowFromNetworkThread) Fdb.EnsureNotOnNetworkThread();
 
 			// Ensure that the DB is still opened and that this transaction is still registered with it
-			m_context.Db.EnsureTransactionIsValid(this);
+			this.Database.EnsureTransactionIsValid(this);
 
 			// we are ready to go !
 		}
@@ -1053,7 +1054,7 @@ namespace FoundationDB.Client
 				case STATE_CANCELED:
 				{ // We are still valid
 					// checks that the DB has not been disposed behind our back
-					m_context.Db.EnsureTransactionIsValid(this);
+					this.Database.EnsureTransactionIsValid(this);
 					return;
 				}
 
@@ -1095,7 +1096,7 @@ namespace FoundationDB.Client
 			{
 				try
 				{
-					m_context.Db.UnregisterTransaction(this);
+					this.Database.UnregisterTransaction(this);
 					m_cts.SafeCancelAndDispose();
 
 					if (Logging.On) Logging.Verbose(this, "Dispose", String.Format("Transaction #{0} has been disposed", m_id));

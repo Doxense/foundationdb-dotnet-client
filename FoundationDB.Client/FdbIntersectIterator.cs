@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 			return new FdbIntersectIterator<TSource, TKey, TResult>(m_sources, m_limit, m_keySelector, m_resultSelector, m_keyComparer);
 		}
 
-		protected override bool FindNext(CancellationToken ct, out int index, out TSource current)
+		protected override bool FindNext(CancellationToken cancellationToken, out int index, out TSource current)
 		{
 			//Console.WriteLine("FindNext called");
 
@@ -101,7 +101,7 @@ namespace FoundationDB.Client
 				// advance everyone !
 				for (int i = 0; i < m_iterators.Length;i++)
 				{
-					if (m_iterators[i].Active) AdvanceIterator(i, ct);
+					if (m_iterators[i].Active) AdvanceIterator(i, cancellationToken);
 				}
 				return true;
 			}
@@ -113,7 +113,7 @@ namespace FoundationDB.Client
 				if (m_iterators[i].Active && m_keyComparer.Compare(m_iterators[i].Current, max) < 0)
 				{
 					//Console.WriteLine("> advancing " + i);
-					AdvanceIterator(i, ct);
+					AdvanceIterator(i, cancellationToken);
 				}
 			}
 

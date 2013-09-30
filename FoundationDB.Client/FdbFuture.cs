@@ -68,50 +68,50 @@ namespace FoundationDB.Client
 		/// <typeparam name="T">Type of the result of the task</typeparam>
 		/// <param name="handle">FDBFuture* pointer</param>
 		/// <param name="selector">Func that will be called to get the result once the future completes (and did not fail)</param>
-		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
+		/// <param name="cancellationToken">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of the FDBFuture handle</returns>
-		public static FdbFutureSingle<T> FromHandle<T>(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct)
+		public static FdbFutureSingle<T> FromHandle<T>(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken cancellationToken)
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
 
-			return new FdbFutureSingle<T>(handle, handle.IsInvalid ? null : selector, ct);
+			return new FdbFutureSingle<T>(handle, handle.IsInvalid ? null : selector, cancellationToken);
 		}
 
 		/// <summary>Create a new FdbFutureArray&lt;<typeparamref name="T"/>&gt; from an array of FDBFuture* pointers</summary>
 		/// <typeparam name="T">Type of the items of the arrayreturn by the task</typeparam>
 		/// <param name="handles">Array of FDBFuture* pointers</param>
 		/// <param name="selector">Func that will be called for each future that complete (and did not fail)</param>
-		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
+		/// <param name="cancellationToken">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of all the FDBFuture handles</returns>
-		public static FdbFutureArray<T> FromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken ct)
+		public static FdbFutureArray<T> FromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken cancellationToken)
 		{
 			if (handles == null) throw new ArgumentNullException("handles");
 			if (selector == null) throw new ArgumentNullException("selector");
 
 			if (handles.Length == 0) throw new ArgumentException("There must be at least on handle to create a FdbFutureArray<T>", "handles");
 
-			return new FdbFutureArray<T>(handles, selector, ct);
+			return new FdbFutureArray<T>(handles, selector, cancellationToken);
 		}
 
 		/// <summary>Wrap a FdbFuture&lt;<typeparamref name="T"/>&gt; handle into a Task&lt;<typeparamref name="T"/>&gt;</summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
 		/// <param name="handle">FDBFuture* pointer</param>
 		/// <param name="continuation">Lambda that will be called once the future completes sucessfully, to extract the result from the future handle.</param>
-		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
+		/// <param name="cancellationToken">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return the result of the continuation lambda, or an exception</returns>
-		public static Task<T> CreateTaskFromHandle<T>(FutureHandle handle, Func<FutureHandle, T> continuation, CancellationToken ct)
+		public static Task<T> CreateTaskFromHandle<T>(FutureHandle handle, Func<FutureHandle, T> continuation, CancellationToken cancellationToken)
 		{
-			return FromHandle(handle, continuation, ct).Task;
+			return FromHandle(handle, continuation, cancellationToken).Task;
 		}
 
 		/// <summary>Wrap multiple FdbFuture&lt;<typeparamref name="T"/>&gt; handles into a single Task&lt;<typeparamref name="T"/>[]&gt;</summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
 		/// <param name="handles">Array of FDBFuture* pointers</param>
 		/// <param name="continuation">Lambda that will be called once for each future that completes sucessfully, to extract the result from the future handle.</param>
-		/// <param name="ct">Optional cancellation token that can be used to cancel the future</param>
+		/// <param name="cancellationToken">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return all the results of the continuation lambdas, or an exception</returns>
 		/// <remarks>If at least one future fails, the whole task will fail.</remarks>
-		public static Task<T[]> CreateTaskFromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> continuation, CancellationToken ct)
+		public static Task<T[]> CreateTaskFromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> continuation, CancellationToken cancellationToken)
 		{
 			if (handles == null) throw new ArgumentNullException("handles");
 			if (continuation == null) throw new ArgumentNullException("continuation");
@@ -119,7 +119,7 @@ namespace FoundationDB.Client
 			// Special case, because FdbFutureArray<T> does not support empty arrays
 			if (handles.Length == 0) return Task.FromResult<T[]>(new T[0]);
 
-			return FromHandleArray(handles, continuation, ct).Task;
+			return FromHandleArray(handles, continuation, cancellationToken).Task;
 		}
 
 	}
@@ -403,11 +403,11 @@ namespace FoundationDB.Client
 
 		#region Cancellation...
 
-		protected void RegisterForCancellation(CancellationToken ct)
+		protected void RegisterForCancellation(CancellationToken cancellationToken)
 		{
 			//note: if the token is already cancelled, the callback handler will run inline and any exception would bubble up here
 			//=> this is not a problem because the ctor already has a try/catch that will clean up everything
-			m_ctr = ct.Register(
+			m_ctr = cancellationToken.Register(
 				(_state) => { CancellationHandler(_state); },
 				this,
 				false

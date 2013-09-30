@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 			m_resultSelector = resultSelector;
 		}
 
-		protected override Task<bool> OnFirstAsync(CancellationToken ct)
+		protected override Task<bool> OnFirstAsync(CancellationToken cancellationToken)
 		{
 			if (m_remaining != null && m_remaining.Value < 0)
 			{ // empty list ??		
@@ -98,7 +98,7 @@ namespace FoundationDB.Client
 					var state = new IteratorState();
 					state.Active = true;
 					state.Iterator = sources[i].GetEnumerator(mode);
-					state.Next = state.Iterator.MoveNext(ct);
+					state.Next = state.Iterator.MoveNext(cancellationToken);
 
 					iterators[i] = state;
 				}
@@ -123,7 +123,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Finds the next smallest item from all the active iterators</summary>
-		protected override async Task<bool> OnNextAsync(CancellationToken ct)
+		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
 		{
 			if (m_remaining != null && m_remaining.Value <= 0)
 			{
@@ -158,7 +158,7 @@ namespace FoundationDB.Client
 				}
 
 				// find the next value to advance
-				if (!FindNext(ct, out index, out current))
+				if (!FindNext(cancellationToken, out index, out current))
 				{ // nothing left anymore ?
 					return Completed();
 				}
@@ -185,13 +185,13 @@ namespace FoundationDB.Client
 			return true;
 		}
 
-		protected abstract bool FindNext(CancellationToken ct, out int index, out TSource current);
+		protected abstract bool FindNext(CancellationToken cancellationToken, out int index, out TSource current);
 
-		protected void AdvanceIterator(int index, CancellationToken ct)
+		protected void AdvanceIterator(int index, CancellationToken cancellationToken)
 		{
 			m_iterators[index].HasCurrent = false;
 			m_iterators[index].Current = default(TKey);
-			m_iterators[index].Next = m_iterators[index].Iterator.MoveNext(ct);
+			m_iterators[index].Next = m_iterators[index].Iterator.MoveNext(cancellationToken);
 		}
 
 		private static void Cleanup(IteratorState[] iterators)

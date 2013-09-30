@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		internal FdbFutureSingle(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken ct)
+		internal FdbFutureSingle(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken cancellationToken)
 		{
 			if (handle == null) throw new ArgumentNullException("handle");
 			if (selector == null) throw new ArgumentNullException("selector");
@@ -77,9 +77,9 @@ namespace FoundationDB.Client
 				}
 
 				// register for cancellation (if needed)
-				if (ct.CanBeCanceled)
+				if (cancellationToken.CanBeCanceled)
 				{
-					if (ct.IsCancellationRequested)
+					if (cancellationToken.IsCancellationRequested)
 					{ // we have already been cancelled
 
 #if DEBUG_FUTURES
@@ -97,7 +97,7 @@ namespace FoundationDB.Client
 					}
 
 					// token still active
-					RegisterForCancellation(ct);
+					RegisterForCancellation(cancellationToken);
 				}
 
 #if DEBUG_FUTURES

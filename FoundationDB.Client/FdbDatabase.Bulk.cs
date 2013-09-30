@@ -63,13 +63,13 @@ using System.Threading.Tasks;
 
 			/// <summary>Insert a (large) sequence of key/value pairs into the database, by using as many transactions as necessary</summary>
 			/// <param name="data">Sequence of key/value pairs</param>
-			/// <param name="ct">Cancellation Token</param>
+			/// <param name="cancellationToken">Cancellation Token</param>
 			/// <returns>Total number of values inserted in the database</returns>
-			public async Task<long> InsertAsync(IEnumerable<KeyValuePair<Slice, Slice>> data, IProgress<long> progress = null, CancellationToken ct = default(CancellationToken))
+			public async Task<long> InsertAsync(IEnumerable<KeyValuePair<Slice, Slice>> data, IProgress<long> progress = null, CancellationToken cancellationToken = default(CancellationToken))
 			{
 				if (data == null) throw new ArgumentNullException("data");
 
-				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+				if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
 				// we will batch keys into chunks (bounding by count and bytes),
 				// then attempt to insert that batch in the database.
@@ -84,7 +84,7 @@ using System.Threading.Tasks;
 				{
 					if (progress != null) progress.Report(0);
 
-					while (!ct.IsCancellationRequested)
+					while (!cancellationToken.IsCancellationRequested)
 					{
 						chunk.Clear();
 						int bytes = 0;
@@ -112,7 +112,7 @@ using System.Threading.Tasks;
 							{
 								tr.Set(pair.Key, pair.Value);
 							}
-						}, ct).ConfigureAwait(false);
+						}, cancellationToken).ConfigureAwait(false);
 
 						items += chunk.Count;
 
@@ -120,7 +120,7 @@ using System.Threading.Tasks;
 					}
 				}
 
-				if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+				if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
 				return items;
 			}

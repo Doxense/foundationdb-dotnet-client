@@ -39,43 +39,43 @@ namespace FoundationDB.Layers.Directories
 	[DebuggerDisplay("Nodes={Directory.NodeSubspace}, Contents={Directory.ContentsSubspace}")]
 	public class FdbRootDirectory
 	{
-		public FdbDatabase Db { get; private set; }
+		public IFdbDatabase Db { get; private set; }
 		internal FdbDirectoryLayer Directory { get; private set; }
 
-		public FdbRootDirectory(FdbDatabase db, FdbDirectoryLayer directory)
+		public FdbRootDirectory(IFdbDatabase db, FdbDirectoryLayer directory)
 		{
 			this.Db = db;
 			this.Directory = directory;
 		}
 
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.CreateOrOpenAsync(this.Db, path, layer, prefix, allowCreate, allowOpen, ct);
+			return this.Directory.CreateOrOpenAsync(this.Db, path, layer, prefix, allowCreate, allowOpen, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> OpenAsync(IFdbTuple path, string layer = null, CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbTuple path, string layer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.OpenAsync(this.Db, path, layer, ct);
+			return this.Directory.OpenAsync(this.Db, path, layer, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.CreateAsync(this.Db, path, layer, prefix, ct);
+			return this.Directory.CreateAsync(this.Db, path, layer, prefix, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> MoveAsync(IFdbTuple oldPath, IFdbTuple newPath, CancellationToken ct = default(CancellationToken))
+		public Task<FdbDirectorySubspace> MoveAsync(IFdbTuple oldPath, IFdbTuple newPath, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.MoveAsync(this.Db, oldPath, newPath, ct);
+			return this.Directory.MoveAsync(this.Db, oldPath, newPath, cancellationToken);
 		}
 
-		public Task<bool> RemoveAsync(IFdbTuple path, CancellationToken ct = default(CancellationToken))
+		public Task<bool> RemoveAsync(IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.RemoveAsync(this.Db, path, ct);
+			return this.Directory.RemoveAsync(this.Db, path, cancellationToken);
 		}
 
-		public Task<List<IFdbTuple>> ListAsync(IFdbTuple path = null, CancellationToken ct = default(CancellationToken))
+		public Task<List<IFdbTuple>> ListAsync(IFdbTuple path = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Directory.ListAsync(this.Db, path, ct);
+			return this.Directory.ListAsync(this.Db, path, cancellationToken);
 		}
 
 	}

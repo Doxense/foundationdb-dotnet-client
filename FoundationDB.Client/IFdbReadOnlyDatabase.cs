@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 		CancellationToken Token { get; }
 
 		/// <summary>Start a new read-only transaction on this database</summary>
-		/// <param name="ct">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <returns>New transaction instance that can read from the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
 		/// <example>
@@ -52,7 +52,7 @@ namespace FoundationDB.Client
 		///		var result = await tr.Get(Slice.FromString("Hello"));
 		///		var items = await tr.GetRange(FdbKeyRange.StartsWith(Slice.FromString("ABC"))).ToListAsync();
 		/// }</example>
-		IFdbReadOnlyTransaction BeginReadOnlyTransaction(CancellationToken ct = default(CancellationToken));
+		IFdbReadOnlyTransaction BeginReadOnlyTransaction(CancellationToken cancellationToken = default(CancellationToken));
 	}
 
 }

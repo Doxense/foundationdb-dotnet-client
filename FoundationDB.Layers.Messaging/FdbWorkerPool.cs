@@ -194,7 +194,7 @@ namespace FoundationDB.Layers.Messaging
 			{
 				Interlocked.Increment(ref m_schedulingMessages);
 			},
-			ct: ct).ConfigureAwait(false);
+			cancellationToken: ct).ConfigureAwait(false);
 		}
 
 		/// <summary>Run the worker loop</summary>
@@ -288,7 +288,7 @@ namespace FoundationDB.Layers.Messaging
 							previousTaskId = Slice.Nil;
 							workerId = myId;
 						},
-						ct: ct
+						cancellationToken: ct
 					).ConfigureAwait(false);
 
 					if (taskId.IsNullOrEmpty)

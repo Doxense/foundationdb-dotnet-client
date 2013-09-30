@@ -103,7 +103,7 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			protected override Task<bool> OnFirstAsync(CancellationToken ct)
+			protected override Task<bool> OnFirstAsync(CancellationToken cancellationToken)
 			{
 				this.Remaining = this.Query.Limit > 0 ? this.Query.Limit : default(int?);
 				this.Begin = this.Query.Range.Begin;
@@ -130,14 +130,14 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Asynchronously fetch a new page of results</summary>
-			/// <param name="ct"></param>
+			/// <param name="cancellationToken"></param>
 			/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-			private Task<bool> FetchNextPageAsync(CancellationToken ct)
+			private Task<bool> FetchNextPageAsync(CancellationToken cancellationToken)
 			{
 				Contract.Requires(!this.AtEnd);
 				Contract.Requires(this.Iteration >= 0);
 
-				ct.ThrowIfCancellationRequested();
+				cancellationToken.ThrowIfCancellationRequested();
 				this.Transaction.EnsureCanRead();
 
 				this.Iteration++;

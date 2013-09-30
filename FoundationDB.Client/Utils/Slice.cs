@@ -1109,7 +1109,7 @@ namespace FoundationDB.Client
 		/// <summary>Asynchronously read the content of a stream into a slice</summary>
 		/// <param name="data">Source stream, that must be in a readable state</param>
 		/// <returns>Slice containing the stream content (or Slice.Nil if the stream is Stream.Nul)</returns>
-		public static Task<Slice> FromStreamAsync(Stream data, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> FromStreamAsync(Stream data, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (data == null) throw new ArgumentNullException("data");
 			// special case for empty values
@@ -1120,7 +1120,7 @@ namespace FoundationDB.Client
 			if (data.Length > int.MaxValue) throw new InvalidOperationException("Streams of more than 2GB are not supported");
 			//TODO: other checks?
 
-			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<Slice>(ct);
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<Slice>(cancellationToken);
 
 			int length;
 			checked { length = (int)data.Length; }
@@ -1131,7 +1131,7 @@ namespace FoundationDB.Client
 			}
 
 			// read asynchronoulsy
-			return LoadFromBlockingStreamAsync(data, length, 0, ct);
+			return LoadFromBlockingStreamAsync(data, length, 0, cancellationToken);
 		}
 
 		/// <summary>Read from a non-blocking stream that already contains all the data in memory (MemoryStream, UnmanagedStream, ...)</summary>
@@ -1203,7 +1203,7 @@ namespace FoundationDB.Client
 		/// <param name="length">Number of bytes to read from the stream</param>
 		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
 		/// <returns>Slice containing the loaded data</returns>
-		private static async Task<Slice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize, CancellationToken ct)
+		private static async Task<Slice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize, CancellationToken cancellationToken)
 		{
 			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
@@ -1217,7 +1217,7 @@ namespace FoundationDB.Client
 			while (r > 0)
 			{
 				int c = Math.Min(r, chunkSize);
-				int n = await source.ReadAsync(buffer, p, c, ct);
+				int n = await source.ReadAsync(buffer, p, c, cancellationToken);
 				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
 				p += n;
 				r -= n;

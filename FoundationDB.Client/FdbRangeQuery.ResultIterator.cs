@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 				return new ResultIterator(m_query, m_transaction, m_resultTransform);
 			}
 
-			protected override Task<bool> OnFirstAsync(CancellationToken ct)
+			protected override Task<bool> OnFirstAsync(CancellationToken cancellationToken)
 			{
 				// on first call, setup the page iterator
 				if (m_chunkIterator == null)
@@ -98,7 +98,7 @@ namespace FoundationDB.Client
 				return TaskHelpers.TrueTask;
 			}
 
-			protected override Task<bool> OnNextAsync(CancellationToken ct)
+			protected override Task<bool> OnNextAsync(CancellationToken cancellationToken)
 			{
 				if (m_itemsRemainingInChunk > 0)
 				{ // we need can get another one from the batch
@@ -117,15 +117,15 @@ namespace FoundationDB.Client
 				// slower path, we need to actually read the first batch...
 				m_chunk = null;
 				m_currentOffsetInChunk = -1;
-				return ReadAnotherBatchAsync(ct);
+				return ReadAnotherBatchAsync(cancellationToken);
 			}
 
-			private async Task<bool> ReadAnotherBatchAsync(CancellationToken ct)
+			private async Task<bool> ReadAnotherBatchAsync(CancellationToken cancellationToken)
 			{
 				Contract.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
 
 				// start reading the next batch
-				if (await m_chunkIterator.MoveNext(ct).ConfigureAwait(false))
+				if (await m_chunkIterator.MoveNext(cancellationToken).ConfigureAwait(false))
 				{ // we got a new chunk !
 
 					var chunk = m_chunkIterator.Current;

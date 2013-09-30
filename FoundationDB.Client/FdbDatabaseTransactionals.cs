@@ -46,88 +46,91 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Reads a value from the database.
 		/// </summary>
-		public static Task<Slice> GetAsync(this IFdbReadOnlyTransactional dbOrTrans, Slice key, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> GetAsync(this IFdbReadOnlyTransactional dbOrTrans, Slice key, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.ReadAsync((tr) => tr.GetAsync(key), ct);
+			return dbOrTrans.ReadAsync((tr) => tr.GetAsync(key), cancellationToken);
 		}
 
 		/// <summary>
 		/// Resolves a key selector against the keys in the database.
 		/// </summary>
-		public static Task<Slice> GetKeyAsync(this IFdbReadOnlyTransactional dbOrTrans, FdbKeySelector selector, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> GetKeyAsync(this IFdbReadOnlyTransactional dbOrTrans, FdbKeySelector selector, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.ReadAsync((tr) => tr.GetKeyAsync(selector), ct);
+			return dbOrTrans.ReadAsync((tr) => tr.GetKeyAsync(selector), cancellationToken);
 		}
 
 		/// <summary>
 		/// Resolves several key selectors against the keys in the database.
 		/// </summary>
-		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyTransactional dbOrTrans, FdbKeySelector[] selectors, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyTransactional dbOrTrans, FdbKeySelector[] selectors, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.ReadAsync((tr) => tr.GetKeysAsync(selectors), ct);
+			return dbOrTrans.ReadAsync((tr) => tr.GetKeysAsync(selectors), cancellationToken);
 		}
 
 		/// <summary>
 		/// Resolves several key selectors against the keys in the database.
 		/// </summary>
-		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyTransactional dbOrTrans, IEnumerable<FdbKeySelector> selectors, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyTransactional dbOrTrans, IEnumerable<FdbKeySelector> selectors, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.ReadAsync((tr) => tr.GetKeysAsync(selectors), ct);
+			return dbOrTrans.ReadAsync((tr) => tr.GetKeysAsync(selectors), cancellationToken);
 		}
 
 		/// <summary>
 		/// Reads several values from the database.
 		/// </summary>
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransactional dbOrTrans, Slice[] keys, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransactional dbOrTrans, Slice[] keys, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.ReadAsync((tr) => tr.GetValuesAsync(keys), ct);
+			return dbOrTrans.ReadAsync((tr) => tr.GetValuesAsync(keys), cancellationToken);
 		}
 
 		/// <summary>
 		/// Reads several values from the database.
 		/// </summary>
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransactional dbOrTrans, IEnumerable<Slice> keys, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyTransactional dbOrTrans, IEnumerable<Slice> keys, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.ReadAsync((tr) => tr.GetValuesAsync(keys), ct);
+			return dbOrTrans.ReadAsync((tr) => tr.GetValuesAsync(keys), cancellationToken);
 		}
 
 		/// <summary>
 		/// Change the given key to have the given value in the database. If the given key was not previously present in the database it is inserted.
 		/// </summary>
-		public static Task SetAsync(this IFdbTransactional dbOrTrans, Slice key, Slice value, CancellationToken ct = default(CancellationToken))
+		public static Task SetAsync(this IFdbTransactional dbOrTrans, Slice key, Slice value, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.WriteAsync((tr) => tr.Set(key, value), ct);
+			return dbOrTrans.WriteAsync((tr) => tr.Set(key, value), cancellationToken);
 		}
 
 		/// <summary>
 		/// Remove the given key from the database. If the key was not previously present in the database, there is no effect.
 		/// </summary>
-		public static Task ClearAsync(this IFdbTransactional dbOrTrans, Slice key, CancellationToken ct = default(CancellationToken))
+		public static Task ClearAsync(this IFdbTransactional dbOrTrans, Slice key, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.WriteAsync((tr) => tr.Clear(key), ct);
+			return dbOrTrans.WriteAsync((tr) => tr.Clear(key), cancellationToken);
 		}
 
 		/// <summary>
-		/// Modify the database snapshot represented by this transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
+		/// Remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
 		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
 		/// </summary>
-		public static Task ClearRangeAsync(this IFdbTransactional dbOrTrans, FdbKeyRange range, CancellationToken ct = default(CancellationToken))
+		public static Task ClearRangeAsync(this IFdbTransactional dbOrTrans, FdbKeyRange range, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.WriteAsync((tr) => tr.ClearRange(range), ct);
+			return dbOrTrans.WriteAsync((tr) => tr.ClearRange(range), cancellationToken);
 		}
 
 		/// <summary>
-		/// Modify the database snapshot represented by this transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
+		/// Remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
 		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
 		/// </summary>
-		public static Task ClearRangeAsync(this IFdbTransactional dbOrTrans, Slice beginInclusive, Slice endExclusive, CancellationToken ct = default(CancellationToken))
+		public static Task ClearRangeAsync(this IFdbTransactional dbOrTrans, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.WriteAsync((tr) => tr.ClearRange(beginInclusive, endExclusive), ct);
+			return dbOrTrans.WriteAsync((tr) => tr.ClearRange(beginInclusive, endExclusive), cancellationToken);
 		}
 
-		public static Task AtomicAsync(this IFdbTransactional dbOrTrans, Slice keyBytes, Slice paramBytes, FdbMutationType operationType, CancellationToken ct = default(CancellationToken))
+		/// <summary>
+		/// Perform the operation indicated by <paramref name="operationType"/> with operand <paramref name="paramBytes"/> to the value stored by the given key.
+		/// </summary>
+		public static Task AtomicAsync(this IFdbTransactional dbOrTrans, Slice keyBytes, Slice paramBytes, FdbMutationType operationType, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.WriteAsync((tr) => tr.Atomic(keyBytes, paramBytes, operationType), ct);
+			return dbOrTrans.WriteAsync((tr) => tr.Atomic(keyBytes, paramBytes, operationType), cancellationToken);
 		}
 
 	}
