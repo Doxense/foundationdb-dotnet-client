@@ -161,6 +161,18 @@ namespace FoundationDB.Client
 				m_parent.SetOption(option, value);
 			}
 
+			public int Timeout
+			{
+				get { return m_parent.Timeout; }
+				set { throw new NotSupportedException("The timeout value cannot be changed via the Snapshot view of a transaction."); }
+			}
+
+			public int RetryLimit
+			{
+				get { return m_parent.RetryLimit; }
+				set { throw new NotSupportedException("The retry limit value cannot be changed via the Snapshot view of a transaction."); }
+			}
+
 			void IDisposable.Dispose()
 			{
 				// NO-OP

@@ -38,6 +38,70 @@ namespace FoundationDB.Client
 	public static class FdbTransactionExtensions
 	{
 
+		#region Fluent...
+
+		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
+		public static TTransaction WithAccessToSystemKeys<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.AccessSystemKeys);
+			//TODO: cache this into a local variable ?
+			return trans;
+		}
+
+		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools</summary>
+		public static TTransaction WithPrioritySystemImmediate<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.PrioritySystemImmediate);
+			//TODO: cache this into a local variable ?
+			return trans;
+		}
+
+		/// <summary>Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work</summary>
+		public static TTransaction WithPriorityBatch<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.PriorityBatch);
+			//TODO: cache this into a local variable ?
+			return trans;
+		}
+
+		/// <summary>The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.</summary>
+		public static TTransaction WithNextWriteNoWriteConflictRange<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.NextWriteNoWriteConflictRange);
+			return trans;
+		}
+
+		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
+		/// <param name="timeout">Timeout (with millisecond precision), or TimeSpan.Zero for infinite timeout</param>
+		public static TTransaction WithTimeout<TTransaction>(this TTransaction trans, TimeSpan timeout)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			return WithTimeout<TTransaction>(trans, timeout == TimeSpan.Zero ? 0 : (int)Math.Ceiling(timeout.TotalMilliseconds));
+		}
+
+		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
+		/// <param name="milliseconds">Timeout in millisecond, or 0 for infinite timeout</param>
+		public static TTransaction WithTimeout<TTransaction>(this TTransaction trans, int milliseconds)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.Timeout = milliseconds;
+			return trans;
+		}
+
+		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code. Valid parameter values are ``[-1, INT_MAX]``. If set to -1, will disable the retry limit.</summary>
+		public static TTransaction WithRetryLimit<TTransaction>(this TTransaction trans, int retries)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.RetryLimit = retries;
+			return trans;
+		}
+
+		#endregion
+
 		#region Set...
 
 		public static void Set(this IFdbTransaction trans, Slice keyBytes, Stream data)
