@@ -59,7 +59,8 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
-    <Compile Include="FdbDatabaseTransactionals.cs" />
+    <Compile Include="FdbDatabaseExtensions.cs" />
+    <Compile Include="FdbTransactionals.cs" />
     <Compile Include="IFdbDatabase.cs" />
     <Compile Include="IFdbReadOnlyTransactional.cs" />
     <Compile Include="IFdbReadOnlyDatabase.cs" />
@@ -70,7 +71,7 @@
     <Compile Include="Fdb.System.cs" />
     <Compile Include="FdbConflictRangeType.cs" />
     <Compile Include="FdbMutationType.cs" />
-    <Compile Include="FdbDatabase.Bulk.cs" />
+    <Compile Include="FdbBulkOperations.cs" />
     <Compile Include="FdbTransaction.Snapshot.cs" />
     <Compile Include="IFdbTransaction.cs" />
     <Compile Include="IFdbReadOnlyTransaction.cs" />
@@ -99,11 +100,12 @@
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryTransactionals.cs" />
-    <Compile Include="Layers\Directories\FdbRootDirectory.cs" />
+    <Compile Include="Subspaces\Fdb.PartitionTable.cs" />
+    <Compile Include="Subspaces\FdbDatabasePartition.cs" />
     <Compile Include="Layers\Directories\FdbDirectorySubspace.cs" />
     <Compile Include="Layers\Directories\FdbHighContentionAllocator.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryLayer.cs" />
-    <Compile Include="Layers\Tuples\FdbSubspaceTuple.cs" />
+    <Compile Include="Subspaces\FdbSubspaceTuple.cs" />
     <Compile Include="Layers\Tuples\FdbTupleAlias.cs" />
     <Compile Include="Layers\Tuples\Formatters\FdbAnonymousTupleFormatter.cs" />
     <Compile Include="Layers\Tuples\Formatters\FdbGenericTupleFormatter.cs" />
@@ -111,10 +113,10 @@
     <Compile Include="Layers\Tuples\Formatters\ITupleFormattable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleComparisons.cs" />
     <Compile Include="Layers\Tuples\FdbJoinedTuple.cs" />
-    <Compile Include="Layers\Tuples\FdbSubspaceExtensions.cs" />
+    <Compile Include="Subspaces\FdbSubspaceExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbLinkedTuple.cs" />
     <Compile Include="Layers\Tuples\IFdbTuple.cs" />
-    <Compile Include="Layers\Tuples\FdbSubspace.cs" />
+    <Compile Include="Subspaces\FdbSubspace.cs" />
     <Compile Include="Layers\Tuples\FdbTuple.cs" />
     <Compile Include="FdbKeySelector.cs" />
     <Compile Include="FdbTransaction.cs" />

@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Interning.Tests
 {
+	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using NUnit.Framework;
 	using System;
@@ -40,7 +41,7 @@ namespace FoundationDB.Layers.Interning.Tests
 		[Test]
 		public async Task Test_StringIntern_Example()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var stringSpace = db.Partition("Strings");
 				var dataSpace = db.Partition("Data");

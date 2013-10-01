@@ -189,32 +189,32 @@ namespace FoundationDB.Layers.Directories
 
 		//
 
-		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbRootDirectory root, params string[] path)
+		public static Task<FdbDirectorySubspace> CreateOrOpenAsync(this FdbDatabasePartition root, params string[] path)
 		{
 			if (root == null) throw new ArgumentNullException("root");
 			if (path == null) throw new ArgumentNullException("path");
-			return root.CreateOrOpenAsync(FdbTuple.CreateRange(path, 0, path.Length));
+			return root.CreateOrOpenDirectoryAsync(FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
-		public static Task<FdbDirectorySubspace> OpenAsync(this FdbRootDirectory root, params string[] path)
+		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDatabasePartition root, params string[] path)
 		{
 			if (root == null) throw new ArgumentNullException("root");
 			if (path == null) throw new ArgumentNullException("path");
-			return root.OpenAsync(FdbTuple.CreateRange(path, 0, path.Length));
+			return root.OpenDirectoryAsync(FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
-		public static Task<FdbDirectorySubspace> CreateAsync(this FdbRootDirectory root, params string[] path)
+		public static Task<FdbDirectorySubspace> CreateAsync(this FdbDatabasePartition root, params string[] path)
 		{
 			if (root == null) throw new ArgumentNullException("root");
 			if (path == null) throw new ArgumentNullException("path");
-			return root.OpenAsync(FdbTuple.CreateRange(path, 0, path.Length));
+			return root.OpenDirectoryAsync(FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
-		public static Task<bool> RemoveAsync(this FdbRootDirectory root, params string[] path)
+		public static Task<bool> RemoveAsync(this FdbDatabasePartition root, params string[] path)
 		{
 			if (root == null) throw new ArgumentNullException("root");
 			if (path == null) throw new ArgumentNullException("path");
-			return root.RemoveAsync(FdbTuple.CreateRange(path, 0, path.Length));
+			return root.RemoveDirectoryAsync(FdbTuple.CreateRange(path, 0, path.Length));
 		}
 
 	}

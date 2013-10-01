@@ -49,7 +49,7 @@ namespace FoundationDB.Client.Tests
 
 			const int N = 1000; // total item count
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
 				var location = await TestHelpers.GetCleanDirectory(db, "range");
@@ -119,7 +119,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Range_First_Single_And_Last()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
 				var location = await TestHelpers.GetCleanDirectory(db, "range");
@@ -248,7 +248,7 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
-			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			using(var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("MergeSort");
@@ -312,7 +312,7 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Intersect");
@@ -389,7 +389,7 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Except");

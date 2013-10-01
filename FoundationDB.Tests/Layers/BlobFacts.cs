@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
+	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Threading.Tasks;
@@ -41,20 +42,25 @@ namespace FoundationDB.Layers.Blobs.Tests
 		[Test]
 		public async Task Test_FdbBlob_NotFound_Blob_Is_Empty()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = db.Partition("BlobsFromOuterSpace");
+				var location = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("BlobsFromOuterSpace"));
 
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, location);
 
 				var blob = new FdbBlob(location.Partition("Empty"));
 
-				using (var tr = db.BeginTransaction())
+				long? size;
+
+				using (var tr = db.BeginReadOnlyTransaction())
 				{
-					long? size = await blob.GetSizeAsync(tr);
+					size = await blob.GetSizeAsync(tr);
 					Assert.That(size, Is.Null, "Non existing blob should have no size");
 				}
+
+				size = await blob.GetSizeAsync(db);
+				Assert.That(size, Is.Null, "Non existing blob should have no size");
 
 			}
 		}
@@ -62,7 +68,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 		[Test]
 		public async Task Test_FdbBlob_Can_AppendToBlob()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("BlobsFromOuterSpace");
 
@@ -99,7 +105,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 		[Test]
 		public async Task Test_FdbBlob_CanAppendLargeChunks()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("BlobsFromOuterSpace");
 

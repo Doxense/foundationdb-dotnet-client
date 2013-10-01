@@ -32,13 +32,12 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
-	using System.Threading;
 	using System.Threading.Tasks;
 
 	public static class FdbTransactionExtensions
 	{
 
-		#region Fluent...
+		#region Fluent Options...
 
 		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
 		public static TTransaction WithAccessToSystemKeys<TTransaction>(this TTransaction trans)
@@ -342,7 +341,6 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
-
 
 	}
 }

@@ -1,4 +1,6 @@
 ﻿using FoundationDB.Client;
+using FoundationDB.Layers.Directories;
+using FoundationDB.Layers.Tuples;
 using FoundationDB.Samples.Tutorials;
 using System;
 using System.Collections.Generic;
@@ -14,12 +16,12 @@ namespace FoundationDB.Samples
 	public interface IAsyncTest
 	{
 		string Name { get; }
-		Task Run(FdbDatabase db, CancellationToken ct);
+		Task Run(FdbDatabasePartition db, CancellationToken ct);
 	}
 
 	public static class TestRunner
 	{
-		public static void RunAsyncTest(IAsyncTest test, FdbDatabase db)
+		public static void RunAsyncTest(IAsyncTest test, FdbDatabasePartition db)
 		{
 			Console.WriteLine("Starting " + test.Name + " ...");
 
@@ -65,61 +67,70 @@ namespace FoundationDB.Samples
 
 	class Program
 	{
-		private static FdbDatabase Db;
+		private static FdbDatabasePartition Db;
 
 		static void Main(string[] args)
 		{
 			bool stop = false;
 
+			string clusterFile = null;
+			string dbName = "DB";
+
 			// Initialize FDB
 
 			Fdb.Start();
-
-			Db = Fdb.OpenAsync().Result;
-
-			Console.WriteLine("Using API v" + Fdb.GetMaxApiVersion());
-			Console.WriteLine("FoundationDB Samples menu:");
-			Console.WriteLine("Press '1' for ClassSchedudling, '2' for TBD, or 'q' to exit");
-
-			Console.WriteLine("Ready...");
-
-			while(!stop)
+			try
 			{
-				Console.Write("> ");
-				string s = Console.ReadLine();
 
-				switch(s.Trim().ToLowerInvariant())
+				Db = Fdb.PartitionTable.OpenNamedPartitionAsync(clusterFile, dbName, FdbTuple.Create("Samples")).Result;
+				using (Db)
 				{
-					case "":
-					{
-						continue;
-					}
-					case "1":
-					{ // Class Scheduling
 
-						TestRunner.RunAsyncTest(new ClassScheduling(), Db);
-						break;
-					}
+					Console.WriteLine("Using API v" + Fdb.GetMaxApiVersion());
+					Console.WriteLine("FoundationDB Samples menu:");
+					Console.WriteLine("Press '1' for ClassSchedudling, '2' for TBD, or 'q' to exit");
 
-					case "q":
-					case "x":
-					{
-						stop = true;
-						break;
-					}
+					Console.WriteLine("Ready...");
 
-					default:
+					while (!stop)
 					{
-						Console.WriteLine("Unknown command");
-						break;
+						Console.Write("> ");
+						string s = Console.ReadLine();
+
+						switch (s.Trim().ToLowerInvariant())
+						{
+							case "":
+							{
+								continue;
+							}
+							case "1":
+							{ // Class Scheduling
+
+								TestRunner.RunAsyncTest(new ClassScheduling(), Db);
+								break;
+							}
+
+							case "q":
+							case "x":
+							{
+								stop = true;
+								break;
+							}
+
+							default:
+							{
+								Console.WriteLine("Unknown command");
+								break;
+							}
+						}
 					}
 				}
 			}
-
-			Fdb.Stop();
-
-			Console.WriteLine("Bye");
-
+			finally
+			{
+				Fdb.Stop();
+				Console.WriteLine("Bye");
+			}
 		}
 	}
 }

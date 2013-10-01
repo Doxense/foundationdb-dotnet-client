@@ -123,7 +123,7 @@ namespace FoundationDB.Layers.Documents.Tests
 		[Test]
 		public async Task Test_Can_Insert_And_Retrieve_Document()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("Books");
 

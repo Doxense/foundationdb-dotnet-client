@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB Database</summary>
 	/// <remarks>Wraps an FDBDatabase* handle</remarks>
 	[DebuggerDisplay("Name={m_name}, Namespace={m_namespace}")]
-	public partial class FdbDatabase : IFdbDatabase, IFdbTransactional, IDisposable
+	public class FdbDatabase : IFdbDatabase, IFdbTransactional, IDisposable
 	{
 		#region Private Fields...
 
@@ -72,9 +72,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
 		/// <remarks>This is readonly and is set when creating the database instance</remarks>
-		private readonly FdbSubspace m_globalSpace;
+		private FdbSubspace m_globalSpace;
 		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
-		private readonly FdbSubspace m_globalSpaceCopy;
+		private FdbSubspace m_globalSpaceCopy;
 
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
@@ -82,8 +82,10 @@ namespace FoundationDB.Client
 		/// <summary>Default RetryLimit value for all transactions</summary>
 		private int m_defaultRetryLimit;
 
+#if REFACTORED
 		/// <summary>Root directory used by this database instance (or null if none)</summary>
-		private FdbRootDirectory m_rootDirectory;
+		private FdbDatabasePartition m_rootDirectory;
+#endif
 
 		#endregion
 
@@ -100,12 +102,13 @@ namespace FoundationDB.Client
 			m_cluster = cluster;
 			m_handle = handle;
 			m_name = name;
-			m_globalSpace = subspace ?? FdbSubspace.Empty;
-			m_globalSpaceCopy = subspace.Copy();
 			m_ownsCluster = ownsCluster;
+			ChangeGlobalSpace(subspace);
 
+#if REFACTORED
 			// pre-initialize the directory to the default location (depending on the subspace)
 			UseDefaultRootDirectory();
+#endif
 		}
 
 		#endregion
@@ -177,8 +180,8 @@ namespace FoundationDB.Client
 		{
 			Contract.Requires(context != null && context.Database == this);
 
-			if (m_handle.IsInvalid) throw Fdb.Errors.CannotCreateTransactionOnInvalidDatabase();
 			ThrowIfDisposed();
+			if (m_handle.IsInvalid) throw Fdb.Errors.CannotCreateTransactionOnInvalidDatabase();
 
 			int id = Interlocked.Increment(ref s_transactionCounter);
 
@@ -215,7 +218,7 @@ namespace FoundationDB.Client
 
 		internal void EnsureTransactionIsValid(FdbTransaction transaction)
 		{
-			ThrowIfDisposed();
+			if (m_disposed) ThrowIfDisposed();
 			//TODO?
 		}
 
@@ -341,6 +344,7 @@ namespace FoundationDB.Client
 			ThrowIfDisposed();
 
 			Fdb.EnsureNotOnNetworkThread();
+			//review: maybe we could allow running from the network thread?
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			unsafe
@@ -360,6 +364,7 @@ namespace FoundationDB.Client
 			ThrowIfDisposed();
 
 			Fdb.EnsureNotOnNetworkThread();
+			//review: maybe we could allow running from the network thread?
 
 			unsafe
 			{
@@ -372,56 +377,18 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
-		/// <param name="size">Max location cache entries</param>
-		public void SetLocationCacheSize(int size)
-		{
-			if (size < 0) throw new FdbException(FdbError.InvalidOptionValue, "Location cache size must be a positive integer");
-
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			SetOption(FdbDatabaseOption.LocationCacheSize, size);
-		}
-
-		/// <summary>Set the maximum number of watches allowed to be outstanding on a database connection. Increasing this number could result in increased resource usage. Reducing this number will not cancel any outstanding watches. Defaults to 10000 and cannot be larger than 1000000.</summary>
-		/// <param name="count">Max outstanding watches</param>
-		public void SetMaxWatches(int count)
-		{
-			if (count < 0) throw new FdbException(FdbError.InvalidOptionValue, "Maximum outstanding watches count must be a positive integer");
-
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			SetOption(FdbDatabaseOption.MaxWatches, count);
-		}
-
-		/// <summary>Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
-		/// <param name="hexId">Hexadecimal ID</param>
-		public void SetMachineId(string hexId)
-		{
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			SetOption(FdbDatabaseOption.MachineId, hexId);
-		}
-
-		/// <summary>Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
-		/// <param name="hexId">Hexadecimal ID</param>
-		public void SetDataCenterId(string hexId)
-		{
-			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
-			//TODO: cache this into a local variable ?
-			SetOption(FdbDatabaseOption.DataCenterId, hexId);
-		}
-
 		#endregion
+
+#if REFACTORED
 
 		#region Directory Layer...
 
-		public FdbRootDirectory Root { get { return m_rootDirectory; } }
+		public FdbDatabasePartition Root { get { return m_rootDirectory; } }
 
 		public void UseRootDirectory(FdbDirectoryLayer directoryLayer)
 		{
 			if (directoryLayer == null) throw new ArgumentNullException("directoryLayer");
-			m_rootDirectory = new FdbRootDirectory(this, directoryLayer);
+			m_rootDirectory = new FdbDatabasePartition(this, directoryLayer);
 		}
 
 		public void UseRootDirectory(FdbSubspace nodes, FdbSubspace content)
@@ -434,120 +401,38 @@ namespace FoundationDB.Client
 			if (!m_globalSpace.Contains(content.Key)) throw new ArgumentOutOfRangeException("content", "The Content subspace must be contained inside the Global Space of this database.");
 
 			var dl = new FdbDirectoryLayer(nodes, content);
-			m_rootDirectory = new FdbRootDirectory(this, dl);
+			m_rootDirectory = new FdbDatabasePartition(this, dl);
 		}
 
 		public void UseDefaultRootDirectory()
 		{
 			var dl = new FdbDirectoryLayer(this.GlobalSpace[FdbKey.Directory], this.GlobalSpace);
-			m_rootDirectory = new FdbRootDirectory(this, dl);
+			m_rootDirectory = new FdbDatabasePartition(this, dl);
 		}
 
 		#endregion
 
+#endif
+
 		#region Key Space Management...
 
-		/// <summary>Return the global namespace used by this database instance</summary>
-		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
+		/// <summary>Change the current global namespace.</summary>
+		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
+		internal void ChangeGlobalSpace(FdbSubspace subspace)
+		{
+			subspace = subspace ?? FdbSubspace.Empty;
+			m_globalSpace = subspace;
+			m_globalSpaceCopy = subspace.Copy();
+		}
+
+		/// <summary>Returns the global namespace used by this database instance</summary>
 		public FdbSubspace GlobalSpace
 		{
 			get
 			{
-				// return a copy of the subspace
+				// return a copy of the subspace, to be sure that nobody can change the real globalspace and read elsewhere.
 				return m_globalSpaceCopy;
 			}
-		}
-
-		/// <summary>Return a new partition of the current database</summary>
-		/// <typeparam name="T">Type of the value used for the partition</typeparam>
-		/// <param name="value">Prefix of the new partition</param>
-		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="value"/></returns>
-		public FdbSubspace Partition<T>(T value)
-		{
-			return m_globalSpace.Partition<T>(value);
-		}
-
-		/// <summary>Return a new partition of the current database</summary>
-		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
-		public FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
-		{
-			return m_globalSpace.Partition<T1, T2>(value1, value2);
-		}
-
-		/// <summary>Return a new partition of the current database</summary>
-		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
-		public FdbSubspace Partition<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
-		{
-			return m_globalSpace.Partition<T1, T2, T3>(value1, value2, value3);
-		}
-
-		/// <summary>Return a new partition of the current database</summary>
-		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="tuple"/></returns>
-		public FdbSubspace Partition(IFdbTuple tuple)
-		{
-			return m_globalSpace.Partition(tuple);
-		}
-
-		/// <summary>Create a new key by appending a value to the global namespace</summary>
-		public Slice Pack<T>(T key)
-		{
-			return m_globalSpace.Pack<T>(key);
-		}
-
-		/// <summary>Create a new key by appending two values to the global namespace</summary>
-		public Slice Pack<T1, T2>(T1 key1, T2 key2)
-		{
-			return m_globalSpace.Pack<T1, T2>(key1, key2);
-		}
-
-		/// <summary>Unpack a key using the current namespace of the database</summary>
-		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		public IFdbTuple Unpack(Slice key)
-		{
-			return m_globalSpace.Unpack(key);
-		}
-
-		/// <summary>Unpack a key using the current namespace of the database</summary>
-		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		public T UnpackLast<T>(Slice key)
-		{
-			return m_globalSpace.UnpackLast<T>(key);
-		}
-
-		/// <summary>Unpack a key using the current namespace of the database</summary>
-		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		public T UnpackSingle<T>(Slice key)
-		{
-			return m_globalSpace.UnpackSingle<T>(key);
-		}
-
-		/// <summary>Add the global namespace prefix to a relative key</summary>
-		/// <param name="keyRelative">Key that is relative to the global namespace</param>
-		/// <returns>Key that starts with the global namespace prefix</returns>
-		/// <example>
-		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
-		/// db.Concat('&lt;02&gt;Bar&lt;00&gt;') => '&lt;02&gt;Foo&lt;00&gt;&gt;&lt;02&gt;Bar&lt;00&gt;'
-		/// db.Concat(Slice.Empty) => '&lt;02&gt;Foo&lt;00&gt;'
-		/// db.Concat(Slice.Nil) => Slice.Nil
-		/// </example>
-		public Slice Concat(Slice keyRelative)
-		{
-			return m_globalSpace.Concat(keyRelative);
-		}
-
-		/// <summary>Remove the global namespace prefix of this database form the key, and return the rest of the bytes, or Slice.Nil is the key is outside the namespace</summary>
-		/// <param name="keyAbsolute">Binary key that starts with the namespace prefix, followed by some bytes</param>
-		/// <returns>Binary key that contain only the bytes after the namespace prefix</returns>
-		/// <example>
-		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
-		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;&lt;02&gt;Bar&lt;00&gt;') => '&gt;&lt;02&gt;Bar&lt;00&gt;'
-		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;') => Slice.Empty
-		/// db.Extract('&lt;02&gt;TopSecret&lt;00&gt;&lt;02&gt;Password&lt;00&gt;') => Slice.Nil
-		/// db.Extract(Slice.Nil) => Slice.Nil
-		/// </example>
-		public Slice Extract(Slice keyAbsolute)
-		{
-			return m_globalSpace.Extract(keyAbsolute);
 		}
 
 		/// <summary>Test if a key is allowed to be used with this database instance</summary>
@@ -641,35 +526,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region System Keys...
-
-		/// <summary>Returns a string describing the list of the coordinators for the cluster</summary>
-		public async Task<string> GetCoordinatorsAsync()
-		{
-			using (var tr = BeginTransaction())
-			{
-				tr.SetOption(FdbTransactionOption.AccessSystemKeys);
-				var result = await tr.GetAsync(Fdb.SystemKeys.Coordinators).ConfigureAwait(false);
-				return result.ToAscii();
-			}
-		}
-
-		/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
-		/// <param name="name">"storage_engine"</param>
-		/// <returns>Value of '\xFF/conf/storage_engine'</returns>
-		public async Task<Slice> GetConfigParameter(string name)
-		{
-			if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty");
-
-			using(var tr = BeginTransaction())
-			{
-				tr.SetOption(FdbTransactionOption.AccessSystemKeys);
-				return await tr.GetAsync(Fdb.SystemKeys.GetConfigKey(name)).ConfigureAwait(false);
-			}
-		}
-
-		#endregion
-
 		#region Default Transaction Settings...
 
 		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
@@ -702,7 +558,7 @@ namespace FoundationDB.Client
 
 		private void ThrowIfDisposed()
 		{
-			if (m_disposed) throw new ObjectDisposedException(null);
+			if (m_disposed) throw new ObjectDisposedException(this.GetType().Name);
 		}
 
 		public void Dispose()

@@ -151,7 +151,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Resetting_An_Empty_Transaction_Does_Nothing()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				using (var tr = db.BeginTransaction())
 				{
@@ -188,7 +188,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Cancelling_Transaction_Before_Commit_Should_Throw_Immediately()
 		{
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
@@ -213,7 +213,7 @@ namespace FoundationDB.Client.Tests
 			// => we will try to commit a very large transaction in order to give us some time
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
@@ -253,7 +253,7 @@ namespace FoundationDB.Client.Tests
 			// => we will try to commit a very large transaction in order to give us some time
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
@@ -287,7 +287,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Transaction_Read_Version()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				using (var tr = db.BeginTransaction())
 				{
@@ -306,7 +306,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can read and write simple keys
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				long ticks = DateTime.UtcNow.Ticks;
 				long writeVersion;
@@ -355,7 +355,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Resolve_Key_Selector()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("keys");
 				await db.ClearRangeAsync(location);
@@ -429,7 +429,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Get_Multiple_Values()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Batch");
@@ -472,7 +472,7 @@ namespace FoundationDB.Client.Tests
 		{
 			const int N = 20;
 
-			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			using(var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("keys");
@@ -523,7 +523,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		/// <summary>Performs (x OP y) and ensure that the result is correct</summary>
-		private async Task PerformAtomicOperationAndCheck(FdbDatabase db, Slice key, int x, FdbMutationType type, int y)
+		private async Task PerformAtomicOperationAndCheck(IFdbDatabase db, Slice key, int x, FdbMutationType type, int y)
 		{
 
 			int expected = 0;
@@ -565,9 +565,9 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can perform atomic mutations on keys
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test", "atomic");
+				var location = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("test", "atomic"));
 				await db.ClearRangeAsync(location);
 
 				Slice key;
@@ -608,7 +608,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Snapshot_Read()
 		{
 
-			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			using(var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
@@ -643,7 +643,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
@@ -682,7 +682,7 @@ namespace FoundationDB.Client.Tests
 
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 				await db.ClearRangeAsync(location);
@@ -713,7 +713,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_GetRange_With_Concurrent_Change_Should_Conflict()
 		{
-			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			using(var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var loc = db.Partition("test");
@@ -790,7 +790,7 @@ namespace FoundationDB.Client.Tests
 			// * tr2 will set value to 2
 			// * tr3 will SetReadVersion(TR1.CommittedVersion) and we expect it to read 1 (and not 2)
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
@@ -835,7 +835,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Has_Access_To_System_Keys()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				using (var tr = db.BeginTransaction())
@@ -868,7 +868,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Set_Timeout_And_RetryLimit()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				using (var tr = db.BeginTransaction())
@@ -929,7 +929,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Add_Read_Conflict_Range()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("conflict");
 
@@ -968,7 +968,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Add_Write_Conflict_Range()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("conflict");
 
@@ -1010,7 +1010,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Setup_And_Cancel_Watches()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test", "bigbrother");
 
@@ -1069,7 +1069,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Addresses_For_Key()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("location_api");
 
@@ -1126,7 +1126,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Boundary_Keys()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				using(var tr = db.BeginTransaction().WithAccessToSystemKeys())
 				{

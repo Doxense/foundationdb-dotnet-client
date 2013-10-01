@@ -44,7 +44,7 @@ namespace FoundationDB.Layers.Counters.Tests
 		[Test]
 		public async Task Test_FdbCounter_Can_Increment_And_SetTotal()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "counters", "simple");
 
@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Counters.Tests
 		{
 			const int N = 100;
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "counters", "big");
 
@@ -99,7 +99,7 @@ namespace FoundationDB.Layers.Counters.Tests
 			const int B = 100;
 			const int N = B * W;
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "counters", "big");
 

@@ -584,6 +584,7 @@ namespace FoundationDB.Linq.Tests
 		public async Task Test_Parallel_Select_Async()
 		{
 			const int MAX_CONCURRENCY = 5;
+			const int N = 20;
 
 			// since this can lock up, we need a global timeout !
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
@@ -595,30 +596,44 @@ namespace FoundationDB.Linq.Tests
 
 				var sw = Stopwatch.StartNew();
 
-				var query = Enumerable.Range(1, 10)
+				var query = Enumerable.Range(1, N)
 					.ToAsyncEnumerable()
-					.Select(async x => { await Task.Delay(new Random().Next(100)); return x; })
+					.Select(async x =>
+					{
+						int ms;
+						lock (rnd) {  ms = 10 + rnd.Next(25); }
+						await Task.Delay(ms);
+						return x;
+					})
 					.SelectAsync(async (x, ct) =>
 					{
-						var n = Interlocked.Increment(ref concurrent);
-						Assert.That(n, Is.LessThanOrEqualTo(MAX_CONCURRENCY));
 						try
 						{
-							Console.WriteLine("** " + sw.Elapsed.TotalMilliseconds + " start " + x + " (" + n + ")");
+							var n = Interlocked.Increment(ref concurrent);
+							try
+							{
+								Assert.That(n, Is.LessThanOrEqualTo(MAX_CONCURRENCY));
+								Console.WriteLine("** " + sw.Elapsed + " start " + x + " (" + n + ")");
 #if DEBUG_STACK_TRACES
-							Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
+								Console.WriteLine("> " + new StackTrace().ToString().Replace("\r\n", "\r\n> "));
 #endif
-							int ms;
-							lock (rnd) { ms = rnd.Next(25) + 50; }
-							await Task.Delay(ms);
-							Console.WriteLine("** " + sw.Elapsed.TotalMilliseconds + " stop " + x + " (" + Volatile.Read(ref concurrent) + ")");
+								int ms;
+								lock (rnd) { ms = rnd.Next(25) + 50; }
+								await Task.Delay(ms);
+								Console.WriteLine("** " + sw.Elapsed + " stop " + x + " (" + Volatile.Read(ref concurrent) + ")");
 
-							return x * x;
+								return x * x;
+							}
+							finally
+							{
+								n = Interlocked.Decrement(ref concurrent);
+								Assert.That(n, Is.GreaterThanOrEqualTo(0));
+							}
 						}
-						finally
+						catch(Exception e)
 						{
-							n = Interlocked.Decrement(ref concurrent);
-							Assert.That(n, Is.GreaterThanOrEqualTo(0));
+							Console.Error.WriteLine("Thread #" + x + " failed: " + e.ToString());
+							throw;
 						}
 					},
 					new FdbParallelQueryOptions { MaxConcurrency = MAX_CONCURRENCY }
@@ -627,8 +642,8 @@ namespace FoundationDB.Linq.Tests
 				var results = await query.ToListAsync(token);
 
 				Assert.That(Volatile.Read(ref concurrent), Is.EqualTo(0));
-				Console.WriteLine(string.Join(", ", results));
-				Assert.That(results, Is.EqualTo(new int[] { 1, 4, 9, 16, 25, 36, 49, 64, 81, 100 }));
+				Console.WriteLine("Results: " + string.Join(", ", results));
+				Assert.That(results, Is.EqualTo(Enumerable.Range(1, N).Select(x => x * x).ToArray()));
 			}
 
 		}

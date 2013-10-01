@@ -264,15 +264,22 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Database_Instance_Should_Have_Default_Root_Directory()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			//TODO: move this into a dedicated test class for partitions
+
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
+				Assert.That(db, Is.Not.Null);
+				Assert.That(db.Name, Is.EqualTo(TestHelpers.TestDbName));
+
 				Assert.That(db.Root, Is.Not.Null);
-				Assert.That(db.Root.Database, Is.SameAs(db));
-				Assert.That(db.Root.Directory, Is.Not.Null);
-				Assert.That(db.Root.Directory.ContentSubspace, Is.Not.Null);
-				Assert.That(db.Root.Directory.ContentSubspace.Key, Is.EqualTo(db.GlobalSpace.Key));
-				Assert.That(db.Root.Directory.NodeSubspace, Is.Not.Null);
-				Assert.That(db.Root.Directory.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace[Slice.FromByte(254)]));
+				Assert.That(db.Root.ContentSubspace, Is.Not.Null);
+				Assert.That(db.Root.ContentSubspace.Key, Is.EqualTo(db.GlobalSpace.Key));
+				Assert.That(db.Root.NodeSubspace, Is.Not.Null);
+				Assert.That(db.Root.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace[Slice.FromByte(254)]));
+
+				Assert.That(db.Database, Is.Not.Null);
+				Assert.That(db.Database.GlobalSpace.Contains(db.Root.ContentSubspace.Key), Is.True);
+				Assert.That(db.Database.GlobalSpace.Contains(db.Root.NodeSubspace.Key), Is.True);
 			}
 		}
 	}

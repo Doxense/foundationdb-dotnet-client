@@ -43,7 +43,7 @@ namespace FoundationDB.Layers.Tables.Tests
 		public async Task Test_FdbTable_Read_Write_Delete()
 		{
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Tables");
@@ -120,7 +120,7 @@ namespace FoundationDB.Layers.Tables.Tests
 		[Test]
 		public async Task Test_FdbTable_List()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("Tables");
 

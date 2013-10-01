@@ -45,7 +45,7 @@ namespace FoundationDB.Layers.Tables.Tests
 		public async Task Task_Can_Add_Update_Remove_From_Index()
 		{
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("Indexing");
 
@@ -127,7 +127,7 @@ namespace FoundationDB.Layers.Tables.Tests
 		public async Task Test_Can_Combine_Indexes()
 		{
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Indexing");

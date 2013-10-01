@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Tests
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Bulk;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
@@ -46,11 +47,11 @@ namespace FoundationDB.Client.Tests
 		{
 			const int N = 2000;
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				Console.WriteLine("Bulk inserting " + N + " items...");
 
-				var location = db.Partition("Bulk");
+				var location = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("Bulk"));
 
 				var data = Enumerable.Range(0, N)
 					.Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x.ToString("x8")), Slice.FromGuid(Guid.NewGuid())))
@@ -60,7 +61,7 @@ namespace FoundationDB.Client.Tests
 
 				long? lastReport = null;
 				int called = 0;
-				long count = await db.Bulk.InsertAsync(
+				long count = await db.BulkInsertAsync(
 					data,
 					new Progress<long>((n) =>
 					{

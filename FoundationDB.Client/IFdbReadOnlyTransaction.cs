@@ -119,6 +119,13 @@ namespace FoundationDB.Client
 		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null);
 
 		/// <summary>
+		/// Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <param name="key"/> and its associated value
+		/// </summary>
+		/// <param name="key">Name of the key whose location is to be queried.</param>
+		/// <returns>Task that will return an array of strings, or an exception</returns>
+		Task<string[]> GetAddressesForKeyAsync(Slice key);
+
+		/// <summary>
 		/// Returns this transaction snapshot read version.
 		/// </summary>
 		Task<long> GetReadVersionAsync();

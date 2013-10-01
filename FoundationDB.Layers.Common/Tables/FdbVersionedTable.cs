@@ -55,7 +55,7 @@ namespace FoundationDB.Layers.Tables
 		public string Name { get; private set; }
 
 		/// <summary>Database used to perform transactions</summary>
-		public FdbDatabase Database { get; private set; }
+		public IFdbDatabase Database { get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
@@ -75,7 +75,7 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>(Subspace, LATEST_VERSIONS_KEY, key) = Contains the last version for this specific key</summary>
 		protected FdbSubspace VersionsPrefix { get; private set; }
 
-		public FdbVersionedTable(string name, FdbDatabase database, FdbSubspace subspace, ITupleFormatter<TId> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public FdbVersionedTable(string name, IFdbDatabase database, FdbSubspace subspace, ITupleFormatter<TId> keyReader, ISliceSerializer<TValue> valueSerializer)
 		{
 			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
 			if (database == null) throw new ArgumentNullException("database");

@@ -32,24 +32,32 @@ namespace FoundationDB.Client.Tests
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	internal static class TestHelpers
 	{
 		// change these to target a specific test cluster
 
-		public const string TestClusterFile = null;
-		public const string TestDbName = "DB";
-		public const string TestPartition = "T"; 
+		public static readonly string TestClusterFile = null;
+		public static readonly string TestDbName = "DB";
+		public static readonly Slice TestGlobalPrefix = Slice.FromAscii("T");
+		public static readonly IFdbTuple TestPartition = FdbTuple.Create("Test", Environment.MachineName);
 
 		/// <summary>Connect to the local test database</summary>
-		public static Task<FdbDatabase> OpenTestDatabaseAsync()
+		public static Task<FdbDatabase> OpenTestDatabaseAsync(CancellationToken ct = default(CancellationToken))
 		{
-			var subspace = new FdbSubspace(FdbTuple.Pack(Slice.FromAscii(TestPartition)));
-			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace);
+			var subspace = new FdbSubspace(TestGlobalPrefix.Memoize());
+			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, ct);
 		}
 
-		public static async Task<FdbDirectorySubspace> GetCleanDirectory(FdbDatabase db, params string[] path)
+		/// <summary>Connect to the local test database</summary>
+		public static Task<FdbDatabasePartition> OpenTestPartitionAsync(CancellationToken ct = default(CancellationToken))
+		{
+			return Fdb.PartitionTable.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, ct);
+		}
+
+		public static async Task<FdbDirectorySubspace> GetCleanDirectory(FdbDatabasePartition db, params string[] path)
 		{
 			IFdbTuple tuple;
 			if (path.Length == 0)
@@ -60,17 +68,17 @@ namespace FoundationDB.Client.Tests
 				tuple = FdbTuple.CreateRange(path, 0, path.Length);
 
 			// remove previous
-			await db.Root.RemoveAsync(tuple);
+			await db.RemoveDirectoryAsync(tuple);
 
 			// create new
-			var subspace = await db.Root.CreateAsync(tuple);
+			var subspace = await db.CreateDirectoryAsync(tuple);
 			Assert.That(subspace, Is.Not.Null);
 			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True);
 			return subspace;
 		}
 
 
-		public static async Task DumpSubspace(FdbDatabase db, FdbSubspace subspace)
+		public static async Task DumpSubspace(IFdbDatabase db, FdbSubspace subspace)
 		{
 			Assert.That(db, Is.Not.Null);
 			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
@@ -114,7 +122,7 @@ namespace FoundationDB.Client.Tests
 				Console.WriteLine("> Found " + count + " values");
 		}
 
-		public static async Task DeleteSubspace(FdbDatabase db, FdbSubspace subspace)
+		public static async Task DeleteSubspace(IFdbDatabase db, FdbSubspace subspace)
 		{
 			using (var tr = db.BeginTransaction())
 			{

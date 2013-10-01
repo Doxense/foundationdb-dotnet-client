@@ -141,6 +141,12 @@ namespace FoundationDB.Client
 				return m_parent.GetRangeCore(range, options, snapshot: true);
 			}
 
+			public Task<string[]> GetAddressesForKeyAsync(Slice key)
+			{
+				EnsureCanRead();
+				return m_parent.GetAddressesForKeyCoreAsync(key);
+			}
+
 			public void Cancel()
 			{
 				m_parent.Cancel();

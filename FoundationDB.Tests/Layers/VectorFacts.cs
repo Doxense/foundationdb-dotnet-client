@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		[Test]
 		public async Task Test_Vector_Fast()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "vector");
 

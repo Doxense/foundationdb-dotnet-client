@@ -45,7 +45,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			//FoundationDB.Client.Utils.Logging.SetLevel(System.Diagnostics.SourceLevels.Verbose);
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("hpa");
 				await db.ClearRangeAsync(location);
@@ -89,7 +89,7 @@ namespace FoundationDB.Layers.Directories
 		[Test]
 		public async Task Test_CreateOrOpen_Simple()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				// we will put everything under a custom namespace
 				var location = db.Partition("DL");
@@ -142,7 +142,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			// Create a folder ("foo", "bar", "baz") and ensure that all the parent folder are also creating and linked properly
 
-			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			using(var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				// we will put everything under a custom namespace
@@ -195,7 +195,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			// Create a folder ("foo", "bar", "baz") and ensure that all the parent folder are also creating and linked properly
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				// we will put everything under a custom namespace
 				var location = db.Partition("DL");

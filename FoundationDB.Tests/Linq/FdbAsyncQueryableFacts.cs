@@ -48,7 +48,7 @@ namespace FoundationDB.Linq.Tests
 		public async Task Test_AsyncQueryable_Basics()
 		{
 
-			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			using(var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Linq");
@@ -87,7 +87,7 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_Query_Index_Single()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Linq");
@@ -121,7 +121,7 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_Query_Index_Range()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Linq");

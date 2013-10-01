@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			// without high contention protecction
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "queue");
 
@@ -108,7 +108,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		[Test]
 		public async Task Test_Single_Client()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "queue");
 
@@ -132,7 +132,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 		}
 
-		private static async Task RunMultiClientTest(FdbDatabase db, FdbSubspace location, bool highContention, string desc, int K, int NUM)
+		private static async Task RunMultiClientTest(IFdbDatabase db, FdbSubspace location, bool highContention, string desc, int K, int NUM)
 		{
 			Console.WriteLine("Starting {0} test with {1} threads and {2} iterations", desc, K, NUM);
 
@@ -238,7 +238,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			int NUM = 100;
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "queue");
 
@@ -254,7 +254,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			int NUM = 100;
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "queue");
 

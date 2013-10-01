@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -41,6 +42,24 @@ namespace FoundationDB.Client
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		CancellationToken Token { get; }
+
+		/// <summary>Returns the global namespace used by this database instance</summary>
+		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
+		FdbSubspace GlobalSpace { get; }
+
+		void SetOption(FdbDatabaseOption option);
+
+		void SetOption(FdbDatabaseOption option, string value);
+
+		void SetOption(FdbDatabaseOption option, long value);
+
+		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		int DefaultTimeout { get; set; }
+
+		/// <summary>Default Retry Limit value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		int DefaultRetryLimit { get; set; }
 
 		/// <summary>Start a new read-only transaction on this database</summary>
 		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>

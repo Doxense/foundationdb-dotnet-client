@@ -44,7 +44,7 @@ namespace FoundationDB.Layers.Tables.Tests
 		[Test]
 		public async Task Test_FdbVersionedTable_Write_Multiple_SequentialVersions()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Versions");
@@ -162,7 +162,7 @@ namespace FoundationDB.Layers.Tables.Tests
 		public async Task Test_FdbVersionedTable_Write_Multiple_TimestampVersions()
 		{
 
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 				var location = db.Partition("Versions");
 

@@ -3,6 +3,7 @@
 namespace FoundationDB.Samples.Tutorials
 {
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
 	using System;
@@ -52,10 +53,10 @@ namespace FoundationDB.Samples.Tutorials
 		/// <summary>
 		/// Setup the initial state of the database
 		/// </summary>
-		public async Task Init(FdbDatabase db, CancellationToken ct)
+		public async Task Init(FdbDatabasePartition db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.Root.CreateOrOpenAsync(FdbTuple.Create("Tutorials", "ClassScheduling"), cancellationToken: ct);
+			this.Subspace = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("Tutorials", "ClassScheduling"), cancellationToken: ct);
 
 			// clear all previous values
 			await db.ClearRangeAsync(this.Subspace, ct);
@@ -134,7 +135,7 @@ namespace FoundationDB.Samples.Tutorials
 		/// <summary>
 		/// Simulate a student that is really indecisive
 		/// </summary>
-		public async Task IndecisiveStudent(FdbDatabase db, int id, int ops, CancellationToken ct)
+		public async Task IndecisiveStudent(IFdbDatabase db, int id, int ops, CancellationToken ct)
 		{
 			string student = "s" + id.ToString("D04");
 			var allClasses = new List<string>(this.ClassNames);
@@ -204,7 +205,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		public string Name { get { return "ClassScheduling"; } }
 
-		public async Task Run(FdbDatabase db, CancellationToken ct)
+		public async Task Run(FdbDatabasePartition db, CancellationToken ct)
 		{
 			const int STUDENTS = 10;
 			const int OPS_PER_STUDENTS = 10;
