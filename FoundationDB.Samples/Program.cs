@@ -54,7 +54,7 @@ namespace FoundationDB.Samples
 			}).ToArray();
 
 			var sw = Stopwatch.StartNew();
-			ThreadPool.QueueUserWorkItem((_) => { signal.SetResult(null); });
+			ThreadPool.UnsafeQueueUserWorkItem((_) => { signal.SetResult(null); }, null);
 			await Task.WhenAll(tasks);
 			sw.Stop();
 

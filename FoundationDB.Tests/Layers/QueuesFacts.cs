@@ -155,14 +155,14 @@ namespace FoundationDB.Layers.Collections.Tests
 					.Select(async id =>
 					{
 						// wait for the signal
-						await pushLock.Task;
+						await pushLock.Task.ConfigureAwait(false);
 
 						var res = new List<string>(NUM);
 
 						for (int i = 0; i < NUM; i++)
 						{
 							var item = id.ToString() + "." + i.ToString();
-							await queue.PushAsync(db, item, tok);
+							await queue.PushAsync(db, item, tok).ConfigureAwait(false);
 
 							Interlocked.Increment(ref pushCount);
 							res.Add(item);
@@ -175,14 +175,14 @@ namespace FoundationDB.Layers.Collections.Tests
 					.Select(async id =>
 					{
 						// make everyone wait a bit, to ensure that they all start roughly at the same time
-						await popLock.Task;
+						await popLock.Task.ConfigureAwait(false);
 
 						var res = new List<string>(NUM);
 
 						int i = 0;
 						while (i < NUM)
 						{
-							var item = await queue.PopAsync(db, tok);
+							var item = await queue.PopAsync(db, tok).ConfigureAwait(false);
 							if (item != null)
 							{
 								Interlocked.Increment(ref popCount);
@@ -192,7 +192,7 @@ namespace FoundationDB.Layers.Collections.Tests
 							else
 							{
 								Interlocked.Increment(ref stalls);
-								await Task.Delay(10);
+								await Task.Delay(10).ConfigureAwait(false);
 							}
 						}
 
@@ -201,9 +201,9 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				var sw = Stopwatch.StartNew();
 
-				await Task.Run(() => pushLock.SetResult(null));
+				ThreadPool.UnsafeQueueUserWorkItem((_) => pushLock.SetResult(null), null);
 				await Task.Delay(100);
-				await Task.Run(() => popLock.SetResult(null));
+				ThreadPool.UnsafeQueueUserWorkItem((_) => popLock.SetResult(null), null);
 
 				//using (var timer = new Timer((_) =>
 				//{

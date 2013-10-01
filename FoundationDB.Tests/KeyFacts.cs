@@ -35,6 +35,7 @@ namespace FoundationDB.Client.Tests
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Text;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	[TestFixture]
@@ -161,7 +162,7 @@ namespace FoundationDB.Client.Tests
 			var tasks = batches.Select(async (iterator, id) =>
 			{
 				// force async
-				await signal.Task;
+				await signal.Task.ConfigureAwait(false);
 
 				foreach (var chunk in iterator)
 				{
@@ -184,11 +185,11 @@ namespace FoundationDB.Client.Tests
 						}
 					}
 
-					await Task.Delay(1);
+					await Task.Delay(1).ConfigureAwait(false);
 				}
 			}).ToArray();
 
-			var _ = Task.Run(() => signal.TrySetResult(null));
+			ThreadPool.UnsafeQueueUserWorkItem((_) => signal.TrySetResult(null), null);
 
 			await Task.WhenAll(tasks);
 

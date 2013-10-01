@@ -33,6 +33,7 @@ namespace FoundationDB.Layers.Counters.Tests
 	using System;
 	using System.Diagnostics;
 	using System.Linq;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	[TestFixture]
@@ -111,17 +112,17 @@ namespace FoundationDB.Layers.Counters.Tests
 				var workers = Enumerable.Range(0, W)
 					.Select(async (id) =>
 					{
-						await signal.Task;
+						await signal.Task.ConfigureAwait(false);
 
 						for (int i = 0; i < B; i++)
 						{
-							await c.AddAsync(1);
+							await c.AddAsync(1).ConfigureAwait(false);
 						}
 					}).ToArray();
 
 				var sw = Stopwatch.StartNew();
 				// start
-				var _ = Task.Run(() => signal.TrySetResult(null));
+				ThreadPool.UnsafeQueueUserWorkItem((_) => signal.TrySetResult(null), null);
 				// wait
 				await Task.WhenAll(workers);
 				sw.Stop();

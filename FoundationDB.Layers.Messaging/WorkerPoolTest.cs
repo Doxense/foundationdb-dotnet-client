@@ -25,9 +25,9 @@ namespace FoundationDB.Layers.Messaging
 				string clusterFile = null;
 				//string clusterFile = @"c:\temp\fdb\nuc.cluster";
 				string dbName = "DB";
-				using (var db = Fdb.OpenAsync(clusterFile, dbName).GetAwaiter().GetResult())
+				using (var db = Fdb.PartitionTable.OpenPartitionAsync(clusterFile, dbName, FdbSubspace.Empty).GetAwaiter().GetResult())
 				{
-					var location = db.Root.CreateOrOpenAsync(FdbTuple.Create("T", "WorkerPool")).GetAwaiter().GetResult();
+					var location = db.CreateOrOpenDirectoryAsync(FdbTuple.Create("T", "WorkerPool")).GetAwaiter().GetResult();
 					db.ClearRangeAsync(location).GetAwaiter().GetResult();
 
 					// failsafe: remove this when not debugging problems !
@@ -76,17 +76,17 @@ namespace FoundationDB.Layers.Messaging
 				Interlocked.Increment(ref msgReceived);
 
 				//await Task.Delay(10 + Math.Abs(id.GetHashCode()) % 50);
-				await Task.Delay(10);
+				await Task.Delay(10).ConfigureAwait(false);
 
 			};
 
 			Func<int, Task> worker = async (id) =>
 			{
-				await workerSignal.Task;
+				await workerSignal.Task.ConfigureAwait(false);
 				Console.WriteLine("Worker #" + id + " is starting");
 				try
 				{
-					await workerPool.RunWorkerAsync(db, handler, ct);
+					await workerPool.RunWorkerAsync(db, handler, ct).ConfigureAwait(false);
 				}
 				finally
 				{
@@ -96,8 +96,8 @@ namespace FoundationDB.Layers.Messaging
 
 			Func<int, Task> client = async (id) =>
 			{
-				await clientSignal.Task;
-				await Task.Delay(10);
+				await clientSignal.Task.ConfigureAwait(false);
+				await Task.Delay(10).ConfigureAwait(false);
 
 				var rnd = new Random(id * 111);
 				for (int i = 0; i < N; i++)
@@ -106,16 +106,16 @@ namespace FoundationDB.Layers.Messaging
 					string queueName = "Q_" + rnd.Next(16).ToString();
 					var taskBody = Slice.FromString("Message " + (i + 1) + " of " + N + " from client #" + id + " on queue " + queueName);
 
-					await workerPool.ScheduleTaskAsync(db, queueName, taskId, taskBody, ct);
+					await workerPool.ScheduleTaskAsync(db, queueName, taskId, taskBody, ct).ConfigureAwait(false);
 					Interlocked.Increment(ref msgSent);
 
 					//if (i > 0 && i % 10 == 0) Console.WriteLine("@@@ Client#" + id + " pushed " + (i + 1) + " / " + N + " messages");
 
 					switch(rnd.Next(5))
 					{
-						case 0: await Task.Delay(10); break;
-						case 1: await Task.Delay(100); break;
-						case 2: await Task.Delay(500); break;
+						case 0: await Task.Delay(10).ConfigureAwait(false); break;
+						case 1: await Task.Delay(100).ConfigureAwait(false); break;
+						case 2: await Task.Delay(500).ConfigureAwait(false); break;
 					}
 				}
 				Console.WriteLine("@@@ Client#" + id + " has finished!");
@@ -131,7 +131,7 @@ namespace FoundationDB.Layers.Messaging
 						.ForEachAsync((kvp) =>
 						{
 							Console.WriteLine(" - " + FdbTuple.Unpack(location.Extract(kvp.Key)) + " = " + kvp.Value.ToAsciiOrHexaString());
-						});
+						}).ConfigureAwait(false);
 				}
 				Console.WriteLine("</dump>");
 			};
@@ -173,13 +173,13 @@ namespace FoundationDB.Layers.Messaging
 				var sw = Stopwatch.StartNew();
 
 				// start the workers
-				await Task.Run(() => workerSignal.SetResult(null));
+				ThreadPool.UnsafeQueueUserWorkItem((_) => workerSignal.SetResult(null), null);
 				await Task.Delay(500);
 
 				await dump("workers started");
 
 				// start the clients
-				await Task.Run(() => clientSignal.SetResult(null));
+				ThreadPool.UnsafeQueueUserWorkItem((_) => clientSignal.SetResult(null), null);
 
 				await Task.WhenAll(clients);
 				Console.WriteLine("Clients completed after " + sw.Elapsed);
