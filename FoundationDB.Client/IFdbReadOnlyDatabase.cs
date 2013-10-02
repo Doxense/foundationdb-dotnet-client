@@ -34,7 +34,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>FoundationDB database instance that supports read operations.</summary>
-	public interface IFdbReadOnlyDatabase : IFdbReadOnlyTransactional
+	public interface IFdbReadOnlyDatabase : IFdbReadOnlyTransactional, IDisposable
 	{
 		/// <summary>Name of the database</summary>
 		string Name { get; }

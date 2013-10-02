@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>FoundationDB database instance that supports read and write operations.</summary>
-	public interface IFdbDatabase : IFdbReadOnlyDatabase, IFdbTransactional, IDisposable
+	public interface IFdbDatabase : IFdbReadOnlyDatabase, IFdbTransactional
 	{
 
 		/// <summary>Start a new transaction on this database</summary>
