@@ -36,14 +36,11 @@ namespace FoundationDB.Client.Native
 {
 
 	/// <summary>Native Library Loader</summary>
-	/// <remarks>Encapsule un LoadLibrary dans un SafeHandle</remarks>
 	internal sealed class UnmanagedLibrary : IDisposable
 	{
-		#region Safe Handles and Native imports
-
 		// See http://msdn.microsoft.com/msdnmag/issues/05/10/Reliability/ for more about safe handles.
 		[SuppressUnmanagedCodeSecurity]
-		sealed class SafeLibraryHandle : SafeHandleZeroOrMinusOneIsInvalid
+		public sealed class SafeLibraryHandle : SafeHandleZeroOrMinusOneIsInvalid
 		{
 			private SafeLibraryHandle() : base(true) { }
 
@@ -54,7 +51,7 @@ namespace FoundationDB.Client.Native
 		}
 
 		[SuppressUnmanagedCodeSecurity]
-		static class NativeMethods
+		private static class NativeMethods
 		{
 			const string KERNEL = "kernel32";
 
@@ -70,27 +67,10 @@ namespace FoundationDB.Client.Native
 			public static extern IntPtr GetProcAddress(SafeLibraryHandle hModule, String procname);
 		}
 
-		#endregion // Safe Handles and Native imports
-
-		// Unmanaged resource. CLR will ensure SafeHandles get freed, without requiring a finalizer on this class.
-		private readonly SafeLibraryHandle m_hLibrary;
-
-		private readonly string m_fileName;
-
-		/// <summary>
-		/// Constructor to load a dll and be responible for freeing it.
-		/// </summary>
-		/// <param name="handle">Handle to the loaded library</param>
-		/// <param name="fileName">full path name of dll to load</param>
+		/// <summary>Load a native library into the current process</summary>
+		/// <param name="path">Path to the native dll.</param>
+		/// <remarks>Throws exceptions on failure. Most common failure would be file-not-found, or that the file is not a  loadable image.</remarks>
 		/// <exception cref="System.IO.FileNotFoundException">if fileName can't be found</exception>
-		/// <remarks>Throws exceptions on failure. Most common failure would be file-not-found, or
-		/// that the file is not a  loadable image.</remarks>
-		private UnmanagedLibrary(SafeLibraryHandle handle, string fileName)
-		{
-			m_hLibrary = handle;
-			m_fileName = fileName;
-		}
-
 		public static UnmanagedLibrary LoadLibrary(string path)
 		{
 			var handle = NativeMethods.LoadLibrary(path);
@@ -106,25 +86,20 @@ namespace FoundationDB.Client.Native
 			return new UnmanagedLibrary(handle, path);
 		}
 
-		/// <summary>Charge la bonne libraire en fonction de la plateforme (32 bits / x86, ou 64 bits / x64)</summary>
-		/// <param name="fileName32bits">Chemin vers la librairie à charger si on est en 32 bits</param>
-		/// <param name="fileName64Bits">Chemin vers la librairie à charger si on est en 64 bits</param>
-		/// <returns></returns>
-		public static UnmanagedLibrary LoadLibrary(string fileName32bits, string fileName64Bits)
+		/// <summary>Constructor to load a dll and be responible for freeing it.</summary>
+		/// <param name="handle">Handle to the loaded library</param>
+		/// <param name="path">Full path of library to load</param>
+		private UnmanagedLibrary(SafeLibraryHandle handle, string path)
 		{
-			if (IntPtr.Size == 4)
-			{ // x86 / 32 bits
-				return LoadLibrary(fileName32bits);
-			}
-			else if (IntPtr.Size == 8)
-			{ // x64 / 64 bits
-				return LoadLibrary(fileName64Bits);
-			}
-			else
-			{
-				throw new InvalidOperationException(String.Format("Could find matching library in '{0}' or '{1}' for unknown platform ({2} bits)", fileName32bits, fileName64Bits, IntPtr.Size * 8));
-			}
+			this.Handle = handle;
+			this.Path = path;
 		}
+
+		/// <summary>Path of the native library, as passed to LoadLibrary</summary>
+		public string Path { get; private set; }
+
+		/// <summary>Unmanaged resource. CLR will ensure SafeHandles get freed, without requiring a finalizer on this class.</summary>
+		public SafeLibraryHandle Handle { get; private set; }
 
 		/// <summary>
 		/// Dynamically lookup a function in the dll via kernel32!GetProcAddress.
@@ -140,7 +115,7 @@ namespace FoundationDB.Client.Native
 		/// the library and then the CLR may call release on that IUnknown and it will crash.</remarks>
 		public TDelegate GetUnmanagedFunction<TDelegate>(string functionName) where TDelegate : class
 		{
-			IntPtr p = NativeMethods.GetProcAddress(m_hLibrary, functionName);
+			IntPtr p = NativeMethods.GetProcAddress(this.Handle, functionName);
 
 			// Failure is a common case, especially for adaptive code.
 			if (p == IntPtr.Zero)
@@ -159,11 +134,11 @@ namespace FoundationDB.Client.Native
 
 		public TDelegate Bind<TDelegate>(string functionName, bool optional = false) where TDelegate : class
 		{
-			if (m_hLibrary == null || m_hLibrary.IsInvalid)
-				throw new InvalidOperationException(String.Format("Cannot bind function '{0}' because the library '{1}' failed to load properly", functionName, m_fileName));
+			if (this.Handle == null || this.Handle.IsInvalid)
+				throw new InvalidOperationException(String.Format("Cannot bind function '{0}' because the library '{1}' failed to load properly", functionName, this.Path));
 
 			var func = GetUnmanagedFunction<TDelegate>(functionName);
-			if (func == null && !optional) throw new InvalidOperationException(String.Format("Could not find the entry point for function '{0}' in library '{1}'", functionName, m_fileName));
+			if (func == null && !optional) throw new InvalidOperationException(String.Format("Could not find the entry point for function '{0}' in library '{1}'", functionName, this.Path));
 
 			return func;
 		}
@@ -173,27 +148,16 @@ namespace FoundationDB.Client.Native
 			stub = Bind<TDelegate>(functionName);
 		}
 
-		#region IDisposable Members
-
-		/// <summary>
-		/// Call FreeLibrary on the unmanaged dll. All function pointers
-		/// handed out from this class become invalid after this.
-		/// </summary>
-		/// <remarks>This is very dangerous because it suddenly invalidate
-		/// everything retrieved from this dll. This includes any functions
-		/// handed out via GetProcAddress, and potentially any objects returned
-		/// from those functions (which may have an implemention in the
-		/// dll).
-		/// </remarks>
+		/// <summary>Call FreeLibrary on the unmanaged dll. All function pointers handed out from this class become invalid after this.</summary>
+		/// <remarks>This is very dangerous because it suddenly invalidate everything retrieved from this dll. This includes any functions handed out via GetProcAddress, and potentially any objects returned from those functions (which may have an implemention in the dll)./// </remarks>
 		public void Dispose()
 		{
-			if (!m_hLibrary.IsClosed)
+			if (!this.Handle.IsClosed)
 			{
-				m_hLibrary.Close();
+				this.Handle.Close();
 			}
 		}
 
-		#endregion
 	}
 
 }
