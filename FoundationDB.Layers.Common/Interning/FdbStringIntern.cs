@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Interning
 		private static readonly Slice String2UidKey = Slice.FromChar('S');
 		private static readonly Slice Uid2StringKey = Slice.FromChar('U');
 
-		private class Uid : IEquatable<Uid>
+		private sealed class Uid : IEquatable<Uid>
 		{
 			public readonly Slice Slice;
 			public readonly int HashCode;
