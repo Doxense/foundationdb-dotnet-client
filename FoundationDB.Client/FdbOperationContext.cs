@@ -79,6 +79,7 @@ namespace FoundationDB.Client
 			Contract.Requires(db != null);
 
 			this.Database = db;
+			this.Mode = mode;
 			this.Duration = new Stopwatch();
 
 			// by default, we hook ourselves on the db's CancellationToken
