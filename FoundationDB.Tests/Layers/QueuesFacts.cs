@@ -40,7 +40,6 @@ namespace FoundationDB.Layers.Collections.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	[Obsolete]
 	public class QueuesFacts
 	{
 		[Test]
@@ -234,6 +233,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		}
 
 		[Test]
+		[Ignore("Comment this when running benchmarks")]
 		public async Task Test_Multi_Client_Simple()
 		{
 			int NUM = 100;
@@ -250,6 +250,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		}
 
 		[Test]
+		[Ignore("Comment this when running benchmarks")]
 		public async Task Test_Multi_Client_HighContention()
 		{
 			int NUM = 100;
