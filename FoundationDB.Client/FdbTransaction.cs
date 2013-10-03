@@ -971,7 +971,7 @@ namespace FoundationDB.Client
 					case STATE_COMMITTED: throw new InvalidOperationException("Cannot cancel transaction that has already been committed");
 					case STATE_FAILED: throw new InvalidOperationException("Cannot cancel transaction because it is in a failed state");
 					case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "Cannot cancel transaction because it already has been disposed");
-					default: throw new InvalidOperationException(String.Format("Cannot cancel transaction because it is in unknown state {0}", state));
+					default: throw new InvalidOperationException(String.Format("Cannot cancel transaction because it is in unknown state {0}", state.ToString()));
 				}
 			}
 
@@ -1077,7 +1077,7 @@ namespace FoundationDB.Client
 				case STATE_FAILED: throw new InvalidOperationException("The transaction is in a failed state and cannot be used anymore");
 				case STATE_COMMITTED: throw new InvalidOperationException("The transaction has already been committed");
 				case STATE_CANCELED: throw new FdbException(FdbError.TransactionCancelled, "The transaction has already been cancelled");
-				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", trans.State));
+				default: throw new InvalidOperationException(String.Format("The transaction is unknown state {0}", trans.State.ToString()));
 			}
 		}
 
@@ -1100,7 +1100,7 @@ namespace FoundationDB.Client
 					this.Database.UnregisterTransaction(this);
 					m_cts.SafeCancelAndDispose();
 
-					if (Logging.On) Logging.Verbose(this, "Dispose", String.Format("Transaction #{0} has been disposed", m_id));
+					if (Logging.On) Logging.Verbose(this, "Dispose", String.Format("Transaction #{0} has been disposed", m_id.ToString()));
 				}
 				finally
 				{

@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 
 			internal static Exception KeyIsTooBig(Slice key, string paramName = "key")
 			{
-				return new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, Fdb.MaxKeySize), paramName);
+				return new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count.ToString(), Fdb.MaxKeySize.ToString()), paramName);
 			}
 
 			internal static Exception ValueCannotBeNull(Slice value, string paramName = "value")
@@ -61,7 +61,7 @@ namespace FoundationDB.Client
 
 			internal static Exception ValueIsTooBig(Slice value, string paramName = "value")
 			{
-				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), paramName);
+				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count.ToString(), Fdb.MaxValueSize.ToString()), paramName);
 			}
 
 			internal static Exception InvalidKeyOutsideDatabaseNamespace(FdbDatabase db, Slice key)
@@ -88,7 +88,7 @@ namespace FoundationDB.Client
 			internal static Exception FailedToRegisterTransactionOnDatabase(IFdbTransaction transaction, FdbDatabase db)
 			{
 				Contract.Requires(transaction != null && db != null);
-				return new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id, db.Name));
+				return new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id.ToString(), db.Name));
 			}
 
 			internal static Exception CannotIncrementKey()

@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return "DirectorySubspace(" + this.Path + ", " + this.Key + ")";
+			return "DirectorySubspace(" + this.Path.ToString() + ", " + this.Key.ToString() + ")";
 		}
 
 	}

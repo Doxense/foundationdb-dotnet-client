@@ -1160,7 +1160,7 @@ namespace FoundationDB.Client
 			while (r > 0)
 			{
 				int n = source.Read(buffer, p, r);
-				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
+				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p.ToString(), length.ToString()));
 				p += n;
 				r -= n;
 			}
@@ -1189,7 +1189,7 @@ namespace FoundationDB.Client
 			{
 				int c = Math.Max(r, chunkSize);
 				int n = source.Read(buffer, p, c);
-				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
+				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p.ToString(), length.ToString()));
 				p += n;
 				r -= n;
 			}
@@ -1218,7 +1218,7 @@ namespace FoundationDB.Client
 			{
 				int c = Math.Min(r, chunkSize);
 				int n = await source.ReadAsync(buffer, p, c, cancellationToken);
-				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p, length));
+				if (n <= 0) throw new InvalidOperationException(String.Format("Unexpected end of stream at {0} / {1} bytes", p.ToString(), length.ToString()));
 				p += n;
 				r -= n;
 			}

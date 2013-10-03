@@ -98,7 +98,7 @@ namespace FoundationDB.Client
 			if (code == FdbError.Success) return null;
 
 			string msg = GetErrorMessage(code);
-			if (msg == null) throw new FdbException(code, String.Format("Unexpected error code {0}", (int)code));
+			if (msg == null) throw new FdbException(code, String.Format("Unexpected error code {0}", ((int)code).ToString()));
 
 			//TODO: create a custom FdbException to be able to store the error code and error message
 			switch(code)
@@ -221,13 +221,13 @@ namespace FoundationDB.Client
 
 				s_eventLoopThreadId = Thread.CurrentThread.ManagedThreadId;
 
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "EventLoop", String.Format("FDB Event Loop running on thread #{0}...", s_eventLoopThreadId.Value));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "EventLoop", String.Format("FDB Event Loop running on thread #{0}...", s_eventLoopThreadId.Value.ToString()));
 
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
 				{ // Stop received
 					//TODO: logging ?
-					if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err, GetErrorMessage(err)));
+					if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err.ToString(), GetErrorMessage(err)));
 				}
 			}
 			catch (Exception e)
@@ -448,7 +448,7 @@ namespace FoundationDB.Client
 			AppDomain.CurrentDomain.DomainUnload += s_appDomainUnloadHandler;
 			AppDomain.CurrentDomain.ProcessExit += s_appDomainUnloadHandler;
 
-			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", FdbNative.FDB_API_VERSION));
+			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", FdbNative.FDB_API_VERSION.ToString()));
 
 			DieOnError(FdbNative.SelectApiVersion(FdbNative.FDB_API_VERSION));
 
