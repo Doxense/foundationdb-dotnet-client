@@ -177,23 +177,23 @@ namespace FoundationDB.Client
 			return FdbTransactionExtensions.GetRange(trans, range, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;
-			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
+			if (beginKeyInclusive.IsNullOrEmpty) beginKeyInclusive = FdbKey.MinValue;
+			if (endKeyExclusive.IsNullOrEmpty) endKeyExclusive = FdbKey.MaxValue;
 
 			return trans.GetRange(
-				FdbKeySelector.FirstGreaterOrEqual(beginInclusive),
-				FdbKeySelector.FirstGreaterOrEqual(endExclusive),
+				FdbKeySelector.FirstGreaterOrEqual(beginKeyInclusive),
+				FdbKeySelector.FirstGreaterOrEqual(endKeyExclusive),
 				options
 			);
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, int limit, bool reverse = false)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, int limit, bool reverse = false)
 		{
-			return GetRange(trans, beginInclusive, endExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
+			return GetRange(trans, beginKeyInclusive, endKeyExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		/// <summary>

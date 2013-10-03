@@ -113,9 +113,9 @@ namespace FoundationDB.Client
 		/// Remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
 		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
 		/// </summary>
-		public static Task ClearRangeAsync(this IFdbTransactional dbOrTrans, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task ClearRangeAsync(this IFdbTransactional dbOrTrans, Slice beginKeyInclusive, Slice endKeyExclusive, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.WriteAsync((tr) => tr.ClearRange(beginInclusive, endExclusive), cancellationToken);
+			return dbOrTrans.WriteAsync((tr) => tr.ClearRange(beginKeyInclusive, endKeyExclusive), cancellationToken);
 		}
 
 		/// <summary>

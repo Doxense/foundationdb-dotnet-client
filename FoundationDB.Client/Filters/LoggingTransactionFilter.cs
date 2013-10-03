@@ -200,11 +200,11 @@ namespace FoundationDB.Client.Filters
 			);
 		}
 
-		public override void ClearRange(Slice begin, Slice end)
+		public override void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			ThrowIfDisposed();
 			Execute(
-				new ClearRangeCommand(Grab(begin), Grab(end)),
+				new ClearRangeCommand(Grab(beginKeyInclusive), Grab(endKeyExclusive)),
 				(_tr, _cmd) => _tr.ClearRange(_cmd.Begin, _cmd.End)
 			);
 		}
