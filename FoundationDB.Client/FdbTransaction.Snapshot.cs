@@ -97,11 +97,11 @@ namespace FoundationDB.Client
 				return m_parent.GetReadVersionAsync();
 			}
 
-			public Task<Slice> GetAsync(Slice keyBytes)
+			public Task<Slice> GetAsync(Slice key)
 			{
 				EnsureCanRead();
 
-				return m_parent.GetCoreAsync(keyBytes, snapshot: true);
+				return m_parent.GetCoreAsync(key, snapshot: true);
 			}
 
 			public Task<Slice[]> GetValuesAsync(Slice[] keys)

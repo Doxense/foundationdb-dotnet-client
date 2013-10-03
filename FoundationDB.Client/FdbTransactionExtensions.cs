@@ -103,7 +103,7 @@ namespace FoundationDB.Client
 
 		#region Set...
 
-		public static void Set(this IFdbTransaction trans, Slice keyBytes, Stream data)
+		public static void Set(this IFdbTransaction trans, Slice key, Stream data)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (data == null) throw new ArgumentNullException("data");
@@ -112,48 +112,48 @@ namespace FoundationDB.Client
 
 			Slice value = Slice.FromStream(data);
 
-			trans.Set(keyBytes, value);
+			trans.Set(key, value);
 		}
 
-		public static async Task SetAsync(this IFdbTransaction trans, Slice keyBytes, Stream data)
+		public static async Task SetAsync(this IFdbTransaction trans, Slice key, Stream data)
 		{
 			trans.EnsureCanWrite();
 
 			Slice value = await Slice.FromStreamAsync(data, trans.Token).ConfigureAwait(false);
 
-			trans.Set(keyBytes, value);
+			trans.Set(key, value);
 		}
 
 		#endregion
 
 		#region Atomic Ops...
 
-		public static void AtomicAdd(this IFdbTransaction trans, Slice keyBytes, Slice valueBytes)
+		public static void AtomicAdd(this IFdbTransaction trans, Slice key, Slice value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Atomic(keyBytes, valueBytes, FdbMutationType.Add);
+			trans.Atomic(key, value, FdbMutationType.Add);
 		}
 
-		public static void AtomicAnd(this IFdbTransaction trans, Slice keyBytes, Slice maskBytes)
+		public static void AtomicAnd(this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Atomic(keyBytes, maskBytes, FdbMutationType.And);
+			trans.Atomic(key, mask, FdbMutationType.And);
 		}
 
-		public static void AtomicOr(this IFdbTransaction trans, Slice keyBytes, Slice maskBytes)
+		public static void AtomicOr(this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Atomic(keyBytes, maskBytes, FdbMutationType.Or);
+			trans.Atomic(key, mask, FdbMutationType.Or);
 		}
 
-		public static void AtomicXor(this IFdbTransaction trans, Slice keyBytes, Slice maskBytes)
+		public static void AtomicXor(this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Atomic(keyBytes, maskBytes, FdbMutationType.Xor);
+			trans.Atomic(key, mask, FdbMutationType.Xor);
 		}
 
 		#endregion

@@ -70,13 +70,13 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Reads a value from the database snapshot represented by by the current transaction.
 		/// </summary>
-		/// <param name="keyBytes">Key to be looked up in the database</param>
+		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
-		/// <exception cref="System.ArgumentException">If the <paramref name="keyBytes"/> is null</exception>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		Task<Slice> GetAsync(Slice keyBytes);
+		Task<Slice> GetAsync(Slice key);
 
 		/// <summary>
 		/// Reads several values from the database snapshot represented by the current transaction

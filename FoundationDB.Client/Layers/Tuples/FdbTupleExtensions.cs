@@ -277,12 +277,12 @@ namespace FoundationDB.Layers.Tuples
 			return trans.GetRange(begin, end, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
-		public static void Set(this IFdbTransaction trans, IFdbTuple key, Slice valueBytes)
+		public static void Set(this IFdbTransaction trans, IFdbTuple key, Slice value)
 		{
 			Contract.Requires(trans != null);
 			if (key == null) throw new ArgumentNullException("key");
 
-			trans.Set(key.ToSlice(), valueBytes);
+			trans.Set(key.ToSlice(), value);
 		}
 
 		public static void Clear(this IFdbTransaction trans, IFdbTuple key)

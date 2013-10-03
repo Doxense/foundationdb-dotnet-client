@@ -402,17 +402,17 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Reads a value from the database snapshot represented by transaction.
 		/// </summary>
-		/// <param name="keyBytes">Key to be looked up in the database</param>
+		/// <param name="key">Key to be looked up in the database</param>
 		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
-		/// <exception cref="System.ArgumentException">If the <paramref name="keyBytes"/> is null</exception>
+		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
 		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
 		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
 		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public Task<Slice> GetAsync(Slice keyBytes)
+		public Task<Slice> GetAsync(Slice key)
 		{
 			EnsureCanRead();
 
-			return GetCoreAsync(keyBytes, snapshot: false);
+			return GetCoreAsync(key, snapshot: false);
 		}
 
 		#endregion
@@ -617,13 +617,13 @@ namespace FoundationDB.Client
 		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
 		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
 		/// </summary>
-		/// <param name="keyBytes">Name of the key to be inserted into the database.</param>
-		/// <param name="valueBytes">Value to be inserted into the database.</param>
-		public void Set(Slice keyBytes, Slice valueBytes)
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		public void Set(Slice key, Slice value)
 		{
 			EnsureCanWrite();
 
-			SetCore(keyBytes, valueBytes);
+			SetCore(key, value);
 		}
 
 		#endregion
@@ -646,11 +646,17 @@ namespace FoundationDB.Client
 
 		}
 
-		public void Atomic(Slice keyBytes, Slice valueBytes, FdbMutationType operationType)
+		/// <summary>
+		/// Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.
+		/// </summary>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="param">Parameter with which the atomic operation will mutate the value associated with key_name.</param>
+		/// <param name="mutation">Type of mutation that should be performed on the key</param>
+		public void Atomic(Slice key, Slice param, FdbMutationType mutation)
 		{
 			EnsureCanWrite();
 
-			AtomicCore(keyBytes, valueBytes, operationType);
+			AtomicCore(key, param, mutation);
 		}
 
 		#endregion
@@ -732,13 +738,14 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a conflict range to a transaction without performing the associated read or write.
 		/// </summary>
-		/// <param name="range">Range that will be marked as conflicting.</param>
+		/// <param name="beginKeyInclusive">Key specifying the beginning of the conflict range. The key is included</param>
+		/// <param name="endKeyExclusive">Key specifying the end of the conflict range. The key is excluded</param>
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		public void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type)
+		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyInclusive, FdbConflictRangeType type)
 		{
 			EnsureCanWrite();
 
-			AddConflictRangeCore(range.Begin, range.End, type);
+			AddConflictRangeCore(beginKeyInclusive, endKeyInclusive, type);
 		}
 
 		#endregion

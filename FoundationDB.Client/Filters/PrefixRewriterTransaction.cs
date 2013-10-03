@@ -103,9 +103,9 @@ namespace FoundationDB.Client.Filters
 			return res;
 		}
 
-		public override Task<Slice> GetAsync(Slice keyBytes)
+		public override Task<Slice> GetAsync(Slice key)
 		{
-			return base.GetAsync(Encode(keyBytes));
+			return base.GetAsync(Encode(key));
 		}
 
 		public override Task<Slice[]> GetValuesAsync(Slice[] keys)
@@ -139,9 +139,9 @@ namespace FoundationDB.Client.Filters
 		}
 
 
-		public override void Set(Slice keyBytes, Slice valueBytes)
+		public override void Set(Slice key, Slice value)
 		{
-			base.Set(Encode(keyBytes), valueBytes);
+			base.Set(Encode(key), value);
 		}
 
 		public override void Clear(Slice key)
@@ -154,9 +154,9 @@ namespace FoundationDB.Client.Filters
 			base.ClearRange(Encode(beginKeyInclusive), Encode(endKeyExclusive));
 		}
 
-		public override void Atomic(Slice keyBytes, Slice paramBytes, FdbMutationType operationType)
+		public override void Atomic(Slice key, Slice param, FdbMutationType mutation)
 		{
-			base.Atomic(Encode(keyBytes), paramBytes, operationType);
+			base.Atomic(Encode(key), param, mutation);
 		}
 
 		public override void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type)

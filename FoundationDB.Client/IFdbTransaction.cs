@@ -56,17 +56,17 @@ namespace FoundationDB.Client
 		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
 		/// The modification affects the actual database only if transaction is later committed with CommitAsync().
 		/// </summary>
-		/// <param name="keyBytes">Name of the key to be inserted into the database.</param>
-		/// <param name="valueBytes">Value to be inserted into the database.</param>
-		void Set(Slice keyBytes, Slice valueBytes);
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		void Set(Slice key, Slice value);
 
 		/// <summary>
-		/// Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="operationType"/> with operand <paramref name="paramBytes"/> to the value stored by the given key.
+		/// Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.
 		/// </summary>
-		/// <param name="keyBytes">Name of the key whose value is to be mutated.</param>
-		/// <param name="paramBytes">Parameter with which the atomic operation will mutate the value associated with key_name.</param>
-		/// <param name="operationType"></param>
-		void Atomic(Slice keyBytes, Slice paramBytes, FdbMutationType operationType);
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="param">Parameter with which the atomic operation will mutate the value associated with key_name.</param>
+		/// <param name="mutation">Type of mutation that should be performed on the key</param>
+		void Atomic(Slice key, Slice param, FdbMutationType mutation);
 
 		/// <summary>
 		/// Modify the database snapshot represented by this transaction to remove the given key from the database. If the key was not previously present in the database, there is no effect.

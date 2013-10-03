@@ -120,10 +120,10 @@ namespace FoundationDB.Client.Filters
 			m_transaction.EnsureCanRead();
 		}
 
-		public virtual Task<Slice> GetAsync(Slice keyBytes)
+		public virtual Task<Slice> GetAsync(Slice key)
 		{
 			ThrowIfDisposed();
-			return m_transaction.GetAsync(keyBytes);
+			return m_transaction.GetAsync(key);
 		}
 
 		public virtual Task<Slice[]> GetValuesAsync(Slice[] keys)
@@ -179,16 +179,16 @@ namespace FoundationDB.Client.Filters
 			get { return m_transaction.Size; }
 		}
 
-		public virtual void Set(Slice keyBytes, Slice valueBytes)
+		public virtual void Set(Slice key, Slice value)
 		{
 			ThrowIfDisposed();
-			m_transaction.Set(keyBytes, valueBytes);
+			m_transaction.Set(key, value);
 		}
 
-		public virtual void Atomic(Slice keyBytes, Slice paramBytes, FdbMutationType operationType)
+		public virtual void Atomic(Slice key, Slice param, FdbMutationType mutation)
 		{
 			ThrowIfDisposed();
-			m_transaction.Atomic(keyBytes, paramBytes, operationType);
+			m_transaction.Atomic(key, param, mutation);
 		}
 
 		public virtual void Clear(Slice key)

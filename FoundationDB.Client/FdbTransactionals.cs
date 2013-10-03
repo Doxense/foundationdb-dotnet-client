@@ -119,11 +119,11 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
-		/// Perform the operation indicated by <paramref name="operationType"/> with operand <paramref name="paramBytes"/> to the value stored by the given key.
+		/// Perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.
 		/// </summary>
-		public static Task AtomicAsync(this IFdbTransactional dbOrTrans, Slice keyBytes, Slice paramBytes, FdbMutationType operationType, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task AtomicAsync(this IFdbTransactional dbOrTrans, Slice key, Slice param, FdbMutationType mutation, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return dbOrTrans.WriteAsync((tr) => tr.Atomic(keyBytes, paramBytes, operationType), cancellationToken);
+			return dbOrTrans.WriteAsync((tr) => tr.Atomic(key, param, mutation), cancellationToken);
 		}
 
 	}
