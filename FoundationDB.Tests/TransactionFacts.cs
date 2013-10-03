@@ -48,10 +48,11 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				using (var tr = db.BeginTransaction())
+				Assert.That(db, Is.InstanceOf<FdbDatabase>(), "This test only works directly on FdbDatabase");
+
+				using (var tr = (FdbTransaction)db.BeginTransaction())
 				{
 					Assert.That(tr, Is.Not.Null, "BeginTransaction should return a valid instance");
-					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
 					Assert.That(tr.State == FdbTransaction.STATE_READY, "Transaction should be in ready state");
 					Assert.That(tr.StillAlive, Is.True, "Transaction should be alive");
 					Assert.That(tr.Handle.IsInvalid, Is.False, "Transaction handle should be valid");
@@ -81,14 +82,18 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction())
 				{
 					Assert.That(tr, Is.Not.Null);
-					Assert.That(tr.IsReadOnly, Is.True, "Transaction should be marked as readonly");
+					
+					// reading should not fail
+					await tr.GetAsync(db.Pack("Hello"));
 
+					// any attempt to recast into a writeable transaction should fail!
+					var tr2 = (IFdbTransaction)tr;
+					Assert.That(tr2.IsReadOnly, Is.True, "Transaction should be marked as readonly");
 					var location = db.Partition("ReadOnly");
-
-					Assert.That(() => tr.Set(location.Pack("Hello"), Slice.Empty), Throws.InvalidOperationException);
-					Assert.That(() => tr.Clear(location.Pack("Hello")), Throws.InvalidOperationException);
-					Assert.That(() => tr.ClearRange(location.Pack("ABC"), location.Pack("DEF")), Throws.InvalidOperationException);
-					Assert.That(() => tr.Atomic(location.Pack("Counter"), Slice.FromFixed32(1), FdbMutationType.Add), Throws.InvalidOperationException);
+					Assert.That(() => tr2.Set(location.Pack("Hello"), Slice.Empty), Throws.InvalidOperationException);
+					Assert.That(() => tr2.Clear(location.Pack("Hello")), Throws.InvalidOperationException);
+					Assert.That(() => tr2.ClearRange(location.Pack("ABC"), location.Pack("DEF")), Throws.InvalidOperationException);
+					Assert.That(() => tr2.Atomic(location.Pack("Counter"), Slice.FromFixed32(1), FdbMutationType.Add), Throws.InvalidOperationException);
 				}
 			}
 		}
@@ -98,8 +103,8 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				FdbTransaction tr1 = null;
-				FdbTransaction tr2 = null;
+				IFdbTransaction tr1 = null;
+				IFdbTransaction tr2 = null;
 				try
 				{
 					// concurrent transactions should have separate FDB_FUTURE* handles
@@ -109,18 +114,22 @@ namespace FoundationDB.Client.Tests
 
 					Assert.That(tr1, Is.Not.Null);
 					Assert.That(tr2, Is.Not.Null);
+
 					Assert.That(tr1, Is.Not.SameAs(tr2), "Should create two different transaction objects");
-					Assert.That(tr1.Handle, Is.Not.EqualTo(tr2.Handle), "Should have different FDB_FUTURE* handles");
+
+					Assert.That(tr1, Is.InstanceOf<FdbTransaction>());
+					Assert.That(tr2, Is.InstanceOf<FdbTransaction>());
+					Assert.That(((FdbTransaction)tr1).Handle, Is.Not.EqualTo(((FdbTransaction)tr2).Handle), "Should have different FDB_FUTURE* handles");
 
 					// disposing the first should not impact the second
 
 					tr1.Dispose();
 
-					Assert.That(tr1.StillAlive, Is.False, "First transaction should be dead");
-					Assert.That(tr1.Handle.IsClosed, Is.True, "First FDB_FUTURE* handle should be closed");
+					Assert.That(((FdbTransaction)tr1).StillAlive, Is.False, "First transaction should be dead");
+					Assert.That(((FdbTransaction)tr1).Handle.IsClosed, Is.True, "First FDB_FUTURE* handle should be closed");
 
-					Assert.That(tr2.StillAlive, Is.True, "Second transaction should still be alive");
-					Assert.That(tr2.Handle.IsClosed, Is.False, "Second FDB_FUTURE* handle should still be opened");
+					Assert.That(((FdbTransaction)tr2).StillAlive, Is.True, "Second transaction should still be alive");
+					Assert.That(((FdbTransaction)tr2).Handle.IsClosed, Is.False, "Second FDB_FUTURE* handle should still be opened");
 				}
 				finally
 				{
@@ -138,12 +147,14 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var tr = db.BeginTransaction())
 				{
+					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
+
 					// do nothing with it
 					await tr.CommitAsync();
 					// => should not fail!
 
-					Assert.That(tr.StillAlive, Is.False);
-					Assert.That(tr.State, Is.EqualTo(FdbTransaction.STATE_COMMITTED));
+					Assert.That(((FdbTransaction)tr).StillAlive, Is.False);
+					Assert.That(((FdbTransaction)tr).State, Is.EqualTo(FdbTransaction.STATE_COMMITTED));
 				}
 			}
 		}
@@ -174,12 +185,14 @@ namespace FoundationDB.Client.Tests
 			{
 				using (var tr = db.BeginTransaction())
 				{
+					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
+
 					// do nothing with it
 					tr.Cancel();
 					// => should not fail!
 
-					Assert.That(tr.StillAlive, Is.False);
-					Assert.That(tr.State, Is.EqualTo(FdbTransaction.STATE_CANCELED));
+					Assert.That(((FdbTransaction)tr).StillAlive, Is.False);
+					Assert.That(((FdbTransaction)tr).State, Is.EqualTo(FdbTransaction.STATE_CANCELED));
 				}
 			}
 		}

@@ -48,7 +48,7 @@ namespace FoundationDB.Client.Tests
 		public static Task<FdbDatabase> OpenTestDatabaseAsync(CancellationToken ct = default(CancellationToken))
 		{
 			var subspace = new FdbSubspace(TestGlobalPrefix.Memoize());
-			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, ct);
+			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, false, ct);
 		}
 
 		/// <summary>Connect to the local test database</summary>

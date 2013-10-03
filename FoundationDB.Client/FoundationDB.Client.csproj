@@ -60,10 +60,12 @@
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
     <Compile Include="FdbDatabaseExtensions.cs" />
+    <Compile Include="FdbTransactionMode.cs" />
     <Compile Include="FdbTransactionals.cs" />
-    <Compile Include="IFdbDatabase.cs" />
+    <Compile Include="Filters\FdbTransactionFilter.cs" />
+    <Compile Include="Filters\FdbDatabaseFilter.cs" />
     <Compile Include="IFdbReadOnlyTransactional.cs" />
-    <Compile Include="IFdbReadOnlyDatabase.cs" />
+    <Compile Include="IFdbDatabase.cs" />
     <Compile Include="IFdbTransactional.cs" />
     <Compile Include="FdbFuture.cs" />
     <Compile Include="FdbFutureArray.cs" />

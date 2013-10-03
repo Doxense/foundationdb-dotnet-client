@@ -276,10 +276,13 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db.Root.ContentSubspace.Key, Is.EqualTo(db.GlobalSpace.Key));
 				Assert.That(db.Root.NodeSubspace, Is.Not.Null);
 				Assert.That(db.Root.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace[Slice.FromByte(254)]));
+				Assert.That(db.GlobalSpace.Contains(db.Root.ContentSubspace.Key), Is.True);
+				Assert.That(db.GlobalSpace.Contains(db.Root.NodeSubspace.Key), Is.True);
 
-				Assert.That(db.Database, Is.Not.Null);
-				Assert.That(db.Database.GlobalSpace.Contains(db.Root.ContentSubspace.Key), Is.True);
-				Assert.That(db.Database.GlobalSpace.Contains(db.Root.NodeSubspace.Key), Is.True);
+				var innerDb = db.GetInnerDatabase();
+				Assert.That(innerDb, Is.Not.Null);
+				Assert.That(innerDb.Name, Is.EqualTo(db.Name));
+				Assert.That(innerDb.GlobalSpace.Key, Is.EqualTo(db.GlobalSpace.Key));
 			}
 		}
 	}

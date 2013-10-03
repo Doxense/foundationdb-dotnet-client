@@ -373,7 +373,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		public static Task<FdbDatabase> OpenAsync(string clusterFile, string dbName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return OpenAsync(clusterFile, dbName, FdbSubspace.Empty, cancellationToken);
+			return OpenAsync(clusterFile, dbName, FdbSubspace.Empty, readOnly: false, cancellationToken: cancellationToken);
 		}
 
 		/// <summary>
@@ -387,7 +387,7 @@ namespace FoundationDB.Client
 		/// <remarks>As of 1.0, the only supported database name is 'DB'</remarks>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="dbName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
-		public static async Task<FdbDatabase> OpenAsync(string clusterFile, string dbName, FdbSubspace globalSpace, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<FdbDatabase> OpenAsync(string clusterFile, string dbName, FdbSubspace globalSpace, bool readOnly = false, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			cancellationToken.ThrowIfCancellationRequested();
 
@@ -403,7 +403,7 @@ namespace FoundationDB.Client
 			{
 				cluster = await CreateClusterAsync(clusterFile, cancellationToken).ConfigureAwait(false);
 				//note: since the cluster is not provided by the caller, link it with the database's Dispose()
-				db = await cluster.OpenDatabaseAsync(dbName, globalSpace, true, cancellationToken).ConfigureAwait(false);
+				db = await cluster.OpenDatabaseAsync(dbName, globalSpace, readOnly: readOnly, ownsCluster: true, cancellationToken: cancellationToken).ConfigureAwait(false);
 				success = true;
 				return db;
 			}

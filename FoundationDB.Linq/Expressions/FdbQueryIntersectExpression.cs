@@ -42,7 +42,7 @@ namespace FoundationDB.Linq.Expressions
 	public abstract class FdbQueryMergeExpression<T> : FdbQuerySequenceExpression<T>
 	{
 
-		internal FdbQueryMergeExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T> keyComparer)
+		protected internal FdbQueryMergeExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T> keyComparer)
 		{
 			this.Expressions = expressions;
 			this.KeyComparer = keyComparer;

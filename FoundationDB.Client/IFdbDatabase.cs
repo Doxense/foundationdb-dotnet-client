@@ -30,13 +30,39 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Threading;
-	using System.Threading.Tasks;
 
-	/// <summary>FoundationDB database instance that supports read and write operations.</summary>
-	public interface IFdbDatabase : IFdbReadOnlyDatabase, IFdbTransactional
+	/// <summary>FoundationDB database instance that supports read operations.</summary>
+	public interface IFdbDatabase : IFdbReadOnlyTransactional, IFdbTransactional, IDisposable
 	{
+		/// <summary>Name of the database</summary>
+		string Name { get; }
 
-		/// <summary>Start a new transaction on this database</summary>
+		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
+		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
+		CancellationToken Token { get; }
+
+		/// <summary>Returns the global namespace used by this database instance</summary>
+		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
+		FdbSubspace GlobalSpace { get; }
+
+		bool IsReadOnly { get; }
+
+		void SetOption(FdbDatabaseOption option);
+
+		void SetOption(FdbDatabaseOption option, string value);
+
+		void SetOption(FdbDatabaseOption option, long value);
+
+		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		int DefaultTimeout { get; set; }
+
+		/// <summary>Default Retry Limit value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		int DefaultRetryLimit { get; set; }
+
+		/// <summary>Start a new transaction on this database, with the specified mode</summary>
+		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
 		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
 		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
@@ -47,7 +73,8 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		IFdbTransaction BeginTransaction(CancellationToken cancellationToken = default(CancellationToken));
+		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken = default(CancellationToken));
 
 	}
+
 }

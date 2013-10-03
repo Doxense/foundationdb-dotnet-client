@@ -80,7 +80,7 @@ namespace FoundationDB.Client
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
 		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return OpenDatabaseAsync(databaseName, FdbSubspace.Empty, false, cancellationToken);
+			return OpenDatabaseAsync(databaseName, FdbSubspace.Empty, readOnly: false, ownsCluster: false, cancellationToken: cancellationToken);
 		}
 
 		/// <summary>Opens a database on this cluster, configured to only access a specific subspace of keys</summary>
@@ -94,7 +94,7 @@ namespace FoundationDB.Client
 		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			return OpenDatabaseAsync(databaseName, subspace, false, cancellationToken);
+			return OpenDatabaseAsync(databaseName, subspace, readOnly: false, ownsCluster: false, cancellationToken: cancellationToken);
 		}
 
 		/// <summary>Opens a database on this cluster</summary>
@@ -106,7 +106,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		internal Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool ownsCluster, CancellationToken cancellationToken)
+		internal Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
@@ -132,7 +132,7 @@ namespace FoundationDB.Client
 
 					if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
 
-					return new FdbDatabase(this, database, databaseName, subspace, ownsCluster);
+					return new FdbDatabase(this, database, databaseName, subspace, readOnly, ownsCluster);
 				},
 				cancellationToken
 			);

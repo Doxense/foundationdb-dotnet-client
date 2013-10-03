@@ -35,6 +35,10 @@ namespace FoundationDB.Client
 	/// <summary>Transaction that allows read and write operations</summary>
 	public interface IFdbTransaction : IFdbReadOnlyTransaction
 	{
+		/// <summary>Returns true if this transaction instance only allow read operations</summary>
+		/// <remarks>Attempting to call a write method on a read-only transaction will immediately throw an exception</remarks>
+		bool IsReadOnly { get; }
+
 		/// <summary>
 		/// Ensure thats the transaction is in a valid state for issuing write operations.
 		/// </summary>

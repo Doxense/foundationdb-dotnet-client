@@ -57,7 +57,10 @@ namespace FoundationDB.Client
 
 		/// <summary>If true, the cluster instance will be disposed at the same time as the current db instance.</summary>
 		private readonly bool m_ownsCluster;
-	
+
+		/// <summary>If true, the database will only allow read-only transactions.</summary>
+		private readonly bool m_readOnly;
+
 		/// <summary>Global cancellation source that is cancelled when the current db instance gets disposed.</summary>
 		private readonly CancellationTokenSource m_cts = new CancellationTokenSource();
 
@@ -96,12 +99,14 @@ namespace FoundationDB.Client
 		/// <param name="handle">Handle to the native FDB_DATABASE*</param>
 		/// <param name="name">Name of the database</param>
 		/// <param name="subspace">Root namespace of all keys accessible by this database instance</param>
+		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name, FdbSubspace subspace, bool ownsCluster)
+		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name, FdbSubspace subspace, bool readOnly, bool ownsCluster)
 		{
 			m_cluster = cluster;
 			m_handle = handle;
 			m_name = name;
+			m_readOnly = readOnly;
 			m_ownsCluster = ownsCluster;
 			ChangeGlobalSpace(subspace);
 
@@ -128,6 +133,8 @@ namespace FoundationDB.Client
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		public CancellationToken Token { get { return m_cts.Token; } }
 
+		public bool IsReadOnly { get { return m_readOnly; } }
+
 		#endregion
 
 		#region Transaction Management...
@@ -143,42 +150,21 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		public FdbTransaction BeginTransaction(CancellationToken cancellationToken = default(CancellationToken))
+		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return CreateNewTransaction(new FdbOperationContext(this, cancellationToken), readOnly: false);
-		}
-
-		IFdbTransaction IFdbDatabase.BeginTransaction(CancellationToken cancellationToken)
-		{
-			return this.BeginTransaction(cancellationToken);
-		}
-
-		/// <summary>Start a new read-only transaction on this database</summary>
-		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
-		/// <returns>New transaction instance that can read from the database.</returns>
-		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
-		/// <example>
-		/// using(var tr = db.BeginReadOnlyTransaction(CancellationToken.None))
-		/// {
-		///		var result = await tr.Get(Slice.FromString("Hello"));
-		///		var items = await tr.GetRange(FdbKeyRange.StartsWith(Slice.FromString("ABC"))).ToListAsync();
-		/// }</example>
-		public FdbTransaction BeginReadOnlyTransaction(CancellationToken cancellationToken = default(CancellationToken))
-		{
-			return CreateNewTransaction(new FdbOperationContext(this, cancellationToken), readOnly: true);
-		}
-
-		IFdbReadOnlyTransaction IFdbReadOnlyDatabase.BeginReadOnlyTransaction(CancellationToken cancellationToken)
-		{
-			return this.BeginReadOnlyTransaction(cancellationToken);
+			return CreateNewTransaction(new FdbOperationContext(this, mode, cancellationToken));
 		}
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>
 		/// <param name="context">Optional context in which the transaction will run</param>
 		/// <param name="readOnly">If true, only read operations are allowed, and all write attempts will throw.</param>
-		internal FdbTransaction CreateNewTransaction(FdbOperationContext context, bool readOnly)
+		internal FdbTransaction CreateNewTransaction(FdbOperationContext context)
 		{
 			Contract.Requires(context != null && context.Database == this);
+
+			// force the transaction to be read-only, if the database itself is read-only
+			var mode = context.Mode;
+			if (m_readOnly) mode |= FdbTransactionMode.ReadOnly;
 
 			ThrowIfDisposed();
 			if (m_handle.IsInvalid) throw Fdb.Errors.CannotCreateTransactionOnInvalidDatabase();
@@ -197,7 +183,7 @@ namespace FoundationDB.Client
 			FdbTransaction trans = null;
 			try
 			{
-				trans = new FdbTransaction(context, id, handle, readOnly);
+				trans = new FdbTransaction(context, id, handle, mode);
 				RegisterTransaction(trans);
 				// set default options..
 				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;

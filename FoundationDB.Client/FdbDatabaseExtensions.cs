@@ -36,6 +36,39 @@ namespace FoundationDB.Client
 	public static class FdbDatabaseExtensions
 	{
 
+		/// <summary>Start a new read-only transaction on this database</summary>
+		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <returns>New transaction instance that can read from the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		/// <example>
+		/// using(var tr = db.BeginReadOnlyTransaction(CancellationToken.None))
+		/// {
+		///		var result = await tr.Get(Slice.FromString("Hello"));
+		///		var items = await tr.GetRange(FdbKeyRange.StartsWith(Slice.FromString("ABC"))).ToListAsync();
+		/// }</example>
+		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.BeginTransaction(FdbTransactionMode.ReadOnly, cancellationToken);
+		}
+
+		/// <summary>Start a new transaction on this database</summary>
+		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <returns>New transaction instance that can read from or write to the database.</returns>
+		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
+		/// <example>
+		/// using(var tr = db.BeginTransaction(CancellationToken.None))
+		/// {
+		///		tr.Set(Slice.FromString("Hello"), Slice.FromString("World"));
+		///		tr.Clear(Slice.FromString("OldValue"));
+		///		await tr.CommitAsync();
+		/// }</example>
+		public static IFdbTransaction BeginTransaction(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.BeginTransaction(FdbTransactionMode.Default, cancellationToken);
+		}
+
 		#region Options...
 
 		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
@@ -90,61 +123,61 @@ namespace FoundationDB.Client
 		/// <typeparam name="T">Type of the value used for the partition</typeparam>
 		/// <param name="value">Prefix of the new partition</param>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="value"/></returns>
-		public static FdbSubspace Partition<T>(this IFdbReadOnlyDatabase db, T value)
+		public static FdbSubspace Partition<T>(this IFdbDatabase db, T value)
 		{
 			return db.GlobalSpace.Partition<T>(value);
 		}
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
-		public static FdbSubspace Partition<T1, T2>(this IFdbReadOnlyDatabase db, T1 value1, T2 value2)
+		public static FdbSubspace Partition<T1, T2>(this IFdbDatabase db, T1 value1, T2 value2)
 		{
 			return db.GlobalSpace.Partition<T1, T2>(value1, value2);
 		}
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
-		public static FdbSubspace Partition<T1, T2, T3>(this IFdbReadOnlyDatabase db, T1 value1, T2 value2, T3 value3)
+		public static FdbSubspace Partition<T1, T2, T3>(this IFdbDatabase db, T1 value1, T2 value2, T3 value3)
 		{
 			return db.GlobalSpace.Partition<T1, T2, T3>(value1, value2, value3);
 		}
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="tuple"/></returns>
-		public static FdbSubspace Partition(this IFdbReadOnlyDatabase db, IFdbTuple tuple)
+		public static FdbSubspace Partition(this IFdbDatabase db, IFdbTuple tuple)
 		{
 			return db.GlobalSpace.Partition(tuple);
 		}
 
 		/// <summary>Create a new key by appending a value to the global namespace</summary>
-		public static Slice Pack<T>(this IFdbReadOnlyDatabase db, T key)
+		public static Slice Pack<T>(this IFdbDatabase db, T key)
 		{
 			return db.GlobalSpace.Pack<T>(key);
 		}
 
 		/// <summary>Create a new key by appending two values to the global namespace</summary>
-		public static Slice Pack<T1, T2>(this IFdbReadOnlyDatabase db, T1 key1, T2 key2)
+		public static Slice Pack<T1, T2>(this IFdbDatabase db, T1 key1, T2 key2)
 		{
 			return db.GlobalSpace.Pack<T1, T2>(key1, key2);
 		}
 
 		/// <summary>Unpack a key using the current namespace of the database</summary>
 		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		public static IFdbTuple Unpack(this IFdbReadOnlyDatabase db, Slice key)
+		public static IFdbTuple Unpack(this IFdbDatabase db, Slice key)
 		{
 			return db.GlobalSpace.Unpack(key);
 		}
 
 		/// <summary>Unpack a key using the current namespace of the database</summary>
 		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		public static T UnpackLast<T>(this IFdbReadOnlyDatabase db, Slice key)
+		public static T UnpackLast<T>(this IFdbDatabase db, Slice key)
 		{
 			return db.GlobalSpace.UnpackLast<T>(key);
 		}
 
 		/// <summary>Unpack a key using the current namespace of the database</summary>
 		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		public static T UnpackSingle<T>(this IFdbReadOnlyDatabase db, Slice key)
+		public static T UnpackSingle<T>(this IFdbDatabase db, Slice key)
 		{
 			return db.GlobalSpace.UnpackSingle<T>(key);
 		}
@@ -158,7 +191,7 @@ namespace FoundationDB.Client
 		/// db.Concat(Slice.Empty) => '&lt;02&gt;Foo&lt;00&gt;'
 		/// db.Concat(Slice.Nil) => Slice.Nil
 		/// </example>
-		public static Slice Concat(this IFdbReadOnlyDatabase db, Slice keyRelative)
+		public static Slice Concat(this IFdbDatabase db, Slice keyRelative)
 		{
 			return db.GlobalSpace.Concat(keyRelative);
 		}
@@ -173,7 +206,7 @@ namespace FoundationDB.Client
 		/// db.Extract('&lt;02&gt;TopSecret&lt;00&gt;&lt;02&gt;Password&lt;00&gt;') => Slice.Nil
 		/// db.Extract(Slice.Nil) => Slice.Nil
 		/// </example>
-		public static Slice Extract(this IFdbReadOnlyDatabase db, Slice keyAbsolute)
+		public static Slice Extract(this IFdbDatabase db, Slice keyAbsolute)
 		{
 			return db.GlobalSpace.Extract(keyAbsolute);
 		}
@@ -185,7 +218,7 @@ namespace FoundationDB.Client
 		//TODO: move these methods to another subspace ? (ex: 'FoundationDb.Client.System' or 'FoundationDb.Client.Administration' ?)
 
 		/// <summary>Returns a string describing the list of the coordinators for the cluster</summary>
-		public static Task<string> GetCoordinatorsAsync(this IFdbReadOnlyDatabase db, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<string> GetCoordinatorsAsync(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
@@ -200,7 +233,7 @@ namespace FoundationDB.Client
 		/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
 		/// <param name="name">"storage_engine"</param>
 		/// <returns>Value of '\xFF/conf/storage_engine'</returns>
-		public static Task<Slice> GetConfigParameter(this IFdbReadOnlyDatabase db, string name, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<Slice> GetConfigParameter(this IFdbDatabase db, string name, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty", "name");

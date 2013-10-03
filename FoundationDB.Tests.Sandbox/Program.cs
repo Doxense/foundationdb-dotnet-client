@@ -427,7 +427,7 @@ namespace FoundationDB.Tests.Sandbox
 			var location = db.Partition("hello");
 
 			var sw = Stopwatch.StartNew();
-			FdbTransaction trans = null;
+			IFdbTransaction trans = null;
 			try
 			{
 				for (int i = 0; i < N; i++)

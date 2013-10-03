@@ -40,23 +40,13 @@ namespace FoundationDB.Linq
 	public abstract class FdbAsyncQuery<T> : IFdbAsyncQueryable, IFdbAsyncQueryProvider
 	{
 
-		protected FdbAsyncQuery(IFdbDatabase db)
-		{
-			this.Database = db;
-		}
-
-		protected FdbAsyncQuery(IFdbTransaction trans)
-		{
-			this.Transaction = trans;
-		}
-
-		internal FdbAsyncQuery(IFdbDatabase db, FdbQueryExpression expression)
+		protected FdbAsyncQuery(IFdbDatabase db, FdbQueryExpression expression = null)
 		{
 			this.Database = db;
 			this.Expression = expression;
 		}
 
-		internal FdbAsyncQuery(IFdbTransaction trans, FdbQueryExpression expression)
+		protected FdbAsyncQuery(IFdbTransaction trans, FdbQueryExpression expression = null)
 		{
 			this.Transaction = trans;
 			this.Expression = expression;

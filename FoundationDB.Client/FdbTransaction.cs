@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		internal FdbTransaction(FdbOperationContext context, int id, TransactionHandle handle, bool readOnly)
+		internal FdbTransaction(FdbOperationContext context, int id, TransactionHandle handle, FdbTransactionMode mode)
 		{
 			Contract.Requires(context != null && handle != null);
 			Contract.Requires(context.Database != null && context.Database is FdbDatabase);
@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 			m_context = context;
 			m_id = id;
 			m_handle = handle;
-			m_readOnly = readOnly;
+			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;
 
 			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Token);
 			m_token = m_cts.Token;
