@@ -66,7 +66,7 @@ namespace FoundationDB.Client
 		private readonly TransactionHandle m_handle;
 
 		/// <summary>True if the transaction has been opened in read-only mode</summary>
-		private bool m_readOnly;
+		private readonly bool m_readOnly;
 
 		/// <summary>Estimated size of written data (in bytes)</summary>
 		private int m_payloadBytes;
@@ -81,7 +81,7 @@ namespace FoundationDB.Client
 		private readonly CancellationTokenSource m_cts;
 
 		/// <summary>CancellationToken that should be used for all async operations executing inside this transaction</summary>
-		private CancellationToken m_token;
+		private readonly CancellationToken m_token;
 
 		#endregion
 

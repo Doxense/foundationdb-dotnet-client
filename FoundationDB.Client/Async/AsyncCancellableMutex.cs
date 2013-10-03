@@ -42,15 +42,15 @@ namespace FoundationDB.Async
 
 		// note: this is not really a mutex because there is no "Reset()" method (not possible to reset a TCS)...
 
-		private static Action<object> s_cancellationCallback = new Action<object>(CancellationHandler);
+		private static readonly Action<object> s_cancellationCallback = new Action<object>(CancellationHandler);
 
 		private const int CTR_NONE = 0;
 		private const int CTR_REGISTERED = 1;
 		private const int CTR_CANCELLED_OR_DISPOSED = 2;
 
 		private int m_state;
-		private CancellationToken m_ct;
-		private CancellationTokenRegistration m_ctr;
+		private readonly CancellationToken m_ct;
+		private readonly CancellationTokenRegistration m_ctr;
 
 		/// <summary>Handler called if the CancellationToken linked to a waiter is signaled</summary>
 		/// <param name="state"></param>

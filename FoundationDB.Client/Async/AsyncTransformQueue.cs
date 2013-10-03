@@ -41,14 +41,14 @@ namespace FoundationDB.Async
 	/// <typeparam name="TOutput">Type of the output elements (produced by an async lambda)</typeparam>
 	internal class AsyncTransformQueue<TInput, TOutput> : IAsyncBuffer<TInput, TOutput>
 	{
-		private Func<TInput, CancellationToken, Task<TOutput>> m_transform;
+		private readonly Func<TInput, CancellationToken, Task<TOutput>> m_transform;
 		private readonly Queue<Task<Maybe<TOutput>>> m_queue = new Queue<Task<Maybe<TOutput>>>();
 		private readonly object m_lock = new object();
 		private readonly int m_capacity;
 		private AsyncCancelableMutex m_blockedProducer;
 		private AsyncCancelableMutex m_blockedConsumer;
 		private bool m_done;
-		private TaskScheduler m_scheduler;
+		private readonly TaskScheduler m_scheduler;
 
 		public AsyncTransformQueue(Func<TInput, CancellationToken, Task<TOutput>> transform, int capacity, TaskScheduler scheduler)
 		{
@@ -134,7 +134,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		private static Func<object, Task<Maybe<TOutput>>> s_processItemHandler = new Func<object, Task<Maybe<TOutput>>>(ProcessItemHandler);
+		private static readonly Func<object, Task<Maybe<TOutput>>> s_processItemHandler = new Func<object, Task<Maybe<TOutput>>>(ProcessItemHandler);
 
 		public Task OnNextAsync(TInput value, CancellationToken ct)
 		{

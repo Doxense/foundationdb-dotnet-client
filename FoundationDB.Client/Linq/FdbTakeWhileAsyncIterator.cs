@@ -36,7 +36,7 @@ namespace FoundationDB.Linq
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 	internal sealed class FdbTakeWhileAsyncIterator<TSource> : FdbAsyncFilter<TSource, TSource>
 	{
-		private Func<TSource, bool> m_condition;
+		private readonly Func<TSource, bool> m_condition;
 
 		public FdbTakeWhileAsyncIterator(IFdbAsyncEnumerable<TSource> source, Func<TSource, bool> condition)
 			: base(source)

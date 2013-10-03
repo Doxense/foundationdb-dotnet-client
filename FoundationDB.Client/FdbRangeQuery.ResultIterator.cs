@@ -49,12 +49,12 @@ namespace FoundationDB.Client
 		private sealed class ResultIterator : FdbAsyncIterator<T>
 		{
 
-			private FdbRangeQuery<T> m_query;
+			private readonly FdbRangeQuery<T> m_query;
 
-			private IFdbReadOnlyTransaction m_transaction;
+			private readonly IFdbReadOnlyTransaction m_transaction;
 
 			/// <summary>Lambda used to transform pairs of key/value into the expected result</summary>
-			private Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
+			private readonly Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
 
 
 			/// <summary>Iterator used to read chunks from the database</summary>

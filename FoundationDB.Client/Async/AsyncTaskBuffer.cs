@@ -43,7 +43,7 @@ namespace FoundationDB.Async
 		#region Private Members...
 
 		/// <summary>How should we output results ? In arrival order or in completion order ? </summary>
-		private AsyncOrderingMode m_mode;
+		private readonly AsyncOrderingMode m_mode;
 
 		/// <summary>Queue that holds items produced but not yet consumed</summary>
 		/// <remarks>The queue can sometime go over the limit because the Complete/Error message are added without locking</remarks>

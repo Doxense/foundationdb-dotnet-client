@@ -43,11 +43,11 @@ namespace FoundationDB.Async
 		#region Private Members...
 
 		/// <summary>Transformation applied on the values</summary>
-		private Func<T, R> m_transform;
+		private readonly Func<T, R> m_transform;
 
 		/// <summary>Queue that holds items produced but not yet consumed</summary>
 		/// <remarks>The queue can sometime go over the limit because the Complete/Error message are added without locking</remarks>
-		private Queue<Maybe<T>> m_queue = new Queue<Maybe<T>>();
+		private readonly Queue<Maybe<T>> m_queue = new Queue<Maybe<T>>();
 
 		#endregion
 

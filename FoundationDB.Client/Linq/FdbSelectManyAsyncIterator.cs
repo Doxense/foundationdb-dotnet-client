@@ -39,8 +39,8 @@ namespace FoundationDB.Linq
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	internal sealed class FdbSelectManyAsyncIterator<TSource, TResult> : FdbAsyncFilter<TSource, TResult>
 	{
-		private Func<TSource, IEnumerable<TResult>> m_selector;
-		private Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> m_asyncSelector;
+		private readonly Func<TSource, IEnumerable<TResult>> m_selector;
+		private readonly Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> m_asyncSelector;
 		private IEnumerator<TResult> m_batch;
 
 		public FdbSelectManyAsyncIterator(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
@@ -126,9 +126,9 @@ namespace FoundationDB.Linq
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	internal sealed class SelectManyAsyncIterator<TSource, TCollection, TResult> : FdbAsyncFilter<TSource, TResult>
 	{
-		private Func<TSource, IEnumerable<TCollection>> m_collectionSelector;
-		private Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> m_asyncCollectionSelector;
-		private Func<TSource, TCollection, TResult> m_resultSelector;
+		private readonly Func<TSource, IEnumerable<TCollection>> m_collectionSelector;
+		private readonly Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> m_asyncCollectionSelector;
+		private readonly Func<TSource, TCollection, TResult> m_resultSelector;
 		private TSource m_sourceCurrent;
 		private IEnumerator<TCollection> m_batch;
 

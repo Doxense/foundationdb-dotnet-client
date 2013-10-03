@@ -39,13 +39,13 @@ namespace FoundationDB.Linq
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	internal sealed class FdbWhereSelectAsyncIterator<TSource, TResult> : FdbAsyncFilter<TSource, TResult>
 	{
-		private Func<TSource, bool> m_filter;
-		private Func<TSource, CancellationToken, Task<bool>> m_asyncFilter;
+		private readonly Func<TSource, bool> m_filter;
+		private readonly Func<TSource, CancellationToken, Task<bool>> m_asyncFilter;
 
-		private Func<TSource, TResult> m_transform;
-		private Func<TSource, CancellationToken, Task<TResult>> m_asyncTransform;
+		private readonly Func<TSource, TResult> m_transform;
+		private readonly Func<TSource, CancellationToken, Task<TResult>> m_asyncTransform;
 
-		private int? m_limit;
+		private readonly int? m_limit;
 
 		private int? m_remaining;
 
