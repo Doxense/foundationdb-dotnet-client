@@ -429,7 +429,7 @@ namespace FoundationDB.Client
 
 		private static void CancellationHandler(object state)
 		{
-			var future = state as FdbFutureSingle<T>;
+			var future = state as FdbFuture<T>;
 			if (future != null)
 			{
 #if DEBUG_FUTURES
