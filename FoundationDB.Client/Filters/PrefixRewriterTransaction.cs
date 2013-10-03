@@ -128,12 +128,12 @@ namespace FoundationDB.Client.Filters
 			return base.GetAddressesForKeyAsync(Encode(key));
 		}
 
-		public override FdbRangeQuery<System.Collections.Generic.KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null)
+		public override FdbRangeQuery<System.Collections.Generic.KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			throw new NotImplementedException();
 		}
 
-		public override Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
+		public override Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			throw new NotImplementedException();
 		}

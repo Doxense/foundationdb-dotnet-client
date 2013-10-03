@@ -160,40 +160,33 @@ namespace FoundationDB.Client
 
 		#region GetRange...
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, bool reverse = false)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			return trans.GetRange(FdbKeySelectorPair.Create(beginInclusive, endExclusive), options);
-		}
-
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, bool reverse = false)
-		{
-			return GetRange(trans, beginInclusive, endExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
+			return trans.GetRange(beginInclusive, endExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeyRange range, FdbRangeOptions options = null)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-
-			return trans.GetRange(FdbKeySelectorPair.Create(range), options);
+			return FdbTransactionExtensions.GetRange(trans, FdbKeySelectorPair.Create(range), options);
 		}
 
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeyRange range, int limit, bool reverse = false)
 		{
-			return GetRange(trans, range, new FdbRangeOptions(limit: limit, reverse: reverse));
+			return FdbTransactionExtensions.GetRange(trans, range, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null)
 		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
 			if (beginInclusive.IsNullOrEmpty) beginInclusive = FdbKey.MinValue;
 			if (endExclusive.IsNullOrEmpty) endExclusive = FdbKey.MaxValue;
 
 			return trans.GetRange(
-				FdbKeySelectorPair.Create(
-					FdbKeySelector.FirstGreaterOrEqual(beginInclusive),
-					FdbKeySelector.FirstGreaterOrEqual(endExclusive)
-				),
+				FdbKeySelector.FirstGreaterOrEqual(beginInclusive),
+				FdbKeySelector.FirstGreaterOrEqual(endExclusive),
 				options
 			);
 		}
@@ -201,6 +194,35 @@ namespace FoundationDB.Client
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, int limit, bool reverse = false)
 		{
 			return GetRange(trans, beginInclusive, endExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
+		}
+
+		/// <summary>
+		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction
+		/// </summary>
+		/// <param name="range">Pair of key selectors defining the beginning and the end of the range</param>
+		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, FdbKeySelectorPair range, FdbRangeOptions options = null)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			return trans.GetRange(range.Begin, range.End, options);
+		}
+
+		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		/// <param name="range">key selector pair defining the beginning and the end of the range</param>
+		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <returns></returns>
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
 		}
 
 		#endregion

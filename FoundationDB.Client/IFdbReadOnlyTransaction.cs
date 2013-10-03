@@ -104,11 +104,12 @@ namespace FoundationDB.Client
 		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
 		/// and lexicographically less than the key resolved by the end key selector.
 		/// </summary>
-		/// <param name="range">Pair of key selectors defining the beginning and the end of the range</param>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0);
+		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0);
 		
 		/// <summary>
 		/// Create a new range query that will read all key-value pairs in the database snapshot represented by the transaction
@@ -116,7 +117,7 @@ namespace FoundationDB.Client
 		/// <param name="range">Pair of key selectors defining the beginning and the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
-		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null);
+		FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, FdbRangeOptions options = null);
 
 		/// <summary>
 		/// Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <param name="key"/> and its associated value

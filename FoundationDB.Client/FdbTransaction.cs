@@ -433,15 +433,15 @@ namespace FoundationDB.Client
 
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-		internal Task<FdbRangeChunk> GetRangeCoreAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration, bool snapshot)
+		internal Task<FdbRangeChunk> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, int iteration, bool snapshot)
 		{
-			this.Database.EnsureKeyIsValid(range.Begin.Key);
-			this.Database.EnsureKeyIsValid(range.End.Key);
+			this.Database.EnsureKeyIsValid(begin.Key);
+			this.Database.EnsureKeyIsValid(end.Key);
 
 			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
 			options.EnsureLegalValues();
 
-			var future = FdbNative.TransactionGetRange(this.Handle, range.Begin, range.End, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, snapshot, options.Reverse.Value);
+			var future = FdbNative.TransactionGetRange(this.Handle, begin, end, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, snapshot, options.Reverse.Value);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) =>
@@ -462,41 +462,42 @@ namespace FoundationDB.Client
 		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
 		/// and lexicographically less than the key resolved by the end key selector.
 		/// </summary>
-		/// <param name="range">Pair of key selectors defining the beginning and the end of the range</param>
+		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
+		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, StreamingMode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
+		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			EnsureCanRead();
 
-			return GetRangeCoreAsync(range, options, iteration, snapshot: false);
+			return GetRangeCoreAsync(beginInclusive, endExclusive, options, iteration, snapshot: false);
 		}
 
 		#endregion
 
 		#region GetRange...
 
-		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(FdbKeySelectorPair range, FdbRangeOptions options, bool snapshot)
+		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, bool snapshot)
 		{
-			this.Database.EnsureKeyIsValid(range.Begin.Key);
-			this.Database.EnsureKeyIsValid(range.End.Key);
+			this.Database.EnsureKeyIsValid(begin.Key);
+			this.Database.EnsureKeyIsValid(end.Key);
 
 			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
 			options.EnsureLegalValues();
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", range.Begin.ToString(), range.End.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", begin.ToString(), end.ToString()));
 #endif
 
-			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, range, (kvp) => kvp, snapshot, options);
+			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, (kvp) => kvp, snapshot, options);
 		}
 
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null)
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			EnsureCanRead();
 
-			return GetRangeCore(range, options, snapshot: false);
+			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false);
 		}
 
 		#endregion

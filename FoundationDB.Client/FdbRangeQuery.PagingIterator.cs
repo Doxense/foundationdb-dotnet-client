@@ -106,8 +106,8 @@ namespace FoundationDB.Client
 			protected override Task<bool> OnFirstAsync(CancellationToken cancellationToken)
 			{
 				this.Remaining = this.Query.Limit > 0 ? this.Query.Limit : default(int?);
-				this.Begin = this.Query.Range.Begin;
-				this.End = this.Query.Range.End;
+				this.Begin = this.Query.Begin;
+				this.End = this.Query.End;
 
 				return TaskHelpers.TrueTask;
 			}
@@ -185,7 +185,7 @@ namespace FoundationDB.Client
 
 				//BUGBUG: mix the custom cancellation token with the transaction, is it is diffent !
 				var task = tr
-					.GetRangeAsync(new FdbKeySelectorPair(this.Begin, this.End), options, this.Iteration)
+					.GetRangeAsync(this.Begin, this.End, options, this.Iteration)
 					.Then((result) =>
 					{
 						this.Chunk = result.Chunk;

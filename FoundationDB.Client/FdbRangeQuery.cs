@@ -43,10 +43,11 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
-		internal FdbRangeQuery(IFdbReadOnlyTransaction transaction, FdbKeySelectorPair range, Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, FdbRangeOptions options)
+		internal FdbRangeQuery(IFdbReadOnlyTransaction transaction, FdbKeySelector begin, FdbKeySelector end, Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, FdbRangeOptions options)
 		{
 			this.Transaction = transaction;
-			this.Range = range;
+			this.Begin = begin;
+			this.End = end;
 			this.Transform = transform;
 			this.Snapshot = snapshot;
 			this.Options = options ?? new FdbRangeOptions();
@@ -55,15 +56,22 @@ namespace FoundationDB.Client
 		private FdbRangeQuery(FdbRangeQuery<T> query, FdbRangeOptions options)
 		{
 			this.Transaction = query.Transaction;
-			this.Range = query.Range;
+			this.Begin = query.Begin;
+			this.End = query.End;
 			this.Transform = query.Transform;
 			this.Options = options;
 		}
 
 		#region Public Properties...
 
+		/// <summary>Key selector describing the beginning of the range that will be queried</summary>
+		public FdbKeySelector Begin { get; private set; }
+
+		/// <summary>Key selector describing the end of the range that will be queried</summary>
+		public FdbKeySelector End { get; private set; }
+
 		/// <summary>Key selector pair describing the beginning and end of the range that will be queried</summary>
-		public FdbKeySelectorPair Range { get; private set; }
+		public FdbKeySelectorPair Range { get { return new FdbKeySelectorPair(this.Begin, this.End); } }
 
 		/// <summary>Stores all the settings for this range query</summary>
 		internal FdbRangeOptions Options { get; private set; }
@@ -162,7 +170,8 @@ namespace FoundationDB.Client
 
 			return new FdbRangeQuery<T>(
 				transaction,
-				this.Range,
+				this.Begin,
+				this.End,
 				this.Transform,
 				this.Snapshot,
 				new FdbRangeOptions(this.Options)
@@ -205,7 +214,8 @@ namespace FoundationDB.Client
 		{
 			return new FdbRangeQuery<R>(
 				this.Transaction,
-				this.Range,
+				this.Begin,
+				this.End,
 				transform,
 				this.Snapshot,
 				new FdbRangeOptions(this.Options)
@@ -303,7 +313,7 @@ namespace FoundationDB.Client
 			};
 
 			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
-			var results = await tr.GetRangeAsync(this.Range, options, 0).ConfigureAwait(false);
+			var results = await tr.GetRangeAsync(this.Begin, this.End, options, 0).ConfigureAwait(false);
 
 			if (results.Chunk.Length == 0)
 			{ // no result
@@ -342,7 +352,7 @@ namespace FoundationDB.Client
 			};
 
 			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
-			var results = await tr.GetRangeAsync(this.Range, options, 0).ConfigureAwait(false);
+			var results = await tr.GetRangeAsync(this.Begin, this.End, options, 0).ConfigureAwait(false);
 
 			return any ? results.Chunk.Length > 0 : results.Chunk.Length == 0;
 		}

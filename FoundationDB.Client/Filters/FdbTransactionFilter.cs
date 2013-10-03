@@ -144,16 +144,16 @@ namespace FoundationDB.Client.Filters
 			return m_transaction.GetKeysAsync(selectors);
 		}
 
-		public virtual Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
+		public virtual Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			ThrowIfDisposed();
-			return m_transaction.GetRangeAsync(range, options, iteration);
+			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
 		}
 
-		public virtual FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options = null)
+		public virtual FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			ThrowIfDisposed();
-			return m_transaction.GetRange(range, options);
+			return m_transaction.GetRange(beginInclusive, endExclusive, options);
 		}
 
 		public virtual Task<string[]> GetAddressesForKeyAsync(Slice key)

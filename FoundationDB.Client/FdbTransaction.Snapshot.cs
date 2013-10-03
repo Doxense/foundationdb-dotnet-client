@@ -127,18 +127,18 @@ namespace FoundationDB.Client
 				return m_parent.GetKeysCoreAsync(selectors, snapshot:true);
 			}
 
-			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelectorPair range, FdbRangeOptions options, int iteration)
+			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration)
 			{
 				EnsureCanRead();
 
-				return m_parent.GetRangeCoreAsync(range, options, iteration, snapshot: true);
+				return m_parent.GetRangeCoreAsync(beginInclusive, endExclusive, options, iteration, snapshot: true);
 			}
 
-			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelectorPair range, FdbRangeOptions options)
+			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options)
 			{
 				EnsureCanRead();
 
-				return m_parent.GetRangeCore(range, options, snapshot: true);
+				return m_parent.GetRangeCore(beginInclusive, endExclusive, options, snapshot: true);
 			}
 
 			public Task<string[]> GetAddressesForKeyAsync(Slice key)

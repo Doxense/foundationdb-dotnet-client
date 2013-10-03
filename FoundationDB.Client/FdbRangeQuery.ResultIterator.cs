@@ -170,7 +170,8 @@ namespace FoundationDB.Client
 			{
 				var query = new FdbRangeQuery<R>(
 					m_transaction,
-					m_query.Range,
+					m_query.Begin,
+					m_query.End,
 					(x) => selector(m_resultTransform(x)),
 					m_query.Snapshot,
 					m_query.Options

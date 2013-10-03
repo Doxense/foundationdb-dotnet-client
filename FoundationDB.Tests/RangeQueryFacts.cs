@@ -78,13 +78,15 @@ namespace FoundationDB.Client.Tests
 					var query = tr.GetRange(location.Pack(0), location.Pack(N));
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Transaction, Is.SameAs(tr));
-					Assert.That(query.Range.Begin.Key, Is.EqualTo(location.Pack(0)));
-					Assert.That(query.Range.End.Key, Is.EqualTo(location.Pack(N)));
+					Assert.That(query.Begin.Key, Is.EqualTo(location.Pack(0)));
+					Assert.That(query.End.Key, Is.EqualTo(location.Pack(N)));
 					Assert.That(query.Limit, Is.EqualTo(0));
 					Assert.That(query.TargetBytes, Is.EqualTo(0));
 					Assert.That(query.Reverse, Is.False);
 					Assert.That(query.Mode, Is.EqualTo(FdbStreamingMode.Iterator));
 					Assert.That(query.Snapshot, Is.False);
+					Assert.That(query.Range.Begin, Is.EqualTo(query.Begin));
+					Assert.That(query.Range.End, Is.EqualTo(query.End));
 
 					Console.WriteLine("Getting range " + query.Range.ToString() + " ...");
 
