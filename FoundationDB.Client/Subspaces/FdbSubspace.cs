@@ -312,7 +312,7 @@ namespace FoundationDB.Client
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public Slice[] PackBoxedRange(IEnumerable<object> keys)
 		{
-			return FdbTuple.PackBoxedRange(Slice.Empty, keys);
+			return FdbTuple.PackBoxedRange(m_rawPrefix, keys);
 		}
 
 		/// <summary>Pack a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
@@ -321,7 +321,7 @@ namespace FoundationDB.Client
 		public Slice[] PackBoxedRange(object[] keys)
 		{
 			//note: cannot use "params object[]" because it may conflict with PackRange(IEnumerable<object>)
-			return FdbTuple.PackBoxedRange(Slice.Empty, keys);
+			return FdbTuple.PackBoxedRange(m_rawPrefix, keys);
 		}
 
 		#endregion
