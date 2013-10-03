@@ -159,9 +159,9 @@ namespace FoundationDB.Client.Filters
 			base.Atomic(Encode(key), param, mutation);
 		}
 
-		public override void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type)
+		public override void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
 		{
-			throw new NotImplementedException();
+			base.AddConflictRange(Encode(beginKeyInclusive), Encode(endKeyExclusive), type);
 		}
 
 		public override FdbWatch Watch(Slice key, CancellationToken cancellationToken)

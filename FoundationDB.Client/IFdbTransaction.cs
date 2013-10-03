@@ -85,9 +85,10 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a conflict range to a transaction without performing the associated read or write.
 		/// </summary>
-		/// <param name="range">Range of the keys specifying the conflict range. The end key is excluded</param>
+		/// <param name="beginKeyInclusive">Key specifying the beginning of the conflict range. The key is included</param>
+		/// <param name="endKeyExclusive">Key specifying the end of the conflict range. The key is excluded</param>
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type);
+		void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type);
 
 		/// <summary>
 		/// Reset transaction to its initial state.

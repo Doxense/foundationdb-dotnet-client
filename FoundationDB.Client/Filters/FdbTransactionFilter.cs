@@ -203,10 +203,10 @@ namespace FoundationDB.Client.Filters
 			m_transaction.ClearRange(beginKeyInclusive, endKeyExclusive);
 		}
 
-		public virtual void AddConflictRange(FdbKeyRange range, FdbConflictRangeType type)
+		public virtual void AddConflictRange(Slice beginInclusive, Slice endExclusive, FdbConflictRangeType type)
 		{
 			ThrowIfDisposed();
-			m_transaction.AddConflictRange(range, type);
+			m_transaction.AddConflictRange(beginInclusive, endExclusive, type);
 		}
 
 		public virtual void Cancel()
