@@ -91,15 +91,6 @@ namespace FoundationDB.Client
 				return new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id, db.Name));
 			}
 
-			internal static Exception EndKeyOfRangeCannotBeLessThanBeginKey(FdbKeyRange range)
-			{
-#if DEBUG
-				return new ArgumentException(String.Format("The end key '{0}' of the allowed key space cannot be less than the end key '{1}'", range.Begin.ToString(), range.End.ToString()), "range");
-#else
-				return new ArgumentException("The end key of the allowed key space cannot be less than the end key", "range");
-#endif
-			}
-
 			internal static Exception CannotIncrementKey()
 			{
 				return new ArgumentException("Key must contain at least one byte not equal to 0xFF");
