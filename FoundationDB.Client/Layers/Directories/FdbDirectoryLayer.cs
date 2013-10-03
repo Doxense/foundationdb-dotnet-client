@@ -392,7 +392,7 @@ namespace FoundationDB.Layers.Directories
 			// for a path equal to ("foo","bar","baz") and index = -1, we need to generate (parent, SUBDIRS, "baz")
 			// but since the last item of path can be of any type, we will use tuple splicing to copy the last item without changing its type
 
-			return parent.Create(SUBDIRS).Concat(path.Substring(index, 1)).ToSlice();
+			return parent.Append(SUBDIRS).Concat(path.Substring(index, 1)).ToSlice();
 		}
 
 		#endregion

@@ -98,10 +98,9 @@ namespace FoundationDB.Client
 			return new FdbSubspace(slice);
 		}
 
-		public static FdbSubspace Create(string name)
+		public static FdbSubspace Create(IFdbTuple tuple)
 		{
-			//REVIEW: should use ASCII or Unicode for the name ?
-			return new FdbSubspace(FdbTuple.Create(name));
+			return new FdbSubspace(tuple);
 		}
 
 		internal FdbSubspace Copy()
@@ -338,12 +337,12 @@ namespace FoundationDB.Client
 		/// <summary>Attach a tuple to an existing subspace.</summary>
 		/// <param name="value">Tuple whose items will be appended at the end of the current subspace</param>
 		/// <returns>Tuple that wraps the items of <param name="tuple"/> and whose packed representation will always be prefixed by the subspace key.</returns>
-		public FdbSubspaceTuple Create(IFdbTuple tuple)
+		public FdbSubspaceTuple Append(IFdbTuple tuple)
 		{
 			return new FdbSubspaceTuple(this, tuple);
 		}
 
-		public FdbSubspaceTuple CreateBoxed(object value)
+		public FdbSubspaceTuple AppendBoxed(object value)
 		{
 			return new FdbSubspaceTuple(this, FdbTuple.CreateBoxed(value));
 		}
@@ -352,7 +351,7 @@ namespace FoundationDB.Client
 		/// <param name="formattable">Item that can be converted into a tuple</param>
 		/// <returns>Tuple that is the logical representation of the item, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(formattable.ToTuple())'</remarks>
-		public FdbSubspaceTuple Create(ITupleFormattable formattable)
+		public FdbSubspaceTuple Append(ITupleFormattable formattable)
 		{
 			if (formattable == null) throw new ArgumentNullException("formattable");
 			var tuple = formattable.ToTuple();
@@ -365,7 +364,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Value that will be appended</param>
 		/// <returns>Tuple of size 1 that contains <paramref name="value"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T&gt;(value))'</remarks>
-		public FdbSubspaceTuple Create<T>(T value)
+		public FdbSubspaceTuple Append<T>(T value)
 		{
 			return new FdbSubspaceTuple(this, FdbTuple.Create<T>(value));
 		}
@@ -377,7 +376,7 @@ namespace FoundationDB.Client
 		/// <param name="value2">Second value that will be appended</param>
 		/// <returns>Tuple of size 2 that contains <paramref name="value1"/> and <paramref name="value2"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2&gt;(value1, value2))'</remarks>
-		public FdbSubspaceTuple Create<T1, T2>(T1 value1, T2 value2)
+		public FdbSubspaceTuple Append<T1, T2>(T1 value1, T2 value2)
 		{
 			return new FdbSubspaceTuple(this, FdbTuple.Create<T1, T2>(value1, value2));
 		}
@@ -391,7 +390,7 @@ namespace FoundationDB.Client
 		/// <param name="value3">Third value that will be appended</param>
 		/// <returns>Tuple of size 3 that contains <paramref name="value1"/>, <paramref name="value2"/> and <paramref name="value3"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3&gt;(value1, value2, value3))'</remarks>
-		public FdbSubspaceTuple Create<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		public FdbSubspaceTuple Append<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
 			return new FdbSubspaceTuple(this, FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
 		}
@@ -400,7 +399,7 @@ namespace FoundationDB.Client
 		/// <param name="items">Array of items of the new tuple</param>
 		/// <returns>Tuple of size <paramref name="items"/>.Length, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create(items))'</remarks>
-		public FdbSubspaceTuple Create(params object[] items)
+		public FdbSubspaceTuple Append(params object[] items)
 		{
 			return new FdbSubspaceTuple(this, FdbTuple.Create(items));
 		}
