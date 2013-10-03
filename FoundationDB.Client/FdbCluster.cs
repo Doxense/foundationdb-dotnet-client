@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 
 	/// <summary>FoundationDB Cluster</summary>
 	/// <remarks>Wraps an FDBCluster* handle</remarks>
-	public class FdbCluster : IDisposable
+	public sealed class FdbCluster : IDisposable
 	{
 
 		private readonly ClusterHandle m_handle;

@@ -32,7 +32,7 @@ namespace FoundationDB.Linq
 	using System.Threading.Tasks;
 
 	/// <summary>Container class for all settings relative to parallel operations</summary>
-	public class FdbParallelQueryOptions
+	public sealed class FdbParallelQueryOptions
 	{
 
 		/// <summary>Maximum number of concurrent async tasks that can run in parallel</summary>

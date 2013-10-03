@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Database instance that manages the content of a KeySpace partition</summary>
 	[DebuggerDisplay("Database={Database.Name}, Contents={Directory.ContentsSubspace}, Nodes={Directory.NodeSubspace}")]
-	public class FdbDatabasePartition : FdbDatabaseFilter
+	public sealed class FdbDatabasePartition : FdbDatabaseFilter
 	{
 		/// <summary>Root directory layer</summary>
 		private readonly FdbDirectoryLayer m_root;

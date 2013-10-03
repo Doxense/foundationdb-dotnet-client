@@ -37,7 +37,7 @@ namespace FoundationDB.Client
 	/// <typeparam name="TSource">Type of the elements from the source async sequences</typeparam>
 	/// <typeparam name="TKey">Type of the keys extracted from the source elements</typeparam>
 	/// <typeparam name="TResult">Type of the elements of resulting async sequence</typeparam>
-	internal class FdbIntersectIterator<TSource, TKey, TResult> : FdbQueryMergeIterator<TSource, TKey, TResult>
+	internal sealed class FdbIntersectIterator<TSource, TKey, TResult> : FdbQueryMergeIterator<TSource, TKey, TResult>
 	{
 		public FdbIntersectIterator(IEnumerable<IFdbAsyncEnumerable<TSource>> sources, int? limit, Func<TSource, TKey> keySelector, Func<TSource, TResult> resultSelector, IComparer<TKey> comparer)
 			: base(sources, limit, keySelector, resultSelector, comparer)

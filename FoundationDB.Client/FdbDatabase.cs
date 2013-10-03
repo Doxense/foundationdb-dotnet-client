@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB Database</summary>
 	/// <remarks>Wraps an FDBDatabase* handle</remarks>
 	[DebuggerDisplay("Name={m_name}, Namespace={m_namespace}")]
-	public class FdbDatabase : IFdbDatabase, IFdbTransactional, IDisposable
+	public sealed class FdbDatabase : IFdbDatabase, IFdbTransactional, IDisposable
 	{
 		#region Private Fields...
 

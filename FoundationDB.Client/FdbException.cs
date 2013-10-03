@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	using System.Security;
 
 	/// <summary>FoundationDB API Error Code</summary>
-	public class FdbException : Exception
+	public sealed class FdbException : Exception
 	{
 
 		public FdbException(FdbError errorCode)
