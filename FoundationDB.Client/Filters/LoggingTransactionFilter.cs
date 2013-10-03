@@ -38,14 +38,16 @@ namespace FoundationDB.Client.Filters
 
 		public TransactionLog Log { get; private set; }
 
-		private byte[] m_buffer = new byte[1024];
-		private int m_offset;
-		
 		public LoggingTransactionFilter(IFdbTransaction trans, bool ownsTransaction)
 			: base(trans, false, ownsTransaction)
 		{
 			this.Log = new TransactionLog(this);
 		}
+
+		#region Data interning...
+
+		private byte[] m_buffer = new byte[1024];
+		private int m_offset;
 
 		private Slice Grab(Slice slice)
 		{
@@ -110,6 +112,10 @@ namespace FoundationDB.Client.Filters
 			return res;
 		}
 
+		#endregion
+
+		#region Instrumentation...
+
 		private void Execute<TCommand>(TCommand cmd, Action<IFdbTransaction, TCommand> action)
 			where TCommand : Command
 		{
@@ -120,7 +126,7 @@ namespace FoundationDB.Client.Filters
 			{
 				action(this, cmd);
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				error = e;
 				throw;
@@ -152,7 +158,29 @@ namespace FoundationDB.Client.Filters
 			}
 		}
 
-		#region Instrumented methods...
+		public override void Cancel()
+		{
+			Execute(
+				new CancelCommand(),
+				(_tr, _cmd) => _tr.Cancel()
+			);
+		}
+
+		public override void Reset()
+		{
+			Execute(
+				new ResetCommand(),
+				(_tr, _cmd) => _tr.Reset()
+			);
+		}
+
+		public override Task CommitAsync()
+		{
+			return ExecuteAsync(
+				new CommitCommand(),
+				async (_tr, _cmd) => { await _tr.CommitAsync().ConfigureAwait(false); return default(object); }
+			);
+		}
 
 		public override void Set(Slice key, Slice value)
 		{
@@ -222,27 +250,11 @@ namespace FoundationDB.Client.Filters
 			);
 		}
 
-		public override void Cancel()
-		{
-			Execute(
-				new CancelCommand(),
-				(_tr, _cmd) => _tr.Cancel()
-			);
-		}
-
-		public override void Reset()
-		{
-			Execute(
-				new ResetCommand(),
-				(_tr, _cmd) => _tr.Reset()
-			);
-		}
-
-		public override Task CommitAsync()
+		public override Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			return ExecuteAsync(
-				new CommitCommand(),
-				async (_tr, _cmd) => { await _tr.CommitAsync().ConfigureAwait(false); return default(object); }
+				new GetRangeCommand(Grab(beginInclusive), Grab(endExclusive), options, iteration),
+				(_tr, _cmd) => _tr.GetRangeAsync(_cmd.Begin, _cmd.End, _cmd.Options, _cmd.Iteration)
 			);
 		}
 
@@ -468,6 +480,25 @@ namespace FoundationDB.Client.Filters
 			public GetKeysCommand(FdbKeySelector[] selectors)
 			{
 				this.Selectors = selectors;
+			}
+
+		}
+
+		public class GetRangeCommand : Command
+		{
+			public FdbKeySelector Begin { get; private set; }
+			public FdbKeySelector End { get; private set; }
+			public FdbRangeOptions Options { get; private set; }
+			public int Iteration { get; private set; }
+
+			public override Operation Op { get { return Operation.Get; } }
+
+			public GetRangeCommand(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, int iteration)
+			{
+				this.Begin = begin;
+				this.End = end;
+				this.Options = options;
+				this.Iteration = iteration;
 			}
 
 		}
