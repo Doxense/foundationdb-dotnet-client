@@ -154,6 +154,21 @@ namespace FoundationDB.Client
 			CancelHandles(m_handles);
 		}
 
+		protected override void ReleaseMemory()
+		{
+			var handles = m_handles;
+			if (handles != null)
+			{
+				foreach (var handle in handles)
+				{
+					if (handle != null && !handle.IsClosed)
+					{
+						FdbNative.FutureReleaseMemory(handle);
+					}
+				}
+			}
+		}
+
 		private static void CloseHandles(FutureHandle[] handles)
 		{
 			if (handles != null)
@@ -181,7 +196,6 @@ namespace FoundationDB.Client
 				}
 			}
 		}
-
 
 		/// <summary>Cached delegate of the future completion callback handler</summary>
 		private static readonly FdbNative.FdbFutureCallback CallbackHandler = new FdbNative.FdbFutureCallback(FutureCompletionCallback);

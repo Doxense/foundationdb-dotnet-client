@@ -57,6 +57,9 @@ namespace FoundationDB.Client
 			/// <summary>The future has been cancelled from an external source (manually, or via then CancellationTokeb)</summary>
 			public const int CANCELLED = 4;
 
+			/// <summary>The resources allocated by this future have been released</summary>
+			public const int MEMORY_RELEASED = 8;
+
 			/// <summary>The future has been constructed, and is listening for the callbacks</summary>
 			public const int READY = 64;
 
@@ -220,6 +223,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Cancel all the handles managed by this future</summary>
 		protected abstract void CancelHandles();
+
+		/// <summary>Release all memory allocated by this future</summary>
+		protected abstract void ReleaseMemory();
 
 		/// <summary>Set the result of this future</summary>
 		/// <param name="result">Result of the future</param>
@@ -470,6 +476,26 @@ namespace FoundationDB.Client
 				{
 					TryCleanup();
 				}
+			}
+		}
+
+		/// <summary>Free memory allocated by this future after it has completed.</summary>
+		/// <remarks>This method provides no benefit to most application code, and should only be called when attempting to write thread-safe custom layers.</remarks>
+		public void Clear()
+		{
+			if (HasFlag(FdbFuture.Flags.DISPOSED))
+			{
+				return;
+			}
+
+			if (!this.Task.IsCompleted)
+			{
+				throw new InvalidOperationException("Cannot release memory allocated by a future that has not yet completed");
+			}
+
+			if (TrySetFlag(FdbFuture.Flags.MEMORY_RELEASED))
+			{
+				ReleaseMemory();
 			}
 		}
 

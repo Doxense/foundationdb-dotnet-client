@@ -230,7 +230,6 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Close all the handles managed by this future</summary>
 		protected override void CloseHandles()
 		{
 			var handle = m_handle;
@@ -241,6 +240,12 @@ namespace FoundationDB.Client
 		{
 			var handle = m_handle;
 			if (handle != null && !handle.IsClosed) FdbNative.FutureCancel(handle);
+		}
+
+		protected override void ReleaseMemory()
+		{
+			var handle = m_handle;
+			if (handle != null && !handle.IsClosed) FdbNative.FutureReleaseMemory(handle);
 		}
 
 	}
