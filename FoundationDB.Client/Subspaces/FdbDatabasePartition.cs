@@ -67,7 +67,18 @@ namespace FoundationDB.Client
 			return this.Root.CreateOrOpenAsync(m_database, path, layer, prefix, allowCreate, allowOpen, cancellationToken);
 		}
 
+		public Task<FdbDirectorySubspace> CreateOrOpenDirectoryAsync(string[] path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (path == null) throw new ArgumentNullException("path");
+			return this.Root.CreateOrOpenAsync(m_database, FdbTuple.CreateRange<string>(path), layer, prefix, allowCreate, allowOpen, cancellationToken);
+		}
+
 		public Task<FdbDirectorySubspace> OpenDirectoryAsync(IFdbTuple path, string layer = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return this.Root.OpenAsync(m_database, path, layer, cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> OpenDirectoryAsync(string[] path, string layer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return this.Root.OpenAsync(m_database, path, layer, cancellationToken);
 		}
@@ -77,7 +88,18 @@ namespace FoundationDB.Client
 			return this.Root.CreateAsync(m_database, path, layer, prefix, cancellationToken);
 		}
 
+		public Task<FdbDirectorySubspace> CreateDirectoryAsync(string[] path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (path == null) throw new ArgumentNullException("path");
+			return this.Root.CreateAsync(m_database, FdbTuple.CreateRange<string>(path), layer, prefix, cancellationToken);
+		}
+
 		public Task<FdbDirectorySubspace> MoveDirectoryAsync(IFdbTuple oldPath, IFdbTuple newPath, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return this.Root.MoveAsync(m_database, oldPath, newPath, cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> MoveDirectoryAsync(string[] oldPath, string[] newPath, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return this.Root.MoveAsync(m_database, oldPath, newPath, cancellationToken);
 		}
@@ -87,9 +109,22 @@ namespace FoundationDB.Client
 			return this.Root.RemoveAsync(m_database, path, cancellationToken);
 		}
 
-		public Task<List<IFdbTuple>> ListDirectoryAsync(IFdbTuple path = null, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<bool> RemoveDirectoryAsync(string[] path, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			if (path == null) throw new ArgumentNullException("path");
+			return this.Root.RemoveAsync(m_database, FdbTuple.CreateRange<string>(path), cancellationToken);
+		}
+
+		public Task<List<IFdbTuple>> ListDirectoryAsync(IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (path == null) path = FdbTuple.Empty;
 			return this.Root.ListAsync(m_database, path, cancellationToken);
+		}
+
+		public Task<List<IFdbTuple>> ListDirectoryAsync(string[] path, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (path == null) path = new string[0];
+			return this.Root.ListAsync(m_database, FdbTuple.CreateRange<string>(path), cancellationToken);
 		}
 
 		#endregion

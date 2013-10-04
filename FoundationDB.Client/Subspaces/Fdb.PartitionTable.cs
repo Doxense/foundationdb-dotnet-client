@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 
 		public static class PartitionTable
 		{
-			internal const string PartitionLayerId = "Database";
+			internal const string PartitionLayerId = "partition";
 
 			/// <summary>Open the root partition of the default cluster</summary>
 			/// <param name="cancellationToken"></param>
@@ -122,7 +122,6 @@ namespace FoundationDB.Client
 					if (Logging.On) Logging.Verbose(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Opened root layer of database {0} using cluster file '{1}'", db.Name, db.Cluster.Path));
 
 					// look up in the root layer for the named partition
-					var path = FdbTuple.Create("Databases").Concat(partitionPath);
 					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: PartitionLayerId).ConfigureAwait(false);
 					if (Logging.On) Logging.Verbose(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.Path.ToString(), descriptor.ToString()));
 

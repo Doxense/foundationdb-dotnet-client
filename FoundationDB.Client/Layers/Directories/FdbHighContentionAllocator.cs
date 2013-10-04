@@ -29,27 +29,35 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Directories
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Linq;
-	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Diagnostics;
 	using System.Threading.Tasks;
 
+	[DebuggerDisplay("Subspace={Subspace}")]
 	public sealed class FdbHighContentionAllocator
 	{
-		public readonly FdbSubspace Counters;
-		public readonly FdbSubspace Recent;
+		private const int COUNTERS = 0;
+		private const int RECENT = 1;
 
 		private readonly Random m_rnd = new Random();
 
 		public FdbHighContentionAllocator(FdbSubspace subspace)
 		{
-			this.Counters = subspace.Partition(0);
-			this.Recent = subspace.Partition(1);
+			if (subspace == null) throw new ArgumentException("subspace");
+
+			this.Subspace = subspace;
+			this.Counters = subspace.Partition(COUNTERS);
+			this.Recent = subspace.Partition(RECENT);
 		}
 
-		/// <summary>
-		/// Returns a 64-bit integer that
+		/// <summary>Location of the allocator</summary>
+		public FdbSubspace Subspace { get; private set; }
+
+		private FdbSubspace Counters { get; set; }
+
+		private FdbSubspace Recent { get; set; }
+
+		/// <summary>Returns a 64-bit integer that
 		/// 1) has never and will never be returned by another call to this
 		///    method on the same subspace
 		/// 2) is nearly as short as possible given the above
@@ -65,7 +73,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (kv.Key.IsPresent)
 			{
-				start = this.Counters.UnpackLast<long>(kv.Key);
+				start = this.Counters.UnpackSingle<long>(kv.Key);
 				count = kv.Value.ToInt64();
 			}
 

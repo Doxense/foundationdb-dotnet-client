@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Directories
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 	using System.Threading.Tasks;
 
 	[TestFixture]
@@ -45,7 +46,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			//FoundationDB.Client.Utils.Logging.SetLevel(System.Diagnostics.SourceLevels.Verbose);
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				var location = db.Partition("hpa");
 				await db.ClearRangeAsync(location);
@@ -89,7 +90,7 @@ namespace FoundationDB.Layers.Directories
 		[Test]
 		public async Task Test_CreateOrOpen_Simple()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
 				var location = db.Partition("DL");
@@ -108,7 +109,7 @@ namespace FoundationDB.Layers.Directories
 
 				using (var tr = db.BeginTransaction())
 				{
-					foo = await directory.CreateOrOpenAsync(tr, FdbTuple.Create("Foo"), "AcmeLayer");
+					foo = await directory.CreateOrOpenAsync(tr, new[] { "Foo" }, "AcmeLayer");
 					await tr.CommitAsync();
 				}
 
@@ -142,7 +143,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			// Create a folder ("foo", "bar", "baz") and ensure that all the parent folder are also creating and linked properly
 
-			using(var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 
 				// we will put everything under a custom namespace
@@ -150,13 +151,13 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location);
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
+				var directory = FdbDirectoryLayer.FromSubspace(location);
 
 				FdbDirectorySubspace folder;
 				using (var tr = db.BeginTransaction())
 				{
 
-					folder = await directory.CreateOrOpenAsync(tr, FdbTuple.Create("Foo", "Bar", "Baz"));
+					folder = await directory.CreateOrOpenAsync(tr, new [] { "Foo", "Bar", "Baz" });
 					await tr.CommitAsync();
 				}
 #if DEBUG
@@ -171,22 +172,79 @@ namespace FoundationDB.Layers.Directories
 				var bar = await directory.OpenAsync(db, FdbTuple.Create("Foo", "Bar"));
 				Assert.That(foo, Is.Not.Null);
 				Assert.That(bar, Is.Not.Null);
+			}
+		}
 
-				// check that the subfolders are listed under their parents
+		[Test]
+		public async Task Test_List_SubFolders()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				// we will put everything under a custom namespace
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location);
+				var directory = FdbDirectoryLayer.FromSubspace(location);
 
-				var subdirs = await directory.ListAsync(db, FdbTuple.Create("Foo"));
+				// linear subtree "/Foo/Bar/Baz"
+				await directory.CreateOrOpenAsync(db, new[] { "Foo", "Bar", "Baz" });
+
+				var subdirs = await directory.ListAsync(db, new[] { "Foo" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
 				Assert.That(subdirs[0], Is.EqualTo(FdbTuple.Create("Bar")));
 
-				subdirs = await directory.ListAsync(db, FdbTuple.Create("Foo", "Bar"));
+				subdirs = await directory.ListAsync(db, new[] { "Foo", "Bar" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
 				Assert.That(subdirs[0], Is.EqualTo(FdbTuple.Create("Baz")));
 
-				subdirs = await directory.ListAsync(db, FdbTuple.Create("Foo", "Bar", "Baz"));
+				subdirs = await directory.ListAsync(db, new[] { "Foo", "Bar", "Baz" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(0));
+
+				// flat subtree "/numbers/0" to "/numbers/9"
+				for (int i = 0; i <= 10; i++) await directory.CreateOrOpenAsync(db, new[] { "numbers", i.ToString() });
+
+				subdirs = await directory.ListAsync(db, new[] { "numbers" });
+				Assert.That(subdirs, Is.Not.Null);
+				Assert.That(subdirs.Count, Is.EqualTo(10));
+				Assert.That(subdirs.Select(x => x.Get<string>(0)).ToArray(), Is.EquivalentTo(Enumerable.Range(0, 10).Select(x => x.ToString()).ToArray()));
+
+			}
+		}
+
+		[Test]
+		public async Task Test_List_Folders_Should_Be_Sorted()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				// we will put everything under a custom namespace
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location);
+				var directory = FdbDirectoryLayer.FromSubspace(location);
+
+				var path = FdbTuple.Create("letters");
+
+				// insert letters in random order
+				var rnd = new Random();
+				var letters = Enumerable.Range(65, 26).Select(x => new string((char)x, 1)).ToList();
+				while(letters.Count > 0)
+				{
+					var i = rnd.Next(letters.Count);
+					var s = letters[i];
+					letters.RemoveAt(i);
+					await directory.CreateOrOpenAsync(db, path.Append(s));
+				}
+
+				// they should sorted when listed
+				var subdirs = await directory.ListAsync(db, path);
+				Assert.That(subdirs, Is.Not.Null);
+				Assert.That(subdirs.Count, Is.EqualTo(26));
+				for (int i = 0; i < subdirs.Count; i++)
+				{
+					Assert.That(subdirs[i].Get<string>(0), Is.EqualTo(new string((char)(65 + i), 1)));
+				}
+
 			}
 		}
 
@@ -195,7 +253,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			// Create a folder ("foo", "bar", "baz") and ensure that all the parent folder are also creating and linked properly
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
 				var location = db.Partition("DL");
@@ -205,18 +263,18 @@ namespace FoundationDB.Layers.Directories
 				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
 
 				// create a folder at ('Foo',)
-				var original = await directory.CreateOrOpenAsync(db, FdbTuple.Create("Foo"));
+				var original = await directory.CreateOrOpenAsync(db, new[] { "Foo" });
 				Assert.That(original, Is.Not.Null);
 				Assert.That(original.Path, Is.EqualTo(FdbTuple.Create("Foo")));
 
 				// rename/move it as ('Bar',)
-				var renamed = await original.MoveAsync(db, FdbTuple.Create("Bar"));
+				var renamed = await original.MoveAsync(db, new [] { "Bar" });
 				Assert.That(renamed, Is.Not.Null);
 				Assert.That(renamed.Path, Is.EqualTo(FdbTuple.Create("Bar")));
 				Assert.That(renamed.Key, Is.EqualTo(original.Key));
 
 				// opening the old path should fail
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.OpenAsync(db, FdbTuple.Create("Foo")));
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.OpenAsync(db, new [] { "Foo" }));
 
 				// opening the new path should succeed
 				var folder = await directory.OpenAsync(db, FdbTuple.Create("Bar"));
@@ -225,12 +283,46 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder.Key, Is.EqualTo(renamed.Key));
 
 				// moving the folder under itself should fail
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => folder.MoveAsync(db, FdbTuple.Create("Bar", "Baz")));
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => folder.MoveAsync(db, new [] { "Bar", "Baz" }));
 			}
 		}
 
+		[Test]
+		public async Task Test_Directory_Methods_Should_Fail_With_Empty_Paths()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				// we will put everything under a custom namespace
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location);
 
+				var directory = FdbDirectoryLayer.FromSubspace(location);
 
+				// CreateOrOpen
+				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.CreateOrOpenAsync(db, default(string[])));
+				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.CreateOrOpenAsync(db, new string[0]));
+
+				// Create
+				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.CreateAsync(db, default(string[])));
+				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.CreateAsync(db, new string[0]));
+
+				// Open
+				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.OpenAsync(db, default(string[])));
+				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.OpenAsync(db, new string[0]));
+
+				// Move
+				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.MoveAsync(db, default(string[]), new [] { "foo" }));
+				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.MoveAsync(db, new[] { "foo" }, default(string[])));
+				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.MoveAsync(db, new string[0], new[] { "foo" }));
+				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.MoveAsync(db, new[] { "foo" }, new string[0]));
+
+				// Remove
+				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.RemoveAsync(db, default(string[])));
+				//BUGBUG: do we allow removing the root folder or not ?
+				//await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.RemoveAsync(db, new string[0]));
+
+			}
+		}
 	}
 
 }

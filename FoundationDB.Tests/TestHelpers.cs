@@ -42,7 +42,7 @@ namespace FoundationDB.Client.Tests
 		public static readonly string TestClusterFile = null;
 		public static readonly string TestDbName = "DB";
 		public static readonly Slice TestGlobalPrefix = Slice.FromAscii("T");
-		public static readonly IFdbTuple TestPartition = FdbTuple.Create("Test", Environment.MachineName);
+		public static readonly IFdbTuple TestPartition = FdbTuple.Create("Tests", Environment.MachineName);
 
 		/// <summary>Connect to the local test database</summary>
 		public static Task<FdbDatabase> OpenTestDatabaseAsync(CancellationToken ct = default(CancellationToken))
