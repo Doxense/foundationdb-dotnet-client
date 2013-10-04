@@ -125,6 +125,14 @@ namespace FoundationDB.Async
 		{
 			get { return m_errorContainer; }
 		}
+
+		public override string ToString()
+		{
+			if (m_errorContainer != null) return "<error>";
+			if (!this.HasValue) return "<empty>";
+			if (this.Value == null) return "<null>";
+			return this.Value.ToString();
+		}
 	}
 
 	/// <summary>

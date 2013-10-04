@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Filters
 {
+	using FoundationDB.Async;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -124,7 +125,28 @@ namespace FoundationDB.Client.Filters
 			this.Log.Start(cmd);
 			try
 			{
-				action(this, cmd);
+				action(m_transaction, cmd);
+			}
+			catch (Exception e)
+			{
+				error = e;
+				throw;
+			}
+			finally
+			{
+				this.Log.End(cmd, error);
+			}
+		}
+
+		private async Task ExecuteAsync<TCommand>(TCommand cmd, Func<IFdbTransaction, TCommand, Task> lambda)
+			where TCommand : Command
+		{
+			ThrowIfDisposed();
+			Exception error = null;
+			this.Log.Start(cmd);
+			try
+			{
+				await lambda(m_transaction, cmd).ConfigureAwait(false);
 			}
 			catch (Exception e)
 			{
@@ -138,18 +160,21 @@ namespace FoundationDB.Client.Filters
 		}
 
 		private async Task<R> ExecuteAsync<TCommand, R>(TCommand cmd, Func<IFdbTransaction, TCommand, Task<R>> lambda)
-			where TCommand : Command
+			where TCommand : Command<R>
 		{
 			ThrowIfDisposed();
 			Exception error = null;
 			this.Log.Start(cmd);
 			try
 			{
-				return await lambda(this, cmd).ConfigureAwait(false);
+				R result = await lambda(m_transaction, cmd).ConfigureAwait(false);
+				cmd.Result = Maybe.Return<R>(result);
+				return result;
 			}
 			catch (Exception e)
 			{
 				error = e;
+				cmd.Result = Maybe.Error<R>(e);
 				throw;
 			}
 			finally
@@ -178,7 +203,16 @@ namespace FoundationDB.Client.Filters
 		{
 			return ExecuteAsync(
 				new CommitCommand(),
-				async (_tr, _cmd) => { await _tr.CommitAsync().ConfigureAwait(false); return default(object); }
+				(_tr, _cmd) => _tr.CommitAsync()
+			);
+		}
+
+		public override Task OnErrorAsync(FdbError code)
+		{
+			ThrowIfDisposed();
+			return ExecuteAsync(
+				new OnErrorCommand(code),
+				(_tr, _cmd) => _tr.OnErrorAsync(_cmd.Code)
 			);
 		}
 
@@ -258,6 +292,22 @@ namespace FoundationDB.Client.Filters
 			);
 		}
 
+		public override FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		{
+			ThrowIfDisposed();
+			var query = m_transaction.GetRange(beginInclusive, endExclusive, options);
+			return query.UseTransaction(this);
+		}
+
+		public override void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
+		{
+			ThrowIfDisposed();
+			Execute(
+				new AddConflictRangeCommand(beginKeyInclusive, endKeyExclusive, type),
+				(_tr, _cmd) => _tr.AddConflictRange(_cmd.Begin, _cmd.End, _cmd.Type)
+			);
+		}
+
 		#endregion
 
 		public enum Operation
@@ -277,6 +327,7 @@ namespace FoundationDB.Client.Filters
 			Commit,
 			Cancel,
 			Reset,
+			OnError,
 		}
 
 		public enum Mode
@@ -327,12 +378,9 @@ namespace FoundationDB.Client.Filters
 
 		}
 
+		[DebuggerDisplay("{ToString()}")]
 		public abstract class Command
 		{
-			protected Command()
-			{
-
-			}
 
 			public virtual Mode Mode
 			{
@@ -369,8 +417,31 @@ namespace FoundationDB.Client.Filters
 			}
 			public abstract Operation Op { get; }
 			public long StartOffset { get; internal set; }
-			public long EndOffset { get; internal set; }
+			public long? EndOffset { get; internal set; }
 			public Exception Error { get; internal set; }
+
+			public TimeSpan Duration
+			{
+				get
+				{
+					var start = this.StartOffset;
+					var end = this.EndOffset;
+					return start == 0 || !end.HasValue ? TimeSpan.Zero : TimeSpan.FromTicks(end.Value - start);
+				}
+			}
+
+			public override string ToString()
+			{
+				return String.Format("{0}()", this.Op.ToString());
+			}
+
+		}
+
+		public abstract class Command<TResult> : Command
+		{
+
+			public Maybe<TResult> Result { get; internal set; }
+
 		}
 
 		public class SetCommand : Command
@@ -385,6 +456,11 @@ namespace FoundationDB.Client.Filters
 				this.Key = key;
 				this.Value = value;
 			}
+
+			public override string ToString()
+			{
+				return String.Format("Set(key={0}, value={1})", this.Key.ToString(), this.Value.ToAsciiOrHexaString());
+			}
 		}
 
 		public class ClearCommand : Command
@@ -398,6 +474,10 @@ namespace FoundationDB.Client.Filters
 				this.Key = key;
 			}
 
+			public override string ToString()
+			{
+				return String.Format("Clear(key={0})", this.Key.ToString());
+			}
 		}
 
 		public class ClearRangeCommand : Command
@@ -413,6 +493,10 @@ namespace FoundationDB.Client.Filters
 				this.End = end;
 			}
 
+			public override string ToString()
+			{
+				return String.Format("ClearRange(begin={0}, end={1})", this.Begin.ToString(), this.End.ToString());
+			}
 		}
 
 		public class AtomicCommand : Command
@@ -430,9 +514,34 @@ namespace FoundationDB.Client.Filters
 				this.Mutation = mutation;
 			}
 
+			public override string ToString()
+			{
+				return String.Format("Atomic(mutation={0}, key={1}, value={2})", this.Mutation.ToString(), this.Key.ToString(), this.Param.ToAsciiOrHexaString());
+			}
 		}
 
-		public class GetCommand : Command
+		public class AddConflictRangeCommand : Command
+		{
+			public Slice Begin { get; private set; }
+			public Slice End { get; private set; }
+			public FdbConflictRangeType Type { get; private set; }
+
+			public override Operation Op { get { return Operation.AddConflictRange; } }
+
+			public AddConflictRangeCommand(Slice begin, Slice end, FdbConflictRangeType type)
+			{
+				this.Begin = begin;
+				this.End = end;
+				this.Type = type;
+			}
+
+			public override string ToString()
+			{
+				return String.Format("AddConflictRange(type={0}, begin={1}, end={2})", this.Type.ToString(), this.Begin.ToString(), this.End.ToString());
+			}
+		}
+
+		public class GetCommand : Command<Slice>
 		{
 			public Slice Key { get; private set; }
 
@@ -443,9 +552,13 @@ namespace FoundationDB.Client.Filters
 				this.Key = key;
 			}
 
+			public override string ToString()
+			{
+				return String.Format("Get(key={0}) => {1}", this.Key.ToString(), this.Result.ToString());
+			}
 		}
 
-		public class GetKeyCommand : Command
+		public class GetKeyCommand : Command<Slice>
 		{
 			public FdbKeySelector Selector { get; private set; }
 
@@ -456,9 +569,14 @@ namespace FoundationDB.Client.Filters
 				this.Selector = selector;
 			}
 
+			public override string ToString()
+			{
+				return String.Format("GetKey(selector={0}) => {1}", this.Selector.ToString(), this.Result.ToString());
+			}
 		}
 
-		public class GetValuesCommand : Command
+		[DebuggerDisplay("GetValues([{Keys.Length}])")]
+		public class GetValuesCommand : Command<Slice[]>
 		{
 			public Slice[] Keys { get; private set; }
 
@@ -469,9 +587,14 @@ namespace FoundationDB.Client.Filters
 				this.Keys = keys;
 			}
 
+			public override string ToString()
+			{
+				return String.Format("GetValues(keys=[{0}]) => {1}", this.Keys.Length.ToString(), this.Result.ToString());
+			}
 		}
 
-		public class GetKeysCommand : Command
+		[DebuggerDisplay("GetKeys([{Keys.Length}])")]
+		public class GetKeysCommand : Command<Slice[]>
 		{
 			public FdbKeySelector[] Selectors { get; private set; }
 
@@ -482,9 +605,14 @@ namespace FoundationDB.Client.Filters
 				this.Selectors = selectors;
 			}
 
+			public override string ToString()
+			{
+				return String.Format("GetKeys(selectors=[{0}]) => {1}", this.Selectors.Length.ToString(), this.Result.ToString());
+			}
 		}
 
-		public class GetRangeCommand : Command
+		[DebuggerDisplay("GetRange({Begin}, {End}, {Options.Limit}, {Options.Reverse}, ...)")]
+		public class GetRangeCommand : Command<FdbRangeChunk>
 		{
 			public FdbKeySelector Begin { get; private set; }
 			public FdbKeySelector End { get; private set; }
@@ -501,6 +629,10 @@ namespace FoundationDB.Client.Filters
 				this.Iteration = iteration;
 			}
 
+			public override string ToString()
+			{
+				return String.Format("GetRange(begin={0}, end={1}, options=...)", this.Begin.ToString(), this.End.ToString());
+			}
 		}
 
 		public class CancelCommand : Command
@@ -516,6 +648,19 @@ namespace FoundationDB.Client.Filters
 		public class CommitCommand : Command
 		{
 			public override Operation Op { get { return Operation.Commit; } }
+		}
+
+		public class OnErrorCommand: Command
+		{
+			public FdbError Code { get; private set; }
+
+			public override Operation Op { get { return Operation.Commit; } }
+
+			public OnErrorCommand(FdbError code)
+			{
+				this.Code = code;
+			}
+
 		}
 
 	}
