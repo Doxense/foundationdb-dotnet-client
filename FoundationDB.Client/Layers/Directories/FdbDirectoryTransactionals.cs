@@ -223,7 +223,7 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		public static Task<bool> RemoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task RemoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return dbOrTrans.ReadWriteAsync((tr) => directory.RemoveAsync(tr, path), cancellationToken);
 		}
@@ -231,9 +231,25 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		public static Task<bool> RemoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, string[] path, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task RemoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, string[] path, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return dbOrTrans.ReadWriteAsync((tr) => directory.RemoveAsync(tr, path), cancellationToken);
+		}
+
+		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		public static Task<bool> TryRemoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return dbOrTrans.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, path), cancellationToken);
+		}
+
+		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		public static Task<bool> TryRemoveAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, string[] path, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return dbOrTrans.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, path), cancellationToken);
 		}
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
@@ -243,6 +259,24 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			return dbOrTrans.ReadWriteAsync((tr) => subspace.RemoveAsync(tr), cancellationToken);
+		}
+
+		#endregion
+
+		#region Exists...
+
+		/// <summary>Checks if a directory already exists</summary>
+		/// <returns>Returns true if the directory exists, otherwise false.</returns>
+		public static Task<bool> ExistsAsync(this FdbDirectoryLayer directory, IFdbReadOnlyTransactional dbOrTrans, IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return dbOrTrans.ReadAsync((tr) => directory.ExistsAsync(tr, path), cancellationToken);
+		}
+
+		/// <summary>Checks if a directory already exists</summary>
+		/// <returns>Returns true if the directory exists, otherwise false.</returns>
+		public static Task<bool> ExistsAsync(this FdbDirectoryLayer directory, IFdbReadOnlyTransactional dbOrTrans, string[] path, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return dbOrTrans.ReadAsync((tr) => directory.ExistsAsync(tr, path), cancellationToken);
 		}
 
 		#endregion

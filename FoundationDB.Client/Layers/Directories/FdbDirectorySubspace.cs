@@ -154,7 +154,7 @@ namespace FoundationDB.Layers.Directories
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="tr">Transaction to use for the operation</param>
-		public Task<bool> RemoveAsync(IFdbTransaction tr)
+		public Task RemoveAsync(IFdbTransaction tr)
 		{
 			return this.DirectoryLayer.RemoveAsync(tr, this.Path);
 		}

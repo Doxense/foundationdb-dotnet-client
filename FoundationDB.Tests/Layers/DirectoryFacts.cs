@@ -288,39 +288,76 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[Test]
+		public async Task _Test_Remove_Folder()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location);
+				var directory = FdbDirectoryLayer.FromSubspace(location);
+
+				// RemoveAsync
+
+				string[] path = new[] { "CrashTestDummy" };
+				await directory.CreateAsync(db, path);
+
+				// removing an existing folder should succeeed
+				await directory.RemoveAsync(db, path);
+				//TODO: call ExistsAsync(...) once it is implemented!
+
+				// Removing it a second time should fail
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.RemoveAsync(db, path), "Removing a non-existent directory should fail");
+
+				// TryRemoveAsync
+
+				await directory.CreateAsync(db, path);
+
+				// attempting to remove a folder should return true
+				bool res = await directory.TryRemoveAsync(db, path);
+				Assert.That(res, Is.True);
+
+				// further attempts should return false
+				res = await directory.TryRemoveAsync(db, path);
+				Assert.That(res, Is.False);
+
+				// Corner Cases
+
+				// removing the root folder is not allowed (too dangerous)
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.RemoveAsync(db, new string[0]), "Attempting to remove the root directory should fail");
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.RemoveAsync(db, FdbTuple.Empty), "Attempting to remove the root directory should fail");
+			}
+		}
+
+		[Test]
 		public async Task Test_Directory_Methods_Should_Fail_With_Empty_Paths()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				// we will put everything under a custom namespace
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
-
 				var directory = FdbDirectoryLayer.FromSubspace(location);
 
 				// CreateOrOpen
 				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.CreateOrOpenAsync(db, default(string[])));
-				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.CreateOrOpenAsync(db, new string[0]));
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.CreateOrOpenAsync(db, new string[0]));
 
 				// Create
 				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.CreateAsync(db, default(string[])));
-				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.CreateAsync(db, new string[0]));
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.CreateAsync(db, new string[0]));
 
 				// Open
 				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.OpenAsync(db, default(string[])));
-				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.OpenAsync(db, new string[0]));
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.OpenAsync(db, new string[0]));
 
 				// Move
 				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.MoveAsync(db, default(string[]), new [] { "foo" }));
 				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.MoveAsync(db, new[] { "foo" }, default(string[])));
-				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.MoveAsync(db, new string[0], new[] { "foo" }));
-				await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.MoveAsync(db, new[] { "foo" }, new string[0]));
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.MoveAsync(db, new string[0], new[] { "foo" }));
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.MoveAsync(db, new[] { "foo" }, new string[0]));
 
 				// Remove
 				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.RemoveAsync(db, default(string[])));
-				//BUGBUG: do we allow removing the root folder or not ?
-				//await TestHelpers.AssertThrowsAsync<ArgumentException>(() => directory.RemoveAsync(db, new string[0]));
-
+				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.RemoveAsync(db, new string[0]));
 			}
 		}
 	}

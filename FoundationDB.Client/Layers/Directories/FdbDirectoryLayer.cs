@@ -98,6 +98,8 @@ namespace FoundationDB.Layers.Directories
 
 		#region Public Methods...
 
+		#region CreateOrOpen
+
 		/// <summary>Opens the directory with the given path. If the directory does not exist, it is created (creating parent directories if necessary).</summary>
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to create or open</param>
@@ -112,7 +114,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (path.Count == 0)
 			{ // Root directory contains node metadata and so may not be opened.
-				throw new ArgumentException("path", "The root directory may not be opened.");
+				throw new InvalidOperationException("The root directory may not be opened.");
 			}
 
 			//TODO: check that the path only contains strings?
@@ -184,6 +186,10 @@ namespace FoundationDB.Layers.Directories
 			return CreateOrOpenAsync(tr, FdbTuple.CreateRange<string>(path), layer, prefix, allowCreate, allowOpen);
 		}
 
+		#endregion
+
+		#region Open / TryOpen
+
 		/// <summary>Opens the directory with the given <paramref name="path"/>.
 		/// An exception is thrown if the directory does not exist, or if a layer is specified and a different layer was specified when the directory was created.
 		/// </summary>
@@ -206,6 +212,10 @@ namespace FoundationDB.Layers.Directories
 			if (path == null) throw new ArgumentNullException("path");
 			return CreateOrOpenAsync(tr, FdbTuple.CreateRange<string>(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true);
 		}
+
+		#endregion
+
+		#region Create / TryCreate
 
 		/// <summary>Creates a directory with the given <paramref name="path"/> (creating parent directories if necessary).
 		/// An exception is thrown if the given directory already exists.
@@ -232,6 +242,10 @@ namespace FoundationDB.Layers.Directories
 			return CreateOrOpenAsync(tr, FdbTuple.CreateRange<string>(path), layer, prefix: prefix, allowCreate: true, allowOpen: false);
 		}
 
+		#endregion
+
+		#region Move / TryMove
+
 		/// <summary>Moves the directory found at <paramref name="oldPath"/> to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
         /// An error is raised if the old directory does not exist, a directory already exists at `new_path`, or the parent directory of `new_path` does not exist.
@@ -243,9 +257,9 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (oldPath == null) throw new ArgumentNullException("oldPath");
-			if (oldPath.Count == 0) throw new ArgumentException("path", "The root directory may not be moved.");
+			if (oldPath.Count == 0) throw new InvalidOperationException("The root directory may not be moved.");
 			if (newPath == null) throw new ArgumentNullException("newPath");
-			if (newPath.Count == 0) throw new ArgumentException("path", "The root directory cannot be overwritten.");
+			if (newPath.Count == 0) throw new InvalidOperationException("The root directory cannot be overwritten.");
 
 			if (newPath.StartsWith(oldPath))
 			{
@@ -260,7 +274,7 @@ namespace FoundationDB.Layers.Directories
 			var oldNode = await Find(tr, oldPath).ConfigureAwait(false);
 			if (oldNode == null)
 			{
-				throw new InvalidOperationException("The source directory dos not exist.");
+				throw new InvalidOperationException("The source directory does not exist.");
 			}
 
 			var parentNode = await Find(tr, newPath.Substring(0, newPath.Count - 1)).ConfigureAwait(false);
@@ -291,23 +305,22 @@ namespace FoundationDB.Layers.Directories
 			return MoveAsync(tr, FdbTuple.CreateRange<string>(oldPath), FdbTuple.CreateRange<string>(newPath));
 		}
 
-		/// <summary>Removes the directory, its contents, and all subdirectories.
-		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
-		/// </summary>
-		/// <param name="tr">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		public async Task<bool> RemoveAsync(IFdbTransaction tr, IFdbTuple path)
+		#endregion
+
+		#region Remove / TryRemove
+
+		private async Task<bool> RemoveInternalAsync(IFdbTransaction tr, IFdbTuple path, bool throwIfMissing)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (path == null) throw new ArgumentNullException("path");
 
-			//REVIEW: should we allow removing the root directory ?
-			// > an easy mistake would be passing an empty array / tuple, wiping out all the database in the process...
+			// We don't allow removing the root directory, because it would probably end up wiping out all the database.
+			if (path.Count == 0) throw new InvalidOperationException("The root directory may not be removed.");
 
 			var n = await Find(tr, path).ConfigureAwait(false);
 			if (n == null)
 			{
-				//throw new InvalidOperationException("The directory doesn't exist.");
+				if (throwIfMissing) throw new InvalidOperationException("The directory doesn't exist.");
 				return false;
 			}
 
@@ -323,11 +336,76 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		public Task<bool> RemoveAsync(IFdbTransaction tr, string[] path)
+		public Task RemoveAsync(IFdbTransaction tr, IFdbTuple path)
+		{
+			return RemoveInternalAsync(tr, path, throwIfMissing: true);
+		}
+
+		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
+		public Task<bool> TryRemoveAsync(IFdbTransaction tr, IFdbTuple path)
+		{
+			return RemoveInternalAsync(tr, path, throwIfMissing: false);
+		}
+
+		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
+		public Task RemoveAsync(IFdbTransaction tr, string[] path)
 		{
 			if (path == null) throw new ArgumentNullException("path");
-			return RemoveAsync(tr, FdbTuple.CreateRange<string>(path));
+			return RemoveInternalAsync(tr, FdbTuple.CreateRange<string>(path), throwIfMissing: true);
 		}
+
+		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
+		public Task<bool> TryRemoveAsync(IFdbTransaction tr, string[] path)
+		{
+			if (path == null) throw new ArgumentNullException("path");
+			return RemoveInternalAsync(tr, FdbTuple.CreateRange<string>(path), throwIfMissing: false);
+		}
+
+		#endregion
+
+		#region Exists
+
+		/// <summary>Checks if a directory already exists</summary>
+		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
+		/// <returns>Returns true if the directory exists, otherwise false.</returns>
+		public async Task<bool> ExistsAsync(IFdbReadOnlyTransaction tr, IFdbTuple path)
+		{
+			if (tr == null) throw new ArgumentNullException("tr");
+			if (path == null) throw new ArgumentNullException("path");
+			// no reason to disallow checking for the root directory (could be used to check if a directory layer is initialized?)
+
+			var node = await Find(tr, path).ConfigureAwait(false);
+
+			return node != null;
+		}
+
+		/// <summary>Checks if a directory already exists</summary>
+		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
+		/// <returns>Returns true if the directory exists, otherwise false.</returns>
+		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction tr, string[] path)
+		{
+			if (path == null) throw new ArgumentNullException("path");
+
+			return ExistsAsync(tr, FdbTuple.CreateRange<string>(path));
+		}
+
+		#endregion
+
+		#region List
 
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/></summary>
 		/// <param name="tr">Transaction to use for the operation</param>
@@ -342,7 +420,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (node == null)
 			{
-				//REVIEW: the python layer throws an execption in this case, but maybe we should return null ? There is currently no way to test if a folder exist because OpenAsync/ListAsync both throw if the folder does not exist...
+				//REVIEW: the python layer throws an exception in this case, but maybe we should return null ? There is currently no way to test if a folder exist because OpenAsync/ListAsync both throw if the folder does not exist...
 				throw new InvalidOperationException("The given directory does not exist.");
 			}
 
@@ -361,6 +439,8 @@ namespace FoundationDB.Layers.Directories
 
 			return ListAsync(tr, FdbTuple.CreateRange<string>(path));
 		}
+
+		#endregion
 
 		#endregion
 
