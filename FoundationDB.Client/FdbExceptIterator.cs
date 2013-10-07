@@ -50,8 +50,6 @@ namespace FoundationDB.Client
 
 		protected override bool FindNext(CancellationToken cancellationToken, out int index, out TSource current)
 		{
-			//Console.WriteLine("FindNext called");
-
 			index = -1;
 			current = default(TSource);
 
@@ -79,8 +77,6 @@ namespace FoundationDB.Client
 			for (int i = 1; i < m_iterators.Length; i++)
 			{
 				if (!m_iterators[i].Active) continue;
-
-				//Console.WriteLine(">> " + i + ": " + m_iterators[i].Iterator.Current + " => " + m_iterators[i].Current);
 
 				int cmp = m_keyComparer.Compare(m_iterators[i].Current, x);
 				if (cmp <= 0)

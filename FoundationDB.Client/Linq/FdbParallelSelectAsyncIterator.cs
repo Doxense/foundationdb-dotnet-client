@@ -35,7 +35,7 @@ namespace FoundationDB.Linq
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Iterates over an async sequence of items, kick off an async task in parallel, and returning the results in order</summary>
+	/// <summary>[EXPERIMENTAL] Iterates over an async sequence of items, kick off an async task in parallel, and returning the results in order</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	internal sealed class FdbParallelSelectAsyncIterator<TSource, TResult> : FdbAsyncFilter<TSource, TResult>
@@ -92,7 +92,7 @@ namespace FoundationDB.Linq
 				return false;
 			}
 
-			Console.WriteLine("[OnFirstAsync] wiring up inner iterator");
+			//Console.WriteLine("[OnFirstAsync] wiring up inner iterator");
 
 			m_cts = new CancellationTokenSource();
 			m_token = m_cts.Token;
@@ -107,7 +107,7 @@ namespace FoundationDB.Linq
 			// start pumping
 			m_pumpTask = m_pump.PumpAsync(m_token);
 
-			Console.WriteLine("[OnFirstAsync] pump started");
+			//Console.WriteLine("[OnFirstAsync] pump started");
 
 			Contract.Ensures(m_pumpTask != null);
 
@@ -118,7 +118,7 @@ namespace FoundationDB.Linq
 		{
 			try
 			{
-				Console.WriteLine("[OnNextAsync] #" + Thread.CurrentThread.ManagedThreadId);
+				//Console.WriteLine("[OnNextAsync] #" + Thread.CurrentThread.ManagedThreadId);
 
 				if (m_done) return false;
 
@@ -129,16 +129,16 @@ namespace FoundationDB.Linq
 					m_done = true;
 					if (next.HasFailed)
 					{
-						Console.WriteLine("[OnNextAsync] received failure");
+						//Console.WriteLine("[OnNextAsync] received failure");
 						return Failed(next.Error);
 					}
 					else
 					{
-						Console.WriteLine("[OnNextAsync] received completion");
+						//Console.WriteLine("[OnNextAsync] received completion");
 						return Completed();
 					}
 				}
-				Console.WriteLine("[OnNextAsync] received value " + next.Value);
+				//Console.WriteLine("[OnNextAsync] received value " + next.Value);
 
 				return Publish(next.Value);
 			}
@@ -147,10 +147,10 @@ namespace FoundationDB.Linq
 				m_done = true;
 				throw;
 			}
-			finally
-			{
-				Console.WriteLine("[/OnNextAsync] " + Thread.CurrentThread.ManagedThreadId);
-			}
+			//finally
+			//{
+			//	Console.WriteLine("[/OnNextAsync] " + Thread.CurrentThread.ManagedThreadId);
+			//}
 		}
 
 	}

@@ -50,8 +50,6 @@ namespace FoundationDB.Client
 
 		protected override bool FindNext(CancellationToken cancellationToken, out int index, out TSource current)
 		{
-			//Console.WriteLine("FindNext called");
-
 			index = -1;
 			current = default(TSource);
 
@@ -65,11 +63,8 @@ namespace FoundationDB.Client
 			{
 				if (!m_iterators[i].Active)
 				{ // all must be still active!
-					//Console.WriteLine("> STOP");
 					return false;
 				}
-
-				//Console.WriteLine(">> " + i + ": " + m_iterators[i].Iterator.Current + " => " + m_iterators[i].Current);
 
 				TKey key = m_iterators[i].Current;
 				if (index == -1)
@@ -84,11 +79,8 @@ namespace FoundationDB.Client
 				}
 			}
 
-			//Console.WriteLine("> index=" + index + "; min=" + min + "; max=" + max);
-
 			if (index == -1)
 			{ // no values ?
-				//Console.WriteLine("> None!");
 				return false;
 			}
 
@@ -96,7 +88,6 @@ namespace FoundationDB.Client
 			{ // all equal !
 				// return the value of the first max encountered
 				current = m_iterators[index].Iterator.Current;
-				//Console.WriteLine("> All! #" + index + " = " + current);
 
 				// advance everyone !
 				for (int i = 0; i < m_iterators.Length;i++)
@@ -107,12 +98,10 @@ namespace FoundationDB.Client
 			}
 
 			// advance all the values that are lower than the max
-			//Console.WriteLine("> Different (max is " + index + " at " + max + ")");
 			for (int i = 0; i < m_iterators.Length; i++)
 			{
 				if (m_iterators[i].Active && m_keyComparer.Compare(m_iterators[i].Current, max) < 0)
 				{
-					//Console.WriteLine("> advancing " + i);
 					AdvanceIterator(i, cancellationToken);
 				}
 			}

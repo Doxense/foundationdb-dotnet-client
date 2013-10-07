@@ -162,13 +162,10 @@ namespace FoundationDB.Client
 				{ // nothing left anymore ?
 					return Completed();
 				}
-
-				//Console.WriteLine("> FindNext returned " + index);
 			}
 			while(index < 0);
 
 			var result = m_resultSelector(current);
-			//Console.WriteLine("#### OUTPUT (" + current + ") => " + result);
 
 			// store the current pair
 			if (!Publish(result))
