@@ -50,16 +50,34 @@ namespace FoundationDB.Layers.Directories
 			this.Layer = layer;
 		}
 
+		/// <summary>Path of this directory</summary>
 		public FdbMemoizedTuple Path { get; private set; }
 
 		public FdbDirectoryLayer DirectoryLayer { get; private set; }
 
+		/// <summary>Layer id of this directory</summary>
 		public string Layer { get; private set; }
 
+		/// <summary>Ensure that this directory was registered with the correct layer id</summary>
+		/// <param name="layer">Expected layer id (if not empty)</param>
+		/// <exception cref="System.InvalidOperationException">If the directory was registerd with a different layer id</exception>
 		public void CheckLayer(string layer)
 		{
-			if (!string.IsNullOrEmpty(layer) && !string.IsNullOrEmpty(this.Layer) && layer != this.Layer)
+			if (!string.IsNullOrEmpty(layer) && layer != this.Layer)
 				throw new InvalidOperationException("The directory was created with an incompatible layer.");
+		}
+
+		/// <summary>Change the layer id of this directory</summary>
+		/// <param name="newLayer">New layer id of this directory</param>
+		public async Task<FdbDirectorySubspace> ChangeLayerAsync(IFdbTransaction trans, string newLayer)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			if (newLayer == null) newLayer = String.Empty;
+
+			await this.DirectoryLayer.ChangeLayerInternalAsync(trans, this.Path, newLayer);
+
+			return new FdbDirectorySubspace(this.Path, this.Key, this.DirectoryLayer, newLayer);
 		}
 
 		/// <summary>Opens a subdirectory with the given path.

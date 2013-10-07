@@ -478,6 +478,17 @@ namespace FoundationDB.Layers.Directories
 
 		#endregion
 
+		#region Metadata
+
+		public static Task<FdbDirectorySubspace> ChangeLayerAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, string newLayer, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			return dbOrTrans.ReadWriteAsync((tr) => subspace.ChangeLayerAsync(tr, newLayer), cancellationToken);
+		}
+
+		#endregion
+
 	}
 
 }

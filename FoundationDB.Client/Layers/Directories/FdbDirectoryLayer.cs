@@ -493,11 +493,10 @@ namespace FoundationDB.Layers.Directories
 			// initialize the metadata for this new directory
 			var node = NodeWithPrefix(prefix);
 			trans.Set(GetSubDirKey(parentNode, path, -1), prefix);
-			if (!string.IsNullOrEmpty(layer))
-			{
-				//note: we are using UTF-8 but layer authors should maybe refrain from using non-ASCII text ?
-				trans.Set(node.Pack(LayerSuffix), Slice.FromString(layer));
-			}
+
+			//note: we are using UTF-8 but layer authors should maybe refrain from using non-ASCII text ?
+			layer = layer ?? String.Empty;
+			trans.Set(node.Pack(LayerSuffix), Slice.FromString(layer));
 
 			return ContentsOfNode(node, path, layer);
 		}
@@ -583,6 +582,23 @@ namespace FoundationDB.Layers.Directories
 				.Select(kvp => kvp.Key)
 				.ToListAsync()
 				.ConfigureAwait(false);
+		}
+
+		/// <summary>Change the layer id of this directory</summary>
+		/// <param name="newLayer">New layer id of this directory</param>
+		internal async Task ChangeLayerInternalAsync(IFdbTransaction trans, IFdbTuple path, string newLayer)
+		{
+			Contract.Requires(trans != null && path != null);
+
+
+			var node = await Find(trans, path).ConfigureAwait(false);
+			if (node == null)
+			{
+				throw new InvalidOperationException("The directory does not exist, or as already been removed.");
+			}
+
+			var key = node.Pack(LayerSuffix);
+			trans.Set(key, Slice.FromString(newLayer ?? String.Empty));
 		}
 
 		private async Task<FdbSubspace> NodeContainingKey(IFdbReadOnlyTransaction tr, Slice key)
