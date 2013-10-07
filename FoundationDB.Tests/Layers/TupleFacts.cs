@@ -326,7 +326,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			const int N = 100 * 1000;
 
-			var tuples = new IFdbTuple[11];
+			var tuples = new IFdbTuple[14];
 			tuples[0] = FdbTuple.Empty;
 			tuples[1] = FdbTuple.Create("A");
 			tuples[2] = FdbTuple.Create("A", "B");
@@ -338,6 +338,9 @@ namespace FoundationDB.Layers.Tuples.Tests
 			tuples[8] = FdbTuple.Create("A", "B", "C", "D", "E", "F", "G", "H");
 			tuples[9] = FdbTuple.Create("A", "B", "C", "D", "E", "F", "G", "H", "I");
 			tuples[10]= FdbTuple.Create("A", "B", "C", "D", "E", "F", "G", "H", "I", "J");
+			tuples[11] = new FdbJoinedTuple(tuples[6], FdbTuple.Create("G", "H", "I", "J", "K"));
+			tuples[12] = new FdbLinkedTuple<string>(tuples[11], "L");
+			tuples[13] = new FdbLinkedTuple<string>(FdbTuple.Create("A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L"), "M");
 
 #if false
 			Console.Write("Checking tuples");

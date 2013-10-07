@@ -92,9 +92,29 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public IFdbTuple this[int? start, int? end]
+		public IFdbTuple this[int? from, int? to]
 		{
-			get { throw new NotImplementedException(); }
+			get
+			{
+				int begin = from.HasValue ? FdbTuple.MapIndex(from.Value, m_count) : 0;
+				int end = to.HasValue ? FdbTuple.MapIndex(to.Value, m_count) : m_count - 1;
+
+				if (end < begin) return FdbTuple.Empty;
+
+				int p = this.Head.Count;
+				if (begin >= p)
+				{ // all selected items are in the tail
+					return this.Tail[begin - p, end - p];
+				}
+				else if (end < p)
+				{ // all selected items are in the head
+					return this.Head[begin, end];
+				}
+				else
+				{ // selected items are both in head and tail
+					return new FdbJoinedTuple(this.Head[begin, null], this.Tail[null, end - p]);
+				}
+			}
 		}
 
 		public T Get<T>(int index)

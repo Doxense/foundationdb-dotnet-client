@@ -71,10 +71,10 @@ namespace FoundationDB.Layers.Tuples
 #endif
 
 		/// <summary>Return a section of the tuple</summary>
-		/// <param name="start">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
-		/// <param name="end">Ending offset of the sub-tuple to return or null to select until the end. Negative values means from the end</param>
+		/// <param name="from">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
+		/// <param name="to">Ending offset of the sub-tuple to return or null to select until the end. Negative values means from the end</param>
 		/// <returns>Tuple that only includes the selected items</returns>
-		IFdbTuple this[int? start, int? end] { get; }
+		IFdbTuple this[int? from, int? to] { get; }
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="T">Expected type of the item</typeparam>
