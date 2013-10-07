@@ -43,9 +43,7 @@ namespace FoundationDB.Layers.Directories
 		internal FdbDirectorySubspace(IFdbTuple path, Slice prefix, FdbDirectoryLayer directoryLayer, string layer)
 			: base(prefix)
 		{
-			Contract.Requires(path != null);
-			Contract.Requires(prefix != null);
-			Contract.Requires(directoryLayer != null);
+			Contract.Requires(path != null && prefix != null && directoryLayer != null);
 
 			this.Path = path.Memoize();
 			this.DirectoryLayer = directoryLayer;
@@ -69,9 +67,11 @@ namespace FoundationDB.Layers.Directories
 		/// If prefix is specified, the subdirectory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If layer is specified, it is checked against the layer of an existing subdirectory or set as the layer of a new subdirectory.
 		/// </summary>
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true)
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice))
 		{
-			return this.DirectoryLayer.CreateOrOpenAsync(tr, this.Path.Concat(subPath), layer, prefix, allowCreate, allowOpen);
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (subPath == null) throw new ArgumentNullException("subPath");
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(subPath), layer, prefix, allowCreate: true, allowOpen: true, throwOnError: true);
 		}
 
 		/// <summary>Opens a subdirectory with the given path.
@@ -79,54 +79,115 @@ namespace FoundationDB.Layers.Directories
 		/// If prefix is specified, the subdirectory is created with the given physical prefix; otherwise a prefix is allocated automatically.
 		/// If layer is specified, it is checked against the layer of an existing subdirectory or set as the layer of a new subdirectory.
 		/// </summary>
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, string[] subPath, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true)
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, string[] subPath, string layer = null, Slice prefix = default(Slice))
 		{
+			if (trans == null) throw new ArgumentNullException("trans");
 			if (subPath == null) throw new ArgumentNullException("subPath");
-			return this.DirectoryLayer.CreateOrOpenAsync(tr, this.Path.Concat(FdbTuple.CreateRange<string>(subPath)), layer, prefix, allowCreate, allowOpen);
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(FdbTuple.CreateRange<string>(subPath)), layer, prefix, allowCreate: true, allowOpen: true, throwOnError: true);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
 		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
 		/// </summary>
-		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the subdirectory to create</param>
-		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null)
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction trans, IFdbTuple subPath, string layer = null)
 		{
-			return this.DirectoryLayer.OpenAsync(tr, this.Path.Concat(subPath), layer);
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (subPath == null) throw new ArgumentNullException("subPath");
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(subPath), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
 		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
 		/// </summary>
-		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the subdirectory to create</param>
-		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, string[] subPath, string layer = null)
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction trans, string[] subPath, string layer = null)
 		{
-			return this.DirectoryLayer.OpenAsync(tr, this.Path.Concat(FdbTuple.CreateRange<string>(subPath)), layer);
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (subPath == null) throw new ArgumentNullException("subPath");
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(FdbTuple.CreateRange<string>(subPath)), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
+		}
+
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="subPath">Relative path of the subdirectory to create</param>
+		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbTransaction trans, IFdbTuple subPath, string layer = null)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (subPath == null) throw new ArgumentNullException("subPath");
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(subPath), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
+		}
+
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="subPath">Relative path of the subdirectory to create</param>
+		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbTransaction trans, string[] subPath, string layer = null)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (subPath == null) throw new ArgumentNullException("subPath");
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(FdbTuple.CreateRange<string>(subPath)), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
 		}
 
 		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given subdirectory already exists.
 		/// </summary>
-		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the subdirectory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
 		/// <param name="prefix">If <paramref name="prefix"/> is specified, the subdirectory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice))
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice))
 		{
-			return this.DirectoryLayer.CreateAsync(tr, this.Path.Concat(subPath), layer, prefix);
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (subPath == null) throw new ArgumentNullException("subPath");
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(subPath), layer, prefix, allowCreate: true, allowOpen: false, throwOnError: true);
 		}
 
 		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given subdirectory already exists.
 		/// </summary>
-		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="subPath">Relative path of the subdirectory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
 		/// <param name="prefix">If <paramref name="prefix"/> is specified, the subdirectory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, string[] subPath, string layer = null, Slice prefix = default(Slice))
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, string[] subPath, string layer = null, Slice prefix = default(Slice))
 		{
-			return this.DirectoryLayer.CreateAsync(tr, this.Path.Concat(FdbTuple.CreateRange<string>(subPath)), layer, prefix);
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (subPath == null) throw new ArgumentNullException("subPath");
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(FdbTuple.CreateRange<string>(subPath)), layer, prefix, allowCreate: true, allowOpen: false, throwOnError: true);
+		}
+
+		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
+		/// An exception is thrown if the given subdirectory already exists.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="subPath">Relative path of the subdirectory to create</param>
+		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
+		/// <param name="prefix">If <paramref name="prefix"/> is specified, the subdirectory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
+		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction trans, IFdbTuple subPath, string layer = null, Slice prefix = default(Slice))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (subPath == null) throw new ArgumentNullException("subPath");
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(subPath), layer, prefix, allowCreate: true, allowOpen: false, throwOnError: false);
+		}
+
+		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
+		/// An exception is thrown if the given subdirectory already exists.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="subPath">Relative path of the subdirectory to create</param>
+		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
+		/// <param name="prefix">If <paramref name="prefix"/> is specified, the subdirectory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
+		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction trans, string[] subPath, string layer = null, Slice prefix = default(Slice))
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (subPath == null) throw new ArgumentNullException("subPath");
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, this.Path.Concat(FdbTuple.CreateRange<string>(subPath)), layer, prefix, allowCreate: true, allowOpen: false, throwOnError: false);
 		}
 
 		/// <summary>Moves the current directory to <paramref name="newPath"/>.
@@ -134,35 +195,89 @@ namespace FoundationDB.Layers.Directories
 		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
 		/// </summary>
 		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
-		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, IFdbTuple newPath)
+		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, IFdbTuple newPath)
 		{
-			return this.DirectoryLayer.MoveAsync(tr, this.Path, newPath);
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (newPath == null) throw new ArgumentNullException("newPath");
+			return this.DirectoryLayer.MoveInternalAsync(trans, this.Path, newPath, throwOnError: true);
 		}
 
 		/// <summary>Moves the current directory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
 		/// </summary>
-		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
-		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction tr, string[] newPath)
+		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, string[] newPath)
 		{
-			return this.DirectoryLayer.MoveAsync(tr, this.Path, FdbTuple.CreateRange<string>(newPath));
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (newPath == null) throw new ArgumentNullException("newPath");
+			return this.DirectoryLayer.MoveInternalAsync(trans, this.Path, FdbTuple.CreateRange<string>(newPath), throwOnError: true);
+		}
+
+		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
+		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// </summary>
+		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
+		public Task<FdbDirectorySubspace> TryMoveAsync(IFdbTransaction trans, IFdbTuple newPath)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (newPath == null) throw new ArgumentNullException("newPath");
+			return this.DirectoryLayer.MoveInternalAsync(trans, this.Path, newPath, throwOnError: false);
+		}
+
+		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
+		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
+		public Task<FdbDirectorySubspace> TryMoveAsync(IFdbTransaction trans, string[] newPath)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (newPath == null) throw new ArgumentNullException("newPath");
+			return this.DirectoryLayer.MoveInternalAsync(trans, this.Path, FdbTuple.CreateRange<string>(newPath), throwOnError: false);
 		}
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
-		/// <param name="tr">Transaction to use for the operation</param>
-		public Task RemoveAsync(IFdbTransaction tr)
+		/// <param name="trans">Transaction to use for the operation</param>
+		public Task RemoveAsync(IFdbTransaction trans)
 		{
-			return this.DirectoryLayer.RemoveAsync(tr, this.Path);
+			if (trans == null) throw new ArgumentNullException("trans");
+			return this.DirectoryLayer.RemoveInternalAsync(trans, this.Path, throwIfMissing: true);
+		}
+
+		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		public Task<bool> TryRemoveAsync(IFdbTransaction trans)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			return this.DirectoryLayer.RemoveInternalAsync(trans, this.Path, throwIfMissing: false);
+		}
+
+		/// <summary>Checks if this directory exists</summary>
+		/// <returns>Returns true if the directory exists, otherwise false.</returns>
+		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			return this.DirectoryLayer.ExistsAsync(trans, this.Path);
 		}
 
 		/// <summary>Returns the list of all the subdirectories of the current directory.</summary>
-		public Task<List<IFdbTuple>> ListAsync(IFdbReadOnlyTransaction tr)
+		public Task<List<IFdbTuple>> ListAsync(IFdbReadOnlyTransaction trans)
 		{
-			return this.DirectoryLayer.ListAsync(tr, this.Path);
+			if (trans == null) throw new ArgumentNullException("trans");
+			return this.DirectoryLayer.ListInternalAsync(trans, this.Path, throwIfMissing: true);
+		}
+
+		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
+		public Task<List<IFdbTuple>> TryListAsync(IFdbReadOnlyTransaction trans)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			return this.DirectoryLayer.ListInternalAsync(trans, this.Path, throwIfMissing: false);
 		}
 
 		public override string ToString()

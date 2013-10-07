@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Filters;
 	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
 	using System;
@@ -48,6 +49,8 @@ namespace FoundationDB.Client
 		internal FdbDatabasePartition(IFdbDatabase database, FdbSubspace nodes, FdbSubspace contents, bool ownsDatabase)
 			: base(database, false, ownsDatabase)
 		{
+			Contract.Requires(database != null);
+
 			if (nodes == null) nodes = database.GlobalSpace[FdbKey.Directory];
 			if (contents == null) contents = database.GlobalSpace;
 
@@ -62,14 +65,14 @@ namespace FoundationDB.Client
 
 		#region DirectoryLayer helpers...
 
-		public Task<FdbDirectorySubspace> CreateOrOpenDirectoryAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateOrOpenDirectoryAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.CreateOrOpenAsync(m_database, path, layer, prefix, allowCreate, allowOpen, cancellationToken);
+			return this.Root.CreateOrOpenAsync(m_database, path, layer, prefix, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> CreateOrOpenDirectoryAsync(string[] path, string layer = null, Slice prefix = default(Slice), bool allowCreate = true, bool allowOpen = true, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateOrOpenDirectoryAsync(string[] path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.CreateOrOpenAsync(m_database, path, layer, prefix, allowCreate, allowOpen, cancellationToken);
+			return this.Root.CreateOrOpenAsync(m_database, path, layer, prefix, cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> OpenDirectoryAsync(IFdbTuple path, string layer = null, CancellationToken cancellationToken = default(CancellationToken))

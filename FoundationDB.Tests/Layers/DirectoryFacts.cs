@@ -203,7 +203,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(subdirs.Count, Is.EqualTo(0));
 
 				// flat subtree "/numbers/0" to "/numbers/9"
-				for (int i = 0; i <= 10; i++) await directory.CreateOrOpenAsync(db, new[] { "numbers", i.ToString() });
+				for (int i = 0; i < 10; i++) await directory.CreateOrOpenAsync(db, new[] { "numbers", i.ToString() });
 
 				subdirs = await directory.ListAsync(db, new[] { "numbers" });
 				Assert.That(subdirs, Is.Not.Null);
