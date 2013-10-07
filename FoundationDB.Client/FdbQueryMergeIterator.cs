@@ -109,11 +109,9 @@ namespace FoundationDB.Client
 			catch(Exception e)
 			{
 				// dispose already opened iterators
-				for (int i = 0; i < iterators.Length;i++)
-				{
-					Cleanup(iterators);
-				}
+				var tmp = iterators;
 				iterators = null;
+				try { Cleanup(tmp); } catch (Exception) { }
 				return TaskHelpers.FromException<bool>(e);
 			}
 			finally
@@ -203,9 +201,9 @@ namespace FoundationDB.Client
 					{
 						try
 						{
-							iterators[i].Iterator.Dispose();
+							var iterator = iterators[i].Iterator;
 							iterators[i] = new IteratorState();
-							iterators[i].Active = false;
+							iterator.Dispose();
 						}
 						catch (Exception e)
 						{
