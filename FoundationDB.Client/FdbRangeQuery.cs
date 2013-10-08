@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
-	[DebuggerDisplay("Begin={Range.Start}, End={Range.Stop}, Limit={Limit}, Mode={Mode}, Reverse={Reverse}, Snapshot={Snapshot}")]
+	[DebuggerDisplay("Begin={Begin}, End={End}, Limit={Limit}, Mode={Mode}, Reverse={Reverse}, Snapshot={Snapshot}")]
 	public sealed partial class FdbRangeQuery<T> : IFdbAsyncEnumerable<T>
 	{
 
