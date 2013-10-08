@@ -150,9 +150,10 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken = default(CancellationToken))
+		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken = default(CancellationToken), FdbOperationContext context = null)
 		{
-			return CreateNewTransaction(new FdbOperationContext(this, mode, cancellationToken));
+			if (context == null) context = new FdbOperationContext(this, mode, cancellationToken);
+			return CreateNewTransaction(context);
 		}
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>
@@ -183,7 +184,7 @@ namespace FoundationDB.Client
 			FdbTransaction trans = null;
 			try
 			{
-				trans = new FdbTransaction(context, id, handle, mode);
+				trans = new FdbTransaction(this, context, id, handle, mode);
 				RegisterTransaction(trans);
 				// set default options..
 				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;

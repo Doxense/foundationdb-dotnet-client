@@ -35,34 +35,29 @@ namespace FoundationDB.Client
 	/// <summary>Transactional context that can execute read and/or write transactions</summary>
 	public interface IFdbTransactional : IFdbReadOnlyTransactional
 	{
-		/// <summary>
-		/// Runs a transactional lambda function inside a write-only transaction context, with optional retry logic.
-		/// </summary>
+		/// <summary>Runs an idempotent transactional block inside a write-only transaction context, with optional retry logic.</summary>
+		/// <param name="handler">Idempotent handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken cancellationToken = default(CancellationToken));
 
-		/// <summary>
-		/// Runs a transactional lambda function inside a write-only transaction context, with optional retry logic.
-		/// </summary>
-		Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken));
-
-		/// <summary>
-		/// Runs a transactional lambda function inside a read-write transaction context, with optional retry logic.
-		/// </summary>
+		/// <summary>Runs an idempotent transactional block inside a read-write transaction context, with optional retry logic.</summary>
+		/// <param name="asyncHandler">Idempotent asynchronous handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken = default(CancellationToken));
 
-		/// <summary>
-		/// Runs a transactional lambda function inside a read-write transaction context, with optional retry logic.
-		/// </summary>
-		Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken));
-
-		/// <summary>
-		/// Runs a transactional lambda function inside a read-write transaction context, with optional retry logic.
-		/// </summary>
+		/// <summary>Runs an idempotent transactional block that returns a value, inside a read-write transaction context, with optional retry logic.</summary>
+		/// <param name="asyncHandler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <returns>Result of the lambda function if the transaction committed sucessfully.</returns>
 		Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken = default(CancellationToken));
 
-		/// <summary>
-		/// Runs a transactional lambda function inside a read-write transaction context, with optional retry logic.
-		/// </summary>
+		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
+		Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken));
+
+		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
+		Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken));
+
+		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
 		Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken));
 	}
 

@@ -56,6 +56,9 @@ namespace FoundationDB.Client
 		/// <summary>Current state of the transaction</summary>
 		private int m_state;
 
+		/// <summary>Owner database that created this instance</summary>
+		private readonly FdbDatabase m_database;
+
 		/// <summary>Context of the transaction when running inside a retry loop, or other custom scenario</summary>
 		private readonly FdbOperationContext m_context;
 
@@ -87,12 +90,13 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		internal FdbTransaction(FdbOperationContext context, int id, TransactionHandle handle, FdbTransactionMode mode)
+		internal FdbTransaction(FdbDatabase db, FdbOperationContext context, int id, TransactionHandle handle, FdbTransactionMode mode)
 		{
-			Contract.Requires(context != null && handle != null);
+			Contract.Requires(db != null && context != null && handle != null);
 			Contract.Requires(context.Database != null && context.Database is FdbDatabase);
 
 			m_context = context;
+			m_database = db;
 			m_id = id;
 			m_handle = handle;
 			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;
@@ -116,7 +120,7 @@ namespace FoundationDB.Client
 		public FdbOperationContext Context { get { return m_context; } }
 
 		/// <summary>Database instance that manages this transaction</summary>
-		public FdbDatabase Database { get { return (FdbDatabase) m_context.Database; } }
+		public FdbDatabase Database { get { return m_database; } }
 
 		/// <summary>Native FDB_TRANSACTION* handle</summary>
 		internal TransactionHandle Handle { get { return m_handle; } }

@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
-			return db.BeginTransaction(FdbTransactionMode.ReadOnly, cancellationToken);
+			return db.BeginTransaction(FdbTransactionMode.ReadOnly, cancellationToken, default(FdbOperationContext));
 		}
 
 		/// <summary>Start a new transaction on this database</summary>
@@ -66,7 +66,7 @@ namespace FoundationDB.Client
 		public static IFdbTransaction BeginTransaction(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
-			return db.BeginTransaction(FdbTransactionMode.Default, cancellationToken);
+			return db.BeginTransaction(FdbTransactionMode.Default, cancellationToken, default(FdbOperationContext));
 		}
 
 		#region Options...

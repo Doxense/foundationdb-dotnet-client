@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Tests
 {
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
@@ -1180,4 +1179,5 @@ namespace FoundationDB.Client.Tests
 		}
 
 	}
+
 }
