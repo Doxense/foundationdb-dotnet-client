@@ -471,6 +471,9 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
+			// The iteration value is only needed when in iterator mode, but then it should start from 1
+			if (iteration == 0) iteration = 1;
+
 			return GetRangeCoreAsync(beginInclusive, endExclusive, options, iteration, snapshot: false);
 		}
 
