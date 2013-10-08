@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#undef DEBUG_FUTURES
+
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Native;
@@ -73,6 +75,9 @@ namespace FoundationDB.Client
 					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " was already ready");
 #endif
 					HandleCompletion(fromCallback: false);
+#if DEBUG_FUTURES
+					Debug.WriteLine("Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " completed inline");
+#endif
 					return;
 				}
 
@@ -113,7 +118,9 @@ namespace FoundationDB.Client
 				var err = FdbNative.FutureSetCallback(handle, CallbackHandler, prm);
 				if (Fdb.Failed(err))
 				{ // uhoh
+#if DEBUG_FUTURES
 					Debug.WriteLine("Failed to set callback for Future<" + typeof(T).Name + "> 0x" + handle.Handle.ToString("x") + " !!!");
+#endif
 					throw Fdb.MapToException(err);
 				}
 
@@ -173,6 +180,9 @@ namespace FoundationDB.Client
 				return;
 			}
 
+#if DEBUG_FUTURES
+			var sw = Stopwatch.StartNew();
+#endif
 			try
 			{
 				var handle = m_handle;
@@ -226,6 +236,10 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
+#if DEBUG_FUTURES
+				sw.Stop();
+				Debug.WriteLine("Future<" + typeof(T).Name + "> callback completed in " + sw.Elapsed.TotalMilliseconds.ToString() + " ms");
+#endif
 				TryCleanup();
 			}
 		}
