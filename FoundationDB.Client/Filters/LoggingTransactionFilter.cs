@@ -459,7 +459,7 @@ namespace FoundationDB.Client.Filters
 
 			public override string ToString()
 			{
-				return String.Format("Set(key={0}, value={1})", this.Key.ToString(), this.Value.ToAsciiOrHexaString());
+				return String.Format("Set(key={0}, value={1})", FdbKey.Dump(this.Key), this.Value.ToAsciiOrHexaString());
 			}
 		}
 
@@ -476,7 +476,7 @@ namespace FoundationDB.Client.Filters
 
 			public override string ToString()
 			{
-				return String.Format("Clear(key={0})", this.Key.ToString());
+				return String.Format("Clear(key={0})", FdbKey.Dump(this.Key));
 			}
 		}
 
@@ -495,7 +495,7 @@ namespace FoundationDB.Client.Filters
 
 			public override string ToString()
 			{
-				return String.Format("ClearRange(begin={0}, end={1})", this.Begin.ToString(), this.End.ToString());
+				return String.Format("ClearRange(begin={0}, end={1})", FdbKey.Dump(this.Begin), FdbKey.Dump(this.End));
 			}
 		}
 
@@ -516,7 +516,7 @@ namespace FoundationDB.Client.Filters
 
 			public override string ToString()
 			{
-				return String.Format("Atomic(mutation={0}, key={1}, value={2})", this.Mutation.ToString(), this.Key.ToString(), this.Param.ToAsciiOrHexaString());
+				return String.Format("Atomic(mutation={0}, key={1}, value={2})", this.Mutation.ToString(), FdbKey.Dump(this.Key), this.Param.ToAsciiOrHexaString());
 			}
 		}
 
@@ -537,7 +537,7 @@ namespace FoundationDB.Client.Filters
 
 			public override string ToString()
 			{
-				return String.Format("AddConflictRange(type={0}, begin={1}, end={2})", this.Type.ToString(), this.Begin.ToString(), this.End.ToString());
+				return String.Format("AddConflictRange(type={0}, begin={1}, end={2})", this.Type.ToString(), FdbKey.Dump(this.Begin), FdbKey.Dump(this.End));
 			}
 		}
 
@@ -554,7 +554,7 @@ namespace FoundationDB.Client.Filters
 
 			public override string ToString()
 			{
-				return String.Format("Get(key={0}) => {1}", this.Key.ToString(), this.Result.ToString());
+				return String.Format("Get(key={0}) => {1}", FdbKey.Dump(this.Key), this.Result.ToString());
 			}
 		}
 
@@ -619,7 +619,7 @@ namespace FoundationDB.Client.Filters
 			public FdbRangeOptions Options { get; private set; }
 			public int Iteration { get; private set; }
 
-			public override Operation Op { get { return Operation.Get; } }
+			public override Operation Op { get { return Operation.GetRange; } }
 
 			public GetRangeCommand(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, int iteration)
 			{
@@ -631,7 +631,7 @@ namespace FoundationDB.Client.Filters
 
 			public override string ToString()
 			{
-				return String.Format("GetRange(begin={0}, end={1}, options=...)", this.Begin.ToString(), this.End.ToString());
+				return String.Format("GetRange(begin={0}, end={1}, options=...) => {2}", this.Begin.ToString(), this.End.ToString(), this.Result.HasValue ? this.Result.Value.Chunk.Length.ToString() : this.Result.ToString());
 			}
 		}
 
