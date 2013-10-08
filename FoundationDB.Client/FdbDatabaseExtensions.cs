@@ -73,7 +73,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
 		/// <param name="size">Max location cache entries</param>
-		public static void SetLocationCacheSize(this FdbDatabase db, int size)
+		public static void SetLocationCacheSize(this IFdbDatabase db, int size)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (size < 0) throw new FdbException(FdbError.InvalidOptionValue, "Location cache size must be a positive integer");
@@ -85,7 +85,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Set the maximum number of watches allowed to be outstanding on a database connection. Increasing this number could result in increased resource usage. Reducing this number will not cancel any outstanding watches. Defaults to 10000 and cannot be larger than 1000000.</summary>
 		/// <param name="count">Max outstanding watches</param>
-		public static void SetMaxWatches(this FdbDatabase db, int count)
+		public static void SetMaxWatches(this IFdbDatabase db, int count)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (count < 0) throw new FdbException(FdbError.InvalidOptionValue, "Maximum outstanding watches count must be a positive integer");
@@ -97,7 +97,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
 		/// <param name="hexId">Hexadecimal ID</param>
-		public static void SetMachineId(this FdbDatabase db, string hexId)
+		public static void SetMachineId(this IFdbDatabase db, string hexId)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
@@ -107,7 +107,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
 		/// <param name="hexId">Hexadecimal ID</param>
-		public static void SetDataCenterId(this FdbDatabase db, string hexId)
+		public static void SetDataCenterId(this IFdbDatabase db, string hexId)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
