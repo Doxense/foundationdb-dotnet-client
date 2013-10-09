@@ -65,7 +65,10 @@
     <Compile Include="Filters\FdbFilterExtensions.cs" />
     <Compile Include="Filters\FdbTransactionFilter.cs" />
     <Compile Include="Filters\FdbDatabaseFilter.cs" />
-    <Compile Include="Filters\LoggingTransactionFilter.cs" />
+    <Compile Include="Filters\Logging\FdbLoggedDatabase.cs" />
+    <Compile Include="Filters\Logging\FdbTransactionLog.Commands.cs" />
+    <Compile Include="Filters\Logging\FdbTransactionLog.cs" />
+    <Compile Include="Filters\Logging\FdbLoggedTransaction.cs" />
     <Compile Include="Filters\ReadOnlyTransactionFilter.cs" />
     <Compile Include="Filters\PrefixRewriterTransaction.cs" />
     <Compile Include="IFdbReadOnlyTransactional.cs" />

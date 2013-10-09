@@ -26,52 +26,24 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Filters.Tests
+namespace FoundationDB.Client.Filters.Logging.Tests
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
+	using System.Linq;
 	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class LoggingFilterFacts
 	{
 
-		private static char GetFancyChar(int pos, int count, double start, double end)
-		{
-			double cb = 1.0 * pos / count;
-			double ce = 1.0 * (pos + 1) / count;
-
-			if (cb >= end) return ' ';
-			if (ce < start) return '_';
-
-			double x = count * (Math.Min(ce, end) - Math.Max(cb, start));
-			if (x < 0) x = 0;
-			if (x > 1) x = 1;
-
-			int p = (int)Math.Round(x * 10);
-			return "`.:;+=xX$&#"[p];
-		}
-
-		private static string GetFancyGraph(int width, long offset, long duration, long total)
-		{
-			double begin = 1.0d * offset / total;
-			double end = 1.0d * (offset + duration) / total;
-
-			var tmp = new char[width];
-			for(int i=0;i<tmp.Length;i++)
-			{
-				tmp[i] = GetFancyChar(i, tmp.Length, begin, end);
-			}
-			return new string(tmp);
-		}
-
 		[Test]
 		public async Task Test_Can_Log_A_Transaction()
 		{
 			//await Task.Delay(10).ConfigureAwait(false);
+			const int N = 10;
 
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
@@ -90,14 +62,38 @@ namespace FoundationDB.Client.Filters.Tests
 							tr.Set(location.Pack("Range", j, rnd.Next(1000)), Slice.Empty);
 						}
 					}
+					for (int j = 0; j < N; j++)
+					{
+						tr.Set(location.Pack("X", j), Slice.FromInt32(j));
+						tr.Set(location.Pack("Y", j), Slice.FromInt32(j));
+					}
 				});
+
+				bool first = true;
+
+				Action<FdbLoggedTransaction> logHandler = (tr) =>
+				{
+					if (first)
+					{
+						Console.WriteLine(tr.Log.GetCommandsReport());
+						first = false;
+					}
+
+					Console.WriteLine(tr.Log.GetTimingsReport());
+				};
+
+				// create a logged version of the database
+				var logged = new FdbLoggedDatabase(db, false, false, logHandler);
 
 				for (int k = 0; k < 10; k++)
 				{
 					Console.WriteLine("==== " + k + " ==== ");
 					Console.WriteLine();
-					using (var tr = new LoggingTransactionFilter(db.BeginTransaction(), true))
+
+					await logged.ReadWriteAsync(async (tr) =>
 					{
+						Assert.That(tr, Is.InstanceOf<FdbLoggedTransaction>());
+
 						tr.Set(location.Pack("Write"), Slice.FromString("abcdef"));
 						tr.Clear(location.Pack("Clear", "0"));
 						tr.ClearRange(location.Pack("Clear", "A"), location.Pack("Clear", "Z"));
@@ -105,7 +101,7 @@ namespace FoundationDB.Client.Filters.Tests
 						await tr.GetAsync(location.Pack("One"));
 						await tr.GetAsync(location.Pack("NotFound"));
 
-						await tr.GetRangeAsync(FdbKeySelector.LastLessOrEqual(location.Pack("A")),FdbKeySelector.FirstGreaterThan(location.Pack("Z")));
+						await tr.GetRangeAsync(FdbKeySelector.LastLessOrEqual(location.Pack("A")), FdbKeySelector.FirstGreaterThan(location.Pack("Z")));
 
 						await Task.WhenAll(
 							tr.GetRange(FdbKeyRange.StartsWith(location.Pack("Range", 0))).ToListAsync(),
@@ -116,31 +112,16 @@ namespace FoundationDB.Client.Filters.Tests
 
 						await tr.GetAsync(location.Pack("Two"));
 
-						await tr.CommitAsync();
+						await tr.GetValuesAsync(Enumerable.Range(0, N).Select(x => location.Pack("X", x)));
 
-						long duration = tr.Log.Clock.ElapsedTicks;
-						System.Threading.Thread.CurrentThread.CurrentCulture = System.Globalization.CultureInfo.InvariantCulture;
-						Console.WriteLine("Run completed in " + TimeSpan.FromTicks(duration).TotalMilliseconds + " ms, size " + tr.Size + " bytes");
-						foreach (var cmd in tr.Log.Commands)
+						for (int i = 0; i < N; i++)
 						{
-							//const int W = 50;
-							int W = (int) Math.Ceiling(2*TimeSpan.FromTicks(duration).TotalMilliseconds);
-							double r = 1.0d * cmd.Duration.Ticks / duration;
-							string w = GetFancyGraph(W, cmd.StartOffset, cmd.Duration.Ticks, duration);
-
-							switch (cmd.Mode)
-							{
-								case LoggingTransactionFilter.Mode.Read: Console.Write("[R] "); break;
-								case LoggingTransactionFilter.Mode.Write: Console.Write("(w) "); break;
-								case LoggingTransactionFilter.Mode.Meta: Console.Write("<M> "); break;
-							}
-							Console.Write("|" + w + "| T+" + (cmd.StartOffset / 10000.0).ToString("N3") + " ~ " + ((cmd.EndOffset ?? 0) / 10000.0).ToString("N3") + " (" + (cmd.Duration.Ticks / 10000.0).ToString("N3") + ") ");
-							Console.WriteLine(cmd.ToString());
+							await tr.GetAsync(location.Pack("X", i));
 						}
-						Console.WriteLine("Duration: " + TimeSpan.FromTicks(duration).TotalMilliseconds.ToString("N3") + " ms");
 
-						Console.WriteLine();
-					}
+						await Task.WhenAll(Enumerable.Range(0, N/2).Select(x => tr.GetAsync(location.Pack("Y", x))));
+						await Task.WhenAll(Enumerable.Range(N/2, N/2).Select(x => tr.GetAsync(location.Pack("Y", x))));
+					});
 				}
 			}
 		}
