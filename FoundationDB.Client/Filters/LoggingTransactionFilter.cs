@@ -361,9 +361,12 @@ namespace FoundationDB.Client.Filters
 
 			public long? CommittedVersion { get; private set; }
 
+			public int Step { get; private set; }
+
 			public void Start(Command cmd)
 			{
 				cmd.StartOffset = this.Clock.ElapsedTicks;
+				cmd.Step = this.Step;
 				lock (this.Commands)
 				{
 					this.Commands.Add(cmd);
@@ -374,6 +377,7 @@ namespace FoundationDB.Client.Filters
 			{
 				cmd.EndOffset = this.Clock.ElapsedTicks;
 				cmd.Error = error;
+				this.Step++;
 			}
 
 		}
@@ -416,6 +420,7 @@ namespace FoundationDB.Client.Filters
 				}
 			}
 			public abstract Operation Op { get; }
+			public int Step { get; internal set; }
 			public long StartOffset { get; internal set; }
 			public long? EndOffset { get; internal set; }
 			public Exception Error { get; internal set; }
