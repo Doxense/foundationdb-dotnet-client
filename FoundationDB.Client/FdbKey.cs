@@ -254,16 +254,41 @@ namespace FoundationDB.Client
 			return new BatchIterator(offset, count, workers, batchSize);
 		}
 
+		/// <summary>Produce a user-friendly version of the slice</summary>
+		/// <param name="key">Random binary key</param>
+		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
+		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		internal static string Dump(Slice key)
 		{
 			if (key.IsPresent)
 			{
-				try
-				{
-					var tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key);
-					return tuple.ToString();
+				if (key[0] <= 28 || key[0] >= 254)
+				{ // it could be a tuple...
+					try
+					{
+						IFdbTuple tuple = null;
+						bool incr = false;
+						try
+						{
+							tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key);
+						}
+						catch(Exception e)
+						{
+							if (e is FormatException || e is ArgumentOutOfRangeException)
+							{
+								// Exclusive end keys based on tuples may end up with "01" instead of "00" (due to the call to FdbKey.Increment)
+								if (key.Count >= 2 && key[-1] > 0)
+								{
+									var tmp = key[0, -1] + (byte)(key[-1] - 1);
+									tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(tmp);
+									incr = true;
+								}
+							}
+						}
+						if (tuple != null) return !incr ? tuple.ToString() : (tuple.ToString() + " + 1");
+					}
+					catch { }
 				}
-				catch { }
 			}
 
 			return Slice.Dump(key);
