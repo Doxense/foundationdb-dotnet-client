@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 		internal FdbTransaction(FdbDatabase db, FdbOperationContext context, int id, TransactionHandle handle, FdbTransactionMode mode)
 		{
 			Contract.Requires(db != null && context != null && handle != null);
-			Contract.Requires(context.Database != null && context.Database is FdbDatabase);
+			Contract.Requires(context.Database != null);
 
 			m_context = context;
 			m_database = db;
