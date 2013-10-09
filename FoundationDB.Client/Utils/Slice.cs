@@ -977,6 +977,19 @@ namespace FoundationDB.Client
 			return a.Concat(b);
 		}
 
+		/// <summary>Appends a byte at the end of the slice</summary>
+		/// <param name="a">First slice</param>
+		/// <param name="b">Byte to append at the end</param>
+		/// <returns>New slice with the byte appended</returns>
+		public static Slice operator +(Slice a, byte b)
+		{
+			if (a.Count == 0) return Slice.FromByte(b);
+			var tmp = new byte[a.Count + 1];
+			Buffer.BlockCopy(a.Array, a.Offset, tmp, 0, a.Count);
+			tmp[a.Count] = b;
+			return new Slice(tmp, 0, tmp.Length);
+		}
+
 		/// <summary>Remove <paramref name="n"/> bytes at the end of slice <paramref name="s"/></summary>
 		/// <returns>Smaller slice</returns>
 		public static Slice operator -(Slice s, int n)
