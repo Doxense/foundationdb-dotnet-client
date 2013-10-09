@@ -88,7 +88,7 @@ namespace FoundationDB.Samples
 
 					Console.WriteLine("Using API v" + Fdb.GetMaxApiVersion());
 					Console.WriteLine("FoundationDB Samples menu:");
-					Console.WriteLine("Press '1' for ClassSchedudling, '2' for TBD, or 'q' to exit");
+					Console.WriteLine("Press '1' for ClassSchedudling, 'l' for LeakTest, or 'q' to exit");
 
 					Console.WriteLine("Ready...");
 
@@ -107,6 +107,11 @@ namespace FoundationDB.Samples
 							{ // Class Scheduling
 
 								TestRunner.RunAsyncTest(new ClassScheduling(), Db);
+								break;
+							}
+							case "l":
+							{ // LeastTest
+								TestRunner.RunAsyncTest(new LeakTest(100, 40, 1000, TimeSpan.FromSeconds(1)), Db);
 								break;
 							}
 
