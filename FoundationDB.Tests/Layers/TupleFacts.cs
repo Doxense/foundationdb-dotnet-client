@@ -1559,6 +1559,40 @@ namespace FoundationDB.Layers.Tuples.Tests
 	
 		}
 
+		[Test]
+		public void Test_Write_TupleUnicodeChar()
+		{
+			Action<FdbBufferWriter, char> test = (writer, value) => FdbTupleParser.WriteChar(writer, value);
+
+			// 1 bytes
+			PerformWriterTest(test, 'A', "02 41 00", "Unicode chars in the ASCII table take only one byte in UTF-8");
+			PerformWriterTest(test, '\0', "02 00 FF 00", "\\0 must be escaped as 00 FF");
+			PerformWriterTest(test, '\x7F', "02 7F 00", "1..127 take ony 1 bytes");
+			// 2 bytes
+			PerformWriterTest(test, '\x80', "02 C2 80 00", "128 needs 2 bytes");
+			PerformWriterTest(test, '\xFF', "02 C3 BF 00", "ASCII chars above 128 take at least 2 bytes in UTF-8");
+			PerformWriterTest(test, 'é', "02 C3 A9 00", "0x00E9, LATIN SMALL LETTER E WITH ACUTE");
+			PerformWriterTest(test, 'ø', "02 C3 B8 00", "0x00F8, LATIN SMALL LETTER O WITH STROKE");
+			PerformWriterTest(test, '\x07FF', "02 DF BF 00");
+			// 3 bytes
+			PerformWriterTest(test, '\x0800', "02 E0 A0 80 00", "0x800 takes at least 3 bytes");
+			PerformWriterTest(test, 'ಠ', "02 E0 B2 A0 00", "KANNADA LETTER TTHA");
+			PerformWriterTest(test, '世', "02 E4 B8 96 00", "0x4E16, CJK Ideograph");
+			PerformWriterTest(test, '界', "02 E7 95 8C 00", "0x754C, CJK Ideoghaph");
+			PerformWriterTest(test, '\xFFFE', "02 EF BF BE 00", "Unicode BOM becomes EF BF BE in UTF-8");
+			PerformWriterTest(test, '\xFFFF', "02 EF BF BF 00", "Maximum UTF-16 character");
+
+			// check all the unicode chars
+			for (int i = 1; i <= 65535; i++)
+			{
+				char c = (char)i;
+				var writer = new FdbBufferWriter();
+				FdbTupleParser.WriteChar(writer, c);
+				string s = new string(c, 1);
+				Assert.That(writer.ToSlice().ToString(), Is.EqualTo("<02>" + Slice.Create(Encoding.UTF8.GetBytes(s)).ToString() + "<00>"), "{0} '{1}'", i, c);
+			}
+		}
+
 		#endregion
 
 		#region Equality / Comparison

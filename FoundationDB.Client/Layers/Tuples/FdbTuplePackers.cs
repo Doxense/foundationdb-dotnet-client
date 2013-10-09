@@ -33,6 +33,7 @@ namespace FoundationDB.Layers.Tuples
 	using System;
 	using System.Globalization;
 	using System.Reflection;
+	using System.Runtime.CompilerServices;
 	using System.Text;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
@@ -267,19 +268,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(writer != null);
 
-			if (value == 0)
-			{ // NUL => "00 0F"
-				writer.WriteByte4(FdbTupleTypes.Utf8, 0x00, 0xFF, 0x00);
-			}
-			else if (value < 128)
-			{ // ASCII => single byte
-				writer.WriteByte3(FdbTupleTypes.Utf8, (byte)value, 0x00);
-			}
-			else
-			{ // Unicode ?
-				var tmp = Slice.FromChar(value);
-				FdbTupleParser.WriteNulEscapedBytes(writer, FdbTupleTypes.Utf8, tmp.Array, tmp.Offset, tmp.Count);
-			}
+			FdbTupleParser.WriteChar(writer, value);
 		}
 
 		/// <summary>Writes a boolean as an integer</summary>
@@ -469,126 +458,6 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Deserializers...
 
-		private static long ParseInt64(int type, Slice slice)
-		{
-			int bytes = type - FdbTupleTypes.IntBase;
-			if (bytes == 0) return 0L;
-
-			bool neg = false;
-			if (bytes < 0)
-			{
-				bytes = -bytes;
-				neg = true;
-			}
-
-			if (bytes > 8) throw new FormatException("Invalid size for tuple integer");
-			long value = (long)slice.ReadUInt64(1, bytes);
-
-			if (neg)
-			{ // the value is encoded as the one's complement of the absolute value
-				value = (-(~value));
-				if (bytes < 8) value |= (-1L << (bytes << 3)); 
-				return value;
-			}
-
-			return value;
-		}
-
-		private static ArraySegment<byte> UnescapeByteString(byte[] buffer, int offset, int count)
-		{
-			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
-
-			// check for nulls
-			int p = offset;
-			int end = offset + count;
-
-			while (p < end)
-			{
-				if (buffer[p] == 0)
-				{ // found a 0, switch to slow path
-					return UnescapeByteStringSlow(buffer, offset, count, p - offset);
-				}
-				++p;
-			}
-			// buffer is clean, we can return it as-is
-			return new ArraySegment<byte>(buffer, offset, count);
-		}
-
-		private static ArraySegment<byte> UnescapeByteStringSlow(byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
-		{
-			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
-
-			var tmp = new byte[count];
-
-			int p = offset;
-			int end = offset + count;
-			int i = 0;
-			if (offsetOfFirstZero > 0)
-			{
-				Buffer.BlockCopy(buffer, offset, tmp, 0, offsetOfFirstZero);
-				p += offsetOfFirstZero;
-				i = offsetOfFirstZero;
-			}
-
-			while (p < end)
-			{
-				byte b = buffer[p++];
-				if (b == 0)
-				{ // skip next FF
-					//TODO: check that next byte really is 0xFF
-					++p;
-				}
-				tmp[i++] = b;
-			}
-
-			return new ArraySegment<byte>(tmp, 0, i);
-		}
-
-		private static Slice ParseBytes(Slice slice)
-		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[slice.Count - 1] == 0);
-			if (slice.Count <= 2) return Slice.Empty;
-
-			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-
-			return new Slice(decoded.Array, decoded.Offset, decoded.Count);
-		}
-
-		private static string ParseAscii(Slice slice)
-		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[slice.Count - 1] == 0);
-
-			if (slice.Count <= 2) return String.Empty;
-
-			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-
-			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
-		}
-
-		private static string ParseUnicode(Slice slice)
-		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Utf8);
-
-			if (slice.Count <= 2) return String.Empty;
-			//TODO: check args
-			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
-		}
-
-		private static Guid ParseGuid(Slice slice)
-		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Guid);
-
-			if (slice.Count != 17)
-			{
-				//TODO: usefull! error message! 
-				throw new FormatException("Slice has invalid size for a guid");
-			}
-
-			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
-			return new Uuid(slice.GetBytes(1, 16)).ToGuid();
-		}
-
 		/// <summary>Deserialize a packed element into an object by choosing the most appropriate type at runtime</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <returns>Decoded element, in the type that is the best fit.</returns>
@@ -600,14 +469,14 @@ namespace FoundationDB.Layers.Tuples
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntNeg8) return ParseInt64(type, slice);
+				if (type >= FdbTupleTypes.IntNeg8) return FdbTupleParser.ParseInt64(type, slice);
 
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return null;
-					case FdbTupleTypes.Bytes: return ParseBytes(slice);
-					case FdbTupleTypes.Utf8: return ParseUnicode(slice);
-					case FdbTupleTypes.Guid: return ParseGuid(slice);
+					case FdbTupleTypes.Bytes: return FdbTupleParser.ParseBytes(slice);
+					case FdbTupleTypes.Utf8: return FdbTupleParser.ParseUnicode(slice);
+					case FdbTupleTypes.Guid: return FdbTupleParser.ParseGuid(slice);
 				}
 			}
 
@@ -668,13 +537,13 @@ namespace FoundationDB.Layers.Tuples
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntNeg8) return ParseInt64(type, slice);
+				if (type >= FdbTupleTypes.IntNeg8) return FdbTupleParser.ParseInt64(type, slice);
 
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return 0;
-					case FdbTupleTypes.Bytes: return long.Parse(ParseAscii(slice), CultureInfo.InvariantCulture);
-					case FdbTupleTypes.Utf8: return long.Parse(ParseUnicode(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.Bytes: return long.Parse(FdbTupleParser.ParseAscii(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.Utf8: return long.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 			}
 
@@ -700,13 +569,13 @@ namespace FoundationDB.Layers.Tuples
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntNeg8) return (ulong)ParseInt64(type, slice);
+				if (type >= FdbTupleTypes.IntNeg8) return (ulong)FdbTupleParser.ParseInt64(type, slice);
 
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return 0;
-					case FdbTupleTypes.Bytes: return ulong.Parse(ParseAscii(slice), CultureInfo.InvariantCulture);
-					case FdbTupleTypes.Utf8: return ulong.Parse(ParseUnicode(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.Bytes: return ulong.Parse(FdbTupleParser.ParseAscii(slice), CultureInfo.InvariantCulture);
+					case FdbTupleTypes.Utf8: return ulong.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
 				}
 			}
 
@@ -722,14 +591,14 @@ namespace FoundationDB.Layers.Tuples
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntNeg8) return ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
+				if (type >= FdbTupleTypes.IntNeg8) return FdbTupleParser.ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
 
 				switch (type)
 				{
 					case FdbTupleTypes.Nil: return null;
-					case FdbTupleTypes.Bytes: return ParseAscii(slice);
-					case FdbTupleTypes.Utf8: return ParseUnicode(slice);
-					case FdbTupleTypes.Guid: return ParseGuid(slice).ToString();
+					case FdbTupleTypes.Bytes: return FdbTupleParser.ParseAscii(slice);
+					case FdbTupleTypes.Utf8: return FdbTupleParser.ParseUnicode(slice);
+					case FdbTupleTypes.Guid: return FdbTupleParser.ParseGuid(slice).ToString();
 				}
 			}
 
@@ -737,6 +606,8 @@ namespace FoundationDB.Layers.Tuples
 
 		}
 
+		/// <summary>Deserialize a slice into Guid</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
 		public static Guid DeserializeGuid(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return Guid.Empty;
@@ -747,15 +618,15 @@ namespace FoundationDB.Layers.Tuples
 			{
 				case FdbTupleTypes.Bytes:
 				{
-					return Guid.Parse(ParseAscii(slice));
+					return Guid.Parse(FdbTupleParser.ParseAscii(slice));
 				}
 				case FdbTupleTypes.Utf8:
 				{
-					return Guid.Parse(ParseUnicode(slice));
+					return Guid.Parse(FdbTupleParser.ParseUnicode(slice));
 				}
 				case FdbTupleTypes.Guid:
 				{
-					return ParseGuid(slice);
+					return FdbTupleParser.ParseGuid(slice);
 				}
 			}
 
