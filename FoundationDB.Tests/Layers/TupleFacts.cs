@@ -1280,11 +1280,11 @@ namespace FoundationDB.Layers.Tuples.Tests
 			var writer = new FdbBufferWriter();
 			action(writer, value);
 
-			Assert.That(writer.ToSlice().ToHexaString(' '), Is.EqualTo(expectedResult), "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name));
+			Assert.That(writer.ToSlice().ToHexaString(' '), Is.EqualTo(expectedResult), message != null ? "Value {0} ({1}) was not properly packed: {2}" : "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name), message);
 		}
 
 		[Test]
-		public void Test_Write_TupleInt64()
+		public void Test_Tuple_WriteInt64()
 		{
 			Action<FdbBufferWriter, long> test = (writer, value) => FdbTupleParser.WriteInt64(writer, value);
 
@@ -1321,7 +1321,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Write_TupleInt64_Ordered()
+		public void Test_Tuple_WriteInt64_Ordered()
 		{
 			var list = new List<KeyValuePair<long, Slice>>();
 
@@ -1384,7 +1384,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Write_TupleUInt64()
+		public void Test_Tuple_WriteUInt64()
 		{
 			Action<FdbBufferWriter, ulong> test = (writer, value) => FdbTupleParser.WriteUInt64(writer, value);
 
@@ -1411,7 +1411,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Write_TupleUInt64_Ordered()
+		public void Test_Tuple_WriteUInt64_Ordered()
 		{
 			var list = new List<KeyValuePair<ulong, Slice>>();
 
@@ -1459,7 +1459,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Write_TupleAsciiString()
+		public void Test_Tuple_WriteAsciiString()
 		{
 			Action<FdbBufferWriter, string> test = (writer, value) => FdbTupleParser.WriteAsciiString(writer, value);
 
@@ -1474,6 +1474,89 @@ namespace FoundationDB.Layers.Tuples.Tests
 			PerformWriterTest(test, "\0A", "01 00 FF 41 00");
 			PerformWriterTest(test, "A\0\0A", "01 41 00 FF 00 FF 41 00");
 			PerformWriterTest(test, "A\0B\0\xFF", "01 41 00 FF 42 00 FF FF 00");
+		}
+
+		[Test]
+		public void Test_Write_TupleUnicodeString()
+		{
+			string s;
+			Action<FdbBufferWriter, string> test = (writer, value) => FdbTupleParser.WriteString(writer, value);
+			Func<string, string> encodeSimple = (value) => "02 " + Slice.Create(Encoding.UTF8.GetBytes(value)).ToHexaString(' ') + " 00";
+			Func<string, string> encodeWithZeroes = (value) => "02 " + Slice.Create(Encoding.UTF8.GetBytes(value)).ToHexaString(' ').Replace("00", "00 FF") + " 00";
+
+			PerformWriterTest(test, null, "00");
+			PerformWriterTest(test, String.Empty, "02 00");
+			PerformWriterTest(test, "A", "02 41 00");
+			PerformWriterTest(test, "\x80", "02 C2 80 00");
+			PerformWriterTest(test, "\xFF", "02 C3 BF 00");
+			PerformWriterTest(test, "\xFFFE", "02 EF BF BE 00"); // UTF-8 BOM
+
+			PerformWriterTest(test, "ASCII", "02 41 53 43 49 49 00");
+			PerformWriterTest(test, "héllø le 世界", "02 68 C3 A9 6C 6C C3 B8 20 6C 65 20 E4 B8 96 E7 95 8C 00");
+
+			// Must escape '\0' contained in the string as '\x00\xFF'
+			PerformWriterTest(test, "\0", "02 00 FF 00");
+			PerformWriterTest(test, "A\0", "02 41 00 FF 00");
+			PerformWriterTest(test, "\0A", "02 00 FF 41 00");
+			PerformWriterTest(test, "A\0\0A", "02 41 00 FF 00 FF 41 00");
+			PerformWriterTest(test, "A\0B\0\xFF", "02 41 00 FF 42 00 FF C3 BF 00");
+
+			// random human text samples
+
+			s = "This is a long string that has more than 1024 chars to force the encoder to use multiple chunks, and with some random UNICODE at the end so that it can not be optimized as ASCII-only." + new string('A', 1024) + "ಠ_ಠ";
+			PerformWriterTest(test, s, encodeSimple(s));
+
+			s = "String of exactly 1024 ASCII chars !"; s += new string('A', 1024 - s.Length);
+			PerformWriterTest(test, s, encodeSimple(s));
+
+			s = "Ceci est une chaîne de texte qui contient des caractères UNICODE supérieurs à 0x7F mais inférieurs à 0x800"; // n'est-il pas ?
+			PerformWriterTest(test, s, encodeSimple(s));
+
+			s = "色は匂へど　散りぬるを 我が世誰そ　常ならむ 有為の奥山　今日越えて 浅き夢見じ　酔ひもせず"; // iroha!
+			PerformWriterTest(test, s, encodeSimple(s));
+
+			s = "String that ends with funny UTF-32 chars like \xDFFF\xDBFF"; // supposed to be 0x10FFFF encoded in UTF-16
+			PerformWriterTest(test, s, encodeSimple(s));
+
+			// strings with random non-zero UNICODE chars
+			var rnd = new Random();
+			for (int k = 0; k < 100; k++)
+			{
+				int size = 1 + rnd.Next(10000);
+				var chars = new char[size];
+				for (int i = 0; i < chars.Length; i++)
+				{
+					// 1..0xFFFF
+					switch (rnd.Next(3))
+					{
+						case 0: chars[i] = (char)rnd.Next(1, 0x80); break;
+						case 1: chars[i] = (char)rnd.Next(0x80, 0x800); break;
+						case 2: chars[i] = (char)rnd.Next(0x800, 0xFFFF); break;
+					}
+				}
+				s = new string(chars);
+				PerformWriterTest(test, s, encodeSimple(s), "Random string with non-zero unicode chars (from 1 to 0xFFFF)");
+			}
+
+			// random strings with zeroes
+			for (int k = 0; k < 100; k++)
+			{
+				int size = 1 + rnd.Next(10000);
+				var chars = new char[size];
+				for (int i = 0; i < chars.Length; i++)
+				{
+					switch(rnd.Next(4))
+					{
+						case 0: chars[i] = '\0'; break;
+						case 1: chars[i] = (char)rnd.Next(1, 0x80); break;
+						case 2: chars[i] = (char)rnd.Next(0x80, 0x800); break;
+						case 3: chars[i] = (char)rnd.Next(0x800, 0xFFFF); break;
+					}
+				}
+				s = new string(chars);
+				PerformWriterTest(test, s, encodeWithZeroes(s), "Random string with zeros ");
+			}
+	
 		}
 
 		#endregion
