@@ -185,6 +185,7 @@ namespace FoundationDB.Client.Filters
 			GetRange,
 			Watch,
 
+			GetReadVersion,
 			Commit,
 			Cancel,
 			Reset,

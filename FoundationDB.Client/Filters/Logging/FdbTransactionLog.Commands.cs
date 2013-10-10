@@ -65,6 +65,7 @@ namespace FoundationDB.Client.Filters
 						case Operation.GetRange:
 							return FdbTransactionLog.Mode.Read;
 
+						case Operation.GetReadVersion:
 						case Operation.Reset:
 						case Operation.Cancel:
 						case Operation.AddConflictRange:
@@ -138,6 +139,7 @@ namespace FoundationDB.Client.Filters
 						case Operation.Commit: return "Co";
 						case Operation.Reset: return "Rz";
 						case Operation.OnError: return "E!";
+						case Operation.GetReadVersion: return "rv";
 
 						case Operation.Get: return "G ";
 						case Operation.GetValues: return "G*";
@@ -185,7 +187,7 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		public class SetCommand : Command
+		public sealed class SetCommand : Command
 		{
 			/// <summary>Key modified in the database</summary>
 			public Slice Key { get; private set; }
@@ -213,7 +215,7 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		public class ClearCommand : Command
+		public sealed class ClearCommand : Command
 		{
 			/// <summary>Key cleared from the database</summary>
 			public Slice Key { get; private set; }
@@ -237,7 +239,7 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		public class ClearRangeCommand : Command
+		public sealed class ClearRangeCommand : Command
 		{
 			/// <summary>Begin of the range cleared</summary>
 			public Slice Begin { get; private set; }
@@ -265,7 +267,7 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		public class AtomicCommand : Command
+		public sealed class AtomicCommand : Command
 		{
 			/// <summary>Type of mutation performed on the key</summary>
 			public FdbMutationType Mutation { get; private set; }
@@ -295,7 +297,7 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		public class AddConflictRangeCommand : Command
+		public sealed class AddConflictRangeCommand : Command
 		{
 			/// <summary>Type of conflict</summary>
 			public FdbConflictRangeType Type { get; private set; }
@@ -325,7 +327,7 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		public class GetCommand : Command<Slice>
+		public sealed class GetCommand : Command<Slice>
 		{
 			/// <summary>Key read from the database</summary>
 			public Slice Key { get; private set; }
@@ -364,7 +366,7 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		public class GetKeyCommand : Command<Slice>
+		public sealed class GetKeyCommand : Command<Slice>
 		{
 			/// <summary>Selector to a key in the database</summary>
 			public FdbKeySelector Selector { get; private set; }
@@ -394,7 +396,7 @@ namespace FoundationDB.Client.Filters
 		}
 
 		[DebuggerDisplay("GetValues([{Keys.Length}])")]
-		public class GetValuesCommand : Command<Slice[]>
+		public sealed class GetValuesCommand : Command<Slice[]>
 		{
 			/// <summary>List of keys read from the database</summary>
 			public Slice[] Keys { get; private set; }
@@ -450,7 +452,7 @@ namespace FoundationDB.Client.Filters
 		}
 
 		[DebuggerDisplay("GetKeys([{Keys.Length}])")]
-		public class GetKeysCommand : Command<Slice[]>
+		public sealed class GetKeysCommand : Command<Slice[]>
 		{
 			/// <summary>List of selectors looked up in the database</summary>
 			public FdbKeySelector[] Selectors { get; private set; }
@@ -495,7 +497,7 @@ namespace FoundationDB.Client.Filters
 		}
 
 		[DebuggerDisplay("GetRange({Begin}, {End}, {Options.Limit}, {Options.Reverse}, ...)")]
-		public class GetRangeCommand : Command<FdbRangeChunk>
+		public sealed class GetRangeCommand : Command<FdbRangeChunk>
 		{
 			/// <summary>Selector to the start of the range</summary>
 			public FdbKeySelector Begin { get; private set; }
@@ -562,7 +564,18 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		public class CancelCommand : Command
+		public sealed class GetReadVersionCommand : Command<long>
+		{
+			public override Operation Op { get { return Operation.GetReadVersion; } }
+
+			public override int ArgumentBytes
+			{
+				get { return 0; }
+			}
+
+		}
+
+		public sealed class CancelCommand : Command
 		{
 			public override Operation Op { get { return Operation.Cancel; } }
 
@@ -573,7 +586,7 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		public class ResetCommand : Command
+		public sealed class ResetCommand : Command
 		{
 			public override Operation Op { get { return Operation.Reset; } }
 
@@ -583,7 +596,7 @@ namespace FoundationDB.Client.Filters
 			}
 		}
 
-		public class CommitCommand : Command
+		public sealed class CommitCommand : Command
 		{
 			public override Operation Op { get { return Operation.Commit; } }
 
@@ -593,7 +606,7 @@ namespace FoundationDB.Client.Filters
 			}
 		}
 
-		public class OnErrorCommand : Command
+		public sealed class OnErrorCommand : Command
 		{
 			public FdbError Code { get; private set; }
 

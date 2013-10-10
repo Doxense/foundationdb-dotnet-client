@@ -188,6 +188,14 @@ namespace FoundationDB.Client.Filters
 			}
 		}
 
+		public override Task<long> GetReadVersionAsync()
+		{
+			return ExecuteAsync(
+				new FdbTransactionLog.GetReadVersionCommand(),
+				(_tr, _cmd) => _tr.GetReadVersionAsync()
+			);
+		}
+
 		public override void Cancel()
 		{
 			Execute(
@@ -219,7 +227,6 @@ namespace FoundationDB.Client.Filters
 
 		public override Task OnErrorAsync(FdbError code)
 		{
-			ThrowIfDisposed();
 			return ExecuteAsync(
 				new FdbTransactionLog.OnErrorCommand(code),
 				(_tr, _cmd) => _tr.OnErrorAsync(_cmd.Code)
@@ -228,7 +235,6 @@ namespace FoundationDB.Client.Filters
 
 		public override void Set(Slice key, Slice value)
 		{
-			ThrowIfDisposed();
 			Execute(
 				new FdbTransactionLog.SetCommand(Grab(key), Grab(value)),
 				(_tr, _cmd) => _tr.Set(_cmd.Key, _cmd.Value)
@@ -246,7 +252,6 @@ namespace FoundationDB.Client.Filters
 
 		public override void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
-			ThrowIfDisposed();
 			Execute(
 				new FdbTransactionLog.ClearRangeCommand(Grab(beginKeyInclusive), Grab(endKeyExclusive)),
 				(_tr, _cmd) => _tr.ClearRange(_cmd.Begin, _cmd.End)
@@ -255,7 +260,6 @@ namespace FoundationDB.Client.Filters
 
 		public override void Atomic(Slice key, Slice param, FdbMutationType mutation)
 		{
-			ThrowIfDisposed();
 			Execute(
 				new FdbTransactionLog.AtomicCommand(Grab(key), Grab(param), mutation),
 				(_tr, _cmd) => _tr.Atomic(_cmd.Key, _cmd.Param, _cmd.Mutation)
@@ -311,7 +315,6 @@ namespace FoundationDB.Client.Filters
 
 		public override void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
 		{
-			ThrowIfDisposed();
 			Execute(
 				new FdbTransactionLog.AddConflictRangeCommand(beginKeyInclusive, endKeyExclusive, type),
 				(_tr, _cmd) => _tr.AddConflictRange(_cmd.Begin, _cmd.End, _cmd.Type)
