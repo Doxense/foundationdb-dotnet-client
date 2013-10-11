@@ -66,6 +66,8 @@ namespace FoundationDB.Client.Filters.Logging.Tests
 					{
 						tr.Set(location.Pack("X", j), Slice.FromInt32(j));
 						tr.Set(location.Pack("Y", j), Slice.FromInt32(j));
+						tr.Set(location.Pack("Z", j), Slice.FromInt32(j));
+						tr.Set(location.Pack("W", j), Slice.FromInt32(j));
 					}
 				});
 
@@ -79,13 +81,13 @@ namespace FoundationDB.Client.Filters.Logging.Tests
 						first = false;
 					}
 
-					Console.WriteLine(tr.Log.GetTimingsReport());
+					Console.WriteLine(tr.Log.GetTimingsReport(true));
 				};
 
 				// create a logged version of the database
 				var logged = new FdbLoggedDatabase(db, false, false, logHandler);
 
-				for (int k = 0; k < 10; k++)
+				for (int k = 0; k < 20; k++)
 				{
 					Console.WriteLine("==== " + k + " ==== ");
 					Console.WriteLine();
@@ -94,13 +96,19 @@ namespace FoundationDB.Client.Filters.Logging.Tests
 					{
 						Assert.That(tr, Is.InstanceOf<FdbLoggedTransaction>());
 
+						tr.SetOption(FdbTransactionOption.CausalReadRisky);
+
+						//long ver = await tr.GetReadVersionAsync();
+
 						tr.Set(location.Pack("Write"), Slice.FromString("abcdef"));
+						await tr.GetAsync(location.Pack("One"));
 						tr.Clear(location.Pack("Clear", "0"));
+						await tr.GetAsync(location.Pack("NotFound"));
 						tr.ClearRange(location.Pack("Clear", "A"), location.Pack("Clear", "Z"));
 
-						await tr.GetAsync(location.Pack("One"));
-						await tr.GetAsync(location.Pack("NotFound"));
+						tr.Annotate("This is a comment");
 
+						/*
 						await tr.GetRangeAsync(FdbKeySelector.LastLessOrEqual(location.Pack("A")), FdbKeySelector.FirstGreaterThan(location.Pack("Z")));
 
 						await Task.WhenAll(
@@ -116,11 +124,18 @@ namespace FoundationDB.Client.Filters.Logging.Tests
 
 						for (int i = 0; i < N; i++)
 						{
-							await tr.GetAsync(location.Pack("X", i));
+							await tr.GetAsync(location.Pack("Z", i));
 						}
 
 						await Task.WhenAll(Enumerable.Range(0, N/2).Select(x => tr.GetAsync(location.Pack("Y", x))));
 						await Task.WhenAll(Enumerable.Range(N/2, N/2).Select(x => tr.GetAsync(location.Pack("Y", x))));
+
+						await Task.WhenAll(
+							tr.GetAsync(location.Pack("W", 1)),
+							tr.GetAsync(location.Pack("W", 2)),
+							tr.GetAsync(location.Pack("W", 3))
+						);*/
+
 					});
 				}
 			}

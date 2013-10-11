@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Filters
+namespace FoundationDB.Client.Filters.Logging
 {
 	using FoundationDB.Async;
 	using System;
@@ -44,6 +44,56 @@ namespace FoundationDB.Client.Filters
 		[DebuggerDisplay("{ToString()}")]
 		public abstract class Command
 		{
+
+			/// <summary>Return the type of operation</summary>
+			public abstract Operation Op { get; }
+
+			/// <summary>Return the step number of this command</summary>
+			/// <remarks>All commands with the same step number where started in parallel</remarks>
+			public int Step { get; internal set; }
+
+			/// <summary>Number of ticks, since the start of the transaction, when the operation was started</summary>
+			public long StartOffset { get; internal set; }
+
+			/// <summary>Number of ticks, since the start of the transaction, when the operation completed (or null if it did not complete)</summary>
+			public long? EndOffset { get; internal set; }
+
+			/// <summary>Exception thrown by this operation</summary>
+			public Exception Error { get; internal set; }
+
+			/// <summary>Total size (in bytes) of the arguments</summary>
+			/// <remarks>For selectors, only include the size of the keys</remarks>
+			public virtual int? ArgumentBytes { get { return default(int?); } }
+
+			/// <summary>Total size (in bytes) of the result, or null if this operation does not produce a result</summary>
+			/// <remarks>Includes the keys and values for range reads</remarks>
+			public virtual int? ResultBytes { get { return default(int?); } }
+
+			/// <summary>Id of the thread that started the command</summary>
+			public int ThreadId { get; internal set; }
+
+			/// <summary>Total duration of the command, or TimeSpan.Zero if the command is not yet completed</summary>
+			public TimeSpan Duration
+			{
+				get
+				{
+					var start = this.StartOffset;
+					var end = this.EndOffset;
+					return start == 0 || !end.HasValue ? TimeSpan.Zero : TimeSpan.FromTicks(end.Value - start);
+				}
+			}
+
+			/// <summary>Returns a formatted representation of the arguments, for logging purpose</summary>
+			public virtual string GetArguments()
+			{
+				return String.Empty;
+			}
+
+			/// <summary>Returns a formatted representation of the results, for logging purpose</summary>
+			public virtual string GetResult()
+			{
+				return String.Empty;
+			}
 
 			/// <summary>Return the mode of the operation (Read, Write, Metadata, Watch, ...)</summary>
 			public virtual Mode Mode
@@ -76,57 +126,13 @@ namespace FoundationDB.Client.Filters
 						case Operation.Watch:
 							return FdbTransactionLog.Mode.Watch;
 
+						case Operation.Log:
+							return FdbTransactionLog.Mode.Annotation;
+
 						default:
 							throw new NotImplementedException("Fixme! " + this.Op.ToString());
 					}
 				}
-			}
-
-			/// <summary>Return the type of operation</summary>
-			public abstract Operation Op { get; }
-
-			/// <summary>Return the step number of this command</summary>
-			/// <remarks>All commands with the same step number where started in parallel</remarks>
-			public int Step { get; internal set; }
-
-			/// <summary>Number of ticks, since the start of the transaction, when the operation was started</summary>
-			public long StartOffset { get; internal set; }
-
-			/// <summary>Number of ticks, since the start of the transaction, when the operation completed (or null if it did not complete)</summary>
-			public long? EndOffset { get; internal set; }
-
-			/// <summary>Exception thrown by this operation</summary>
-			public Exception Error { get; internal set; }
-
-			/// <summary>Total size (in bytes) of the arguments</summary>
-			/// <remarks>For selectors, only include the size of the keys</remarks>
-			public abstract int ArgumentBytes { get; }
-
-			/// <summary>Total size (in bytes) of the result, or null if this operation does not produce a result</summary>
-			/// <remarks>Includes the keys and values for range reads</remarks>
-			public virtual int? ResultBytes { get { return default(int?); } }
-
-			/// <summary>Total duration of the command, or TimeSpan.Zero if the command is not yet completed</summary>
-			public TimeSpan Duration
-			{
-				get
-				{
-					var start = this.StartOffset;
-					var end = this.EndOffset;
-					return start == 0 || !end.HasValue ? TimeSpan.Zero : TimeSpan.FromTicks(end.Value - start);
-				}
-			}
-
-			/// <summary>Returns a formatted representation of the arguments, for logging purpose</summary>
-			public virtual string GetArguments()
-			{
-				return String.Empty;
-			}
-
-			/// <summary>Returns a formatted representation of the results, for logging purpose</summary>
-			public virtual string GetResult()
-			{
-				return String.Empty;
 			}
 
 			/// <summary>Returns the short version of the command name (up to two characters)</summary>
@@ -150,6 +156,7 @@ namespace FoundationDB.Client.Filters
 						case Operation.Clear: return "c ";
 						case Operation.ClearRange: return "cr";
 
+						case Operation.Log: return "//";
 						case Operation.Watch: return "W ";
 					}
 					return "??";
@@ -178,8 +185,6 @@ namespace FoundationDB.Client.Filters
 				return this.Result.Value.ToString();
 			}
 
-			public abstract override int ArgumentBytes { get; }
-
 			public override string ToString()
 			{
 				return this.Op.ToString() + "(" + this.GetArguments() + ") => " + this.GetResult();
@@ -203,7 +208,7 @@ namespace FoundationDB.Client.Filters
 				this.Value = value;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get { return this.Key.Count + this.Value.Count; }
 			}
@@ -227,7 +232,7 @@ namespace FoundationDB.Client.Filters
 				this.Key = key;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get { return this.Key.Count; }
 			}
@@ -255,7 +260,7 @@ namespace FoundationDB.Client.Filters
 				this.End = end;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get { return this.Begin.Count + this.End.Count; }
 			}
@@ -285,7 +290,7 @@ namespace FoundationDB.Client.Filters
 				this.Mutation = mutation;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get { return this.Key.Count + this.Param.Count; }
 			}
@@ -315,7 +320,7 @@ namespace FoundationDB.Client.Filters
 				this.Type = type;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get { return this.Begin.Count + this.End.Count; }
 			}
@@ -339,7 +344,7 @@ namespace FoundationDB.Client.Filters
 				this.Key = key;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get { return this.Key.Count; }
 			}
@@ -378,7 +383,7 @@ namespace FoundationDB.Client.Filters
 				this.Selector = selector;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get { return this.Selector.Key.Count; }
 			}
@@ -395,7 +400,6 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		[DebuggerDisplay("GetValues([{Keys.Length}])")]
 		public sealed class GetValuesCommand : Command<Slice[]>
 		{
 			/// <summary>List of keys read from the database</summary>
@@ -408,7 +412,7 @@ namespace FoundationDB.Client.Filters
 				this.Keys = keys;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get
 				{
@@ -451,7 +455,6 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		[DebuggerDisplay("GetKeys([{Keys.Length}])")]
 		public sealed class GetKeysCommand : Command<Slice[]>
 		{
 			/// <summary>List of selectors looked up in the database</summary>
@@ -464,7 +467,7 @@ namespace FoundationDB.Client.Filters
 				this.Selectors = selectors;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get
 				{
@@ -496,7 +499,6 @@ namespace FoundationDB.Client.Filters
 
 		}
 
-		[DebuggerDisplay("GetRange({Begin}, {End}, {Options.Limit}, {Options.Reverse}, ...)")]
 		public sealed class GetRangeCommand : Command<FdbRangeChunk>
 		{
 			/// <summary>Selector to the start of the range</summary>
@@ -518,7 +520,7 @@ namespace FoundationDB.Client.Filters
 				this.Iteration = iteration;
 			}
 
-			public override int ArgumentBytes
+			public override int? ArgumentBytes
 			{
 				get { return this.Begin.Key.Count + this.End.Key.Count; }
 			}
@@ -568,21 +570,11 @@ namespace FoundationDB.Client.Filters
 		{
 			public override Operation Op { get { return Operation.GetReadVersion; } }
 
-			public override int ArgumentBytes
-			{
-				get { return 0; }
-			}
-
 		}
 
 		public sealed class CancelCommand : Command
 		{
 			public override Operation Op { get { return Operation.Cancel; } }
-
-			public override int ArgumentBytes
-			{
-				get { return 0; }
-			}
 
 		}
 
@@ -590,20 +582,12 @@ namespace FoundationDB.Client.Filters
 		{
 			public override Operation Op { get { return Operation.Reset; } }
 
-			public override int ArgumentBytes
-			{
-				get { return 0; }
-			}
 		}
 
 		public sealed class CommitCommand : Command
 		{
 			public override Operation Op { get { return Operation.Commit; } }
 
-			public override int ArgumentBytes
-			{
-				get { return 0; }
-			}
 		}
 
 		public sealed class OnErrorCommand : Command
@@ -617,14 +601,35 @@ namespace FoundationDB.Client.Filters
 				this.Code = code;
 			}
 
-			public override int ArgumentBytes
+			public override string GetArguments()
 			{
-				get { return 0; }
+				return String.Format(this.Code.ToString(), " (", ((int)this.Code).ToString() + ")");
+			}
+
+		}
+
+		public sealed class WatchCommand : Command
+		{
+			public Slice Key { get; private set; }
+
+			public override Operation Op
+			{
+				get { return Operation.Watch; }
+			}
+
+			public WatchCommand(Slice key)
+			{
+				this.Key = key;
+			}
+
+			public override int? ArgumentBytes
+			{
+				get { return this.Key.Count; }
 			}
 
 			public override string GetArguments()
 			{
-				return String.Format(this.Code.ToString(), " (", ((int)this.Code).ToString() + ")");
+				return FdbKey.Dump(this.Key);
 			}
 
 		}

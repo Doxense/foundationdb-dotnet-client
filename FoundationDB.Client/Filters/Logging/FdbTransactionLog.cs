@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Filters
+namespace FoundationDB.Client.Filters.Logging
 {
 	using System;
 	using System.Collections.Generic;
@@ -40,13 +40,12 @@ namespace FoundationDB.Client.Filters
 
 		public FdbTransactionLog(IFdbTransaction trans)
 		{
-			this.Id = trans.Id;
 			this.Commands = new List<Command>();
-			this.StartedUtc = DateTimeOffset.UtcNow;
-			this.Clock = Stopwatch.StartNew();
 		}
 
 		public int Id { get; private set; }
+
+		public int Operations { get; private set; }
 
 		public List<Command> Commands { get; private set; }
 
@@ -64,19 +63,45 @@ namespace FoundationDB.Client.Filters
 
 		public int CommitSize { get; internal set; }
 
+		public bool Completed { get; private set; }
+
+		public void Start(IFdbTransaction trans)
+		{
+			this.Id = trans.Id;
+			this.StartedUtc = DateTimeOffset.UtcNow;
+			this.Clock = Stopwatch.StartNew();
+		}
+
 		public void Stop(IFdbTransaction trans)
 		{
-			this.Clock.Stop();
-			this.CommittedUtc = DateTimeOffset.UtcNow;
-			this.CommitSize = trans.Size;
+			if (!this.Completed)
+			{
+				this.Completed = true;
+				this.Clock.Stop();
+			}
+		}
+
+		public void AddOperation(Command cmd)
+		{
+			cmd.StartOffset = this.Clock.ElapsedTicks;
+			cmd.Step = Volatile.Read(ref m_step);
+			cmd.EndOffset = cmd.StartOffset;
+			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
+			lock (this.Commands)
+			{
+				if (cmd.Op != Operation.Log) this.Operations++;
+				this.Commands.Add(cmd);
+			}
 		}
 
 		public void BeginOperation(Command cmd)
 		{
 			cmd.StartOffset = this.Clock.ElapsedTicks;
 			cmd.Step = Volatile.Read(ref m_step);
+			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
 			lock (this.Commands)
 			{
+				this.Operations++;
 				this.Commands.Add(cmd);
 			}
 		}
@@ -104,17 +129,21 @@ namespace FoundationDB.Client.Filters
 					case FdbTransactionLog.Mode.Write: ++writes; break;
 				}
 			}
-			sb.AppendLine("Stats: " + this.Commands.Count + " operations (" + reads + " reads, " + writes + " writes), " + this.CommitSize + " committed bytes");
+			sb.AppendLine("Stats: " + this.Operations + " operations (" + reads + " reads, " + writes + " writes), " + this.CommitSize + " committed bytes");
 			sb.AppendLine();
 			return sb.ToString();
 		}
 
-		public string GetTimingsReport()
+		public string GetTimingsReport(bool showCommands = false)
 		{
 			long duration = this.Clock.ElapsedTicks;
 			var sb = new StringBuilder();
-			sb.AppendLine("Transaction #" + this.Id.ToString() + " completed in " + TimeSpan.FromTicks(duration).TotalMilliseconds.ToString("N3") + " ms");
+			sb.Append("Transaction #" + this.Id.ToString() + " (" + this.Commands.Count + " operations, started " + this.StartedUtc.ToString("O"));
+			if (this.CommittedUtc.HasValue) sb.AppendLine(", ended " + this.CommittedUtc.Value.ToString("O") + ")"); else sb.AppendLine(", did not finish");
+
 			int step = -1;
+			bool previousWasOnError = false;
+			int attempts = 1;
 			foreach (var cmd in this.Commands)
 			{
 				long ticks = cmd.Duration.Ticks;
@@ -122,23 +151,33 @@ namespace FoundationDB.Client.Filters
 				double r = 1.0d * ticks / duration;
 				string w = GetFancyGraph(width, cmd.StartOffset, ticks, duration);
 
+				if (previousWasOnError)
+				{
+					attempts++;
+					sb.AppendLine("|----|-----|-" + new string('-', width) + "-|----------------------------------|-------------| Retrying (#" + (attempts++).ToString() + ")");
+				}
+
 				sb.AppendFormat(
-					"| {0,2} |{6}{1,3:##0}{7}| {2} | T+{3,7:##0.000} ~ {4,7:##0.000} ({5,7:#0.0000} ms) | {8,5} {9,5} |",
+					"| {0,2} |{6}{1,3:##0}{7}| {2} | T+{3,7:##0.000} ~ {4,7:##0.000} ({5,7:##,##0} µs) | {8,5} {9,5} | {10}",
 					/* 0 */ cmd.ShortName,
 					/* 1 */ cmd.Step,
 					/* 2 */ w,
 					/* 3 */ cmd.StartOffset / 10000.0,
 					/* 4 */ (cmd.EndOffset ?? 0) / 10000.0,
-					/* 5 */ ticks / 10000.0,
+					/* 5 */ ticks / 10.0,
 					/* 6 */ cmd.Step == step ? ':' : ' ',
 					/* 7 */ ticks >= 100000 ? '*' : ticks >= 10000 ? '°' : ' ',
 					/* 8 */ cmd.ArgumentBytes,
-					/* 9 */ cmd.ResultBytes
+					/* 9 */ cmd.ResultBytes,
+					showCommands ? cmd.ToString() : ""
 				);
 				sb.AppendLine();
-				step = cmd.Step;
 
+				previousWasOnError = cmd.Op == Operation.OnError;
+
+				step = cmd.Step;
 			}
+			sb.AppendLine(" Committed " + this.CommitSize.ToString("N0") + " bytes in " + TimeSpan.FromTicks(duration).TotalMilliseconds.ToString("N3") + " ms and " + attempts.ToString() + " attempt(s)");
 			return sb.ToString();
 		}
 
@@ -190,6 +229,8 @@ namespace FoundationDB.Client.Filters
 			Cancel,
 			Reset,
 			OnError,
+
+			Log,
 		}
 
 		public enum Mode
@@ -197,7 +238,8 @@ namespace FoundationDB.Client.Filters
 			Read,
 			Write,
 			Meta,
-			Watch
+			Watch,
+			Annotation
 		}
 
 	}

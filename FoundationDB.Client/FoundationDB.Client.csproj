@@ -66,6 +66,7 @@
     <Compile Include="Filters\FdbTransactionFilter.cs" />
     <Compile Include="Filters\FdbDatabaseFilter.cs" />
     <Compile Include="Filters\Logging\FdbLoggedDatabase.cs" />
+    <Compile Include="Filters\Logging\FdbLoggingExtensions.cs" />
     <Compile Include="Filters\Logging\FdbTransactionLog.Commands.cs" />
     <Compile Include="Filters\Logging\FdbTransactionLog.cs" />
     <Compile Include="Filters\Logging\FdbLoggedTransaction.cs" />

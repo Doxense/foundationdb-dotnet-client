@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Filters
+namespace FoundationDB.Client.Filters.Logging
 {
 	using FoundationDB.Async;
 	using System;
@@ -48,6 +48,22 @@ namespace FoundationDB.Client.Filters
 		{
 			this.Log = new FdbTransactionLog(this);
 			this.OnCommitted = onCommitted;
+			this.Log.Start(this);
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			try
+			{
+				base.Dispose(disposing);
+			}
+			finally
+			{
+				if (!this.Log.Completed)
+				{
+					this.Log.Stop(this);
+				}
+			}
 		}
 
 		#region Data interning...
@@ -214,11 +230,13 @@ namespace FoundationDB.Client.Filters
 
 		public override async Task CommitAsync()
 		{
+			this.Log.CommitSize = m_transaction.Size;
 			await ExecuteAsync(
 				new FdbTransactionLog.CommitCommand(),
 				(_tr, _cmd) => _tr.CommitAsync()
-			);
-			this.Log.Clock.Stop();
+			).ConfigureAwait(false);
+
+			this.Log.Stop(this);
 			if (this.OnCommitted != null)
 			{
 				this.OnCommitted(this);
@@ -319,6 +337,12 @@ namespace FoundationDB.Client.Filters
 				new FdbTransactionLog.AddConflictRangeCommand(beginKeyInclusive, endKeyExclusive, type),
 				(_tr, _cmd) => _tr.AddConflictRange(_cmd.Begin, _cmd.End, _cmd.Type)
 			);
+		}
+
+		public override FdbWatch Watch(Slice key, System.Threading.CancellationToken cancellationToken)
+		{
+			this.Log.AddOperation(new FdbTransactionLog.WatchCommand(key));
+			return base.Watch(key, cancellationToken);
 		}
 
 		#endregion
