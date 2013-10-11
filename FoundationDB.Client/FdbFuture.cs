@@ -367,10 +367,8 @@ namespace FoundationDB.Client
 				Contract.Assert(!s_futures.ContainsKey(prm));
 #endif
 				s_futures[prm] = future;
-#if DEBUG
 				Interlocked.Increment(ref DebugCounters.CallbackHandlesTotal);
 				Interlocked.Increment(ref DebugCounters.CallbackHandles);
-#endif
 			}
 			return prm;
 		}
@@ -390,10 +388,10 @@ namespace FoundationDB.Client
 				if (key != IntPtr.Zero)
 				{
 					FdbFuture<T> _;
-					s_futures.TryRemove(key, out _);
-#if DEBUG
-					Interlocked.Decrement(ref DebugCounters.CallbackHandles);
-#endif
+					if (s_futures.TryRemove(key, out _))
+					{
+						Interlocked.Decrement(ref DebugCounters.CallbackHandles);
+					}
 				}
 			}
 		}

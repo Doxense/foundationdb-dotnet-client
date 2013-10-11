@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#if DEBUG
-
 namespace FoundationDB.Client.Native
 {
 	using System;
@@ -55,5 +53,3 @@ namespace FoundationDB.Client.Native
 	}
 
 }
-
-#endif

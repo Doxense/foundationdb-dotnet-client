@@ -38,18 +38,14 @@ namespace FoundationDB.Client.Native
 		public ClusterHandle()
 			: base()
 		{
-#if DEBUG
 			Interlocked.Increment(ref DebugCounters.ClusterHandlesTotal);
 			Interlocked.Increment(ref DebugCounters.ClusterHandles);
-#endif
 		}
 
 		protected override void Destroy(IntPtr handle)
 		{
 			FdbNative.ClusterDestroy(handle);
-#if DEBUG
 			Interlocked.Decrement(ref DebugCounters.ClusterHandles);
-#endif
 		}
 
 	}

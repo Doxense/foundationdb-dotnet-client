@@ -38,18 +38,14 @@ namespace FoundationDB.Client.Native
 		public FutureHandle()
 			: base()
 		{
-#if DEBUG
 			Interlocked.Increment(ref DebugCounters.FutureHandlesTotal);
 			Interlocked.Increment(ref DebugCounters.FutureHandles);
-#endif
 		}
 
 		protected override void Destroy(IntPtr handle)
 		{
 			FdbNative.FutureDestroy(handle);
-#if DEBUG
 			Interlocked.Decrement(ref DebugCounters.FutureHandles);
-#endif
 		}
 
 	}
