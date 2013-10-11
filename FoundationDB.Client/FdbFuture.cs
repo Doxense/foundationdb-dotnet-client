@@ -363,6 +363,9 @@ namespace FoundationDB.Client
 			finally
 			{
 				Volatile.Write(ref future.m_key, prm);
+#if DEBUG_FUTURES
+				Contract.Assert(!s_futures.ContainsKey(prm));
+#endif
 				s_futures[prm] = future;
 #if DEBUG
 				Interlocked.Increment(ref DebugCounters.CallbackHandlesTotal);
@@ -398,9 +401,17 @@ namespace FoundationDB.Client
 		internal static FdbFuture<T> GetFutureFromCallbackParameter(IntPtr parameter)
 		{
 			FdbFuture<T> future;
-			if (s_futures.TryGetValue(parameter, out future) && future != null && Volatile.Read(ref future.m_key) == parameter)
+			if (s_futures.TryGetValue(parameter, out future))
 			{
-				return future;
+				if (future != null && Volatile.Read(ref future.m_key) == parameter)
+				{
+					return future;
+				}
+#if DEBUG_FUTURES
+				// If you breakpoint here, that means that a future callback fired but was not able to find a matching registration
+				// => either the FdbFuture<T> was incorrectly disposed, or there is some problem in the callback dictionary
+				System.Diagnostics.Debugger.Break();
+#endif
 			}
 			return null;
 		}
