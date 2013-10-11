@@ -175,7 +175,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(foo2.Key, Is.EqualTo(foo.Key), "Second call to CreateOrOpen should return the same subspace");
 
 				// opening it with wrong layer id should fail
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.OpenAsync(db, FdbTuple.Create("Foo"), "OtherLayer"));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, FdbTuple.Create("Foo"), "OtherLayer"), "Opening with invalid layer id should fail");
 
 				// opening without specifying a layer should disable the layer check
 				var foo3 = await directory.OpenAsync(db, FdbTuple.Create("Foo"), layer: null);
@@ -183,10 +183,10 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(foo3.Layer, Is.EqualTo("AcmeLayer"));
 
 				// CheckLayer with the correct value should pass
-				foo3.CheckLayer("AcmeLayer");
+				Assert.DoesNotThrow(() => foo3.CheckLayer("AcmeLayer"), "CheckLayer should not throw if the layer id is correct");
 
 				// CheckLayer with the incorrect value should fail
-				Assert.That(() => foo3.CheckLayer("OtherLayer"), Throws.InvalidOperationException);
+				Assert.Throws<InvalidOperationException>(() => foo3.CheckLayer("OtherLayer"), "CheckLayer should throw if the layer id is not correct");
 
 				// CheckLayer with empty string should do nothing
 				foo3.CheckLayer(String.Empty);
@@ -342,7 +342,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(renamed.Key, Is.EqualTo(original.Key));
 
 				// opening the old path should fail
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.OpenAsync(db, new [] { "Foo" }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new [] { "Foo" }));
 
 				// opening the new path should succeed
 				var folder = await directory.OpenAsync(db, FdbTuple.Create("Bar"));
@@ -351,7 +351,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder.Key, Is.EqualTo(renamed.Key));
 
 				// moving the folder under itself should fail
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => folder.MoveAsync(db, new [] { "Bar", "Baz" }));
+				Assert.Throws<InvalidOperationException>(async () => await folder.MoveAsync(db, new[] { "Bar", "Baz" }));
 			}
 		}
 
@@ -380,7 +380,7 @@ namespace FoundationDB.Layers.Directories
 				//TODO: call ExistsAsync(...) once it is implemented!
 
 				// Removing it a second time should fail
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.RemoveAsync(db, path), "Removing a non-existent directory should fail");
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, path), "Removing a non-existent directory should fail");
 
 				// TryRemoveAsync
 
@@ -397,8 +397,8 @@ namespace FoundationDB.Layers.Directories
 				// Corner Cases
 
 				// removing the root folder is not allowed (too dangerous)
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.RemoveAsync(db, new string[0]), "Attempting to remove the root directory should fail");
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.RemoveAsync(db, FdbTuple.Empty), "Attempting to remove the root directory should fail");
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[0]), "Attempting to remove the root directory should fail");
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, FdbTuple.Empty), "Attempting to remove the root directory should fail");
 			}
 		}
 
@@ -433,7 +433,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder3, Is.Not.Null);
 
 				// opening the directory with the old layer should fail
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.OpenAsync(db, new[] { "Test" }, layer: "foo"));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new[] { "Test" }, layer: "foo"));
 
 			}
 		}
@@ -448,26 +448,26 @@ namespace FoundationDB.Layers.Directories
 				var directory = FdbDirectoryLayer.FromSubspace(location);
 
 				// CreateOrOpen
-				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.CreateOrOpenAsync(db, default(string[])));
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.CreateOrOpenAsync(db, new string[0]));
+				Assert.Throws<ArgumentNullException>(async () => await directory.CreateOrOpenAsync(db, default(string[])));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, new string[0]));
 
 				// Create
-				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.CreateAsync(db, default(string[])));
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.CreateAsync(db, new string[0]));
+				Assert.Throws<ArgumentNullException>(async () => await directory.CreateAsync(db, default(string[])));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, new string[0]));
 
 				// Open
-				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.OpenAsync(db, default(string[])));
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.OpenAsync(db, new string[0]));
+				Assert.Throws<ArgumentNullException>(async () => await directory.OpenAsync(db, default(string[])));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new string[0]));
 
 				// Move
-				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.MoveAsync(db, default(string[]), new [] { "foo" }));
-				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.MoveAsync(db, new[] { "foo" }, default(string[])));
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.MoveAsync(db, new string[0], new[] { "foo" }));
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.MoveAsync(db, new[] { "foo" }, new string[0]));
+				Assert.Throws<ArgumentNullException>(async () => await directory.MoveAsync(db, default(string[]), new[] { "foo" }));
+				Assert.Throws<ArgumentNullException>(async () => await directory.MoveAsync(db, new[] { "foo" }, default(string[])));
+				Assert.Throws<InvalidOperationException>(async () => await directory.MoveAsync(db, new string[0], new[] { "foo" }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.MoveAsync(db, new[] { "foo" }, new string[0]));
 
 				// Remove
-				await TestHelpers.AssertThrowsAsync<ArgumentNullException>(() => directory.RemoveAsync(db, default(string[])));
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => directory.RemoveAsync(db, new string[0]));
+				Assert.Throws<ArgumentNullException>(async () => await directory.RemoveAsync(db, default(string[])));
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[0]));
 			}
 		}
 	}

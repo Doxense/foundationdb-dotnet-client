@@ -569,14 +569,14 @@ namespace FoundationDB.Linq.Tests
 				Assert.That(res, Is.True);
 
 				// second move next should fail
-				var x = await TestHelpers.AssertThrowsAsync<FormatException>(() => iterator.MoveNext(CancellationToken.None), "Should have failed");
+				var x = Assert.Throws<FormatException>(async () => await iterator.MoveNext(CancellationToken.None), "Should have failed");
 				Assert.That(x.Message, Is.EqualTo("KABOOM"));
 
 				// accessing current should rethrow the exception
 				Assert.That(() => iterator.Current, Throws.InstanceOf<InvalidOperationException>());
 
 				// another attempt at MoveNext should fail immediately but with a different error
-				await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => iterator.MoveNext(CancellationToken.None));
+				Assert.Throws<ObjectDisposedException>(async () => await iterator.MoveNext(CancellationToken.None));
 			}
 		}
 

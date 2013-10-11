@@ -259,7 +259,7 @@ namespace FoundationDB.Async.Tests
 				queue.OnCompleted();
 #pragma warning restore 162
 
-				var x = await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => pumpTask, "Pump should throw the last exception encountered");
+				var x = Assert.Throws<InvalidOperationException>(async () => await pumpTask, "Pump should throw the last exception encountered");
 				Assert.That(x.Message, Is.EqualTo("Oops"));
 
 			}

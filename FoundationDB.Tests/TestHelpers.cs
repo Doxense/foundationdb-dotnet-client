@@ -131,23 +131,6 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		public static async Task<T> AssertThrowsAsync<T>(Func<Task> asyncTest, string message = null, object[] args = null)
-			where T : Exception
-		{
-			try
-			{
-				await asyncTest();
-				Assert.Fail(message, args);
-				return null;
-			}
-			catch (AssertionException) { throw; }
-			catch (Exception e)
-			{
-				Assert.That(e, Is.TypeOf<T>(), message, args);
-				return (T)e;
-			}
-		}
-
 		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)
 		{
 			try

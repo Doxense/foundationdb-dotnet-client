@@ -291,7 +291,7 @@ namespace FoundationDB.Client.Tests
 					if (t.IsCompleted) Assert.Inconclusive("Commit task already completed before having a chance to cancel");
 					cts.Cancel();
 
-					await TestHelpers.AssertThrowsAsync<TaskCanceledException>(() => t, "Cancelling a token passed to CommitAsync that is still pending should cancel the task");
+					Assert.Throws<TaskCanceledException>(async () => await t, "Cancelling a token passed to CommitAsync that is still pending should cancel the task");
 				}
 			}
 		}
@@ -811,7 +811,7 @@ namespace FoundationDB.Client.Tests
 				// create first version
 				using (var tr1 = db.BeginTransaction())
 				{
-					tr1.Set(location.Pack("concurrent"), Slice.Create(new byte[] { 1 }));
+					tr1.Set(location.Pack("concurrent"), Slice.FromByte(1));
 					await tr1.CommitAsync();
 
 					// get this version
@@ -821,7 +821,7 @@ namespace FoundationDB.Client.Tests
 				// mutate in another transaction
 				using (var tr2 = db.BeginTransaction())
 				{
-					tr2.Set(location.Pack("concurrent"), Slice.Create(new byte[] { 2 }));
+					tr2.Set(location.Pack("concurrent"), Slice.FromByte(2));
 					await tr2.CommitAsync();
 				}
 
@@ -835,9 +835,7 @@ namespace FoundationDB.Client.Tests
 
 					var bytes = await tr3.GetAsync(location.Pack("concurrent"));
 
-					Assert.That(bytes, Is.Not.Null);
-					Assert.That(bytes, Is.EqualTo(new byte[] { 1 }), "Should have seen the first version!");
-
+					Assert.That(bytes.GetBytes(), Is.EqualTo(new byte[] { 1 }), "Should have seen the first version!");
 				}
 
 			}
@@ -855,17 +853,11 @@ namespace FoundationDB.Client.Tests
 
 					// should fail if access to system keys has not been requested
 
-					try
-					{
-						var _ = await tr.GetRange(Slice.FromAscii("\xFF"), Slice.FromAscii("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
-						Assert.Fail("Should not have access to system keys by default");
-					}
-					catch (Exception e)
-					{
-						Assert.That(e, Is.InstanceOf<FdbException>());
-						var x = (FdbException)e;
-						Assert.That(x.Code, Is.EqualTo(FdbError.KeyOutsideLegalRange));
-					}
+					await TestHelpers.AssertThrowsFdbErrorAsync(
+						() => tr.GetRange(Slice.FromAscii("\xFF"), Slice.FromAscii("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync(),
+						FdbError.KeyOutsideLegalRange, 
+						"Should not have access to system keys by default"
+					);
 
 					// should succeed once system access has been requested
 					tr.WithAccessToSystemKeys();

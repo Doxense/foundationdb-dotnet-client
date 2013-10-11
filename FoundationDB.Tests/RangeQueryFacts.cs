@@ -169,10 +169,10 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(9)));
 
 					// should fail because there is more than one
-					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.SingleOrDefaultAsync(), "SingleOrDefaultAsync should throw if the range returns more than 1 result");
+					Assert.Throws<InvalidOperationException>(async () => await query.SingleOrDefaultAsync(), "SingleOrDefaultAsync should throw if the range returns more than 1 result");
 
 					// should fail because there is more than one
-					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.SingleAsync(), "SingleAsync should throw if the range returns more than 1 result");
+					Assert.Throws<InvalidOperationException>(async () => await query.SingleAsync(), "SingleAsync should throw if the range returns more than 1 result");
 				}
 
 				// B: exactly one item
@@ -222,7 +222,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Value, Is.EqualTo(Slice.Nil));
 
 					// should return the first one
-					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.FirstAsync(), "FirstAsync should throw if the range returns nothing");
+					Assert.Throws<InvalidOperationException>(async () => await query.FirstAsync(), "FirstAsync should throw if the range returns nothing");
 
 					// should return the last one
 					res = await query.LastOrDefaultAsync();
@@ -230,7 +230,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Value, Is.EqualTo(Slice.Nil));
 
 					// should return the last one
-					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.LastAsync(), "LastAsync should throw if the range returns nothing");
+					Assert.Throws<InvalidOperationException>(async () => await query.LastAsync(), "LastAsync should throw if the range returns nothing");
 
 					// should fail because there is more than one
 					res = await query.SingleOrDefaultAsync();
@@ -238,7 +238,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Value, Is.EqualTo(Slice.Nil));
 
 					// should fail because there is none
-					await TestHelpers.AssertThrowsAsync<InvalidOperationException>(() => query.SingleAsync(), "SingleAsync should throw if the range returns nothing");
+					Assert.Throws<InvalidOperationException>(async () => await query.SingleAsync(), "SingleAsync should throw if the range returns nothing");
 				}
 
 			}
