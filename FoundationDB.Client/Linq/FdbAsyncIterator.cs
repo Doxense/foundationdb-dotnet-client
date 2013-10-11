@@ -231,7 +231,7 @@ namespace FoundationDB.Linq
 
 		protected bool Completed()
 		{
-			if (m_state == STATE_INIT)
+			if (Volatile.Read(ref m_state) == STATE_INIT)
 			{ // nothing should have been done by the iterator..
 				Interlocked.CompareExchange(ref m_state, STATE_COMPLETED, STATE_INIT);
 			}
@@ -265,7 +265,7 @@ namespace FoundationDB.Linq
 
 		protected void ThrowInvalidState()
 		{
-			switch (m_state)
+			switch (Volatile.Read(ref m_state))
 			{
 				case STATE_SEQ:
 					throw new InvalidOperationException("The async iterator should have been initiliazed with a called to GetEnumerator()");
@@ -277,7 +277,9 @@ namespace FoundationDB.Linq
 					throw new ObjectDisposedException(null, "The async iterator has already been closed");
 
 				default:
+				{
 					throw new InvalidOperationException();
+				}
 			}
 
 		}
