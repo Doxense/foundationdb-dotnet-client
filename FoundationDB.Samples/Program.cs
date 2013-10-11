@@ -173,7 +173,7 @@ namespace FoundationDB.Samples
 							}
 							case "l":
 							{ // LeastTest
-								TestRunner.RunAsyncTest(new LeakTest(100, 40, 1000, TimeSpan.FromSeconds(1)), Db);
+								TestRunner.RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30)), Db);
 								break;
 							}
 
