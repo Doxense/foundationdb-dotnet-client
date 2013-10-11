@@ -143,7 +143,7 @@ namespace FoundationDB.Client.Tests
 			catch (AssertionException) { throw; }
 			catch (Exception e)
 			{
-				Assert.That(e, Is.InstanceOf<T>(), message, args);
+				Assert.That(e, Is.TypeOf<T>(), message, args);
 				return (T)e;
 			}
 		}
