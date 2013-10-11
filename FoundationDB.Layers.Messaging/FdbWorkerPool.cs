@@ -2,6 +2,7 @@
 
 using FoundationDB.Client;
 using FoundationDB.Layers.Tuples;
+using FoundationDB.Client.Filters.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -108,15 +109,9 @@ namespace FoundationDB.Layers.Messaging
 
 		private Slice GetQueueKey(string queueName)
 		{
-			// use the hashcode of the queue name to place it around the ring
+			//HACKHACK: use the hashcode of the queue name to place it around the ring
 			//TODO: string.GetHashcode() is not stable across versions of .NET or plateforms! Replace this with something that will always produce the same results (XxHash? CityHash?)
-			Slice index = Slice.FromFixed32(queueName.GetHashCode());
-
-#if LOGLOG
-			Console.WriteLine("['" + queueName + "'] => " + index.ToAsciiOrHexaString());
-#endif
-
-			return index;
+			return Slice.FromFixed32(queueName.GetHashCode());
 		}
 
 		private Slice GetRandomId()
@@ -157,6 +152,8 @@ namespace FoundationDB.Layers.Messaging
 #if DEBUG
 				if (tr.Context.Retries > 0) Console.WriteLine("# retry n°" + tr.Context.Retries + " for task " + taskId.ToAsciiOrHexaString());
 #endif
+				tr.Annotate("I want to schedule " + taskId.ToAsciiOrHexaString() + " on queue " + queueName);
+
 
 				// store the task body
 				tr.Set(this.TaskStore.Pack(taskId), taskBody);
@@ -167,6 +164,8 @@ namespace FoundationDB.Layers.Messaging
 				if (randomWorkerKey.Key != null)
 				{
 					Slice workerId = this.IdleRing.UnpackSingle<Slice>(randomWorkerKey.Key);
+
+					tr.Annotate("Assigning " + taskId.ToAsciiOrHexaString() + " to " + workerId.ToAsciiOrHexaString());
 
 					// remove worker from the idle ring
 					tr.Clear(this.IdleRing.Pack(workerId));
@@ -179,9 +178,8 @@ namespace FoundationDB.Layers.Messaging
 				else
 				{
 					var queueKey = GetQueueKey(queueName);
-#if LOGLOG
-					Console.WriteLine("> [producer] found no idle workers, pushing task " + taskId.ToAsciiOrHexaString() + " to unassigned queue at " + queueKey.ToAsciiOrHexaString());
-#endif
+
+					tr.Annotate("Queueing " + taskId.ToAsciiOrHexaString() + " on " + queueKey.ToAsciiOrHexaString());
 
 					await PushQueueAsync(tr, this.UnassignedTaskRing.Pack(queueKey), taskId).ConfigureAwait(false);
 
@@ -197,9 +195,13 @@ namespace FoundationDB.Layers.Messaging
 			cancellationToken: ct).ConfigureAwait(false);
 		}
 
+		static int counter = 0;
+
 		/// <summary>Run the worker loop</summary>
 		public async Task RunWorkerAsync(IFdbDatabase db, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
 		{
+			int num = Interlocked.Increment(ref counter);
+
 			Slice workerId = Slice.Nil;
 			Slice taskId = Slice.Nil;
 			Slice taskBody = Slice.Nil;
@@ -219,6 +221,8 @@ namespace FoundationDB.Layers.Messaging
 					await db.ReadWriteAsync(
 						async (tr) =>
 						{
+							tr.Annotate("I'm worker #" + num + " with id " + workerId.ToAsciiOrHexaString());
+
 							myId = workerId;
 							taskId = Slice.Nil;
 							taskBody = Slice.Nil;
@@ -226,18 +230,20 @@ namespace FoundationDB.Layers.Messaging
 
 							if (previousTaskId != null)
 							{ // we need to clean up the previous task
-								Console.WriteLine("Clearing previous task: " + previousTaskId);
+								tr.Annotate("Clearing previous task " + previousTaskId.ToAsciiOrHexaString());
 								tr.Clear(this.TaskStore.Pack(previousTaskId));
 							}
-
-							if (myId.IsPresent)
+							else if (myId.IsPresent)
 							{ // look for an already assigned task
+								tr.Annotate("Look for already assigned task");
 								taskId = await tr.GetAsync(this.BusyRing.Pack(myId)).ConfigureAwait(false);
 							}
 
-							if (taskId.IsPresent)
+							if (!taskId.IsPresent)
 							{ // We aren't already assigned a task, so get an item from a random queue
 
+								tr.Annotate("Look for random queued item");
+								
 								// Find a random queue and peek the first Task in one step
 								// > this works because if we find a result it is guranteed to be the first item in the queue
 								var key = await FindRandomItem(tr, this.UnassignedTaskRing).ConfigureAwait(false);
@@ -252,10 +258,12 @@ namespace FoundationDB.Layers.Messaging
 								{ // mark this worker as busy
 									// note: we need a random id so generate one if it is the first time...
 									if (!myId.IsPresent) myId = GetRandomId();
+									tr.Annotate("Found " + taskId + ", switch to busy with id " + myId.ToAsciiOrHexaString());
 									tr.Set(this.BusyRing.Pack(myId), taskId);
 								}
 								else if (myId.IsPresent)
 								{ // remove ourselves from the busy ring
+									tr.Annotate("Found nothing, switch to idle with id " + myId.ToAsciiOrHexaString());
 									tr.Clear(this.BusyRing.Pack(myId));
 								}
 							}
@@ -263,9 +271,8 @@ namespace FoundationDB.Layers.Messaging
 							if (taskId.IsPresent)
 							{ // get the task body
 
-								Console.WriteLine("> Fetching body for task " + taskId);
+								tr.Annotate("Fetching body for task " + taskId);
 								taskBody = await tr.GetAsync(this.TaskStore.Pack(taskId)).ConfigureAwait(false);
-								Console.WriteLine("> got " + taskBody);
 #if LOG_SCHEDULING_IN_DB
 								tr.Set(this.DebugWorkLog.Pack(taskId), Slice.FromString("Being processed by worker with id " + myId.ToAsciiOrHexaString()));
 #endif
@@ -277,6 +284,8 @@ namespace FoundationDB.Layers.Messaging
 								myId = GetRandomId();
 
 								var watchKey = this.IdleRing.Pack(myId);
+								tr.Annotate("Will start watching on key " + watchKey.ToAsciiOrHexaString() + " with id " + myId.ToAsciiOrHexaString());
+
 								tr.Set(watchKey, Slice.Empty);
 								tr.Clear(this.BusyRing.Pack(myId));
 								watch = tr.Watch(watchKey, ct);
@@ -297,6 +306,7 @@ namespace FoundationDB.Layers.Messaging
 						try
 						{
 							await watch.Task;
+							Console.WriteLine("Worker #" + num + " woken up!");
 						}
 						finally
 						{

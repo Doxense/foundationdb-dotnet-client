@@ -1,4 +1,5 @@
 ﻿using FoundationDB.Client;
+using FoundationDB.Client.Filters.Logging;
 using FoundationDB.Layers.Tuples;
 using System;
 using System.Diagnostics;
@@ -59,6 +60,11 @@ namespace FoundationDB.Layers.Messaging
 		private async Task RunAsync(IFdbDatabase db, FdbSubspace location, CancellationToken ct, Action done, int N, int K, int W)
 		{
 			if (db == null) throw new ArgumentNullException("db");
+
+			db = new FdbLoggedDatabase(db, false, false, (log) =>
+			{
+				Console.WriteLine(log.Log.GetTimingsReport(true));
+			});
 
 			var workerPool = new FdbWorkerPool(location);
 			Console.WriteLine("workerPool at " + location.Key.ToAsciiOrHexaString());
