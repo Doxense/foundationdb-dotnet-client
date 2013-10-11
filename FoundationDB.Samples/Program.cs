@@ -47,6 +47,8 @@ namespace FoundationDB.Samples
 			Func<int, CancellationToken, Task> handler, 
 			CancellationToken ct)
 		{
+			await Task.Delay(1).ConfigureAwait(false);
+
 			var signal = new TaskCompletionSource<object>();
 			var tasks = Enumerable.Range(0, workers).Select(async (i) =>
 			{
@@ -62,6 +64,55 @@ namespace FoundationDB.Samples
 
 			return sw.Elapsed;
 		}
+
+	}
+
+	public static class PerfCounters
+	{
+
+		static PerfCounters()
+		{
+			var p = Process.GetCurrentProcess();
+			ProcessName = p.ProcessName;
+
+			CategoryProcess = new PerformanceCounterCategory("Process");
+
+			ProcessorTime = new PerformanceCounter("Process", "% Processor Time", ProcessName);
+			UserTime = new PerformanceCounter("Process", "% User Time", ProcessName);
+
+			PrivateBytes = new PerformanceCounter("Process", "Private Bytes", ProcessName);
+			VirtualBytes = new PerformanceCounter("Process", "Virtual Bytes", ProcessName);
+			VirtualBytesPeak = new PerformanceCounter("Process", "Virtual Bytes Peak", ProcessName);
+			WorkingSet = new PerformanceCounter("Process", "Working Set", ProcessName);
+			WorkingSetPeak = new PerformanceCounter("Process", "Working Set Peak", ProcessName);
+			HandleCount = new PerformanceCounter("Process", "Handle Count", ProcessName);
+
+			CategoryNetClrMemory = new PerformanceCounterCategory(".NET CLR Memory");
+			ClrBytesInAllHeaps = new PerformanceCounter(".NET CLR Memory", "# Bytes in all Heaps", ProcessName);
+			ClrTimeInGC = new PerformanceCounter(".NET CLR Memory", "% Time in GC", ProcessName);
+			ClrGen0Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 0 Collections", p.ProcessName, true);
+			ClrGen1Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 1 Collections", p.ProcessName, true);
+			ClrGen2Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 1 Collections", p.ProcessName, true);
+		}
+
+		public static readonly string ProcessName;
+
+		public static readonly PerformanceCounterCategory CategoryProcess;
+		public static readonly PerformanceCounter ProcessorTime;
+		public static readonly PerformanceCounter UserTime;
+		public static readonly PerformanceCounter PrivateBytes;
+		public static readonly PerformanceCounter VirtualBytes;
+		public static readonly PerformanceCounter VirtualBytesPeak;
+		public static readonly PerformanceCounter WorkingSet;
+		public static readonly PerformanceCounter WorkingSetPeak;
+		public static readonly PerformanceCounter HandleCount;
+
+		public static readonly PerformanceCounterCategory CategoryNetClrMemory;
+		public static readonly PerformanceCounter ClrBytesInAllHeaps;
+		public static readonly PerformanceCounter ClrTimeInGC;
+		public static readonly PerformanceCounter ClrGen0Collections;
+		public static readonly PerformanceCounter ClrGen1Collections;
+		public static readonly PerformanceCounter ClrGen2Collections;
 
 	}
 
@@ -88,7 +139,12 @@ namespace FoundationDB.Samples
 
 					Console.WriteLine("Using API v" + Fdb.GetMaxApiVersion());
 					Console.WriteLine("FoundationDB Samples menu:");
-					Console.WriteLine("Press '1' for ClassSchedudling, 'l' for LeakTest, or 'q' to exit");
+					Console.WriteLine("\t1\tRun Class Schedudling sample");
+					Console.WriteLine("\t2\tBrowser Directory Layer");
+					Console.WriteLine("\tL\tRun Leak test");
+					Console.WriteLine("\tgc\tTrigger garbage collection");
+					Console.WriteLine("\tmem\tMemory usage statistics");
+					Console.WriteLine("\tq\tQuit");
 
 					Console.WriteLine("Ready...");
 
@@ -109,6 +165,12 @@ namespace FoundationDB.Samples
 								TestRunner.RunAsyncTest(new ClassScheduling(), Db);
 								break;
 							}
+							case "2":
+							{ // Directory Layer
+								//TODO!
+								Console.WriteLine("NOT IMPLEMENTED");
+								break;
+							}
 							case "l":
 							{ // LeastTest
 								TestRunner.RunAsyncTest(new LeakTest(100, 40, 1000, TimeSpan.FromSeconds(1)), Db);
@@ -117,8 +179,36 @@ namespace FoundationDB.Samples
 
 							case "q":
 							case "x":
+							case "quit":
+							case "exit":
 							{
 								stop = true;
+								break;
+							}
+
+							case "gc":
+							{
+								long before = GC.GetTotalMemory(false);
+								Console.Write("Collecting garbage...");
+								GC.Collect();
+								GC.WaitForPendingFinalizers();
+								GC.Collect();
+								Console.WriteLine(" Done");
+								long after = GC.GetTotalMemory(false);
+								Console.WriteLine("- before = " + before.ToString("N0"));
+								Console.WriteLine("- after  = " + after.ToString("N0"));
+								Console.WriteLine("- delta  = " + (before - after).ToString("N0"));
+								break;
+							}
+
+							case "mem":
+							{
+								Console.WriteLine("Memory usage:");
+								Console.WriteLine("- Working Set  : " + PerfCounters.WorkingSet.NextValue().ToString("N0") + " (peak " + PerfCounters.WorkingSetPeak.NextValue().ToString("N0") + ")");
+								Console.WriteLine("- Virtual Bytes: " + PerfCounters.VirtualBytes.NextValue().ToString("N0") + " (peak " + PerfCounters.VirtualBytesPeak.NextValue().ToString("N0") + ")");
+								Console.WriteLine("- Private Bytes: " + PerfCounters.PrivateBytes.NextValue().ToString("N0"));
+								Console.WriteLine("- Managed Mem  : " + GC.GetTotalMemory(false).ToString("N0"));
+								Console.WriteLine("- BytesInAlHeap: " + PerfCounters.ClrBytesInAllHeaps.NextValue().ToString("N0"));
 								break;
 							}
 
