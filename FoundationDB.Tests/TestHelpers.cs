@@ -68,7 +68,7 @@ namespace FoundationDB.Client.Tests
 				tuple = FdbTuple.CreateRange(path, 0, path.Length);
 
 			// remove previous
-			await db.RemoveDirectoryAsync(tuple);
+			await db.TryRemoveDirectoryAsync(tuple);
 
 			// create new
 			var subspace = await db.CreateDirectoryAsync(tuple);
