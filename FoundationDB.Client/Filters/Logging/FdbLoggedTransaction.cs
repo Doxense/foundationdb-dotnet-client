@@ -41,13 +41,13 @@ namespace FoundationDB.Client.Filters.Logging
 		public FdbTransactionLog Log { get; private set; }
 
 		/// <summary>Handler that will be called when this transaction commits successfully</summary>
-		public Action<FdbLoggedTransaction> OnCommitted { get; private set; }
+		public Action<FdbLoggedTransaction> Committed { get; private set; }
 
 		public FdbLoggedTransaction(IFdbTransaction trans, bool ownsTransaction, Action<FdbLoggedTransaction> onCommitted)
 			: base(trans, false, ownsTransaction)
 		{
 			this.Log = new FdbTransactionLog(this);
-			this.OnCommitted = onCommitted;
+			this.Committed = onCommitted;
 			this.Log.Start(this);
 		}
 
@@ -62,6 +62,7 @@ namespace FoundationDB.Client.Filters.Logging
 				if (!this.Log.Completed)
 				{
 					this.Log.Stop(this);
+					OnCommitted();
 				}
 			}
 		}
@@ -137,6 +138,25 @@ namespace FoundationDB.Client.Filters.Logging
 		#endregion
 
 		#region Instrumentation...
+
+		private void OnCommitted()
+		{
+			if (this.Committed != null)
+			{
+				try
+				{
+					this.Committed(this);
+				}
+#if DEBUG
+				catch(Exception e)
+				{
+					System.Diagnostics.Trace.WriteLine("Logged transction handler failed: " + e.ToString());
+				}
+#else
+				catch { }
+#endif
+			}
+		}
 
 		private void Execute<TCommand>(TCommand cmd, Action<IFdbTransaction, TCommand> action)
 			where TCommand : FdbTransactionLog.Command
@@ -231,16 +251,17 @@ namespace FoundationDB.Client.Filters.Logging
 		public override async Task CommitAsync()
 		{
 			this.Log.CommitSize = m_transaction.Size;
+			this.Log.TotalCommitSize += m_transaction.Size;
+			this.Log.Attempts++;
+
 			await ExecuteAsync(
 				new FdbTransactionLog.CommitCommand(),
 				(_tr, _cmd) => _tr.CommitAsync()
 			).ConfigureAwait(false);
 
+			this.Log.CommittedUtc = DateTimeOffset.UtcNow;
 			this.Log.Stop(this);
-			if (this.OnCommitted != null)
-			{
-				this.OnCommitted(this);
-			}
+			OnCommitted();
 		}
 
 		public override Task OnErrorAsync(FdbError code)

@@ -65,7 +65,7 @@ namespace FoundationDB.Client.Filters.Logging
 			var logged = trans as FdbLoggedTransaction;
 			if (logged == null) return;
 
-			logged.Log.AddOperation(new LogCommand(message));
+			logged.Log.AddOperation(new LogCommand(message), countAsOperation: false);
 		}
 
 	}

@@ -50,6 +50,18 @@ namespace FoundationDB.Client.Filters.Logging.Tests
 				var location = await db.CreateOrOpenDirectoryAsync(new[] { "Logging" });
 				await db.ClearRangeAsync(location);
 
+				// note: ensure that all methods are JITed
+				await db.ReadWriteAsync(async (tr) =>
+				{
+					await tr.GetReadVersionAsync();
+					tr.Set(location.Pack("Warmup", 0), Slice.FromInt32(1));
+					tr.Clear(location.Pack("Warmup", 1));
+					await tr.GetAsync(location.Pack("Warmup", 2));
+					await tr.GetRange(FdbKeyRange.StartsWith(location.Pack("Warmup", 3))).ToListAsync();
+					tr.ClearRange(location.Pack("Warmup", 4), location.Pack("Warmup", 5));
+				});
+
+
 				await db.WriteAsync((tr) =>
 				{
 					var rnd = new Random();
@@ -72,7 +84,6 @@ namespace FoundationDB.Client.Filters.Logging.Tests
 				});
 
 				bool first = true;
-
 				Action<FdbLoggedTransaction> logHandler = (tr) =>
 				{
 					if (first)
@@ -135,6 +146,12 @@ namespace FoundationDB.Client.Filters.Logging.Tests
 							tr.GetAsync(location.Pack("W", 2)),
 							tr.GetAsync(location.Pack("W", 3))
 						);*/
+
+						if (tr.Context.Retries == 0)
+						{
+							// make it fail
+							throw new FdbException(FdbError.PastVersion, "fake timeout");
+						}
 
 					});
 				}

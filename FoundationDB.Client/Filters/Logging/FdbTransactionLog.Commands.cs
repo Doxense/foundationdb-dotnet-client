@@ -92,6 +92,12 @@ namespace FoundationDB.Client.Filters.Logging
 			/// <summary>Returns a formatted representation of the results, for logging purpose</summary>
 			public virtual string GetResult()
 			{
+				if (this.Error != null)
+				{
+					var fdbEx = this.Error as FdbException;
+					if (fdbEx != null) return "[" + fdbEx.Code.ToString() + "] " + fdbEx.Message;
+					return "[" + this.Error.GetType().Name + "] " + this.Error.Message;
+				}
 				return String.Empty;
 			}
 
@@ -144,7 +150,7 @@ namespace FoundationDB.Client.Filters.Logging
 					{
 						case Operation.Commit: return "Co";
 						case Operation.Reset: return "Rz";
-						case Operation.OnError: return "E!";
+						case Operation.OnError: return "Er";
 						case Operation.GetReadVersion: return "rv";
 
 						case Operation.Get: return "G ";
@@ -165,7 +171,13 @@ namespace FoundationDB.Client.Filters.Logging
 
 			public override string ToString()
 			{
-				return this.Op.ToString() + "(" + this.GetArguments() + ")";
+				var arg = this.GetArguments();
+				var res = this.GetResult();
+				var sb = new StringBuilder();
+				sb.Append(this.Op.ToString());
+				if (!string.IsNullOrEmpty(arg)) sb.Append(' ').Append(arg);
+				if (!string.IsNullOrEmpty(res)) sb.Append(" => ").Append(res);
+				return sb.ToString();
 			}
 
 		}
@@ -179,15 +191,12 @@ namespace FoundationDB.Client.Filters.Logging
 
 			public override string GetResult()
 			{
+				if (this.Error != null) return base.GetResult();
+
 				if (this.Result.HasFailed) return "<error>";
 				if (!this.Result.HasValue) return "<n/a>";
 				if (this.Result.Value == null) return "<null>";
 				return this.Result.Value.ToString();
-			}
-
-			public override string ToString()
-			{
-				return this.Op.ToString() + "(" + this.GetArguments() + ") => " + this.GetResult();
 			}
 
 		}
