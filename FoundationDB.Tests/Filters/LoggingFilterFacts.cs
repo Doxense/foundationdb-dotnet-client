@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Filters.Logging.Tests
+namespace FoundationDB.Filters.Logging.Tests
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;

@@ -26,16 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Filters.Logging
+namespace FoundationDB.Filters.Logging
 {
 	using FoundationDB.Async;
+	using FoundationDB.Client;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Text;
-	using System.Threading;
-	using System.Threading.Tasks;
-
 
 	public partial class FdbTransactionLog
 	{

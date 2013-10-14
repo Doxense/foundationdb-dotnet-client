@@ -26,8 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Filters
+namespace FoundationDB.Filters
 {
+	using FoundationDB.Client;
 	using System;
 	using System.Diagnostics;
 	using System.Threading;

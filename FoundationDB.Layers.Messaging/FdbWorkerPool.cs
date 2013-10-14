@@ -2,7 +2,7 @@
 
 using FoundationDB.Client;
 using FoundationDB.Layers.Tuples;
-using FoundationDB.Client.Filters.Logging;
+using FoundationDB.Filters.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

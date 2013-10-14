@@ -28,9 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Filters;
-	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Filters;
 	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
 	using System;

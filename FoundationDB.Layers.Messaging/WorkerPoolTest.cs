@@ -1,5 +1,5 @@
-﻿using FoundationDB.Client;
-using FoundationDB.Client.Filters.Logging;
+using FoundationDB.Client;
+using FoundationDB.Filters.Logging;
 using FoundationDB.Layers.Tuples;
 using System;
 using System.Diagnostics;
