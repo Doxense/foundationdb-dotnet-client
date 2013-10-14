@@ -511,6 +511,12 @@ namespace FoundationDB.Client
 			return null;
 		}
 
+		internal Slice BoundCheck(Slice value)
+		{
+			//REVIEW: should we always allow access to system keys ?
+			return m_globalSpace.BoundCheck(value, allowSystemKeys: true);
+		}
+
 		#endregion
 
 		#region Default Transaction Settings...

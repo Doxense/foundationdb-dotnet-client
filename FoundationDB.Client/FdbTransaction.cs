@@ -524,7 +524,7 @@ namespace FoundationDB.Client
 			return result;
 		}
 
-		internal Task<Slice> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot)
+		internal async Task<Slice> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot)
 		{
 			this.Database.EnsureKeyIsValid(selector.Key);
 
@@ -533,11 +533,14 @@ namespace FoundationDB.Client
 #endif
 
 			var future = FdbNative.TransactionGetKey(m_handle, selector, snapshot);
-			return FdbFuture.CreateTaskFromHandle(
+			var key = await FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) => GetKeyResult(h),
 				m_token
-			);
+			).ConfigureAwait(false);
+
+			// don't forget to truncate keys that would fall outside of the database's globalspace !
+			return this.Database.BoundCheck(key);
 		}
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by transaction.</summary>

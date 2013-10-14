@@ -563,6 +563,27 @@ namespace FoundationDB.Client
 			return results;
 		}
 
+		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
+		/// <param name="key">Key that needs to be checked</param>
+		/// <param name="allowSystemKeys">If true, allow keys that starts with \xFF even if this subspace is not the Empty subspace or System subspace itself.</param>
+		/// <returns>The key will return unchanged if it is contained in the namespace, Slice.Empty if it was before, or FdbKey.MaxValue if it was after.</returns>
+		public Slice BoundCheck(Slice key, bool allowSystemKeys)
+		{
+			// don't touch to nil and keys inside the globalspace
+			if (key.IsNull || key.StartsWith(m_rawPrefix)) return key;
+
+			// let the system keys pass
+			if (allowSystemKeys && key.Count > 0 && key[0] == 255) return key;
+
+			// The key is outside the bounds, and must be corrected
+			// > return empty if we are before
+			// > return \xFF if we are after
+			if (key < m_rawPrefix)
+				return Slice.Empty;
+			else
+				return FdbKey.System;
+		}
+
 		#endregion
 
 		public FdbKeyRange ToRange()
