@@ -100,7 +100,7 @@ namespace FoundationDB.Client.Filters
 			get { return m_readOnly; }
 		}
 
-		public IFdbReadOnlyTransaction Snapshot
+		public virtual IFdbReadOnlyTransaction Snapshot
 		{
 			get
 			{
@@ -287,6 +287,126 @@ namespace FoundationDB.Client.Filters
 				ThrowIfDisposed();
 				m_transaction.RetryLimit = value;
 			}
+		}
+
+	}
+
+	public class FdbReadOnlyTransactionFilter : IFdbReadOnlyTransaction
+	{
+		/// <summary>Inner database</summary>
+		protected readonly IFdbReadOnlyTransaction m_transaction;
+
+		protected FdbReadOnlyTransactionFilter(IFdbReadOnlyTransaction transaction)
+		{
+			if (transaction == null) throw new ArgumentNullException("transaction");
+			m_transaction = transaction;
+		}
+
+		public int Id
+		{
+			get { return m_transaction.Id; }
+		}
+
+		public FdbOperationContext Context
+		{
+			get { return m_transaction.Context; }
+		}
+
+		public bool IsSnapshot
+		{
+			get { return m_transaction.IsSnapshot; }
+		}
+
+		public IFdbReadOnlyTransaction Snapshot
+		{
+			get { return this; }
+		}
+
+		public CancellationToken Token
+		{
+			get { return m_transaction.Token; }
+		}
+
+		public void EnsureCanRead()
+		{
+			m_transaction.EnsureCanRead();
+		}
+
+		public virtual Task<Slice> GetAsync(Slice key)
+		{
+			return m_transaction.GetAsync(key);
+		}
+
+		public virtual Task<Slice[]> GetValuesAsync(Slice[] keys)
+		{
+			return m_transaction.GetValuesAsync(keys);
+		}
+
+		public virtual Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		{
+			return m_transaction.GetKeyAsync(selector);
+		}
+
+		public virtual Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+		{
+			return m_transaction.GetKeysAsync(selectors);
+		}
+
+		public virtual Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		{
+			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
+		}
+
+		public virtual FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, FdbRangeOptions options = null)
+		{
+			return m_transaction.GetRange(beginInclusive, endInclusive, options);
+		}
+
+		public virtual Task<string[]> GetAddressesForKeyAsync(Slice key)
+		{
+			return m_transaction.GetAddressesForKeyAsync(key);
+		}
+
+		public virtual Task<long> GetReadVersionAsync()
+		{
+			return m_transaction.GetReadVersionAsync();
+		}
+
+		public virtual void Cancel()
+		{
+			m_transaction.Cancel();
+		}
+
+		public virtual void SetOption(FdbTransactionOption option)
+		{
+			m_transaction.SetOption(option);
+		}
+
+		public virtual void SetOption(FdbTransactionOption option, string value)
+		{
+			m_transaction.SetOption(option, value);
+		}
+
+		public virtual void SetOption(FdbTransactionOption option, long value)
+		{
+			m_transaction.SetOption(option, value);
+		}
+
+		public virtual int Timeout
+		{
+			get { return m_transaction.Timeout; }
+			set { m_transaction.Timeout = value; }
+		}
+
+		public virtual int RetryLimit
+		{
+			get { return m_transaction.RetryLimit; }
+			set { m_transaction.RetryLimit = value; }
+		}
+
+		public void Dispose()
+		{
+			//NOP?
 		}
 	}
 

@@ -53,13 +53,18 @@ namespace FoundationDB.Client.Filters.Logging
 		/// <summary>List of all commands processed by the transaction</summary>
 		public List<Command> Commands { get; private set; }
 
-		/// <summary>Internal clock of the transaction</summary>
-		public Stopwatch Clock { get; private set; }
+		/// <summary>Timestamp of the start of transaction</summary>
+		public long StartTimestamp { get; private set; }
+		/// <summary>Timestamp of the end of transaction</summary>
+		public long StopTimestamp { get; private set; }
 
 		/// <summary>Timestamp (UTC) of the start of transaction</summary>
 		public DateTimeOffset StartedUtc { get; internal set; }
 
-		/// <summary>Timestamp (UTC) of the successfull commit of the transaction</summary>
+		/// <summary>Tmiestamp (UTC) of the end of the transaction</summary>
+		public DateTimeOffset? StoppedUtc { get; internal set; }
+
+		/// <summary>Timestamp (UTC) of the last successfull commit of the transaction</summary>
 		public DateTimeOffset? CommittedUtc { get; internal set; }
 
 		/// <summary>Committed version of the transaction (if a commit was successfull)</summary>
@@ -84,11 +89,39 @@ namespace FoundationDB.Client.Filters.Logging
 		/// <remarks>This value is increment on each call to Commit()</remarks>
 		public int Attempts { get; internal set; }
 
+		private static readonly double R = 1.0d * TimeSpan.TicksPerMillisecond / Stopwatch.Frequency;
+
+		internal static long GetTimestamp()
+		{
+			return Stopwatch.GetTimestamp();
+		}
+
+		internal TimeSpan GetTimeOffset()
+		{
+			return GetDuration(GetTimestamp() - this.StartTimestamp);
+		}
+
+		internal static TimeSpan GetDuration(long elapsed)
+		{
+			return TimeSpan.FromTicks((long)Math.Round(((double)elapsed / Stopwatch.Frequency) * TimeSpan.TicksPerSecond, MidpointRounding.AwayFromZero));
+		}
+
+		public TimeSpan TotalDuration
+		{
+			get
+			{
+				if (this.StopTimestamp == 0)
+					return GetTimeOffset();
+				else
+					return GetDuration(this.StopTimestamp - this.StartTimestamp);
+			}
+		}
+
 		public void Start(IFdbTransaction trans)
 		{
 			this.Id = trans.Id;
 			this.StartedUtc = DateTimeOffset.UtcNow;
-			this.Clock = Stopwatch.StartNew();
+			this.StartTimestamp = GetTimestamp();
 		}
 
 		public void Stop(IFdbTransaction trans)
@@ -96,13 +129,14 @@ namespace FoundationDB.Client.Filters.Logging
 			if (!this.Completed)
 			{
 				this.Completed = true;
-				this.Clock.Stop();
+				this.StopTimestamp = GetTimestamp();
+				this.StoppedUtc = DateTimeOffset.UtcNow;
 			}
 		}
 
 		public void AddOperation(Command cmd, bool countAsOperation = true)
 		{
-			cmd.StartOffset = this.Clock.ElapsedTicks;
+			cmd.StartOffset = GetTimeOffset();
 			cmd.Step = Volatile.Read(ref m_step);
 			cmd.EndOffset = cmd.StartOffset;
 			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
@@ -115,7 +149,7 @@ namespace FoundationDB.Client.Filters.Logging
 
 		public void BeginOperation(Command cmd)
 		{
-			cmd.StartOffset = this.Clock.ElapsedTicks;
+			cmd.StartOffset = GetTimeOffset();
 			cmd.Step = Volatile.Read(ref m_step);
 			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
 			lock (this.Commands)
@@ -127,7 +161,7 @@ namespace FoundationDB.Client.Filters.Logging
 
 		public void EndOperation(Command cmd, Exception error = null)
 		{
-			cmd.EndOffset = this.Clock.ElapsedTicks;
+			cmd.EndOffset = GetTimeOffset();
 			cmd.Error = error;
 			Interlocked.Increment(ref m_step);
 		}
@@ -156,13 +190,21 @@ namespace FoundationDB.Client.Filters.Logging
 		public string GetTimingsReport(bool showCommands = false)
 		{
 			var sb = new StringBuilder();
-			long duration = this.Clock.ElapsedTicks;
-			int width = (int)Math.Ceiling(2 * TimeSpan.FromTicks(duration).TotalMilliseconds);
+			TimeSpan duration = this.TotalDuration;
+			// ideal range is between 10 and 80 chars
+			double scale = 0.0005d;
+			int width;
+			bool flag = false;
+			while ((width = (int)(duration.TotalSeconds / scale)) > 80)
+			{
+				if (flag) scale *= 5d; else scale *= 2d;
+				flag = !flag;
+			}
 
 			// Header
-			sb.AppendFormat(CultureInfo.InvariantCulture, "Transaction #{0} ({1} operations, started {2}Z", this.Id, this.Commands.Count, this.StartedUtc.TimeOfDay);
-			if (this.CommittedUtc.HasValue)
-				sb.AppendFormat(CultureInfo.InvariantCulture, ", ended {0}Z)", this.CommittedUtc.Value.TimeOfDay); 
+			sb.AppendFormat(CultureInfo.InvariantCulture, "Transaction #{0} ({1} operations, '#' = " +  (scale*1000d).ToString("N1") + " ms, started {2}Z", this.Id, this.Commands.Count, this.StartedUtc.TimeOfDay);
+			if (this.StoppedUtc.HasValue)
+				sb.AppendFormat(CultureInfo.InvariantCulture, ", ended {0}Z)", this.StoppedUtc.Value.TimeOfDay); 
 			else
 				sb.AppendLine(", did not finish");
 			sb.AppendLine();
@@ -180,16 +222,17 @@ namespace FoundationDB.Client.Filters.Logging
 				}
 
 				long ticks = cmd.Duration.Ticks;
-				double r = 1.0d * ticks / duration;
-				string w = GetFancyGraph(width, cmd.StartOffset, ticks, duration, charsToSkip);
+				double r = 1.0d * ticks / duration.Ticks;
+				string w = GetFancyGraph(width, cmd.StartOffset.Ticks, ticks, duration.Ticks, charsToSkip);
 
 				sb.AppendFormat(
+					CultureInfo.InvariantCulture, 
 					"│{6}{1,-3:##0}{10}{0,2}{7}│ {2} │ T+{3,7:##0.000} ~ {4,7:##0.000} ({5,7:##,##0} µs) │ {8,5} {9,5} │ {11}",
 					/* 0 */ cmd.ShortName,
 					/* 1 */ cmd.Step,
 					/* 2 */ w,
-					/* 3 */ cmd.StartOffset / 10000.0,
-					/* 4 */ (cmd.EndOffset ?? 0) / 10000.0,
+					/* 3 */ cmd.StartOffset.TotalMilliseconds,
+					/* 4 */ (cmd.EndOffset ?? TimeSpan.Zero).TotalMilliseconds,
 					/* 5 */ ticks / 10.0,
 					/* 6 */ cmd.Step == step ? ":" : " ",
 					/* 7 */ ticks >= 100000 ? "*" : ticks >= 10000 ? "°" : " ",
@@ -203,7 +246,7 @@ namespace FoundationDB.Client.Filters.Logging
 				previousWasOnError = cmd.Op == Operation.OnError;
 				if (previousWasOnError)
 				{
-					charsToSkip = (int)Math.Floor(1.0d * width * (cmd.EndOffset ?? 0) / duration);
+					charsToSkip = (int)Math.Floor(1.0d * width * (cmd.EndOffset ?? TimeSpan.Zero).Ticks / duration.Ticks);
 				}
 
 				step = cmd.Step;
@@ -214,7 +257,7 @@ namespace FoundationDB.Client.Filters.Logging
 			// Footer
 			if (this.Completed)
 			{
-				sb.AppendLine("Committed " + this.CommitSize.ToString("N0") + " bytes in " + TimeSpan.FromTicks(duration).TotalMilliseconds.ToString("N3") + " ms and " + attempts.ToString() + " attempt(s)");
+				sb.AppendLine("Committed " + this.CommitSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes in " + duration.TotalMilliseconds.ToString("N3", CultureInfo.InvariantCulture) + " ms and " + attempts.ToString(CultureInfo.InvariantCulture) + " attempt(s)");
 			}
 			return sb.ToString();
 		}

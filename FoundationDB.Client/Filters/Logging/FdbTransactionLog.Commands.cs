@@ -48,15 +48,18 @@ namespace FoundationDB.Client.Filters.Logging
 			/// <summary>Return the type of operation</summary>
 			public abstract Operation Op { get; }
 
+			/// <summary>If true, the operation was executed in Snapshot mode</summary>
+			public bool Snapshot { get; internal set; }
+
 			/// <summary>Return the step number of this command</summary>
 			/// <remarks>All commands with the same step number where started in parallel</remarks>
 			public int Step { get; internal set; }
 
 			/// <summary>Number of ticks, since the start of the transaction, when the operation was started</summary>
-			public long StartOffset { get; internal set; }
+			public TimeSpan StartOffset { get; internal set; }
 
 			/// <summary>Number of ticks, since the start of the transaction, when the operation completed (or null if it did not complete)</summary>
-			public long? EndOffset { get; internal set; }
+			public TimeSpan? EndOffset { get; internal set; }
 
 			/// <summary>Exception thrown by this operation</summary>
 			public Exception Error { get; internal set; }
@@ -79,7 +82,7 @@ namespace FoundationDB.Client.Filters.Logging
 				{
 					var start = this.StartOffset;
 					var end = this.EndOffset;
-					return start == 0 || !end.HasValue ? TimeSpan.Zero : TimeSpan.FromTicks(end.Value - start);
+					return start == TimeSpan.Zero || !end.HasValue ? TimeSpan.Zero : (end.Value - start);
 				}
 			}
 
@@ -174,6 +177,7 @@ namespace FoundationDB.Client.Filters.Logging
 				var arg = this.GetArguments();
 				var res = this.GetResult();
 				var sb = new StringBuilder();
+				if (this.Snapshot) sb.Append("Snapshot.");
 				sb.Append(this.Op.ToString());
 				if (!string.IsNullOrEmpty(arg)) sb.Append(' ').Append(arg);
 				if (!string.IsNullOrEmpty(res)) sb.Append(" => ").Append(res);

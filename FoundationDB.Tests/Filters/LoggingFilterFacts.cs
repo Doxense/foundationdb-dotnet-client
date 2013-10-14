@@ -42,7 +42,6 @@ namespace FoundationDB.Client.Filters.Logging.Tests
 		[Test]
 		public async Task Test_Can_Log_A_Transaction()
 		{
-			//await Task.Delay(10).ConfigureAwait(false);
 			const int N = 10;
 
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
@@ -109,48 +108,56 @@ namespace FoundationDB.Client.Filters.Logging.Tests
 
 						tr.SetOption(FdbTransactionOption.CausalReadRisky);
 
-						//long ver = await tr.GetReadVersionAsync();
+						long ver = await tr.GetReadVersionAsync().ConfigureAwait(false);
 
-						tr.Set(location.Pack("Write"), Slice.FromString("abcdef"));
-						await tr.GetAsync(location.Pack("One"));
-						tr.Clear(location.Pack("Clear", "0"));
-						await tr.GetAsync(location.Pack("NotFound"));
-						tr.ClearRange(location.Pack("Clear", "A"), location.Pack("Clear", "Z"));
+						await tr.GetAsync(location.Pack("One")).ConfigureAwait(false);
+						await tr.GetAsync(location.Pack("NotFound")).ConfigureAwait(false);
+
+						tr.Set(location.Pack("Write"), Slice.FromString("abcdef" + k.ToString()));
+
+						//tr.Annotate("BEFORE");
+						//await Task.Delay(TimeSpan.FromMilliseconds(10));
+						//tr.Annotate("AFTER");
+
+						//await tr.Snapshot.GetAsync(location.Pack("Snap")).ConfigureAwait(false);
 
 						tr.Annotate("This is a comment");
 
-						/*
-						await tr.GetRangeAsync(FdbKeySelector.LastLessOrEqual(location.Pack("A")), FdbKeySelector.FirstGreaterThan(location.Pack("Z")));
+						//await tr.GetRangeAsync(FdbKeySelector.LastLessOrEqual(location.Pack("A")), FdbKeySelector.FirstGreaterThan(location.Pack("Z"))).ConfigureAwait(false);
 
 						await Task.WhenAll(
 							tr.GetRange(FdbKeyRange.StartsWith(location.Pack("Range", 0))).ToListAsync(),
 							tr.GetRange(location.Pack("Range", 1, 0), location.Pack("Range", 1, 200)).ToListAsync(),
 							tr.GetRange(location.Pack("Range", 2, 400), location.Pack("Range", 2, 600)).ToListAsync(),
 							tr.GetRange(location.Pack("Range", 3, 800), location.Pack("Range", 3, 1000)).ToListAsync()
-						);
+						).ConfigureAwait(false);
 
-						await tr.GetAsync(location.Pack("Two"));
+						await tr.GetAsync(location.Pack("Two")).ConfigureAwait(false);
 
-						await tr.GetValuesAsync(Enumerable.Range(0, N).Select(x => location.Pack("X", x)));
+						await tr.GetValuesAsync(Enumerable.Range(0, N).Select(x => location.Pack("X", x))).ConfigureAwait(false);
 
-						for (int i = 0; i < N; i++)
-						{
-							await tr.GetAsync(location.Pack("Z", i));
-						}
+						//for (int i = 0; i < N; i++)
+						//{
+						//	await tr.GetAsync(location.Pack("Z", i)).ConfigureAwait(false);
+						//}
 
-						await Task.WhenAll(Enumerable.Range(0, N/2).Select(x => tr.GetAsync(location.Pack("Y", x))));
-						await Task.WhenAll(Enumerable.Range(N/2, N/2).Select(x => tr.GetAsync(location.Pack("Y", x))));
+						await Task.WhenAll(Enumerable.Range(0, N / 2).Select(x => tr.GetAsync(location.Pack("Y", x)))).ConfigureAwait(false);
+						await Task.WhenAll(Enumerable.Range(N / 2, N / 2).Select(x => tr.GetAsync(location.Pack("Y", x)))).ConfigureAwait(false);
 
 						await Task.WhenAll(
 							tr.GetAsync(location.Pack("W", 1)),
 							tr.GetAsync(location.Pack("W", 2)),
 							tr.GetAsync(location.Pack("W", 3))
-						);*/
+						).ConfigureAwait(false);
+
+						tr.Set(location.Pack("Write2"), Slice.FromString("ghijkl" + k.ToString()));
+						tr.Clear(location.Pack("Clear", "0"));
+						tr.ClearRange(location.Pack("Clear", "A"), location.Pack("Clear", "Z"));
 
 						if (tr.Context.Retries == 0)
 						{
 							// make it fail
-							throw new FdbException(FdbError.PastVersion, "fake timeout");
+							//throw new FdbException(FdbError.PastVersion, "fake timeout");
 						}
 
 					});
