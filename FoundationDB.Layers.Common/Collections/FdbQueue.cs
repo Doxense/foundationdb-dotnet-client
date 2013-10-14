@@ -29,6 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
+#if DEBUG
+	using FoundationDB.Filters.Logging;
+#endif
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
 	using System;
@@ -91,7 +94,15 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Push a single item onto the queue.</summary>
 		public async Task PushAsync(IFdbTransaction tr, Slice value)
 		{
+#if DEBUG
+			tr.Annotate("Push(" + value.ToAsciiOrHexaString() + ")");
+#endif
+
 			long index = await GetNextIndexAsync(tr.Snapshot, this.QueueItem).ConfigureAwait(false);
+
+#if DEBUG
+			tr.Annotate("Index = " + index.ToString());
+#endif
 
 			await PushAtAsync(tr, value, index).ConfigureAwait(false);
 		}
@@ -180,6 +191,10 @@ namespace FoundationDB.Layers.Collections
 
 		private async Task<Slice> PopSimpleAsync(IFdbTransaction tr)
 		{
+#if DEBUG
+			tr.Annotate("PopSimple()");
+#endif
+
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
 			if (firstItem.Key.IsNull) return Slice.Nil;
 
@@ -210,13 +225,13 @@ namespace FoundationDB.Layers.Collections
 		private FdbRangeQuery<KeyValuePair<Slice, Slice>> GetWaitingPops(IFdbReadOnlyTransaction tr, int numPops)
 		{
 			var range = this.ConflictedPop.ToRange();
-			return tr.GetRange(range, new FdbRangeOptions { Limit = numPops });
+			return tr.GetRange(range, limit: numPops, reverse: false);
 		}
 
 		private FdbRangeQuery<KeyValuePair<Slice, Slice>> GetItems(IFdbReadOnlyTransaction tr, int numItems)
 		{
 			var range = this.QueueItem.ToRange();
-			return tr.GetRange(range, new FdbRangeOptions { Limit = numItems });
+			return tr.GetRange(range, limit: numItems, reverse: false);
 		}
 
 		private async Task<bool> FulfillConflictedPops(IFdbDatabase db, CancellationToken ct)
@@ -225,6 +240,10 @@ namespace FoundationDB.Layers.Collections
 
 			using(var tr = db.BeginTransaction(ct))
 			{
+#if DEBUG
+				tr.Annotate("FulfillConflictedPops");
+#endif
+
 				var ts = await Task.WhenAll(
 					GetWaitingPops(tr.Snapshot, numPops).ToListAsync(),
 					GetItems(tr.Snapshot, numPops).ToListAsync()
@@ -232,6 +251,9 @@ namespace FoundationDB.Layers.Collections
 
 				var pops = ts[0];
 				var items = ts[1];
+#if DEBUG
+				tr.Annotate("pops: " + pops.Count + ", items: " + items.Count);
+#endif
 
 				var tasks = new List<Task>(pops.Count);
 
@@ -283,6 +305,10 @@ namespace FoundationDB.Layers.Collections
 
 			using(var tr = db.BeginTransaction(ct))
 			{
+#if DEBUG
+				tr.Annotate("PopHighContention()");
+#endif
+
 				FdbException error = null;
 				try
 				{
@@ -350,6 +376,8 @@ namespace FoundationDB.Layers.Collections
 					{
 						tr.Reset();
 
+						var sw = System.Diagnostics.Stopwatch.StartNew();
+
 						var tmp = await tr.GetValuesAsync(new Slice[] { waitKey, resultKey }).ConfigureAwait(false);
 						var value = tmp[0];
 						var result = tmp[1];
@@ -357,7 +385,13 @@ namespace FoundationDB.Layers.Collections
 						// If waitKey is present, then we have not been fulfilled
 						if (value.HasValue)
 						{
+#if DEBUG
+							tr.Annotate("Wait " + backOff.ToString() + " ms : " + Environment.TickCount + " / " + sw.ElapsedTicks);
+#endif
 							await Task.Delay(backOff, ct).ConfigureAwait(false);
+#if DEBUG
+							tr.Annotate("After wait : " + Environment.TickCount + " / " + sw.ElapsedTicks);
+#endif
 							backOff = Math.Min(1000, backOff * 2);
 							continue;
 						}

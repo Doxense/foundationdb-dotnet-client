@@ -1,3 +1,4 @@
+﻿using FoundationDB.Async;
 using FoundationDB.Client;
 using FoundationDB.Filters.Logging;
 using FoundationDB.Layers.Tuples;
@@ -75,8 +76,8 @@ namespace FoundationDB.Layers.Messaging
 				var workerPool = new FdbWorkerPool(location);
 				Console.WriteLine("workerPool at " + location.Key.ToAsciiOrHexaString());
 
-				var workerSignal = new TaskCompletionSource<object>();
-				var clientSignal = new TaskCompletionSource<object>();
+				var workerSignal = new AsyncCancelableMutex(ct);
+				var clientSignal = new AsyncCancelableMutex(ct);
 
 				int taskCounter = 0;
 
@@ -185,13 +186,13 @@ namespace FoundationDB.Layers.Messaging
 					var sw = Stopwatch.StartNew();
 
 					// start the workers
-					ThreadPool.UnsafeQueueUserWorkItem((_) => workerSignal.SetResult(null), null);
+					workerSignal.Set(async: true);
 					await Task.Delay(500);
 
 					await dump("workers started");
 
 					// start the clients
-					ThreadPool.UnsafeQueueUserWorkItem((_) => clientSignal.SetResult(null), null);
+					clientSignal.Set(async: true);
 
 					await Task.WhenAll(clients);
 					Console.WriteLine("Clients completed after " + sw.Elapsed);

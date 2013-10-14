@@ -1,4 +1,5 @@
-﻿using FoundationDB.Client;
+﻿using FoundationDB.Async;
+using FoundationDB.Client;
 using FoundationDB.Layers.Directories;
 using FoundationDB.Layers.Tuples;
 using FoundationDB.Samples.Tutorials;
@@ -49,7 +50,7 @@ namespace FoundationDB.Samples
 		{
 			await Task.Delay(1).ConfigureAwait(false);
 
-			var signal = new TaskCompletionSource<object>();
+			var signal = new AsyncCancelableMutex(ct);
 			var tasks = Enumerable.Range(0, workers).Select(async (i) =>
 			{
 				await signal.Task;
@@ -58,7 +59,7 @@ namespace FoundationDB.Samples
 			}).ToArray();
 
 			var sw = Stopwatch.StartNew();
-			ThreadPool.UnsafeQueueUserWorkItem((_) => { signal.SetResult(null); }, null);
+			signal.Set(async: true);
 			await Task.WhenAll(tasks);
 			sw.Stop();
 

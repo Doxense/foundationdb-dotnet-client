@@ -28,9 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections.Tests
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Filters.Logging;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
@@ -138,17 +139,17 @@ namespace FoundationDB.Layers.Collections.Tests
 			var queue = new FdbQueue<string>(location, highContention);
 			await queue.ClearAsync(db);
 
-			var pushLock = new TaskCompletionSource<object>();
-			var popLock = new TaskCompletionSource<object>();
-
-			int pushCount = 0;
-			int popCount = 0;
-			int stalls = 0;
-
 			// use a CTS to ensure that everything will stop in case of problems...
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
 			{
 				var tok = go.Token;
+
+				var pushLock = new AsyncCancelableMutex(tok);
+				var popLock = new AsyncCancelableMutex(tok);
+
+				int pushCount = 0;
+				int popCount = 0;
+				int stalls = 0;
 
 				var pushTreads = Enumerable.Range(0, K)
 					.Select(async id =>
@@ -200,9 +201,9 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				var sw = Stopwatch.StartNew();
 
-				ThreadPool.UnsafeQueueUserWorkItem((_) => pushLock.SetResult(null), null);
+				pushLock.Set(async: true);
 				await Task.Delay(100);
-				ThreadPool.UnsafeQueueUserWorkItem((_) => popLock.SetResult(null), null);
+				popLock.Set(async: true);
 
 				//using (var timer = new Timer((_) =>
 				//{
@@ -264,6 +265,39 @@ namespace FoundationDB.Layers.Collections.Tests
 				await RunMultiClientTest(db, location, true, "high contention queue", 4, NUM);
 				await RunMultiClientTest(db, location, true, "high contention queue", 10, NUM);
 			}
+		}
+
+		[Test]
+		public async Task Test_Log_Queue()
+		{
+			int NUM = 100;
+
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				var location = await TestHelpers.GetCleanDirectory(db, "queue");
+
+				var list = new List<FdbTransactionLog>(NUM);
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { lock (list) { list.Add(tr.Log); } });
+
+				await RunMultiClientTest(logged, location, false, "simple queue", 4, NUM);
+				foreach (var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true));
+				}
+
+				Console.WriteLine("------------------------------------------------");
+
+				list.Clear();
+				await RunMultiClientTest(logged, location, true, "high contention queue", 4, NUM);
+				foreach (var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true));
+				}
+
+				Console.WriteLine("------------------------------------------------");
+
+			}
+
 		}
 
 	}
