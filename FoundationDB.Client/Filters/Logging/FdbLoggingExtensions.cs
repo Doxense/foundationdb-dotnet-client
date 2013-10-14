@@ -55,7 +55,7 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Anotate a logged transaction</summary>
-		public static void Annotate(this IFdbTransaction trans, string message)
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string message)
 		{
 			//TODO: the logged transaction could also be wrapped in other filters.
 			// => we need a recursive "FindFilter<TFilter>" method that would unwrap the filter onion looking for a specific one...
