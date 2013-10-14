@@ -182,7 +182,9 @@ namespace FoundationDB.Client
 
 		#region Pseudo-LINQ
 
+#if DISABLED
 		private bool m_gotUsedOnce;
+#endif
 
 		public IAsyncEnumerator<T> GetEnumerator()
 		{
@@ -192,8 +194,11 @@ namespace FoundationDB.Client
 		public IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncMode mode)
 		{
 			//REVIEW: is this really a good thing ? this prohibit use a cached query for frequent queries (for uncacheable, fast changing data)
+			//NOTE: disabled for now, because it breaks some scenario when combining multiple indexes and reusing the queries.
+#if DISABLED
 			if (m_gotUsedOnce) throw new InvalidOperationException("This query has already been executed once. Reusing the same query object would re-run the query on the server. If you need to data multiple times, you should call ToListAsync() one time, and then reuse this list using normal LINQ to Object operators.");
 			m_gotUsedOnce = true;
+#endif
 
 			return new ResultIterator(this, this.Transaction, this.Transform).GetEnumerator(mode);
 		}
