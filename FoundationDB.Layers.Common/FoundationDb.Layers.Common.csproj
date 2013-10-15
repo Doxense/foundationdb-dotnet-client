@@ -57,6 +57,8 @@
     <Compile Include="Collections\FdbVectorTransactionals.cs" />
     <Compile Include="Collections\FdbVector`1.cs" />
     <Compile Include="Collections\FdbVector.cs" />
+    <Compile Include="Counters\FdbCounterMap`1.cs" />
+    <Compile Include="Counters\FdbCounterMap.cs" />
     <Compile Include="Counters\FdbCounterTransactionals.cs" />
     <Compile Include="Counters\FdbCounter.cs" />
     <Compile Include="Documents\FdbDocumentHandlers.cs" />
