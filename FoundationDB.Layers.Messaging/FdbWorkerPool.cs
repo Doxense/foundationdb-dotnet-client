@@ -264,7 +264,7 @@ namespace FoundationDB.Layers.Messaging
 								else if (myId.IsPresent)
 								{ // remove ourselves from the busy ring
 									tr.Annotate("Found nothing, switch to idle with id " + myId.ToAsciiOrHexaString());
-									tr.Clear(this.BusyRing.Pack(myId));
+									//tr.Clear(this.BusyRing.Pack(myId));
 								}
 							}
 
@@ -280,14 +280,17 @@ namespace FoundationDB.Layers.Messaging
 							else
 							{ // There are no unassigned task, so enter the idle_worker_ring and wait for a task to be asssigned to us
 
+								// remove us from the busy ring
+								tr.Clear(this.BusyRing.Pack(myId));
+								tr.AtomicAdd(this.CountersBusy, CounterDecrement);
+
 								// choose a new random position on the idle ring
 								myId = GetRandomId();
 
+								// the idle key will also be used as the watch key to wake us up
 								var watchKey = this.IdleRing.Pack(myId);
 								tr.Annotate("Will start watching on key " + watchKey.ToAsciiOrHexaString() + " with id " + myId.ToAsciiOrHexaString());
-
 								tr.Set(watchKey, Slice.Empty);
-								tr.Clear(this.BusyRing.Pack(myId));
 								watch = tr.Watch(watchKey, ct);
 							}
 
@@ -306,7 +309,7 @@ namespace FoundationDB.Layers.Messaging
 						try
 						{
 							await watch.Task;
-							Console.WriteLine("Worker #" + num + " woken up!");
+							//Console.WriteLine("Worker #" + num + " woken up!");
 						}
 						finally
 						{
@@ -315,7 +318,7 @@ namespace FoundationDB.Layers.Messaging
 					}
 					else
 					{
-						Console.WriteLine("Got task " + taskId);
+						//Console.WriteLine("Got task " + taskId);
 						previousTaskId = taskId;
 
 						if (taskBody.IsNull)
