@@ -75,6 +75,7 @@ namespace FoundationDB.Samples
 		{
 			var p = Process.GetCurrentProcess();
 			ProcessName = p.ProcessName;
+			ProcessId = p.Id;
 
 			CategoryProcess = new PerformanceCounterCategory("Process");
 
@@ -97,6 +98,7 @@ namespace FoundationDB.Samples
 		}
 
 		public static readonly string ProcessName;
+		public static readonly int ProcessId;
 
 		public static readonly PerformanceCounterCategory CategoryProcess;
 		public static readonly PerformanceCounter ProcessorTime;

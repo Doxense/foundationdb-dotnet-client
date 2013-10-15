@@ -31,11 +31,13 @@ namespace FoundationDB.Layers.Tables.Tests
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Indexing;
+	using FoundationDB.Layers.Directories;
 	using FoundationDB.Linq;
 	using NUnit.Framework;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Threading.Tasks;
+	using System;
 
 	[TestFixture]
 	public class IndexingFacts
@@ -130,7 +132,7 @@ namespace FoundationDB.Layers.Tables.Tests
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("Indexing");
+				var location = await db.CreateOrOpenDirectoryAsync(new [] { "Indexing" });
 
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, location);
@@ -165,20 +167,23 @@ namespace FoundationDB.Layers.Tables.Tests
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 
-				// super heros only (sorry Batman!)
+				// super hereos only (sorry Batman!)
 				using (var tr = db.BeginTransaction())
 				{
-					var superHeros = await indexSuperHero.LookupAsync(tr, value: true);
-					Assert.That(superHeros, Is.EqualTo(characters.Where(c => c.HasSuperPowers).Select(c => c.Id).ToList()));
+					var superHeroes = await indexSuperHero.LookupAsync(tr, value: true);
+					Console.WriteLine("SuperHeroes: " + string.Join(", ", superHeroes));
+					Assert.That(superHeroes, Is.EqualTo(characters.Where(c => c.HasSuperPowers).Select(c => c.Id).ToList()));
 				}
 
 				// Versus !
 				using (var tr = db.BeginTransaction())
 				{
 					var dc = await indexBrand.LookupAsync(tr, value: "DC");
+					Console.WriteLine("DC: " + string.Join(", ", dc));
 					Assert.That(dc, Is.EqualTo(characters.Where(c => c.Brand == "DC").Select(c => c.Id).ToList()));
 
 					var marvel = await indexBrand.LookupAsync(tr, value: "Marvel");
+					Console.WriteLine("Marvel: " + string.Join(", ", dc));
 					Assert.That(marvel, Is.EqualTo(characters.Where(c => c.Brand == "Marvel").Select(c => c.Id).ToList()));
 				}
 
