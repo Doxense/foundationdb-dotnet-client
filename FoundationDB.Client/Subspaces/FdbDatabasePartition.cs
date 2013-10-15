@@ -59,6 +59,18 @@ namespace FoundationDB.Client
 			m_root = new FdbDirectoryLayer(nodes, contents);
 		}
 
+		public FdbDatabasePartition(IFdbDatabase database, FdbDirectoryLayer directory)
+			: base(database, false, false)
+		{
+			if (database == null) throw new ArgumentNullException("database");
+			if (directory == null) throw new ArgumentNullException("directory");
+
+			if (!database.GlobalSpace.Contains(directory.NodeSubspace.Key)) throw new ArgumentException("Nodes subspace of the directory must be contained inside the database global namespace", "directory");
+			if (!database.GlobalSpace.Contains(directory.ContentSubspace.Key)) throw new ArgumentException("Contents subspace of the directory must be contained inside the database global namespace", "directory");
+
+			m_root = directory;
+		}
+
 		/// <summary>DirectoryLayer instance corresponding to the Root of this partition</summary>
 		public FdbDirectoryLayer Root { get { return m_root; } }
 
