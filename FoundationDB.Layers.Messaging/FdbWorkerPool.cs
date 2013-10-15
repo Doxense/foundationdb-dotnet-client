@@ -1,4 +1,30 @@
-﻿#undef LOG_SCHEDULING_IN_DB
+﻿#region BSD Licence
+/* Copyright (c) 2013, Doxense SARL
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+	* Redistributions of source code must retain the above copyright
+	  notice, this list of conditions and the following disclaimer.
+	* Redistributions in binary form must reproduce the above copyright
+	  notice, this list of conditions and the following disclaimer in the
+	  documentation and/or other materials provided with the distribution.
+	* Neither the name of Doxense nor the
+	  names of its contributors may be used to endorse or promote products
+	  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL <COPYRIGHT HOLDER> BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+#endregion
 
 using FoundationDB.Client;
 using FoundationDB.Layers.Tuples;
@@ -31,10 +57,6 @@ namespace FoundationDB.Layers.Messaging
 
 		internal FdbSubspace UnassignedTaskRing { get; private set; }
 
-#if LOG_SCHEDULING_IN_DB
-		internal FdbSubspace DebugScheduleLog { get; private set; }
-		internal FdbSubspace DebugWorkLog { get; private set; }
-#endif
 
 		#region Profiling...
 
@@ -79,10 +101,6 @@ namespace FoundationDB.Layers.Messaging
 			this.BusyRing = subspace.Partition(Slice.FromChar('B'));
 			this.UnassignedTaskRing = subspace.Partition(Slice.FromChar('U'));
 
-#if LOG_SCHEDULING_IN_DB
-			this.DebugScheduleLog = subspace.Partition("Sched");
-			this.DebugWorkLog = subspace.Partition("Work");
-#endif
 		}
 
 		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, FdbSubspace ring)
@@ -171,9 +189,6 @@ namespace FoundationDB.Layers.Messaging
 					tr.Clear(this.IdleRing.Pack(workerId));
 					// assign task to the worker
 					tr.Set(this.BusyRing.Pack(workerId), taskId);
-#if LOG_SCHEDULING_IN_DB
-					tr.Set(this.DebugScheduleLog.Pack(taskId), Slice.FromString("Assigned to worker at " + index.ToAsciiOrHexaString() + " (#" + tr.Context.Retries + ")"));
-#endif
 				}
 				else
 				{
@@ -183,9 +198,6 @@ namespace FoundationDB.Layers.Messaging
 
 					await PushQueueAsync(tr, this.UnassignedTaskRing.Pack(queueKey), taskId).ConfigureAwait(false);
 
-#if LOG_SCHEDULING_IN_DB
-					tr.Set(this.DebugScheduleLog.Pack(taskId), Slice.FromString("Pushed on queue '" + queueName + "' at " + queueKey.ToAsciiOrHexaString() + " (#" + tr.Context.Retries + ")"));
-#endif
 				}
 			}, 
 			onDone: (tr) =>
@@ -273,9 +285,6 @@ namespace FoundationDB.Layers.Messaging
 
 								tr.Annotate("Fetching body for task " + taskId);
 								taskBody = await tr.GetAsync(this.TaskStore.Pack(taskId)).ConfigureAwait(false);
-#if LOG_SCHEDULING_IN_DB
-								tr.Set(this.DebugWorkLog.Pack(taskId), Slice.FromString("Being processed by worker with id " + myId.ToAsciiOrHexaString()));
-#endif
 							}
 							else
 							{ // There are no unassigned task, so enter the idle_worker_ring and wait for a task to be asssigned to us
