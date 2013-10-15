@@ -35,6 +35,7 @@ using System.Diagnostics;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using FoundationDB.Layers.Counters;
 
 namespace FoundationDB.Layers.Messaging
 {
@@ -44,6 +45,12 @@ namespace FoundationDB.Layers.Messaging
 		/// <summary>Size of the randomly generate id. Range will be 0..(2^(8*N))-1</summary>
 		/// <remarks>Should be in the same scale as the hashcode generated from the queue names !</remarks>
 		private const int RANDOM_ID_BYTES = 4;
+
+		private const int COUNTER_TOTAL_TASKS = 0;
+		private const int COUNTER_IDLE = 1;
+		private const int COUNTER_BUSY = 2;
+		private const int COUNTER_UNASSIGNED = 3;
+		private const int COUNTER_PENDING_TASKS = 4;
 
 		private readonly RandomNumberGenerator m_rng = RandomNumberGenerator.Create();
 
@@ -57,6 +64,7 @@ namespace FoundationDB.Layers.Messaging
 
 		internal FdbSubspace UnassignedTaskRing { get; private set; }
 
+		internal FdbCounterMap<int> Counters { get; private set; }
 
 		#region Profiling...
 
@@ -101,6 +109,7 @@ namespace FoundationDB.Layers.Messaging
 			this.BusyRing = subspace.Partition(Slice.FromChar('B'));
 			this.UnassignedTaskRing = subspace.Partition(Slice.FromChar('U'));
 
+			this.Counters = new FdbCounterMap<int>(subspace.Partition(Slice.FromChar('C')));
 		}
 
 		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, FdbSubspace ring)
@@ -187,8 +196,12 @@ namespace FoundationDB.Layers.Messaging
 
 					// remove worker from the idle ring
 					tr.Clear(this.IdleRing.Pack(workerId));
+					this.Counters.Decrement(tr, COUNTER_IDLE);
+
 					// assign task to the worker
 					tr.Set(this.BusyRing.Pack(workerId), taskId);
+					tr.Set(this.BusyRing.Pack(workerId, 'T'), Slice.FromInt64(Stopwatch.GetTimestamp()));
+					this.Counters.Increment(tr, COUNTER_BUSY);
 				}
 				else
 				{
@@ -199,6 +212,11 @@ namespace FoundationDB.Layers.Messaging
 					await PushQueueAsync(tr, this.UnassignedTaskRing.Pack(queueKey), taskId).ConfigureAwait(false);
 
 				}
+
+				// increment total and pending number of tasks
+				this.Counters.Increment(tr, COUNTER_TOTAL_TASKS);
+				this.Counters.Increment(tr, COUNTER_PENDING_TASKS);
+
 			}, 
 			onDone: (tr) =>
 			{
@@ -244,6 +262,7 @@ namespace FoundationDB.Layers.Messaging
 							{ // we need to clean up the previous task
 								tr.Annotate("Clearing previous task " + previousTaskId.ToAsciiOrHexaString());
 								tr.Clear(this.TaskStore.Pack(previousTaskId));
+								this.Counters.Decrement(tr, COUNTER_PENDING_TASKS);
 							}
 							else if (myId.IsPresent)
 							{ // look for an already assigned task
@@ -272,6 +291,7 @@ namespace FoundationDB.Layers.Messaging
 									if (!myId.IsPresent) myId = GetRandomId();
 									tr.Annotate("Found " + taskId + ", switch to busy with id " + myId.ToAsciiOrHexaString());
 									tr.Set(this.BusyRing.Pack(myId), taskId);
+									this.Counters.Increment(tr, COUNTER_BUSY);
 								}
 								else if (myId.IsPresent)
 								{ // remove ourselves from the busy ring
@@ -291,7 +311,7 @@ namespace FoundationDB.Layers.Messaging
 
 								// remove us from the busy ring
 								tr.Clear(this.BusyRing.Pack(myId));
-								tr.AtomicAdd(this.CountersBusy, CounterDecrement);
+								this.Counters.Decrement(tr, COUNTER_BUSY);
 
 								// choose a new random position on the idle ring
 								myId = GetRandomId();
@@ -300,6 +320,8 @@ namespace FoundationDB.Layers.Messaging
 								var watchKey = this.IdleRing.Pack(myId);
 								tr.Annotate("Will start watching on key " + watchKey.ToAsciiOrHexaString() + " with id " + myId.ToAsciiOrHexaString());
 								tr.Set(watchKey, Slice.Empty);
+								this.Counters.Increment(tr, COUNTER_IDLE);
+
 								watch = tr.Watch(watchKey, ct);
 							}
 
