@@ -898,13 +898,14 @@ namespace FoundationDB.Client
 		{
 			this.Database.EnsureKeyIsValid(key);
 
+			// keep a copy of the key
+			// > don't keep a reference on a potentially large buffer while the watch is active, preventing it from being garbage collected
+			// > allow the caller to reuse freely the slice underlying buffer, without changing the value that we will return when the task completes
+			key = key.Memoize();
+
 #if DEBUG
 			if (Logging.On) Logging.Verbose(this, "WatchAsync", String.Format("Watching key '{0}'", key.ToString()));
 #endif
-
-			//BUGBUG: we need to mix the ct with m_token if they are different ?
-			// This is just a temporary hack
-			if (!cancellationToken.CanBeCanceled) cancellationToken = m_token;
 
 			var future = FdbNative.TransactionWatch(m_handle, key);
 			return new FdbWatch(

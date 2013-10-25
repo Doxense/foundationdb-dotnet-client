@@ -33,12 +33,14 @@ namespace FoundationDB.Client
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Runtime.CompilerServices;
 	using System.Text;
 	using System.Threading.Tasks;
 
 	/// <summary>Factory class for keys</summary>
+	[DebuggerDisplay("Status={m_future.Task.Status}, Key={m_key}")]
 	public struct FdbWatch : IDisposable
 	{
 
@@ -108,6 +110,11 @@ namespace FoundationDB.Client
 			{
 				m_future.Dispose();
 			}
+		}
+
+		public override string ToString()
+		{
+			return "Watch(" + FdbKey.Dump(m_key) + ")";
 		}
 
 	}
