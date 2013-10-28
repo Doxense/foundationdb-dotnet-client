@@ -36,6 +36,7 @@ namespace FoundationDB.Tests.Sandbox
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
+	using System.Net;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -180,8 +181,8 @@ namespace FoundationDB.Tests.Sandbox
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
 						// get coordinators
-						string coordinators = await db.GetCoordinatorsAsync();
-						Console.WriteLine("Coordinators: " + coordinators);
+						var cf = await db.GetCoordinatorsAsync();
+						Console.WriteLine("Coordinators: " + cf.ToString());
 
 						// clear everything
 						using (var tr = db.BeginTransaction())

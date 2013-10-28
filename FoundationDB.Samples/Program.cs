@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -141,6 +142,15 @@ namespace FoundationDB.Samples
 				{
 
 					Console.WriteLine("Using API v" + Fdb.GetMaxApiVersion());
+					Console.WriteLine("Cluster file: " + (clusterFile ?? "<default>"));
+					var cf = Db.GetCoordinatorsAsync().GetAwaiter().GetResult();
+					Console.WriteLine("Connnected to: " + cf.Description + " (" + cf.Id + ")");
+					foreach (var coordinator in cf.Coordinators)
+					{
+						var iphost = Dns.GetHostEntry(coordinator.Address);
+						Console.WriteLine("> " + coordinator.Address + ":" + coordinator.Port + " (" + iphost.HostName + ")");
+					}
+					Console.WriteLine();
 					Console.WriteLine("FoundationDB Samples menu:");
 					Console.WriteLine("\t1\tRun Class Schedudling sample");
 					Console.WriteLine("\t2\tBrowser Directory Layer");

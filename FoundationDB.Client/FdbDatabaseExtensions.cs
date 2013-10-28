@@ -261,21 +261,25 @@ namespace FoundationDB.Client
 
 		//TODO: move these methods to another subspace ? (ex: 'FoundationDb.Client.System' or 'FoundationDb.Client.Administration' ?)
 
-		/// <summary>Returns a string describing the list of the coordinators for the cluster</summary>
-		public static Task<string> GetCoordinatorsAsync(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
+		/// <summary>Returns an object describing the list of the coordinators for the cluster</summary>
+		public static async Task<FdbClusterFile> GetCoordinatorsAsync(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.ReadAsync<string>(async (tr) =>
+			var coordinators = await db.ReadAsync<string>(async (tr) =>
 			{
 				tr.SetOption(FdbTransactionOption.AccessSystemKeys);
 				var result = await tr.GetAsync(Fdb.SystemKeys.Coordinators).ConfigureAwait(false);
 				return result.ToAscii();
-			}, cancellationToken);
+			}, cancellationToken).ConfigureAwait(false);
+
+			return FdbClusterFile.Parse(coordinators);
 		}
 
 		/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
+		/// <param name="db"></param>
 		/// <param name="name">"storage_engine"</param>
+		/// <param name="cancellationToken"></param>
 		/// <returns>Value of '\xFF/conf/storage_engine'</returns>
 		public static Task<Slice> GetConfigParameter(this IFdbDatabase db, string name, CancellationToken cancellationToken = default(CancellationToken))
 		{
