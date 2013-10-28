@@ -46,16 +46,22 @@ namespace FoundationDB.Client
 
 		private readonly FdbFuture<Slice> m_future;
 		private readonly Slice m_key;
+		private Slice m_value;
 
-		internal FdbWatch(FdbFuture<Slice> future, Slice key)
+		internal FdbWatch(FdbFuture<Slice> future, Slice key, Slice value)
 		{
 			Contract.Requires(future != null);
 			m_future = future;
 			m_key = key;
+			m_value = value;
 		}
 
 		/// <summary>Key that is being watched</summary>
 		public Slice Key { get { return m_key; } }
+
+		/// <summary>Original value of the key, at the time the watch was created (optional)</summary>
+		/// <remarks>This property will return Slice.Nil if the original value was not known at the creation of this Watch instance.</remarks>
+		public Slice Value { get { return m_value; } internal set { m_value = value; } }
 
 		/// <summary>Returns true if the watch is still active, or false if it fired or was cancelled</summary>
 		public bool IsAlive

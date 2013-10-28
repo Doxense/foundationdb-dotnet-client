@@ -910,7 +910,8 @@ namespace FoundationDB.Client
 			var future = FdbNative.TransactionWatch(m_handle, key);
 			return new FdbWatch(
 				FdbFuture.FromHandle<Slice>(future, (h) => key, cancellationToken),
-				key
+				key,
+				Slice.Nil
 			);
 		}
 

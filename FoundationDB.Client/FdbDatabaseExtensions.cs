@@ -213,6 +213,50 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Watches...
+
+		/// <summary>Reads the value associated with <paramref name="key"/>, and returns a Watch that will complete after a subsequent change to key in the database.</summary>
+		/// <param name="db">Database instance.</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
+		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property contains the current value of the key.</returns>
+		public static Task<FdbWatch> GetAndWatch(this IFdbDatabase db, Slice key, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+
+			return db.ReadWriteAsync(async (tr) =>
+			{
+				var result = await tr.GetAsync(key).ConfigureAwait(false);
+				var watch = tr.Watch(key, cancellationToken);
+				watch.Value = result.Memoize();
+				return watch;
+			}, cancellationToken);
+		}
+
+		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
+		/// <param name="db">Database instance.</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
+		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
+		public static async Task<FdbWatch> SetAndWatch(this IFdbDatabase db, Slice key, Slice value, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (db == null) throw new ArgumentNullException("db");
+
+			FdbWatch watch = default(FdbWatch);
+
+			await db.WriteAsync((tr) =>
+			{
+				tr.Set(key, value);
+				watch = tr.Watch(key, cancellationToken);
+			}, cancellationToken).ConfigureAwait(false);
+
+			watch.Value = value.Memoize();
+			return watch;
+		}
+
+		#endregion
+
 		#region System Keys...
 
 		//TODO: move these methods to another subspace ? (ex: 'FoundationDb.Client.System' or 'FoundationDb.Client.Administration' ?)
