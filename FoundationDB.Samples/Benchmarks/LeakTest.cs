@@ -1,6 +1,6 @@
 ﻿//TODO: License for samples/tutorials ???
 
-namespace FoundationDB.Samples.Tutorials
+namespace FoundationDB.Samples.Benchmarks
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Native;
@@ -11,6 +11,7 @@ namespace FoundationDB.Samples.Tutorials
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
+	using System.IO;
 	using System.Linq;
 	using System.Text;
 	using System.Threading;
@@ -110,10 +111,10 @@ namespace FoundationDB.Samples.Tutorials
 
 		public string Name { get { return "LeakTest"; } }
 
-		public async Task Run(FdbDatabasePartition db, CancellationToken ct)
+		public async Task Run(FdbDatabasePartition db, TextWriter log, CancellationToken ct)
 		{
 			await Init(db, ct);
-			Console.WriteLine("Initialized");
+			Console.WriteLine("Leak test initialized");
 
 			ThreadPool.SetMinThreads(100, 100);
 

@@ -10,6 +10,7 @@ namespace FoundationDB.Samples.Tutorials
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
+	using System.IO;
 	using System.Linq;
 	using System.Text;
 	using System.Threading;
@@ -205,13 +206,13 @@ namespace FoundationDB.Samples.Tutorials
 
 		public string Name { get { return "ClassScheduling"; } }
 
-		public async Task Run(FdbDatabasePartition db, CancellationToken ct)
+		public async Task Run(FdbDatabasePartition db, TextWriter log, CancellationToken ct)
 		{
 			const int STUDENTS = 10;
 			const int OPS_PER_STUDENTS = 10;
 
 			await Init(db, ct);
-			Console.WriteLine("Initialized");
+			log.WriteLine("Class sheduling test initialized");
 
 			// run multiple students
 			var elapsed = await TestRunner.RunConcurrentWorkersAsync(
@@ -220,7 +221,7 @@ namespace FoundationDB.Samples.Tutorials
 				ct
 			);
 
-			Console.WriteLine("Ran {0} transactions in {1:0.0##} sec", (STUDENTS * OPS_PER_STUDENTS), elapsed.TotalSeconds);
+			log.WriteLine("Ran {0} transactions in {1:0.0##} sec", (STUDENTS * OPS_PER_STUDENTS), elapsed.TotalSeconds);
 		}
 
 		#endregion

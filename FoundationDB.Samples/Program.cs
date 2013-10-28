@@ -1,11 +1,14 @@
 ﻿using FoundationDB.Async;
 using FoundationDB.Client;
+using FoundationDB.Filters.Logging;
 using FoundationDB.Layers.Directories;
 using FoundationDB.Layers.Tuples;
+using FoundationDB.Samples.Benchmarks;
 using FoundationDB.Samples.Tutorials;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
@@ -18,19 +21,21 @@ namespace FoundationDB.Samples
 	public interface IAsyncTest
 	{
 		string Name { get; }
-		Task Run(FdbDatabasePartition db, CancellationToken ct);
+		Task Run(FdbDatabasePartition db, TextWriter log, CancellationToken ct);
 	}
 
 	public static class TestRunner
 	{
-		public static void RunAsyncTest(IAsyncTest test, FdbDatabasePartition db)
+		public static void RunAsyncTest(IAsyncTest test, TextWriter log, FdbDatabasePartition db)
 		{
 			Console.WriteLine("Starting " + test.Name + " ...");
+
+			if (log == null) log = Console.Out;
 
 			var cts = new CancellationTokenSource();
 			try
 			{
-				var t = test.Run(db, cts.Token);
+				var t = test.Run(db, log, cts.Token);
 
 				t.GetAwaiter().GetResult();
 				Console.WriteLine("Completed " + test.Name + ".");
@@ -124,6 +129,33 @@ namespace FoundationDB.Samples
 	{
 		private static FdbDatabasePartition Db;
 
+		static StreamWriter GetLogFile(string name)
+		{
+			long localTime = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) - 62135596800000;
+			long utcTime = (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) - 62135596800000;
+
+			string path = name + "_" + utcTime + ".log";
+			var stream = System.IO.File.CreateText(path);
+
+			stream.WriteLine("# File: " + name);
+			stream.WriteLine("# Local Time: " + DateTime.Now.ToString("O") + " (" + localTime + " local) - Universal Time: " + DateTime.UtcNow.ToString("O") + " ( " + utcTime + " UTC)");
+			stream.Flush();
+
+			Console.WriteLine("> using log file " + path);
+
+			return stream;
+		}
+
+		static FdbDatabasePartition GetLoggedDatabase(FdbDatabasePartition db, StreamWriter stream, bool autoFlush = false)
+		{
+			if (stream == null) return db;
+
+			return new FdbDatabasePartition(
+				new FdbLoggedDatabase(db, false, false, (tr) => { stream.WriteLine(tr.Log.GetTimingsReport(true)); if (autoFlush) stream.Flush(); }),
+				db.Root
+			);
+		}
+
 		static void Main(string[] args)
 		{
 			bool stop = false;
@@ -133,13 +165,19 @@ namespace FoundationDB.Samples
 
 			// Initialize FDB
 
+			string initial = null;
+			if (args.Length > 0) initial = String.Join(" ", args);
+
+			bool logEnabled = false;
+
 			Fdb.Start();
 			try
 			{
-
 				Db = Fdb.PartitionTable.OpenNamedPartitionAsync(clusterFile, dbName, FdbTuple.Create("Samples")).Result;
 				using (Db)
 				{
+					Db.DefaultTimeout = 30 * 1000;
+					Db.DefaultRetryLimit = 10;
 
 					Console.WriteLine("Using API v" + Fdb.GetMaxApiVersion());
 					Console.WriteLine("Cluster file: " + (clusterFile ?? "<default>"));
@@ -164,9 +202,14 @@ namespace FoundationDB.Samples
 					while (!stop)
 					{
 						Console.Write("> ");
-						string s = Console.ReadLine();
+						string s = initial != null ? initial : Console.ReadLine();
+						initial = null;
 
-						switch (s.Trim().ToLowerInvariant())
+						var tokens = s.Trim().Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+						string cmd = tokens.Length > 0 ? tokens[0] : String.Empty;
+						string prm = tokens.Length > 1 ? tokens[1] : String.Empty;
+
+						switch (cmd.Trim().ToLowerInvariant())
 						{
 							case "":
 							{
@@ -175,7 +218,7 @@ namespace FoundationDB.Samples
 							case "1":
 							{ // Class Scheduling
 
-								TestRunner.RunAsyncTest(new ClassScheduling(), Db);
+								TestRunner.RunAsyncTest(new ClassScheduling(), null, Db);
 								break;
 							}
 							case "2":
@@ -184,9 +227,99 @@ namespace FoundationDB.Samples
 								Console.WriteLine("NOT IMPLEMENTED");
 								break;
 							}
+
+							case "log":
+							{
+								switch(prm.ToLowerInvariant())
+								{
+									case "on":
+									{
+										logEnabled = true;
+										Console.WriteLine("Logging is ON");
+										break;
+									}
+									case "off":
+									{
+										logEnabled = false;
+										Console.WriteLine("Logging is OFF");
+										break;
+									}
+								}
+								break;
+							}
+
+							case "bench":
+							{ // Benchs
+
+								switch(prm.ToLowerInvariant())
+								{
+									case "read":
+									{
+										using (var stream = logEnabled ? GetLogFile("bench_readversion") : null)
+										{
+											TestRunner.RunAsyncTest(
+												new BenchRunner(BenchRunner.BenchMode.GetReadVersion),
+												stream,
+												GetLoggedDatabase(Db, stream)
+											);
+										}
+										break;
+									}
+									case "get":
+									{
+										using (var stream = logEnabled ? GetLogFile("bench_get") : null)
+										{
+											TestRunner.RunAsyncTest(
+												new BenchRunner(BenchRunner.BenchMode.Get),
+												stream,
+												GetLoggedDatabase(Db, stream)
+											);
+										}
+										break;
+									}
+									case "get10":
+									{
+										using (var stream = logEnabled ? GetLogFile("bench_get10") : null)
+										{
+											TestRunner.RunAsyncTest(
+												new BenchRunner(BenchRunner.BenchMode.Get, 10),
+												stream,
+												GetLoggedDatabase(Db, stream)
+											);
+										}
+										break;
+									}
+									case "set":
+									{ // Bench Set
+										using (var stream = logEnabled ? GetLogFile("bench_set") : null)
+										{
+											TestRunner.RunAsyncTest(
+												new BenchRunner(BenchRunner.BenchMode.Set),
+												stream,
+												GetLoggedDatabase(Db, stream)
+											);
+										}
+										break;
+									}
+									case "watch":
+									{ // Bench Set
+										using (var stream = logEnabled ? GetLogFile("bench_watch") : null)
+										{
+											TestRunner.RunAsyncTest(
+												new BenchRunner(BenchRunner.BenchMode.Watch),
+												stream,
+												GetLoggedDatabase(Db, stream)
+											);
+										}
+										break;
+									}
+								}
+
+								break;
+							}
 							case "l":
 							{ // LeastTest
-								TestRunner.RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30)), Db);
+								TestRunner.RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30)), null, Db);
 								break;
 							}
 
