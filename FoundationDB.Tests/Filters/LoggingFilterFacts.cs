@@ -97,7 +97,7 @@ namespace FoundationDB.Filters.Logging.Tests
 				// create a logged version of the database
 				var logged = new FdbLoggedDatabase(db, false, false, logHandler);
 
-				for (int k = 0; k < 20; k++)
+				for (int k = 0; k < 100; k++)
 				{
 					Console.WriteLine("==== " + k + " ==== ");
 					Console.WriteLine();
@@ -106,7 +106,7 @@ namespace FoundationDB.Filters.Logging.Tests
 					{
 						Assert.That(tr, Is.InstanceOf<FdbLoggedTransaction>());
 
-						tr.SetOption(FdbTransactionOption.CausalReadRisky);
+						//tr.SetOption(FdbTransactionOption.CausalReadRisky);
 
 						long ver = await tr.GetReadVersionAsync().ConfigureAwait(false);
 
@@ -136,10 +136,10 @@ namespace FoundationDB.Filters.Logging.Tests
 
 						await tr.GetValuesAsync(Enumerable.Range(0, N).Select(x => location.Pack("X", x))).ConfigureAwait(false);
 
-						//for (int i = 0; i < N; i++)
-						//{
-						//	await tr.GetAsync(location.Pack("Z", i)).ConfigureAwait(false);
-						//}
+						for (int i = 0; i < N; i++)
+						{
+							await tr.GetAsync(location.Pack("Z", i)).ConfigureAwait(false);
+						}
 
 						await Task.WhenAll(Enumerable.Range(0, N / 2).Select(x => tr.GetAsync(location.Pack("Y", x)))).ConfigureAwait(false);
 						await Task.WhenAll(Enumerable.Range(N / 2, N / 2).Select(x => tr.GetAsync(location.Pack("Y", x)))).ConfigureAwait(false);
