@@ -84,11 +84,11 @@ namespace FoundationDB.Layers.Messaging
 				int msgSent = 0;
 				int msgReceived = 0;
 
-				Func<string, Slice, Slice, CancellationToken, Task> handler = async (queue, id, body, _ct) =>
+				Func<FdbWorkerMessage, CancellationToken, Task> handler = async (msg, _ct) =>
 				{
 					Interlocked.Increment(ref msgReceived);
 
-					//await Task.Delay(10 + Math.Abs(id.GetHashCode()) % 50);
+					//await Task.Delay(10 + Math.Abs(msg.Id.GetHashCode()) % 50);
 					await Task.Delay(10).ConfigureAwait(false);
 
 				};
@@ -116,10 +116,9 @@ namespace FoundationDB.Layers.Messaging
 					for (int i = 0; i < N; i++)
 					{
 						var taskId = Slice.FromString("T" + Interlocked.Increment(ref taskCounter));
-						string queueName = "Q_" + rnd.Next(16).ToString();
-						var taskBody = Slice.FromString("Message " + (i + 1) + " of " + N + " from client #" + id + " on queue " + queueName);
+						var taskBody = Slice.FromString("Message " + (i + 1) + " of " + N + " from client #" + id);
 
-						await workerPool.ScheduleTaskAsync(db, queueName, taskId, taskBody, ct).ConfigureAwait(false);
+						await workerPool.ScheduleTaskAsync(db, taskId, taskBody, ct).ConfigureAwait(false);
 						Interlocked.Increment(ref msgSent);
 
 						//if (i > 0 && i % 10 == 0) Console.WriteLine("@@@ Client#" + id + " pushed " + (i + 1) + " / " + N + " messages");

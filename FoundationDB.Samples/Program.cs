@@ -317,6 +317,58 @@ namespace FoundationDB.Samples
 
 								break;
 							}
+
+							case "msg":
+							{
+								switch(prm.ToLowerInvariant())
+								{
+									case "producer":
+									{ // Queue Producer
+										using (var stream = logEnabled ? GetLogFile("producer_" + PerfCounters.ProcessId) : null)
+										{
+											//var dbp = Db;
+											TestRunner.RunAsyncTest(
+												new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Producer, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(200)), 
+												stream,
+												GetLoggedDatabase(Db, stream)
+											);
+										}
+										break;
+									}
+									case "worker":
+									{ // Queue Worker
+										using (var stream = logEnabled ? GetLogFile("worker_" + PerfCounters.ProcessId) : null)
+										{
+											TestRunner.RunAsyncTest(
+												new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Worker, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(10)),
+												stream,
+												GetLoggedDatabase(Db, stream)
+											);
+										}
+										break;
+									}
+									case "clear":
+									{ // Queue Clear
+										TestRunner.RunAsyncTest(
+											new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Clear, TimeSpan.Zero, TimeSpan.Zero),
+											null,
+											Db
+										);
+										break;
+									}
+									case "status":
+									{ // Queue Status
+										TestRunner.RunAsyncTest(
+											new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Status, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)), 
+											null,
+											Db
+										);
+										break;
+									}
+								}
+								break;
+							}
+
 							case "l":
 							{ // LeastTest
 								TestRunner.RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30)), null, Db);

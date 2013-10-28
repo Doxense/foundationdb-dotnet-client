@@ -40,6 +40,14 @@ using FoundationDB.Layers.Counters;
 namespace FoundationDB.Layers.Messaging
 {
 
+	public class FdbWorkerMessage
+	{
+		public Slice Id { get; internal set; }
+		public Slice Body { get; internal set; }
+		public DateTimeOffset Scheduled { get; internal set; }
+		public DateTimeOffset Received { get; internal set; }
+	}
+
     public class FdbWorkerPool
     {
 		/// <summary>Size of the randomly generate id. Range will be 0..(2^(8*N))-1</summary>
@@ -51,6 +59,8 @@ namespace FoundationDB.Layers.Messaging
 		private const int COUNTER_BUSY = 2;
 		private const int COUNTER_UNASSIGNED = 3;
 		private const int COUNTER_PENDING_TASKS = 4;
+
+		private const int TASK_META_SCHEDULED = 0;
 
 		private readonly RandomNumberGenerator m_rng = RandomNumberGenerator.Create();
 
@@ -126,19 +136,14 @@ namespace FoundationDB.Layers.Messaging
 			// To reduce the latency for this case, we will issue both range reads at the same time, and discard the second one if the first returned something.
 			// This should reduce the latency in half when the ring is empty, or when it contains only items before the random key.
 
-			var candidates = await Task.WhenAll(
-				tr.GetRange(key, range.End).FirstOrDefaultAsync(),
-				tr.GetRange(range.Begin, key).FirstOrDefaultAsync()
-			).ConfigureAwait(false);
+			var candidate = await tr.GetRange(key, range.End).FirstOrDefaultAsync();
 
-			return candidates[0].Key != null ? candidates[0] : candidates[1];
-		}
+			if (!candidate.Key.IsPresent)
+			{
+				candidate = await tr.GetRange(range.Begin, key).FirstOrDefaultAsync();
+			}
 
-		private Slice GetQueueKey(string queueName)
-		{
-			//HACKHACK: use the hashcode of the queue name to place it around the ring
-			//TODO: string.GetHashcode() is not stable across versions of .NET or plateforms! Replace this with something that will always produce the same results (XxHash? CityHash?)
-			return Slice.FromFixed32(queueName.GetHashCode());
+			return candidate;
 		}
 
 		private Slice GetRandomId()
@@ -149,41 +154,62 @@ namespace FoundationDB.Layers.Messaging
 			}
 		}
 
-		private async Task PushQueueAsync(IFdbTransaction tr, Slice queue, Slice taskId)
+		private async Task PushQueueAsync(IFdbTransaction tr, FdbSubspace queue, Slice taskId)
 		{
 			//TODO: use a high contention algo ?
 			// - must support Push and Pop
 			// - an empty queue must correspond to an empty subspace
 
 			// get the current size of the queue
-			var range = FdbTuple.ToRange(queue);
+			var range = queue.ToRange();
 			var lastKey = await tr.Snapshot.GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
-			int count = lastKey < range.Begin ? 0 : FdbTuple.UnpackWithoutPrefix(lastKey, queue).Get<int>(0) + 1;
+			int count = lastKey < range.Begin ? 0 : queue.Unpack(lastKey).Get<int>(0) + 1;
 
 			// set the value
-			tr.Set(FdbTuple.Concat(queue, count, GetRandomId()), taskId);
+			tr.Set(queue.Pack(count, GetRandomId()), taskId);
+		}
+
+		private void StoreTask(IFdbTransaction tr, Slice taskId, DateTime scheduledUtc, Slice taskBody)
+		{
+			tr.Annotate("Writing task " + taskId.ToAsciiOrHexaString());
+
+			var prefix = this.TaskStore.Partition(taskId);
+
+			// store task body and timestamp
+			tr.Set(prefix.Key, taskBody);
+			tr.Set(prefix.Pack(TASK_META_SCHEDULED), Slice.FromInt64(scheduledUtc.Ticks));
+			// increment total and pending number of tasks
+			this.Counters.Increment(tr, COUNTER_TOTAL_TASKS);
+			this.Counters.Increment(tr, COUNTER_PENDING_TASKS);
+		}
+
+		private void ClearTask(IFdbTransaction tr, Slice taskId)
+		{
+			tr.Annotate("Deleting task " + taskId.ToAsciiOrHexaString());
+
+			// clear all metadata about the task
+			tr.ClearRange(FdbKeyRange.StartsWith(this.TaskStore.Pack(taskId)));
+			// decrement pending number of tasks
+			this.Counters.Decrement(tr, COUNTER_PENDING_TASKS);
 		}
 
 		/// <summary>Add and Schedule a new Task in the worker pool</summary>
 		/// <param name="dbOrTrans">Either a database or a transaction</param>
-		/// <param name="queueName"></param>
 		/// <param name="taskId"></param>
 		/// <param name="taskBody"></param>
 		/// <param name="ct"></param>
 		/// <returns></returns>
-		public async Task ScheduleTaskAsync(IFdbTransactional dbOrTrans, string queueName, Slice taskId, Slice taskBody, CancellationToken ct = default(CancellationToken))
+		public async Task ScheduleTaskAsync(IFdbTransactional dbOrTrans, Slice taskId, Slice taskBody, CancellationToken ct = default(CancellationToken))
 		{
+			var now = DateTime.UtcNow;
+
 			await dbOrTrans.ReadWriteAsync(async (tr) =>
 			{
 				Interlocked.Increment(ref m_schedulingAttempts);
 #if DEBUG
 				if (tr.Context.Retries > 0) Console.WriteLine("# retry n°" + tr.Context.Retries + " for task " + taskId.ToAsciiOrHexaString());
 #endif
-				tr.Annotate("I want to schedule " + taskId.ToAsciiOrHexaString() + " on queue " + queueName);
-
-
-				// store the task body
-				tr.Set(this.TaskStore.Pack(taskId), taskBody);
+				tr.Annotate("I want to schedule " + taskId.ToAsciiOrHexaString());
 
 				// find a random worker from the idle ring
 				var randomWorkerKey = await FindRandomItem(tr, this.IdleRing).ConfigureAwait(false);
@@ -200,23 +226,17 @@ namespace FoundationDB.Layers.Messaging
 
 					// assign task to the worker
 					tr.Set(this.BusyRing.Pack(workerId), taskId);
-					tr.Set(this.BusyRing.Pack(workerId, 'T'), Slice.FromInt64(Stopwatch.GetTimestamp()));
 					this.Counters.Increment(tr, COUNTER_BUSY);
 				}
 				else
 				{
-					var queueKey = GetQueueKey(queueName);
+					tr.Annotate("Queueing " + taskId.ToAsciiOrHexaString());
 
-					tr.Annotate("Queueing " + taskId.ToAsciiOrHexaString() + " on " + queueKey.ToAsciiOrHexaString());
-
-					await PushQueueAsync(tr, this.UnassignedTaskRing.Pack(queueKey), taskId).ConfigureAwait(false);
-
+					await PushQueueAsync(tr, this.UnassignedTaskRing, taskId).ConfigureAwait(false);
 				}
 
-				// increment total and pending number of tasks
-				this.Counters.Increment(tr, COUNTER_TOTAL_TASKS);
-				this.Counters.Increment(tr, COUNTER_PENDING_TASKS);
-
+				// store the task in the db
+				StoreTask(tr, taskId, now, taskBody);
 			}, 
 			onDone: (tr) =>
 			{
@@ -228,15 +248,14 @@ namespace FoundationDB.Layers.Messaging
 		static int counter = 0;
 
 		/// <summary>Run the worker loop</summary>
-		public async Task RunWorkerAsync(IFdbDatabase db, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
+		public async Task RunWorkerAsync(IFdbDatabase db, Func<FdbWorkerMessage, CancellationToken, Task> handler, CancellationToken ct)
 		{
 			int num = Interlocked.Increment(ref counter);
 
 			Slice workerId = Slice.Nil;
-			Slice taskId = Slice.Nil;
-			Slice taskBody = Slice.Nil;
 			Slice previousTaskId = Slice.Nil;
 			FdbWatch watch = default(FdbWatch);
+			FdbWorkerMessage msg = null;
 
 			Interlocked.Increment(ref m_workers);
 			try
@@ -247,50 +266,45 @@ namespace FoundationDB.Layers.Messaging
 					ct.ThrowIfCancellationRequested();
 
 					Slice myId = Slice.Nil;
-
 					await db.ReadWriteAsync(
 						async (tr) =>
 						{
 							tr.Annotate("I'm worker #" + num + " with id " + workerId.ToAsciiOrHexaString());
 
 							myId = workerId;
-							taskId = Slice.Nil;
-							taskBody = Slice.Nil;
 							watch = default(FdbWatch);
+							msg = new FdbWorkerMessage();
 
 							if (previousTaskId != null)
 							{ // we need to clean up the previous task
-								tr.Annotate("Clearing previous task " + previousTaskId.ToAsciiOrHexaString());
-								tr.Clear(this.TaskStore.Pack(previousTaskId));
-								this.Counters.Decrement(tr, COUNTER_PENDING_TASKS);
+								ClearTask(tr, previousTaskId);
 							}
 							else if (myId.IsPresent)
 							{ // look for an already assigned task
 								tr.Annotate("Look for already assigned task");
-								taskId = await tr.GetAsync(this.BusyRing.Pack(myId)).ConfigureAwait(false);
+								msg.Id = await tr.GetAsync(this.BusyRing.Pack(myId)).ConfigureAwait(false);
 							}
 
-							if (!taskId.IsPresent)
+							if (!msg.Id.IsPresent)
 							{ // We aren't already assigned a task, so get an item from a random queue
 
-								tr.Annotate("Look for random queued item");
+								tr.Annotate("Look for next queued item");
 								
-								// Find a random queue and peek the first Task in one step
-								// > this works because if we find a result it is guranteed to be the first item in the queue
-								var key = await FindRandomItem(tr, this.UnassignedTaskRing).ConfigureAwait(false);
+								// Find the next task on the queue
+								var item = await tr.GetRange(this.UnassignedTaskRing.ToRange()).FirstOrDefaultAsync().ConfigureAwait(false);
 
-								if (key.Key != null)
+								if (item.Key != null)
 								{ // pop the Task from the queue
-									taskId = key.Value;
-									tr.Clear(key.Key);
+									msg.Id = item.Value;
+									tr.Clear(item.Key);
 								}
 
-								if (taskId.IsPresent)
+								if (msg.Id.IsPresent)
 								{ // mark this worker as busy
 									// note: we need a random id so generate one if it is the first time...
 									if (!myId.IsPresent) myId = GetRandomId();
-									tr.Annotate("Found " + taskId + ", switch to busy with id " + myId.ToAsciiOrHexaString());
-									tr.Set(this.BusyRing.Pack(myId), taskId);
+									tr.Annotate("Found " + msg.Id.ToAsciiOrHexaString() + ", switch to busy with id " + myId.ToAsciiOrHexaString());
+									tr.Set(this.BusyRing.Pack(myId), msg.Id);
 									this.Counters.Increment(tr, COUNTER_BUSY);
 								}
 								else if (myId.IsPresent)
@@ -300,18 +314,30 @@ namespace FoundationDB.Layers.Messaging
 								}
 							}
 
-							if (taskId.IsPresent)
+							if (msg.Id.IsPresent)
 							{ // get the task body
 
-								tr.Annotate("Fetching body for task " + taskId);
-								taskBody = await tr.GetAsync(this.TaskStore.Pack(taskId)).ConfigureAwait(false);
+								tr.Annotate("Fetching body for task " + msg.Id.ToAsciiOrHexaString());
+								var prefix = this.TaskStore.Partition(msg.Id);
+								//TODO: replace this with a get_range ?
+								var data = await tr.GetValuesAsync(new [] {
+									prefix.Key,
+									prefix.Pack(TASK_META_SCHEDULED)
+								}).ConfigureAwait(false);
+
+								msg.Body = data[0];
+								msg.Scheduled = new DateTime(data[1].ToInt64(), DateTimeKind.Utc);
+								msg.Received = DateTime.UtcNow;
 							}
 							else
 							{ // There are no unassigned task, so enter the idle_worker_ring and wait for a task to be asssigned to us
 
 								// remove us from the busy ring
-								tr.Clear(this.BusyRing.Pack(myId));
-								this.Counters.Decrement(tr, COUNTER_BUSY);
+								if (myId.IsPresent)
+								{
+									tr.Clear(this.BusyRing.Pack(myId));
+									this.Counters.Decrement(tr, COUNTER_BUSY);
+								}
 
 								// choose a new random position on the idle ring
 								myId = GetRandomId();
@@ -334,7 +360,7 @@ namespace FoundationDB.Layers.Messaging
 						cancellationToken: ct
 					).ConfigureAwait(false);
 
-					if (taskId.IsNullOrEmpty)
+					if (msg.Id.IsNullOrEmpty)
 					{ // wait for someone to wake us up...
 						Interlocked.Increment(ref m_idleWorkers);
 						try
@@ -350,23 +376,23 @@ namespace FoundationDB.Layers.Messaging
 					else
 					{
 						//Console.WriteLine("Got task " + taskId);
-						previousTaskId = taskId;
+						previousTaskId = msg.Id;
 
-						if (taskBody.IsNull)
+						if (msg.Body.IsNull)
 						{ // the task has been dropped?
 							// TODO: loggin?
-							Console.WriteLine("[####] Task[" + taskId.ToAsciiOrHexaString() + "] has vanished?");
+							Console.WriteLine("[####] Task[" + msg.Id.ToAsciiOrHexaString() + "] has vanished?");
 						}
 						else
 						{
 							try
 							{
-								await RunTask(db, taskId, taskBody, handler, ct);
+								await RunTask(db, msg, handler, ct);
 							}
 							catch (Exception e)
 							{
 								//TODO: logging?
-								Console.Error.WriteLine("Task[" + taskId.ToAsciiOrHexaString() + "] failed: " + e.ToString());
+								Console.Error.WriteLine("Task[" + msg.Id.ToAsciiOrHexaString() + "] failed: " + e.ToString());
 							}
 						}
 					}
@@ -379,7 +405,7 @@ namespace FoundationDB.Layers.Messaging
 			}
 		}
 
-		private async Task RunTask(IFdbDatabase db, Slice taskId, Slice taskBody, Func<string, Slice, Slice, CancellationToken, Task> handler, CancellationToken ct)
+		private async Task RunTask(IFdbDatabase db, FdbWorkerMessage msg, Func<FdbWorkerMessage, CancellationToken, Task> handler, CancellationToken ct)
 		{
 			var sw = Stopwatch.StartNew();
 			try
@@ -387,7 +413,7 @@ namespace FoundationDB.Layers.Messaging
 				Interlocked.Increment(ref m_workerTasksReceived);
 
 				//TODO: custom TaskScheduler for task execution ?
-				await handler("Queue??", taskId, taskBody, ct).ConfigureAwait(false);
+				await handler(msg, ct).ConfigureAwait(false);
 
 				Interlocked.Increment(ref m_workerTasksCompleted);
 			}
