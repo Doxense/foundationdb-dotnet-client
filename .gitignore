@@ -28,5 +28,6 @@ _ReSharper*/
 *.vssscc
 $tf*/
 
+nuget/
 packages/
 fdb_c.dll

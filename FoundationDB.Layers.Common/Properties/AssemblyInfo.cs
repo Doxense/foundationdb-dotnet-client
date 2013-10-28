@@ -30,7 +30,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 
 [assembly: AssemblyTitle("FoundationDB.Layers.Common")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Common Layers for the FoundationDB .NET Binding")]
 [assembly: AssemblyConfiguration("")]
 
 [assembly: ComVisible(false)]
