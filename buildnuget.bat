@@ -1,10 +1,10 @@
 @echo off
 
-echo "Building Solution..."
-msbuild "FoundationDb.Client.sln" /t:Clean,Build /property:Configuration="Release"
+echo Building Solution...
+msbuild "FoundationDb.Client.sln" /m /t:Clean,Build /property:Configuration=Release
 IF ERRORLEVEL 1 EXIT /B 1
 
-echo "Building Packages..."
+echo Building Packages...
 rmdir /s /q nuget
 mkdir nuget
 pushd nuget
@@ -15,4 +15,4 @@ IF ERRORLEVEL 1 EXIT /B 1
 IF ERRORLEVEL 1 EXIT /B 1
 
 popd
-echo "Done"
+echo SUCCESS !!!

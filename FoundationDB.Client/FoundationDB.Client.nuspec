@@ -1,18 +1,19 @@
 <?xml version="1.0"?>
-<package >
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
-    <id>$id$</id>
-    <version>$version$</version>
-    <title>$title$</title>
-    <authors>$author$</authors>
-    <owners>$author$</owners>
+    <id>FoundationDB.Client</id>
+    <version>0.100.0-pre</version>
+    <title>FoundationDB Client</title>
+    <authors>Doxense</authors>
+    <owners>Doxense</owners>
     <licenseUrl>http://opensource.org/licenses/BSD-3-Clause</licenseUrl>
     <projectUrl>http://github.com/Doxense/foundationdb-dotnet-client</projectUrl>
-    <iconUrl>http://foundationdb.com/favicon.png</iconUrl>
+    <iconUrl>http://doxense.github.io/foundationdb-dotnet-client/nuget/foundationdb.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>$description$</description>
-    <releaseNotes></releaseNotes>
+    <description>.NET Binding for FoundationDB</description>
+    <releaseNotes>This is an  pre-release of the .NET Binding, the public API is still subject to changes.</releaseNotes>
     <copyright>Copyright 2013 Doxense SAS</copyright>
+	<language>en-US</language>
     <tags>foundationdb nosql</tags>
   </metadata>
 </package>
