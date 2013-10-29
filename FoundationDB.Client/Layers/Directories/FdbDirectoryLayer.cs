@@ -80,7 +80,7 @@ namespace FoundationDB.Layers.Directories
 
 			// The root node is the one whose contents are the node subspace
 			this.RootNode = nodeSubspace.Partition(nodeSubspace.Key);
-			this.Allocator = new FdbHighContentionAllocator(nodeSubspace.Partition(HcaKey));
+			this.Allocator = new FdbHighContentionAllocator(this.RootNode.Partition(HcaKey));
 		}
 
 		public static FdbDirectoryLayer FromPrefix(Slice prefix)

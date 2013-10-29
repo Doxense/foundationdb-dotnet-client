@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Directories
 
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("hpa");
+				var location = db.Partition(Slice.FromString("hca"));
 				await db.ClearRangeAsync(location);
 
 				var hpa = new FdbHighContentionAllocator(location);
