@@ -212,16 +212,16 @@ namespace FoundationDB.Samples.Tutorials
 			const int OPS_PER_STUDENTS = 10;
 
 			await Init(db, ct);
-			log.WriteLine("Class sheduling test initialized");
+			log.WriteLine("# Class sheduling test initialized");
 
 			// run multiple students
-			var elapsed = await TestRunner.RunConcurrentWorkersAsync(
+			var elapsed = await Program.RunConcurrentWorkersAsync(
 				STUDENTS,
 				(i, _ct) => IndecisiveStudent(db, i, OPS_PER_STUDENTS, _ct),
 				ct
 			);
 
-			log.WriteLine("Ran {0} transactions in {1:0.0##} sec", (STUDENTS * OPS_PER_STUDENTS), elapsed.TotalSeconds);
+			log.WriteLine("# Ran {0} transactions in {1:0.0##} sec", (STUDENTS * OPS_PER_STUDENTS), elapsed.TotalSeconds);
 		}
 
 		#endregion

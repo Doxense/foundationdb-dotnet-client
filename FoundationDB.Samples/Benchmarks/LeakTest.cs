@@ -4,15 +4,9 @@ namespace FoundationDB.Samples.Benchmarks
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Native;
-	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
 	using System.IO;
-	using System.Linq;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -114,7 +108,7 @@ namespace FoundationDB.Samples.Benchmarks
 		public async Task Run(FdbDatabasePartition db, TextWriter log, CancellationToken ct)
 		{
 			await Init(db, ct);
-			Console.WriteLine("Leak test initialized");
+			Console.WriteLine("# Leak test initialized");
 
 			ThreadPool.SetMinThreads(100, 100);
 
@@ -156,14 +150,14 @@ namespace FoundationDB.Samples.Benchmarks
 				for (int k = 0; k < this.N; k++)
 				{
 					// run multiple students
-					var elapsed = await TestRunner.RunConcurrentWorkersAsync(
+					var elapsed = await Program.RunConcurrentWorkersAsync(
 						K,
 						(i, _ct) => RunWorker(db, i, _ct),
 						ct
 					);
 
 					Console.WriteLine();
-					Console.WriteLine("Ran {0} workers in {1:0.0##} sec", this.K, elapsed.TotalSeconds);
+					Console.WriteLine("# Ran {0} workers in {1:0.0##} sec", this.K, elapsed.TotalSeconds);
 
 					await Task.Delay(TimeSpan.FromSeconds(21));
 				}

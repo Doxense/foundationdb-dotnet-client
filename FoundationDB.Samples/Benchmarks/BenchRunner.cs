@@ -93,7 +93,7 @@ namespace FoundationDB.Samples.Benchmarks
 			long total = 0;
 
 			timeline.Start();
-			var elapsed = await TestRunner.RunConcurrentWorkersAsync(
+			var elapsed = await Program.RunConcurrentWorkersAsync(
 				WORKERS,
 				async (i, _ct) =>
 				{
@@ -157,16 +157,16 @@ namespace FoundationDB.Samples.Benchmarks
 			);
 			timeline.Stop();
 			Console.WriteLine("Done       ");
-			Console.WriteLine("Ran {0} transactions in {1:0.0##} sec", total, elapsed.TotalSeconds);
+			Console.WriteLine("# Ran {0} transactions in {1:0.0##} sec", total, elapsed.TotalSeconds);
 
 			var global = timeline.MergeResults();
 
-			log.WriteLine("Merged results:");
+			log.WriteLine("# Merged results:");
 			log.WriteLine(global.GetReport(true));
 
 			if (log != Console.Out)
 			{
-				Console.WriteLine("Merged results:");
+				Console.WriteLine("# Merged results:");
 				Console.WriteLine(global.GetReport(true));
 			}
 		}

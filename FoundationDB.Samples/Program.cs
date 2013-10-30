@@ -24,111 +24,11 @@ namespace FoundationDB.Samples
 		Task Run(FdbDatabasePartition db, TextWriter log, CancellationToken ct);
 	}
 
-	public static class TestRunner
-	{
-		public static void RunAsyncTest(IAsyncTest test, TextWriter log, FdbDatabasePartition db)
-		{
-			Console.WriteLine("Starting " + test.Name + " ...");
-
-			if (log == null) log = Console.Out;
-
-			var cts = new CancellationTokenSource();
-			try
-			{
-				var t = test.Run(db, log, cts.Token);
-
-				t.GetAwaiter().GetResult();
-				Console.WriteLine("Completed " + test.Name + ".");
-			}
-			catch (Exception e)
-			{
-				Console.Error.WriteLine(e.ToString());
-			}
-			finally
-			{
-				cts.Dispose();
-			}
-		}
-
-		public static async Task<TimeSpan> RunConcurrentWorkersAsync(int workers, 
-			Func<int, CancellationToken, Task> handler, 
-			CancellationToken ct)
-		{
-			await Task.Delay(1).ConfigureAwait(false);
-
-			var signal = new AsyncCancelableMutex(ct);
-			var tasks = Enumerable.Range(0, workers).Select(async (i) =>
-			{
-				await signal.Task;
-				ct.ThrowIfCancellationRequested();
-				await handler(i, ct);
-			}).ToArray();
-
-			var sw = Stopwatch.StartNew();
-			signal.Set(async: true);
-			await Task.WhenAll(tasks);
-			sw.Stop();
-
-			return sw.Elapsed;
-		}
-
-	}
-
-	public static class PerfCounters
-	{
-
-		static PerfCounters()
-		{
-			var p = Process.GetCurrentProcess();
-			ProcessName = p.ProcessName;
-			ProcessId = p.Id;
-
-			CategoryProcess = new PerformanceCounterCategory("Process");
-
-			ProcessorTime = new PerformanceCounter("Process", "% Processor Time", ProcessName);
-			UserTime = new PerformanceCounter("Process", "% User Time", ProcessName);
-
-			PrivateBytes = new PerformanceCounter("Process", "Private Bytes", ProcessName);
-			VirtualBytes = new PerformanceCounter("Process", "Virtual Bytes", ProcessName);
-			VirtualBytesPeak = new PerformanceCounter("Process", "Virtual Bytes Peak", ProcessName);
-			WorkingSet = new PerformanceCounter("Process", "Working Set", ProcessName);
-			WorkingSetPeak = new PerformanceCounter("Process", "Working Set Peak", ProcessName);
-			HandleCount = new PerformanceCounter("Process", "Handle Count", ProcessName);
-
-			CategoryNetClrMemory = new PerformanceCounterCategory(".NET CLR Memory");
-			ClrBytesInAllHeaps = new PerformanceCounter(".NET CLR Memory", "# Bytes in all Heaps", ProcessName);
-			ClrTimeInGC = new PerformanceCounter(".NET CLR Memory", "% Time in GC", ProcessName);
-			ClrGen0Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 0 Collections", p.ProcessName, true);
-			ClrGen1Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 1 Collections", p.ProcessName, true);
-			ClrGen2Collections = new PerformanceCounter(".NET CLR Memory", "# Gen 1 Collections", p.ProcessName, true);
-		}
-
-		public static readonly string ProcessName;
-		public static readonly int ProcessId;
-
-		public static readonly PerformanceCounterCategory CategoryProcess;
-		public static readonly PerformanceCounter ProcessorTime;
-		public static readonly PerformanceCounter UserTime;
-		public static readonly PerformanceCounter PrivateBytes;
-		public static readonly PerformanceCounter VirtualBytes;
-		public static readonly PerformanceCounter VirtualBytesPeak;
-		public static readonly PerformanceCounter WorkingSet;
-		public static readonly PerformanceCounter WorkingSetPeak;
-		public static readonly PerformanceCounter HandleCount;
-
-		public static readonly PerformanceCounterCategory CategoryNetClrMemory;
-		public static readonly PerformanceCounter ClrBytesInAllHeaps;
-		public static readonly PerformanceCounter ClrTimeInGC;
-		public static readonly PerformanceCounter ClrGen0Collections;
-		public static readonly PerformanceCounter ClrGen1Collections;
-		public static readonly PerformanceCounter ClrGen2Collections;
-
-	}
-
-	class Program
+	public class Program
 	{
 		private static FdbDatabasePartition Db;
 
+		private static bool LogEnabled = false;
 		private static string CurrentDirectoryPath = "/";
 
 		static StreamWriter GetLogFile(string name)
@@ -158,24 +58,101 @@ namespace FoundationDB.Samples
 			);
 		}
 
+		public static void RunAsyncCommand(Func<FdbDatabasePartition, TextWriter, CancellationToken, Task> command)
+		{
+			TextWriter log = null;
+			FdbDatabasePartition db = Db;
+			if (log == null) log = Console.Out;
+
+			var cts = new CancellationTokenSource();
+			try
+			{
+				var t = command(db, log, cts.Token);
+				t.GetAwaiter().GetResult();
+			}
+			catch (Exception e)
+			{
+				Console.Error.WriteLine(e.ToString());
+			}
+			finally
+			{
+				cts.Dispose();
+			}
+		}
+
+		public static void RunAsyncTest(IAsyncTest test)
+		{
+			Console.WriteLine("# Running {0} ...");
+
+			using (var log = LogEnabled ? GetLogFile(test.Name) : null)
+			{
+				var db = GetLoggedDatabase(Db, log);
+
+				var cts = new CancellationTokenSource();
+				try
+				{
+					var t = test.Run(db, log ?? Console.Out, cts.Token);
+
+					t.GetAwaiter().GetResult();
+					Console.WriteLine("# Completed {0}.", test.Name);
+				}
+				catch (Exception e)
+				{
+					Console.Error.WriteLine("# {0} FAILED: {1}", test.Name, e.ToString());
+				}
+				finally
+				{
+					cts.Dispose();
+				}
+			}
+		}
+
+		public static async Task<TimeSpan> RunConcurrentWorkersAsync(int workers,
+			Func<int, CancellationToken, Task> handler,
+			CancellationToken ct)
+		{
+			await Task.Delay(1).ConfigureAwait(false);
+
+			var signal = new AsyncCancelableMutex(ct);
+			var tasks = Enumerable.Range(0, workers).Select(async (i) =>
+			{
+				await signal.Task;
+				ct.ThrowIfCancellationRequested();
+				await handler(i, ct);
+			}).ToArray();
+
+			var sw = Stopwatch.StartNew();
+			signal.Set(async: true);
+			await Task.WhenAll(tasks);
+			sw.Stop();
+
+			return sw.Elapsed;
+		}
+
 		static void Main(string[] args)
 		{
 			bool stop = false;
 
 			string clusterFile = null;
 			string dbName = "DB";
+			IFdbTuple partition = FdbTuple.Create("Samples");
 
 			// Initialize FDB
 
 			string initial = null;
 			if (args.Length > 0) initial = String.Join(" ", args);
 
-			bool logEnabled = false;
-
 			Fdb.Start();
 			try
 			{
-				Db = Fdb.PartitionTable.OpenNamedPartitionAsync(clusterFile, dbName, FdbTuple.Create("Samples")).Result;
+				if (partition == null || partition.Count == 0)
+				{
+					Db = Fdb.PartitionTable.OpenRootAsync(clusterFile, dbName).GetAwaiter().GetResult();
+				}
+				else
+				{
+					Db = Fdb.PartitionTable.OpenNamedPartitionAsync(clusterFile, dbName, partition).GetAwaiter().GetResult();
+				}
 				using (Db)
 				{
 					Db.DefaultTimeout = 30 * 1000;
@@ -193,8 +170,8 @@ namespace FoundationDB.Samples
 					Console.WriteLine();
 					Console.WriteLine("FoundationDB Samples menu:");
 					Console.WriteLine("\t1\tRun Class Schedudling sample");
-					Console.WriteLine("\t2\tBrowser Directory Layer");
 					Console.WriteLine("\tL\tRun Leak test");
+					Console.WriteLine("\tdir\tBrowse directories");
 					Console.WriteLine("\tgc\tTrigger garbage collection");
 					Console.WriteLine("\tmem\tMemory usage statistics");
 					Console.WriteLine("\tq\tQuit");
@@ -220,13 +197,7 @@ namespace FoundationDB.Samples
 							case "1":
 							{ // Class Scheduling
 
-								TestRunner.RunAsyncTest(new ClassScheduling(), null, Db);
-								break;
-							}
-							case "2":
-							{ // Directory Layer
-								//TODO!
-								Console.WriteLine("NOT IMPLEMENTED");
+								RunAsyncTest(new ClassScheduling());
 								break;
 							}
 
@@ -236,14 +207,19 @@ namespace FoundationDB.Samples
 								{
 									case "on":
 									{
-										logEnabled = true;
-										Console.WriteLine("Logging is ON");
+										LogEnabled = true;
+										Console.WriteLine("# Logging enabled");
 										break;
 									}
 									case "off":
 									{
-										logEnabled = false;
-										Console.WriteLine("Logging is OFF");
+										LogEnabled = false;
+										Console.WriteLine("# Logging disabled");
+										break;
+									}
+									default:
+									{
+										Console.WriteLine("# Logging is {0}", LogEnabled ? "ON" : "OFF");
 										break;
 									}
 								}
@@ -253,7 +229,7 @@ namespace FoundationDB.Samples
 							case "dir":
 							{
 								prm = CombinePath(CurrentDirectoryPath, prm);
-								BrowseDirectory(prm, null, Db).GetAwaiter().GetResult();
+								RunAsyncCommand((db, log, ct) => BrowseDirectory(prm, db, log, ct));
 								break;
 							}
 							case "cd":
@@ -262,11 +238,11 @@ namespace FoundationDB.Samples
 								if (!string.IsNullOrEmpty(prm))
 								{
 									CurrentDirectoryPath = CombinePath(CurrentDirectoryPath, prm);
-									Console.WriteLine("Directory changed to {0}", CurrentDirectoryPath);
+									Console.WriteLine("# Directory changed to {0}", CurrentDirectoryPath);
 								}
 								else
 								{
-									Console.WriteLine("Current directory is {0}", CurrentDirectoryPath);
+									Console.WriteLine("# Current directory is {0}", CurrentDirectoryPath);
 								}
 								break;
 							}
@@ -280,7 +256,7 @@ namespace FoundationDB.Samples
 									{
 										layer = tokens[2].Trim();
 									}
-									CreateDirectory(prm, layer, null, Db).GetAwaiter().GetResult();
+									RunAsyncCommand((db, log, ct) => CreateDirectory(prm, layer, db, log, ct));
 								}
 								break;
 							}
@@ -292,62 +268,27 @@ namespace FoundationDB.Samples
 								{
 									case "read":
 									{
-										using (var stream = logEnabled ? GetLogFile("bench_readversion") : null)
-										{
-											TestRunner.RunAsyncTest(
-												new BenchRunner(BenchRunner.BenchMode.GetReadVersion),
-												stream,
-												GetLoggedDatabase(Db, stream)
-											);
-										}
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.GetReadVersion));
 										break;
 									}
 									case "get":
 									{
-										using (var stream = logEnabled ? GetLogFile("bench_get") : null)
-										{
-											TestRunner.RunAsyncTest(
-												new BenchRunner(BenchRunner.BenchMode.Get),
-												stream,
-												GetLoggedDatabase(Db, stream)
-											);
-										}
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Get));
 										break;
 									}
 									case "get10":
 									{
-										using (var stream = logEnabled ? GetLogFile("bench_get10") : null)
-										{
-											TestRunner.RunAsyncTest(
-												new BenchRunner(BenchRunner.BenchMode.Get, 10),
-												stream,
-												GetLoggedDatabase(Db, stream)
-											);
-										}
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Get, 10));
 										break;
 									}
 									case "set":
 									{ // Bench Set
-										using (var stream = logEnabled ? GetLogFile("bench_set") : null)
-										{
-											TestRunner.RunAsyncTest(
-												new BenchRunner(BenchRunner.BenchMode.Set),
-												stream,
-												GetLoggedDatabase(Db, stream)
-											);
-										}
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Set));
 										break;
 									}
 									case "watch":
 									{ // Bench Set
-										using (var stream = logEnabled ? GetLogFile("bench_watch") : null)
-										{
-											TestRunner.RunAsyncTest(
-												new BenchRunner(BenchRunner.BenchMode.Watch),
-												stream,
-												GetLoggedDatabase(Db, stream)
-											);
-										}
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Watch));
 										break;
 									}
 								}
@@ -361,45 +302,22 @@ namespace FoundationDB.Samples
 								{
 									case "producer":
 									{ // Queue Producer
-										using (var stream = logEnabled ? GetLogFile("producer_" + PerfCounters.ProcessId) : null)
-										{
-											//var dbp = Db;
-											TestRunner.RunAsyncTest(
-												new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Producer, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(200)), 
-												stream,
-												GetLoggedDatabase(Db, stream)
-											);
-										}
+										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Producer, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(200)));
 										break;
 									}
 									case "worker":
 									{ // Queue Worker
-										using (var stream = logEnabled ? GetLogFile("worker_" + PerfCounters.ProcessId) : null)
-										{
-											TestRunner.RunAsyncTest(
-												new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Worker, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(10)),
-												stream,
-												GetLoggedDatabase(Db, stream)
-											);
-										}
+										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Worker, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(10)));
 										break;
 									}
 									case "clear":
 									{ // Queue Clear
-										TestRunner.RunAsyncTest(
-											new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Clear, TimeSpan.Zero, TimeSpan.Zero),
-											null,
-											Db
-										);
+										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Clear, TimeSpan.Zero, TimeSpan.Zero));
 										break;
 									}
 									case "status":
 									{ // Queue Status
-										TestRunner.RunAsyncTest(
-											new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Status, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)), 
-											null,
-											Db
-										);
+										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Status, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)));
 										break;
 									}
 								}
@@ -408,7 +326,7 @@ namespace FoundationDB.Samples
 
 							case "l":
 							{ // LeastTest
-								TestRunner.RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30)), null, Db);
+								RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30)));
 								break;
 							}
 
@@ -463,6 +381,8 @@ namespace FoundationDB.Samples
 			}
 		}
 
+		#region Directories...
+
 		private static string CombinePath(string parent, string children)
 		{
 			if (string.IsNullOrEmpty(children) || children == ".") return parent;
@@ -476,25 +396,25 @@ namespace FoundationDB.Samples
 			return FdbTuple.CreateRange<string>(path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries));
 		}
 
-		private static async Task CreateDirectory(string prm, string layer, TextWriter stream, FdbDatabasePartition db)
+		private static async Task CreateDirectory(string prm, string layer, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
 		{
 			if (stream == null) stream = Console.Out;
 
 			var path = ParsePath(prm);
 			stream.WriteLine("# Creating directory {0} with layer '{1}'", prm, layer);
 
-			var folder = await db.Root.TryOpenAsync(db, path);
+			var folder = await db.Root.TryOpenAsync(db, path, cancellationToken: ct);
 			if (folder != null)
 			{
 				stream.WriteLine("- Directory already exists!", prm);
 				return;
 			}
 
-			folder = await db.Root.TryCreateAsync(db, path, layer);
-			stream.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString());
+			folder = await db.Root.TryCreateAsync(db, path, layer, cancellationToken: ct);
+			stream.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
 
 			// look if there is already stuff under there
-			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).FirstOrDefaultAsync());
+			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).FirstOrDefaultAsync(), cancellationToken: ct);
 			if (stuff.Key.IsPresent)
 			{
 				stream.WriteLine("CAUTION: There is already some data under {0} !");
@@ -502,53 +422,67 @@ namespace FoundationDB.Samples
 			}
 		}
 
-		private static async Task BrowseDirectory(string prm, TextWriter stream, FdbDatabasePartition db)
+		private static async Task BrowseDirectory(string prm, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
 		{
 			if (stream == null) stream = Console.Out;
 
 			var path = ParsePath(prm);
 			stream.WriteLine("# Listing {0}:", prm);
 
-			var folders = await db.Root.ListAsync(db, path);
-			if (folders.Count > 0)
+			var folders = await db.Root.TryListAsync(db, path);
+			if (folders == null)
+			{
+				stream.WriteLine("  Directory not found.");
+			}
+			else if (folders.Count > 0)
 			{
 				foreach (var name in folders)
 				{
-					var subfolder = await db.Root.OpenAsync(db, path.Concat(name));
-					stream.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Key), string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("<" + subfolder.Layer + ">"), name.Get<string>(0));
+					var subfolder = await db.Root.TryOpenAsync(db, path.Concat(name), cancellationToken: ct);
+					if (subfolder != null)
+					{
+						stream.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Key), string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("<" + subfolder.Layer + ">"), name.Get<string>(0));
+					}
+					else
+					{
+						stream.WriteLine("  WARNING: {0} seems to be missing!", name.Get<string>(0));
+					}
 				}
-				stream.WriteLine("- {0} sub-directories(s).", folders.Count);
+				stream.WriteLine("  {0} sub-directorie(s).", folders.Count);
 			}
 			else
 			{
-				stream.WriteLine("- No subfolders.");
+				stream.WriteLine("  No sub-directories.");
 			}
 
 			if (prm != "/")
 			{
 				// look if there is something under there
-				var folder = await db.Root.TryOpenAsync(db, path);
+				var folder = await db.Root.TryOpenAsync(db, path, cancellationToken: ct);
 				if (folder != null)
 				{
-					stream.WriteLine("# Content of {0}:", FdbKey.Dump(folder.Key));
-					var keys = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).Take(21).ToListAsync());
+					stream.WriteLine("# Content of {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
+					var keys = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).Take(21).ToListAsync(), cancellationToken: ct);
 					if (keys.Count > 0)
 					{
 						foreach(var key in keys.Take(20))
 						{
-							stream.WriteLine("  {0} = {1}", FdbKey.Dump(key.Key), key.Value.ToAsciiOrHexaString());
+							stream.WriteLine("  ...{0} = {1}", FdbKey.Dump(folder.Extract(key.Key)), key.Value.ToAsciiOrHexaString());
 						}
 						if (keys.Count == 21)
 						{
-							stream.WriteLine("  ...");
+							stream.WriteLine("  ... more");
 						}
 					}
 					else
 					{
-						stream.WriteLine("- no content found");
+						stream.WriteLine("  no content found");
 					}
 				}
 			}
 		}
+
+		#endregion
+
 	}
 }
