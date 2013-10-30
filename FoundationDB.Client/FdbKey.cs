@@ -258,7 +258,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Random binary key</param>
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
-		internal static string Dump(Slice key)
+		public static string Dump(Slice key)
 		{
 			if (key.IsPresent)
 			{
