@@ -191,7 +191,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (path == null) throw new ArgumentNullException("path");
-			return dbOrTrans.ReadWriteAsync((tr) => directory.OpenAsync(tr, path, layer), cancellationToken);
+			return dbOrTrans.ReadWriteAsync((tr) => directory.TryOpenAsync(tr, path, layer), cancellationToken);
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
@@ -200,7 +200,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (path == null) throw new ArgumentNullException("path");
-			return dbOrTrans.ReadWriteAsync((tr) => directory.OpenAsync(tr, path, layer), cancellationToken);
+			return dbOrTrans.ReadWriteAsync((tr) => directory.TryOpenAsync(tr, path, layer), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
