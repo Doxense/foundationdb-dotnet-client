@@ -129,6 +129,8 @@ namespace FoundationDB.Samples
 	{
 		private static FdbDatabasePartition Db;
 
+		private static string CurrentDirectoryPath = "/";
+
 		static StreamWriter GetLogFile(string name)
 		{
 			long localTime = (DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond) - 62135596800000;
@@ -244,6 +246,41 @@ namespace FoundationDB.Samples
 										Console.WriteLine("Logging is OFF");
 										break;
 									}
+								}
+								break;
+							}
+
+							case "dir":
+							{
+								prm = CombinePath(CurrentDirectoryPath, prm);
+								BrowseDirectory(prm, null, Db).GetAwaiter().GetResult();
+								break;
+							}
+							case "cd":
+							case "pwd":
+							{
+								if (!string.IsNullOrEmpty(prm))
+								{
+									CurrentDirectoryPath = CombinePath(CurrentDirectoryPath, prm);
+									Console.WriteLine("Directory changed to {0}", CurrentDirectoryPath);
+								}
+								else
+								{
+									Console.WriteLine("Current directory is {0}", CurrentDirectoryPath);
+								}
+								break;
+							}
+							case "mkdir":
+							{
+								if (!string.IsNullOrEmpty(prm))
+								{
+									prm = CombinePath(CurrentDirectoryPath, prm);
+									string layer = null;
+									if (tokens.Length > 2)
+									{
+										layer = tokens[2].Trim();
+									}
+									CreateDirectory(prm, layer, null, Db).GetAwaiter().GetResult();
 								}
 								break;
 							}
@@ -423,6 +460,94 @@ namespace FoundationDB.Samples
 			{
 				Fdb.Stop();
 				Console.WriteLine("Bye");
+			}
+		}
+
+		private static string CombinePath(string parent, string children)
+		{
+			if (string.IsNullOrEmpty(children) || children == ".") return parent;
+			if (children.StartsWith("/")) return children;
+			return System.IO.Path.GetFullPath(System.IO.Path.Combine(parent, children)).Replace("\\", "/").Substring(2);
+		}
+
+		private static IFdbTuple ParsePath(string path)
+		{
+			path = path.Replace("\\", "/").Trim();
+			return FdbTuple.CreateRange<string>(path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries));
+		}
+
+		private static async Task CreateDirectory(string prm, string layer, TextWriter stream, FdbDatabasePartition db)
+		{
+			if (stream == null) stream = Console.Out;
+
+			var path = ParsePath(prm);
+			stream.WriteLine("# Creating directory {0} with layer '{1}'", prm, layer);
+
+			var folder = await db.Root.TryOpenAsync(db, path);
+			if (folder != null)
+			{
+				stream.WriteLine("- Directory already exists!", prm);
+				return;
+			}
+
+			folder = await db.Root.TryCreateAsync(db, path, layer);
+			stream.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString());
+
+			// look if there is already stuff under there
+			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).FirstOrDefaultAsync());
+			if (stuff.Key.IsPresent)
+			{
+				stream.WriteLine("CAUTION: There is already some data under {0} !");
+				stream.WriteLine("  {0} = {1}", FdbKey.Dump(stuff.Key), stuff.Value.ToAsciiOrHexaString());
+			}
+		}
+
+		private static async Task BrowseDirectory(string prm, TextWriter stream, FdbDatabasePartition db)
+		{
+			if (stream == null) stream = Console.Out;
+
+			var path = ParsePath(prm);
+			stream.WriteLine("# Listing {0}:", prm);
+
+			var folders = await db.Root.ListAsync(db, path);
+			if (folders.Count > 0)
+			{
+				foreach (var name in folders)
+				{
+					var subfolder = await db.Root.OpenAsync(db, path.Concat(name));
+					stream.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Key), string.IsNullOrEmpty(subfolder.Layer) ? "-" : ("<" + subfolder.Layer + ">"), name.Get<string>(0));
+				}
+				stream.WriteLine("- {0} sub-directories(s).", folders.Count);
+			}
+			else
+			{
+				stream.WriteLine("- No subfolders.");
+			}
+
+			if (prm != "/")
+			{
+				// look if there is something under there
+				var folder = await db.Root.TryOpenAsync(db, path);
+				if (folder != null)
+				{
+					stream.WriteLine("# Content of {0}:", FdbKey.Dump(folder.Key));
+					var keys = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).Take(21).ToListAsync());
+					if (keys.Count > 0)
+					{
+						foreach(var key in keys.Take(20))
+						{
+							stream.WriteLine("  {0} = {1}", FdbKey.Dump(key.Key), key.Value.ToAsciiOrHexaString());
+						}
+						if (keys.Count == 21)
+						{
+							stream.WriteLine("  ...");
+						}
+					}
+					else
+					{
+						stream.WriteLine("- no content found");
+					}
+				}
 			}
 		}
 	}
