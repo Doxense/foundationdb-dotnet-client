@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.IO;
 	using System.Linq;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	public static class FdbTransactionExtensions
@@ -308,6 +309,45 @@ namespace FoundationDB.Client
 		public static void AddWriteConflictKey(this IFdbTransaction trans, Slice key)
 		{
 			AddConflictRange(trans, FdbKeyRange.FromKey(key), FdbConflictRangeType.Write);
+		}
+
+		#endregion
+
+		#region Watches...
+
+		/// <summary>Reads the value associated with <paramref name="key"/>, and returns a Watch that will complete after a subsequent change to key in the database.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Key to be looked up in the database</param>
+		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
+		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property contains the current value of the key.</returns>
+		public static async Task<FdbWatch> GetAndWatchAsync(this IFdbTransaction trans, Slice key, CancellationToken cancellationToken)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			cancellationToken.ThrowIfCancellationRequested();
+
+			var value = await trans.GetAsync(key);
+			var watch = trans.Watch(key, cancellationToken);
+			watch.Value = value;
+
+			return watch;
+		}
+
+		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
+		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
+		public static FdbWatch SetAndWatch(this IFdbTransaction trans, Slice key, Slice value, CancellationToken cancellationToken)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			cancellationToken.ThrowIfCancellationRequested();
+
+			trans.Set(key, value);
+			var watch = trans.Watch(key, cancellationToken);
+			watch.Value = value;
+
+			return watch;
 		}
 
 		#endregion
