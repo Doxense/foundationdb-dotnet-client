@@ -688,7 +688,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
-		internal Slice Memoize()
+		public Slice Memoize()
 		{
 			if (this.IsNullOrEmpty) return this.Array == null ? Slice.Nil : Slice.Empty;
 			return new Slice(GetBytes(), 0, this.Count);
