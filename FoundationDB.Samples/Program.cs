@@ -226,6 +226,12 @@ namespace FoundationDB.Samples
 								break;
 							}
 
+							case "tree":
+							{
+								prm = CombinePath(CurrentDirectoryPath, prm);
+								RunAsyncCommand((db, log, ct) => TreeDirectory(prm, db, log, ct));
+								break;
+							}
 							case "dir":
 							{
 								prm = CombinePath(CurrentDirectoryPath, prm);
@@ -396,7 +402,7 @@ namespace FoundationDB.Samples
 			return FdbTuple.CreateRange<string>(path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries));
 		}
 
-		private static async Task CreateDirectory(string prm, string layer, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
+		public static async Task CreateDirectory(string prm, string layer, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
 		{
 			if (stream == null) stream = Console.Out;
 
@@ -422,7 +428,7 @@ namespace FoundationDB.Samples
 			}
 		}
 
-		private static async Task BrowseDirectory(string prm, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
+		public static async Task BrowseDirectory(string prm, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
 		{
 			if (stream == null) stream = Console.Out;
 
@@ -479,6 +485,40 @@ namespace FoundationDB.Samples
 						stream.WriteLine("  no content found");
 					}
 				}
+			}
+		}
+
+		public static async Task TreeDirectory(string prm, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
+		{
+			if (stream == null) stream = Console.Out;
+
+			var path = ParsePath(prm);
+			stream.WriteLine("# Tree of {0}:", prm);
+
+			await TreeDirectoryWalk(path, new List<bool>(), db, stream, ct);
+
+			stream.WriteLine("# done");
+		}
+
+		private static async Task TreeDirectoryWalk(IFdbTuple path, List<bool> last, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
+		{
+			ct.ThrowIfCancellationRequested();
+
+			var sb = new StringBuilder(last.Count * 4);
+			if (last.Count > 0)
+			{
+				for (int i = 0; i < last.Count - 1; i++) sb.Append(last[i] ? "    " : "|   ");
+				sb.Append(last[last.Count - 1] ? "`-- " : "|-- ");
+			}
+			stream.WriteLine(sb.ToString() + (path.Count == 0 ? "<root>" : path.Get<string>(-1)));
+
+			var children = await db.Root.TryListAsync(db, path);
+			int n = children.Count;
+			foreach(var child in children)
+			{
+				last.Add((n--) == 1);
+				await TreeDirectoryWalk(path.Concat(child), last, db, stream, ct);
+				last.RemoveAt(last.Count - 1);
 			}
 		}
 
