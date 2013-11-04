@@ -30,10 +30,14 @@ namespace FoundationDB.Client
 {
 	using System;
 
-	public interface ISliceSerializer<TValue>
+	/// <summary>Allows an object to control the way it is packed or unpacked</summary>
+	public interface ISliceSerializable
 	{
-		Slice Serialize(TValue value);
-		TValue Deserialize(Slice slice, TValue missing);
+		/// <summary>Return the packed representation of this instance</summary>
+		Slice ToSlice();
+
+		/// <summary>Load a packed representation into a newly created instance</summary>
+		void FromSlice(Slice slice);
 	}
 
 }

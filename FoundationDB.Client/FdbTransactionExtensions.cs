@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Serializers;
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
@@ -103,7 +105,28 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Get...
+
+		public static async Task<TValue> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice key, ISliceSerializer<TValue> serializer = null)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			var value = await trans.GetAsync(key).ConfigureAwait(false);
+
+			return FdbSliceSerializer.FromSlice(value, serializer);
+		}
+
+		#endregion
+
 		#region Set...
+
+		public static void Set<TValue>(this IFdbTransaction trans, Slice key, TValue value, ISliceSerializer<TValue> serializer = null)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (value == null) throw new ArgumentNullException("value");
+
+			trans.Set(key, FdbSliceSerializer.ToSlice(value, serializer));
+		}
 
 		public static void Set(this IFdbTransaction trans, Slice key, Stream data)
 		{
@@ -351,6 +374,17 @@ namespace FoundationDB.Client
 			return watch;
 		}
 
+		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="key">Name of the key to be inserted into the database.</param>
+		/// <param name="value">Value to be inserted into the database.</param>
+		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
+		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
+		public static FdbWatch SetAndWatch<TValue>(this IFdbTransaction trans, Slice key, TValue value, ISliceSerializer<TValue> serializer, CancellationToken cancellationToken)
+		{
+			return SetAndWatch(trans, key, FdbSliceSerializer.ToSlice(value, serializer), cancellationToken);
+		}
+
 		#endregion
 
 		#region Batching...
@@ -371,6 +405,18 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
+		/// Reads several values from the database snapshot represented by the current transaction
+		/// </summary>
+		/// <param name="keys">Sequence of keys to be looked up in the database</param>
+		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
+		public static async Task<TValue[]> GetValuesAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, ISliceSerializer<TValue> serializer)
+		{
+			var results = await GetValuesAsync(trans, keys).ConfigureAwait(false);
+
+			return FdbSliceSerializer.FromSlices(results, serializer);
+		}
+
+		/// <summary>
 		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
 		/// </summary>
 		/// <param name="selectors">Sequence of key selectors to resolve</param>
@@ -385,7 +431,7 @@ namespace FoundationDB.Client
 			return trans.GetKeysAsync(array);
 		}
 
-		public static Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys)
+		public static Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
@@ -395,15 +441,45 @@ namespace FoundationDB.Client
 			return trans.GetBatchAsync(array);
 		}
 
-		public static async Task<List<KeyValuePair<Slice, Slice>>> GetBatchAsync(this IFdbReadOnlyTransaction trans, Slice[] keys)
+		public static async Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync(this IFdbReadOnlyTransaction trans, Slice[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
 			var results = await trans.GetValuesAsync(keys).ConfigureAwait(false);
+			Contract.Assert(results != null && results.Length == keys.Length);
 
-			return results
-				.Select((value, i) => new KeyValuePair<Slice, Slice>(keys[i], value))
-				.ToList();
+			var array = new KeyValuePair<Slice, Slice>[results.Length];
+			for (int i = 0; i < array.Length;i++)
+			{
+				array[i] = new KeyValuePair<Slice, Slice>(keys[i], results[i]);
+			}
+			return array;
+		}
+
+		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, ISliceSerializer<TValue> serializer)
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			var array = keys as Slice[];
+			if (array == null) array = keys.ToArray();
+
+			return trans.GetBatchAsync(array, serializer);
+		}
+
+		public static async Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice[] keys, ISliceSerializer<TValue> serializer)
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			var results = await trans.GetValuesAsync(keys).ConfigureAwait(false);
+			Contract.Assert(results != null && results.Length == keys.Length);
+
+			var array = new KeyValuePair<Slice, TValue>[results.Length];
+			if (serializer == null) serializer = FdbSliceSerializer<TValue>.Default;
+			for (int i = 0; i < array.Length; i++)
+			{
+				array[i] = new KeyValuePair<Slice, TValue>(keys[i], serializer.FromSlice(results[i]));
+			}
+			return array;
 		}
 
 		#endregion

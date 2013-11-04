@@ -70,6 +70,7 @@
     <Compile Include="Layers\VectorFacts.cs" />
     <Compile Include="Layers\QueuesFacts.cs" />
     <Compile Include="TransactionalFacts.cs" />
+    <Compile Include="Utils\SerializersFacts.cs" />
     <Compile Include="UuidFacts.cs" />
     <Compile Include="SliceFacts.cs" />
     <Compile Include="DatabaseBulkFacts.cs" />

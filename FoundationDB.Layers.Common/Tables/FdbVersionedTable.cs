@@ -227,7 +227,7 @@ namespace FoundationDB.Layers.Tables
 			if (last.HasValue)
 			{ // extract the specified value
 				var data = await GetValueAtVersionAsync(trans, id, last.Value).ConfigureAwait(false);
-				value = this.ValueSerializer.Deserialize(data, default(TValue));
+				value = this.ValueSerializer.FromSlice(data);
 			}
 
 			return new KeyValuePair<long?, TValue>(last, value);
@@ -266,7 +266,7 @@ namespace FoundationDB.Layers.Tables
 				// note: returns Slice.Empty if the value is deleted at this version
 				if (data.IsPresent)
 				{
-					var value = this.ValueSerializer.Deserialize(data, default(TValue));
+					var value = this.ValueSerializer.FromSlice(data);
 					return new KeyValuePair<long?, TValue>(dbVersion, value);
 				}
 			}
@@ -336,7 +336,7 @@ namespace FoundationDB.Layers.Tables
 
 			if (last.HasValue)
 			{
-				Slice data = this.ValueSerializer.Serialize(value);
+				Slice data = this.ValueSerializer.ToSlice(value);
 				trans.Set(GetItemKey(id, last.Value), data);
 			}
 
@@ -357,13 +357,13 @@ namespace FoundationDB.Layers.Tables
 			}
 
 			// parse previous value
-			var value = this.ValueSerializer.Deserialize(data, default(TValue));
+			var value = this.ValueSerializer.FromSlice(data);
 
 			// call the update lambda that will return a new value
 			value = updater(value);
 
 			// serialize the new value
-			data = this.ValueSerializer.Serialize(value);
+			data = this.ValueSerializer.ToSlice(value);
 
 			// update
 			trans.Set(GetItemKey(id, version), data);
@@ -389,7 +389,7 @@ namespace FoundationDB.Layers.Tables
 
 			// We can insert the new version
 
-			Slice data = this.ValueSerializer.Serialize(value);
+			Slice data = this.ValueSerializer.ToSlice(value);
 
 			//HACK to emulate Delete, remove me!
 			if (data.IsNull) data = Slice.Empty;
@@ -431,7 +431,7 @@ namespace FoundationDB.Layers.Tables
 			return results
 				.Select((value, i) => new KeyValuePair<TId, TValue>(
 					versions[i].Key,
-					this.ValueSerializer.Deserialize(value, default(TValue))
+					this.ValueSerializer.FromSlice(value)
 				))
 				.ToList();
 		}

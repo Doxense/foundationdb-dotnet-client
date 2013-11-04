@@ -169,12 +169,14 @@
     <Compile Include="Linq\IFdbAsyncEnumerable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleParser.cs" />
     <Compile Include="Unmanaged\DebugCounters.cs" />
+    <Compile Include="Utils\Serializers\FdbSliceSerializer.cs" />
+    <Compile Include="Utils\Serializers\ISliceSerializable.cs" />
     <Compile Include="Utils\Uuid.cs" />
     <Compile Include="Utils\SliceListStream.cs" />
     <Compile Include="Utils\SliceStream.cs" />
     <Compile Include="Utils\Logging.cs" />
-    <Compile Include="Utils\FdbSliceSerializer.cs" />
-    <Compile Include="Utils\ISliceSerializer.cs" />
+    <Compile Include="Utils\Serializers\FdbSliceSerializer`1.cs" />
+    <Compile Include="Utils\Serializers\ISliceSerializer.cs" />
     <Compile Include="Utils\Slice.cs" />
     <Compile Include="Utils\Slicer.cs" />
     <Compile Include="Utils\FdbBufferWriter.cs" />

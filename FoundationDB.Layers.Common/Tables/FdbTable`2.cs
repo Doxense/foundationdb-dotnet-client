@@ -86,14 +86,14 @@ namespace FoundationDB.Layers.Tables
 			Slice data = await this.Table.GetAsync(trans, this.KeyReader.ToTuple(key)).ConfigureAwait(false);
 
 			if (data.IsNull) return default(TValue);
-			return this.ValueSerializer.Deserialize(data, default(TValue));
+			return this.ValueSerializer.FromSlice(data);
 		}
 
 		public void Set(IFdbTransaction trans, TKey key, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			this.Table.Set(trans, this.KeyReader.ToTuple(key), this.ValueSerializer.Serialize(value));
+			this.Table.Set(trans, this.KeyReader.ToTuple(key), this.ValueSerializer.ToSlice(value));
 		}
 
 		public void Clear(IFdbTransaction trans, TKey key)
@@ -108,13 +108,12 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			var subspace = this.Table.Subspace;
-			var missing = default(TValue);
 
 			return trans
 				.GetRangeStartsWith(this.Subspace) //TODO: options?
 				.Select((kvp) => new KeyValuePair<TKey, TValue>(
 					this.KeyReader.FromTuple(subspace.Unpack(kvp.Key)),
-					this.ValueSerializer.Deserialize(kvp.Value, missing)
+					this.ValueSerializer.FromSlice(kvp.Value)
 				))
 				.ToListAsync();
 		}
@@ -126,7 +125,7 @@ namespace FoundationDB.Layers.Tables
 
 			var results = await trans.GetValuesAsync(ids.Select(MakeKey)).ConfigureAwait(false);
 
-			return results.Select((value) => this.ValueSerializer.Deserialize(value, default(TValue))).ToList();
+			return results.Select((value) => this.ValueSerializer.FromSlice(value)).ToList();
 		}
 
 		#endregion
