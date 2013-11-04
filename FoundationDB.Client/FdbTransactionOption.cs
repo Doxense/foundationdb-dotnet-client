@@ -30,8 +30,10 @@ namespace FoundationDB.Client
 {
 	using System;
 
+	/// <summary>Defines a set of options for a transaction</summary>
 	public enum FdbTransactionOption
 	{
+		/// <summary>None</summary>
 		None = 0,
 
 		/// <summary>

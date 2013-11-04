@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using System;
 
+	/// <summary>Defines a set of options for the database connection</summary>
 	public enum FdbDatabaseOption
 	{
 		None = 0,

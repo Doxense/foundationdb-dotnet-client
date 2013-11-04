@@ -30,8 +30,10 @@ namespace FoundationDB.Client
 {
 	using System;
 
+	/// <summary>Defines a set of options for the network thread</summary>
 	public enum FdbNetworkOption
 	{
+		/// <summary>None</summary>
 		None = 0,
 
 		/// <summary>

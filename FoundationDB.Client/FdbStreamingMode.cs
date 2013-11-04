@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using System;
 
+	/// <summary>Defines how the client would like the data in a range a returned</summary>
 	public enum FdbStreamingMode
 	{
 

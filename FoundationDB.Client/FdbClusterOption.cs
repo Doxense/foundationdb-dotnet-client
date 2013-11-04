@@ -30,8 +30,10 @@ namespace FoundationDB.Client
 {
 	using System;
 
+	/// <summary>Defines a set of options for the cluster connection</summary>
 	public enum FdbClusterOption
 	{
+		/// <summary>None</summary>
 		None = 0,
 
 		/// <summary>This option is only a placeholder for C compatibility and should not be used</summary>

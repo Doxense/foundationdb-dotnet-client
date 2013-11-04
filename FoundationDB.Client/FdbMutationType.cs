@@ -30,8 +30,12 @@ namespace FoundationDB.Client
 {
 	using System;
 
+	/// <summary>Defines a type of mutation applied to a key</summary>
 	public enum FdbMutationType
 	{
+		/// <summary>
+		/// Invalid
+		/// </summary>
 		Invalid = 0,
 
 		/// <summary>

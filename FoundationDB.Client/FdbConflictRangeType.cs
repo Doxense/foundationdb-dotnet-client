@@ -30,15 +30,16 @@ namespace FoundationDB.Client
 {
 	using System;
 
+	/// <summary>Defines a type of conflict artificially added to a transaction</summary>
 	public enum FdbConflictRangeType
 	{
 		/// <summary>
-		/// Performs an addition of little-endian integers. If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``. The integers to be added must be stored in a little-endian representation.  They can be signed in two's complement representation or unsigned. You can add to an integer at a known offset in the value by prepending the appropriate number of zero bytes to ``param`` and padding with zero bytes to match the length of the value. However, this offset technique requires that you know the addition will not cause the integer field within the value to overflow.
+		/// Used to add a read conflict range.
 		/// </summary>
 		Read = 0,
 
 		/// <summary>
-		/// Performs a bitwise ``and`` operation.  If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
+		/// Used to add a write conflict range.
 		/// </summary>
 		Write = 1,
 

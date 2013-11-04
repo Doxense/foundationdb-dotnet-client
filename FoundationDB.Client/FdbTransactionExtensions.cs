@@ -35,6 +35,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Provides a set of extensions methods shared by all FoundationDB transaction implementations.</summary>
 	public static class FdbTransactionExtensions
 	{
 
