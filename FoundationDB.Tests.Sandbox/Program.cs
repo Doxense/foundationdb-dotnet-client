@@ -589,7 +589,7 @@ namespace FoundationDB.Tests.Sandbox
 
 				// change them
 				Console.WriteLine("CHANGE");
-				for (int i = 0; i < data.Count; i++)
+				for (int i = 0; i < data.Length; i++)
 				{
 					var list = data[i].Value.GetBytes();
 					list[(list.Length >> 1) + 1] = (byte) rnd.Next(256);
