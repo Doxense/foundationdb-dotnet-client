@@ -66,9 +66,9 @@
       <Project>{7c7717d6-a1e7-4541-af8b-1ac762b5ed0f}</Project>
       <Name>FoundationDB.Layers.Common</Name>
     </ProjectReference>
-    <ProjectReference Include="..\FoundationDB.Layers.Messaging\FoundationDB.Layers.Messaging.csproj">
+    <ProjectReference Include="..\FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj">
       <Project>{e631bcd4-386c-4eb1-ad4d-cabce77bb4c8}</Project>
-      <Name>FoundationDB.Layers.Messaging</Name>
+      <Name>FoundationDB.Layers.Experimental</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
