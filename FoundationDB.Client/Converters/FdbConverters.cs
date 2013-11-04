@@ -205,8 +205,8 @@ namespace FoundationDB.Client.Converters
 
 			//REVIEW: this should go in the Tuples layer !
 			RegisterUnsafe<Slice, byte[]>((value) => value.GetBytes());
-			RegisterUnsafe<Slice, string>((value) => value.ToAscii());
-			RegisterUnsafe<Slice, bool>((value) => value.IsPresent);
+			RegisterUnsafe<Slice, string>((value) => value.ToUnicode());
+			RegisterUnsafe<Slice, bool>((value) => value.ToBool());
 			RegisterUnsafe<Slice, int>((value) => value.ToInt32());
 			RegisterUnsafe<Slice, uint>((value) => value.ToUInt32());
 			RegisterUnsafe<Slice, long>((value) => value.ToInt64());

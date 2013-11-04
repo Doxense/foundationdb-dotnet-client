@@ -242,6 +242,37 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Encode an unsigned 32-bit integer into a variable size slice (1, 2 or 4 bytes) in little-endian</summary>
+		public static Slice FromUInt32(uint value)
+		{
+			if (value <= 255)
+			{
+				return Slice.FromByte((byte)value);
+			}
+			if (value <= 65535)
+			{
+				return new Slice(new byte[] { (byte)value, (byte)(value >> 8) }, 0, 2);
+			}
+
+			return FromFixedU32(value);
+		}
+
+		/// <summary>Encode an unsigned 32-bit integer into a 4-byte slice in little-endian</summary>
+		public static Slice FromFixedU32(uint value)
+		{
+			return new Slice(
+				new byte[]
+				{ 
+					(byte)value,
+					(byte)(value >> 8),
+					(byte)(value >> 16),
+					(byte)(value >> 24)
+				},
+				0,
+				4
+			);
+		}
+
 		/// <summary>Encode a signed 64-bit integer into a variable size slice (1, 2, 4 or 8 bytes) in little-endian</summary>
 		public static Slice FromInt64(long value)
 		{
@@ -277,7 +308,6 @@ namespace FoundationDB.Client
 		{
 			if (value <= 255)
 			{
-				//TODO: use a cache for these ?
 				return Slice.FromByte((byte)value);
 			}
 			if (value <= 65535)
@@ -553,6 +583,12 @@ namespace FoundationDB.Client
 			if (this.Count == 0) return 0;
 			if (this.Count > 1) throw new FormatException("Cannot convert slice into a Byte because it is larger than 1 byte");
 			return this.Array[this.Offset];
+		}
+
+		public bool ToBool()
+		{
+			// Anything appart from nil/empty, or the byte 0 itself is considered truthy.
+			return this.Count > 1 || (this.Count == 1 && this.Array[this.Offset] != 0);
 		}
 
 		public int ToInt32()
