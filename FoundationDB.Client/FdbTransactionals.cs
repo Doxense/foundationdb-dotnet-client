@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -42,6 +43,16 @@ namespace FoundationDB.Client
 		public static Task<Slice> GetAsync(this IFdbReadOnlyTransactional dbOrTrans, Slice key, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return dbOrTrans.ReadAsync((tr) => tr.GetAsync(key), cancellationToken);
+		}
+
+		/// <summary>
+		/// Reads a value from the database.
+		/// </summary>
+		public static Task<Slice> GetAsync<TKey>(this IFdbReadOnlyTransactional dbOrTrans, TKey key, CancellationToken cancellationToken = default(CancellationToken))
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return GetAsync(dbOrTrans, key.ToFoundationDbKey(), cancellationToken);
 		}
 
 		/// <summary>
@@ -85,6 +96,16 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
+		/// Reads several values from the database.
+		/// </summary>
+		public static Task<Slice[]> GetValuesAsync<TKey>(this IFdbReadOnlyTransactional dbOrTrans, IEnumerable<TKey> keys, CancellationToken cancellationToken = default(CancellationToken))
+			where TKey : IFdbKey
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+			return GetValuesAsync(dbOrTrans, keys.Select(key => key.ToFoundationDbKey()).ToArray(), cancellationToken);
+		}
+
+		/// <summary>
 		/// Change the given key to have the given value in the database. If the given key was not previously present in the database it is inserted.
 		/// </summary>
 		public static Task SetAsync(this IFdbTransactional dbOrTrans, Slice key, Slice value, CancellationToken cancellationToken = default(CancellationToken))
@@ -93,11 +114,31 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
+		/// Change the given key to have the given value in the database. If the given key was not previously present in the database it is inserted.
+		/// </summary>
+		public static Task SetAsync<TKey>(this IFdbTransactional dbOrTrans, IFdbKey key, Slice value, CancellationToken cancellationToken = default(CancellationToken))
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return SetAsync(dbOrTrans, key.ToFoundationDbKey(), value, cancellationToken);
+		}
+
+		/// <summary>
 		/// Remove the given key from the database. If the key was not previously present in the database, there is no effect.
 		/// </summary>
 		public static Task ClearAsync(this IFdbTransactional dbOrTrans, Slice key, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return dbOrTrans.WriteAsync((tr) => tr.Clear(key), cancellationToken);
+		}
+
+		/// <summary>
+		/// Remove the given key from the database. If the key was not previously present in the database, there is no effect.
+		/// </summary>
+		public static Task ClearAsync<TKey>(this IFdbTransactional dbOrTrans, TKey key, CancellationToken cancellationToken = default(CancellationToken))
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return ClearAsync(dbOrTrans, key.ToFoundationDbKey(), cancellationToken);
 		}
 
 		/// <summary>
@@ -119,11 +160,32 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
+		/// Remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
+		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
+		/// </summary>
+		public static Task ClearRangeAsync<TKey>(this IFdbTransactional dbOrTrans, TKey beginKeyInclusive, TKey endKeyExclusive, CancellationToken cancellationToken = default(CancellationToken))
+			where TKey : IFdbKey
+		{
+			if (beginKeyInclusive == null) throw new ArgumentNullException("beginKeyInclusive");
+			if (endKeyExclusive == null) throw new ArgumentNullException("endKeyExclusive");
+			return ClearRangeAsync(dbOrTrans, beginKeyInclusive.ToFoundationDbKey(), endKeyExclusive.ToFoundationDbKey(), cancellationToken);
+		}
+
+		/// <summary>
 		/// Perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.
 		/// </summary>
 		public static Task AtomicAsync(this IFdbTransactional dbOrTrans, Slice key, Slice param, FdbMutationType mutation, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return dbOrTrans.WriteAsync((tr) => tr.Atomic(key, param, mutation), cancellationToken);
+		}
+
+		/// <summary>
+		/// Perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.
+		/// </summary>
+		public static Task AtomicAsync<TKey>(this IFdbTransactional dbOrTrans, TKey key, Slice param, FdbMutationType mutation, CancellationToken cancellationToken = default(CancellationToken))
+			where TKey : IFdbKey
+		{
+			return AtomicAsync(dbOrTrans, key.ToFoundationDbKey(), param, mutation, cancellationToken);
 		}
 
 	}

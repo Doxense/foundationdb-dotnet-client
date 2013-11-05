@@ -234,6 +234,13 @@ namespace FoundationDB.Client
 			}, cancellationToken);
 		}
 
+		public static Task<FdbWatch> GetAndWatch<TKey>(this IFdbDatabase db, TKey key, CancellationToken cancellationToken)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return GetAndWatch(db, key.ToFoundationDbKey(), cancellationToken);
+		}
+
 		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
 		/// <param name="db">Database instance.</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
@@ -254,6 +261,13 @@ namespace FoundationDB.Client
 
 			watch.Value = value.Memoize();
 			return watch;
+		}
+
+		public static Task<FdbWatch> SetAndWatch<TKey>(this IFdbDatabase db, TKey key, Slice value, CancellationToken cancellationToken)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return SetAndWatch(db, key.ToFoundationDbKey(), value, cancellationToken);
 		}
 
 		#endregion

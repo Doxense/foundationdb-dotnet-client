@@ -69,6 +69,18 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
+		public static FdbKeySelectorPair Create<TKey>(TKey begin, TKey end)
+			where TKey : IFdbKey
+		{
+			if (begin == null) throw new ArgumentNullException("begin");
+			if (end == null) throw new ArgumentNullException("end");
+			return new FdbKeySelectorPair(
+				FdbKeySelector.FirstGreaterOrEqual(begin.ToFoundationDbKey()),
+				FdbKeySelector.FirstGreaterOrEqual(end.ToFoundationDbKey())
+			);
+		}
+
+		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
 		public static FdbKeySelectorPair Create(FdbKeyRange range)
 		{
 			return new FdbKeySelectorPair(
@@ -86,6 +98,14 @@ namespace FoundationDB.Client
 				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
 				FdbKeySelector.FirstGreaterOrEqual(range.End)
 			);
+		}
+
+		/// <summary>Create a new pair of key selectors that will select all the keys that start with the specified prefix</summary>
+		public static FdbKeySelectorPair StartsWith<TKey>(TKey prefix)
+			where TKey : IFdbKey
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			return StartsWith(prefix.ToFoundationDbKey());
 		}
 
 		/// <summary>Returns a printable version of the pair of key selectors</summary>

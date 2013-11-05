@@ -107,6 +107,14 @@ namespace FoundationDB.Client
 
 		#region Get...
 
+		public static Task<Slice> GetAsync<TKey>(this IFdbReadOnlyTransaction trans, TKey key)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+			return trans.GetAsync(key.ToFoundationDbKey());
+		}
+
 		public static async Task<TValue> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice key, ISliceSerializer<TValue> serializer = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -116,16 +124,39 @@ namespace FoundationDB.Client
 			return FdbSliceSerializer.FromSlice(value, serializer);
 		}
 
+		public static Task<TValue> GetAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, TKey key, ISliceSerializer<TValue> serializer = null)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return GetAsync<TValue>(trans, key.ToFoundationDbKey(), serializer);
+		}
+
 		#endregion
 
 		#region Set...
 
-		public static void Set<TValue>(this IFdbTransaction trans, Slice key, TValue value, ISliceSerializer<TValue> serializer = null)
+		public static void Set<TKey>(this IFdbTransaction trans, TKey key, Slice value)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Set(key.ToFoundationDbKey(), value);
+		}
+
+		public static void Set<TValue>(this IFdbTransaction trans, Slice key, TValue value, ISliceSerializer<TValue> serializer)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (value == null) throw new ArgumentNullException("value");
 
 			trans.Set(key, FdbSliceSerializer.ToSlice(value, serializer));
+		}
+
+		public static void Set<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, ISliceSerializer<TValue> serializer)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			Set<TValue>(trans, key.ToFoundationDbKey(), value, serializer);
 		}
 
 		public static void Set(this IFdbTransaction trans, Slice key, Stream data)
@@ -160,11 +191,29 @@ namespace FoundationDB.Client
 			trans.Atomic(key, value, FdbMutationType.Add);
 		}
 
+		public static void AtomicAdd<TKey>(this IFdbTransaction trans, TKey key, Slice value)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Atomic(key.ToFoundationDbKey(), value, FdbMutationType.Add);
+		}
+
 		public static void AtomicAnd(this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			trans.Atomic(key, mask, FdbMutationType.And);
+		}
+
+		public static void AtomicAnd<TKey>(this IFdbTransaction trans, TKey key, Slice mask)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.And);
 		}
 
 		public static void AtomicOr(this IFdbTransaction trans, Slice key, Slice mask)
@@ -174,11 +223,29 @@ namespace FoundationDB.Client
 			trans.Atomic(key, mask, FdbMutationType.Or);
 		}
 
+		public static void AtomicOr<TKey>(this IFdbTransaction trans, TKey key, Slice mask)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.Or);
+		}
+
 		public static void AtomicXor(this IFdbTransaction trans, Slice key, Slice mask)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			trans.Atomic(key, mask, FdbMutationType.Xor);
+		}
+
+		public static void AtomicXor<TKey>(this IFdbTransaction trans, TKey key, Slice mask)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.Xor);
 		}
 
 		#endregion
@@ -216,9 +283,27 @@ namespace FoundationDB.Client
 			);
 		}
 
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange<TKey>(this IFdbReadOnlyTransaction trans, TKey beginKeyInclusive, TKey endKeyExclusive, FdbRangeOptions options = null)
+			where TKey : IFdbKey
+		{
+			//TODO: TKey in, but Slice out ? Maybe we need to get a ISliceSerializer<TKey> to convert the slices back to a TKey ?
+			if (beginKeyInclusive == null) throw new ArgumentNullException("beginKeyInclusive");
+			if (endKeyExclusive == null) throw new ArgumentNullException("endKeyExclusive");
+			return GetRange(trans, beginKeyInclusive.ToFoundationDbKey(), endKeyExclusive.ToFoundationDbKey(), options);
+		}
+
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, int limit, bool reverse = false)
 		{
 			return GetRange(trans, beginKeyInclusive, endKeyExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
+		}
+
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange<TKey>(this IFdbReadOnlyTransaction trans, TKey beginKeyInclusive, TKey endKeyExclusive, int limit, bool reverse = false)
+			where TKey : IFdbKey
+		{
+			if (beginKeyInclusive == null) throw new ArgumentNullException("beginKeyInclusive");
+			if (endKeyExclusive == null) throw new ArgumentNullException("endKeyExclusive");
+
+			return GetRange(trans, beginKeyInclusive.ToFoundationDbKey(), endKeyExclusive.ToFoundationDbKey(), new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		/// <summary>
@@ -253,6 +338,19 @@ namespace FoundationDB.Client
 		#endregion
 
 		#region Clear...
+
+		/// <summary>
+		/// Modify the database snapshot represented by this transaction to remove the given key from the database. If the key was not previously present in the database, there is no effect.
+		/// </summary>
+		/// <param name="key">Key to be removed from the database.</param>
+		public static void Clear<TKey>(this IFdbTransaction trans, TKey key)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Clear(key.ToFoundationDbKey());
+		}
 
 		/// <summary>
 		/// Modify the database snapshot represented by this transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
@@ -302,11 +400,34 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
+		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
+		/// </summary>
+		public static void AddReadConflictRange<TKey>(this IFdbTransaction trans, TKey beginKeyInclusive, TKey endKeyExclusive)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (beginKeyInclusive == null) throw new ArgumentNullException("beginKeyInclusive");
+			if (endKeyExclusive == null) throw new ArgumentNullException("endKeyExclusive");
+
+			trans.AddConflictRange(beginKeyInclusive.ToFoundationDbKey(), endKeyExclusive.ToFoundationDbKey(), FdbConflictRangeType.Read);
+		}
+
+		/// <summary>
 		/// Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
 		/// </summary>
 		public static void AddReadConflictKey(this IFdbTransaction trans, Slice key)
 		{
 			AddConflictRange(trans, FdbKeyRange.FromKey(key), FdbConflictRangeType.Read);
+		}
+
+		/// <summary>
+		/// Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
+		/// </summary>
+		public static void AddReadConflictKey<TKey>(this IFdbTransaction trans, TKey key)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			AddConflictRange(trans, FdbKeyRange.FromKey(key.ToFoundationDbKey()), FdbConflictRangeType.Read);
 		}
 
 		/// <summary>
@@ -328,11 +449,34 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
+		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
+		/// </summary>
+		public static void AddWriteConflictRange<TKey>(this IFdbTransaction trans, TKey beginKeyInclusive, TKey endKeyExclusive)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (beginKeyInclusive == null) throw new ArgumentNullException("beginKeyInclusive");
+			if (endKeyExclusive == null) throw new ArgumentNullException("endKeyExclusive");
+
+			trans.AddConflictRange(beginKeyInclusive.ToFoundationDbKey(), endKeyExclusive.ToFoundationDbKey(), FdbConflictRangeType.Write);
+		}
+
+		/// <summary>
 		/// Adds a key to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
 		/// </summary>
 		public static void AddWriteConflictKey(this IFdbTransaction trans, Slice key)
 		{
 			AddConflictRange(trans, FdbKeyRange.FromKey(key), FdbConflictRangeType.Write);
+		}
+
+		/// <summary>
+		/// Adds a key to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
+		/// </summary>
+		public static void AddWriteConflictKey<TKey>(this IFdbTransaction trans, TKey key)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			AddConflictRange(trans, FdbKeyRange.FromKey(key.ToFoundationDbKey()), FdbConflictRangeType.Write);
 		}
 
 		#endregion
@@ -356,6 +500,13 @@ namespace FoundationDB.Client
 			return watch;
 		}
 
+		public static Task<FdbWatch> GetAndWatchAsync<TKey>(this IFdbTransaction trans, TKey key, CancellationToken cancellationToken)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return GetAndWatchAsync(trans, key.ToFoundationDbKey(), cancellationToken);
+		}
+
 		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
@@ -374,6 +525,13 @@ namespace FoundationDB.Client
 			return watch;
 		}
 
+		public static FdbWatch SetAndWatch<TKey>(this IFdbTransaction trans, TKey key, Slice value, CancellationToken cancellationToken)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return SetAndWatch(trans, key.ToFoundationDbKey(), value, cancellationToken);
+		}
+
 		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
@@ -383,6 +541,13 @@ namespace FoundationDB.Client
 		public static FdbWatch SetAndWatch<TValue>(this IFdbTransaction trans, Slice key, TValue value, ISliceSerializer<TValue> serializer, CancellationToken cancellationToken)
 		{
 			return SetAndWatch(trans, key, FdbSliceSerializer.ToSlice(value, serializer), cancellationToken);
+		}
+
+		public static FdbWatch SetAndWatch<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, ISliceSerializer<TValue> serializer, CancellationToken cancellationToken)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return SetAndWatch(trans, key.ToFoundationDbKey(), FdbSliceSerializer.ToSlice(value, serializer), cancellationToken);
 		}
 
 		#endregion
@@ -414,6 +579,18 @@ namespace FoundationDB.Client
 			var results = await GetValuesAsync(trans, keys).ConfigureAwait(false);
 
 			return FdbSliceSerializer.FromSlices(results, serializer);
+		}
+
+		public static Task<Slice[]> GetValuesAsync<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys)
+			where TKey : IFdbKey
+		{
+			return GetValuesAsync(trans, keys.Select(key => key.ToFoundationDbKey()));
+		}
+
+		public static Task<TValue[]> GetValuesAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys, ISliceSerializer<TValue> serializer)
+			where TKey : IFdbKey
+		{
+			return GetValuesAsync<TValue>(trans, keys.Select(key => key.ToFoundationDbKey()), serializer);
 		}
 
 		/// <summary>
@@ -480,6 +657,20 @@ namespace FoundationDB.Client
 				array[i] = new KeyValuePair<Slice, TValue>(keys[i], serializer.FromSlice(results[i]));
 			}
 			return array;
+		}
+
+		public static Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys)
+			where TKey : IFdbKey
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+			return GetBatchAsync(trans, keys.Select(key => key.ToFoundationDbKey()).ToArray());
+		}
+
+		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys, ISliceSerializer<TValue> serializer)
+			where TKey : IFdbKey
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+			return GetBatchAsync<TValue>(trans, keys.Select(key => key.ToFoundationDbKey()).ToArray(), serializer);
 		}
 
 		#endregion

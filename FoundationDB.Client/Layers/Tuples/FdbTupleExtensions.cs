@@ -210,6 +210,10 @@ namespace FoundationDB.Layers.Tuples
 
 		#region FdbTransaction extensions...
 
+		//NOTE: most of these are now obsolete, since IFdbTuple implements IFdbKey !
+
+#if REFACTORED
+
 		/// <summary>Returns the value of a particular key</summary>
 		/// <param name="key">Key to retrieve</param>
 		/// <returns>Task that will return the value of the key if it is found, null if the key does not exist, or an exception</returns>
@@ -354,6 +358,8 @@ namespace FoundationDB.Layers.Tuples
 
 			trans.AddConflictRange(FdbKeyRange.FromKey(tuple.ToSlice()), FdbConflictRangeType.Write);
 		}
+
+#endif
 
 		#endregion
 

@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Layers.Tuples;
+	using System;
 	using System.Diagnostics;
 	using System.Text;
 
@@ -44,6 +45,14 @@ namespace FoundationDB.Client
 		public FdbKeySelector(Slice key, bool orEqual, int offset)
 		{
 			this.Key = key;
+			this.OrEqual = orEqual;
+			this.Offset = offset;
+		}
+
+		public FdbKeySelector(IFdbKey key, bool orEqual, int offset)
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			this.Key = key.ToFoundationDbKey();
 			this.OrEqual = orEqual;
 			this.Offset = offset;
 		}
@@ -72,51 +81,64 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
-		public static FdbKeySelector LastLessThan(IFdbTuple key)
-		{
-			return LastLessThan(key.ToSlice());
-		}
-
-		public static FdbKeySelector LastLessOrEqual(IFdbTuple key)
-		{
-			return LastLessOrEqual(key.ToSlice());
-		}
-
-		public static FdbKeySelector FirstGreaterThan(IFdbTuple key)
-		{
-			return FirstGreaterThan(key.ToSlice());
-		}
-
-		public static FdbKeySelector FirstGreaterOrEqual(IFdbTuple key)
-		{
-			return FirstGreaterOrEqual(key.ToSlice());
-		}
-
+		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
 		public static FdbKeySelector LastLessThan(Slice key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_THAN(k, l) k, l, 0, 0
 			return new FdbKeySelector(key, false, 0);
 		}
 
+		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
 		public static FdbKeySelector LastLessOrEqual(Slice key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_OR_EQUAL(k, l) k, l, 1, 0
 			return new FdbKeySelector(key, true, 0);
 		}
 
+		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
 		public static FdbKeySelector FirstGreaterThan(Slice key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1
 			return new FdbKeySelector(key, true, 1);
 		}
 
-		/// <summary>Return a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
-		/// <param name="key"></param>
-		/// <returns></returns>
+		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
 		public static FdbKeySelector FirstGreaterOrEqual(Slice key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
 			return new FdbKeySelector(key, false, 1);
+		}
+
+		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
+		public static FdbKeySelector LastLessThan<TKey>(TKey key)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return LastLessThan(key.ToFoundationDbKey());
+		}
+
+		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
+		public static FdbKeySelector LastLessOrEqual<TKey>(TKey key)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return LastLessOrEqual(key.ToFoundationDbKey());
+		}
+
+		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
+		public static FdbKeySelector FirstGreaterThan<TKey>(TKey key)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return FirstGreaterThan(key.ToFoundationDbKey());
+		}
+
+		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
+		public static FdbKeySelector FirstGreaterOrEqual<TKey>(TKey key)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return FirstGreaterOrEqual(key.ToFoundationDbKey());
 		}
 
 		/// <summary>Add a value to the selector's offset</summary>
