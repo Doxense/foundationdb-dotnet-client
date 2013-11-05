@@ -320,19 +320,19 @@ namespace FoundationDB.Client
 			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
 			var results = await tr.GetRangeAsync(this.Begin, this.End, options, 0).ConfigureAwait(false);
 
-			if (results.Chunk.Length == 0)
+			if (results.IsEmpty)
 			{ // no result
 				if (!orDefault) throw new InvalidOperationException("The range was empty");
 				return default(T);
 			}
 
-			if (single && results.Chunk.Length > 1)
+			if (single && results.Count > 1)
 			{ // there was more than one result
 				throw new InvalidOperationException("The range contained more than one element");
 			}
 
 			// we have a result
-			return this.Transform(results.Chunk[0]);
+			return this.Transform(results.First);
 		}
 
 		internal async Task<bool> AnyOrNoneAsync(bool any)
@@ -359,7 +359,7 @@ namespace FoundationDB.Client
 			var tr = this.Snapshot ? this.Transaction.Snapshot : this.Transaction;
 			var results = await tr.GetRangeAsync(this.Begin, this.End, options, 0).ConfigureAwait(false);
 
-			return any ? results.Chunk.Length > 0 : results.Chunk.Length == 0;
+			return any ? !results.IsEmpty : results.IsEmpty;
 		}
 
 		#endregion

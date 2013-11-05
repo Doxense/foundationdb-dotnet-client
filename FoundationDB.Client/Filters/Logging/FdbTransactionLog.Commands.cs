@@ -567,7 +567,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				if (this.Result.HasValue)
 				{
-					string s = this.Result.Value.Chunk.Length.ToString() + " results";
+					string s = this.Result.Value.Count.ToString() + " results";
 					if (this.Result.Value.HasMore) s += ", has_more";
 					return s;
 				}

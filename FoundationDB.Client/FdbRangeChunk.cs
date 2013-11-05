@@ -30,19 +30,62 @@ namespace FoundationDB.Client
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 
+	[DebuggerDisplay("Count={Chunk!=null?Chunk.Length:0}, HasMore={HasMore}, Reversed={Reversed}, Iteration={Iteration}")]
 	public struct FdbRangeChunk
 	{
+		/// <summary>Set to true if there are more results in the database than could fit in a single chunk</summary>
 		public readonly bool HasMore;
+		//TODO: consider renaming Chunk to Results or Items ?
+		// => I saw a lot of "var chunk = tr.GetRangeAsync(...); if (chunk.Chunk.Length > 0 { ... }" which is a bit ugly..
+		/// <summary>Contains the items that where </summary>
 		public readonly KeyValuePair<Slice, Slice>[] Chunk;
+
+		/// <summary>Iteration number of this chunk (used when paging through a long range)</summary>
 		public readonly int Iteration;
 
-		public FdbRangeChunk(bool hasMore, KeyValuePair<Slice, Slice>[] chunk, int iteration)
+		/// <summary>Set to true if the original range read was reversed (meaning the items are in reverse lexicographic order</summary>
+		public readonly bool Reversed;
+
+		public FdbRangeChunk(bool hasMore, KeyValuePair<Slice, Slice>[] chunk, int iteration, bool reversed)
 		{
 			this.HasMore = hasMore;
 			this.Chunk = chunk;
 			this.Iteration = iteration;
+			this.Reversed = reversed;
 		}
+
+		/// <summary>Returns the number of results in this chunk</summary>
+		public int Count { get { return this.Chunk != null ? this.Chunk.Length : 0; } }
+
+		/// <summary>Returns true if the chunk does not contain any item.</summary>
+		public bool IsEmpty { get { return this.Chunk == null || this.Chunk.Length == 0; } }
+
+		/// <summary>Returns the first item in the chunk</summary>
+		/// <remarks>Note that if the range is reversed, then the first item will be GREATER than the last !</remarks>
+		public KeyValuePair<Slice, Slice> First
+		{
+			get
+			{
+				var chunk = this.Chunk;
+				if (chunk != null && chunk.Length > 0) return chunk[0];
+				return default(KeyValuePair<Slice, Slice>);
+			}
+		}
+
+		/// <summary>Returns the last item in the chunk</summary>
+		/// <remarks>Note that if the range is reversed, then the last item will be LESS than the first!</remarks>
+		public KeyValuePair<Slice, Slice> Last
+		{
+			get
+			{
+				var chunk = this.Chunk;
+				if (chunk != null && chunk.Length > 0) return chunk[chunk.Length - 1];
+				return default(KeyValuePair<Slice, Slice>);
+			}
+		}
+
 	}
 
 }

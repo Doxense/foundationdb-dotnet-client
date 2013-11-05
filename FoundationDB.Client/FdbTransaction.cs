@@ -445,7 +445,8 @@ namespace FoundationDB.Client
 			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
 			options.EnsureLegalValues();
 
-			var future = FdbNative.TransactionGetRange(this.Handle, begin, end, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, snapshot, options.Reverse.Value);
+			bool reversed = options.Reverse.Value;
+			var future = FdbNative.TransactionGetRange(this.Handle, begin, end, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, snapshot, reversed);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) =>
@@ -455,7 +456,7 @@ namespace FoundationDB.Client
 					bool hasMore;
 					var chunk = GetKeyValueArrayResult(h, out hasMore);
 
-					return new FdbRangeChunk(hasMore, chunk, iteration);
+					return new FdbRangeChunk(hasMore, chunk, iteration, reversed);
 				},
 				m_token
 			);

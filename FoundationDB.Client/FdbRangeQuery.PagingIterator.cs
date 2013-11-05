@@ -189,16 +189,16 @@ namespace FoundationDB.Client
 					.Then((result) =>
 					{
 						this.Chunk = result.Chunk;
-						this.RowCount += result.Chunk.Length;
+						this.RowCount += result.Count;
 						this.HasMore = result.HasMore;
 						// subtract number of row from the remaining allowed
-						if (this.Remaining.HasValue) this.Remaining = this.Remaining.Value - result.Chunk.Length;
+						if (this.Remaining.HasValue) this.Remaining = this.Remaining.Value - result.Count;
 
 						this.AtEnd = !result.HasMore || (this.Remaining.HasValue && this.Remaining.Value <= 0);
 
 						if (!this.AtEnd)
 						{ // update begin..end so that next call will continue from where we left...
-							var lastKey = result.Chunk[result.Chunk.Length - 1].Key;
+							var lastKey = result.Last.Key;
 							if (this.Query.Reverse)
 							{
 								this.End = FdbKeySelector.FirstGreaterOrEqual(lastKey);
@@ -211,7 +211,7 @@ namespace FoundationDB.Client
 #if DEBUG_RANGE_PAGING
 						Debug.WriteLine("FdbRangeQuery.PagingIterator.FetchNextPageAsync() returned " + this.Chunk.Length + " results (" + this.RowCount + " total) " + (hasMore ? " with more to come" : " and has no more data"));
 #endif
-						if (result.Chunk.Length > 0 && this.Transaction != null)
+						if (!result.IsEmpty && this.Transaction != null)
 						{
 							return Publish(result.Chunk);
 						}
