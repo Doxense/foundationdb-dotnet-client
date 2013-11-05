@@ -129,7 +129,7 @@ namespace FoundationDB.Samples.Benchmarks
 							}
 							case BenchMode.Watch:
 							{
-								var w = await db.GetAndWatch(foo);
+								var w = await db.GetAndWatch(foo, ct);
 								var v = w.Value;
 
 								if (v == bar)

@@ -221,7 +221,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property contains the current value of the key.</returns>
-		public static Task<FdbWatch> GetAndWatch(this IFdbDatabase db, Slice key, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<FdbWatch> GetAndWatch(this IFdbDatabase db, Slice key, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
@@ -240,7 +240,7 @@ namespace FoundationDB.Client
 		/// <param name="value">Value to be inserted into the database.</param>
 		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static async Task<FdbWatch> SetAndWatch(this IFdbDatabase db, Slice key, Slice value, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<FdbWatch> SetAndWatch(this IFdbDatabase db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
