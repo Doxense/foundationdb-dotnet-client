@@ -70,6 +70,11 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		Slice IFdbKey.ToFoundationDbKey()
+		{
+			return this.ToSlice();
+		}
+
 		public int Count
 		{
 			get { return this.m_items.Count; }

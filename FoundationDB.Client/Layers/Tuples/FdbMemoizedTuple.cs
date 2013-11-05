@@ -73,6 +73,11 @@ namespace FoundationDB.Layers.Tuples
 			return this.Packed;
 		}
 
+		Slice IFdbKey.ToFoundationDbKey()
+		{
+			return this.ToSlice();
+		}
+
 		public FdbMemoizedTuple Copy()
 		{
 			return new FdbMemoizedTuple(

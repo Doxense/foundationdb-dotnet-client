@@ -117,6 +117,11 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.Pack(this.Item1);
 		}
 
+		Slice IFdbKey.ToFoundationDbKey()
+		{
+			return this.ToSlice();
+		}
+
 		public override string ToString()
 		{
 			return "(" + FdbTuple.Stringify(this.Item1) + ",)";

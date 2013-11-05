@@ -34,7 +34,7 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
-	public class FdbSubspace
+	public class FdbSubspace : IFdbKey
 	{
 		/// <summary>Empty subspace, that does not add any prefix to the keys</summary>
 		public static readonly FdbSubspace Empty = new FdbSubspace(Slice.Empty);
@@ -607,6 +607,11 @@ namespace FoundationDB.Client
 			if (extraBytes > 0) writer.EnsureBytes(extraBytes + m_rawPrefix.Count);
 			writer.WriteBytes(m_rawPrefix);
 			return writer;
+		}
+
+		Slice IFdbKey.ToFoundationDbKey()
+		{
+			return m_rawPrefix;
 		}
 
 		public override string ToString()

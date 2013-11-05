@@ -77,6 +77,11 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		Slice IFdbKey.ToFoundationDbKey()
+		{
+			return this.ToSlice();
+		}
+
 		/// <summary>Returns the number of elements in this tuple</summary>
 		public int Count
 		{

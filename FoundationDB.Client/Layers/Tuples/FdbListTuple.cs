@@ -206,6 +206,11 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		Slice IFdbKey.ToFoundationDbKey()
+		{
+			return this.ToSlice();
+		}
+
 		public override string ToString()
 		{
 			return FdbTuple.ToString(m_items, m_offset, m_count);

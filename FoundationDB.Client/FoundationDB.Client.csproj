@@ -65,6 +65,7 @@
     <Compile Include="Converters\SimilarValueComparer.cs" />
     <Compile Include="FdbClusterFile.cs" />
     <Compile Include="FdbDatabaseExtensions.cs" />
+    <Compile Include="IFdbKey.cs" />
     <Compile Include="FdbTransactionMode.cs" />
     <Compile Include="FdbTransactionals.cs" />
     <Compile Include="Filters\FdbFilterExtensions.cs" />
