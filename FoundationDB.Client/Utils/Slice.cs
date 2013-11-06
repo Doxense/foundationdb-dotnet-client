@@ -1351,7 +1351,7 @@ namespace FoundationDB.Client
 			Contract.Requires(count >= 0);
 
 			if (left == null || right == null) return left == right;
-			if (object.ReferenceEquals(left, right)) return leftOffset == rightOffset;
+			if (object.ReferenceEquals(left, right) && leftOffset == rightOffset) return true;
 
 			//TODO: ensure that there are enough bytes on both sides
 

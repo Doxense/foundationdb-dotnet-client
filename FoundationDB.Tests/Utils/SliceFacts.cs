@@ -698,7 +698,26 @@ namespace FoundationDB.Client.Tests
 			Assert.That(null != Slice.Empty, Is.True, "'Slice.Empty != null' is true");
 			Assert.That(null != Slice.FromByte(1), Is.True, "'{1} != null' is true");
 		}
-		
+
+		[Test]
+		public void Test_Slice_Equality_TwoByteArrayWithSameContentShouldReturnTrue()
+		{
+			var s1 = Slice.FromAscii("abcd");
+			var s2 = Slice.FromAscii("abcd");
+			Assert.IsTrue(s1.Equals(s2), "'abcd' should equals 'abcd'");
+		}
+
+		[Test]
+		public void Test_Slice_Equality_TwoByteArrayWithSameContentFromSameOriginalBufferShouldReturnTrue()
+		{
+			var origin = System.Text.Encoding.ASCII.GetBytes("abcdabcd");
+			var a1 = new ArraySegment<byte>(origin, 0, 4); //"abcd", refer first part of origin buffer
+			var s1 = Slice.Create(a1); //
+			var a2 = new ArraySegment<byte>(origin, 4, 4);//"abcd", refer second part of origin buffer
+			var s2 = Slice.Create(a2);
+			Assert.IsTrue(s1.Equals(s2), "'abcd' should equals 'abcd'");
+		}
+
 		private static readonly string UNICODE_TEXT = "Thïs Ïs à strîng thât contaÎns somé ùnicodè charactêrs and should be encoded in UTF-8: よろしくお願いします";
 		private static readonly byte[] UNICODE_BYTES = Encoding.UTF8.GetBytes(UNICODE_TEXT);
 
