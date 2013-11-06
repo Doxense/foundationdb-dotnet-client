@@ -44,7 +44,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("BlobsFromOuterSpace"));
+				var location = await TestHelpers.GetCleanDirectory(db, "BlobsFromOuterSpace");
 
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, location);
@@ -70,7 +70,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = db.Partition("BlobsFromOuterSpace");
+				var location = await TestHelpers.GetCleanDirectory(db, "BlobsFromOuterSpace");
 
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, location);
@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Blobs.Tests
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = db.Partition("BlobsFromOuterSpace");
+				var location = await TestHelpers.GetCleanDirectory(db, "BlobsFromOuterSpace");
 
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, location);

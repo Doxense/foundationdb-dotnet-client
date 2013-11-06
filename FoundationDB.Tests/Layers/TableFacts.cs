@@ -46,10 +46,8 @@ namespace FoundationDB.Layers.Tables.Tests
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("Tables");
+				var location = await TestHelpers.GetCleanDirectory(db, "Tables");
 
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
 
 				var table = new FdbTable("Foos", location.Partition("Foos"));
 
@@ -122,10 +120,7 @@ namespace FoundationDB.Layers.Tables.Tests
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = db.Partition("Tables");
-
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
+				var location = await TestHelpers.GetCleanDirectory(db, "Tables");
 
 				var table = new FdbTable("Foos", location.Partition("Foos"));
 
