@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Tuples
 				return value;
 			}
 
-			public void PackTo(FdbBufferWriter writer)
+			public void PackTo(ref SliceWriter writer)
 			{
 				//NO-OP
 			}
@@ -308,46 +308,46 @@ namespace FoundationDB.Layers.Tuples
 		/// <remarks>This is the non-generic equivalent of FdbTuple.Pack&lt;object&gt;()</remarks>
 		public static Slice PackBoxed(object item)
 		{
-			var writer = new FdbBufferWriter();
-			FdbTuplePackers.SerializeObjectTo(writer, item);
+			var writer = SliceWriter.Empty;
+			FdbTuplePackers.SerializeObjectTo(ref writer, item);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Pack a 1-tuple directly into a slice</summary>
 		public static Slice Pack<T1>(T1 item1)
 		{
-			var writer = new FdbBufferWriter();
-			FdbTuplePacker<T1>.SerializeTo(writer, item1);
+			var writer = SliceWriter.Empty;
+			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Pack a 2-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2>(T1 item1, T2 item2)
 		{
-			var writer = new FdbBufferWriter();
-			FdbTuplePacker<T1>.SerializeTo(writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(writer, item2);
+			var writer = SliceWriter.Empty;
+			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Pack a 3-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
-			var writer = new FdbBufferWriter();
-			FdbTuplePacker<T1>.SerializeTo(writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(writer, item2);
-			FdbTuplePacker<T3>.SerializeTo(writer, item3);
+			var writer = SliceWriter.Empty;
+			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
+			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Pack a 4-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			var writer = new FdbBufferWriter();
-			FdbTuplePacker<T1>.SerializeTo(writer, item1);
-			FdbTuplePacker<T2>.SerializeTo(writer, item2);
-			FdbTuplePacker<T3>.SerializeTo(writer, item3);
-			FdbTuplePacker<T4>.SerializeTo(writer, item4);
+			var writer = SliceWriter.Empty;
+			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
+			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
+			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
 			return writer.ToSlice();
 		}
 
@@ -366,15 +366,15 @@ namespace FoundationDB.Layers.Tuples
 			if (array != null) return PackRange<T>(prefix, array);
 
 			var next = new List<int>();
-			var writer = new FdbBufferWriter();
-			var packer = FdbTuplePacker<T>.Serializer;
+			var writer = SliceWriter.Empty;
+			var packer = FdbTuplePacker<T>.Encoder;
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var key in keys)
 			{
 				if (prefix.IsPresent) writer.WriteBytes(prefix);
-				packer(writer, key);
+				packer(ref writer, key);
 				next.Add(writer.Position);
 			}
 
@@ -392,16 +392,16 @@ namespace FoundationDB.Layers.Tuples
 			if (keys == null) throw new ArgumentNullException("keys");
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var writer = new FdbBufferWriter(keys.Length * (prefix.Count + 8));
+			var writer = new SliceWriter(keys.Length * (prefix.Count + 8));
 			var next = new List<int>(keys.Length);
-			var packer = FdbTuplePacker<T>.Serializer;
+			var packer = FdbTuplePacker<T>.Encoder;
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var key in keys)
 			{
 				if (prefix.IsPresent) writer.WriteBytes(prefix);
-				packer(writer, key);
+				packer(ref writer, key);
 				next.Add(writer.Position);
 			}
 
@@ -421,13 +421,13 @@ namespace FoundationDB.Layers.Tuples
 			if (array != null) return PackRange(array);
 
 			var next = new List<int>();
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach(var tuple in tuples)
 			{
-				tuple.PackTo(writer);
+				tuple.PackTo(ref writer);
 				next.Add(writer.Position);
 			}
 
@@ -443,14 +443,14 @@ namespace FoundationDB.Layers.Tuples
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
 			// pre-allocate by supposing that each tuple will take at least 16 bytes
-			var writer = new FdbBufferWriter(tuples.Length * 16);
+			var writer = new SliceWriter(tuples.Length * 16);
 			var next = new List<int>(tuples.Length);
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var tuple in tuples)
 			{
-				tuple.PackTo(writer);
+				tuple.PackTo(ref writer);
 				next.Add(writer.Position);
 			}
 
@@ -639,9 +639,9 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (tuple == null || tuple.Count == 0) return prefix;
 
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
-			tuple.PackTo(writer);
+			tuple.PackTo(ref writer);
 			return writer.ToSlice();
 		}
 
@@ -649,51 +649,51 @@ namespace FoundationDB.Layers.Tuples
 		/// <remarks>This is the non-generic equivalent of FdbTuple.Concat&lt;object&gt;()</remarks>
 		public static Slice ConcatBoxed(Slice prefix, object value)
 		{
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
-			FdbTuplePackers.SerializeObjectTo(writer, value);
+			FdbTuplePackers.SerializeObjectTo(ref writer, value);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
 		public static Slice Concat<T>(Slice prefix, T value)
 		{
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
-			FdbTuplePacker<T>.Serializer(writer, value);
+			FdbTuplePacker<T>.Encoder(ref writer, value);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
 		public static Slice Concat<T1, T2>(Slice prefix, T1 value1, T2 value2)
 		{
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Serializer(writer, value1);
-			FdbTuplePacker<T2>.Serializer(writer, value2);
+			FdbTuplePacker<T1>.Encoder(ref writer, value1);
+			FdbTuplePacker<T2>.Encoder(ref writer, value2);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 3-tuple</summary>
 		public static Slice Concat<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
 		{
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Serializer(writer, value1);
-			FdbTuplePacker<T2>.Serializer(writer, value2);
-			FdbTuplePacker<T3>.Serializer(writer, value3);
+			FdbTuplePacker<T1>.Encoder(ref writer, value1);
+			FdbTuplePacker<T2>.Encoder(ref writer, value2);
+			FdbTuplePacker<T3>.Encoder(ref writer, value3);
 			return writer.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
 		public static Slice Concat<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
-			FdbTuplePacker<T1>.Serializer(writer, value1);
-			FdbTuplePacker<T2>.Serializer(writer, value2);
-			FdbTuplePacker<T3>.Serializer(writer, value3);
-			FdbTuplePacker<T4>.Serializer(writer, value4);
+			FdbTuplePacker<T1>.Encoder(ref writer, value1);
+			FdbTuplePacker<T2>.Encoder(ref writer, value2);
+			FdbTuplePacker<T3>.Encoder(ref writer, value3);
+			FdbTuplePacker<T4>.Encoder(ref writer, value4);
 			return writer.ToSlice();
 		}
 

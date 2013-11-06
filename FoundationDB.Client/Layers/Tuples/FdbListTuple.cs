@@ -191,18 +191,18 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public void PackTo(FdbBufferWriter writer)
+		public void PackTo(ref SliceWriter writer)
 		{
 			for (int i = 0; i < m_count; i++)
 			{
-				FdbTuplePackers.SerializeObjectTo(writer, m_items[i + m_offset]);
+				FdbTuplePackers.SerializeObjectTo(ref writer, m_items[i + m_offset]);
 			}
 		}
 
 		public Slice ToSlice()
 		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
+			var writer = SliceWriter.Empty;
+			PackTo(ref writer);
 			return writer.ToSlice();
 		}
 

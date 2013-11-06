@@ -45,7 +45,7 @@ namespace FoundationDB.Layers.Tables
 	{
 
 		public FdbTable(string name, FdbSubspace subspace)
-			: this(name, subspace, FdbTupleCodec<TKey>.Default, FdbSliceSerializer<TValue>.Default)
+			: this(name, subspace, FdbTupleCodec<TKey>.Default, FdbValueEncoder<TValue>.Default)
 		{ }
 
 		public FdbTable(string name, FdbSubspace subspace, IFdbKeyEncoder<TKey> keySerializer, IFdbValueEncoder<TValue> valueSerializer)
@@ -128,7 +128,7 @@ namespace FoundationDB.Layers.Tables
 				.GetValuesAsync(trans, ids.Select(id => this.KeySerializer.Encode(id)))
 				.ConfigureAwait(false);
 
-			return FdbSliceSerializer.FromSlices(results, this.ValueSerializer);
+			return FdbValueEncoder.Decode(results, this.ValueSerializer);
 		}
 
 		#endregion

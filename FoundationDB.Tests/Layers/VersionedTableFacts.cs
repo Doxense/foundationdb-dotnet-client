@@ -58,7 +58,7 @@ namespace FoundationDB.Layers.Tables.Tests
 					db,
 					location.Partition("Foos"),
 					FdbTupleFormatter<int>.Default,
-					FdbSliceSerializer.UnicodeString
+					FdbValueEncoder.UnicodeString
 				);
 
 				// create a new version
@@ -172,7 +172,7 @@ namespace FoundationDB.Layers.Tables.Tests
 					db,
 					location.Partition("Bars"),
 					FdbTupleFormatter<Guid>.Default,
-					FdbSliceSerializer.UnicodeString
+					FdbValueEncoder.UnicodeString
 				);
 
 				bool created = await table.OpenOrCreateAsync();

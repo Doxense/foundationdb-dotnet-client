@@ -1275,18 +1275,18 @@ namespace FoundationDB.Layers.Tuples.Tests
 			return sb.ToString();
 		}
 
-		private static void PerformWriterTest<T>(Action<FdbBufferWriter, T> action, T value, string expectedResult, string message = null)
+		private static void PerformWriterTest<T>(FdbTuplePackers.Encoder<T> action, T value, string expectedResult, string message = null)
 		{
-			var writer = new FdbBufferWriter();
-			action(writer, value);
+			var writer = SliceWriter.Empty;
+			action(ref writer, value);
 
 			Assert.That(writer.ToSlice().ToHexaString(' '), Is.EqualTo(expectedResult), message != null ? "Value {0} ({1}) was not properly packed: {2}" : "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name), message);
 		}
 
 		[Test]
-		public void Test_Tuple_WriteInt64()
+		public void Test_FdbTupleParser_WriteInt64()
 		{
-			Action<FdbBufferWriter, long> test = (writer, value) => FdbTupleParser.WriteInt64(writer, value);
+			var test = new FdbTuplePackers.Encoder<long>(FdbTupleParser.WriteInt64);
 
 			PerformWriterTest(test, 0L, "14");
 
@@ -1321,14 +1321,14 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Tuple_WriteInt64_Ordered()
+		public void Test_FdbTupleParser_WriteInt64_Respects_Ordering()
 		{
 			var list = new List<KeyValuePair<long, Slice>>();
 
 			Action<long> test = (x) =>
 			{
-				var writer = new FdbBufferWriter();
-				FdbTupleParser.WriteInt64(writer, x);
+				var writer = SliceWriter.Empty;
+				FdbTupleParser.WriteInt64(ref writer, x);
 				var res = new KeyValuePair<long, Slice>(x, writer.ToSlice());
 				list.Add(res);
 				Console.WriteLine("{0,20} : {0:x16} {1}", res.Key, res.Value.ToString());
@@ -1384,9 +1384,9 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Tuple_WriteUInt64()
+		public void Test_FdbTupleParser_WriteUInt64()
 		{
-			Action<FdbBufferWriter, ulong> test = (writer, value) => FdbTupleParser.WriteUInt64(writer, value);
+			var test = new FdbTuplePackers.Encoder<ulong>(FdbTupleParser.WriteUInt64);
 
 			PerformWriterTest(test, 0UL, "14");
 
@@ -1411,14 +1411,14 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Tuple_WriteUInt64_Ordered()
+		public void Test_FdbTupleParser_WriteUInt64_Respects_Ordering()
 		{
 			var list = new List<KeyValuePair<ulong, Slice>>();
 
 			Action<ulong> test = (x) =>
 			{
-				var writer = new FdbBufferWriter();
-				FdbTupleParser.WriteUInt64(writer, x);
+				var writer = SliceWriter.Empty;
+				FdbTupleParser.WriteUInt64(ref writer, x);
 				var res = new KeyValuePair<ulong, Slice>(x, writer.ToSlice());
 				list.Add(res);
 #if DEBUG
@@ -1459,28 +1459,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Tuple_WriteAsciiString()
-		{
-			Action<FdbBufferWriter, string> test = (writer, value) => FdbTupleParser.WriteAsciiString(writer, value);
-
-			PerformWriterTest(test, null, "00");
-			PerformWriterTest(test, String.Empty, "01 00");
-			PerformWriterTest(test, "A", "01 41 00");
-			PerformWriterTest(test, "ABC", "01 41 42 43 00");
-
-			// Must escape '\0' contained in the string as '\x00\xFF'
-			PerformWriterTest(test, "\0", "01 00 FF 00");
-			PerformWriterTest(test, "A\0", "01 41 00 FF 00");
-			PerformWriterTest(test, "\0A", "01 00 FF 41 00");
-			PerformWriterTest(test, "A\0\0A", "01 41 00 FF 00 FF 41 00");
-			PerformWriterTest(test, "A\0B\0\xFF", "01 41 00 FF 42 00 FF FF 00");
-		}
-
-		[Test]
-		public void Test_Write_TupleUnicodeString()
+		public void Test_FdbTupleParser_WriteString()
 		{
 			string s;
-			Action<FdbBufferWriter, string> test = (writer, value) => FdbTupleParser.WriteString(writer, value);
+			var test = new FdbTuplePackers.Encoder<string>(FdbTupleParser.WriteString);
 			Func<string, string> encodeSimple = (value) => "02 " + Slice.Create(Encoding.UTF8.GetBytes(value)).ToHexaString(' ') + " 00";
 			Func<string, string> encodeWithZeroes = (value) => "02 " + Slice.Create(Encoding.UTF8.GetBytes(value)).ToHexaString(' ').Replace("00", "00 FF") + " 00";
 
@@ -1560,9 +1542,9 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Write_TupleUnicodeChar()
+		public void Test_FdbTupleParser_WriteChar()
 		{
-			Action<FdbBufferWriter, char> test = (writer, value) => FdbTupleParser.WriteChar(writer, value);
+			var test = new FdbTuplePackers.Encoder<char>(FdbTupleParser.WriteChar);
 
 			// 1 bytes
 			PerformWriterTest(test, 'A', "02 41 00", "Unicode chars in the ASCII table take only one byte in UTF-8");
@@ -1586,8 +1568,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 			for (int i = 1; i <= 65535; i++)
 			{
 				char c = (char)i;
-				var writer = new FdbBufferWriter();
-				FdbTupleParser.WriteChar(writer, c);
+				var writer = SliceWriter.Empty;
+				FdbTupleParser.WriteChar(ref writer, c);
 				string s = new string(c, 1);
 				Assert.That(writer.ToSlice().ToString(), Is.EqualTo("<02>" + Slice.Create(Encoding.UTF8.GetBytes(s)).ToString() + "<00>"), "{0} '{1}'", i, c);
 			}

@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Appends the packed bytes of this instance to the end of a buffer</summary>
 		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>
-		void PackTo(FdbBufferWriter writer);
+		void PackTo(ref SliceWriter writer);
 
 		/// <summary>Pack this instance into a Slice</summary>
 		/// <example>

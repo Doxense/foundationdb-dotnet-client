@@ -39,7 +39,7 @@ namespace FoundationDB.Client.Serializers.Tests
 	using System.Text;
 
 	[TestFixture]
-	public class SerializerFacts
+	public class KeyValueEncoderFacts
 	{
 
 		[Test]
@@ -47,10 +47,10 @@ namespace FoundationDB.Client.Serializers.Tests
 		{
 			// the default serializer for Slice should just roundtrip the value
 
-			var identity = FdbSliceSerializer<Slice>.Default;
+			var identity = FdbValueEncoder<Slice>.Default;
 			Assert.That(identity, Is.Not.Null);
-			Assert.That(identity, Is.InstanceOf<FdbSliceSerializer<Slice>>()); // in the current implementation !
-			Assert.That(FdbSliceSerializer<Slice>.Default, Is.SameAs(identity), "Default serializers should be singletons");
+			Assert.That(identity, Is.InstanceOf<FdbValueEncoder<Slice>>()); // in the current implementation !
+			Assert.That(FdbValueEncoder<Slice>.Default, Is.SameAs(identity), "Default serializers should be singletons");
 
 			// ToSlice(Slice)
 			Assert.That(identity.Encode(Slice.Nil), Is.EqualTo(Slice.Nil));
@@ -67,41 +67,41 @@ namespace FoundationDB.Client.Serializers.Tests
 		public void Test_Default_Serializer_For_Value_Types()
 		{
 			// Int32
-			Assert.That(FdbSliceSerializer<bool>.Default, Is.Not.Null);
-			Assert.That(FdbSliceSerializer<bool>.Default.Encode(false), Is.EqualTo(Slice.FromByte(0)));
-			Assert.That(FdbSliceSerializer<bool>.Default.Encode(true), Is.EqualTo(Slice.FromByte(1)));
-			Assert.That(FdbSliceSerializer<bool>.Default.Decode(Slice.Nil), Is.False);
-			Assert.That(FdbSliceSerializer<bool>.Default.Decode(Slice.Empty), Is.False);
-			Assert.That(FdbSliceSerializer<bool>.Default.Decode(Slice.FromByte(0)), Is.False);
-			Assert.That(FdbSliceSerializer<bool>.Default.Decode(Slice.FromByte(1)), Is.True);
+			Assert.That(FdbValueEncoder<bool>.Default, Is.Not.Null);
+			Assert.That(FdbValueEncoder<bool>.Default.Encode(false), Is.EqualTo(Slice.FromByte(0)));
+			Assert.That(FdbValueEncoder<bool>.Default.Encode(true), Is.EqualTo(Slice.FromByte(1)));
+			Assert.That(FdbValueEncoder<bool>.Default.Decode(Slice.Nil), Is.False);
+			Assert.That(FdbValueEncoder<bool>.Default.Decode(Slice.Empty), Is.False);
+			Assert.That(FdbValueEncoder<bool>.Default.Decode(Slice.FromByte(0)), Is.False);
+			Assert.That(FdbValueEncoder<bool>.Default.Decode(Slice.FromByte(1)), Is.True);
 
 			// Int32
-			Assert.That(FdbSliceSerializer<int>.Default, Is.Not.Null);
-			Assert.That(FdbSliceSerializer<int>.Default.Encode(123), Is.EqualTo(Slice.FromByte(123)));
-			Assert.That(FdbSliceSerializer<int>.Default.Decode(Slice.FromInt32(int.MaxValue)), Is.EqualTo(int.MaxValue));
+			Assert.That(FdbValueEncoder<int>.Default, Is.Not.Null);
+			Assert.That(FdbValueEncoder<int>.Default.Encode(123), Is.EqualTo(Slice.FromByte(123)));
+			Assert.That(FdbValueEncoder<int>.Default.Decode(Slice.FromInt32(int.MaxValue)), Is.EqualTo(int.MaxValue));
 
 			// UInt32
-			Assert.That(FdbSliceSerializer<uint>.Default, Is.Not.Null);
-			Assert.That(FdbSliceSerializer<uint>.Default.Encode(123), Is.EqualTo(Slice.FromByte(123)));
-			Assert.That(FdbSliceSerializer<uint>.Default.Decode(Slice.FromUInt32(uint.MaxValue)), Is.EqualTo(uint.MaxValue));
+			Assert.That(FdbValueEncoder<uint>.Default, Is.Not.Null);
+			Assert.That(FdbValueEncoder<uint>.Default.Encode(123), Is.EqualTo(Slice.FromByte(123)));
+			Assert.That(FdbValueEncoder<uint>.Default.Decode(Slice.FromUInt32(uint.MaxValue)), Is.EqualTo(uint.MaxValue));
 
 			// Int64
-			Assert.That(FdbSliceSerializer<long>.Default, Is.Not.Null);
-			Assert.That(FdbSliceSerializer<long>.Default.Encode(123), Is.EqualTo(Slice.FromByte(123)));
-			Assert.That(FdbSliceSerializer<long>.Default.Decode(Slice.FromInt64(long.MaxValue)), Is.EqualTo(long.MaxValue));
+			Assert.That(FdbValueEncoder<long>.Default, Is.Not.Null);
+			Assert.That(FdbValueEncoder<long>.Default.Encode(123), Is.EqualTo(Slice.FromByte(123)));
+			Assert.That(FdbValueEncoder<long>.Default.Decode(Slice.FromInt64(long.MaxValue)), Is.EqualTo(long.MaxValue));
 
 			// UInt64
-			Assert.That(FdbSliceSerializer<ulong>.Default, Is.Not.Null);
-			Assert.That(FdbSliceSerializer<ulong>.Default.Encode(123), Is.EqualTo(Slice.FromByte(123)));
-			Assert.That(FdbSliceSerializer<ulong>.Default.Decode(Slice.FromUInt64(ulong.MaxValue)), Is.EqualTo(ulong.MaxValue));
+			Assert.That(FdbValueEncoder<ulong>.Default, Is.Not.Null);
+			Assert.That(FdbValueEncoder<ulong>.Default.Encode(123), Is.EqualTo(Slice.FromByte(123)));
+			Assert.That(FdbValueEncoder<ulong>.Default.Decode(Slice.FromUInt64(ulong.MaxValue)), Is.EqualTo(ulong.MaxValue));
 
 			// Guid
 			var guid = Guid.NewGuid();
-			Assert.That(FdbSliceSerializer<Guid>.Default, Is.Not.Null);
-			Assert.That(FdbSliceSerializer<Guid>.Default.Encode(Guid.Empty), Is.EqualTo(Slice.Create(16)));
-			Assert.That(FdbSliceSerializer<Guid>.Default.Encode(guid), Is.EqualTo(Slice.FromGuid(guid)));
-			Assert.That(FdbSliceSerializer<Guid>.Default.Decode(Slice.Create(16)), Is.EqualTo(Guid.Empty));
-			Assert.That(FdbSliceSerializer<Guid>.Default.Decode(Slice.FromGuid(guid)), Is.EqualTo(guid));
+			Assert.That(FdbValueEncoder<Guid>.Default, Is.Not.Null);
+			Assert.That(FdbValueEncoder<Guid>.Default.Encode(Guid.Empty), Is.EqualTo(Slice.Create(16)));
+			Assert.That(FdbValueEncoder<Guid>.Default.Encode(guid), Is.EqualTo(Slice.FromGuid(guid)));
+			Assert.That(FdbValueEncoder<Guid>.Default.Decode(Slice.Create(16)), Is.EqualTo(Guid.Empty));
+			Assert.That(FdbValueEncoder<Guid>.Default.Decode(Slice.FromGuid(guid)), Is.EqualTo(guid));
 		}
 
 		[Test]
@@ -109,11 +109,11 @@ namespace FoundationDB.Client.Serializers.Tests
 		{
 			// the default serializer for Tuples calls Pack() / Unpack()
 
-			var tuplifier = FdbSliceSerializer<IFdbTuple>.Default;
+			var tuplifier = FdbValueEncoder<IFdbTuple>.Default;
 			Assert.That(tuplifier, Is.Not.Null);
-			Assert.That(tuplifier, Is.InstanceOf<FdbSliceSerializer<IFdbTuple>>()); // in the current implementation !
-			Assert.That(FdbSliceSerializer<IFdbTuple>.Default, Is.SameAs(tuplifier), "Default serializers should be singletons");
-			Assert.That(FdbSliceSerializer.Tuple, Is.SameAs(tuplifier));
+			Assert.That(tuplifier, Is.InstanceOf<FdbValueEncoder<IFdbTuple>>()); // in the current implementation !
+			Assert.That(FdbValueEncoder<IFdbTuple>.Default, Is.SameAs(tuplifier), "Default serializers should be singletons");
+			Assert.That(FdbValueEncoder.Tuple, Is.SameAs(tuplifier));
 
 			// ToSlice(Slice)
 			Assert.That(tuplifier.Encode(null), Is.EqualTo(Slice.Nil));
@@ -130,9 +130,9 @@ namespace FoundationDB.Client.Serializers.Tests
 		[Test]
 		public void Test_Default_Serializer_For_ISliceSerializables()
 		{
-			var _ = FdbSliceSerializer<ISliceSerializable>.Default;
+			var _ = FdbValueEncoder<ISliceSerializable>.Default;
 
-			var serializer = FdbSliceSerializer<Schmilblick>.Default;
+			var serializer = FdbValueEncoder<Schmilblick>.Default;
 			Assert.That(serializer, Is.Not.Null);
 			Assert.That(serializer.Encode(null), Is.EqualTo(Slice.Nil));
 			

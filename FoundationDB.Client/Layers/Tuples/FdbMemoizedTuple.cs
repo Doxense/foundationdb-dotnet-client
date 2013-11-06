@@ -60,7 +60,7 @@ namespace FoundationDB.Layers.Tuples
 			get { return this.Packed.Count; }
 		}
 
-		public void PackTo(FdbBufferWriter writer)
+		public void PackTo(ref SliceWriter writer)
 		{
 			if (this.Packed.IsPresent)
 			{

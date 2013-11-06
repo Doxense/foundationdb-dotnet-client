@@ -37,7 +37,7 @@ namespace FoundationDB.Client.Utils.Tests
 	using System.Text;
 
 	[TestFixture]
-	public class BufferWriterFacts
+	public class SliceWriterFacts
 	{
 
 		private static string Clean(string value)
@@ -50,18 +50,30 @@ namespace FoundationDB.Client.Utils.Tests
 			return sb.ToString();
 		}
 
-		private static void PerformWriterTest<T>(Action<FdbBufferWriter, T> action, T value, string expectedResult, string message = null)
+		private delegate void TestHandler<T>(ref SliceWriter writer, T value);
+
+		private static void PerformWriterTest<T>(TestHandler<T> action, T value, string expectedResult, string message = null)
 		{
-			var writer = new FdbBufferWriter();
-			action(writer, value);
+			var writer = SliceWriter.Empty;
+			action(ref writer, value);
 
 			Assert.That(writer.ToSlice().ToHexaString(' '), Is.EqualTo(expectedResult), "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name));
 		}
 
 		[Test]
+		public void Test_Empty_Writer()
+		{
+			var writer = SliceWriter.Empty;
+			Assert.That(writer.Position, Is.EqualTo(0));
+			Assert.That(writer.HasData, Is.False);
+			Assert.That(writer.Buffer, Is.Null);
+			Assert.That(writer.ToSlice(), Is.EqualTo(Slice.Empty));
+		}
+
+		[Test]
 		public void Test_WriteBytes()
 		{
-			Action<FdbBufferWriter, byte[]> test = (writer, value) => writer.WriteBytes(value);
+			TestHandler<byte[]> test = delegate (ref SliceWriter writer, byte[] value) { writer.WriteBytes(value); };
 
 			PerformWriterTest(test, null, "");
 			PerformWriterTest(test, new byte[0], "");
@@ -72,7 +84,7 @@ namespace FoundationDB.Client.Utils.Tests
 		[Test]
 		public void Test_WriteByte()
 		{
-			Action<FdbBufferWriter, byte> test = (writer, value) => writer.WriteByte(value);
+			TestHandler<byte> test = delegate (ref SliceWriter writer, byte value) { writer.WriteByte(value); };
 
 			PerformWriterTest(test, default(byte), "00");
 			PerformWriterTest(test, (byte)1, "01");
@@ -83,7 +95,7 @@ namespace FoundationDB.Client.Utils.Tests
 		[Test]
 		public void Test_WriteVarint32()
 		{
-			Action<FdbBufferWriter, uint> test = (writer, value) => writer.WriteVarint32(value);
+			TestHandler<uint> test = delegate (ref SliceWriter writer, uint value) { writer.WriteVarint32(value); };
 
 			PerformWriterTest(test, 0U, "00");
 			PerformWriterTest(test, 1U, "01");
@@ -96,7 +108,7 @@ namespace FoundationDB.Client.Utils.Tests
 		[Test]
 		public void Test_WriteVarint64()
 		{
-			Action<FdbBufferWriter, ulong> test = (writer, value) => writer.WriteVarint64(value);
+			TestHandler<ulong> test = delegate(ref SliceWriter writer, ulong value) { writer.WriteVarint64(value); };
 
 			PerformWriterTest(test, 0UL, "00");
 			PerformWriterTest(test, 1UL, "01");

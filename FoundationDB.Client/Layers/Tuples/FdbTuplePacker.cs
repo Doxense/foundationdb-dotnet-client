@@ -38,22 +38,18 @@ namespace FoundationDB.Layers.Tuples
 	public static class FdbTuplePacker<T>
 	{
 
-		internal static readonly Action<FdbBufferWriter, T> Serializer;
-
-		static FdbTuplePacker()
-		{
-			Serializer = FdbTuplePackers.GetSerializer<T>();
-			//REVIEW: bad practice to throw in static ctor...
-			if (Serializer == null) throw new InvalidOperationException(String.Format("Does not know how to serialize values of type {0} into keys", typeof(T).Name));
-		}
+		internal static readonly FdbTuplePackers.Encoder<T> Encoder = FdbTuplePackers.GetSerializer<T>(required: true);
 
 		/// <summary>Serialize a <typeparamref name="T"/> into a binary buffer</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Value that will be serialized</param>
 		/// <remarks>The buffer does not need to be preallocated.</remarks>
-		public static void SerializeTo(FdbBufferWriter writer, T value)
+#if !NET_4_0
+		[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
+#endif
+		public static void SerializeTo(ref SliceWriter writer, T value)
 		{
-			FdbTuplePacker<T>.Serializer(writer, value);
+			FdbTuplePacker<T>.Encoder(ref writer, value);
 		}
 
 		/// <summary>Serialize a <typeparamref name="T"/> into a slices</summary>
@@ -61,8 +57,8 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Slice that contains the binary representation of <paramref name="value"/></returns>
 		public static Slice Serialize(T value)
 		{
-			var writer = new FdbBufferWriter();
-			Serializer(writer, value);
+			var writer = SliceWriter.Empty;
+			FdbTuplePacker<T>.Encoder(ref writer, value);
 			return writer.ToSlice();
 		}
 

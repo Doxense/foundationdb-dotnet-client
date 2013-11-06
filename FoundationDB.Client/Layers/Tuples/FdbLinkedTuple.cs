@@ -63,17 +63,17 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Pack this tuple into a buffer</summary>
-		public void PackTo(FdbBufferWriter writer)
+		public void PackTo(ref SliceWriter writer)
 		{
-			this.Head.PackTo(writer);
-			FdbTuplePacker<T>.SerializeTo(writer, this.Tail);
+			this.Head.PackTo(ref writer);
+			FdbTuplePacker<T>.SerializeTo(ref writer, this.Tail);
 		}
 
 		/// <summary>Pack this tuple into a slice</summary>
 		public Slice ToSlice()
 		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
+			var writer = SliceWriter.Empty;
+			PackTo(ref writer);
 			return writer.ToSlice();
 		}
 

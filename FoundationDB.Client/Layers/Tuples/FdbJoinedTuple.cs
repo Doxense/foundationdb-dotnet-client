@@ -65,16 +65,16 @@ namespace FoundationDB.Layers.Tuples
 			m_count = m_split + tail.Count;
 		}
 
-		public void PackTo(FdbBufferWriter writer)
+		public void PackTo(ref SliceWriter writer)
 		{
-			this.Head.PackTo(writer);
-			this.Tail.PackTo(writer);
+			this.Head.PackTo(ref writer);
+			this.Tail.PackTo(ref writer);
 		}
 
 		public Slice ToSlice()
 		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
+			var writer = SliceWriter.Empty;
+			PackTo(ref writer);
 			return writer.ToSlice();
 		}
 

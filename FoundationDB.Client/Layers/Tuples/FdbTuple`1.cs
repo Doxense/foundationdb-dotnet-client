@@ -82,9 +82,9 @@ namespace FoundationDB.Layers.Tuples
 			return FdbConverters.Convert<T1, R>(this.Item1);
 		}
 
-		public void PackTo(FdbBufferWriter writer)
+		public void PackTo(ref SliceWriter writer)
 		{
-			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
+			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);
 		}
 
 		IFdbTuple IFdbTuple.Append<T2>(T2 value)

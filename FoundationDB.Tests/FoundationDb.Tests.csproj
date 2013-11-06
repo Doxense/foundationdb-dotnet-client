@@ -70,9 +70,9 @@
     <Compile Include="Layers\VectorFacts.cs" />
     <Compile Include="Layers\QueuesFacts.cs" />
     <Compile Include="TransactionalFacts.cs" />
-    <Compile Include="Utils\SerializersFacts.cs" />
+    <Compile Include="Utils\KeyValueEncoderFacts.cs" />
     <Compile Include="UuidFacts.cs" />
-    <Compile Include="SliceFacts.cs" />
+    <Compile Include="Utils\SliceFacts.cs" />
     <Compile Include="DatabaseBulkFacts.cs" />
     <Compile Include="Layers\SubspaceFacts.cs" />
     <Compile Include="Layers\DirectoryFacts.cs" />
@@ -94,7 +94,7 @@
     <Compile Include="TransactionFacts.cs" />
     <Compile Include="DatabaseFacts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utils\BufferWriterFacts.cs" />
+    <Compile Include="Utils\SliceWriterFacts.cs" />
     <Compile Include="Utils\ConversionFacts.cs" />
     <Compile Include="Linq\FdbAsyncEnumerableFacts.cs" />
   </ItemGroup>

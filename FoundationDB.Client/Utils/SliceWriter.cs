@@ -28,34 +28,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Utils
 {
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using System.Text;
 
-	/// <summary>Helper class that emulates a pseudo-stream using a byte buffer that will automatically grow in size, if necessary</summary>
-	/// <remarks>IMPORTANT: This class does not extensively check the parameters! The caller must ensure that everything is valid (this is to get the max performance when serializing keys and values)</remarks>
+	/// <summary>Slice buffer that emulates a pseudo-stream using a byte array that will automatically grow in size, if necessary</summary>
+	/// <remarks>IMPORTANT: This struct does not extensively check the parameters! The caller should ensure that everything is valid (this is to get the max performance when serializing keys and values)</remarks>
 	[DebuggerDisplay("Position={this.Position}, Capacity={this.Buffer == null ? -1 : this.Buffer.Length}")]
-	public sealed class FdbBufferWriter
+	public struct SliceWriter
 	{
-		//TODO: consider that to a struct ? 
-		// => would need to be passed around with a 'ref' keyword
-
 		// Invariant
 		// * Valid data always start at offset 0
 		// * 'this.Position' is equal to the current size as well as the offset of the next available free spot
 		// * 'this.Buffer' is either null (meaning newly created stream), or is at least as big as this.Position
-
-		#region Constants...
-
-		/// <summary>Minimum size of buffer</summary>
-		private const int MIN_SIZE = 32;
-
-		/// <summary>Empty buffer</summary>
-		internal static readonly byte[] Empty = new byte[0];
-
-		#endregion
 
 		#region Private Members...
 
@@ -69,26 +54,26 @@ namespace FoundationDB.Client.Utils
 
 		#region Constructors...
 
-		/// <summary>Create a new empty binary buffer</summary>
-		public FdbBufferWriter()
-		{ }
+		public static SliceWriter Empty { get { return default(SliceWriter); } }
 
 		/// <summary>Create a new empty binary buffer with an initial allocated size</summary>
 		/// <param name="capacity"></param>
-		public FdbBufferWriter(int capacity)
+		public SliceWriter(int capacity)
 		{
 			this.Buffer = new byte[capacity];
+			this.Position = 0;
 		}
 
 		/// <summary>Create a new binary writer using an existing buffer</summary>
 		/// <param name="buffer"></param>
-		public FdbBufferWriter(byte[] buffer)
+		public SliceWriter(byte[] buffer)
 		{
 			this.Buffer = buffer;
+			this.Position = 0;
 		}
 
 		/// <summary>Create a new binary writer using an existing buffer and with the cursor to a specific location</summary>
-		public FdbBufferWriter(byte[] buffer, int index)
+		public SliceWriter(byte[] buffer, int index)
 		{
 			this.Buffer = buffer;
 			this.Position = index;
@@ -101,9 +86,6 @@ namespace FoundationDB.Client.Utils
 		/// <summary>Returns true is the buffer contains at least some data</summary>
 		public bool HasData
 		{
-#if !NET_4_0
-			[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
 			get { return this.Position > 0; }
 		}
 
@@ -123,23 +105,26 @@ namespace FoundationDB.Client.Utils
 
 		/// <summary>Returns a slice pointing to the content of the buffer</summary>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
 		public Slice ToSlice()
 		{
-			return new Slice(this.Buffer ?? Empty, 0, this.Position);
+			if (this.Buffer == null || this.Position == 0)
+			{
+				return Slice.Empty;
+			}
+			else
+			{
+				Contract.Assert(this.Buffer.Length >= this.Position);
+				return new Slice(this.Buffer ?? Slice.EmptyArray, 0, this.Position);
+			}
 		}
 
 		/// <summary>Returns a slice pointing to the first <paramref name="count"/> bytes of the buffer</summary>
 		/// <param name="count">Size of the segment</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
+		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
 		public Slice ToSlice(int count)
 		{
-			if (count < 0 || count > this.Position) throw new ArgumentNullException("count");
+			if (count < 0 || count > this.Position) throw new ArgumentException("count");
 
 			Contract.Requires(count >= 0 && count <= this.Position);
 			return new Slice(this.Buffer, 0, count);
@@ -149,13 +134,11 @@ namespace FoundationDB.Client.Utils
 		/// <param name="offset">Offset of the segment from the start of the buffer</param>
 		/// <param name="count">Size of the segment</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
+		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less then zero, or do not fit inside the current buffer</exception>
 		public Slice ToSlice(int offset, int count)
 		{
-			if (offset < 0 || offset >= this.Position) throw new ArgumentException("offset");
-			if (count < 0 || offset + count > this.Position) throw new ArgumentException("count");
+			if (offset < 0 || offset >= this.Position) throw new ArgumentException("Offset must be inside the buffer", "offset");
+			if (count < 0 || offset + count > this.Position) throw new ArgumentException("The buffer is too small", "count");
 
 			return new Slice(this.Buffer, offset, count);
 		}
@@ -204,7 +187,7 @@ namespace FoundationDB.Client.Utils
 			{
 				// reduce size ?
 				// If the buffer exceeds 4K and we used less than 1/8 of it the last time, we will "shrink" the buffer
-				if (this.Buffer.Length > 4096 && this.Position * 8 <= Buffer.Length)
+				if (this.Buffer.Length > 4096 && (this.Position << 3) <= Buffer.Length)
 				{ // Shrink it
 					Buffer = new byte[NextPowerOfTwo(this.Position)];
 				}
@@ -242,7 +225,8 @@ namespace FoundationDB.Client.Utils
 		public void WriteByte(byte value)
 		{
 			EnsureBytes(1);
-			this.Buffer[this.Position++] = value;
+			this.Buffer[this.Position] = value;
+			++this.Position;
 		}
 
 #if !NET_4_0
@@ -530,12 +514,11 @@ namespace FoundationDB.Client.Utils
 		public void EnsureBytes(int count)
 		{
 			Contract.Requires(count >= 0);
-
 			if (Buffer == null || Position + count > Buffer.Length)
 			{
-				// note: double la taille du buffer
 				GrowBuffer(ref Buffer, Position + count);
 			}
+			Contract.Ensures(this.Buffer != null && this.Buffer.Length >= this.Position + count);
 		}
 
 		/// <summary>Ensures that we can fit data at a specifc offset in the buffer</summary>
@@ -564,24 +547,16 @@ namespace FoundationDB.Client.Utils
 		{
 			Contract.Requires(minimumCapacity >= 0);
 
-			// essayes de doubler la taille du buffer, ou prendre le minimum demandé
-			int newSize = buffer == null ? 0 : (buffer.Length << 1);
-			if (newSize < minimumCapacity) newSize = minimumCapacity;
+			// double the size of the buffer, or use the minimum required
+			long newSize = Math.Max(buffer == null ? 0 : (((long)buffer.Length) << 1), minimumCapacity);
 
-			// .NET (as of 4.5) cannot allocate an array with more then 2^31 - 1 items...
-			if (newSize > 2147483647) FailCannotGrowBuffer();
+			// .NET (as of 4.5) cannot allocate an array with more than 2^31 - 1 items...
+			if (newSize > 0x7fffffffL) FailCannotGrowBuffer();
 
-			// round to the next multiple of 16 bytes (to reduce fragmentation)
-			if (newSize < MIN_SIZE)
-			{
-				newSize = MIN_SIZE;
-			}
-			else if ((newSize & 0xF) != 0)
-			{
-				checked { newSize = (newSize + 0xF) & 0x7FFFFFF8; }
-			}
+			// round up to 16 bytes, to reduce fragmentation
+			int size = ComputeAlignedSize((int)newSize);
 
-			Array.Resize(ref buffer, newSize);
+			Array.Resize(ref buffer, size);
 		}
 
 		private static void FailCannotGrowBuffer()
@@ -590,12 +565,24 @@ namespace FoundationDB.Client.Utils
 			throw new InvalidOperationException("Buffer cannot be resize, because it would larger than the maximum allowed size");
 		}
 
+		/// <summary>Round a size to a multiple of 16</summary>
+		/// <param name="size">Minimum size required</param>
+		/// <returns>Size rounded up to a multiple of 16</returns>
+		internal static int ComputeAlignedSize(int size)
+		{
+			const int ALIGNMENT = 16; // MUST BE A POWER OF TWO!
+			const int MASK = (-ALIGNMENT) & int.MaxValue;
+
+			if (size <= ALIGNMENT) return ALIGNMENT;
+			checked { return (size + (ALIGNMENT - 1)) & MASK; }
+		}
+
 		/// <summary>Round a number to the next power of 2</summary>
 		/// <param name="x">Positive integer that will be rounded up (if not already a power of 2)</param>
 		/// <returns>Smallest power of 2 that is greater then or equal to <paramref name="x"/></returns>
 		/// <remarks>Will return 1 for <paramref name="x"/> = 0 (because 0 is not a power 2 !), and will throws for <paramref name="x"/> &lt; 0</remarks>
 		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="x"/> is a negative number</exception>
-		public static int NextPowerOfTwo(int x)
+		internal static int NextPowerOfTwo(int x)
 		{
 			// cf http://en.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
 
@@ -611,62 +598,6 @@ namespace FoundationDB.Client.Utils
 			x |= (x >> 8);
 			x |= (x >> 16);
 			return x + 1;
-		}
-
-		/// <summary>Lookup table used to compute the index of the most significant bit</summary>
-		private static readonly int[] MultiplyDeBruijnBitPosition = new int[32]
-		{
-			0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
-			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
-		};
-
-		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
-		/// <remarks>Note: will return 1 even for <param name="v"/> == 0</remarks>
-		public static int NumberOfBytes(uint v)
-		{
-			return (MostSignificantBit(v) + 8) >> 3;
-		}
-
-		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
-		/// <remarks>Note: will return 1 even for <param name="v"/> == 0</remarks>
-		public static int NumberOfBytes(long v)
-		{
-			return v >= 0 ? NumberOfBytes((ulong)v) : v != long.MinValue ? NumberOfBytes((ulong)-v) : 8;
-		}
-
-		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
-		/// <returns>Note: will return 1 even for <param name="v"/> == 0</returns>
-		public static int NumberOfBytes(ulong v)
-		{
-			int msb = 0;
-
-			if (v > 0xFFFFFFFF)
-			{ // for 64-bit values, shift everything by 32 bits to the right
-				msb += 32;
-				v >>= 32;
-			}
-			msb += MostSignificantBit((uint)v);
-			return (msb + 8) >> 3;
-		}
-
-		/// <summary>Returns the position of the most significant bit (0-based) in a 32-bit integer</summary>
-		/// <param name="v">32-bit integer</param>
-		/// <returns>Index of the most significant bit (0-based)</returns>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static int MostSignificantBit(uint v)
-		{
-			// from: http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
-
-			v |= v >> 1; // first round down to one less than a power of 2 
-			v |= v >> 2;
-			v |= v >> 4;
-			v |= v >> 8;
-			v |= v >> 16;
-
-			var r = (v * 0x07C4ACDDU) >> 27;
-			return MultiplyDeBruijnBitPosition[r];
 		}
 
 	}

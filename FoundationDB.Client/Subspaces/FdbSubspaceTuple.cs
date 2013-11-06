@@ -57,16 +57,16 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Parent subspace that created this tuple</summary>
 		public FdbSubspace Subspace { get { return m_subspace; } }
 
-		public void PackTo(FdbBufferWriter writer)
+		public void PackTo(ref SliceWriter writer)
 		{
 			writer.WriteBytes(this.m_subspace.Key);
-			this.m_items.PackTo(writer);
+			this.m_items.PackTo(ref writer);
 		}
 
 		public Slice ToSlice()
 		{
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
+			var writer = SliceWriter.Empty;
+			PackTo(ref writer);
 			return writer.ToSlice();
 		}
 

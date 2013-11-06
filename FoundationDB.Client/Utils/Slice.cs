@@ -1110,7 +1110,7 @@ namespace FoundationDB.Client
 		/// <remarks>This may not be efficient, so it should only be use for testing/logging/troubleshooting</remarks>
 		public static Slice Unescape(string value)
 		{
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 			for (int i = 0; i < value.Length; i++)
 			{
 				char c = value[i];

@@ -56,9 +56,9 @@ namespace FoundationDB.Layers.Tuples
 			m_missingValue = missingValue;
 		}
 
-		public override void EncodeOrderedPart(FdbBufferWriter output, T value)
+		public override void EncodeOrderedPart(ref SliceWriter output, T value)
 		{
-			FdbTuplePacker<T>.SerializeTo(output, value);
+			FdbTuplePacker<T>.Encoder(ref output, value);
 		}
 
 		public override T DecodeOrderedPart(ref SliceReader input)

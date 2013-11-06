@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Indexing
 	{
 
 		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
-			: this(name, subspace, valueComparer, indexNullValues, null, null)
+			: this(name, subspace, valueComparer, indexNullValues, FdbTupleCodec<TId>.Default, FdbTupleCodec<TValue>.Default)
 		{ }
 
 		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, IFdbKeyEncoder<TId> keySerializer, IFdbKeyEncoder<TValue> valueSerializer)
@@ -82,19 +82,8 @@ namespace FoundationDB.Layers.Indexing
 		private Slice Pack(TValue value, TId id)
 		{
 			var writer = this.Subspace.OpenBuffer();
-
-			//BUGBUG: UGLY HACK !
-
-			if (this.ValueSerializer == null)
-				FdbTuple.Create<TValue>(value).PackTo(writer);
-			else
-				this.ValueSerializer.EncodePart(writer, value);
-
-			if (this.KeySerializer == null)
-				FdbTuple.Create<TId>(id).PackTo(writer);
-			else
-				this.KeySerializer.EncodePart(writer, id);
-
+			this.ValueSerializer.EncodePart(ref writer, value);
+			this.KeySerializer.EncodePart(ref writer, id);
 			return writer.ToSlice();
 		}
 

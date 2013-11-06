@@ -61,7 +61,7 @@ namespace FoundationDB.Layers.Tuples
 			m_count = count;
 		}
 
-		public void PackTo(FdbBufferWriter writer)
+		public void PackTo(ref SliceWriter writer)
 		{
 			var slices = m_slices;
 			for (int n = m_count, p = m_offset; n > 0; n--)
@@ -74,8 +74,8 @@ namespace FoundationDB.Layers.Tuples
 		{
 			// merge all the slices making up this segment
 			//TODO: should we get the sum of all slices to pre-allocated the buffer ?
-			var writer = new FdbBufferWriter();
-			PackTo(writer);
+			var writer = SliceWriter.Empty;
+			PackTo(ref writer);
 			return writer.ToSlice();
 		}
 

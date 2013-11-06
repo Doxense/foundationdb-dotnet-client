@@ -611,9 +611,9 @@ namespace FoundationDB.Client
 			return FdbKeySelectorPair.Create(ToRange());
 		}
 
-		internal FdbBufferWriter OpenBuffer(int extraBytes = 0)
+		internal SliceWriter OpenBuffer(int extraBytes = 0)
 		{
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 			if (extraBytes > 0) writer.EnsureBytes(extraBytes + m_rawPrefix.Count);
 			writer.WriteBytes(m_rawPrefix);
 			return writer;

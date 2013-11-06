@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 
 	public interface IFdbKeyEncoder<T> : IFdbValueEncoder<T>
 	{
-		void EncodePart(FdbBufferWriter output, T value);
+		void EncodePart(ref SliceWriter output, T value);
 
 		T DecodePart(ref SliceReader input);
 	}
@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 		T DecodeOrdered(Slice input);
 
 		/// <summary>Append a <typeparamref name="T"/> at the end of a composite key</summary>
-		void EncodeOrderedPart(FdbBufferWriter output, T value);
+		void EncodeOrderedPart(ref SliceWriter output, T value);
 
 		/// <summary>Read a <typeparamref name="T"/> from a composite key</summary>
 		T DecodeOrderedPart(ref SliceReader input);

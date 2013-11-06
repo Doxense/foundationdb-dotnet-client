@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 
 			var value = await trans.GetAsync(key).ConfigureAwait(false);
 
-			return FdbSliceSerializer.FromSlice(value, serializer);
+			return FdbValueEncoder.Decode(value, serializer);
 		}
 
 		public static Task<TValue> GetAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, TKey key, IFdbValueEncoder<TValue> serializer = null)
@@ -149,7 +149,7 @@ namespace FoundationDB.Client
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (value == null) throw new ArgumentNullException("value");
 
-			trans.Set(key, FdbSliceSerializer.ToSlice(value, serializer));
+			trans.Set(key, FdbValueEncoder.Encode(value, serializer));
 		}
 
 		public static void Set<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, IFdbValueEncoder<TValue> serializer)
@@ -540,14 +540,14 @@ namespace FoundationDB.Client
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
 		public static FdbWatch SetAndWatch<TValue>(this IFdbTransaction trans, Slice key, TValue value, IFdbValueEncoder<TValue> serializer, CancellationToken cancellationToken)
 		{
-			return SetAndWatch(trans, key, FdbSliceSerializer.ToSlice(value, serializer), cancellationToken);
+			return SetAndWatch(trans, key, FdbValueEncoder.Encode(value, serializer), cancellationToken);
 		}
 
 		public static FdbWatch SetAndWatch<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, IFdbValueEncoder<TValue> serializer, CancellationToken cancellationToken)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
-			return SetAndWatch(trans, key.ToFoundationDbKey(), FdbSliceSerializer.ToSlice(value, serializer), cancellationToken);
+			return SetAndWatch(trans, key.ToFoundationDbKey(), FdbValueEncoder.Encode(value, serializer), cancellationToken);
 		}
 
 		#endregion
@@ -578,7 +578,7 @@ namespace FoundationDB.Client
 		{
 			var results = await GetValuesAsync(trans, keys).ConfigureAwait(false);
 
-			return FdbSliceSerializer.FromSlices(results, serializer);
+			return FdbValueEncoder.Decode(results, serializer);
 		}
 
 		public static Task<Slice[]> GetValuesAsync<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys)
@@ -651,7 +651,7 @@ namespace FoundationDB.Client
 			Contract.Assert(results != null && results.Length == keys.Length);
 
 			var array = new KeyValuePair<Slice, TValue>[results.Length];
-			if (serializer == null) serializer = FdbSliceSerializer<TValue>.Default;
+			if (serializer == null) serializer = FdbValueEncoder<TValue>.Default;
 			for (int i = 0; i < array.Length; i++)
 			{
 				array[i] = new KeyValuePair<Slice, TValue>(keys[i], serializer.Decode(results[i]));

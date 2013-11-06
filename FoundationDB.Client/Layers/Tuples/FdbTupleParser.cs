@@ -31,7 +31,6 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
 	using System;
-	using System.Runtime.CompilerServices;
 	using System.Text;
 
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
@@ -41,10 +40,7 @@ namespace FoundationDB.Layers.Tuples
 		#region Serialization...
 
 		/// <summary>Writes a null value at the end, and advance the cursor</summary>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void WriteNil(FdbBufferWriter writer)
+		public static void WriteNil(ref SliceWriter writer)
 		{
 			writer.WriteByte(FdbTupleTypes.Nil);
 		}
@@ -52,7 +48,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes an UInt8 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Unsigned BYTE, 32 bits</param>
-		public static void WriteInt8(FdbBufferWriter writer, byte value)
+		public static void WriteInt8(ref SliceWriter writer, byte value)
 		{
 			if (value == 0)
 			{ // zero
@@ -67,7 +63,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes an Int32 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
-		public static void WriteInt32(FdbBufferWriter writer, int value)
+		public static void WriteInt32(ref SliceWriter writer, int value)
 		{
 			if (value <= 255)
 			{
@@ -90,13 +86,13 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			WriteInt64Slow(writer, (long)value);
+			WriteInt64Slow(ref writer, (long)value);
 		}
 
 		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
-		public static void WriteInt64(FdbBufferWriter writer, long value)
+		public static void WriteInt64(ref SliceWriter writer, long value)
 		{
 			if (value <= 255)
 			{
@@ -119,15 +115,15 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			WriteInt64Slow(writer, value);
+			WriteInt64Slow(ref writer, value);
 		}
 
-		private static void WriteInt64Slow(FdbBufferWriter writer, long value)
+		private static void WriteInt64Slow(ref SliceWriter writer, long value)
 		{
 			// we are only called for values <= -256 or >= 256
 
 			// determine the number of bytes needed to encode the absolute value
-			int bytes = FdbBufferWriter.NumberOfBytes(value);
+			int bytes = NumberOfBytes(value);
 
 			writer.EnsureBytes(bytes + 1);
 
@@ -169,7 +165,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes an UInt32 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
-		public static void WriteUInt32(FdbBufferWriter writer, uint value)
+		public static void WriteUInt32(ref SliceWriter writer, uint value)
 		{
 			if (value <= 255)
 			{
@@ -184,14 +180,14 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else
 			{ // >= 256
-				WriteUInt64Slow(writer, (ulong)value);
+				WriteUInt64Slow(ref writer, (ulong)value);
 			}
 		}
 
 		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
-		public static void WriteUInt64(FdbBufferWriter writer, ulong value)
+		public static void WriteUInt64(ref SliceWriter writer, ulong value)
 		{
 			if (value <= 255)
 			{
@@ -206,16 +202,16 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else
 			{ // >= 256
-				WriteUInt64Slow(writer, value);
+				WriteUInt64Slow(ref writer, value);
 			}
 		}
 
-		private static void WriteUInt64Slow(FdbBufferWriter writer, ulong value)
+		private static void WriteUInt64Slow(ref SliceWriter writer, ulong value)
 		{
 			// We are only called for values >= 256
 
 			// determine the number of bytes needed to encode the value
-			int bytes = FdbBufferWriter.NumberOfBytes(value);
+			int bytes = NumberOfBytes(value);
 
 			writer.EnsureBytes(bytes + 1);
 
@@ -244,10 +240,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a binary string</summary>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void WriteBytes(FdbBufferWriter writer, byte[] value)
+		public static void WriteBytes(ref SliceWriter writer, byte[] value)
 		{
 			if (value == null)
 			{
@@ -255,35 +248,12 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else
 			{
-				WriteNulEscapedBytes(writer, FdbTupleTypes.Bytes, value);
-			}
-		}
-
-		/// <summary>Writes a string containing only ASCII chars</summary>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void WriteAsciiString(FdbBufferWriter writer, string value)
-		{
-			if (value == null)
-			{
-				writer.WriteByte(FdbTupleTypes.Nil);
-			}
-			else if (value.Length == 0)
-			{ // "01 00"
-				writer.WriteByte2(FdbTupleTypes.Bytes, 0x00);
-			}
-			else
-			{
-				WriteNulEscapedBytes(writer, FdbTupleTypes.Bytes, value.Length == 0 ? FdbBufferWriter.Empty : Encoding.Default.GetBytes(value));
+				WriteNulEscapedBytes(ref writer, FdbTupleTypes.Bytes, value);
 			}
 		}
 
 		/// <summary>Writes a string encoded in UTF-8</summary>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static unsafe void WriteString(FdbBufferWriter writer, string value)
+		public static unsafe void WriteString(ref SliceWriter writer, string value)
 		{
 			if (value == null)
 			{ // "00"
@@ -297,16 +267,17 @@ namespace FoundationDB.Layers.Tuples
 			{
 				fixed(char* chars = value)
 				{
-					if (TryWriteUnescapedUtf8String(writer, chars, value.Length)) return;
+					if (TryWriteUnescapedUtf8String(ref writer, chars, value.Length)) return;
 				}
 				// the string contains \0 chars, we need to do it the hard way
-				WriteNulEscapedBytes(writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value));
+				WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value));
 			}
 		}
 
-		internal static unsafe void WriteChars(FdbBufferWriter writer, char[] value, int offset, int count)
+		/// <summary>Writes a char array encoded in UTF-8</summary>
+		internal static unsafe void WriteChars(ref SliceWriter writer, char[] value, int offset, int count)
 		{
-			Contract.Requires(writer != null && offset >= 0 && count >= 0);
+			Contract.Requires(offset >= 0 && count >= 0);
 
 			if (count == 0)
 			{
@@ -323,16 +294,16 @@ namespace FoundationDB.Layers.Tuples
 			{
 				fixed (char* chars = value)
 				{
-					if (TryWriteUnescapedUtf8String(writer, chars + offset, count)) return;
+					if (TryWriteUnescapedUtf8String(ref writer, chars + offset, count)) return;
 				}
 				// the string contains \0 chars, we need to do it the hard way
-				WriteNulEscapedBytes(writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value, 0, count));
+				WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value, 0, count));
 			}
 		}
 
-		private static unsafe void WriteUnescapedAsciiChars(FdbBufferWriter writer, char* chars, int count)
+		private static unsafe void WriteUnescapedAsciiChars(ref SliceWriter writer, char* chars, int count)
 		{
-			Contract.Requires(writer != null && chars != null && count >= 0);
+			Contract.Requires(chars != null && count >= 0);
 
 			// copy and convert an ASCII string directly into the destination buffer
 
@@ -351,9 +322,9 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		private static unsafe bool TryWriteUnescapedUtf8String(FdbBufferWriter writer, char* chars, int count)
+		private static unsafe bool TryWriteUnescapedUtf8String(ref SliceWriter writer, char* chars, int count)
 		{
-			Contract.Requires(writer != null && chars != null && count >= 0);
+			Contract.Requires(chars != null && count >= 0);
 
 			// Several observations:
 			// * Most strings will be keywords or ASCII-only with no zeroes. These can be copied directly to the buffer
@@ -382,7 +353,7 @@ namespace FoundationDB.Layers.Tuples
 			// bit 7-15 all unset means the string is pure ASCII
 			if ((mask >> 7) == 0)
 			{ // => directly dump the chars to the buffer
-				WriteUnescapedAsciiChars(writer, chars, count);
+				WriteUnescapedAsciiChars(ref writer, chars, count);
 				return true;
 			}
 
@@ -435,10 +406,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a char encoded in UTF-8</summary>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void WriteChar(FdbBufferWriter writer, char value)
+		public static void WriteChar(ref SliceWriter writer, char value)
 		{
 			if (value == 0)
 			{ // NUL => "00 0F"
@@ -466,25 +434,19 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a binary string</summary>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void WriteBytes(FdbBufferWriter writer, byte[] value, int offset, int count)
+		public static void WriteBytes(ref SliceWriter writer, byte[] value, int offset, int count)
 		{
-			WriteNulEscapedBytes(writer, FdbTupleTypes.Bytes, value, offset, count);
+			WriteNulEscapedBytes(ref writer, FdbTupleTypes.Bytes, value, offset, count);
 		}
 
 		/// <summary>Writes a binary string</summary>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		public static void WriteBytes(FdbBufferWriter writer, ArraySegment<byte> value)
+		public static void WriteBytes(ref SliceWriter writer, ArraySegment<byte> value)
 		{
-			WriteNulEscapedBytes(writer, FdbTupleTypes.Bytes, value.Array, value.Offset, value.Count);
+			WriteNulEscapedBytes(ref writer, FdbTupleTypes.Bytes, value.Array, value.Offset, value.Count);
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		internal static void WriteNulEscapedBytes(FdbBufferWriter writer, byte type, byte[] value, int offset, int count)
+		internal static void WriteNulEscapedBytes(ref SliceWriter writer, byte type, byte[] value, int offset, int count)
 		{
 			int n = count;
 
@@ -521,7 +483,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		private static void WriteNulEscapedBytes(FdbBufferWriter writer, byte type, byte[] value)
+		private static void WriteNulEscapedBytes(ref SliceWriter writer, byte type, byte[] value)
 		{
 			int n = value.Length;
 			// we need to know if there are any NUL chars (\0) that need escaping...
@@ -556,7 +518,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 16-byte Microsoft GUID</summary>
-		public static void WriteGuid(FdbBufferWriter writer, Guid value)
+		public static void WriteGuid(ref SliceWriter writer, Guid value)
 		{
 			writer.EnsureBytes(17);
 			writer.UnsafeWriteByte(FdbTupleTypes.Guid);
@@ -571,7 +533,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
-		public static void WriteUuid(FdbBufferWriter writer, Uuid value)
+		public static void WriteUuid(ref SliceWriter writer, Uuid value)
 		{
 			writer.EnsureBytes(17);
 			writer.UnsafeWriteByte(FdbTupleTypes.Guid);
@@ -586,7 +548,6 @@ namespace FoundationDB.Layers.Tuples
 		#endregion
 
 		#region Deserialization...
-
 
 		internal static long ParseInt64(int type, Slice slice)
 		{
@@ -709,5 +670,63 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		#endregion
+
+		#region Bits Twiddling...
+
+		/// <summary>Lookup table used to compute the index of the most significant bit</summary>
+		private static readonly int[] MultiplyDeBruijnBitPosition = new int[32]
+		{
+			0, 9, 1, 10, 13, 21, 2, 29, 11, 14, 16, 18, 22, 25, 3, 30,
+			8, 12, 20, 28, 15, 17, 24, 7, 19, 27, 23, 6, 26, 5, 4, 31
+		};
+
+		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
+		/// <remarks>Note: will return 1 even for <param name="v"/> == 0</remarks>
+		public static int NumberOfBytes(uint v)
+		{
+			return (MostSignificantBit(v) + 8) >> 3;
+		}
+
+		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
+		/// <remarks>Note: will return 1 even for <param name="v"/> == 0</remarks>
+		public static int NumberOfBytes(long v)
+		{
+			return v >= 0 ? NumberOfBytes((ulong)v) : v != long.MinValue ? NumberOfBytes((ulong)-v) : 8;
+		}
+
+		/// <summary>Returns the minimum number of bytes needed to represent a value</summary>
+		/// <returns>Note: will return 1 even for <param name="v"/> == 0</returns>
+		public static int NumberOfBytes(ulong v)
+		{
+			int msb = 0;
+
+			if (v > 0xFFFFFFFF)
+			{ // for 64-bit values, shift everything by 32 bits to the right
+				msb += 32;
+				v >>= 32;
+			}
+			msb += MostSignificantBit((uint)v);
+			return (msb + 8) >> 3;
+		}
+
+		/// <summary>Returns the position of the most significant bit (0-based) in a 32-bit integer</summary>
+		/// <param name="v">32-bit integer</param>
+		/// <returns>Index of the most significant bit (0-based)</returns>
+		public static int MostSignificantBit(uint v)
+		{
+			// from: http://graphics.stanford.edu/~seander/bithacks.html#IntegerLogDeBruijn
+
+			v |= v >> 1; // first round down to one less than a power of 2 
+			v |= v >> 2;
+			v |= v >> 4;
+			v |= v >> 8;
+			v |= v >> 16;
+
+			var r = (v * 0x07C4ACDDU) >> 27;
+			return MultiplyDeBruijnBitPosition[r];
+		}
+
+		#endregion
+
 	}
 }

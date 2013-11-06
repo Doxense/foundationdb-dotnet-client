@@ -35,14 +35,14 @@ namespace FoundationDB.Client.Serializers
 
 	/// <summary>Very simple serializer that uses FdbConverters to convert values of type <typeparamref name="T"/> from/to Slice</summary>
 	/// <typeparam name="T">Type of the value to serialize/deserialize</typeparam>
-	public class FdbSliceSerializer<T> : IFdbValueEncoder<T>
+	public class FdbValueEncoder<T> : IFdbValueEncoder<T>
 	{
 		#region Static Helpers...
 
-		private static volatile FdbSliceSerializer<T> s_defaultSerializer;
+		private static volatile FdbValueEncoder<T> s_defaultSerializer;
 
 		/// <summary>Default slice serializer for values of type <typeparam name="T"/></summary>
-		public static FdbSliceSerializer<T> Default
+		public static FdbValueEncoder<T> Default
 		{
 			get
 			{
@@ -56,26 +56,26 @@ namespace FoundationDB.Client.Serializers
 			}
 		}
 
-		private static FdbSliceSerializer<T> CreateSerializer()
+		private static FdbValueEncoder<T> CreateSerializer()
 		{
 			Type type = typeof(T);
 
 			if (typeof(Slice) == type)
 			{
-				object serializer = FdbSliceSerializer.Create<Slice>(
+				object serializer = FdbValueEncoder.Create<Slice>(
 					(value) => value,
 					(data) => data
 				);
-				return (FdbSliceSerializer<T>)serializer;
+				return (FdbValueEncoder<T>)serializer;
 			}
 
 			if (typeof(IFdbTuple) == type)
 			{
-				object serializer = FdbSliceSerializer.Create<IFdbTuple>(
+				object serializer = FdbValueEncoder.Create<IFdbTuple>(
 					(value) => value == null ? Slice.Nil : value.ToSlice(), 
 					(data) => FdbTuple.Unpack(data)
 				);
-				return (FdbSliceSerializer<T>)serializer;
+				return (FdbValueEncoder<T>)serializer;
 			}
 
 			if (typeof(ISliceSerializable).IsAssignableFrom(type))
@@ -83,18 +83,18 @@ namespace FoundationDB.Client.Serializers
 				if (type == typeof(ISliceSerializable))
 				{
 					// FromSlice() is impossible since we can't do "new ISliceSerializable()", but we can still allow calling ToSlice()
-					object serializer = FdbSliceSerializer.Create<ISliceSerializable>(
+					object serializer = FdbValueEncoder.Create<ISliceSerializable>(
 						(value) => value == null ? Slice.Nil : value.ToSlice(),
 						(data) => { throw new NotSupportedException(); }
 					);
-					return (FdbSliceSerializer<T>)serializer;
+					return (FdbValueEncoder<T>)serializer;
 				}
 
-				var t = typeof(FdbSliceSerializer.SerializableSerializer<>).MakeGenericType(type);
-				return (FdbSliceSerializer<T>)Activator.CreateInstance(t);
+				var t = typeof(FdbValueEncoder.SerializableSerializer<>).MakeGenericType(type);
+				return (FdbValueEncoder<T>)Activator.CreateInstance(t);
 			}
 
-			return FdbSliceSerializer.Create<T>(
+			return FdbValueEncoder.Create<T>(
 				(value) => FdbConverters.Convert<T, Slice>(value),
 				(slice) => FdbConverters.Convert<Slice, T>(slice)
 			);
@@ -106,7 +106,7 @@ namespace FoundationDB.Client.Serializers
 
 		private readonly Func<Slice, T> m_unpack;
 		
-		public FdbSliceSerializer(Func<T, Slice> pack, Func<Slice, T> unpack)
+		public FdbValueEncoder(Func<T, Slice> pack, Func<Slice, T> unpack)
 		{
 			if (pack == null) throw new ArgumentNullException("pack");
 			if (unpack == null) throw new ArgumentNullException("unpack");

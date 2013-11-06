@@ -106,14 +106,14 @@ namespace FoundationDB.Layers.Tuples
 			// We want to allocate only one byte[] to store both keys, and map both Slice to each chunk
 			// So we will serialize the tuple two times in the same writer
 
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 
-			tuple.PackTo(writer);
+			tuple.PackTo(ref writer);
 			writer.EnsureBytes(writer.Position + 2);
 			if (!includePrefix) writer.WriteByte(0);
 			int p0 = writer.Position;
 
-			tuple.PackTo(writer);
+			tuple.PackTo(ref writer);
 			writer.WriteByte(0xFF);
 			int p1 = writer.Position;
 

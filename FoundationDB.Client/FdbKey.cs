@@ -94,7 +94,8 @@ namespace FoundationDB.Client
 			if (keys == null) throw new ArgumentNullException("keys");
 
 			// we can pre-allocate exactly the buffer by computing the total size of all keys
-			var writer = new FdbBufferWriter(keys.Sum(key => key.Count) + keys.Length * prefix.Count);
+			int size = keys.Sum(key => key.Count) + keys.Length * prefix.Count;
+			var writer = new SliceWriter(size);
 			var next = new List<int>(keys.Length);
 
 			//TODO: use multiple buffers if item count is huge ?
@@ -126,7 +127,7 @@ namespace FoundationDB.Client
 			// pre-allocate with a count if we can get one...
 			var coll = keys as ICollection<Slice>;
 			var next = coll == null ? new List<int>() : new List<int>(coll.Count);
-			var writer = new FdbBufferWriter();
+			var writer = SliceWriter.Empty;
 
 			//TODO: use multiple buffers if item count is huge ?
 

@@ -41,30 +41,37 @@ namespace FoundationDB.Layers.Tuples
 	{
 		private static readonly Slice[] NoSlices = new Slice[0];
 
+		public delegate void Encoder<T>(ref SliceWriter writer, T value);
+
 		#region Serializers...
 
 		/// <summary>Returns a lambda that will be abl to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
-		public static Action<FdbBufferWriter, T> GetSerializer<T>()
+		internal static Encoder<T> GetSerializer<T>(bool required)
 		{
-			return (Action<FdbBufferWriter, T>)GetSerializerFor(typeof(T));
+			var encoder = (Encoder<T>)GetSerializerFor(typeof(T));
+			if (encoder == null && required)
+			{
+				encoder = delegate(ref SliceWriter _, T __) { throw new InvalidOperationException(String.Format("Does not know how to serialize values of type {0} into keys", typeof(T).Name)); };
+			}
+			return encoder;
 		}
 
-		internal static Delegate GetSerializerFor(Type type)
+		private static Delegate GetSerializerFor(Type type)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 
 			if (type == typeof(object))
 			{ // return a generic serializer that will inspect the runtime type of the object
-				return new Action<FdbBufferWriter, object>(FdbTuplePackers.SerializeObjectTo);
+				return new Encoder<object>(FdbTuplePackers.SerializeObjectTo);
 			}
 
-			var typeArgs = new[] { typeof(FdbBufferWriter), type };
+			var typeArgs = new[] { typeof(SliceWriter).MakeByRefType(), type };
 			var method = typeof(FdbTuplePackers).GetMethod("SerializeTo", BindingFlags.Static | BindingFlags.Public, null, typeArgs, null);
 			if (method != null)
 			{ // we have a direct serializer
-				return method.CreateDelegate(typeof(Action<,>).MakeGenericType(typeArgs));
+				return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
 			}
 
 			// maybe if it is a tuple ?
@@ -73,7 +80,7 @@ namespace FoundationDB.Layers.Tuples
 				method = typeof(FdbTuplePackers).GetMethod("SerializeTupleTo", BindingFlags.Static | BindingFlags.Public);
 				if (method != null)
 				{
-					return method.MakeGenericMethod(type).CreateDelegate(typeof(Action<,>).MakeGenericType(typeArgs));
+					return method.MakeGenericMethod(type).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
 				}
 			}
 
@@ -82,7 +89,7 @@ namespace FoundationDB.Layers.Tuples
 				method = typeof(FdbTuplePackers).GetMethod("SerializeFormattableTo", BindingFlags.Static | BindingFlags.Public);
 				if (method != null)
 				{
-					return method.CreateDelegate(typeof(Action<,>).MakeGenericType(typeArgs));
+					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
 				}
 			}
 
@@ -97,17 +104,15 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Untyped value whose type will be inspected at runtime</param>
 		/// <remarks>May throw at runtime if the type is not supported</remarks>
-		public static void SerializeObjectTo(FdbBufferWriter writer, object value)
+		public static void SerializeObjectTo(ref SliceWriter writer, object value)
 		{
-			if (writer == null) throw new ArgumentNullException("writer");
-
 			var type = value != null ? value.GetType() : null;
 			switch (Type.GetTypeCode(type))
 			{
 				case TypeCode.Empty:
 				{ // null value
 					// includes all null references to ref types, as nullables where HasValue == false
-					FdbTupleParser.WriteNil(writer);
+					FdbTupleParser.WriteNil(ref writer);
 					return;
 				}
 				case TypeCode.Object:
@@ -115,37 +120,37 @@ namespace FoundationDB.Layers.Tuples
 					byte[] bytes = value as byte[];
 					if (bytes != null)
 					{
-						SerializeTo(writer, bytes);
+						SerializeTo(ref writer, bytes);
 						return;
 					}
 
 					if (value is Slice)
 					{
-						SerializeTo(writer, (Slice)value);
+						SerializeTo(ref writer, (Slice)value);
 						return;
 					}
 
 					if (value is Guid)
 					{
-						SerializeTo(writer, (Guid)value);
+						SerializeTo(ref writer, (Guid)value);
 						return;
 					}
 
 					if (value is Uuid)
 					{
-						SerializeTo(writer, (Uuid)value);
+						SerializeTo(ref writer, (Uuid)value);
 						return;
 					}
 
 					if (value is TimeSpan)
 					{
-						SerializeTo(writer, (TimeSpan)value);
+						SerializeTo(ref writer, (TimeSpan)value);
 						return;
 					}
 
 					if (value is FdbTupleAlias)
 					{
-						SerializeTo(writer, (FdbTupleAlias)value);
+						SerializeTo(ref writer, (FdbTupleAlias)value);
 						return;
 					}
 
@@ -153,68 +158,68 @@ namespace FoundationDB.Layers.Tuples
 				}
 				case TypeCode.DBNull:
 				{ // same as null
-					FdbTupleParser.WriteNil(writer);
+					FdbTupleParser.WriteNil(ref writer);
 					return;
 				}
 				case TypeCode.Boolean:
 				{
-					SerializeTo(writer, (bool)value);
+					SerializeTo(ref writer, (bool)value);
 					return;
 				}
 				case TypeCode.Char:
 				{
 					// should be treated as a string with only one char
-					SerializeTo(writer, (char)value);
+					SerializeTo(ref writer, (char)value);
 					return;
 				}
 				case TypeCode.SByte:
 				{
-					SerializeTo(writer, (sbyte)value);
+					SerializeTo(ref writer, (sbyte)value);
 					return;
 				}
 				case TypeCode.Byte:
 				{
-					SerializeTo(writer, (byte)value);
+					SerializeTo(ref writer, (byte)value);
 					return;
 				}
 				case TypeCode.Int16:
 				{
-					SerializeTo(writer, (short)value);
+					SerializeTo(ref writer, (short)value);
 					return;
 				}
 				case TypeCode.UInt16:
 				{
-					SerializeTo(writer, (ushort)value);
+					SerializeTo(ref writer, (ushort)value);
 					return;
 				}
 				case TypeCode.Int32:
 				{
-					SerializeTo(writer, (int)value);
+					SerializeTo(ref writer, (int)value);
 					return;
 				}
 				case TypeCode.UInt32:
 				{
-					SerializeTo(writer, (uint)value);
+					SerializeTo(ref writer, (uint)value);
 					return;
 				}
 				case TypeCode.Int64:
 				{
-					SerializeTo(writer, (long)value);
+					SerializeTo(ref writer, (long)value);
 					return;
 				}
 				case TypeCode.UInt64:
 				{
-					SerializeTo(writer, (ulong)value);
+					SerializeTo(ref writer, (ulong)value);
 					return;
 				}
 				case TypeCode.String:
 				{
-					SerializeTo(writer, value as string);
+					SerializeTo(ref writer, value as string);
 					return;
 				}
 				case TypeCode.DateTime:
 				{
-					SerializeTo(writer, (DateTime)value);
+					SerializeTo(ref writer, (DateTime)value);
 					return;
 				}
 			}
@@ -223,7 +228,7 @@ namespace FoundationDB.Layers.Tuples
 			if (fmt != null)
 			{
 				var tuple = fmt.ToTuple();
-				tuple.PackTo(writer);
+				tuple.PackTo(ref writer);
 				return;
 			}
 
@@ -232,51 +237,44 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a slice as a byte[] array</summary>
-		public static void SerializeTo(FdbBufferWriter writer, Slice value)
+		public static void SerializeTo(ref SliceWriter writer, Slice value)
 		{
-			Contract.Requires(writer != null);
 			if (value.IsNull)
 			{
-				FdbTupleParser.WriteNil(writer);
+				FdbTupleParser.WriteNil(ref writer);
 			}
 			else if (value.Offset == 0 && value.Count == value.Array.Length)
 			{
-				FdbTupleParser.WriteBytes(writer, value.Array);
+				FdbTupleParser.WriteBytes(ref writer, value.Array);
 			}
 			else
 			{
-				FdbTupleParser.WriteBytes(writer, value.Array, value.Offset, value.Count);
+				FdbTupleParser.WriteBytes(ref writer, value.Array, value.Offset, value.Count);
 			}
 		}
 
 		/// <summary>Writes a byte[] array</summary>
-		public static void SerializeTo(FdbBufferWriter writer, byte[] value)
+		public static void SerializeTo(ref SliceWriter writer, byte[] value)
 		{
-			Contract.Requires(writer != null);
-			FdbTupleParser.WriteBytes(writer, value);
+			FdbTupleParser.WriteBytes(ref writer, value);
 		}
 
 		/// <summary>Writes an array segment as a byte[] array</summary>
-		public static void SerializeTo(FdbBufferWriter writer, ArraySegment<byte> value)
+		public static void SerializeTo(ref SliceWriter writer, ArraySegment<byte> value)
 		{
-			Contract.Requires(writer != null);
-			SerializeTo(writer, Slice.Create(value.Array, value.Offset, value.Count));
+			SerializeTo(ref writer, Slice.Create(value));
 		}
 
 		/// <summary>Writes a char as Unicode string</summary>
-		public static void SerializeTo(FdbBufferWriter writer, char value)
+		public static void SerializeTo(ref SliceWriter writer, char value)
 		{
-			Contract.Requires(writer != null);
-
-			FdbTupleParser.WriteChar(writer, value);
+			FdbTupleParser.WriteChar(ref writer, value);
 		}
 
 		/// <summary>Writes a boolean as an integer</summary>
 		/// <remarks>Uses 0 for false, and -1 for true</remarks>
-		public static void SerializeTo(FdbBufferWriter writer, bool value)
+		public static void SerializeTo(ref SliceWriter writer, bool value)
 		{
-			Contract.Requires(writer != null);
-
 			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
 
 			if (value)
@@ -290,13 +288,11 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a boolean as an integer or null</summary>
-		public static void SerializeTo(FdbBufferWriter writer, bool? value)
+		public static void SerializeTo(ref SliceWriter writer, bool? value)
 		{
-			Contract.Requires(writer != null);
-
 			if (value == null)
 			{ // null => 00
-				FdbTupleParser.WriteNil(writer);
+				FdbTupleParser.WriteNil(ref writer);
 			}
 			else if (value.Value)
 			{ // true => 15 01
@@ -309,18 +305,14 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a signed byte as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, sbyte value)
+		public static void SerializeTo(ref SliceWriter writer, sbyte value)
 		{
-			Contract.Requires(writer != null);
-
-			FdbTupleParser.WriteInt32(writer, value);
+			FdbTupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned byte as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, byte value)
+		public static void SerializeTo(ref SliceWriter writer, byte value)
 		{
-			Contract.Requires(writer != null);
-
 			if (value == 0)
 			{ // 0
 				writer.WriteByte(FdbTupleTypes.IntZero);
@@ -332,56 +324,44 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a signed word as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, short value)
+		public static void SerializeTo(ref SliceWriter writer, short value)
 		{
-			Contract.Requires(writer != null);
-
-			FdbTupleParser.WriteInt32(writer, value);
+			FdbTupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned word as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, ushort value)
+		public static void SerializeTo(ref SliceWriter writer, ushort value)
 		{
-			Contract.Requires(writer != null);
-
-			FdbTupleParser.WriteUInt32(writer, value);
+			FdbTupleParser.WriteUInt32(ref writer, value);
 		}
 
 		/// <summary>Writes a signed int as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, int value)
+		public static void SerializeTo(ref SliceWriter writer, int value)
 		{
-			Contract.Requires(writer != null);
-
-			FdbTupleParser.WriteInt32(writer, value);
+			FdbTupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned int as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, uint value)
+		public static void SerializeTo(ref SliceWriter writer, uint value)
 		{
-			Contract.Requires(writer != null);
-
-			FdbTupleParser.WriteUInt32(writer, value);
+			FdbTupleParser.WriteUInt32(ref writer, value);
 		}
 
 		/// <summary>Writes a signed long as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, long value)
+		public static void SerializeTo(ref SliceWriter writer, long value)
 		{
-			FdbTupleParser.WriteInt64(writer, value);
+			FdbTupleParser.WriteInt64(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned long as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, ulong value)
+		public static void SerializeTo(ref SliceWriter writer, ulong value)
 		{
-			Contract.Requires(writer != null);
-
-			FdbTupleParser.WriteUInt64(writer, value);
+			FdbTupleParser.WriteUInt64(ref writer, value);
 		}
 
 		/// <summary>Writes a string as an Unicode string</summary>
-		public static void SerializeTo(FdbBufferWriter writer, string value)
+		public static void SerializeTo(ref SliceWriter writer, string value)
 		{
-			Contract.Requires(writer != null);
-
 			if (value == null)
 			{ // <00>
 				writer.WriteByte(FdbTupleTypes.Nil);
@@ -392,66 +372,58 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else
 			{ // <02>...utf8...<00>
-				FdbTupleParser.WriteString(writer, value);
+				FdbTupleParser.WriteString(ref writer, value);
 			}
 		}
 
 		/// <summary>Writes a DateTime converted to a number of ticks encoded as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, DateTime value)
+		public static void SerializeTo(ref SliceWriter writer, DateTime value)
 		{
-			Contract.Requires(writer != null);
-
 			//TODO: how to deal with negative values ?
-			FdbTupleParser.WriteInt64(writer, value.Ticks);
+			FdbTupleParser.WriteInt64(ref writer, value.Ticks);
 		}
 
 		/// <summary>Writes a TimeSpan converted to a number of ticks encoded as an integer</summary>
-		public static void SerializeTo(FdbBufferWriter writer, TimeSpan value)
+		public static void SerializeTo(ref SliceWriter writer, TimeSpan value)
 		{
-			Contract.Requires(writer != null);
-
 			//TODO: how to deal with negative values ?
-			FdbTupleParser.WriteInt64(writer, value.Ticks);
+			FdbTupleParser.WriteInt64(ref writer, value.Ticks);
 		}
 
 		/// <summary>Writes a Guid as a 128-bit UUID</summary>
-		public static void SerializeTo(FdbBufferWriter writer, Guid value)
+		public static void SerializeTo(ref SliceWriter writer, Guid value)
 		{
-			Contract.Requires(writer != null);
-
-			FdbTupleParser.WriteGuid(writer, value);
+			FdbTupleParser.WriteGuid(ref writer, value);
 		}
 
 		/// <summary>Writes a Uuid as a 128-bit UUID</summary>
-		public static void SerializeTo(FdbBufferWriter writer, Uuid value)
+		public static void SerializeTo(ref SliceWriter writer, Uuid value)
 		{
-			Contract.Requires(writer != null);
-
-			FdbTupleParser.WriteUuid(writer, value);
+			FdbTupleParser.WriteUuid(ref writer, value);
 		}
 
-		public static void SerializeTo(FdbBufferWriter writer, FdbTupleAlias value)
+		public static void SerializeTo(ref SliceWriter writer, FdbTupleAlias value)
 		{
 			Contract.Requires(Enum.IsDefined(typeof(FdbTupleAlias), value));
 
 			writer.WriteByte((byte)value);
 		}
 
-		public static void SerializeTupleTo<TTuple>(FdbBufferWriter writer, TTuple tuple)
+		public static void SerializeTupleTo<TTuple>(ref SliceWriter writer, TTuple tuple)
 			where TTuple : IFdbTuple
 		{
-			Contract.Requires(writer != null && tuple != null);
+			Contract.Requires(tuple != null);
 
-			tuple.PackTo(writer);
+			tuple.PackTo(ref writer);
 		}
 
-		public static void SerializeFormattableTo(FdbBufferWriter writer, ITupleFormattable formattable)
+		public static void SerializeFormattableTo(ref SliceWriter writer, ITupleFormattable formattable)
 		{
-			Contract.Requires(writer != null && formattable != null);
+			Contract.Requires(formattable != null);
 
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException(String.Format("Custom formatter {0}.ToTuple() cannot return null", formattable.GetType().Name));
-			tuple.PackTo(writer);
+			tuple.PackTo(ref writer);
 		}
 
 		#endregion

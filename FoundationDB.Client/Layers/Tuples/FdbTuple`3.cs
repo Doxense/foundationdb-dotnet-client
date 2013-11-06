@@ -98,11 +98,11 @@ namespace FoundationDB.Layers.Tuples
 			return FdbConverters.Convert<T3, R>(this.Item3);
 		}
 
-		public void PackTo(FdbBufferWriter writer)
+		public void PackTo(ref SliceWriter writer)
 		{
-			FdbTuplePacker<T1>.SerializeTo(writer, this.Item1);
-			FdbTuplePacker<T2>.SerializeTo(writer, this.Item2);
-			FdbTuplePacker<T3>.SerializeTo(writer, this.Item3);
+			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);
+			FdbTuplePacker<T2>.Encoder(ref writer, this.Item2);
+			FdbTuplePacker<T3>.Encoder(ref writer, this.Item3);
 		}
 
 		IFdbTuple IFdbTuple.Append<T4>(T4 value)
