@@ -179,7 +179,7 @@
     <Compile Include="Utils\Serializers\FdbSliceSerializer`1.cs" />
     <Compile Include="Utils\Serializers\ISliceSerializer.cs" />
     <Compile Include="Utils\Slice.cs" />
-    <Compile Include="Utils\Slicer.cs" />
+    <Compile Include="Utils\SliceReader.cs" />
     <Compile Include="Utils\FdbBufferWriter.cs" />
     <Compile Include="Utils\Contract.cs" />
     <Compile Include="Unmanaged\FdbKeyValue.cs" />

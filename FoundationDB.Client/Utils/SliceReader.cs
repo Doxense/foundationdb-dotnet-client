@@ -31,7 +31,7 @@ namespace FoundationDB.Client
 	using System;
 
 	/// <summary>Helper class that holds the internal state used to parse tuples from slices</summary>
-	public struct Slicer
+	public struct SliceReader
 	{
 
 		/// <summary>Buffer containing the tuple being parsed</summary>
@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 		/// <summary>Current position inside the buffer</summary>
 		public int Position;
 
-		public Slicer(Slice buffer)
+		public SliceReader(Slice buffer)
 		{
 			this.Buffer = buffer;
 			this.Position = 0;

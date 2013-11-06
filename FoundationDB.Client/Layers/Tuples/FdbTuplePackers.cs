@@ -644,7 +644,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Decoded tuple</returns>
 		internal static FdbSlicedTuple Unpack(Slice buffer)
 		{
-			var slicer = new Slicer(buffer);
+			var slicer = new SliceReader(buffer);
 
 			// most tuples will probably fit within (prefix, sub-prefix, id, key) so pre-allocating with 4 should be ok...
 			var items = new Slice[4];
@@ -670,7 +670,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Decoded slice of the single element in the singleton tuple</returns>
 		internal static Slice UnpackSingle(Slice buffer)
 		{
-			var slicer = new Slicer(buffer);
+			var slicer = new SliceReader(buffer);
 
 			var current = ParseNext(ref slicer);
 			if (slicer.HasMore) throw new FormatException("Parsing of singleton tuple failed before reaching the end of the key");
@@ -683,7 +683,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Raw slice corresponding to the last element of the tuple</returns>
 		internal static Slice UnpackLast(Slice buffer)
 		{
-			var slicer = new Slicer(buffer);
+			var slicer = new SliceReader(buffer);
 
 			Slice item = Slice.Nil;
 
@@ -700,7 +700,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Decode the next token from a packed tuple</summary>
 		/// <param name="reader">Parser from wich to read the next token</param>
 		/// <returns>Token decoded, or Slice.Nil if there was no more data in the buffer</returns>
-		internal static Slice ParseNext(ref Slicer reader)
+		internal static Slice ParseNext(ref SliceReader reader)
 		{
 			if (!reader.HasMore) return Slice.Nil;
 
