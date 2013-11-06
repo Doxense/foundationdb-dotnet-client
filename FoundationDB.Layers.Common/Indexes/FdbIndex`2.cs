@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Indexing
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
 	using System;
@@ -46,6 +47,10 @@ namespace FoundationDB.Layers.Indexing
 	{
 
 		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+			: this(name, subspace, valueComparer, indexNullValues, null, null)
+		{ }
+
+		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, IFdbKeyEncoder<TId> keySerializer, IFdbKeyEncoder<TValue> valueSerializer)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -54,6 +59,8 @@ namespace FoundationDB.Layers.Indexing
 			this.Subspace = subspace;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
+			this.KeySerializer = keySerializer;
+			this.ValueSerializer = valueSerializer;
 		}
 
 		public string Name { get; private set; }
@@ -66,6 +73,31 @@ namespace FoundationDB.Layers.Indexing
 		/// <remarks>This has no effect if <typeparam name="TValue" /> is not a reference type</remarks>
 		public bool IndexNullValues { get; private set; }
 
+		/// <summary>Serializer for the keys of the indexed documents</summary>
+		public IFdbKeyEncoder<TId> KeySerializer { get; private set; }
+
+		/// <summary>Serializer for the values of the indexed documents</summary>
+		public IFdbKeyEncoder<TValue> ValueSerializer { get; private set; }
+
+		private Slice Pack(TValue value, TId id)
+		{
+			var writer = this.Subspace.OpenBuffer();
+
+			//BUGBUG: UGLY HACK !
+
+			if (this.ValueSerializer == null)
+				FdbTuple.Create<TValue>(value).PackTo(writer);
+			else
+				this.ValueSerializer.EncodePart(writer, value);
+
+			if (this.KeySerializer == null)
+				FdbTuple.Create<TId>(id).PackTo(writer);
+			else
+				this.KeySerializer.EncodePart(writer, id);
+
+			return writer.ToSlice();
+		}
+
 		/// <summary>Insert a newly created entity to the index</summary>
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
@@ -75,7 +107,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (this.IndexNullValues || value != null)
 			{
-				trans.Set(this.Subspace.Pack(value, id), Slice.Empty);
+				trans.Set(Pack(value, id), Slice.Empty);
 				return true;
 			}
 			return false;
@@ -95,13 +127,13 @@ namespace FoundationDB.Layers.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					trans.Clear(this.Subspace.Pack(previousValue, id));
+					trans.Clear(Pack(previousValue, id));
 				}
 
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					trans.Set(this.Subspace.Pack(newValue, id), Slice.Empty);
+					trans.Set(Pack(newValue, id), Slice.Empty);
 				}
 
 				// cannot be both null, so we did at least something)
@@ -118,7 +150,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Clear(this.Subspace.Pack(value, id));
+			trans.Clear(Pack(value, id));
 		}
 
 		/// <summary>Returns a list of ids matching a specific value</summary>

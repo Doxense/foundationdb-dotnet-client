@@ -116,6 +116,7 @@
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryTransactionals.cs" />
+    <Compile Include="Layers\Tuples\FdbTupleEncoder`1.cs" />
     <Compile Include="Subspaces\Fdb.PartitionTable.cs" />
     <Compile Include="Subspaces\FdbDatabasePartition.cs" />
     <Compile Include="Layers\Directories\FdbDirectorySubspace.cs" />
@@ -171,13 +172,15 @@
     <Compile Include="Layers\Tuples\FdbTupleParser.cs" />
     <Compile Include="Unmanaged\DebugCounters.cs" />
     <Compile Include="Utils\Serializers\FdbSliceSerializer.cs" />
+    <Compile Include="Utils\Serializers\FdbKeyValueEncoder`1.cs" />
+    <Compile Include="Utils\Serializers\IFdbKeyEncoder`1.cs" />
     <Compile Include="Utils\Serializers\ISliceSerializable.cs" />
     <Compile Include="Utils\Uuid.cs" />
     <Compile Include="Utils\SliceListStream.cs" />
     <Compile Include="Utils\SliceStream.cs" />
     <Compile Include="Utils\Logging.cs" />
     <Compile Include="Utils\Serializers\FdbSliceSerializer`1.cs" />
-    <Compile Include="Utils\Serializers\ISliceSerializer.cs" />
+    <Compile Include="Utils\Serializers\IFdbValueEncoder.cs" />
     <Compile Include="Utils\Slice.cs" />
     <Compile Include="Utils\SliceReader.cs" />
     <Compile Include="Utils\FdbBufferWriter.cs" />

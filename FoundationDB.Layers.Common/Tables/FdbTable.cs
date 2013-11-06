@@ -33,6 +33,7 @@ namespace FoundationDB.Layers.Tables
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -55,44 +56,30 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
 
-		#region Keys...
-
-		/// <summary>Add the namespace in front of an existing tuple</summary>
-		/// <param name="id">Existing tuple</param>
-		/// <returns>(namespace, tuple_items, )</returns>
-		internal virtual Slice MakeKey(IFdbTuple id)
-		{
-			if (id == null) throw new ArgumentNullException("id");
-
-			return this.Subspace.Pack(id);
-		}
-
-		#endregion
-
 		#region Get / Set / Clear...
 
-		public Task<Slice> GetAsync(IFdbReadOnlyTransaction trans, IFdbTuple id)
+		public Task<Slice> GetAsync(IFdbReadOnlyTransaction trans, Slice id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return trans.GetAsync(MakeKey(id));
+			return trans.GetAsync(this.Subspace.Concat(id));
 		}
 
-		public void Set(IFdbTransaction trans, IFdbTuple id, Slice value)
+		public void Set(IFdbTransaction trans, Slice id, Slice value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Set(MakeKey(id), value);
+			trans.Set(this.Subspace.Concat(id), value);
 		}
 
-		public void Clear(IFdbTransaction trans, IFdbTuple id)
+		public void Clear(IFdbTransaction trans, Slice id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Clear(MakeKey(id));
+			trans.Clear(this.Subspace.Concat(id));
 		}
 
 		public Task<List<KeyValuePair<Slice, Slice>>> GetAllAsync(IFdbReadOnlyTransaction trans)
@@ -101,7 +88,16 @@ namespace FoundationDB.Layers.Tables
 
 			return trans
 				.GetRange(this.Subspace.ToRange()) //TODO: options ?
+				.Select(kvp => new KeyValuePair<Slice, Slice>(this.Subspace.Extract(kvp.Key), kvp.Value))
 				.ToListAsync();
+		}
+
+		public Task<Slice[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<Slice> ids)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (ids == null) throw new ArgumentNullException("ids");
+
+			return trans.GetValuesAsync(this.Subspace.Merge(ids));
 		}
 
 		#endregion

@@ -39,6 +39,9 @@ namespace FoundationDB.Client.Utils
 	[DebuggerDisplay("Position={this.Position}, Capacity={this.Buffer == null ? -1 : this.Buffer.Length}")]
 	public sealed class FdbBufferWriter
 	{
+		//TODO: consider that to a struct ? 
+		// => would need to be passed around with a 'ref' keyword
+
 		// Invariant
 		// * Valid data always start at offset 0
 		// * 'this.Position' is equal to the current size as well as the offset of the next available free spot

@@ -28,23 +28,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Utils;
 	using System;
 
 	/// <summary>Defines method to pack or unpack objects</summary>
-	/// <typeparam name="TValue">The type of objects to pack or unpack</typeparam>
-	public interface ISliceSerializer<TValue>
+	/// <typeparam name="T">The type of objects to pack or unpack</typeparam>
+	public interface IFdbValueEncoder<T>
 	{
 
-		/// <summary>Serialize a <typeparamref name="TValue"/> instance into a packed representation</summary>
+		/// <summary>Serialize a <typeparamref name="T"/> instance into a packed representation</summary>
 		/// <param name="value">Value to serialize</param>
 		/// <returns>Packed representation of <paramref name="value"/></returns>
-		Slice ToSlice(TValue value);
+		Slice Encode(T value);
 
-		/// <summary>Deserialize a packed representation into a <typeparamref name="TValue"/> instance</summary>
+		/// <summary>Deserialize a packed representation into a <typeparamref name="T"/> instance</summary>
 		/// <param name="slice">Packed representation</param>
-		/// <returns>Deserialized <typeparamref name="TValue"/> instance.</returns>
-		TValue FromSlice(Slice slice);
-
+		/// <returns>Deserialized <typeparamref name="T"/> instance.</returns>
+		T Decode(Slice slice);
 	}
 
 }

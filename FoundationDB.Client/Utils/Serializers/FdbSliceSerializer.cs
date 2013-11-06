@@ -31,6 +31,8 @@ namespace FoundationDB.Client.Serializers
 	using FoundationDB.Client.Converters;
 	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Linq;
+	using System.Collections.Generic;
 
 	public static class FdbSliceSerializer
 	{
@@ -80,14 +82,14 @@ namespace FoundationDB.Client.Serializers
 
 
 		/// <summary>Convert a <typeparamref name="T"> into a slice, using a serializer (or the default serializer if none is provided)</summary>
-		public static Slice ToSlice<T>(T value, ISliceSerializer<T> serializer = null)
+		public static Slice ToSlice<T>(T value, IFdbValueEncoder<T> serializer = null)
 		{
 			if (serializer == null) serializer = FdbSliceSerializer<T>.Default;
-			return serializer.ToSlice(value);
+			return serializer.Encode(value);
 		}
 
-		/// <summary>Convert an array of <typeparamref name="T">s into an array of  slices, using a serializer (or the default serializer if none is provided)</summary>
-		public static Slice[] ToSlices<T>(T[] values, ISliceSerializer<T> serializer = null)
+		/// <summary>Convert an array of <typeparamref name="T">s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		public static Slice[] ToSlices<T>(this T[] values, IFdbValueEncoder<T> serializer = null)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 
@@ -96,31 +98,72 @@ namespace FoundationDB.Client.Serializers
 			var slices = new Slice[values.Length];
 			for (int i = 0; i < values.Length; i++)
 			{
-				slices[i] = serializer.ToSlice(values[i]);
+				slices[i] = serializer.Encode(values[i]);
 			}
 			return slices;
 		}
 
+		/// <summary>Transform a sequence of <typeparamref name="T">s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
+		public static IEnumerable<Slice> ToSlices<T>(this IEnumerable<T> values, IFdbValueEncoder<T> serializer = null)
+		{
+			if (values == null) throw new ArgumentNullException("values");
+			if (serializer == null) serializer = FdbSliceSerializer<T>.Default;
+
+			return values.Select(value => serializer.Encode(value));
+		}
+
 		/// <summary>Convert a slice back into a <typeparamref name="T"/>, using a serializer (or the default serializer if none is provided)</summary>
-		public static T FromSlice<T>(Slice slice, ISliceSerializer<T> serializer = null)
+		public static T FromSlice<T>(Slice slice, IFdbValueEncoder<T> serializer = null)
 		{
 			if (serializer == null) serializer = FdbSliceSerializer<T>.Default;
-			return serializer.FromSlice(slice);
+			return serializer.Decode(slice);
 		}
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
-		public static T[] FromSlices<T>(Slice[] slices, ISliceSerializer<T> serializer = null)
+		public static T[] FromSlices<T>(this Slice[] slices, IFdbValueEncoder<T> serializer = null)
 		{
 			if (slices == null) throw new ArgumentNullException("values");
-
 			if (serializer == null) serializer = FdbSliceSerializer<T>.Default;
 
 			var values = new T[slices.Length];
 			for (int i = 0; i < slices.Length; i++)
 			{
-				values[i] = serializer.FromSlice(slices[i]);
+				values[i] = serializer.Decode(slices[i]);
 			}
 			return values;
+		}
+
+		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		public static IEnumerable<T> FromSlices<T>(this IEnumerable<Slice> slices, IFdbValueEncoder<T> serializer = null)
+		{
+			if (slices == null) throw new ArgumentNullException("values");
+			if (serializer == null) serializer = FdbSliceSerializer<T>.Default;
+
+			return slices.Select(slice => serializer.Decode(slice));
+		}
+
+		public static IEnumerable<KeyValuePair<K, V>> FromPairs<K, V>(this IEnumerable<KeyValuePair<Slice, Slice>> source, IFdbValueEncoder<K> keySerializer, IFdbValueEncoder<V> valueSerializer)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (keySerializer == null) keySerializer = FdbSliceSerializer<K>.Default;
+			if (valueSerializer == null) valueSerializer = FdbSliceSerializer<V>.Default;
+
+			return source.Select(kvp => new KeyValuePair<K, V>(keySerializer.Decode(kvp.Key), valueSerializer.Decode(kvp.Value)));
+		}
+
+		public static KeyValuePair<K, V>[] FromPairs<K, V>(this KeyValuePair<Slice, Slice>[] source, IFdbValueEncoder<K> keySerializer, IFdbValueEncoder<V> valueSerializer)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (keySerializer == null) keySerializer = FdbSliceSerializer<K>.Default;
+			if (valueSerializer == null) valueSerializer = FdbSliceSerializer<V>.Default;
+
+			var results = new KeyValuePair<K, V>[source.Length];
+			for (int i = 0; i < source.Length; i++)
+			{
+				results[i] = new KeyValuePair<K, V>(keySerializer.Decode(source[i].Key), valueSerializer.Decode(source[i].Value));
+			}
+
+			return results;
 		}
 
 	}

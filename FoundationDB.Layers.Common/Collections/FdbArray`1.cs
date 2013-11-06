@@ -47,32 +47,30 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Subspace used as a prefix for all items in this array</summary>
 		public FdbSubspace Subspace { get { return this.Array.Subspace; } }
 
+		/// <summary>Serializer for the elements of the array</summary>
+		public IFdbValueEncoder<T> Serializer { get; private set; }
+
 		public FdbArray(FdbSubspace subspace)
+			: this(subspace, FdbTupleCodec<T>.Default)
+		{ }
+
+		public FdbArray(FdbSubspace subspace, IFdbValueEncoder<T> serializer)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (serializer == null) throw new ArgumentNullException("serializer");
 
 			this.Array = new FdbArray(subspace);
-		}
-
-		protected virtual Slice EncodeValue(T value)
-		{
-			return FdbTuple.Pack<T>(value);
-		}
-
-		protected virtual T DecodeValue(Slice packed)
-		{
-			if (packed.IsNullOrEmpty) return default(T);
-			return FdbTuple.UnpackSingle<T>(packed);
+			this.Serializer = serializer;
 		}
 
 		public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
-			return DecodeValue(await this.Array.GetAsync(tr, index).ConfigureAwait(false));
+			return this.Serializer.Decode(await this.Array.GetAsync(tr, index).ConfigureAwait(false));
 		}
 
 		public void Set(IFdbTransaction tr, long index, T value)
 		{
-			this.Array.Set(tr, index, EncodeValue(value));
+			this.Array.Set(tr, index, this.Serializer.Encode(value));
 		}
 
 		public void Clear(IFdbTransaction tr)
@@ -96,7 +94,7 @@ namespace FoundationDB.Layers.Collections
 				.GetAll(tr)
 				.Select(kvp => new KeyValuePair<long, T>(
 					kvp.Key,
-					DecodeValue(kvp.Value)
+					this.Serializer.Decode(kvp.Value)
 				));
 		}
 

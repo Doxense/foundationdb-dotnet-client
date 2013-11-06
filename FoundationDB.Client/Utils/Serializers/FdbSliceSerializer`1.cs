@@ -35,7 +35,7 @@ namespace FoundationDB.Client.Serializers
 
 	/// <summary>Very simple serializer that uses FdbConverters to convert values of type <typeparamref name="T"/> from/to Slice</summary>
 	/// <typeparam name="T">Type of the value to serialize/deserialize</typeparam>
-	public class FdbSliceSerializer<T> : ISliceSerializer<T>
+	public class FdbSliceSerializer<T> : IFdbValueEncoder<T>
 	{
 		#region Static Helpers...
 
@@ -118,7 +118,7 @@ namespace FoundationDB.Client.Serializers
 		/// <summary>Deserialize a packed representation into a <typeparamref name="T"/> instance</summary>
 		/// <param name="slice">Packed representation</param>
 		/// <returns>Deserialized <typeparamref name="T"/> instance.</returns>
-		public T FromSlice(Slice slice)
+		public T Decode(Slice slice)
 		{
 			return m_unpack(slice);
 		}
@@ -126,7 +126,7 @@ namespace FoundationDB.Client.Serializers
 		/// <summary>Serialize a <typeparamref name="T"/> instance into a packed representation</summary>
 		/// <param name="value">Value to serialize</param>
 		/// <returns>Packed representation of <paramref name="value"/></returns>
-		public Slice ToSlice(T value)
+		public Slice Encode(T value)
 		{
 			return m_pack(value);
 		}

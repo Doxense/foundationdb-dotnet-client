@@ -64,7 +64,7 @@ namespace FoundationDB.Layers.Tables
 		public ITupleFormatter<TId> KeyReader { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public ISliceSerializer<TValue> ValueSerializer { get; private set; }
+		public IFdbValueEncoder<TValue> ValueSerializer { get; private set; }
 
 		/// <summary>(Subspace, METADATA_KEY, attr_name) = attr_value</summary>
 		protected FdbSubspace MetadataPrefix { get; private set; }
@@ -75,7 +75,7 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>(Subspace, LATEST_VERSIONS_KEY, key) = Contains the last version for this specific key</summary>
 		protected FdbSubspace VersionsPrefix { get; private set; }
 
-		public FdbVersionedTable(string name, IFdbDatabase database, FdbSubspace subspace, ITupleFormatter<TId> keyReader, ISliceSerializer<TValue> valueSerializer)
+		public FdbVersionedTable(string name, IFdbDatabase database, FdbSubspace subspace, ITupleFormatter<TId> keyReader, IFdbValueEncoder<TValue> valueSerializer)
 		{
 			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
 			if (database == null) throw new ArgumentNullException("database");
@@ -227,7 +227,7 @@ namespace FoundationDB.Layers.Tables
 			if (last.HasValue)
 			{ // extract the specified value
 				var data = await GetValueAtVersionAsync(trans, id, last.Value).ConfigureAwait(false);
-				value = this.ValueSerializer.FromSlice(data);
+				value = this.ValueSerializer.Decode(data);
 			}
 
 			return new KeyValuePair<long?, TValue>(last, value);
@@ -266,7 +266,7 @@ namespace FoundationDB.Layers.Tables
 				// note: returns Slice.Empty if the value is deleted at this version
 				if (data.IsPresent)
 				{
-					var value = this.ValueSerializer.FromSlice(data);
+					var value = this.ValueSerializer.Decode(data);
 					return new KeyValuePair<long?, TValue>(dbVersion, value);
 				}
 			}
@@ -336,7 +336,7 @@ namespace FoundationDB.Layers.Tables
 
 			if (last.HasValue)
 			{
-				Slice data = this.ValueSerializer.ToSlice(value);
+				Slice data = this.ValueSerializer.Encode(value);
 				trans.Set(GetItemKey(id, last.Value), data);
 			}
 
@@ -357,13 +357,13 @@ namespace FoundationDB.Layers.Tables
 			}
 
 			// parse previous value
-			var value = this.ValueSerializer.FromSlice(data);
+			var value = this.ValueSerializer.Decode(data);
 
 			// call the update lambda that will return a new value
 			value = updater(value);
 
 			// serialize the new value
-			data = this.ValueSerializer.ToSlice(value);
+			data = this.ValueSerializer.Encode(value);
 
 			// update
 			trans.Set(GetItemKey(id, version), data);
@@ -389,7 +389,7 @@ namespace FoundationDB.Layers.Tables
 
 			// We can insert the new version
 
-			Slice data = this.ValueSerializer.ToSlice(value);
+			Slice data = this.ValueSerializer.Encode(value);
 
 			//HACK to emulate Delete, remove me!
 			if (data.IsNull) data = Slice.Empty;
@@ -431,7 +431,7 @@ namespace FoundationDB.Layers.Tables
 			return results
 				.Select((value, i) => new KeyValuePair<TId, TValue>(
 					versions[i].Key,
-					this.ValueSerializer.FromSlice(value)
+					this.ValueSerializer.Decode(value)
 				))
 				.ToList();
 		}

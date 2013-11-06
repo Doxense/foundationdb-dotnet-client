@@ -614,6 +614,20 @@ namespace FoundationDB.Layers.Tuples
 			return UnpackSingle<T>(packedKey.Substring(prefix.Count));
 		}
 
+		public static bool UnpackNext<T>(ref SliceReader input, out T value)
+		{
+			if (!input.HasMore)
+			{
+				value = default(T);
+				return false;
+			}
+
+			var slice = FdbTuplePackers.ParseNext(ref input);
+			//TODO: FdbTuplePackers.Deserialize<T>(slice) ?
+			value = FdbConverters.ConvertBoxed<T>(FdbTuplePackers.DeserializeBoxed(slice));
+			return true;
+		}
+
 		#endregion
 
 		#region Concat...

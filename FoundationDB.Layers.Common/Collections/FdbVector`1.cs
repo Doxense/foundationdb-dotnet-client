@@ -48,40 +48,36 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Subspace used as a prefix for all items in this vector</summary>
 		public FdbSubspace Subspace { get { return this.Vector.Subspace; } }
 
+		/// <summary>Serializer for the elements of the vector</summary>
+		public IFdbValueEncoder<T> Serializer { get; private set; }
+
 		/// <summary>Default value for sparse entries</summary>
 		public T DefaultValue { get; private set; }
 
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
-		/// <param name="defaultValue">Default value for sparse entries</param>
-		public FdbVector(FdbSubspace subspace, T defaultValue)
-		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			this.Vector = new FdbVector(subspace, FdbTuple.Pack<T>(defaultValue));
-			this.DefaultValue = defaultValue;
-		}
+		/// <remarks>Sparse entries will be assigned the default value for type <typeparamref name="T"/></remarks>
+		public FdbVector(FdbSubspace subspace)
+			: this(subspace, defaultValue: default(T), serializer: FdbTupleCodec<T>.Default)
+		{ }
 
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
-		/// <remarks>Sparse entries will be assigned the default value for type <typeparamref name="T"/></remarks>
-		public FdbVector(FdbSubspace subspace)
-			: this(subspace, default(T))
+		/// <param name="defaultValue">Default value for sparse entries</param>
+		public FdbVector(FdbSubspace subspace, T defaultValue)
+			: this(subspace, defaultValue: defaultValue, serializer: FdbTupleCodec<T>.Default)
 		{ }
 
-		/// <summary>Encode a <typeparamref name="T"/> into a Slice</summary>
-		/// <param name="value">Value that will be stored in the vector</param>
-		protected virtual Slice EncodeValue(T value)
+		/// <summary>Create a new sparse Vector</summary>
+		/// <param name="subspace">Subspace where the vector will be stored</param>
+		/// <param name="defaultValue">Default value for sparse entries</param>
+		public FdbVector(FdbSubspace subspace, T defaultValue, IFdbValueEncoder<T> serializer)
 		{
-			return FdbTuple.Pack<T>(value);
-		}
+			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (serializer == null) throw new ArgumentNullException("serializer");
 
-		/// <summary>Decode a Slice back into a <typeparamref name="T"/></summary>
-		/// <param name="packed">Packed version that was generated via a previous call to <see cref="EncodeValue"/></param>
-		/// <returns>Decoded value that was read from the vector</returns>
-		protected virtual T DecodeValue(Slice packed)
-		{
-			if (packed.IsNullOrEmpty) return default(T);
-			return FdbTuple.UnpackSingle<T>(packed);
+			this.Vector = new FdbVector(subspace, serializer.Encode(defaultValue));
+			this.DefaultValue = defaultValue;
 		}
 
 		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
@@ -105,25 +101,25 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Push a single item onto the end of the Vector.</summary>
 		public Task PushAsync(IFdbTransaction tr, T value)
 		{
-			return this.Vector.PushAsync(tr, EncodeValue(value));
+			return this.Vector.PushAsync(tr, this.Serializer.Encode(value));
 		}
 
 		/// <summary>Get and pops the last item off the Vector.</summary>
 		public async Task<T> PopAsync(IFdbTransaction tr)
 		{
-			return DecodeValue(await this.Vector.PopAsync(tr).ConfigureAwait(false));
+			return this.Serializer.Decode(await this.Vector.PopAsync(tr).ConfigureAwait(false));
 		}
 
 		/// <summary>Set the value at a particular index in the Vector.</summary>
 		public void Set(IFdbTransaction tr, long index, T value)
 		{
-			this.Vector.Set(tr, index, EncodeValue(value));
+			this.Vector.Set(tr, index, this.Serializer.Encode(value));
 		}
 
 		/// <summary>Get the item at the specified index.</summary>
 		public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
-			return DecodeValue(await this.Vector.GetAsync(tr, index).ConfigureAwait(false));
+			return this.Serializer.Decode(await this.Vector.GetAsync(tr, index).ConfigureAwait(false));
 		}
 
 		/// <summary>Grow or shrink the size of the Vector.</summary>

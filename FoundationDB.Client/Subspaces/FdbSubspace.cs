@@ -512,7 +512,7 @@ namespace FoundationDB.Client
 
 		#region Slice Manipulation...
 
-		/// <summary>Concatenate the specified key to the subspace key</summary>
+		/// <summary>Append a key to the subspace key</summary>
 		/// <remarks>This is the equivalent of calling 'subspace.Key + key'</remarks>
 		public Slice Concat(Slice key)
 		{
@@ -521,7 +521,17 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
-		/// <summary>Concatenate a batch of keys to the subspace key</summary>
+		/// <summary>Append a pair of keys to the subspace key</summary>
+		/// <remarks>This is the equivalent of calling 'subspace.Key + key1 + key2'</remarks>
+		public Slice Concat(Slice key1, Slice key2)
+		{
+			var writer = OpenBuffer(key1.Count + key2.Count);
+			writer.WriteBytes(key1);
+			writer.WriteBytes(key2);
+			return writer.ToSlice();
+		}
+
+		/// <summary>Append a batch of keys to the subspace key</summary>
 		/// <param name="keys">Array of key suffix</param>
 		/// <returns>Array of keys each prefixed by the subspace key</returns>
 		public Slice[] Concat(Slice[] keys)

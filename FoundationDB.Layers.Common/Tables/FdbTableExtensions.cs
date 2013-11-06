@@ -39,7 +39,7 @@ namespace FoundationDB.Layers.Tables
 
 		#region FdbTable...
 
-		public static Task<Slice> GetAsync(this FdbTable table, IFdbReadOnlyTransactional dbOrTrans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
+		public static Task<Slice> GetAsync(this FdbTable table, IFdbReadOnlyTransactional dbOrTrans, Slice id, CancellationToken ct = default(CancellationToken))
 		{
 			if (table == null) throw new ArgumentNullException("table");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Tables
 			return dbOrTrans.ReadAsync((tr) => table.GetAsync(tr, id), ct);
 		}
 
-		public static Task SetAsync(this FdbTable table, IFdbTransactional dbOrTrans, IFdbTuple id, Slice value, CancellationToken ct = default(CancellationToken))
+		public static Task SetAsync(this FdbTable table, IFdbTransactional dbOrTrans, Slice id, Slice value, CancellationToken ct = default(CancellationToken))
 		{
 			if (table == null) throw new ArgumentNullException("table");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
@@ -57,7 +57,7 @@ namespace FoundationDB.Layers.Tables
 			return dbOrTrans.WriteAsync((tr) => table.Set(tr, id, value), ct);
 		}
 
-		public static Task ClearAsync(this FdbTable table, IFdbTransactional dbOrTrans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
+		public static Task ClearAsync(this FdbTable table, IFdbTransactional dbOrTrans, Slice id, CancellationToken ct = default(CancellationToken))
 		{
 			if (table == null) throw new ArgumentNullException("table");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");

@@ -49,35 +49,34 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Subspace used as a prefix for all items in this queue</summary>
 		public FdbSubspace Subspace { get { return this.Queue.Subspace; } }
 
+		/// <summary>Serializer for the elements of the queue</summary>
+		public IFdbValueEncoder<T> Serializer { get; private set; }
+
 		/// <summary>Create a new High Contention Queue</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
+		/// <remarks>Uses the default Tuple serializer</remarks>
 		public FdbQueue(FdbSubspace subspace)
-			: this(subspace, true)
+			: this(subspace, highContention: true, serializer: FdbTupleCodec<T>.Default)
 		{ }
 
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
+		/// <remarks>Uses the default Tuple serializer</remarks>
 		public FdbQueue(FdbSubspace subspace, bool highContention)
+			: this(subspace, highContention: highContention, serializer: FdbTupleCodec<T>.Default)
+		{ }
+
+		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
+		/// <param name="subspace">Subspace where the queue will be stored</param>
+		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
+		/// <param name="serializer">Serializer used to pack and unpack the elements of the queue</param>
+		public FdbQueue(FdbSubspace subspace, bool highContention, IFdbValueEncoder<T> serializer)
 		{
+			if (serializer == null) throw new ArgumentNullException("serializer");
+
 			this.Queue = new FdbQueue(subspace, highContention);
-		}
-
-		/// <summary>Encode a <typeparamref name="T"/> into a Slice</summary>
-		/// <param name="value">Value that will be stored in the queue</param>
-		protected virtual Slice EncodeValue(T value)
-		{
-			return FdbTuple.Pack(value);
-		}
-
-		/// <summary>Decode a Slice back into a <typeparamref name="T"/></summary>
-		/// <param name="packed">Packed version that was generated via a previous call to <see cref="EncodeValue"/></param>
-		/// <returns>Decoded value that was read from the queue</returns>
-		protected virtual T DecodeValue(Slice packed)
-		{
-			if (packed.IsNullOrEmpty) return default(T);
-
-			return FdbTuple.UnpackSingle<T>(packed);
+			this.Serializer = serializer;
 		}
 
 		/// <summary>Remove all items from the queue.</summary>
@@ -89,13 +88,13 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Push a single item onto the queue.</summary>
 		public Task PushAsync(IFdbTransaction tr, T value)
 		{
-			return this.Queue.PushAsync(tr, EncodeValue(value));
+			return this.Queue.PushAsync(tr, this.Serializer.Encode(value));
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
 		public async Task<T> PopAsync(IFdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
-			return DecodeValue(await this.Queue.PopAsync(db, ct).ConfigureAwait(false));
+			return this.Serializer.Decode(await this.Queue.PopAsync(db, ct).ConfigureAwait(false));
 		}
 
 		/// <summary>Test whether the queue is empty.</summary>
@@ -107,7 +106,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
 		public async Task<T> PeekAsync(IFdbReadOnlyTransaction tr)
 		{
-			return DecodeValue(await this.Queue.PeekAsync(tr).ConfigureAwait(false));
+			return this.Serializer.Decode(await this.Queue.PeekAsync(tr).ConfigureAwait(false));
 		}
 	}
 
