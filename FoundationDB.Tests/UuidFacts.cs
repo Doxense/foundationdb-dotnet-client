@@ -31,6 +31,8 @@ namespace FoundationDB.Client.Tests
 	using FoundationDB.Client;
 	using NUnit.Framework;
 	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 
 	[TestFixture]
 	public class UuidFacts
@@ -189,6 +191,35 @@ namespace FoundationDB.Client.Tests
 			Assert.That(uuid.ClockSequence, Is.EqualTo(10923));
 			Assert.That(uuid.Node, Is.EqualTo(0xD5870625C6B7));
 			
+		}
+
+		[Test]
+		public void Test_Uuid_Ordered()
+		{
+			const int N = 1000;
+
+			// create a a list of random ids
+			var source = new List<Uuid>(N);
+			for (int i = 0; i < N; i++) source.Add(Uuid.NewUuid());
+
+			// sort them by their string literals
+			var literals = source.Select(id => id.ToString()).ToList();
+			literals.Sort();
+
+			// sort them by their byte representation
+			var bytes = source.Select(id => id.ToSlice()).ToList();
+			bytes.Sort();
+
+			// now sort the Uuid themselves
+			source.Sort();
+
+			// they all should be in the same order
+			for(int i=0;i<N;i++)
+			{
+				Assert.That(literals[i], Is.EqualTo(source[i].ToString()));
+				Assert.That(bytes[i], Is.EqualTo(source[i].ToSlice()));
+			}
+
 		}
 	
 	}
