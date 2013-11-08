@@ -49,7 +49,7 @@ namespace FoundationDB.Layers.Collections
 		public FdbSubspace Subspace { get { return this.Vector.Subspace; } }
 
 		/// <summary>Serializer for the elements of the vector</summary>
-		public IFdbValueEncoder<T> Serializer { get; private set; }
+		public IKeyValueEncoder<T> Encoder { get; private set; }
 
 		/// <summary>Default value for sparse entries</summary>
 		public T DefaultValue { get; private set; }
@@ -58,26 +58,31 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <remarks>Sparse entries will be assigned the default value for type <typeparamref name="T"/></remarks>
 		public FdbVector(FdbSubspace subspace)
-			: this(subspace, defaultValue: default(T), serializer: FdbTupleCodec<T>.Default)
+			: this(subspace, defaultValue: default(T), codec: FdbTupleCodec<T>.Default)
 		{ }
 
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
 		public FdbVector(FdbSubspace subspace, T defaultValue)
-			: this(subspace, defaultValue: defaultValue, serializer: FdbTupleCodec<T>.Default)
+			: this(subspace, defaultValue: defaultValue, codec: FdbTupleCodec<T>.Default)
+		{ }
+
+		public FdbVector(FdbSubspace subspace, T defaultValue, IFdbTypeCodec<T> codec)
+			: this(subspace, defaultValue, KeyValueEncoders.Unordered.Bind(codec))
 		{ }
 
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
-		public FdbVector(FdbSubspace subspace, T defaultValue, IFdbValueEncoder<T> serializer)
+		public FdbVector(FdbSubspace subspace, T defaultValue, IKeyValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (serializer == null) throw new ArgumentNullException("serializer");
+			if (encoder == null) throw new ArgumentNullException("encoder");
 
-			this.Vector = new FdbVector(subspace, serializer.Encode(defaultValue));
+			this.Vector = new FdbVector(subspace, encoder.Encode(defaultValue));
 			this.DefaultValue = defaultValue;
+			this.Encoder = encoder;
 		}
 
 		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
@@ -101,25 +106,25 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Push a single item onto the end of the Vector.</summary>
 		public Task PushAsync(IFdbTransaction tr, T value)
 		{
-			return this.Vector.PushAsync(tr, this.Serializer.Encode(value));
+			return this.Vector.PushAsync(tr, this.Encoder.Encode(value));
 		}
 
 		/// <summary>Get and pops the last item off the Vector.</summary>
 		public async Task<T> PopAsync(IFdbTransaction tr)
 		{
-			return this.Serializer.Decode(await this.Vector.PopAsync(tr).ConfigureAwait(false));
+			return this.Encoder.Decode(await this.Vector.PopAsync(tr).ConfigureAwait(false));
 		}
 
 		/// <summary>Set the value at a particular index in the Vector.</summary>
 		public void Set(IFdbTransaction tr, long index, T value)
 		{
-			this.Vector.Set(tr, index, this.Serializer.Encode(value));
+			this.Vector.Set(tr, index, this.Encoder.Encode(value));
 		}
 
 		/// <summary>Get the item at the specified index.</summary>
 		public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
-			return this.Serializer.Decode(await this.Vector.GetAsync(tr, index).ConfigureAwait(false));
+			return this.Encoder.Decode(await this.Vector.GetAsync(tr, index).ConfigureAwait(false));
 		}
 
 		/// <summary>Grow or shrink the size of the Vector.</summary>

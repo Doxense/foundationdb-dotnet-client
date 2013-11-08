@@ -50,7 +50,11 @@ namespace FoundationDB.Layers.Indexing
 			: this(name, subspace, valueComparer, indexNullValues, FdbTupleCodec<TId>.Default, FdbTupleCodec<TValue>.Default)
 		{ }
 
-		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, IFdbKeyEncoder<TId> keySerializer, IFdbKeyEncoder<TValue> valueSerializer)
+		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, IFdbTypeCodec<TId> idCodec, IFdbTypeCodec<TValue> valueCodec)
+			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Ordered.Bind(valueCodec, idCodec))
+		{ }
+
+		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, IKeyValueEncoder<TValue, TId> encoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -59,8 +63,7 @@ namespace FoundationDB.Layers.Indexing
 			this.Subspace = subspace;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
-			this.KeySerializer = keySerializer;
-			this.ValueSerializer = valueSerializer;
+			this.Encoder = encoder;
 		}
 
 		public string Name { get; private set; }
@@ -74,18 +77,7 @@ namespace FoundationDB.Layers.Indexing
 		public bool IndexNullValues { get; private set; }
 
 		/// <summary>Serializer for the keys of the indexed documents</summary>
-		public IFdbKeyEncoder<TId> KeySerializer { get; private set; }
-
-		/// <summary>Serializer for the values of the indexed documents</summary>
-		public IFdbKeyEncoder<TValue> ValueSerializer { get; private set; }
-
-		private Slice Pack(TValue value, TId id)
-		{
-			var writer = this.Subspace.OpenBuffer();
-			this.ValueSerializer.EncodePart(ref writer, value);
-			this.KeySerializer.EncodePart(ref writer, id);
-			return writer.ToSlice();
-		}
+		public IKeyValueEncoder<TValue, TId> Encoder { get; private set; }
 
 		/// <summary>Insert a newly created entity to the index</summary>
 		/// <param name="trans">Transaction to use</param>
@@ -96,7 +88,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (this.IndexNullValues || value != null)
 			{
-				trans.Set(Pack(value, id), Slice.Empty);
+				trans.Set(this.Encoder.Encode(value, id), Slice.Empty);
 				return true;
 			}
 			return false;
@@ -116,13 +108,13 @@ namespace FoundationDB.Layers.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					trans.Clear(Pack(previousValue, id));
+					trans.Clear(this.Encoder.Encode(previousValue, id));
 				}
 
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					trans.Set(Pack(newValue, id), Slice.Empty);
+					trans.Set(this.Encoder.Encode(newValue, id), Slice.Empty);
 				}
 
 				// cannot be both null, so we did at least something)
@@ -139,7 +131,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Clear(Pack(value, id));
+			trans.Clear(this.Encoder.Encode(value, id));
 		}
 
 		/// <summary>Returns a list of ids matching a specific value</summary>

@@ -66,6 +66,8 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="ClusterFacts.cs" />
+    <Compile Include="Encoders\EncoderFacts.cs" />
+    <Compile Include="Encoders\TypeCodecFacts.cs" />
     <Compile Include="Filters\LoggingFilterFacts.cs" />
     <Compile Include="Layers\VectorFacts.cs" />
     <Compile Include="Layers\QueuesFacts.cs" />

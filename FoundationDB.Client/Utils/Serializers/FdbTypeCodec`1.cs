@@ -29,7 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
 
 	public abstract class FdbTypeSystem
 	{
@@ -158,48 +160,54 @@ namespace FoundationDB.Client
 		}
 	}
 
-	public abstract class FdbTypeCodec<T> : IFdbKeyEncoder<T>, IFdbOrderedKeyEncoder<T>, IFdbValueEncoder<T>
+	public abstract class FdbTypeCodec<T> : IFdbTypeCodec<T>
 	{
 
-		public virtual Slice Encode(T value)
+		public int TypeCode
 		{
-			var writer = SliceWriter.Empty;
-			EncodeOrderedPart(ref writer, value);
-			return writer.ToSlice();
+			get { throw new NotImplementedException(); }
 		}
 
-		public virtual T Decode(Slice input)
-		{
-			var slicer = new SliceReader(input);
-			return DecodeOrderedPart(ref slicer);
-		}
+		public abstract void EncodeOrderedSelfTerm(ref SliceWriter output, T value);
+
+		public abstract T DecodeOrderedSelfTerm(ref SliceReader input);
 
 		public virtual Slice EncodeOrdered(T value)
 		{
 			var writer = SliceWriter.Empty;
-			EncodeOrderedPart(ref writer, value);
+			EncodeOrderedSelfTerm(ref writer, value);
 			return writer.ToSlice();
 		}
 
 		public virtual T DecodeOrdered(Slice input)
 		{
 			var slicer = new SliceReader(input);
-			return DecodeOrderedPart(ref slicer);
+			return DecodeOrderedSelfTerm(ref slicer);
 		}
 
-		public virtual void EncodePart(ref SliceWriter output, T value)
+		public virtual void EncodeUnorderedSelfTerm(ref SliceWriter output, T value)
 		{
-			EncodeOrderedPart(ref output, value);
+			EncodeOrderedSelfTerm(ref output, value);
 		}
 
-		public virtual T DecodePart(ref SliceReader input)
+		public virtual T DecodeUnorderedSelfTerm(ref SliceReader input)
 		{
-			return DecodeOrderedPart(ref input);
+			return DecodeOrderedSelfTerm(ref input);
 		}
 
-		public abstract void EncodeOrderedPart(ref SliceWriter output, T value);
+		public virtual Slice EncodeUnordered(T value)
+		{
+			var writer = SliceWriter.Empty;
+			EncodeUnorderedSelfTerm(ref writer, value);
+			return writer.ToSlice();
+		}
 
-		public abstract T DecodeOrderedPart(ref SliceReader input);
+		public virtual T DecodeUnordered(Slice input)
+		{
+			var reader = new SliceReader(input);
+			return DecodeUnorderedSelfTerm(ref reader);
+		}
+
 	}
 
 }

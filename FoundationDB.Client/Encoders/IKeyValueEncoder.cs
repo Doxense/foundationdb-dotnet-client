@@ -26,50 +26,43 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace FoundationDB.Client
 {
-	using FoundationDB.Client;
+	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 
-	public sealed class FdbTupleCodec<T> : FdbTypeCodec<T>
+	public interface IKeyValueEncoder
 	{
+		Type[] GetTypes();
+	}
 
-		private static volatile FdbTupleCodec<T> s_defaultSerializer;
+	public interface IKeyValueEncoder<T1> : IKeyValueEncoder
+	{
+		/// <summary>Encode a single value</summary>
+		Slice Encode(T1 value);
 
-		public static FdbTupleCodec<T> Default
-		{
-			get
-			{
-				if (s_defaultSerializer == null)
-				{
-					s_defaultSerializer = new FdbTupleCodec<T>(default(T));
-				}
-				return s_defaultSerializer;
-			}
-		}
+		/// <summary>Decode a single value</summary>
+		/// <param name="encoded"></param>
+		/// <returns></returns>
+		T1 Decode(Slice encoded);
+	}
 
-		private readonly T m_missingValue;
+	public interface IKeyValueEncoder<T1, T2> : IKeyValueEncoder
+	{
+		Slice Encode(T1 value1, T2 value2);
 
-		public FdbTupleCodec(T missingValue)
-		{
-			m_missingValue = missingValue;
-		}
+		FdbTuple<T1, T2> Decode(Slice encoded);
+	}
 
-		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
-		{
-			FdbTuplePacker<T>.Encoder(ref output, value);
-		}
+	public interface IKeyValueEncoder<T1, T2, T3> : IKeyValueEncoder
+	{
+		Slice Encode(T1 value1, T2 value2, T3 value3);
 
-		public override T DecodeOrderedSelfTerm(ref SliceReader input)
-		{
-			T value;
-			if (!FdbTuple.UnpackNext<T>(ref input, out value))
-			{
-				return m_missingValue;
-			}
-			return value;
-		}
+		FdbTuple<T1, T2, T3> Decode(Slice encoded);
 	}
 
 }

@@ -57,8 +57,8 @@ namespace FoundationDB.Layers.Tables.Tests
 					"Foos",
 					db,
 					location.Partition("Foos"),
-					FdbTupleFormatter<int>.Default,
-					FdbValueEncoder.UnicodeString
+					FdbTupleCodec<int>.Default,
+					FdbTupleCodec<string>.Default //TODO: using a UnicodeString codec !
 				);
 
 				// create a new version
@@ -171,8 +171,8 @@ namespace FoundationDB.Layers.Tables.Tests
 					"Bars",
 					db,
 					location.Partition("Bars"),
-					FdbTupleFormatter<Guid>.Default,
-					FdbValueEncoder.UnicodeString
+					FdbTupleCodec<Guid>.Default,
+					FdbTupleCodec<string>.Default //TODO: using a UnicodeString codec !
 				);
 
 				bool created = await table.OpenOrCreateAsync();

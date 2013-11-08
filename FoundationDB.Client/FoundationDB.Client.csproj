@@ -63,6 +63,7 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="Encoders\IKeyValueEncoder.cs" />
     <Compile Include="FdbClusterFile.cs" />
     <Compile Include="FdbDatabaseExtensions.cs" />
     <Compile Include="IFdbKey.cs" />
@@ -171,6 +172,7 @@
     <Compile Include="Linq\IFdbAsyncEnumerable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleParser.cs" />
     <Compile Include="Unmanaged\DebugCounters.cs" />
+    <Compile Include="Encoders\KeyValueEncoders.cs" />
     <Compile Include="Utils\Serializers\FdbValueEncoder.cs" />
     <Compile Include="Utils\Serializers\FdbTypeCodec`1.cs" />
     <Compile Include="Utils\Serializers\IFdbKeyEncoder`1.cs" />

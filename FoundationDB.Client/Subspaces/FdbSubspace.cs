@@ -596,6 +596,68 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Key/Value encoding
+
+		public Slice Encode<T>(IKeyValueEncoder<T> encoder, T value)
+		{
+			return m_rawPrefix + encoder.Encode(value);
+		}
+
+		public Slice[] EncodeRange<T>(IKeyValueEncoder<T> encoder, T[] values)
+		{
+			return FdbKey.Merge(m_rawPrefix, encoder.EncodeRange(values));
+		}
+
+		public Slice[] EncodeRange<T>(IKeyValueEncoder<T> encoder, IEnumerable<T> values)
+		{
+			return FdbKey.Merge(m_rawPrefix, encoder.EncodeRange(values));
+		}
+
+		public Slice Encode<T1, T2>(IKeyValueEncoder<T1, T2> encoder, T1 value1, T2 value2)
+		{
+			return m_rawPrefix + encoder.Encode(value1, value2);
+		}
+
+		public Slice Encode<T1, T2, T3>(IKeyValueEncoder<T1, T2, T3> encoder, T1 value1, T2 value2, T3 value3)
+		{
+			return m_rawPrefix + encoder.Encode(value1, value2, value3);
+		}
+
+		public Slice ExtractAndCheck(Slice key)
+		{
+			// ensure that the key starts with the prefix
+			if (!key.StartsWith(m_rawPrefix)) throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
+
+			return key.Substring(m_rawPrefix.Count);
+		}
+
+		public T Decode<T>(IKeyValueEncoder<T> encoder, Slice packedKey)
+		{
+			return encoder.Decode(ExtractAndCheck(packedKey));
+		}
+
+		public T[] DecodeRange<T>(IKeyValueEncoder<T> encoder, Slice[] packedKeys)
+		{
+			var extracted = new Slice[packedKeys.Length];
+			for (int i = 0; i < packedKeys.Length;i++)
+			{
+				extracted[i] = ExtractAndCheck(packedKeys[i]);
+			}
+			return encoder.DecodeRange(extracted);
+		}
+
+		public FdbTuple<T1, T2> Decode<T1, T2>(IKeyValueEncoder<T1, T2> encoder, Slice packedKey)
+		{
+			return encoder.Decode(ExtractAndCheck(packedKey));
+		}
+
+		public FdbTuple<T1, T2, T3> Decode<T1, T2, T3>(IKeyValueEncoder<T1, T2, T3> encoder, Slice packedKey)
+		{
+			return encoder.Decode(ExtractAndCheck(packedKey));
+		}
+
+		#endregion
+
 		public FdbKeyRange ToRange()
 		{
 			return FdbTuple.ToRange(m_rawPrefix);

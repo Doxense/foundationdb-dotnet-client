@@ -61,10 +61,12 @@ namespace FoundationDB.Layers.Tables
 		public FdbSubspace Subspace { get; private set; }
 
 		/// <summary>Class that can pack/unpack keys into/from tuples</summary>
-		public ITupleFormatter<TId> KeyReader { get; private set; }
+		public IKeyValueEncoder<TId> KeyEncoder { get; private set; }
+
+		public IKeyValueEncoder<TId, long> KeyVersionEncoder { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public IFdbValueEncoder<TValue> ValueSerializer { get; private set; }
+		public IKeyValueEncoder<TValue> ValueEncoder { get; private set; }
 
 		/// <summary>(Subspace, METADATA_KEY, attr_name) = attr_value</summary>
 		protected FdbSubspace MetadataPrefix { get; private set; }
@@ -75,19 +77,20 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>(Subspace, LATEST_VERSIONS_KEY, key) = Contains the last version for this specific key</summary>
 		protected FdbSubspace VersionsPrefix { get; private set; }
 
-		public FdbVersionedTable(string name, IFdbDatabase database, FdbSubspace subspace, ITupleFormatter<TId> keyReader, IFdbValueEncoder<TValue> valueSerializer)
+		public FdbVersionedTable(string name, IFdbDatabase database, FdbSubspace subspace, IFdbTypeCodec<TId> keyEncoder, IFdbTypeCodec<TValue> valueEncoder)
 		{
 			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
 			if (database == null) throw new ArgumentNullException("database");
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (keyReader == null) throw new ArgumentNullException("keyReader");
-			if (valueSerializer == null) throw new ArgumentNullException("valueSerializer");
+			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
+			if (valueEncoder == null) throw new ArgumentNullException("valueEncoder");
 
 			this.Name = name;
 			this.Database = database;
 			this.Subspace = subspace;
-			this.KeyReader = keyReader;
-			this.ValueSerializer = valueSerializer;
+			this.KeyEncoder = KeyValueEncoders.Ordered.Bind(keyEncoder);
+			this.KeyVersionEncoder = KeyValueEncoders.Ordered.Bind(keyEncoder, FdbTupleCodec<long>.Default);
+			this.ValueEncoder = KeyValueEncoders.Unordered.Bind(valueEncoder);
 
 			this.MetadataPrefix = subspace.Partition(METADATA_KEY);
 			this.ItemsPrefix = subspace.Partition(ITEMS_KEY);
@@ -195,19 +198,21 @@ namespace FoundationDB.Layers.Tables
 		/// <returns>(Subspace, ITEMS_KEY, key, )</returns>
 		protected virtual Slice GetItemKeyPrefix(TId id)
 		{
-			return this.ItemsPrefix.Pack(this.KeyReader.ToTuple(id));
+			//HACKHACK !
+			return this.ItemsPrefix.Encode(this.KeyEncoder, id); //BUGBUGBUGBUGBUG
 		}
 
 		protected virtual Slice GetItemKey(TId id, long version)
 		{
-			return this.ItemsPrefix.Pack(this.KeyReader.ToTuple(id), version);
+			return this.ItemsPrefix.Encode(this.KeyVersionEncoder, id, version);
 		}
 
 		/// <summary>Compute the key that holds the last known version number of an item</summary>
 		/// <returns>(Subspace, LAST_VERSION_KEY, key, )</returns>
 		protected virtual Slice GetVersionKey(TId id)
 		{
-			return this.VersionsPrefix.Pack(this.KeyReader.ToTuple(id));
+			//HACKHACK !
+			return this.VersionsPrefix.Encode(this.KeyEncoder, id); //BUGBUGBUGBUGBUG
 		}
 
 		protected virtual Task<Slice> GetValueAtVersionAsync(IFdbReadOnlyTransaction trans, TId id, long version)
@@ -227,7 +232,7 @@ namespace FoundationDB.Layers.Tables
 			if (last.HasValue)
 			{ // extract the specified value
 				var data = await GetValueAtVersionAsync(trans, id, last.Value).ConfigureAwait(false);
-				value = this.ValueSerializer.Decode(data);
+				value = this.ValueEncoder.Decode(data);
 			}
 
 			return new KeyValuePair<long?, TValue>(last, value);
@@ -266,7 +271,7 @@ namespace FoundationDB.Layers.Tables
 				// note: returns Slice.Empty if the value is deleted at this version
 				if (data.IsPresent)
 				{
-					var value = this.ValueSerializer.Decode(data);
+					var value = this.ValueEncoder.Decode(data);
 					return new KeyValuePair<long?, TValue>(dbVersion, value);
 				}
 			}
@@ -336,7 +341,7 @@ namespace FoundationDB.Layers.Tables
 
 			if (last.HasValue)
 			{
-				Slice data = this.ValueSerializer.Encode(value);
+				Slice data = this.ValueEncoder.Encode(value);
 				trans.Set(GetItemKey(id, last.Value), data);
 			}
 
@@ -357,13 +362,13 @@ namespace FoundationDB.Layers.Tables
 			}
 
 			// parse previous value
-			var value = this.ValueSerializer.Decode(data);
+			var value = this.ValueEncoder.Decode(data);
 
 			// call the update lambda that will return a new value
 			value = updater(value);
 
 			// serialize the new value
-			data = this.ValueSerializer.Encode(value);
+			data = this.ValueEncoder.Encode(value);
 
 			// update
 			trans.Set(GetItemKey(id, version), data);
@@ -389,7 +394,7 @@ namespace FoundationDB.Layers.Tables
 
 			// We can insert the new version
 
-			Slice data = this.ValueSerializer.Encode(value);
+			Slice data = this.ValueEncoder.Encode(value);
 
 			//HACK to emulate Delete, remove me!
 			if (data.IsNull) data = Slice.Empty;
@@ -397,6 +402,7 @@ namespace FoundationDB.Layers.Tables
 
 			// (subspace, ITEMS_KEY, key, version) = data
 			trans.Set(GetItemKey(id, version), data);
+
 			// (subspace, LAST_VERSIONS_KEY, key) = version
 			trans.Set(GetVersionKey(id), Slice.FromInt64(version));
 
@@ -407,6 +413,8 @@ namespace FoundationDB.Layers.Tables
 
 		#region List...
 
+#if DOES_NOT_WORK // refactoring in progress
+
 		public async Task<List<KeyValuePair<TId, TValue>>> SelectLatestAsync(IFdbReadOnlyTransaction trans, bool includeDeleted = false)
 		{
 			//REVIEW: pagination ? filtering ???
@@ -416,7 +424,7 @@ namespace FoundationDB.Layers.Tables
 			var versions = await trans
 				.GetRange(this.ItemsPrefix.ToRange()) //TODO: options ?
 				.Select((kvp) => new KeyValuePair<TId, long>(
-					this.KeyReader.FromTuple(FdbTuple.UnpackWithoutPrefix(kvp.Key, this.VersionsPrefix.Key)),
+					this.ItemsPrefix.Decode(this.KeyEncoder, kvp.Key)),
 					kvp.Value.ToInt64()
 				))
 				.ToListAsync()
@@ -431,10 +439,12 @@ namespace FoundationDB.Layers.Tables
 			return results
 				.Select((value, i) => new KeyValuePair<TId, TValue>(
 					versions[i].Key,
-					this.ValueSerializer.Decode(value)
+					this.ValueEncoder.Decode(value)
 				))
 				.ToList();
 		}
+
+#endif
 
 		#endregion
 

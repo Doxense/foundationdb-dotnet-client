@@ -45,35 +45,38 @@ namespace FoundationDB.Layers.Tables
 	{
 
 		public FdbTable(string name, FdbSubspace subspace)
-			: this(name, subspace, FdbTupleCodec<TKey>.Default, FdbValueEncoder<TValue>.Default)
+			: this(name, subspace, FdbTupleCodec<TKey>.Default, FdbTupleCodec<TValue>.Default)
 		{ }
 
-		public FdbTable(string name, FdbSubspace subspace, IFdbKeyEncoder<TKey> keySerializer, IFdbValueEncoder<TValue> valueSerializer)
+		public FdbTable(string name, FdbSubspace subspace, IFdbTypeCodec<TKey> keyCodec, IFdbTypeCodec<TValue> valueCodec)
+			: this(name, subspace, KeyValueEncoders.Ordered.Bind(keyCodec), KeyValueEncoders.Unordered.Bind(valueCodec))
+		{ }
+
+		public FdbTable(string name, FdbSubspace subspace, IKeyValueEncoder<TKey> keySerializer, IKeyValueEncoder<TValue> valueSerializer)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (keySerializer == null) throw new ArgumentNullException("keyReader");
 			if (valueSerializer == null) throw new ArgumentNullException("valueSerializer");
 
-			this.Table = new FdbTable(name, subspace);
-			this.KeySerializer = keySerializer;
-			this.ValueSerializer = valueSerializer;
+			this.Name = name;
+			this.Subspace = subspace;
+			this.KeyEncoder = keySerializer;
+			this.ValueEncoder = valueSerializer;
 		}
 
 		#region Public Properties...
 
-		public string Name { get { return this.Table.Name; } }
+		public string Name { get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public FdbSubspace Subspace { get { return this.Table.Subspace; } }
+		public FdbSubspace Subspace { get; private set; }
 		
 		/// <summary>Class that can pack/unpack keys into/from slices</summary>
-		public IFdbKeyEncoder<TKey> KeySerializer { get; private set; }
+		public IKeyValueEncoder<TKey> KeyEncoder { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public IFdbValueEncoder<TValue> ValueSerializer { get; private set; }
-
-		internal FdbTable Table { get; private set; }
+		public IKeyValueEncoder<TValue> ValueEncoder { get; private set; }
 
 		#endregion
 
@@ -83,40 +86,33 @@ namespace FoundationDB.Layers.Tables
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			Slice data = await this.Table.GetAsync(trans, this.KeySerializer.Encode(key)).ConfigureAwait(false);
-
-			if (data.IsNull) return default(TValue);
-			return this.ValueSerializer.Decode(data);
+			return this.ValueEncoder.Decode(await trans.GetAsync(this.Subspace.Encode<TKey>(this.KeyEncoder, key)).ConfigureAwait(false));
 		}
 
 		public void Set(IFdbTransaction trans, TKey key, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			this.Table.Set(trans, this.KeySerializer.Encode(key), this.ValueSerializer.Encode(value));
+			trans.Set(this.Subspace.Encode<TKey>(this.KeyEncoder, key), this.ValueEncoder.Encode(value));
 		}
 
 		public void Clear(IFdbTransaction trans, TKey key)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			this.Table.Clear(trans, this.KeySerializer.Encode(key));
+			trans.Clear(this.Subspace.Encode<TKey>(this.KeyEncoder, key));
 		}
 
-		public async Task<List<KeyValuePair<TKey, TValue>>> GetAllAsync(IFdbReadOnlyTransaction trans)
+		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>>  All(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			var subspace = this.Table.Subspace;
-
-			var results = await this.Table.GetAllAsync(trans).ConfigureAwait(false);
-
-			return results
+			return trans
+				.GetRange(this.Subspace.ToRange())
 				.Select((kvp) => new KeyValuePair<TKey, TValue>(
-					this.KeySerializer.Decode(kvp.Key),
-					this.ValueSerializer.Decode(kvp.Value)
-				))
-				.ToList();
+					this.Subspace.Decode<TKey>(this.KeyEncoder, kvp.Key),
+					this.ValueEncoder.Decode(kvp.Value)
+				));
 		}
 
 		public async Task<TValue[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
@@ -124,11 +120,11 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");
 
-			var results = await this.Table
-				.GetValuesAsync(trans, ids.Select(id => this.KeySerializer.Encode(id)))
+			var results = await trans
+				.GetValuesAsync(this.Subspace.EncodeRange(this.KeyEncoder, ids))
 				.ConfigureAwait(false);
 
-			return FdbValueEncoder.Decode(results, this.ValueSerializer);
+			return this.ValueEncoder.DecodeRange(results);
 		}
 
 		#endregion

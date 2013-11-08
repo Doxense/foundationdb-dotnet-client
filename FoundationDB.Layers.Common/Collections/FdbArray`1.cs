@@ -48,29 +48,33 @@ namespace FoundationDB.Layers.Collections
 		public FdbSubspace Subspace { get { return this.Array.Subspace; } }
 
 		/// <summary>Serializer for the elements of the array</summary>
-		public IFdbValueEncoder<T> Serializer { get; private set; }
+		public IKeyValueEncoder<T> Encoder { get; private set; }
 
 		public FdbArray(FdbSubspace subspace)
 			: this(subspace, FdbTupleCodec<T>.Default)
 		{ }
 
-		public FdbArray(FdbSubspace subspace, IFdbValueEncoder<T> serializer)
+		public FdbArray(FdbSubspace subspace, IFdbTypeCodec<T> codec)
+			: this(subspace, KeyValueEncoders.Unordered.Bind(codec))
+		{ }
+
+		public FdbArray(FdbSubspace subspace, IKeyValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (serializer == null) throw new ArgumentNullException("serializer");
+			if (encoder == null) throw new ArgumentNullException("encoder");
 
 			this.Array = new FdbArray(subspace);
-			this.Serializer = serializer;
+			this.Encoder = encoder;
 		}
 
 		public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
-			return this.Serializer.Decode(await this.Array.GetAsync(tr, index).ConfigureAwait(false));
+			return this.Encoder.Decode(await this.Array.GetAsync(tr, index).ConfigureAwait(false));
 		}
 
 		public void Set(IFdbTransaction tr, long index, T value)
 		{
-			this.Array.Set(tr, index, this.Serializer.Encode(value));
+			this.Array.Set(tr, index, this.Encoder.Encode(value));
 		}
 
 		public void Clear(IFdbTransaction tr)
@@ -94,7 +98,7 @@ namespace FoundationDB.Layers.Collections
 				.GetAll(tr)
 				.Select(kvp => new KeyValuePair<long, T>(
 					kvp.Key,
-					this.Serializer.Decode(kvp.Value)
+					this.Encoder.Decode(kvp.Value)
 				));
 		}
 
