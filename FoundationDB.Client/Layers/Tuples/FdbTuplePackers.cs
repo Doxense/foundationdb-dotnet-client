@@ -448,17 +448,19 @@ namespace FoundationDB.Layers.Tuples
 					case FdbTupleTypes.Nil: return null;
 					case FdbTupleTypes.Bytes: return FdbTupleParser.ParseBytes(slice);
 					case FdbTupleTypes.Utf8: return FdbTupleParser.ParseUnicode(slice);
-					case FdbTupleTypes.Guid: return FdbTupleParser.ParseGuid(slice);
 				}
 			}
-
-			if (type >= FdbTupleTypes.AliasDirectory)
+			else if (type == FdbTupleTypes.Guid)
+			{
+				return FdbTupleParser.ParseGuid(slice);
+			}
+			else if (type >= FdbTupleTypes.AliasDirectory)
 			{
 				if (type == FdbTupleTypes.AliasSystem) return FdbTupleAlias.System;
 				return FdbTupleAlias.Directory;
 			}
 
-			throw new FormatException("Cannot convert slice into this type");
+			throw new FormatException(String.Format("Cannot convert slice with unknown type code {0}", type));
 		}
 
 		/// <summary>Deserialize a slice into a type that implements ITupleFormattable</summary>
@@ -570,8 +572,11 @@ namespace FoundationDB.Layers.Tuples
 					case FdbTupleTypes.Nil: return null;
 					case FdbTupleTypes.Bytes: return FdbTupleParser.ParseAscii(slice);
 					case FdbTupleTypes.Utf8: return FdbTupleParser.ParseUnicode(slice);
-					case FdbTupleTypes.Guid: return FdbTupleParser.ParseGuid(slice).ToString();
 				}
+			}
+			else if (type == FdbTupleTypes.Guid)
+			{
+				return FdbTupleParser.ParseGuid(slice).ToString();
 			}
 
 			throw new FormatException("Cannot convert slice into this type");

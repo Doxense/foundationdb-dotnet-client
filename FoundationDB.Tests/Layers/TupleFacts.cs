@@ -533,10 +533,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// note: new Guid(bytes from 0 to 15) => "03020100-0504-0706-0809-0a0b0c0d0e0f";
 			packed = FdbTuple.Create(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")).ToSlice();
-			Assert.That(packed.ToString(), Is.EqualTo("<03><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+			Assert.That(packed.ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 
 			packed = FdbTuple.Create(Guid.Empty).ToSlice();
-			Assert.That(packed.ToString(), Is.EqualTo("<03><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
 
 		}
 
@@ -548,11 +548,11 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			IFdbTuple packed;
 
-			packed = FdbTuple.Unpack(Slice.Unescape("<03><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+			packed = FdbTuple.Unpack(Slice.Unescape("<30><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
 			Assert.That(packed[0], Is.EqualTo(Guid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
 
-			packed = FdbTuple.Unpack(Slice.Unescape("<03><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
+			packed = FdbTuple.Unpack(Slice.Unescape("<30><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
 			Assert.That(packed.Get<Guid>(0), Is.EqualTo(Guid.Empty));
 			Assert.That(packed[0], Is.EqualTo(Guid.Empty));
 
@@ -575,12 +575,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			Slice packed;
 
-			// note: new Guid(bytes from 0 to 15) => "03020100-0504-0706-0809-0a0b0c0d0e0f";
+			// note: new Uuid(bytes from 0 to 15) => "03020100-0504-0706-0809-0a0b0c0d0e0f";
 			packed = FdbTuple.Create(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")).ToSlice();
-			Assert.That(packed.ToString(), Is.EqualTo("<03><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+			Assert.That(packed.ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 
 			packed = FdbTuple.Create(Uuid.Empty).ToSlice();
-			Assert.That(packed.ToString(), Is.EqualTo("<03><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
 		}
 
 		[Test]
@@ -592,11 +592,11 @@ namespace FoundationDB.Layers.Tuples.Tests
 			IFdbTuple packed;
 
 			// note: new Uuid(bytes from 0 to 15) => "00010203-0405-0607-0809-0a0b0c0d0e0f";
-			packed = FdbTuple.Unpack(Slice.Unescape("<03><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
+			packed = FdbTuple.Unpack(Slice.Unescape("<30><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
 			Assert.That(packed[0], Is.EqualTo(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
 
-			packed = FdbTuple.Unpack(Slice.Unescape("<03><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
+			packed = FdbTuple.Unpack(Slice.Unescape("<30><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
 			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Empty));
 			Assert.That(packed[0], Is.EqualTo(Uuid.Empty));
 

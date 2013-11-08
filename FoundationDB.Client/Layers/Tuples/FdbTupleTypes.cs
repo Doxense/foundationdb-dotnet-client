@@ -45,8 +45,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>UTF-8 String</summary>
 		internal const byte Utf8 = (byte)2;
 
-		/// <summary>128 bits GUID [CUSTOM EXTENSION]</summary>
-		internal const byte Guid = (byte)3;
+		/// <summary>Nested tuple [DRAFT]</summary>
+		internal const byte TupleStart = (byte)3;
+		/// <summary>End of a nested tuple [DRAFT]</summary>
+		internal const byte TupleEnd = (byte)4;
 
 		internal const byte IntNeg8 = (byte)12;
 		internal const byte IntNeg7 = (byte)13;
@@ -69,7 +71,15 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Base value for integer types (20 +/- n)</summary>
 		internal const int IntBase = 20;
 
+		/// <summary>RFC4122 UUID (128 bits) [DRAFT]</summary>
+		internal const byte Guid = (byte)48;
+
+		/// <summary>Standard prefix of the Directory Layer</summary>
+		/// <remarks>This is not a part of the tuple encoding itself, but helps the tuple decoder pretty-print tuples that would otherwise be unparsable.</remarks>
 		internal const int AliasDirectory = (byte)254;
+
+		/// <summary>Standard prefix of the System keys, or frequent suffix with key ranges</summary>
+		/// <remarks>This is not a part of the tuple encoding itself, but helps the tuple decoder pretty-print End keys from ranges, that would otherwise be unparsable.</remarks>
 		internal const int AliasSystem = (byte)255;
 	}
 
