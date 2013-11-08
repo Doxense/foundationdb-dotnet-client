@@ -1101,7 +1101,19 @@ namespace FoundationDB.Client
 			while (n-- > 0)
 			{
 				int c = buffer[p++];
-				if (c < 32 || c >= 127 || c == 60) sb.Append('<').Append(c.ToString("X2")).Append('>'); else sb.Append((char)c);
+				if (c < 32 || c >= 127 || c == 60)
+				{
+					sb.Append('<');
+					int x = c >> 4;
+					sb.Append((char)(x + (x < 10 ? 48 : 55)));
+					x = c & 0xF;
+					sb.Append((char)(x + (x < 10 ? 48 : 55)));
+					sb.Append('>');
+				}
+				else
+				{
+					sb.Append((char)c);
+				}
 			}
 			return sb.ToString();
 		}

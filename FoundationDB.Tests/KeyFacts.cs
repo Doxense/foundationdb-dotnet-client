@@ -317,5 +317,50 @@ namespace FoundationDB.Client.Tests
 			Assert.That(() => FdbKeyRange.FromKey(Slice.Nil), Throws.InstanceOf<ArgumentException>());
 		}
 
+		[Test]
+		public void Test_FdbKey_PrettyPrint()
+		{
+			// verify that the pretty printing of keys produce a user friendly output
+
+			Assert.That(FdbKey.Dump(Slice.Nil), Is.EqualTo("<null>"));
+			Assert.That(FdbKey.Dump(Slice.Empty), Is.EqualTo("<empty>"));
+
+			Assert.That(FdbKey.Dump(Slice.FromByte(0)), Is.EqualTo("<00>"));
+			Assert.That(FdbKey.Dump(Slice.FromByte(255)), Is.EqualTo("<FF>"));
+
+			Assert.That(FdbKey.Dump(Slice.Create(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7 })), Is.EqualTo("<00><01><02><03><04><05><06><07>"));
+			Assert.That(FdbKey.Dump(Slice.Create(new byte[] { 255, 254, 253, 252, 251, 250, 249, 248 })), Is.EqualTo("<FF><FE><FD><FC><FB><FA><F9><F8>"));
+
+			Assert.That(FdbKey.Dump(Slice.FromString("hello")), Is.EqualTo("hello"));
+			Assert.That(FdbKey.Dump(Slice.FromString("héllø")), Is.EqualTo("h<C3><A9>ll<C3><B8>"));
+
+			// tuples should be decoded properly
+
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(123)), Is.EqualTo("(123,)"));		
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(Slice.FromAscii("hello"))), Is.EqualTo("('hello',)"), "ASCII strings use single quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.Pack("héllø")), Is.EqualTo("(\"héllø\",)"), "Unicode strings use double quotes"); 
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(Slice.Create(new byte[] { 1, 2, 3 }))), Is.EqualTo("(<01 02 03>,)"));
+			Assert.That(FdbKey.Dump(FdbTuple.Pack("hello", 123, -42)), Is.EqualTo("(\"hello\", 123, -42,)"));
+			var guid = Guid.NewGuid();
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(guid)), Is.EqualTo("(" + guid.ToString() + ",)"), "GUIDs are displayed as a string literal");
+
+			// ranges should be decoded when possible
+			var key = FdbTuple.ToRange(FdbTuple.Create("hello"));
+			// "<02>hello<00><00>" .. "<02>hello<00><FF>"
+			Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",).<00>"));
+			Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",).<FF>"));
+
+			key = FdbKeyRange.StartsWith(FdbTuple.Pack("hello"));
+			// "<02>hello<00>" .. "<02>hello<01>"
+			Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",)"));
+			Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",) + 1"));
+
+			var t = FdbTuple.Pack(123);
+			Assert.That(FdbKey.PrettyPrint(t, FdbKey.PrettyPrintMode.Single), Is.EqualTo("(123,)"));
+			Assert.That(FdbKey.PrettyPrint(FdbTuple.ToRange(t).Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(123,).<00>"));
+			Assert.That(FdbKey.PrettyPrint(FdbTuple.ToRange(t).End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(123,).<FF>"));
+
+		}
+
 	}
 }

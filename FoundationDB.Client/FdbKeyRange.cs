@@ -169,7 +169,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a printable version of the range</summary>
 		public override string ToString()
 		{
-			return "{" + FdbKey.Dump(this.Begin) + ", " + FdbKey.Dump(this.End) + "}";
+			return "{" + FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin) + ", " + FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End) + "}";
 		}
 	
 	}

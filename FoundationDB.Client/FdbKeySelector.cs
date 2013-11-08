@@ -57,7 +57,7 @@ namespace FoundationDB.Client
 			this.Offset = offset;
 		}
 
-		public override string ToString()
+		public string PrettyPrint(FdbKey.PrettyPrintMode mode)
 		{
 			var sb = new StringBuilder();
 			int offset = this.Offset;
@@ -70,15 +70,20 @@ namespace FoundationDB.Client
 				--offset;
 				sb.Append(this.OrEqual ? "fGT{" : "fGE{");
 			}
-			sb.Append(FdbKey.Dump(this.Key));
+			sb.Append(FdbKey.PrettyPrint(this.Key, mode));
 			sb.Append("}");
 
-			if (offset > 0) 
+			if (offset > 0)
 				sb.Append(" + ").Append(offset.ToString());
 			else if (offset < 0)
 				sb.Append(" - ").Append((-offset).ToString());
 
 			return sb.ToString();
+		}
+
+		public override string ToString()
+		{
+			return PrettyPrint(FdbKey.PrettyPrintMode.Single);
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>

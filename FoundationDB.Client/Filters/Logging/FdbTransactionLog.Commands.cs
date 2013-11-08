@@ -277,7 +277,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments()
 			{
-				return String.Concat(FdbKey.Dump(this.Begin), " <= k < ", FdbKey.Dump(this.End));
+				return String.Concat(FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin), " <= k < ", FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End));
 			}
 
 		}
@@ -337,7 +337,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments()
 			{
-				return String.Concat(this.Type.ToString(), "! ", FdbKey.Dump(this.Begin), " <= k < ", FdbKey.Dump(this.End));
+				return String.Concat(this.Type.ToString(), "! ", FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin), " <= k < ", FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End));
 			}
 
 		}
@@ -552,7 +552,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments()
 			{
-				string s = String.Concat(this.Begin.ToString() + " <= k < " + this.End.ToString());
+				string s = String.Concat(this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End));
 				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
 				if (this.Options != null)
 				{

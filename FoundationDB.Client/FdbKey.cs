@@ -261,39 +261,93 @@ namespace FoundationDB.Client
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		public static string Dump(Slice key)
 		{
-			if (key.IsPresent)
+			return PrettyPrint(key, PrettyPrintMode.Single);
+		}
+
+		/// <summary>Produce a user-friendly version of the slice</summary>
+		/// <param name="key">Random binary key</param>
+		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
+		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
+		public static string PrettyPrint(Slice key, PrettyPrintMode mode)
+		{
+			if (key.Count > 1)
 			{
-				if (key[0] <= 28 || key[0] >= 254)
+				if (key[0] <= 0x1C || key[0] == 0x30 || key[0] >= 0xFE)
 				{ // it could be a tuple...
 					try
 					{
 						IFdbTuple tuple = null;
-						bool incr = false;
+						string suffix = null;
+						bool skip = false;
+
 						try
 						{
-							tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key);
-						}
-						catch(Exception e)
-						{
-							if (e is FormatException || e is ArgumentOutOfRangeException)
+							switch (mode)
 							{
-								// Exclusive end keys based on tuples may end up with "01" instead of "00" (due to the call to FdbKey.Increment)
-								if (key.Count >= 2 && key[-1] > 0)
-								{
-									var tmp = key[0, -1] + (byte)(key[-1] - 1);
-									tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(tmp);
-									incr = true;
+								case PrettyPrintMode.End:
+								{ // the last byte will either be FF, or incremented
+									// for tuples, the really bad cases are for byte[]/strings (which normally end with 00)
+									// => pack(("string",))+\xFF => <02>string<00><FF>
+									// => string(("string",)) => <02>string<01>
+									switch (key[-1])
+									{
+										case 0xFF:
+										{
+											tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
+											suffix = ".<FF>";
+											break;
+										}
+										case 0x01:
+										{
+											var tmp = key[0, -1] + (byte)0;
+											tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(tmp);
+											suffix = " + 1";
+											break;
+										}
+									}
+									break;
+								}
+								case PrettyPrintMode.Begin:
+								{ // the last byte will usually be 00
+
+									// We can't really know if the tuple ended with NULL (serialized to <00>) or if a <00> was added,
+									// but since the ToRange() on tuples add a <00> we can bet on the fact that it is not part of the tuple itself.
+									// except maybe if we have "00 FF 00" which would be the expected form of a string that ends with a <00>
+
+									if (key.Count > 2 && key[-1] == 0 && key[-2] != 0xFF)
+									{
+										tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
+										suffix = ".<00>";
+									}
+									break;
 								}
 							}
 						}
-						if (tuple != null) return !incr ? tuple.ToString() : (tuple.ToString() + " + 1");
+						catch (Exception e)
+						{
+							suffix = null;
+							skip = !(e is FormatException || e is ArgumentOutOfRangeException);
+						}
+
+						if (tuple == null && !skip)
+						{ // attempt a regular decoding
+							tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key);
+						}
+
+						if (tuple != null) return tuple.ToString() + suffix;
 					}
 					catch { }
 				}
 			}
 
 			return Slice.Dump(key);
+		}
 
+		public enum PrettyPrintMode
+		{
+			Single = 0,
+			Begin = 1,
+			End = 2,
 		}
 
 	}

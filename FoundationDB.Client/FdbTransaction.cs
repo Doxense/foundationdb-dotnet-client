@@ -519,7 +519,7 @@ namespace FoundationDB.Client
 			Slice result;
 			var err = FdbNative.FutureGetKey(h, out result);
 #if DEBUG_TRANSACTIONS
-			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + FdbKey.Dump(result));
+			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + result.ToString());
 #endif
 			Fdb.DieOnError(err);
 			return result;
