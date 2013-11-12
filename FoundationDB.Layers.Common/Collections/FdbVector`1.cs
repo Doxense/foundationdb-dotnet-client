@@ -68,17 +68,15 @@ namespace FoundationDB.Layers.Collections
 			: this(subspace, defaultValue: defaultValue, codec: FdbTupleCodec<T>.Default)
 		{ }
 
-		public FdbVector(FdbSubspace subspace, T defaultValue, IFdbTypeCodec<T> codec)
-			: this(subspace, defaultValue, KeyValueEncoders.Unordered.Bind(codec))
-		{ }
-
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
-		public FdbVector(FdbSubspace subspace, T defaultValue, IKeyValueEncoder<T> encoder)
+		public FdbVector(FdbSubspace subspace, T defaultValue, IUnorderedTypeCodec<T> codec)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (codec == null) throw new ArgumentNullException("codec");
+
+			var encoder = KeyValueEncoders.Unordered.Bind(codec);
 
 			this.Vector = new FdbVector(subspace, encoder.Encode(defaultValue));
 			this.DefaultValue = defaultValue;

@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Serializers;
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;

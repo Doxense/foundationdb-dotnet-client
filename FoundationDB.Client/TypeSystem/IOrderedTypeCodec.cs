@@ -26,61 +26,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tuples
+namespace FoundationDB.Client
 {
-	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
 
-	public sealed class FdbTupleCodec<T> : FdbTypeCodec<T>
+	public interface IOrderedTypeCodec<T>
 	{
+		void EncodeOrderedSelfTerm(ref SliceWriter output, T value);
+		T DecodeOrderedSelfTerm(ref SliceReader input);
 
-		private static volatile FdbTupleCodec<T> s_defaultSerializer;
-
-		public static FdbTupleCodec<T> Default
-		{
-			get
-			{
-				if (s_defaultSerializer == null)
-				{
-					s_defaultSerializer = new FdbTupleCodec<T>(default(T));
-				}
-				return s_defaultSerializer;
-			}
-		}
-
-		private readonly T m_missingValue;
-
-		public FdbTupleCodec(T missingValue)
-		{
-			m_missingValue = missingValue;
-		}
-
-		public override Slice EncodeOrdered(T value)
-		{
-			return FdbTuple.Pack<T>(value);
-		}
-
-		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
-		{
-			FdbTuplePacker<T>.Encoder(ref output, value);
-		}
-
-		public override T DecodeOrdered(Slice input)
-		{
-			return FdbTuple.UnpackSingle<T>(input);
-		}
-
-		public override T DecodeOrderedSelfTerm(ref SliceReader input)
-		{
-			T value;
-			if (!FdbTuple.UnpackNext<T>(ref input, out value))
-			{
-				return m_missingValue;
-			}
-			return value;
-		}
-
+		Slice EncodeOrdered(T value);
+		T DecodeOrdered(Slice input);
 	}
 
 }

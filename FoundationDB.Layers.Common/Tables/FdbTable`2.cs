@@ -30,7 +30,6 @@ namespace FoundationDB.Layers.Tables
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client;
-	using FoundationDB.Client.Serializers;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
 	using System;
@@ -48,11 +47,7 @@ namespace FoundationDB.Layers.Tables
 			: this(name, subspace, FdbTupleCodec<TKey>.Default, FdbTupleCodec<TValue>.Default)
 		{ }
 
-		public FdbTable(string name, FdbSubspace subspace, IFdbTypeCodec<TKey> keyCodec, IFdbTypeCodec<TValue> valueCodec)
-			: this(name, subspace, KeyValueEncoders.Ordered.Bind(keyCodec), KeyValueEncoders.Unordered.Bind(valueCodec))
-		{ }
-
-		public FdbTable(string name, FdbSubspace subspace, IKeyValueEncoder<TKey> keySerializer, IKeyValueEncoder<TValue> valueSerializer)
+		public FdbTable(string name, FdbSubspace subspace, IOrderedTypeCodec<TKey> keySerializer, IUnorderedTypeCodec<TValue> valueSerializer)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -61,8 +56,8 @@ namespace FoundationDB.Layers.Tables
 
 			this.Name = name;
 			this.Subspace = subspace;
-			this.KeyEncoder = keySerializer;
-			this.ValueEncoder = valueSerializer;
+			this.KeyEncoder = KeyValueEncoders.Ordered.Bind(keySerializer);
+			this.ValueEncoder = KeyValueEncoders.Unordered.Bind(valueSerializer);
 		}
 
 		#region Public Properties...

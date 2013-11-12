@@ -183,10 +183,10 @@ namespace FoundationDB.Layers.Collections.Tests
 						while (i < NUM)
 						{
 							var item = await queue.PopAsync(db, tok).ConfigureAwait(false);
-							if (item != null)
+							if (item.HasValue)
 							{
 								Interlocked.Increment(ref popCount);
-								res.Add(item);
+								res.Add(item.Value);
 								++i;
 							}
 							else

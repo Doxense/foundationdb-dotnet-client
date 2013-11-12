@@ -29,28 +29,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
+#if DEBUG
+	using FoundationDB.Filters.Logging;
+#endif
 	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
 	using System;
+	using System.Collections.Generic;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Async;
+	using System.Globalization;
 
-	/// <summary>Provides a high-contention Queue class with typed values</summary>
-	/// <typeparam name="T">Type of the items stored in the queue</typeparam>
-	/// <remarks>The default implementation uses the Tuple layer to encode the values.</remarks>
+	/// <summary>
+	/// Provides a high-contention Queue class
+	/// </summary>
 	public class FdbQueue<T>
 	{
-		// This is just a wrapper around the non-generic FdbQueue, and just adds encoding/decoding semantics.
-		// By default we use the Tuple layer to encode/decode the values, but implementors just need to derive this class,
-		// and override the EncodeValue/DecodeValue methods to change the serialization to something else (JSON, MessagePack, ...)
+		// from https://github.com/FoundationDB/python-layers/blob/master/lib/queue.py
 
-		/// <summary>Queue that is used for storage</summary>
-		internal FdbQueue Queue { get; private set; }
-
-		/// <summary>Subspace used as a prefix for all items in this queue</summary>
-		public FdbSubspace Subspace { get { return this.Queue.Subspace; } }
-
-		/// <summary>Serializer for the elements of the queue</summary>
-		public IKeyValueEncoder<T> Encoder { get; private set; }
+		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
+		private readonly Random Rng = new Random();
 
 		/// <summary>Create a new High Contention Queue</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
@@ -67,51 +67,392 @@ namespace FoundationDB.Layers.Collections
 			: this(subspace, highContention: highContention, codec: FdbTupleCodec<T>.Default)
 		{ }
 
-		public FdbQueue(FdbSubspace subspace, bool highContention, IFdbTypeCodec<T> codec)
+		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
+		/// <param name="subspace">Subspace where the queue will be stored</param>
+		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
+		/// <param name="codec">Serializer used to pack and unpack the elements of the queue</param>
+		public FdbQueue(FdbSubspace subspace, bool highContention, IUnorderedTypeCodec<T> codec)
 			: this(subspace, highContention, KeyValueEncoders.Unordered.Bind(codec))
 		{ }
+
 
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		/// <param name="encoder">Serializer used to pack and unpack the elements of the queue</param>
 		public FdbQueue(FdbSubspace subspace, bool highContention, IKeyValueEncoder<T> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Queue = new FdbQueue(subspace, highContention);
+			this.Subspace = subspace;
+			this.HighContention = highContention;
 			this.Encoder = encoder;
+
+			this.ConflictedPop = subspace.Partition(Slice.FromAscii("pop"));
+			this.ConflictedItem = subspace.Partition(Slice.FromAscii("conflict"));
+			this.QueueItem = subspace.Partition(Slice.FromAscii("item"));
 		}
+
+		/// <summary>Subspace used as a prefix for all items in this table</summary>
+		public FdbSubspace Subspace { get; private set; }
+
+		/// <summary>If true, the queue is operating in High Contention mode that will scale better with a lot of popping clients.</summary>
+		public bool HighContention { get; private set; }
+
+		/// <summary>Serializer for the elements of the queue</summary>
+		public IKeyValueEncoder<T> Encoder { get; private set; }
+
+		internal FdbSubspace ConflictedPop { get; private set; }
+
+		internal FdbSubspace ConflictedItem { get; private set; }
+
+		internal FdbSubspace QueueItem { get; private set; }
 
 		/// <summary>Remove all items from the queue.</summary>
 		public void ClearAsync(IFdbTransaction tr)
 		{
-			this.Queue.ClearAsync(tr);
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			tr.ClearRange(this.Subspace);
 		}
 
 		/// <summary>Push a single item onto the queue.</summary>
-		public Task PushAsync(IFdbTransaction tr, T value)
+		public async Task PushAsync(IFdbTransaction tr, T value)
 		{
-			return this.Queue.PushAsync(tr, this.Encoder.Encode(value));
+#if DEBUG
+			tr.Annotate("Push({0})", value);
+#endif
+
+			long index = await GetNextIndexAsync(tr.Snapshot, this.QueueItem).ConfigureAwait(false);
+
+#if DEBUG
+			tr.Annotate("Index = {0}", index);
+#endif
+
+			await PushAtAsync(tr, value, index).ConfigureAwait(false);
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public async Task<T> PopAsync(IFdbDatabase db, CancellationToken ct = default(CancellationToken))
+		public Task<Maybe<T>> PopAsync(IFdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
-			return this.Encoder.Decode(await this.Queue.PopAsync(db, ct).ConfigureAwait(false));
+			if (ct.IsCancellationRequested)
+			{
+				return TaskHelpers.FromCancellation<Maybe<T>>(ct);
+			}
+
+			if (this.HighContention)
+			{
+				return PopHighContentionAsync(db, ct);
+			}
+			else
+			{
+				return db.ReadWriteAsync((tr) => this.PopSimpleAsync(tr), ct);
+			}
 		}
 
 		/// <summary>Test whether the queue is empty.</summary>
-		public Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
+		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
-			return this.Queue.EmptyAsync(tr);
+			return (await GetFirstItemAsync(tr).ConfigureAwait(false)).Key.IsNull;
 		}
 
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
-		public async Task<T> PeekAsync(IFdbReadOnlyTransaction tr)
+		public async Task<Maybe<T>> PeekAsync(IFdbReadOnlyTransaction tr)
 		{
-			return this.Encoder.Decode(await this.Queue.PeekAsync(tr).ConfigureAwait(false));
+			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
+			if (firstItem.Key.IsNull)
+			{
+				return Maybe<T>.Empty;
+			}
+			else
+			{
+				return Maybe.Return<T>(this.Encoder.Decode(firstItem.Value));
+			}
 		}
+
+		#region Private Helpers...
+
+		private Slice ConflictedItemKey(object subKey)
+		{
+			return this.ConflictedItem.Pack(subKey);
+		}
+
+		private Slice RandId()
+		{
+			lock (this.Rng)
+			{
+				return Slice.Random(this.Rng, 20);
+			}
+		}
+
+		private async Task PushAtAsync(IFdbTransaction tr, T value, long index)
+		{
+			// Items are pushed on the queue at an (index, randomID) pair. Items pushed at the
+			// same time will have the same index, and so their ordering will be random.
+			// This makes pushes fast and usually conflict free (unless the queue becomes empty
+			// during the push)
+
+			Slice key = this.QueueItem.Pack(index, this.RandId());
+			await tr.GetAsync(key).ConfigureAwait(false);
+			tr.Set(key, this.Encoder.Encode(value));
+		}
+
+		private async Task<long> GetNextIndexAsync(IFdbReadOnlyTransaction tr, FdbSubspace subspace)
+		{
+			var range = subspace.ToRange();
+
+			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
+
+			if (lastKey < range.Begin)
+			{
+				return 0;
+			}
+
+			return subspace.Unpack(lastKey).Get<long>(0) + 1;
+		}
+
+		private Task<KeyValuePair<Slice, Slice>> GetFirstItemAsync(IFdbReadOnlyTransaction tr)
+		{
+			var range = this.QueueItem.ToRange();
+			return tr.GetRange(range).FirstOrDefaultAsync();
+		}
+
+		private async Task<Maybe<T>> PopSimpleAsync(IFdbTransaction tr)
+		{
+#if DEBUG
+			tr.Annotate("PopSimple()");
+#endif
+
+			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
+			if (firstItem.Key.IsNull) return Maybe<T>.Empty;
+
+			tr.Clear(firstItem.Key);
+			return Maybe.Return<T>(this.Encoder.Decode(firstItem.Value));
+		}
+
+		private Task<Slice> AddConflictedPopAsync(IFdbDatabase db, bool forced, CancellationToken ct)
+		{
+			return db.ReadWriteAsync((tr) => AddConflictedPopAsync(tr, forced), ct);
+		}
+
+		private async Task<Slice> AddConflictedPopAsync(IFdbTransaction tr, bool forced)
+		{
+			long index = await GetNextIndexAsync(tr.Snapshot, this.ConflictedPop).ConfigureAwait(false);
+
+			if (index == 0 && !forced)
+			{
+				return Slice.Nil;
+			}
+
+			Slice waitKey = this.ConflictedPop.Pack(index, this.RandId());
+			await tr.GetAsync(waitKey).ConfigureAwait(false);
+			tr.Set(waitKey, Slice.Empty);
+			return waitKey;
+		}
+
+		private FdbRangeQuery<KeyValuePair<Slice, Slice>> GetWaitingPops(IFdbReadOnlyTransaction tr, int numPops)
+		{
+			var range = this.ConflictedPop.ToRange();
+			return tr.GetRange(range, limit: numPops, reverse: false);
+		}
+
+		private FdbRangeQuery<KeyValuePair<Slice, Slice>> GetItems(IFdbReadOnlyTransaction tr, int numItems)
+		{
+			var range = this.QueueItem.ToRange();
+			return tr.GetRange(range, limit: numItems, reverse: false);
+		}
+
+		private async Task<bool> FulfillConflictedPops(IFdbDatabase db, CancellationToken ct)
+		{
+			int numPops = 100;
+
+			using (var tr = db.BeginTransaction(ct))
+			{
+#if DEBUG
+				tr.Annotate("FulfillConflictedPops");
+#endif
+
+				var ts = await Task.WhenAll(
+					GetWaitingPops(tr.Snapshot, numPops).ToListAsync(),
+					GetItems(tr.Snapshot, numPops).ToListAsync()
+				).ConfigureAwait(false);
+
+				var pops = ts[0];
+				var items = ts[1];
+#if DEBUG
+				tr.Annotate("pops: {0}, items: {1}", pops.Count, items.Count);
+#endif
+
+				var tasks = new List<Task>(pops.Count);
+
+				int i = 0;
+				int n = Math.Min(pops.Count, items.Count);
+				while (i < n)
+				{
+					var pop = pops[i];
+					var kvp = items[i];
+
+					var key = this.ConflictedPop.Unpack(pop.Key);
+					var storageKey = this.ConflictedItemKey(key[1]);
+
+					tr.Set(storageKey, kvp.Value);
+					tasks.Add(tr.GetAsync(kvp.Key));
+					tasks.Add(tr.GetAsync(pop.Key));
+					tr.Clear(pop.Key);
+					tr.Clear(kvp.Key);
+
+					++i;
+				}
+
+				if (i < pops.Count)
+				{
+					while (i < pops.Count)
+					{
+						tasks.Add(tr.GetAsync(pops[i].Key));
+						tr.Clear(pops[i].Key);
+						++i;
+					}
+				}
+
+				// wait for all pending reads
+				await Task.WhenAll(tasks).ConfigureAwait(false);
+
+				// commit
+				await tr.CommitAsync().ConfigureAwait(false);
+
+				return pops.Count < numPops;
+			}
+		}
+
+		private async Task<Maybe<T>> PopHighContentionAsync(IFdbDatabase db, CancellationToken ct)
+		{
+			int backOff = 10;
+			Slice waitKey = Slice.Empty;
+
+			ct.ThrowIfCancellationRequested();
+
+			using (var tr = db.BeginTransaction(ct))
+			{
+#if DEBUG
+				tr.Annotate("PopHighContention()");
+#endif
+
+				FdbException error = null;
+				try
+				{
+					// Check if there are other people waiting to be popped. If so, we cannot pop before them.
+					waitKey = await AddConflictedPopAsync(tr, forced: false).ConfigureAwait(false);
+					if (waitKey.IsNull)
+					{ // No one else was waiting to be popped
+						var item = await PopSimpleAsync(tr).ConfigureAwait(false);
+						await tr.CommitAsync().ConfigureAwait(false);
+						return item;
+					}
+					else
+					{
+						await tr.CommitAsync().ConfigureAwait(false);
+					}
+				}
+				catch (FdbException e)
+				{
+					// note: cannot await inside a catch(..) block, so flag the error and process it below
+					error = e;
+				}
+
+				if (error != null)
+				{ // If we didn't succeed, then register our pop request
+					waitKey = await AddConflictedPopAsync(db, forced: true, ct: ct).ConfigureAwait(false);
+				}
+
+				// The result of the pop will be stored at this key once it has been fulfilled
+				var resultKey = ConflictedItemKey(this.ConflictedPop.UnpackLast<Slice>(waitKey));
+
+				tr.Reset();
+
+				// Attempt to fulfill outstanding pops and then poll the database 
+				// checking if we have been fulfilled
+
+				while (!ct.IsCancellationRequested)
+				{
+					error = null;
+					try
+					{
+						while (!(await FulfillConflictedPops(db, ct).ConfigureAwait(false)))
+						{
+							//NOP ?
+						}
+					}
+					catch (FdbException e)
+					{
+						// cannot await in catch(..) block so process it below
+						error = e;
+					}
+
+					if (error != null && error.Code != FdbError.NotCommitted)
+					{
+						// If the error is 1020 (not_committed), then there is a good chance 
+						// that somebody else has managed to fulfill some outstanding pops. In
+						// that case, we proceed to check whether our request has been fulfilled.
+						// Otherwise, we handle the error in the usual fashion.
+
+						await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
+						continue;
+					}
+
+					error = null;
+					try
+					{
+						tr.Reset();
+
+						var sw = System.Diagnostics.Stopwatch.StartNew();
+
+						var tmp = await tr.GetValuesAsync(new Slice[] { waitKey, resultKey }).ConfigureAwait(false);
+						var value = tmp[0];
+						var result = tmp[1];
+
+						// If waitKey is present, then we have not been fulfilled
+						if (value.HasValue)
+						{
+#if DEBUG
+							tr.Annotate("Wait {0} ms : {1} / {2}", backOff, Environment.TickCount, sw.ElapsedTicks);
+#endif
+							//TODO: we should rewrite this using Watches !
+							await Task.Delay(backOff, ct).ConfigureAwait(false);
+#if DEBUG
+							tr.Annotate("After wait : {0} / {1}", Environment.TickCount, sw.ElapsedTicks);
+#endif
+							backOff = Math.Min(1000, backOff * 2);
+							continue;
+						}
+
+						if (result.IsNullOrEmpty)
+						{
+							return Maybe<T>.Empty;
+						}
+
+						tr.Clear(resultKey);
+						await tr.CommitAsync().ConfigureAwait(false);
+						return Maybe.Return<T>(this.Encoder.Decode(result));
+
+					}
+					catch (FdbException e)
+					{
+						error = e;
+					}
+
+					if (error != null)
+					{
+						await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
+					}
+				}
+
+				ct.ThrowIfCancellationRequested();
+				// make the compiler happy
+				throw new InvalidOperationException();
+			}
+		}
+
+		#endregion
+
 	}
 
 }

@@ -29,66 +29,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
-using FoundationDB.Layers.Tuples;
-using System;
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
+	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
+	using System;
+	using System.Collections.Generic;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	public static class FdbArrayTransactionals
 	{
-
-		#region FdbArray...
-
-		public static Task<Slice> GetAsync(this FdbArray array, IFdbReadOnlyTransactional dbOrTrans, long index, CancellationToken ct = default(CancellationToken))
-		{
-			if (array == null) throw new ArgumentNullException("array");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadAsync((tr) => array.GetAsync(tr, index), ct);
-		}
-
-		public static Task SetAsync(this FdbArray array, IFdbTransactional dbOrTrans, long index, Slice value, CancellationToken ct = default(CancellationToken))
-		{
-			if (array == null) throw new ArgumentNullException("array");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.WriteAsync((tr) => array.Set(tr, index, value), ct);
-		}
-
-		public static Task ClearAsync(this FdbArray array, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
-		{
-			if (array == null) throw new ArgumentNullException("array");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.WriteAsync((tr) => array.Clear(tr));
-		}
-
-		public static Task<long> SizeAsync(this FdbArray array, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
-		{
-			if (array == null) throw new ArgumentNullException("array");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadAsync((tr) => array.SizeAsync(tr), ct);
-		}
-
-		public static Task<bool> EmptyAsync(this FdbArray array, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
-		{
-			if (array == null) throw new ArgumentNullException("array");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadAsync((tr) => array.EmptyAsync(tr), ct);
-		}
-
-		public static Task<List<KeyValuePair<long, Slice>>> ToListAsync(this FdbArray array, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
-		{
-			if (array == null) throw new ArgumentNullException("array");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadAsync((tr) => array.GetAll(tr).ToListAsync(), ct);
-		}
-
-		#endregion
 
 		#region FdbArray<T>...
 
@@ -137,7 +86,7 @@ using System.Threading.Tasks;
 			if (array == null) throw new ArgumentNullException("array");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.ReadAsync((tr) => array.GetAll(tr).ToListAsync(), ct);
+			return dbOrTrans.ReadAsync((tr) => array.All(tr).ToListAsync(), ct);
 		}
 
 		#endregion

@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Tables.Tests
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Serializers;
 	using FoundationDB.Client.Tests;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;

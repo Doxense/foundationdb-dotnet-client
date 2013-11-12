@@ -53,12 +53,6 @@ namespace FoundationDB.Client
 				m_decoder = decoder;
 			}
 
-			public Singleton(IFdbTypeCodec<T> codec)
-			{
-				Contract.Requires(codec != null);
-
-			}
-
 			public Type[] GetTypes()
 			{
 				return new[] { typeof(T) };
@@ -140,7 +134,7 @@ namespace FoundationDB.Client
 		{
 
 			/// <summary>Create a simple encoder from a codec</summary>
-			public static IKeyValueEncoder<T> Bind<T>(IFdbTypeCodec<T> codec)
+			public static IKeyValueEncoder<T> Bind<T>(IOrderedTypeCodec<T> codec)
 			{
 				if (codec == null) throw new ArgumentNullException("codec");
 
@@ -151,10 +145,11 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Create a composite encoder from a pair of codecs</summary>
-			public static IKeyValueEncoder<T1, T2> Bind<T1, T2>(IFdbTypeCodec<T1> codec1, IFdbTypeCodec<T2> codec2)
+			public static IKeyValueEncoder<T1, T2> Bind<T1, T2>(IOrderedTypeCodec<T1> codec1, IOrderedTypeCodec<T2> codec2)
 			{
 				if (codec1 == null) throw new ArgumentNullException("codec1");
 				if (codec2 == null) throw new ArgumentNullException("codec2");
+
 				return new Composite<T1, T2>(
 					(value1, value2) =>
 					{
@@ -174,11 +169,12 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Create a composite encoder from a triplet of codecs</summary>
-			public static IKeyValueEncoder<T1, T2, T3> Bind<T1, T2, T3>(IFdbTypeCodec<T1> codec1, IFdbTypeCodec<T2> codec2, IFdbTypeCodec<T3> codec3)
+			public static IKeyValueEncoder<T1, T2, T3> Bind<T1, T2, T3>(IOrderedTypeCodec<T1> codec1, IOrderedTypeCodec<T2> codec2, IOrderedTypeCodec<T3> codec3)
 			{
 				if (codec1 == null) throw new ArgumentNullException("codec1");
 				if (codec2 == null) throw new ArgumentNullException("codec2");
 				if (codec3 == null) throw new ArgumentNullException("codec2");
+
 				return new Composite<T1, T2, T3>(
 					(value1, value2, value3) =>
 					{
@@ -199,6 +195,27 @@ namespace FoundationDB.Client
 				);
 			}
 
+			public static void Partial<T1>(ref SliceWriter writer, IOrderedTypeCodec<T1> codec1, T1 value1)
+			{
+				Contract.Assert(codec1 != null);
+				codec1.EncodeOrderedSelfTerm(ref writer, value1);
+			}
+
+			public static void Encode<T1, T2>(ref SliceWriter writer, IOrderedTypeCodec<T1> codec1, T1 value1, IOrderedTypeCodec<T2> codec2, T2 value2)
+			{
+				Contract.Assert(codec1 != null && codec2 != null);
+				codec1.EncodeOrderedSelfTerm(ref writer, value1);
+				codec2.EncodeOrderedSelfTerm(ref writer, value2);
+			}
+
+			public static void Encode<T1, T2, T3>(ref SliceWriter writer, IOrderedTypeCodec<T1> codec1, T1 value1, IOrderedTypeCodec<T2> codec2, T2 value2, IOrderedTypeCodec<T3> codec3, T3 value3)
+			{
+				Contract.Assert(codec1 != null && codec2 != null);
+				codec1.EncodeOrderedSelfTerm(ref writer, value1);
+				codec2.EncodeOrderedSelfTerm(ref writer, value2);
+				codec3.EncodeOrderedSelfTerm(ref writer, value3);
+			}
+
 		}
 
 		/// <summary>Encoders that produce compact but unordered slices, suitable for use as values, or unordered keys</summary>
@@ -206,132 +223,68 @@ namespace FoundationDB.Client
 		{
 
 			/// <summary>Create a simple encoder from a codec</summary>
-			public static IKeyValueEncoder<T> Bind<T>(IFdbTypeCodec<T> codec)
+			public static IKeyValueEncoder<T> Bind<T>(IUnorderedTypeCodec<T> codec)
 			{
-				return new Single<T>(codec);
+				if (codec == null) throw new ArgumentNullException("codec");
+
+				var encoder = codec as IKeyValueEncoder<T>;
+				if (encoder != null) return encoder;
+
+				return new Singleton<T>(
+					(value) => codec.EncodeUnordered(value),
+					(encoded) => codec.DecodeUnordered(encoded)
+				);
 			}
 
 			/// <summary>Create a composite encoder from a pair of codecs</summary>
-			public static IKeyValueEncoder<T1, T2> Bind<T1, T2>(IFdbTypeCodec<T1> codec1, IFdbTypeCodec<T2> codec2)
+			public static IKeyValueEncoder<T1, T2> Bind<T1, T2>(IUnorderedTypeCodec<T1> codec1, IUnorderedTypeCodec<T2> codec2)
 			{
-				return new Composite<T1, T2>(codec1, codec2);
+				if (codec1 == null) throw new ArgumentNullException("codec1");
+				if (codec2 == null) throw new ArgumentNullException("codec2");
+
+				return new Composite<T1, T2>(
+					(value1, value2) =>
+					{
+						var writer = SliceWriter.Empty;
+						codec1.EncodeUnorderedSelfTerm(ref writer, value1);
+						codec2.EncodeUnorderedSelfTerm(ref writer, value2);
+						return writer.ToSlice();
+					},
+					(encoded) =>
+					{
+						var reader = new SliceReader(encoded);
+						T1 value1 = codec1.DecodeUnorderedSelfTerm(ref reader);
+						T2 value2 = codec2.DecodeUnorderedSelfTerm(ref reader);
+						return new FdbTuple<T1, T2>(value1, value2);
+					}
+				);
 			}
 
 			/// <summary>Create a composite encoder from a triplet of codecs</summary>
-			public static IKeyValueEncoder<T1, T2, T3> Bind<T1, T2, T3>(IFdbTypeCodec<T1> codec1, IFdbTypeCodec<T2> codec2, IFdbTypeCodec<T3> codec3)
+			public static IKeyValueEncoder<T1, T2, T3> Bind<T1, T2, T3>(IUnorderedTypeCodec<T1> codec1, IUnorderedTypeCodec<T2> codec2, IUnorderedTypeCodec<T3> codec3)
 			{
-				return new Composite<T1, T2, T3>(codec1, codec2, codec3);
-			}
+				if (codec1 == null) throw new ArgumentNullException("codec1");
+				if (codec2 == null) throw new ArgumentNullException("codec2");
+				if (codec3 == null) throw new ArgumentNullException("codec2");
 
-			/// <summary>Encodes and decodes elements as compact but unordered slices. Suitable for values, and keys that do not require lexicographic ordering.</summary>
-			/// <typeparam name="T">Type of the element</typeparam>
-			internal sealed class Single<T> : IKeyValueEncoder<T>
-			{
-				private readonly IFdbTypeCodec<T> m_codec;
-
-				public Single(IFdbTypeCodec<T> codec)
-				{
-					if (codec == null) throw new ArgumentNullException("codec");
-					m_codec = codec;
-				}
-
-				public Type[] GetTypes()
-				{
-					return new[] { typeof(T) };
-				}
-
-				public Slice Encode(T value)
-				{
-					return m_codec.EncodeUnordered(value);
-				}
-
-				public T Decode(Slice encoded)
-				{
-					return m_codec.DecodeUnordered(encoded);
-				}
-			}
-
-			/// <summary>Encodes and decodes pairs of elements as compact but unordered slices. Suitable for values, and keys that do not require lexicographic ordering.</summary>
-			/// <typeparam name="T1">Type of the first element</typeparam>
-			/// <typeparam name="T2">Type of the second element</typeparam>
-			internal sealed class Composite<T1, T2> : IKeyValueEncoder<T1, T2>
-			{
-				public readonly IFdbTypeCodec<T1> Codec1;
-				public readonly IFdbTypeCodec<T2> Codec2;
-
-				public Composite(IFdbTypeCodec<T1> codec1, IFdbTypeCodec<T2> codec2)
-				{
-					if (codec1 == null) throw new ArgumentNullException("codec1");
-					if (codec2 == null) throw new ArgumentNullException("codec2");
-
-					this.Codec1 = codec1;
-					this.Codec2 = codec2;
-				}
-
-				public Type[] GetTypes()
-				{
-					return new[] { typeof(T1), typeof(T2) };
-				}
-
-				public Slice Encode(T1 value1, T2 value2)
-				{
-					var writer = SliceWriter.Empty;
-					this.Codec1.EncodeOrderedSelfTerm(ref writer, value1);
-					this.Codec2.EncodeOrderedSelfTerm(ref writer, value2);
-					return writer.ToSlice();
-				}
-
-				public FdbTuple<T1, T2> Decode(Slice encoded)
-				{
-					var reader = new SliceReader(encoded);
-					T1 value1 = this.Codec1.DecodeOrderedSelfTerm(ref reader);
-					T2 value2 = this.Codec2.DecodeOrderedSelfTerm(ref reader);
-					return new FdbTuple<T1, T2>(value1, value2);
-				}
-			}
-
-			/// <summary>Encodes and decodes triplet of elements as compact but unordered slices. Suitable for values, and keys that do not require lexicographic ordering.</summary>
-			/// <typeparam name="T1">Type of the first element</typeparam>
-			/// <typeparam name="T2">Type of the second element</typeparam>
-			internal sealed class Composite<T1, T2, T3> : IKeyValueEncoder<T1, T2, T3>
-			{
-				public readonly IFdbTypeCodec<T1> Codec1;
-				public readonly IFdbTypeCodec<T2> Codec2;
-				public readonly IFdbTypeCodec<T3> Codec3;
-
-				public Composite(IFdbTypeCodec<T1> codec1, IFdbTypeCodec<T2> codec2, IFdbTypeCodec<T3> codec3)
-				{
-					if (codec1 == null) throw new ArgumentNullException("codec1");
-					if (codec2 == null) throw new ArgumentNullException("codec2");
-					if (codec3 == null) throw new ArgumentNullException("codec3");
-
-					this.Codec1 = codec1;
-					this.Codec2 = codec2;
-					this.Codec3 = codec3;
-				}
-
-				public Type[] GetTypes()
-				{
-					return new[] { typeof(T1), typeof(T2), typeof(T3) };
-				}
-
-				public Slice Encode(T1 value1, T2 value2, T3 value3)
-				{
-					var writer = SliceWriter.Empty;
-					this.Codec1.EncodeOrderedSelfTerm(ref writer, value1);
-					this.Codec2.EncodeOrderedSelfTerm(ref writer, value2);
-					this.Codec3.EncodeOrderedSelfTerm(ref writer, value3);
-					return writer.ToSlice();
-				}
-
-				public FdbTuple<T1, T2, T3> Decode(Slice encoded)
-				{
-					var reader = new SliceReader(encoded);
-					T1 value1 = this.Codec1.DecodeOrderedSelfTerm(ref reader);
-					T2 value2 = this.Codec2.DecodeOrderedSelfTerm(ref reader);
-					T3 value3 = this.Codec3.DecodeOrderedSelfTerm(ref reader);
-					return new FdbTuple<T1, T2, T3>(value1, value2, value3);
-				}
+				return new Composite<T1, T2, T3>(
+					(value1, value2, value3) =>
+					{
+						var writer = SliceWriter.Empty;
+						codec1.EncodeUnorderedSelfTerm(ref writer, value1);
+						codec2.EncodeUnorderedSelfTerm(ref writer, value2);
+						codec3.EncodeUnorderedSelfTerm(ref writer, value3);
+						return writer.ToSlice();
+					},
+					(encoded) =>
+					{
+						var reader = new SliceReader(encoded);
+						T1 value1 = codec1.DecodeUnorderedSelfTerm(ref reader);
+						T2 value2 = codec2.DecodeUnorderedSelfTerm(ref reader);
+						T3 value3 = codec3.DecodeUnorderedSelfTerm(ref reader);
+						return new FdbTuple<T1, T2, T3>(value1, value2, value3);
+					}
+				);
 			}
 
 		}

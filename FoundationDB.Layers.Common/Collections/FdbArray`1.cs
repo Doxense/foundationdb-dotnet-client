@@ -28,9 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -41,20 +41,11 @@ namespace FoundationDB.Layers.Collections
 	public class FdbArray<T>
 	{
 
-		/// <summary>Internal array used for storage</summary>
-		internal FdbArray Array { get; private set; }
-
-		/// <summary>Subspace used as a prefix for all items in this array</summary>
-		public FdbSubspace Subspace { get { return this.Array.Subspace; } }
-
-		/// <summary>Serializer for the elements of the array</summary>
-		public IKeyValueEncoder<T> Encoder { get; private set; }
-
 		public FdbArray(FdbSubspace subspace)
 			: this(subspace, FdbTupleCodec<T>.Default)
 		{ }
 
-		public FdbArray(FdbSubspace subspace, IFdbTypeCodec<T> codec)
+		public FdbArray(FdbSubspace subspace, IUnorderedTypeCodec<T> codec)
 			: this(subspace, KeyValueEncoders.Unordered.Bind(codec))
 		{ }
 
@@ -63,44 +54,80 @@ namespace FoundationDB.Layers.Collections
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
-			this.Array = new FdbArray(subspace);
+			this.Subspace = subspace;
 			this.Encoder = encoder;
 		}
 
+		/// <summary>Subspace used as a prefix for all items in this array</summary>
+		public FdbSubspace Subspace { get; private set; }
+
+		/// <summary>Serializer for the elements of the array</summary>
+		public IKeyValueEncoder<T> Encoder { get; private set; }
+
+		private Slice PackIndex(long index)
+		{
+			return this.Subspace.Pack<long>(index);
+		}
+
+		private long UnpackIndex(Slice key)
+		{
+			return this.Subspace.UnpackSingle<long>(key);
+		}
+
+		#region Get / Set / Clear
+
 		public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
-			return this.Encoder.Decode(await this.Array.GetAsync(tr, index).ConfigureAwait(false));
+			if (tr == null) throw new ArgumentNullException("tr");
+			if (index < 0) throw new IndexOutOfRangeException("Array index must be a positive integer.");
+
+			return this.Encoder.Decode(await tr.GetAsync(this.Subspace.Pack<long>(index)).ConfigureAwait(false));
 		}
 
 		public void Set(IFdbTransaction tr, long index, T value)
 		{
-			this.Array.Set(tr, index, this.Encoder.Encode(value));
+			if (tr == null) throw new ArgumentNullException("tr");
+			if (index < 0) throw new IndexOutOfRangeException("Array index must be a positive integer.");
+
+			tr.Set(PackIndex(index), this.Encoder.Encode(value));
 		}
 
 		public void Clear(IFdbTransaction tr)
 		{
-			this.Array.Clear(tr);
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			tr.ClearRange(this.Subspace);
 		}
 
-		public Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
+		public async Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
 		{
-			return this.Array.SizeAsync(tr);
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			var keyRange = this.Subspace.ToRange();
+			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(keyRange.End)).ConfigureAwait(false);
+			return lastKey < keyRange.Begin ? 0 : UnpackIndex(lastKey) + 1;
 		}
 
 		public Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
 		{
-			return this.Array.EmptyAsync(tr);
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			return tr.GetRange(this.Subspace.ToRange()).AnyAsync();
 		}
 
-		public FdbRangeQuery<KeyValuePair<long, T>> GetAll(IFdbReadOnlyTransaction tr)
+		public IFdbAsyncEnumerable<KeyValuePair<long, T>> All(IFdbReadOnlyTransaction tr)
 		{
-			return this.Array
-				.GetAll(tr)
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			return tr
+				.GetRange(this.Subspace.ToRange())
 				.Select(kvp => new KeyValuePair<long, T>(
-					kvp.Key,
+					UnpackIndex(kvp.Key),
 					this.Encoder.Decode(kvp.Value)
 				));
 		}
+
+		#endregion
 
 	}
 

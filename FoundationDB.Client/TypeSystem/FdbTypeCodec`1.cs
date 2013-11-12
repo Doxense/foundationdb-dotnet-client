@@ -29,29 +29,53 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
 
-	public interface IFdbKeyEncoder<T> : IFdbValueEncoder<T>
-	{
-		void EncodePart(ref SliceWriter output, T value);
-
-		T DecodePart(ref SliceReader input);
-	}
-
-	public interface IFdbOrderedKeyEncoder<T>
+	public abstract class FdbTypeCodec<T> : IOrderedTypeCodec<T>, IUnorderedTypeCodec<T>
 	{
 
-		/// <summary>Encode a <typeparamref name="T"/> into a standalone slice</summary>
-		Slice EncodeOrdered(T value);
+		public abstract void EncodeOrderedSelfTerm(ref SliceWriter output, T value);
 
-		/// <summary>Decode a standoline slice - previously encoded via a call to <see cref="Encode"/>- into a <typeparamref name="T"/></summary>
-		T DecodeOrdered(Slice input);
+		public abstract T DecodeOrderedSelfTerm(ref SliceReader input);
 
-		/// <summary>Append a <typeparamref name="T"/> at the end of a composite key</summary>
-		void EncodeOrderedPart(ref SliceWriter output, T value);
+		public virtual Slice EncodeOrdered(T value)
+		{
+			var writer = SliceWriter.Empty;
+			EncodeOrderedSelfTerm(ref writer, value);
+			return writer.ToSlice();
+		}
 
-		/// <summary>Read a <typeparamref name="T"/> from a composite key</summary>
-		T DecodeOrderedPart(ref SliceReader input);
+		public virtual T DecodeOrdered(Slice input)
+		{
+			var slicer = new SliceReader(input);
+			return DecodeOrderedSelfTerm(ref slicer);
+		}
+
+		public virtual void EncodeUnorderedSelfTerm(ref SliceWriter output, T value)
+		{
+			EncodeOrderedSelfTerm(ref output, value);
+		}
+
+		public virtual T DecodeUnorderedSelfTerm(ref SliceReader input)
+		{
+			return DecodeOrderedSelfTerm(ref input);
+		}
+
+		public virtual Slice EncodeUnordered(T value)
+		{
+			var writer = SliceWriter.Empty;
+			EncodeUnorderedSelfTerm(ref writer, value);
+			return writer.ToSlice();
+		}
+
+		public virtual T DecodeUnordered(Slice input)
+		{
+			var reader = new SliceReader(input);
+			return DecodeUnorderedSelfTerm(ref reader);
+		}
+
 	}
 
 }

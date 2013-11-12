@@ -29,22 +29,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
 
-	/// <summary>Defines method to pack or unpack objects</summary>
-	/// <typeparam name="T">The type of objects to pack or unpack</typeparam>
-	public interface IFdbValueEncoder<T>
+	public interface IUnorderedTypeCodec<T>
 	{
+		void EncodeUnorderedSelfTerm(ref SliceWriter output, T value);
+		T DecodeUnorderedSelfTerm(ref SliceReader input);
 
-		/// <summary>Serialize a <typeparamref name="T"/> instance into a packed representation</summary>
-		/// <param name="value">Value to serialize</param>
-		/// <returns>Packed representation of <paramref name="value"/></returns>
-		Slice Encode(T value);
-
-		/// <summary>Deserialize a packed representation into a <typeparamref name="T"/> instance</summary>
-		/// <param name="slice">Packed representation</param>
-		/// <returns>Deserialized <typeparamref name="T"/> instance.</returns>
-		T Decode(Slice slice);
+		Slice EncodeUnordered(T value);
+		T DecodeUnordered(Slice input);
 	}
 
 }

@@ -77,7 +77,7 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>(Subspace, LATEST_VERSIONS_KEY, key) = Contains the last version for this specific key</summary>
 		protected FdbSubspace VersionsPrefix { get; private set; }
 
-		public FdbVersionedTable(string name, IFdbDatabase database, FdbSubspace subspace, IFdbTypeCodec<TId> keyEncoder, IFdbTypeCodec<TValue> valueEncoder)
+		public FdbVersionedTable(string name, IFdbDatabase database, FdbSubspace subspace, IOrderedTypeCodec<TId> keyEncoder, IUnorderedTypeCodec<TValue> valueEncoder)
 		{
 			if (string.IsNullOrEmpty(name)) throw new ArgumentNullException("name");
 			if (database == null) throw new ArgumentNullException("database");
