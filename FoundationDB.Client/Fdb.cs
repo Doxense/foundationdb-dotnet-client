@@ -458,7 +458,30 @@ namespace FoundationDB.Client
 				// create trace directory if missing...
 				if (!Directory.Exists(Fdb.Options.TracePath)) Directory.CreateDirectory(Fdb.Options.TracePath);
 
-				unsafe
+				DieOnError(SetNetworkOption(FdbNetworkOption.TraceEnable, Fdb.Options.TracePath));
+			}
+
+			if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsCertificatePath))
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certifictrace and public key from '{0}'", Fdb.Options.TlsCertificatePath));
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCertPath, Fdb.Options.TlsCertificatePath));
+			}
+
+			if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsPrivateKeyPath))
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS private key from '{0}'", Fdb.Options.TlsPrivateKeyPath));
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsKeyPath, Fdb.Options.TlsPrivateKeyPath));
+			}
+
+			if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsVerificationPattern))
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will verify TLS peers with pattern '{0}'", Fdb.Options.TlsVerificationPattern));
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TlsVerifyPeers, Fdb.Options.TlsVerificationPattern));
+			}
+
 				{
 					var data = FdbNative.ToNativeString(Fdb.Options.TracePath, nullTerminated: false);
 					fixed (byte* ptr = data.Array)
@@ -475,6 +498,18 @@ namespace FoundationDB.Client
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", "Network thread has been set up");
 
 			StartEventLoop();
+		}
+
+		private static FdbError SetNetworkOption(FdbNetworkOption option, string value)
+		{
+			unsafe
+			{
+				var data = FdbNative.ToNativeString(value, nullTerminated: false);
+				fixed (byte* ptr = data.Array)
+				{
+					return FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr + data.Offset, data.Count);
+				}
+			}
 		}
 
 		/// <summary>Stop the Network Thread</summary>

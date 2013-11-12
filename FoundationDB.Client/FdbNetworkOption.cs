@@ -40,19 +40,37 @@ namespace FoundationDB.Client
 		/// Deprecated
 		/// Parameter: (String) IP:PORT
 		/// </summary>
-		LocalAddress = 10,
+		LocalAddress = 10, //TODO: should we remove this? We don't support older API versions ....
 
 		/// <summary>
 		/// Deprecated
 		/// Parameter: (String) Path to cluster file
 		/// </summary>
-		ClusterFile = 20,
+		ClusterFile = 20, //TODO: should we remove this? We don't support older API versions ....
 
 		/// <summary>
 		/// Enables trace output to a file in a directory of the clients choosing
 		/// Parameter: (String) path to output directory (or NULL for current working directory)
 		/// </summary>
 		TraceEnable = 30,
+
+		/// <summary>
+		/// Set file from which to load root certificate and public key for TLS connections
+		/// Parameter: (String) File path
+		/// </summary>
+		TlsCertPath = 43,
+
+		/// <summary>
+		/// Set file from which to load the private key for TLS connections
+		/// Parameter: (String) File path
+		/// </summary>
+		TlsKeyPath = 46,
+
+		/// <summary>
+		/// Set the pattern with which to verify certificates of TLS peers
+		/// Parameter: (String) Verification pattern
+		/// </summary>
+		TlsVerifyPeers = 47,
 	}
 
 }
