@@ -76,7 +76,6 @@ namespace FoundationDB.Samples.Benchmarks
 				long now = DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
 				// write everything
 
-
 				await db.WriteAsync((tr) =>
 				{
 					if (tr.Context.Retries > 0) Console.Write("!");
@@ -159,7 +158,7 @@ namespace FoundationDB.Samples.Benchmarks
 					Console.WriteLine();
 					Console.WriteLine("# Ran {0} workers in {1:0.0##} sec", this.K, elapsed.TotalSeconds);
 
-					await Task.Delay(TimeSpan.FromSeconds(21));
+					await Task.Delay(this.Delay);
 				}
 
 			}

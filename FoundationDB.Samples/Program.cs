@@ -330,9 +330,14 @@ namespace FoundationDB.Samples
 								break;
 							}
 
-							case "l":
+							case "leak":
 							{ // LeastTest
-								RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30)));
+								switch(prm.ToLowerInvariant())
+								{
+									case "fast": RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(0))); break;
+									case "slow": RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30))); break;
+									default: RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(1))); break;
+								}							
 								break;
 							}
 
