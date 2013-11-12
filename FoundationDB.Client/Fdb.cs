@@ -47,9 +47,9 @@ namespace FoundationDB.Client
 		/// <summary>Flag indicating if FDB has been initialized or not</summary>
 		private static bool s_started;
 
-		private static EventHandler s_appDomainUnloadHandler;
+		private static int s_apiVersion;
 
-		internal static readonly byte[] EmptyArray = new byte[0];
+		private static EventHandler s_appDomainUnloadHandler;
 
 		/// <summary>Keys cannot exceed 10,000 bytes</summary>
 		internal const int MaxKeySize = 10 * 1000;
@@ -64,6 +64,12 @@ namespace FoundationDB.Client
 		public static int GetMaxApiVersion()
 		{
 			return FdbNative.GetMaxApiVersion();
+		}
+
+		/// <summary>Returns the currently selected API version (or 0 if not started)</summary>
+		public static int ApiVersion
+		{
+			get { return s_apiVersion; }
 		}
 
 		/// <summary>Returns true if the error code represents a success</summary>
@@ -433,24 +439,11 @@ namespace FoundationDB.Client
 
 			//BUGBUG: Specs say we cannot restart the network thread anymore in the process after stoping it ! :(
 
-			s_started = true;
+			int apiVersion = FdbNative.FDB_API_VERSION;
 
-			// register with the AppDomain to ensure that everyting is cleared when the process exists
-			s_appDomainUnloadHandler = (sender, args) =>
-			{
-				if (s_started)
-				{
-					//note: since app domain is unloading, the logger may also have already stopped...
-					if (Logging.On) Logging.Verbose(typeof(Fdb), "AppDomainUnloadHandler", "AppDomain is unloading, stopping FoundationDB Network Thread...");
-					Stop();
-				}
-			};
-			AppDomain.CurrentDomain.DomainUnload += s_appDomainUnloadHandler;
-			AppDomain.CurrentDomain.ProcessExit += s_appDomainUnloadHandler;
-
-			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", FdbNative.FDB_API_VERSION.ToString()));
-
-			DieOnError(FdbNative.SelectApiVersion(FdbNative.FDB_API_VERSION));
+			if (Logging.On) Logging.Info(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", apiVersion));
+			s_apiVersion = apiVersion;
+			DieOnError(FdbNative.SelectApiVersion(apiVersion));
 
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TracePath))
 			{
@@ -482,18 +475,27 @@ namespace FoundationDB.Client
 				DieOnError(SetNetworkOption(FdbNetworkOption.TlsVerifyPeers, Fdb.Options.TlsVerificationPattern));
 			}
 
+			try { }
+			finally
+			{
+				// register with the AppDomain to ensure that everyting is cleared when the process exists
+				s_appDomainUnloadHandler = (sender, args) =>
 				{
-					var data = FdbNative.ToNativeString(Fdb.Options.TracePath, nullTerminated: false);
-					fixed (byte* ptr = data.Array)
+					if (s_started)
 					{
-						DieOnError(FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr + data.Offset, data.Count));
+						//note: since app domain is unloading, the logger may also have already stopped...
+						if (Logging.On) Logging.Verbose(typeof(Fdb), "AppDomainUnloadHandler", "AppDomain is unloading, stopping FoundationDB Network Thread...");
+						Stop();
 					}
-				}
+				};
+				AppDomain.CurrentDomain.DomainUnload += s_appDomainUnloadHandler;
+				AppDomain.CurrentDomain.ProcessExit += s_appDomainUnloadHandler;
+
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", "Setting up Network Thread...");
+
+				DieOnError(FdbNative.SetupNetwork());
+				s_started = true;
 			}
-
-			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", "Setting up Network Thread...");
-
-			DieOnError(FdbNative.SetupNetwork());
 
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", "Network thread has been set up");
 

@@ -130,7 +130,7 @@ namespace FoundationDB.Client
 						throw Fdb.MapToException(err);
 					}
 
-					if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
+					if (Logging.On) Logging.Info(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
 
 					return new FdbDatabase(this, database, databaseName, subspace, readOnly, ownsCluster);
 				},

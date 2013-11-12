@@ -158,7 +158,7 @@ namespace FoundationDB.Samples
 					Db.DefaultTimeout = 30 * 1000;
 					Db.DefaultRetryLimit = 10;
 
-					Console.WriteLine("Using API v" + Fdb.GetMaxApiVersion());
+					Console.WriteLine("Using API v" + Fdb.ApiVersion + " (max " + Fdb.GetMaxApiVersion() + ")");
 					Console.WriteLine("Cluster file: " + (clusterFile ?? "<default>"));
 					var cf = Db.GetCoordinatorsAsync().GetAwaiter().GetResult();
 					Console.WriteLine("Connnected to: " + cf.Description + " (" + cf.Id + ")");
