@@ -171,7 +171,7 @@ namespace FoundationDB.Layers.Messaging
 
 		private void StoreTask(IFdbTransaction tr, Slice taskId, DateTime scheduledUtc, Slice taskBody)
 		{
-			tr.Annotate("Writing task " + taskId.ToAsciiOrHexaString());
+			tr.Annotate("Writing task {0}", taskId.ToAsciiOrHexaString());
 
 			var prefix = this.TaskStore.Partition(taskId);
 
@@ -185,7 +185,7 @@ namespace FoundationDB.Layers.Messaging
 
 		private void ClearTask(IFdbTransaction tr, Slice taskId)
 		{
-			tr.Annotate("Deleting task " + taskId.ToAsciiOrHexaString());
+			tr.Annotate("Deleting task {0}", taskId.ToAsciiOrHexaString());
 
 			// clear all metadata about the task
 			tr.ClearRange(FdbKeyRange.StartsWith(this.TaskStore.Pack(taskId)));
@@ -209,7 +209,7 @@ namespace FoundationDB.Layers.Messaging
 #if DEBUG
 				if (tr.Context.Retries > 0) Console.WriteLine("# retry n°" + tr.Context.Retries + " for task " + taskId.ToAsciiOrHexaString());
 #endif
-				tr.Annotate("I want to schedule " + taskId.ToAsciiOrHexaString());
+				tr.Annotate("I want to schedule {0}", taskId.ToAsciiOrHexaString());
 
 				// find a random worker from the idle ring
 				var randomWorkerKey = await FindRandomItem(tr, this.IdleRing).ConfigureAwait(false);
@@ -218,7 +218,7 @@ namespace FoundationDB.Layers.Messaging
 				{
 					Slice workerId = this.IdleRing.UnpackSingle<Slice>(randomWorkerKey.Key);
 
-					tr.Annotate("Assigning " + taskId.ToAsciiOrHexaString() + " to " + workerId.ToAsciiOrHexaString());
+					tr.Annotate("Assigning {0} to {1}", taskId.ToAsciiOrHexaString(), workerId.ToAsciiOrHexaString());
 
 					// remove worker from the idle ring
 					tr.Clear(this.IdleRing.Pack(workerId));
@@ -230,7 +230,7 @@ namespace FoundationDB.Layers.Messaging
 				}
 				else
 				{
-					tr.Annotate("Queueing " + taskId.ToAsciiOrHexaString());
+					tr.Annotate("Queueing {0}", taskId.ToAsciiOrHexaString());
 
 					await PushQueueAsync(tr, this.UnassignedTaskRing, taskId).ConfigureAwait(false);
 				}
@@ -269,7 +269,7 @@ namespace FoundationDB.Layers.Messaging
 					await db.ReadWriteAsync(
 						async (tr) =>
 						{
-							tr.Annotate("I'm worker #" + num + " with id " + workerId.ToAsciiOrHexaString());
+							tr.Annotate("I'm worker #{0} with id {1}", num, workerId.ToAsciiOrHexaString());
 
 							myId = workerId;
 							watch = default(FdbWatch);
@@ -303,13 +303,13 @@ namespace FoundationDB.Layers.Messaging
 								{ // mark this worker as busy
 									// note: we need a random id so generate one if it is the first time...
 									if (!myId.IsPresent) myId = GetRandomId();
-									tr.Annotate("Found " + msg.Id.ToAsciiOrHexaString() + ", switch to busy with id " + myId.ToAsciiOrHexaString());
+									tr.Annotate("Found {0}, switch to busy with id {1}", msg.Id.ToAsciiOrHexaString(), myId.ToAsciiOrHexaString());
 									tr.Set(this.BusyRing.Pack(myId), msg.Id);
 									this.Counters.Increment(tr, COUNTER_BUSY);
 								}
 								else if (myId.IsPresent)
 								{ // remove ourselves from the busy ring
-									tr.Annotate("Found nothing, switch to idle with id " + myId.ToAsciiOrHexaString());
+									tr.Annotate("Found nothing, switch to idle with id {0}", myId.ToAsciiOrHexaString());
 									//tr.Clear(this.BusyRing.Pack(myId));
 								}
 							}
@@ -317,7 +317,7 @@ namespace FoundationDB.Layers.Messaging
 							if (msg.Id.IsPresent)
 							{ // get the task body
 
-								tr.Annotate("Fetching body for task " + msg.Id.ToAsciiOrHexaString());
+								tr.Annotate("Fetching body for task {0}", msg.Id.ToAsciiOrHexaString());
 								var prefix = this.TaskStore.Partition(msg.Id);
 								//TODO: replace this with a get_range ?
 								var data = await tr.GetValuesAsync(new [] {
@@ -344,7 +344,7 @@ namespace FoundationDB.Layers.Messaging
 
 								// the idle key will also be used as the watch key to wake us up
 								var watchKey = this.IdleRing.Pack(myId);
-								tr.Annotate("Will start watching on key " + watchKey.ToAsciiOrHexaString() + " with id " + myId.ToAsciiOrHexaString());
+								tr.Annotate("Will start watching on key {0} with id {1}", watchKey.ToAsciiOrHexaString(), myId.ToAsciiOrHexaString());
 								tr.Set(watchKey, Slice.Empty);
 								this.Counters.Increment(tr, COUNTER_IDLE);
 

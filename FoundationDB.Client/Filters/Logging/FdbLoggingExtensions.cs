@@ -54,16 +54,50 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		/// <summary>Anotate a logged transaction</summary>
-		public static void Annotate(this IFdbReadOnlyTransaction trans, string message)
+		internal static FdbLoggedTransaction GetLogger(IFdbReadOnlyTransaction trans)
 		{
 			//TODO: the logged transaction could also be wrapped in other filters.
 			// => we need a recursive "FindFilter<TFilter>" method that would unwrap the filter onion looking for a specific one...
 
-			var logged = trans as FdbLoggedTransaction;
-			if (logged == null) return;
+			return trans as FdbLoggedTransaction;
+		}
 
-			logged.Log.AddOperation(new LogCommand(message), countAsOperation: false);
+		/// <summary>Annotate a logged transaction</summary>
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string message)
+		{
+			var logged = GetLogger(trans);
+			if (logged != null)
+			{
+				logged.Log.AddOperation(new LogCommand(message), countAsOperation: false);
+			}
+		}
+
+		/// <summary>Annotate a logged transaction</summary>
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0)
+		{
+			var logged = GetLogger(trans);
+			if (logged != null) logged.Log.AddOperation(new LogCommand(String.Format(format, arg0)), countAsOperation: false);
+		}
+
+		/// <summary>Annotate a logged transaction</summary>
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0, object arg1)
+		{
+			var logged = GetLogger(trans);
+			if (logged != null) logged.Log.AddOperation(new LogCommand(String.Format(format, arg0, arg1)), countAsOperation: false);
+		}
+
+		/// <summary>Annotate a logged transaction</summary>
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0, object arg1, object arg2)
+		{
+			var logged = GetLogger(trans);
+			if (logged != null) logged.Log.AddOperation(new LogCommand(String.Format(format, arg0, arg1, arg2)), countAsOperation: false);
+		}
+
+		/// <summary>Annotate a logged transaction</summary>
+		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, params object[] args)
+		{
+			var logged = GetLogger(trans);
+			if (logged != null) logged.Log.AddOperation(new LogCommand(String.Format(format, args)), countAsOperation: false);
 		}
 
 	}
