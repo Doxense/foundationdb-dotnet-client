@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 
 			int q  = rawValue.IndexOf('@', p + 1);
 			if (q < 0) throw new FormatException("Missing '@' after identifier field");
-			string identifier = rawValue.Substring(p + 1, q - p).Trim();
+			string identifier = rawValue.Substring(p + 1, q - p - 1).Trim();
 			if (identifier.Length == 0) throw new FormatException("Empty description field");
 
 			string[] pairs = rawValue.Substring(q + 1).Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
