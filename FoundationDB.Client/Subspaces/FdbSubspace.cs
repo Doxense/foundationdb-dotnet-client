@@ -714,10 +714,8 @@ namespace FoundationDB.Client
 
 		internal SliceWriter OpenBuffer(int extraBytes = 0)
 		{
-			var writer = SliceWriter.Empty;
-			if (extraBytes > 0) writer.EnsureBytes(extraBytes + m_rawPrefix.Count);
-			writer.WriteBytes(m_rawPrefix);
-			return writer;
+			if (extraBytes < 0) throw new ArgumentException("Extra bytes count must be a positive integer", "extraBytes");
+			return new SliceWriter(m_rawPrefix, extraBytes + m_rawPrefix.Count);
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()
