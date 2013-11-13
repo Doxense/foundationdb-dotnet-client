@@ -31,8 +31,10 @@ namespace FoundationDB.Client
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using System;
+	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.IO;
+	using System.Linq;
 	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading;
@@ -194,6 +196,157 @@ namespace FoundationDB.Client
 				rng.GetBytes(bytes);
 
 			return new Slice(bytes, 0, count);
+		}
+
+		/// <summary>Reports the zero-based index of the first occurrence of the specified slice in this source.</summary>
+		/// <param name="source">The slice Input slice</param>
+		/// <param name="value">The slice to seek</param>
+		/// <returns></returns>
+		public static int Find(Slice source, Slice value)
+		{
+			const int NOT_FOUND = -1;
+
+			int m = value.Count;
+			if (m == 0) return 0;
+
+			int n = source.Count;
+			if (n == 0) return NOT_FOUND;
+
+			if (m == n) return source.Equals(value) ? 0 : NOT_FOUND;
+			if (m <= n)
+			{
+				byte[] src = source.Array;
+				int p = source.Offset;
+				byte firstByte = value[0];
+
+				// note: this is a very simplistic way to find a value, and is optimized for the case where the separator is only one byte (most common) 
+				while (n-- > 0)
+				{
+					if (src[p++] == firstByte)
+					{ // possible match ?
+						if (m == 1 || SameBytes(src, p, value.Array, value.Offset + 1, m - 1))
+						{
+							return p - source.Offset - 1;
+						}
+					}
+				}
+			}
+
+			return NOT_FOUND;
+		}
+
+		/// <summary>Concatenates all the elements of a slice array, using the specified separator between each element.</summary>
+		/// <param name="separator">The slice to use as a separator. Can be empty.</param>
+		/// <param name="values">An array that contains the elements to concatenate.</param>
+		/// <returns>A slice that consists of the elements in a value delimited by the <paramref name="separator"/> slice. If <paramref name="values"/> is an empty array, the method returns <see cref="Slice.Empty"/>.</returns>
+		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
+		public static Slice Join(Slice separator, Slice[] values)
+		{
+			if (values == null) throw new ArgumentNullException("values");
+
+			int count = values.Length;
+			if (count == 0) return Slice.Empty;
+			if (count == 1) return values[0];
+			return Join(separator, values, 0, count);
+		}
+
+		/// <summary>Concatenates the specified elements of a slice array, using the specified separator between each element.</summary>
+		/// <param name="separator">The slice to use as a separator. Can be empty.</param>
+		/// <param name="values">An array that contains the elements to concatenate.</param>
+		/// <param name="startIndex">The first element in <paramref name="values"/> to use.</param>
+		/// <param name="count">The number of elements of <paramref name="values"/> to use.</param>
+		/// <returns>A slice that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- <see cref="Slice.Empty"/> if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
+		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
+		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="startIndex"/> or <paramref name="count"/> is less than zero. -or- <paramref name="startIndex"/> plus <paramref name="count"/> is greater than the number of elements in <paramref name="values"/>.</exception>
+		public static Slice Join(Slice separator, Slice[] values, int startIndex, int count)
+		{
+			// Note: this method is modeled after String.Join() and should behave the same
+			// - Only difference is that Slice.Nil and Slice.Empty are equivalent (either for separator, or for the elements of the array)
+
+			if (values == null) throw new ArgumentNullException("values");
+			if (startIndex < 0) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must be a positive integer");
+			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count must be a positive integer");
+			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must fit within the array");
+
+			if (count == 0) return Slice.Empty;
+			if (count == 1) return values[startIndex];
+
+			int size = 0;
+			for (int i = 0; i < values.Length; i++) size += values[i].Count;
+			size += (values.Length - 1) * separator.Count;
+
+			// if the size overflows, that means that the resulting buffer would need to be >= 2 GB, which is not possible!
+			if (size < 0) throw new OutOfMemoryException();
+
+			var writer = new SliceWriter(size);
+			for (int i = 0; i < values.Length; i++)
+			{
+				if (i > 0) writer.WriteBytes(separator);
+				writer.WriteBytes(values[i]);
+			}
+			return writer.ToSlice();
+		}
+
+		public static Slice Join(Slice separator, IEnumerable<Slice> values)
+		{
+			if (values == null) throw new ArgumentNullException("values");
+			var array = (values as Slice[]) ?? values.ToArray();
+			return Join(separator, array, 0, array.Length);
+		}
+
+		/// <summary>Returns a slice array that contains the sub-slices in <paramref name="input"/> that are delimited by <paramref name="separator"/>. A parameter specifies whether to return empty array elements.</summary>
+		/// <param name="input">Input slice that must be split into sub-slices</param>
+		/// <param name="separator">Separator that delimits the sub-slices in <paramref name="input"/>. Cannot be empty or nil</param>
+		/// <param name="options"><see cref="StringSplitOptions.RemoveEmptyEntries"/> to omit empty array alements from the array returned; or <see cref="StringSplitOptions.None"/> to include empty array elements in the array returned.</param>
+		/// <returns>An array whose elements contain the sub-slices that are delimited by <paramref name="separator"/>.</returns>
+		/// <exception cref="System.ArgumentException">If <paramref name="separator"/> is empty, or if <paramref name="options"/> is not one of the <see cref="StringSplitOptions"/> values.</exception>
+		/// <remarks>If <paramref name="input"/> does not contain the delimiter, the returned array consists of a single element that repeats the input, or an empty array if input is itself empty.
+		/// To reduce memory usage, the sub-slices returned in the array will all share the same underlying buffer of the input slice.</remarks>
+		public static Slice[] Split(Slice input, Slice separator, StringSplitOptions options = StringSplitOptions.None)
+		{
+			// this method is made to behave the same way as String.Split(), especially the following edge cases
+			// - Empty.Split(..., StringSplitOptions.None) => { Empty }
+			// - Empty.Split(..., StringSplitOptions.RemoveEmptyEntries) => { }
+			// differences:
+			// - If input is Nil, it is considered equivalent to Empty
+			// - If separator is Nil or Empty, the method throws
+
+			var list = new List<Slice>();
+
+			if (separator.Count <= 0) throw new ArgumentException("Separator must have at least one byte", "separator");
+			if (options < StringSplitOptions.None || options > StringSplitOptions.RemoveEmptyEntries) throw new ArgumentException("options");
+
+			bool skipEmpty = options.HasFlag(StringSplitOptions.RemoveEmptyEntries);
+			if (input.Count == 0)
+			{
+				return skipEmpty ? new Slice[0] : new Slice[1] { Slice.Empty };
+			}
+
+			while (input.Count > 0)
+			{
+				int p = Find(input, separator);
+				if (p < 0)
+				{ // last chunk
+					break;
+				}
+				if (p == 0)
+				{ // empty chunk
+					if (!skipEmpty) list.Add(Slice.Empty);
+				}
+				else
+				{
+					list.Add(input.Substring(0, p));
+				}
+				// note: we checked earlier that separator.Count > 0, so we are guaranteed to advance the cursor
+				input = input.Substring(p + separator.Count);
+			}
+
+			if (input.Count > 0 || !skipEmpty)
+			{
+				list.Add(input);
+			}
+
+			return list.ToArray();
 		}
 
 		/// <summary>Decode a Base64 encoded string into a slice</summary>
@@ -870,6 +1023,31 @@ namespace FoundationDB.Client
 			if (count == 0) return Slice.Empty;
 
 			return new Slice(this.Array, this.Offset + offset, count);
+		}
+
+		public Slice[] Split(Slice separator, StringSplitOptions options = StringSplitOptions.None)
+		{
+			return Split(this, separator, options);
+		}
+
+		public int IndexOf(Slice value)
+		{
+			return Find(this, value);
+		}
+
+		/// <summary>Reports the zero-based index of the first occurence of the specified slice in this instance. The search starts at a specified position.</summary>
+		/// <param name="value">The slice to seek</param>
+		/// <param name="startIndex">The search starting position</param>
+		/// <returns>The zero-based index of <paramref name="value"/> if that slice is found, or -1 if it is not. If <paramref name="value"/> is <see cref="Slice.Empty"/>, then the return value is startIndex</returns>
+		public int IndexOf(Slice value, int startIndex)
+		{
+			if (startIndex < 0 || startIndex > this.Count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must be inside the buffer");
+			if (this.Count == 0)
+			{
+				return value.Count == 0 ? startIndex : -1;
+			}
+			var tmp = startIndex == 0 ? this : new Slice(this.Array, this.Offset + startIndex, this.Count - startIndex);
+			return Find(tmp, value);
 		}
 
 		/// <summary>Determines whether the beginning of this slice instance matches a specified slice.</summary>
