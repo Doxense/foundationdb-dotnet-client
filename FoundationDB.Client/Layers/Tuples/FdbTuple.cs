@@ -180,6 +180,12 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbTuple<T1, T2, T3>(item1, item2, item3);
 		}
 
+		/// <summary>Create a new 4-tuple, holding four items</summary>
+		public static FdbTuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
+		{
+			return new FdbTuple<T1, T2, T3, T4>(item1, item2, item3, item4);
+		}
+
 		/// <summary>Create a new N-tuple, from N items</summary>
 		/// <param name="items">Items to wrap in a tuple</param>
 		/// <remarks>If you already have an array of items, you should call <see cref="CreateRange(object[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>

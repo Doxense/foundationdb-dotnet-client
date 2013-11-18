@@ -37,31 +37,35 @@ namespace FoundationDB.Layers.Tuples
 	using System.Diagnostics;
 	using System.Text;
 
-	/// <summary>Tuple that can hold three items</summary>
+	/// <summary>Tuple that can hold four items</summary>
 	/// <typeparam name="T1">Type of the first item</typeparam>
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	/// <typeparam name="T3">Type of the third item</typeparam>
+	/// <typeparam name="T4">Type of the fourth item</typeparam>
 	[DebuggerDisplay("{ToString()}")]
-	public struct FdbTuple<T1, T2, T3> : IFdbTuple
+	public struct FdbTuple<T1, T2, T3, T4> : IFdbTuple
 	{
-		// This is mostly used by code that create a lot of temporary triplet, to reduce the pressure on the Garbage Collector by allocating them on the stack.
+		// This is mostly used by code that create a lot of temporary quartets, to reduce the pressure on the Garbage Collector by allocating them on the stack.
 		// Please note that if you return an FdbTuple<T> as an IFdbTuple, it will be boxed by the CLR and all memory gains will be lost
 
-		/// <summary>First element of the triplet</summary>
+		/// <summary>First element of the quartet</summary>
 		public readonly T1 Item1;
-		/// <summary>Second element of the triplet</summary>
+		/// <summary>Second element of the quartet</summary>
 		public readonly T2 Item2;
-		/// <summary>Third and last elemnt of the triplet</summary>
+		/// <summary>Third element of the quartet</summary>
 		public readonly T3 Item3;
+		/// <summary>Fourth and last element of the quartet</summary>
+		public readonly T4 Item4;
 
-		public FdbTuple(T1 item1, T2 item2, T3 item3)
+		public FdbTuple(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			this.Item1 = item1;
 			this.Item2 = item2;
 			this.Item3 = item3;
+			this.Item4 = item4;
 		}
 
-		public int Count { get { return 3; } }
+		public int Count { get { return 4; } }
 
 		public object this[int index]
 		{
@@ -69,9 +73,10 @@ namespace FoundationDB.Layers.Tuples
 			{
 				switch (index)
 				{
-					case 0: case -3: return this.Item1;
-					case 1: case -2: return this.Item2;
-					case 2: case -1: return this.Item3;
+					case 0: case -4: return this.Item1;
+					case 1: case -3: return this.Item2;
+					case 2: case -2: return this.Item3;
+					case 3: case -1: return this.Item4;
 					default: throw new IndexOutOfRangeException();
 				}
 			}
@@ -86,16 +91,17 @@ namespace FoundationDB.Layers.Tuples
 		{
 			switch(index)
 			{
-					case 0: case -3: return FdbConverters.Convert<T1, R>(this.Item1);
-					case 1: case -2: return FdbConverters.Convert<T2, R>(this.Item2);
-					case 2: case -1: return FdbConverters.Convert<T3, R>(this.Item3);
+					case 0: case -4: return FdbConverters.Convert<T1, R>(this.Item1);
+					case 1: case -3: return FdbConverters.Convert<T2, R>(this.Item2);
+					case 2: case -2: return FdbConverters.Convert<T3, R>(this.Item3);
+					case 3: case -1: return FdbConverters.Convert<T4, R>(this.Item4);
 					default: throw new IndexOutOfRangeException();
 			}
 		}
 
 		public R Last<R>()
 		{
-			return FdbConverters.Convert<T3, R>(this.Item3);
+			return FdbConverters.Convert<T4, R>(this.Item4);
 		}
 
 		public void PackTo(ref SliceWriter writer)
@@ -103,16 +109,18 @@ namespace FoundationDB.Layers.Tuples
 			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);
 			FdbTuplePacker<T2>.Encoder(ref writer, this.Item2);
 			FdbTuplePacker<T3>.Encoder(ref writer, this.Item3);
+			FdbTuplePacker<T4>.Encoder(ref writer, this.Item4);
 		}
 
-		IFdbTuple IFdbTuple.Append<T4>(T4 value)
+		IFdbTuple IFdbTuple.Append<T5>(T5 value)
 		{
-			return this.Append<T4>(value);
+			return this.Append<T5>(value);
 		}
 
-		public FdbTuple<T1, T2, T3, T4> Append<T4>(T4 value)
+		public FdbListTuple Append<T5>(T5 value)
 		{
-			return new FdbTuple<T1, T2, T3, T4>(this.Item1, this.Item2, this.Item3, value);
+			// ... or should we return a linked tuple?
+			return new FdbListTuple(new object[] { this.Item1, this.Item2, this.Item3, this.Item4, value }, 0, 5);
 		}
 
 		public void CopyTo(object[] array, int offset)
@@ -120,6 +128,7 @@ namespace FoundationDB.Layers.Tuples
 			array[offset] = this.Item1;
 			array[offset + 1] = this.Item2;
 			array[offset + 2] = this.Item3;
+			array[offset + 3] = this.Item4;
 		}
 
 		public IEnumerator<object> GetEnumerator()
@@ -127,6 +136,7 @@ namespace FoundationDB.Layers.Tuples
 			yield return this.Item1;
 			yield return this.Item2;
 			yield return this.Item3;
+			yield return this.Item4;
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -136,7 +146,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public Slice ToSlice()
 		{
-			return FdbTuple.Pack(this.Item1, this.Item2, this.Item3);
+			return FdbTuple.Pack(this.Item1, this.Item2, this.Item3, this.Item4);
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()
@@ -146,7 +156,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return new StringBuilder().Append('(').Append(FdbTuple.Stringify(this.Item1)).Append(", ").Append(FdbTuple.Stringify(this.Item2)).Append(", ").Append(FdbTuple.Stringify(this.Item3)).Append(",)").ToString();
+			return new StringBuilder().Append('(').Append(FdbTuple.Stringify(this.Item1)).Append(", ").Append(FdbTuple.Stringify(this.Item2)).Append(", ").Append(FdbTuple.Stringify(this.Item3)).Append(", ").Append(FdbTuple.Stringify(this.Item4)).Append(",)").ToString();
 		}
 
 		public override bool Equals(object obj)
@@ -167,12 +177,13 @@ namespace FoundationDB.Layers.Tuples
 		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)
 		{
 			if (other == null) return false;
-			if (other is FdbTuple<T1, T2, T3>)
+			if (other is FdbTuple<T1, T2, T3, T4>)
 			{
-				var tuple = (FdbTuple<T1, T2, T3>)other;
+				var tuple = (FdbTuple<T1, T2, T3, T4>)other;
 				return comparer.Equals(this.Item1, tuple.Item1)
 					&& comparer.Equals(this.Item2, tuple.Item2)
-					&& comparer.Equals(this.Item3, tuple.Item3);
+					&& comparer.Equals(this.Item3, tuple.Item3)
+					&& comparer.Equals(this.Item4, tuple.Item4);
 			}
 			return FdbTuple.Equals(this, other, comparer);
 		}
@@ -182,7 +193,8 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.CombineHashCodes(
 				comparer.GetHashCode(this.Item1),
 				comparer.GetHashCode(this.Item2),
-				comparer.GetHashCode(this.Item3)
+				comparer.GetHashCode(this.Item3),
+				comparer.GetHashCode(this.Item4)
 			);
 		}
 

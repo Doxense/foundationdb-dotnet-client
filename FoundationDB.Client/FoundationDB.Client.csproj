@@ -118,6 +118,7 @@
     <Compile Include="FdbError.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryTransactionals.cs" />
     <Compile Include="Layers\Tuples\FdbTupleEncoder`1.cs" />
+    <Compile Include="Layers\Tuples\FdbTuple`4.cs" />
     <Compile Include="Subspaces\Fdb.PartitionTable.cs" />
     <Compile Include="Subspaces\FdbDatabasePartition.cs" />
     <Compile Include="Layers\Directories\FdbDirectorySubspace.cs" />
