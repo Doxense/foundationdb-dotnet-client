@@ -226,6 +226,15 @@ namespace FoundationDB.Client
 		/// <summary>Encoders that produce lexicographically ordered slices, suitable for use as keys</summary>
 		public static class Ordered
 		{
+			public static IKeyEncoder<Slice> BinaryEncoder { get { return Tuples.Key<Slice>(); } }
+
+			public static IKeyEncoder<string> StringEncoder { get { return Tuples.Key<string>(); } }
+
+			public static IKeyEncoder<int> Int32Encoder { get { return Tuples.Key<int>(); } }
+
+			public static IKeyEncoder<long> Int64Encoder { get { return Tuples.Key<long>(); } }
+
+			public static IKeyEncoder<ulong> UInt64Encoder { get { return Tuples.Key<ulong>(); } }
 
 			internal sealed class OrderedKeyEncoder<T> : IKeyEncoder<T>
 			{
@@ -397,15 +406,15 @@ namespace FoundationDB.Client
 		{
 			private static readonly GenericEncoder s_default = new GenericEncoder();
 
-			public static IValueEncoder<string> String { get { return s_default; } }
+			public static IValueEncoder<Slice> BinaryEncoder { get { return s_default; } }
 
-			public static IValueEncoder<int> Int32 { get { return s_default; } }
+			public static IValueEncoder<string> StringEncoder { get { return s_default; } }
 
-			public static IValueEncoder<long> Int64 { get { return s_default; } }
+			public static IValueEncoder<int> Int32Encoder { get { return s_default; } }
 
-			public static IValueEncoder<Guid> Guids { get { return s_default; } }
+			public static IValueEncoder<long> Int64Encoder { get { return s_default; } }
 
-			public static IValueEncoder<Slice> Binary { get { return s_default; } }
+			public static IValueEncoder<Guid> GuidEncoder { get { return s_default; } }
 
 			/// <summary>Create a simple encoder from a codec</summary>
 			public static IValueEncoder<T> Bind<T>(IUnorderedTypeCodec<T> codec)
@@ -520,8 +529,6 @@ namespace FoundationDB.Client
 
 				public override Slice EncodeComposite(FdbTuple<T1, T2> key, int items)
 				{
-					Contract.Requires(items >= 1 && items <= 2);
-
 					switch (items)
 					{
 						case 2: return key.ToSlice();
@@ -532,8 +539,6 @@ namespace FoundationDB.Client
 
 				public override FdbTuple<T1, T2> DecodeComposite(Slice encoded, int items)
 				{
-					Contract.Requires(items >= 1 && items <= 2);
-
 					if (items < 1 || items > 2) throw new ArgumentOutOfRangeException("items", items, "Item count must be either 1 or 2");
 
 					var t = FdbTuple.Unpack(encoded);
@@ -556,8 +561,6 @@ namespace FoundationDB.Client
 
 				public override Slice EncodeComposite(FdbTuple<T1, T2, T3> key, int items)
 				{
-					Contract.Requires(items >= 1 && items <= 3);
-
 					switch (items)
 					{
 						case 3: return key.ToSlice();
@@ -569,8 +572,6 @@ namespace FoundationDB.Client
 
 				public override FdbTuple<T1, T2, T3> DecodeComposite(Slice encoded, int items)
 				{
-					Contract.Requires(items >= 1 && items <= 3);
-
 					if (items < 1 || items > 3) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 3");
 
 					var t = FdbTuple.Unpack(encoded);
@@ -594,8 +595,6 @@ namespace FoundationDB.Client
 
 				public override Slice EncodeComposite(FdbTuple<T1, T2, T3, T4> key, int items)
 				{
-					Contract.Requires(items >= 1 && items <= 4);
-
 					switch (items)
 					{
 						case 4: return key.ToSlice();
@@ -608,8 +607,6 @@ namespace FoundationDB.Client
 
 				public override FdbTuple<T1, T2, T3, T4> DecodeComposite(Slice encoded, int items)
 				{
-					Contract.Requires(items >= 1 && items <= 4);
-
 					if (items < 1 || items > 4) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 4");
 
 					var t = FdbTuple.Unpack(encoded);

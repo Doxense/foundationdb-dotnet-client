@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 				var location = await TestHelpers.GetCleanDirectory(db, "Tables");
 
-				var table = new FdbTable<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.String);
+				var table = new FdbTable<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				string secret = "world:" + Guid.NewGuid().ToString();
 
@@ -121,7 +121,7 @@ namespace FoundationDB.Layers.Tables.Tests
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "Tables");
 
-				var table = new FdbTable<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.String);
+				var table = new FdbTable<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				// write a bunch of keys
 				await db.WriteAsync((tr) =>
