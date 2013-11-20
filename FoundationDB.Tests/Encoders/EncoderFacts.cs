@@ -48,13 +48,13 @@ namespace FoundationDB.Client.Converters.Tests
 			var encoder = KeyValueEncoders.Unordered.Bind(FdbTupleCodec<int>.Default);
 			Assert.That(encoder, Is.Not.Null);
 
-			Assert.That(encoder.Encode(0), Is.EqualTo(FdbTuple.Pack(0)));
-			Assert.That(encoder.Encode(123), Is.EqualTo(FdbTuple.Pack(123)));
-			Assert.That(encoder.Encode(123456), Is.EqualTo(FdbTuple.Pack(123456)));
+			Assert.That(encoder.EncodeKey(0), Is.EqualTo(FdbTuple.Pack(0)));
+			Assert.That(encoder.EncodeKey(123), Is.EqualTo(FdbTuple.Pack(123)));
+			Assert.That(encoder.EncodeKey(123456), Is.EqualTo(FdbTuple.Pack(123456)));
 
-			Assert.That(encoder.Decode(FdbTuple.Pack(0)), Is.EqualTo(0));
-			Assert.That(encoder.Decode(FdbTuple.Pack(123)), Is.EqualTo(123));
-			Assert.That(encoder.Decode(FdbTuple.Pack(123456)), Is.EqualTo(123456));
+			Assert.That(encoder.DecodeKey(FdbTuple.Pack(0)), Is.EqualTo(0));
+			Assert.That(encoder.DecodeKey(FdbTuple.Pack(123)), Is.EqualTo(123));
+			Assert.That(encoder.DecodeKey(FdbTuple.Pack(123456)), Is.EqualTo(123456));
 		}
 
 		[Test]
@@ -63,13 +63,13 @@ namespace FoundationDB.Client.Converters.Tests
 			var encoder = KeyValueEncoders.Ordered.Bind(FdbTupleCodec<string>.Default);
 			Assert.That(encoder, Is.Not.Null);
 
-			Assert.That(encoder.Encode("héllø Wörld"), Is.EqualTo(FdbTuple.Pack("héllø Wörld")));
-			Assert.That(encoder.Encode(String.Empty), Is.EqualTo(FdbTuple.Pack("")));
-			Assert.That(encoder.Encode(null), Is.EqualTo(FdbTuple.Pack(default(string))));
+			Assert.That(encoder.EncodeKey("héllø Wörld"), Is.EqualTo(FdbTuple.Pack("héllø Wörld")));
+			Assert.That(encoder.EncodeKey(String.Empty), Is.EqualTo(FdbTuple.Pack("")));
+			Assert.That(encoder.EncodeKey(null), Is.EqualTo(FdbTuple.Pack(default(string))));
 
-			Assert.That(encoder.Decode(FdbTuple.Pack("héllø Wörld")), Is.EqualTo("héllø Wörld"));
-			Assert.That(encoder.Decode(FdbTuple.Pack(String.Empty)), Is.EqualTo(""));
-			Assert.That(encoder.Decode(FdbTuple.Pack(default(string))), Is.Null);
+			Assert.That(encoder.DecodeKey(FdbTuple.Pack("héllø Wörld")), Is.EqualTo("héllø Wörld"));
+			Assert.That(encoder.DecodeKey(FdbTuple.Pack(String.Empty)), Is.EqualTo(""));
+			Assert.That(encoder.DecodeKey(FdbTuple.Pack(default(string))), Is.Null);
 		}
 
 		[Test]
@@ -81,13 +81,13 @@ namespace FoundationDB.Client.Converters.Tests
 			long y = 123;
 			Guid z = Guid.NewGuid();
 
-			var encoder = KeyValueEncoders.Tuples.Default<string, long, Guid>();
+			var encoder = KeyValueEncoders.Tuples.CompositeKey<string, long, Guid>();
 			Assert.That(encoder, Is.Not.Null);
 
-			var data = encoder.Encode(x, y, z);
+			var data = encoder.EncodeKey(x, y, z);
 			Assert.That(data, Is.EqualTo(FdbTuple.Pack(x, y, z)));
 
-			var items = encoder.Decode(data);
+			var items = encoder.DecodeKey(data);
 			Assert.That(items.Item1, Is.EqualTo(x));
 			Assert.That(items.Item2, Is.EqualTo(y));
 			Assert.That(items.Item3, Is.EqualTo(z));

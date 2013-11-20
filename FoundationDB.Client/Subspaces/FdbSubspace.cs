@@ -604,78 +604,54 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Type Codecs...
-
-		public Slice EncodeKey<T>(IOrderedTypeCodec<T> codec, T key)
-		{
-			return m_rawPrefix + codec.EncodeOrdered(key);
-		}
-
-		public Slice EncodeValue<T>(IUnorderedTypeCodec<T> codec, T value)
-		{
-			return m_rawPrefix + codec.EncodeUnordered(value);
-		}
-
-
-		public Slice EncodeKeyPartial<T1>(IOrderedTypeCodec<T1> codec1, T1 key1)
-		{
-			var writer = OpenBuffer();
-			codec1.EncodeOrderedSelfTerm(ref writer, key1);
-			return writer.ToSlice();
-		}
-
-		public Slice EncodeKey<T1, T2>(IOrderedTypeCodec<T1> codec1, T1 key1, IOrderedTypeCodec<T2> codec2, T2 key2)
-		{
-			var writer = OpenBuffer();
-			codec1.EncodeOrderedSelfTerm(ref writer, key1);
-			codec2.EncodeOrderedSelfTerm(ref writer, key2);
-			return writer.ToSlice();
-		}
-
-		public Slice EncodeKey<T1, T2, T3>(IOrderedTypeCodec<T1> codec1, T1 key1, IOrderedTypeCodec<T2> codec2, T2 key2, IOrderedTypeCodec<T3> codec3, T3 key3)
-		{
-			var writer = OpenBuffer();
-			codec1.EncodeOrderedSelfTerm(ref writer, key1);
-			codec2.EncodeOrderedSelfTerm(ref writer, key2);
-			codec3.EncodeOrderedSelfTerm(ref writer, key3);
-			return writer.ToSlice();
-		}
-
-		#endregion
-
 		#region Key/Value encoding
 
-		public Slice Encode<T>(IKeyValueEncoder<T> encoder, T value)
+		public Slice Encode<T>(IKeyEncoder<T> encoder, T value)
 		{
-			return m_rawPrefix + encoder.Encode(value);
+			return m_rawPrefix + encoder.EncodeKey(value);
 		}
 
-		public Slice[] EncodeRange<T>(IKeyValueEncoder<T> encoder, T[] values)
-		{
-			return FdbKey.Merge(m_rawPrefix, encoder.EncodeRange(values));
-		}
-
-		public Slice[] EncodeRange<T>(IKeyValueEncoder<T> encoder, IEnumerable<T> values)
+		public Slice[] EncodeRange<T>(IKeyEncoder<T> encoder, T[] values)
 		{
 			return FdbKey.Merge(m_rawPrefix, encoder.EncodeRange(values));
 		}
 
-		public Slice Encode<T1, T2>(IKeyValueEncoder<T1, T2> encoder, T1 value1, T2 value2)
+		public Slice[] EncodeRange<T>(IKeyEncoder<T> encoder, IEnumerable<T> values)
 		{
-			return m_rawPrefix + encoder.Encode(value1, value2);
+			return FdbKey.Merge(m_rawPrefix, encoder.EncodeRange(values));
 		}
 
-		public Slice Encode<T1, T2, T3>(IKeyValueEncoder<T1, T2, T3> encoder, T1 value1, T2 value2, T3 value3)
+		public Slice Encode<T1, T2>(ICompositeKeyEncoder<T1, T2> encoder, T1 value1, T2 value2)
 		{
-			return m_rawPrefix + encoder.Encode(value1, value2, value3);
+			return m_rawPrefix + encoder.EncodeKey(value1, value2);
 		}
 
-		public T Decode<T>(IKeyValueEncoder<T> encoder, Slice packedKey)
+		public Slice EncodePartial<T1, T2>(ICompositeKeyEncoder<T1, T2> encoder, T1 value1)
 		{
-			return encoder.Decode(ExtractAndCheck(packedKey));
+			return m_rawPrefix + encoder.EncodeComposite(FdbTuple.Create<T1, T2>(value1, default(T2)), 1);
 		}
 
-		public T[] DecodeRange<T>(IKeyValueEncoder<T> encoder, Slice[] packedKeys)
+		public Slice Encode<T1, T2, T3>(ICompositeKeyEncoder<T1, T2, T3> encoder, T1 value1, T2 value2, T3 value3)
+		{
+			return m_rawPrefix + encoder.EncodeKey(value1, value2, value3);
+		}
+
+		public Slice EncodePartial<T1, T2, T3>(ICompositeKeyEncoder<T1, T2, T3> encoder, T1 value1, T2 value2)
+		{
+			return m_rawPrefix + encoder.EncodeComposite(FdbTuple.Create<T1, T2, T3>(value1, value2, default(T3)), 2);
+		}
+
+		public Slice EncodePartial<T1, T2, T3>(ICompositeKeyEncoder<T1, T2, T3> encoder, T1 value1)
+		{
+			return m_rawPrefix + encoder.EncodeComposite(FdbTuple.Create<T1, T2, T3>(value1, default(T2), default(T3)), 1);
+		}
+
+		public T Decode<T>(IKeyEncoder<T> encoder, Slice packedKey)
+		{
+			return encoder.DecodeKey(ExtractAndCheck(packedKey));
+		}
+
+		public T[] DecodeRange<T>(IKeyEncoder<T> encoder, Slice[] packedKeys)
 		{
 			var extracted = new Slice[packedKeys.Length];
 			for (int i = 0; i < packedKeys.Length;i++)
@@ -685,14 +661,14 @@ namespace FoundationDB.Client
 			return encoder.DecodeRange(extracted);
 		}
 
-		public FdbTuple<T1, T2> Decode<T1, T2>(IKeyValueEncoder<T1, T2> encoder, Slice packedKey)
+		public FdbTuple<T1, T2> Decode<T1, T2>(ICompositeKeyEncoder<T1, T2> encoder, Slice packedKey)
 		{
-			return encoder.Decode(ExtractAndCheck(packedKey));
+			return encoder.DecodeKey(ExtractAndCheck(packedKey));
 		}
 
-		public FdbTuple<T1, T2, T3> Decode<T1, T2, T3>(IKeyValueEncoder<T1, T2, T3> encoder, Slice packedKey)
+		public FdbTuple<T1, T2, T3> Decode<T1, T2, T3>(ICompositeKeyEncoder<T1, T2, T3> encoder, Slice packedKey)
 		{
-			return encoder.Decode(ExtractAndCheck(packedKey));
+			return encoder.DecodeKey(ExtractAndCheck(packedKey));
 		}
 
 		#endregion

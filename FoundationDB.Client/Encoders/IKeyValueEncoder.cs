@@ -35,34 +35,49 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.Linq;
 
-	public interface IKeyValueEncoder
-	{
-		Type[] GetTypes();
-	}
-
-	public interface IKeyValueEncoder<T1> : IKeyValueEncoder
+	public interface IValueEncoder<T>
 	{
 		/// <summary>Encode a single value</summary>
-		Slice Encode(T1 value);
+		Slice EncodeValue(T value);
 
 		/// <summary>Decode a single value</summary>
 		/// <param name="encoded"></param>
 		/// <returns></returns>
-		T1 Decode(Slice encoded);
+		T DecodeValue(Slice encoded);
 	}
 
-	public interface IKeyValueEncoder<T1, T2> : IKeyValueEncoder
+	public interface IKeyEncoder<T1>
 	{
-		Slice Encode(T1 value1, T2 value2);
+		/// <summary>Encode a single value</summary>
+		Slice EncodeKey(T1 value);
 
-		FdbTuple<T1, T2> Decode(Slice encoded);
+		/// <summary>Decode a single value</summary>
+		/// <param name="encoded"></param>
+		/// <returns></returns>
+		T1 DecodeKey(Slice encoded);
 	}
 
-	public interface IKeyValueEncoder<T1, T2, T3> : IKeyValueEncoder
+	public interface ICompositeKeyEncoder<TTuple> : IKeyEncoder<TTuple>
+			where TTuple : IFdbTuple
 	{
-		Slice Encode(T1 value1, T2 value2, T3 value3);
+		Slice EncodeComposite(TTuple key, int items);
 
-		FdbTuple<T1, T2, T3> Decode(Slice encoded);
+		TTuple DecodeComposite(Slice encoded, int items);
+	}
+
+	public interface ICompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<FdbTuple<T1, T2>>
+	{
+		Slice EncodeKey(T1 value1, T2 value2);
+	}
+
+	public interface ICompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3>>
+	{
+		Slice EncodeKey(T1 value1, T2 value2, T3 value3);
+	}
+
+	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3, T4>>
+	{
+		Slice EncodeKey(T1 value1, T2 value2, T3 value3, T4 value4);
 	}
 
 }
