@@ -39,69 +39,85 @@ namespace FoundationDB.Layers.Documents
 	using System.Threading.Tasks;
 
 	/// <summary>Represents a collection of dictionaries of fields.</summary>
-	public class FdbDocumentCollection<TDocument, TId, TInternal>
+	public class FdbDocumentCollection<TDocument, TId>
 		where TDocument : class
-		where TInternal : class
 	{
 
-		public FdbDocumentCollection(FdbSubspace subspace, IDocumentHandler<TDocument, TId, TInternal> converter)
+		public const int DefaultChunkSize = 1 << 20; // 1 MB
+
+		public FdbDocumentCollection(FdbSubspace subspace, Func<TDocument, TId> selector, IValueEncoder<TDocument> valueEncoder)
+			: this(subspace, selector, KeyValueEncoders.Tuples.CompositeKey<TId, int>(), valueEncoder)
+		{ }
+
+		public FdbDocumentCollection(FdbSubspace subspace, Func<TDocument, TId> selector, ICompositeKeyEncoder<TId, int> keyEncoder, IValueEncoder<TDocument> valueEncoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (converter == null) throw new ArgumentNullException("converter");
+			if (selector == null) throw new ArgumentNullException("selector");
+			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
+			if (valueEncoder == null) throw new ArgumentNullException("valueEncoder");
 
 			this.Subspace = subspace;
-			this.Converter = converter;
+			this.IdSelector = selector;
+			this.KeyEncoder = keyEncoder;
+			this.ValueEncoder = valueEncoder;
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
 		public FdbSubspace Subspace { get; private set; }
+		
+		/// <summary>Encode the document IDs into keys</summary>
+		public ICompositeKeyEncoder<TId, int> KeyEncoder { get; private set; }
 
+		/// <summary>Encode the documents into values</summary>
+		public IValueEncoder<TDocument> ValueEncoder { get; private set; }
 
-		/// <summary>Return the id of a document</summary>
-		public IDocumentHandler<TDocument, TId, TInternal> Converter { get; private set; }
+		/// <summary>Lambda used to extract the ID from a document</summary>
+		public Func<TDocument, TId> IdSelector { get; private set; }
 
-		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
-		/// <param name="id"></param>
-		/// <returns></returns>
-		protected virtual FdbSubspace GetDocumentPrefix(TId id)
-		{
-			return this.Subspace.Partition(id);
-		}
-
-		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>
-		/// <param name="id"></param>
-		/// <param name="field"></param>
-		/// <returns></returns>
-		protected virtual Slice GetFieldKey(IFdbTuple prefix, IFdbTuple field)
-		{
-			return prefix.Concat(field).ToSlice();
-		}
+		/// <summary>Maximum size of a document chunk (1 MB by default)</summary>
+		public int ChunkSize { get; private set; }
 
 		public void Insert(IFdbTransaction trans, TDocument document)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (document == null) throw new ArgumentNullException("document");
 
-			var id = this.Converter.GetId(document);
+			var id = this.IdSelector(document);
 			if (id == null) throw new InvalidOperationException("Cannot insert a document with a null identifier");
 
-			var packed = this.Converter.Pack(document);
+			// encode the document
+			var packed = this.ValueEncoder.EncodeValue(document);
 
-			var parts = this.Converter.Split(packed);
-			Contract.Assert(parts != null);
+			// Key Prefix = ...(id,)
+			var key = this.Subspace.EncodePartial(this.KeyEncoder, id);
 
-			var prefix = GetDocumentPrefix(id);
+			// clear previous value
+			trans.ClearRange(FdbKeyRange.StartsWith(key));
 
-			// clear any previous version of the document
-			trans.ClearRange(prefix);
-			
-			foreach(var part in parts)
-			{
-				if (part.Value != Slice.Nil)
+			int remaining = packed.Count;
+			if (remaining <= this.ChunkSize)
+			{ // stored as a single element
+
+				// Key = ...(id,)
+				trans.Set(key, packed);
+			}
+			else
+			{ // splits in as many chunks as necessary
+
+				// Key = ...(id, N) where N is the chunk index (0-based)
+				int p = 0;
+				int index = 0;
+				while (remaining > 0)
 				{
-					trans.Set(prefix.Pack(part.Key), part.Value);
+					int sz = Math.Max(remaining, this.ChunkSize);
+
+					trans.Set(this.Subspace.Encode(this.KeyEncoder, id, index), packed.Substring(p, sz));
+
+					++index;
+					p += sz;
+					remaining -= sz;
 				}
-			}		
+			}
 		}
 
 		public async Task<TDocument> LoadAsync(IFdbReadOnlyTransaction trans, TId id)
@@ -109,26 +125,16 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id"); // only for ref types
 
-			var prefix = GetDocumentPrefix(id);
+			var key = this.Subspace.EncodePartial(this.KeyEncoder, id);
 
 			var parts = await trans
-				.GetRange(FdbKeyRange.StartsWith(prefix.Key)) //TODO: options ?
-				.Select(kvp => new KeyValuePair<IFdbTuple, Slice>(
-					FdbTuple.UnpackWithoutPrefix(kvp.Key, prefix.Key),
-					kvp.Value
-				))
-				.ToArrayAsync();
+				.GetRange(FdbKeyRange.StartsWith(key)) //TODO: options ?
+				.ToListAsync();
 
-			if (parts == null || parts.Length == 0)
-			{ // document not found
-				return default(TDocument);
-			}
+			// merge all the chunks together
+			var packed = Slice.Join(Slice.Empty, parts.Select(kvp => kvp.Value));
 
-			var packed = this.Converter.Build(parts);
-			if (packed == null) throw new InvalidOperationException();
-
-			var doc = this.Converter.Unpack(packed, id);
-			return doc;
+			return this.ValueEncoder.DecodeValue(packed);
 		}
 
 		public void Delete(IFdbTransaction trans, TId id)
@@ -136,7 +142,7 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.ClearRange(GetDocumentPrefix(id));
+			trans.ClearRange(FdbKeyRange.StartsWith(this.Subspace.EncodePartial(this.KeyEncoder, id)));
 		}
 
 		public void Delete(IFdbTransaction trans, TDocument document)
@@ -144,7 +150,7 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (document == null) throw new ArgumentNullException("document");
 
-			var id = this.Converter.GetId(document);
+			var id = this.IdSelector(document);
 			if (id == null) throw new InvalidOperationException();
 
 			Delete(trans, id);
