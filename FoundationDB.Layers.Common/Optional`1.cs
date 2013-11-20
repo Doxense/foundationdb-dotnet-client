@@ -56,6 +56,20 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
+		/// <summary>Converts an array of <see cref="Nullable&lt;&gt"/> into an array of <see cref="Optional&lt;gt;"/></summary>
+		/// <typeparam name="T">Nullable value type</typeparam>
+		public static Optional<T>[] Wrap<T>(Nullable<T>[] values)
+			where T : struct
+		{
+			if (values == null) return null;
+			var tmp = new Optional<T>[values.Length];
+			for (int i = 0; i < values.Length; i++)
+			{
+				if (values[i].HasValue) tmp[i] = new Optional<T>(values[i].Value);
+			}
+			return tmp;
+		}
+
 		public static T[] Unwrap<T>(Optional<T>[] values, T defaultValue)
 		{
 			if (values == null) return null;
@@ -63,6 +77,20 @@ namespace FoundationDB.Layers
 			for (int i = 0; i < values.Length; i++)
 			{
 				tmp[i] = values[i].GetValueOrDefault(defaultValue);
+			}
+			return tmp;
+		}
+
+		/// <summary>Converts an array of <see cref="Optional&lt;&gt"/> into an array of <see cref="Nullable&lt;gt;"/></summary>
+		/// <typeparam name="T">Nullable value type</typeparam>
+		public static Nullable<T>[] Unwrap<T>(Optional<T>[] values)
+			where T : struct
+		{
+			if (values == null) return null;
+			var tmp = new Nullable<T>[values.Length];
+			for (int i = 0; i < values.Length; i++)
+			{
+				if (values[i].HasValue) tmp[i] = new Nullable<T>(values[i].Value);
 			}
 			return tmp;
 		}
