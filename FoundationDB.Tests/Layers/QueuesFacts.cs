@@ -124,7 +124,8 @@ namespace FoundationDB.Layers.Collections.Tests
 				for (int i = 0; i < 10; i++)
 				{
 					var r = await queue.PopAsync(db);
-					Assert.That(r, Is.EqualTo(i));
+					Assert.That(r.HasValue, Is.True);
+					Assert.That(r.Value, Is.EqualTo(i));
 				}
 
 				Assert.That(await queue.EmptyAsync(db), Is.True);

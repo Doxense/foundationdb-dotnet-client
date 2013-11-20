@@ -74,7 +74,22 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t3[1], Is.EqualTo(123));
 			Assert.That(t3[2], Is.EqualTo(false));
 
-			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, 1234, -1234, "six" });
+			var t4 = FdbTuple.Create("hello world", 123, false, 1234L);
+			Assert.That(t4.Count, Is.EqualTo(4));
+			Assert.That(t4.Item1, Is.EqualTo("hello world"));
+			Assert.That(t4.Item2, Is.EqualTo(123));
+			Assert.That(t4.Item3, Is.EqualTo(false));
+			Assert.That(t4.Item4, Is.EqualTo(1234L));
+			Assert.That(t4.Get<string>(0), Is.EqualTo("hello world"));
+			Assert.That(t4.Get<int>(1), Is.EqualTo(123));
+			Assert.That(t4.Get<bool>(2), Is.EqualTo(false));
+			Assert.That(t4.Get<long>(3), Is.EqualTo(1234L));
+			Assert.That(t4[0], Is.EqualTo("hello world"));
+			Assert.That(t4[1], Is.EqualTo(123));
+			Assert.That(t4[2], Is.EqualTo(false));
+			Assert.That(t4[3], Is.EqualTo(1234L));
+
+			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, 1234L, -1234, "six" });
 			Assert.That(tn.Count, Is.EqualTo(6));
 			Assert.That(tn.Get<string>(0), Is.EqualTo("hello world"));
 			Assert.That(tn.Get<int>(1), Is.EqualTo(123));
@@ -104,6 +119,16 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t3[-1], Is.EqualTo(false));
 			Assert.That(t3[-2], Is.EqualTo(123));
 			Assert.That(t3[-3], Is.EqualTo("hello world"));
+
+			var t4 = FdbTuple.Create("hello world", 123, false, 1234L);
+			Assert.That(t4.Get<long>(-1), Is.EqualTo(1234L));
+			Assert.That(t4.Get<bool>(-2), Is.EqualTo(false));
+			Assert.That(t4.Get<int>(-3), Is.EqualTo(123));
+			Assert.That(t4.Get<String>(-4), Is.EqualTo("hello world"));
+			Assert.That(t4[-1], Is.EqualTo(1234L));
+			Assert.That(t4[-2], Is.EqualTo(false));
+			Assert.That(t4[-3], Is.EqualTo(123));
+			Assert.That(t4[-4], Is.EqualTo("hello world"));
 
 			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, 1234, -1234, "six" });
 			Assert.That(tn.Get<string>(-1), Is.EqualTo("six"));
@@ -137,9 +162,13 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t3.Last<int>(), Is.EqualTo(3));
 			Assert.That(t3.Last<string>(), Is.EqualTo("3"));
 
-			var tn = FdbTuple.Create(1, 2, 3, 4);
-			Assert.That(tn.Last<int>(), Is.EqualTo(4));
-			Assert.That(tn.Last<string>(), Is.EqualTo("4"));
+			var t4 = FdbTuple.Create(1, 2, 3, 4);
+			Assert.That(t3.Last<int>(), Is.EqualTo(4));
+			Assert.That(t3.Last<string>(), Is.EqualTo("4"));
+
+			var tn = FdbTuple.Create(1, 2, 3, 4, 5, 6);
+			Assert.That(tn.Last<int>(), Is.EqualTo(6));
+			Assert.That(tn.Last<string>(), Is.EqualTo("6"));
 
 			Assert.That(() => FdbTuple.Empty.Last<string>(), Throws.InstanceOf<InvalidOperationException>());
 
@@ -164,6 +193,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(3));
 			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("3"));
 
+			packed = FdbTuple.Pack(1, 2, 3, 4);
+			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(4));
+			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("4"));
+
 			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
 
@@ -187,6 +220,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(() => FdbTuple.UnpackSingle<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2, 3)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2, 3, 4)), Throws.InstanceOf<FormatException>());
 
 		}
 
