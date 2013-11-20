@@ -53,8 +53,6 @@
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
     <Compile Include="Blobs\FdbBlobTransactionals.cs" />
-    <Compile Include="Collections\FdbArray`1.cs" />
-    <Compile Include="Collections\FdbArrayTransactionals.cs" />
     <Compile Include="Collections\FdbVectorTransactionals.cs" />
     <Compile Include="Collections\FdbVector`1.cs" />
     <Compile Include="Collections\FdbVector.cs" />
