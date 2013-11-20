@@ -125,6 +125,8 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<bool, long>((value) => value ? 1L : default(long));
 			RegisterUnsafe<bool, ulong>((value) => value ? 1UL : default(ulong));
 			RegisterUnsafe<bool, string>((value) => value ? "true" : "false");
+			RegisterUnsafe<bool, double>((value) => value ? 0.0d : 1.0d);
+			RegisterUnsafe<bool, float>((value) => value ? 0.0f : 1.0f);
 
 			RegisterUnsafe<int, Slice>((value) => Slice.FromInt32(value));
 			RegisterUnsafe<int, byte[]>((value) => Slice.FromInt32(value).GetBytes());
@@ -134,6 +136,8 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<int, ulong>((value) => (ulong)value);
 			RegisterUnsafe<int, bool>((value) => value != 0);
 			RegisterUnsafe<int, FdbTupleAlias>((value) => (FdbTupleAlias)value);
+			RegisterUnsafe<int, double>((value) => (double)value);
+			RegisterUnsafe<int, float>((value) => { checked { return (float)value; } });
 
 			RegisterUnsafe<uint, Slice>((value) => Slice.FromUInt64(value));
 			RegisterUnsafe<uint, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
@@ -142,6 +146,8 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<uint, long>((value) => (long)value);
 			RegisterUnsafe<uint, ulong>((value) => (ulong)value);
 			RegisterUnsafe<uint, bool>((value) => value != 0);
+			RegisterUnsafe<uint, double>((value) => (double)value);
+			RegisterUnsafe<uint, float>((value) => { checked { return (float)value; } });
 
 			RegisterUnsafe<long, Slice>((value) => Slice.FromInt64(value));
 			RegisterUnsafe<long, byte[]>((value) => Slice.FromInt64(value).GetBytes());
@@ -152,6 +158,8 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<long, ulong>((value) => { return (ulong)value; });
 			RegisterUnsafe<long, bool>((value) => value != 0);
 			RegisterUnsafe<long, TimeSpan>((value) => TimeSpan.FromTicks(value));
+			RegisterUnsafe<long, double>((value) => { checked { return (double)value; } });
+			RegisterUnsafe<long, float>((value) => { checked { return (float)value; } });
 
 			RegisterUnsafe<ulong, Slice>((value) => Slice.FromUInt64(value));
 			RegisterUnsafe<ulong, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
@@ -160,6 +168,8 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<ulong, uint>((value) => { checked { return (uint)value; } });
 			RegisterUnsafe<ulong, long>((value) => { checked { return (long)value; } });
 			RegisterUnsafe<ulong, bool>((value) => value != 0);
+			RegisterUnsafe<ulong, double>((value) => { checked { return (double)value; } });
+			RegisterUnsafe<ulong, float>((value) => { checked { return (float)value; } });
 
 			RegisterUnsafe<string, Slice>((value) => Slice.FromString(value));
 			RegisterUnsafe<string, byte[]>((value) => Slice.FromString(value).GetBytes());
@@ -170,6 +180,8 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<string, Guid>((value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
 			RegisterUnsafe<string, Uuid>((value) => string.IsNullOrEmpty(value) ? default(Uuid) : Uuid.Parse(value));
 			RegisterUnsafe<string, bool>((value) => !string.IsNullOrEmpty(value));
+			RegisterUnsafe<string, float>((value) => string.IsNullOrEmpty(value) ? default(float) : Single.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, double>((value) => string.IsNullOrEmpty(value) ? default(double) : Double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
 
 			RegisterUnsafe<byte[], Slice>((value) => Slice.Create(value));
 			RegisterUnsafe<byte[], string>((value) => value == null ? default(string) : value.Length == 0 ? String.Empty : System.Convert.ToBase64String(value));
