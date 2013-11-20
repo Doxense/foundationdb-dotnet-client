@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "vector");
 
-				var vector = new FdbVector(location);
+				var vector = new FdbVector<Slice>(location, Slice.Empty, KeyValueEncoders.Values.BinaryEncoder);
 
 				using (var tr = db.BeginTransaction())
 				{
@@ -167,7 +167,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			}
 		}
 
-		private static async Task PrintVector(FdbVector vector, IFdbReadOnlyTransaction tr)
+		private static async Task PrintVector<T>(FdbVector<T> vector, IFdbReadOnlyTransaction tr)
 		{
 			bool first = true;
 			var sb = new StringBuilder();

@@ -114,15 +114,15 @@ namespace FoundationDB.Client
 			return trans.GetAsync(key.ToFoundationDbKey());
 		}
 
-		public static async Task<TValue> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice key, IKeyValueEncoder<TValue> encoder)
+		public static async Task<TValue> GetAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice key, IValueEncoder<TValue> encoder)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
-			return encoder.Decode(await trans.GetAsync(key).ConfigureAwait(false));
+			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false));
 		}
 
-		public static Task<TValue> GetAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, TKey key, IKeyValueEncoder<TValue> encoder)
+		public static Task<TValue> GetAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, TKey key, IValueEncoder<TValue> encoder)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -142,15 +142,15 @@ namespace FoundationDB.Client
 			trans.Set(key.ToFoundationDbKey(), value);
 		}
 
-		public static void Set<TValue>(this IFdbTransaction trans, Slice key, TValue value, IKeyValueEncoder<TValue> encoder)
+		public static void Set<TValue>(this IFdbTransaction trans, Slice key, TValue value, IValueEncoder<TValue> encoder)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
-			trans.Set(key, encoder.Encode(value));
+			trans.Set(key, encoder.EncodeValue(value));
 		}
 
-		public static void Set<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, IKeyValueEncoder<TValue> encoder)
+		public static void Set<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, IValueEncoder<TValue> encoder)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -536,20 +536,20 @@ namespace FoundationDB.Client
 		/// <param name="value">Value to be inserted into the database.</param>
 		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static FdbWatch SetAndWatch<TValue>(this IFdbTransaction trans, Slice key, TValue value, IKeyValueEncoder<TValue> encoder, CancellationToken cancellationToken)
+		public static FdbWatch SetAndWatch<TValue>(this IFdbTransaction trans, Slice key, TValue value, IValueEncoder<TValue> encoder, CancellationToken cancellationToken)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			cancellationToken.ThrowIfCancellationRequested();
-			return SetAndWatch(trans, key, encoder.Encode(value), cancellationToken);
+			return SetAndWatch(trans, key, encoder.EncodeValue(value), cancellationToken);
 		}
 
-		public static FdbWatch SetAndWatch<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, IKeyValueEncoder<TValue> encoder, CancellationToken cancellationToken)
+		public static FdbWatch SetAndWatch<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, IValueEncoder<TValue> encoder, CancellationToken cancellationToken)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			cancellationToken.ThrowIfCancellationRequested();
-			return SetAndWatch(trans, key.ToFoundationDbKey(), encoder.Encode(value), cancellationToken);
+			return SetAndWatch(trans, key.ToFoundationDbKey(), encoder.EncodeValue(value), cancellationToken);
 		}
 
 		#endregion
@@ -576,7 +576,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
-		public static async Task<TValue[]> GetValuesAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, IKeyValueEncoder<TValue> decoder)
+		public static async Task<TValue[]> GetValuesAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, IValueEncoder<TValue> decoder)
 		{
 			if (decoder == null) throw new ArgumentNullException("decoder");
 
@@ -591,7 +591,7 @@ namespace FoundationDB.Client
 			return GetValuesAsync(trans, keys.Select(key => key.ToFoundationDbKey()));
 		}
 
-		public static Task<TValue[]> GetValuesAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys, IKeyValueEncoder<TValue> decoder)
+		public static Task<TValue[]> GetValuesAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys, IValueEncoder<TValue> decoder)
 			where TKey : IFdbKey
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -639,7 +639,7 @@ namespace FoundationDB.Client
 			return array;
 		}
 
-		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, IKeyValueEncoder<TValue> decoder)
+		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys, IValueEncoder<TValue> decoder)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
@@ -649,7 +649,7 @@ namespace FoundationDB.Client
 			return trans.GetBatchAsync(array, decoder);
 		}
 
-		public static async Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice[] keys, IKeyValueEncoder<TValue> decoder)
+		public static async Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TValue>(this IFdbReadOnlyTransaction trans, Slice[] keys, IValueEncoder<TValue> decoder)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 			if (decoder == null) throw new ArgumentNullException("decoder");
@@ -660,7 +660,7 @@ namespace FoundationDB.Client
 			var array = new KeyValuePair<Slice, TValue>[results.Length];
 			for (int i = 0; i < array.Length; i++)
 			{
-				array[i] = new KeyValuePair<Slice, TValue>(keys[i], decoder.Decode(results[i]));
+				array[i] = new KeyValuePair<Slice, TValue>(keys[i], decoder.DecodeValue(results[i]));
 			}
 			return array;
 		}
@@ -672,7 +672,7 @@ namespace FoundationDB.Client
 			return GetBatchAsync(trans, keys.Select(key => key.ToFoundationDbKey()).ToArray());
 		}
 
-		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys, IKeyValueEncoder<TValue> decoder)
+		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys, IValueEncoder<TValue> decoder)
 			where TKey : IFdbKey
 		{
 			if (keys == null) throw new ArgumentNullException("keys");

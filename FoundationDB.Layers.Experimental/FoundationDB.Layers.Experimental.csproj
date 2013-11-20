@@ -55,7 +55,6 @@
     <Compile Include="Messaging\WorkerPoolTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Messaging\FdbWorkerPool.cs" />
-    <Compile Include="Tables\FdbVersionedTable.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj">

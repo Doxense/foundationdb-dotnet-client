@@ -29,113 +29,283 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
 	using System;
+	using System.Linq;
+	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Represents a potentially sparse typed array in FoundationDB.</summary>
-	/// <typeparam name="T">Type of the items stored in the vector</typeparam>
-	/// <remarks>The default implementation uses the Tuple layer to encode the values.</remarks>
+	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
 	public class FdbVector<T>
 	{
-		// This is just a wrapper around the non-generic FdbVector, and just adds encoding/decoding semantics.
-		// By default we use the Tuple layer to encode/decode the values, but implementors just need to derive this class,
-		// and override the EncodeValue/DecodeValue methods to change the serialization to something else (JSON, MessagePack, ...)
+		// from https://github.com/FoundationDB/python-layers/blob/master/lib/vector.py
 
-		/// <summary>Vector that is used for storage</summary>
-		internal FdbVector Vector { get; private set; }
+		// Vector stores each of its values using its index as the key.
+		// The size of a vector is equal to the index of its last key + 1.
+		// 
+		// For indexes smaller than the vector's size that have no associated key
+		// in the database, the value will be the specified defaultValue.
+		// 
+		// If the last value in the vector has the default value, its key will
+		// always be set so that size can be determined.
+		// 
+		// By creating Vector with a Subspace, all kv pairs modified by the 
+		// layer will have keys that start within that Subspace.
 
-		/// <summary>Subspace used as a prefix for all items in this vector</summary>
-		public FdbSubspace Subspace { get { return this.Vector.Subspace; } }
-
-		/// <summary>Serializer for the elements of the vector</summary>
-		public IKeyValueEncoder<T> Encoder { get; private set; }
-
-		/// <summary>Default value for sparse entries</summary>
-		public T DefaultValue { get; private set; }
+		// Implementation note:
+		// - vector.py uses Thread Local Storage that does not work well with async and Tasks in .NET
+		//   so we wont be able to 'store' the current transaction in the vector object itself
 
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
-		/// <remarks>Sparse entries will be assigned the default value for type <typeparamref name="T"/></remarks>
+		/// <remarks>Sparse entries will be assigned the value Slice.Empty</remarks>
 		public FdbVector(FdbSubspace subspace)
-			: this(subspace, defaultValue: default(T), codec: FdbTupleCodec<T>.Default)
+			: this(subspace, default(T))
 		{ }
-
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
 		public FdbVector(FdbSubspace subspace, T defaultValue)
-			: this(subspace, defaultValue: defaultValue, codec: FdbTupleCodec<T>.Default)
+			: this(subspace, defaultValue, KeyValueEncoders.Tuples.Value<T>())
 		{ }
-
-		/// <summary>Create a new sparse Vector</summary>
-		/// <param name="subspace">Subspace where the vector will be stored</param>
-		/// <param name="defaultValue">Default value for sparse entries</param>
-		public FdbVector(FdbSubspace subspace, T defaultValue, IUnorderedTypeCodec<T> codec)
+		public FdbVector(FdbSubspace subspace, T defaultValue, IValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (codec == null) throw new ArgumentNullException("codec");
+			if (encoder == null) throw new ArgumentNullException("encoder");
 
-			var encoder = KeyValueEncoders.Unordered.Bind(codec);
-
-			this.Vector = new FdbVector(subspace, encoder.Encode(defaultValue));
+			this.Subspace = subspace;
 			this.DefaultValue = defaultValue;
 			this.Encoder = encoder;
 		}
 
+
+		/// <summary>Subspace used as a prefix for all items in this vector</summary>
+		public FdbSubspace Subspace { get; private set; }
+
+		/// <summary>Default value for sparse entries</summary>
+		public T DefaultValue { get; private set; }
+
+		public IValueEncoder<T> Encoder { get; private set; }
+
 		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
 		public Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
 		{
-			return this.Vector.SizeAsync(tr);
-		}
+			if (tr == null) throw new ArgumentNullException("tr");
 
-		/// <summary>Test whether the Vector is empty.</summary>
-		public Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
-		{
-			return this.Vector.EmptyAsync(tr);
-		}
-
-		/// <summary>Remove all items from the Vector.</summary>
-		public void Clear(IFdbTransaction tr)
-		{
-			this.Vector.Clear(tr);
+			return ComputeSizeAsync(tr);
 		}
 
 		/// <summary>Push a single item onto the end of the Vector.</summary>
-		public Task PushAsync(IFdbTransaction tr, T value)
+		public async Task PushAsync(IFdbTransaction tr, T value)
 		{
-			return this.Vector.PushAsync(tr, this.Encoder.Encode(value));
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			var size = await ComputeSizeAsync(tr).ConfigureAwait(false);
+
+			tr.Set(GetKeyAt(size), this.Encoder.EncodeValue(value));
+		}
+
+		/// <summary>Get the value of the last item in the Vector.</summary>
+		public Task<T> BackAsync(IFdbReadOnlyTransaction tr)
+		{
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			return tr
+				.GetRange(this.Subspace.ToRange())
+				.Select((kvp) => this.Encoder.DecodeValue(kvp.Value))
+				.LastOrDefaultAsync();
+		}
+
+		/// <summary>Get the value of the first item in the Vector.</summary>
+		public Task<T> FrontAsync(IFdbReadOnlyTransaction tr)
+		{
+			return GetAsync(tr, 0);
 		}
 
 		/// <summary>Get and pops the last item off the Vector.</summary>
-		public async Task<T> PopAsync(IFdbTransaction tr)
+		public async Task<Optional<T>> PopAsync(IFdbTransaction tr)
 		{
-			return this.Encoder.Decode(await this.Vector.PopAsync(tr).ConfigureAwait(false));
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			var keyRange = this.Subspace.ToRange();
+
+			// Read the last two entries so we can check if the second to last item
+			// is being represented sparsely. If so, we will be required to set it
+			// to the default value
+			var lastTwo = await tr
+				.GetRange(keyRange, new FdbRangeOptions { Reverse = true, Limit = 2 })
+				.ToListAsync()
+				.ConfigureAwait(false);
+
+			// Vector was empty
+			if (lastTwo.Count == 0) return default(Optional<T>);
+
+			//note: keys are reversed so indices[0] = last, indices[1] = second to last
+			var indices = lastTwo.Select(kvp => this.Subspace.Unpack(kvp.Key).Get<long>(0)).ToList();
+
+			if (indices[0] == 0)
+			{ // Vector has size one
+				//pass
+			}
+			else if (lastTwo.Count == 1 || indices[0] > indices[1] + 1)
+			{ // Second to last item is being represented sparsely
+				tr.Set(GetKeyAt(indices[0] - 1), this.Encoder.EncodeValue(this.DefaultValue));
+			}
+
+			tr.Clear(lastTwo[0].Key);
+
+			return this.Encoder.DecodeValue(lastTwo[0].Value);
 		}
 
-		/// <summary>Set the value at a particular index in the Vector.</summary>
-		public void Set(IFdbTransaction tr, long index, T value)
+		/// <summary>Swap the items at positions i1 and i2.</summary>
+		public async Task SwapAsync(IFdbTransaction tr, long index1, long index2)
 		{
-			this.Vector.Set(tr, index, this.Encoder.Encode(value));
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			if (index1 < 0 || index2 < 0) throw new IndexOutOfRangeException(String.Format("Indices ({0}, {1}) must be positive", index1, index2));
+
+			var k1 = GetKeyAt(index1);
+			var k2 = GetKeyAt(index2);
+
+			long currentSize = await ComputeSizeAsync(tr).ConfigureAwait(false);
+
+			if (index1 >= currentSize || index2 >= currentSize) throw new IndexOutOfRangeException(String.Format("Indices ({0}, {1}) are out of range", index1, index2));
+
+			var vs = await tr.GetValuesAsync(new[] { k1, k2 }).ConfigureAwait(false);
+			var v1 = vs[0];
+			var v2 = vs[1];
+
+			if (!v2.IsNullOrEmpty)
+			{
+				tr.Set(k1, v2);
+			}
+			else if (v1.IsPresent && index1 < currentSize - 1)
+			{
+				tr.Clear(k1);
+			}
+
+			if (!v1.IsNullOrEmpty)
+			{
+				tr.Set(k2, v1);
+			}
+			else if (v2.IsPresent && index2 < currentSize - 1)
+			{
+				tr.Clear(k2);
+			}
 		}
 
 		/// <summary>Get the item at the specified index.</summary>
 		public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
 		{
-			return this.Encoder.Decode(await this.Vector.GetAsync(tr, index).ConfigureAwait(false));
+			if (tr == null) throw new ArgumentNullException("tr");
+			if (index < 0) throw new IndexOutOfRangeException(String.Format("Index {0} must be positive", index));
+
+			var start = GetKeyAt(index);
+			var end = this.Subspace.ToRange().End;
+
+			var output = await tr
+				.GetRange(start, end)
+				.FirstOrDefaultAsync()
+				.ConfigureAwait(false);
+
+			if (output.Key.HasValue)
+			{
+				if (output.Key == start)
+				{ // The requested index had an associated key
+					return this.Encoder.DecodeValue(output.Value);
+				}
+
+				// The requested index is sparsely represented
+				return this.DefaultValue;
+			}
+
+			// We requested a value past the end of the vector
+			throw new IndexOutOfRangeException(String.Format("Index {0} out of range", index));
+		}
+
+		/// <summary>[NOT YET IMPLEMENTED] Get a range of items in the Vector, returned as an async sequence.</summary>
+		public IFdbAsyncEnumerable<T> GetRangeAsync(IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
+		{
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			//BUGUBG: implement FdbVector.GetRangeAsync() !
+
+			throw new NotImplementedException();
+		}
+
+		/// <summary>Set the value at a particular index in the Vector.</summary>
+		public void Set(IFdbTransaction tr, long index, T value)
+		{
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			tr.Set(GetKeyAt(index), this.Encoder.EncodeValue(value));
+		}
+
+		/// <summary>Test whether the Vector is empty.</summary>
+		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
+		{
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			return (await ComputeSizeAsync(tr).ConfigureAwait(false)) == 0;
 		}
 
 		/// <summary>Grow or shrink the size of the Vector.</summary>
-		public Task ResizeAsync(IFdbTransaction tr, long length)
+		public async Task ResizeAsync(IFdbTransaction tr, long length)
 		{
-			return this.Vector.ResizeAsync(tr, length);
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			long currentSize = await ComputeSizeAsync(tr).ConfigureAwait(false);
+
+			if (length < currentSize)
+			{
+				tr.ClearRange(GetKeyAt(length), this.Subspace.ToRange().End);
+
+				// Check if the new end of the vector was being sparsely represented
+				if (await ComputeSizeAsync(tr).ConfigureAwait(false) < length)
+				{
+					tr.Set(GetKeyAt(length - 1), this.Encoder.EncodeValue(this.DefaultValue));
+				}
+			}
+			else if (length > currentSize)
+			{
+				tr.Set(GetKeyAt(length - 1), this.Encoder.EncodeValue(this.DefaultValue));
+			}
 		}
 
-		/// <summary>Swap the items at positions index1 and index2.</summary>
-		public Task SwapAsync(IFdbTransaction tr, int index1, int index2)
+		/// <summary>Remove all items from the Vector.</summary>
+		public void Clear(IFdbTransaction tr)
 		{
-			return this.Vector.SwapAsync(tr, index1, index2);
+			if (tr == null) throw new ArgumentNullException("tr");
+
+			tr.ClearRange(this.Subspace);
 		}
+
+		#region Private Helpers...
+
+		private async Task<long> ComputeSizeAsync(IFdbReadOnlyTransaction tr)
+		{
+			Contract.Requires(tr != null);
+
+			var keyRange = this.Subspace.ToRange();
+
+			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(keyRange.End)).ConfigureAwait(false);
+
+			if (lastKey < keyRange.Begin)
+			{
+				return 0;
+			}
+
+			return this.Subspace.Unpack(lastKey).Get<long>(0) + 1;
+		}
+
+		private Slice GetKeyAt(long index)
+		{
+			return this.Subspace.Pack(index);
+		}
+
+		#endregion
 	}
 
 }

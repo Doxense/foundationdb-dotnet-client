@@ -37,37 +37,6 @@ namespace FoundationDB.Layers.Tables
 	public static class FdbTableTransactionals
 	{
 
-		#region FdbTable...
-
-		public static Task<Slice> GetAsync(this FdbTable table, IFdbReadOnlyTransactional dbOrTrans, Slice id, CancellationToken ct = default(CancellationToken))
-		{
-			if (table == null) throw new ArgumentNullException("table");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			if (id == null) throw new ArgumentNullException("id");
-
-			return dbOrTrans.ReadAsync((tr) => table.GetAsync(tr, id), ct);
-		}
-
-		public static Task SetAsync(this FdbTable table, IFdbTransactional dbOrTrans, Slice id, Slice value, CancellationToken ct = default(CancellationToken))
-		{
-			if (table == null) throw new ArgumentNullException("table");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			if (id == null) throw new ArgumentNullException("id");
-
-			return dbOrTrans.WriteAsync((tr) => table.Set(tr, id, value), ct);
-		}
-
-		public static Task ClearAsync(this FdbTable table, IFdbTransactional dbOrTrans, Slice id, CancellationToken ct = default(CancellationToken))
-		{
-			if (table == null) throw new ArgumentNullException("table");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-			if (id == null) throw new ArgumentNullException("id");
-
-			return dbOrTrans.WriteAsync((tr) => table.Clear(tr, id), ct);
-		}
-
-		#endregion
-
 		#region FdbTable<K, V>...
 
 		public static Task<TValue> GetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbReadOnlyTransactional dbOrTrans, TKey id, CancellationToken ct = default(CancellationToken))
@@ -76,6 +45,14 @@ namespace FoundationDB.Layers.Tables
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
 			return dbOrTrans.ReadAsync((tr) => table.GetAsync(tr, id), ct);
+		}
+
+		public static Task<Optional<TValue>> TryGetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbReadOnlyTransactional dbOrTrans, TKey id, CancellationToken ct = default(CancellationToken))
+		{
+			if (table == null) throw new ArgumentNullException("table");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+
+			return dbOrTrans.ReadAsync((tr) => table.TryGetAsync(tr, id), ct);
 		}
 
 		public static Task SetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbTransactional dbOrTrans, TKey id, TValue value, CancellationToken ct = default(CancellationToken))

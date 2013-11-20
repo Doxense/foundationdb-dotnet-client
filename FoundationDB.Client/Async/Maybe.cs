@@ -30,12 +30,13 @@ namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
 	using System;
+	using System.Collections.Generic;
 	using System.Runtime.ExceptionServices;
 	using System.Threading.Tasks;
 
 	/// <summary>Either has a value, nothing, or an exception</summary>
 	/// <typeparam name="T">Type of the value</typeparam>
-	public struct Maybe<T>
+	public struct Maybe<T> : IEquatable<Maybe<T>>, IEquatable<T>
 	{
 
 		/// <summary>If true, there is a value. If false, either no value or an exception</summary>
@@ -126,11 +127,40 @@ namespace FoundationDB.Async
 			get { return m_errorContainer; }
 		}
 
+		public override bool Equals(object obj)
+		{
+			System.Diagnostics.Trace.WriteLine("Maybe[" + this + "].Equals(object " + obj + ")");
+			if (obj == null) return IsEmpty;
+			if (obj is Maybe<T>) return Equals((Maybe<T>)obj);
+			if (obj is T) return Equals((T)obj);
+			return false;
+		}
+
+		public bool Equals(Maybe<T> other)
+		{
+			System.Diagnostics.Trace.WriteLine("Maybe[" + this + "].Equals(Maybe " + other + ")");
+			return this.HasValue == other.HasValue && object.ReferenceEquals(this.ErrorContainer, other.ErrorContainer) && EqualityComparer<T>.Default.Equals(this.Value, other.Value);
+		}
+
+		public bool Equals(T other)
+		{
+			System.Diagnostics.Trace.WriteLine("Maybe[" + this + "].Equals(T " + other + ")");
+			return this.HasValue && this.ErrorContainer == null && EqualityComparer<T>.Default.Equals(this.Value, other);
+		}
+
+		public override int GetHashCode()
+		{
+			if (this.ErrorContainer != null) return this.ErrorContainer.GetHashCode();
+			if (!this.HasValue) return 0;
+			return EqualityComparer<T>.Default.GetHashCode(this.Value);
+		}
+
 		public override string ToString()
 		{
-			if (m_errorContainer != null) return "<error>";
+			if (this.ErrorContainer != null) return "<error>";
 			if (!this.HasValue) return "<empty>";
 			if (this.Value == null) return "<null>";
+			//TODO: consider adding '['/']' around the value, to distinguish a Maybe<T> between a T in the console and the debugger ?
 			return this.Value.ToString();
 		}
 	}

@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tables
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
@@ -43,74 +42,92 @@ namespace FoundationDB.Layers.Tables
 	public class FdbTable<TKey, TValue>
 	{
 
-		public FdbTable(string name, FdbSubspace subspace)
-			: this(name, subspace, FdbTupleCodec<TKey>.Default, FdbTupleCodec<TValue>.Default)
+		public FdbTable(string name, FdbSubspace subspace, IValueEncoder<TValue> valueEncoder)
+			: this(name, subspace, KeyValueEncoders.Tuples.Key<TKey>(), valueEncoder)
 		{ }
 
-		public FdbTable(string name, FdbSubspace subspace, IOrderedTypeCodec<TKey> keySerializer, IUnorderedTypeCodec<TValue> valueSerializer)
+		public FdbTable(string name, FdbSubspace subspace, IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (keySerializer == null) throw new ArgumentNullException("keyReader");
-			if (valueSerializer == null) throw new ArgumentNullException("valueSerializer");
+			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
+			if (valueEncoder == null) throw new ArgumentNullException("valueEncoder");
 
 			this.Name = name;
 			this.Subspace = subspace;
-			this.KeyEncoder = KeyValueEncoders.Ordered.Bind(keySerializer);
-			this.ValueEncoder = KeyValueEncoders.Unordered.Bind(valueSerializer);
+			this.KeyEncoder = keyEncoder;
+			this.ValueEncoder = valueEncoder;
 		}
 
 		#region Public Properties...
 
+		/// <summary>Name of the table</summary>
 		public string Name { get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
-		
+
 		/// <summary>Class that can pack/unpack keys into/from slices</summary>
-		public IKeyValueEncoder<TKey> KeyEncoder { get; private set; }
+		public IKeyEncoder<TKey> KeyEncoder { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public IKeyValueEncoder<TValue> ValueEncoder { get; private set; }
+		public IValueEncoder<TValue> ValueEncoder { get; private set; }
 
 		#endregion
 
-		#region Public Methods...
+		#region Get / Set / Clear...
 
-		public async Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, TKey key)
+		public async Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+			if (id == null) throw new ArgumentNullException("id");
 
-			return this.ValueEncoder.Decode(await trans.GetAsync(this.Subspace.Encode<TKey>(this.KeyEncoder, key)).ConfigureAwait(false));
+			var data = await trans.GetAsync(this.Subspace.Encode<TKey>(this.KeyEncoder, id)).ConfigureAwait(false);
+
+			if (data.IsNull) throw new KeyNotFoundException(); //TODO: message!
+			return this.ValueEncoder.DecodeValue(data);
 		}
 
-		public void Set(IFdbTransaction trans, TKey key, TValue value)
+		public async Task<Optional<TValue>> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Set(this.Subspace.Encode<TKey>(this.KeyEncoder, key), this.ValueEncoder.Encode(value));
+			var data = await trans.GetAsync(this.Subspace.Encode<TKey>(this.KeyEncoder, id)).ConfigureAwait(false);
+
+			if (data.IsNull) return default(Optional<TValue>);
+			return this.ValueEncoder.DecodeValue(data);
 		}
 
-		public void Clear(IFdbTransaction trans, TKey key)
+		public void Set(IFdbTransaction trans, TKey id, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Clear(this.Subspace.Encode<TKey>(this.KeyEncoder, key));
+			trans.Set(this.Subspace.Encode<TKey>(this.KeyEncoder, id), this.ValueEncoder.EncodeValue(value));
 		}
 
-		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>>  All(IFdbReadOnlyTransaction trans)
+		public void Clear(IFdbTransaction trans, TKey id)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (id == null) throw new ArgumentNullException("id");
+
+			trans.Clear(this.Subspace.Encode<TKey>(this.KeyEncoder, id));
+		}
+
+		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRange(this.Subspace.ToRange())
+				.GetRange(this.Subspace.ToRange()) //TODO: options ?
 				.Select((kvp) => new KeyValuePair<TKey, TValue>(
 					this.Subspace.Decode<TKey>(this.KeyEncoder, kvp.Key),
-					this.ValueEncoder.Decode(kvp.Value)
+					this.ValueEncoder.DecodeValue(kvp.Value)
 				));
 		}
 
-		public async Task<TValue[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
+		public async Task<Optional<TValue>[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");
@@ -119,7 +136,7 @@ namespace FoundationDB.Layers.Tables
 				.GetValuesAsync(this.Subspace.EncodeRange(this.KeyEncoder, ids))
 				.ConfigureAwait(false);
 
-			return this.ValueEncoder.DecodeRange(results);
+			return Optional.DecodeRange(this.ValueEncoder, results);
 		}
 
 		#endregion

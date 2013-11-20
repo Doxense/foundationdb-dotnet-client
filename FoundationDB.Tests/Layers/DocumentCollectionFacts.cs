@@ -28,88 +28,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Documents.Tests
 {
-	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
-	using FoundationDB.Layers.Tuples;
-	using Newtonsoft.Json;
-	using Newtonsoft.Json.Linq;
+	using FoundationDB.Types.Json;
+	using FoundationDB.Types.ProtocolBuffers;
 	using NUnit.Framework;
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
 	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class DocumentCollectionFacts
 	{
-
-		public class JsonNetConverter<TDocument, TId> : IDocumentHandler<TDocument, TId, JObject>
-		{
-
-			public JsonNetConverter(Func<TDocument, TId> idSelector, string idName = null)
-			{
-				this.IdName = idName ?? "Id";
-				this.IdSelector = idSelector;
-			}
-
-			public string IdName { get; set; }
-
-			public Func<TDocument, TId> IdSelector { get; set; }
-
-			public JObject Pack(TDocument document)
-			{
-				if (document == null) throw new ArgumentNullException("document");
-				return JObject.FromObject(document);
-			}
-
-			public TId GetId(TDocument document)
-			{
-				if (document == null) throw new ArgumentNullException("document");
-				return this.IdSelector(document);
-			}
-
-			public TDocument Unpack(JObject packed, TId id)
-			{
-				if (packed == null) throw new ArgumentNullException("packed");
-
-				packed[this.IdName] = JToken.FromObject(id);
-				return packed.ToObject<TDocument>();
-			}
-
-			public KeyValuePair<IFdbTuple, Slice>[] Split(JObject document)
-			{
-				return ((IEnumerable<KeyValuePair<string, JToken>>)document)
-					.Where(kvp => kvp.Key != this.IdName)
-					.Select((kvp) => new KeyValuePair<IFdbTuple, Slice>(
-						FdbTuple.Create(kvp.Key),
-						Serialize(kvp.Value)
-					))
-					.ToArray();
-			}
-
-			public JObject Build(KeyValuePair<IFdbTuple, Slice>[] parts)
-			{
-				var obj = new JObject();
-				foreach(var part in parts)
-				{
-					string key = part.Key.Get<string>(0);
-					JToken value = Deserialize(part.Value);
-					obj.Add(key, value);
-				}
-				return obj;
-			}
-
-			private static Slice Serialize(JToken token)
-			{
-				return Slice.FromString(JsonConvert.SerializeObject(token));
-			}
-
-			private static JToken Deserialize(Slice slice)
-			{
-				return JToken.Parse(slice.ToUnicode());
-			}
-
-		}
 
 		private class Book
 		{
@@ -120,65 +48,115 @@ namespace FoundationDB.Layers.Documents.Tests
 			public int Pages { get; set; }
 		}
 
-		[Test]
-		public async Task Test_Can_Insert_And_Retrieve_Document()
+		private static Book[] GetBooks()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			return new Book[]
 			{
-				var location = db.Partition("Books");
-
-				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
-
-				var converter = new JsonNetConverter<Book, int>(
-					(book) => book.Id
-				);
-
-				var docs = new FdbDocumentCollection<Book, int, JObject>(location, converter);
-
-				var book1 = new Book
+				new Book
 				{
 					Id = 42,
-					Title = "On the Origin of Species" ,
+					Title = "On the Origin of Species",
 					Author = "Charles Darwin",
 					Published = new DateTime(1859, 11, 24),
 					Pages = 502,
-				};
-
-				// store the document
-
-				await docs.InsertAsync(db, book1);
-
-#if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
-#endif
-
-				var copy = await docs.LoadAsync(db, 42);
-
-				Assert.That(copy.Id, Is.EqualTo(42));
-				Assert.That(copy.Title, Is.EqualTo("On the Origin of Species"));
-				Assert.That(copy.Author, Is.EqualTo("Charles Darwin"));
-				Assert.That(copy.Published, Is.EqualTo(new DateTime(1859, 11, 24)));
-				Assert.That(copy.Pages, Is.EqualTo(502));
-
-				var book2 = new Book
+				},
+				new Book
 				{
 					Id = 43,
 					Title = "Foundation and Empire",
 					Author = "Isaac Asimov",
 					Published = new DateTime(1952, 1, 1),
 					Pages = 247
-				};
+				}
+			};
+		}
 
-				await docs.InsertAsync(db, book2);
+		[Test]
+		public async Task Test_Can_Insert_And_Retrieve_Json_Documents()
+		{
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				var location = await TestHelpers.GetCleanDirectory(db, "Books", "JSON");
 
+				var docs = new FdbDocumentCollection<Book, int>(
+					location,
+					(book) => book.Id,
+					new JsonNetCodec<Book>()
+				);
+
+				var books = GetBooks();
+
+				// store a document
+				var book1 = books[0];
+				await docs.InsertAsync(db, book1);
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 
+				// retrieve the document
+				var copy = await docs.LoadAsync(db, book1.Id);
+
+				Assert.That(copy, Is.Not.Null);
+				Assert.That(copy.Id, Is.EqualTo(book1.Id));
+				Assert.That(copy.Title, Is.EqualTo(book1.Title));
+				Assert.That(copy.Author, Is.EqualTo(book1.Author));
+				Assert.That(copy.Published, Is.EqualTo(book1.Published));
+				Assert.That(copy.Pages, Is.EqualTo(book1.Pages));
+
+				// store another document
+				var book2 = books[1];
+				await docs.InsertAsync(db, book2);
+#if DEBUG
+				await TestHelpers.DumpSubspace(db, location);
+#endif
 			}
 		}
 
+		[Test]
+		public async Task Test_Can_Insert_And_Retrieve_ProtoBuf_Documents()
+		{
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				var location = await TestHelpers.GetCleanDirectory(db, "Books", "ProtoBuf");
+
+				// quickly define the metatype for Books, because I'm too lazy to write a .proto for this, or add [ProtoMember] attributes everywhere
+				var metaType = ProtoBuf.Meta.RuntimeTypeModel.Default.Add(typeof(Book), false);
+				metaType.Add("Id", "Title", "Author", "Published", "Pages");
+				metaType.CompileInPlace();
+
+				var docs = new FdbDocumentCollection<Book, int>(
+					location,
+					(book) => book.Id,
+					new ProtobufCodec<Book>()
+				);
+
+				var books = GetBooks();
+
+				// store a document
+				var book1 = books[0];
+				await docs.InsertAsync(db, book1);
+#if DEBUG
+				await TestHelpers.DumpSubspace(db, location);
+#endif
+
+				// retrieve the document
+				var copy = await docs.LoadAsync(db, 42);
+
+				Assert.That(copy, Is.Not.Null);
+				Assert.That(copy.Id, Is.EqualTo(book1.Id));
+				Assert.That(copy.Title, Is.EqualTo(book1.Title));
+				Assert.That(copy.Author, Is.EqualTo(book1.Author));
+				Assert.That(copy.Published, Is.EqualTo(book1.Published));
+				Assert.That(copy.Pages, Is.EqualTo(book1.Pages));
+
+				// store another document
+				var book2 = books[1];
+				await docs.InsertAsync(db, book2);
+#if DEBUG
+				await TestHelpers.DumpSubspace(db, location);
+#endif
+			}
+		}
 
 	}
 

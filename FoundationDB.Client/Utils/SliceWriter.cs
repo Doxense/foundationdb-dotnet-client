@@ -57,7 +57,7 @@ namespace FoundationDB.Client.Utils
 		public static SliceWriter Empty { get { return default(SliceWriter); } }
 
 		/// <summary>Create a new empty binary buffer with an initial allocated size</summary>
-		/// <param name="capacity"></param>
+		/// <param name="capacity">Initial capacity of the buffer</param>
 		public SliceWriter(int capacity)
 		{
 			this.Buffer = new byte[capacity];
@@ -65,18 +65,46 @@ namespace FoundationDB.Client.Utils
 		}
 
 		/// <summary>Create a new binary writer using an existing buffer</summary>
-		/// <param name="buffer"></param>
+		/// <param name="buffer">Initial buffer</param>
+		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
 		public SliceWriter(byte[] buffer)
 		{
 			this.Buffer = buffer;
 			this.Position = 0;
 		}
 
-		/// <summary>Create a new binary writer using an existing buffer and with the cursor to a specific location</summary>
+		/// <summary>Create a new binary buffer using an existing buffer and with the cursor to a specific location</summary>
+		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
 		public SliceWriter(byte[] buffer, int index)
 		{
 			this.Buffer = buffer;
 			this.Position = index;
+		}
+
+		/// <summary>Creates a new binary buffer, initialized by copying pre-existing data</summary>
+		/// <param name="prefix">Data that will be copied at the start of the buffer</param>
+		/// <remarks>The cursor is already placed at the end of the prefix</remarks>
+		public SliceWriter(Slice prefix, int capacity = 0)
+		{
+			if (capacity < 0) throw new ArgumentException("Capacity must be a positive integer.", "capacity");
+
+			int n = prefix.Count;
+			Contract.Assert(n >= 0);
+
+			if (capacity == 0)
+			{ // most frequent usage is to add a packed integer at the end of a prefix
+				capacity = ComputeAlignedSize(n + 8);
+			}
+			else
+			{
+				capacity = Math.Max(capacity, n);
+			}
+
+			var buffer = new byte[capacity];
+			if (n > 0) prefix.CopyTo(buffer, 0);
+
+			this.Buffer = buffer;
+			this.Position = n;
 		}
 
 		#endregion
@@ -561,19 +589,26 @@ namespace FoundationDB.Client.Utils
 
 		private static void FailCannotGrowBuffer()
 		{
-			//REVIEW: should we throw an OutOfMemoryException ? or ArgumentOutOfRangeException ?
-			throw new InvalidOperationException("Buffer cannot be resize, because it would larger than the maximum allowed size");
+#if DEBUG
+			// If you breakpoint here, that means that you probably have an uncheked maximum buffer size, or a runaway while(..) { append(..) } code in your layer code !
+			// => you should ALWAYS ensure a reasonable maximum size of your allocations !
+			if (Debugger.IsAttached) Debugger.Break();
+#endif
+			// note: some methods in the BCL do throw an OutOfMemoryException when attempting to allocated more than 2^32
+			throw new OutOfMemoryException("Buffer cannot be resized, because it would exceed the maximum allowed size");
 		}
 
 		/// <summary>Round a size to a multiple of 16</summary>
 		/// <param name="size">Minimum size required</param>
-		/// <returns>Size rounded up to a multiple of 16</returns>
+		/// <returns>Size rounded up to the next multiple of 16</returns>
+		/// <exception cref="System.OverflowException">If the rounded size overflows over 2 GB</exception>
 		internal static int ComputeAlignedSize(int size)
 		{
 			const int ALIGNMENT = 16; // MUST BE A POWER OF TWO!
 			const int MASK = (-ALIGNMENT) & int.MaxValue;
 
 			if (size <= ALIGNMENT) return ALIGNMENT;
+			// force an exception if we overflow above 2GB
 			checked { return (size + (ALIGNMENT - 1)) & MASK; }
 		}
 

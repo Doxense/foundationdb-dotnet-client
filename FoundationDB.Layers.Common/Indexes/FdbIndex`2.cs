@@ -47,20 +47,20 @@ namespace FoundationDB.Layers.Indexing
 	{
 
 		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
-			: this(name, subspace, valueComparer, indexNullValues, FdbTupleCodec<TId>.Default, FdbTupleCodec<TValue>.Default)
+			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Tuples.CompositeKey<TValue, TId>())
 		{ }
 
-		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, IOrderedTypeCodec<TId> idCodec, IOrderedTypeCodec<TValue> valueCodec)
+		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, ICompositeKeyEncoder<TValue, TId> encoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (encoder == null) throw new ArgumentNullException("encoder");
 
 			this.Name = name;
 			this.Subspace = subspace;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
-			this.IdCodec = idCodec;
-			this.ValueCodec = valueCodec;
+			this.Encoder = encoder;
 		}
 
 		public string Name { get; private set; }
@@ -74,16 +74,7 @@ namespace FoundationDB.Layers.Indexing
 		public bool IndexNullValues { get; private set; }
 
 		/// <summary>Serializer for the keys of the indexed documents</summary>
-		public IOrderedTypeCodec<TId> IdCodec { get; private set; }
-		public IOrderedTypeCodec<TValue> ValueCodec { get; private set; }
-
-		private Slice PackKey(TValue value, TId id)
-		{
-			return this.Subspace.EncodeKey(
-				this.ValueCodec, value, 
-				this.IdCodec, id
-			);
-		}
+		public ICompositeKeyEncoder<TValue, TId> Encoder { get; private set; }
 
 		/// <summary>Insert a newly created entity to the index</summary>
 		/// <param name="trans">Transaction to use</param>
@@ -94,7 +85,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (this.IndexNullValues || value != null)
 			{
-				trans.Set(PackKey(value, id), Slice.Empty);
+				trans.Set(this.Subspace.Encode(this.Encoder, value, id), Slice.Empty);
 				return true;
 			}
 			return false;
@@ -114,13 +105,13 @@ namespace FoundationDB.Layers.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					trans.Clear(PackKey(previousValue, id));
+					trans.Clear(this.Subspace.Encode(this.Encoder, previousValue, id));
 				}
 
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					trans.Set(PackKey(newValue, id), Slice.Empty);
+					trans.Set(this.Subspace.Encode(this.Encoder, newValue, id), Slice.Empty);
 				}
 
 				// cannot be both null, so we did at least something)
@@ -137,7 +128,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Clear(PackKey(value, id));
+			trans.Clear(this.Subspace.Encode(this.Encoder, value, id));
 		}
 
 		/// <summary>Returns a list of ids matching a specific value</summary>
@@ -159,16 +150,16 @@ namespace FoundationDB.Layers.Indexing
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
 		public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var prefix = this.Subspace.Pack(value);
+			var prefix = this.Subspace.EncodePartial(this.Encoder, value);
 
 			return trans
 				.GetRange(FdbKeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Subspace.UnpackLast<TId>(kvp.Key));
+				.Select((kvp) => this.Subspace.Decode(this.Encoder, kvp.Key).Item2);
 		}
 
 		public FdbRangeQuery<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var prefix = this.Subspace.Pack(value);
+			var prefix = this.Subspace.EncodePartial(this.Encoder, value);
 			if (!orEqual) prefix = FdbKey.Increment(prefix);
 
 			var space = new FdbKeySelectorPair(
@@ -178,13 +169,13 @@ namespace FoundationDB.Layers.Indexing
 
 			return trans
 				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Subspace.UnpackLast<TId>(kvp.Key));
+				.Select((kvp) => this.Subspace.Decode(this.Encoder, kvp.Key).Item2);
 		}
 
 
 		public FdbRangeQuery<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var prefix = this.Subspace.Pack(value);
+			var prefix = this.Subspace.EncodePartial(this.Encoder, value);
 			if (orEqual) prefix = FdbKey.Increment(prefix);
 
 			var space = new FdbKeySelectorPair(
@@ -194,7 +185,7 @@ namespace FoundationDB.Layers.Indexing
 
 			return trans
 				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Subspace.UnpackLast<TId>(kvp.Key));
+				.Select((kvp) => this.Subspace.Decode(this.Encoder, kvp.Key).Item2);
 		}
 
 		public override string ToString()

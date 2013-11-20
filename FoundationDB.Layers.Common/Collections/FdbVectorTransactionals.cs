@@ -39,30 +39,12 @@ namespace FoundationDB.Layers.Collections
 		#region Empty / Size
 
 		/// <summary>Remove all items from the Vector.</summary>
-		public static Task<bool> EmptyAsync(this FdbVector vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
-		{
-			if (vector == null) throw new ArgumentNullException("vector");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadAsync((tr) => vector.EmptyAsync(tr), ct);
-		}
-
-		/// <summary>Remove all items from the Vector.</summary>
 		public static Task<bool> EmptyAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
 			return dbOrTrans.ReadAsync((tr) => vector.EmptyAsync(tr), ct);
-		}
-
-		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
-		public static Task<long> SizeAsync(this FdbVector vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
-		{
-			if (vector == null) throw new ArgumentNullException("vector");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadAsync((tr) => vector.SizeAsync(tr), ct);
 		}
 
 		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
@@ -79,30 +61,12 @@ namespace FoundationDB.Layers.Collections
 		#region Clear / Resize
 
 		/// <summary>Remove all items from the Vector.</summary>
-		public static Task ClearAsync(this FdbVector vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
-		{
-			if (vector == null) throw new ArgumentNullException("vector");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.WriteAsync((tr) => vector.Clear(tr), ct);
-		}
-
-		/// <summary>Remove all items from the Vector.</summary>
 		public static Task ClearAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
 			return dbOrTrans.WriteAsync((tr) => vector.Clear(tr), ct);
-		}
-
-		/// <summary>Grow or shrink the size of the Vector.</summary>
-		public static Task ResizeAsync(this FdbVector vector, IFdbTransactional dbOrTrans, long length, CancellationToken ct = default(CancellationToken))
-		{
-			if (vector == null) throw new ArgumentNullException("vector");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadWriteAsync((tr) => vector.ResizeAsync(tr, length), ct);
 		}
 
 		/// <summary>Grow or shrink the size of the Vector.</summary>
@@ -119,30 +83,12 @@ namespace FoundationDB.Layers.Collections
 		#region Push / Pop
 
 		/// <summary>Get and pops the last item off the Vector.</summary>
-		public static Task<Slice> PopAsync(this FdbVector vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		public static Task<Optional<T>> PopAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
 			return dbOrTrans.ReadWriteAsync((tr) => vector.PopAsync(tr), ct);
-		}
-
-		/// <summary>Get and pops the last item off the Vector.</summary>
-		public static Task<T> PopAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
-		{
-			if (vector == null) throw new ArgumentNullException("vector");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadWriteAsync((tr) => vector.PopAsync(tr), ct);
-		}
-
-		/// <summary>Push a single item onto the end of the Vector.</summary>
-		public static Task PushAsync(this FdbVector vector, IFdbTransactional dbOrTrans, Slice value, CancellationToken ct = default(CancellationToken))
-		{
-			if (vector == null) throw new ArgumentNullException("vector");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadWriteAsync((tr) => vector.PushAsync(tr, value), ct);
 		}
 
 		/// <summary>Push a single item onto the end of the Vector.</summary>
@@ -159,30 +105,12 @@ namespace FoundationDB.Layers.Collections
 		#region Get / Set
 
 		/// <summary>Get the item at the specified index.</summary>
-		public static Task<Slice> GetAsync(this FdbVector vector, IFdbReadOnlyTransactional dbOrTrans, long index, CancellationToken ct = default(CancellationToken))
-		{
-			if (vector == null) throw new ArgumentNullException("vector");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.ReadAsync((tr) => vector.GetAsync(tr, index), ct);
-		}
-
-		/// <summary>Get the item at the specified index.</summary>
 		public static Task<T> GetAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, long index, CancellationToken ct = default(CancellationToken))
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
 			return dbOrTrans.ReadAsync((tr) => vector.GetAsync(tr, index), ct);
-		}
-
-		/// <summary>Set the value at a particular index in the Vector.</summary>
-		public static Task SetAsync(this FdbVector vector, IFdbTransactional dbOrTrans, long index, Slice value, CancellationToken ct = default(CancellationToken))
-		{
-			if (vector == null) throw new ArgumentNullException("vector");
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
-
-			return dbOrTrans.WriteAsync((tr) => vector.Set(tr, index, value), ct);
 		}
 
 		/// <summary>Set the value at a particular index in the Vector.</summary>

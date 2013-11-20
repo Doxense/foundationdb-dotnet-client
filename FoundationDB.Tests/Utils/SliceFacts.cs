@@ -926,5 +926,107 @@ namespace FoundationDB.Client.Tests
 				Assert.That(buf, Is.EqualTo(bytes));
 			}
 		}
+
+		[Test]
+		public void Test_Slice_Join_Array()
+		{
+			var a = Slice.FromString("A");
+			var b = Slice.FromString("BB");
+			var c = Slice.FromString("CCC");
+
+			// empty separator should just join all slices together
+			Assert.That(Slice.Join(Slice.Empty, new Slice[0]), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(Slice.Empty, new[] { Slice.Empty }), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(Slice.Empty, new[] { a }), Is.EqualTo(Slice.FromString("A")));
+			Assert.That(Slice.Join(Slice.Empty, new[] { a, b }), Is.EqualTo(Slice.FromString("ABB")));
+			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }), Is.EqualTo(Slice.FromString("ABBCCC")));
+			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(Slice.Empty, new[] { a, b, c }).Count, Is.EqualTo(6));
+
+			// single byte separator
+			var sep = Slice.FromChar(',');
+			Assert.That(Slice.Join(sep, new Slice[0]), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(sep, new[] { Slice.Empty }), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(sep, new[] { a }), Is.EqualTo(Slice.FromString("A")));
+			Assert.That(Slice.Join(sep, new[] { a, b }), Is.EqualTo(Slice.FromString("A,BB")));
+			Assert.That(Slice.Join(sep, new[] { a, b, c }), Is.EqualTo(Slice.FromString("A,BB,CCC")));
+			Assert.That(Slice.Join(sep, new[] { a, b, c }).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(sep, new[] { a, b, c }).Count, Is.EqualTo(8));
+			Assert.That(Slice.Join(sep, new[] { a, Slice.Empty, c }), Is.EqualTo(Slice.FromString("A,,CCC")));
+			Assert.That(Slice.Join(sep, new[] { Slice.Empty, b, c }), Is.EqualTo(Slice.FromString(",BB,CCC")));
+			Assert.That(Slice.Join(sep, new[] { Slice.Empty, Slice.Empty, Slice.Empty }), Is.EqualTo(Slice.FromString(",,")));
+
+			// multi byte separator, with a non-0 offset
+			sep = Slice.FromString("!<@>!").Substring(1, 3);
+			Assert.That(sep.Offset, Is.EqualTo(1));
+			Assert.That(Slice.Join(sep, new Slice[0]), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(sep, new[] { Slice.Empty }), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(sep, new[] { a }), Is.EqualTo(Slice.FromString("A")));
+			Assert.That(Slice.Join(sep, new[] { a, b }), Is.EqualTo(Slice.FromString("A<@>BB")));
+			Assert.That(Slice.Join(sep, new[] { a, b, c }), Is.EqualTo(Slice.FromString("A<@>BB<@>CCC")));
+			Assert.That(Slice.Join(sep, new[] { a, b, c }).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(sep, new[] { a, b, c }).Count, Is.EqualTo(12));
+
+			// join slices that use the same underlying buffer
+			string s = "hello world!!!";
+			byte[] tmp = Encoding.UTF8.GetBytes(s);
+			var slices = new Slice[tmp.Length];
+			for (int i = 0; i < tmp.Length; i++) slices[i] = Slice.Create(tmp, i, 1);
+			Assert.That(Slice.Join(Slice.Empty, slices), Is.EqualTo(Slice.FromString(s)));
+			Assert.That(Slice.Join(Slice.FromChar(':'), slices), Is.EqualTo(Slice.FromString("h:e:l:l:o: :w:o:r:l:d:!:!:!")));
+		}
+
+		[Test]
+		public void Test_Slice_Join_Enumerable()
+		{
+			var query = Enumerable.Range(1, 3).Select(c => Slice.FromString(new string((char)(64 + c), c)));
+
+			Assert.That(Slice.Join(Slice.Empty, Enumerable.Empty<Slice>()), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(Slice.Empty, query), Is.EqualTo(Slice.FromString("ABBCCC")));
+			Assert.That(Slice.Join(Slice.Empty, query).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(Slice.Empty, query).Count, Is.EqualTo(6));
+
+			var sep = Slice.FromChar(',');
+			Assert.That(Slice.Join(sep, Enumerable.Empty<Slice>()), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Join(sep, query), Is.EqualTo(Slice.FromString("A,BB,CCC")));
+			Assert.That(Slice.Join(sep, query).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(sep, query).Count, Is.EqualTo(8));
+
+			var arr = query.ToArray();
+			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr), Is.EqualTo(Slice.FromString("ABBCCC")));
+			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr).Offset, Is.EqualTo(0));
+			Assert.That(Slice.Join(Slice.Empty, (IEnumerable<Slice>)arr).Count, Is.EqualTo(6));
+			
+		}
+
+		[Test]
+		public void Test_Slice_Split()
+		{
+			var a = Slice.FromString("A");
+			var b = Slice.FromString("BB");
+			var c = Slice.FromString("CCC");
+			var comma = Slice.FromChar(',');
+
+			Assert.That(Slice.FromString("A").Split(comma), Is.EqualTo(new[] { a }));
+			Assert.That(Slice.FromString("A,BB").Split(comma), Is.EqualTo(new[] { a, b }));
+			Assert.That(Slice.FromString("A,BB,CCC").Split(comma), Is.EqualTo(new[] { a, b, c }));
+
+			// empty values should be kept or discarded, depending on the option settings
+			Assert.That(Slice.FromString("A,,CCC").Split(comma, StringSplitOptions.None), Is.EqualTo(new[] { a, Slice.Empty, c }));
+			Assert.That(Slice.FromString("A,,CCC").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new[] { a, c }));
+
+			// edge cases
+			// > should behave the same as String.Split()
+			Assert.That(Slice.Empty.Split(comma, StringSplitOptions.None), Is.EqualTo(new [] { Slice.Empty  }));
+			Assert.That(Slice.Empty.Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new Slice[0]));
+			Assert.That(Slice.FromString("A,").Split(comma, StringSplitOptions.None), Is.EqualTo(new[] { a, Slice.Empty }));
+			Assert.That(Slice.FromString("A,").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new [] { a }));
+			Assert.That(Slice.FromString(",").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new Slice[0]));
+			Assert.That(Slice.FromString(",,,").Split(comma, StringSplitOptions.RemoveEmptyEntries), Is.EqualTo(new Slice[0]));
+
+			// multi-bytes separator with an offset
+			var sep = Slice.FromString("!<@>!").Substring(1, 3);
+			Assert.That(Slice.FromString("A<@>BB<@>CCC").Split(sep), Is.EqualTo(new[] { a, b, c }));
+		}
 	}
 }

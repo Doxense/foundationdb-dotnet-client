@@ -56,7 +56,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
 		public FdbQueue(FdbSubspace subspace)
-			: this(subspace, highContention: true, codec: FdbTupleCodec<T>.Default)
+			: this(subspace, highContention: true, encoder: KeyValueEncoders.Tuples.Value<T>())
 		{ }
 
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
@@ -64,22 +64,13 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
 		public FdbQueue(FdbSubspace subspace, bool highContention)
-			: this(subspace, highContention: highContention, codec: FdbTupleCodec<T>.Default)
+			: this(subspace, highContention: highContention, encoder: KeyValueEncoders.Tuples.Value<T>())
 		{ }
 
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		/// <param name="codec">Serializer used to pack and unpack the elements of the queue</param>
-		public FdbQueue(FdbSubspace subspace, bool highContention, IUnorderedTypeCodec<T> codec)
-			: this(subspace, highContention, KeyValueEncoders.Unordered.Bind(codec))
-		{ }
-
-
-		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
-		/// <param name="subspace">Subspace where the queue will be stored</param>
-		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		public FdbQueue(FdbSubspace subspace, bool highContention, IKeyValueEncoder<T> encoder)
+		public FdbQueue(FdbSubspace subspace, bool highContention, IValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
@@ -99,7 +90,7 @@ namespace FoundationDB.Layers.Collections
 		public bool HighContention { get; private set; }
 
 		/// <summary>Serializer for the elements of the queue</summary>
-		public IKeyValueEncoder<T> Encoder { get; private set; }
+		public IValueEncoder<T> Encoder { get; private set; }
 
 		internal FdbSubspace ConflictedPop { get; private set; }
 
@@ -132,11 +123,11 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public Task<Maybe<T>> PopAsync(IFdbDatabase db, CancellationToken ct = default(CancellationToken))
+		public Task<Optional<T>> PopAsync(IFdbDatabase db, CancellationToken ct = default(CancellationToken))
 		{
 			if (ct.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<Maybe<T>>(ct);
+				return TaskHelpers.FromCancellation<Optional<T>>(ct);
 			}
 
 			if (this.HighContention)
@@ -156,16 +147,16 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
-		public async Task<Maybe<T>> PeekAsync(IFdbReadOnlyTransaction tr)
+		public async Task<Optional<T>> PeekAsync(IFdbReadOnlyTransaction tr)
 		{
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
 			if (firstItem.Key.IsNull)
 			{
-				return Maybe<T>.Empty;
+				return default(Optional<T>);
 			}
 			else
 			{
-				return Maybe.Return<T>(this.Encoder.Decode(firstItem.Value));
+				return this.Encoder.DecodeValue(firstItem.Value);
 			}
 		}
 
@@ -193,7 +184,7 @@ namespace FoundationDB.Layers.Collections
 
 			Slice key = this.QueueItem.Pack(index, this.RandId());
 			await tr.GetAsync(key).ConfigureAwait(false);
-			tr.Set(key, this.Encoder.Encode(value));
+			tr.Set(key, this.Encoder.EncodeValue(value));
 		}
 
 		private async Task<long> GetNextIndexAsync(IFdbReadOnlyTransaction tr, FdbSubspace subspace)
@@ -216,17 +207,17 @@ namespace FoundationDB.Layers.Collections
 			return tr.GetRange(range).FirstOrDefaultAsync();
 		}
 
-		private async Task<Maybe<T>> PopSimpleAsync(IFdbTransaction tr)
+		private async Task<Optional<T>> PopSimpleAsync(IFdbTransaction tr)
 		{
 #if DEBUG
 			tr.Annotate("PopSimple()");
 #endif
 
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
-			if (firstItem.Key.IsNull) return Maybe<T>.Empty;
+			if (firstItem.Key.IsNull) return default(Optional<T>);
 
 			tr.Clear(firstItem.Key);
-			return Maybe.Return<T>(this.Encoder.Decode(firstItem.Value));
+			return this.Encoder.DecodeValue(firstItem.Value);
 		}
 
 		private Task<Slice> AddConflictedPopAsync(IFdbDatabase db, bool forced, CancellationToken ct)
@@ -249,16 +240,16 @@ namespace FoundationDB.Layers.Collections
 			return waitKey;
 		}
 
-		private FdbRangeQuery<KeyValuePair<Slice, Slice>> GetWaitingPops(IFdbReadOnlyTransaction tr, int numPops)
+		private Task<List<KeyValuePair<Slice, Slice>>> GetWaitingPopsAsync(IFdbReadOnlyTransaction tr, int numPops)
 		{
 			var range = this.ConflictedPop.ToRange();
-			return tr.GetRange(range, limit: numPops, reverse: false);
+			return tr.GetRange(range, limit: numPops, reverse: false).ToListAsync();
 		}
 
-		private FdbRangeQuery<KeyValuePair<Slice, Slice>> GetItems(IFdbReadOnlyTransaction tr, int numItems)
+		private Task<List<KeyValuePair<Slice, Slice>>> GetItemsAsync(IFdbReadOnlyTransaction tr, int numItems)
 		{
 			var range = this.QueueItem.ToRange();
-			return tr.GetRange(range, limit: numItems, reverse: false);
+			return tr.GetRange(range, limit: numItems, reverse: false).ToListAsync();
 		}
 
 		private async Task<bool> FulfillConflictedPops(IFdbDatabase db, CancellationToken ct)
@@ -272,8 +263,8 @@ namespace FoundationDB.Layers.Collections
 #endif
 
 				var ts = await Task.WhenAll(
-					GetWaitingPops(tr.Snapshot, numPops).ToListAsync(),
-					GetItems(tr.Snapshot, numPops).ToListAsync()
+					GetWaitingPopsAsync(tr.Snapshot, numPops),
+					GetItemsAsync(tr.Snapshot, numPops)
 				).ConfigureAwait(false);
 
 				var pops = ts[0];
@@ -295,6 +286,7 @@ namespace FoundationDB.Layers.Collections
 					var storageKey = this.ConflictedItemKey(key[1]);
 
 					tr.Set(storageKey, kvp.Value);
+					//TODO: could this be replaced with a read conflict range ? (not async)
 					tasks.Add(tr.GetAsync(kvp.Key));
 					tasks.Add(tr.GetAsync(pop.Key));
 					tr.Clear(pop.Key);
@@ -307,6 +299,7 @@ namespace FoundationDB.Layers.Collections
 				{
 					while (i < pops.Count)
 					{
+						//TODO: could this be replaced with a read conflict range ? (not async)
 						tasks.Add(tr.GetAsync(pops[i].Key));
 						tr.Clear(pops[i].Key);
 						++i;
@@ -323,7 +316,7 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
-		private async Task<Maybe<T>> PopHighContentionAsync(IFdbDatabase db, CancellationToken ct)
+		private async Task<Optional<T>> PopHighContentionAsync(IFdbDatabase db, CancellationToken ct)
 		{
 			int backOff = 10;
 			Slice waitKey = Slice.Empty;
@@ -426,12 +419,12 @@ namespace FoundationDB.Layers.Collections
 
 						if (result.IsNullOrEmpty)
 						{
-							return Maybe<T>.Empty;
+							return default(Optional<T>);
 						}
 
 						tr.Clear(resultKey);
 						await tr.CommitAsync().ConfigureAwait(false);
-						return Maybe.Return<T>(this.Encoder.Decode(result));
+						return this.Encoder.DecodeValue(result);
 
 					}
 					catch (FdbException e)

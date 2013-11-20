@@ -69,7 +69,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
-		public static Task<Maybe<T>> PeekAsync<T>(this FdbQueue<T> queue, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		public static Task<Optional<T>> PeekAsync<T>(this FdbQueue<T> queue, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
 		{
 			if (queue == null) throw new ArgumentNullException("queue");
 			if (dbOrTrans == null) throw new ArgumentNullException("db");
