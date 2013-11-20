@@ -120,6 +120,46 @@ namespace FoundationDB.Client
 			throw new FormatException("Truncated byte string (expected terminal NUL not found)");
 		}
 
+		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can Read up to 5 bytes from the input</remarks>
+		public uint ReadVarint32()
+		{
+			return (uint)ReadVarint(5);
+		}
+
+		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint32') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can Read up to 10 bytes from the input</remarks>
+		public ulong ReadVarint64()
+		{
+			return ReadVarint(10);
+		}
+
+		/// <summary>Reads a Base 128 Varint from the input</summary>
+		/// <param name="count">Maximum number of bytes allowed (5 for 32 bits, 10 for 64 bits)</param>
+		private ulong ReadVarint(int count)
+		{
+			var buffer = this.Buffer.Array;
+			int p = this.Buffer.Offset + this.Position;
+			int end = this.Buffer.Offset + this.Buffer.Count;
+
+			ulong x = 0;
+
+			// read bytes until the MSB is unset
+			while (count-- > 0)
+			{
+				if (p > end) throw new FormatException("Truncated Varint");
+
+				byte b = buffer[p++];
+				x <<= 7;
+
+				if (b < 0x80) return x | b;
+
+				x |= (b & 0x7FUL);
+			}
+
+			throw new FormatException("Malformed Varint");
+		}
+
 	}
 
 }
