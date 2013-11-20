@@ -31,10 +31,13 @@ namespace FoundationDB.Layers
 	using FoundationDB.Client;
 	using System;
 	using System.Collections.Generic;
+	using System.Linq;
 	using System.Runtime.InteropServices;
 
 	public static class Optional
 	{
+		#region Wrapping...
+
 		public static Optional<T> Return<T>(T value)
 		{
 			return new Optional<T>(value);
@@ -56,12 +59,22 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
+		/// <summary>Converts a <see cref="Nullable&lt;&gt"/> into a <see cref="Optional&lt;gt;"/></summary>
+		/// <typeparam name="T">Nullable value type</typeparam>
+		public static Optional<T> Wrap<T>(Nullable<T> value)
+			where T : struct
+		{
+			if (!value.HasValue)
+				return default(Optional<T>);
+			return new Optional<T>(value.Value);
+		}
+
 		/// <summary>Converts an array of <see cref="Nullable&lt;&gt"/> into an array of <see cref="Optional&lt;gt;"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static Optional<T>[] Wrap<T>(Nullable<T>[] values)
 			where T : struct
 		{
-			if (values == null) return null;
+			if (values == null) throw new ArgumentNullException("values");
 			var tmp = new Optional<T>[values.Length];
 			for (int i = 0; i < values.Length; i++)
 			{
@@ -70,9 +83,36 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
+		public static IEnumerable<Optional<T>> AsOptional<T>(IEnumerable<Nullable<T>> source)
+			where T : struct
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			return source.Select(value => value.HasValue ? new Optional<T>(value.Value) : default(Optional<T>));
+		}
+
+		#endregion
+
+		#region Single...
+
+		/// <summary>Converts a <see cref="Optional&lt;&gt"/> into a <see cref="Nullable&lt;gt;"/></summary>
+		/// <typeparam name="T">Nullable value type</typeparam>
+		public static Nullable<T> ToNullable<T>(this Optional<T> value)
+			where T : struct
+		{
+			if(!value.HasValue)
+				return default(Nullable<T>);
+			return new Nullable<T>(value.Value);
+		}
+
+		#endregion
+
+		#region Array...
+
 		public static T[] Unwrap<T>(Optional<T>[] values, T defaultValue)
 		{
-			if (values == null) return null;
+			if (values == null) throw new ArgumentNullException("values");
+	
 			var tmp = new T[values.Length];
 			for (int i = 0; i < values.Length; i++)
 			{
@@ -83,10 +123,11 @@ namespace FoundationDB.Layers
 
 		/// <summary>Converts an array of <see cref="Optional&lt;&gt"/> into an array of <see cref="Nullable&lt;gt;"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
-		public static Nullable<T>[] Unwrap<T>(Optional<T>[] values)
+		public static Nullable<T>[] ToNullable<T>(Optional<T>[] values)
 			where T : struct
 		{
-			if (values == null) return null;
+			if (values == null) throw new ArgumentNullException("values");
+
 			var tmp = new Nullable<T>[values.Length];
 			for (int i = 0; i < values.Length; i++)
 			{
@@ -94,6 +135,52 @@ namespace FoundationDB.Layers
 			}
 			return tmp;
 		}
+
+		/// <summary>Converts an array of <see cref="Optional&lt;&gt"/> into an array of <see cref="Nullable&lt;gt;"/></summary>
+		/// <typeparam name="T">Nullable value type</typeparam>
+		public static T[] Unwrap<T>(Optional<T>[] values)
+			where T : class
+		{
+			if (values == null) throw new ArgumentNullException("values");
+
+			var tmp = new T[values.Length];
+			for (int i = 0; i < values.Length; i++)
+			{
+				if (values[i].HasValue) tmp[i] = values[i].Value;
+			}
+			return tmp;
+		}
+
+		#endregion
+
+		#region Enumerable...
+
+		public static IEnumerable<T> Unwrap<T>(this IEnumerable<Optional<T>> source, T defaultValue)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			return source.Select(value => value.GetValueOrDefault(defaultValue));
+		}
+
+		public static IEnumerable<Nullable<T>> AsNullable<T>(this IEnumerable<Optional<T>> source)
+			where T : struct
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			return source.Select(value => value.HasValue ? new Nullable<T>(value.Value) : default(Nullable<T>));
+		}
+
+		public static IEnumerable<T> Unwrap<T>(this IEnumerable<Optional<T>> source)
+			where T : class
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			return source.Select(value => value.GetValueOrDefault());
+		}
+
+		#endregion
+
+		#region Decoding...
 
 		public static Optional<T>[] DecodeRange<T>(IValueEncoder<T> encoder, Slice[] values)
 		{
@@ -111,6 +198,16 @@ namespace FoundationDB.Layers
 			}
 			return tmp;
 		}
+
+		public static IEnumerable<Optional<T>> Decode<T>(this IEnumerable<Slice> source, IValueEncoder<T> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (source == null) throw new ArgumentNullException("values");
+
+			return source.Select(value => value.HasValue ? encoder.DecodeValue(value) : default(Optional<T>));
+		}
+
+		#endregion
 
 	}
 
