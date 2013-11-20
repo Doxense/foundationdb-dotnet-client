@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Documents.Tests
 {
 	using FoundationDB.Client.Tests;
 	using FoundationDB.Types.Json;
+	using FoundationDB.Types.ProtocolBuffers;
 	using NUnit.Framework;
 	using System;
 	using System.Threading.Tasks;
@@ -94,6 +95,52 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// retrieve the document
 				var copy = await docs.LoadAsync(db, book1.Id);
+
+				Assert.That(copy, Is.Not.Null);
+				Assert.That(copy.Id, Is.EqualTo(book1.Id));
+				Assert.That(copy.Title, Is.EqualTo(book1.Title));
+				Assert.That(copy.Author, Is.EqualTo(book1.Author));
+				Assert.That(copy.Published, Is.EqualTo(book1.Published));
+				Assert.That(copy.Pages, Is.EqualTo(book1.Pages));
+
+				// store another document
+				var book2 = books[1];
+				await docs.InsertAsync(db, book2);
+#if DEBUG
+				await TestHelpers.DumpSubspace(db, location);
+#endif
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Insert_And_Retrieve_ProtoBuf_Documents()
+		{
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				var location = await TestHelpers.GetCleanDirectory(db, "Books", "ProtoBuf");
+
+				// quickly define the metatype for Books, because I'm too lazy to write a .proto for this, or add [ProtoMember] attributes everywhere
+				var metaType = ProtoBuf.Meta.RuntimeTypeModel.Default.Add(typeof(Book), false);
+				metaType.Add("Id", "Title", "Author", "Published", "Pages");
+				metaType.CompileInPlace();
+
+				var docs = new FdbDocumentCollection<Book, int>(
+					location,
+					(book) => book.Id,
+					new ProtobufCodec<Book>()
+				);
+
+				var books = GetBooks();
+
+				// store a document
+				var book1 = books[0];
+				await docs.InsertAsync(db, book1);
+#if DEBUG
+				await TestHelpers.DumpSubspace(db, location);
+#endif
+
+				// retrieve the document
+				var copy = await docs.LoadAsync(db, 42);
 
 				Assert.That(copy, Is.Not.Null);
 				Assert.That(copy.Id, Is.EqualTo(book1.Id));
