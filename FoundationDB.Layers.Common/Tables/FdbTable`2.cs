@@ -77,7 +77,18 @@ namespace FoundationDB.Layers.Tables
 
 		#region Get / Set / Clear...
 
-		public async Task<Optional<TValue>> GetAsync(IFdbReadOnlyTransaction trans, TKey id)
+		public async Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, TKey id)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (id == null) throw new ArgumentNullException("id");
+
+			var data = await trans.GetAsync(this.Subspace.Encode<TKey>(this.KeyEncoder, id)).ConfigureAwait(false);
+
+			if (data.IsNull) throw new KeyNotFoundException(); //TODO: message!
+			return this.ValueEncoder.DecodeValue(data);
+		}
+
+		public async Task<Optional<TValue>> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
