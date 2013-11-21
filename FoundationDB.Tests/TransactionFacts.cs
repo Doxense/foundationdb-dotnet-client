@@ -795,6 +795,79 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Read_Isolation()
+		{
+			// > initial state: A = 1
+			// > T1 starts
+			// > T1 gets read_version
+			// >				> T2 starts
+			// >				> T2 set A = 2
+			// >				> T2 commits successfully
+			// > T1 reads A
+			// > T1 commits
+
+			// T1 should see A == 1, because it was started before T2
+
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				var location = db.Partition("test");
+				var key = location.Pack("A");
+
+				await db.ClearRangeAsync(location);
+
+				await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(1)));
+				using(var tr1 = db.BeginTransaction())
+				{
+					// make sure that T1 has seen the db BEFORE T2 gets executed, or else it will not really be initialized until after the first read or commit
+					await tr1.GetReadVersionAsync();
+					//T1 should be locked to a specific version of the db
+
+					// change the value in T2
+					await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(2)));
+
+					// read the value in T1 and commits
+					var value = await tr1.GetAsync(key);
+
+					Assert.That(value, Is.Not.Null);
+					Assert.That(value.ToInt32(), Is.EqualTo(1), "T1 should NOT have seen the value modified by T2");
+
+					// committing should not conflict, because we read the value AFTER it was changed
+					await tr1.CommitAsync();
+				}
+
+				// If we do the same thing, but this time without get GetReadVersion(), then T1 should see the change made by T2 because it's actual start is delayed
+
+				// > initial state: A = 1
+				// > T1 starts
+				// >				> T2 starts
+				// >				> T2 set A = 2
+				// >				> T2 commits successfully
+				// > T1 reads A
+				// > T1 commits
+
+				// T1 should see A == 2, because in reality, it was started after T2
+				await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(1)));
+				using (var tr1 = db.BeginTransaction())
+				{
+					//do NOT use T1 yet
+
+					// change the value in T2
+					await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(2)));
+
+					// read the value in T1 and commits
+					var value = await tr1.GetAsync(key);
+
+					Assert.That(value, Is.Not.Null);
+					Assert.That(value.ToInt32(), Is.EqualTo(2), "T1 should have seen the value modified by T2");
+
+					// committing should not conflict, because we read the value AFTER it was changed
+					await tr1.CommitAsync();
+				}
+
+			}
+		}
+
+		[Test]
 		public async Task Test_Can_Set_Read_Version()
 		{
 			// Verify that we can set a read version on a transaction
