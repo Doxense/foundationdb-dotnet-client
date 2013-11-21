@@ -44,7 +44,7 @@ namespace FoundationDB.Client
 
 		/// <summary>
 		/// The read version will be committed, and usually will be the latest committed, but might not be the latest committed in the event of a fault or partition
-		// Parameter: Option takes no parameter
+		/// Parameter: Option takes no parameter
 		/// </summary>
 		CausalReadRisky = 20,
 
