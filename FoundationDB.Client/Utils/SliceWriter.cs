@@ -117,6 +117,31 @@ namespace FoundationDB.Client.Utils
 			get { return this.Position > 0; }
 		}
 
+		public byte this[int index]
+		{
+			get
+			{
+				if (index < 0) index += this.Position;
+				return this.Buffer[index];
+			}
+		}
+
+		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
+		/// <param name="begin">The starting position of the substring. Positive values means from the start, negative values means from the end</param>
+		/// <param name="end">The end position (exlucded) of the substring. Positive values means from the start, negative values means from the end</param>
+		public Slice this[int begin, int end]
+		{
+			get
+			{
+				if (begin < 0) begin += this.Position;
+				if (end < 0) end += this.Position;
+				if (begin < 0 || begin > this.Position) throw new ArgumentOutOfRangeException("begin", "The start index must be inside the slice buffer.");
+				if (end < begin || end > this.Position) throw new ArgumentOutOfRangeException("end", "The end index must be after the start index, and inside the slice buffer.");
+				int count = end - begin;
+				return count > 0 ? new Slice(this.Buffer, begin, end - begin) : Slice.Empty;
+			}
+		}
+
 		#endregion
 		
 		/// <summary>Returns a byte array filled with the contents of the buffer</summary>
@@ -154,8 +179,19 @@ namespace FoundationDB.Client.Utils
 		{
 			if (count < 0 || count > this.Position) throw new ArgumentException("count");
 
-			Contract.Requires(count >= 0 && count <= this.Position);
-			return new Slice(this.Buffer, 0, count);
+			return count > 0 ? new Slice(this.Buffer, 0, count) : Slice.Empty;
+		}
+
+		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
+		/// <param name="offset">Offset of the segment from the start of the buffer</param>
+		/// <remarks>Any change to the slice will change the buffer !</remarks>
+		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less then zero, or do not fit inside the current buffer</exception>
+		public Slice Substring(int offset)
+		{
+			if (offset < 0 || offset > this.Position) throw new ArgumentException("Offset must be inside the buffer", "offset");
+
+			int count = this.Position - offset;
+			return count > 0 ? new Slice(this.Buffer, offset, this.Position - offset) : Slice.Empty;
 		}
 
 		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
@@ -163,12 +199,12 @@ namespace FoundationDB.Client.Utils
 		/// <param name="count">Size of the segment</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less then zero, or do not fit inside the current buffer</exception>
-		public Slice ToSlice(int offset, int count)
+		public Slice Substring(int offset, int count)
 		{
 			if (offset < 0 || offset >= this.Position) throw new ArgumentException("Offset must be inside the buffer", "offset");
 			if (count < 0 || offset + count > this.Position) throw new ArgumentException("The buffer is too small", "count");
 
-			return new Slice(this.Buffer, offset, count);
+			return count > 0 ? new Slice(this.Buffer, offset, count) : Slice.Empty;
 		}
 
 		/// <summary>Truncate the buffer by setting the cursor to the specified position.</summary>
@@ -466,6 +502,38 @@ namespace FoundationDB.Client.Utils
 				System.Runtime.InteropServices.Marshal.Copy(new IntPtr(data), this.Buffer, this.Position, count);
 				this.Position += count;
 			}
+		}
+
+		/// <summary>Writes a 32-bit unsigned integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 4 bytes</remarks>
+		public void WriteFixed32(uint value)
+		{
+			EnsureBytes(4);
+			var buffer = this.Buffer;
+			int p = this.Position;
+			buffer[p] = (byte)value;
+			buffer[p + 1] = (byte)(value >> 8);
+			buffer[p + 2] = (byte)(value >> 16);
+			buffer[p + 3] = (byte)(value >> 24);
+			this.Position = p + 4;
+		}
+
+		/// <summary>Writes a 64-bit unsigned integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 8 bytes</remarks>
+		public void WriteFixed64(ulong value)
+		{
+			EnsureBytes(8);
+			var buffer = this.Buffer;
+			int p = this.Position;
+			buffer[p] = (byte)value;
+			buffer[p + 1] = (byte)(value >> 8);
+			buffer[p + 2] = (byte)(value >> 16);
+			buffer[p + 3] = (byte)(value >> 24);
+			buffer[p + 4] = (byte)(value >> 32);
+			buffer[p + 5] = (byte)(value >> 40);
+			buffer[p + 6] = (byte)(value >> 48);
+			buffer[p + 7] = (byte)(value >> 56);
+			this.Position = p + 8;
 		}
 
 		/// <summary>Writes a 7-bit encoded unsigned int (aka 'Varint32') at the end, and advances the cursor</summary>
