@@ -66,6 +66,7 @@
     <Compile Include="Encoders\IKeyValueEncoder.cs" />
     <Compile Include="FdbClusterFile.cs" />
     <Compile Include="FdbDatabaseExtensions.cs" />
+    <Compile Include="FdbKeyRangeComparer.cs" />
     <Compile Include="IFdbKey.cs" />
     <Compile Include="FdbTransactionMode.cs" />
     <Compile Include="FdbTransactionals.cs" />

@@ -209,22 +209,21 @@ namespace FoundationDB.Client.Tests
 			Assert.That(range.Contains(Slice.FromAscii("\xFF")), Is.False);
 
 			// ["", "\xFF" )
-			range = new FdbKeyRange(Slice.Empty, Slice.FromAscii("\xFF"));
+			range = FdbKeyRange.Create(Slice.Empty, Slice.FromAscii("\xFF"));
 			Assert.That(range.Contains(Slice.Empty), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("\x00")), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("hello")), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("\xFF")), Is.False);
 
 			// ["\x00", "\xFF" )
-			range = new FdbKeyRange(Slice.FromAscii("\x00"), Slice.FromAscii("\xFF"));
+			range = FdbKeyRange.Create(Slice.FromAscii("\x00"), Slice.FromAscii("\xFF"));
 			Assert.That(range.Contains(Slice.Empty), Is.False);
 			Assert.That(range.Contains(Slice.FromAscii("\x00")), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("hello")), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("\xFF")), Is.False);
 
 			// corner cases
-			Assert.That(new FdbKeyRange(Slice.FromAscii("A"), Slice.FromAscii("A")).Contains(Slice.FromAscii("A")), Is.False, "Equal bounds");
-			Assert.That(new FdbKeyRange(Slice.FromAscii("Z"), Slice.FromAscii("A")).Contains(Slice.FromAscii("K")), Is.False, "Reversed bounds");
+			Assert.That(FdbKeyRange.Create(Slice.FromAscii("A"), Slice.FromAscii("A")).Contains(Slice.FromAscii("A")), Is.False, "Equal bounds");
 		}
 
 		[Test]
@@ -235,7 +234,7 @@ namespace FoundationDB.Client.Tests
 			FdbKeyRange range;
 
 			// range: [ "A", "Z" )
-			range = new FdbKeyRange(Slice.FromAscii("A"), Slice.FromAscii("Z"));
+			range = FdbKeyRange.Create(Slice.FromAscii("A"), Slice.FromAscii("Z"));
 
 			// Excluding the end: < "Z"
 			Assert.That(range.Test(Slice.FromAscii("\x00"), endIncluded: false), Is.EqualTo(BEFORE));
@@ -359,6 +358,126 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.PrettyPrint(t, FdbKey.PrettyPrintMode.Single), Is.EqualTo("(123,)"));
 			Assert.That(FdbKey.PrettyPrint(FdbTuple.ToRange(t).Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(123,).<00>"));
 			Assert.That(FdbKey.PrettyPrint(FdbTuple.ToRange(t).End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(123,).<FF>"));
+
+		}
+
+		[Test]
+		public void Test_FdbKeyRange_Intersects()
+		{
+			Func<byte, byte, FdbKeyRange> range = (x, y) => FdbKeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
+
+			#region Not Intersecting...
+
+			// [0, 1) [2, 3)
+			// #X
+			//   #X
+			Assert.That(range(0, 1).Intersects(range(2, 3)), Is.False);
+			// [2, 3) [0, 1)
+			//   #X
+			// #X
+			Assert.That(range(2, 3).Intersects(range(0, 1)), Is.False);
+
+			// [0, 1) [1, 2)
+			// #X
+			//  #X
+			Assert.That(range(0, 1).Intersects(range(1, 2)), Is.False);
+			// [1, 2) [0, 1)
+			//  #X
+			// #X
+			Assert.That(range(1, 2).Intersects(range(0, 1)), Is.False);
+
+			#endregion
+
+			#region Intersecting...
+
+			// [0, 2) [1, 3)
+			// ##X
+			//  ##X
+			Assert.That(range(0, 2).Intersects(range(1, 3)), Is.True);
+			// [1, 3) [0, 2)
+			//  ##X
+			// ##X
+			Assert.That(range(1, 3).Intersects(range(0, 2)), Is.True);
+
+			// [0, 1) [0, 2)
+			// #X
+			// ##X
+			Assert.That(range(0, 1).Intersects(range(0, 2)), Is.True);
+			// [0, 2) [0, 1)
+			// ##X
+			// #X
+			Assert.That(range(0, 2).Intersects(range(0, 1)), Is.True);
+
+			// [0, 2) [1, 2)
+			// ##X
+			//  #X
+			Assert.That(range(0, 2).Intersects(range(1, 2)), Is.True);
+			// [1, 2) [0, 2)
+			//  #X
+			// ##X
+			Assert.That(range(1, 2).Intersects(range(0, 2)), Is.True);
+
+			#endregion
+
+		}
+
+		[Test]
+		public void Test_FdbKeyRange_Disjoint()
+		{
+			Func<byte, byte, FdbKeyRange> range = (x, y) => FdbKeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
+
+			#region Disjoint...
+
+			// [0, 1) [2, 3)
+			// #X
+			//   #X
+			Assert.That(range(0, 1).Disjoint(range(2, 3)), Is.True);
+			// [2, 3) [0, 1)
+			//   #X
+			// #X
+			Assert.That(range(2, 3).Disjoint(range(0, 1)), Is.True);
+
+			#endregion
+
+			#region Not Disjoint...
+
+			// [0, 1) [1, 2)
+			// #X
+			//  #X
+			Assert.That(range(0, 1).Disjoint(range(1, 2)), Is.False);
+			// [1, 2) [0, 1)
+			//  #X
+			// #X
+			Assert.That(range(1, 2).Disjoint(range(0, 1)), Is.False);
+
+			// [0, 2) [1, 3)
+			// ##X
+			//  ##X
+			Assert.That(range(0, 2).Disjoint(range(1, 3)), Is.False);
+			// [1, 3) [0, 2)
+			//  ##X
+			// ##X
+			Assert.That(range(1, 3).Disjoint(range(0, 2)), Is.False);
+
+			// [0, 1) [0, 2)
+			// #X
+			// ##X
+			Assert.That(range(0, 1).Disjoint(range(0, 2)), Is.False);
+			// [0, 2) [0, 1)
+			// ##X
+			// #X
+			Assert.That(range(0, 2).Disjoint(range(0, 1)), Is.False);
+
+			// [0, 2) [1, 2)
+			// ##X
+			//  #X
+			Assert.That(range(0, 2).Disjoint(range(1, 2)), Is.False);
+			// [1, 2) [0, 2)
+			//  #X
+			// ##X
+			Assert.That(range(1, 2).Disjoint(range(0, 2)), Is.False);
+
+			#endregion
 
 		}
 

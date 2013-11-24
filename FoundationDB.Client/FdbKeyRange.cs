@@ -28,12 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]
-	public struct FdbKeyRange
+	public struct FdbKeyRange : IEquatable<FdbKeyRange>, IComparable<FdbKeyRange>
 	{
 		/// <summary>Returns an empty pair of keys</summary>
 		public static FdbKeyRange Empty { get { return default(FdbKeyRange); } }
@@ -53,6 +54,7 @@ namespace FoundationDB.Client
 		{
 			this.Begin = begin;
 			this.End = end;
+			Contract.Ensures(this.Begin.CompareTo(this.End) <= 0, "End >= Begin", "The End key cannot be less than the begin key");
 		}
 
 		public FdbKeyRange(IFdbKey begin, IFdbKey end)
@@ -62,6 +64,12 @@ namespace FoundationDB.Client
 
 			this.Begin = begin.ToFoundationDbKey();
 			this.End = end.ToFoundationDbKey();
+			Contract.Ensures(this.Begin.CompareTo(this.End) <= 0, "End >= Begin", "The End key cannot be less than the begin key");
+		}
+
+		public static FdbKeyRange Create(Slice a, Slice b)
+		{
+			return new FdbKeyRange(a, b);
 		}
 
 		/// <summary>Create a range that will return all keys starting with <paramref name="prefix"/>: ('prefix' &lt;= k &lt; strinc('prefix'))</summary>
@@ -129,6 +137,76 @@ namespace FoundationDB.Client
 		{
 			if (key == null) throw new ArgumentNullException("key");
 			return FromKey(key.ToFoundationDbKey());
+		}
+
+		public override bool Equals(object obj)
+		{
+			return (obj is FdbKeyRange) && Equals((FdbKeyRange)obj);
+		}
+
+		public bool Equals(FdbKeyRange other)
+		{
+			return this.Begin.Equals(other.Begin) && this.End.Equals(other.End);
+		}
+
+		public int CompareTo(FdbKeyRange other)
+		{
+			int c = this.Begin.CompareTo(other.Begin);
+			if (c == 0) c = this.End.CompareTo(other.End);
+			return c;
+		}
+
+		/// <summary>Combine another range with the current range, to produce a range that includes both (and all keys in between it the ranges are disjoint)</summary>
+		/// <param name="other">Range to merge with the current range</param>
+		/// <returns>New range where the Begin key is the smallest bound and the End key is the largest bound of both ranges.</returns>
+		/// <remarks>If both range are disjoint, then the resulting range will also contain the keys in between.</remarks>
+		public FdbKeyRange Merge(FdbKeyRange other)
+		{
+			Slice begin = this.Begin.CompareTo(other.Begin) <= 0 ? this.Begin : other.Begin;
+			Slice end = this.End.CompareTo(other.End) >= 0 ? this.End : other.End;
+			return new FdbKeyRange(begin, end);
+		}
+
+		/// <summary>Checks whether the current and the specified range are intersecting (i.e: there exists at at least one key that belongs to both ranges)</summary>
+		/// <param name="other">Range that is being checked for interection</param>
+		/// <returns>True if the other range intersects the current range.</returns>
+		/// <remarks>Note that ranges [0, 1) and [1, 2) do not intersect, since the end is exclusive by default</remarks>
+		public bool Intersects(FdbKeyRange other)
+		{
+			int c = this.Begin.CompareTo(other.Begin);
+			if (c == 0)
+			{ // share the same begin key
+				return true;
+			}
+			else if (c < 0)
+			{ // after us
+				return this.End.CompareTo(other.Begin) > 0;
+			}
+			else
+			{  // before us
+				return this.Begin.CompareTo(other.End) < 0;
+			}
+		}
+
+		/// <summary>Checks whether the current and the specified range are disjoint (i.e: there exists at least one key between both ranges)</summary>
+		/// <param name="other"></param>
+		/// <returns></returns>
+		/// <remarks>Note that ranges [0, 1) and [1, 2) are not disjoint because, even though they do not intersect, they are both contiguous.</remarks>
+		public bool Disjoint(FdbKeyRange other)
+		{
+			int c = this.Begin.CompareTo(other.Begin);
+			if (c == 0)
+			{ // share the same begin key
+				return false;
+			}
+			else if (c < 0)
+			{ // after us
+				return this.End.CompareTo(other.Begin) < 0;
+			}
+			else
+			{  // before us
+				return this.Begin.CompareTo(other.End) > 0;
+			}
 		}
 
 		/// <summary>Returns true, if the key is contained in the range</summary>
