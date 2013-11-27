@@ -539,6 +539,17 @@ namespace FoundationDB.Client
 			return FdbKey.Merge(m_rawPrefix, keys);
 		}
 
+		/// <summary>Append a key to the subspace key</summary>
+		/// <typeparam name="TKey">type of the key, must implements IFdbKey</typeparam>
+		/// <param name="key"></param>
+		/// <returns>Return Slice : 'subspace.Key + key'</returns>
+		public Slice Concat<TKey>(TKey key)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return m_rawPrefix + key.ToFoundationDbKey();
+		}
+
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
 		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <returns>Binary suffix of the key (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>

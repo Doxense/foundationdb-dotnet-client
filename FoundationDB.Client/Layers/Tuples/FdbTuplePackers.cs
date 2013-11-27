@@ -93,6 +93,15 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
+			if (typeof(IFdbKey).IsAssignableFrom(type))
+			{
+				method = typeof(FdbTuplePackers).GetMethod("SerializeFdbKeyTo", BindingFlags.Static | BindingFlags.Public);
+				if (method != null)
+				{
+					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+				}
+			}
+
 			// TODO: look for a static SerializeTo(BWB, T) method on the type itself ?
 
 			// no luck..
@@ -424,6 +433,13 @@ namespace FoundationDB.Layers.Tuples
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException(String.Format("Custom formatter {0}.ToTuple() cannot return null", formattable.GetType().Name));
 			tuple.PackTo(ref writer);
+		}
+
+		public static void SerializeFdbKeyTo(ref SliceWriter writer, IFdbKey key)
+		{
+			Contract.Requires(key != null);
+			var slice = key.ToFoundationDbKey();
+			writer.WriteBytes(slice);
 		}
 
 		#endregion
