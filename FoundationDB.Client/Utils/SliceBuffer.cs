@@ -111,7 +111,9 @@ namespace FoundationDB.Client.Utils
 			//TODO: we could be smart and detect situations where 'begin' is included in 'end' (common when the end is just 'begin'+\0 of \ff),
 			int p = range.Begin.Count;
 			var tmp = InternWithSuffix(range.Begin, range.End);
-			return new FdbKeyRange(tmp.Substring(0, p), tmp.Substring(p));
+			var begin = tmp.Substring(0, p);
+			var end = tmp.Substring(p);
+			return new FdbKeyRange(begin, end);
 		}
 
 		public FdbKeyRange InternRange(Slice key)
@@ -159,8 +161,7 @@ namespace FoundationDB.Client.Utils
 
 		private Slice InternFallback(Slice data, Slice suffix)
 		{
-			int n = data.Count + suffix.Count;
-			if (n > (m_pageSize >> 1))
+			if ((data.Count + suffix.Count) > (m_pageSize >> 1))
 			{ // keys that are too large are best kept in their own chunks
 				var copy = suffix.Count == 0 ? data.Memoize() : data.Concat(suffix);
 				Keep(copy);
@@ -168,15 +169,17 @@ namespace FoundationDB.Client.Utils
 			}
 
 			m_current = new byte[m_pageSize];
-			data.CopyTo(m_current, 0);
-			m_pos = n;
-			m_remaining = m_pageSize - n;
+			int p = data.CopyToUnsafe(0, m_current, 0, data.Count);
+			if (suffix.Count > 0) p = suffix.CopyToUnsafe(0, m_current, p, suffix.Count);
+			Contract.Assert(p == data.Count + suffix.Count);
+			m_pos = p;
+			m_remaining = m_pageSize - p;
 			
 			// double the page size for next time
 			m_pageSize <<= 1;
 			if (m_pageSize > MaxPageSize) m_pageSize = MaxPageSize;
 
-			return Slice.Create(m_current, 0, n);
+			return Slice.Create(m_current, 0, p);
 		}
 
 	}
