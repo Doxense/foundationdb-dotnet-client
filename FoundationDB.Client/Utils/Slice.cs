@@ -603,13 +603,44 @@ namespace FoundationDB.Client
 		/// <summary>Returns true if the slice contains at least one byte, or false if it is null or empty</summary>
 		public bool IsPresent { get { return this.Count > 0; } }
 
+		/// <summary>Copy a section of the slice into a cursor in a target buffer, and advances the cursor</summary>
+		/// <param name="srcOffset">Relative offset in the current slice</param>
+		/// <param name="dst">Target buffer</param>
+		/// <param name="dstOffset">Position in the target buffer</param>
+		/// <param name="count">Number of bytes to copy</param>
+		/// <returns>New position in the target buffer</returns>
+		/// <remarks>This method DOES NOT validate its arguments !</remarks>
+		internal int CopyToUnsafe(int srcOffset, byte[] dst, int dstOffset, int count)
+		{
+			Contract.Requires(srcOffset >= 0 && dstOffset >= 0 && count >= 0 && dst != null);
+
+			// BlockCopy is fast but not for very small sizes, that may be common in some select use cases where we CopyTo(..) very small slices (like the \0 and \xFF suffix for ranges).
+	
+			byte[] buf = this.Array;
+			int pos = this.Offset + srcOffset;
+
+			if (count <= 4)
+			{
+				while(count-- > 0)
+				{
+					dst[dstOffset++] = buf[pos++];
+				}
+				return dstOffset;
+			}
+			else
+			{
+				Buffer.BlockCopy(buf, pos, dst, dstOffset, count);
+				return dstOffset + count;
+			}
+		}
+
 		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of the slice, or null</returns>
 		public byte[] GetBytes()
 		{
-			if (this.IsNullOrEmpty) return this.Array == null ? null : Slice.EmptyArray;
+			if (this.Count == 0) return this.Array == null ? null : Slice.EmptyArray;
 			var bytes = new byte[this.Count];
-			Buffer.BlockCopy(this.Array, this.Offset, bytes, 0, bytes.Length);
+			CopyToUnsafe(0, bytes, 0, bytes.Length);
 			return bytes;
 		}
 
@@ -626,7 +657,7 @@ namespace FoundationDB.Client
 			if (count == 0) return this.Array == null ? null : Slice.EmptyArray;
 
 			var bytes = new byte[count];
-			Buffer.BlockCopy(this.Array, this.Offset + offset, bytes, 0, count);
+			CopyToUnsafe(offset, bytes, 0, count);
 			return bytes;
 		}
 
@@ -879,7 +910,7 @@ namespace FoundationDB.Client
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
 		public Slice Memoize()
 		{
-			if (this.IsNullOrEmpty) return this.Array == null ? Slice.Nil : Slice.Empty;
+			if (this.Count == 0) return this.Array == null ? Slice.Nil : Slice.Empty;
 			return new Slice(GetBytes(), 0, this.Count);
 		}
 
@@ -967,12 +998,10 @@ namespace FoundationDB.Client
 		public void CopyTo(byte[] buffer, int offset)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (offset < 0) throw new ArgumentOutOfRangeException("offset");
+			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero.");
+			if (offset + this.Count > buffer.Length) throw new ArgumentException("Target buffer is too small.", "buffer");
 
-			if (this.Count > 0)
-			{
-				Buffer.BlockCopy(this.Array, this.Offset, buffer, offset, this.Count);
-			}
+			CopyToUnsafe(0, buffer, offset, this.Count);
 		}
 
 		/// <summary>Retrieves a substring from this instance. The substring starts at a specified character position.</summary>

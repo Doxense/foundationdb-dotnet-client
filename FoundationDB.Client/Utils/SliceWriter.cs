@@ -26,8 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Utils
+namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
@@ -93,7 +94,7 @@ namespace FoundationDB.Client.Utils
 
 			if (capacity == 0)
 			{ // most frequent usage is to add a packed integer at the end of a prefix
-				capacity = ComputeAlignedSize(n + 8);
+				capacity = Align(n + 8);
 			}
 			else
 			{
@@ -650,7 +651,7 @@ namespace FoundationDB.Client.Utils
 			if (newSize > 0x7fffffffL) FailCannotGrowBuffer();
 
 			// round up to 16 bytes, to reduce fragmentation
-			int size = ComputeAlignedSize((int)newSize);
+			int size = Align((int)newSize);
 
 			Array.Resize(ref buffer, size);
 		}
@@ -670,7 +671,7 @@ namespace FoundationDB.Client.Utils
 		/// <param name="size">Minimum size required</param>
 		/// <returns>Size rounded up to the next multiple of 16</returns>
 		/// <exception cref="System.OverflowException">If the rounded size overflows over 2 GB</exception>
-		internal static int ComputeAlignedSize(int size)
+		internal static int Align(int size)
 		{
 			const int ALIGNMENT = 16; // MUST BE A POWER OF TWO!
 			const int MASK = (-ALIGNMENT) & int.MaxValue;

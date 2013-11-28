@@ -66,7 +66,7 @@ namespace FoundationDB.Client.Tests
 
 			var key = FdbKey.Increment(Slice.FromAscii("Hello"));
 			Assert.That(key.ToAscii(), Is.EqualTo("Hellp"));
-
+			 
 			key = FdbKey.Increment(Slice.FromAscii("Hello\x00"));
 			Assert.That(key.ToAscii(), Is.EqualTo("Hello\x01"));
 
