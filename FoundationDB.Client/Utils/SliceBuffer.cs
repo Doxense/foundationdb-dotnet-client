@@ -35,9 +35,10 @@ namespace FoundationDB.Client.Utils
 	public sealed class SliceBuffer
 	{
 		private const int DefaultPageSize = 256;
+		private const int MaxPageSize = 64 * 1024; // 64KB (small enough to no go into the LOH)
 
-		/// <summary>Default size of a new page</summary>
-		private readonly int m_pageSize;
+		/// <summary>Default initial size of pages (doubled every time until it reached the max page size)</summary>
+		private int m_pageSize;
 		/// <summary>Current buffer</summary>
 		private byte[] m_current;
 		/// <summary>Position of the next free slot in the current buffer</summary>
@@ -46,6 +47,8 @@ namespace FoundationDB.Client.Utils
 		private int m_remaining;
 		/// <summary>If non null, list of previously used buffers</summary>
 		private List<Slice> m_closed;
+		private int m_allocated;
+		private int m_used;
 
 		public SliceBuffer()
 			: this(0)
@@ -62,6 +65,34 @@ namespace FoundationDB.Client.Utils
 			{
 				m_pageSize = SliceWriter.Align(pageSize);
 			}
+		}
+
+		/// <summary>Gets the number of bytes used by all the slice allocated in this buffer</summary>
+		public int Size
+		{
+			get { return m_used + m_pos; }
+		}
+
+		/// <summary>Gets the total memory size allocated to store all the slices in this buffer</summary>
+		public int Allocated
+		{
+			get { return m_allocated + m_pos + m_remaining; }
+		}
+
+		/// <summary>Number of memory pages used by this buffer</summary>
+		public int PageCount
+		{
+			get { return m_closed == null ? 1 : (m_closed.Count + 1); }
+		}
+
+		/// <summary>Return the list of all the pages used by this buffer</summary>
+		/// <returns></returns>
+		public Slice[] GetPages()
+		{
+			var pages = new Slice[this.PageCount];
+			if (m_closed != null) m_closed.CopyTo(pages);
+			pages[pages.Length - 1] = new Slice(m_current, 0, m_pos);
+			return pages;
 		}
 
 		/// <summary>Copy a slice into the buffer, and return a new identical slice</summary>
@@ -114,7 +145,7 @@ namespace FoundationDB.Client.Utils
 			if (suffix.Count > 0) p = suffix.CopyToUnsafe(0, m_current, p, suffix.Count);
 			m_pos = p;
 			m_remaining -= n;
-			return Slice.Create(m_current, p, n);
+			return Slice.Create(m_current, pos, n);
 
 		}
 
@@ -122,6 +153,8 @@ namespace FoundationDB.Client.Utils
 		{
 			if (m_closed == null) m_closed = new List<Slice>();
 			m_closed.Add(chunk);
+			m_allocated += chunk.Array.Length;
+			m_used += chunk.Count;
 		}
 
 		private Slice InternFallback(Slice data, Slice suffix)
@@ -138,6 +171,11 @@ namespace FoundationDB.Client.Utils
 			data.CopyTo(m_current, 0);
 			m_pos = n;
 			m_remaining = m_pageSize - n;
+			
+			// double the page size for next time
+			m_pageSize <<= 1;
+			if (m_pageSize > MaxPageSize) m_pageSize = MaxPageSize;
+
 			return Slice.Create(m_current, 0, n);
 		}
 
