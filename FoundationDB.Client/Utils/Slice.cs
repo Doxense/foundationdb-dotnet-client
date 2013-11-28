@@ -1161,6 +1161,58 @@ namespace FoundationDB.Client
 			return new Slice(tmp, 0, tmp.Length);
 		}
 
+		/// <summary>Append an array of slice at the end of the current slice, all sharing the same buffer</summary>
+		/// <param name="slices">Slices that must be appended</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public Slice[] ConcatRange(Slice[] slices)
+		{
+			if (slices == null) throw new ArgumentNullException("slices");
+
+			// pre-allocate by computing final buffer capacity
+			var prefixSize= this.Count;
+			var capacity = slices.Sum((slice) => prefixSize + slice.Count);
+			var writer = new SliceWriter(capacity);
+			var next = new List<int>(slices.Length);
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var slice in slices)
+			{
+				writer.WriteBytes(this);
+				writer.WriteBytes(slice);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
+		/// <summary>Append a sequence of slice at the end of the current slice, all sharing the same buffer</summary>
+		/// <param name="slices">Slices that must be appended</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public Slice[] ConcatRange(IEnumerable<Slice> slices)
+		{
+			if (slices == null) throw new ArgumentNullException("slices");
+
+			var next = new List<int>();
+			var writer = SliceWriter.Empty;
+
+			// use optimized version for arrays
+			var array = slices as Slice[];
+			if (array != null) return ConcatRange(array);
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var slice in slices)
+			{
+				writer.WriteBytes(this);
+				writer.WriteBytes(slice);
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+
+		}
+
 		/// <summary>Implicitly converts a Slice into an ArraySegment&lt;byte&gt;</summary>
 		public static implicit operator ArraySegment<byte>(Slice value)
 		{

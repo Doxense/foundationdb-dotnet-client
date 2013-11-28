@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Linq;
 	using System.Collections.Generic;
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
@@ -548,6 +549,17 @@ namespace FoundationDB.Client
 		{
 			if (key == null) throw new ArgumentNullException("key");
 			return m_rawPrefix + key.ToFoundationDbKey();
+		}
+
+		/// <summary>Append a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
+		/// <typeparam name="TKey">type of the key, must implements IFdbKey</typeparam>
+		/// <param name="key"></param>
+		/// <returns>Return Slice : 'subspace.Key + key'</returns>
+		public Slice[] ConcatRange<TKey>(IEnumerable<TKey> keys)
+			where TKey : IFdbKey
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+			return m_rawPrefix.ConcatRange(keys.Select((key) => key.ToFoundationDbKey()));
 		}
 
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
