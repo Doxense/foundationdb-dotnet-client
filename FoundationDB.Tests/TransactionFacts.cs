@@ -613,6 +613,12 @@ namespace FoundationDB.Client.Tests
 				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.Xor, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.Xor, 0x018055AA);
 
+				// calling with an invalid mutation type should fail
+				using(var tr = db.BeginTransaction())
+				{
+					key = location.Pack("invalid");
+					Assert.That(() => tr.Atomic(key, Slice.FromFixed32(42), (FdbMutationType)42), Throws.InstanceOf<ArgumentException>());
+				}
 			}
 		}
 
