@@ -749,9 +749,10 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction())
 				{
 					// [0, 100) limit 1 => 50
-					await tr1
+					var kvp = await tr1
 						.GetRange(loc.Pack("foo"), loc.Pack("foo", 100))
 						.FirstOrDefaultAsync();
+					Assert.That(kvp.Key, Is.EqualTo(loc.Pack("foo", 50)));
 
 					// 42 < 50 > conflict !!!
 					using (var tr2 = db.BeginTransaction())
@@ -779,9 +780,10 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction())
 				{
 					// [0, 100) limit 1 => 50
-					await tr1
+					var kvp = await tr1
 						.GetRange(loc.Pack("foo"), loc.Pack("foo", 100))
 						.FirstOrDefaultAsync();
+					Assert.That(kvp.Key, Is.EqualTo(loc.Pack("foo", 50)));
 
 					// 77 > 50 => no conflict
 					using (var tr2 = db.BeginTransaction())
@@ -797,6 +799,100 @@ namespace FoundationDB.Client.Tests
 					await tr1.CommitAsync();
 				}
 
+			}
+		}
+
+		[Test]
+		public async Task Test_GetKey_With_Concurrent_Change_Should_Conflict()
+		{
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+
+				var loc = db.Partition("test");
+
+				await db.WriteAsync((tr) =>
+				{
+					tr.ClearRange(loc);
+					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+				});
+
+				// we will ask for the first key from >= 0, expecting 50, but if another transaction inserts something BEFORE 50, our key selector would have returned a different result, causing a conflict
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					// fGE{0} => 50
+					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Pack("foo", 0)));
+					Assert.That(key, Is.EqualTo(loc.Pack("foo", 50)));
+
+					// 42 < 50 => conflict !!!
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(loc.Pack("foo", 42), Slice.FromAscii("forty-two"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(loc.Pack("bar"), Slice.Empty);
+
+					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(42) in TR2 should have conflicted with the GetKey(fGE{0}) in TR1");
+				}
+
+				// if the other transaction insert something AFTER 50, our key selector would have stil returned the same result, and we would have any conflict
+
+				await db.WriteAsync((tr) =>
+				{
+					tr.ClearRange(loc);
+					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+				});
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					// fGE{0} => 50
+					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Pack("foo", 0)));
+					Assert.That(key, Is.EqualTo(loc.Pack("foo", 50)));
+
+					// 77 > 50 => no conflict
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(loc.Pack("foo", 77), Slice.FromAscii("docm"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(loc.Pack("bar"), Slice.Empty);
+
+					// should not conflict!
+					await tr1.CommitAsync();
+				}
+
+				// but if we have an large offset in the key selector, and another transaction insert something inside the offset window, the result would be different, and it should conflict
+
+				await db.WriteAsync((tr) =>
+				{
+					tr.ClearRange(loc);
+					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Pack("foo", 100), Slice.FromAscii("one hundred"));
+				});
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					// fGE{50} + 1 => 100
+					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Pack("foo", 50)) + 1);
+					Assert.That(key, Is.EqualTo(loc.Pack("foo", 100)));
+
+					// 77 between 50 and 100 => conflict !!!
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(loc.Pack("foo", 77), Slice.FromAscii("docm"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(loc.Pack("bar"), Slice.Empty);
+
+					// should conflict!
+					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(77) in TR2 should have conflicted with the GetKey(fGE{50} + 1) in TR1");
+				}
 			}
 		}
 
@@ -1249,6 +1345,52 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_Simple_Read_Transaction()
+		{
+			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.GlobalSpace;
+
+				using(var tr = db.BeginTransaction())
+				{
+					await tr.GetReadVersionAsync();
+
+					var a = location.Concat(Slice.FromString("A"));
+					var b = location.Concat(Slice.FromString("B"));
+					var c = location.Concat(Slice.FromString("C"));
+					var z = location.Concat(Slice.FromString("Z"));
+
+					//await tr.GetAsync(location.Concat(Slice.FromString("KEY")));
+
+					//tr.Set(location.Concat(Slice.FromString("BAR")), Slice.FromString("FOO"));
+					//tr.Clear(location.Concat(Slice.FromString("ZORT")));
+					//tr.Clear(location.Concat(Slice.FromString("NARF")));
+					tr.Set(a, Slice.FromString("BAR"));
+					tr.Set(b, Slice.FromString("BAZ"));
+					tr.Set(c, Slice.FromString("BAT"));
+					tr.ClearRange(a, c);
+					
+					//tr.ClearRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z")));
+					//tr.Set(location.Concat(Slice.FromString("C")), Slice.Empty);
+
+					//var slice = await tr.GetRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z"))).FirstOrDefaultAsync();
+					//Console.WriteLine(slice);
+
+					//tr.AddReadConflictKey(location.Concat(Slice.FromString("READ_CONFLICT")));
+					//tr.AddWriteConflictKey(location.Concat(Slice.FromString("WRITE_CONFLICT")));
+
+					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("D")), location.Concat(Slice.FromString("E"))));
+					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("C")), location.Concat(Slice.FromString("G"))));
+					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("B")), location.Concat(Slice.FromString("F"))));
+					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z"))));
+
+
+					await tr.CommitAsync();
+				}
+
+			}
+		}
 	}
 
 }
