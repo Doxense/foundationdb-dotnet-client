@@ -31,96 +31,115 @@ namespace FoundationDB.Client.Utils
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using SDC = System.Diagnostics.Contracts;
 
 	internal static class Contract
 	{
 
 		#region Requires
 
-		[DebuggerStepThrough]
+		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public static void Requires(bool condition)
+		public static void Requires(bool condition, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
-			if (!condition) RaiseContractFailure(true, null, "A pre-requisite was not met");
+			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Precondition, null, _path, _line);
 		}
 
-		[DebuggerStepThrough]
+		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public static void Requires(bool condition, string test, string message)
+		public static void Requires(bool condition, string message, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
-			if (!condition) RaiseContractFailure(true, test, message);
+			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Precondition, message, _path, _line);
 		}
 
 		#endregion
 
 		#region Assert
 
-		[DebuggerStepThrough]
+		/// <summary>Assert that a condition is verified, at debug time</summary>
+		/// <param name="condition">Condition that must be true</param>
+		/// <remarks>This method is not compiled on Release builds</remarks>
+		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public static void Assert(bool condition)
+		public static void Assert(bool condition, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
-			if (!condition) RaiseContractFailure(true, null, "An assertion was not met");
+			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Assert, null, _path, _line);
 		}
 
-		[DebuggerStepThrough]
+		/// <summary>Assert that a condition is verified, at debug time</summary>
+		/// <param name="condition">Condition that must be true</param>
+		/// <remarks>This method is not compiled on Release builds</remarks>
+		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public static void Assert(bool condition, string test, string message)
+		public static void Assert(bool condition, string message, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
-			if (!condition) RaiseContractFailure(true, test, message);
+			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Assert, message, _path, _line);
 		}
 
 		#endregion
 
 		#region Ensures
 
-		[DebuggerStepThrough]
+		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public static void Ensures(bool condition)
+		public static void Ensures(bool condition, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
-			if (!condition) RaiseContractFailure(true, null, "A post-condition was not met");
+			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Postcondition, null, _path, _line);
 		}
 
-		[DebuggerStepThrough]
+		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		public static void Ensures(bool condition, string test, string message)
+		public static void Ensures(bool condition, string message, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
-			if (!condition) RaiseContractFailure(true, test, message);
+			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Postcondition, message, _path, _line);
 		}
 
 		#endregion
 
-		[DebuggerStepThrough]
-		public static void RaiseContractFailure(bool assertion, string test, string message)
+		[DebuggerStepThrough, DebuggerHidden]
+		internal static void RaiseContractFailure(SDC.ContractFailureKind kind, string message, string file, int line)
 		{
-			if (assertion)
+			if (message == null)
 			{
-#if DEBUG
-				if (Debugger.IsAttached) Debugger.Break();
-#endif
-				Debug.Fail(message, test);
+				switch(kind)
+				{
+					case SDC.ContractFailureKind.Assert: message = "An assertion was not met"; break;
+					case SDC.ContractFailureKind.Precondition: message = "A pre-requisite was not met"; break;
+					case SDC.ContractFailureKind.Postcondition: message = "A post-condition was not met"; break;
+					default: message = "An expectation was not met"; break;
+				}
 			}
-			else
-			{
-				throw new InvalidOperationException(message);
+			if (file != null)
+			{ // add the caller infos
+				message = String.Format("{0} in {1}:line {2}", message, file, line);
 			}
+
+			//TODO: check if we are running under NUnit, and map to an Assert.Fail() instead ?
+
+			Debug.Fail(message);
+			// If you break here, that means that an assertion failed somewhere up the stack.
+			// TODO: find a way to have the debugger break, but show the caller of Contract.Assert(..) method, instead of here ?
+			if (Debugger.IsAttached) Debugger.Break();
+
+			throw new InvalidOperationException(message);
 		}
 
 	}

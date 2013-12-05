@@ -302,7 +302,7 @@ namespace FoundationDB.Client
 				// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 
 				//TODO: what if we run on Big-Endian hardware ?
-				Contract.Requires(BitConverter.IsLittleEndian, null, "Not supported on Big-Endian platforms");
+				Contract.Requires(BitConverter.IsLittleEndian, "Not supported on Big-Endian platforms");
 
 				Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, (byte*)&value, 8));
 			}
@@ -1016,7 +1016,7 @@ namespace FoundationDB.Client
 			get { return Volatile.Read(ref m_state); }
 			set
 			{
-				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_FAILED, null, "Invalid state value");
+				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_FAILED, "Invalid state value");
 				Volatile.Write(ref m_state, value);
 			}
 		}

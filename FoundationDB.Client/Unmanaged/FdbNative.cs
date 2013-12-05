@@ -699,14 +699,14 @@ namespace FoundationDB.Client.Native
 
 			if (Fdb.Success(err))
 			{
-				Contract.Assert(count >= 0, null, "Return count was negative");
+				Contract.Assert(count >= 0, "Return count was negative");
 
 				result = new KeyValuePair<Slice, Slice>[count];
 
 				if (count > 0)
 				{ // convert the keyvalue result into an array
 
-					Contract.Assert(kvp != null, null, "We have results but array pointer was null");
+					Contract.Assert(kvp != null, "We have results but array pointer was null");
 
 					// in order to reduce allocations, we want to merge all keys and values
 					// into a single byte{] and return  list of Slice that will
@@ -769,14 +769,14 @@ namespace FoundationDB.Client.Native
 
 			if (Fdb.Success(err))
 			{
-				Contract.Assert(count >= 0, null, "Return count was negative");
+				Contract.Assert(count >= 0, "Return count was negative");
 
 				result = new string[count];
 
 				if (count > 0)
 				{ // convert the keyvalue result into an array
 
-					Contract.Assert(strings != null, null, "We have results but array pointer was null");
+					Contract.Assert(strings != null, "We have results but array pointer was null");
 
 					//TODO: if pointers are corrupted, or memory is garbled, we could very well walk around the heap, randomly copying a bunch of stuff (like passwords or jpegs of cats...)
 					// there is no real way to ensure that pointers are valid, except maybe having a maximum valid size for strings, and they should probably only contain legible text ?

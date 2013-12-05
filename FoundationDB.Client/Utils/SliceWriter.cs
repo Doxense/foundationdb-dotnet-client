@@ -230,8 +230,8 @@ namespace FoundationDB.Client
 		/// <remarks>This should be called after every successfull write to the underlying stream, to update the buffer.</remarks>
 		public int Flush(int bytes)
 		{
-			Contract.Requires(bytes > 0, null, "bytes > 0");
-			Contract.Requires(bytes <= this.Position, null, "bytes <= this.Position");
+			if (bytes == 0) return this.Position;
+			if (bytes < 0) throw new ArgumentOutOfRangeException("bytes");
 
 			if (bytes < this.Position)
 			{ // Il y aura des données à garder, on les copie au début du stream

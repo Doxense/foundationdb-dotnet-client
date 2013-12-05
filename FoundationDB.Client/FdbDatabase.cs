@@ -85,11 +85,6 @@ namespace FoundationDB.Client
 		/// <summary>Default RetryLimit value for all transactions</summary>
 		private int m_defaultRetryLimit;
 
-#if REFACTORED
-		/// <summary>Root directory used by this database instance (or null if none)</summary>
-		private FdbDatabasePartition m_rootDirectory;
-#endif
-
 		#endregion
 
 		#region Constructors...
@@ -358,7 +353,7 @@ namespace FoundationDB.Client
 				// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 
 				//TODO: what if we run on Big-Endian hardware ?
-				Contract.Requires(BitConverter.IsLittleEndian, null, "Not supported on Big-Endian platforms");
+				Contract.Requires(BitConverter.IsLittleEndian, "Not supported on Big-Endian platforms");
 
 				Fdb.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, (byte*)(&value), 8));
 			}

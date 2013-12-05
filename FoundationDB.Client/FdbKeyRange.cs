@@ -55,7 +55,7 @@ namespace FoundationDB.Client
 			this.Begin = begin;
 			this.End = end;
 
-			Contract.Ensures(this.Begin <= this.End, "begin <= end", "The range is inverted");
+			Contract.Ensures(this.Begin <= this.End, "The range is inverted");
 		}
 
 		public FdbKeyRange(IFdbKey begin, IFdbKey end)
@@ -66,7 +66,7 @@ namespace FoundationDB.Client
 			this.Begin = begin.ToFoundationDbKey();
 			this.End = end.ToFoundationDbKey();
 
-			Contract.Ensures(this.Begin <= this.End, "begin <= end", "The range is inverted");
+			Contract.Ensures(this.Begin <= this.End, "The range is inverted");
 		}
 
 		public static FdbKeyRange Create(Slice a, Slice b)

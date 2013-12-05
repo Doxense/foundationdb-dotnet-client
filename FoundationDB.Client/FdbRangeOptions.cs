@@ -112,9 +112,9 @@ namespace FoundationDB.Client
 			}
 
 			Contract.Ensures(options != null && options.Limit != null && options.TargetBytes != null && options.Mode != null && options.Reverse != null);
-			Contract.Ensures(options.Limit >= 0, null, "Limit cannot be negative");
-			Contract.Ensures(options.TargetBytes >= 0, null, "TargetBytes cannot be negative");
-			Contract.Ensures(options.Mode.HasValue && Enum.IsDefined(typeof(FdbStreamingMode), options.Mode.Value), null, "Streaming mode must be valid");
+			Contract.Ensures(options.Limit >= 0, "Limit cannot be negative");
+			Contract.Ensures(options.TargetBytes >= 0, "TargetBytes cannot be negative");
+			Contract.Ensures(options.Mode.HasValue && Enum.IsDefined(typeof(FdbStreamingMode), options.Mode.Value), "Streaming mode must be valid");
 
 			return options;
 		}
