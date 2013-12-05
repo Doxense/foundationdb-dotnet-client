@@ -30,8 +30,11 @@ namespace FoundationDB.Client.Utils
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 
 	/// <summary>Buffer that can be used to efficiently store multiple slices into as few chunks as possible</summary>
+	/// <remarks>This class is usefull to centralize a lot of temporary slices whose lifetime is linked to a specific operation. Dropping the referce to the buffer will automatically reclaim all the slices that were stored with it.</remarks>
+	[DebuggerDisplay("Pos={m_pos}, Remaining={m_remaining}, PageSize={m_pageSize}, Used={m_used+m_pos}, Allocated={m_allocated+m_pos+m_remaining}")]
 	public sealed class SliceBuffer
 	{
 		private const int DefaultPageSize = 256;
@@ -45,15 +48,20 @@ namespace FoundationDB.Client.Utils
 		private int m_pos;
 		/// <summary>Number of bytes remaining in the current buffer</summary>
 		private int m_remaining;
-		/// <summary>If non null, list of previously used buffers</summary>
-		private List<Slice> m_closed;
+		/// <summary>If non null, list of previously used buffers (excluding the current buffer)</summary>
+		private List<Slice> m_chunks;
+		/// <summary>Running total of the length of of all previously used buffers, exluding the size of the current buffer</summary>
 		private int m_allocated;
+		/// <summary>Running total of the number of bytes stored in the previously used buffers, excluding the size of the current buffer</summary>
 		private int m_used;
 
+		/// <summary>Create a new slice buffer with the default page size</summary>
 		public SliceBuffer()
 			: this(0)
 		{ }
 
+		/// <summary>Ceate a new slice buffer with the specified page size</summary>
+		/// <param name="pageSize">Initial page size</param>
 		public SliceBuffer(int pageSize)
 		{
 			if (pageSize < 0) throw new ArgumentOutOfRangeException("pageSize", "Page size cannt be less than zero");
@@ -63,7 +71,7 @@ namespace FoundationDB.Client.Utils
 			}
 			else
 			{
-				m_pageSize = SliceWriter.Align(pageSize);
+				m_pageSize = SliceHelpers.Align(pageSize);
 			}
 		}
 
@@ -82,7 +90,7 @@ namespace FoundationDB.Client.Utils
 		/// <summary>Number of memory pages used by this buffer</summary>
 		public int PageCount
 		{
-			get { return m_closed == null ? 1 : (m_closed.Count + 1); }
+			get { return m_chunks == null ? 1 : (m_chunks.Count + 1); }
 		}
 
 		/// <summary>Return the list of all the pages used by this buffer</summary>
@@ -90,17 +98,9 @@ namespace FoundationDB.Client.Utils
 		public Slice[] GetPages()
 		{
 			var pages = new Slice[this.PageCount];
-			if (m_closed != null) m_closed.CopyTo(pages);
+			if (m_chunks != null) m_chunks.CopyTo(pages);
 			pages[pages.Length - 1] = new Slice(m_current, 0, m_pos);
 			return pages;
-		}
-
-		/// <summary>Copy a slice into the buffer, and return a new identical slice</summary>
-		/// <param name="data">Data to copy in the buffer</param>
-		/// <returns>Equivalent slice that is backed by the buffer.</returns>
-		public Slice Intern(Slice data)
-		{
-			return InternWithSuffix(data, Slice.Empty);
 		}
 
 		/// <summary>Copy a pair of keys into the buffer, and return a new identical pair</summary>
@@ -108,78 +108,172 @@ namespace FoundationDB.Client.Utils
 		/// <returns>Equivalent pair of keys, that are backed by the buffer.</returns>
 		public FdbKeyRange InternRange(FdbKeyRange range)
 		{
-			//TODO: we could be smart and detect situations where 'begin' is included in 'end' (common when the end is just 'begin'+\0 of \ff),
-			int p = range.Begin.Count;
-			var tmp = InternWithSuffix(range.Begin, range.End);
-			var begin = tmp.Substring(0, p);
-			var end = tmp.Substring(p);
-			return new FdbKeyRange(begin, end);
+			//TODO: if end is prefixed by begin, we could merge both keys (frequent when dealing with ranges on tuples that add \xFF
+			return new FdbKeyRange(
+				Intern(range.Begin, aligned: true),
+				Intern(range.End, aligned: true)
+			);
 		}
 
-		public FdbKeyRange InternRange(Slice key)
+		/// <summary>Copy a pair of keys into the buffer, and return a new identical pair</summary>
+		/// <param name="begin">Begin key of the range</param>
+		/// <param name="end">End key of the range</param>
+		/// <returns>Equivalent pair of keys, that are backed by the buffer.</returns>
+		public FdbKeyRange InternRange(Slice begin, Slice end)
+		{
+			//TODO: if end is prefixed by begin, we could merge both keys (frequent when dealing with ranges on tuples that add \xFF
+			return new FdbKeyRange(
+				Intern(begin, aligned: true), 
+				Intern(end, aligned: true)
+			);
+		}
+
+		/// <summary>Copy a key into the buffer, and return a new range containing only that key</summary>
+		/// <param name="key">Key to copy to the buffer</param>
+		/// <returns>Range equivalent to [key, key + '\0') that is backed by the buffer.</returns>
+		public FdbKeyRange InternRangeFromKey(Slice key)
 		{
 			// Since the end key only adds \0 to the begin key, we can reuse the same bytes by making both overlap
-			var tmp = InternWithSuffix(key, FdbKey.MinValue);
-			return new FdbKeyRange(tmp[0, -1], tmp);
+			var tmp = Intern(key, FdbKey.MinValue, aligned: true);
+
+			return new FdbKeyRange(
+				tmp.Substring(0, key.Count),
+				tmp
+			);
+		}
+
+		/// <summary>Copy a key selector into the buffer, and return a new identical selector</summary>
+		/// <param name="select">Key selector to copy to the buffer</param>
+		/// <returns>Equivalent key selector that is backed by the buffer.</returns>
+		public FdbKeySelector InternSelector(FdbKeySelector selector)
+		{
+			return new FdbKeySelector(
+				Intern(selector.Key, aligned: true),
+				selector.OrEqual,
+				selector.Offset
+			);
+		}
+
+		/// <summary>Copy a pair of key selectors into the buffer, and return a new identical pair</summary>
+		/// <param name="pair">Pair of key selectors to copy to the buffer</param>
+		/// <returns>Equivalent pair of key selectors that is backed by the buffer.</returns>
+		public FdbKeySelectorPair InternSelectorPair(FdbKeySelectorPair pair)
+		{
+			var begin = Intern(pair.Begin.Key, default(Slice), aligned: true);
+			var end = Intern(pair.End.Key, default(Slice), aligned: true);
+
+			return new FdbKeySelectorPair(
+				new FdbKeySelector(begin, pair.Begin.OrEqual, pair.Begin.Offset),
+				new FdbKeySelector(end, pair.End.OrEqual, pair.End.Offset)
+			);
+		}
+
+		/// <summary>Allocate an empty space in the buffer</summary>
+		/// <param name="count">Number of bytes to allocate</param>
+		/// <param name="aligned">If true, align the start of the slice with the default padding size.</param>
+		/// <returns>Slice pointing to a space in the buffer</returns>
+		/// <remarks>There is NO garantees that the allocated slice will be pre-filled with zeroes.</remarks>
+		public Slice Allocate(int count, bool aligned = false)
+		{
+			if (count < 0) throw new ArgumentException("Cannot allocate less than zero bytes.", "count");
+
+			const int ALIGNMENT = 4;
+
+			if (count == 0)
+			{
+				return Slice.Empty;
+			}
+
+			int start = m_pos;
+			int extra = aligned ? (ALIGNMENT - (start & (ALIGNMENT - 1))) : 0;
+			if (count + extra > m_remaining)
+			{ // does not fit
+				return AllocateFallback(count);
+			}
+
+			m_pos += count + extra;
+			m_remaining -= count + extra;
+			//note: we rely on the fact that the buffer was pre-filled with zeroes
+			return Slice.Create(m_current, start + extra, count);
+		}
+
+		private Slice AllocateFallback(int count)
+		{
+			// keys that are too large are best kept in their own chunks
+			if (count > (m_pageSize >> 1))
+			{
+				var tmp = Slice.Create(count);
+				Keep(tmp);
+				return tmp;
+			}
+
+			int pageSize = m_pageSize;
+
+			// double the page size on each new allocation
+			if (m_current != null)
+			{
+				pageSize <<= 1;
+				if (pageSize > MaxPageSize) pageSize = MaxPageSize;
+				m_pageSize = pageSize;
+			}
+
+			var buffer = new byte[pageSize];
+			m_current = buffer;
+			m_pos = count;
+			m_remaining = pageSize - count;
+
+			return Slice.Create(buffer, 0, count);
+		}
+
+		/// <summary>Copy a slice into the buffer, with optional alignement, and return a new identical slice.</summary>
+		/// <param name="data">Data to copy in the buffer</param>
+		/// <param name="aligned">If true, align the index of first byte of the slice with a multiple of 8 bytes</param>
+		/// <returns>Slice that is the equivalent of <paramref name="data"/>, backed by the buffer.</returns>
+		public Slice Intern(Slice data, bool aligned = false)
+		{
+			if (data.Count == 0)
+			{
+				// transform into the corresponding Slice.Nil / Slice.Empty singleton
+				return data.Memoize();
+			}
+
+			SliceHelpers.EnsureSliceIsValid(ref data);
+
+			// allocate the slice
+			var slice = Allocate(data.Count, aligned);
+			SliceHelpers.CopyBytesUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
+			return slice;
 		}
 
 		/// <summary>Copy a slice into the buffer, immediately followed by a suffix, and return a new slice that is the concatenation of the two.</summary>
 		/// <param name="data">Data to copy in the buffer</param>
 		/// <param name="suffix">Suffix to copy immediately after <paramref name="data"/>.</param>
+		/// <param name="aligned">If true, align the index of first byte of the slice with a multiple of 8 bytes</param>
 		/// <returns>Slice that is the equivalent of <paramref name="data"/> plus <paramref name="suffix"/>, backed by the buffer.</returns>
 		/// <remarks>When <paramref name="data"/> is empty, <paramref name="suffix"/> is returned without being copied to the buffer itself.</remarks>
-		public Slice InternWithSuffix(Slice data, Slice suffix)
+		internal Slice Intern(Slice data, Slice suffix, bool aligned = false)
 		{
-			if (data.IsNullOrEmpty)
+			if (data.Count == 0)
 			{
-				//TODO: consider memoizing suffix? In most case, it comes from a constant, and it would be a waste to copy it other and other again...
-				return suffix.Count > 0 ? suffix : data.Memoize();
+				// note: we don't memoize the suffix, because in most case, it comes from a constant, and it would be a waste to copy it other and other again...
+				return suffix.Count > 0 ? suffix : data.Array == null ? Slice.Nil : Slice.Empty;
 			}
 
-			int n = data.Count + suffix.Count;
-			if (n > m_remaining)
-			{ // does not fit
-				return InternFallback(data, suffix);
-			}
+			SliceHelpers.EnsureSliceIsValid(ref data);
+			SliceHelpers.EnsureSliceIsValid(ref suffix);
 
-			int pos = m_pos;
-			int p = data.CopyToUnsafe(0, m_current, pos, data.Count);
-			if (suffix.Count > 0) p = suffix.CopyToUnsafe(0, m_current, p, suffix.Count);
-			m_pos = p;
-			m_remaining -= n;
-			return Slice.Create(m_current, pos, n);
-
+			var slice = Allocate(data.Count + suffix.Count, aligned);
+			SliceHelpers.CopyBytesUnsafe(slice.Array, slice.Offset, data.Array, data.Offset, data.Count);
+			SliceHelpers.CopyBytesUnsafe(slice.Array, slice.Offset + data.Count, suffix.Array, suffix.Offset, suffix.Count);
+			return slice;
 		}
 
 		private void Keep(Slice chunk)
 		{
-			if (m_closed == null) m_closed = new List<Slice>();
-			m_closed.Add(chunk);
+			if (m_chunks == null) m_chunks = new List<Slice>();
+			m_chunks.Add(chunk);
 			m_allocated += chunk.Array.Length;
 			m_used += chunk.Count;
-		}
-
-		private Slice InternFallback(Slice data, Slice suffix)
-		{
-			if ((data.Count + suffix.Count) > (m_pageSize >> 1))
-			{ // keys that are too large are best kept in their own chunks
-				var copy = suffix.Count == 0 ? data.Memoize() : data.Concat(suffix);
-				Keep(copy);
-				return copy;
-			}
-
-			m_current = new byte[m_pageSize];
-			int p = data.CopyToUnsafe(0, m_current, 0, data.Count);
-			if (suffix.Count > 0) p = suffix.CopyToUnsafe(0, m_current, p, suffix.Count);
-			Contract.Assert(p == data.Count + suffix.Count);
-			m_pos = p;
-			m_remaining = m_pageSize - p;
-			
-			// double the page size for next time
-			m_pageSize <<= 1;
-			if (m_pageSize > MaxPageSize) m_pageSize = MaxPageSize;
-
-			return Slice.Create(m_current, 0, p);
 		}
 
 	}

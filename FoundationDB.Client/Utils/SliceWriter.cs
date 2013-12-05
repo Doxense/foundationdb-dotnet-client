@@ -35,7 +35,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Slice buffer that emulates a pseudo-stream using a byte array that will automatically grow in size, if necessary</summary>
 	/// <remarks>IMPORTANT: This struct does not extensively check the parameters! The caller should ensure that everything is valid (this is to get the max performance when serializing keys and values)</remarks>
-	[DebuggerDisplay("Position={this.Position}, Capacity={this.Buffer == null ? -1 : this.Buffer.Length}")]
+	[DebuggerDisplay("Position={Position}, Capacity={Buffer == null ? -1 : Buffer.Length}"), DebuggerTypeProxy(typeof(SliceWriter.DebugView))]
 	public struct SliceWriter
 	{
 		// Invariant
@@ -55,12 +55,15 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
+		/// <summary>Returns a new, empty, slice writer</summary>
 		public static SliceWriter Empty { get { return default(SliceWriter); } }
 
 		/// <summary>Create a new empty binary buffer with an initial allocated size</summary>
 		/// <param name="capacity">Initial capacity of the buffer</param>
 		public SliceWriter(int capacity)
 		{
+			if (capacity < 0) throw new ArgumentOutOfRangeException("capacity");
+
 			this.Buffer = new byte[capacity];
 			this.Position = 0;
 		}
@@ -69,22 +72,24 @@ namespace FoundationDB.Client
 		/// <param name="buffer">Initial buffer</param>
 		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
 		public SliceWriter(byte[] buffer)
-		{
-			this.Buffer = buffer;
-			this.Position = 0;
-		}
+			: this(buffer, 0)
+		{ }
 
 		/// <summary>Create a new binary buffer using an existing buffer and with the cursor to a specific location</summary>
 		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
 		public SliceWriter(byte[] buffer, int index)
 		{
+			if (buffer == null) throw new ArgumentNullException("buffer");
+			if (index < 0 || index > buffer.Length) throw new ArgumentOutOfRangeException("index");
+
 			this.Buffer = buffer;
 			this.Position = index;
 		}
 
 		/// <summary>Creates a new binary buffer, initialized by copying pre-existing data</summary>
 		/// <param name="prefix">Data that will be copied at the start of the buffer</param>
-		/// <remarks>The cursor is already placed at the end of the prefix</remarks>
+		/// <param name="capacity">Optional initial capacity of the buffer</param>
+		/// <remarks>The cursor will already be placed at the end of the prefix</remarks>
 		public SliceWriter(Slice prefix, int capacity = 0)
 		{
 			if (capacity < 0) throw new ArgumentException("Capacity must be a positive integer.", "capacity");
@@ -94,7 +99,7 @@ namespace FoundationDB.Client
 
 			if (capacity == 0)
 			{ // most frequent usage is to add a packed integer at the end of a prefix
-				capacity = Align(n + 8);
+				capacity = SliceHelpers.Align(n + 8);
 			}
 			else
 			{
@@ -118,12 +123,15 @@ namespace FoundationDB.Client
 			get { return this.Position > 0; }
 		}
 
+		/// <summary>Return the byte at the specified index</summary>
+		/// <param name="index">Index in the buffer (0-based if positive, from the end if negative)</param>
 		public byte this[int index]
 		{
 			get
 			{
-				if (index < 0) index += this.Position;
-				return this.Buffer[index];
+				Contract.Assert(this.Buffer != null && this.Position >= 0);
+				//note: we will get bound checking for free
+				return this.Buffer[index < 0 ? index + this.Position : index];
 			}
 		}
 
@@ -149,10 +157,13 @@ namespace FoundationDB.Client
 		/// <remarks>The buffer is copied in the byte array. And change to one will not impact the other</remarks>
 		public byte[] GetBytes()
 		{
+			Contract.Requires(this.Position >= 0);
+
 			var bytes = new byte[this.Position];
 			if (this.Position > 0)
 			{
-				System.Buffer.BlockCopy(this.Buffer, 0, bytes, 0, this.Position);
+				Contract.Assert(this.Buffer != null && this.Buffer.Length >= this.Position);
+				SliceHelpers.CopyBytesUnsafe(bytes, 0, this.Buffer, 0, bytes.Length);
 			}
 			return bytes;
 		}
@@ -219,6 +230,7 @@ namespace FoundationDB.Client
 			{
 				int missing = position - this.Position;
 				EnsureBytes(missing);
+				//TODO: native memset() ?
 				Array.Clear(this.Buffer, this.Position, missing);
 			}
 			this.Position = position;
@@ -234,13 +246,16 @@ namespace FoundationDB.Client
 			if (bytes < 0) throw new ArgumentOutOfRangeException("bytes");
 
 			if (bytes < this.Position)
-			{ // Il y aura des données à garder, on les copie au début du stream
-				System.Buffer.BlockCopy(this.Buffer, bytes, this.Buffer, 0, this.Position - bytes);
-				return this.Position -= bytes;
+			{ // copy the left over data to the start of the buffer
+				int remaining = this.Position - bytes;
+				SliceHelpers.CopyBytesUnsafe(this.Buffer, 0, this.Buffer, bytes, remaining);
+				this.Position = remaining;
+				return remaining;
 			}
 			else
 			{
-				return this.Position = 0;
+				this.Position = 0;
+				return 0;
 			}
 		}
 
@@ -254,10 +269,11 @@ namespace FoundationDB.Client
 				// If the buffer exceeds 4K and we used less than 1/8 of it the last time, we will "shrink" the buffer
 				if (this.Buffer.Length > 4096 && (this.Position << 3) <= Buffer.Length)
 				{ // Shrink it
-					Buffer = new byte[NextPowerOfTwo(this.Position)];
+					Buffer = new byte[SliceHelpers.NextPowerOfTwo(this.Position)];
 				}
 				else
 				{ // Clear it
+					//TODO: native memset() ?
 					Array.Clear(Buffer, 0, this.Position);
 				}
 				this.Position = 0;
@@ -423,9 +439,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Append a byte array to the end of the buffer</summary>
 		/// <param name="data"></param>
-#if !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
 		public void WriteBytes(byte[] data)
 		{
 			if (data != null)
@@ -440,15 +453,12 @@ namespace FoundationDB.Client
 		/// <param name="count"></param>
 		public void WriteBytes(byte[] data, int offset, int count)
 		{
-			Contract.Requires(data != null);
-			Contract.Requires(offset >= 0);
-			Contract.Requires(count >= 0);
-			Contract.Requires(offset + count <= data.Length);
+			SliceHelpers.EnsureBufferIsValid(data, offset, count);
 
 			if (count > 0)
 			{
 				EnsureBytes(count);
-				System.Buffer.BlockCopy(data, offset, this.Buffer, this.Position, count);
+				SliceHelpers.CopyBytesUnsafe(this.Buffer, this.Position, data, offset, count);
 				this.Position += count;
 			}
 		}
@@ -459,7 +469,7 @@ namespace FoundationDB.Client
 
 			if (count > 0)
 			{
-				System.Buffer.BlockCopy(data, offset, this.Buffer, this.Position, count);
+				SliceHelpers.CopyBytesUnsafe(this.Buffer, this.Position, data, offset, count);
 				this.Position += count;
 			}
 		}
@@ -467,42 +477,38 @@ namespace FoundationDB.Client
 		/// <summary>Append a segment of bytes to the end of the buffer</summary>
 		public void WriteBytes(Slice data)
 		{
-			Contract.Requires(data.HasValue);
-			Contract.Requires(data.Offset >= 0);
-			Contract.Requires(data.Count >= 0);
-			Contract.Requires(data.Offset + data.Count <= data.Array.Length);
+			SliceHelpers.EnsureSliceIsValid(ref data);
 
 			int n = data.Count;
 			if (n > 0)
 			{
 				EnsureBytes(n);
-				System.Buffer.BlockCopy(data.Array, data.Offset, this.Buffer, this.Position, n);
+				SliceHelpers.CopyBytesUnsafe(this.Buffer, this.Position, data.Array, data.Offset, n);
 				this.Position += n;
 			}
 		}
 
 		internal unsafe void WriteBytes(byte* data, int count)
 		{
-			Contract.Requires(data != null);
-			Contract.Requires(count >= 0);
+			if (count == 0) return;
+			if (data == null) throw new ArgumentNullException("data");
+			if (count < 0) throw new ArgumentException("count");
 
-			if (count > 0)
-			{
-				EnsureBytes(count);
-				System.Runtime.InteropServices.Marshal.Copy(new IntPtr(data), this.Buffer, this.Position, count);
-				this.Position += count;
-			}
+			EnsureBytes(count);
+			Contract.Assert(this.Buffer != null && this.Position >= 0 && this.Position + count <= this.Buffer.Length);
+
+			SliceHelpers.CopyBytesUnsafe(this.Buffer, this.Position, data, count);
+			this.Position += count;
 		}
 
 		internal unsafe void UnsafeWriteBytes(byte* data, int count)
 		{
+			if (count <= 0) return;
+
 			Contract.Requires(this.Buffer != null && this.Position >= 0 && data != null && count >= 0 && this.Position + count <= this.Buffer.Length);
 
-			if (count > 0)
-			{
-				System.Runtime.InteropServices.Marshal.Copy(new IntPtr(data), this.Buffer, this.Position, count);
-				this.Position += count;
-			}
+			SliceHelpers.CopyBytesUnsafe(this.Buffer, this.Position, data, count);
+			this.Position += count;
 		}
 
 		/// <summary>Writes a 32-bit unsigned integer, using little-endian encoding</summary>
@@ -637,8 +643,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Resize a buffer by doubling its capacity</summary>
-		/// <param name="buffer">Reference to the variable holding the buffer to create/resize</param>
-		/// <param name="minimumCapacity">Capacité minimum du buffer (si vide initialement) ou 0 pour "autogrowth"</param>
+		/// <param name="buffer">Reference to the variable holding the buffer to create/resize. If null, a new buffer will be allocated. If not, the content of the buffer will be copied into the new buffer.</param>
+		/// <param name="minimumCapacity">Mininum guaranteed buffer size after resizing.</param>
 		/// <remarks>The buffer will be resized to the maximum betweeb the previous size multiplied by 2, and <paramref name="minimumCapacity"/>. The capacity will always be rounded to a multiple of 16 to reduce memory fragmentation</remarks>
 		public static void GrowBuffer(ref byte[] buffer, int minimumCapacity = 0)
 		{
@@ -651,7 +657,7 @@ namespace FoundationDB.Client
 			if (newSize > 0x7fffffffL) FailCannotGrowBuffer();
 
 			// round up to 16 bytes, to reduce fragmentation
-			int size = Align((int)newSize);
+			int size = SliceHelpers.Align((int)newSize);
 
 			Array.Resize(ref buffer, size);
 		}
@@ -663,45 +669,33 @@ namespace FoundationDB.Client
 			// => you should ALWAYS ensure a reasonable maximum size of your allocations !
 			if (Debugger.IsAttached) Debugger.Break();
 #endif
-			// note: some methods in the BCL do throw an OutOfMemoryException when attempting to allocated more than 2^32
+			// note: some methods in the BCL do throw an OutOfMemoryException when attempting to allocated more than 2^31
 			throw new OutOfMemoryException("Buffer cannot be resized, because it would exceed the maximum allowed size");
 		}
 
-		/// <summary>Round a size to a multiple of 16</summary>
-		/// <param name="size">Minimum size required</param>
-		/// <returns>Size rounded up to the next multiple of 16</returns>
-		/// <exception cref="System.OverflowException">If the rounded size overflows over 2 GB</exception>
-		internal static int Align(int size)
+		private sealed class DebugView
 		{
-			const int ALIGNMENT = 16; // MUST BE A POWER OF TWO!
-			const int MASK = (-ALIGNMENT) & int.MaxValue;
+			private readonly SliceWriter m_writer;
 
-			if (size <= ALIGNMENT) return ALIGNMENT;
-			// force an exception if we overflow above 2GB
-			checked { return (size + (ALIGNMENT - 1)) & MASK; }
-		}
+			public DebugView(SliceWriter writer)
+			{
+				m_writer = writer;
+			}
 
-		/// <summary>Round a number to the next power of 2</summary>
-		/// <param name="x">Positive integer that will be rounded up (if not already a power of 2)</param>
-		/// <returns>Smallest power of 2 that is greater then or equal to <paramref name="x"/></returns>
-		/// <remarks>Will return 1 for <paramref name="x"/> = 0 (because 0 is not a power 2 !), and will throws for <paramref name="x"/> &lt; 0</remarks>
-		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="x"/> is a negative number</exception>
-		internal static int NextPowerOfTwo(int x)
-		{
-			// cf http://en.wikipedia.org/wiki/Power_of_two#Algorithm_to_round_up_to_power_of_two
+			public byte[] Data
+			{
+				get
+				{
+					if (m_writer.Buffer.Length == m_writer.Position) return m_writer.Buffer;
+					return m_writer.GetBytes();
+				}
+			}
 
-			// special case
-			if (x == 0) return 1;
-			if (x < 0) throw new ArgumentOutOfRangeException("x", x, "Cannot compute the next power of two for negative numbers");
-			//TODO: check for overflow at if x > 2^30 ?
+			public int Position
+			{
+				get { return m_writer.Position; }
+			}
 
-			--x;
-			x |= (x >> 1);
-			x |= (x >> 2);
-			x |= (x >> 4);
-			x |= (x >> 8);
-			x |= (x >> 16);
-			return x + 1;
 		}
 
 	}

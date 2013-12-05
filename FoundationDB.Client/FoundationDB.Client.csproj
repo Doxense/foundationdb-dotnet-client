@@ -179,6 +179,8 @@
     <Compile Include="Encoders\KeyValueEncoders.cs" />
     <Compile Include="TypeSystem\FdbTypeCodec`1.cs" />
     <Compile Include="Encoders\ISliceSerializable.cs" />
+    <Compile Include="Utils\SliceHelpers.cs" />
+    <Compile Include="Utils\SliceComparer.cs" />
     <Compile Include="Utils\SliceBuffer.cs" />
     <Compile Include="Utils\Uuid.cs" />
     <Compile Include="Utils\SliceListStream.cs" />
