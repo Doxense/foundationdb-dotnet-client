@@ -666,7 +666,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
-			return new Uuid(slice.GetBytes(1, 16)).ToGuid();
+			return Uuid.Convert(new Slice(slice.Array, slice.Offset + 1, 16));
 		}
 
 		#endregion
