@@ -83,15 +83,15 @@ namespace FoundationDB.Client
 		/// <summary>Reject an invalid slice by throw an error with the appropriate diagnostic message.</summary>
 		public static void ThrowMalformedBuffer(byte[] array, int offset, int count)
 		{
-			if (offset < 0) throw new FormatException("The specified segment has a negative offset, which is not legal. This may be a side effect of memory corruption.");
-			if (count < 0) throw new FormatException("The specified segment has a negative size, which is not legal. This may be a side effect of memory corruption.");
+			if (offset < 0) throw new ArgumentException("The specified segment has a negative offset, which is not legal. This may be a side effect of memory corruption.", "offset");
+			if (count < 0) throw new ArgumentException("The specified segment has a negative size, which is not legal. This may be a side effect of memory corruption.", "count");
 			if (count > 0)
 			{
-				if (array == null) throw new FormatException("The specified segment is missing its underlying buffer.");
-				if (offset + count > array.Length) throw new FormatException("The specified segment is larger than its underlying buffer.");
+				if (array == null) throw new ArgumentException("The specified segment is missing its underlying buffer.", "array");
+				if (offset + count > array.Length) throw new ArgumentException("The specified segment is larger than its underlying buffer.", "count");
 			}
 			// maybe it's Lupus ?
-			throw new FormatException("The specified segment is invalid.");
+			throw new ArgumentException("The specified segment is invalid.");
 		}
 
 		/// <summary>Round a size to a multiple of 16</summary>
@@ -179,10 +179,10 @@ namespace FoundationDB.Client
 		/// <returns>true if all bytes are the same in both segments</returns>
 		public static bool SameBytes(byte[] left, int leftOffset, byte[] right, int rightOffset, int count)
 		{
-			if (left == null || right == null) return left == right;
 			SliceHelpers.EnsureBufferIsValid(left, leftOffset, count);
 			SliceHelpers.EnsureBufferIsValid(right, rightOffset, count);
 
+			if (left == null || right == null) return left == right;
 			return SameBytesUnsafe(left, leftOffset, right, rightOffset, count);
 		}
 

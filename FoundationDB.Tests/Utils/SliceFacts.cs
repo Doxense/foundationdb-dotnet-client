@@ -386,6 +386,12 @@ namespace FoundationDB.Client.Tests
 			Assert.That(Slice.Create(new byte[] { 0, 0, 0, 0, 0, 0, 0, 1 }).ToInt64(), Is.EqualTo(1L << 56));
 			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 127 }).ToInt64(), Is.EqualTo(int.MaxValue));
 			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }).ToInt64(), Is.EqualTo(long.MaxValue));
+
+			// should validate the arguments
+			var x = Slice.Create(new byte[] { 0x78, 0x56, 0x34, 0x12 });
+			Assert.That(() => MutateOffset(x, -1).ToInt64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 5).ToInt64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null).ToInt64(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
@@ -452,6 +458,12 @@ namespace FoundationDB.Client.Tests
 			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 255 }).ToUInt64(), Is.EqualTo(uint.MaxValue));
 			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 255, 255, 255, 255, 127 }).ToUInt64(), Is.EqualTo(long.MaxValue));
 			Assert.That(Slice.Create(new byte[] { 255, 255, 255, 255, 255, 255, 255, 255 }).ToUInt64(), Is.EqualTo(ulong.MaxValue));
+
+			// should validate the arguments
+			var x = Slice.Create(new byte[] { 0x78, 0x56, 0x34, 0x12 });
+			Assert.That(() => MutateOffset(x, -1).ToUInt64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 5).ToUInt64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null).ToUInt64(), Throws.InstanceOf<FormatException>());		
 		}
 
 		[Test]
@@ -499,6 +511,13 @@ namespace FoundationDB.Client.Tests
 			Assert.That(Slice.FromAscii(guid.ToString()).ToGuid(), Is.EqualTo(guid), "String literals should also be converted if they match the expected format");
 
 			Assert.That(() => Slice.FromAscii("random text").ToGuid(), Throws.InstanceOf<FormatException>());
+
+			// should validate the arguments
+			var x = Slice.FromGuid(guid);
+			Assert.That(() => MutateOffset(x, -1).ToGuid(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 17).ToGuid(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null).ToGuid(), Throws.InstanceOf<FormatException>());
+
 		}
 
 		[Test]
@@ -547,6 +566,11 @@ namespace FoundationDB.Client.Tests
 
 			Assert.That(() => Slice.FromAscii("random text").ToUuid(), Throws.InstanceOf<FormatException>());
 
+			// should validate the arguments
+			var x = Slice.FromUuid(uuid);
+			Assert.That(() => MutateOffset(x, -1).ToUuid(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 17).ToUuid(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null).ToUuid(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]
@@ -716,6 +740,108 @@ namespace FoundationDB.Client.Tests
 			var a2 = new ArraySegment<byte>(origin, 4, 4);//"abcd", refer second part of origin buffer
 			var s2 = Slice.Create(a2);
 			Assert.IsTrue(s1.Equals(s2), "'abcd' should equals 'abcd'");
+		}
+
+		[Test]
+		public void Test_Slice_Equality_Malformed()
+		{
+			var good = Slice.FromAscii("good");
+			var evil = Slice.FromAscii("evil");
+
+			// argument should be validated
+			Assert.That(() => good.Equals(MutateOffset(evil, -1)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => good.Equals(MutateCount(evil, 666)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => good.Equals(MutateArray(evil, null)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => good.Equals(MutateOffset(MutateCount(evil, 5), -1)), Throws.InstanceOf<FormatException>());
+
+			// instance should also be validated
+			Assert.That(() => MutateOffset(evil, -1).Equals(good), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(evil, 666).Equals(good), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(evil, null).Equals(good), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(MutateCount(evil, 5), -1).Equals(good), Throws.InstanceOf<FormatException>());
+		}
+
+		[Test]
+		public void Test_Slice_Hash_Code()
+		{
+			// note: the test values MAY change if the hashcode algorithm is modified.
+			// That means that if all the asserts in this test fail, you should probably ensure that the expected results are still valid.
+
+			Assert.That(Slice.Nil.GetHashCode(), Is.EqualTo(0), "Nil hashcode should always be 0");
+			Assert.That(Slice.Empty.GetHashCode(), Is.Not.EqualTo(0), "Empty hashcode should not be equal to 0");
+
+			Assert.That(Slice.FromString("abc").GetHashCode(), Is.EqualTo(Slice.FromString("abc").GetHashCode()), "Hashcode should not depend on the backing array");
+			Assert.That(Slice.FromString("zabcz").Substring(1, 3).GetHashCode(), Is.EqualTo(Slice.FromString("abc").GetHashCode()), "Hashcode should not depend on the offset in the array");
+			Assert.That(Slice.FromString("abc").GetHashCode(), Is.Not.EqualTo(Slice.FromString("abcd").GetHashCode()), "Hashcode should include all the bytes");
+
+			// should validate the arguments
+			var x = Slice.FromString("evil");
+			Assert.That(() => MutateOffset(x, -1).GetHashCode(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 17).GetHashCode(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null).GetHashCode(), Throws.InstanceOf<FormatException>());
+		}
+
+		[Test]
+		public void Test_Slice_Comparison()
+		{
+			var a = Slice.FromAscii("a");
+			var ab = Slice.FromAscii("ab");
+			var abc = Slice.FromAscii("abc");
+			var abc2 = Slice.FromAscii("abc"); // same bytes but different buffer
+			var b = Slice.FromAscii("b");
+
+			// a = b
+			Assert.That(a.CompareTo(a), Is.EqualTo(0));
+			Assert.That(ab.CompareTo(ab), Is.EqualTo(0));
+			Assert.That(abc.CompareTo(abc), Is.EqualTo(0));
+			Assert.That(abc.CompareTo(abc2), Is.EqualTo(0));
+
+			// a < b
+			Assert.That(a.CompareTo(b), Is.LessThan(0));
+			Assert.That(a.CompareTo(ab), Is.LessThan(0));
+			Assert.That(a.CompareTo(abc), Is.LessThan(0));
+
+			// a > b
+			Assert.That(b.CompareTo(a), Is.GreaterThan(0));
+			Assert.That(b.CompareTo(ab), Is.GreaterThan(0));
+			Assert.That(b.CompareTo(abc), Is.GreaterThan(0));
+	
+		}
+
+		[Test]
+		public void Test_Slice_Comparison_Corner_Cases()
+		{
+			// Nil == Empty
+			Assert.That(Slice.Nil.CompareTo(Slice.Nil), Is.EqualTo(0));
+			Assert.That(Slice.Empty.CompareTo(Slice.Empty), Is.EqualTo(0));
+			Assert.That(Slice.Nil.CompareTo(Slice.Empty), Is.EqualTo(0));
+			Assert.That(Slice.Empty.CompareTo(Slice.Nil), Is.EqualTo(0));
+
+			// X > NULL, NULL < X
+			var abc = Slice.FromAscii("abc");
+			Assert.That(abc.CompareTo(Slice.Nil), Is.GreaterThan(0));
+			Assert.That(abc.CompareTo(Slice.Empty), Is.GreaterThan(0));
+			Assert.That(Slice.Nil.CompareTo(abc), Is.LessThan(0));
+			Assert.That(Slice.Empty.CompareTo(abc), Is.LessThan(0));
+		}
+
+		[Test]
+		public void Test_Slice_Comparison_Malformed()
+		{
+			var good = Slice.FromAscii("good");
+			var evil = Slice.FromAscii("evil");
+
+			// argument should be validated
+			Assert.That(() => good.CompareTo(MutateOffset(evil, -1)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => good.CompareTo(MutateCount(evil, 666)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => good.CompareTo(MutateArray(evil, null)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => good.CompareTo(MutateOffset(MutateCount(evil, 5), -1)), Throws.InstanceOf<FormatException>());
+
+			// instance should also be validated
+			Assert.That(() => MutateOffset(evil, -1).CompareTo(good), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(evil, 666).CompareTo(good), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(evil, null).CompareTo(good), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateOffset(MutateCount(evil, 5), -1).CompareTo(good), Throws.InstanceOf<FormatException>());
 		}
 
 		private static readonly string UNICODE_TEXT = "Thïs Ïs à strîng thât contaÎns somé ùnicodè charactêrs and should be encoded in UTF-8: よろしくお願いします";
@@ -1028,5 +1154,37 @@ namespace FoundationDB.Client.Tests
 			var sep = Slice.FromString("!<@>!").Substring(1, 3);
 			Assert.That(Slice.FromString("A<@>BB<@>CCC").Split(sep), Is.EqualTo(new[] { a, b, c }));
 		}
+
+		#region Black Magic Incantations...
+
+		// The Slice struct is not blittable, so we can't take its address and change it via pointers.
+		// It is also checking its arguments in Debug mode, and all the fields are readonly, so the only way to inject bad values it is to use reflection.
+
+		private static Slice MutateOffset(Slice value, int offset)
+		{
+			// Don't try this at home !
+			object tmp = value;
+			typeof(Slice).GetField("Offset").SetValue(tmp, offset);
+			return (Slice)tmp;
+		}
+
+		private static Slice MutateCount(Slice value, int offset)
+		{
+			// Don't try this at home !
+			object tmp = value;
+			typeof(Slice).GetField("Offset").SetValue(tmp, offset);
+			return (Slice)tmp;
+		}
+
+		private static Slice MutateArray(Slice value, byte[] array)
+		{
+			// Don't try this at home !
+			object tmp = value;
+			typeof(Slice).GetField("Array").SetValue(tmp, array);
+			return (Slice)tmp;
+		}
+
+		#endregion
+
 	}
 }
