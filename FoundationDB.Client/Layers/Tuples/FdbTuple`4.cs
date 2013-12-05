@@ -114,13 +114,15 @@ namespace FoundationDB.Layers.Tuples
 
 		IFdbTuple IFdbTuple.Append<T5>(T5 value)
 		{
-			return this.Append<T5>(value);
+			// the caller doesn't care about the return type, so just box everything into a list tuple
+			return new FdbListTuple(new object[5] { this.Item1, this.Item2, this.Item3, this.Item4, value }, 0, 5);
 		}
 
-		public FdbListTuple Append<T5>(T5 value)
+		public FdbLinkedTuple<T5> Append<T5>(T5 value)
 		{
-			// ... or should we return a linked tuple?
-			return new FdbListTuple(new object[] { this.Item1, this.Item2, this.Item3, this.Item4, value }, 0, 5);
+			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will loose type information.
+			// but, by returning a FdbLinkedTuple<T5>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
+			return new FdbLinkedTuple<T5>(this, value);
 		}
 
 		public void CopyTo(object[] array, int offset)

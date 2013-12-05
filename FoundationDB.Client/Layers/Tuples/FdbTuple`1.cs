@@ -89,7 +89,7 @@ namespace FoundationDB.Layers.Tuples
 
 		IFdbTuple IFdbTuple.Append<T2>(T2 value)
 		{
-			return this.Append<T2>(value);
+			return new FdbTuple<T1, T2>(this.Item1, value);
 		}
 
 		public FdbTuple<T1, T2> Append<T2>(T2 value)

@@ -741,6 +741,15 @@ namespace FoundationDB.Layers.Tuples
 			);
 		}
 
+		private static readonly string TokenNull = "null";
+		private static readonly string TokenDoubleQuote = "\"";
+		private static readonly string TokenSingleQuote = "'";
+		private static readonly string TokenOpenBracket = "{";
+		private static readonly string TokenCloseBracket = "}";
+		private static readonly string TokenTupleEmpty = "()";
+		private static readonly string TokenTupleSep = ", ";
+		private static readonly string TokenTupleClose = ",)";
+
 		/// <summary>Converts any object into a displayble string, for logging/debugging purpose</summary>
 		/// <param name="item">Object to stringify</param>
 		/// <returns>String representation of the object</returns>
@@ -754,17 +763,18 @@ namespace FoundationDB.Layers.Tuples
 		/// </example>
 		internal static string Stringify(object item)
 		{
-			if (item == null) return "nil";
+			if (item == null) return TokenNull;
 
 			var s = item as string;
-			if (s != null) return "\"" + s + "\"";
+			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
+			if (s != null) return TokenDoubleQuote + s + TokenDoubleQuote; /* "hello" */
 
-			if (item is char) return "\"" + (char)item + "\"";
+			if (item is char) return TokenSingleQuote + (char)item + TokenSingleQuote; /* 'X' */ 
 
 			if (item is Slice) return ((Slice)item).ToAsciiOrHexaString();
 			if (item is byte[]) return Slice.Create(item as byte[]).ToAsciiOrHexaString();
 
-			if (item is FdbTupleAlias) return "{" + item.ToString() + "}";
+			if (item is FdbTupleAlias) return TokenOpenBracket + ((FdbTupleAlias)item).ToString() + TokenCloseBracket; /* {X} */
 
 			var f = item as IFormattable;
 			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);
@@ -782,15 +792,15 @@ namespace FoundationDB.Layers.Tuples
 		internal static string ToString(object[] items, int offset, int count)
 		{
 			if (items == null) return String.Empty;
-			if (count == 0) return "()";
+			if (count == 0) return TokenTupleEmpty; /* "()" */
 
 			var sb = new StringBuilder();
 			sb.Append('(').Append(Stringify(items[offset++]));
 			while (--count > 0)
 			{
-				sb.Append(", ").Append(Stringify(items[offset++]));
+				sb.Append(TokenTupleSep /* ", " */).Append(Stringify(items[offset++]));
 			}
-			return sb.Append(",)").ToString();
+			return sb.Append(TokenTupleClose /* ",)" */).ToString();
 		}
 
 		/// <summary>Convert a sequence of object into a displaying string, for loggin/debugging purpose</summary>
@@ -802,16 +812,16 @@ namespace FoundationDB.Layers.Tuples
 			if (items == null) return String.Empty;
 			using (var enumerator = items.GetEnumerator())
 			{
-				if (!enumerator.MoveNext()) return "()";
+				if (!enumerator.MoveNext()) return TokenTupleEmpty; /* "()" */
 
 				var sb = new StringBuilder();
 				sb.Append('(').Append(Stringify(enumerator.Current));
 				while (enumerator.MoveNext())
 				{
-					sb.Append(", ").Append(Stringify(enumerator.Current));
+					sb.Append(TokenTupleSep /* ", " */).Append(Stringify(enumerator.Current));
 				}
 
-				return sb.Append(",)").ToString();
+				return sb.Append(TokenTupleClose /* ",)" */).ToString();
 			}
 		}
 

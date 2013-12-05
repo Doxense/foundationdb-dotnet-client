@@ -96,12 +96,15 @@ namespace FoundationDB.Layers.Tuples
 
 		IFdbTuple IFdbTuple.Append<T3>(T3 value)
 		{
-			return this.Append<T3>(value);
+			return new FdbTuple<T1, T2, T3>(this.Item1, this.Item2, value);
 		}
 
 		public FdbTuple<T1, T2, T3> Append<T3>(T3 value)
 		{
 			return new FdbTuple<T1, T2, T3>(this.Item1, this.Item2, value);
+			// Note: By create a FdbTuple<T1, T2, T3> we risk an explosion of the number of combinations of Ts which could potentially cause problems at runtime (too many variants of the same generic types). 
+			// ex: if we have N possible types, then there could be N^3 possible variants of FdbTuple<T1, T2, T3> that the JIT has to deal with.
+			// => if this starts becoming a problem, then we should return a list tuple !
 		}
 
 		public void CopyTo(object[] array, int offset)

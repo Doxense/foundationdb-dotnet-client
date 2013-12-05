@@ -107,12 +107,18 @@ namespace FoundationDB.Layers.Tuples
 
 		IFdbTuple IFdbTuple.Append<T4>(T4 value)
 		{
-			return this.Append<T4>(value);
+			// here, the caller doesn't care about the exact tuple type, so we simply return a boxed List Tuple.
+			return new FdbListTuple(new object[4] { this.Item1, this.Item2, this.Item3, value }, 0, 4);
 		}
 
 		public FdbTuple<T1, T2, T3, T4> Append<T4>(T4 value)
 		{
+			// Here, the caller was explicitly using the FdbTuple<T1, T2, T3> struct so probably care about memory footprint, so we keep returning a struct
 			return new FdbTuple<T1, T2, T3, T4>(this.Item1, this.Item2, this.Item3, value);
+
+			// Note: By create a FdbTuple<T1, T2, T3, T4> we risk an explosion of the number of combinations of Ts which could potentially cause problems at runtime (too many variants of the same generic types). 
+			// ex: if we have N possible types, then there could be N^4 possible variants of FdbTuple<T1, T2, T3, T4> that the JIT has to deal with.
+			// => if this starts becoming a problem, then we should return a list tuple !
 		}
 
 		public void CopyTo(object[] array, int offset)
