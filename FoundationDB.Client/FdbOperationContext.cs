@@ -74,7 +74,7 @@ namespace FoundationDB.Client
 		/// <summary>Internal source of cancellation, able to abort any pending IO operations attached to this transaction</summary>
 		internal CancellationTokenSource TokenSource { get; private set; }
 
-		internal FdbOperationContext(IFdbDatabase db, FdbTransactionMode mode, CancellationToken cancellationToken)
+		public FdbOperationContext(IFdbDatabase db, FdbTransactionMode mode, CancellationToken cancellationToken)
 		{
 			Contract.Requires(db != null);
 
