@@ -1,5 +1,8 @@
-﻿
-#define DUMP_TRANSACTION_STATE
+﻿#region Copyright (c) 2013-2014, Doxense SAS. All rights reserved.
+// See License.MD for license information
+#endregion
+
+#undef DUMP_TRANSACTION_STATE
 
 namespace FoundationDB.Storage.Memory.API
 {

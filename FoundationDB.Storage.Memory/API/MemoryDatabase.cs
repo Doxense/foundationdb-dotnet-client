@@ -1,12 +1,14 @@
-﻿using FoundationDB.Client;
+﻿#region Copyright (c) 2013-2014, Doxense SAS. All rights reserved.
+// See License.MD for license information
+#endregion
+
+using FoundationDB.Client;
 using FoundationDB.Client.Utils;
 using FoundationDB.Storage.Memory.Core;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Diagnostics.Contracts;
-using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;

@@ -1,25 +1,25 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using FoundationDB.Storage.Memory.Core;
-using FoundationDB.Client;
-using NUnit.Framework;
-using FoundationDB.Layers.Indexing;
-using FoundationDB.Layers.Tables;
-using System.Diagnostics;
-using System.Threading;
+﻿#region Copyright (c) 2013-2014, Doxense SAS. All rights reserved.
+// See License.MD for license information
+#endregion
 
 namespace FoundationDB.Storage.Memory.API.Tests
 {
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Indexing;
+	using FoundationDB.Layers.Tables;
+	using NUnit.Framework;
+	using System;
+	using System.Diagnostics;
+	using System.Linq;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class MemoryTransactionFacts
 	{
 
 		[Test]
-		public async Task Test_Qui_Tue()
+		public async Task Test_Hello_World()
 		{
 			using (var db = new MemoryDatabase("DB", FdbSubspace.Empty, false))
 			{
@@ -184,7 +184,6 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		public async Task Test_GetRange()
 		{
 			Slice key;
-			Slice value;
 
 			using (var db = new MemoryDatabase("DB", FdbSubspace.Empty, false))
 			{
@@ -335,7 +334,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		}
 
 		[Test]
-		public async Task Test()
+		public async Task Test_Compare_Implementations()
 		{
 			int mode = 5;
 

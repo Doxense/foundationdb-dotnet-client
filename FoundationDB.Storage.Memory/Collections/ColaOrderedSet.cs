@@ -1,17 +1,13 @@
-﻿#region Copyright Doxense 2013
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+﻿#region Copyright (c) 2013-2014, Doxense SAS. All rights reserved.
+// See License.MD for license information
 #endregion
-
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
 
 namespace FoundationDB.Storage.Memory.Core
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics.Contracts;
+
 	/// <summary>Represent an ordered set of elements, stored in a Cache Oblivous Lookup Array</summary>
 	/// <typeparam name="T">Type of elements stored in the set</typeparam>
 	/// <remarks>Inserts are in O(LogN) amortized. Lookups are in O(Log(N))</remarks>

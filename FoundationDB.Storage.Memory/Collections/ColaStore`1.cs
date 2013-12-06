@@ -1,9 +1,5 @@
-﻿#region Copyright Doxense 2013
-//
-// All rights are reserved. Reproduction or transmission in whole or in part, in
-// any form or by any means, electronic, mechanical or otherwise, is prohibited
-// without the prior written consent of the copyright owner.
-//
+﻿#region Copyright (c) 2013-2014, Doxense SAS. All rights reserved.
+// See License.MD for license information
 #endregion
 
 // enables consitency checks after each operation to the set

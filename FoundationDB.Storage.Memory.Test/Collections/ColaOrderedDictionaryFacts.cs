@@ -1,16 +1,13 @@
-﻿using FoundationDB.Client;
-using FoundationDB.Layers.Tuples;
-using NUnit.Framework;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿#region Copyright (c) 2013-2014, Doxense SAS. All rights reserved.
+// See License.MD for license information
+#endregion
 
 namespace FoundationDB.Storage.Memory.Core.Test
 {
+	using NUnit.Framework;
+	using System;
+	using System.Collections.Generic;
+
 	[TestFixture]
 	public class ColaOrderedDictionaryFacts
 	{
