@@ -893,6 +893,35 @@ namespace FoundationDB.Client.Tests
 					// should conflict!
 					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(77) in TR2 should have conflicted with the GetKey(fGE{50} + 1) in TR1");
 				}
+
+				// does conflict arise from changes in VALUES in the database? or from changes in RESULTS to user queries ?
+
+				await db.WriteAsync((tr) =>
+				{
+					tr.ClearRange(loc);
+					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Pack("foo", 100), Slice.FromAscii("one hundred"));
+				});
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					// fGT{50} => 100
+					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterThan(loc.Pack("foo", 50)));
+					Assert.That(key, Is.EqualTo(loc.Pack("foo", 100)));
+
+					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(loc.Pack("foo", 100), Slice.FromAscii("cent"));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(loc.Pack("bar"), Slice.Empty);
+
+					// this causes a conflict in the current version of FDB
+					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(100) in TR2 should have conflicted with the GetKey(fGT{50}) in TR1");
+				}
 			}
 		}
 
