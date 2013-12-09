@@ -679,8 +679,15 @@ namespace FoundationDB.Client.Native
 
 			// note: fdb_future_get_key is allowed to return NULL for the empty key (not to be confused with a key that has an empty value)
 			Contract.Assert(keyLength >= 0 && keyLength <= Fdb.MaxKeySize);
-			key = keyLength <= 0 ? Slice.Empty : Slice.Create(ptr, keyLength);
 
+			if (keyLength <= 0 || ptr == null)
+			{ // from the spec: "If a key selector would otherwise describe a key off the beginning of the database, it instead resolves to the empty key ''."
+				key = Slice.Empty;
+			}
+			else
+			{
+				key = Slice.Create(ptr, keyLength);
+			}
 			return err;
 		}
 

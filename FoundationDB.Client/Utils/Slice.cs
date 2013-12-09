@@ -748,6 +748,7 @@ namespace FoundationDB.Client
 			SliceHelpers.EnsureSliceIsValid(ref this);
 			// Anything appart from nil/empty, or the byte 0 itself is considered truthy.
 			return this.Count > 1 || (this.Count == 1 && this.Array[this.Offset] != 0);
+			//TODO: consider checking if the slice consist of only zeroes ? (ex: Slice.FromFixed32(0) could be considered falsy ...)
 		}
 
 		/// <summary>Converts a slice into a little-endian encoded, signed 32-bit integer.</summary>
