@@ -439,6 +439,80 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Resolve_Key_Selector_Outside_Boundaries()
+		{
+			// test various corner cases:
+
+			// - k < first_key or k <= <00> resolves to:
+			//   - '' always
+
+			// - k > last_key or k >= <FF> resolve to:
+			//	 - '<FF>' when access to system keys is off
+			//   - '<FF>/backupRange' (usually) when access to system keys is ON
+
+			// - k >= <FF><00> resolves to:
+			//   - key_outside_legal_range when access to system keys is off
+			//   - '<FF>/backupRange' (usually) when access to system keys is ON
+
+			// - k >= <FF><FF> resolved to:
+			//   - key_outside_legal_range when access to system keys is off
+			//   - '<FF><FF>' when access to system keys is ON
+
+			Slice key;
+
+			// note: we can't have any prefix on the keys, so open the test database in read-only mode
+			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, FdbSubspace.Empty, readOnly: true))
+			{
+				using (var tr = db.BeginReadOnlyTransaction())
+				{
+					// before <00>
+					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MinValue));
+					Assert.That(key, Is.EqualTo(Slice.Empty), "lLT(<00>) => ''");
+
+					// before the first key in the db
+					var minKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(FdbKey.MinValue));
+					Assert.That(minKey, Is.Not.Null);
+					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(minKey));
+					Assert.That(key, Is.EqualTo(Slice.Empty), "lLT(min_key) => ''");
+
+					// after the last key in the db
+
+					var maxKey = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MaxValue));
+					Assert.That(maxKey, Is.Not.Null);
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(maxKey));
+					Assert.That(key, Is.EqualTo(FdbKey.MaxValue), "fGT(maxKey) => <FF>");
+
+					// after <FF>
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
+					Assert.That(key, Is.EqualTo(FdbKey.MaxValue), "fGT(<FF>) => <FF>");
+					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
+					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.SystemKeys.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
+
+					tr.WithAccessToSystemKeys();
+
+					var firstSystemKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
+					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.
+					Assert.That(firstSystemKey, Is.Not.Null);
+					Assert.That(firstSystemKey, Is.GreaterThan(FdbKey.MaxValue), "key should be between <FF> and <FF><FF>");
+					Assert.That(firstSystemKey, Is.LessThan(Fdb.SystemKeys.MaxValue), "key should be between <FF> and <FF><FF>");
+
+					// with access to system keys, the maximum possible key becomes <FF><FF>
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Fdb.SystemKeys.MaxValue));
+					Assert.That(key, Is.EqualTo(Fdb.SystemKeys.MaxValue), "fGE(<FF><FF>) => <FF><FF> (with access to system keys)");
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(Fdb.SystemKeys.MaxValue));
+					Assert.That(key, Is.EqualTo(Fdb.SystemKeys.MaxValue), "fGT(<FF><FF>) => <FF><FF> (with access to system keys)");
+
+					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.SystemKeys.MinValue));
+					Assert.That(key, Is.EqualTo(maxKey), "lLT(<FF><00>) => max_key (with access to system keys)");
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(maxKey));
+					Assert.That(key, Is.EqualTo(firstSystemKey), "fGT(max_key) => first_system_key (with access to system keys)");
+
+				}
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Get_Multiple_Values()
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
@@ -922,6 +996,36 @@ namespace FoundationDB.Client.Tests
 					// this causes a conflict in the current version of FDB
 					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(100) in TR2 should have conflicted with the GetKey(fGT{50}) in TR1");
 				}
+
+				// LastLessThan does not create conflicts if the pivot key is changed
+
+				await db.WriteAsync((tr) =>
+				{
+					tr.ClearRange(loc);
+					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Pack("foo", 100), Slice.FromAscii("one hundred"));
+				});
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					// lLT{100} => 50
+					var key = await tr1.GetKeyAsync(FdbKeySelector.LastLessThan(loc.Pack("foo", 100)));
+					Assert.That(key, Is.EqualTo(loc.Pack("foo", 50)));
+
+					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Clear(loc.Pack("foo", 100));
+						await tr2.CommitAsync();
+					}
+
+					// we need to write something to force a conflict
+					tr1.Set(loc.Pack("bar"), Slice.Empty);
+
+					// this causes a conflict in the current version of FDB
+					await tr1.CommitAsync();
+				}
+
 			}
 		}
 
