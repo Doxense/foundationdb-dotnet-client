@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -101,7 +102,13 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				return m_parent.GetCoreAsync(key, snapshot: true);
+				m_parent.m_database.EnsureKeyIsValid(key);
+
+#if DEBUG
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));
+#endif
+
+				return m_parent.m_handler.GetAsync(key, snapshot: true, cancellationToken: m_parent.m_token);
 			}
 
 			public Task<Slice[]> GetValuesAsync(Slice[] keys)
@@ -110,28 +117,62 @@ namespace FoundationDB.Client
 
 				EnsureCanRead();
 
-				return m_parent.GetValuesCoreAsync(keys, snapshot: true);
+				m_parent.m_database.EnsureKeysAreValid(keys);
+
+#if DEBUG
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", String.Format("Getting batch of {0} values ...", keys.Length.ToString()));
+#endif
+
+				return m_parent.m_handler.GetValuesAsync(keys, snapshot: true, cancellationToken: m_parent.m_token);
 			}
 
-			public Task<Slice> GetKeyAsync(FdbKeySelector selector)
+			public async Task<Slice> GetKeyAsync(FdbKeySelector selector)
 			{
 				EnsureCanRead();
 
-				return m_parent.GetKeyCoreAsync(selector, snapshot: true);
+				m_parent.m_database.EnsureKeyIsValid(selector.Key);
+
+#if DEBUG
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", String.Format("Getting key '{0}'", selector.ToString()));
+#endif
+
+				var key = await m_parent.m_handler.GetKeyAsync(selector, snapshot: true, cancellationToken: m_parent.m_token).ConfigureAwait(false);
+
+				// don't forget to truncate keys that would fall outside of the database's globalspace !
+				return m_parent.m_database.BoundCheck(key);
+
 			}
 
 			public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
 			{
 				EnsureCanRead();
 
-				return m_parent.GetKeysCoreAsync(selectors, snapshot:true);
+				foreach (var selector in selectors)
+				{
+					m_parent.m_database.EnsureKeyIsValid(selector.Key);
+				}
+
+#if DEBUG
+				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysCoreAsync", String.Format("Getting batch of {0} keys ...", selectors.Length.ToString()));
+#endif
+
+				return m_parent.m_handler.GetKeysAsync(selectors, snapshot: true, cancellationToken: m_parent.m_token);
 			}
 
 			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration)
 			{
 				EnsureCanRead();
 
-				return m_parent.GetRangeCoreAsync(beginInclusive, endExclusive, options, iteration, snapshot: true);
+				m_parent.m_database.EnsureKeyIsValid(beginInclusive.Key);
+				m_parent.m_database.EnsureKeyIsValid(endExclusive.Key);
+
+				options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
+				options.EnsureLegalValues();
+
+				// The iteration value is only needed when in iterator mode, but then it should start from 1
+				if (iteration == 0) iteration = 1;
+
+				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: true, cancellationToken: m_parent.m_token);
 			}
 
 			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options)
@@ -144,7 +185,7 @@ namespace FoundationDB.Client
 			public Task<string[]> GetAddressesForKeyAsync(Slice key)
 			{
 				EnsureCanRead();
-				return m_parent.GetAddressesForKeyCoreAsync(key);
+				return m_parent.m_handler.GetAddressesForKeyAsync(key, cancellationToken: m_parent.m_token);
 			}
 
 			public void Cancel()

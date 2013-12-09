@@ -54,8 +54,8 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr, Is.Not.Null, "BeginTransaction should return a valid instance");
 					Assert.That(tr.State == FdbTransaction.STATE_READY, "Transaction should be in ready state");
 					Assert.That(tr.StillAlive, Is.True, "Transaction should be alive");
-					Assert.That(tr.Handle.IsInvalid, Is.False, "Transaction handle should be valid");
-					Assert.That(tr.Handle.IsClosed, Is.False, "Transaction handle should not be closed");
+					Assert.That(tr.Handler.IsInvalid, Is.False, "Transaction handle should be valid");
+					Assert.That(tr.Handler.IsClosed, Is.False, "Transaction handle should not be closed");
 					Assert.That(tr.Database, Is.SameAs(db), "Transaction should reference the parent Database");
 					Assert.That(tr.Size, Is.EqualTo(0), "Estimated size should be zero");
 					Assert.That(tr.IsReadOnly, Is.False, "Transaction is not read-only");
@@ -65,7 +65,7 @@ namespace FoundationDB.Client.Tests
 
 					Assert.That(tr.State == FdbTransaction.STATE_DISPOSED, "Transaction should now be in the disposed state");
 					Assert.That(tr.StillAlive, Is.False, "Transaction should be not be alive anymore");
-					Assert.That(tr.Handle.IsClosed, Is.True, "Transaction handle should now be closed");
+					Assert.That(tr.Handler.IsClosed, Is.True, "Transaction handle should now be closed");
 
 					// multiple calls to dispose should not do anything more
 					Assert.That(() => { tr.Dispose(); }, Throws.Nothing);
@@ -118,17 +118,17 @@ namespace FoundationDB.Client.Tests
 
 					Assert.That(tr1, Is.InstanceOf<FdbTransaction>());
 					Assert.That(tr2, Is.InstanceOf<FdbTransaction>());
-					Assert.That(((FdbTransaction)tr1).Handle, Is.Not.EqualTo(((FdbTransaction)tr2).Handle), "Should have different FDB_FUTURE* handles");
+					Assert.That(((FdbTransaction)tr1).Handler, Is.Not.EqualTo(((FdbTransaction)tr2).Handler), "Should have different FDB_FUTURE* handles");
 
 					// disposing the first should not impact the second
 
 					tr1.Dispose();
 
 					Assert.That(((FdbTransaction)tr1).StillAlive, Is.False, "First transaction should be dead");
-					Assert.That(((FdbTransaction)tr1).Handle.IsClosed, Is.True, "First FDB_FUTURE* handle should be closed");
+					Assert.That(((FdbTransaction)tr1).Handler.IsClosed, Is.True, "First FDB_FUTURE* handle should be closed");
 
 					Assert.That(((FdbTransaction)tr2).StillAlive, Is.True, "Second transaction should still be alive");
-					Assert.That(((FdbTransaction)tr2).Handle.IsClosed, Is.False, "Second FDB_FUTURE* handle should still be opened");
+					Assert.That(((FdbTransaction)tr2).Handler.IsClosed, Is.False, "Second FDB_FUTURE* handle should still be opened");
 				}
 				finally
 				{

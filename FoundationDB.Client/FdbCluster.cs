@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
@@ -132,7 +133,7 @@ namespace FoundationDB.Client
 
 					if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
 
-					return new FdbDatabase(this, database, databaseName, subspace, readOnly, ownsCluster);
+					return new FdbDatabase(this, new FdbNativeDatabase(database), databaseName, subspace, readOnly, ownsCluster);
 				},
 				cancellationToken
 			);

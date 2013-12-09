@@ -63,11 +63,15 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="Core\IFdbDatabaseHandler.cs" />
     <Compile Include="Encoders\IKeyValueEncoder.cs" />
     <Compile Include="IFdbCluster.cs" />
     <Compile Include="FdbClusterFile.cs" />
+    <Compile Include="Unmanaged\FdbNativeDatabase.cs" />
     <Compile Include="FdbDatabaseExtensions.cs" />
     <Compile Include="FdbKeyRangeComparer.cs" />
+    <Compile Include="Core\IFdbTransactionHandler.cs" />
+    <Compile Include="Unmanaged\FdbNativeTransaction.cs" />
     <Compile Include="IFdbKey.cs" />
     <Compile Include="FdbTransactionMode.cs" />
     <Compile Include="FdbTransactionals.cs" />
