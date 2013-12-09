@@ -745,6 +745,32 @@ namespace FoundationDB.Storage.Memory.API
 			return result;
 		}
 
+		#region GetRange...
+
+		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, bool snapshot)
+		{
+			//this.Database.EnsureKeyIsValid(begin.Key);
+			//this.Database.EnsureKeyIsValid(end.Key);
+
+			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
+			options.EnsureLegalValues();
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", begin.ToString(), end.ToString()));
+#endif
+
+			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, (kvp) => kvp, snapshot, options);
+		}
+
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		{
+			EnsureCanRead();
+
+			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false);
+		}
+
+		#endregion
+
 		public void Set(Slice key, Slice value)
 		{
 			// check
@@ -975,11 +1001,6 @@ namespace FoundationDB.Storage.Memory.API
 		public FdbWatch Watch(Slice key, System.Threading.CancellationToken cancellationToken)
 		{
 			throw new NotSupportedException();
-		}
-
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, FdbRangeOptions options = null)
-		{
-			throw new NotImplementedException();
 		}
 
 		public Task<string[]> GetAddressesForKeyAsync(Slice key)

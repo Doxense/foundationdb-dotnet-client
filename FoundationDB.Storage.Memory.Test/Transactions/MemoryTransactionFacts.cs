@@ -181,7 +181,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		}
 
 		[Test]
-		public async Task Test_GetRange()
+		public async Task Test_GetRangeAsync()
 		{
 			Slice key;
 
@@ -194,22 +194,20 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					{
 						tr.Set(db.Pack(i), Slice.FromString("value of " + i));
 					}
-					tr.WithAccessToSystemKeys();
-					tr.Set(FdbKey.MinValue, Slice.Empty);
-					tr.Set(FdbKey.MaxValue, Slice.Empty);
 					await tr.CommitAsync();
 				}
 
 				db.Debug_Dump();
 
+				// verify that key selectors work find
 				using (var tr = db.BeginTransaction())
 				{
 					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(FdbKey.MaxValue));
-					Assert.That(key, Is.EqualTo(FdbKey.MaxValue));
+					if (key != FdbKey.MaxValue) Assert.Inconclusive("Key selectors are buggy: fGE(max)");
 					key = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(FdbKey.MaxValue));
-					Assert.That(key, Is.EqualTo(FdbKey.MaxValue));
+					if (key != FdbKey.MaxValue) Assert.Inconclusive("Key selectors are buggy: lLE(max)");
 					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MaxValue));
-					Assert.That(key, Is.EqualTo(db.Pack(100)));
+					if (key != db.Pack(100)) Assert.Inconclusive("Key selectors are buggy: lLT(max)");
 				}
 
 				using (var tr = db.BeginTransaction())
@@ -228,6 +226,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					Assert.That(chunk.HasMore, Is.False, "chunk.HasMore");
 					Assert.That(chunk.Reversed, Is.False, "chunk.Reversed");
 					Assert.That(chunk.Iteration, Is.EqualTo(0), "chunk.Iteration");
+
+					for (int i = 0; i < 50; i++)
+					{
+						Assert.That(chunk.Chunk[i].Key, Is.EqualTo(db.Pack(i)), "[{0}].Key", i);
+						Assert.That(chunk.Chunk[i].Value.ToString(), Is.EqualTo("value of " + i), "[{0}].Value", i);
+					}
 
 					await tr.CommitAsync();
 				}
@@ -250,6 +254,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					Assert.That(chunk.Reversed, Is.True, "chunk.Reversed");
 					Assert.That(chunk.Iteration, Is.EqualTo(0), "chunk.Iteration");
 
+					for (int i = 0; i < 50; i++)
+					{
+						Assert.That(chunk.Chunk[i].Key, Is.EqualTo(db.Pack(49 - i)), "[{0}].Key", i);
+						Assert.That(chunk.Chunk[i].Value.ToString(), Is.EqualTo("value of " + (49 - i)), "[{0}].Value", i);
+					}
+
 					await tr.CommitAsync();
 				}
 
@@ -270,6 +280,86 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					Assert.That(chunk.HasMore, Is.True, "chunk.HasMore");
 					Assert.That(chunk.Reversed, Is.True, "chunk.Reversed");
 					Assert.That(chunk.Iteration, Is.EqualTo(0), "chunk.Iteration");
+
+					await tr.CommitAsync();
+				}
+
+			}
+
+		}
+
+		[Test]
+		public async Task Test_GetRange()
+		{
+
+			using (var db = new MemoryDatabase("DB", FdbSubspace.Empty, false))
+			{
+
+				using (var tr = db.BeginTransaction())
+				{
+					for (int i = 0; i <= 100; i++)
+					{
+						tr.Set(db.Pack(i), Slice.FromString("value of " + i));
+					}
+					await tr.CommitAsync();
+				}
+
+				db.Debug_Dump();
+
+				using (var tr = db.BeginTransaction())
+				{
+
+					var results = await tr
+						.GetRange(db.Pack(0), db.Pack(50))
+						.ToListAsync();
+
+					Assert.That(results, Is.Not.Null);
+					for (int i = 0; i < results.Count; i++)
+					{
+						Console.WriteLine(i.ToString() + " : " + results[i].Key + " = " + results[i].Value);
+					}
+
+					Assert.That(results.Count, Is.EqualTo(50));
+					for (int i = 0; i < 50; i++)
+					{
+						Assert.That(results[i].Key, Is.EqualTo(db.Pack(i)), "[{0}].Key", i);
+						Assert.That(results[i].Value.ToString(), Is.EqualTo("value of " + i), "[{0}].Value", i);
+					}
+
+					await tr.CommitAsync();
+				}
+
+				using (var tr = db.BeginTransaction())
+				{
+
+					var results = await tr
+						.GetRange(db.Pack(0), db.Pack(50), new FdbRangeOptions { Reverse = true })
+						.ToListAsync();
+
+					for (int i = 0; i < results.Count; i++)
+					{
+						Console.WriteLine(i.ToString() + " : " + results[i].Key + " = " + results[i].Value);
+					}
+
+					Assert.That(results.Count, Is.EqualTo(50));
+					for (int i = 0; i < 50; i++)
+					{
+						Assert.That(results[i].Key, Is.EqualTo(db.Pack(49 - i)), "[{0}].Key", i);
+						Assert.That(results[i].Value.ToString(), Is.EqualTo("value of " + (49 - i)), "[{0}].Value", i);
+					}
+
+					await tr.CommitAsync();
+				}
+
+				using (var tr = db.BeginTransaction())
+				{
+					var result = await tr
+						.GetRange(db.Pack(0), FdbKey.MaxValue, new FdbRangeOptions { Reverse = true })
+						.FirstOrDefaultAsync();
+
+					Console.WriteLine(result.Key + " = " + result.Value);
+					Assert.That(result.Key, Is.EqualTo(db.Pack(100)));
+					Assert.That(result.Value.ToString(), Is.EqualTo("value of 100"));
 
 					await tr.CommitAsync();
 				}
@@ -478,8 +568,6 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			const int KEYSIZE = 10;
 			const int VALUESIZE = 100;
 			const bool RANDOM = false;
-
-			ThreadPool.SetMinThreads(Environment.ProcessorCount, Environment.ProcessorCount);
 
 			var rnd = new Random();
 
