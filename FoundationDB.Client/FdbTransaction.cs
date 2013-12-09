@@ -261,16 +261,32 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		internal void SetOptionCore(FdbTransactionOption option, Slice data)
+		{
+			unsafe
+			{
+				if (data.IsNull)
+				{
+					Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, null, 0));
+				}
+				else
+				{
+					fixed (byte* ptr = data.Array)
+					{
+						Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr + data.Offset, data.Count));
+					}
+				}
+			}
+
+		}
+
 		/// <summary>Set an option on this transaction that does not take any parameter</summary>
 		/// <param name="option">Option to set</param>
 		public void SetOption(FdbTransactionOption option)
 		{
 			EnsureNotFailedOrDisposed();
 
-			unsafe
-			{
-				Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, null, 0));
-			}
+			SetOptionCore(option, Slice.Nil);
 		}
 
 		/// <summary>Set an option on this transaction that takes a string value</summary>
@@ -281,13 +297,7 @@ namespace FoundationDB.Client
 			EnsureNotFailedOrDisposed();
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
-			unsafe
-			{
-				fixed (byte* ptr = data.Array)
-				{
-					Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr + data.Offset, data.Count));
-				}
-			}
+			SetOptionCore(option, data);
 		}
 
 		/// <summary>Set an option on this transaction that takes an integer value</summary>
@@ -297,27 +307,18 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
-			unsafe
-			{
-				// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
+			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
+			var data = Slice.FromFixed64(value);
 
-				//TODO: what if we run on Big-Endian hardware ?
-				Contract.Requires(BitConverter.IsLittleEndian, "Not supported on Big-Endian platforms");
-
-				Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, (byte*)&value, 8));
-			}
+			SetOptionCore(option, data);
 		}
 
 		#endregion
 
 		#region Versions...
 
-		/// <summary>Returns this transaction snapshot read version.</summary>
-		public Task<long> GetReadVersionAsync()
+		internal Task<long> GetReadVersionCoreAsync()
 		{
-			EnsureCanRead();
-			//TODO: should we also allow being called after commit or rollback ?
-
 			var future = FdbNative.TransactionGetReadVersion(m_handle);
 			return FdbFuture.CreateTaskFromHandle(future,
 				(h) =>
@@ -334,6 +335,31 @@ namespace FoundationDB.Client
 			);
 		}
 
+		internal long GetCommittedVersionCore()
+		{
+			long version;
+			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
+#if DEBUG_TRANSACTIONS
+			Debug.WriteLine("FdbTransaction[" + m_id + "].GetCommittedVersion() => err=" + err + ", version=" + version);
+#endif
+			Fdb.DieOnError(err);
+			return version;
+		}
+
+		internal void SetReadVersionCore(long version)
+		{
+			FdbNative.TransactionSetReadVersion(m_handle, version);
+		}
+
+		/// <summary>Returns this transaction snapshot read version.</summary>
+		public Task<long> GetReadVersionAsync()
+		{
+			EnsureCanRead();
+			//TODO: should we also allow being called after commit or rollback ?
+
+			return GetReadVersionCoreAsync();
+		}
+
 		/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>
 		/// <returns>Version number, or -1 if this transaction was not committed (or did nothing)</returns>
 		/// <remarks>The value return by this method is undefined if Commit has not been called</remarks>
@@ -342,13 +368,7 @@ namespace FoundationDB.Client
 			//TODO: should we only allow calls if transaction is in state "COMMITTED" ?
 			EnsureNotFailedOrDisposed();
 
-			long version;
-			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
-#if DEBUG_TRANSACTIONS
-			Debug.WriteLine("FdbTransaction[" + m_id + "].GetCommittedVersion() => err=" + err + ", version=" + version);
-#endif
-			Fdb.DieOnError(err);
-			return version;
+			return GetCommittedVersionCore();
 		}
 
 		/// <summary>
@@ -359,7 +379,7 @@ namespace FoundationDB.Client
 			//Note: this is in IFdbTransaction but it looks like it could also be used for reading ?
 			EnsureCanWrite();
 
-			FdbNative.TransactionSetReadVersion(m_handle, version);
+			SetReadVersionCore(version);
 		}
 
 		#endregion
@@ -417,6 +437,55 @@ namespace FoundationDB.Client
 			EnsureCanRead();
 
 			return GetCoreAsync(key, snapshot: false);
+		}
+
+		#endregion
+
+		#region GetValues...
+
+		internal Task<Slice[]> GetValuesCoreAsync(Slice[] keys, bool snapshot)
+		{
+			Contract.Requires(keys != null);
+
+			foreach (var key in keys)
+			{
+				this.Database.EnsureKeyIsValid(key);
+			}
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesCoreAsync", String.Format("Getting batch of {0} values ...", keys.Length.ToString()));
+#endif
+
+			var futures = new FutureHandle[keys.Length];
+			try
+			{
+				for (int i = 0; i < keys.Length; i++)
+				{
+					futures[i] = FdbNative.TransactionGet(m_handle, keys[i], snapshot);
+				}
+			}
+			catch
+			{
+				for (int i = 0; i < keys.Length; i++)
+				{
+					if (futures[i] == null) break;
+					futures[i].Dispose();
+				}
+				throw;
+			}
+			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetValueResultBytes(h), m_token);
+		}
+
+		/// <summary>
+		/// Reads several values from the database snapshot represented by the current transaction
+		/// </summary>
+		public Task<Slice[]> GetValuesAsync(Slice[] keys)
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+
+			EnsureCanRead();
+
+			return GetValuesCoreAsync(keys, snapshot: false);
 		}
 
 		#endregion
@@ -810,56 +879,13 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Batching...
-
-		internal Task<Slice[]> GetValuesCoreAsync(Slice[] keys, bool snapshot)
-		{
-			Contract.Requires(keys != null);
-
-			foreach (var key in keys)
-			{
-				this.Database.EnsureKeyIsValid(key);
-			}
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesCoreAsync", String.Format("Getting batch of {0} values ...", keys.Length.ToString()));
-#endif
-
-			var futures = new FutureHandle[keys.Length];
-			try
-			{
-				for (int i = 0; i < keys.Length; i++)
-				{
-					futures[i] = FdbNative.TransactionGet(m_handle, keys[i], snapshot);
-				}
-			}
-			catch
-			{
-				for (int i = 0; i < keys.Length; i++)
-				{
-					if (futures[i] == null) break;
-					futures[i].Dispose();
-				}
-				throw;
-			}
-			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetValueResultBytes(h), m_token);
-		}
-
-		/// <summary>
-		/// Reads several values from the database snapshot represented by the current transaction
-		/// </summary>
-		public Task<Slice[]> GetValuesAsync(Slice[] keys)
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			EnsureCanRead();
-
-			return GetValuesCoreAsync(keys, snapshot: false);
-		}
-
-		#endregion
-
 		#region Commit...
+
+		internal Task CommitCoreAsync()
+		{
+			var future = FdbNative.TransactionCommit(m_handle);
+			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, m_token);
+		}
 
 		/// <summary>
 		/// Attempts to commit the sets and clears previously applied to the database snapshot represented by this transaction to the actual database. 
@@ -877,8 +903,7 @@ namespace FoundationDB.Client
 			//TODO: need a STATE_COMMITTING ?
 			try
 			{
-				var future = FdbNative.TransactionCommit(m_handle);
-				await FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, m_token).ConfigureAwait(false);
+				await CommitCoreAsync().ConfigureAwait(false);
 
 				if (Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY) == STATE_READY)
 				{
