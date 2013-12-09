@@ -7,6 +7,7 @@ namespace FoundationDB.Storage.Memory.Core
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics.Contracts;
+	using System.Runtime.InteropServices;
 
 	/// <summary>Represent an ordered set of elements, stored in a Cache Oblivous Lookup Array</summary>
 	/// <typeparam name="T">Type of elements stored in the set</typeparam>
@@ -17,6 +18,8 @@ namespace FoundationDB.Storage.Memory.Core
 
 		/// <summary>COLA array used to store the elements in the set</summary>
 		private readonly ColaStore<T> m_items;
+
+		private volatile int m_version;
 
 		#region Constructors...
 
@@ -79,6 +82,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public void Clear()
 		{
+			++m_version;
 			m_items.Clear();
 		}
 
@@ -87,7 +91,13 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <remarks>If the value already exists in the set, it will not be overwritten</remarks>
 		public bool Add(T value)
 		{
-			return m_items.SetOrAdd(value, overwriteExistingValue: false);
+			++m_version;
+			if (!m_items.SetOrAdd(value, overwriteExistingValue: false))
+			{
+				--m_version;
+				return false;
+			}
+			return true;
 		}
 
 		/// <summary>Adds or overwrite the specified value to this ordered set.</summary>
@@ -95,6 +105,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <remarks>If the value already exists in the set, it will be overwritten by <paramref name="value"/></remarks>
 		public bool Set(T value)
 		{
+			++m_version;
 			return m_items.SetOrAdd(value, overwriteExistingValue: true);
 		}
 
@@ -104,6 +115,7 @@ namespace FoundationDB.Storage.Memory.Core
 			int level = m_items.Find(value, out offset, out actualValue);
 			if (level != NOT_FOUND)
 			{
+				++m_version;
 				m_items.RemoveAt(level, offset);
 				return true;
 			}
@@ -124,6 +136,7 @@ namespace FoundationDB.Storage.Memory.Core
 			int level = ColaStore.MapOffsetToLocation(m_items.Count, arrayIndex, out offset);
 			Contract.Assert(level >= 0 && offset >= 0 && offset < 1 << level);
 
+			++m_version;
 			return m_items.RemoveAt(level, offset);
 		}
 
@@ -208,6 +221,57 @@ namespace FoundationDB.Storage.Memory.Core
 			m_items.Debug_Dump();
 		}
 
+		[StructLayout(LayoutKind.Sequential)]
+		public struct Enumerator : IEnumerator<T>, IDisposable
+		{
+			private const int NOT_FOUND = -1;
+
+			private readonly int m_version;
+			private readonly ColaOrderedSet<T> m_parent;
+			private ColaStore.Enumerator<T> m_iterator;
+
+			internal Enumerator(ColaOrderedSet<T> parent, bool reverse)
+			{
+				m_version = parent.m_version;
+				m_parent = parent;
+				m_iterator = new ColaStore.Enumerator<T>(parent.m_items, reverse);
+			}
+
+			public bool MoveNext()
+			{
+				if (m_version != m_parent.m_version)
+				{
+					ColaStore.ThrowStoreVersionChanged();
+				}
+
+				return m_iterator.MoveNext();
+			}
+
+			public T Current
+			{
+				get { return m_iterator.Current; }
+			}
+
+			public void Dispose()
+			{
+				// we are a struct that can be copied by value, so there is no guarantee that Dispose() will accomplish anything anyway...
+			}
+
+			object System.Collections.IEnumerator.Current
+			{
+				get { return m_iterator.Current; }
+			}
+
+			void System.Collections.IEnumerator.Reset()
+			{
+				if (m_version != m_parent.m_version)
+				{
+					ColaStore.ThrowStoreVersionChanged();
+				}
+				m_iterator = new ColaStore.Enumerator<T>(m_parent.m_items, m_iterator.Reverse);
+			}
+
+		}
 
 	}
 

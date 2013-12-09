@@ -7,8 +7,11 @@ namespace FoundationDB.Storage.Memory.Core.Test
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Text;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	[TestFixture]
 	public class ColaStoreFacts
@@ -298,6 +301,158 @@ namespace FoundationDB.Storage.Memory.Core.Test
 				}
 
 			}
+
+		}
+
+		[Test]
+		public void Test_MiniBench()
+		{
+			const int N = (1 << 23) - 1; // 10 * 1000 * 1000;
+
+			var rnd = new Random();
+			int offset, level;
+			long x;
+
+
+			//WARMUP
+			var store = new ColaStore<long>(0, Comparer<long>.Default);
+			store.Insert(1);
+			store.Insert(42);
+			store.Insert(1234);
+			level = store.Find(1, out offset, out x);
+
+			const int BS = (N + 1) / 128;
+			var timings = new List<TimeSpan>(BS);
+			timings.Add(TimeSpan.Zero);
+			timings.Clear();
+
+			#region Sequentially inserted....
+
+			Console.WriteLine("Inserting {0} sequential keys into a COLA store", N);
+			GC.Collect();
+			store = new ColaStore<long>(0, Comparer<long>.Default);
+			long total = 0;
+			var sw = Stopwatch.StartNew();
+			for (int i = 0; i < N; i++)
+			{
+
+				int y = rnd.Next(100);
+
+				level = store.Find(y, out offset, out x);
+				if (level < 0) store.Insert(i);
+				else store.SetAt(level, offset, x);
+
+				Interlocked.Increment(ref total);
+				if ((i % BS) == BS - 1)
+				{
+					sw.Stop();
+					timings.Add(sw.Elapsed);
+					Console.Write(".");
+					sw.Start();
+				}
+			}
+			sw.Stop();
+
+			Console.WriteLine("done");
+			Console.WriteLine("* Inserted: " + total.ToString("N0") + " keys");
+			Console.WriteLine("* Elapsed : " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
+			Console.WriteLine("* KPS: " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " key/sec");
+			Console.WriteLine("* Latency : " + (sw.Elapsed.TotalMilliseconds * 1000000 / total).ToString("N1") + " nanos / insert");
+			for (int i = 0; i < timings.Count; i++)
+			{
+				Console.WriteLine("" + ((i + 1) * BS).ToString() + "\t" + timings[i].TotalSeconds);
+			}
+			return;
+			// sequential reads
+
+			sw.Restart();
+			for (int i = 0; i < total; i++)
+			{
+				level = store.Find(i, out offset, out x);
+			}
+			sw.Stop();
+			Console.WriteLine("SeqReadOrdered: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+			// random reads
+
+			sw.Restart();
+			for (int i = 0; i < total; i++)
+			{
+				level = store.Find(rnd.Next(N), out offset, out x);
+			}
+			sw.Stop();
+			Console.WriteLine("RndReadOrdered: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+			#endregion
+
+			#region Randomly inserted....
+
+			Console.WriteLine("(preparing random insert list)");
+
+			var tmp = new long[N];
+			var values = new long[N];
+			for (int i = 0; i < N; i++)
+			{
+				tmp[i] = rnd.Next(N);
+				values[i] = i;
+			}
+			Array.Sort(tmp, values);
+
+			Console.WriteLine("Inserting " + N.ToString("N0") + " sequential keys into a COLA store");
+			GC.Collect();
+			store = new ColaStore<long>(0, Comparer<long>.Default);
+			total = 0;
+
+			timings.Clear();
+
+			sw.Restart();
+			for (int i = 0; i < N; i++)
+			{
+				level = store.Find(i, out offset, out x);
+				store.Insert(values[i]);
+				Interlocked.Increment(ref total);
+				if ((i % BS) == BS - 1)
+				{
+					sw.Stop();
+					timings.Add(sw.Elapsed);
+					Console.Write(".");
+					sw.Start();
+				}
+			}
+			sw.Stop();
+
+			Console.WriteLine("done");
+			Console.WriteLine("* Inserted: " + total.ToString("N0") + " keys");
+			Console.WriteLine("* Elapsed : " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
+			Console.WriteLine("* KPS     : " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " key/sec");
+			Console.WriteLine("* Latency : " + (sw.Elapsed.TotalMilliseconds * 1000000 / total).ToString("N1") + " nanos / insert");
+
+			for (int i = 0; i < timings.Count;i++)
+			{
+				Console.WriteLine("" + ((i + 1) * BS).ToString() + "\t" + timings[i].TotalSeconds);
+			}
+
+			// sequential reads
+
+			sw.Restart();
+			for (int i = 0; i < total; i++)
+			{
+				level = store.Find(i, out offset, out x);
+			}
+			sw.Stop();
+			Console.WriteLine("SeqReadUnordered: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+			// random reads
+
+			sw.Restart();
+			for (int i = 0; i < total; i++)
+			{
+				level = store.Find(rnd.Next(N), out offset, out x);
+			}
+			sw.Stop();
+			Console.WriteLine("RndReadUnordered: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+			#endregion
 
 		}
 

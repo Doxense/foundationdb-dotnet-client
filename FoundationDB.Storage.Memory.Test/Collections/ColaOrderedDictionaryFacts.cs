@@ -7,6 +7,8 @@ namespace FoundationDB.Storage.Memory.Core.Test
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Threading;
 
 	[TestFixture]
 	public class ColaOrderedDictionaryFacts
@@ -129,6 +131,126 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			}
 
 			cola.Debug_Dump();
+
+		}
+
+		[Test]
+		public void Test_MiniBench()
+		{
+			const int N = 10 * 1000 * 1000;
+
+			var rnd = new Random();
+			long x;
+
+
+			//WARMUP
+			var store = new ColaOrderedDictionary<long, long>();
+			store.Add(1, 1);
+			store.Add(42, 42);
+			store.Add(1234, 1234);
+			store.TryGetValue(42, out x);
+			store.TryGetValue(404, out x);
+
+			#region Sequentially inserted....
+
+			Console.WriteLine("Inserting " + N.ToString("N0") + " sequential key/value pairs into a COLA ordered dictionary");
+			GC.Collect();
+			store = new ColaOrderedDictionary<long, long>();
+			long total = 0;
+			var sw = Stopwatch.StartNew();
+			for (int i = 0; i < N; i++)
+			{
+				store[i] = i;
+				Interlocked.Increment(ref total);
+				if (i % (N / 10) == 0) Console.Write(".");
+			}
+			sw.Stop();
+
+			Console.WriteLine("done");
+			Console.WriteLine("* Inserted: " + total.ToString("N0") + " keys");
+			Console.WriteLine("* Elapsed : " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
+			Console.WriteLine("* KPS: " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " key/sec");
+			Console.WriteLine("* Latency : " + (sw.Elapsed.TotalMilliseconds * 1000000 / total).ToString("N1") + " nanos / insert");
+
+			// sequential reads
+
+			sw.Restart();
+			for (int i = 0; i < total; i++)
+			{
+				var _ = store.TryGetValue(i, out x);
+				if (!_ || x != i) Assert.Fail();
+			}
+			sw.Stop();
+			Console.WriteLine("SeqReadOrdered: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+			// random reads
+
+			sw.Restart();
+			for (int i = 0; i < total; i++)
+			{
+				var _ = store.TryGetValue(rnd.Next(N), out x);
+				if (!_) Assert.Fail();
+			}
+			sw.Stop();
+			Console.WriteLine("RndReadOrdered: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+			#endregion
+
+			#region Randomly inserted....
+
+			Console.WriteLine("(preparing random insert list)");
+
+			var tmp = new long[N];
+			var values = new long[N];
+			for (int i = 0; i < N; i++)
+			{
+				tmp[i] = rnd.Next(N);
+				values[i] = i;
+			}
+			Array.Sort(tmp, values);
+
+			Console.WriteLine("Inserting " + N.ToString("N0") + " sequential keys into a COLA store");
+			GC.Collect();
+			store = new ColaOrderedDictionary<long, long>();
+			total = 0;
+			sw.Restart();
+			for (int i = 0; i < N; i++)
+			{
+				store.Add(values[i], i);
+				Interlocked.Increment(ref total);
+				if (i % (N / 10) == 0) Console.Write(".");
+			}
+			sw.Stop();
+
+			Console.WriteLine("done");
+			Console.WriteLine("* Inserted: " + total.ToString("N0") + " keys");
+			Console.WriteLine("* Elapsed : " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
+			Console.WriteLine("* KPS     : " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " key/sec");
+			Console.WriteLine("* Latency : " + (sw.Elapsed.TotalMilliseconds * 1000000 / total).ToString("N1") + " nanos / insert");
+
+			// sequential reads
+
+			sw.Restart();
+			for (int i = 0; i < total; i++)
+			{
+				var _ = store.TryGetValue(i, out x);
+				if (!_) Assert.Fail();
+			}
+			sw.Stop();
+			Console.WriteLine("SeqReadUnordered: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+			// random reads
+
+			sw.Restart();
+			for (int i = 0; i < total; i++)
+			{
+				var _ = store.TryGetValue(rnd.Next(N), out x);
+				if (!_) Assert.Fail();
+			}
+			sw.Stop();
+			Console.WriteLine("RndReadUnordered: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+			#endregion
 
 		}
 

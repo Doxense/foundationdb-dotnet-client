@@ -8,6 +8,7 @@ namespace FoundationDB.Storage.Memory.Core
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
+	using System.Runtime.InteropServices;
 
 	/// <summary>Represent an ordered set of key/value pairs, stored in a Cache Oblivious Lookahead Array</summary>
 	/// <typeparam name="TKey">Type of ordered keys stored in the dictionary.</typeparam>
@@ -63,6 +64,8 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Comparer for the values of the dictionary</summary>
 		private readonly IEqualityComparer<TValue> m_valueComparer;
 
+		private volatile int m_version;
+
 		#region Constructors...
 
 		public ColaOrderedDictionary(IComparer<TKey> keyComparer = null, IEqualityComparer<TValue> valueComparer = null)
@@ -94,10 +97,17 @@ namespace FoundationDB.Storage.Memory.Core
 			get { return m_items.Capacity; }
 		}
 
+		public TValue this[TKey key]
+		{
+			get { return GetValue(key); }
+			set { SetItem(key, value); }
+		}
+
 		#endregion
 
 		public void Clear()
 		{
+			++m_version;
 			m_items.Clear();
 		}
 
@@ -122,8 +132,12 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <exception cref="System.InvalidOperationException">If an entry with the same key already exist in the dictionary.</exception>
 		public void Add(TKey key, TValue value)
 		{
+			if (key == null) ThrowKeyCannotBeNull();
+
+			++m_version;
 			if (!m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: false))
 			{
+				--m_version;
 				throw new InvalidOperationException("An entry with the same key but a different value already exists.");
 			}
 		}
@@ -133,6 +147,8 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <param name="value">The key value to set.</param>
 		public void SetItem(TKey key, TValue value)
 		{
+			if (key == null) throw new ArgumentNullException("key");
+			++m_version;
 			m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: true);
 		}
 
@@ -142,15 +158,19 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <returns>true if the key did not previously exist and was inserted; otherwise, false.</returns>
 		public bool AddOrUpdate(TKey key, TValue value)
 		{
+			if (key == null) ThrowKeyCannotBeNull();
+
 			KeyValuePair<TKey, TValue> entry;
 			int offset, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out offset, out entry);
 			if (level >= 0)
 			{ // already exists
 				// keep the old key, and update the value
+				++m_version;
 				m_items.SetAt(level, offset, new KeyValuePair<TKey, TValue>(entry.Key, value));
 				return false;
 			}
 
+			++m_version;
 			m_items.Insert(new KeyValuePair<TKey, TValue>(key, value));
 			return true;
 		}
@@ -161,6 +181,8 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <returns>true if the key did not previously exist and was inserted; otherwise, false.</returns>
 		public bool GetOrAdd(TKey key, TValue value, out TValue actualValue)
 		{
+			if (key == null) ThrowKeyCannotBeNull();
+
 			KeyValuePair<TKey, TValue> entry;
 			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out entry);
 			if (level >= 0)
@@ -169,6 +191,7 @@ namespace FoundationDB.Storage.Memory.Core
 				return false;
 			}
 
+			++m_version;
 			m_items.Insert(new KeyValuePair<TKey, TValue>(key, value));
 			actualValue = value;
 			return true;
@@ -176,6 +199,8 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public bool ContainsKey(TKey key)
 		{
+			if (key == null) ThrowKeyCannotBeNull();
+
 			int _;
 			KeyValuePair<TKey, TValue> __;
 			return m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out __) >= 0;
@@ -196,6 +221,8 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <returns>true if a match for <paramref name="equalKey"/> is found; otherwise, false.</returns>
 		public bool TryGetKey(TKey equalKey, out TKey actualKey)
 		{
+			if (equalKey == null) ThrowKeyCannotBeNull();
+
 			KeyValuePair<TKey, TValue> entry;
 			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(equalKey, default(TValue)), out _, out entry);
 			if (level < 0)
@@ -213,6 +240,8 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <returns>true if a match for <paramref name="key"/> is found; otherwise, false.</returns>
 		public bool TryGetValue(TKey key, out TValue value)
 		{
+			if (key == null) ThrowKeyCannotBeNull();
+
 			KeyValuePair<TKey, TValue> entry;
 			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out entry);
 			if (level < 0)
@@ -224,12 +253,27 @@ namespace FoundationDB.Storage.Memory.Core
 			return true;
 		}
 
+		public TValue GetValue(TKey key)
+		{
+			if (key == null) ThrowKeyCannotBeNull();
+
+			KeyValuePair<TKey, TValue> entry;
+			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out entry);
+			if (level < 0)
+			{
+				ThrowKeyNotFound();
+			}
+			return entry.Value;
+		}
+
 		/// <summary>Gets the existing key and value associated with the specified key.</summary>
 		/// <param name="key">The key to search for.</param>
 		/// <param name="entry">The matching key and value pair located in the dictionary if found.</param>
 		/// <returns>true if a match for <paramref name="key"/> is found; otherwise, false.</returns>
 		public bool TryGetKeyValue(TKey key, out KeyValuePair<TKey, TValue> entry)
 		{
+			if (key == null) ThrowKeyCannotBeNull();
+
 			int _, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out _, out entry);
 			return level >= 0;
 		}
@@ -240,11 +284,14 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <remarks>It is NOT allowed to remove keys while iterating on the dictionary at the same time!</remarks>
 		public bool Remove(TKey key)
 		{
+			if (key == null) ThrowKeyCannotBeNull();
+
 			KeyValuePair<TKey, TValue> _;
 			int offset, level = m_items.Find(new KeyValuePair<TKey, TValue>(key, default(TValue)), out offset, out _);
 
 			if (level >= 0)
 			{
+				++m_version;
 				m_items.RemoveAt(level, offset);
 				return true;
 			}
@@ -315,11 +362,73 @@ namespace FoundationDB.Storage.Memory.Core
 			m_items.CopyTo(array, index, m_items.Count);
 		}
 
+		private static void ThrowKeyCannotBeNull()
+		{
+			throw new ArgumentNullException("key");
+		}
+
+		private static void ThrowKeyNotFound()
+		{
+			throw new KeyNotFoundException();
+		}
+
 		//TODO: remove or set to internal !
 		public void Debug_Dump()
 		{
 			Console.WriteLine("Dumping ColaOrderedDictionary<" + typeof(TKey).Name + ", " + typeof(TValue).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
 			m_items.Debug_Dump();
+		}
+
+		[StructLayout(LayoutKind.Sequential)]
+		public struct Enumerator : IEnumerator<KeyValuePair<TKey, TValue>>, IDisposable
+		{
+			private const int NOT_FOUND = -1;
+
+			private readonly int m_version;
+			private readonly ColaOrderedDictionary<TKey, TValue> m_parent;
+			private ColaStore.Enumerator<KeyValuePair<TKey, TValue>> m_iterator;
+
+			internal Enumerator(ColaOrderedDictionary<TKey, TValue> parent, bool reverse)
+			{
+				m_version = parent.m_version;
+				m_parent = parent;
+				m_iterator = new ColaStore.Enumerator<KeyValuePair<TKey, TValue>>(parent.m_items, reverse);
+			}
+
+			public bool MoveNext()
+			{
+				if (m_version != m_parent.m_version)
+				{
+					ColaStore.ThrowStoreVersionChanged();
+				}
+
+				return m_iterator.MoveNext();
+			}
+
+			public KeyValuePair<TKey, TValue> Current
+			{
+				get { return m_iterator.Current; }
+			}
+
+			public void Dispose()
+			{
+				// we are a struct that can be copied by value, so there is no guarantee that Dispose() will accomplish anything anyway...
+			}
+
+			object System.Collections.IEnumerator.Current
+			{
+				get { return m_iterator.Current; }
+			}
+
+			void System.Collections.IEnumerator.Reset()
+			{
+				if (m_version != m_parent.m_version)
+				{
+					ColaStore.ThrowStoreVersionChanged();
+				}
+				m_iterator = new ColaStore.Enumerator<KeyValuePair<TKey, TValue>>(m_parent.m_items, m_iterator.Reverse);
+			}
+
 		}
 
 	}

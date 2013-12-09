@@ -91,9 +91,6 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Key comparer</summary>
 		private readonly IComparer<T> m_comparer;
 
-		/// <summary>Version number of the store, incremented after each modification</summary>
-		private volatile int m_version;
-
 		#region Constructors...
 
 		/// <summary>Allocates a new store</summary>
@@ -202,12 +199,6 @@ namespace FoundationDB.Storage.Memory.Core
 			get { return m_comparer; }
 		}
 
-		/// <summary>Gets the current version of the store</summary>
-		public int Version
-		{
-			get { return m_version; }
-		}
-
 		/// <summary>Gets the current number of levels</summary>
 		/// <remarks>Note that the last level may not be currently used!</remarks>
 		public int Depth
@@ -268,7 +259,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <returns>Level that contains the element if found; otherwise, -1.</returns>
 		public int Find(T value, out int offset, out T actualValue)
 		{
-			if (!IsFree(0))
+			if ((m_count & 1) != 0)
 			{
 				// If someone gets the last inserted key, there is a 50% change that it is in the root
 				// (if not, it will the the last one of the first non-empty level)
@@ -280,19 +271,19 @@ namespace FoundationDB.Storage.Memory.Core
 				}
 			}
 
-			for (int i = 1; i < m_levels.Length; i++)
+			var levels = m_levels;
+			for (int i = 1; i < levels.Length; i++)
 			{
 				if (IsFree(i))
 				{ // this segment is not allocated
 					continue;
 				}
 
-				var segment = m_levels[i];
-				int p = ColaStore.BinarySearch<T>(segment, 0, segment.Length, value, m_comparer);
+				int p = ColaStore.BinarySearch<T>(levels[i], 0, 1 << i, value, m_comparer);
 				if (p >= 0)
 				{
 					offset = p;
-					actualValue = segment[p];
+					actualValue = levels[i][p];
 					return i;
 				}
 			}
@@ -524,7 +515,6 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Clear the array</summary>
 		public void Clear()
 		{
-			++m_version;
 			for (int i = 0; i < m_levels.Length; i++)
 			{
 				if (i < MAX_SPARE_ORDER)
@@ -576,8 +566,6 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <remarks>The index is the absolute index, as if all the levels where a single, contiguous, array (0 = root, 7 = first element of level 3)</remarks>
 		public void Insert(T value)
 		{
-			++m_version;
-
 			if (IsFree(0))
 			{ // half the inserts (when the count is even) can be done in the root
 				m_root[0] = value;
@@ -619,8 +607,6 @@ namespace FoundationDB.Storage.Memory.Core
 		{
 			Contract.Assert(level >= 0 && offset >= 0 && offset < 1 << level);
 			//TODO: check if level is allocated ?
-
-			++m_version;
 
 			var segment = m_levels[level];
 			Contract.Assert(segment != null && segment.Length == 1 << level);

@@ -339,8 +339,9 @@ namespace FoundationDB.Storage.Memory.Core
 			Contract.Requires(left.Length > 0 && output.Length == left.Length * 2 && right.Length == left.Length);
 
 			int n = left.Length;
-			// note: The probably to merge an array of size N is rougly 1/N (with N being a power of 2),
-			// which means that we should spent half the time merging arrays of size 1 into an array of size 2..
+			// note: The probality to merge an array of size N is rougly 1/N (with N being a power of 2),
+			// which means that we will spend roughly half the time merging arrays of size 1 into an array of size 2..
+
 			if (n == 1)
 			{ // Most frequent case (p=0.5)
 				var l = left[0];
@@ -355,55 +356,77 @@ namespace FoundationDB.Storage.Memory.Core
 					output[0] = r;
 					output[1] = l;
 				}
+				return;
 			}
-			else
+
+			if (n == 2)
+			{ // second most frequent case (p=0.25)
+
+				// We are merging 2 pairs of ordered values into an array of size 4
+				if (comparer.Compare(left[1], right[0]) < 0)
+				{ // left << right
+					output[0] = left[0];
+					output[1] = left[1];
+					output[2] = right[0];
+					output[3] = right[1];
+					return;
+				}
+
+				if (comparer.Compare(right[1], left[0]) < 0)
+				{ // right << left
+					output[0] = right[0];
+					output[1] = right[1];
+					output[2] = left[0];
+					output[3] = left[1];
+					return;
+				}
+
+				// left and right intersects
+				// => just use the regular merge sort below
+			}
+
+			int pLeft = 0;
+			int pRight = 0;
+			int pOutput = 0;
+
+			while (true)
 			{
-				// if values are ordered when inserted, then left 
+				if (comparer.Compare(left[pLeft], right[pRight]) < 0)
+				{ // left is smaller than right => advance
 
-				int pLeft = 0;
-				int pRight = 0;
-				int pOutput = 0;
+					output[pOutput++] = left[pLeft++];
 
-				while (true)
-				{
-					if (comparer.Compare(left[pLeft], right[pRight]) < 0)
-					{ // left is smaller than right => advance
-
-						output[pOutput++] = left[pLeft++];
-
-						if (pLeft >= n)
-						{ // the left array is done, copy the remainder of the right array
-							Array.Copy(right, pRight, output, pOutput, n - pRight);
-							return;
-						}
+					if (pLeft >= n)
+					{ // the left array is done, copy the remainder of the right array
+						if (pRight < n) Array.Copy(right, pRight, output, pOutput, n - pRight);
+						return;
 					}
-					else
-					{ // right is smaller or equal => advance
+				}
+				else
+				{ // right is smaller or equal => advance
 
-						output[pOutput++] = right[pRight++];
+					output[pOutput++] = right[pRight++];
 
-						if (pRight >= n)
-						{ // the right array is done, copy the remainder of the left array
-							Array.Copy(left, pLeft, output, pOutput, n - pLeft);
-							return;
-						}
+					if (pRight >= n)
+					{ // the right array is done, copy the remainder of the left array
+						if (pLeft < n) Array.Copy(left, pLeft, output, pOutput, n - pLeft);
+						return;
 					}
 				}
 			}
 
 		}
 
-		internal static int[] CreateCursors(int count, int levels, out int min, out int max)
+		internal static int[] CreateCursors(int count, out int min)
 		{
-			var cursors = new int[levels];
+			min = LowestBit(count);
+			var cursors = new int[HighestBit(count) + 1];
 			int k = 1;
-			for (int i = 0; i < levels; i++)
+			for (int i = 0; i < cursors.Length; i++)
 			{
-				if ((count & k) == 0) cursors[i] = NOT_FOUND;
+				if (i < min || (count & k) == 0) cursors[i] = NOT_FOUND;
 				k <<= 1;
 			}
-			min = LowestBit(count);
-			max = HighestBit(count);
 			return cursors;
 		}
 
@@ -587,12 +610,16 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 		}
 
+		internal static void ThrowStoreVersionChanged()
+		{
+			throw new InvalidOperationException("The version of the store has changed. This usually means that the collection has been modified while it was being enumerated");
+		}
+
 		[StructLayout(LayoutKind.Sequential)]
 		public struct Enumerator<T> : IEnumerator<T>, IDisposable
 		{
 			private readonly ColaStore<T> m_items;
 			private readonly bool m_reverse;
-			private readonly int m_version;
 			private int[] m_cursors;
 			private T m_current;
 			private int m_min;
@@ -602,18 +629,13 @@ namespace FoundationDB.Storage.Memory.Core
 			{
 				m_items = items;
 				m_reverse = reverse;
-				m_version = m_items.Version;
-				m_cursors = ColaStore.CreateCursors(m_items.Count, m_items.Depth, out m_min, out m_max);
+				m_cursors = ColaStore.CreateCursors(m_items.Count, out m_min);
+				m_max = m_cursors.Length - 1;
 				m_current = default(T);
 			}
 
 			public bool MoveNext()
 			{
-				if (m_version != m_items.Version)
-				{
-					ThrowStoreVersionChanged();
-				}
-
 				int pos;
 				if (m_reverse)
 				{
@@ -647,6 +669,11 @@ namespace FoundationDB.Storage.Memory.Core
 				get { return m_current; }
 			}
 
+			public bool Reverse
+			{
+				get { return m_reverse; }
+			}
+
 			public void Dispose()
 			{
 				// we are a struct that can be copied by value, so there is no guarantee that Dispose() will accomplish anything anyway...
@@ -659,23 +686,14 @@ namespace FoundationDB.Storage.Memory.Core
 
 			void System.Collections.IEnumerator.Reset()
 			{
-				if (m_version != m_items.Version)
-				{
-					ThrowStoreVersionChanged();
-				}
-
-				m_cursors = ColaStore.CreateCursors(m_items.Count, m_items.Depth, out m_min, out m_max);
+				m_cursors = ColaStore.CreateCursors(m_items.Count, out m_min);
+				m_max = m_cursors.Length - 1;
 				m_current = default(T);
-			}
-
-			private static void ThrowStoreVersionChanged()
-			{
-				throw new InvalidOperationException("The version of the store has changed. This usually means that the collection has been modified while it was being enumerated");
 			}
 
 		}
 
-		public class Iterator<T>
+		public sealed class Iterator<T>
 		{
 			private const int DIRECTION_PREVIOUS = -1;
 			private const int DIRECTION_SEEK = 0;
@@ -686,7 +704,6 @@ namespace FoundationDB.Storage.Memory.Core
 			private readonly IComparer<T> m_comparer;
 			private readonly int[] m_cursors;
 			private readonly int m_min;
-			private readonly int m_max;
 			private T m_current;
 			private int m_currentLevel;
 			private int m_direction;
@@ -698,14 +715,14 @@ namespace FoundationDB.Storage.Memory.Core
 				m_count = count;
 				m_comparer = comparer;
 
-				m_cursors = ColaStore.CreateCursors(m_count, levels.Length, out m_min, out m_max);
+				m_cursors = ColaStore.CreateCursors(m_count, out m_min);
 			}
 
 			[Conditional("DEBUG")]
 			private void Debug_Dump(string label = null)
 			{
 				Trace.WriteLine("* Cursor State: " + label); 
-				for (int i = m_min; i <= m_max; i++)
+				for (int i = m_min; i < m_cursors.Length; i++)
 				{
 					if (ColaStore.IsFree(i, m_count))
 					{
@@ -725,11 +742,13 @@ namespace FoundationDB.Storage.Memory.Core
 				T min = default(T);
 				int minLevel = NOT_FOUND;
 
-				for (int i = m_min; i <= m_max;i++)
+				var cursors = m_cursors;
+
+				for (int i = m_min; i < cursors.Length; i++)
 				{
 					if (IsFree(i, m_count)) continue;
+					cursors[i] = 0;
 					var segment = m_levels[i];
-					m_cursors[i] = 0;
 					if (minLevel < 0 || m_comparer.Compare(segment[0], min) < 0)
 					{
 						min = segment[0];
@@ -750,11 +769,13 @@ namespace FoundationDB.Storage.Memory.Core
 				T max = default(T);
 				int maxLevel = NOT_FOUND;
 
-				for (int i = m_min; i <= m_max; i++)
+				var cursors = m_cursors;
+
+				for (int i = m_min; i < cursors.Length; i++)
 				{
 					if (IsFree(i, m_count)) continue;
 					var segment = m_levels[i];
-					m_cursors[i] = segment.Length - 1;
+					cursors[i] = segment.Length - 1;
 					if (maxLevel < 0 || m_comparer.Compare(segment[segment.Length - 1], max) > 0)
 					{
 						max = segment[segment.Length - 1];
@@ -792,7 +813,7 @@ namespace FoundationDB.Storage.Memory.Core
 				var cursors = m_cursors;
 				var count = m_count;
 
-				for (int i = m_min; i <= m_max; i++)
+				for (int i = m_min; i < cursors.Length; i++)
 				{
 					if (IsFree(i, count)) continue;
 
@@ -872,14 +893,14 @@ namespace FoundationDB.Storage.Memory.Core
 				else
 				{ // previous call was a Previous()
 					// we know that the current is the largest value of all the current cursors. Since we want even larger than that, we have to increment ALL the cursors
-					for (int i = m_min; i <= m_max; i++)
+					for (int i = m_min; i < cursors.Length; i++)
 					{
 						if (!IsFree(i, count) && ((pos = cursors[i]) < m_levels[i].Length)) cursors[i] = pos + 1;
 					}
 					Debug_Dump("Next:reverse");
 				}
 
-				for (int i = m_min; i <= m_max; i++)
+				for (int i = m_min; i < cursors.Length; i++)
 				{
 					if (IsFree(i, count)) continue;
 
@@ -930,14 +951,14 @@ namespace FoundationDB.Storage.Memory.Core
 				else
 				{ // previous call was a call to Seek(), or Next()
 					// we know that the current is the smallest value of all the current cursors. Since we want even smaller than that, we have to decrement ALL the cursors
-					for (int i = m_min; i <= m_max; i++)
+					for (int i = m_min; i < cursors.Length; i++)
 					{
 						if (!IsFree(i, count) && ((pos = cursors[i]) >= 0)) cursors[i] = pos - 1;
 					}
 					Debug_Dump("Previous:reverse");
 				}
 
-				for (int i = m_min; i <= m_max; i++)
+				for (int i = m_min; i < cursors.Length; i++)
 				{
 					if (IsFree(i, count)) continue;
 
