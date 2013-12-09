@@ -64,6 +64,7 @@
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
     <Compile Include="Encoders\IKeyValueEncoder.cs" />
+    <Compile Include="IFdbCluster.cs" />
     <Compile Include="FdbClusterFile.cs" />
     <Compile Include="FdbDatabaseExtensions.cs" />
     <Compile Include="FdbKeyRangeComparer.cs" />

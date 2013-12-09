@@ -47,7 +47,7 @@ namespace FoundationDB.Client
 		#region Private Fields...
 
 		/// <summary>Parent cluster that owns the database.</summary>
-		private readonly FdbCluster m_cluster;
+		private readonly IFdbCluster m_cluster;
 
 		/// <summary>Handle that wraps the native FDB_DATABASE*</summary>
 		private readonly DatabaseHandle m_handle;
@@ -116,7 +116,7 @@ namespace FoundationDB.Client
 		#region Public Properties...
 
 		/// <summary>Cluster where the database is located</summary>
-		public FdbCluster Cluster { get { return m_cluster; } }
+		public IFdbCluster Cluster { get { return m_cluster; } }
 
 		/// <summary>Name of the database</summary>
 		public string Name { get { return m_name; } }

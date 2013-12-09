@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 
 	/// <summary>FoundationDB Cluster</summary>
 	/// <remarks>Wraps an FDBCluster* handle</remarks>
-	public sealed class FdbCluster : IDisposable
+	public class FdbCluster : IFdbCluster, IDisposable
 	{
 
 		private readonly ClusterHandle m_handle;
@@ -171,6 +171,24 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Set an option on this cluster that takes an integer value</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter</param>
+		public void SetOption(FdbClusterOption option, long value)
+		{
+			ThrowIfDisposed();
+
+			Fdb.EnsureNotOnNetworkThread();
+
+			var data = Slice.FromFixed64(value);
+			unsafe
+			{
+				fixed (byte* ptr = data.Array)
+				{
+					Fdb.DieOnError(FdbNative.ClusterSetOption(m_handle, option, ptr + data.Offset, data.Count));
+				}
+			}
+		}
 
 	}
 
