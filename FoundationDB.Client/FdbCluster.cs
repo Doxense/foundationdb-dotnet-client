@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
@@ -38,24 +39,25 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>FoundationDB Cluster</summary>
-	/// <remarks>Wraps an FDBCluster* handle</remarks>
 	public class FdbCluster : IFdbCluster, IDisposable
 	{
 
-		private readonly ClusterHandle m_handle;
+		private readonly IFdbClusterHandler m_handler;
 		private readonly string m_path;
 		private bool m_disposed;
 
-		internal FdbCluster(ClusterHandle handle, string path)
+		internal FdbCluster(IFdbClusterHandler handler, string path)
 		{
-			m_handle = handle;
+			Contract.Requires(handler != null);
+
+			m_handler = handler;
 			m_path = path;
 		}
 
-		internal ClusterHandle Handle { get { return m_handle; } }
-
 		/// <summary>Path to the cluster file used by this connection, or null if the default cluster file is being used</summary>
 		public string Path { get { return m_path; } }
+
+		internal IFdbClusterHandler Handler { get { return m_handler; } }
 
 		private void ThrowIfDisposed()
 		{
@@ -68,7 +70,14 @@ namespace FoundationDB.Client
 			if (!m_disposed)
 			{
 				m_disposed = true;
-				m_handle.Dispose();
+				if (m_handler != null)
+				{
+					try { m_handler.Dispose(); }
+					catch(Exception e)
+					{
+						if (Logging.On) Logging.Exception(this, "Dispose", e);
+					}
+				}
 			}
 		}
 
@@ -107,7 +116,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		internal Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
+		internal async Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
@@ -117,26 +126,11 @@ namespace FoundationDB.Client
 
 			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
-			var future = FdbNative.ClusterCreateDatabase(m_handle, databaseName);
+			var handler = await m_handler.OpenDatabaseAsync(databaseName, cancellationToken).ConfigureAwait(false);
 
-			return FdbFuture.CreateTaskFromHandle(
-				future,
-				(h) =>
-				{
-					DatabaseHandle database;
-					var err = FdbNative.FutureGetDatabase(h, out database);
-					if (err != FdbError.Success)
-					{
-						database.Dispose();
-						throw Fdb.MapToException(err);
-					}
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
 
-					if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
-
-					return new FdbDatabase(this, new FdbNativeDatabase(database), databaseName, subspace, readOnly, ownsCluster);
-				},
-				cancellationToken
-			);
+			return new FdbDatabase(this, handler, databaseName, subspace, readOnly, ownsCluster);
 		}
 
 		/// <summary>Set an option on this cluster that does not take any parameter</summary>
@@ -147,10 +141,7 @@ namespace FoundationDB.Client
 
 			Fdb.EnsureNotOnNetworkThread();
 
-			unsafe
-			{
-				Fdb.DieOnError(FdbNative.ClusterSetOption(m_handle, option, null, 0));
-			}
+			m_handler.SetOption(option, Slice.Nil);
 		}
 
 		/// <summary>Set an option on this cluster that takes a string value</summary>
@@ -163,13 +154,7 @@ namespace FoundationDB.Client
 			Fdb.EnsureNotOnNetworkThread();
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
-			unsafe
-			{
-				fixed (byte* ptr = data.Array)
-				{
-					Fdb.DieOnError(FdbNative.ClusterSetOption(m_handle, option, ptr + data.Offset, data.Count));
-				}
-			}
+			m_handler.SetOption(option, Slice.Nil);
 		}
 
 		/// <summary>Set an option on this cluster that takes an integer value</summary>
@@ -182,13 +167,7 @@ namespace FoundationDB.Client
 			Fdb.EnsureNotOnNetworkThread();
 
 			var data = Slice.FromFixed64(value);
-			unsafe
-			{
-				fixed (byte* ptr = data.Array)
-				{
-					Fdb.DieOnError(FdbNative.ClusterSetOption(m_handle, option, ptr + data.Offset, data.Count));
-				}
-			}
+			m_handler.SetOption(option, Slice.Nil);
 		}
 
 	}

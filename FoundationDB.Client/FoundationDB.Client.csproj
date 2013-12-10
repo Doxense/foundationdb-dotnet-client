@@ -63,8 +63,10 @@
     <Compile Include="Async\AsyncPump.cs" />
     <Compile Include="Converters\ConversionHelper.cs" />
     <Compile Include="Converters\SimilarValueComparer.cs" />
+    <Compile Include="Core\IFdbClusterHandler.cs" />
     <Compile Include="Core\IFdbDatabaseHandler.cs" />
     <Compile Include="Encoders\IKeyValueEncoder.cs" />
+    <Compile Include="Unmanaged\FdbNativeCluster.cs" />
     <Compile Include="IFdbCluster.cs" />
     <Compile Include="FdbClusterFile.cs" />
     <Compile Include="Unmanaged\FdbNativeDatabase.cs" />

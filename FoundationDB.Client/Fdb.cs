@@ -316,22 +316,9 @@ namespace FoundationDB.Client
 			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
 			//TODO: check the path ? (exists, readable, ...)
-			var future = FdbNative.CreateCluster(clusterFile);
 
-			return FdbFuture.CreateTaskFromHandle(future,
-				(h) =>
-				{
-					ClusterHandle cluster;
-					var err = FdbNative.FutureGetCluster(h, out cluster);
-					if (err != FdbError.Success)
-					{
-						cluster.Dispose();
-						throw MapToException(err);
-					}
-					return new FdbCluster(cluster, clusterFile);
-				},
-				cancellationToken
-			);
+			//TODO: have a way to configure the default IFdbClusterHander !
+			return FdbNativeCluster.CreateClusterAsync(clusterFile, cancellationToken);
 		}
 
 		#endregion
