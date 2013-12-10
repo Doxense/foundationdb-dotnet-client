@@ -46,7 +46,7 @@ namespace FoundationDB.Client
 		private readonly string m_path;
 		private bool m_disposed;
 
-		internal FdbCluster(IFdbClusterHandler handler, string path)
+		public FdbCluster(IFdbClusterHandler handler, string path)
 		{
 			Contract.Requires(handler != null);
 
