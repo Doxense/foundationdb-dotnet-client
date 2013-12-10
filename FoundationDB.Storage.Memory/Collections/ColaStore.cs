@@ -736,7 +736,33 @@ namespace FoundationDB.Storage.Memory.Core
 				Trace.WriteLine(" > Current at " + m_currentLevel + " : " + m_current);
 			}
 
+			/// <summary>Set the cursor just before the first key in the store</summary>
+			public void SeekBeforeFirst()
+			{
+				var cursors = m_cursors;
+				for (int i = m_min; i < cursors.Length; i++)
+				{
+					cursors[i] = -1;
+				}
+				m_currentLevel = NOT_FOUND;
+				m_current = default(T);
+				m_direction = DIRECTION_SEEK;
+			}
 
+			/// <summary>Set the cursor just before the first key in the store</summary>
+			public void SeekAfterLast()
+			{
+				var cursors = m_cursors;
+				for (int i = m_min; i < cursors.Length; i++)
+				{
+					cursors[i] = 1 << i;
+				}
+				m_currentLevel = NOT_FOUND;
+				m_current = default(T);
+				m_direction = DIRECTION_SEEK;
+			}
+
+			/// <summary>Seek the cursor to the smallest key in the store</summary>
 			public bool SeekFirst()
 			{
 				T min = default(T);
@@ -747,8 +773,10 @@ namespace FoundationDB.Storage.Memory.Core
 				for (int i = m_min; i < cursors.Length; i++)
 				{
 					if (IsFree(i, m_count)) continue;
+
 					cursors[i] = 0;
 					var segment = m_levels[i];
+					Contract.Assert(segment != null && segment.Length == 1 << i);
 					if (minLevel < 0 || m_comparer.Compare(segment[0], min) < 0)
 					{
 						min = segment[0];
@@ -758,12 +786,14 @@ namespace FoundationDB.Storage.Memory.Core
 
 				m_current = min;
 				m_currentLevel = minLevel;
+				m_direction = DIRECTION_SEEK;
 
 				Debug_Dump("SeekFirst");
 
 				return minLevel >= 0;
 			}
 
+			/// <summary>Seek the cursor to the largest key in the store</summary>
 			public bool SeekLast()
 			{
 				T max = default(T);
@@ -775,8 +805,10 @@ namespace FoundationDB.Storage.Memory.Core
 				{
 					if (IsFree(i, m_count)) continue;
 					var segment = m_levels[i];
-					cursors[i] = segment.Length - 1;
-					if (maxLevel < 0 || m_comparer.Compare(segment[segment.Length - 1], max) > 0)
+					Contract.Assert(segment != null && segment.Length == 1 << i);
+					int pos = segment.Length - 1;
+					cursors[i] = pos;
+					if (maxLevel < 0 || m_comparer.Compare(segment[pos], max) > 0)
 					{
 						max = segment[segment.Length - 1];
 						maxLevel = i;
@@ -785,6 +817,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 				m_current = max;
 				m_currentLevel = maxLevel;
+				m_direction = DIRECTION_SEEK;
 
 				Debug_Dump("SeekLast");
 
@@ -797,7 +830,7 @@ namespace FoundationDB.Storage.Memory.Core
 			/// <param name="item">Item to seek to</param>
 			/// <param name="orEqual">If true, then seek to this item is found. If false, seek to the previous value</param>
 			/// <param name="reverse">If true, the cursors are setup for moving backward (by calling Previous). Is false, the cursors are set up for moving forward (by calling Next)</param>
-			public bool Seek2(T item, bool orEqual)
+			public bool Seek(T item, bool orEqual)
 			{
 				// Goal: we want to find the item key itself (if it exists and orEqual==true), or the max key that is stricly less than item
 				// We can use BinarySearch to look in each segment for where that key would be, but we have to compensate for the fact that BinarySearch looks for the smallest key that is greater than or equal to the search key.
@@ -872,7 +905,7 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 
 			/// <summary>Move the cursor the the smallest value that is greater than the current value</summary>
-			public bool Next2()
+			public bool Next()
 			{
 				// invalid position, or no more values
 				if (m_currentLevel < 0) return false;
@@ -930,7 +963,7 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 
 			/// <summary>Move the cursor the the largest value that is smaller than the current value</summary>
-			public bool Previous2()
+			public bool Previous()
 			{
 				// invalid position, or no more values
 				if (m_currentLevel < 0) return false;

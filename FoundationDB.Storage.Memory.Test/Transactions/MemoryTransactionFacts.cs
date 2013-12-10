@@ -5,6 +5,7 @@
 namespace FoundationDB.Storage.Memory.API.Tests
 {
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tables;
 	using NUnit.Framework;
@@ -21,7 +22,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		[Test]
 		public async Task Test_Hello_World()
 		{
-			using (var db = new MemoryDatabase("DB", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("DB", FdbSubspace.Empty, false))
 			{
 				var key = db.Pack("hello");
 
@@ -61,7 +62,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			Slice key;
 			Slice value;
 
-			using (var db = new MemoryDatabase("DB", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
 
 				using (var tr = db.BeginTransaction())
@@ -121,7 +122,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		{
 			Slice key;
 
-			using(var db = new MemoryDatabase("FOO", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
 				using(var tr = db.BeginTransaction())
 				{
@@ -185,7 +186,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		{
 			Slice key;
 
-			using (var db = new MemoryDatabase("DB", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
 
 				using (var tr = db.BeginTransaction())
@@ -217,15 +218,17 @@ namespace FoundationDB.Storage.Memory.API.Tests
 						FdbKeySelector.FirstGreaterOrEqual(db.Pack(0)),
 						FdbKeySelector.FirstGreaterOrEqual(db.Pack(50))
 					);
-
+#if DEBUG
 					for (int i = 0; i < chunk.Count; i++)
 					{
 						Console.WriteLine(i.ToString() + " : " + chunk.Chunk[i].Key + " = " + chunk.Chunk[i].Value);
 					}
+#endif
+
 					Assert.That(chunk.Count, Is.EqualTo(50), "chunk.Count");
 					Assert.That(chunk.HasMore, Is.False, "chunk.HasMore");
 					Assert.That(chunk.Reversed, Is.False, "chunk.Reversed");
-					Assert.That(chunk.Iteration, Is.EqualTo(0), "chunk.Iteration");
+					Assert.That(chunk.Iteration, Is.EqualTo(1), "chunk.Iteration");
 
 					for (int i = 0; i < 50; i++)
 					{
@@ -244,15 +247,17 @@ namespace FoundationDB.Storage.Memory.API.Tests
 						FdbKeySelector.FirstGreaterOrEqual(db.Pack(50)),
 						new FdbRangeOptions { Reverse = true }
 					);
-
+#if DEBUG
 					for (int i = 0; i < chunk.Count; i++)
 					{
 						Console.WriteLine(i.ToString() + " : " + chunk.Chunk[i].Key + " = " + chunk.Chunk[i].Value);
 					}
+#endif
+
 					Assert.That(chunk.Count, Is.EqualTo(50), "chunk.Count");
 					Assert.That(chunk.HasMore, Is.False, "chunk.HasMore");
 					Assert.That(chunk.Reversed, Is.True, "chunk.Reversed");
-					Assert.That(chunk.Iteration, Is.EqualTo(0), "chunk.Iteration");
+					Assert.That(chunk.Iteration, Is.EqualTo(1), "chunk.Iteration");
 
 					for (int i = 0; i < 50; i++)
 					{
@@ -271,15 +276,17 @@ namespace FoundationDB.Storage.Memory.API.Tests
 						FdbKeySelector.FirstGreaterOrEqual(FdbKey.MaxValue),
 						new FdbRangeOptions { Reverse = true, Limit = 1 }
 					);
-
+#if DEBUG
 					for (int i = 0; i < chunk.Count; i++)
 					{
 						Console.WriteLine(i.ToString() + " : " + chunk.Chunk[i].Key + " = " + chunk.Chunk[i].Value);
 					}
+#endif
+
 					Assert.That(chunk.Count, Is.EqualTo(1), "chunk.Count");
 					Assert.That(chunk.HasMore, Is.True, "chunk.HasMore");
 					Assert.That(chunk.Reversed, Is.True, "chunk.Reversed");
-					Assert.That(chunk.Iteration, Is.EqualTo(0), "chunk.Iteration");
+					Assert.That(chunk.Iteration, Is.EqualTo(1), "chunk.Iteration");
 
 					await tr.CommitAsync();
 				}
@@ -292,7 +299,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		public async Task Test_GetRange()
 		{
 
-			using (var db = new MemoryDatabase("DB", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
 
 				using (var tr = db.BeginTransaction())
@@ -314,10 +321,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 						.ToListAsync();
 
 					Assert.That(results, Is.Not.Null);
+#if DEBUG
 					for (int i = 0; i < results.Count; i++)
 					{
 						Console.WriteLine(i.ToString() + " : " + results[i].Key + " = " + results[i].Value);
 					}
+#endif
 
 					Assert.That(results.Count, Is.EqualTo(50));
 					for (int i = 0; i < 50; i++)
@@ -335,11 +344,13 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					var results = await tr
 						.GetRange(db.Pack(0), db.Pack(50), new FdbRangeOptions { Reverse = true })
 						.ToListAsync();
-
+					Assert.That(results, Is.Not.Null);
+#if DEBUG
 					for (int i = 0; i < results.Count; i++)
 					{
 						Console.WriteLine(i.ToString() + " : " + results[i].Key + " = " + results[i].Value);
 					}
+#endif
 
 					Assert.That(results.Count, Is.EqualTo(50));
 					for (int i = 0; i < 50; i++)
@@ -447,7 +458,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				}
 			}
 
-			using (var db = new MemoryDatabase("DB", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
 				using (var tr = db.BeginTransaction(FdbTransactionMode.Default))
 				{
@@ -472,7 +483,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		[Test]
 		public async Task Test_Write_Then_Read()
 		{
-			using (var db = new MemoryDatabase("FOO", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
 				using(var tr = db.BeginTransaction())
 				{
@@ -534,7 +545,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		[Test]
 		public async Task Test_Use_Simple_Layer()
 		{
-			using(var db = new MemoryDatabase("FOO", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
 
 				var table = new FdbTable<int, string>("Foos", db.GlobalSpace.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
@@ -553,8 +564,114 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					await tr.CommitAsync();
 				}
 
+				db.Debug_Dump(true);
+			}
+		}
+
+		[Test]
+		public async Task Test_Use_Directory_Layer()
+		{
+			using (var db = MemoryDatabase.CreateNew("DB"))
+			{
+
+				var dl = new FdbDirectoryLayer();
+
+				using (var tr = db.BeginTransaction())
+				{
+					var foos = await dl.CreateOrOpenAsync(tr, new[] { "Foos" });
+					var bars = await dl.CreateOrOpenAsync(tr, new[] { "Bars" });
+
+					var foo123 = await dl.CreateOrOpenAsync(tr, new[] { "Foos", "123" });
+					var bar456 = await bars.CreateOrOpenAsync(tr, new[] { "123" });
+
+					await tr.CommitAsync();
+				}
+
 				db.Debug_Dump();
 			}
+		}
+
+		[Test]
+		public async Task Test_Can_Resolve_Key_Selector_Outside_Boundaries()
+		{
+			// test various corner cases:
+
+			// - k < first_key or k <= <00> resolves to:
+			//   - '' always
+
+			// - k > last_key or k >= <FF> resolve to:
+			//	 - '<FF>' when access to system keys is off
+			//   - '<FF>/backupRange' (usually) when access to system keys is ON
+
+			// - k >= <FF><00> resolves to:
+			//   - key_outside_legal_range when access to system keys is off
+			//   - '<FF>/backupRange' (usually) when access to system keys is ON
+
+			// - k >= <FF><FF> resolved to:
+			//   - key_outside_legal_range when access to system keys is off
+			//   - '<FF><FF>' when access to system keys is ON
+
+			Slice key;
+
+			using (var db = MemoryDatabase.CreateNew("FOO"))
+			{
+
+				using(var tr = db.BeginTransaction())
+				{
+					tr.Set(Slice.FromString("A"), Slice.FromString("min"));
+					tr.Set(Slice.FromString("Z"), Slice.FromString("max"));
+					await tr.CommitAsync();
+				}
+
+				using (var tr = db.BeginReadOnlyTransaction())
+				{
+					// before <00>
+					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MinValue));
+					Assert.That(key, Is.EqualTo(Slice.Empty), "lLT(<00>) => ''");
+
+					// before the first key in the db
+					var minKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(FdbKey.MinValue));
+					Assert.That(minKey, Is.Not.Null);
+					Console.WriteLine("minKey = " + minKey);
+					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(minKey));
+					Assert.That(key, Is.EqualTo(Slice.Empty), "lLT(min_key) => ''");
+
+					// after the last key in the db
+
+					var maxKey = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MaxValue));
+					Assert.That(maxKey, Is.Not.Null);
+					Console.WriteLine("maxKey = " + maxKey);
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(maxKey));
+					Assert.That(key, Is.EqualTo(FdbKey.MaxValue), "fGT(maxKey) => <FF>");
+
+					// after <FF>
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
+					Assert.That(key, Is.EqualTo(FdbKey.MaxValue), "fGT(<FF>) => <FF>");
+					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(Slice.FromAscii("\xFF\xFF"))), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
+					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Slice.FromAscii("\xFF\x00"))), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
+
+					tr.WithAccessToSystemKeys();
+
+					var firstSystemKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
+					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.
+					Assert.That(firstSystemKey, Is.Not.Null);
+					Assert.That(firstSystemKey, Is.GreaterThan(FdbKey.MaxValue), "key should be between <FF> and <FF><FF>");
+					Assert.That(firstSystemKey, Is.LessThan(Slice.FromAscii("\xFF\xFF")), "key should be between <FF> and <FF><FF>");
+
+					// with access to system keys, the maximum possible key becomes <FF><FF>
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromAscii("\xFF\xFF")));
+					Assert.That(key, Is.EqualTo(Slice.FromAscii("\xFF\xFF")), "fGE(<FF><FF>) => <FF><FF> (with access to system keys)");
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(Slice.FromAscii("\xFF\xFF")));
+					Assert.That(key, Is.EqualTo(Slice.FromAscii("\xFF\xFF")), "fGT(<FF><FF>) => <FF><FF> (with access to system keys)");
+
+					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Slice.FromAscii("\xFF\x00")));
+					Assert.That(key, Is.EqualTo(maxKey), "lLT(<FF><00>) => max_key (with access to system keys)");
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(maxKey));
+					Assert.That(key, Is.EqualTo(firstSystemKey), "fGT(max_key) => first_system_key (with access to system keys)");
+
+				}
+			}
+
 		}
 
 		[Test]
@@ -572,7 +689,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			var rnd = new Random();
 
 			//WARMUP
-			using (var db = new MemoryDatabase("FOO", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
 				await db.WriteAsync((tr) => tr.Set(Slice.FromString("hello"), Slice.FromString("world")));
 				Slice.Random(rnd, KEYSIZE);
@@ -583,12 +700,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 			bool random = RANDOM;
 			string fmt = "D" + KEYSIZE;
-			using (var db = new MemoryDatabase("FOO", FdbSubspace.Empty, false))
+			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
 				GC.Collect();
 				GC.WaitForPendingFinalizers();
 				GC.Collect();
-				Console.WriteLine("Total memory: " + GC.GetTotalMemory(false).ToString("N0") + ", " + Environment.WorkingSet.ToString("N0"));
+				Console.WriteLine("Total memory: Managed=" + GC.GetTotalMemory(false).ToString("N0") + ", WorkingSet=" + Environment.WorkingSet.ToString("N0"));
 
 				long total = 0;
 

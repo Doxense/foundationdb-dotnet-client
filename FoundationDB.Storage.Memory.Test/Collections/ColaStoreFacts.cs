@@ -130,28 +130,28 @@ namespace FoundationDB.Storage.Memory.Core.Test
 
 			var iterator = store.GetIterator();
 
-			Assert.That(iterator.Seek2(5, true), Is.True);
+			Assert.That(iterator.Seek(5, true), Is.True);
 			Assert.That(iterator.Current, Is.EqualTo(5));
 
-			Assert.That(iterator.Seek2(5, false), Is.True);
+			Assert.That(iterator.Seek(5, false), Is.True);
 			Assert.That(iterator.Current, Is.EqualTo(4));
 
-			Assert.That(iterator.Seek2(9, true), Is.True);
+			Assert.That(iterator.Seek(9, true), Is.True);
 			Assert.That(iterator.Current, Is.EqualTo(9));
 
-			Assert.That(iterator.Seek2(9, false), Is.True);
+			Assert.That(iterator.Seek(9, false), Is.True);
 			Assert.That(iterator.Current, Is.EqualTo(8));
 
-			Assert.That(iterator.Seek2(0, true), Is.True);
+			Assert.That(iterator.Seek(0, true), Is.True);
 			Assert.That(iterator.Current, Is.EqualTo(0));
 
-			Assert.That(iterator.Seek2(0, false), Is.False);
+			Assert.That(iterator.Seek(0, false), Is.False);
 			Assert.That(iterator.Current, Is.Null);
 
-			Assert.That(iterator.Seek2(10, true), Is.True);
+			Assert.That(iterator.Seek(10, true), Is.True);
 			Assert.That(iterator.Current, Is.EqualTo(9));
 
-			Assert.That(iterator.Seek2(10, false), Is.True);
+			Assert.That(iterator.Seek(10, false), Is.True);
 			Assert.That(iterator.Current, Is.EqualTo(9));
 
 		}
@@ -184,7 +184,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 				int p = rnd.Next(N);
 				bool orEqual = rnd.Next(2) == 0;
 
-				bool res = iterator.Seek2(p, orEqual);
+				bool res = iterator.Seek(p, orEqual);
 
 				if (orEqual)
 				{ // the key should exist
@@ -239,36 +239,36 @@ namespace FoundationDB.Storage.Memory.Core.Test
 
 				if (p == 0 && !orEqual) continue; //TODO: what to do for this case ?
 
-				Assert.That(iterator.Seek2(p, orEqual), Is.True);
+				Assert.That(iterator.Seek(p, orEqual), Is.True);
 				int? x = iterator.Current;
 				Assert.That(x, Is.EqualTo(orEqual ? p : p - 1));
 
 				// all the next should be ordered (starting from p)
 				while (x < N - 1)
 				{
-					Assert.That(iterator.Next2(), Is.True, "Seek({0}).Current({1}).Next()", p, x);
+					Assert.That(iterator.Next(), Is.True, "Seek({0}).Current({1}).Next()", p, x);
 					Assert.That(iterator.Current, Is.EqualTo(x + 1), "Seek({0}).Current({1}).Next()", p, x);
 					++x;
 				}
 				// the following Next() should go past the end
-				Assert.That(iterator.Next2(), Is.False);
+				Assert.That(iterator.Next(), Is.False);
 				Assert.That(iterator.Current, Is.Null);
 				Assert.That(iterator.Valid, Is.False);
 
 				// re-seek to the original location
-				Assert.That(iterator.Seek2(p, orEqual), Is.True);
+				Assert.That(iterator.Seek(p, orEqual), Is.True);
 				x = iterator.Current;
 				Assert.That(x, Is.EqualTo(orEqual ? p : p - 1));
 
 				// now go backwards
 				while (x > 0)
 				{
-					Assert.That(iterator.Previous2(), Is.True, "Seek({0}).Current({1}).Previous()", p, x);
+					Assert.That(iterator.Previous(), Is.True, "Seek({0}).Current({1}).Previous()", p, x);
 					Assert.That(iterator.Current, Is.EqualTo(x - 1), "Seek({0}).Current({1}).Previous()", p, x);
 					--x;
 				}
 				// the following Previous() should go past the beginning
-				Assert.That(iterator.Previous2(), Is.False);
+				Assert.That(iterator.Previous(), Is.False);
 				Assert.That(iterator.Current, Is.Null);
 				Assert.That(iterator.Valid, Is.False);
 
@@ -276,7 +276,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 				{ // jitter dance
 
 					// start to original location
-					Assert.That(iterator.Seek2(p, true), Is.True);
+					Assert.That(iterator.Seek(p, true), Is.True);
 					Assert.That(iterator.Current, Is.EqualTo(p));
 
 					var sb = new StringBuilder();
@@ -288,13 +288,13 @@ namespace FoundationDB.Storage.Memory.Core.Test
 						if (rnd.Next(2) == 0)
 						{ // next
 							sb.Append(" -> ");
-							Assert.That(iterator.Next2(), Is.True, "{0}", sb);
+							Assert.That(iterator.Next(), Is.True, "{0}", sb);
 							Assert.That(iterator.Current, Is.EqualTo(x + 1), "{0} = ?", sb);
 						}
 						else
 						{ // prev
 							sb.Append(" <- ");
-							Assert.That(iterator.Previous2(), Is.True, "{0}", sb);
+							Assert.That(iterator.Previous(), Is.True, "{0}", sb);
 							Assert.That(iterator.Current, Is.EqualTo(x - 1), "{0} = ?", sb);
 						}
 					}

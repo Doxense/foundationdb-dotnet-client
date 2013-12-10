@@ -46,8 +46,10 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="API\MemoryClusterHandler.cs" />
+    <Compile Include="API\MemoryDatabaseHandler.cs" />
     <Compile Include="API\MemoryDatabase.cs" />
-    <Compile Include="API\MemoryTransaction.cs" />
+    <Compile Include="API\MemoryTransactionHandler.cs" />
     <Compile Include="Collections\ColaOrderedDictionary.cs" />
     <Compile Include="Collections\ColaRangeSet.cs" />
     <Compile Include="Collections\ColaStore`1.cs" />

@@ -7,10 +7,10 @@
 namespace FoundationDB.Storage.Memory.API
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Storage.Memory.Core;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.Contracts;
 	using System.Globalization;
@@ -19,19 +19,14 @@ namespace FoundationDB.Storage.Memory.API
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public class MemoryTransaction : IFdbTransaction, IDisposable
+	public class MemoryTransactionHandler : IFdbTransactionHandler, IDisposable
 	{
 
 		#region Private Fields...
 
-		private readonly int m_id;
-		private readonly MemoryDatabase m_db;
-		private FdbOperationContext m_context;
+		private readonly MemoryDatabaseHandler m_db;
 
-		private readonly bool m_readOnly;
 		private volatile bool m_disposed;
-
-		private bool m_accessSystemKeys;
 
 		/// <summary>Buffer used to store the keys and values of this transaction</summary>
 		private SliceBuffer m_buffer;
@@ -51,9 +46,6 @@ namespace FoundationDB.Storage.Memory.API
 		private long? m_readVersion;
 		/// <summary>Committed version of the transaction</summary>
 		private long m_committedVersion;
-
-		private CancellationTokenSource m_cts;
-		private CancellationToken m_token;
 
 		#endregion
 
@@ -363,17 +355,18 @@ namespace FoundationDB.Storage.Memory.API
 
 		}
 
-		internal MemoryTransaction(MemoryDatabase db, FdbOperationContext context, int id, FdbTransactionMode mode)
+		internal MemoryTransactionHandler(MemoryDatabaseHandler db)
 		{
-			Contract.Assert(db != null && context != null);
+			Contract.Assert(db != null);
 
 			m_db = db;
-			m_id = id;
-			m_context = context;
-			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;
 
 			Initialize(first: true);
 		}
+
+		public bool IsInvalid { get { return false; } }
+
+		public bool IsClosed { get { return m_disposed; } }
 
 		private void Initialize(bool first)
 		{
@@ -381,9 +374,6 @@ namespace FoundationDB.Storage.Memory.API
 
 			lock(m_lock)
 			{
-				m_cts = CancellationTokenSource.CreateLinkedTokenSource(m_context.Token);
-				m_token = m_cts.Token;
-
 				m_buffer = new SliceBuffer();
 				if (first)
 				{
@@ -400,51 +390,9 @@ namespace FoundationDB.Storage.Memory.API
 					m_writeConflicts.Clear();
 				}
 
-				m_accessSystemKeys = false;
+				this.AccessSystemKeys = false;
 			}
 		}
-
-		public int Id
-		{
-			get { return m_id; }
-		}
-
-		public FdbOperationContext Context
-		{
-			get { return m_context; }
-		}
-
-		public bool IsSnapshot
-		{
-			get { return false; }
-		}
-
-		public IFdbReadOnlyTransaction Snapshot
-		{
-			get { throw new NotImplementedException(); }
-		}
-
-		public System.Threading.CancellationToken Token
-		{
-			get { return m_token; }
-		}
-
-		public bool IsReadOnly
-		{
-			get { return m_readOnly; }
-		}
-
-		public void EnsureCanRead()
-		{
-			if (m_disposed) ThrowDisposed();
-		}
-
-		public void EnsureCanWrite()
-		{
-			if (m_disposed) ThrowDisposed();
-			if (m_readOnly) throw new InvalidOperationException("This transaction is read only.");
-		}
-
 		private static void ThrowDisposed()
 		{
 			throw new ObjectDisposedException("This transaction has already been disposed."); ;
@@ -454,10 +402,6 @@ namespace FoundationDB.Storage.Memory.API
 		{
 			get { return m_buffer.Size; }
 		}
-
-		public int Timeout { get; set; }
-
-		public int RetryLimit { get; set; }
 
 		private void AddClearCommand_NedsLocking(FdbKeyRange range)
 		{
@@ -537,7 +481,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		private void CheckAccessToSystemKeys(Slice key, bool end = false)
 		{
-			if (key[0] == 0xFF && !m_accessSystemKeys)
+			if (!this.AccessSystemKeys && key[0] == 0xFF)
 			{ // access to system keys is not allowed
 				if (!end || key.Count > 1)
 				{
@@ -546,10 +490,11 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
-		public async Task<Slice> GetAsync(Slice key)
+		public async Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken cancellationToken)
 		{
-			// check
-			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty");
+			Contract.Requires(key.HasValue);
+			cancellationToken.ThrowIfCancellationRequested();
+
 			CheckAccessToSystemKeys(key);
 
 			FdbKeyRange range;
@@ -558,22 +503,26 @@ namespace FoundationDB.Storage.Memory.API
 				range = m_buffer.InternRangeFromKey(key);
 			}
 
-			if (!m_readVersion.HasValue)
-			{ // we need the read version
-				await GetReadVersionAsync().ConfigureAwait(false);
-			}
+			// we need the read version
+			EnsureHasReadVersion();
 
 			var result = await m_db.GetValueAtVersionAsync(range.Begin, m_readVersion.Value).ConfigureAwait(false);
 
-			lock (m_lock)
+			if (!snapshot)
 			{
-				AddReadConflict_NeedsLocking(range);
+				lock (m_lock)
+				{
+					AddReadConflict_NeedsLocking(range);
+				}
 			}
 			return result;
 		}
 
-		public async Task<Slice[]> GetValuesAsync(Slice[] keys)
+		public async Task<Slice[]> GetValuesAsync(Slice[] keys, bool snapshot, CancellationToken cancellationToken)
 		{
+			Contract.Requires(keys != null);
+			cancellationToken.ThrowIfCancellationRequested();
+
 			// order and check the keys
 			var ordered = new Slice[keys.Length];
 			for (int i = 0; i < keys.Length;i++)
@@ -585,10 +534,8 @@ namespace FoundationDB.Storage.Memory.API
 			}
 			//Array.Sort(ordered, SliceComparer.Default);
 
-			if (!m_readVersion.HasValue)
-			{ // we need the read version
-				await GetReadVersionAsync().ConfigureAwait(false);
-			}
+			// we need the read version
+			EnsureHasReadVersion();
 
 			FdbKeyRange[] ranges = new FdbKeyRange[ordered.Length];
 			lock (m_buffer)
@@ -602,24 +549,28 @@ namespace FoundationDB.Storage.Memory.API
 
 			var results = await m_db.GetValuesAtVersionAsync(ordered, m_readVersion.Value).ConfigureAwait(false);
 
-			lock (m_lock)
+			if (!snapshot)
 			{
-				for (int i = 0; i < ranges.Length; i++)
+				lock (m_lock)
 				{
-					AddReadConflict_NeedsLocking(ranges[i]);
+					for (int i = 0; i < ranges.Length; i++)
+					{
+						AddReadConflict_NeedsLocking(ranges[i]);
+					}
 				}
 			}
 
 			return results;
 		}
 
-		public async Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		public async Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot, CancellationToken cancellationToken)
 		{
-			// check
-			if (selector.Key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty");
-			//CheckAccessToSystemKeys(selector.Key);
+			Contract.Requires(selector.Key.HasValue);
+			cancellationToken.ThrowIfCancellationRequested();
 
-			Trace.WriteLine("## GetKey " + selector);
+			CheckAccessToSystemKeys(selector.Key, end: true);
+
+			Trace.WriteLine("## GetKey " + selector + ", snapshot=" + snapshot);
 
 			FdbKeyRange keyRange;
 			lock (m_buffer)
@@ -628,10 +579,8 @@ namespace FoundationDB.Storage.Memory.API
 				selector = new FdbKeySelector(keyRange.Begin, selector.OrEqual, selector.Offset);
 			}
 
-			if (!m_readVersion.HasValue)
-			{ // we need the read version
-				await GetReadVersionAsync().ConfigureAwait(false);
-			}
+			// we need the read version
+			EnsureHasReadVersion();
 
 			var result = await m_db.GetKeyAtVersion(selector, m_readVersion.Value).ConfigureAwait(false);
 
@@ -652,32 +601,39 @@ namespace FoundationDB.Storage.Memory.API
 				}
 			}
 
-			lock (m_lock)
+			if (!snapshot)
 			{
-				//TODO: use the result to create the conflict range (between the resolver key and the returned key)
-				if (c == 0)
-				{ // the key itself was selected, so it can only conflict if it gets deleted by another transaction
-					// [ result, result+\0 )
-					AddReadConflict_NeedsLocking(resultRange);
-				}
-				else if (c < 0)
-				{ // the result is before the selected key, so any change between them (including deletion of the result) will conflict
-					// orEqual == true  => [ result, key + \0 )
-					// orEqual == false => [ result, key )
-					AddReadConflict_NeedsLocking(FdbKeyRange.Create(resultRange.Begin, selector.OrEqual ? keyRange.End : keyRange.Begin));
-				}
-				else
-				{ // the result is after the selected key, so any change between it and the result will conflict
-					// orEqual == true  => [ key + \0, result + \0 )
-					// orEqual == false => [ key , result + \0 )
-					AddReadConflict_NeedsLocking(FdbKeyRange.Create(selector.OrEqual ? keyRange.End : keyRange.Begin, resultRange.End));
+				lock (m_lock)
+				{
+					//TODO: use the result to create the conflict range (between the resolver key and the returned key)
+					if (c == 0)
+					{ // the key itself was selected, so it can only conflict if it gets deleted by another transaction
+						// [ result, result+\0 )
+						AddReadConflict_NeedsLocking(resultRange);
+					}
+					else if (c < 0)
+					{ // the result is before the selected key, so any change between them (including deletion of the result) will conflict
+						// orEqual == true  => [ result, key + \0 )
+						// orEqual == false => [ result, key )
+						AddReadConflict_NeedsLocking(FdbKeyRange.Create(resultRange.Begin, selector.OrEqual ? keyRange.End : keyRange.Begin));
+					}
+					else
+					{ // the result is after the selected key, so any change between it and the result will conflict
+						// orEqual == true  => [ key + \0, result + \0 )
+						// orEqual == false => [ key , result + \0 )
+						AddReadConflict_NeedsLocking(FdbKeyRange.Create(selector.OrEqual ? keyRange.End : keyRange.Begin, resultRange.End));
+					}
 				}
 			}
 			return result;
 		}
 
-		public async Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+		public async Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, bool snapshot, CancellationToken cancellationToken)
 		{
+			Contract.Requires(selectors != null);
+
+			cancellationToken.ThrowIfCancellationRequested();
+
 			// order and check the keys
 			var ordered = new FdbKeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
@@ -688,10 +644,8 @@ namespace FoundationDB.Storage.Memory.API
 			}
 			//Array.Sort(ordered, SliceComparer.Default);
 
-			if (!m_readVersion.HasValue)
-			{ // we need the read version
-				await GetReadVersionAsync().ConfigureAwait(false);
-			}
+			// we need the read version
+			EnsureHasReadVersion();
 
 			//FdbKeyRange[] ranges = new FdbKeyRange[ordered.Length];
 			lock (m_buffer)
@@ -704,25 +658,26 @@ namespace FoundationDB.Storage.Memory.API
 
 			var results = await m_db.GetKeysAtVersion(ordered, m_readVersion.Value).ConfigureAwait(false);
 
-			lock (m_lock)
+			if (!snapshot)
 			{
-				//TODO!
+				lock (m_lock)
+				{
+					//TODO!
+				}
 			}
 
 			return results;
 		}
 
-		public async Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public async Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken cancellationToken)
 		{
-			// check
-			if (beginInclusive.Key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "beginInclusive");
-			if (endExclusive.Key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "endExclusive");
-			//CheckAccessToSystemKeys(selector.Key);
+			Contract.Requires(beginInclusive.Key.HasValue && endExclusive.Key.HasValue && options != null);
 
-			// ensure defaults
-			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
+			cancellationToken.ThrowIfCancellationRequested();
 
-			Trace.WriteLine("## GetRange " + beginInclusive + " <= k < " + endExclusive + ", limit=" + options.Limit + ", reverse=" + options.Reverse);
+			//TODO: check system keys
+
+			Trace.WriteLine("## GetRange " + beginInclusive + " <= k < " + endExclusive + ", limit=" + options.Limit + ", reverse=" + options.Reverse + ", snapshot=" + snapshot);
 
 			lock (m_buffer)
 			{
@@ -730,46 +685,21 @@ namespace FoundationDB.Storage.Memory.API
 				endExclusive = m_buffer.InternSelector(endExclusive);
 			}
 
-			if (!m_readVersion.HasValue)
-			{ // we need the read version
-				await GetReadVersionAsync().ConfigureAwait(false);
-			}
+			// we need the read version
+			EnsureHasReadVersion();
 
 			var result = await m_db.GetRangeAtVersion(beginInclusive, endExclusive, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, options.Reverse.Value, m_readVersion.Value).ConfigureAwait(false);
 
-			lock (m_lock)
+			if (!snapshot)
 			{
-				//TODO: use the result to create the conflict range (between the resolver key and the returned key)
-				//AddReadConflict_NeedsLocking(range);
+				lock (m_lock)
+				{
+					//TODO: use the result to create the conflict range (between the resolver key and the returned key)
+					//AddReadConflict_NeedsLocking(range);
+				}
 			}
 			return result;
 		}
-
-		#region GetRange...
-
-		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, bool snapshot)
-		{
-			//this.Database.EnsureKeyIsValid(begin.Key);
-			//this.Database.EnsureKeyIsValid(end.Key);
-
-			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
-			options.EnsureLegalValues();
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", begin.ToString(), end.ToString()));
-#endif
-
-			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, (kvp) => kvp, snapshot, options);
-		}
-
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
-		{
-			EnsureCanRead();
-
-			return GetRangeCore(beginInclusive, endExclusive, options, snapshot: false);
-		}
-
-		#endregion
 
 		public void Set(Slice key, Slice value)
 		{
@@ -899,8 +829,9 @@ namespace FoundationDB.Storage.Memory.API
 			Initialize(true);
 		}
 
-		public async Task CommitAsync()
+		public async Task CommitAsync(CancellationToken cancellationToken)
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 
 			if (!m_readVersion.HasValue)
 			{
@@ -979,16 +910,18 @@ namespace FoundationDB.Storage.Memory.API
 			throw new NotImplementedException();
 		}
 
-		public async Task OnErrorAsync(FdbError code)
+		public async Task OnErrorAsync(FdbError code, CancellationToken cancellationToken)
 		{
+			cancellationToken.ThrowIfCancellationRequested();
+
 			switch (code)
 			{
 				case FdbError.TimedOut:
 				case FdbError.PastVersion:
 				{ // wait a bit
 
-					//TODO: implement a real back-off delay logic
-					await Task.Delay(15).ConfigureAwait(false);
+					//HACKHACK: implement a real back-off delay logic
+					await Task.Delay(15, cancellationToken).ConfigureAwait(false);
 					return;
 				}
 				default:
@@ -1000,11 +933,16 @@ namespace FoundationDB.Storage.Memory.API
 
 		public FdbWatch Watch(Slice key, System.Threading.CancellationToken cancellationToken)
 		{
+			Contract.Requires(key.HasValue);
+			cancellationToken.ThrowIfCancellationRequested();
+
 			throw new NotSupportedException();
 		}
 
-		public Task<string[]> GetAddressesForKeyAsync(Slice key)
+		public Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken cancellationToken)
 		{
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<string[]>(cancellationToken);
+
 			throw new NotImplementedException();
 		}
 
@@ -1017,44 +955,51 @@ namespace FoundationDB.Storage.Memory.API
 			return m_readVersion.Value;
 		}
 
-		public Task<long> GetReadVersionAsync()
-		{		
+		public Task<long> GetReadVersionAsync(CancellationToken cancellationToken)
+		{
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<long>(cancellationToken);
 			return Task.FromResult(EnsureHasReadVersion());
 		}
 
 		public void Cancel()
 		{
 			if (m_disposed) ThrowDisposed();
-			m_cts.Cancel();
+			throw new NotImplementedException();
 		}
 
-		public void SetOption(FdbTransactionOption option)
+		public int RetryLimit { get; set; }
+
+		public int Timeout { get; set; }
+
+		public bool AccessSystemKeys { get; set; }
+
+		public void SetOption(FdbTransactionOption option, Slice data)
 		{
 			switch(option)
 			{
 				case FdbTransactionOption.AccessSystemKeys:
 				{
-					m_accessSystemKeys = true;
+					if (data.IsNullOrEmpty)
+					{
+						this.AccessSystemKeys = true;
+					}
+					else
+					{
+						if (data.Count == 8)
+						{ // spec says that ints should be passed as 8 bytes integers
+							this.AccessSystemKeys = data.ToInt64() != 0;
+						}
+						else
+						{
+							this.AccessSystemKeys = data.ToBool();
+						}
+					}
 					break;
 				}
-				default:
-				{
-					throw new FdbException(FdbError.InvalidOption);
-				}
-			}
-		}
-
-		public void SetOption(FdbTransactionOption option, string value)
-		{
-			throw new FdbException(FdbError.InvalidOptionValue);
-		}
-
-		public void SetOption(FdbTransactionOption option, long value)
-		{
-			switch (option)
-			{
 				case FdbTransactionOption.RetryLimit:
 				{
+					if (data.Count != 8) throw new FdbException(FdbError.InvalidOptionValue);
+					long value = data.ToInt64();
 					if (value < 0 || value >= int.MaxValue) throw new FdbException(FdbError.InvalidOptionValue);
 					this.RetryLimit = (int)value;
 					break;
@@ -1062,17 +1007,12 @@ namespace FoundationDB.Storage.Memory.API
 
 				case FdbTransactionOption.Timeout:
 				{
+					if (data.Count != 8) throw new FdbException(FdbError.InvalidOptionValue);
+					long value = data.ToInt64();
 					if (value < 0 || value >= int.MaxValue) throw new FdbException(FdbError.InvalidOptionValue);
 					this.Timeout = (int)value;
 					break;
 				}
-
-				case FdbTransactionOption.AccessSystemKeys:
-				{
-					m_accessSystemKeys = value != 0;
-					break;
-				}
-
 				default:
 				{
 					throw new FdbException(FdbError.InvalidOption);
@@ -1087,9 +1027,12 @@ namespace FoundationDB.Storage.Memory.API
 				//TODO: locking ?
 				m_disposed = true;
 
-				try { m_cts.Cancel(); } catch { }
-				m_token = CancellationToken.None;
-				m_cts.Dispose();
+				//TODO!
+				m_buffer = null;
+				m_readConflicts = null;
+				m_writeConflicts = null;
+				m_clears = null;
+				m_writes = null;
 			}
 
 			GC.SuppressFinalize(this);

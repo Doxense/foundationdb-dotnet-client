@@ -160,7 +160,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			var sw = Stopwatch.StartNew();
 			for (int i = 0; i < N; i++)
 			{
-				store[i] = i;
+				store.SetItem(i, i);
 				Interlocked.Increment(ref total);
 				if (i % (N / 10) == 0) Console.Write(".");
 			}
