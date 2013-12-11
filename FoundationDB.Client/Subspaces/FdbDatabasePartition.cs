@@ -59,8 +59,8 @@ namespace FoundationDB.Client
 			m_root = new FdbDirectoryLayer(nodes, contents);
 		}
 
-		public FdbDatabasePartition(IFdbDatabase database, FdbDirectoryLayer directory)
-			: base(database, false, false)
+		public FdbDatabasePartition(IFdbDatabase database, FdbDirectoryLayer directory, bool ownsDatabase)
+			: base(database, false, ownsDatabase)
 		{
 			if (database == null) throw new ArgumentNullException("database");
 			if (directory == null) throw new ArgumentNullException("directory");
