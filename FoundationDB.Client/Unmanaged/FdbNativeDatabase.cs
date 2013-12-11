@@ -57,7 +57,7 @@ namespace FoundationDB.Client.Core
 		~FdbNativeDatabase()
 		{
 #if DEBUG
-			// If you break here, that means that a native transaction handler was leaked by a FdbTransaction instance (or that the transaction instance was leaked)
+			// If you break here, that means that a native database handler was leaked by a FdbDatabase instance (or that the database instance was leaked)
 			if (Debugger.IsAttached) Debugger.Break();
 #endif
 			Dispose(false);
@@ -109,7 +109,8 @@ namespace FoundationDB.Client.Core
 
 		public void Dispose()
 		{
-			throw new NotImplementedException();
+			Dispose(true);
+			GC.SuppressFinalize(this);
 		}
 
 		private void Dispose(bool disposing)
