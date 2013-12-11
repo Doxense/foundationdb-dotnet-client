@@ -111,9 +111,26 @@ namespace FoundationDB.Client.Converters
 			RegisterDefaultConverters();
 		}
 
+		private sealed class TypePairComparer : IEqualityComparer<KeyValuePair<Type, Type>>
+		{
+
+			public bool Equals(KeyValuePair<Type, Type> x, KeyValuePair<Type, Type> y)
+			{
+				return x.Key == y.Key && x.Value == y.Value;
+			}
+
+			public int GetHashCode(KeyValuePair<Type, Type> obj)
+			{
+				int h = 27;
+				h = (h * 31) ^ (obj.Key != null ? obj.Key.GetHashCode() : 0);
+				h = (h * 31) ^ (obj.Value != null ? obj.Value.GetHashCode() : 0);
+				return h;
+			}
+		}
+
 		/// <summary>Map of all known converters from T to R</summary>
 		/// <remarks>No locking required, because all changes will replace this instance with a new Dictionary</remarks>
-		private static Dictionary<KeyValuePair<Type, Type>, IFdbConverter> Converters = new Dictionary<KeyValuePair<Type, Type>, IFdbConverter>();
+		private static Dictionary<KeyValuePair<Type, Type>, IFdbConverter> Converters = new Dictionary<KeyValuePair<Type, Type>, IFdbConverter>(new TypePairComparer());
 
 		/// <summary>Register all the default converters</summary>
 		private static void RegisterDefaultConverters()
