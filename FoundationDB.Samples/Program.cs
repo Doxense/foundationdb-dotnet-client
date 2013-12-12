@@ -54,7 +54,8 @@ namespace FoundationDB.Samples
 
 			return new FdbDatabasePartition(
 				new FdbLoggedDatabase(db, false, false, (tr) => { stream.WriteLine(tr.Log.GetTimingsReport(true)); if (autoFlush) stream.Flush(); }),
-				db.Root
+				db.Root,
+				false
 			);
 		}
 
