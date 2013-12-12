@@ -54,7 +54,6 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr, Is.Not.Null, "BeginTransaction should return a valid instance");
 					Assert.That(tr.State == FdbTransaction.STATE_READY, "Transaction should be in ready state");
 					Assert.That(tr.StillAlive, Is.True, "Transaction should be alive");
-					Assert.That(tr.Handler.IsInvalid, Is.False, "Transaction handle should be valid");
 					Assert.That(tr.Handler.IsClosed, Is.False, "Transaction handle should not be closed");
 					Assert.That(tr.Database, Is.SameAs(db), "Transaction should reference the parent Database");
 					Assert.That(tr.Size, Is.EqualTo(0), "Estimated size should be zero");

@@ -72,8 +72,6 @@ namespace FoundationDB.Client.Native
 
 		public bool IsClosed { get { return m_handle.IsClosed; } }
 
-		public bool IsInvalid { get { return m_handle.IsInvalid; } }
-
 		/// <summary>Native FDB_TRANSACTION* handle</summary>
 		public TransactionHandle Handle { get { return m_handle; } }
 
