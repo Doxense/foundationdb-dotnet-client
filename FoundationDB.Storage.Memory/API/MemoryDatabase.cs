@@ -6,6 +6,7 @@ namespace FoundationDB.Storage.Memory.API
 {
 	using FoundationDB.Client;
 	using System;
+	using System.Diagnostics;
 
 	public class MemoryDatabase : FdbDatabase
 	{
@@ -32,9 +33,15 @@ namespace FoundationDB.Storage.Memory.API
 			m_handler = handler;
 		}
 
+		[Conditional("DEBUG")]
 		public void Debug_Dump(bool detailed = false)
 		{
 			m_handler.Debug_Dump(detailed);
+		}
+
+		public void Collect()
+		{
+			m_handler.GC();
 		}
 
 	}

@@ -6,6 +6,7 @@ namespace FoundationDB.Storage.Memory.Core
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Diagnostics.Contracts;
 	using System.Runtime.InteropServices;
 
@@ -215,9 +216,10 @@ namespace FoundationDB.Storage.Memory.Core
 		#endregion
 
 		//TODO: remove or set to internal !
+		[Conditional("DEBUG")]
 		public void Debug_Dump()
 		{
-			Console.WriteLine("Dumping ColaOrderedSet<" + typeof(T).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
+			Trace.WriteLine("Dumping ColaOrderedSet<" + typeof(T).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
 			m_items.Debug_Dump();
 		}
 

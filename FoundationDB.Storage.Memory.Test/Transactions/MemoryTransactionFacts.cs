@@ -32,7 +32,6 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				var data = await db.ReadAsync((tr) => tr.GetAsync(key));
 				Assert.That(data.ToUnicode(), Is.EqualTo("World!"));
 
-
 				// v2
 				await db.WriteAsync((tr) => tr.Set(key, Slice.FromString("Le Monde!")));
 				db.Debug_Dump();
@@ -52,6 +51,11 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				data = await db.ReadAsync((tr) => tr.GetAsync(key));
 				Assert.That(data.ToUnicode(), Is.EqualTo("Sekai!"));
+
+				// Collect memory
+				Trace.WriteLine("### GARBAGE COLLECT! ###");
+				db.Collect();
+				db.Debug_Dump();
 
 			}
 		}
@@ -539,6 +543,40 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					Assert.That(result.ToString(), Is.EqualTo("zort"));
 				}
 
+				// Collect memory
+				Trace.WriteLine("### GARBAGE COLLECT! ###");
+				db.Collect();
+				db.Debug_Dump();
+			}
+		}
+
+		[Test]
+		public async Task Test_Atomic()
+		{
+			using (var db = MemoryDatabase.CreateNew("DB"))
+			{
+				var key1 = db.Pack(1);
+				var key2 = db.Pack(2);
+				var key16 = db.Pack(16);
+
+				for (int i = 0; i < 10; i++)
+				{
+					using (var tr = db.BeginTransaction())
+					{
+						tr.AtomicAdd(key1, Slice.FromFixed64(1));
+						tr.AtomicAdd(key2, Slice.FromFixed64(2));
+						tr.AtomicAdd(key16, Slice.FromFixed64(16));
+
+						await tr.CommitAsync();
+					}
+				}
+
+				db.Debug_Dump();
+
+				// Collect memory
+				Trace.WriteLine("### GARBAGE COLLECT! ###");
+				db.Collect();
+				db.Debug_Dump();
 			}
 		}
 
@@ -565,6 +603,11 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				}
 
 				db.Debug_Dump(true);
+
+				// Collect memory
+				Trace.WriteLine("### GARBAGE COLLECT! ###");
+				db.Collect();
+				db.Debug_Dump();
 			}
 		}
 
@@ -587,6 +630,11 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					await tr.CommitAsync();
 				}
 
+				db.Debug_Dump();
+
+				// Collect memory
+				Trace.WriteLine("### GARBAGE COLLECT! ###");
+				db.Collect();
 				db.Debug_Dump();
 			}
 		}
@@ -677,7 +725,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		[Test]
 		public async Task Test_MiniBench()
 		{
-			const int M = 1 * 1000 * 1000;
+			const int M = 10 * 1000 * 1000;
 			const int B = 100;
 			const int W = 1;
 
@@ -775,7 +823,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				var data = await db.GetValuesAsync(Enumerable.Range(0, 1000).Select(i => Slice.FromString(i.ToString(fmt))));
 
-				// sequential reads
+				#region sequential reads
 
 				sw.Restart();
 				for (int i = 0; i < total; i++)
@@ -789,7 +837,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				Console.WriteLine("SeqRead1  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
 
 				sw.Restart();
-				for (int i = 0; i < total; i+= 10 )
+				for (int i = 0; i < total; i += 10)
 				{
 					using (var tr = db.BeginReadOnlyTransaction())
 					{
@@ -824,7 +872,9 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				sw.Stop();
 				Console.WriteLine("SeqRead1k : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
 
-				// random reads
+				#endregion
+
+				#region random reads
 
 				sw.Restart();
 				for (int i = 0; i < total; i++)
@@ -873,6 +923,46 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				}
 				sw.Stop();
 				Console.WriteLine("RndRead1k : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+				#endregion
+
+				#region Parallel Reads...
+
+				var mre = new ManualResetEvent(false);
+
+				int CPUS = Environment.ProcessorCount;
+				long kkk = 0;
+				tasks = Enumerable
+					.Range(0, CPUS)
+					.Select(k => Task.Run(async () =>
+					{
+						var rndz = new Random(k);
+						//Console.WriteLine("T" + k + " waiting");
+						mre.WaitOne();
+						//Console.WriteLine("T" + k + " go");
+
+						int keys = 0;
+						for (int i = 0; i < total / CPUS; i += 10)
+						{
+							int pp = i;// rndz.Next((int)total - 10);
+							using (var tr = db.BeginReadOnlyTransaction())
+							{
+								var res = await db.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString((pp + x).ToString(fmt))));
+								keys += res.Length;
+							}
+						}
+						//Console.WriteLine("T" + k + " done");
+						Interlocked.Add(ref kkk, keys);
+						return keys;
+					})).ToArray();
+
+				sw.Restart();
+				mre.Set();
+				await Task.WhenAll(tasks);
+				sw.Stop();
+				Console.WriteLine("ParaSeqRead: " + kkk.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (kkk / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+
+				#endregion
 			}
 
 		}

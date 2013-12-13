@@ -28,7 +28,7 @@ namespace FoundationDB.Storage.Memory.Core
 		private static readonly uint DefaultAlignment = (uint) Math.Max(IntPtr.Size, 8);
 
 		[DebuggerDisplay("Id={m_id}, Usage={this.Used} / {m_size}, Free={m_size-m_nextFree}, Ptr={m_handle}"), DebuggerTypeProxy(typeof(Page.DebugView))]
-		private sealed unsafe class Page : IDisposable
+		internal sealed unsafe class Page : IDisposable
 		{
 
 			private readonly int m_id;
@@ -60,6 +60,8 @@ namespace FoundationDB.Storage.Memory.Core
 			{
 				Dispose(false);
 			}
+
+			public byte* Start { get { return m_begin; } }
 
 			public int Id { get { return m_id; } }
 
@@ -192,7 +194,9 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public uint PageSize { get { return m_pageSize; } }
 
-		public int Pages { get { return m_pages.Count; } }
+		public int PageCount { get { return m_pages.Count; } }
+
+		internal IReadOnlyList<Page> Pages { get { return m_pages; } }
 
 		public uint Alignment { get { return m_alignment; } }
 

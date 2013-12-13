@@ -9,6 +9,7 @@ namespace FoundationDB.Storage.Memory.Core
 	using FoundationDB.Client;
 	using System;
 	using System.Diagnostics.Contracts;
+	using System.Runtime.CompilerServices;
 	using System.Runtime.ConstrainedExecution;
 	using System.Runtime.InteropServices;
 	using System.Security;
@@ -35,6 +36,13 @@ namespace FoundationDB.Storage.Memory.Core
 			x |= (x >> 8);
 			x |= (x >> 16);
 			return x + 1;
+		}
+
+		public static SafeLocalAllocHandle AllocMemory(uint size)
+		{
+			var handle = NativeMethods.LocalAlloc(0, new UIntPtr(size));
+			if (handle.IsInvalid) throw new OutOfMemoryException();
+			return handle;
 		}
 
 		/// <summary>Copy a managed slice to the specified memory location</summary>
@@ -147,6 +155,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <param name="count">Nombre d'éléments à comparer</param>
 		/// <returns>Offset vers le premier élément qui diffère, ou -1 si les deux buffers sont identiques</returns>
 		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public static int CompareUnsafe(byte* left, uint leftCount, byte* right, uint rightCount)
 		{
 			if (leftCount == 0) return rightCount == 0 ? 0 : -1;
@@ -254,8 +263,32 @@ namespace FoundationDB.Storage.Memory.Core
 
 #if USE_NATIVE_MEMORY_OPERATORS
 
+		internal class SafeLocalAllocHandle : SafeBuffer
+		{
+			public static SafeLocalAllocHandle InvalidHandle
+			{
+				get {return new SafeLocalAllocHandle();}
+			}
+
+
+			private SafeLocalAllocHandle()
+				: base(true)
+			{ }
+
+			public SafeLocalAllocHandle(IntPtr handle)
+				: base(true)
+			{ }
+
+			[SecurityCritical]
+			protected override bool ReleaseHandle()
+			{
+				return NativeMethods.LocalFree(base.handle) == IntPtr.Zero;
+			}
+
+		}
+
 		[SuppressUnmanagedCodeSecurity]
-		private static unsafe class NativeMethods
+		internal static unsafe class NativeMethods
 		{
 
 			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
@@ -266,6 +299,17 @@ namespace FoundationDB.Storage.Memory.Core
 
 			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
 			public static extern int memset(byte* dest, byte ch, uint count);
+
+			[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+			public static extern SafeLocalAllocHandle LocalAlloc(uint uFlags, UIntPtr uBytes);
+
+			[DllImport("kernel32.dll", SetLastError = true), ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+			public static extern IntPtr LocalFree(IntPtr hMem);
+
+			[DllImport("kernel32.dll")]
+			public static extern IntPtr LocalReAlloc(IntPtr hMem, UIntPtr uBytes, uint uFlags);
+ 
+
 		}
 
 #endif

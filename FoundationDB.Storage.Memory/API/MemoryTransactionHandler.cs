@@ -3,6 +3,7 @@
 #endregion
 
 #undef DUMP_TRANSACTION_STATE
+#define DISABLE_RANGE_CHECKS
 
 namespace FoundationDB.Storage.Memory.API
 {
@@ -364,8 +365,6 @@ namespace FoundationDB.Storage.Memory.API
 			Initialize(first: true);
 		}
 
-		public bool IsInvalid { get { return false; } }
-
 		public bool IsClosed { get { return m_disposed; } }
 
 		private void Initialize(bool first)
@@ -508,6 +507,7 @@ namespace FoundationDB.Storage.Memory.API
 
 			var result = await m_db.GetValueAtVersionAsync(range.Begin, m_readVersion.Value).ConfigureAwait(false);
 
+#if !DISABLE_RANGE_CHECKS
 			if (!snapshot)
 			{
 				lock (m_lock)
@@ -515,6 +515,7 @@ namespace FoundationDB.Storage.Memory.API
 					AddReadConflict_NeedsLocking(range);
 				}
 			}
+#endif
 			return result;
 		}
 
@@ -549,6 +550,7 @@ namespace FoundationDB.Storage.Memory.API
 
 			var results = await m_db.GetValuesAtVersionAsync(ordered, m_readVersion.Value).ConfigureAwait(false);
 
+#if !DISABLE_RANGE_CHECKS
 			if (!snapshot)
 			{
 				lock (m_lock)
@@ -559,6 +561,7 @@ namespace FoundationDB.Storage.Memory.API
 					}
 				}
 			}
+#endif
 
 			return results;
 		}
@@ -570,7 +573,7 @@ namespace FoundationDB.Storage.Memory.API
 
 			CheckAccessToSystemKeys(selector.Key, end: true);
 
-			Trace.WriteLine("## GetKey " + selector + ", snapshot=" + snapshot);
+			//Trace.WriteLine("## GetKey " + selector + ", snapshot=" + snapshot);
 
 			FdbKeyRange keyRange;
 			lock (m_buffer)
@@ -601,6 +604,7 @@ namespace FoundationDB.Storage.Memory.API
 				}
 			}
 
+#if !DISABLE_RANGE_CHECKS
 			if (!snapshot)
 			{
 				lock (m_lock)
@@ -625,6 +629,7 @@ namespace FoundationDB.Storage.Memory.API
 					}
 				}
 			}
+#endif
 			return result;
 		}
 
@@ -677,7 +682,7 @@ namespace FoundationDB.Storage.Memory.API
 
 			//TODO: check system keys
 
-			Trace.WriteLine("## GetRange " + beginInclusive + " <= k < " + endExclusive + ", limit=" + options.Limit + ", reverse=" + options.Reverse + ", snapshot=" + snapshot);
+			//Trace.WriteLine("## GetRange " + beginInclusive + " <= k < " + endExclusive + ", limit=" + options.Limit + ", reverse=" + options.Reverse + ", snapshot=" + snapshot);
 
 			lock (m_buffer)
 			{
@@ -718,7 +723,9 @@ namespace FoundationDB.Storage.Memory.API
 
 			lock (m_lock)
 			{
+#if !DISABLE_RANGE_CHECKS
 				AddWriteConflict_NeedsLocking(range);
+#endif
 				AddWriteCommand_NeedsLocking(new WriteCommand(Operation.Set, range.Begin, value));
 			}
 		}
@@ -746,7 +753,9 @@ namespace FoundationDB.Storage.Memory.API
 			lock (m_lock)
 			{
 				AddWriteConflict_NeedsLocking(range);
+#if !DISABLE_RANGE_CHECKS
 				AddWriteCommand_NeedsLocking(new WriteCommand((Operation)mutation, range.Begin, param));
+#endif
 			}
 		}
 
@@ -762,11 +771,13 @@ namespace FoundationDB.Storage.Memory.API
 				range = m_buffer.InternRangeFromKey(key);
 			}
 
+#if !DISABLE_RANGE_CHECKS
 			lock (m_lock)
 			{
 				AddWriteConflict_NeedsLocking(range);
 				AddClearCommand_NedsLocking(range);
 			}
+#endif
 		}
 
 		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
@@ -783,11 +794,13 @@ namespace FoundationDB.Storage.Memory.API
 				range = m_buffer.InternRange(beginKeyInclusive, endKeyExclusive);
 			}
 
+#if !DISABLE_RANGE_CHECKS
 			lock (m_lock)
 			{
 				AddWriteConflict_NeedsLocking(range);
 				AddClearCommand_NedsLocking(range);
 			}
+#endif
 		}
 
 		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
@@ -806,6 +819,7 @@ namespace FoundationDB.Storage.Memory.API
 				range = m_buffer.InternRange(beginKeyInclusive, endKeyExclusive);
 			}
 
+#if !DISABLE_RANGE_CHECKS
 			lock (m_lock)
 			{
 				switch (type)
@@ -822,6 +836,7 @@ namespace FoundationDB.Storage.Memory.API
 					}
 				}
 			}
+#endif
 		}
 
 		public void Reset()

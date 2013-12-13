@@ -17,28 +17,124 @@ namespace FoundationDB.Storage.Memory.API
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	internal class GenerationalUnmanagedHeap : IDisposable
+	{
+		private const int DEFAULT_GENERATIONS = 2;
+		private const int DEFAULT_PAGESIZE = 0;
+
+		private int m_generations;
+		private UnmanagedMemoryHeap[] m_heaps;
+		private bool m_disposed;
+
+		public GenerationalUnmanagedHeap()
+			: this(DEFAULT_GENERATIONS, DEFAULT_PAGESIZE, 0)
+		{ }
+
+		public GenerationalUnmanagedHeap(int generations, uint pageSize, uint alignment)
+		{
+			if (generations <= 0) throw new ArgumentOutOfRangeException("generations");
+
+			m_generations = generations;
+			var heaps = new UnmanagedMemoryHeap[generations];
+			for (int i = 0; i < generations;i++)
+			{
+				heaps[i] = new UnmanagedMemoryHeap(pageSize, alignment);
+			}
+
+			m_generations = generations;
+			m_heaps = heaps;
+		}
+
+		public int MaxGeneration { get { return m_generations; } }
+
+		public long GetTotalMemory()
+		{
+			if (m_disposed) return 0;
+			long total = 0;
+			foreach(var heap in m_heaps)
+			{
+				total += heap.MemoryUsage;
+			}
+			return total;
+		}
+
+		public UnmanagedMemoryHeap Gen0
+		{
+			get
+			{
+				if (m_disposed) ThrowDisposed();
+				return m_heaps[0];
+			}
+		}
+
+		public UnmanagedMemoryHeap this[int gen]
+		{
+			get
+			{
+				if (m_disposed) ThrowDisposed();
+				return m_heaps[gen];
+			}
+		}
+
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		private void ThrowDisposed()
+		{
+			throw new ObjectDisposedException(this.GetType().Name);
+		}
+
+		private void Dispose(bool disposing)
+		{
+			if (!m_disposed)
+			{
+				m_disposed = true;
+				if (m_heaps != null && m_heaps.Length > 0)
+				{
+					foreach(var heap in m_heaps)
+					{
+						if (heap != null)
+						{
+							try { heap.Dispose(); }
+							catch { }
+						}
+					}
+				}
+			}
+		}
+
+	}
+
 	internal class MemoryDatabaseHandler : IFdbDatabaseHandler, IDisposable
 	{
 
 		#region Private Members...
 
-		private static int s_transactionCounter;
-
 		/// <summary>Set to true when the current db instance gets disposed.</summary>
 		private volatile bool m_disposed;
 
-		private long m_version = 0;
+		/// <summary>Current version of the database</summary>
+		private long m_currentVersion;
+		/// <summary>Oldest legal read version of the database</summary>
+		private long m_oldestVersion;
 
 		//TODO: replace this with an Async lock ?
 		private static readonly ReaderWriterLockSlim m_dataLock = new ReaderWriterLockSlim();
 		private static readonly object m_heapLock = new object();
 
-		private UnmanagedMemoryHeap m_keyHeap = new UnmanagedMemoryHeap(64 * 1024);
-		private UnmanagedMemoryHeap m_valueHeap = new UnmanagedMemoryHeap(1024 * 1024);
+		private KeyHeap m_keys = new KeyHeap(0, 64 * 1024);
+		private ValueHeap m_values = new ValueHeap(0, 1024 * 1024);
 
 		private ColaStore<IntPtr> m_data = new ColaStore<IntPtr>(0, new NativeKeyComparer());
 		private long m_estimatedSize;
 
+		/// <summary>List of all current transactions that have been created</summary>
+		private HashSet<MemoryTransactionHandler> m_pendingTransactions = new HashSet<MemoryTransactionHandler>();
+		/// <summary>List of all transactions that have requested a read version, but have not committed anything yet</summary>
+		private Queue<MemoryTransactionHandler> m_activeTransactions = new Queue<MemoryTransactionHandler>();
 
 		#endregion
 
@@ -65,15 +161,38 @@ namespace FoundationDB.Storage.Memory.API
 
 		internal long GetCurrentVersion()
 		{
-			//TODO: locking ?
-			return Volatile.Read(ref m_version);
+			m_dataLock.EnterReadLock();
+			try
+			{
+				return Volatile.Read(ref m_currentVersion);
+			}
+			finally
+			{
+				m_dataLock.ExitReadLock();
+			}
+		}
+
+		internal void MarkTransaction(MemoryTransactionHandler transaction, long readVersion)
+		{
+			Contract.Requires(transaction != null);
+
+			lock (m_activeTransactions)
+			{
+				if (m_activeTransactions.Count == 0)
+				{
+				}
+				else
+				{
+				}
+				m_activeTransactions.Enqueue(transaction);
+			}
 		}
 
 		/// <summary>Format a user key</summary>
 		/// <param name="buffer"></param>
 		/// <param name="userKey"></param>
 		/// <returns></returns>
-		private unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey, uint flags, Value* values)
+		private unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (userKey.Count == 0) throw new ArgumentException("Key cannot be empty");
@@ -84,8 +203,8 @@ namespace FoundationDB.Storage.Memory.API
 			var tmp = buffer.Allocate(size);
 			var key = (Key*)tmp.Data;
 			key->Size = keySize;
-			key->Flags = flags;
-			key->Values = values;
+			key->Header = ((uint)EntryType.Key) << Entry.TYPE_SHIFT;
+			key->Values = null;
 
 			UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
 			return tmp;
@@ -107,7 +226,7 @@ namespace FoundationDB.Storage.Memory.API
 				scratchKey = new UnmanagedSliceBuilder();
 				scratchValue = new UnmanagedSliceBuilder();
 
-				sequence = (ulong)Interlocked.Increment(ref m_version);
+				sequence = (ulong)Interlocked.Increment(ref m_currentVersion);
 
 				if (clearRanges != null && clearRanges.Count > 0)
 				{
@@ -134,7 +253,7 @@ namespace FoundationDB.Storage.Memory.API
 						// For both case, we will do a lookup in the db to get the previous value and location
 
 						// create the lookup key
-						USlice lookupKey = PackUserKey(scratchKey, write.Key, 0, null);
+						USlice lookupKey = PackUserKey(scratchKey, write.Key);
 
 						IntPtr previous;
 						int offset, level = m_data.Find(lookupKey.GetPointer(), out offset, out previous);
@@ -165,7 +284,7 @@ namespace FoundationDB.Storage.Memory.API
 								{ // grab the current value of this key
 
 									Value* p = key->Values;
-									if ((p->Flags & Value.FLAGS_DELETION) == 0)
+									if ((p->Header & Value.FLAGS_DELETION) == 0)
 									{
 										scratchValue.Append(&(p->Data), p->Size);
 									}
@@ -216,21 +335,19 @@ namespace FoundationDB.Storage.Memory.API
 
 							lock (m_heapLock)
 							{
-								value = (Value*)m_valueHeap.Allocate(scratchValue.Count + Value.SizeOf);
+								value = m_values.Allocate(scratchValue.Count, sequence, key != null ? key->Values : null, null);
 							}
 							Contract.Assert(value != null);
-							value->Sequence = sequence;
-							value->Previous = key != null ? key->Values : null;
-							value->Size = scratchValue.Count;
-							value->Flags = 0; //TODO
-							value->MovedTo = null;
 							scratchValue.CopyTo(&(value->Data));
 							Interlocked.Add(ref m_estimatedSize, value->Size);
 
 							if (key != null)
 							{ // mutate the previous version for this key
-								key->Values->Flags |= Value.FLAGS_MUTATED;
+								var prev = key->Values;
+								value->Parent = key;
 								key->Values = value;
+								prev->Header |= Value.FLAGS_MUTATED;
+								prev->Parent = value;
 
 								// make sure no thread seees an inconsitent view of the key
 								Thread.MemoryBarrier();
@@ -241,10 +358,10 @@ namespace FoundationDB.Storage.Memory.API
 								// we can reuse the lookup key (which is only missing the correct flags and pointers to the values)
 								lock (m_heapLock)
 								{
-									var heapKey = m_keyHeap.MemoizeAligned(lookupKey);
-									key = (Key*)heapKey.Data;
+									key = m_keys.Append(lookupKey);
 								}
 								key->Values = value;
+								value->Parent = key;
 								Contract.Assert(key->Size == write.Key.Count);
 								Interlocked.Add(ref m_estimatedSize, key->Size);
 
@@ -286,7 +403,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		private void EnsureReadVersionNotInTheFuture_NeedsLocking(ulong readVersion)
 		{
-			if ((ulong)Volatile.Read(ref m_version) < readVersion)
+			if ((ulong)Volatile.Read(ref m_currentVersion) < readVersion)
 			{ // a read for a future version? This is most probably a bug !
 #if DEBUG
 				if (Debugger.IsAttached) Debugger.Break();
@@ -295,7 +412,7 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
-		[Conditional("DEBUG")]
+		[Conditional("FULLDEBUG")]
 		private unsafe static void DumpKey(string label, IntPtr userKey)
 		{
 			var sb = new StringBuilder("(*) " + (label ?? "key") + " = ");
@@ -316,7 +433,7 @@ namespace FoundationDB.Storage.Memory.API
 				if (value != null)
 				{
 					sb.Append(" => [").Append(value->Sequence).Append("] ");
-					if ((value->Flags & Value.FLAGS_DELETION) != 0)
+					if ((value->Header & Value.FLAGS_DELETION) != 0)
 					{
 						sb.Append("DELETED");
 					}
@@ -358,7 +475,7 @@ namespace FoundationDB.Storage.Memory.API
 				current = current->Previous;
 			}
 
-			if (current == null || (current->Flags & Value.FLAGS_DELETION) != 0)
+			if (current == null || (current->Header & Value.FLAGS_DELETION) != 0)
 			{ // this key was created after our read version, or this version is a deletion marker
 				return false;
 			}
@@ -385,7 +502,7 @@ namespace FoundationDB.Storage.Memory.API
 				// create a lookup key
 				using (var scratch = new UnmanagedSliceBuilder())
 				{
-					var lookupKey = PackUserKey(scratch, userKey, 0, null);
+					var lookupKey = PackUserKey(scratch, userKey);
 
 					USlice value;
 					if (!TryGetValueAtVersion(lookupKey, sequence, out value))
@@ -428,7 +545,7 @@ namespace FoundationDB.Storage.Memory.API
 					for (int i = 0; i < userKeys.Length; i++)
 					{
 						// create a lookup key
-						var lookupKey = PackUserKey(scratch, userKeys[i], 0, null);
+						var lookupKey = PackUserKey(scratch, userKeys[i]);
 
 						USlice value;
 						if (!TryGetValueAtVersion(lookupKey, sequence, out value))
@@ -466,7 +583,7 @@ namespace FoundationDB.Storage.Memory.API
 			if (userKey == IntPtr.Zero) return null;
 
 			Key* key = (Key*)userKey.ToPointer();
-			Contract.Assert((key->Flags & Key.FLAGS_DISPOSED) == 0, "Attempted to read value from a disposed key");
+			Contract.Assert((key->Header & Entry.FLAGS_DISPOSED) == 0, "Attempted to read value from a disposed key");
 			Contract.Assert(key->Size > 0, "Attempted to read value from an empty key");
 
 			Value* current = key->Values;
@@ -475,12 +592,12 @@ namespace FoundationDB.Storage.Memory.API
 				current = current->Previous;
 			}
 
-			if (current == null || (current->Flags & Value.FLAGS_DELETION) != 0)
+			if (current == null || (current->Header & Value.FLAGS_DELETION) != 0)
 			{
 				return null;
 			}
 
-			Contract.Ensures((current->Flags & Value.FLAGS_DISPOSED) == 0 && current->Sequence <= sequence);
+			Contract.Ensures((current->Header & Entry.FLAGS_DISPOSED) == 0 && current->Sequence <= sequence);
 			return current;
 		}
 
@@ -567,7 +684,7 @@ namespace FoundationDB.Storage.Memory.API
 
 				using (var scratch = new UnmanagedSliceBuilder())
 				{
-					var lookupKey = PackUserKey(scratch, selector.Key, 0, null);
+					var lookupKey = PackUserKey(scratch, selector.Key);
 
 					var iterator = ResolveCursor(lookupKey, selector.OrEqual, selector.Offset, sequence);
 					Contract.Assert(iterator != null);
@@ -626,7 +743,7 @@ namespace FoundationDB.Storage.Memory.API
 					{
 						var selector = selectors[i];
 
-						var lookupKey = PackUserKey(scratch, selector.Key, 0, null);
+						var lookupKey = PackUserKey(scratch, selector.Key);
 
 						var iterator = ResolveCursor(lookupKey, selector.OrEqual, selector.Offset, sequence);
 						Contract.Assert(iterator != null);
@@ -699,11 +816,11 @@ namespace FoundationDB.Storage.Memory.API
 					using (var scratch = new UnmanagedSliceBuilder())
 					{
 						// first resolve the end to get the stop point
-						iterator = ResolveCursor(PackUserKey(scratch, end.Key, 0, null), end.OrEqual, end.Offset, sequence);
+						iterator = ResolveCursor(PackUserKey(scratch, end.Key), end.OrEqual, end.Offset, sequence);
 						stopKey = iterator.Current; // note: can be ZERO !
 
 						// now, set the cursor to the begin of the range
-						iterator = ResolveCursor(PackUserKey(scratch, begin.Key, 0, null), begin.OrEqual, begin.Offset, sequence);
+						iterator = ResolveCursor(PackUserKey(scratch, begin.Key), begin.OrEqual, begin.Offset, sequence);
 						if (iterator.Current == IntPtr.Zero) iterator.SeekFirst();
 					}
 
@@ -741,7 +858,7 @@ namespace FoundationDB.Storage.Memory.API
 					using (var scratch = new UnmanagedSliceBuilder())
 					{
 						// first resolve the begin to get the stop point
-						iterator = ResolveCursor(PackUserKey(scratch, begin.Key, 0, null), begin.OrEqual, begin.Offset, sequence);
+						iterator = ResolveCursor(PackUserKey(scratch, begin.Key), begin.OrEqual, begin.Offset, sequence);
 						DumpKey("resolved(" + begin + ")", iterator.Current);
 						if (iterator.Current == IntPtr.Zero) iterator.SeekFirst();
 						stopKey = iterator.Current; // note: can be ZERO !
@@ -749,7 +866,7 @@ namespace FoundationDB.Storage.Memory.API
 						DumpKey("stopKey", stopKey);
 
 						// now, set the cursor to the end of the range
-						iterator = ResolveCursor(PackUserKey(scratch, end.Key, 0, null), end.OrEqual, end.Offset, sequence);
+						iterator = ResolveCursor(PackUserKey(scratch, end.Key), end.OrEqual, end.Offset, sequence);
 						DumpKey("resolved(" + end + ")", iterator.Current);
 						if (iterator.Current == IntPtr.Zero) iterator.SeekLast();
 						DumpKey("endKey", iterator.Current);
@@ -809,9 +926,63 @@ namespace FoundationDB.Storage.Memory.API
 			if (m_disposed) ThrowDisposed();
 			Contract.Assert(context != null);
 
-			return new MemoryTransactionHandler(this);
+			MemoryTransactionHandler transaction = null;
+			try
+			{
+				transaction = new MemoryTransactionHandler(this);
+				//m_pendingTransactions.Add(transaction);
+				return transaction;
+			}
+			catch(Exception)
+			{
+				if (transaction != null)
+				{
+					transaction.Dispose();
+					//m_pendingTransactions.Remove(transaction);
+				}
+				throw;
+			}
 		}
 
+		/// <summary>Return the read version of the oldest pending transaction</summary>
+		/// <returns>Sequence number of the oldest active transaction, or the current read version if there are no pending transactions</returns>
+		private ulong GetOldestReadVersion()
+		{
+			//HACKHACK: TODO!
+			return (ulong)Volatile.Read(ref m_currentVersion);
+		}
+
+		/// <summary>Perform a complete garbage collection</summary>
+		public void GC()
+		{
+
+			m_dataLock.EnterUpgradeableReadLock();
+			try
+			{
+
+				// collect everything that is oldest than the oldest active read version.
+				ulong sequence = GetOldestReadVersion();
+
+				lock (m_heapLock)
+				{
+					// purge the dead values
+					m_values.Collect(sequence);
+
+					// pack the keys
+					//m_keys.Collect(sequence);
+					//BUGBUG: need to purge the colastore also !
+
+				}
+
+				m_oldestVersion = (long)sequence;
+			}
+			finally
+			{
+				m_dataLock.ExitUpgradeableReadLock();
+			}
+
+
+		}
 
 		public void Dispose()
 		{
@@ -827,27 +998,34 @@ namespace FoundationDB.Storage.Memory.API
 			throw new ObjectDisposedException("The database has already been disposed");
 		}
 
+		[Conditional("DEBUG")]
 		public void Debug_Dump(bool detailed = false)
 		{
 			Trace.WriteLine("Dumping content of Database");
 			m_dataLock.EnterReadLock();
 			try
 			{
-				Trace.WriteLine("> Version: " + m_version);
+				Trace.WriteLine("> Version: " + m_currentVersion);
 				Trace.WriteLine("> Estimated size: " + m_estimatedSize.ToString("N0") + " bytes");
 				//Trace.WriteLine("> Content: {0} keys", m_data.Count.ToString("N0"));
 
-				Trace.WriteLine(String.Format("> Keys: {0} bytes in {1} pages", m_keyHeap.MemoryUsage.ToString("N0"), m_keyHeap.Pages.ToString("N0")));
-				Trace.WriteLine(String.Format("> Values: {0} bytes in {1} pages", m_valueHeap.MemoryUsage.ToString("N0"), m_valueHeap.Pages.ToString("N0")));
+				//Trace.WriteLine(String.Format("> Keys: {0} bytes in {1} pages", m_keys.Gen0.MemoryUsage.ToString("N0"), m_keys.Gen0.PageCount.ToString("N0")));
+				//Trace.WriteLine(String.Format("> Values: {0} bytes in {1} pages", m_values.MemoryUsage.ToString("N0"), m_values.PageCount.ToString("N0")));
 				lock (m_heapLock)
 				{
 					if (detailed)
 					{
-						m_keyHeap.Dump(detailed: false);
-						m_valueHeap.Dump(detailed: false);
+						//m_keys.Gen0.Dump(detailed: false);
+						//m_values.Gen0.Dump(detailed: false);
 					}
-					m_keyHeap.DumpToDisk("keys.bin");
-					m_valueHeap.DumpToDisk("values.bin");
+					//m_keys.Gen0.DumpToDisk("keys.bin");
+					//m_values.Gen0.DumpToDisk("values.bin");
+
+					unsafe
+					{
+						m_keys.Debug_Dump();
+						m_values.Debug_Dump();
+					}
 				}
 
 #if false || FULLDEBUG
@@ -878,62 +1056,148 @@ namespace FoundationDB.Storage.Memory.API
 		}
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1)]
-		private unsafe struct Key
+		internal unsafe struct Entry
 		{
-			public static readonly uint SizeOf = (uint)Marshal.OffsetOf(typeof(Key), "Data").ToInt32();
+			/// <summary>Default alignement for objects (8 by default)</summary>
+			public const int ALIGNMENT = 8; // MUST BE A POWER OF 2 !
+			public const int ALIGNMENT_MASK = ~(ALIGNMENT - 1);
 
-			/// <summary>This jey has been moved to another page by the last GC</summary>
+			/// <summary>This entry has been moved to another page by the last GC</summary>
 			public const uint FLAGS_MOVED = 0x100;
+
 			/// <summary>This key has been flaged as being unreachable by current of future transaction (won't survive the next GC)</summary>
 			public const uint FLAGS_UNREACHABLE = 0x2000;
-			/// <summary>This key is being moved to another page by the current GC</summary>
-			public const uint FLAGS_MOVING = 0x400;
 
-			public const uint FLAGS_DISPOSED = 0x8000;
+			/// <summary>The entry has been disposed and should be access anymore</summary>
+			public const uint FLAGS_DISPOSED = 0x80000000;
+
+			public const int TYPE_SHIFT = 29;
+			public const uint TYPE_MASK_AFTER_SHIFT = 0x3;
+
+			// Object Layout
+			// ==============
+
+			// Offset	Field	Type	Desc
+			// 
+			//      0	HEADER	uint	Type, Flags, ...
+			//		4	SIZE	uint	Size of the data
+			//		... object fields ...
+			//		x	DATA	byte[]	Value of the object, size in the SIZE field
+			//		y	(pad)	0..7	padding bytes (set to 00 or FF ?)
+			//
+			// HEADER: bit flags
+			// - bit 31: DISPOSED, set if object is disposed
+			// - bit 29-30: TYPE
+
+			/// <summary>Various flags (TODO: enum?)</summary>
+			public uint Header;
 
 			/// <summary>Size of the key (in bytes)</summary>
 			public uint Size;
+
+			/// <summary>Return the type of the object</summary>
+			public static unsafe EntryType GetObjectType(void* item)
+			{
+				return item == null ? EntryType.Free : (EntryType)((((Entry*)item)->Header >> TYPE_SHIFT) & TYPE_MASK_AFTER_SHIFT);
+			}
+
+			/// <summary>Checks if the object is disposed</summary>
+			public static unsafe bool IsDisposed(void* item)
+			{
+				return item == null || (((Entry*)item)->Header & FLAGS_DISPOSED) != 0;
+			}
+
+			internal static byte* Align(byte* ptr)
+			{
+				long r = ((long)ptr) & (ALIGNMENT - 1);
+				if (r > 0) ptr += ALIGNMENT - r;
+				return ptr;
+			}
+
+			internal static bool IsAligned(void* ptr)
+			{
+				return (((long)ptr) & (ALIGNMENT - 1)) == 0;
+			}
+
+			internal static int Padding(void* ptr)
+			{
+				return (int) (((long)ptr) & (ALIGNMENT - 1));
+			}
+		}
+
+		public enum EntryType
+		{
+			Free = 0,
+			Key = 1,
+			Value = 2,
+			Search = 3
+		}
+
+		[StructLayout(LayoutKind.Sequential, Pack = 1)]
+		internal unsafe struct Key
+		{
+			public static readonly uint SizeOf = (uint)Marshal.OffsetOf(typeof(Key), "Data").ToInt32();
+
+			/// <summary>The key has been inserted after the last GC</summary>
+			public const uint FLAGS_NEW = 0x1000;
+			/// <summary>The key has been created/mutated since the last GC</summary>
+			public const uint FLAGS_MUTATED = 0x2000;
+			/// <summary>There is a watch listening on this key</summary>
+			public const uint FLAGS_HAS_WATCH = 0x2000;
+
 			/// <summary>Various flags (TODO: enum?)</summary>
-			public uint Flags;
+			public uint Header;
+			/// <summary>Size of the key (in bytes)</summary>
+			public uint Size;
 			/// <summary>Pointer to the head of the value chain for this key (should not be null)</summary>
 			public Value* Values;
 			/// <summary>Offset to the first byte of the key</summary>
 			public byte Data;
 
-			/// <summary>Rewire the Values pointer after a successfull moved during a GC</summary>
-			public static void RewireValuesPointerAfterGC(Key* self)
+			public static USlice GetData(Key* self)
 			{
-				Contract.Requires(self != null && self->Values != null);
-
-				// the value pointed to by Values has been moved
-				Value* old = self->Values;
-				if (old == null)
-				{ // ?
-					Contract.Assert((self->Flags & Key.FLAGS_DISPOSED) != 0);
-				}
-				else if ((old->Flags & Value.FLAGS_DISPOSED) != 0)
-				{ // the value has been deleted, this key should also be marked as dead
-					self->Values = null;
-				}
-				else
-				{
-					self->Values = old->MovedTo;
-					old->Flags |= Value.FLAGS_UNREACHABLE;
-				}
+				if (self == null) return default(USlice);
+				Contract.Assert((self->Header & Entry.FLAGS_DISPOSED) == 0, "Attempt to read a key that was disposed");
+				return new USlice(&(self->Data), self->Size);
 			}
 
-			public static USlice GetData(Key* key)
+			public static bool StillAlive(Key* self, ulong sequence)
 			{
-				if (key == null) return default(USlice);
+				if (self == null) return false;
 
-				Contract.Assert((key->Flags & FLAGS_DISPOSED) == 0, "Attempt to read a value that was disposed");
-				return new USlice(&(key->Data), key->Size);
+				if ((self->Header & Entry.FLAGS_UNREACHABLE) != 0)
+				{ // we have been marked as dead
+
+					var value = self->Values;
+					if (value == null) return false;
+
+					// check if the last value is a deletion?
+					if (value->Sequence <= sequence && (value->Header & Value.FLAGS_DELETION) != 0)
+					{ // it is deleted
+						return false;
+					}
+				}
+
+				return true;
+			}
+
+			public static bool IsDisposed(Key* self)
+			{
+				return (self->Header & Entry.FLAGS_DISPOSED) != 0;
+			}
+
+			/// <summary>Return the address of the following value in the heap</summary>
+			internal static Key* WalkNext(Key* self)
+			{
+				Contract.Requires(self != null && Entry.GetObjectType(self) == EntryType.Key);
+
+				return (Key*)Entry.Align((byte*)self + Key.SizeOf + self->Size);
 			}
 
 		}
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1)]
-		private unsafe struct Value
+		internal unsafe struct Value
 		{
 			public static readonly uint SizeOf = (uint)Marshal.OffsetOf(typeof(Value), "Data").ToInt32();
 
@@ -942,57 +1206,582 @@ namespace FoundationDB.Storage.Memory.API
 			/// <summary>This value has been mutated and is not up to date</summary>
 			public const uint FLAGS_MUTATED = 0x2;
 
-			/// <summary>This value has been moved to another page by the last GC</summary>
-			public const uint FLAGS_MOVED = 0x0100;
-			/// <summary>This value has been flagged as unreachable by any current of future transaction (won't survive the next GC)</summary>
-			public const uint FLAGS_UNREACHABLE = 0x0200;
-			/// <summary>This value is being moved to another page by the current GC</summary>
-			public const uint FLAGS_MOVING = 0x0400;
-
-			/// <summary>This value is dead, and should not be linked to anymore</summary>
-			public const uint FLAGS_DISPOSED = 0x8000;
-
+			/// <summary>Various flags (TDB)</summary>
+			public uint Header;
+			/// <summary>Size of the value</summary>
+			public uint Size;
 			/// <summary>Version were this version of the key first appeared</summary>
 			public ulong Sequence;
 			/// <summary>Pointer to the previous version of this key, or NULL if this is the earliest known</summary>
 			public Value* Previous;
-			/// <summary>Various flags (TDB)</summary>
-			public uint Flags;
-			/// <summary>Size of the value</summary>
-			public uint Size;
-			/// <summary>Pointer to the new location of this value, after a garbage collection</summary>
-			public Value* MovedTo;
+			/// <summary>Pointer to the parent node (can be a Key or a Value)</summary>
+			public void* Parent;
 			/// <summary>Offset to the first byte of the value</summary>
 			public byte Data;
-
-			/// <summary>Rewire the Previous pointer after a successfull moved during a GC</summary>
-			public static void RewirePreviousPointerAfterGC(Value* self)
-			{
-				Contract.Requires(self != null && self->Previous != null);
-
-				// the value pointed to by Previous has been moved
-				Value* old = self->Previous;
-
-				if ((old->Flags & FLAGS_DISPOSED) != 0)
-				{ // the previous version is dead!
-					self->Previous = null;
-				}
-				else
-				{
-					self->Previous = old->MovedTo;
-					old->Flags |= FLAGS_UNREACHABLE;
-				}
-
-				Thread.MemoryBarrier();
-			}
 
 			public static USlice GetData(Value* value)
 			{
 				if (value == null) return default(USlice);
 
-				Contract.Assert((value->Flags & FLAGS_DISPOSED) == 0, "Attempt to read a value that was disposed");
+				Contract.Assert((value->Header & Entry.FLAGS_DISPOSED) == 0, "Attempt to read a value that was disposed");
 				return new USlice(&(value->Data), value->Size);
 			}
+
+			public static bool StillAlive(Value* value, ulong sequence)
+			{
+				if (value == null) return false;
+				if ((value->Header & Value.FLAGS_MUTATED) != 0)
+				{
+					return value->Sequence >= sequence;
+				}
+				return true;
+			}
+
+			public static bool IsDisposed(Value* value)
+			{
+				return (value->Header & Entry.FLAGS_DISPOSED) != 0;
+			}
+
+			/// <summary>Return the address of the following value in the heap</summary>
+			internal static Value* WalkNext(Value* self)
+			{
+				Contract.Requires(self != null && Entry.GetObjectType(self) == EntryType.Value);
+
+				return (Value*)Entry.Align((byte*)self + Value.SizeOf + self->Size);
+			}
+
+		}
+
+		internal unsafe abstract class EntryPage : IDisposable
+		{
+			protected byte* m_current;
+			protected byte* m_start;
+			protected byte* m_end;
+			protected uint m_capacity;
+			protected int m_count;
+			protected SafeHandle m_handle;
+
+			public EntryPage(SafeHandle handle, uint capacity)
+			{
+				Contract.Requires(handle != null && !handle.IsInvalid && !handle.IsClosed);
+
+				m_handle = handle;
+				m_capacity = capacity;
+				m_start = (byte*) handle.DangerousGetHandle().ToPointer();
+				m_end = m_start + capacity;
+				m_current = m_start;
+
+				CheckInvariants();
+			}
+
+			[Conditional("DEBUG")]
+			protected void CheckInvariants()
+			{
+				Contract.Assert(!m_handle.IsInvalid, "Memory handle should not be invalid");
+				Contract.Assert(!m_handle.IsClosed, "Memory handle should not be closed");
+				Contract.Ensures(Entry.IsAligned(m_current), "Current pointer should always be aligned");
+				Contract.Assert(m_current <= m_start + m_capacity, "Current pointer should never be outside the page");
+			}
+
+			public int Count { get { return m_count; } }
+
+			public long MemoryUsage { get { return (long)m_current - (long)m_start; } }
+
+			public abstract EntryType Type { get; }
+
+			public void Dispose()
+			{
+				if (!m_handle.IsClosed)
+				{
+					m_start = null;
+					m_current = null;
+					m_handle.Close();
+				}
+			}
+
+			internal static byte* Align(byte* ptr, byte* end)
+			{
+				long r = ((long)ptr) & (Entry.ALIGNMENT - 1);
+				if (r > 0) ptr += Entry.ALIGNMENT - r;
+				if (ptr > end) return end;
+				return ptr;
+			}
+
+			protected byte* TryAllocate(uint size)
+			{
+				// try to allocate an amount of memory
+				// - returns null if the page is full, or too small
+				// - returns a pointer to the allocated space
+
+				byte* ptr = m_current;
+				byte* end = m_end;
+				byte* next = ptr + size;
+				if (next > m_end)
+				{ // does not fit in this page
+					return null;
+				}
+
+				// update the cursor for the next value
+				next = (byte*) (((long)next + Entry.ALIGNMENT - 1) & Entry.ALIGNMENT_MASK);
+				if (next > end) next = end;
+				m_current = next;
+				++m_count;
+
+				CheckInvariants();
+				return ptr;
+			}
+
+			public void Swap(EntryPage target)
+			{
+				Contract.Requires(target != null);
+
+				var old = m_handle;
+				m_handle = target.m_handle;
+				m_count = target.Count;
+				m_capacity = target.m_capacity;
+				m_start = target.m_start;
+				m_end = target.m_end;
+				m_current = target.m_current;
+				old.Dispose();
+				CheckInvariants();
+			}
+
+			[Conditional("DEBUG")]
+			public abstract void Debug_Dump();
+		}
+
+		internal abstract class ElasticHeap<TPage>
+			where TPage : EntryPage
+		{
+			protected List<TPage> m_pages = new List<TPage>();
+			protected int m_gen;
+			protected uint m_pageSize;
+			protected TPage m_current;
+
+			public ElasticHeap(int generation, uint pageSize)
+			{
+				if (generation < 0) throw new ArgumentOutOfRangeException("generation");
+
+				m_gen = generation;
+				m_pageSize = pageSize;
+			}
+
+			[Conditional("DEBUG")]
+			public void Debug_Dump()
+			{
+				Console.WriteLine("# Dumping elastic " + typeof(TPage).Name + " heap (" + m_pages.Count + " pages)");
+				foreach(var page in m_pages)
+				{
+					page.Debug_Dump();
+				}
+			}
+		}
+
+		internal unsafe class KeyHeap : ElasticHeap<KeyHeap.Page>
+		{
+
+			public static Page CreateNewPage(uint size, uint alignment)
+			{
+				// the size of the page should also be aligned
+				var pad = size & (alignment - 1);
+				if (pad != 0)
+				{
+					size += alignment - pad;
+				}
+				if (size > int.MaxValue) throw new OutOfMemoryException();
+
+				UnmanagedHelpers.SafeLocalAllocHandle handle = null;
+				try
+				{
+					handle = UnmanagedHelpers.AllocMemory(size);
+					return new Page(handle, size);
+				}
+				catch (Exception)
+				{
+					if (!handle.IsClosed) handle.Dispose();
+					throw;
+				}
+			}
+
+			/// <summary>Page of memory used to store Keys</summary>
+			public sealed unsafe class Page : EntryPage
+			{
+
+				public Page(SafeHandle handle, uint capacity)
+					: base(handle, capacity)
+				{ }
+
+				public override EntryType Type
+				{
+					get { return EntryType.Key; }
+				}
+
+				/// <summary>Copy an existing value to this page, and return the pointer to the copy</summary>
+				/// <param name="value">Value that must be copied to this page</param>
+				/// <returns>Pointer to the copy in this page</returns>
+				public Key* TryAppend(Key* value)
+				{
+					Contract.Requires(value != null && Entry.GetObjectType(value) == EntryType.Value);
+
+					uint rawSize = Key.SizeOf + value->Size;
+					var entry = (Key*)TryAllocate(rawSize);
+					if (entry == null) return null; // this page is full
+
+					UnmanagedHelpers.CopyUnsafe((byte*)entry, (byte*)value, rawSize);
+
+					return entry;
+				}
+
+				public Key* TryAppend(USlice buffer)
+				{
+					Contract.Requires(buffer.Data != null
+						&& buffer.Count >= Key.SizeOf
+						&& ((Key*)buffer.Data)->Size == buffer.Count - Key.SizeOf);
+
+					var entry = (Key*)TryAllocate(buffer.Count);
+					if (entry == null) return null; // this page is full
+
+					UnmanagedHelpers.CopyUnsafe((byte*)entry, buffer.Data, buffer.Count);
+					entry->Header = ((uint)EntryType.Key) << Entry.TYPE_SHIFT;
+
+					return entry;
+				}
+
+				public void Collect(KeyHeap.Page target, ulong sequence)
+				{
+					var current = (Key*)m_start;
+					var end = (Key*)m_current;
+
+					while (current < end)
+					{
+						bool keep = Key.StillAlive(current, sequence);
+
+						if (keep)
+						{ // copy to the target page
+
+							var moved = target.TryAppend(current);
+							if (moved == null) throw new InvalidOperationException("The target page was too small");
+
+							var values = current->Values;
+							if (values != null)
+							{
+								values->Parent = moved;
+							}
+
+							current->Header |= Entry.FLAGS_MOVED | Entry.FLAGS_DISPOSED;
+						}
+						else
+						{
+							current->Header |= Entry.FLAGS_DISPOSED;
+						}
+
+						current = Key.WalkNext(current);
+					}
+
+
+				}
+
+				public override void Debug_Dump()
+				{
+					Contract.Requires(m_start != null && m_current != null);
+					Key* current = (Key*)m_start;
+					Key* end = (Key*)m_current;
+
+					Trace.WriteLine("## KeyPage: count=" + m_count.ToString("N0") + ", used=" + this.MemoryUsage.ToString("N0") + ", capacity=" + m_capacity.ToString("N0") + ", start=0x" + new IntPtr(m_start).ToString("X8") + ", end=0x" + new IntPtr(m_current).ToString("X8"));
+
+					while (current < end)
+					{
+						Trace.WriteLine("   - [" + Entry.GetObjectType(current).ToString() + "] 0x" + new IntPtr(current).ToString("X8") + " : " + current->Header.ToString("X8") + ", size=" + current->Size + " : " + FdbKey.Dump(Key.GetData(current).ToSlice()));
+						var value = current->Values;
+						while (value != null)
+						{
+							Trace.WriteLine("     -> [" + Entry.GetObjectType(value) + "] 0x" + new IntPtr(value).ToString("X8") + " @ " + value->Sequence + " : " + Value.GetData(value).ToSlice().ToAsciiOrHexaString());
+							value = value->Previous;
+						}
+						current = Key.WalkNext(current);
+					}
+				}
+			}
+
+			public KeyHeap(int gen, uint pageSize)
+				: base(gen, pageSize)
+			{ }
+
+			public Key* Append(USlice buffer)
+			{
+				Page page;
+				var entry = (page = m_current) != null ? page.TryAppend(buffer) : null;
+				if (entry == null)
+				{
+					if (buffer.Count > m_pageSize >> 1)
+					{ // if the value is too big, it will use its own page
+
+						page = CreateNewPage(buffer.Count, Entry.ALIGNMENT);
+						m_pages.Add(page);
+					}
+					else
+					{ // allocate a new page and try again
+
+						page = CreateNewPage(m_pageSize, Entry.ALIGNMENT);
+						m_current = page;
+					}
+
+					Contract.Assert(page != null);
+					m_pages.Add(page);
+					entry = page.TryAppend(buffer);
+					Contract.Assert(entry != null);
+				}
+				Contract.Assert(entry != null);
+				return entry;
+			}
+
+
+			public void Collect(ulong sequence)
+			{
+				foreach(var page in m_pages)
+				{
+					var target = CreateNewPage(m_pageSize, Entry.ALIGNMENT);
+					page.Collect(target, sequence);
+					page.Swap(target);
+				}
+
+			}
+
+		}
+
+		internal unsafe class ValueHeap : ElasticHeap<ValueHeap.Page>
+		{
+
+			public static Page CreateNewPage(uint size, uint alignment)
+			{
+				//Console.WriteLine("Created value page: " + size);
+				// the size of the page should also be aligned
+				var pad = size & (alignment - 1);
+				if (pad != 0)
+				{
+					size += alignment - pad;
+				}
+				if (size > int.MaxValue) throw new OutOfMemoryException();
+
+				UnmanagedHelpers.SafeLocalAllocHandle handle = null;
+				try
+				{
+					handle = UnmanagedHelpers.AllocMemory(size);
+					return new Page(handle, size);
+				}
+				catch (Exception)
+				{
+					if (!handle.IsClosed) handle.Dispose();
+					throw;
+				}
+			}
+
+			/// <summary>Page of memory used to store Values</summary>
+			public sealed class Page : EntryPage
+			{
+
+				public Page(SafeHandle handle, uint capacity)
+					: base(handle, capacity)
+				{ }
+
+				public override EntryType Type
+				{
+					get { return EntryType.Value; }
+				}
+
+				/// <summary>Copy an existing value to this page, and return the pointer to the copy</summary>
+				/// <param name="value">Value that must be copied to this page</param>
+				/// <returns>Pointer to the copy in this page</returns>
+				public Value* TryAppend(Value* value)
+				{
+					Contract.Requires(value != null && Entry.GetObjectType(value) == EntryType.Value);
+
+					uint rawSize = Value.SizeOf + value->Size;
+					Value* entry = (Value*)TryAllocate(rawSize);
+					if (entry == null) return null; // the page is full
+
+					UnmanagedHelpers.CopyUnsafe((byte*)entry, (byte*)value, rawSize);
+
+					return entry;
+				}
+
+				public Value* TryAppend(USlice buffer)
+				{
+					Contract.Requires(buffer.Data != null
+						&& buffer.Count >= Value.SizeOf
+						&& ((Key*)buffer.Data)->Size == buffer.Count - Value.SizeOf);
+
+					var entry = (Value*)TryAllocate(buffer.Count);
+					if (entry == null) return null; // the page is full
+					UnmanagedHelpers.CopyUnsafe((byte*)entry, buffer.Data, buffer.Count);
+
+					return entry;
+				}
+
+				public Value* TryAllocate(uint dataSize, ulong sequence, Value* previous, void* parent)
+				{
+					Value* entry = (Value*)TryAllocate(Value.SizeOf + dataSize);
+					if (entry == null) return null; // the page is full
+
+					entry->Header = ((uint)EntryType.Value) << Entry.TYPE_SHIFT;
+					entry->Size = dataSize;
+					entry->Sequence = sequence;
+					entry->Previous = previous;
+					entry->Parent = parent;
+
+					return entry;
+				}
+
+				public void Collect(Page target, ulong sequence)
+				{
+					var current = (Value*)m_start;
+					var end = (Value*)m_current;
+
+					while (current < end)
+					{
+						bool keep = Value.StillAlive(current, sequence);
+
+						void* parent = current->Parent;
+
+						if (keep)
+						{ // copy to the target page
+
+							var moved = target.TryAppend(current);
+							if (moved == null) throw new InvalidOperationException(); // ??
+
+							// update the parent
+							switch (Entry.GetObjectType(parent))
+							{
+								case EntryType.Key:
+									{
+										((Key*)parent)->Values = moved;
+										break;
+									}
+								case EntryType.Value:
+									{
+										((Value*)parent)->Previous = moved;
+										break;
+									}
+								case EntryType.Free:
+									{
+										//NO-OP
+										break;
+									}
+								default:
+									{
+										throw new InvalidOperationException("Unexpected parent while moving value");
+									}
+							}
+							current->Header |= Entry.FLAGS_MOVED | Entry.FLAGS_DISPOSED;
+						}
+						else
+						{
+							// we need to kill the link from the parent
+							switch (Entry.GetObjectType(parent))
+							{
+								case EntryType.Key:
+									{
+										((Key*)parent)->Values = null;
+										break;
+									}
+								case EntryType.Value:
+									{
+										((Value*)parent)->Previous = null;
+										break;
+									}
+								case EntryType.Free:
+									{
+										//NO-OP
+										break;
+									}
+								default:
+									{
+										throw new InvalidOperationException("Unexpected parent while destroying value");
+									}
+							}
+
+							current->Header |= Entry.FLAGS_DISPOSED;
+						}
+
+						current = Value.WalkNext(current);
+					}
+
+
+				}
+
+				public override void Debug_Dump()
+				{
+					Contract.Requires(m_start != null && m_current != null);
+					Value* current = (Value*)m_start;
+					Value* end = (Value*)m_current;
+
+					Trace.WriteLine("## ValuePage: count=" + m_count.ToString("N0") + ", used=" + this.MemoryUsage.ToString("N0") + ", capacity=" + m_capacity.ToString("N0") + ", start=0x" + new IntPtr(m_start).ToString("X8") + ", end=0x" + new IntPtr(m_current).ToString("X8"));
+
+					while (current < end)
+					{
+						Trace.WriteLine("   - [" + Entry.GetObjectType(current).ToString() + "] 0x" + new IntPtr(current).ToString("X8") + " : " + current->Header.ToString("X8") + ", seq=" + current->Sequence + ", size=" + current->Size + " : " + Value.GetData(current).ToSlice().ToAsciiOrHexaString());
+						if (current->Previous != null) Trace.WriteLine("     -> Previous: [" + Entry.GetObjectType(current->Previous) + "] 0x" + new IntPtr(current->Previous).ToString("X8"));
+						if (current->Parent != null) Trace.WriteLine("     <- Parent: [" + Entry.GetObjectType(current->Parent) + "] 0x" + new IntPtr(current->Parent).ToString("X8"));
+
+						current = Value.WalkNext(current);
+					}
+				}
+
+			}
+
+			public ValueHeap(int gen, uint pageSize)
+				: base(gen, pageSize)
+			{ }
+
+			public Value* Allocate(uint dataSize, ulong sequence, Value* previous, void* parent)
+			{
+				Page page;
+				var entry = (page = m_current) != null ? page.TryAllocate(dataSize, sequence, previous, parent) : null;
+				if (entry == null)
+				{
+					uint size = dataSize + Value.SizeOf;
+					if (size > m_pageSize >> 1)
+					{ // if the value is too big, it will use its own page
+
+						page = CreateNewPage(size, Entry.ALIGNMENT);
+						m_pages.Add(page);
+
+					}
+					else
+					{ // allocate a new page and try again
+
+						page = CreateNewPage(m_pageSize, Entry.ALIGNMENT);
+						m_current = page;
+					}
+
+					Contract.Assert(page != null);
+					m_pages.Add(page);
+					entry = page.TryAllocate(dataSize, sequence, previous, parent);
+					Contract.Assert(entry != null);
+				}
+				Contract.Assert(entry != null);
+				return entry;
+			}
+
+			public void Collect(ulong sequence)
+			{
+				foreach(var page in m_pages)
+				{
+					var target = CreateNewPage(m_pageSize, Entry.ALIGNMENT);
+					if (page.Count == 1)
+					{ // this is a standalone page
+						page.Collect(target, sequence);
+						page.Swap(target);
+					}
+					else
+					{
+						page.Collect(target, sequence);
+						page.Swap(target);
+					}
+				}
+
+			}
+
 		}
 
 		private unsafe sealed class NativeKeyComparer : IComparer<IntPtr>
@@ -1006,22 +1795,29 @@ namespace FoundationDB.Storage.Memory.API
 
 			public int Compare(IntPtr left, IntPtr right)
 			{
-				// if both pointers are the same, then they are equal (hopefully :) )
-				if (left == right) return 0;
-				// handle the nulls
-				if (left == IntPtr.Zero) return -1;
-				if (right == IntPtr.Zero) return +1;
-
 				// unwrap as pointers to the Key struct
 				var leftKey = (Key*)left.ToPointer();
 				var rightKey = (Key*)right.ToPointer();
 
-				Contract.Assert(leftKey->Size != 0 && rightKey->Size != 0);
+				//if (leftKey == rightKey) return 0;
+				//if (leftKey == null) return -1;
+				//if (rightKey == null) return +1;
 
+				uint leftCount, rightCount;
+
+				if (leftKey == null || (leftCount = leftKey->Size) == 0) return rightKey == null || rightKey->Size == 0 ? 0 : -1;
+				if (rightKey == null || (rightCount = rightKey->Size) == 0) return +1;
+
+#if true
+				int c = UnmanagedHelpers.NativeMethods.memcmp(&(leftKey->Data), &(rightKey->Data), leftCount < rightCount ? leftCount : rightCount);
+				if (c == 0) c = (int)leftCount - (int)rightCount;
+				return c;
+#else
 				return UnmanagedHelpers.CompareUnsafe(
-					&(leftKey->Data), leftKey->Size,
-					&(rightKey->Data), rightKey->Size
+					&(leftKey->Data), leftCount,
+					&(rightKey->Data), rightCount
 				);
+#endif
 			}
 		}
 

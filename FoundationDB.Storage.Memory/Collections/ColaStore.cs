@@ -718,7 +718,7 @@ namespace FoundationDB.Storage.Memory.Core
 				m_cursors = ColaStore.CreateCursors(m_count, out m_min);
 			}
 
-			[Conditional("DEBUG")]
+			[Conditional("FULLDEBUG")]
 			private void Debug_Dump(string label = null)
 			{
 				Trace.WriteLine("* Cursor State: " + label); 

@@ -989,23 +989,24 @@ namespace FoundationDB.Storage.Memory.Core
 		}
 
 		//TODO: remove or set to internal !
+		[Conditional("DEBUG")]
 		public void Debug_Dump(Func<T, string> dump = null)
 		{
-			Console.WriteLine("> " + m_levels.Length + " levels:");
+			Trace.WriteLine("> " + m_levels.Length + " levels:");
 			for(int i = 0; i < m_levels.Length; i++)
 			{
 				string s = dump == null ? String.Join(", ", m_levels[i]) : String.Join(", ", m_levels[i].Select(dump));
-				Console.WriteLine(String.Format(CultureInfo.InvariantCulture, "  - {0,2}: [{1}] {2}", i, IsFree(i) ? "free" : "USED", s));
+				Trace.WriteLine(String.Format(CultureInfo.InvariantCulture, "  - {0,2}: [{1}] {2}", i, IsFree(i) ? "free" : "USED", s));
 			}
 #if false
-			Console.WriteLine("> " + m_spares.Length + " spares:");
+			Trace.WriteLine("> " + m_spares.Length + " spares:");
 			for (int i = 0; i < m_spares.Length; i++)
 			{
 				var spare = m_spares[i];
-				Console.WriteLine(String.Format(CultureInfo.InvariantCulture, "> {0,2}: {1}", i, spare == null ? "<unallocated>" : String.Join(", ", spare)));
+				Trace.WriteLine(String.Format(CultureInfo.InvariantCulture, "> {0,2}: {1}", i, spare == null ? "<unallocated>" : String.Join(", ", spare)));
 			}
 #endif
-			Console.WriteLine("> " + m_count + " items");
+			Trace.WriteLine("> " + m_count + " items");
 		}
 
 	}

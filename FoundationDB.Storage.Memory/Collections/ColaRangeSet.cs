@@ -13,8 +13,8 @@ namespace FoundationDB.Storage.Memory.Core
 	using System.Diagnostics.Contracts;
 	using System.Globalization;
 
-	/// <summary>Represent an ordered set of elements, stored in a Cache Oblivous Lookup Array</summary>
-	/// <typeparam name="T">Type of elements stored in the set</typeparam>
+	/// <summary>Represent an ordered list of ranges, stored in a Cache Oblivous Lookup Array</summary>
+	/// <typeparam name="TKey">Type of keys stored in the set</typeparam>
 	[DebuggerDisplay("Count={m_items.Count}, Bounds={m_bounds.Begin}..{m_bounds.End}")]
 	public class ColaRangeSet<TKey> : IEnumerable<ColaRangeSet<TKey>.Entry>
 	{
@@ -58,6 +58,7 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 		}
 
+		/// <summary>Range comparer that only test the Begin key</summary>
 		private sealed class BeginKeyComparer : IComparer<Entry>
 		{
 			private readonly IComparer<TKey> m_comparer;
@@ -292,8 +293,9 @@ namespace FoundationDB.Storage.Memory.Core
 						Min(m_bounds.Begin, entry.Begin),
 						Max(m_bounds.End, entry.End)
 					);
+
+					break;
 				}
-				break;
 			}
 
 			//TODO: check constraints !
@@ -314,6 +316,7 @@ namespace FoundationDB.Storage.Memory.Core
 			return this.GetEnumerator();
 		}
 
+		[Conditional("DEBUG")]
 		//TODO: remove or set to internal !
 		public void Debug_Dump()
 		{

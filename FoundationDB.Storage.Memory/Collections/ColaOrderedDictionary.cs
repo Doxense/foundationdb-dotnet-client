@@ -373,9 +373,10 @@ namespace FoundationDB.Storage.Memory.Core
 		}
 
 		//TODO: remove or set to internal !
+		[Conditional("DEBUG")]
 		public void Debug_Dump()
 		{
-			Console.WriteLine("Dumping ColaOrderedDictionary<" + typeof(TKey).Name + ", " + typeof(TValue).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
+			Trace.WriteLine("Dumping ColaOrderedDictionary<" + typeof(TKey).Name + ", " + typeof(TValue).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
 			m_items.Debug_Dump();
 		}
 
