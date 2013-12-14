@@ -338,7 +338,7 @@ namespace FoundationDB.Storage.Memory.Core
 			Contract.Requires(output != null && left != null && right != null && comparer != null);
 			Contract.Requires(left.Length > 0 && output.Length == left.Length * 2 && right.Length == left.Length);
 
-			int n = left.Length;
+			int c, n = left.Length;
 			// note: The probality to merge an array of size N is rougly 1/N (with N being a power of 2),
 			// which means that we will spend roughly half the time merging arrays of size 1 into an array of size 2..
 
@@ -346,13 +346,14 @@ namespace FoundationDB.Storage.Memory.Core
 			{ // Most frequent case (p=0.5)
 				var l = left[0];
 				var r = right[0];
-				if (comparer.Compare(l, r) < 0)
+				if ((c = comparer.Compare(l, r)) < 0)
 				{
 					output[0] = l;
 					output[1] = r;
 				}
 				else
 				{
+					Contract.Assert(c != 0);
 					output[0] = r;
 					output[1] = l;
 				}
@@ -391,7 +392,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 			while (true)
 			{
-				if (comparer.Compare(left[pLeft], right[pRight]) < 0)
+				if ((c = comparer.Compare(left[pLeft], right[pRight])) < 0)
 				{ // left is smaller than right => advance
 
 					output[pOutput++] = left[pLeft++];
@@ -404,6 +405,7 @@ namespace FoundationDB.Storage.Memory.Core
 				}
 				else
 				{ // right is smaller or equal => advance
+					Contract.Assert(c != 0);
 
 					output[pOutput++] = right[pRight++];
 

@@ -3,7 +3,7 @@
 #endregion
 
 // enables consitency checks after each operation to the set
-#undef ENFORCE_INVARIANTS
+#define ENFORCE_INVARIANTS
 
 namespace FoundationDB.Storage.Memory.Core
 {
@@ -87,6 +87,9 @@ namespace FoundationDB.Storage.Memory.Core
 
 		/// <summary>List of spare temporary buffers, used during merging</summary>
 		private T[][] m_spares;
+#if ENFORCE_INVARIANTS
+		private bool[] m_spareUsed;
+#endif
 
 		/// <summary>Key comparer</summary>
 		private readonly IComparer<T> m_comparer;
@@ -130,6 +133,9 @@ namespace FoundationDB.Storage.Memory.Core
 			m_levels = segments;
 			m_root = segments[0];
 			m_spares = spares;
+#if ENFORCE_INVARIANTS
+			m_spareUsed = new bool[spares.Length];
+#endif
 			m_comparer = comparer;
 		}
 
@@ -152,7 +158,7 @@ namespace FoundationDB.Storage.Memory.Core
 				{ // All unallocated segments SHOULD be filled with default(T)
 					for (int j = 0; j < segment.Length; j++)
 					{
-						if (m_comparer.Compare(segment[j], default(T)) != 0)
+						if (!EqualityComparer<T>.Default.Equals(segment[j], default(T)))
 						{
 							if (Debugger.IsAttached) { Debug_Dump(); Debugger.Break(); }
 							Contract.Assert(false, String.Format("Non-zero value at offset {0} of unused level {1} : {2}", j, i, String.Join(", ", segment)));
@@ -172,6 +178,25 @@ namespace FoundationDB.Storage.Memory.Core
 						}
 						previous = segment[j];
 					}
+				}
+
+				if (i < m_spares.Length)
+				{
+#if ENFORCE_INVARIANTS
+					Contract.Assert(!m_spareUsed[i], "A spare level wasn't returned after being used!");
+#endif
+					var spare = m_spares[i];
+					if (spare == null) continue;
+					// All spare segments SHOULD be filled with default(T)
+					for (int j = 0; j < spare.Length; j++)
+					{
+						if (!EqualityComparer<T>.Default.Equals(spare[j], default(T)))
+						{
+							if (Debugger.IsAttached) { Debug_Dump(); Debugger.Break(); }
+							Contract.Assert(false, String.Format("Non-zero value at offset {0} of spare level {1} : {2}", j, i, String.Join(", ", spare)));
+						}
+					}
+
 				}
 			}
 		}
@@ -395,7 +420,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public IEnumerable<T> FindBetween(T begin, bool beginOrEqual, T end, bool endOrEqual, int limit)
 		{
-			Console.WriteLine("Looking for " + begin + (beginOrEqual ? " <= k " : " < k ") + (endOrEqual ? "<= " : "< ") + end + ", max " + limit);
+			//Trace.WriteLine("Looking for " + begin + (beginOrEqual ? " <= k " : " < k ") + (endOrEqual ? "<= " : "< ") + end + ", max " + limit);
 
 			if (limit > 0)
 			{
@@ -404,15 +429,15 @@ namespace FoundationDB.Storage.Memory.Core
 					if (IsFree(i)) continue;
 
 					var segment = m_levels[i];
-					Console.WriteLine("> Looking at level " + i + " : " + String.Join(", ", segment));
+					//Trace.WriteLine("> Looking at level " + i + " : " + String.Join(", ", segment));
 
 					int to = ColaStore.BinarySearch<T>(segment, 0, segment.Length, end, m_comparer);
-					Console.WriteLine("  > binSearch(end=" + end + ") => "+ to);
+					//Trace.WriteLine("  > binSearch(end=" + end + ") => " + to);
 					if (to >= 0)
 					{
 						if (!endOrEqual)
 						{
-							Console.WriteLine("  > excluding matching end");
+							//Trace.WriteLine("  > excluding matching end");
 							to--;
 						}
 					}
@@ -420,16 +445,16 @@ namespace FoundationDB.Storage.Memory.Core
 					{
 						to = ~to;
 					}
-					Console.WriteLine("  > to = " + to);
+					//Trace.WriteLine("  > to = " + to);
 					if (to < 0 || to >= segment.Length) continue;
 
 					int from = ColaStore.BinarySearch<T>(segment, 0, segment.Length, begin, m_comparer);
-					Console.WriteLine("  > binSearch(begin=" + begin + ") => " + from);
+					//Trace.WriteLine("  > binSearch(begin=" + begin + ") => " + from);
 					if (from >= 0)
 					{
 						if (!beginOrEqual)
 						{
-							Console.WriteLine("  > excluding matching begin");
+							//Trace.WriteLine("  > excluding matching begin");
 							from++;
 						}
 					}
@@ -437,15 +462,15 @@ namespace FoundationDB.Storage.Memory.Core
 					{
 						from = ~from;
 					}
-					Console.WriteLine("  > from = " + from);
+					//Trace.WriteLine("  > from = " + from);
 					if (from >= segment.Length) continue;
 
 					if (from > to) continue;
 
-					Console.WriteLine("  > fetch(" + from + "..." + to + ")");
+					//Trace.WriteLine("  > fetch(" + from + "..." + to + ")");
 					for (int j = from; j <= to && limit > 0; j++)
 					{
-						Console.WriteLine("    > " + j + " :" + segment[j]);
+						//Trace.WriteLine("    > " + j + " :" + segment[j]);
 						yield return segment[j];
 						--limit;
 					}
@@ -574,10 +599,12 @@ namespace FoundationDB.Storage.Memory.Core
 			{ // we need to merge one or more levels
 
 				var spare = GetSpare(0);
+				if (object.ReferenceEquals(spare, m_root)) Debugger.Break();
 				Contract.Assert(spare != null && spare.Length == 1);
 				spare[0] = value;
 				MergeCascade(1, m_root, spare);
-				spare[0] = default(T);
+				PutSpare(0, spare);
+				m_root[0] = default(T);
 			}
 			++m_count;
 
@@ -729,15 +756,21 @@ namespace FoundationDB.Storage.Memory.Core
 
 			if (level < m_spares.Length)
 			{ // this level is kept in the spare list
+
+#if ENFORCE_INVARIANTS
+				Contract.Assert(!m_spareUsed[level], "this spare is already in use!");
+#endif
+
 				var t = m_spares[level];
 				if (t == null)
 				{ // allocate a new one
 					t = new T[1 << level];
+					m_spares[level] = t;
 				}
-				else
-				{ // remove it from the spare list
-					m_spares[level] = null;
-				}
+#if ENFORCE_INVARIANTS
+				m_spareUsed[level] = true;
+				//Trace.WriteLine("GetSpare(" + level + ", " + t.GetHashCode() + ")");
+#endif
 				return t;
 			}
 			else
@@ -754,12 +787,32 @@ namespace FoundationDB.Storage.Memory.Core
 		{
 			Contract.Assert(level >= 0 && spare != null);
 
-			// only clear spares that are kept alive		
-			if (level < m_spares.Length && m_spares[level] == null)
+#if ENFORCE_INVARIANTS
+			//Trace.WriteLine("PutSpare(" + level + ", " + spare.GetHashCode() + ")");
+			// make sure that we do not mix levels and spares
+			for (int i = 0; i < m_levels.Length; i++)
 			{
+				if (object.ReferenceEquals(m_levels[i], spare)) Debugger.Break();
+			}
+#endif
+
+			// only clear spares that are kept alive		
+			if (level < m_spares.Length)
+			{
+#if ENFORCE_INVARIANTS
+				Contract.Assert(m_spareUsed[level], "this spare wasn't used");
+#endif
+
 				// clear it in case it holds onto dead values that could be garbage collected
-				Array.Clear(spare, 0, spare.Length);
-				m_spares[level] = spare;
+				spare[0] = default(T);
+				if (level > 0)
+				{
+					spare[1] = default(T);
+					if (level > 1) Array.Clear(spare, 2, spare.Length - 2);
+				}
+#if ENFORCE_INVARIANTS
+				m_spareUsed[level] = false;
+#endif
 				return true;
 			}
 			return false;
@@ -892,14 +945,10 @@ namespace FoundationDB.Storage.Memory.Core
 			else if (IsFree(level + 1))
 			{ // the next level is empty
 
-				//Console.WriteLine("MergeCascade(" + level + ", " + left.Length + ", " + left.Length+ ") TO NEXT");
-
-
 				if (level + 1 >= m_levels.Length) Grow(level + 1);
 				Contract.Assert(level + 1 < m_levels.Length);
 
 				var spare = GetSpare(level);
-				//TODO: use a 3-way merge ?
 				ColaStore.MergeSort(spare, left, right, m_comparer);
 				var next = m_levels[level];
 				ColaStore.MergeSort(m_levels[level + 1], next, spare, m_comparer);
@@ -908,21 +957,19 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 			else
 			{ // both are full, need to do a cascade merge
-				Contract.Assert(level < m_levels.Length);
 
-				//Console.WriteLine("MergeCascade(" + level + ", " + left.Length + ", " + left.Length + ") CASCADE");
+				Contract.Assert(level < m_levels.Length);
 
 				// merge N and N +1
 				var spare = GetSpare(level);
 				ColaStore.MergeSort(spare, left, right, m_comparer);
 
 				// and cascade to N + 2 ...
-				MergeCascade(level + 1, m_levels[level], spare);
+				var next = m_levels[level];
+				MergeCascade(level + 1, next, spare);
+				Array.Clear(next, 0, next.Length);
 				PutSpare(level, spare);
 			}
-
-			Array.Clear(left, 0, left.Length);
-			Array.Clear(right, 0, right.Length);
 		}
 
 		/// <summary>Grow the capacity of the level array</summary>
@@ -945,8 +992,6 @@ namespace FoundationDB.Storage.Memory.Core
 			m_levels = tmpSegments;
 
 			Contract.Ensures(m_levels != null && m_levels.Length > level);
-			CheckInvariants();
-			//Console.WriteLine("Grew up to " + required + " levels, capacity = " + this.Capacity);
 		}
 
 		private void ShrinkIfRequired()
@@ -967,8 +1012,6 @@ namespace FoundationDB.Storage.Memory.Core
 					var tmpSegments = new T[n][];
 					Array.Copy(m_levels, tmpSegments, n);
 					m_levels = tmpSegments;
-					//Console.WriteLine("Shrank down " + n + " levels, capacity = " + this.Capacity);
-					CheckInvariants();
 				}
 			}
 		}
