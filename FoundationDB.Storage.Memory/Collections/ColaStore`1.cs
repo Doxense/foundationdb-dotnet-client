@@ -518,15 +518,6 @@ namespace FoundationDB.Storage.Memory.Core
 			for (int i = 0; i < m_levels.Length; i++)
 			{
 				if (i < MAX_SPARE_ORDER)
-				{ // we can put this segment into the spare list
-					var seg = m_levels[i];
-					if (seg != null)
-					{
-						Array.Clear(seg, 0, seg.Length);
-						m_spares[i] = seg;
-					}
-				}
-				if (i < MAX_SPARE_ORDER)
 				{
 					Array.Clear(m_levels[i], 0, 1 << i);
 				}
@@ -536,6 +527,10 @@ namespace FoundationDB.Storage.Memory.Core
 				}
 			}
 			m_count = 0;
+			if (m_levels.Length > MAX_SPARE_ORDER)
+			{
+				Array.Resize(ref m_levels, MAX_SPARE_ORDER);
+			}
 
 			CheckInvariants();
 		}
