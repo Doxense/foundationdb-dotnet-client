@@ -23,6 +23,7 @@ namespace FoundationDB.Storage.Memory.Core
 		
 		// INVARIANTS
 		// * If there is at least on range, the set is not empty
+		// * The Begin key is INCLUDED in range, but the End key is EXCLUDED from the range (ie: Begin <= K < End)
 		// * The End key of a range is always GREATER than or EQUAL to the Begin key of a range (ie: ranges are not backwards)
 		// * The End key of a range is always strictly LESS than the Begin key of the next range (ie: there are gaps between ranges)
 

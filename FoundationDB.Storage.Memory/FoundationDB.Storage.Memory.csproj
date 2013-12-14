@@ -51,6 +51,7 @@
     <Compile Include="API\MemoryDatabase.cs" />
     <Compile Include="API\MemoryTransactionHandler.cs" />
     <Compile Include="Collections\ColaOrderedDictionary.cs" />
+    <Compile Include="Collections\ColaRangeDictionary.cs" />
     <Compile Include="Collections\ColaRangeSet.cs" />
     <Compile Include="Collections\ColaStore`1.cs" />
     <Compile Include="Collections\ColaStore.cs" />

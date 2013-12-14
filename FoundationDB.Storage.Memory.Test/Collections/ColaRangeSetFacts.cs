@@ -78,30 +78,30 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			Console.WriteLine("Bounds = " + cola.Bounds);
 		}
 
-		public void Test_RangeSet_Insert_That_Completly_Overlapping()
+		[Test]
+		public void Test_RangeSet_Insert_Completly_Overlapping()
 		{
 			var cola = new ColaRangeSet<int>();
-			cola.Mark(0, 1);
-			cola.Mark(2, 3);
+			cola.Mark(1, 2);
 			cola.Mark(4, 5);
-			cola.Mark(6, 7);
 			cola.Debug_Dump();
-			Assert.That(cola.Count, Is.EqualTo(4));
-			Assert.That(cola.Bounds.Begin, Is.EqualTo(0));
-			Assert.That(cola.Bounds.End, Is.EqualTo(7));
+			Assert.That(cola.Count, Is.EqualTo(2));
+			Assert.That(cola.Bounds.Begin, Is.EqualTo(1));
+			Assert.That(cola.Bounds.End, Is.EqualTo(5));
 
-			// overlaps all the ranges at once
-			cola.Mark(-1, 10);
+			// overlaps the first range completely
+			cola.Mark(0, 3);
 			cola.Debug_Dump();
-			Assert.That(cola.Count, Is.EqualTo(1));
-			Assert.That(cola.Bounds.Begin, Is.EqualTo(-1));
-			Assert.That(cola.Bounds.End, Is.EqualTo(10));
+			Assert.That(cola.Count, Is.EqualTo(2));
+			Assert.That(cola.Bounds.Begin, Is.EqualTo(0));
+			Assert.That(cola.Bounds.End, Is.EqualTo(5));
 
 			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
 			Console.WriteLine("Bounds = " + cola.Bounds);
 
 		}
 
+		[Test]
 		public void Test_RangeSet_Insert_That_Join_Two_Ranges()
 		{
 			var cola = new ColaRangeSet<int>();

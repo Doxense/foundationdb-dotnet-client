@@ -49,6 +49,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Collections\ColaRangeDictionaryFacts.cs" />
     <Compile Include="Collections\ColaVersionedDictionaryFacts.cs" />
     <Compile Include="Collections\ColaRangeSetFacts.cs" />
     <Compile Include="Collections\ColaStoreFacts.cs" />
