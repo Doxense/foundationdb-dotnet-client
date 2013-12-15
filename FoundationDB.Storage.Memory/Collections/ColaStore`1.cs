@@ -3,7 +3,7 @@
 #endregion
 
 // enables consitency checks after each operation to the set
-#define ENFORCE_INVARIANTS
+#undef ENFORCE_INVARIANTS
 
 namespace FoundationDB.Storage.Memory.Core
 {

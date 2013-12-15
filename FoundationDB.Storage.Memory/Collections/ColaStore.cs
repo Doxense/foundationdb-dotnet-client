@@ -165,7 +165,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 		internal static void ThrowDuplicateKey<T>(T value)
 		{
-			throw new InvalidOperationException("Cannot insert because the key already exists in the set");
+			throw new InvalidOperationException(String.Format("Cannot insert '{0}' because the key already exists in the set", value));
 		}
 
 		internal static int BinarySearch<T>(T[] array, int offset, int count, T value, IComparer<T> comparer)

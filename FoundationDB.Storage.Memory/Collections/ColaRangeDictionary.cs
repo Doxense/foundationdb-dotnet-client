@@ -117,6 +117,43 @@ namespace FoundationDB.Storage.Memory.Core
 		[Conditional("ENFORCE_INVARIANTS")]
 		private void CheckInvariants()
 		{
+			Contract.Assert(m_bounds != null);
+			Console.WriteLine("INVARIANTS:" + this.ToString() + " <> " + m_bounds.ToString());
+
+			if (m_items.Count == 0)
+			{
+				Contract.Assert(EqualityComparer<TKey>.Default.Equals(m_bounds.Begin, default(TKey)));
+				Contract.Assert(EqualityComparer<TKey>.Default.Equals(m_bounds.End, default(TKey)));
+			}
+			else if (m_items.Count == 1)
+			{
+				Contract.Assert(EqualityComparer<TKey>.Default.Equals(m_bounds.Begin, m_items[0].Begin));
+				Contract.Assert(EqualityComparer<TKey>.Default.Equals(m_bounds.End, m_items[0].End));
+			}
+			else
+			{
+				Entry previous = null;
+				Entry first = null;
+				foreach (var item in this)
+				{
+					Contract.Assert(m_keyComparer.Compare(item.Begin, item.End) < 0, "End key should be after begin");
+
+					if (previous == null)
+					{
+						first = item;
+					}
+					else
+					{
+						int c = m_keyComparer.Compare(previous.End, item.Begin);
+						if (c > 0) Contract.Assert(false, String.Format("Range overlapping: {0} and {1}", previous, item));
+						if (c == 0 && m_valueComparer.Compare(previous.Value, item.Value) == 0) Contract.Assert(false, String.Format("Unmerged ranges: {0} and {1}", previous, item));
+					}
+					previous = item;
+				}
+				Contract.Assert(EqualityComparer<TKey>.Default.Equals(m_bounds.Begin, first.Begin), String.Format("Min bound {0} does not match with {1}", m_bounds.Begin, first.Begin));
+				Contract.Assert(EqualityComparer<TKey>.Default.Equals(m_bounds.End, previous.End), String.Format("Max bound {0} does not match with {1}", m_bounds.End, previous.End));
+			}
+
 		}
 
 		public int Count { get { return m_items.Count; } }
@@ -129,16 +166,16 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public Entry Bounds { get { return m_bounds; } }
 
-		private bool Resolve(Entry previous, Entry cancidate, out Entry extra, bool reversed)
+		private bool Resolve(Entry previous, Entry candidate, bool reversed, out bool stop)
 		{
-			if (0 == m_valueComparer.Compare(previous.Value, cancidate.Value))
+			Console.WriteLine("? resolving " + previous + " with " + candidate + (reversed ? " (reversed)" : ""));
+			if (0 == m_valueComparer.Compare(previous.Value, candidate.Value))
 			{
-				extra = null;
-				return ResolveSameValue(previous, cancidate);
+				return ResolveSameValue(previous, candidate, out stop);
 			}
 			else
 			{
-				return ResolveDifferent(previous, cancidate, out extra, reversed);
+				return ResolveDifferent(previous, candidate, reversed, out stop);
 			}
 		}
 
@@ -146,9 +183,10 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <param name="previous">Previous entry that may be sharing a slot with the new entry</param>
 		/// <param name="candidate">New entry</param>
 		/// <returns>If true, the resolution was resolved and nothing needs to be inserted. If false, then the candidate must be inserted.</returns>
-		private bool ResolveSameValue(Entry previous, Entry candidate)
+		private bool ResolveSameValue(Entry previous, Entry candidate, out bool stop)
 		{
 
+			stop = false;
 			int c = m_keyComparer.Compare(previous.Begin, candidate.Begin);
 			if (c == 0)
 			{ // they share the same begin key !
@@ -187,37 +225,43 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <param name="previous">Previous entry that may be sharing a slot with the new value</param>
 		/// <param name="candidate">New range</param>
 		/// <returns>If true, the resolution was resolved and nothing needs to be inserted. If false, then the candidate must be inserted.</returns>
-		private bool ResolveDifferent(Entry previous, Entry candidate, out Entry extra, bool reversed)
+		private bool ResolveDifferent(Entry previous, Entry candidate, bool reversed, out bool stop)
 		{
-			extra = null;
+			stop = false;
 
 			int c = m_keyComparer.Compare(previous.Begin, candidate.Begin);
 			if (c == 0)
 			{ // they share the same begin key !
 
-				// 3 possibilites:
+				// identical
+				//   [------------)
+				// + [============)
+				// = [============)
 
-				// * [....PREV....)
-				// * [....NEW.....)
-
-				// * [....PREV......)
-				// * [....NEW....)
-
-				// * [....PREV....)
-				// * [.......NEW.......)
+				// overwrite
+				//   [------------)
+				// + [=================)
+				// = [=================)
 
 				c = m_keyComparer.Compare(previous.End, candidate.End);
 				if (c <= 0)
 				{ // candidate replaces the previous ony
+					Console.WriteLine("! replace");
 					previous.ReplaceWith(candidate);
+					stop = c == 0;
 					return true;
 				}
-				else
-				{ // we need to split
-					previous.Update(candidate.End, previous.End, previous.Value);
-					//note: in this case, the new range will be inserted BEFORE the current one
-					return false;
-				}
+
+				// we need to split
+
+				//   [----------------)
+				// + [===========)
+				// = [===========|----)
+		
+				Console.WriteLine("! truncate begin");
+				previous.Begin = candidate.End;
+				stop = true;
+				return false;
 			}
 
 			if (c < 0)
@@ -232,11 +276,13 @@ namespace FoundationDB.Storage.Memory.Core
 					// +             [========)
 					// = [--------)  [========)
 
-					// contiguouys
+					// contiguous
 					//   [--------)						
 					// +          [========)
 					// = [--------|========)
 
+					Console.WriteLine(". no overlap");
+					stop = true;
 					return false;
 				}
 
@@ -249,10 +295,21 @@ namespace FoundationDB.Storage.Memory.Core
 					// +     [=====)
 					// = [---|=====|-----)
 
+					if (reversed)
+					{
+						Console.WriteLine("x delete");
+						return true;
+					}
+
 					// split previous and insert new in between
-					extra = new Entry(candidate.End, previous.End, previous.Value);
+
+					Console.WriteLine("! split");
+					var tmp = new Entry(candidate.End, previous.End, previous.Value);
 					previous.End = candidate.Begin;
-					return false; // insert new
+					m_items.Insert(candidate);
+					m_items.Insert(tmp);
+					stop = true;
+					return true;
 				}
 
 				// they are overlapping
@@ -269,9 +326,20 @@ namespace FoundationDB.Storage.Memory.Core
 
 				// truncate previous, insert new
 				if (reversed)
+				{
+					if (c == 0)
+					{ // delete
+						Console.WriteLine("x delete");
+						return true;
+					}
+					Console.WriteLine("! overwrite begin");
 					candidate.Begin = previous.End;
+				}
 				else
+				{
+					Console.WriteLine("! truncate end");
 					previous.End = candidate.Begin;
+				}
 				return false;
 			}
 			else
@@ -290,6 +358,7 @@ namespace FoundationDB.Storage.Memory.Core
 					// + [========)
 					// = [========|--------)
 
+					stop = true;
 					return false;
 				}
 
@@ -309,7 +378,7 @@ namespace FoundationDB.Storage.Memory.Core
 					return true;
 				}
 
-				// overlapping at the end
+				// overlapping at the beginning
 				//       [-----------)
 				// + [=======)
 				// = [=======|-------)
@@ -321,9 +390,16 @@ namespace FoundationDB.Storage.Memory.Core
 
 				// truncate previous, insert new
 				if (reversed)
+				{
+					Console.WriteLine("! ????");
 					candidate.End = previous.Begin;
+				}
 				else
+				{
+					Console.WriteLine("! truncate start");
 					previous.Begin = candidate.End;
+				}
+				stop = true;
 				return false;
 			}
 		}
@@ -342,6 +418,8 @@ namespace FoundationDB.Storage.Memory.Core
 		{
 			m_items.Clear();
 			m_bounds.Update(default(TKey), default(TKey), default(TValue));
+
+			CheckInvariants();
 		}
 
 		public void Mark(TKey key, TValue value)
@@ -351,7 +429,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public void Mark(TKey begin, TKey end, TValue value)
 		{
-			if (m_keyComparer.Compare(begin, end) > 0) throw new InvalidOperationException("End key should cannot be less than the Begin key.");
+			if (m_keyComparer.Compare(begin, end) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
 
 			// adds a new interval to the dictionary by overwriting or splitting any previous interval
 			// * if there are no interval, or the interval is disjoint from all other intervals, it is inserted as-is
@@ -367,7 +445,8 @@ namespace FoundationDB.Storage.Memory.Core
 			// { [1..2,A], [2..3,B], ..., [9..10,Y] } + [0..10,Z] => { [0..10,Z] }
 
 			var entry = new Entry(begin, end, value);
-			Entry cursor, extra = null;
+			Entry cursor;
+			bool stop = false;
 
 			//Console.WriteLine("# Inserting " + entry);
 
@@ -403,19 +482,15 @@ namespace FoundationDB.Storage.Memory.Core
 
 					cursor = m_items[0];
 
-					if (!Resolve(cursor, entry, out extra, false))
+					if (!Resolve(cursor, entry, false, out stop))
 					{ // insert
 						m_items.Insert(entry);
-						if (extra != null) m_items.Insert(extra);
-						m_bounds.Update(
-							Min(entry.Begin, cursor.Begin),
-							Max(extra != null ? extra.End : entry.End, cursor.End),
-							default(TValue)
-						);
 					}
-					else
-					{ // merged with the previous range
-						m_bounds.ReplaceWith(cursor);
+					if (!stop)
+					{
+						Console.WriteLine("<> bounds = " + cursor + " ~ " + entry);
+						m_bounds.Begin = Min(entry.Begin, cursor.Begin);
+						m_bounds.End = Max(entry.End, cursor.End);
 					}
 					break;
 				}
@@ -451,29 +526,45 @@ namespace FoundationDB.Storage.Memory.Core
 					// once inserted, will it conflict with the previous entry ?
 					if ((level = m_items.FindPrevious(entry, true, out offset, out cursor)) >= 0)
 					{
-						if (Resolve(cursor, entry, out extra, false))
+						Console.WriteLine("# " + this.ToString());
+						Console.WriteLine("> Checking against " + cursor + " at " + level + "," + offset);
+						if (Resolve(cursor, entry, false, out stop))
 						{
+							Console.WriteLine("  > merged in place: " + cursor);
 							entry = cursor;
 							inserted = true;
-						}
-						else if (extra != null)
-						{
-							m_items.Insert(extra);
+							if (offset == 0)
+							{
+								if (m_keyComparer.Compare(entry.Begin, m_bounds.Begin) < 0)
+								{
+									Console.WriteLine("<> min = " + entry.Begin);
+									m_bounds.Begin = entry.Begin;
+								}
+							}
 						}
 					}
-
-					// also check for potential conflicts with the next entries
-					while (extra == null)
+					else
 					{
+						Console.WriteLine("<> min = " + entry.Begin);
+						m_bounds.Begin = entry.Begin;
+					}
+
+					// check for potential conflicts with the next entries
+					while (!stop)
+					{
+						Console.WriteLine("# " + this.ToString());
 						level = m_items.FindNext(entry, false, out offset, out cursor);
 						if (level < 0) break;
 
-						//Console.WriteLine("> Next: " + cursor);
+						Console.WriteLine("> Propagating " + entry);
+						Console.WriteLine("> Next: " + cursor + " at " + level + "," + offset);
 
 						if (inserted)
 						{ // we already have inserted the key so conflicts will remove the next segment
-							if (Resolve(entry, cursor, out extra, true))
+
+							if (Resolve(entry, cursor, true, out stop))
 							{ // next segment has been removed
+								Console.WriteLine("  > removing " + cursor + " at " + level + "," + offset);
 								m_items.RemoveAt(level, offset);
 							}
 							else
@@ -483,9 +574,9 @@ namespace FoundationDB.Storage.Memory.Core
 						}
 						else
 						{ // we havent inserted the key yet, so in case of conflict, we will use the next segment's slot
-							if (Resolve(cursor, entry, out extra, true))
+							if (Resolve(cursor, entry, true, out stop))
 							{
-								//Console.WriteLine("  > merged in place: " + cursor);
+								Console.WriteLine("  > merged in place: " + cursor);
 								inserted = true;
 							}
 							else
@@ -501,17 +592,16 @@ namespace FoundationDB.Storage.Memory.Core
 						m_items.Insert(entry);
 					}
 
-					m_bounds.Update(
-						Min(m_bounds.Begin, entry.Begin),
-						Max(m_bounds.End, extra != null ? extra.End : entry.End),
-						default(TValue)
-					);
-
+					if (m_keyComparer.Compare(entry.End, m_bounds.End) > 0)
+					{
+						Console.WriteLine("<> max = " + entry.End);
+						m_bounds.End = entry.End;
+					}
 					break;
 				}
 			}
 
-			//TODO: check constraints !
+			CheckInvariants();
 		}
 
 		public ColaStore.Enumerator<Entry> GetEnumerator()
@@ -555,7 +645,7 @@ namespace FoundationDB.Storage.Memory.Core
 				}
 				else
 				{
-					sb/*.Append(previous.End)*/.Append('|');
+					sb.Append(previous.End).Append('|');
 				}
 
 				sb.Append(item.Begin).Append("..(").Append(item.Value).Append(")..");

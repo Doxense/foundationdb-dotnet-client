@@ -273,7 +273,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		public void Test_RangeDictionary_Insert_Random_Ranges()
 		{
 			const int N = 1000;
-			const int K = 100;
+			const int K = 1000;
 
 			var cola = new ColaRangeDictionary<int, string>();
 
@@ -286,14 +286,16 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			{
 				int x = rnd.Next(N);
 				int y = rnd.Next(N);
+				if (y == x) ++y;
 				if (x <= y)
 				{
+					Console.WriteLine();
 					Console.WriteLine("Add " + x + " ~ " + y + " = " + i);
-					if (x == 315) Console.WriteLine("*****");
 					cola.Mark(x, y, i.ToString());				
 				}
 				else
 				{
+					Console.WriteLine();
 					Console.WriteLine("ddA " + y + " ~ " + x + " = " + i);
 					cola.Mark(y, x, i.ToString());
 				}
