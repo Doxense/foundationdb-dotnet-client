@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Tuples
 				{
 					case 0: case -2: return this.Item1;
 					case 1: case -1: return this.Item2;
-					default: throw new IndexOutOfRangeException();
+					default: FdbTuple.FailIndexOutOfRange(index, 2); return null;
 				}
 			}
 		}
@@ -78,9 +78,12 @@ namespace FoundationDB.Layers.Tuples
 
 		public R Get<R>(int index)
 		{
-			if (index == 0 || index == -2) return FdbConverters.Convert<T1, R>(this.Item1);
-			if (index == 1 || index == -1) return FdbConverters.Convert<T2, R>(this.Item2);
-			throw new IndexOutOfRangeException();
+			switch(index)
+			{ 
+				case 0: case -2: return FdbConverters.Convert<T1, R>(this.Item1);
+				case 1: case -1: return FdbConverters.Convert<T2, R>(this.Item2);
+				default: FdbTuple.FailIndexOutOfRange(index, 2); return default(R);
+			}
 		}
 
 		public R Last<R>()

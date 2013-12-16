@@ -294,6 +294,8 @@ namespace FoundationDB.Filters.Logging
 
 		public enum Operation
 		{
+			Invalid = 0,
+
 			Set,
 			Clear,
 			ClearRange,
@@ -317,6 +319,7 @@ namespace FoundationDB.Filters.Logging
 
 		public enum Mode
 		{
+			Invalid = 0,
 			Read,
 			Write,
 			Meta,

@@ -57,6 +57,7 @@ namespace FoundationDB.Client
 
 		private static readonly byte[] ByteSprite;
 
+		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2207:InitializeValueTypeStaticFieldsInline")]
 		static Slice()
 		{
 			var tmp = new byte[256];

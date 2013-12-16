@@ -108,6 +108,9 @@ namespace FoundationDB.Filters.Logging
 				{
 					switch (this.Op)
 					{
+						case Operation.Invalid:
+							return FdbTransactionLog.Mode.Invalid;
+
 						case Operation.Set:
 						case Operation.Clear:
 						case Operation.ClearRange:
@@ -136,7 +139,13 @@ namespace FoundationDB.Filters.Logging
 							return FdbTransactionLog.Mode.Annotation;
 
 						default:
-							throw new NotImplementedException("Fixme! " + this.Op.ToString());
+						{ 
+#if DEBUG
+							//FIXME: we probably forgot to add a case for a new type of command !
+							Debugger.Break();
+#endif
+							return FdbTransactionLog.Mode.Invalid;
+						}
 					}
 				}
 			}

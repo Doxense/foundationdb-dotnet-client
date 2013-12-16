@@ -920,7 +920,7 @@ namespace FoundationDB.Layers.Tuples
 			return Math.Max(Math.Min(index, count), 0);
 		}
 
-		private static void FailIndexOutOfRange(int index, int count)
+		internal static void FailIndexOutOfRange(int index, int count)
 		{
 			throw new IndexOutOfRangeException(String.Format("Index {0} is outside of the tuple's range (0..{1})", index, count - 1));
 		}
