@@ -157,8 +157,11 @@ namespace FoundationDB.Client
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "StopEventLoop", "Stopping network thread...");
 
 				var err = FdbNative.StopNetwork();
+				if (err != FdbError.Success)
+				{
+					if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", String.Format("Failed to stop event loop: {0}", err.ToString()));
+				}
 				s_eventLoopStarted = false;
-
 
 				var thread = s_eventLoop;
 				if (thread != null && thread.IsAlive)

@@ -49,7 +49,6 @@ namespace FoundationDB.Async
 		private const int CTR_CANCELLED_OR_DISPOSED = 2;
 
 		private int m_state;
-		private readonly CancellationToken m_ct;
 		private readonly CancellationTokenRegistration m_ctr;
 
 		/// <summary>Handler called if the CancellationToken linked to a waiter is signaled</summary>
@@ -70,7 +69,6 @@ namespace FoundationDB.Async
 		{
 			if (ct.CanBeCanceled)
 			{
-				m_ct = ct;
 				try
 				{
 					m_state = CTR_REGISTERED;
@@ -78,10 +76,10 @@ namespace FoundationDB.Async
 				}
 				catch
 				{
-					GC.SuppressFinalize(this);
 					throw;
 				}
 			}
+			GC.SuppressFinalize(this);
 		}
 
 		public void Set(bool async = false)
