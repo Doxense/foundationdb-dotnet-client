@@ -38,7 +38,7 @@ namespace FoundationDB.Async
 	using System.Threading.Tasks;
 
 	/// <summary>Pumps item from a source, and into a target</summary>
-	public class AsyncPump<T> : IAsyncPump<T>
+	public sealed class AsyncPump<T> : IAsyncPump<T>
 	{
 		private const int STATE_IDLE = 0;
 		private const int STATE_WAITING_FOR_NEXT = 1;

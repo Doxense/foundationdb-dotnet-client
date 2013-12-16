@@ -49,6 +49,7 @@ namespace FoundationDB.Client
 		/// <summary>Parent cluster that owns the database.</summary>
 		private readonly IFdbCluster m_cluster;
 
+		/// <summary>Underlying handler for this database (native, dummy, memory, ...)</summary>
 		private readonly IFdbDatabaseHandler m_handler;
 
 		/// <summary>Name of the database (note: value it is the value that was passed to Connect(...) since we don't have any API to read the name from an FDB_DATABASE* handle)</summary>
@@ -506,38 +507,47 @@ namespace FoundationDB.Client
 
 		public void Dispose()
 		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing)
+		{
 			if (!m_disposed)
 			{
 				m_disposed = true;
-
-				try
+				if (disposing)
 				{
-					// mark this db has dead, but keep the handle alive until after all the callbacks have fired
-
-					//TODO: kill all pending transactions on this db? 
-					foreach (var trans in m_transactions.Values)
+					try
 					{
-						if (trans != null && trans.StillAlive)
-						{
-							trans.Cancel();
-						}
-					}
-					m_transactions.Clear();
+						// mark this db has dead, but keep the handle alive until after all the callbacks have fired
 
-					//note: will block until all the registered callbacks have finished executing
-					m_cts.SafeCancelAndDispose();
-				}
-				finally
-				{
-					if (m_handler != null)
-					{
-						try { m_handler.Dispose(); }
-						catch(Exception e)
+						//TODO: kill all pending transactions on this db? 
+						foreach (var trans in m_transactions.Values)
 						{
-							if (Logging.On) Logging.Exception(this, "Dispose", e);
+							if (trans != null && trans.StillAlive)
+							{
+								trans.Cancel();
+							}
 						}
+						m_transactions.Clear();
+
+						//note: will block until all the registered callbacks have finished executing
+						m_cts.SafeCancelAndDispose();
 					}
-					if (m_ownsCluster) m_cluster.Dispose();
+					finally
+					{
+						if (m_handler != null)
+						{
+							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", String.Format("Disposing database {0} handler", m_name));
+							try { m_handler.Dispose(); }
+							catch (Exception e)
+							{
+								if (Logging.On) Logging.Exception(this, "Dispose", e);
+							}
+						}
+						if (m_ownsCluster) m_cluster.Dispose();
+					}
 				}
 			}
 		}

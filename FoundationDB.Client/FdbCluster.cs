@@ -42,13 +42,18 @@ namespace FoundationDB.Client
 	public class FdbCluster : IFdbCluster, IDisposable
 	{
 
+		/// <summary>Underlying handler for this cluster (native, dummy, memory, ...)</summary>
 		private readonly IFdbClusterHandler m_handler;
+
+		/// <summary>Path to the cluster file userd by this connection</summary>
 		private readonly string m_path;
-		private bool m_disposed;
+
+		/// <summary>Set to true when the current db instance gets disposed.</summary>
+		private volatile bool m_disposed;
 
 		public FdbCluster(IFdbClusterHandler handler, string path)
 		{
-			Contract.Requires(handler != null);
+			if (handler == null) throw new ArgumentNullException("handler");
 
 			m_handler = handler;
 			m_path = path;
@@ -67,15 +72,25 @@ namespace FoundationDB.Client
 		/// <summary>Close the connection with the FoundationDB cluster</summary>
 		public void Dispose()
 		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing)
+		{
 			if (!m_disposed)
 			{
 				m_disposed = true;
-				if (m_handler != null)
+				if (disposing)
 				{
-					try { m_handler.Dispose(); }
-					catch(Exception e)
+					if (m_handler != null)
 					{
-						if (Logging.On) Logging.Exception(this, "Dispose", e);
+						if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", "Disposing cluster handler");
+						try { m_handler.Dispose(); }
+						catch (Exception e)
+						{
+							if (Logging.On) Logging.Exception(this, "Dispose", e);
+						}
 					}
 				}
 			}
