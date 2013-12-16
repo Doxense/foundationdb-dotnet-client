@@ -169,7 +169,7 @@ namespace FoundationDB.Client
 			Fdb.EnsureNotOnNetworkThread();
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
-			m_handler.SetOption(option, Slice.Nil);
+			m_handler.SetOption(option, data);
 		}
 
 		/// <summary>Set an option on this cluster that takes an integer value</summary>
@@ -182,7 +182,7 @@ namespace FoundationDB.Client
 			Fdb.EnsureNotOnNetworkThread();
 
 			var data = Slice.FromFixed64(value);
-			m_handler.SetOption(option, Slice.Nil);
+			m_handler.SetOption(option, data);
 		}
 
 	}
