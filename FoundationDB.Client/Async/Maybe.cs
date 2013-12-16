@@ -155,6 +155,40 @@ namespace FoundationDB.Async
 			return EqualityComparer<T>.Default.GetHashCode(this.Value);
 		}
 
+		public static bool operator ==(Maybe<T> left, Maybe<T> right)
+		{
+			return left.Equals(right);
+		}
+
+		public static bool operator ==(Maybe<T> left, T right)
+		{
+			return left.Equals(right);
+		}
+
+		public static bool operator ==(Nullable<Maybe<T>> left, Nullable<Maybe<T>> right)
+		{
+			if (!right.HasValue) return !left.HasValue || !left.Value.HasValue;
+			if (!left.HasValue) return !right.Value.HasValue;
+			return left.Value.Equals(right.Value);
+		}
+
+		public static bool operator !=(Maybe<T> left, Maybe<T> right)
+		{
+			return !left.Equals(right);
+		}
+
+		public static bool operator !=(Maybe<T> left, T right)
+		{
+			return !left.Equals(right);
+		}
+
+		public static bool operator !=(Nullable<Maybe<T>> left, Nullable<Maybe<T>> right)
+		{
+			if (!right.HasValue) return left.HasValue && left.Value.HasValue;
+			if (!left.HasValue) return right.Value.HasValue;
+			return !left.Value.Equals(right.Value);
+		}
+
 		public override string ToString()
 		{
 			if (this.ErrorContainer != null) return "<error>";

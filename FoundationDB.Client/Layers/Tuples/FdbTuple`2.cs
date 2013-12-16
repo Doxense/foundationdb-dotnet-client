@@ -154,6 +154,18 @@ namespace FoundationDB.Layers.Tuples
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
 		}
 
+		public static bool operator ==(FdbTuple<T1, T2> left, FdbTuple<T1, T2> right)
+		{
+			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
+				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
+		}
+
+		public static bool operator !=(FdbTuple<T1, T2> left, FdbTuple<T1, T2> right)
+		{
+			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
+				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
+		}
+
 		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
 		{
 			if (other == null) return false;

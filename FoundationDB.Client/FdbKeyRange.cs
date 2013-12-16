@@ -158,6 +158,16 @@ namespace FoundationDB.Client
 			return this.Begin.Equals(other.Begin) && this.End.Equals(other.End);
 		}
 
+		public static bool operator ==(FdbKeyRange left, FdbKeyRange right)
+		{
+			return left.Begin.Equals(right.Begin) && left.End.Equals(right.End);
+		}
+
+		public static bool operator !=(FdbKeyRange left, FdbKeyRange right)
+		{
+			return !left.Begin.Equals(right.Begin) || !left.End.Equals(right.End);
+		}
+
 		public int CompareTo(FdbKeyRange other)
 		{
 			int c = this.Begin.CompareTo(other.Begin);
