@@ -538,7 +538,7 @@ namespace FoundationDB.Client
 			public static extern int memcmp(byte* lhs, byte* rhs, int count);
 
 			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			public static extern int memmove(byte* dest, byte* src, int count);
+			public static extern byte* memmove(byte* dest, byte* src, int count);
 
 		}
 
