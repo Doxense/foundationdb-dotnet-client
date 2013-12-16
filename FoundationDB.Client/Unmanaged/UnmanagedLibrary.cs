@@ -63,7 +63,7 @@ namespace FoundationDB.Client.Native
 			[return: MarshalAs(UnmanagedType.Bool)]
 			public static extern bool FreeLibrary(IntPtr hModule);
 
-			[DllImport(KERNEL)]
+			[DllImport(KERNEL, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
 			public static extern IntPtr GetProcAddress(SafeLibraryHandle hModule, String procname);
 		}
 
