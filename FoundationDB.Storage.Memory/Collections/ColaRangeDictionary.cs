@@ -3,7 +3,7 @@
 #endregion
 
 // enables consitency checks after each operation to the set
-#define ENFORCE_INVARIANTS
+#undef ENFORCE_INVARIANTS
 
 namespace FoundationDB.Storage.Memory.Core
 {
@@ -17,7 +17,7 @@ namespace FoundationDB.Storage.Memory.Core
 	/// <typeparam name="TKey">Type of the keys stored in the set</typeparam>
 	/// <typeparam name="TValue">Type of the values associated with each range</typeparam>
 	[DebuggerDisplay("Count={m_items.Count}, Bounds={m_bounds.Begin}..{m_bounds.End}")]
-	public class ColaRangeDictionary<TKey, TValue> : IEnumerable<ColaRangeDictionary<TKey, TValue>.Entry>
+	public sealed class ColaRangeDictionary<TKey, TValue> : IEnumerable<ColaRangeDictionary<TKey, TValue>.Entry>
 	{
 		// This class is equivalent to ColaRangeSet<TKey>, except that we have an extra value stored in each range.
 		// That means that we only merge ranges with the same value, and split/truncate/overwrite ranges with different values
@@ -43,24 +43,13 @@ namespace FoundationDB.Storage.Memory.Core
 				this.Value = value;
 			}
 
-			internal void ReplaceWith(Entry other)
+			/// <summary>Overwrite this range with another one</summary>
+			/// <param name="other">New range that will overwrite the current instance</param>
+			internal void Set(Entry other)
 			{
 				this.Begin = other.Begin;
 				this.End = other.End;
 				this.Value = other.Value;
-			}
-
-			internal void Update(TKey begin, TKey end)
-			{
-				this.Begin = begin;
-				this.End = end;
-			}
-
-			internal void Update(TKey begin, TKey end, TValue value)
-			{
-				this.Begin = begin;
-				this.End = end;
-				this.Value = value;
 			}
 
 			public override string ToString()
@@ -81,11 +70,29 @@ namespace FoundationDB.Storage.Memory.Core
 
 			public int Compare(Entry x, Entry y)
 			{
-				if (x == null) Debugger.Break();
-				if (y == null) Debugger.Break();
+#if DEBUG
+				if (x == null || y == null) Debugger.Break();
+#endif
 				return m_comparer.Compare(x.Begin, y.Begin);
 			}
+		}
 
+		private sealed class EndKeyComparer : IComparer<Entry>
+		{
+			private readonly IComparer<TKey> m_comparer;
+
+			public EndKeyComparer(IComparer<TKey> comparer)
+			{
+				m_comparer = comparer;
+			}
+
+			public int Compare(Entry x, Entry y)
+			{
+#if DEBUG
+				if (x == null || y == null) Debugger.Break();
+#endif
+				return m_comparer.Compare(x.End, y.End);
+			}
 		}
 
 		private readonly ColaStore<Entry> m_items;
@@ -118,7 +125,7 @@ namespace FoundationDB.Storage.Memory.Core
 		private void CheckInvariants()
 		{
 			Contract.Assert(m_bounds != null);
-			Console.WriteLine("INVARIANTS:" + this.ToString() + " <> " + m_bounds.ToString());
+			Debug.WriteLine("INVARIANTS:" + this.ToString() + " <> " + m_bounds.ToString());
 
 			if (m_items.Count == 0)
 			{
@@ -166,250 +173,38 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public Entry Bounds { get { return m_bounds; } }
 
-		private bool Resolve(Entry previous, Entry candidate, bool reversed, out bool stop)
+		private Entry GetBeginRangeIntersecting(Entry range)
 		{
-			Console.WriteLine("? resolving " + previous + " with " + candidate + (reversed ? " (reversed)" : ""));
-			if (0 == m_valueComparer.Compare(previous.Value, candidate.Value))
+			// look for the first existing range that is intersected by the start of the new range
+
+			Entry cursor;
+			int offset, level = m_items.FindPrevious(range, true, out offset, out cursor);
+			if (level < 0)
 			{
-				return ResolveSameValue(previous, candidate, out stop);
+				return null;
 			}
-			else
+			return cursor;
+		}
+
+		private Entry GetEndRangeIntersecting(Entry range)
+		{
+			// look for the last existing range that is intersected by the end of the new range
+
+			Entry cursor;
+			int offset, level = m_items.FindPrevious(range, true, out offset, out cursor);
+			if (level < 0)
 			{
-				return ResolveDifferent(previous, candidate, reversed, out stop);
+				return null;
 			}
+			return cursor;
 		}
 
-		/// <summary>Attempts to resolve the insertion with an identical value</summary>
-		/// <param name="previous">Previous entry that may be sharing a slot with the new entry</param>
-		/// <param name="candidate">New entry</param>
-		/// <returns>If true, the resolution was resolved and nothing needs to be inserted. If false, then the candidate must be inserted.</returns>
-		private bool ResolveSameValue(Entry previous, Entry candidate, out bool stop)
-		{
-
-			stop = false;
-			int c = m_keyComparer.Compare(previous.Begin, candidate.Begin);
-			if (c == 0)
-			{ // they share the same begin key !
-
-				if (m_keyComparer.Compare(previous.End, candidate.End) < 0)
-				{ // candidate replaces the previous ony
-					previous.ReplaceWith(candidate);
-				}
-				return true;
-			}
-
-			if (c < 0)
-			{ // b is to the right
-				if (m_keyComparer.Compare(previous.End, candidate.Begin) < 0)
-				{ // there is a gap in between
-					return false;
-				}
-				// they touch or overlap
-				previous.Update(previous.Begin, Max(previous.End, candidate.End));
-				return true;
-			}
-			else
-			{ // b is to the left
-				if (m_keyComparer.Compare(candidate.End, previous.Begin) < 0)
-				{ // there is a gap in between
-					return false;
-				}
-				// they touch or overlap
-				previous.Update(candidate.Begin, Max(previous.End, candidate.End));
-				return true;
-			}
-		}
-
-
-		/// <summary>Attempts to resolve the insertion with a different value</summary>
-		/// <param name="previous">Previous entry that may be sharing a slot with the new value</param>
-		/// <param name="candidate">New range</param>
-		/// <returns>If true, the resolution was resolved and nothing needs to be inserted. If false, then the candidate must be inserted.</returns>
-		private bool ResolveDifferent(Entry previous, Entry candidate, bool reversed, out bool stop)
-		{
-			stop = false;
-
-			int c = m_keyComparer.Compare(previous.Begin, candidate.Begin);
-			if (c == 0)
-			{ // they share the same begin key !
-
-				// identical
-				//   [------------)
-				// + [============)
-				// = [============)
-
-				// overwrite
-				//   [------------)
-				// + [=================)
-				// = [=================)
-
-				c = m_keyComparer.Compare(previous.End, candidate.End);
-				if (c <= 0)
-				{ // candidate replaces the previous ony
-					Console.WriteLine("! replace");
-					previous.ReplaceWith(candidate);
-					stop = c == 0;
-					return true;
-				}
-
-				// we need to split
-
-				//   [----------------)
-				// + [===========)
-				// = [===========|----)
-		
-				Console.WriteLine("! truncate begin");
-				previous.Begin = candidate.End;
-				stop = true;
-				return false;
-			}
-
-			if (c < 0)
-			{ // candidate is to the right
-
-				c = m_keyComparer.Compare(previous.End, candidate.Begin);
-				if (c <= 0)
-				{ // there are disjoint or contiguous
-
-					// disjoint
-					//   [--------)						
-					// +             [========)
-					// = [--------)  [========)
-
-					// contiguous
-					//   [--------)						
-					// +          [========)
-					// = [--------|========)
-
-					Console.WriteLine(". no overlap");
-					stop = true;
-					return false;
-				}
-
-				c = m_keyComparer.Compare(candidate.End, previous.End);
-
-				if (c < 0)
-				{ // contained
-
-					//   [---------------)
-					// +     [=====)
-					// = [---|=====|-----)
-
-					if (reversed)
-					{
-						Console.WriteLine("x delete");
-						return true;
-					}
-
-					// split previous and insert new in between
-
-					Console.WriteLine("! split");
-					var tmp = new Entry(candidate.End, previous.End, previous.Value);
-					previous.End = candidate.Begin;
-					m_items.Insert(candidate);
-					m_items.Insert(tmp);
-					stop = true;
-					return true;
-				}
-
-				// they are overlapping
-
-				// overlapping at the end
-				//   [-----------)
-				// +     [=======)
-				// = [---|=======)
-
-				// partially overlapping
-				//   [--------)
-				// +       [=========)
-				// = [-----|=========)
-
-				// truncate previous, insert new
-				if (reversed)
-				{
-					if (c == 0)
-					{ // delete
-						Console.WriteLine("x delete");
-						return true;
-					}
-					Console.WriteLine("! overwrite begin");
-					candidate.Begin = previous.End;
-				}
-				else
-				{
-					Console.WriteLine("! truncate end");
-					previous.End = candidate.Begin;
-				}
-				return false;
-			}
-			else
-			{ // b is to the left
-				c = m_keyComparer.Compare(candidate.End, previous.Begin);
-				if (c <= 0)
-				{ // there are disjoint or contiguous
-
-					// disjoint
-					//               [--------)						
-					// + [========)
-					// = [========)  [--------)
-
-					// contiguous
-					//            [--------)						
-					// + [========)
-					// = [========|--------)
-
-					stop = true;
-					return false;
-				}
-
-				// they are overlapping
-
-				c = m_keyComparer.Compare(previous.End, candidate.End);
-				if (c < 0)
-				{ // completely overlapping
-
-					// covering
-					//     [----)
-					// + [===========)
-					// = [===========)
-
-					// overwrite previous with new
-					previous.ReplaceWith(candidate);
-					return true;
-				}
-
-				// overlapping at the beginning
-				//       [-----------)
-				// + [=======)
-				// = [=======|-------)
-
-				// partially overlapping
-				//         [--------)
-				// + [=========)
-				// = [=========|----)
-
-				// truncate previous, insert new
-				if (reversed)
-				{
-					Console.WriteLine("! ????");
-					candidate.End = previous.Begin;
-				}
-				else
-				{
-					Console.WriteLine("! truncate start");
-					previous.Begin = candidate.End;
-				}
-				stop = true;
-				return false;
-			}
-		}
-
-		protected TKey Min(TKey a, TKey b)
+		private TKey Min(TKey a, TKey b)
 		{
 			return m_keyComparer.Compare(a, b) <= 0 ? a : b;
 		}
 
-		protected TKey Max(TKey a, TKey b)
+		private TKey Max(TKey a, TKey b)
 		{
 			return m_keyComparer.Compare(a, b) >= 0 ? a : b;
 		}
@@ -417,14 +212,10 @@ namespace FoundationDB.Storage.Memory.Core
 		public void Clear()
 		{
 			m_items.Clear();
-			m_bounds.Update(default(TKey), default(TKey), default(TValue));
+			m_bounds.Begin = default(TKey);
+			m_bounds.End = default(TKey);
 
 			CheckInvariants();
-		}
-
-		public void Mark(TKey key, TValue value)
-		{
-			Mark(key, key, value);
 		}
 
 		public void Mark(TKey begin, TKey end, TValue value)
@@ -446,162 +237,334 @@ namespace FoundationDB.Storage.Memory.Core
 
 			var entry = new Entry(begin, end, value);
 			Entry cursor;
-			bool stop = false;
+			var cmp = m_keyComparer;
+			int c1, c2;
 
 			//Console.WriteLine("# Inserting " + entry);
 
-			switch (m_items.Count)
+			try
 			{
-				case 0:
-				{ // the list empty
 
-					//Console.WriteLine("> empty: inserted");
-
-					// no checks required
-					m_items.Insert(entry);
-					m_bounds.Update(entry.Begin, entry.End, default(TValue));
-					break;
-				}
-
-				case 1:
-				{ // there is only one value
-
-					// * disjoint
-					// *  - => insert
-					// * contiguous:
-					// *  - same value => merge
-					// *  - else => insert
-					// * completely contained:
-					//    - same value => skip
-					//    - => break + insert
-					// * completely covering:
-					//    - => overwrite
-					// * partially overlapping
-					//    - same value => merge
-					//    - => truncate + insert
-
-					cursor = m_items[0];
-
-					if (!Resolve(cursor, entry, false, out stop))
-					{ // insert
-						m_items.Insert(entry);
-					}
-					if (!stop)
-					{
-						Console.WriteLine("<> bounds = " + cursor + " ~ " + entry);
-						m_bounds.Begin = Min(entry.Begin, cursor.Begin);
-						m_bounds.End = Max(entry.End, cursor.End);
-					}
-					break;
-				}
-				default:
+				switch (m_items.Count)
 				{
-					// check with the bounds first
+					case 0:
+					{ // the list empty
 
-					if (m_keyComparer.Compare(begin, m_bounds.End) > 0)
-					{ // completely to the right
-						m_items.Insert(entry);
-						m_bounds.Update(m_bounds.Begin, end, default(TValue));
-						break;
-					}
-					if (m_keyComparer.Compare(end, m_bounds.Begin) < 0)
-					{ // completely to the left
-						m_items.Insert(entry);
-						m_bounds.Update(begin, m_bounds.End, default(TValue));
-						break;
-					}
-					if (m_keyComparer.Compare(begin, m_bounds.Begin) <= 0 && m_keyComparer.Compare(end, m_bounds.End) >= 0)
-					{ // overlaps with all the ranges
-						// note :if we are here, there was at least 2 items, so just clear everything
-						m_items.Clear();
-						m_items.Insert(entry);
-						m_bounds.ReplaceWith(entry);
-						break;
-					}
+						//Debug.WriteLine("> empty: inserted");
 
-					// overlaps with existing ranges, we may need to resolve conflicts
-					int offset, level;
-					bool inserted = false;
-
-					// once inserted, will it conflict with the previous entry ?
-					if ((level = m_items.FindPrevious(entry, true, out offset, out cursor)) >= 0)
-					{
-						Console.WriteLine("# " + this.ToString());
-						Console.WriteLine("> Checking against " + cursor + " at " + level + "," + offset);
-						if (Resolve(cursor, entry, false, out stop))
-						{
-							Console.WriteLine("  > merged in place: " + cursor);
-							entry = cursor;
-							inserted = true;
-							if (offset == 0)
-							{
-								if (m_keyComparer.Compare(entry.Begin, m_bounds.Begin) < 0)
-								{
-									Console.WriteLine("<> min = " + entry.Begin);
-									m_bounds.Begin = entry.Begin;
-								}
-							}
-						}
-					}
-					else
-					{
-						Console.WriteLine("<> min = " + entry.Begin);
+						// no checks required
+						m_items.Insert(entry);
 						m_bounds.Begin = entry.Begin;
+						m_bounds.End = entry.End;
+						break;
 					}
 
-					// check for potential conflicts with the next entries
-					while (!stop)
-					{
-						Console.WriteLine("# " + this.ToString());
-						level = m_items.FindNext(entry, false, out offset, out cursor);
-						if (level < 0) break;
+					case 1:
+					{ // there is only one value
 
-						Console.WriteLine("> Propagating " + entry);
-						Console.WriteLine("> Next: " + cursor + " at " + level + "," + offset);
+						cursor = m_items[0];
 
-						if (inserted)
-						{ // we already have inserted the key so conflicts will remove the next segment
-
-							if (Resolve(entry, cursor, true, out stop))
-							{ // next segment has been removed
-								Console.WriteLine("  > removing " + cursor + " at " + level + "," + offset);
-								m_items.RemoveAt(level, offset);
+						c1 = cmp.Compare(begin, cursor.End);
+						if (c1 >= 0)
+						{
+							// [--------)  [========)
+							// or [--------|========)
+							if (c1 == 0 && m_valueComparer.Compare(cursor.Value, value) == 0)
+							{
+								cursor.End = end;
 							}
 							else
 							{
-								break;
+								m_items.Insert(entry);
+							}
+							m_bounds.End = end;
+							return;
+						}
+						c1 = cmp.Compare(end, cursor.Begin);
+						if (c1 <= 0)
+						{
+							// [========)  [--------)
+							// or [========|--------)
+							if (c1 == 0 && m_valueComparer.Compare(cursor.Value, value) == 0)
+							{
+								cursor.Begin = begin;
+							}
+							else
+							{
+								m_items.Insert(entry);
+							}
+							m_bounds.Begin = begin;
+							return;
+						}
+
+						c1 = cmp.Compare(begin, cursor.Begin);
+						c2 = cmp.Compare(end, cursor.End);
+						if (c1 == 0)
+						{ // same start
+							if (c2 == 0)
+							{ // same end
+								//   [--------)
+								// + [========)
+								// = [========)
+								cursor.Value = value;
+							}
+							else if (c2 < 0)
+							{
+								//   [----------)
+								// + [======)
+								// = [======|---)
+								if (m_valueComparer.Compare(cursor.Value, value) != 0)
+								{
+									cursor.Begin = end;
+									m_items.Insert(entry);
+								}
+							}
+							else
+							{
+								//   [------)
+								// + [==========)
+								// = [==========)
+								cursor.Set(entry);
+								m_bounds.End = end;
+							}
+						}
+						else if (c1 > 0)
+						{ // entry is to the right
+							if (c2 >= 0)
+							{
+								//   [------)
+								// +     [=======)
+								// = [---|=======)
+
+								cursor.End = begin;
+								m_items.Insert(entry);
+								if (c2 > 0) m_bounds.End = end;
+							}
+							else
+							{
+								//   [-----------)
+								// +     [====)
+								// = [---|====|--)
+								var tmp = new Entry(end, cursor.End, cursor.Value);
+								cursor.End = begin;
+								m_items.InsertItems(entry, tmp);
 							}
 						}
 						else
-						{ // we havent inserted the key yet, so in case of conflict, we will use the next segment's slot
-							if (Resolve(cursor, entry, true, out stop))
+						{ // entry is to the left
+							if (c2 >= 0)
 							{
-								Console.WriteLine("  > merged in place: " + cursor);
-								inserted = true;
+								cursor.Set(entry);
+								m_bounds.End = end;
 							}
 							else
 							{
+								cursor.Begin = end;
+								m_items.Insert(entry);
+							}
+							m_bounds.Begin = begin;
+						}
+						break;
+					}
+
+					default:
+					{
+						// check with the bounds first
+
+						if (cmp.Compare(begin, m_bounds.End) > 0)
+						{ // completely to the right
+							m_items.Insert(entry);
+							m_bounds.End = end;
+							break;
+						}
+						if (cmp.Compare(end, m_bounds.Begin) < 0)
+						{ // completely to the left
+							m_items.Insert(entry);
+							m_bounds.Begin = begin;
+							break;
+						}
+						if (cmp.Compare(begin, m_bounds.Begin) <= 0 && cmp.Compare(end, m_bounds.End) >= 0)
+						{ // overlaps with all the ranges
+							// note :if we are here, there was at least 2 items, so just clear everything
+							m_items.Clear();
+							m_items.Insert(entry);
+							m_bounds.Begin = entry.Begin;
+							m_bounds.End = entry.End;
+							break;
+						}
+
+						// note: we have already bound checked, so we know that there is at least one overlap !
+
+						bool inserted = false;
+
+						// => we will try to find the first range and last range in the dictionary that would be impacted, mutate them and delete all ranges in between
+
+						var iterator = new ColaStore.Iterator<Entry>(m_items.Levels, m_items.Count, m_items.Comparer);
+						// seek to the range that starts before (or at) the new range's begin point
+						if (!iterator.Seek(entry, true))
+						{ // the new range will go into first position
+							// => still need to check if we are overlapping with the next ranges
+							iterator.SeekFirst();
+							//Console.WriteLine("  . new lower bound, but intersects with first range...");
+							m_bounds.Begin = begin;
+						}
+
+						m_bounds.End = Max(m_bounds.End, end);
+
+						cursor = iterator.Current;
+						//Console.WriteLine("  . first match = " + cursor);
+
+						c1 = cmp.Compare(cursor.Begin, begin);
+						c2 = cmp.Compare(cursor.End, end);
+						if (c1 >= 0)
+						{
+							if (c2 == 0)
+							{ // same end
+								//Console.WriteLine("  . exact replace !");
+								//   [-------)..           [-------)..
+								// + [=======)        + [==========)
+								// = [=======)..      = [==========)..
+								cursor.Set(entry);
+								return;
+							}
+
+							if (c2 > 0)
+							{ // truncate begin
+								//   [----------)..        [----------)..
+								// + [=======)	      + [=======)
+								// = [=======|--)..   = [=======|-----)..
+								cursor.Begin = end;
+								m_items.Insert(entry);
+								return;
+							}
+
+							// replace + propagate
+							//   [-------)???..            [-----)????..
+							// + [==========)         + [============)
+							// = [==========)..       = [============)..
+
+							cursor.Set(entry);
+							inserted = true;
+							//TODO: need to propagate !
+						}
+						else
+						{
+							if (c2 == 0)
+							{ // same end
+								//   [------------)
+								//       [========)
+								// = [---|========)
+
+								cursor.End = begin;
+								m_items.Insert(entry);
+								return;
+							}
+
+							if (c2 > 0)
+							{
+								//   [------------)
+								//       [=====)
+								// = [---|=====|--)
+
+								var tmp = new Entry(end, cursor.End, cursor.Value);
+								cursor.End = begin;
+								m_items.InsertItems(entry, tmp);
+								return;
+							}
+
+							//   [---------)????..
+							//       [=========)
+							// = [---|=========)..
+
+							cursor.End = begin;
+							inserted = false;
+							//TODO: need to propagate !
+						}
+
+						// if we end up here, it means that we may be overlapping with following items
+						// => we need to delete them until we reach the last one, which we need to either delete or mutate
+						// => also, if we haven't inserted the entry yet, we will reuse the first deleted range to insert the entry, and only insert at the end if we haven't found a spot
+
+						List<Entry> deleted = null;
+
+						while (true)
+						{
+							if (!iterator.Next())
+							{ // we reached past the end of the db
+								break;
+							}
+
+							// cursor: existing range that we need to either delete or mutate
+							cursor = iterator.Current;
+
+							//Console.WriteLine("  > " + this.ToString());
+							//Console.WriteLine("  . propagate to " + cursor);
+
+							c1 = cmp.Compare(cursor.Begin, end);
+							if (c1 >= 0)
+							{ // we are past the inserted range, nothing to do any more
+								//            [------------)
+								//   [=====)
+								// = [=====)  [------------)
+								//Console.WriteLine("  . no overlap => break");
+								break;
+
+							}
+
+							c1 = cmp.Compare(cursor.End, end);
+							if (c1 <= 0)
+							{ // we are completely covered => delete
+
+								//      [-------)           [-------)
+								// + [...=======)      + [...=======...)
+								// = [...=======)      = [...=======...)
+								if (!inserted)
+								{ // use that slot to insert ourselves
+									//Console.WriteLine("  . covered => reuse");
+									cursor.Set(entry);
+									inserted = true;
+								}
+								else
+								{
+									//Console.WriteLine("  . covered => delete");
+									//note: we can't really delete while iterating with a cursor, so just mark it for deletion
+									if (deleted == null) deleted = new List<Entry>();
+									deleted.Add(cursor);
+
+								}
+							}
+							else
+							{ // we are only partially overlapped
+
+								//       [------------)
+								//   [....========)
+								// = [....========|---)
+
+								//Console.WriteLine("  . overlap => truncate + break");
+								cursor.Begin = end;
 								break;
 							}
 						}
-					}
 
-					if (!inserted)
-					{ // no conflict, we have to insert the new range
-						//Console.WriteLine("> inserted: " + entry);
-						m_items.Insert(entry);
-					}
+						if (deleted != null && deleted.Count > 0)
+						{
+							//Console.WriteLine("  . removing: " + String.Join(", ", deleted));
+							m_items.RemoveItems(deleted);
+						}
 
-					if (m_keyComparer.Compare(entry.End, m_bounds.End) > 0)
-					{
-						Console.WriteLine("<> max = " + entry.End);
-						m_bounds.End = entry.End;
+						if (!inserted)
+						{ // we did not find an existing spot to re-use, so we need to insert the new range
+							//Console.WriteLine("  . final insert");
+							m_items.Insert(entry);
+						}
+						break;
 					}
-					break;
 				}
 			}
-
-			CheckInvariants();
+			finally
+			{
+				CheckInvariants();
+			}
 		}
 
 		public ColaStore.Enumerator<Entry> GetEnumerator()
@@ -623,7 +586,7 @@ namespace FoundationDB.Storage.Memory.Core
 		//TODO: remove or set to internal !
 		public void Debug_Dump()
 		{
-			Console.WriteLine("Dumping ColaRangeDictionary<" + typeof(TKey).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
+			Debug.WriteLine("Dumping ColaRangeDictionary<" + typeof(TKey).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
 			m_items.Debug_Dump();
 		}
 

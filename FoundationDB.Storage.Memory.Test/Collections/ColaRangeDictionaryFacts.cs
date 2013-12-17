@@ -3,6 +3,7 @@ using FoundationDB.Layers.Tuples;
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -249,39 +250,53 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		public void Test_RangeDictionary_Insert_Random_Ranges()
 		{
 			const int N = 1000;
-			const int K = 1000;
+			const int K = 1000 * 1000;
 
-			var cola = new ColaRangeDictionary<int, string>();
+			var cola = new ColaRangeDictionary<int, int>();
 
 			var rnd = new Random();
 			int seed = 2040305906; // rnd.Next();
 			Console.WriteLine("seed " + seed);
 			rnd = new Random(seed);
 
+			int[] expected = new int[N];
+
+			var sw = Stopwatch.StartNew();
 			for (int i = 0; i < K; i++)
 			{
-				int x = rnd.Next(N);
-				int y = rnd.Next(N);
-				if (y == x) ++y;
-				if (x <= y)
+				if (rnd.Next(10000) < 42)
 				{
-					Console.WriteLine();
-					Console.WriteLine("Add " + x + " ~ " + y + " = " + i);
-					cola.Mark(x, y, i.ToString());				
+					//Console.WriteLine("Clear");
+					cola.Clear();
 				}
 				else
 				{
-					Console.WriteLine();
-					Console.WriteLine("ddA " + y + " ~ " + x + " = " + i);
-					cola.Mark(y, x, i.ToString());
-				}
 
-				Console.WriteLine("  = " + cola + " -- bounds = " + cola.Bounds);
+					int x = rnd.Next(N);
+					int y = rnd.Next(2) == 0 ? x + 1 : rnd.Next(N);
+					if (y == x) ++y;
+					if (x <= y)
+					{
+						//Console.WriteLine();
+						//Console.WriteLine("Add " + x + " ~ " + y + " = " + i);
+						cola.Mark(x, y, i);
+					}
+					else
+					{
+						//Console.WriteLine();
+						//Console.WriteLine("ddA " + y + " ~ " + x + " = " + i);
+						cola.Mark(y, x, i);
+					}
+				}
+				//Console.WriteLine("  = " + cola + " -- <> = " + cola.Bounds);
 				//cola.Debug_Dump();
 				
 			}
+			sw.Stop();
 
+			Console.WriteLine("Inserted " + K.ToString("N0") + " random ranges in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
 			cola.Debug_Dump();
+
 			Console.WriteLine("Result = " + cola);
 			Console.WriteLine("Bounds = " + cola.Bounds);
 
