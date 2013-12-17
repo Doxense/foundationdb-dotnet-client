@@ -891,7 +891,7 @@ namespace FoundationDB.Storage.Memory.Core
 					else
 					{
 						cursors[i] = pos;
-						if (!exact && (m_min < 0 || m_comparer.Compare(segment[pos], max) > 0))
+						if (!exact && (maxLevel < 0 || m_comparer.Compare(segment[pos], max) > 0))
 						{
 							max = segment[pos];
 							maxLevel = i;
