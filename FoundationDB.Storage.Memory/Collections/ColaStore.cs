@@ -432,6 +432,168 @@ namespace FoundationDB.Storage.Memory.Core
 			return cursors;
 		}
 
+		/// <summary>Search for the smallest element that is larger than a reference element</summary>
+		/// <param name="value">Reference element</param>
+		/// <param name="orEqual">If true, return the position of the value itself if it is found. If false, return the position of the closest value that is smaller.</param>
+		/// <param name="offset">Receive the offset within the level of the next element, or 0 if not found</param>
+		/// <param name="result">Receive the value of the next element, or default(T) if not found</param>
+		/// <returns>Level of the next element, or -1 if <param name="result"/> was already the largest</returns>
+		public static int FindNext<T>(T[][] levels, int count, T value, bool orEqual, IComparer<T> comparer, out int offset, out T result)
+		{
+			int level = NOT_FOUND;
+			T min = default(T);
+			int minOffset = 0;
+
+			// scan each segment for a value that would be larger, keep track of the smallest found
+			for (int i = 0; i < levels.Length; i++)
+			{
+				if (ColaStore.IsFree(i, count)) continue;
+
+				var segment = levels[i];
+				int pos = ColaStore.BinarySearch<T>(segment, 0, segment.Length, value, comparer);
+				if (pos >= 0)
+				{ // we found an exact match in this segment
+					if (orEqual)
+					{
+						offset = pos;
+						result = segment[pos];
+						return i;
+					}
+
+					// the next item in this segment should be larger
+					++pos;
+				}
+				else
+				{ // we found where it would be stored in this segment
+					pos = ~pos;
+				}
+
+				if (pos < segment.Length)
+				{
+					if (level == NOT_FOUND || comparer.Compare(segment[pos], min) < 0)
+					{ // we found a better candidate
+						min = segment[pos];
+						level = i;
+						minOffset = pos;
+					}
+				}
+			}
+
+			offset = minOffset;
+			result = min;
+			return level;
+		}
+
+		/// <summary>Search for the largest element that is smaller than a reference element</summary>
+		/// <param name="value">Reference element</param>
+		/// <param name="orEqual">If true, return the position of the value itself if it is found. If false, return the position of the closest value that is smaller.</param>
+		/// <param name="offset">Receive the offset within the level of the previous element, or 0 if not found</param>
+		/// <param name="result">Receive the value of the previous element, or default(T) if not found</param>
+		/// <returns>Level of the previous element, or -1 if <param name="result"/> was already the smallest</returns>
+		public static int FindPrevious<T>(T[][] levels, int count, T value, bool orEqual, IComparer<T> comparer, out int offset, out T result)
+		{
+			int level = NOT_FOUND;
+			T max = default(T);
+			int maxOffset = 0;
+
+			// scan each segment for a value that would be smaller, keep track of the smallest found
+			for (int i = 0; i < levels.Length; i++)
+			{
+				if (ColaStore.IsFree(i, count)) continue;
+
+				var segment = levels[i];
+				int pos = ColaStore.BinarySearch<T>(segment, 0, segment.Length, value, comparer);
+				// the previous item in this segment should be smaller
+				if (pos < 0)
+				{ // it is not 
+					pos = ~pos;
+				}
+				else if (orEqual)
+				{ // we found an exact match in this segment
+					offset = pos;
+					result = segment[pos];
+					return i;
+				}
+
+				--pos;
+
+				if (pos >= 0)
+				{
+					if (level == NOT_FOUND || comparer.Compare(segment[pos], max) > 0)
+					{ // we found a better candidate
+						max = segment[pos];
+						level = i;
+						maxOffset = pos;
+					}
+				}
+			}
+
+			offset = maxOffset;
+			result = max;
+			return level;
+		}
+
+		public static IEnumerable<T> FindBetween<T>(T[][] levels, int count, T begin, bool beginOrEqual, T end, bool endOrEqual, int limit, IComparer<T> comparer)
+		{
+			//Trace.WriteLine("Looking for " + begin + (beginOrEqual ? " <= k " : " < k ") + (endOrEqual ? "<= " : "< ") + end + ", max " + limit);
+
+			if (limit > 0)
+			{
+				for (int i = 0; i < levels.Length; i++)
+				{
+					if (ColaStore.IsFree(i, count)) continue;
+
+					var segment = levels[i];
+					//Trace.WriteLine("> Looking at level " + i + " : " + String.Join(", ", segment));
+
+					int to = ColaStore.BinarySearch<T>(segment, 0, segment.Length, end, comparer);
+					//Trace.WriteLine("  > binSearch(end=" + end + ") => " + to);
+					if (to >= 0)
+					{
+						if (!endOrEqual)
+						{
+							//Trace.WriteLine("  > excluding matching end");
+							to--;
+						}
+					}
+					else
+					{
+						to = ~to;
+					}
+					//Trace.WriteLine("  > to = " + to);
+					if (to < 0 || to >= segment.Length) continue;
+
+					int from = ColaStore.BinarySearch<T>(segment, 0, segment.Length, begin, comparer);
+					//Trace.WriteLine("  > binSearch(begin=" + begin + ") => " + from);
+					if (from >= 0)
+					{
+						if (!beginOrEqual)
+						{
+							//Trace.WriteLine("  > excluding matching begin");
+							from++;
+						}
+					}
+					else
+					{
+						from = ~from;
+					}
+					//Trace.WriteLine("  > from = " + from);
+					if (from >= segment.Length) continue;
+
+					if (from > to) continue;
+
+					//Trace.WriteLine("  > fetch(" + from + "..." + to + ")");
+					for (int j = from; j <= to && limit > 0; j++)
+					{
+						//Trace.WriteLine("    > " + j + " :" + segment[j]);
+						yield return segment[j];
+						--limit;
+					}
+					if (limit <= 0) break;
+				}
+			}
+		}
+
 		/// <summary>Find the next smallest key pointed by a list of cursors</summary>
 		/// <param name="inputs">List of source arrays</param>
 		/// <param name="cursors">Lit of cursors in source arrays</param>
