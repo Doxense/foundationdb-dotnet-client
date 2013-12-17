@@ -227,30 +227,6 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		}
 
 		[Test]
-		public void Test_RangeSet_Insert_Points()
-		{
-			var cola = new ColaRangeDictionary<int, string>();
-			cola.Mark(1, "A");
-			cola.Mark(2, "B");
-			cola.Mark(3, "C");
-			cola.Mark(4, "D");
-			cola.Debug_Dump();
-			Assert.That(cola.Count, Is.EqualTo(4));
-			Assert.That(cola.Bounds.Begin, Is.EqualTo(1));
-			Assert.That(cola.Bounds.End, Is.EqualTo(4));
-
-			// should replace 2 and 3
-			cola.Mark(2, 4, "E");
-
-			Assert.That(cola.Count, Is.EqualTo(3));
-			Assert.That(cola.Bounds.Begin, Is.EqualTo(1));
-			Assert.That(cola.Bounds.End, Is.EqualTo(4));
-
-			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
-			Console.WriteLine("Bounds = " + cola.Bounds);
-		}
-	
-		[Test]
 		public void Test_RangeSet_Insert_Backwards()
 		{
 			const int N = 100;
