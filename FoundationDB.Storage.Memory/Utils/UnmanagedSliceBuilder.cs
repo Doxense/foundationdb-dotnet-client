@@ -299,6 +299,25 @@ namespace FoundationDB.Storage.Memory.Core
 			return new USlice(this.Data, this.Count);
 		}
 
+		public USlice ToUSlice(uint count)
+		{
+			if (m_disposed) ThrowAlreadyDisposed();
+			if (count == 0) return default(USlice);
+			if (count > this.Count) throw new ArgumentOutOfRangeException("count");
+
+			return new USlice(this.Data, count);
+		}
+
+		public USlice ToUSlice(uint offset, uint count)
+		{
+			if (m_disposed) ThrowAlreadyDisposed();
+			if (offset > this.Count) throw new ArgumentOutOfRangeException("offset");
+			if (count == 0) return default(USlice);
+			if (offset + count > this.Count) throw new ArgumentOutOfRangeException("count");
+
+			return new USlice(this.Data + offset, count);
+		}
+
 		internal USlice CopyTo(byte* dest)
 		{
 			if (m_disposed) ThrowAlreadyDisposed();

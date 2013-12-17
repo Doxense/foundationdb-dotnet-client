@@ -3,7 +3,7 @@
 #endregion
 
 #undef DUMP_TRANSACTION_STATE
-#define DISABLE_RANGE_CHECKS
+#undef DISABLE_RANGE_CHECKS
 
 namespace FoundationDB.Storage.Memory.API
 {
@@ -22,6 +22,9 @@ namespace FoundationDB.Storage.Memory.API
 
 	public class MemoryTransactionHandler : IFdbTransactionHandler, IDisposable
 	{
+		internal const int MaxKeySize = 10 * 1000; //note: this should be the same as FoundationDB !
+		internal const int MaxValueSize = 100 * 1000; //note: this should be the same as FoundationDB !
+		private const int InitialBufferSize = 32 * 1024; //note: this should be at least 2x larger than the max key size, and if possible a power of 2
 
 		#region Private Fields...
 
@@ -373,7 +376,8 @@ namespace FoundationDB.Storage.Memory.API
 
 			lock(m_lock)
 			{
-				m_buffer = new SliceBuffer();
+				m_readVersion = null;
+				m_buffer = new SliceBuffer(InitialBufferSize);
 				if (first)
 				{
 					m_clears = new ColaRangeSet<Slice>(SliceComparer.Default);
@@ -390,6 +394,7 @@ namespace FoundationDB.Storage.Memory.API
 				}
 
 				this.AccessSystemKeys = false;
+				this.NextWriteNoWriteConflictRange = false;
 			}
 		}
 		private static void ThrowDisposed()
@@ -402,7 +407,9 @@ namespace FoundationDB.Storage.Memory.API
 			get { return m_buffer.Size; }
 		}
 
-		private void AddClearCommand_NedsLocking(FdbKeyRange range)
+		/// <summary>Adds a range to teh clear list of this transaction</summary>
+		/// <remarks>Must be called with m_lock taken</remarks>
+		private void AddClearCommand_NeedsLocking(FdbKeyRange range)
 		{
 			// merge the cleared range with the others
 			m_clears.Mark(range.Begin, range.End);
@@ -418,6 +425,8 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
+		/// <summary>Adds a command to the write list of this transaction</summary>
+		/// <remarks>Must be called with m_lock taken</remarks>
 		private void AddWriteCommand_NeedsLocking(WriteCommand command)
 		{
 			var commands = new WriteCommand[1];
@@ -468,11 +477,28 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
+		/// <summary>Read and clear the NextWriteNoConflict flags.</summary>
+		/// <returns>Value of the flag, which is cleared for the following write.</returns>
+		/// <remarks>Must be called with m_lock taken</remarks>
+		private bool ConsumeNextWriteNoConflict_NeedsLocking()
+		{
+			if (this.NextWriteNoWriteConflictRange)
+			{
+				this.NextWriteNoWriteConflictRange = false;
+				return true;
+			}
+			return false;
+		}
+
+		/// <summary>Adds a range to the write conflict list</summary>
+		/// <remarks>Must be called with m_lock taken</remarks>
 		private void AddWriteConflict_NeedsLocking(FdbKeyRange range)
 		{
 			m_writeConflicts.Mark(range.Begin, range.End);
 		}
 
+		/// <summary>Adds a range to the read conflict list</summary>
+		/// <remarks>Must be called with m_lock taken</remarks>
 		private void AddReadConflict_NeedsLocking(FdbKeyRange range)
 		{
 			m_readConflicts.Mark(range.Begin, range.End);
@@ -713,6 +739,7 @@ namespace FoundationDB.Storage.Memory.API
 			if (value.IsNull) throw new ArgumentNullException("Value cannot be null");
 			CheckAccessToSystemKeys(key);
 
+
 			// first thing is copy the data in our own buffer, and only use those for the rest
 			FdbKeyRange range;
 			lock (m_buffer)
@@ -723,9 +750,12 @@ namespace FoundationDB.Storage.Memory.API
 
 			lock (m_lock)
 			{
+				if (!ConsumeNextWriteNoConflict_NeedsLocking())
+				{
 #if !DISABLE_RANGE_CHECKS
-				AddWriteConflict_NeedsLocking(range);
+					AddWriteConflict_NeedsLocking(range);
 #endif
+				}
 				AddWriteCommand_NeedsLocking(new WriteCommand(Operation.Set, range.Begin, value));
 			}
 		}
@@ -752,10 +782,13 @@ namespace FoundationDB.Storage.Memory.API
 
 			lock (m_lock)
 			{
-				AddWriteConflict_NeedsLocking(range);
+				if (!ConsumeNextWriteNoConflict_NeedsLocking())
+				{
 #if !DISABLE_RANGE_CHECKS
-				AddWriteCommand_NeedsLocking(new WriteCommand((Operation)mutation, range.Begin, param));
+					AddWriteConflict_NeedsLocking(range);
 #endif
+				}
+				AddWriteCommand_NeedsLocking(new WriteCommand((Operation)mutation, range.Begin, param));
 			}
 		}
 
@@ -771,13 +804,16 @@ namespace FoundationDB.Storage.Memory.API
 				range = m_buffer.InternRangeFromKey(key);
 			}
 
-#if !DISABLE_RANGE_CHECKS
 			lock (m_lock)
 			{
-				AddWriteConflict_NeedsLocking(range);
-				AddClearCommand_NedsLocking(range);
-			}
+				if (!ConsumeNextWriteNoConflict_NeedsLocking())
+				{
+#if !DISABLE_RANGE_CHECKS
+					AddWriteConflict_NeedsLocking(range);
 #endif
+				}
+				AddClearCommand_NeedsLocking(range);
+			}
 		}
 
 		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
@@ -794,13 +830,16 @@ namespace FoundationDB.Storage.Memory.API
 				range = m_buffer.InternRange(beginKeyInclusive, endKeyExclusive);
 			}
 
-#if !DISABLE_RANGE_CHECKS
 			lock (m_lock)
 			{
-				AddWriteConflict_NeedsLocking(range);
-				AddClearCommand_NedsLocking(range);
-			}
+				if (!ConsumeNextWriteNoConflict_NeedsLocking())
+				{
+#if !DISABLE_RANGE_CHECKS
+					AddWriteConflict_NeedsLocking(range);
 #endif
+				}
+				AddClearCommand_NeedsLocking(range);
+			}
 		}
 
 		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
@@ -841,6 +880,8 @@ namespace FoundationDB.Storage.Memory.API
 
 		public void Reset()
 		{
+			//TODO: kill any pending "async" reads
+			//TODO: release the current read version and/or transaction window ?
 			Initialize(true);
 		}
 
@@ -909,7 +950,7 @@ namespace FoundationDB.Storage.Memory.API
 			}
 #endif
 
-			m_committedVersion = await m_db.CommitTransactionAsync(this, m_readConflicts, m_writeConflicts, m_clears, m_writes).ConfigureAwait(false);
+			m_committedVersion = await m_db.CommitTransactionAsync(this, m_readVersion.Value, m_readConflicts, m_writeConflicts, m_clears, m_writes).ConfigureAwait(false);
 #if DUMP_TRANSACTION_STATE
 			Trace.WriteLine("=== DONE with commit version " + m_committedVersion);
 #endif
@@ -982,11 +1023,25 @@ namespace FoundationDB.Storage.Memory.API
 			throw new NotImplementedException();
 		}
 
-		public int RetryLimit { get; set; }
+		public int RetryLimit { get; internal set; }
 
-		public int Timeout { get; set; }
+		public int Timeout { get; internal set; }
 
-		public bool AccessSystemKeys { get; set; }
+		public bool AccessSystemKeys { get; internal set; }
+
+		public bool NextWriteNoWriteConflictRange { get; internal set; }
+
+		private static bool DecodeBooleanOption(Slice data)
+		{
+			if (data.Count == 8)
+			{ // spec says that ints should be passed as 8 bytes integers
+				return data.ToInt64() != 0;
+			}
+			else
+			{
+				return data.ToBool();
+			}
+		}
 
 		public void SetOption(FdbTransactionOption option, Slice data)
 		{
@@ -994,21 +1049,7 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				case FdbTransactionOption.AccessSystemKeys:
 				{
-					if (data.IsNullOrEmpty)
-					{
-						this.AccessSystemKeys = true;
-					}
-					else
-					{
-						if (data.Count == 8)
-						{ // spec says that ints should be passed as 8 bytes integers
-							this.AccessSystemKeys = data.ToInt64() != 0;
-						}
-						else
-						{
-							this.AccessSystemKeys = data.ToBool();
-						}
-					}
+					this.AccessSystemKeys = data.IsNullOrEmpty || DecodeBooleanOption(data);
 					break;
 				}
 				case FdbTransactionOption.RetryLimit:
@@ -1026,6 +1067,12 @@ namespace FoundationDB.Storage.Memory.API
 					long value = data.ToInt64();
 					if (value < 0 || value >= int.MaxValue) throw new FdbException(FdbError.InvalidOptionValue);
 					this.Timeout = (int)value;
+					break;
+				}
+
+				case FdbTransactionOption.NextWriteNoWriteConflictRange:
+				{
+					this.NextWriteNoWriteConflictRange = true;
 					break;
 				}
 				default:

@@ -41,7 +41,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		public void Collect()
 		{
-			m_handler.GC();
+			m_handler.Collect();
 		}
 
 	}

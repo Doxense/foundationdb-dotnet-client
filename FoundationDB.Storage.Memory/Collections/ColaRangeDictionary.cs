@@ -399,7 +399,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 						// => we will try to find the first range and last range in the dictionary that would be impacted, mutate them and delete all ranges in between
 
-						var iterator = new ColaStore.Iterator<Entry>(m_items.Levels, m_items.Count, m_items.Comparer);
+						var iterator = m_items.GetIterator();
 						// seek to the range that starts before (or at) the new range's begin point
 						if (!iterator.Seek(entry, true))
 						{ // the new range will go into first position
@@ -565,6 +565,48 @@ namespace FoundationDB.Storage.Memory.Core
 			{
 				CheckInvariants();
 			}
+		}
+
+		/// <summary>Checks if there is at least one range in the dictionary that intersects with the specified range, and matches the predicate</summary>
+		/// <param name="begin">Lower bound of the intersection</param>
+		/// <param name="end">Higher bound (excluded) of the intersection</param>
+		/// <param name="predicate">Predicate called for each intersected range.</param>
+		/// <returns>True if there was at least one intersecting range, and <paramref name="predicate"/> returned true for that range.</returns>
+		public bool Intersect(TKey begin, TKey end, TValue arg, Func<TValue, TValue, bool> predicate)
+		{
+			if (m_items.Count == 0) return false;
+
+			var cmp = m_keyComparer;
+			if (cmp.Compare(m_bounds.Begin, end) >= 0) return false;
+			if (cmp.Compare(m_bounds.End, begin) <= 0) return false;
+
+			var entry = new Entry(begin, end, default(TValue));
+
+			var iterator = m_items.GetIterator();
+			if (!iterator.Seek(entry, true))
+			{ // starts before
+				iterator.SeekFirst();
+			}
+
+			do
+			{
+				var cursor = iterator.Current;
+				
+				// A and B intersects if: CMP(B.end, A.begin) <= 0 .OR. CMP(A.end, B.begin) <= 0
+
+				if (cmp.Compare(end, cursor.Begin) <= 0)
+				{ 
+					return false;
+				}
+
+				if (cmp.Compare(cursor.End, begin) > 0 && predicate(cursor.Value, arg))
+				{
+					return true;
+				}
+			}
+			while(iterator.Next());
+
+			return false;
 		}
 
 		public ColaStore.Enumerator<Entry> GetEnumerator()

@@ -17,97 +17,6 @@ namespace FoundationDB.Storage.Memory.API
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	internal class GenerationalUnmanagedHeap : IDisposable
-	{
-		private const int DEFAULT_GENERATIONS = 2;
-		private const int DEFAULT_PAGESIZE = 0;
-
-		private int m_generations;
-		private UnmanagedMemoryHeap[] m_heaps;
-		private bool m_disposed;
-
-		public GenerationalUnmanagedHeap()
-			: this(DEFAULT_GENERATIONS, DEFAULT_PAGESIZE, 0)
-		{ }
-
-		public GenerationalUnmanagedHeap(int generations, uint pageSize, uint alignment)
-		{
-			if (generations <= 0) throw new ArgumentOutOfRangeException("generations");
-
-			m_generations = generations;
-			var heaps = new UnmanagedMemoryHeap[generations];
-			for (int i = 0; i < generations;i++)
-			{
-				heaps[i] = new UnmanagedMemoryHeap(pageSize, alignment);
-			}
-
-			m_generations = generations;
-			m_heaps = heaps;
-		}
-
-		public int MaxGeneration { get { return m_generations; } }
-
-		public long GetTotalMemory()
-		{
-			if (m_disposed) return 0;
-			long total = 0;
-			foreach(var heap in m_heaps)
-			{
-				total += heap.MemoryUsage;
-			}
-			return total;
-		}
-
-		public UnmanagedMemoryHeap Gen0
-		{
-			get
-			{
-				if (m_disposed) ThrowDisposed();
-				return m_heaps[0];
-			}
-		}
-
-		public UnmanagedMemoryHeap this[int gen]
-		{
-			get
-			{
-				if (m_disposed) ThrowDisposed();
-				return m_heaps[gen];
-			}
-		}
-
-		public void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		private void ThrowDisposed()
-		{
-			throw new ObjectDisposedException(this.GetType().Name);
-		}
-
-		private void Dispose(bool disposing)
-		{
-			if (!m_disposed)
-			{
-				m_disposed = true;
-				if (m_heaps != null && m_heaps.Length > 0)
-				{
-					foreach(var heap in m_heaps)
-					{
-						if (heap != null)
-						{
-							try { heap.Dispose(); }
-							catch { }
-						}
-					}
-				}
-			}
-		}
-
-	}
-
 	internal class MemoryDatabaseHandler : IFdbDatabaseHandler, IDisposable
 	{
 
@@ -135,6 +44,11 @@ namespace FoundationDB.Storage.Memory.API
 		private HashSet<MemoryTransactionHandler> m_pendingTransactions = new HashSet<MemoryTransactionHandler>();
 		/// <summary>List of all transactions that have requested a read version, but have not committed anything yet</summary>
 		private Queue<MemoryTransactionHandler> m_activeTransactions = new Queue<MemoryTransactionHandler>();
+
+		/// <summary>List of all active transaction windows</summary>
+		private Queue<TransactionWindow> m_transactionWindows = new Queue<TransactionWindow>();
+		/// <summary>Last transaction window</summary>
+		private TransactionWindow m_currentWindow;
 
 		#endregion
 
@@ -210,15 +124,51 @@ namespace FoundationDB.Storage.Memory.API
 			return tmp;
 		}
 
-		internal unsafe Task<long> CommitTransactionAsync(MemoryTransactionHandler trans, ColaRangeSet<Slice> readConflicts, ColaRangeSet<Slice> writeConflicts, ColaRangeSet<Slice> clearRanges, ColaOrderedDictionary<Slice, MemoryTransactionHandler.WriteCommand[]> writes)
+		private TimeSpan m_maxTransactionLifetime = TimeSpan.FromSeconds(5);
+
+		private TransactionWindow GetActiveTransactionWindow(ulong sequence)
+		{
+			var window = m_currentWindow;
+			var now = DateTime.UtcNow;
+
+			if (window != null)
+			{ // is it still active ?
+
+				if (window.Closed)
+				{
+					window = null;
+				}
+				else if (now.Subtract(window.StartedUtc) > m_maxTransactionLifetime)
+				{
+					window.Close();
+					window = null;
+				}
+			}
+
+			if (window == null)
+			{ // need to start a new window
+				window = new TransactionWindow(DateTime.UtcNow, sequence);
+				m_currentWindow = window;
+				m_transactionWindows.Enqueue(window);
+			}
+
+			return window;
+		}
+
+		internal unsafe Task<long> CommitTransactionAsync(MemoryTransactionHandler trans, long readVersion, ColaRangeSet<Slice> readConflicts, ColaRangeSet<Slice> writeConflicts, ColaRangeSet<Slice> clearRanges, ColaOrderedDictionary<Slice, MemoryTransactionHandler.WriteCommand[]> writes)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (m_disposed) ThrowDisposed();
 
-			ulong sequence;
+			// version at which the transaction was created (and all reads performed)
+			ulong readSequence = (ulong)readVersion;
+			// commit version created by this transaction (if it writes something)
+			ulong committedSequence;
 
 			UnmanagedSliceBuilder scratchKey = null;
 			UnmanagedSliceBuilder scratchValue = null;
+
+			Console.WriteLine("Comitting transaction created at readVersion " + readVersion + " ...");
 
 			m_dataLock.EnterUpgradeableReadLock();
 			try
@@ -226,7 +176,25 @@ namespace FoundationDB.Storage.Memory.API
 				scratchKey = new UnmanagedSliceBuilder();
 				scratchValue = new UnmanagedSliceBuilder();
 
-				sequence = (ulong)Interlocked.Increment(ref m_currentVersion);
+				committedSequence = (ulong)Interlocked.Increment(ref m_currentVersion);
+				Console.WriteLine("... will create version " + committedSequence);
+
+				var window = GetActiveTransactionWindow(committedSequence);
+
+				#region Read Conflict Check
+
+				if (readConflicts != null && readConflicts.Count > 0)
+				{
+					if (window.Conflicts(readConflicts, readSequence))
+					{
+						Console.WriteLine("CONFLICTS !!!!!");
+						throw new FdbException(FdbError.NotCommitted);
+					}
+				}
+
+				#endregion
+
+				#region Clear Ranges...
 
 				if (clearRanges != null && clearRanges.Count > 0)
 				{
@@ -236,6 +204,10 @@ namespace FoundationDB.Storage.Memory.API
 						throw new NotImplementedException("ClearRange not yet implemented. Sorry!");
 					}
 				}
+
+				#endregion
+
+				#region Writes...
 
 				if (writes != null && writes.Count > 0)
 				{
@@ -335,7 +307,7 @@ namespace FoundationDB.Storage.Memory.API
 
 							lock (m_heapLock)
 							{
-								value = m_values.Allocate(scratchValue.Count, sequence, key != null ? key->Values : null, null);
+								value = m_values.Allocate(scratchValue.Count, committedSequence, key != null ? key->Values : null, null);
 							}
 							Contract.Assert(value != null);
 							scratchValue.CopyTo(&(value->Data));
@@ -382,7 +354,19 @@ namespace FoundationDB.Storage.Memory.API
 
 						}
 					}
+
 				}
+
+				#endregion
+
+				#region Merge Write Conflicts...
+
+				if (writeConflicts != null && writeConflicts.Count > 0)
+				{
+					window.MergeWrites(writeConflicts, committedSequence);
+				}
+
+				#endregion
 			}
 			finally
 			{
@@ -392,7 +376,7 @@ namespace FoundationDB.Storage.Memory.API
 			}
 
 			//TODO: IMPLEMENT REAL DATABASE HERE :)
-			var version = (long)sequence;
+			var version = (long)committedSequence;
 
 			return Task.FromResult(version);
 		}
@@ -954,7 +938,7 @@ namespace FoundationDB.Storage.Memory.API
 		}
 
 		/// <summary>Perform a complete garbage collection</summary>
-		public void GC()
+		public void Collect()
 		{
 
 			m_dataLock.EnterUpgradeableReadLock();
@@ -1054,84 +1038,6 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				m_dataLock.ExitReadLock();
 			}
-		}
-
-		[StructLayout(LayoutKind.Sequential, Pack = 1)]
-		internal unsafe struct Entry
-		{
-			/// <summary>Default alignement for objects (8 by default)</summary>
-			public const int ALIGNMENT = 8; // MUST BE A POWER OF 2 !
-			public const int ALIGNMENT_MASK = ~(ALIGNMENT - 1);
-
-			/// <summary>This entry has been moved to another page by the last GC</summary>
-			public const uint FLAGS_MOVED = 0x100;
-
-			/// <summary>This key has been flaged as being unreachable by current of future transaction (won't survive the next GC)</summary>
-			public const uint FLAGS_UNREACHABLE = 0x2000;
-
-			/// <summary>The entry has been disposed and should be access anymore</summary>
-			public const uint FLAGS_DISPOSED = 0x80000000;
-
-			public const int TYPE_SHIFT = 29;
-			public const uint TYPE_MASK_AFTER_SHIFT = 0x3;
-
-			// Object Layout
-			// ==============
-
-			// Offset	Field	Type	Desc
-			// 
-			//      0	HEADER	uint	Type, Flags, ...
-			//		4	SIZE	uint	Size of the data
-			//		... object fields ...
-			//		x	DATA	byte[]	Value of the object, size in the SIZE field
-			//		y	(pad)	0..7	padding bytes (set to 00 or FF ?)
-			//
-			// HEADER: bit flags
-			// - bit 31: DISPOSED, set if object is disposed
-			// - bit 29-30: TYPE
-
-			/// <summary>Various flags (TODO: enum?)</summary>
-			public uint Header;
-
-			/// <summary>Size of the key (in bytes)</summary>
-			public uint Size;
-
-			/// <summary>Return the type of the object</summary>
-			public static unsafe EntryType GetObjectType(void* item)
-			{
-				return item == null ? EntryType.Free : (EntryType)((((Entry*)item)->Header >> TYPE_SHIFT) & TYPE_MASK_AFTER_SHIFT);
-			}
-
-			/// <summary>Checks if the object is disposed</summary>
-			public static unsafe bool IsDisposed(void* item)
-			{
-				return item == null || (((Entry*)item)->Header & FLAGS_DISPOSED) != 0;
-			}
-
-			internal static byte* Align(byte* ptr)
-			{
-				long r = ((long)ptr) & (ALIGNMENT - 1);
-				if (r > 0) ptr += ALIGNMENT - r;
-				return ptr;
-			}
-
-			internal static bool IsAligned(void* ptr)
-			{
-				return (((long)ptr) & (ALIGNMENT - 1)) == 0;
-			}
-
-			internal static int Padding(void* ptr)
-			{
-				return (int) (((long)ptr) & (ALIGNMENT - 1));
-			}
-		}
-
-		public enum EntryType
-		{
-			Free = 0,
-			Key = 1,
-			Value = 2,
-			Search = 3
 		}
 
 		[StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -1251,131 +1157,6 @@ namespace FoundationDB.Storage.Memory.API
 				return (Value*)Entry.Align((byte*)self + Value.SizeOf + self->Size);
 			}
 
-		}
-
-		internal unsafe abstract class EntryPage : IDisposable
-		{
-			protected byte* m_current;
-			protected byte* m_start;
-			protected byte* m_end;
-			protected uint m_capacity;
-			protected int m_count;
-			protected SafeHandle m_handle;
-
-			public EntryPage(SafeHandle handle, uint capacity)
-			{
-				Contract.Requires(handle != null && !handle.IsInvalid && !handle.IsClosed);
-
-				m_handle = handle;
-				m_capacity = capacity;
-				m_start = (byte*) handle.DangerousGetHandle().ToPointer();
-				m_end = m_start + capacity;
-				m_current = m_start;
-
-				CheckInvariants();
-			}
-
-			[Conditional("DEBUG")]
-			protected void CheckInvariants()
-			{
-				Contract.Assert(!m_handle.IsInvalid, "Memory handle should not be invalid");
-				Contract.Assert(!m_handle.IsClosed, "Memory handle should not be closed");
-				Contract.Ensures(Entry.IsAligned(m_current), "Current pointer should always be aligned");
-				Contract.Assert(m_current <= m_start + m_capacity, "Current pointer should never be outside the page");
-			}
-
-			public int Count { get { return m_count; } }
-
-			public long MemoryUsage { get { return (long)m_current - (long)m_start; } }
-
-			public abstract EntryType Type { get; }
-
-			public void Dispose()
-			{
-				if (!m_handle.IsClosed)
-				{
-					m_start = null;
-					m_current = null;
-					m_handle.Close();
-				}
-			}
-
-			internal static byte* Align(byte* ptr, byte* end)
-			{
-				long r = ((long)ptr) & (Entry.ALIGNMENT - 1);
-				if (r > 0) ptr += Entry.ALIGNMENT - r;
-				if (ptr > end) return end;
-				return ptr;
-			}
-
-			protected byte* TryAllocate(uint size)
-			{
-				// try to allocate an amount of memory
-				// - returns null if the page is full, or too small
-				// - returns a pointer to the allocated space
-
-				byte* ptr = m_current;
-				byte* end = m_end;
-				byte* next = ptr + size;
-				if (next > m_end)
-				{ // does not fit in this page
-					return null;
-				}
-
-				// update the cursor for the next value
-				next = (byte*) (((long)next + Entry.ALIGNMENT - 1) & Entry.ALIGNMENT_MASK);
-				if (next > end) next = end;
-				m_current = next;
-				++m_count;
-
-				CheckInvariants();
-				return ptr;
-			}
-
-			public void Swap(EntryPage target)
-			{
-				Contract.Requires(target != null);
-
-				var old = m_handle;
-				m_handle = target.m_handle;
-				m_count = target.Count;
-				m_capacity = target.m_capacity;
-				m_start = target.m_start;
-				m_end = target.m_end;
-				m_current = target.m_current;
-				old.Dispose();
-				CheckInvariants();
-			}
-
-			[Conditional("DEBUG")]
-			public abstract void Debug_Dump();
-		}
-
-		internal abstract class ElasticHeap<TPage>
-			where TPage : EntryPage
-		{
-			protected List<TPage> m_pages = new List<TPage>();
-			protected int m_gen;
-			protected uint m_pageSize;
-			protected TPage m_current;
-
-			public ElasticHeap(int generation, uint pageSize)
-			{
-				if (generation < 0) throw new ArgumentOutOfRangeException("generation");
-
-				m_gen = generation;
-				m_pageSize = pageSize;
-			}
-
-			[Conditional("DEBUG")]
-			public void Debug_Dump()
-			{
-				Console.WriteLine("# Dumping elastic " + typeof(TPage).Name + " heap (" + m_pages.Count + " pages)");
-				foreach(var page in m_pages)
-				{
-					page.Debug_Dump();
-				}
-			}
 		}
 
 		internal unsafe class KeyHeap : ElasticHeap<KeyHeap.Page>
@@ -1539,7 +1320,7 @@ namespace FoundationDB.Storage.Memory.API
 
 			public void Collect(ulong sequence)
 			{
-				foreach(var page in m_pages)
+				foreach (var page in m_pages)
 				{
 					var target = CreateNewPage(m_pageSize, Entry.ALIGNMENT);
 					page.Collect(target, sequence);
@@ -1766,7 +1547,7 @@ namespace FoundationDB.Storage.Memory.API
 
 			public void Collect(ulong sequence)
 			{
-				foreach(var page in m_pages)
+				foreach (var page in m_pages)
 				{
 					var target = CreateNewPage(m_pageSize, Entry.ALIGNMENT);
 					if (page.Count == 1)
@@ -1785,7 +1566,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		}
 
-		private unsafe sealed class NativeKeyComparer : IComparer<IntPtr>
+		private unsafe sealed class NativeKeyComparer : IComparer<IntPtr>, IEqualityComparer<IntPtr>
 		{
 			// Keys:
 			// * KEY_SIZE		UInt16		Size of the key
@@ -1800,26 +1581,221 @@ namespace FoundationDB.Storage.Memory.API
 				var leftKey = (Key*)left.ToPointer();
 				var rightKey = (Key*)right.ToPointer();
 
-				//if (leftKey == rightKey) return 0;
-				//if (leftKey == null) return -1;
-				//if (rightKey == null) return +1;
-
 				uint leftCount, rightCount;
 
 				if (leftKey == null || (leftCount = leftKey->Size) == 0) return rightKey == null || rightKey->Size == 0 ? 0 : -1;
 				if (rightKey == null || (rightCount = rightKey->Size) == 0) return +1;
 
-#if true
 				int c = UnmanagedHelpers.NativeMethods.memcmp(&(leftKey->Data), &(rightKey->Data), leftCount < rightCount ? leftCount : rightCount);
 				if (c == 0) c = (int)leftCount - (int)rightCount;
 				return c;
-#else
-				return UnmanagedHelpers.CompareUnsafe(
-					&(leftKey->Data), leftCount,
-					&(rightKey->Data), rightCount
-				);
-#endif
 			}
+
+			public bool Equals(IntPtr left, IntPtr right)
+			{
+				// unwrap as pointers to the Key struct
+				var leftKey = (Key*)left.ToPointer();
+				var rightKey = (Key*)right.ToPointer();
+
+				uint leftCount, rightCount;
+
+				if (leftKey == null || (leftCount = leftKey->Size) == 0) return rightKey == null || rightKey->Size == 0;
+				if (rightKey == null || (rightCount = rightKey->Size) == 0) return false;
+
+				return leftCount == rightCount && 0 == UnmanagedHelpers.NativeMethods.memcmp(&(leftKey->Data), &(rightKey->Data), leftCount);
+			}
+
+			public int GetHashCode(IntPtr value)
+			{
+				var key = (Key*)value.ToPointer();
+				if (key == null) return -1;
+				uint size = key->Size;
+				if (size == 0) return 0;
+
+				//TODO: use a better hash algorithm? (xxHash, CityHash, SipHash, ...?)
+				// => will be called a lot when Slices are used as keys in an hash-based dictionary (like Dictionary<Slice, ...>)
+				// => won't matter much for *ordered* dictionary that will probably use IComparer<T>.Compare(..) instead of the IEqalityComparer<T>.GetHashCode()/Equals() combo
+				// => we don't need a cryptographic hash, just something fast and suitable for use with hashtables...
+				// => probably best to select an algorithm that works on 32-bit or 64-bit chunks
+
+				// <HACKHACK>: unoptimized 32 bits FNV-1a implementation
+				uint h = 2166136261; // FNV1 32 bits offset basis
+				byte* bytes = &(key->Data);
+				while (size-- > 0)
+				{
+					h = (h ^ *bytes++) * 16777619; // FNV1 32 prime
+				}
+				return (int)h;
+				// </HACKHACK>
+			}
+		}
+
+		private sealed class SequenceComparer : IComparer<ulong>, IEqualityComparer<ulong>
+		{
+			public static readonly SequenceComparer Default = new SequenceComparer();
+
+			private SequenceComparer()
+			{ }
+
+			public int Compare(ulong x, ulong y)
+			{
+				if (x < y) return -1;
+				if (x > y) return +1;
+				return 0;
+			}
+
+			public bool Equals(ulong x, ulong y)
+			{
+				return x == y;
+			}
+
+			public int GetHashCode(ulong x)
+			{
+				return (((int)x) ^ ((int)(x >> 32)));
+			}
+		}
+
+		[DebuggerDisplay("Sarted={m_startedUtc}, Min={m_minVersion}, Max={m_maxVersion}, Closed={m_closed}, Disposed={m_disposed}")]
+		internal sealed class TransactionWindow : IDisposable
+		{
+			/// <summary>Creation date of this transaction window</summary>
+			private readonly DateTime m_startedUtc;
+			/// <summary>First commit version for this transaction window</summary>
+			private readonly ulong m_minVersion;
+			/// <summary>Sequence of the last commited transaction from this window</summary>
+			private ulong m_maxVersion;
+			/// <summary>If true, the transaction is closed (no more transaction can write to it)</summary>
+			private bool m_closed;
+			/// <summary>If true, the transaction has been disposed</summary>
+			private volatile bool m_disposed;
+
+			/// <summary>Heap used to store the write conflict keys</summary>
+			private UnmanagedMemoryHeap m_keys = new UnmanagedMemoryHeap(65536);
+
+			/// <summary>List of all the writes made by transactions committed in this window</summary>
+			private ColaRangeDictionary<USlice, ulong> m_writeConflicts = new ColaRangeDictionary<USlice, ulong>(USliceComparer.Default, SequenceComparer.Default);
+
+			public TransactionWindow(DateTime startedUtc, ulong version)
+			{
+				m_startedUtc = startedUtc;
+				m_minVersion = version;
+			}
+
+			public bool Closed { get { return m_closed; } }
+
+			public ulong FirstVersion { get { return m_minVersion; } }
+
+			public ulong LastVersion { get { return m_maxVersion; } }
+
+			public DateTime StartedUtc { get { return m_startedUtc; } }
+
+			public void Close()
+			{
+				Contract.Requires(!m_closed && !m_disposed);
+
+				if (m_disposed) ThrowDisposed();
+
+				m_closed = true;
+			}
+
+			private unsafe USlice Store(Slice data)
+			{
+				uint size = checked((uint)data.Count);
+				var buffer = m_keys.AllocateAligned(size);
+				UnmanagedHelpers.CopyUnsafe(buffer, data);
+				return new USlice(buffer, size);
+			}
+
+			public void MergeWrites(ColaRangeSet<Slice> writes, ulong version)
+			{
+				Contract.Requires(!m_closed && writes != null && version >= m_minVersion && (!m_closed || version <= m_maxVersion));
+
+				if (m_disposed) ThrowDisposed();
+				if (m_closed) throw new InvalidOperationException("This transaction has already been closed");
+
+				Console.WriteLine("* Merging writes conflicts for version " + version + ": " + String.Join(", ", writes));
+
+				foreach (var range in writes)
+				{
+					var begin = range.Begin;
+					var end = range.End;
+
+					USlice beginKey, endKey;
+					if (begin.Offset == end.Offset && object.ReferenceEquals(begin.Array, end.Array) && end.Count >= begin.Count)
+					{ // overlapping keys
+						endKey = Store(end);
+						beginKey = endKey.Substring(0, (uint)begin.Count);
+					}
+					else
+					{
+						beginKey = Store(begin);
+						endKey = Store(end);
+					}
+
+					m_writeConflicts.Mark(beginKey, endKey, version);
+				}
+				if (version > m_maxVersion)
+				{
+					m_maxVersion = version;
+				}
+			}
+
+			/// <summary>Checks if a list of reads conflicts with at least one write performed in this transaction window</summary>
+			/// <param name="reads">List of reads to check for conflicts</param>
+			/// <param name="version">Sequence number of the transaction that performed the reads</param>
+			/// <returns>True if at least one read is conflicting with a write with a higher sequence number; otherwise, false.<returns>
+			public bool Conflicts(ColaRangeSet<Slice> reads, ulong version)
+			{
+				Contract.Requires(reads != null);
+
+				Console.WriteLine("* Testing for conflicts for: " + String.Join(", ", reads));
+
+				if (version > m_maxVersion)
+				{ // all the writes are before the reads, so no possible conflict!
+					Console.WriteLine(" > cannot conflict");
+					return false;
+				}
+
+				using (var scratch = new UnmanagedSliceBuilder())
+				{
+					//TODO: do a single-pass version of intersection checking !
+					foreach (var read in reads)
+					{
+						scratch.Clear();
+						scratch.Append(read.Begin);
+						var p = scratch.Count;
+						scratch.Append(read.End);
+						var begin = scratch.ToUSlice(p);
+						var end = scratch.ToUSlice(p, scratch.Count - p);
+
+						if (m_writeConflicts.Intersect(begin, end, version, (v, min) => v > min))
+						{
+							Console.WriteLine(" > Conflicting read: " + read);
+							return true;
+						}
+					}
+				}
+
+				Console.WriteLine("  > No conflicts found");
+				return false;
+			}
+		
+			private void ThrowDisposed()
+			{
+				throw new ObjectDisposedException(this.GetType().Name);
+			}
+
+			public void Dispose()
+			{
+				if (!m_disposed)
+				{
+					m_disposed = true;
+					m_keys.Dispose();
+
+				}
+				GC.SuppressFinalize(this);
+			}
+
 		}
 
 	}

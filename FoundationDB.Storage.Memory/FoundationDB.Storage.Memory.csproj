@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="API\MemoryClusterHandler.cs" />
+    <Compile Include="API\ElasticHeap`1.cs" />
     <Compile Include="API\MemoryDatabaseHandler.cs" />
     <Compile Include="API\MemoryDatabase.cs" />
     <Compile Include="API\MemoryTransactionHandler.cs" />

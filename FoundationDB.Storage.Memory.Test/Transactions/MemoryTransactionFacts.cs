@@ -383,6 +383,97 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 		}
 
+		[Test]
+		public async Task Test_Conflicts()
+		{
+
+			// this SHOULD NOT conflict
+			using (var db = MemoryDatabase.CreateNew("DB"))
+			{
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(db.Pack("foo"), Slice.FromString("changed"));
+						await tr2.CommitAsync();
+					}
+
+					var x = await tr1.GetAsync(db.Pack("foo"));
+					tr1.Set(db.Pack("bar"), Slice.FromString("other"));
+
+					await tr1.CommitAsync();
+				}
+
+			}
+
+			// this SHOULD conflict
+			using (var db = MemoryDatabase.CreateNew("DB"))
+			{
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					var x = await tr1.GetAsync(db.Pack("foo"));
+
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(db.Pack("foo"), Slice.FromString("changed"));
+						await tr2.CommitAsync();
+					}
+
+					tr1.Set(db.Pack("bar"), Slice.FromString("other"));
+
+					Assert.That(async () => await tr1.CommitAsync(), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
+				}
+
+			}
+
+			// this SHOULD conflict
+			using (var db = MemoryDatabase.CreateNew("DB"))
+			{
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					await tr1.GetReadVersionAsync();
+
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(db.Pack("foo"), Slice.FromString("changed"));
+						await tr2.CommitAsync();
+					}
+
+					var x = await tr1.GetAsync(db.Pack("foo"));
+					tr1.Set(db.Pack("bar"), Slice.FromString("other"));
+
+					Assert.That(async () => await tr1.CommitAsync(), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
+				}
+
+			}
+
+			// this SHOULD NOT conflict
+			using (var db = MemoryDatabase.CreateNew("DB"))
+			{
+
+				using (var tr1 = db.BeginTransaction())
+				{
+					var x = await tr1.Snapshot.GetAsync(db.Pack("foo"));
+
+					using (var tr2 = db.BeginTransaction())
+					{
+						tr2.Set(db.Pack("foo"), Slice.FromString("changed"));
+						await tr2.CommitAsync();
+					}
+
+					tr1.Set(db.Pack("bar"), Slice.FromString("other"));
+
+					await tr1.CommitAsync();
+				}
+
+			}
+
+
+		}
+
 		private async Task Scenario1(IFdbTransaction tr)
 		{
 
