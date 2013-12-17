@@ -792,9 +792,10 @@ namespace FoundationDB.Storage.Memory.API
 			if (m_disposed) ThrowDisposed();
 
 			//HACKHACK
+			var results = new List<KeyValuePair<Slice, Slice>>(limit);
+
 			if (limit == 0) limit = 10000;
 			if (targetBytes == 0) targetBytes = int.MaxValue;
-			var results = new List<KeyValuePair<Slice, Slice>>(limit);
 
 			bool done = false;
 
