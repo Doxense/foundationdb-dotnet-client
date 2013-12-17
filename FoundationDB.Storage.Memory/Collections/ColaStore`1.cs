@@ -510,6 +510,91 @@ namespace FoundationDB.Storage.Memory.Core
 			CheckInvariants();
 		}
 
+		/// <summary>Insert one or more new elements in the set.</summary>
+		/// <param name="values">Array of elements to insert. Warning: if a value already exist, the store will be corrupted !</param>
+		/// <remarks>The best performances are achieved when inserting a number of items that is a power of 2. The worst performances are when doubling the size of a store that is full</remarks>
+		public void InsertItems(params T[] values)
+		{
+			if (values == null) throw new ArgumentNullException("values");
+
+			int count = values.Length;
+
+			if (count < 2)
+			{
+				if (count == 1)
+				{
+					//Console.WriteLine("InsertItems([1]) Simple");
+					Insert(values[0]);
+				}
+				return;
+			}
+			if (count == 2)
+			{
+				if (IsFree(1))
+				{
+					//Console.WriteLine("InsertItems([2]) Fast");
+					ColaStore.MergeSimple<T>(m_levels[1], values[0], values[1], m_comparer);
+				}
+				else
+				{
+					//Console.WriteLine("InsertItems([2]) Cascade");
+					var spare = GetSpare(1);
+					spare[0] = values[0];
+					spare[1] = values[1];
+					var segment = m_levels[1];
+					MergeCascade(2, segment, spare);
+					segment[0] = default(T);
+					segment[1] = default(T);
+					PutSpare(1, spare);
+				}
+				m_count += 2;
+
+				CheckInvariants();
+				return;
+			}
+
+			// Inserting a size that is a power of 2 is very simple:
+			// * either the corresponding level is empty, in that case we just copy the items and do a quicksort
+			// * or it is full, then we just need to do a cascade merge
+			// For non-power of 2s, we can split decompose them into a suite of power of 2s and insert them one by one
+
+			int min = ColaStore.LowestBit(count);
+			int max = ColaStore.LowestBit(count);
+
+			//Console.WriteLine("InsertItems([" + count + " ]) " + min + ".." + max);
+
+			int p = 0;
+			for (int i = min; i <= max; i++)
+			{
+				if (ColaStore.IsFree(i, count)) continue;
+
+				var segment = m_levels[i];
+				if (IsFree(i))
+				{ // the target level is free, we can copy and sort in place
+					//Console.WriteLine("InsertItems([" + count + " ]) " + i+ " free");
+					Array.Copy(values, p, segment, 0, segment.Length);
+					Array.Sort(segment, 0, segment.Length, m_comparer);
+					p += segment.Length;
+				}
+				else
+				{ // the target level is used, we will have to do a cascade merge, using a spare
+					//Console.WriteLine("InsertItems([" + count + " ]) " + i + " cascade");
+					var spare = GetSpare(i);
+					Array.Copy(values, p, spare, 0, spare.Length);
+					Array.Sort(spare, 0, spare.Length, m_comparer);
+					p += segment.Length;
+					MergeCascade(i + 1, segment, spare);
+					Array.Clear(segment, 0, segment.Length);
+					PutSpare(i, spare);
+
+				}
+			}
+			Contract.Assert(p == count);
+			m_count += count;
+
+			CheckInvariants();
+		}
+
 		/// <summary>Remove the value at the specified location</summary>
 		/// <param name="arrayIndex">Absolute index in the vector-array</param>
 		/// <returns>Value that was removed</returns>
@@ -617,6 +702,38 @@ namespace FoundationDB.Storage.Memory.Core
 			CheckInvariants();
 
 			return removed;
+		}
+
+		public bool RemoveItem(T item)
+		{
+			T _;
+			int offset, level = Find(item, out offset, out _);
+			if (level < 0) return false;
+			_ = RemoveAt(level, offset);
+			CheckInvariants();
+			return true;
+		}
+
+		public int RemoveItems(IEnumerable<T> items)
+		{
+			if (items == null) throw new ArgumentNullException("items");
+
+			T _;
+			int count = 0;
+
+			//TODO: optimize this !!!!
+			foreach(var item in items)
+			{
+				int offset, level = Find(item, out offset, out _);
+				if (level >= 0)
+				{
+					RemoveAt(level, offset);
+					++count;
+				}
+
+			}
+			CheckInvariants();
+			return count;
 		}
 
 		public void CopyTo(T[] array, int arrayIndex, int count)
