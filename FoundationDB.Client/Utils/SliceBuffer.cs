@@ -33,7 +33,10 @@ namespace FoundationDB.Client.Utils
 	using System.Diagnostics;
 
 	/// <summary>Buffer that can be used to efficiently store multiple slices into as few chunks as possible</summary>
-	/// <remarks>This class is usefull to centralize a lot of temporary slices whose lifetime is linked to a specific operation. Dropping the referce to the buffer will automatically reclaim all the slices that were stored with it.</remarks>
+	/// <remarks>
+	/// This class is usefull to centralize a lot of temporary slices whose lifetime is linked to a specific operation. Dropping the referce to the buffer will automatically reclaim all the slices that were stored with it.
+	/// This class is not thread safe.
+	/// </remarks>
 	[DebuggerDisplay("Pos={m_pos}, Remaining={m_remaining}, PageSize={m_pageSize}, Used={m_used+m_pos}, Allocated={m_allocated+m_pos+m_remaining}")]
 	public sealed class SliceBuffer
 	{
@@ -191,8 +194,10 @@ namespace FoundationDB.Client.Utils
 				return AllocateFallback(count);
 			}
 
+			Contract.Assert(m_current != null && m_pos >= 0);
 			m_pos += count + extra;
 			m_remaining -= count + extra;
+			Contract.Ensures(m_remaining >= 0);
 			//note: we rely on the fact that the buffer was pre-filled with zeroes
 			return Slice.Create(m_current, start + extra, count);
 		}
@@ -212,6 +217,7 @@ namespace FoundationDB.Client.Utils
 			// double the page size on each new allocation
 			if (m_current != null)
 			{
+				if (m_pos > 0) Keep(new Slice(m_current, 0, m_pos));
 				pageSize <<= 1;
 				if (pageSize > MaxPageSize) pageSize = MaxPageSize;
 				m_pageSize = pageSize;
@@ -268,6 +274,7 @@ namespace FoundationDB.Client.Utils
 			return slice;
 		}
 
+		/// <summary>Adds a buffer to the list of allocated slices</summary>
 		private void Keep(Slice chunk)
 		{
 			if (m_chunks == null) m_chunks = new List<Slice>();
@@ -276,6 +283,29 @@ namespace FoundationDB.Client.Utils
 			m_used += chunk.Count;
 		}
 
+		/// <summary>Reset the buffer to its initial state</summary>
+		/// <remarks>None of the existing buffers are kept, but the new page will keep the current page size (that may be larger than the initial size).
+		/// Any previously allocated slice from this buffer will be untouched.</remarks>
+		public void Reset()
+		{
+			Reset(keep: false);
+		}
+
+		/// <summary>Reset the buffer to its initial state, and reuse the current page.</summary>
+		/// <remarks>This recycle the current page. The caller should ensure that nobody has a reference to a previously generated slice.</remarks>
+		public void ResetUnsafe()
+		{
+			Reset(keep: true);
+		}
+
+		private void Reset(bool keep)
+		{
+			m_chunks = null;
+			m_allocated = 0;
+			m_pos = 0;
+			m_used = 0;
+			if (!keep) m_current = null;
+		}
 	}
 
 
