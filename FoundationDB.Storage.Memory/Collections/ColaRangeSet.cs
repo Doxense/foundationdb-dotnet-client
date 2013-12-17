@@ -16,7 +16,7 @@ namespace FoundationDB.Storage.Memory.Core
 	/// <summary>Represent an ordered list of ranges, stored in a Cache Oblivous Lookup Array</summary>
 	/// <typeparam name="TKey">Type of keys stored in the set</typeparam>
 	[DebuggerDisplay("Count={m_items.Count}, Bounds={m_bounds.Begin}..{m_bounds.End}")]
-	public class ColaRangeSet<TKey> : IEnumerable<ColaRangeSet<TKey>.Entry>
+	public sealed class ColaRangeSet<TKey> : IEnumerable<ColaRangeSet<TKey>.Entry>
 	{
 		// We store the ranges in a COLA array that is sorted by the Begin keys
 		// The range are mutable, which allows for efficient merging
@@ -113,7 +113,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public Entry Bounds { get { return m_bounds; } }
 
-		protected virtual bool Resolve(Entry previous, Entry candidate)
+		private bool Resolve(Entry previous, Entry candidate)
 		{
 
 			int c = m_comparer.Compare(previous.Begin, candidate.Begin);
@@ -149,12 +149,12 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 		}
 
-		protected TKey Min(TKey a, TKey b)
+		private TKey Min(TKey a, TKey b)
 		{
 			return m_comparer.Compare(a, b) <= 0 ? a : b;
 		}
 
-		protected TKey Max(TKey a, TKey b)
+		private TKey Max(TKey a, TKey b)
 		{
 			return m_comparer.Compare(a, b) >= 0 ? a : b;
 		}
@@ -165,14 +165,9 @@ namespace FoundationDB.Storage.Memory.Core
 			m_bounds.Update(default(TKey), default(TKey));
 		}
 
-		public void Mark(TKey key)
-		{
-			Mark(key, key);
-		}
-
 		public void Mark(TKey begin, TKey end)
 		{
-			if (m_comparer.Compare(begin, end) > 0) throw new InvalidOperationException("End key should cannot be less than the Begin key.");
+			if (m_comparer.Compare(begin, end) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
 
 			var entry = new Entry(begin, end);
 			Entry cursor;
