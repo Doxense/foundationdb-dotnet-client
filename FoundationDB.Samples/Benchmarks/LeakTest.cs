@@ -3,7 +3,7 @@
 namespace FoundationDB.Samples.Benchmarks
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.IO;

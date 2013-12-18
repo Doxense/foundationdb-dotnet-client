@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Threading;
 

@@ -28,24 +28,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Threading;
 
-	/// <summary>Wrapper on a FDBDatabase*</summary>
-	internal sealed class DatabaseHandle : FdbSafeHandle
+	/// <summary>Wrapper on a FDBCluster*</summary>
+	internal sealed class ClusterHandle : FdbSafeHandle
 	{
 
-		public DatabaseHandle()
+		public ClusterHandle()
 			: base()
 		{
-			Interlocked.Increment(ref DebugCounters.DatabaseHandlesTotal);
-			Interlocked.Increment(ref DebugCounters.DatabaseHandles);
+			Interlocked.Increment(ref DebugCounters.ClusterHandlesTotal);
+			Interlocked.Increment(ref DebugCounters.ClusterHandles);
 		}
 
 		protected override void Destroy(IntPtr handle)
 		{
-			FdbNative.DatabaseDestroy(handle);
-			Interlocked.Decrement(ref DebugCounters.DatabaseHandles);
+			FdbNative.ClusterDestroy(handle);
+			Interlocked.Decrement(ref DebugCounters.ClusterHandles);
 		}
 
 	}

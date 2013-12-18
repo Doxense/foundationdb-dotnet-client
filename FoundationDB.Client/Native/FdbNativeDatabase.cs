@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client.Core
+namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client.Core;

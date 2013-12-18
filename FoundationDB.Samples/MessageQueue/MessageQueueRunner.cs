@@ -4,18 +4,13 @@ namespace FoundationDB.Samples.Tutorials
 {
 	using Doxense.Mathematics.Statistics;
 	using FoundationDB.Client;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Messaging;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.IO;
-	using System.Linq;
-	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
 
