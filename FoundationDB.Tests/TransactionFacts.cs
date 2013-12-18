@@ -730,6 +730,103 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_CommittedVersion_On_ReadOnly_Transactions()
+		{
+			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
+
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					long ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
+
+					var _ = await tr.GetAsync(db.Pack("foo"));
+
+					// until the transction commits, the committed version will stay -1
+					ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Committed version after a single read");
+
+					// committing a read only transaction
+
+					await tr.CommitAsync();
+
+					ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Read-only comiitted transaction have a committed version of -1");
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_CommittedVersion_On_Write_Transactions()
+		{
+			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
+
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					// take the read version (to compare with the committed version below)
+					long readVersion = await tr.GetReadVersionAsync();
+
+					long ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
+
+					tr.Set(db.Pack("foo"), Slice.FromString("bar"));
+
+					// until the transction commits, the committed version should still be -1
+					ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Committed version after a single write");
+
+					// committing a read only transaction
+
+					await tr.CommitAsync();
+
+					ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.GreaterThanOrEqualTo(readVersion), "Committed version of write transaction should be >= the read version");
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_CommittedVersion_After_Reset()
+		{
+			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
+
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					// take the read version (to compare with the committed version below)
+					long rv1 = await tr.GetReadVersionAsync();
+					// do something and commit
+					tr.Set(db.Pack("foo"), Slice.FromString("bar"));
+					await tr.CommitAsync();
+					long cv1 = tr.GetCommittedVersion();
+					Console.WriteLine("COMMIT: " + rv1 + " / " + cv1);
+					Assert.That(cv1, Is.GreaterThanOrEqualTo(rv1), "Committed version of write transaction should be >= the read version");
+
+					// reset the transaction
+					tr.Reset();
+
+					long rv2 = await tr.GetReadVersionAsync();
+					long cv2 = tr.GetCommittedVersion();
+					Console.WriteLine("RESET: " + rv2 + " / " + cv2);
+					//Note: the current fdb_c client does not revert the commited version to -1 ... ?
+					//Assert.That(cv2, Is.EqualTo(-1), "Committed version should go back to -1 after reset");
+
+					// read-only + commit
+					await tr.GetAsync(db.Pack("foo"));
+					await tr.CommitAsync();
+					cv2 = tr.GetCommittedVersion();
+					Console.WriteLine("COMMIT2: " + rv2 + " / " + cv2);
+					Assert.That(cv2, Is.EqualTo(-1), "Committed version of read-only transaction should be -1 even the transaction was previously used to write something");
+
+				}
+			}
+		}
+
+		[Test]
 		public async Task Test_Regular_Read_With_Concurrent_Change_Should_Conflict()
 		{
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
