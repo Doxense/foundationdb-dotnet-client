@@ -40,13 +40,8 @@ namespace FoundationDB.Storage.Memory.API
 		private ColaStore<IntPtr> m_data = new ColaStore<IntPtr>(0, new NativeKeyComparer());
 		private long m_estimatedSize;
 
-		/// <summary>List of all current transactions that have been created</summary>
-		private HashSet<MemoryTransactionHandler> m_pendingTransactions = new HashSet<MemoryTransactionHandler>();
-		/// <summary>List of all transactions that have requested a read version, but have not committed anything yet</summary>
-		private Queue<MemoryTransactionHandler> m_activeTransactions = new Queue<MemoryTransactionHandler>();
-
 		/// <summary>List of all active transaction windows</summary>
-		private Queue<TransactionWindow> m_transactionWindows = new Queue<TransactionWindow>();
+		private LinkedList<TransactionWindow> m_transactionWindows = new LinkedList<TransactionWindow>();
 		/// <summary>Last transaction window</summary>
 		private TransactionWindow m_currentWindow;
 
@@ -86,22 +81,6 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
-		internal void MarkTransaction(MemoryTransactionHandler transaction, long readVersion)
-		{
-			Contract.Requires(transaction != null);
-
-			lock (m_activeTransactions)
-			{
-				if (m_activeTransactions.Count == 0)
-				{
-				}
-				else
-				{
-				}
-				m_activeTransactions.Enqueue(transaction);
-			}
-		}
-
 		/// <summary>Format a user key</summary>
 		/// <param name="buffer"></param>
 		/// <param name="userKey"></param>
@@ -126,7 +105,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		private TimeSpan m_maxTransactionLifetime = TimeSpan.FromSeconds(5);
 
-		private TransactionWindow GetActiveTransactionWindow(ulong sequence)
+		private TransactionWindow GetActiveTransactionWindow_NeedsLocking(ulong sequence)
 		{
 			var window = m_currentWindow;
 			var now = DateTime.UtcNow;
@@ -149,7 +128,7 @@ namespace FoundationDB.Storage.Memory.API
 			{ // need to start a new window
 				window = new TransactionWindow(DateTime.UtcNow, sequence);
 				m_currentWindow = window;
-				m_transactionWindows.Enqueue(window);
+				m_transactionWindows.AddFirst(window);
 			}
 
 			return window;
@@ -163,12 +142,19 @@ namespace FoundationDB.Storage.Memory.API
 			// version at which the transaction was created (and all reads performed)
 			ulong readSequence = (ulong)readVersion;
 			// commit version created by this transaction (if it writes something)
-			ulong committedSequence;
+			ulong committedSequence = 0;
 
 			UnmanagedSliceBuilder scratchKey = null;
 			UnmanagedSliceBuilder scratchValue = null;
 
-			Console.WriteLine("Comitting transaction created at readVersion " + readVersion + " ...");
+			//Debug.WriteLine("Comitting transaction created at readVersion " + readVersion + " ...");
+
+			bool hasReadConflictRanges = readConflicts != null && readConflicts.Count > 0;
+			bool hasWriteConflictRanges = writeConflicts != null && writeConflicts.Count > 0;
+			bool hasClears = clearRanges != null && clearRanges.Count > 0;
+			bool hasWrites = writes != null && writes.Count > 0;
+
+			bool isReadOnlyTransaction = !hasClears && !hasWrites && !hasWriteConflictRanges;
 
 			m_dataLock.EnterUpgradeableReadLock();
 			try
@@ -176,197 +162,249 @@ namespace FoundationDB.Storage.Memory.API
 				scratchKey = new UnmanagedSliceBuilder();
 				scratchValue = new UnmanagedSliceBuilder();
 
-				committedSequence = (ulong)Interlocked.Increment(ref m_currentVersion);
-				Console.WriteLine("... will create version " + committedSequence);
+				TransactionWindow window;
 
-				var window = GetActiveTransactionWindow(committedSequence);
+				if (!isReadOnlyTransaction)
+				{
+					committedSequence = (ulong)Interlocked.Increment(ref m_currentVersion);
+					window = GetActiveTransactionWindow_NeedsLocking(committedSequence);
+					Contract.Assert(window != null);
+					//Debug.WriteLine("... will create version " + committedSequence + " in window " + window.ToString());
+				}
+				else
+				{
+					//Debug.WriteLine("... which is read-only");
+					window = null;
+				}
 
 				#region Read Conflict Check
 
-				if (readConflicts != null && readConflicts.Count > 0)
+				if (hasReadConflictRanges)
 				{
-					if (window.Conflicts(readConflicts, readSequence))
+
+					var current = m_transactionWindows.First;
+					while (current != null)
 					{
-						Console.WriteLine("CONFLICTS !!!!!");
-						throw new FdbException(FdbError.NotCommitted);
-					}
-				}
-
-				#endregion
-
-				#region Clear Ranges...
-
-				if (clearRanges != null && clearRanges.Count > 0)
-				{
-					foreach (var clear in clearRanges)
-					{
-						//TODO!
-						throw new NotImplementedException("ClearRange not yet implemented. Sorry!");
-					}
-				}
-
-				#endregion
-
-				#region Writes...
-
-				if (writes != null && writes.Count > 0)
-				{
-					foreach (var write in writes)
-					{
-						Key* key;
-						Value* value;
-
-						// apply all the transformations at once on the key, add a new version if required
-
-						// Only two allowed cases: 
-						// - a single SET operation that create or update the value
-						// - one or more ATOMIC operations that create or mutate the value
-
-						// For both case, we will do a lookup in the db to get the previous value and location
-
-						// create the lookup key
-						USlice lookupKey = PackUserKey(scratchKey, write.Key);
-
-						IntPtr previous;
-						int offset, level = m_data.Find(lookupKey.GetPointer(), out offset, out previous);
-						key = level >= 0 ? (Key*)previous.ToPointer() : null;
-						Contract.Assert((level < 0 && key == null) || (level >= 0 && offset >= 0 && key != null));
-
-						bool valueMutated = false;
-						bool currentIsDeleted = false;
-						bool hasTmpData = false;
-
-						foreach (var op in write.Value)
+						if (current.Value.LastVersion < readSequence)
 						{
-							if (op.Type == MemoryTransactionHandler.Operation.Nop) continue;
+							break;
+						}
+						if (current.Value.Conflicts(readConflicts, readSequence))
+						{
+							// the transaction has conflicting reads
+							throw new FdbException(FdbError.NotCommitted);
+						}
+						current = current.Next;
+					}
+				}
 
-							if (op.Type == MemoryTransactionHandler.Operation.Set)
+
+				#endregion
+
+				if (!isReadOnlyTransaction)
+				{
+					#region Clear Ranges...
+
+					if (hasClears)
+					{
+						foreach (var clear in clearRanges)
+						{
+							//TODO!
+							throw new NotImplementedException("ClearRange not yet implemented. Sorry!");
+						}
+					}
+
+					#endregion
+
+					#region Writes...
+
+					if (hasWrites)
+					{
+						IntPtr singleInsert = IntPtr.Zero;
+						List<IntPtr> pendingInserts = null;
+
+						foreach (var write in writes)
+						{
+							Key* key;
+							Value* value;
+
+							// apply all the transformations at once on the key, add a new version if required
+
+							// Only two allowed cases: 
+							// - a single SET operation that create or update the value
+							// - one or more ATOMIC operations that create or mutate the value
+
+							// For both case, we will do a lookup in the db to get the previous value and location
+
+							// create the lookup key
+							USlice lookupKey = PackUserKey(scratchKey, write.Key);
+
+							IntPtr previous;
+							int offset, level = m_data.Find(lookupKey.GetPointer(), out offset, out previous);
+							key = level >= 0 ? (Key*)previous.ToPointer() : null;
+							Contract.Assert((level < 0 && key == null) || (level >= 0 && offset >= 0 && key != null));
+
+							bool valueMutated = false;
+							bool currentIsDeleted = false;
+							bool hasTmpData = false;
+
+							foreach (var op in write.Value)
 							{
-								scratchValue.Set(op.Value);
-								hasTmpData = true;
-								valueMutated = true;
-								continue;
+								if (op.Type == MemoryTransactionHandler.Operation.Nop) continue;
+
+								if (op.Type == MemoryTransactionHandler.Operation.Set)
+								{
+									scratchValue.Set(op.Value);
+									hasTmpData = true;
+									valueMutated = true;
+									continue;
+								}
+
+								// apply the atomic operation to the previous value
+								if (!hasTmpData)
+								{
+									scratchValue.Clear();
+									if (key != null)
+									{ // grab the current value of this key
+
+										Value* p = key->Values;
+										if ((p->Header & Value.FLAGS_DELETION) == 0)
+										{
+											scratchValue.Append(&(p->Data), p->Size);
+										}
+										else
+										{
+											scratchValue.Clear();
+											currentIsDeleted = true;
+										}
+									}
+									hasTmpData = true;
+								}
+
+								switch (op.Type)
+								{
+									case MemoryTransactionHandler.Operation.AtomicAdd:
+									{
+										op.ApplyAddTo(scratchValue);
+										valueMutated = true;
+										break;
+									}
+									case MemoryTransactionHandler.Operation.AtomicBitAnd:
+									{
+										op.ApplyBitAndTo(scratchValue);
+										valueMutated = true;
+										break;
+									}
+									case MemoryTransactionHandler.Operation.AtomicBitOr:
+									{
+										op.ApplyBitOrTo(scratchValue);
+										valueMutated = true;
+										break;
+									}
+									case MemoryTransactionHandler.Operation.AtomicBitXor:
+									{
+										op.ApplyBitXorTo(scratchValue);
+										valueMutated = true;
+										break;
+									}
+									default:
+									{
+										throw new InvalidOperationException();
+									}
+								}
 							}
 
-							// apply the atomic operation to the previous value
-							if (!hasTmpData)
-							{
-								scratchValue.Clear();
-								if (key != null)
-								{ // grab the current value of this key
+							if (valueMutated)
+							{ // we have a new version for this key
 
-									Value* p = key->Values;
-									if ((p->Header & Value.FLAGS_DELETION) == 0)
+								lock (m_heapLock)
+								{
+									value = m_values.Allocate(scratchValue.Count, committedSequence, key != null ? key->Values : null, null);
+								}
+								Contract.Assert(value != null);
+								scratchValue.CopyTo(&(value->Data));
+								Interlocked.Add(ref m_estimatedSize, value->Size);
+
+								if (key != null)
+								{ // mutate the previous version for this key
+									var prev = key->Values;
+									value->Parent = key;
+									key->Values = value;
+									prev->Header |= Value.FLAGS_MUTATED;
+									prev->Parent = value;
+
+									// make sure no thread seees an inconsitent view of the key
+									Thread.MemoryBarrier();
+								}
+								else
+								{ // add this key to the data store
+
+									// we can reuse the lookup key (which is only missing the correct flags and pointers to the values)
+									lock (m_heapLock)
 									{
-										scratchValue.Append(&(p->Data), p->Size);
+										key = m_keys.Append(lookupKey);
+									}
+									key->Values = value;
+									value->Parent = key;
+									Contract.Assert(key->Size == write.Key.Count);
+									Interlocked.Add(ref m_estimatedSize, key->Size);
+
+									// make sure no thread seees an inconsitent view of the key
+									Thread.MemoryBarrier();
+
+									if (pendingInserts != null)
+									{
+										pendingInserts.Add(new IntPtr(key));
+									}
+									else if (singleInsert != IntPtr.Zero)
+									{
+										pendingInserts = new List<IntPtr>();
+										pendingInserts.Add(singleInsert);
+										pendingInserts.Add(new IntPtr(key));
+										singleInsert = IntPtr.Zero;
 									}
 									else
 									{
-										scratchValue.Clear();
-										currentIsDeleted = true;
+										singleInsert = new IntPtr(key);
 									}
 								}
-								hasTmpData = true;
-							}
 
-							switch (op.Type)
-							{
-								case MemoryTransactionHandler.Operation.AtomicAdd:
-								{
-									op.ApplyAddTo(scratchValue);
-									valueMutated = true;
-									break;
-								}
-								case MemoryTransactionHandler.Operation.AtomicBitAnd:
-								{
-									op.ApplyBitAndTo(scratchValue);
-									valueMutated = true;
-									break;
-								}
-								case MemoryTransactionHandler.Operation.AtomicBitOr:
-								{
-									op.ApplyBitOrTo(scratchValue);
-									valueMutated = true;
-									break;
-								}
-								case MemoryTransactionHandler.Operation.AtomicBitXor:
-								{
-									op.ApplyBitXorTo(scratchValue);
-									valueMutated = true;
-									break;
-								}
-								default:
-								{
-									throw new InvalidOperationException();
-								}
 							}
 						}
 
-						if (valueMutated)
-						{ // we have a new version for this key
-
-							lock (m_heapLock)
+						if (singleInsert != IntPtr.Zero || pendingInserts != null)
+						{
+							// insert the new key into the data store
+							m_dataLock.EnterWriteLock();
+							try
 							{
-								value = m_values.Allocate(scratchValue.Count, committedSequence, key != null ? key->Values : null, null);
-							}
-							Contract.Assert(value != null);
-							scratchValue.CopyTo(&(value->Data));
-							Interlocked.Add(ref m_estimatedSize, value->Size);
-
-							if (key != null)
-							{ // mutate the previous version for this key
-								var prev = key->Values;
-								value->Parent = key;
-								key->Values = value;
-								prev->Header |= Value.FLAGS_MUTATED;
-								prev->Parent = value;
-
-								// make sure no thread seees an inconsitent view of the key
-								Thread.MemoryBarrier();
-							}
-							else
-							{ // add this key to the data store
-
-								// we can reuse the lookup key (which is only missing the correct flags and pointers to the values)
-								lock (m_heapLock)
+								if (singleInsert != IntPtr.Zero)
 								{
-									key = m_keys.Append(lookupKey);
+									m_data.Insert(singleInsert);
 								}
-								key->Values = value;
-								value->Parent = key;
-								Contract.Assert(key->Size == write.Key.Count);
-								Interlocked.Add(ref m_estimatedSize, key->Size);
-
-								// make sure no thread seees an inconsitent view of the key
-								Thread.MemoryBarrier();
-
-								// insert the new key into the data store
-								m_dataLock.EnterWriteLock();
-								try
+								else
 								{
-									m_data.Insert(new IntPtr(key));
-								}
-								finally
-								{
-									m_dataLock.ExitWriteLock();
+									m_data.InsertItems(pendingInserts, ordered: true);
 								}
 							}
-
+							finally
+							{
+								m_dataLock.ExitWriteLock();
+							}
 						}
 					}
 
+					#endregion
+
+					#region Merge Write Conflicts...
+
+					if (hasWriteConflictRanges)
+					{
+						window.MergeWrites(writeConflicts, committedSequence);
+					}
+
+					#endregion
 				}
-
-				#endregion
-
-				#region Merge Write Conflicts...
-
-				if (writeConflicts != null && writeConflicts.Count > 0)
-				{
-					window.MergeWrites(writeConflicts, committedSequence);
-				}
-
-				#endregion
 			}
 			finally
 			{
@@ -375,8 +413,7 @@ namespace FoundationDB.Storage.Memory.API
 				if (scratchKey != null) scratchKey.Dispose();
 			}
 
-			//TODO: IMPLEMENT REAL DATABASE HERE :)
-			var version = (long)committedSequence;
+			var version = isReadOnlyTransaction ? -1L : (long)committedSequence;
 
 			return Task.FromResult(version);
 		}
@@ -974,6 +1011,13 @@ namespace FoundationDB.Storage.Memory.API
 			if (!m_disposed)
 			{
 				m_disposed = true;
+
+				if (m_keys != null) m_keys.Dispose();
+				if (m_values != null) m_values.Dispose();
+				foreach(var window in m_transactionWindows)
+				{
+					if (window != null) window.Dispose();
+				}
 				//TODO?
 			}
 		}
@@ -993,6 +1037,12 @@ namespace FoundationDB.Storage.Memory.API
 				Trace.WriteLine("> Version: " + m_currentVersion);
 				Trace.WriteLine("> Estimated size: " + m_estimatedSize.ToString("N0") + " bytes");
 				//Trace.WriteLine("> Content: {0} keys", m_data.Count.ToString("N0"));
+
+				Trace.WriteLine("> Transaction windows: " + m_transactionWindows.Count);
+				foreach(var window in m_transactionWindows)
+				{
+					Trace.WriteLine("  > " + window.ToString() + ": " + window.CommitCount + " commits" + (window.Closed ? " [CLOSED]" : ""));
+				}
 
 				//Trace.WriteLine(String.Format("> Keys: {0} bytes in {1} pages", m_keys.Gen0.MemoryUsage.ToString("N0"), m_keys.Gen0.PageCount.ToString("N0")));
 				//Trace.WriteLine(String.Format("> Values: {0} bytes in {1} pages", m_values.MemoryUsage.ToString("N0"), m_values.PageCount.ToString("N0")));

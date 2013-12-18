@@ -384,6 +384,107 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		}
 
 		[Test]
+		public async Task Test_CommittedVersion_On_ReadOnly_Transactions()
+		{
+			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
+
+			using (var db = MemoryDatabase.CreateNew("DB"))
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					long ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
+
+					var _ = await tr.GetAsync(db.Pack("foo"));
+
+					// until the transction commits, the committed version will stay -1
+					ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Committed version after a single read");
+
+					// committing a read only transaction
+
+					await tr.CommitAsync();
+
+					ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Read-only comiitted transaction have a committed version of -1");
+				}
+
+				db.Debug_Dump();
+			}
+		}
+
+		[Test]
+		public async Task Test_CommittedVersion_On_Write_Transactions()
+		{
+			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
+
+			using (var db = MemoryDatabase.CreateNew("DB"))
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					// take the read version (to compare with the committed version below)
+					long readVersion = await tr.GetReadVersionAsync();
+
+					long ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
+
+					tr.Set(db.Pack("foo"), Slice.FromString("bar"));
+
+					// until the transction commits, the committed version should still be -1
+					ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.EqualTo(-1), "Committed version after a single write");
+
+					// committing a read only transaction
+
+					await tr.CommitAsync();
+
+					ver = tr.GetCommittedVersion();
+					Assert.That(ver, Is.GreaterThanOrEqualTo(readVersion), "Committed version of write transaction should be >= the read version");
+				}
+
+				db.Debug_Dump();
+			}
+		}
+
+		[Test]
+		public async Task Test_CommittedVersion_After_Reset()
+		{
+			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
+
+			using (var db = MemoryDatabase.CreateNew("DB"))
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					// take the read version (to compare with the committed version below)
+					long rv1 = await tr.GetReadVersionAsync();
+					// do something and commit
+					tr.Set(db.Pack("foo"), Slice.FromString("bar"));
+					await tr.CommitAsync();
+					long cv1 = tr.GetCommittedVersion();
+					Console.WriteLine("COMMIT: " + rv1 + " / " + cv1);
+					Assert.That(cv1, Is.GreaterThanOrEqualTo(rv1), "Committed version of write transaction should be >= the read version");
+
+					// reset the transaction
+					tr.Reset();
+
+					long rv2 = await tr.GetReadVersionAsync();
+					long cv2 = tr.GetCommittedVersion();
+					Console.WriteLine("RESET: " + rv2 + " / " + cv2);
+					//Note: the current fdb_c client does not revert the commited version to -1 ... ?
+					//Assert.That(cv2, Is.EqualTo(-1), "Committed version should go back to -1 after reset");
+
+					// read-only + commit
+					await tr.GetAsync(db.Pack("foo"));
+					await tr.CommitAsync();
+					cv2 = tr.GetCommittedVersion();
+					Console.WriteLine("COMMIT2: " + rv2 + " / " + cv2);
+					Assert.That(cv2, Is.EqualTo(-1), "Committed version of read-only transaction should be -1 even the transaction was previously used to write something");
+
+				}
+			}
+		}
+
+		[Test]
 		public async Task Test_Conflicts()
 		{
 
@@ -813,14 +914,36 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 		}
 
+		private static void DumpResult(string label, long total, long trans, TimeSpan elapsed)
+		{
+			Console.WriteLine(
+				"{0,-12}: {1, 10} keys in {2,4} sec => {3,9} kps, {4,7} tps",
+				label,
+				total.ToString("N0"),
+				elapsed.TotalSeconds.ToString("N3"),
+				(total / elapsed.TotalSeconds).ToString("N0"),
+				(trans / elapsed.TotalSeconds).ToString("N0")
+			);
+		}
+
+		private static void DumpMemory(bool collect = false)
+		{
+			if (collect)
+			{
+				GC.Collect();
+				GC.WaitForPendingFinalizers();
+				GC.Collect();
+			}
+			Console.WriteLine("Total memory: Managed=" + (GC.GetTotalMemory(false) / 1024.0).ToString("N1") + " kB, WorkingSet=" + (Environment.WorkingSet / 1024.0).ToString("N1") + " kB");
+		}
+
 		[Test]
 		public async Task Test_MiniBench()
 		{
-			const int M = 10 * 1000 * 1000;
+			const int M = 1 * 1000 * 1000;
 			const int B = 100;
-			const int W = 1;
 
-			const int T = M / (B * W);
+			const int T = M / B;
 			const int KEYSIZE = 10;
 			const int VALUESIZE = 100;
 			const bool RANDOM = false;
@@ -830,7 +953,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			//WARMUP
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
-				await db.WriteAsync((tr) => tr.Set(Slice.FromString("hello"), Slice.FromString("world")));
+				await db.WriteAsync((tr) => tr.Set(db.Pack("hello"), Slice.FromString("world")));
 				Slice.Random(rnd, KEYSIZE);
 				Slice.Random(rnd, VALUESIZE);
 			}
@@ -841,62 +964,47 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			string fmt = "D" + KEYSIZE;
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-				GC.Collect();
-				Console.WriteLine("Total memory: Managed=" + GC.GetTotalMemory(false).ToString("N0") + ", WorkingSet=" + Environment.WorkingSet.ToString("N0"));
+				DumpMemory(collect: true);
 
 				long total = 0;
 
 				var payload = new byte[1000 + VALUESIZE];
 				rnd.NextBytes(payload);
 
-				Task[] tasks = new Task[W];
-				for (int w = 0; w < W; w++)
-				{
-					int wkid = w;
-					tasks[w] = Task.Run(async () =>
-					{
-						await Task.Delay(10).ConfigureAwait(false);
-
-						int offset = wkid * T * B;
-						for (int i = 0; i < T; i++)
-						{
-							using (var tr = db.BeginTransaction())
-							{
-								for (int j = 0; j < B; j++)
-								{
-									Slice key;
-									if (random)
-									{
-										do
-										{
-											key = Slice.Random(rnd, KEYSIZE);
-										}
-										while (key[0] == 255);
-									}
-									else
-									{
-										int x = i * B + offset + j;
-										//x = x % 1000;
-										key = Slice.FromString(x.ToString(fmt));
-									}
-
-									tr.Set(key, Slice.Create(payload, rnd.Next(1000), VALUESIZE));
-									//tr.Set(key, Slice.Random(rnd, VALUESIZE));
-									//tr.Set(key, Slice.FromString("written at " + (i * B + offset + j)));
-									Interlocked.Increment(ref total);
-								}
-								await tr.CommitAsync().ConfigureAwait(false);
-							}
-							if (i % 1000 == 0) Console.Write(".");// + (i * B).ToString("D10"));
-						}
-					});
-
-
-				}
 				var sw = Stopwatch.StartNew();
-				Task.WaitAll(tasks);
+				sw.Stop();
+
+				sw.Restart();
+				for (int i = 0; i < T; i++)
+				{
+					using (var tr = db.BeginTransaction())
+					{
+						for (int j = 0; j < B; j++)
+						{
+							Slice key;
+							if (random)
+							{
+								do
+								{
+									key = Slice.Random(rnd, KEYSIZE);
+								}
+								while (key[0] == 255);
+							}
+							else
+							{
+								int x = i * B + j;
+								//x = x % 1000;
+								key = Slice.FromString(x.ToString(fmt));
+							}
+
+							tr.Set(key, Slice.Create(payload, rnd.Next(1000), VALUESIZE));
+							Interlocked.Increment(ref total);
+						}
+						await tr.CommitAsync().ConfigureAwait(false);
+					}
+					if (i % 1000 == 0) Console.Write(".");// + (i * B).ToString("D10"));
+				}
+
 				sw.Stop();
 				Console.WriteLine("done");
 				Console.WriteLine("* Inserted: " + total.ToString("N0") + " keys");
@@ -905,145 +1013,269 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				Console.WriteLine("* KPS: " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " key/sec");
 				Console.WriteLine("* BPS: " + ((total * (KEYSIZE + VALUESIZE)) / sw.Elapsed.TotalSeconds).ToString("N0") + " byte/sec");
 
-				GC.Collect();
-				GC.WaitForPendingFinalizers();
-				GC.Collect();
-				Console.WriteLine("Total memory: " + GC.GetTotalMemory(false).ToString("N0") + ", " + Environment.WorkingSet.ToString("N0"));
+				DumpMemory(collect: true);
 
 				db.Debug_Dump(false);
 
-				var data = await db.GetValuesAsync(Enumerable.Range(0, 1000).Select(i => Slice.FromString(i.ToString(fmt))));
+				DumpResult("WriteSeq" + B, total, total / B, sw.Elapsed);
+
+				Console.WriteLine("Warming up reads...");
+				var data = await db.GetValuesAsync(Enumerable.Range(0, 100).Select(i => Slice.FromString(i.ToString(fmt))));
+
+				Console.WriteLine("Starting read tests...");
 
 				#region sequential reads
 
-				sw.Restart();
-				for (int i = 0; i < total; i++)
-				{
-					using (var tr = db.BeginReadOnlyTransaction())
-					{
-						await db.GetAsync(Slice.FromString(i.ToString(fmt)));
-					}
-				}
-				sw.Stop();
-				Console.WriteLine("SeqRead1  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//sw.Restart();
+				//for (int i = 0; i < total; i++)
+				//{
+				//	using (var tr = db.BeginReadOnlyTransaction())
+				//	{
+				//		await tr.GetAsync(Slice.FromString(i.ToString(fmt)));
+				//	}
+				//}
+				//sw.Stop();
+				//Console.WriteLine("SeqRead1   : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
 
 				sw.Restart();
 				for (int i = 0; i < total; i += 10)
 				{
 					using (var tr = db.BeginReadOnlyTransaction())
 					{
-						await db.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString(x.ToString(fmt))));
+						await tr.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
 					}
 
 				}
 				sw.Stop();
-				Console.WriteLine("SeqRead10 : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//Console.WriteLine("SeqRead10  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("SeqRead10", total, total / 10, sw.Elapsed);
+
+				sw.Restart();
+				for (int i = 0; i < total; i += 10)
+				{
+					using (var tr = db.BeginReadOnlyTransaction())
+					{
+						await tr.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
+					}
+
+				}
+				sw.Stop();
+				//Console.WriteLine("SeqRead10S : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("SeqRead10S", total, total / 10, sw.Elapsed);
+
+				sw.Restart();
+				for (int i = 0; i < total; i += 10)
+				{
+					using (var tr = db.BeginReadOnlyTransaction())
+					{
+						int x = i;
+						int y = i + 10;
+						await tr.GetRangeAsync(
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(x.ToString(fmt))), 
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(y.ToString(fmt)))
+						).ConfigureAwait(false);
+					}
+
+				}
+				sw.Stop();
+				//Console.WriteLine("SeqRead10R : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("SeqRead10R", total, total / 10, sw.Elapsed);
 
 				sw.Restart();
 				for (int i = 0; i < total; i += 100)
 				{
 					using (var tr = db.BeginReadOnlyTransaction())
 					{
-						await db.GetValuesAsync(Enumerable.Range(i, 100).Select(x => Slice.FromString(x.ToString(fmt))));
+						await tr.GetValuesAsync(Enumerable.Range(i, 100).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
 					}
 
 				}
 				sw.Stop();
-				Console.WriteLine("SeqRead100: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//Console.WriteLine("SeqRead100 : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("SeqRead100", total, total / 100, sw.Elapsed);
+
+				sw.Restart();
+				for (int i = 0; i < total; i += 100)
+				{
+					using (var tr = db.BeginReadOnlyTransaction())
+					{
+						await tr.Snapshot.GetValuesAsync(Enumerable.Range(i, 100).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
+					}
+
+				}
+				sw.Stop();
+				//Console.WriteLine("SeqRead100S : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("SeqRead100S", total, total / 100, sw.Elapsed);
+
+				sw.Restart();
+				for (int i = 0; i < total; i += 100)
+				{
+					using (var tr = db.BeginReadOnlyTransaction())
+					{
+						int x = i;
+						int y = i + 100;
+						await tr.GetRangeAsync(
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(x.ToString(fmt))),
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(y.ToString(fmt)))
+						).ConfigureAwait(false);
+					}
+
+				}
+				sw.Stop();
+				//Console.WriteLine("SeqRead100R : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("SeqRead100R", total, total / 100, sw.Elapsed);
+
+				sw.Restart();
+				for (int i = 0; i < total; i += 100)
+				{
+					using (var tr = db.BeginReadOnlyTransaction())
+					{
+						int x = i;
+						int y = i + 100;
+						await tr.Snapshot.GetRangeAsync(
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(x.ToString(fmt))),
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(y.ToString(fmt)))
+						).ConfigureAwait(false);
+					}
+
+				}
+				sw.Stop();
+				//Console.WriteLine("SeqRead100RS: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("SeqRead100RS", total, total / 100, sw.Elapsed);
 
 				sw.Restart();
 				for (int i = 0; i < total; i += 1000)
 				{
 					using (var tr = db.BeginReadOnlyTransaction())
 					{
-						await db.GetValuesAsync(Enumerable.Range(i, 1000).Select(x => Slice.FromString(x.ToString(fmt))));
+						await tr.GetValuesAsync(Enumerable.Range(i, 1000).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
 					}
 
 				}
 				sw.Stop();
-				Console.WriteLine("SeqRead1k : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//Console.WriteLine("SeqRead1k   : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (1000 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("SeqRead1k", total, total / 1000, sw.Elapsed);
 
 				#endregion
+
+				DumpMemory();
 
 				#region random reads
 
-				sw.Restart();
-				for (int i = 0; i < total; i++)
-				{
-					using (var tr = db.BeginReadOnlyTransaction())
-					{
-						int x = rnd.Next((int)total);
-						await db.GetAsync(Slice.FromString(x.ToString(fmt)));
-					}
-				}
-				sw.Stop();
-				Console.WriteLine("RndRead1  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//sw.Restart();
+				//for (int i = 0; i < total; i++)
+				//{
+				//	using (var tr = db.BeginReadOnlyTransaction())
+				//	{
+				//		int x = rnd.Next((int)total);
+				//		await tr.GetAsync(Slice.FromString(x.ToString(fmt)));
+				//	}
+				//}
+				//sw.Stop();
+				//Console.WriteLine("RndRead1   : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
 
 				sw.Restart();
 				for (int i = 0; i < total; i += 10)
 				{
 					using (var tr = db.BeginReadOnlyTransaction())
 					{
-						await db.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString(rnd.Next((int)total).ToString(fmt))));
+						await tr.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString(rnd.Next((int)total).ToString(fmt)))).ConfigureAwait(false);
 					}
 
 				}
 				sw.Stop();
-				Console.WriteLine("RndRead10 : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//Console.WriteLine("RndRead10  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("RndRead10", total, total / 10, sw.Elapsed);
+
+				sw.Restart();
+				for (int i = 0; i < total; i += 10)
+				{
+					using (var tr = db.BeginReadOnlyTransaction())
+					{
+						await tr.Snapshot.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString(rnd.Next((int)total).ToString(fmt)))).ConfigureAwait(false);
+					}
+
+				}
+				sw.Stop();
+				//Console.WriteLine("RndRead10S : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("RndRead10S", total, total / 10, sw.Elapsed);
+
+				sw.Restart();
+				for (int i = 0; i < total; i += 10)
+				{
+					using (var tr = db.BeginReadOnlyTransaction())
+					{
+						int x = rnd.Next((int)total - 10);
+						int y = x + 10;
+						await tr.GetRangeAsync(
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(x.ToString(fmt))),
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(y.ToString(fmt)))
+						).ConfigureAwait(false);
+					}
+
+				}
+				sw.Stop();
+				//Console.WriteLine("RndRead10R : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("RndRead10R", total, total / 10, sw.Elapsed);
 
 				sw.Restart();
 				for (int i = 0; i < total; i += 100)
 				{
 					using (var tr = db.BeginReadOnlyTransaction())
 					{
-						await db.GetValuesAsync(Enumerable.Range(i, 100).Select(x => Slice.FromString(rnd.Next((int)total).ToString(fmt))));
+						await tr.GetValuesAsync(Enumerable.Range(i, 100).Select(x => Slice.FromString(rnd.Next((int)total).ToString(fmt)))).ConfigureAwait(false);
 					}
 
 				}
 				sw.Stop();
-				Console.WriteLine("RndRead100: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//Console.WriteLine("RndRead100 : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("RndRead100", total, total / 100, sw.Elapsed);
 
 				sw.Restart();
 				for (int i = 0; i < total; i += 1000)
 				{
 					using (var tr = db.BeginReadOnlyTransaction())
 					{
-						await db.GetValuesAsync(Enumerable.Range(i, 1000).Select(x => Slice.FromString(rnd.Next((int)total).ToString(fmt))));
+						await tr.GetValuesAsync(Enumerable.Range(i, 1000).Select(x => Slice.FromString(rnd.Next((int)total).ToString(fmt)))).ConfigureAwait(false);
 					}
 
 				}
 				sw.Stop();
-				Console.WriteLine("RndRead1k : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//Console.WriteLine("RndRead1k  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (1000 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				DumpResult("RndRead1k", total, total / 1000, sw.Elapsed);
 
 				#endregion
 
+				DumpMemory();
+
 				#region Parallel Reads...
 
-				var mre = new ManualResetEvent(false);
-
 				int CPUS = Environment.ProcessorCount;
-				long kkk = 0;
-				tasks = Enumerable
+
+
+				long read = 0;
+				var mre = new ManualResetEvent(false);
+				var tasks = Enumerable
 					.Range(0, CPUS)
 					.Select(k => Task.Run(async () =>
 					{
 						var rndz = new Random(k);
-						//Console.WriteLine("T" + k + " waiting");
 						mre.WaitOne();
-						//Console.WriteLine("T" + k + " go");
 
 						int keys = 0;
-						for (int i = 0; i < total / CPUS; i += 10)
+						for (int j = 0; j < 20; j++)
 						{
-							int pp = i;// rndz.Next((int)total - 10);
-							using (var tr = db.BeginReadOnlyTransaction())
+							for (int i = 0; i < total / CPUS; i += 100)
 							{
-								var res = await db.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString((pp + x).ToString(fmt))));
-								keys += res.Length;
+								int pp = i;// rndz.Next((int)total - 10);
+								using (var tr = db.BeginReadOnlyTransaction())
+								{
+									var res = await tr.GetValuesAsync(Enumerable.Range(i, 100).Select(x => Slice.FromString((pp + x).ToString(fmt)))).ConfigureAwait(false);
+									keys += res.Length;
+								}
 							}
 						}
-						//Console.WriteLine("T" + k + " done");
-						Interlocked.Add(ref kkk, keys);
+						Interlocked.Add(ref read, keys);
 						return keys;
 					})).ToArray();
 
@@ -1051,9 +1283,50 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				mre.Set();
 				await Task.WhenAll(tasks);
 				sw.Stop();
-				Console.WriteLine("ParaSeqRead: " + kkk.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (kkk / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				mre.Dispose();
+				//Console.WriteLine("ParaSeqRead: " + read.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (read / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				DumpResult("ParaSeqRead", read, read / 100, sw.Elapsed);
 
+				read = 0;
+				mre = new ManualResetEvent(false);
+				tasks = Enumerable
+					.Range(0, CPUS)
+					.Select(k => Task.Run(async () =>
+					{
+						var rndz = new Random(k);
+						mre.WaitOne();
+
+						int keys = 0;
+						for (int j = 0; j < 20; j++)
+						{
+							for (int i = 0; i < total / CPUS; i += 100)
+							{
+								int pp = i;// rndz.Next((int)total - 100);
+								using (var tr = db.BeginReadOnlyTransaction())
+								{
+									var res = await tr.GetRangeAsync(
+										FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(pp.ToString(fmt))),
+										FdbKeySelector.FirstGreaterOrEqual(Slice.FromString((pp + 100).ToString(fmt)))
+									).ConfigureAwait(false);
+
+									keys += res.Count;
+								}
+							}
+						}
+						Interlocked.Add(ref read, keys);
+						return keys;
+					})).ToArray();
+
+				sw.Restart();
+				mre.Set();
+				await Task.WhenAll(tasks);
+				sw.Stop();
+				mre.Dispose();
+				DumpResult("ParaSeqRange", read, read / 100, sw.Elapsed);
 				#endregion
+
+				DumpMemory();
+
 			}
 
 		}

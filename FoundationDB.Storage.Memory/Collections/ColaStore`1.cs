@@ -563,6 +563,11 @@ namespace FoundationDB.Storage.Memory.Core
 
 			//Console.WriteLine("InsertItems([" + count + " ]) " + min + ".." + max);
 
+			if (max >= m_levels.Length)
+			{ // we need to allocate new levels
+				Grow(max);
+			}
+
 			int p = 0;
 			for (int i = min; i <= max; i++)
 			{
@@ -591,6 +596,107 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 			Contract.Assert(p == count);
 			m_count += count;
+
+			CheckInvariants();
+		}
+
+		/// <summary>Insert one or more new elements in the set.</summary>
+		/// <param name="values">Array of elements to insert. Warning: if a value already exist, the store will be corrupted !</param>
+		/// <param name="ordered">If true, the entries in <paramref name="values"/> are guaranteed to already be sorted (using the store default comparer).</param>
+		/// <remarks>The best performances are achieved when inserting a number of items that is a power of 2. The worst performances are when doubling the size of a store that is full.
+		/// Warning: if <paramref name="order"/> is true but <paramref name="values"/> is not sorted, or is sorted using a different comparer, then the store will become corrupted !
+		/// </remarks>
+		public void InsertItems(List<T> values, bool ordered = false)
+		{
+			if (values == null) throw new ArgumentNullException("values");
+
+			int count = values.Count;
+			T[] segment, spare;
+
+			if (count < 2)
+			{
+				if (count == 1)
+				{
+					//Console.WriteLine("InsertItems([1]) Simple");
+					Insert(values[0]);
+				}
+				return;
+			}
+
+			if (count == 2)
+			{
+				if (IsFree(1))
+				{
+					segment = m_levels[1];
+					if (ordered)
+					{
+						segment[0] = values[0];
+						segment[1] = values[1];
+					}
+					else
+					{
+						ColaStore.MergeSimple<T>(segment, values[0], values[1], m_comparer);
+					}
+				}
+				else
+				{
+					//Console.WriteLine("InsertItems([2]) Cascade");
+					spare = GetSpare(1);
+					spare[0] = values[0];
+					spare[1] = values[1];
+					segment = m_levels[1];
+					MergeCascade(2, segment, spare);
+					segment[0] = default(T);
+					segment[1] = default(T);
+					PutSpare(1, spare);
+				}
+			}
+			else
+			{
+				// Inserting a size that is a power of 2 is very simple:
+				// * either the corresponding level is empty, in that case we just copy the items and do a quicksort
+				// * or it is full, then we just need to do a cascade merge
+				// For non-power of 2s, we can split decompose them into a suite of power of 2s and insert them one by one
+
+				int min = ColaStore.LowestBit(count);
+				int max = ColaStore.HighestBit(count);
+
+				//Console.WriteLine("InsertItems([" + count + " ]) " + min + ".." + max);
+
+				if (max >= m_levels.Length)
+				{ // we need to allocate new levels
+					Grow(max);
+				}
+
+				int p = 0;
+				for (int i = min; i <= max; i++)
+				{
+					if (ColaStore.IsFree(i, count)) continue;
+
+					segment = m_levels[i];
+					if (IsFree(i))
+					{ // the target level is free, we can copy and sort in place
+						//Console.WriteLine("InsertItems([" + count + " ]) " + i+ " free");
+						values.CopyTo(p, segment, 0, segment.Length);
+						if (!ordered) Array.Sort(segment, 0, segment.Length, m_comparer);
+						p += segment.Length;
+						m_count += segment.Length;
+					}
+					else
+					{ // the target level is used, we will have to do a cascade merge, using a spare
+						//Console.WriteLine("InsertItems([" + count + " ]) " + i + " cascade");
+						spare = GetSpare(i);
+						values.CopyTo(p, spare, 0, spare.Length);
+						if (!ordered) Array.Sort(spare, 0, spare.Length, m_comparer);
+						p += segment.Length;
+						MergeCascade(i + 1, segment, spare);
+						Array.Clear(segment, 0, segment.Length);
+						PutSpare(i, spare);
+						m_count += segment.Length;
+					}
+				}
+				Contract.Assert(p == count);
+			}
 
 			CheckInvariants();
 		}
@@ -999,8 +1105,8 @@ namespace FoundationDB.Storage.Memory.Core
 			int required = level + 1;
 			Contract.Assert(current < required);
 
-			var tmpSegments = new T[required][];
-			Array.Copy(m_levels, tmpSegments, current);
+			var tmpSegments = m_levels;
+			Array.Resize(ref tmpSegments, required);
 			for (int i = current; i < required; i++)
 			{
 				tmpSegments[i] = new T[1 << i];

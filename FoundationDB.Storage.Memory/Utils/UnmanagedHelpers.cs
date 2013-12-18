@@ -68,7 +68,7 @@ namespace FoundationDB.Storage.Memory.Utils
 				Contract.Requires(dest.Array != null && dest.Offset >= 0 && dest.Count >= 0 && src != null);
 				fixed (byte* ptr = dest.Array)
 				{
-					NativeMethods.memmove(ptr + dest.Offset, src, count);
+					NativeMethods.memmove(ptr + dest.Offset, src, new UIntPtr(count));
 				}
 			}
 		}
@@ -105,7 +105,7 @@ namespace FoundationDB.Storage.Memory.Utils
 			Contract.Requires(dest != null && src != null);
 
 #if USE_NATIVE_MEMORY_OPERATORS
-			NativeMethods.memmove(dest, src, count);
+			NativeMethods.memmove(dest, src, new UIntPtr(count));
 #else
 			if (count >= 16)
 			{
@@ -164,7 +164,7 @@ namespace FoundationDB.Storage.Memory.Utils
 			Contract.Requires(left != null && right != null);
 
 #if USE_NATIVE_MEMORY_OPERATORS
-			int c = NativeMethods.memcmp(left, right, leftCount < rightCount ? leftCount : rightCount);
+			int c = NativeMethods.memcmp(left, right, new UIntPtr(leftCount < rightCount ? leftCount : rightCount));
 			if (c != 0) return c;
 			return (int)leftCount - (int)rightCount;
 #else
@@ -247,7 +247,7 @@ namespace FoundationDB.Storage.Memory.Utils
 			if (ptr == null) throw new ArgumentNullException("ptr");
 
 #if USE_NATIVE_MEMORY_OPERATORS
-			NativeMethods.memset(ptr, filler, count);
+			NativeMethods.memset(ptr, filler, new UIntPtr(count));
 
 #else
 			if (filler == 0)
@@ -290,15 +290,38 @@ namespace FoundationDB.Storage.Memory.Utils
 		[SuppressUnmanagedCodeSecurity]
 		internal static unsafe class NativeMethods
 		{
+			// C/C++		.NET
+			// ---------------------------------
+			// void*		byte* (or IntPtr)
+			// size_t		UIntPtr (or IntPtr)
+			// int			int
+			// char			byte
 
+			/// <summary>Compare characters in two buffers.</summary>
+			/// <param name="buf1">First buffer.</param>
+			/// <param name="buf2">Second buffer.</param>
+			/// <param name="count">Number of bytes to compare.</param>
+			/// <returns>The return value indicates the relationship between the buffers.</returns>
 			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			public static extern int memcmp(byte* lhs, byte* rhs, uint count);
+			public static extern int memcmp(byte* buf1, byte* buf2, UIntPtr count);
 
+			/// <summary>Moves one buffer to another.</summary>
+			/// <param name="dest">Destination object.</param>
+			/// <param name="src">Source object.</param>
+			/// <param name="count">Number of bytes to copy.</param>
+			/// <returns>The value of dest.</returns>
+			/// <remarks>Copies count bytes from src to dest. If some regions of the source area and the destination overlap, both functions ensure that the original source bytes in the overlapping region are copied before being overwritten.</remarks>
 			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			public static extern int memmove(byte* dest, byte* src, uint count);
+			public static extern byte* memmove(byte* dest, byte* src, UIntPtr count);
 
+			/// <summary>Sets buffers to a specified character.</summary>
+			/// <param name="dest">Pointer to destination</param>
+			/// <param name="ch">Character to set</param>
+			/// <param name="count">Number of characters</param>
+			/// <returns>memset returns the value of dest.</returns>
+			/// <remarks>The memset function sets the first count bytes of dest to the character c.</remarks>
 			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			public static extern int memset(byte* dest, byte ch, uint count);
+			public static extern byte* memset(byte* dest, int ch, UIntPtr count);
 
 			[DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
 			public static extern SafeLocalAllocHandle LocalAlloc(uint uFlags, UIntPtr uBytes);

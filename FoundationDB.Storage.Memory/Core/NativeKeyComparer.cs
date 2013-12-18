@@ -7,6 +7,7 @@ namespace FoundationDB.Storage.Memory.Core
 	using FoundationDB.Storage.Memory.Utils;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics.Contracts;
 
 	internal unsafe sealed class NativeKeyComparer : IComparer<IntPtr>, IEqualityComparer<IntPtr>
 	{
@@ -19,16 +20,26 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public int Compare(IntPtr left, IntPtr right)
 		{
+			// this method will be called A LOT, so it should be as fast as possible...
+			// We know that:
+			// - caller should never compare nulls (it's a bug)
+			// - empty keys do not exist
+
+			Contract.Assert(left != IntPtr.Zero && right != IntPtr.Zero);
+
 			// unwrap as pointers to the Key struct
 			var leftKey = (Key*)left.ToPointer();
 			var rightKey = (Key*)right.ToPointer();
 
-			uint leftCount, rightCount;
 
-			if (leftKey == null || (leftCount = leftKey->Size) == 0) return rightKey == null || rightKey->Size == 0 ? 0 : -1;
-			if (rightKey == null || (rightCount = rightKey->Size) == 0) return +1;
+			// these will probably cause a cache miss
+			uint leftCount = leftKey->Size;
+			uint rightCount = rightKey->Size;
 
-			int c = UnmanagedHelpers.NativeMethods.memcmp(&(leftKey->Data), &(rightKey->Data), leftCount < rightCount ? leftCount : rightCount);
+			Contract.Assert(leftCount > 0 && rightCount > 0);
+
+			// but then memcmp will probably have the data in the cpu cache...
+			int c = UnmanagedHelpers.NativeMethods.memcmp(&(leftKey->Data), &(rightKey->Data), new UIntPtr(leftCount < rightCount ? leftCount : rightCount));
 			if (c == 0) c = (int)leftCount - (int)rightCount;
 			return c;
 		}
@@ -44,7 +55,7 @@ namespace FoundationDB.Storage.Memory.Core
 			if (leftKey == null || (leftCount = leftKey->Size) == 0) return rightKey == null || rightKey->Size == 0;
 			if (rightKey == null || (rightCount = rightKey->Size) == 0) return false;
 
-			return leftCount == rightCount && 0 == UnmanagedHelpers.NativeMethods.memcmp(&(leftKey->Data), &(rightKey->Data), leftCount);
+			return leftCount == rightCount && 0 == UnmanagedHelpers.NativeMethods.memcmp(&(leftKey->Data), &(rightKey->Data), new UIntPtr(leftCount));
 		}
 
 		public int GetHashCode(IntPtr value)

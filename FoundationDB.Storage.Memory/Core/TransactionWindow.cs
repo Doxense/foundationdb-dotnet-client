@@ -19,6 +19,8 @@ namespace FoundationDB.Storage.Memory.Core
 		private readonly ulong m_minVersion;
 		/// <summary>Sequence of the last commited transaction from this window</summary>
 		private ulong m_maxVersion;
+		/// <summary>Counter for committed write transactions</summary>
+		private int m_writeCount;
 		/// <summary>If true, the transaction is closed (no more transaction can write to it)</summary>
 		private bool m_closed;
 		/// <summary>If true, the transaction has been disposed</summary>
@@ -44,6 +46,11 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public DateTime StartedUtc { get { return m_startedUtc; } }
 
+		/// <summary>Number of write transaction that committed during this window</summary>
+		public int CommitCount { get { return m_writeCount; } }
+
+		public ColaRangeDictionary<USlice, ulong> Writes { get { return m_writeConflicts; } }
+
 		public void Close()
 		{
 			Contract.Requires(!m_closed && !m_disposed);
@@ -68,7 +75,7 @@ namespace FoundationDB.Storage.Memory.Core
 			if (m_disposed) ThrowDisposed();
 			if (m_closed) throw new InvalidOperationException("This transaction has already been closed");
 
-			Console.WriteLine("* Merging writes conflicts for version " + version + ": " + String.Join(", ", writes));
+			//Debug.WriteLine("* Merging writes conflicts for version " + version + ": " + String.Join(", ", writes));
 
 			foreach (var range in writes)
 			{
@@ -89,6 +96,8 @@ namespace FoundationDB.Storage.Memory.Core
 
 				m_writeConflicts.Mark(beginKey, endKey, version);
 			}
+
+			++m_writeCount;
 			if (version > m_maxVersion)
 			{
 				m_maxVersion = version;
@@ -103,11 +112,11 @@ namespace FoundationDB.Storage.Memory.Core
 		{
 			Contract.Requires(reads != null);
 
-			Console.WriteLine("* Testing for conflicts for: " + String.Join(", ", reads));
+			//Debug.WriteLine("* Testing for conflicts for: " + String.Join(", ", reads));
 
 			if (version > m_maxVersion)
 			{ // all the writes are before the reads, so no possible conflict!
-				Console.WriteLine(" > cannot conflict");
+				//Debug.WriteLine(" > cannot conflict");
 				return false;
 			}
 
@@ -125,13 +134,13 @@ namespace FoundationDB.Storage.Memory.Core
 
 					if (m_writeConflicts.Intersect(begin, end, version, (v, min) => v > min))
 					{
-						Console.WriteLine(" > Conflicting read: " + read);
+						Debug.WriteLine(" > Conflicting read: " + read);
 						return true;
 					}
 				}
 			}
 
-			Console.WriteLine("  > No conflicts found");
+			//Debug.WriteLine("  > No conflicts found");
 			return false;
 		}
 		
@@ -151,6 +160,10 @@ namespace FoundationDB.Storage.Memory.Core
 			GC.SuppressFinalize(this);
 		}
 
+		public override string ToString()
+		{
+			return String.Format(System.Globalization.CultureInfo.InvariantCulture, "#{0} [{1}~{2}]", m_startedUtc.Ticks / TimeSpan.TicksPerMillisecond, m_minVersion, m_maxVersion);
+		}
 	}
 
 }

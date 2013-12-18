@@ -378,6 +378,7 @@ namespace FoundationDB.Storage.Memory.API
 			lock(m_lock)
 			{
 				m_readVersion = null;
+				if (first) m_committedVersion = -1; // note: current fdb_c client does not reset commited version to -1 when calling fdb_transaction_reset()
 				m_buffer = new SliceBuffer(InitialBufferSize);
 				if (first)
 				{
