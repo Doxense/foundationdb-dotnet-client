@@ -400,7 +400,7 @@ namespace FoundationDB.Client
 			Contract.Requires(dest != null && src != null && count >= 0);
 
 #if USE_NATIVE_MEMORY_OPERATORS
-			NativeMethods.memmove(dest, src, count);
+			NativeMethods.memmove(dest, src, new IntPtr(count));
 #else
 			if (count >= 16)
 			{
@@ -458,7 +458,7 @@ namespace FoundationDB.Client
 			Contract.Requires(left != null && right != null && count >= 0);
 
 #if USE_NATIVE_MEMORY_OPERATORS
-			return NativeMethods.memcmp(left, right, count);
+			return NativeMethods.memcmp(left, right, new IntPtr(count));
 #else
 
 			// We want to scan in chunks of 8 bytes, until we find a difference (or there's less than 8 bytes remaining).
@@ -534,11 +534,22 @@ namespace FoundationDB.Client
 		internal static unsafe class NativeMethods
 		{
 
+			/// <summary>Compare characters in two buffers.</summary>
+			/// <param name="buf1">First buffer.</param>
+			/// <param name="buf2">Second buffer.</param>
+			/// <param name="count">Number of bytes to compare.</param>
+			/// <returns>The return value indicates the relationship between the buffers.</returns>
 			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			public static extern int memcmp(byte* lhs, byte* rhs, int count);
+			public static extern int memcmp(byte* buf1, byte* buf2, IntPtr count);
 
+			/// <summary>Moves one buffer to another.</summary>
+			/// <param name="dest">Destination object.</param>
+			/// <param name="src">Source object.</param>
+			/// <param name="count">Number of bytes to copy.</param>
+			/// <returns>The value of dest.</returns>
+			/// <remarks>Copies count bytes from src to dest. If some regions of the source area and the destination overlap, both functions ensure that the original source bytes in the overlapping region are copied before being overwritten.</remarks>
 			[DllImport("msvcrt.dll", CallingConvention = CallingConvention.Cdecl, SetLastError = false)]
-			public static extern byte* memmove(byte* dest, byte* src, int count);
+			public static extern byte* memmove(byte* dest, byte* src, IntPtr count);
 
 		}
 
