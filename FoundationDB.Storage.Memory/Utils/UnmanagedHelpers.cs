@@ -4,7 +4,7 @@
 
 #define USE_NATIVE_MEMORY_OPERATORS
 
-namespace FoundationDB.Storage.Memory.Core
+namespace FoundationDB.Storage.Memory.Utils
 {
 	using FoundationDB.Client;
 	using System;

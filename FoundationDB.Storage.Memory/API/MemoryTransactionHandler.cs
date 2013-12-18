@@ -11,6 +11,7 @@ namespace FoundationDB.Storage.Memory.API
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Storage.Memory.Core;
+	using FoundationDB.Storage.Memory.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.Diagnostics.Contracts;

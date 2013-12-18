@@ -46,8 +46,17 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\Value.cs" />
     <Compile Include="API\MemoryClusterHandler.cs" />
-    <Compile Include="API\ElasticHeap`1.cs" />
+    <Compile Include="Core\Key.cs" />
+    <Compile Include="Core\Memory\ValueHeap.cs" />
+    <Compile Include="Core\Memory\KeyHeap.cs" />
+    <Compile Include="Core\SequenceComparer.cs" />
+    <Compile Include="Core\NativeKeyComparer.cs" />
+    <Compile Include="Core\TransactionWindow.cs" />
+    <Compile Include="Core\Entry.cs" />
+    <Compile Include="Core\Memory\EntryPage.cs" />
+    <Compile Include="Core\Memory\ElasticHeap`1.cs" />
     <Compile Include="API\MemoryDatabaseHandler.cs" />
     <Compile Include="API\MemoryDatabase.cs" />
     <Compile Include="API\MemoryTransactionHandler.cs" />

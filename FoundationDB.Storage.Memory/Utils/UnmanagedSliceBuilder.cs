@@ -2,7 +2,7 @@
 // See License.MD for license information
 #endregion
 
-namespace FoundationDB.Storage.Memory.Core
+namespace FoundationDB.Storage.Memory.Utils
 {
 	using FoundationDB.Client;
 	using System;
