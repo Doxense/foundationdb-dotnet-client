@@ -10,6 +10,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 	using FoundationDB.Layers.Tables;
 	using NUnit.Framework;
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
@@ -914,6 +915,152 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 		}
 
+		[Test]
+		public async Task Test_Can_BulkLoad_Data_Ordered()
+		{
+			const int N = 10 * 1000 * 1000;
+
+			// insert N sequential items and bulk load with "ordered = true" to skip the sorting of levels
+
+			Console.WriteLine("Warmup...");
+			using (var db = MemoryDatabase.CreateNew("WARMUP"))
+			{
+				await db.BulkLoadAsync(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(db.Pack(i), Slice.FromFixed32(i))).ToList(), ordered: true);
+			}
+
+			using(var db = MemoryDatabase.CreateNew("FOO"))
+			{
+				Console.WriteLine("Generating " + N.ToString("N0") + " keys...");
+				var data = new KeyValuePair<Slice, Slice>[N];
+				for (int i = 0; i < N; i++)
+				{
+					data[i] = new KeyValuePair<Slice, Slice>(
+					 db.Pack(i),
+					 Slice.FromFixed32(i)
+					);
+				}
+				Console.WriteLine("Inserting ...");
+
+				var sw = Stopwatch.StartNew();
+				await db.BulkLoadAsync(data, ordered: true);
+				sw.Stop();
+				DumpResult("BulkLoadSeq", N, 1, sw.Elapsed);
+
+				db.Debug_Dump();
+
+				var rnd = new Random();
+				for (int i = 0; i < 100 * 1000; i++)
+				{
+					int x = rnd.Next(N);
+					using (var tx = db.BeginReadOnlyTransaction())
+					{
+						var res = await tx.GetAsync(db.Pack(x)).ConfigureAwait(false);
+						Assert.That(res.ToInt32(), Is.EqualTo(x));
+					}
+				}
+
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_BulkLoad_Data_Sequential_Unordered()
+		{
+			const int N = 10 * 1000 * 1000;
+
+			// insert N sequential items, but without specifying "ordered = true" to force a sort of all levels
+
+			Console.WriteLine("Warmup...");
+			using(var db = MemoryDatabase.CreateNew("WARMUP"))
+			{
+				await db.BulkLoadAsync(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(db.Pack(i), Slice.FromFixed32(i))).ToList(), ordered: false);
+			}
+
+			using (var db = MemoryDatabase.CreateNew("FOO"))
+			{
+				Console.WriteLine("Generating " + N.ToString("N0") + " keys...");
+				var data = new KeyValuePair<Slice, Slice>[N];
+				var rnd = new Random();
+				for (int i = 0; i < N; i++)
+				{
+					data[i] = new KeyValuePair<Slice, Slice>(
+						db.Pack(i),
+						Slice.FromFixed32(i)
+					);
+				}
+
+				Console.WriteLine("Inserting ...");
+				var sw = Stopwatch.StartNew();
+				await db.BulkLoadAsync(data, ordered: false);
+				sw.Stop();
+				DumpResult("BulkLoadSeqSort", N, 1, sw.Elapsed);
+
+				db.Debug_Dump();
+
+				for (int i = 0; i < 100 * 1000; i++)
+				{
+					int x = rnd.Next(N);
+					using (var tx = db.BeginReadOnlyTransaction())
+					{
+						var res = await tx.GetAsync(db.Pack(x)).ConfigureAwait(false);
+						Assert.That(res.ToInt32(), Is.EqualTo(x));
+					}
+				}
+
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_BulkLoad_Data_Random_Unordered()
+		{
+			const int N = 10 * 1000 * 1000;
+
+			// insert N randomized items
+
+			Console.WriteLine("Warmup...");
+			using (var db = MemoryDatabase.CreateNew("WARMUP"))
+			{
+				await db.BulkLoadAsync(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(db.Pack(i), Slice.FromFixed32(i))).ToList(), ordered: false);
+			}
+
+			using (var db = MemoryDatabase.CreateNew("FOO"))
+			{
+				Console.WriteLine("Generating " + N.ToString("N0") + " keys...");
+				var data = new KeyValuePair<Slice, Slice>[N];
+				var ints = new int[N];
+				var rnd = new Random();
+				for (int i = 0; i < N; i++)
+				{
+					data[i] = new KeyValuePair<Slice, Slice>(
+						db.Pack(i),
+						Slice.FromFixed32(i)
+					);
+					ints[i] = rnd.Next(int.MaxValue);
+				}
+				Console.WriteLine("Shuffling...");
+				Array.Sort(ints, data);
+
+				Console.WriteLine("Inserting ...");
+
+				var sw = Stopwatch.StartNew();
+				await db.BulkLoadAsync(data, ordered: false);
+				sw.Stop();
+				DumpResult("BulkLoadRndSort", N, 1, sw.Elapsed);
+
+				db.Debug_Dump();
+
+				for (int i = 0; i < 100 * 1000; i++)
+				{
+					int x = rnd.Next(N);
+					using (var tx = db.BeginReadOnlyTransaction())
+					{
+						var res = await tx.GetAsync(db.Pack(x)).ConfigureAwait(false);
+						Assert.That(res.ToInt32(), Is.EqualTo(x));
+					}
+				}
+
+			}
+		}
+
 		private static void DumpResult(string label, long total, long trans, TimeSpan elapsed)
 		{
 			Console.WriteLine(
@@ -1251,7 +1398,6 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				#region Parallel Reads...
 
 				int CPUS = Environment.ProcessorCount;
-
 
 				long read = 0;
 				var mre = new ManualResetEvent(false);

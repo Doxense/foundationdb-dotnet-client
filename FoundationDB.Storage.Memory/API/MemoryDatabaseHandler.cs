@@ -426,6 +426,86 @@ namespace FoundationDB.Storage.Memory.API
 			return Task.FromResult(version);
 		}
 
+		internal unsafe Task BulkLoadAsync(ICollection<KeyValuePair<Slice, Slice>> data, bool ordered, CancellationToken cancellationToken)
+		{
+			Contract.Requires(data != null);
+
+			int count = data.Count;
+
+			// Since we can "only" create a maximum of 28 levels, there is a maximum limit or 2^28 - 1 items that can be loaded in the database (about 268 millions)
+			if (count >= 1 << 28) throw new InvalidOperationException("Data set is too large. Cannot insert more than 2^28 - 1 items in the memory database");
+
+			// clear everything, and import the specified data
+
+			m_dataLock.EnterWriteLock();
+			try
+			{
+				m_data.Clear();
+				m_estimatedSize = 0;
+				//TODO: clear the key and value heaps !
+				//TODO: clear the transaction windows !
+				//TODO: kill all pending transactions !
+
+				// the fastest way to insert data, is to insert vectors that are a power of 2
+				int min = ColaStore.LowestBit(count);
+				int max = ColaStore.HighestBit(count);
+				Contract.Assert(min <= max && max <= 28);
+
+				m_data.EnsureCapacity(count);
+
+				ulong sequence = (ulong)Interlocked.Increment(ref m_currentVersion);
+
+				using (var iter = data.GetEnumerator())
+				{
+					var list = new List<IntPtr>(1 << max);
+
+					for (int level = max; level >= min && !cancellationToken.IsCancellationRequested; level--)
+					{
+						if (ColaStore.IsFree(level, count)) continue;
+
+						//TODO: consider pre-sorting the items before inserting them in the heap using m_comparer (maybe faster than doing the same with the key comparer?)
+
+						// take of batch of values
+						list.Clear();
+						int batch = 1 << level;
+						while(batch-- > 0)
+						{
+							if (!iter.MoveNext())
+							{
+								throw new InvalidOperationException("Iterator stopped before reaching the expected number of items");
+							}
+
+							// allocate the key
+							var tmp = PackUserKey(m_scratchKey, iter.Current.Key);
+							Key* key = m_keys.Append(tmp);
+							Contract.Assert(key != null, "key == null");
+
+							// allocate the value
+							Slice userValue = iter.Current.Value;
+							uint size = checked((uint)userValue.Count);
+							Value* value = m_values.Allocate(size, sequence, null, key);
+							Contract.Assert(value != null, "value == null");
+							UnmanagedHelpers.CopyUnsafe(&(value->Data), userValue);
+
+							key->Values = value;
+
+							list.Add(new IntPtr(key));
+						}
+
+						// and insert it (should fit nicely in a level without cascading)
+						m_data.InsertItems(list, ordered);
+					}
+				}
+			}
+			finally
+			{
+				m_dataLock.ExitWriteLock();
+			}
+
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+			return TaskHelpers.CompletedTask;
+		}
+
 		private static readonly Task<Slice> NilResult = Task.FromResult<Slice>(Slice.Nil);
 		private static readonly Task<Slice> EmptyResult = Task.FromResult<Slice>(Slice.Empty);
 		private static readonly Task<Slice> MaxResult = Task.FromResult<Slice>(Slice.FromByte(255));

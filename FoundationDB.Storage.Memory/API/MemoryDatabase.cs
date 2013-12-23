@@ -5,8 +5,13 @@
 namespace FoundationDB.Storage.Memory.API
 {
 	using FoundationDB.Client;
+	using FoundationDB.Storage.Memory.Utils;
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
+	using System.Threading;
+	using System.Threading.Tasks;
 
 	public class MemoryDatabase : FdbDatabase
 	{
@@ -42,6 +47,25 @@ namespace FoundationDB.Storage.Memory.API
 		public void Collect()
 		{
 			m_handler.Collect();
+		}
+
+		/// <summary>Replace the content of the database with existing data.</summary>
+		/// <param name="data">Data that will replace the content of the database. The elements do not need to be sorted, but best performance is achieved if all the keys are lexicographically ordered (smallest to largest)</param>
+		/// <param name="cancellationToken">Optionnal cancellation token</param>
+		/// <returns>Task that completes then the data has been loaded into the database</returns>
+		/// <remarks>Any pre-existing data will be removed!</remarks>
+		public Task BulkLoadAsync(IEnumerable<KeyValuePair<Slice, Slice>> data, bool ordered = false, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (data == null) throw new ArgumentNullException("data");
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+
+			var coll = data as ICollection<KeyValuePair<Slice, Slice>>;
+			if (coll == null)
+			{
+				coll = data.ToList();
+			}
+
+			return m_handler.BulkLoadAsync(coll, ordered, cancellationToken);
 		}
 
 	}
