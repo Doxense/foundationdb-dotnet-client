@@ -68,6 +68,7 @@
     <Compile Include="Collections\ColaOrderedSet.cs" />
     <Compile Include="Utils\TaskHelpers.cs" />
     <Compile Include="Utils\UnmanagedHelpers.cs" />
+    <Compile Include="Utils\UnmanagedSliceBuilderPool.cs" />
     <Compile Include="Utils\USliceComparer.cs" />
     <Compile Include="Utils\USlice.cs" />
     <Compile Include="Utils\UnmanagedSliceStream.cs" />

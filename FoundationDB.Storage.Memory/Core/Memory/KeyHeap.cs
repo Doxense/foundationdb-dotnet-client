@@ -14,29 +14,6 @@ namespace FoundationDB.Storage.Memory.Core
 	internal unsafe class KeyHeap : ElasticHeap<KeyHeap.Page>
 	{
 
-		public static Page CreateNewPage(uint size, uint alignment)
-		{
-			// the size of the page should also be aligned
-			var pad = size & (alignment - 1);
-			if (pad != 0)
-			{
-				size += alignment - pad;
-			}
-			if (size > int.MaxValue) throw new OutOfMemoryException();
-
-			UnmanagedHelpers.SafeLocalAllocHandle handle = null;
-			try
-			{
-				handle = UnmanagedHelpers.AllocMemory(size);
-				return new Page(handle, size);
-			}
-			catch (Exception)
-			{
-				if (!handle.IsClosed) handle.Dispose();
-				throw;
-			}
-		}
-
 		/// <summary>Page of memory used to store Keys</summary>
 		public sealed unsafe class Page : EntryPage
 		{
@@ -115,30 +92,36 @@ namespace FoundationDB.Storage.Memory.Core
 
 			}
 
-			public override void Debug_Dump()
+			public override void Debug_Dump(bool detailed)
 			{
 				Contract.Requires(m_start != null && m_current != null);
 				Key* current = (Key*)m_start;
 				Key* end = (Key*)m_current;
 
 				Trace.WriteLine("## KeyPage: count=" + m_count.ToString("N0") + ", used=" + this.MemoryUsage.ToString("N0") + ", capacity=" + m_capacity.ToString("N0") + ", start=0x" + new IntPtr(m_start).ToString("X8") + ", end=0x" + new IntPtr(m_current).ToString("X8"));
-
-				while (current < end)
+				if (detailed)
 				{
-					Trace.WriteLine("   - [" + Entry.GetObjectType(current).ToString() + "] 0x" + new IntPtr(current).ToString("X8") + " : " + current->Header.ToString("X8") + ", size=" + current->Size + " : " + FdbKey.Dump(Key.GetData(current).ToSlice()));
-					var value = current->Values;
-					while (value != null)
+					while (current < end)
 					{
-						Trace.WriteLine("     -> [" + Entry.GetObjectType(value) + "] 0x" + new IntPtr(value).ToString("X8") + " @ " + value->Sequence + " : " + Value.GetData(value).ToSlice().ToAsciiOrHexaString());
-						value = value->Previous;
+						Trace.WriteLine("   - [" + Entry.GetObjectType(current).ToString() + "] 0x" + new IntPtr(current).ToString("X8") + " : " + current->Header.ToString("X8") + ", size=" + current->Size + " : " + FdbKey.Dump(Key.GetData(current).ToSlice()));
+						var value = current->Values;
+						while (value != null)
+						{
+							Trace.WriteLine("     -> [" + Entry.GetObjectType(value) + "] 0x" + new IntPtr(value).ToString("X8") + " @ " + value->Sequence + " : " + Value.GetData(value).ToSlice().ToAsciiOrHexaString());
+							value = value->Previous;
+						}
+						current = Key.WalkNext(current);
 					}
-					current = Key.WalkNext(current);
 				}
 			}
 		}
 
 		public KeyHeap(uint pageSize)
-			: base(pageSize)
+			: this(pageSize, pageSize)
+		{ }
+
+		public KeyHeap(uint minPageSize, uint maxPageSize)
+			: base(minPageSize, maxPageSize, (handle, size) => new KeyHeap.Page(handle, size))
 		{ }
 
 		public Key* Append(USlice buffer)
@@ -146,35 +129,34 @@ namespace FoundationDB.Storage.Memory.Core
 			Page page;
 			var entry = (page = m_current) != null ? page.TryAppend(buffer) : null;
 			if (entry == null)
-			{
-				if (buffer.Count > m_pageSize >> 1)
-				{ // if the value is too big, it will use its own page
+			{ // allocate a new page and try again
 
-					page = CreateNewPage(buffer.Count, Entry.ALIGNMENT);
-					m_pages.Add(page);
-				}
-				else
-				{ // allocate a new page and try again
+				var size = buffer.Count + Key.SizeOf;
 
-					page = CreateNewPage(m_pageSize, Entry.ALIGNMENT);
-					m_current = page;
-				}
+				var pageSize = Math.Max(Math.Min(m_pageSize << 1, m_minPageSize), m_maxPageSize);
 
-				Contract.Assert(page != null);
+				// if the key is larger than current page size, but we haven't yet reach the max, make it larger...
+				while (size > pageSize && (pageSize << 1) < m_maxPageSize) { pageSize <<= 1; }
+				m_pageSize = pageSize;
+
+				page = CreateNewPage(pageSize, Entry.ALIGNMENT);
+				m_current = page;
 				m_pages.Add(page);
 				entry = page.TryAppend(buffer);
-				Contract.Assert(entry != null);
 			}
-			Contract.Assert(entry != null);
+			if (entry == null) throw new OutOfMemoryException(String.Format("Failed to allocate memory from the heap for key of size {0}", buffer.Count));
 			return entry;
 		}
 
-
 		public void Collect(ulong sequence)
 		{
+			//TODO: collect existing mages into large pages?
+			var pageSize = m_minPageSize;
+			m_pageSize = pageSize;
+
 			foreach (var page in m_pages)
 			{
-				var target = CreateNewPage(m_pageSize, Entry.ALIGNMENT);
+				var target = CreateNewPage(pageSize, Entry.ALIGNMENT);
 				page.Collect(target, sequence);
 				page.Swap(target);
 			}

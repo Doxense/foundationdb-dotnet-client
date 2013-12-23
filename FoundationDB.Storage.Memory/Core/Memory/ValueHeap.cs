@@ -13,30 +13,6 @@ namespace FoundationDB.Storage.Memory.Core
 	internal unsafe class ValueHeap : ElasticHeap<ValueHeap.Page>
 	{
 
-		public static Page CreateNewPage(uint size, uint alignment)
-		{
-			//Console.WriteLine("Created value page: " + size);
-			// the size of the page should also be aligned
-			var pad = size & (alignment - 1);
-			if (pad != 0)
-			{
-				size += alignment - pad;
-			}
-			if (size > int.MaxValue) throw new OutOfMemoryException();
-
-			UnmanagedHelpers.SafeLocalAllocHandle handle = null;
-			try
-			{
-				handle = UnmanagedHelpers.AllocMemory(size);
-				return new Page(handle, size);
-			}
-			catch (Exception)
-			{
-				if (!handle.IsClosed) handle.Dispose();
-				throw;
-			}
-		}
-
 		/// <summary>Page of memory used to store Values</summary>
 		public sealed class Page : EntryPage
 		{
@@ -114,24 +90,24 @@ namespace FoundationDB.Storage.Memory.Core
 						switch (Entry.GetObjectType(parent))
 						{
 							case EntryType.Key:
-								{
-									((Key*)parent)->Values = moved;
-									break;
-								}
+							{
+								((Key*)parent)->Values = moved;
+								break;
+							}
 							case EntryType.Value:
-								{
-									((Value*)parent)->Previous = moved;
-									break;
-								}
+							{
+								((Value*)parent)->Previous = moved;
+								break;
+							}
 							case EntryType.Free:
-								{
-									//NO-OP
-									break;
-								}
+							{
+								//NO-OP
+								break;
+							}
 							default:
-								{
-									throw new InvalidOperationException("Unexpected parent while moving value");
-								}
+							{
+								throw new InvalidOperationException("Unexpected parent while moving value");
+							}
 						}
 						current->Header |= Entry.FLAGS_MOVED | Entry.FLAGS_DISPOSED;
 					}
@@ -141,24 +117,24 @@ namespace FoundationDB.Storage.Memory.Core
 						switch (Entry.GetObjectType(parent))
 						{
 							case EntryType.Key:
-								{
-									((Key*)parent)->Values = null;
-									break;
-								}
+							{
+								((Key*)parent)->Values = null;
+								break;
+							}
 							case EntryType.Value:
-								{
-									((Value*)parent)->Previous = null;
-									break;
-								}
+							{
+								((Value*)parent)->Previous = null;
+								break;
+							}
 							case EntryType.Free:
-								{
-									//NO-OP
-									break;
-								}
+							{
+								//NO-OP
+								break;
+							}
 							default:
-								{
-									throw new InvalidOperationException("Unexpected parent while destroying value");
-								}
+							{
+								throw new InvalidOperationException("Unexpected parent while destroying value");
+							}
 						}
 
 						current->Header |= Entry.FLAGS_DISPOSED;
@@ -166,32 +142,36 @@ namespace FoundationDB.Storage.Memory.Core
 
 					current = Value.WalkNext(current);
 				}
-
-
 			}
 
-			public override void Debug_Dump()
+			public override void Debug_Dump(bool detailed)
 			{
 				Contract.Requires(m_start != null && m_current != null);
 				Value* current = (Value*)m_start;
 				Value* end = (Value*)m_current;
 
 				Trace.WriteLine("## ValuePage: count=" + m_count.ToString("N0") + ", used=" + this.MemoryUsage.ToString("N0") + ", capacity=" + m_capacity.ToString("N0") + ", start=0x" + new IntPtr(m_start).ToString("X8") + ", end=0x" + new IntPtr(m_current).ToString("X8"));
-
-				while (current < end)
+				if (detailed)
 				{
-					Trace.WriteLine("   - [" + Entry.GetObjectType(current).ToString() + "] 0x" + new IntPtr(current).ToString("X8") + " : " + current->Header.ToString("X8") + ", seq=" + current->Sequence + ", size=" + current->Size + " : " + Value.GetData(current).ToSlice().ToAsciiOrHexaString());
-					if (current->Previous != null) Trace.WriteLine("     -> Previous: [" + Entry.GetObjectType(current->Previous) + "] 0x" + new IntPtr(current->Previous).ToString("X8"));
-					if (current->Parent != null) Trace.WriteLine("     <- Parent: [" + Entry.GetObjectType(current->Parent) + "] 0x" + new IntPtr(current->Parent).ToString("X8"));
+					while (current < end)
+					{
+						Trace.WriteLine("   - [" + Entry.GetObjectType(current).ToString() + "] 0x" + new IntPtr(current).ToString("X8") + " : " + current->Header.ToString("X8") + ", seq=" + current->Sequence + ", size=" + current->Size + " : " + Value.GetData(current).ToSlice().ToAsciiOrHexaString());
+						if (current->Previous != null) Trace.WriteLine("     -> Previous: [" + Entry.GetObjectType(current->Previous) + "] 0x" + new IntPtr(current->Previous).ToString("X8"));
+						if (current->Parent != null) Trace.WriteLine("     <- Parent: [" + Entry.GetObjectType(current->Parent) + "] 0x" + new IntPtr(current->Parent).ToString("X8"));
 
-					current = Value.WalkNext(current);
+						current = Value.WalkNext(current);
+					}
 				}
 			}
 
 		}
 
 		public ValueHeap(uint pageSize)
-			: base(pageSize)
+			: this(pageSize, pageSize)
+		{ }
+
+		public ValueHeap(uint minPageSize, uint maxPageSize)
+			: base(minPageSize, maxPageSize, (handle, size) => new ValueHeap.Page(handle, size))
 		{ }
 
 		public Value* Allocate(uint dataSize, ulong sequence, Value* previous, void* parent)
@@ -201,26 +181,28 @@ namespace FoundationDB.Storage.Memory.Core
 			if (entry == null)
 			{
 				uint size = dataSize + Value.SizeOf;
-				if (size > m_pageSize >> 1)
-				{ // if the value is too big, it will use its own page
 
+				var pageSize = Math.Max(Math.Min(m_pageSize << 1, m_minPageSize), m_maxPageSize);
+
+				// if the value is larger than current page size, but we haven't yet reach the max, make it larger...
+				while (size > pageSize && (pageSize << 1) < m_maxPageSize) { pageSize <<= 1; }
+				m_pageSize = pageSize;
+
+				if (size > pageSize)
+				{ // if the value is still too big, it will use its own page
 					page = CreateNewPage(size, Entry.ALIGNMENT);
-					m_pages.Add(page);
-
 				}
 				else
 				{ // allocate a new page and try again
-
-					page = CreateNewPage(m_pageSize, Entry.ALIGNMENT);
+					page = CreateNewPage(pageSize, Entry.ALIGNMENT);
 					m_current = page;
 				}
 
 				Contract.Assert(page != null);
 				m_pages.Add(page);
 				entry = page.TryAllocate(dataSize, sequence, previous, parent);
-				Contract.Assert(entry != null);
 			}
-			Contract.Assert(entry != null);
+			if (entry == null) throw new OutOfMemoryException(String.Format("Failed to allocate memory from the heap for value of size {0}", dataSize));
 			return entry;
 		}
 

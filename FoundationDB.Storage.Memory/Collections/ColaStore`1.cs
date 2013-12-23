@@ -1048,6 +1048,19 @@ namespace FoundationDB.Storage.Memory.Core
 			return new ColaStore.Iterator<T>(m_levels, m_count, m_comparer);
 		}
 
+		/// <summary>Pre-allocate memory in the store so that it can store a specified amount of items</summary>
+		/// <param name="minimumRequired">Number of items that will be inserted in the store</param>
+		public void EnsureCapacity(int minimumRequired)
+		{
+			int level = ColaStore.HighestBit(minimumRequired);
+			if ((1 << level) < minimumRequired) ++level;
+
+			if (level >= m_levels.Length)
+			{
+				Grow(level);
+			}		
+		}
+
 		#endregion
 
 		private void MergeCascade(int level, T[] left, T[] right)

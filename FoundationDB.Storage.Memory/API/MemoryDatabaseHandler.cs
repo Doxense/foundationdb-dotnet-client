@@ -19,6 +19,13 @@ namespace FoundationDB.Storage.Memory.API
 
 	internal class MemoryDatabaseHandler : IFdbDatabaseHandler, IDisposable
 	{
+		internal const uint MAX_KEY_SIZE = 10 * 1000;
+		internal const uint MAX_VALUE_SIZE = 100 * 1000;
+
+		internal const uint KEYHEAP_MIN_PAGESIZE = 64 * 1024;
+		internal const uint KEYHEAP_MAX_PAGESIZE = 1024 * 1024;
+		internal const uint VALUEHEAP_MIN_PAGESIZE = 1024 * 1024;
+		internal const uint VALUEHEAP_MAX_PAGESIZE = 16 * 1024 * 1024;
 
 		#region Private Members...
 
@@ -34,8 +41,8 @@ namespace FoundationDB.Storage.Memory.API
 		private static readonly ReaderWriterLockSlim m_dataLock = new ReaderWriterLockSlim();
 		private static readonly object m_heapLock = new object();
 
-		private KeyHeap m_keys = new KeyHeap(64 * 1024);
-		private ValueHeap m_values = new ValueHeap(1024 * 1024);
+		private KeyHeap m_keys = new KeyHeap(KEYHEAP_MIN_PAGESIZE, KEYHEAP_MAX_PAGESIZE);
+		private ValueHeap m_values = new ValueHeap(VALUEHEAP_MIN_PAGESIZE, VALUEHEAP_MAX_PAGESIZE);
 
 		private ColaStore<IntPtr> m_data = new ColaStore<IntPtr>(0, new NativeKeyComparer());
 		private long m_estimatedSize;
@@ -44,6 +51,14 @@ namespace FoundationDB.Storage.Memory.API
 		private LinkedList<TransactionWindow> m_transactionWindows = new LinkedList<TransactionWindow>();
 		/// <summary>Last transaction window</summary>
 		private TransactionWindow m_currentWindow;
+
+		// note: all scratch buffers should have a size larger than 80KB, so that they to the LOH
+		/// <summary>Pool of builders uses by read operations from transactions (concurrent)</summary>
+		private UnmanagedSliceBuilderPool m_scratchPool = new UnmanagedSliceBuilderPool(128 * 1024, 64);
+		/// <summary>Scratch use to format keys when committing (single writer)</summary>
+		private UnmanagedSliceBuilder m_scratchKey = new UnmanagedSliceBuilder(128 * 1024);
+		/// <summary>Scratch use to hold values when committing (single writer)</summary>
+		private UnmanagedSliceBuilder m_scratchValue = new UnmanagedSliceBuilder(128 * 1024);
 
 		#endregion
 
@@ -144,9 +159,6 @@ namespace FoundationDB.Storage.Memory.API
 			// commit version created by this transaction (if it writes something)
 			ulong committedSequence = 0;
 
-			UnmanagedSliceBuilder scratchKey = null;
-			UnmanagedSliceBuilder scratchValue = null;
-
 			//Debug.WriteLine("Comitting transaction created at readVersion " + readVersion + " ...");
 
 			bool hasReadConflictRanges = readConflicts != null && readConflicts.Count > 0;
@@ -159,9 +171,6 @@ namespace FoundationDB.Storage.Memory.API
 			m_dataLock.EnterUpgradeableReadLock();
 			try
 			{
-				scratchKey = new UnmanagedSliceBuilder();
-				scratchValue = new UnmanagedSliceBuilder();
-
 				TransactionWindow window;
 
 				if (!isReadOnlyTransaction)
@@ -237,7 +246,8 @@ namespace FoundationDB.Storage.Memory.API
 							// For both case, we will do a lookup in the db to get the previous value and location
 
 							// create the lookup key
-							USlice lookupKey = PackUserKey(scratchKey, write.Key);
+							m_scratchKey.Clear();
+							USlice lookupKey = PackUserKey(m_scratchKey, write.Key);
 
 							IntPtr previous;
 							int offset, level = m_data.Find(lookupKey.GetPointer(), out offset, out previous);
@@ -254,7 +264,7 @@ namespace FoundationDB.Storage.Memory.API
 
 								if (op.Type == MemoryTransactionHandler.Operation.Set)
 								{
-									scratchValue.Set(op.Value);
+									m_scratchValue.Set(op.Value);
 									hasTmpData = true;
 									valueMutated = true;
 									continue;
@@ -263,18 +273,18 @@ namespace FoundationDB.Storage.Memory.API
 								// apply the atomic operation to the previous value
 								if (!hasTmpData)
 								{
-									scratchValue.Clear();
+									m_scratchValue.Clear();
 									if (key != null)
 									{ // grab the current value of this key
 
 										Value* p = key->Values;
 										if ((p->Header & Value.FLAGS_DELETION) == 0)
 										{
-											scratchValue.Append(&(p->Data), p->Size);
+											m_scratchValue.Append(&(p->Data), p->Size);
 										}
 										else
 										{
-											scratchValue.Clear();
+											m_scratchValue.Clear();
 											currentIsDeleted = true;
 										}
 									}
@@ -285,25 +295,25 @@ namespace FoundationDB.Storage.Memory.API
 								{
 									case MemoryTransactionHandler.Operation.AtomicAdd:
 									{
-										op.ApplyAddTo(scratchValue);
+										op.ApplyAddTo(m_scratchValue);
 										valueMutated = true;
 										break;
 									}
 									case MemoryTransactionHandler.Operation.AtomicBitAnd:
 									{
-										op.ApplyBitAndTo(scratchValue);
+										op.ApplyBitAndTo(m_scratchValue);
 										valueMutated = true;
 										break;
 									}
 									case MemoryTransactionHandler.Operation.AtomicBitOr:
 									{
-										op.ApplyBitOrTo(scratchValue);
+										op.ApplyBitOrTo(m_scratchValue);
 										valueMutated = true;
 										break;
 									}
 									case MemoryTransactionHandler.Operation.AtomicBitXor:
 									{
-										op.ApplyBitXorTo(scratchValue);
+										op.ApplyBitXorTo(m_scratchValue);
 										valueMutated = true;
 										break;
 									}
@@ -319,10 +329,10 @@ namespace FoundationDB.Storage.Memory.API
 
 								lock (m_heapLock)
 								{
-									value = m_values.Allocate(scratchValue.Count, committedSequence, key != null ? key->Values : null, null);
+									value = m_values.Allocate(m_scratchValue.Count, committedSequence, key != null ? key->Values : null, null);
 								}
 								Contract.Assert(value != null);
-								scratchValue.CopyTo(&(value->Data));
+								m_scratchValue.CopyTo(&(value->Data));
 								Interlocked.Add(ref m_estimatedSize, value->Size);
 
 								if (key != null)
@@ -409,8 +419,6 @@ namespace FoundationDB.Storage.Memory.API
 			finally
 			{
 				m_dataLock.ExitUpgradeableReadLock();
-				if (scratchValue != null) scratchValue.Dispose();
-				if (scratchKey != null) scratchKey.Dispose();
 			}
 
 			var version = isReadOnlyTransaction ? -1L : (long)committedSequence;
@@ -521,9 +529,9 @@ namespace FoundationDB.Storage.Memory.API
 				EnsureReadVersionNotInTheFuture_NeedsLocking(sequence);
 
 				// create a lookup key
-				using (var scratch = new UnmanagedSliceBuilder())
+				using (var scratch = m_scratchPool.Use())
 				{
-					var lookupKey = PackUserKey(scratch, userKey);
+					var lookupKey = PackUserKey(scratch.Builder, userKey);
 
 					USlice value;
 					if (!TryGetValueAtVersion(lookupKey, sequence, out value))
@@ -560,13 +568,13 @@ namespace FoundationDB.Storage.Memory.API
 
 				var buffer = new SliceBuffer();
 
-				using(var scratch = new UnmanagedSliceBuilder())
+				using(var scratch = m_scratchPool.Use())
 				{
 
 					for (int i = 0; i < userKeys.Length; i++)
 					{
 						// create a lookup key
-						var lookupKey = PackUserKey(scratch, userKeys[i]);
+						var lookupKey = PackUserKey(scratch.Builder, userKeys[i]);
 
 						USlice value;
 						if (!TryGetValueAtVersion(lookupKey, sequence, out value))
@@ -703,9 +711,9 @@ namespace FoundationDB.Storage.Memory.API
 
 				// TODO: convert all selectors to a FirstGreaterThan ?
 
-				using (var scratch = new UnmanagedSliceBuilder())
+				using (var scratch = m_scratchPool.Use())
 				{
-					var lookupKey = PackUserKey(scratch, selector.Key);
+					var lookupKey = PackUserKey(scratch.Builder, selector.Key);
 
 					var iterator = ResolveCursor(lookupKey, selector.OrEqual, selector.Offset, sequence);
 					Contract.Assert(iterator != null);
@@ -757,14 +765,14 @@ namespace FoundationDB.Storage.Memory.API
 				// TODO: convert all selectors to a FirstGreaterThan ?
 				var buffer = new SliceBuffer();
 
-				using (var scratch = new UnmanagedSliceBuilder())
+				using (var scratch = m_scratchPool.Use())
 				{
 
 					for (int i = 0; i < selectors.Length; i++)
 					{
 						var selector = selectors[i];
 
-						var lookupKey = PackUserKey(scratch, selector.Key);
+						var lookupKey = PackUserKey(scratch.Builder, selector.Key);
 
 						var iterator = ResolveCursor(lookupKey, selector.OrEqual, selector.Offset, sequence);
 						Contract.Assert(iterator != null);
@@ -835,14 +843,14 @@ namespace FoundationDB.Storage.Memory.API
 				if (!reverse)
 				{ // forward range read: we read from beginKey, and stop once we reach a key >= endKey
 
-					using (var scratch = new UnmanagedSliceBuilder())
+					using (var scratch = m_scratchPool.Use())
 					{
 						// first resolve the end to get the stop point
-						iterator = ResolveCursor(PackUserKey(scratch, end.Key), end.OrEqual, end.Offset, sequence);
+						iterator = ResolveCursor(PackUserKey(scratch.Builder, end.Key), end.OrEqual, end.Offset, sequence);
 						stopKey = iterator.Current; // note: can be ZERO !
 
 						// now, set the cursor to the begin of the range
-						iterator = ResolveCursor(PackUserKey(scratch, begin.Key), begin.OrEqual, begin.Offset, sequence);
+						iterator = ResolveCursor(PackUserKey(scratch.Builder, begin.Key), begin.OrEqual, begin.Offset, sequence);
 						if (iterator.Current == IntPtr.Zero) iterator.SeekFirst();
 					}
 
@@ -877,10 +885,10 @@ namespace FoundationDB.Storage.Memory.API
 				else
 				{ // reverse range read: we start from the key before endKey, and stop once we read a key < beginKey
 
-					using (var scratch = new UnmanagedSliceBuilder())
+					using (var scratch = m_scratchPool.Use())
 					{
 						// first resolve the begin to get the stop point
-						iterator = ResolveCursor(PackUserKey(scratch, begin.Key), begin.OrEqual, begin.Offset, sequence);
+						iterator = ResolveCursor(PackUserKey(scratch.Builder, begin.Key), begin.OrEqual, begin.Offset, sequence);
 						DumpKey("resolved(" + begin + ")", iterator.Current);
 						if (iterator.Current == IntPtr.Zero) iterator.SeekFirst();
 						stopKey = iterator.Current; // note: can be ZERO !
@@ -888,7 +896,7 @@ namespace FoundationDB.Storage.Memory.API
 						DumpKey("stopKey", stopKey);
 
 						// now, set the cursor to the end of the range
-						iterator = ResolveCursor(PackUserKey(scratch, end.Key), end.OrEqual, end.Offset, sequence);
+						iterator = ResolveCursor(PackUserKey(scratch.Builder, end.Key), end.OrEqual, end.Offset, sequence);
 						DumpKey("resolved(" + end + ")", iterator.Current);
 						if (iterator.Current == IntPtr.Zero) iterator.SeekLast();
 						DumpKey("endKey", iterator.Current);
@@ -1012,13 +1020,20 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				m_disposed = true;
 
+				//TODO: need to lock and ensure that all pending transactions are done
+
 				if (m_keys != null) m_keys.Dispose();
 				if (m_values != null) m_values.Dispose();
-				foreach(var window in m_transactionWindows)
+				if (m_transactionWindows != null)
 				{
-					if (window != null) window.Dispose();
+					foreach (var window in m_transactionWindows)
+					{
+						if (window != null) window.Dispose();
+					}
 				}
-				//TODO?
+				if (m_scratchPool != null) m_scratchPool.Dispose();
+				m_scratchKey.Dispose();
+				m_scratchValue.Dispose();
 			}
 		}
 
@@ -1048,18 +1063,10 @@ namespace FoundationDB.Storage.Memory.API
 				//Trace.WriteLine(String.Format("> Values: {0} bytes in {1} pages", m_values.MemoryUsage.ToString("N0"), m_values.PageCount.ToString("N0")));
 				lock (m_heapLock)
 				{
-					if (detailed)
-					{
-						//m_keys.Gen0.Dump(detailed: false);
-						//m_values.Gen0.Dump(detailed: false);
-					}
-					//m_keys.Gen0.DumpToDisk("keys.bin");
-					//m_values.Gen0.DumpToDisk("values.bin");
-
 					unsafe
 					{
-						m_keys.Debug_Dump();
-						m_values.Debug_Dump();
+						m_keys.Debug_Dump(detailed);
+						m_values.Debug_Dump(detailed);
 					}
 				}
 

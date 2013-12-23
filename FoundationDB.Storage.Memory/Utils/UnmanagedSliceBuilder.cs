@@ -9,20 +9,25 @@ namespace FoundationDB.Storage.Memory.Utils
 	using System.Diagnostics;
 	using System.Diagnostics.Contracts;
 	using System.Runtime.InteropServices;
-	using System.Threading;
 
-	/// <summary>Slice builder backed by a buffer stored in unmanaged memory</summary>
+	/// <summary>Unmanaged slice builder backed by a pinned managed buffer</summary>
+	/// <remarks>This class is not thread-safe.</remarks>
 	[DebuggerDisplay("Count={m_count}, Capacity={m_capacity}"), DebuggerTypeProxy(typeof(UnmanagedSliceBuilder.DebugView))]
 	public unsafe sealed class UnmanagedSliceBuilder : IDisposable
 	{
+		private static readonly byte[] s_empty = new byte[0];
+
 		//TODO: define a good default value for this.
 		public const uint DEFAULT_CAPACITY = 1024;
 
+		/// <summary>Managed buffer used to store the values</summary>
+		private byte[] m_buffer;
+		/// <summary>Pinned address of the buffer</summary>
 		private byte* m_data;
+		/// <summary>Number of bytes currently written to the buffer</summary>
 		private uint m_count;
-		private uint m_capacity;
-		private IntPtr m_handle;
-		private bool m_disposed;
+		/// <summary>GC handle used to pin the managed buffer</summary>
+		private GCHandle m_handle;
 
 		#region Constuctors...
 
@@ -32,7 +37,11 @@ namespace FoundationDB.Storage.Memory.Utils
 
 		public UnmanagedSliceBuilder(uint capacity)
 		{
-			if (capacity > 0)
+			if (capacity == 0)
+			{
+				m_buffer = s_empty;
+			}
+			else
 			{
 				GrowBuffer(capacity);
 			}
@@ -67,11 +76,15 @@ namespace FoundationDB.Storage.Memory.Utils
 
 		public UnmanagedSliceBuilder(byte* data, uint size)
 		{
-			Contract.Requires(size == 0 || data != null);
-			if (size > 0)
+			if (data == null && size != 0) throw new ArgumentNullException("data");
+			if (size == 0)
+			{
+				m_buffer = s_empty;
+			}
+			else
 			{
 				GrowBuffer(size);
-				UnmanagedHelpers.CopyUnsafe(this.Data + this.Count, data, size);
+				UnmanagedHelpers.CopyUnsafe(m_data, data, size);
 				m_count = size;
 			}
 		}
@@ -85,10 +98,10 @@ namespace FoundationDB.Storage.Memory.Utils
 
 		#region Public Properties...
 
-		/// <summary>Gets a handle on the memory allocated for this buffer</summary>
-		internal IntPtr Buffer
+		/// <summary>Gets the managed buffer</summary>
+		public byte[] Buffer
 		{
-			get { return m_handle; }
+			get { return m_buffer; }
 		}
 
 		/// <summary>Gets a pointer to the first byte in the buffer</summary>
@@ -112,7 +125,7 @@ namespace FoundationDB.Storage.Memory.Utils
 		/// <summary>Gets the current capacity of the buffer</summary>
 		public uint Capacity
 		{
-			get { return m_capacity; }
+			get { return m_buffer == null ? 0U : (uint)m_buffer.Length; }
 		}
 
 		/// <summary>Gets or sets the byte at the specified offset</summary>
@@ -140,39 +153,51 @@ namespace FoundationDB.Storage.Memory.Utils
 		/// <remarks>The buffer may be resize to more than <paramref name="required"/></remarks>
 		private void GrowBuffer(uint required)
 		{
-			if (m_handle == IntPtr.Zero)
+			try
+			{ }
+			finally
 			{
-				uint newsize = UnmanagedHelpers.NextPowerOfTwo(Math.Max(required, DEFAULT_CAPACITY));
-				var buf = Marshal.AllocHGlobal(new IntPtr(newsize));
-				if (buf == IntPtr.Zero) throw new OutOfMemoryException();
-				m_handle = buf;
-				m_data = (byte*)buf.ToPointer();
-				m_count = 0;
-				m_capacity = newsize;
+				if (!m_handle.IsAllocated)
+				{ // initial allocation of the buffer
+					uint newsize = UnmanagedHelpers.NextPowerOfTwo(Math.Max(required, DEFAULT_CAPACITY));
+					var buffer = new byte[newsize];
+					m_buffer = buffer;
+					m_count = 0;
+				}
+				else
+				{ // resize an existing buffer
+					uint newsize = (uint)m_buffer.Length;
+					newsize = UnmanagedHelpers.NextPowerOfTwo(Math.Max(required, newsize << 1));
+					if (newsize > int.MaxValue)
+					{ // cannot alloc more than 2GB in managed code! 
+						newsize = int.MaxValue;
+						if (newsize < required) throw new OutOfMemoryException("Cannot grow slice builder above 2GB");
+					}
+					// temporary release the handle
+					m_data = null;
+					m_handle.Free();
+					// resize to the new capacity, and re-pin
+					Array.Resize(ref m_buffer, (int)newsize);
+				}
+				m_handle = GCHandle.Alloc(m_buffer, GCHandleType.Pinned);
+				m_data = (byte*)m_handle.AddrOfPinnedObject().ToPointer();
 			}
-			else
-			{
-				uint newsize = UnmanagedHelpers.NextPowerOfTwo(Math.Max(required, m_capacity << 1));
-				var buf = Marshal.ReAllocHGlobal(m_handle, new IntPtr(newsize));
-				if (m_handle == IntPtr.Zero) throw new OutOfMemoryException();
-				m_handle = buf;
-				m_data = (byte*)buf.ToPointer();
-				m_capacity = newsize;
-			}
+			Contract.Ensures(m_buffer != null && m_handle.IsAllocated && m_data != null && m_count >= 0 && m_count <= m_buffer.Length, "GrowBuffer corruption");
 		}
 
 		public void Clear()
 		{
-			if (m_disposed) ThrowAlreadyDisposed();
+			if (m_buffer == null) ThrowAlreadyDisposed();
 			m_count = 0;
 		}
 
 		private byte* AllocateInternal(uint size, bool zeroed)
 		{
-			if (m_disposed) ThrowAlreadyDisposed();
-			Contract.Requires(size != 0);
+			if (m_buffer == null) ThrowAlreadyDisposed();
+			Contract.Requires(size != 0, "size == 0");
 
-			uint remaining = m_capacity - m_count;
+			Contract.Assert(m_buffer != null && m_count <= m_buffer.Length, "Builder is corrupted");
+			uint remaining = checked(((uint)m_buffer.Length) - m_count);
 			if (remaining < size)
 			{
 				GrowBuffer(m_count + size);
@@ -197,7 +222,7 @@ namespace FoundationDB.Storage.Memory.Utils
 			if (source == null) ThrowInvalidSource();
 
 			byte* ptr = AllocateInternal(size, zeroed: false);
-			Contract.Assert(ptr != null);
+			Contract.Assert(ptr != null, "AllocateInternal() => null");
 			UnmanagedHelpers.CopyUnsafe(ptr, source, size);
 		}
 
@@ -213,12 +238,14 @@ namespace FoundationDB.Storage.Memory.Utils
 
 		public void Append(Slice source)
 		{
-			if (source.Count == 0) return;
-			if (source.Array == null || source.Offset < 0 || source.Count < 0) ThrowInvalidSource();
+			if (source.Count > 0)
+			{
+				if (source.Array == null || source.Offset < 0) ThrowInvalidSource();
 
-			var ptr = AllocateInternal((uint)source.Count, zeroed: false);
-			Contract.Assert(ptr != null);
-			UnmanagedHelpers.CopyUnsafe(ptr, source);
+				var ptr = AllocateInternal((uint)source.Count, zeroed: false);
+				Contract.Assert(ptr != null, "AllocateInternal() => null");
+				UnmanagedHelpers.CopyUnsafe(ptr, source);
+			}
 		}
 
 		public void Set(USlice source)
@@ -249,17 +276,18 @@ namespace FoundationDB.Storage.Memory.Utils
 
 		public void Resize(uint newSize, byte filler)
 		{
+			if (m_buffer == null) ThrowAlreadyDisposed();
 			if (newSize <= m_count)
 			{
 				m_count = newSize;
 			}
 			else
 			{
-				if (newSize > m_capacity) GrowBuffer(newSize);
+				if (newSize > m_buffer.Length) GrowBuffer(newSize);
 
 				// fill the extra space with zeroes
 				uint pos = m_count;
-				uint r = m_capacity - newSize;
+				uint r = checked((uint)m_buffer.Length - newSize);
 				if (r > 0)
 				{
 					UnmanagedHelpers.FillUnsafe(this.Data + pos, r, 0);
@@ -271,75 +299,103 @@ namespace FoundationDB.Storage.Memory.Utils
 		public void Swap(UnmanagedSliceBuilder other)
 		{
 			if (other == null) throw new ArgumentNullException("other");
-			if (m_disposed || other.m_disposed) ThrowAlreadyDisposed();
+			if (m_buffer == null || other.m_buffer == null) ThrowAlreadyDisposed();
 
-			var buf = other.m_handle;
-			var sz = other.m_count;
-			var cap = other.m_capacity;
+			try
+			{ }
+			finally
+			{
+				var handle = other.m_handle;
+				var buffer = other.m_buffer;
+				var data = other.m_data;
+				var sz = other.m_count;
 
-			other.m_handle = m_handle;
-			other.m_data = (byte*)buf.ToPointer();
-			other.m_count = m_count;
-			other.m_capacity = m_capacity;
+				other.m_handle = m_handle;
+				other.m_buffer = buffer;
+				other.m_data = m_data;
+				other.m_count = m_count;
 
-			m_handle = buf;
-			m_data = (byte*)buf.ToPointer();
-			m_count = sz;
-			m_capacity = cap;
+				m_handle = handle;
+				m_buffer = buffer;
+				m_data = data;
+				m_count = sz;
+			}
+		}
+
+		/// <summary>Gets the current content of the buffer as a managed slice</summary>
+		/// <returns>Slice that points to the content of the buffer.</returns>
+		/// <remarks>Caution: do NOT use the returned slice after the buffer has been changed (it can get relocated during a resize)</remarks>
+		public Slice ToSlice()
+		{
+			if (m_buffer == null) ThrowAlreadyDisposed();
+			return m_count > 0 ? Slice.Create(m_buffer, 0, (int)m_count) : default(Slice);
 		}
 
 		/// <summary>Gets the current content of the buffer as an unmanaged slice</summary>
-		/// <returns>Slice that points the content of the buffer.</returns>
+		/// <returns>Slice that points to the content of the buffer.</returns>
 		/// <remarks>Caution: do NOT use the returned slice after the buffer has been changed (it can get relocated during a resize)</remarks>
 		public USlice ToUSlice()
 		{
-			if (m_disposed) ThrowAlreadyDisposed();
-
-			if (this.Count == 0) return default(USlice);
-			return new USlice(this.Data, this.Count);
+			if (m_buffer == null) ThrowAlreadyDisposed();
+			return m_count > 0 ? new USlice(m_data, m_count) : default(USlice);
 		}
 
+		/// <summary>Gets the a segment of the buffer as an unmanaged slice</summary>
+		/// <param name="count">Number of bytes (from the start) to return</param>
+		/// <returns>Slice that points to the specified segment of the buffer.</returns>
+		/// <remarks>Caution: do NOT use the returned slice after the buffer has been changed (it can get relocated during a resize)</remarks>
 		public USlice ToUSlice(uint count)
 		{
-			if (m_disposed) ThrowAlreadyDisposed();
-			if (count == 0) return default(USlice);
-			if (count > this.Count) throw new ArgumentOutOfRangeException("count");
-
-			return new USlice(this.Data, count);
+			return ToUSlice(0, count);
 		}
 
+		/// <summary>Gets the a segment of the buffer as an unmanaged slice</summary>
+		/// <param name="offset">Offset from the start of the buffer</param>
+		/// <param name="count">Number of bytes to return</param>
+		/// <returns>Slice that points to the specified segment of the buffer.</returns>
+		/// <remarks>Caution: do NOT use the returned slice after the buffer has been changed (it can get relocated during a resize)</remarks>
 		public USlice ToUSlice(uint offset, uint count)
 		{
-			if (m_disposed) ThrowAlreadyDisposed();
-			if (offset > this.Count) throw new ArgumentOutOfRangeException("offset");
+			if (m_buffer == null) ThrowAlreadyDisposed();
+			if (offset > m_count) throw new ArgumentOutOfRangeException("offset");
 			if (count == 0) return default(USlice);
-			if (offset + count > this.Count) throw new ArgumentOutOfRangeException("count");
+			if (offset + count > m_count) throw new ArgumentOutOfRangeException("count");
 
-			return new USlice(this.Data + offset, count);
+			return new USlice(m_data + offset, count);
 		}
 
+		/// <summary>Copy the content of the buffer to an unmanaged pointer, and return the corresponding slice</summary>
+		/// <param name="dest">Destination pointer where the buffer will be copied. Caution: the destination buffer must be large enough!</param>
+		/// <returns>Slice that points to the copied segment in the destination buffer</returns>
 		internal USlice CopyTo(byte* dest)
 		{
-			if (m_disposed) ThrowAlreadyDisposed();
+			return CopyTo(dest, m_count);
+		}
 
-			if (m_count > 0)
-			{
-				UnmanagedHelpers.CopyUnsafe(dest, this.Data, m_count);
-				return new USlice(dest, m_count);
-			}
-			return default(USlice);
+		/// <summary>Copy a segment of the buffer to an unmanaged pointer, and return the corresponding slice</summary>
+		/// <param name="count">Number of bytes to copy</param>
+		/// <param name="dest">Destination pointer where the buffer will be copied. Caution: the destination buffer must be large enough!</param>
+		/// <returns>Slice that points to the copied segment in the destination buffer</returns>
+		internal USlice CopyTo(byte* dest, uint count)
+		{
+			if (m_buffer == null) ThrowAlreadyDisposed();
+			if (count == 0) return default(USlice);
+			if (count > m_count) throw new ArgumentOutOfRangeException("count");
+
+			UnmanagedHelpers.CopyUnsafe(dest, m_data, count);
+			return new USlice(dest, count);
 		}
 
 		public byte[] GetBytes()
 		{
-			if (m_disposed) ThrowAlreadyDisposed();
+			if (m_buffer == null) ThrowAlreadyDisposed();
 
 			var tmp = new byte[m_count];
-			if (this.Count >= 0)
+			if (m_count >= 0)
 			{
 				fixed (byte* ptr = tmp)
 				{
-					UnmanagedHelpers.CopyUnsafe(ptr, this.Data, m_count);
+					UnmanagedHelpers.CopyUnsafe(ptr, m_data, m_count);
 				}
 			}
 			return tmp;
@@ -368,18 +424,17 @@ namespace FoundationDB.Storage.Memory.Utils
 
 		private void Dispose(bool disposing)
 		{
-			if (!m_disposed)
+			if (disposing)
 			{
-				m_disposed = true;
-				if (m_handle != IntPtr.Zero)
+				if (m_handle.IsAllocated)
 				{
-					Marshal.FreeHGlobal(m_handle);
+					m_handle.Free();
 				}
+
 			}
-			m_handle = IntPtr.Zero;
 			m_data = null;
+			m_buffer = null;
 			m_count = 0;
-			m_capacity = 0;
 		}
 
 		private sealed class DebugView
@@ -395,8 +450,12 @@ namespace FoundationDB.Storage.Memory.Utils
 			{
 				get
 				{
-					if (m_builder.m_disposed || m_builder.m_count == 0) return null;
-					return m_builder.GetBytes();
+					if (m_builder.m_count == 0) return s_empty;
+					var buffer = m_builder.m_buffer;
+					if (buffer == null) return null;
+					var tmp = new byte[m_builder.Count];
+					System.Buffer.BlockCopy(m_builder.m_buffer, 0, tmp, 0, tmp.Length);
+					return tmp;
 				}
 			}
 
@@ -407,7 +466,7 @@ namespace FoundationDB.Storage.Memory.Utils
 
 			public uint Capacity
 			{
-				get { return m_builder.m_capacity; }
+				get { return m_builder.m_buffer == null ? 0U : (uint)m_builder.m_buffer.Length; }
 			}
 
 		}

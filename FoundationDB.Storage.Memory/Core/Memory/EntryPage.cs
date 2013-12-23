@@ -11,7 +11,7 @@ namespace FoundationDB.Storage.Memory.Core
 	using System.Threading;
 
 	/// <summary>Base implementation of a page of memory that can store items of the same type</summary>
-	[DebuggerDisplay("Start={m_start}, Current={m_current}, Count={m_count}, Capacity={m_capacity}")]
+	[DebuggerDisplay("Start={m_start}, Current={m_current}, Entries={m_count}, Usage={(m_current-m_start)} / {m_capacity}")]
 	internal unsafe abstract class EntryPage : IDisposable
 	{
 		/// <summary>Pointer to the next free slot in the page</summary>
@@ -36,8 +36,12 @@ namespace FoundationDB.Storage.Memory.Core
 			m_start = (byte*) handle.DangerousGetHandle().ToPointer();
 			m_end = m_start + capacity;
 			m_current = m_start;
-
 			CheckInvariants();
+		}
+
+		~EntryPage()
+		{
+			Dispose(false);
 		}
 
 		[Conditional("DEBUG")]
@@ -74,6 +78,7 @@ namespace FoundationDB.Storage.Memory.Core
 					if (handle != null && !handle.IsClosed)
 					{
 						m_handle.Close();
+						GC.RemoveMemoryPressure(m_capacity);
 					}
 				}
 			}
@@ -161,7 +166,7 @@ namespace FoundationDB.Storage.Memory.Core
 		}
 
 		[Conditional("DEBUG")]
-		public abstract void Debug_Dump();
+		public abstract void Debug_Dump(bool detailed);
 	}
 
 }

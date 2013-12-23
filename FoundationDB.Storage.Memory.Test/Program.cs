@@ -13,6 +13,8 @@ namespace FoundationDB.Storage.Memory
 
 		public static void Main()
 		{
+			Console.WriteLine(IntPtr.Size == 4 ? "Running in 32-bit mode" : "Running in 64-bit mode");
+
 			//new ColaStoreFacts().Test_MiniBench();
 			//new ColaOrderedSetFacts().Test_MiniBench();
 			//new ColaOrderedDictionaryFacts().Test_MiniBench();

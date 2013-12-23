@@ -41,7 +41,7 @@ namespace FoundationDB.Storage.Memory.Utils
 		public static SafeLocalAllocHandle AllocMemory(uint size)
 		{
 			var handle = NativeMethods.LocalAlloc(0, new UIntPtr(size));
-			if (handle.IsInvalid) throw new OutOfMemoryException();
+			if (handle.IsInvalid) throw new OutOfMemoryException(String.Format("Failed to allocate from unmanaged memory ({0} bytes)", size));
 			return handle;
 		}
 
