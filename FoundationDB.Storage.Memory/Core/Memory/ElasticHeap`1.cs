@@ -116,7 +116,7 @@ namespace FoundationDB.Storage.Memory.Core
 		[Conditional("DEBUG")]
 		public void Debug_Dump(bool detailed)
 		{
-			Console.WriteLine("# Dumping " + this.GetType().Name + " heap (" + m_pages.Count + " pages)");
+			Debug.WriteLine("# Dumping " + this.GetType().Name + " heap (" + m_pages.Count + " pages)");
 			foreach(var page in m_pages)
 			{
 				page.Debug_Dump(detailed);

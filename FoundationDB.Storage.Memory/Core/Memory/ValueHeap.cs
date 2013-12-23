@@ -182,7 +182,7 @@ namespace FoundationDB.Storage.Memory.Core
 			{
 				uint size = dataSize + Value.SizeOf;
 
-				var pageSize = Math.Max(Math.Min(m_pageSize << 1, m_minPageSize), m_maxPageSize);
+				var pageSize = Math.Min(Math.Max(m_pageSize << 1, m_minPageSize), m_maxPageSize);
 
 				// if the value is larger than current page size, but we haven't yet reach the max, make it larger...
 				while (size > pageSize && (pageSize << 1) < m_maxPageSize) { pageSize <<= 1; }

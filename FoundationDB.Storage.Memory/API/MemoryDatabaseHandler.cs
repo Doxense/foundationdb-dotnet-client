@@ -23,8 +23,8 @@ namespace FoundationDB.Storage.Memory.API
 		internal const uint MAX_VALUE_SIZE = 100 * 1000;
 
 		internal const uint KEYHEAP_MIN_PAGESIZE = 64 * 1024;
-		internal const uint KEYHEAP_MAX_PAGESIZE = 1024 * 1024;
-		internal const uint VALUEHEAP_MIN_PAGESIZE = 1024 * 1024;
+		internal const uint KEYHEAP_MAX_PAGESIZE = 4 * 1024 * 1024;
+		internal const uint VALUEHEAP_MIN_PAGESIZE = 256 * 1024;
 		internal const uint VALUEHEAP_MAX_PAGESIZE = 16 * 1024 * 1024;
 
 		#region Private Members...
@@ -1216,22 +1216,19 @@ namespace FoundationDB.Storage.Memory.API
 		[Conditional("DEBUG")]
 		public void Debug_Dump(bool detailed = false)
 		{
-			Trace.WriteLine("Dumping content of Database");
+			Debug.WriteLine("Dumping content of Database");
 			m_dataLock.EnterReadLock();
 			try
 			{
-				Trace.WriteLine("> Version: " + m_currentVersion);
-				Trace.WriteLine("> Estimated size: " + m_estimatedSize.ToString("N0") + " bytes");
-				//Trace.WriteLine("> Content: {0} keys", m_data.Count.ToString("N0"));
-
-				Trace.WriteLine("> Transaction windows: " + m_transactionWindows.Count);
+				Debug.WriteLine("> Version: " + m_currentVersion);
+				Debug.WriteLine("> Items: " + m_data.Count.ToString("N0"));
+				Debug.WriteLine("> Estimated size: " + m_estimatedSize.ToString("N0") + " bytes");
+				Debug.WriteLine("> Transaction windows: " + m_transactionWindows.Count);
 				foreach(var window in m_transactionWindows)
 				{
-					Trace.WriteLine("  > " + window.ToString() + ": " + window.CommitCount + " commits" + (window.Closed ? " [CLOSED]" : ""));
+					Debug.WriteLine("  > " + window.ToString() + ": " + window.CommitCount.ToString("N0") + " commits" + (window.Closed ? " [CLOSED]" : ""));
 				}
 
-				//Trace.WriteLine(String.Format("> Keys: {0} bytes in {1} pages", m_keys.Gen0.MemoryUsage.ToString("N0"), m_keys.Gen0.PageCount.ToString("N0")));
-				//Trace.WriteLine(String.Format("> Values: {0} bytes in {1} pages", m_values.MemoryUsage.ToString("N0"), m_values.PageCount.ToString("N0")));
 				lock (m_heapLock)
 				{
 					unsafe
@@ -1240,27 +1237,7 @@ namespace FoundationDB.Storage.Memory.API
 						m_values.Debug_Dump(detailed);
 					}
 				}
-
-#if false || FULLDEBUG
-#if false
-				int p = 0;
-				foreach (var kvp in m_data.IterateUnordered())
-				{
-					DumpKey((p++).ToString(), kvp);
-				}
-#endif
-				Trace.WriteLine("> Storage:");
-				m_data.Debug_Dump((userKey) =>
-				{
-					if (userKey == IntPtr.Zero) return "<null>";
-					unsafe
-					{
-						Key* key = (Key*)userKey.ToPointer();
-						return FdbKey.Dump(new USlice(&(key->Data), key->Size).ToSlice());
-					}
-				});
-#endif
-				Trace.WriteLine("");
+				Debug.WriteLine("");
 			}
 			finally
 			{
