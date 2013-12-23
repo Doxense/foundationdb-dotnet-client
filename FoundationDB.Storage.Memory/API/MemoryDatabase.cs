@@ -70,6 +70,13 @@ namespace FoundationDB.Storage.Memory.API
 			return m_handler.BulkLoadAsync(coll, ordered, cancellationToken);
 		}
 
+		public Task SaveSnapshotAsync(string path, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (path == null) throw new ArgumentNullException("path");
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+
+			return m_handler.SaveSnapshotAsync(path, cancellationToken);
+		}
 	}
 
 }

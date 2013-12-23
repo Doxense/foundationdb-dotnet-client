@@ -46,6 +46,7 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IO\Win32SnapshotFile.cs" />
     <Compile Include="Core\Value.cs" />
     <Compile Include="API\MemoryClusterHandler.cs" />
     <Compile Include="Core\Key.cs" />

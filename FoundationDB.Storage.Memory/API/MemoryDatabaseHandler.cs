@@ -1060,6 +1060,99 @@ namespace FoundationDB.Storage.Memory.API
 			return (ulong)Volatile.Read(ref m_currentVersion);
 		}
 
+		internal async Task<long> SaveSnapshotAsync(string path, CancellationToken cancellationToken)
+		{
+			if (string.IsNullOrWhiteSpace(path)) throw new ArgumentNullException("path");
+			cancellationToken.ThrowIfCancellationRequested();
+
+			// take the current version of the db (that will be used for the snapshot)
+			ulong sequence = (ulong)Volatile.Read(ref m_currentVersion);
+			int count = m_data.Count;
+
+			const int FLUSH_SIZE = 1 * 1024 * 1024;
+
+			var writer = new SliceWriter(FLUSH_SIZE);
+			using (var snapshot = new Win32SnapshotFile(path))
+			{
+				// Header (4K)
+				//Console.WriteLine("> Writing header...");
+				writer.WriteFixed32(0x42444E50);						// "PNDB"
+				writer.WriteFixed32(0x00010000);						// v1.0
+				writer.WriteBytes(new Uuid(m_uid).ToByteArray());		// Database ID
+				writer.WriteFixed64(sequence);							// Database Version
+				writer.WriteFixed64((ulong)count);						// Number of items in the database
+				writer.WriteFixed64((ulong)DateTime.UtcNow.Ticks);		// date
+				// the rest is ZEROed
+
+				int levels = m_data.Depth;
+				//Console.WriteLine("> Dumping " + levels + " levels...");
+				for (int level = levels - 1; level >= 0; level--)
+				{
+					if (ColaStore.IsFree(level, count))
+					{ // this level is not allocated
+						//Console.WriteLine("> Skipping empty level " + level);
+						continue;
+					}
+
+					cancellationToken.ThrowIfCancellationRequested();
+
+					//Console.WriteLine("> Writing level " + level);
+					var segment = m_data.GetLevel(level);
+
+					writer.WriteFixed32(0x204C564C);				// "LVL_"
+					writer.WriteFixed32((uint)level);				// Level ID
+					writer.WriteFixed32((uint)segment.Length);		// Item count (always 2^level)
+
+					for (int i = 0; i < segment.Length; i++)
+					{
+						unsafe
+						{
+							Value* value = MemoryDatabaseHandler.ResolveValueAtVersion(segment[i], sequence);
+							if (value == null)
+							{
+								continue;
+							}
+							Key* key = (Key*)segment[i].ToPointer();
+							Contract.Assert(key != null && key->Size <= int.MaxValue);
+
+							// Key Size
+							uint size = key->Size;
+							writer.WriteVarint32(size);
+							writer.WriteBytesUnsafe(&(key->Data), (int)size);
+
+							// Value Size
+							size = value->Size;
+							if (size == 0)
+							{
+								writer.WriteByte(0);
+							}
+							else
+							{
+								writer.WriteVarint32(size);
+								writer.WriteBytesUnsafe(&(value->Data), (int)size);
+							}
+
+						}
+
+						if (writer.Position >= FLUSH_SIZE)
+						{
+							//Console.WriteLine("> partial flush (" + writer.Position + ")");
+							writer.Flush(await snapshot.WriteAsync(writer.Buffer, writer.Position, cancellationToken).ConfigureAwait(false));
+						}
+					}
+
+					writer.WriteFixed32(uint.MaxValue);
+				}
+
+				//Console.WriteLine("> final flush (" + writer.Position + ")");
+				await snapshot.FlushAsync(writer.Buffer, writer.Position, cancellationToken).ConfigureAwait(false);
+
+				Console.WriteLine("> Done ! " + snapshot.Length.ToString("N0") + " bytes");
+			}
+
+			return (long)sequence;
+		}
+
 		/// <summary>Perform a complete garbage collection</summary>
 		public void Collect()
 		{
