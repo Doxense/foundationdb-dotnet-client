@@ -27,7 +27,9 @@ namespace FoundationDB.Storage.Memory.API
 
 			var cluster = new FdbCluster(new MemoryClusterHandler(), ":memory:");
 
-			return new MemoryDatabase(cluster, new MemoryDatabaseHandler(), name, globalSpace, readOnly, true);
+			var uid = Guid.NewGuid();
+
+			return new MemoryDatabase(cluster, new MemoryDatabaseHandler(uid), name, globalSpace, readOnly, true);
 		}
 
 		private readonly MemoryDatabaseHandler m_handler;

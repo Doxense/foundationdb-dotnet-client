@@ -37,6 +37,9 @@ namespace FoundationDB.Storage.Memory.API
 		/// <summary>Oldest legal read version of the database</summary>
 		private long m_oldestVersion;
 
+		/// <summary>Unique number for this database</summary>
+		private Guid m_uid;
+
 		//TODO: replace this with an Async lock ?
 		private static readonly ReaderWriterLockSlim m_dataLock = new ReaderWriterLockSlim();
 		private static readonly object m_heapLock = new object();
@@ -62,17 +65,12 @@ namespace FoundationDB.Storage.Memory.API
 
 		#endregion
 
-		public MemoryDatabaseHandler()
+		public MemoryDatabaseHandler(Guid uid)
 		{
-			////HACKHACK: move this somewhere else ?
-			//using(var tr = new MemoryTransactionHandler(this))
-			//{
-			//	tr.AccessSystemKeys = true;
-			//	tr.Set(Slice.FromByte(255), Slice.Empty);
-			//	tr.Set(Slice.FromByte(255) + Slice.FromByte(255), Slice.Empty);
-			//	tr.CommitAsync(CancellationToken.None).Wait();
-			//}
+			m_uid = uid;
 		}
+
+		public Guid Id { get { return m_uid; } }
 
 		public bool IsInvalid { get { return false; } }
 
