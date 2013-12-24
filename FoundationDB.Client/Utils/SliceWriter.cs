@@ -284,7 +284,7 @@ namespace FoundationDB.Client
 		/// <param name="skip">Number of bytes to skip</param>
 		/// <returns>Position of the cursor BEFORE moving it. Can be used as a marker to go back later and fill some value</returns>
 		/// <remarks>Will fill the skipped bytes with 0xFF</remarks>
-		public int Skip(int skip)
+		public int Skip(int skip, byte pad = 0xFF)
 		{
 			Contract.Requires(skip > 0);
 
@@ -292,7 +292,7 @@ namespace FoundationDB.Client
 			EnsureBytes(skip);
 			for (int i = 0; i < skip; i++)
 			{
-				this.Buffer[before + i] = 0xFF;
+				this.Buffer[before + i] = pad;
 			}
 			this.Position = before + skip;
 			return before;
@@ -459,6 +459,20 @@ namespace FoundationDB.Client
 			{
 				EnsureBytes(count);
 				SliceHelpers.CopyBytesUnsafe(this.Buffer, this.Position, data, offset, count);
+				this.Position += count;
+			}
+		}
+
+		/// <summary>Append a chunk of memory to the end of the buffer</summary>
+		public unsafe void WriteBytesUnsafe(byte* data, int count)
+		{
+			if (data == null) throw new ArgumentNullException("data");
+			if (count < 0) throw new ArgumentOutOfRangeException("count");
+
+			if (count > 0)
+			{
+				EnsureBytes(count);
+				SliceHelpers.CopyBytesUnsafe(this.Buffer, this.Position, data, count);
 				this.Position += count;
 			}
 		}
