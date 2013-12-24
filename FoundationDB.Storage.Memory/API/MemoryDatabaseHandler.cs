@@ -648,11 +648,13 @@ namespace FoundationDB.Storage.Memory.API
 
 				using(var scratch = m_scratchPool.Use())
 				{
+					var builder = scratch.Builder;
 
 					for (int i = 0; i < userKeys.Length; i++)
 					{
 						// create a lookup key
-						var lookupKey = PackUserKey(scratch.Builder, userKeys[i]);
+						builder.Clear();
+						var lookupKey = PackUserKey(builder, userKeys[i]);
 
 						USlice value;
 						if (!TryGetValueAtVersion(lookupKey, sequence, out value))
@@ -734,7 +736,7 @@ namespace FoundationDB.Storage.Memory.API
 			while (iterator.Current != IntPtr.Zero)
 			{
 				DumpKey("offset " + offset, iterator.Current);
-				var value = ResolveValueAtVersion(iterator.Current, sequence);
+				Value* value = ResolveValueAtVersion(iterator.Current, sequence);
 				//Trace.WriteLine("[*] " + (long)value);
 				if (value != null)
 				{
