@@ -1199,6 +1199,126 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Read_Isolation_From_Writes()
+		{
+			// By default:
+			// - Regular reads see the writes made by the transaction itself, but not the writes made by other transactions that committed in between
+			// - Snapshot reads never see the writes made since the transaction read version, including the writes made by the transaction itself
+
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				var location = db.Partition("test");
+				await db.ClearRangeAsync(location);
+
+				var a = location.Pack("A");
+				var b = location.Pack("B");
+				var c = location.Pack("C");
+				var d = location.Pack("D");
+
+				// Reads (before and after):
+				// - A and B will use regular reads
+				// - C and D will use snapshot reads
+				// Writes:
+				// - A and C will be modified by the transaction itself
+				// - B and D will be modified by a different transaction
+
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(a, Slice.FromString("a"));
+					tr.Set(b, Slice.FromString("b"));
+					tr.Set(c, Slice.FromString("c"));
+					tr.Set(d, Slice.FromString("d"));
+				});
+
+				using (var tr = db.BeginTransaction())
+				{
+					var aval = await tr.GetAsync(a);
+					var bval = await tr.GetAsync(b);
+					var cval = await tr.Snapshot.GetAsync(c);
+					var dval = await tr.Snapshot.GetAsync(d);
+					Assert.That(aval.ToUnicode(), Is.EqualTo("a"));
+					Assert.That(bval.ToUnicode(), Is.EqualTo("b"));
+					Assert.That(cval.ToUnicode(), Is.EqualTo("c"));
+					Assert.That(dval.ToUnicode(), Is.EqualTo("d"));
+
+					tr.Set(a, Slice.FromString("aa"));
+					tr.Set(c, Slice.FromString("cc"));
+					await db.WriteAsync((tr2) =>
+					{
+						tr2.Set(b, Slice.FromString("bb"));
+						tr2.Set(d, Slice.FromString("dd"));
+					});
+
+					aval = await tr.GetAsync(a);
+					bval = await tr.GetAsync(b);
+					cval = await tr.Snapshot.GetAsync(c);
+					dval = await tr.Snapshot.GetAsync(d);
+					Assert.That(aval.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should change the value of regular reads");
+					Assert.That(bval.ToUnicode(), Is.EqualTo("b"), "Other transaction writes should not change the value of regular reads");
+					Assert.That(cval.ToUnicode(), Is.EqualTo("c"), "The transaction own writes should not change the value of snapshot reads");
+					Assert.That(dval.ToUnicode(), Is.EqualTo("d"), "Other transaction writes should not change the value of snapshot reads");
+
+					//note: committing here would conflict
+				}
+			}
+		}
+
+
+		[Test]
+		public async Task Test_ReadYourWrites_Isolation()
+		{
+			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			{
+				var location = db.Partition("test");
+				await db.ClearRangeAsync(location);
+
+				var a = location.Pack("A");
+
+				#region Default behaviour...
+
+				// By default, a transaction see its own writes with non-snapshot reads
+
+				await db.WriteAsync((tr) => tr.Set(a, Slice.FromString("a")));
+
+				using(var tr = db.BeginTransaction())
+				{
+					var data = await tr.GetAsync(a);
+					Assert.That(data.ToUnicode(), Is.EqualTo("a"));
+
+					tr.Set(a, Slice.FromString("aa"));
+
+					data = await tr.GetAsync(a);
+					Assert.That(data.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should be visible by default");
+
+					//note: don't commit
+				}
+
+				#endregion
+
+				#region ReadYourWrites behaviour...
+
+				// The ReadYourWrites option cause reads to return the value in the database
+
+				using (var tr = db.BeginTransaction())
+				{
+					tr.SetOption(FdbTransactionOption.ReadYourWrites);
+
+					var data = await tr.GetAsync(a);
+					Assert.That(data.ToUnicode(), Is.EqualTo("a"));
+
+					tr.Set(a, Slice.FromString("aa"));
+
+					data = await tr.GetAsync(a);
+					Assert.That(data.ToUnicode(), Is.EqualTo("a"), "The transaction own writes should not be seen with ReadYourWrites option enabled");
+
+					//note: don't commit
+				}
+
+				#endregion
+			}
+		}
+
+		[Test]
 		public async Task Test_Can_Set_Read_Version()
 		{
 			// Verify that we can set a read version on a transaction
