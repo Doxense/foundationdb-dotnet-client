@@ -596,6 +596,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		}
 
+#if REFACTORED
 		internal unsafe Task<Slice> GetValueAtVersionAsync(Slice userKey, long readVersion)
 		{
 			if (m_disposed) ThrowDisposed();
@@ -631,7 +632,13 @@ namespace FoundationDB.Storage.Memory.API
 				m_dataLock.ExitReadLock();
 			}
 		}
+#endif
 
+		/// <summary>Read the value of one or more keys, at a specific database version</summary>
+		/// <param name="userKeys">List of keys to read (MUST be ordered)</param>
+		/// <param name="readVersion">Version of the read</param>
+		/// <param name="localClears">If not null, list of ranges cleared by the transaction</param>
+		/// <returns>Array of results</returns>
 		internal unsafe Task<Slice[]> GetValuesAtVersionAsync(Slice[] userKeys, long readVersion)
 		{
 			if (m_disposed) ThrowDisposed();
@@ -779,6 +786,7 @@ namespace FoundationDB.Storage.Memory.API
 			return iterator;
 		}
 
+#if REFACTORED
 		internal unsafe Task<Slice> GetKeyAtVersion(FdbKeySelector selector, long readVersion)
 		{
 			if (m_disposed) ThrowDisposed();
@@ -829,6 +837,7 @@ namespace FoundationDB.Storage.Memory.API
 			}
 
 		}
+#endif
 
 		internal unsafe Task<Slice[]> GetKeysAtVersion(FdbKeySelector[] selectors, long readVersion)
 		{

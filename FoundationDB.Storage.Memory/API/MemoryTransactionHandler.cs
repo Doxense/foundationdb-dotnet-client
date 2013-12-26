@@ -598,7 +598,10 @@ namespace FoundationDB.Storage.Memory.API
 			EnsureHasReadVersion();
 
 			// read the value in the db
-			var result = await m_db.GetValueAtVersionAsync(range.Begin, m_readVersion.Value).ConfigureAwait(false);
+			//TODO: how to lock ?
+			var results = await m_db.GetValuesAtVersionAsync(new Slice[] { range.Begin }, m_readVersion.Value).ConfigureAwait(false);
+			Contract.Assert(results != null && results.Length == 1);
+			var result = results[0];
 
 			// snapshot read always see the db, regular read must merge with local mutation, unless option ReadYourWrites is set
 			if (!snapshot && !this.ReadYourWritesDisable)
@@ -631,8 +634,10 @@ namespace FoundationDB.Storage.Memory.API
 				CheckAccessToSystemKeys(key);
 				ordered[i] = key;
 			}
-			// pre-sort the keys
-			Array.Sort(ordered, SliceComparer.Default);
+			if (ordered.Length > 1)
+			{ // the db expect the keys to be sorted
+				Array.Sort(ordered, SliceComparer.Default);
+			}
 
 			// we need the read version
 			EnsureHasReadVersion();
@@ -648,6 +653,7 @@ namespace FoundationDB.Storage.Memory.API
 			}
 
 			// read the values in the db
+			//TODO: how to lock ?
 			var results = await m_db.GetValuesAtVersionAsync(ordered, m_readVersion.Value).ConfigureAwait(false);
 
 			// snapshot read always see the db, regular read must merge with local mutation, unless option ReadYourWrites is set
@@ -673,6 +679,22 @@ namespace FoundationDB.Storage.Memory.API
 			return results;
 		}
 
+		private sealed class SelectorKeyComparer : IComparer<FdbKeySelector>
+		{
+
+			public static readonly SelectorKeyComparer Default = new SelectorKeyComparer();
+
+			private static readonly SliceComparer s_comparer = SliceComparer.Default;
+
+			private SelectorKeyComparer()
+			{ }
+
+			public int Compare(FdbKeySelector x, FdbKeySelector y)
+			{
+				return s_comparer.Compare(x.Key, y.Key);
+			}
+		}
+
 		public async Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot, CancellationToken cancellationToken)
 		{
 			Contract.Requires(selector.Key.HasValue);
@@ -692,7 +714,9 @@ namespace FoundationDB.Storage.Memory.API
 			// we need the read version
 			EnsureHasReadVersion();
 
-			var result = await m_db.GetKeyAtVersion(selector, m_readVersion.Value).ConfigureAwait(false);
+			var results = await m_db.GetKeysAtVersion(new [] { selector }, m_readVersion.Value).ConfigureAwait(false);
+			Contract.Assert(results != null && results.Length == 1);
+			var result = results[0];
 
 			FdbKeyRange resultRange;
 			int c = result.CompareTo(selector.Key);
@@ -757,12 +781,14 @@ namespace FoundationDB.Storage.Memory.API
 				//CheckAccessToSystemKeys(key);
 				ordered[i] = selectors[i];
 			}
-			//Array.Sort(ordered, SliceComparer.Default);
+			if (ordered.Length > 1)
+			{ // the db expects the keys to be sorted
+				Array.Sort(ordered, SelectorKeyComparer.Default);
+			}
 
 			// we need the read version
 			EnsureHasReadVersion();
 
-			//FdbKeyRange[] ranges = new FdbKeyRange[ordered.Length];
 			lock (m_buffer)
 			{
 				for (int i = 0; i < ordered.Length; i++)
@@ -777,7 +803,9 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				lock (m_lock)
 				{
-					//TODO!
+#if !DEBUGz
+					throw new NotImplementedException("TODO: track read ranges in GetKeysAsync() !");
+#endif
 				}
 			}
 

@@ -1099,7 +1099,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		[Test]
 		public async Task Test_MiniBench()
 		{
-			const int M = 10 * 1000 * 1000;
+			const int M = 1 * 1000 * 1000;
 			const int B = 1000;
 			const int ENTROPY = 10 * 1000;
 
