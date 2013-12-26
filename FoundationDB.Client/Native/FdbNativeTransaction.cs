@@ -294,15 +294,15 @@ namespace FoundationDB.Client.Native
 		public void Clear(Slice key)
 		{
 			FdbNative.TransactionClear(m_handle, key);
-			Interlocked.Add(ref m_payloadBytes, key.Count);
+			// The key is converted to range [key, key.'\0'), and there is an overhead of 28-byte per operation
+			Interlocked.Add(ref m_payloadBytes, (key.Count * 2) + 28 + 1);
 		}
 
 		public void ClearRange(Slice beginKeyInclusive, Slice endKeyExclusive)
 		{
 			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
-			//TODO: how to account for these ?
-			//Interlocked.Add(ref m_payloadBytes, beginKey.Count);
-			//Interlocked.Add(ref m_payloadBytes, endKey.Count);
+			// There is an overhead of 28-byte per operation
+			Interlocked.Add(ref m_payloadBytes, beginKeyInclusive.Count + endKeyExclusive.Count + 28);
 		}
 
 		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
