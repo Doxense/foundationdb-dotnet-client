@@ -448,7 +448,7 @@ namespace FoundationDB.Storage.Memory.API
 				m_retryCount = 0;
 				this.AccessSystemKeys = false;
 				this.NextWriteNoWriteConflictRange = false;
-				this.ReadYourWrites = false;
+				this.ReadYourWritesDisable = false;
 			}
 		}
 
@@ -601,7 +601,7 @@ namespace FoundationDB.Storage.Memory.API
 			var result = await m_db.GetValueAtVersionAsync(range.Begin, m_readVersion.Value).ConfigureAwait(false);
 
 			// snapshot read always see the db, regular read must merge with local mutation, unless option ReadYourWrites is set
-			if (!snapshot && !this.ReadYourWrites)
+			if (!snapshot && !this.ReadYourWritesDisable)
 			{ // we need to merge the db state with the local mutations
 				result = MergeResultWithLocalState(range.Begin, result);
 			}
@@ -651,7 +651,7 @@ namespace FoundationDB.Storage.Memory.API
 			var results = await m_db.GetValuesAtVersionAsync(ordered, m_readVersion.Value).ConfigureAwait(false);
 
 			// snapshot read always see the db, regular read must merge with local mutation, unless option ReadYourWrites is set
-			if (!snapshot && !this.ReadYourWrites)
+			if (!snapshot && !this.ReadYourWritesDisable)
 			{ // we need to merge the db state with the local mutations
 				for (int i = 0; i < ordered.Length; i++)
 				{
@@ -1109,8 +1109,8 @@ namespace FoundationDB.Storage.Memory.API
 		/// <summary>The next write will not cause a write conflict</summary>
 		public bool NextWriteNoWriteConflictRange { get; internal set; }
 
-		/// <summary>If true, the transaction always read the value from the database, and does not use the written values</summary>
-		public bool ReadYourWrites { get; internal set; }
+		/// <summary>If true, the transaction always read the value from the database, and does not see the local mutations</summary>
+		public bool ReadYourWritesDisable { get; internal set; }
 
 		/// <summary>Number of retries already done by this transaction</summary>
 		public int RetryCount { get { return m_retryCount; } }
@@ -1160,9 +1160,9 @@ namespace FoundationDB.Storage.Memory.API
 					this.NextWriteNoWriteConflictRange = data.IsNullOrEmpty || DecodeBooleanOption(data);
 					break;
 				}
-				case FdbTransactionOption.ReadYourWrites:
+				case FdbTransactionOption.ReadYourWritesDisable:
 				{
-					this.ReadYourWrites = data.IsNullOrEmpty || DecodeBooleanOption(data);
+					this.ReadYourWritesDisable = data.IsNullOrEmpty || DecodeBooleanOption(data);
 					break;
 				}
 
