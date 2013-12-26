@@ -1263,9 +1263,8 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-
 		[Test]
-		public async Task Test_ReadYourWrites_Isolation()
+		public async Task Test_ReadYourWritesDisable_Isolation()
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
@@ -1273,43 +1272,59 @@ namespace FoundationDB.Client.Tests
 				await db.ClearRangeAsync(location);
 
 				var a = location.Pack("A");
+				var b = location.Partition("B");
 
 				#region Default behaviour...
 
 				// By default, a transaction see its own writes with non-snapshot reads
 
-				await db.WriteAsync((tr) => tr.Set(a, Slice.FromString("a")));
+				await db.WriteAsync((tr) =>
+				{
+					tr.Set(a, Slice.FromString("a"));
+					tr.Set(b.Pack(10), Slice.FromString("PRINT \"HELLO\""));
+					tr.Set(b.Pack(20), Slice.FromString("GOTO 10"));
+				});
 
 				using(var tr = db.BeginTransaction())
 				{
 					var data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"));
+					var res = await tr.GetRange(b.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+					Assert.That(res, Is.EqualTo(new [] { "PRINT \"HELLO\"", "GOTO 10" }));
 
 					tr.Set(a, Slice.FromString("aa"));
+					tr.Set(b.Pack(15), Slice.FromString("PRINT \"WORLD\""));
 
 					data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should be visible by default");
+					res = await tr.GetRange(b.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+					Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "PRINT \"WORLD\"", "GOTO 10" }), "The transaction own writes should be visible by default");
 
 					//note: don't commit
 				}
 
 				#endregion
 
-				#region ReadYourWrites behaviour...
+				#region ReadYourWritesDisable behaviour...
 
-				// The ReadYourWrites option cause reads to return the value in the database
+				// The ReadYourWritesDisable option cause reads to always return the value in the database
 
 				using (var tr = db.BeginTransaction())
 				{
-					tr.SetOption(FdbTransactionOption.ReadYourWrites);
+					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
 
 					var data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"));
+					var res = await tr.GetRange(b.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+					Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "GOTO 10" }));
 
 					tr.Set(a, Slice.FromString("aa"));
+					tr.Set(b.Pack(15), Slice.FromString("PRINT \"WORLD\""));
 
 					data = await tr.GetAsync(a);
-					Assert.That(data.ToUnicode(), Is.EqualTo("a"), "The transaction own writes should not be seen with ReadYourWrites option enabled");
+					Assert.That(data.ToUnicode(), Is.EqualTo("a"), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
+					res = await tr.GetRange(b.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+					Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "GOTO 10" }), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
 
 					//note: don't commit
 				}
@@ -1740,6 +1755,7 @@ namespace FoundationDB.Client.Tests
 
 			}
 		}
+	
 	}
 
 }
