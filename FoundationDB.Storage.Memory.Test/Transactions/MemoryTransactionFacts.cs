@@ -631,10 +631,20 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 		}
 
+		private async Task Scenario6(IFdbTransaction tr)
+		{
+			var location = FdbSubspace.Create(Slice.FromAscii("TEST"));
+
+			tr.AtomicAdd(location.Pack("ATOMIC"), Slice.FromFixed32(0x55555555));
+
+			var x = await tr.GetAsync(location.Pack("ATOMIC"));
+			Console.WriteLine(x.ToInt32().ToString("x"));
+		}
+
 		[Test]
 		public async Task Test_Compare_Implementations()
 		{
-			int mode = 5;
+			int mode = 6;
 
 			using (var db = await Fdb.OpenAsync(@"c:\temp\fdb\fdb1.cluster", "DB"))
 			{
@@ -649,6 +659,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 						case 3: await Scenario3(tr); break;
 						case 4: await Scenario4(tr); break;
 						case 5: await Scenario5(tr); break;
+						case 6: await Scenario6(tr); break;
 					}
 
 					await tr.CommitAsync();
@@ -668,6 +679,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 						case 3: await Scenario3(tr); break;
 						case 4: await Scenario4(tr); break;
 						case 5: await Scenario5(tr); break;
+						case 6: await Scenario6(tr); break;
 					}
 
 					await tr.CommitAsync();

@@ -53,6 +53,11 @@ namespace FoundationDB.Storage.Memory.Core
 				this.End = end;
 			}
 
+			internal bool Contains(TKey key, IComparer<TKey> comparer)
+			{
+				return comparer.Compare(key, this.Begin) >= 0 && comparer.Compare(key, this.End) < 0;
+			}
+
 			public override string ToString()
 			{
 				return String.Format(CultureInfo.InvariantCulture, "[{0}, {1})", this.Begin, this.End);
@@ -295,6 +300,20 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 
 			//TODO: check constraints !
+		}
+
+		/// <summary>Checks if there is at least one range that contains the specified key</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns>True if the key is contained by one range; otherwise, false.</returns>
+		public bool ContainsKey(TKey key)
+		{
+			if (m_bounds.Contains(key, m_comparer))
+			{
+				var entry = new Entry(key, key);
+				int offset, level = m_items.FindPrevious(entry, true, out offset, out entry);
+				return level >= 0 && entry.Contains(key, m_comparer);
+			}
+			return false;
 		}
 
 		public ColaStore.Enumerator<Entry> GetEnumerator()

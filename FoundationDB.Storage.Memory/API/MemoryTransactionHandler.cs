@@ -3,7 +3,6 @@
 #endregion
 
 #undef DUMP_TRANSACTION_STATE
-#undef DISABLE_RANGE_CHECKS
 
 namespace FoundationDB.Storage.Memory.API
 {
@@ -13,6 +12,7 @@ namespace FoundationDB.Storage.Memory.API
 	using FoundationDB.Storage.Memory.Core;
 	using FoundationDB.Storage.Memory.Utils;
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.Contracts;
 	using System.Globalization;
@@ -98,6 +98,41 @@ namespace FoundationDB.Storage.Memory.API
 				var tmp = new byte[size];
 				value.CopyTo(tmp, 0);
 				return tmp;
+			}
+
+			public Slice ApplyTo(Slice value)
+			{
+				switch(this.Type)
+				{
+					case Operation.Set:
+					{
+						return this.Value;
+					}
+					case Operation.Nop:
+					{
+						return value;
+					}
+					case Operation.AtomicAdd:
+					{
+						return ApplyAdd(value);
+					}
+					case Operation.AtomicBitAnd:
+					{
+						return ApplyBitAnd(value);
+					}
+					case Operation.AtomicBitOr:
+					{
+						return ApplyBitOr(value);
+					}
+					case Operation.AtomicBitXor:
+					{
+						return ApplyBitXor(value);
+					}
+					default:
+					{
+						throw new NotSupportedException("Invalid write command type");
+					}
+				}
 			}
 
 			public Slice ApplyAdd(Slice value)
@@ -360,6 +395,19 @@ namespace FoundationDB.Storage.Memory.API
 				return new WriteCommand(command.Type, command.Key, Slice.Create(tmp));
 			}
 
+			internal static Slice ApplyTo(WriteCommand[] commands, Slice value)
+			{
+				var result = value;
+				for(int i=0;i<commands.Length;i++)
+				{
+					result = commands[i].ApplyTo(result);
+				}
+				if (object.ReferenceEquals(value.Array, result.Array))
+				{
+					result = result.Memoize();
+				}
+				return result;
+			}
 		}
 
 		internal MemoryTransactionHandler(MemoryDatabaseHandler db)
@@ -517,6 +565,22 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
+		private Slice MergeResultWithLocalState(Slice key, Slice value)
+		{
+			WriteCommand[] commands;
+			if (m_writes.TryGetValue(key, out commands))
+			{ // the key will be mutated by this transaction
+				return WriteCommand.ApplyTo(commands, value);
+			}
+
+			if (m_clears.ContainsKey(key))
+			{ // the key will be deleted by this transaction
+				return Slice.Nil;
+			}
+
+			return value;
+		}
+
 		public async Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken cancellationToken)
 		{
 			Contract.Requires(key.HasValue);
@@ -533,9 +597,15 @@ namespace FoundationDB.Storage.Memory.API
 			// we need the read version
 			EnsureHasReadVersion();
 
+			// read the value in the db
 			var result = await m_db.GetValueAtVersionAsync(range.Begin, m_readVersion.Value).ConfigureAwait(false);
 
-#if !DISABLE_RANGE_CHECKS
+			// snapshot read always see the db, regular read must merge with local mutation, unless option ReadYourWrites is set
+			if (!snapshot && !this.ReadYourWrites)
+			{ // we need to merge the db state with the local mutations
+				result = MergeResultWithLocalState(range.Begin, result);
+			}
+
 			if (!snapshot)
 			{
 				lock (m_lock)
@@ -543,7 +613,7 @@ namespace FoundationDB.Storage.Memory.API
 					AddReadConflict_NeedsLocking(range);
 				}
 			}
-#endif
+
 			return result;
 		}
 
@@ -561,12 +631,13 @@ namespace FoundationDB.Storage.Memory.API
 				CheckAccessToSystemKeys(key);
 				ordered[i] = key;
 			}
-			//Array.Sort(ordered, SliceComparer.Default);
+			// pre-sort the keys
+			Array.Sort(ordered, SliceComparer.Default);
 
 			// we need the read version
 			EnsureHasReadVersion();
 
-			FdbKeyRange[] ranges = new FdbKeyRange[ordered.Length];
+			var ranges = new FdbKeyRange[ordered.Length];
 			lock (m_buffer)
 			{
 				for (int i = 0; i < ordered.Length; i++)
@@ -576,9 +647,18 @@ namespace FoundationDB.Storage.Memory.API
 				}
 			}
 
+			// read the values in the db
 			var results = await m_db.GetValuesAtVersionAsync(ordered, m_readVersion.Value).ConfigureAwait(false);
 
-#if !DISABLE_RANGE_CHECKS
+			// snapshot read always see the db, regular read must merge with local mutation, unless option ReadYourWrites is set
+			if (!snapshot && !this.ReadYourWrites)
+			{ // we need to merge the db state with the local mutations
+				for (int i = 0; i < ordered.Length; i++)
+				{
+					results[i] = MergeResultWithLocalState(ordered[i], results[i]);
+				}
+			}
+
 			if (!snapshot)
 			{
 				lock (m_lock)
@@ -589,7 +669,6 @@ namespace FoundationDB.Storage.Memory.API
 					}
 				}
 			}
-#endif
 
 			return results;
 		}
@@ -615,9 +694,8 @@ namespace FoundationDB.Storage.Memory.API
 
 			var result = await m_db.GetKeyAtVersion(selector, m_readVersion.Value).ConfigureAwait(false);
 
-			int c = result.CompareTo(selector.Key);
-
 			FdbKeyRange resultRange;
+			int c = result.CompareTo(selector.Key);
 			if (c == 0)
 			{ // the result is identical to the key
 				resultRange = keyRange;
@@ -632,7 +710,11 @@ namespace FoundationDB.Storage.Memory.API
 				}
 			}
 
-#if !DISABLE_RANGE_CHECKS
+			//TODO: how to merge the results with the local state mutations ?
+			// => add values that were inserted
+			// => remove values that were cleared
+			// => change the value of keys that were mutated locally
+
 			if (!snapshot)
 			{
 				lock (m_lock)
@@ -657,7 +739,7 @@ namespace FoundationDB.Storage.Memory.API
 					}
 				}
 			}
-#endif
+
 			return result;
 		}
 
@@ -754,9 +836,7 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				if (!ConsumeNextWriteNoConflict_NeedsLocking())
 				{
-#if !DISABLE_RANGE_CHECKS
 					AddWriteConflict_NeedsLocking(range);
-#endif
 				}
 				AddWriteCommand_NeedsLocking(new WriteCommand(Operation.Set, range.Begin, value));
 			}
@@ -786,9 +866,7 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				if (!ConsumeNextWriteNoConflict_NeedsLocking())
 				{
-#if !DISABLE_RANGE_CHECKS
 					AddWriteConflict_NeedsLocking(range);
-#endif
 				}
 				AddWriteCommand_NeedsLocking(new WriteCommand((Operation)mutation, range.Begin, param));
 			}
@@ -810,9 +888,7 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				if (!ConsumeNextWriteNoConflict_NeedsLocking())
 				{
-#if !DISABLE_RANGE_CHECKS
 					AddWriteConflict_NeedsLocking(range);
-#endif
 				}
 				AddClearCommand_NeedsLocking(range);
 			}
@@ -836,9 +912,7 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				if (!ConsumeNextWriteNoConflict_NeedsLocking())
 				{
-#if !DISABLE_RANGE_CHECKS
 					AddWriteConflict_NeedsLocking(range);
-#endif
 				}
 				AddClearCommand_NeedsLocking(range);
 			}
@@ -860,24 +934,17 @@ namespace FoundationDB.Storage.Memory.API
 				range = m_buffer.InternRange(beginKeyInclusive, endKeyExclusive);
 			}
 
-#if !DISABLE_RANGE_CHECKS
 			lock (m_lock)
 			{
-				switch (type)
+				if (type == FdbConflictRangeType.Read)
 				{
-					case FdbConflictRangeType.Read:
-					{
-						AddReadConflict_NeedsLocking(range);
-						break;
-					}
-					case FdbConflictRangeType.Write:
-					{
-						AddWriteConflict_NeedsLocking(range);
-						break;
-					}
+					AddReadConflict_NeedsLocking(range);
+				}
+				else
+				{
+					AddWriteConflict_NeedsLocking(range);
 				}
 			}
-#endif
 		}
 
 		public void Reset()
@@ -1036,14 +1103,23 @@ namespace FoundationDB.Storage.Memory.API
 
 		public int Timeout { get; internal set; }
 
+		/// <summary>The transaction has access to the system keyspace</summary>
 		public bool AccessSystemKeys { get; internal set; }
 
+		/// <summary>The next write will not cause a write conflict</summary>
 		public bool NextWriteNoWriteConflictRange { get; internal set; }
 
+		/// <summary>If true, the transaction always read the value from the database, and does not use the written values</summary>
+		public bool ReadYourWrites { get; internal set; }
+
+		/// <summary>Number of retries already done by this transaction</summary>
+		public int RetryCount { get { return m_retryCount; } }
+
+		/// <summary>Décode the value of a transaction option into a boolean</summary>
 		private static bool DecodeBooleanOption(Slice data)
 		{
 			if (data.Count == 8)
-			{ // spec says that ints should be passed as 8 bytes integers
+			{ // spec says that ints should be passed as 8 bytes integers, so we need to accept all zeroes as "false"
 				return data.ToInt64() != 0;
 			}
 			else
@@ -1081,9 +1157,15 @@ namespace FoundationDB.Storage.Memory.API
 
 				case FdbTransactionOption.NextWriteNoWriteConflictRange:
 				{
-					this.NextWriteNoWriteConflictRange = true;
+					this.NextWriteNoWriteConflictRange = data.IsNullOrEmpty || DecodeBooleanOption(data);
 					break;
 				}
+				case FdbTransactionOption.ReadYourWrites:
+				{
+					this.ReadYourWrites = data.IsNullOrEmpty || DecodeBooleanOption(data);
+					break;
+				}
+
 				default:
 				{
 					throw new FdbException(FdbError.InvalidOption);
