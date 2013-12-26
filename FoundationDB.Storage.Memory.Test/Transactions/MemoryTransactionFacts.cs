@@ -1087,8 +1087,9 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		[Test]
 		public async Task Test_MiniBench()
 		{
-			const int M = 1 * 1000 * 1000;
-			const int B = 100;
+			const int M = 10 * 1000 * 1000;
+			const int B = 1000;
+			const int ENTROPY = 10 * 1000;
 
 			const int T = M / B;
 			const int KEYSIZE = 10;
@@ -1115,8 +1116,10 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				long total = 0;
 
-				var payload = new byte[1000 + VALUESIZE];
+				var payload = new byte[ENTROPY + VALUESIZE];
 				rnd.NextBytes(payload);
+				// help with compression by doubling every byte
+				for (int i = 0; i < payload.Length; i += 2) payload[i + 1] = payload[i];
 
 				var sw = Stopwatch.StartNew();
 				sw.Stop();
@@ -1144,7 +1147,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 								key = Slice.FromString(x.ToString(fmt));
 							}
 
-							tr.Set(key, Slice.Create(payload, rnd.Next(1000), VALUESIZE));
+							tr.Set(key, Slice.Create(payload, rnd.Next(ENTROPY), VALUESIZE));
 							Interlocked.Increment(ref total);
 						}
 						await tr.CommitAsync().ConfigureAwait(false);
@@ -1165,6 +1168,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				db.Debug_Dump(false);
 
 				DumpResult("WriteSeq" + B, total, total / B, sw.Elapsed);
+
+				Console.WriteLine("Saving ...");
+				sw.Restart();
+				await db.SaveSnapshotAsync(@"C:\temp\pndb\bench.pndb");
+				sw.Stop();
+				Console.WriteLine("* Saved in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
 
 				Console.WriteLine("Warming up reads...");
 				var data = await db.GetValuesAsync(Enumerable.Range(0, 100).Select(i => Slice.FromString(i.ToString(fmt))));

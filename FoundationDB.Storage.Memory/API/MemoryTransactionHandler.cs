@@ -52,6 +52,8 @@ namespace FoundationDB.Storage.Memory.API
 		/// <summary>Committed version of the transaction</summary>
 		private long m_committedVersion;
 
+		private int m_retryCount;
+
 		#endregion
 
 		internal enum Operation
@@ -395,13 +397,11 @@ namespace FoundationDB.Storage.Memory.API
 					m_writeConflicts.Clear();
 				}
 
+				m_retryCount = 0;
 				this.AccessSystemKeys = false;
 				this.NextWriteNoWriteConflictRange = false;
+				this.ReadYourWrites = false;
 			}
-		}
-		private static void ThrowDisposed()
-		{
-			throw new ObjectDisposedException("This transaction has already been disposed."); ;
 		}
 
 		public int Size
@@ -978,8 +978,15 @@ namespace FoundationDB.Storage.Memory.API
 				case FdbError.PastVersion:
 				{ // wait a bit
 
+					++m_retryCount;
+					if (m_retryCount > this.RetryLimit)
+					{ // max rety limit reached
+						throw new FdbException(code);
+					}
+
 					//HACKHACK: implement a real back-off delay logic
 					await Task.Delay(15, cancellationToken).ConfigureAwait(false);
+
 					return;
 				}
 				default:
@@ -1082,6 +1089,11 @@ namespace FoundationDB.Storage.Memory.API
 					throw new FdbException(FdbError.InvalidOption);
 				}
 			}
+		}
+
+		private static void ThrowDisposed()
+		{
+			throw new ObjectDisposedException("This transaction has already been disposed."); ;
 		}
 
 		public void Dispose()

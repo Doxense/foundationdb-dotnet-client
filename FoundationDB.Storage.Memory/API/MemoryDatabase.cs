@@ -70,13 +70,46 @@ namespace FoundationDB.Storage.Memory.API
 			return m_handler.BulkLoadAsync(coll, ordered, cancellationToken);
 		}
 
-		public Task SaveSnapshotAsync(string path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task SaveSnapshotAsync(string path, MemorySnapshotOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (path == null) throw new ArgumentNullException("path");
 			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
 
-			return m_handler.SaveSnapshotAsync(path, cancellationToken);
+			options = options ?? new MemorySnapshotOptions()
+			{
+				Mode = MemorySnapshotMode.Full
+			};
+
+			return m_handler.SaveSnapshotAsync(path, options, cancellationToken);
 		}
+
+	}
+
+
+	public enum MemorySnapshotMode
+	{
+		/// <summary>Include all keys (included the deletions), as well as all their mutations, timestamped with their sequence number</summary>
+		Full = 0,
+		/// <summary>Include all keys (inlcuded the deletions), but with only their latest value.</summary>
+		Last,
+		/// <summary>Include only the live keys, with their latest value.</summary>
+		Compact,
+
+	}
+	public sealed class MemorySnapshotOptions
+	{
+
+		public MemorySnapshotOptions()
+		{ }
+
+		public MemorySnapshotMode Mode { get; set; }
+
+		public bool Compressed { get; set; }
+
+		public bool Signed { get; set; }
+
+		public bool Encrypted { get; set; }
+
 	}
 
 }

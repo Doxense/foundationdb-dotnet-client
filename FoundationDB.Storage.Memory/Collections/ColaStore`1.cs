@@ -798,6 +798,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Checks if a level is currently not allocated</summary>
 		/// <param name="level">Index of the level (0-based)</param>
 		/// <returns>True is the level is unallocated and does not store any elements; otherwise, false.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public bool IsFree(int level)
 		{
 			Contract.Requires(level >= 0);

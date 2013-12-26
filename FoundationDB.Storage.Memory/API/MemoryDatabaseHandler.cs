@@ -7,6 +7,7 @@ namespace FoundationDB.Storage.Memory.API
 	using FoundationDB.Client;
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Storage.Memory.Core;
 	using FoundationDB.Storage.Memory.Utils;
 	using System;
@@ -1062,97 +1063,187 @@ namespace FoundationDB.Storage.Memory.API
 			return (ulong)Volatile.Read(ref m_currentVersion);
 		}
 
-		internal async Task<long> SaveSnapshotAsync(string path, CancellationToken cancellationToken)
+		internal async Task<long> SaveSnapshotAsync(string path, MemorySnapshotOptions options, CancellationToken cancellationToken)
 		{
+			Contract.Requires(path != null && options != null);
+
 			if (string.IsNullOrWhiteSpace(path)) throw new ArgumentNullException("path");
 			cancellationToken.ThrowIfCancellationRequested();
 
-			// take the current version of the db (that will be used for the snapshot)
-			ulong sequence = (ulong)Volatile.Read(ref m_currentVersion);
-			int count = m_data.Count;
+			// while we are generating the snapshot on the disk:
+			// * readers can read without any problems
+			// * writers can mutate values of existing keys, but cannot INSERT new keys
 
-			const int FLUSH_SIZE = 1 * 1024 * 1024;
+			const int FLAGS_TYPE_SNAPSHOT_VERSIONNED = 0;
+			const int FLAGS_TYPE_SNAPSHOT_COMPACT = 1;
 
-			var writer = new SliceWriter(FLUSH_SIZE);
-			using (var snapshot = new Win32SnapshotFile(path))
+			const int FLAGS_COMPRESSED = 0x100;
+			const int FLAGS_SIGNED = 0x200;
+			const int FLAGS_ENCRYPTED = 0x400;
+
+			var attributes = new Dictionary<string, IFdbTuple>(StringComparer.Ordinal);
+
+			// Flags bits:
+			// 0-3: FileType (4 bits)
+			//		0: Versionned Snapshot
+			//		1: Compact Snapshot
+			//		2-15: reserved
+
+			ulong headerFlags = 0;
+			switch (options.Mode)
 			{
-				// Header (4K)
-				//Console.WriteLine("> Writing header...");
-				writer.WriteFixed32(0x42444E50);						// "PNDB"
-				writer.WriteFixed32(0x00010000);						// v1.0
-				writer.WriteBytes(new Uuid(m_uid).ToByteArray());		// Database ID
-				writer.WriteFixed64(sequence);							// Database Version
-				writer.WriteFixed64((ulong)count);						// Number of items in the database
-				writer.WriteFixed64((ulong)DateTime.UtcNow.Ticks);		// date
-				// the rest is ZEROed
-
-				int levels = m_data.Depth;
-				//Console.WriteLine("> Dumping " + levels + " levels...");
-				for (int level = levels - 1; level >= 0; level--)
-				{
-					if (ColaStore.IsFree(level, count))
-					{ // this level is not allocated
-						//Console.WriteLine("> Skipping empty level " + level);
-						continue;
-					}
-
-					cancellationToken.ThrowIfCancellationRequested();
-
-					//Console.WriteLine("> Writing level " + level);
-					var segment = m_data.GetLevel(level);
-
-					writer.WriteFixed32(0x204C564C);				// "LVL_"
-					writer.WriteFixed32((uint)level);				// Level ID
-					writer.WriteFixed32((uint)segment.Length);		// Item count (always 2^level)
-
-					for (int i = 0; i < segment.Length; i++)
-					{
-						unsafe
-						{
-							Value* value = MemoryDatabaseHandler.ResolveValueAtVersion(segment[i], sequence);
-							if (value == null)
-							{
-								continue;
-							}
-							Key* key = (Key*)segment[i].ToPointer();
-							Contract.Assert(key != null && key->Size <= int.MaxValue);
-
-							// Key Size
-							uint size = key->Size;
-							writer.WriteVarint32(size);
-							writer.WriteBytesUnsafe(&(key->Data), (int)size);
-
-							// Value Size
-							size = value->Size;
-							if (size == 0)
-							{
-								writer.WriteByte(0);
-							}
-							else
-							{
-								writer.WriteVarint32(size);
-								writer.WriteBytesUnsafe(&(value->Data), (int)size);
-							}
-
-						}
-
-						if (writer.Position >= FLUSH_SIZE)
-						{
-							//Console.WriteLine("> partial flush (" + writer.Position + ")");
-							writer.Flush(await snapshot.WriteAsync(writer.Buffer, writer.Position, cancellationToken).ConfigureAwait(false));
-						}
-					}
-
-					writer.WriteFixed32(uint.MaxValue);
-				}
-
-				//Console.WriteLine("> final flush (" + writer.Position + ")");
-				await snapshot.FlushAsync(writer.Buffer, writer.Position, cancellationToken).ConfigureAwait(false);
-
-				Console.WriteLine("> Done ! " + snapshot.Length.ToString("N0") + " bytes");
+				case MemorySnapshotMode.Full:
+				case MemorySnapshotMode.Last:
+					headerFlags |= FLAGS_TYPE_SNAPSHOT_VERSIONNED;
+					break;
+				case MemorySnapshotMode.Compact:
+					headerFlags |= FLAGS_TYPE_SNAPSHOT_COMPACT;
+					break;
+				default:
+					throw new InvalidOperationException("Invalid snapshot mode");
 			}
 
-			return (long)sequence;
+			attributes["version"] = FdbTuple.Create(1, 0);
+			attributes["host"] = FdbTuple.Create(Environment.MachineName);
+			attributes["timestamp"] = FdbTuple.Create(DateTimeOffset.Now.ToString("O"));
+
+			if (options.Compressed)
+			{ // file is compressed
+
+				headerFlags |= FLAGS_COMPRESSED;
+				//TODO: specify compression algorithm...
+				attributes["compression"] = FdbTuple.Create(true);
+				attributes["compression.algorithm"] = FdbTuple.Create("lz4");
+			}
+
+			if (options.Signed)
+			{ // file will have a cryptographic signature
+				//TODO: specifiy digital signing algorithm
+				headerFlags |= FLAGS_SIGNED;
+				attributes["signature"] = FdbTuple.Create(true);
+				attributes["signature.algorithm"] = FdbTuple.Create("pkcs1");
+			}
+
+			if (options.Encrypted)
+			{ // file will be encrypted
+				//TODO: specify crypto algo, key sizes, initialization vectors, ...
+				headerFlags |= FLAGS_ENCRYPTED;
+				attributes["encryption"] = FdbTuple.Create(true);
+				attributes["encryption.algorithm"] = FdbTuple.Create("pkcs1");
+				attributes["encryption.keysize"] = FdbTuple.Create(4096); //ex: RSA 4096 ?
+			}
+
+
+			//m_dataLock.EnterReadLock();
+			try
+			{
+
+				// take the current version of the db (that will be used for the snapshot)
+				ulong sequence = (ulong)Volatile.Read(ref m_currentVersion);
+				int count = m_data.Count;
+
+				const int FLUSH_SIZE = 1 * 1024 * 1024;
+
+				var writer = new SliceWriter(FLUSH_SIZE);
+				using (var snapshot = new Win32SnapshotFile(path))
+				{
+					// Header (4K)
+					//Console.WriteLine("> Writing header...");
+					writer.WriteFixed32(0x42444E50);						// "PNDB"
+					writer.WriteFixed32(0x00010000);						// v1.0
+					writer.WriteFixed64(headerFlags);								// FLAGS
+					writer.WriteBytes(new Uuid(m_uid).ToByteArray());		// Database ID
+					writer.WriteFixed64(sequence);							// Database Version
+					writer.WriteFixed64((ulong)count);						// Number of items in the database
+
+					writer.WriteFixed32((uint)attributes.Count);
+					foreach(var kvp in attributes)
+					{
+						var slice = Slice.FromAscii(kvp.Key);
+						writer.WriteVarint32((uint)slice.Count);
+						writer.WriteBytes(slice);
+
+						slice = kvp.Value.ToSlice();
+						writer.WriteVarint32((uint)slice.Count);
+						writer.WriteBytes(slice);
+					}
+					writer.WriteFixed32(uint.MaxValue);
+					// the rest is ZEROed
+
+					int levels = m_data.Depth;
+					//Console.WriteLine("> Dumping " + levels + " levels...");
+					for (int level = levels - 1; level >= 0; level--)
+					{
+						if (ColaStore.IsFree(level, count))
+						{ // this level is not allocated
+							//Console.WriteLine("> Skipping empty level " + level);
+							continue;
+						}
+
+						cancellationToken.ThrowIfCancellationRequested();
+
+						//Console.WriteLine("> Writing level " + level);
+						var segment = m_data.GetLevel(level);
+
+						writer.WriteFixed32(0x204C564C);				// "LVL_"
+						writer.WriteFixed32((uint)level);				// Level ID
+						writer.WriteFixed32((uint)segment.Length);		// Item count (always 2^level)
+
+						for (int i = 0; i < segment.Length; i++)
+						{
+							unsafe
+							{
+								Value* value = MemoryDatabaseHandler.ResolveValueAtVersion(segment[i], sequence);
+								if (value == null)
+								{
+									continue;
+								}
+								Key* key = (Key*)segment[i].ToPointer();
+								Contract.Assert(key != null && key->Size <= int.MaxValue);
+
+								// Key Size
+								uint size = key->Size;
+								writer.WriteVarint32(size);
+								writer.WriteBytesUnsafe(&(key->Data), (int)size);
+
+								// Value
+
+								writer.WriteVarint64(value->Sequence); // sequence
+								size = value->Size;
+								if (size == 0)
+								{ // empty key
+									writer.WriteByte(0);
+								}
+								else
+								{
+									writer.WriteVarint32(size); // value size
+									writer.WriteBytesUnsafe(&(value->Data), (int)size); // value data
+								}
+
+							}
+
+							if (writer.Position >= FLUSH_SIZE)
+							{
+								//Console.WriteLine("> partial flush (" + writer.Position + ")");
+								writer.Flush(await snapshot.WriteAsync(writer.Buffer, writer.Position, cancellationToken).ConfigureAwait(false));
+							}
+						}
+
+						writer.WriteFixed32(uint.MaxValue);
+					}
+
+					//Console.WriteLine("> final flush (" + writer.Position + ")");
+					await snapshot.FlushAsync(writer.Buffer, writer.Position, cancellationToken).ConfigureAwait(false);
+
+					Console.WriteLine("> Done ! " + snapshot.Length.ToString("N0") + " bytes");
+				}
+
+				return (long)sequence;
+			}
+			finally
+			{
+				//m_dataLock.ExitReadLock();
+			}
 		}
 
 		/// <summary>Perform a complete garbage collection</summary>
