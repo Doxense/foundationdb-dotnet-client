@@ -11,6 +11,7 @@ namespace FoundationDB.Storage.Memory.API
 	using FoundationDB.Storage.Memory.Core;
 	using FoundationDB.Storage.Memory.Utils;
 	using System;
+	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Diagnostics.Contracts;
@@ -117,38 +118,60 @@ namespace FoundationDB.Storage.Memory.API
 			return tmp;
 		}
 
-		private TimeSpan m_maxTransactionLifetime = TimeSpan.FromSeconds(5);
+		private TimeSpan m_transactionHalfLife = TimeSpan.FromSeconds(2.5);
+		private TimeSpan m_windowMaxDuration = TimeSpan.FromSeconds(5);
+		private int m_windowMaxWrites = 1000;
 
 		private TransactionWindow GetActiveTransactionWindow_NeedsLocking(ulong sequence)
 		{
 			var window = m_currentWindow;
 			var now = DateTime.UtcNow;
 
+			// open a new window if the previous one is already closed, or is too old
 			if (window != null)
 			{ // is it still active ?
-
-				if (window.Closed)
+				if (window.Closed || now.Subtract(window.StartedUtc) >= m_transactionHalfLife || window.CommitCount >= m_windowMaxWrites)
 				{
-					window = null;
-				}
-				else if (now.Subtract(window.StartedUtc) > m_maxTransactionLifetime)
-				{
-					window.Close();
+					Log("Recycling previous window " + window);
 					window = null;
 				}
 			}
 
 			if (window == null)
 			{ // need to start a new window
-				window = new TransactionWindow(DateTime.UtcNow, sequence);
+				window = new TransactionWindow(now, sequence);
 				m_currentWindow = window;
 				m_transactionWindows.AddFirst(window);
 			}
 
+			// check the oldest transaction window
+			PurgeOldTransactionWindows(now);
+
 			return window;
 		}
 
-		internal unsafe Task<long> CommitTransactionAsync(MemoryTransactionHandler trans, long readVersion, ColaRangeSet<Slice> readConflicts, ColaRangeSet<Slice> writeConflicts, ColaRangeSet<Slice> clearRanges, ColaOrderedDictionary<Slice, MemoryTransactionHandler.WriteCommand[]> writes)
+		private void PurgeOldTransactionWindows(DateTime utcNow)
+		{
+			var stop = m_currentWindow;
+			var node = m_transactionWindows.Last;
+			TransactionWindow window;
+
+			while ((node != null && (window = node.Value) != null && window != stop))
+			{
+				if (!window.Closed && utcNow.Subtract(window.StartedUtc) <= m_windowMaxDuration)
+				{
+					break;
+				}
+				Log("Purging old transaction window " + window.ToString());
+
+				window.Close();
+				var tmp = node.Previous;
+				m_transactionWindows.RemoveLast();
+				node = tmp;
+			}
+		}
+
+		internal unsafe long CommitTransaction(MemoryTransactionHandler trans, long readVersion, ColaRangeSet<Slice> readConflicts, ColaRangeSet<Slice> writeConflicts, ColaRangeSet<Slice> clearRanges, ColaOrderedDictionary<Slice, MemoryTransactionHandler.WriteCommand[]> writes)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (m_disposed) ThrowDisposed();
@@ -191,12 +214,8 @@ namespace FoundationDB.Storage.Memory.API
 				{
 
 					var current = m_transactionWindows.First;
-					while (current != null)
+					while (current != null && current.Value.LastVersion >= readSequence)
 					{
-						if (current.Value.LastVersion < readSequence)
-						{
-							break;
-						}
 						if (current.Value.Conflicts(readConflicts, readSequence))
 						{
 							// the transaction has conflicting reads
@@ -205,7 +224,6 @@ namespace FoundationDB.Storage.Memory.API
 						current = current.Next;
 					}
 				}
-
 
 				#endregion
 
@@ -422,7 +440,7 @@ namespace FoundationDB.Storage.Memory.API
 
 			var version = isReadOnlyTransaction ? -1L : (long)committedSequence;
 
-			return Task.FromResult(version);
+			return version;
 		}
 
 		internal unsafe Task BulkLoadAsync(ICollection<KeyValuePair<Slice, Slice>> data, bool ordered, CancellationToken cancellationToken)
@@ -639,56 +657,58 @@ namespace FoundationDB.Storage.Memory.API
 		/// <param name="readVersion">Version of the read</param>
 		/// <param name="localClears">If not null, list of ranges cleared by the transaction</param>
 		/// <returns>Array of results</returns>
-		internal unsafe Task<Slice[]> GetValuesAtVersionAsync(Slice[] userKeys, long readVersion)
+		internal unsafe Slice[] GetValuesAtVersion(Slice[] userKeys, long readVersion)
 		{
 			if (m_disposed) ThrowDisposed();
 			if (userKeys == null) throw new ArgumentNullException("userKeys");
 
 			var results = new Slice[userKeys.Length];
 
-			m_dataLock.EnterReadLock();
-			try
+			if (userKeys.Length > 0)
 			{
-				ulong sequence = (ulong)readVersion;
-				EnsureReadVersionNotInTheFuture_NeedsLocking(sequence);
-
-				var buffer = new SliceBuffer();
-
-				using(var scratch = m_scratchPool.Use())
+				m_dataLock.EnterReadLock();
+				try
 				{
-					var builder = scratch.Builder;
+					ulong sequence = (ulong)readVersion;
+					EnsureReadVersionNotInTheFuture_NeedsLocking(sequence);
 
-					for (int i = 0; i < userKeys.Length; i++)
+					var buffer = new SliceBuffer();
+
+					using (var scratch = m_scratchPool.Use())
 					{
-						// create a lookup key
-						builder.Clear();
-						var lookupKey = PackUserKey(builder, userKeys[i]);
+						var builder = scratch.Builder;
 
-						USlice value;
-						if (!TryGetValueAtVersion(lookupKey, sequence, out value))
-						{ // cette clé n'existe pas ou plus a cette version
-							results[i] = default(Slice);
-						}
-						else if (value.Count == 0)
-						{ // the value is the empty slice
-							results[i] = Slice.Empty;
-						}
-						else
-						{ // move this value to the slice buffer
+						for (int i = 0; i < userKeys.Length; i++)
+						{
+							// create a lookup key
+							builder.Clear();
+							var lookupKey = PackUserKey(builder, userKeys[i]);
 
-							var data = buffer.Allocate(checked((int)value.Count));
-							Contract.Assert(data.Array != null && data.Offset >= 0 && data.Count == (int)value.Count);
-							UnmanagedHelpers.CopyUnsafe(data, value.Data, value.Count);
-							results[i] = data;
+							USlice value;
+							if (!TryGetValueAtVersion(lookupKey, sequence, out value))
+							{ // this key does not exist, or was deleted at that time
+								results[i] = default(Slice);
+							}
+							else if (value.Count == 0)
+							{ // the value is the empty slice
+								results[i] = Slice.Empty;
+							}
+							else
+							{ // move this value to the slice buffer
+								var data = buffer.Allocate(checked((int)value.Count));
+								Contract.Assert(data.Array != null && data.Offset >= 0 && data.Count == (int)value.Count);
+								UnmanagedHelpers.CopyUnsafe(data, value.Data, value.Count);
+								results[i] = data;
+							}
 						}
 					}
 				}
-				return Task.FromResult(results);
+				finally
+				{
+					m_dataLock.ExitReadLock();
+				}
 			}
-			finally
-			{
-				m_dataLock.ExitReadLock();
-			}
+			return results;
 		}
 
 		/// <summary>Walk the value chain, to return the value of a key that was the latest at a specific read version</summary>
@@ -1255,6 +1275,233 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
+
+		#region Writer Thread...
+
+		private sealed class CommitState : TaskCompletionSource<object>
+		{
+			public CommitState(MemoryTransactionHandler trans)
+				: base()
+			{
+				Contract.Requires(trans != null);
+				this.Transaction = trans;
+			}
+
+			public void MarkAsCompleted()
+			{
+				if (!this.Task.IsCompleted)
+				{
+					ThreadPool.UnsafeQueueUserWorkItem((state) => { ((CommitState)state).TrySetResult(null); }, this);
+				}
+			}
+
+			public void MarkAsFailed(Exception e)
+			{
+				if (!this.Task.IsCompleted)
+				{
+					ThreadPool.UnsafeQueueUserWorkItem(
+						(state) =>
+						{
+							var items = (Tuple<CommitState, Exception>)state;
+							items.Item1.TrySetException(items.Item2);
+						},
+						Tuple.Create(this, e)
+					);
+				}
+			}
+
+			public void MarkAsCancelled()
+			{
+				if (!this.Task.IsCompleted)
+				{
+					ThreadPool.UnsafeQueueUserWorkItem((state) => { ((CommitState)state).TrySetResult(null); }, this);
+				}
+			}
+
+			public MemoryTransactionHandler Transaction { get; private set; }
+
+		}
+
+		[Conditional("DEBUG")]
+		private static void Log(string msg)
+		{
+			Debug.WriteLine("MemoryDatabaseHandler[#" + Thread.CurrentThread.ManagedThreadId + "]: " + msg);
+		}
+
+		private const int STATE_IDLE = 0;
+		private const int STATE_RUNNNING = 1;
+		private const int STATE_SHUTDOWN = 2;
+
+		private int m_eventLoopState = STATE_IDLE;
+		private AutoResetEvent m_writerEvent = new AutoResetEvent(false);
+		private ConcurrentQueue<CommitState> m_writerQueue = new ConcurrentQueue<CommitState>();
+		private ManualResetEvent m_shutdownEvent = new ManualResetEvent(false);
+
+		internal Task EnqueueCommit(MemoryTransactionHandler trans)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			if (Volatile.Read(ref m_eventLoopState) == STATE_SHUTDOWN)
+			{
+				throw new FdbException(FdbError.OperationFailed, "The database has already been disposed");
+			}
+
+			var entry = new CommitState(trans);
+			try
+			{
+				m_writerQueue.Enqueue(entry);
+
+				// wake up the writer thread if needed
+				// note: we need to set the event BEFORE changing the eventloop state, because the writer thread may be in the process of shutting down
+				m_writerEvent.Set();
+				Log("Enqueued new commit");
+
+				if (Interlocked.CompareExchange(ref m_eventLoopState, STATE_RUNNNING, STATE_IDLE) == STATE_IDLE)
+				{ // we have to start the event loop
+					Log("Starting new Writer EventLoop...");
+					var _ = Task.Factory.StartNew(() => WriteEventLoop(), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+				}
+			}
+			catch (Exception e)
+			{
+				entry.SetException(e);
+			}
+			return entry.Task;
+		}
+
+		/// <summary>Event loop that is called to process all the writes to the database</summary>
+		private void WriteEventLoop()
+		{
+			TimeSpan quanta = TimeSpan.FromSeconds(30);
+
+			// confirm that we can still run
+			if (Interlocked.CompareExchange(ref m_eventLoopState, STATE_RUNNNING, STATE_RUNNNING) != STATE_RUNNNING)
+			{ // a shutdown was retquested, exit immediately
+				Log("WriteEventLoop fast abort");
+				return;
+			}
+
+			Log("WriteEventLoop started");
+
+			try
+			{
+				bool keepGoing = true;
+				while (keepGoing)
+				{
+					// Wait() will:
+					// - return true if we have a new entry to process
+					// - return false if the quanta timeout has expired
+					// - throw an OperationCanceledException if the cancellation token was triggered
+					if (m_writerEvent.WaitOne(quanta))
+					{
+						Log("WriteEventLoop wake up");
+						CommitState entry;
+
+						// process all the pending writes
+						while (Volatile.Read(ref m_eventLoopState) != STATE_SHUTDOWN && m_writerQueue.TryDequeue(out entry))
+						{
+							if (entry.Task.IsCompleted)
+							{ // the task has already been completed/cancelled?
+								continue;
+							}
+
+							try
+							{
+								Log("WriteEventLoop process transaction");
+								//TODO: work !
+								entry.Transaction.CommitInternal();
+								entry.MarkAsCompleted();
+							}
+							catch (Exception e)
+							{
+								Log("WriteEventLoop transaction failed: " + e.Message);
+								entry.MarkAsFailed(new FdbException(FdbError.InternalError, "The transaction failed to commit", e));
+							}
+						}
+
+						if (Volatile.Read(ref m_eventLoopState) == STATE_SHUTDOWN)
+						{ // we have been asked to shutdown
+							Log("WriteEventLoop shutdown requested");
+							// drain the commit queue, and mark all of them as failed
+							while (m_writerQueue.TryDequeue(out entry))
+							{
+								if (entry != null) entry.MarkAsCancelled();
+							}
+							keepGoing = false;
+						}
+					}
+					else
+					{ // try to step down
+
+						Log("WriteEventLoop no activity");
+						Interlocked.CompareExchange(ref m_eventLoopState, STATE_IDLE, STATE_RUNNNING);
+						// check again if nobody was trying to queue a write at the same time
+						if (!m_writerEvent.WaitOne(TimeSpan.Zero, false) || Interlocked.CompareExchange(ref m_eventLoopState, STATE_RUNNNING, STATE_IDLE) == STATE_IDLE)
+						{ // either there were no pending writes, or we lost the race and will be replaced by another thread
+							Log("WriteEventLoop will step down");
+							keepGoing = false; // stop
+						}
+#if DEBUG
+						else
+						{
+							Log("WriteEventLoop will resume");
+						}
+#endif
+					}
+				}
+				Console.WriteLine("WriteEventLoop exit");
+			}
+			catch(Exception)
+			{
+				//TODO: fail all pending commits ?
+				// reset the state to IDLE so that another write can restart us
+				Interlocked.CompareExchange(ref m_eventLoopState, STATE_IDLE, STATE_RUNNNING);
+				throw;
+			}
+			finally
+			{
+				if (Volatile.Read(ref m_eventLoopState) == STATE_SHUTDOWN)
+				{
+					m_shutdownEvent.Set();
+				}
+			}
+		}
+
+		private void StopWriterEventLoop()
+		{
+			// signal a shutdown
+			Console.WriteLine("WriterEventLoop requesting stop...");
+			int oldState;
+			if ((oldState = Interlocked.Exchange(ref m_eventLoopState, STATE_SHUTDOWN)) != STATE_SHUTDOWN)
+			{
+				switch (oldState)
+				{
+					case STATE_RUNNNING:
+					{
+						// need to wake up the thread, if it was waiting for new writes
+						m_writerEvent.Set();
+						// and wait for it to finish...
+						if (!m_shutdownEvent.WaitOne(TimeSpan.FromSeconds(5)))
+						{
+							// what should we do ?
+						}
+						Console.WriteLine("WriterEventLoop stopped");
+						break;
+					}
+					default:
+					{ // not running, or already shutdown ?
+						m_shutdownEvent.Set();
+						break;
+					}
+				}
+			}
+		}
+
+		#endregion
+
+
+
+
 		/// <summary>Perform a complete garbage collection</summary>
 		public void Collect()
 		{
@@ -1293,7 +1540,11 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				m_disposed = true;
 
+				StopWriterEventLoop();
 				//TODO: need to lock and ensure that all pending transactions are done
+
+				m_writerEvent.Dispose();
+				m_shutdownEvent.Dispose();
 
 				if (m_keys != null) m_keys.Dispose();
 				if (m_values != null) m_values.Dispose();

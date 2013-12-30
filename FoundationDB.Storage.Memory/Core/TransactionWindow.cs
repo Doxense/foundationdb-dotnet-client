@@ -20,7 +20,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Sequence of the last commited transaction from this window</summary>
 		private ulong m_maxVersion;
 		/// <summary>Counter for committed write transactions</summary>
-		private int m_writeCount;
+		private int m_commitCount;
 		/// <summary>If true, the transaction is closed (no more transaction can write to it)</summary>
 		private bool m_closed;
 		/// <summary>If true, the transaction has been disposed</summary>
@@ -47,7 +47,7 @@ namespace FoundationDB.Storage.Memory.Core
 		public DateTime StartedUtc { get { return m_startedUtc; } }
 
 		/// <summary>Number of write transaction that committed during this window</summary>
-		public int CommitCount { get { return m_writeCount; } }
+		public int CommitCount { get { return m_commitCount; } }
 
 		public ColaRangeDictionary<USlice, ulong> Writes { get { return m_writeConflicts; } }
 
@@ -97,7 +97,7 @@ namespace FoundationDB.Storage.Memory.Core
 				m_writeConflicts.Mark(beginKey, endKey, version);
 			}
 
-			++m_writeCount;
+			++m_commitCount;
 			if (version > m_maxVersion)
 			{
 				m_maxVersion = version;

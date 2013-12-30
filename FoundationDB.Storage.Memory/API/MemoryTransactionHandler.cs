@@ -599,7 +599,7 @@ namespace FoundationDB.Storage.Memory.API
 
 			// read the value in the db
 			//TODO: how to lock ?
-			var results = await m_db.GetValuesAtVersionAsync(new Slice[] { range.Begin }, m_readVersion.Value).ConfigureAwait(false);
+			var results = m_db.GetValuesAtVersion(new Slice[] { range.Begin }, m_readVersion.Value);
 			Contract.Assert(results != null && results.Length == 1);
 			var result = results[0];
 
@@ -654,7 +654,7 @@ namespace FoundationDB.Storage.Memory.API
 
 			// read the values in the db
 			//TODO: how to lock ?
-			var results = await m_db.GetValuesAtVersionAsync(ordered, m_readVersion.Value).ConfigureAwait(false);
+			var results = m_db.GetValuesAtVersion(ordered, m_readVersion.Value);
 
 			// snapshot read always see the db, regular read must merge with local mutation, unless option ReadYourWrites is set
 			if (!snapshot && !this.ReadYourWritesDisable)
@@ -982,8 +982,9 @@ namespace FoundationDB.Storage.Memory.API
 			Initialize(true);
 		}
 
-		public async Task CommitAsync(CancellationToken cancellationToken)
+		public Task CommitAsync(CancellationToken cancellationToken)
 		{
+			Debug.WriteLine("MemoryTransactionHandler: CommitAsync() called");
 			cancellationToken.ThrowIfCancellationRequested();
 
 			if (!m_readVersion.HasValue)
@@ -1047,10 +1048,20 @@ namespace FoundationDB.Storage.Memory.API
 			}
 #endif
 
-			m_committedVersion = await m_db.CommitTransactionAsync(this, m_readVersion.Value, m_readConflicts, m_writeConflicts, m_clears, m_writes).ConfigureAwait(false);
+			//m_committedVersion = await m_db.CommitTransactionAsync(this, m_readVersion.Value, m_readConflicts, m_writeConflicts, m_clears, m_writes).ConfigureAwait(false);
+
+			return m_db.EnqueueCommit(this);
+
 #if DUMP_TRANSACTION_STATE
 			Trace.WriteLine("=== DONE with commit version " + m_committedVersion);
 #endif
+		}
+
+		internal void CommitInternal()
+		{
+			Debug.WriteLine("MemoryTransactionHandler: CommitInternalAsync() called");
+			m_committedVersion = m_db.CommitTransaction(this, m_readVersion.Value, m_readConflicts, m_writeConflicts, m_clears, m_writes);
+			Debug.WriteLine("MemoryTransactionHandler: committed at " + m_committedVersion);
 		}
 
 		public long GetCommittedVersion()
