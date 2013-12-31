@@ -412,7 +412,7 @@ namespace FoundationDB.Client
 		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, bool snapshot)
 		{
 			this.Database.EnsureKeyIsValid(begin.Key);
-			this.Database.EnsureKeyIsValid(end.Key);
+			this.Database.EnsureKeyIsValid(end.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
 			options.EnsureLegalValues();
