@@ -35,6 +35,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -51,7 +52,7 @@ namespace FoundationDB.Client.Native
 		private static readonly UnmanagedLibrary FdbCLib;
 
 		/// <summary>Exception that was thrown when we last tried to load the native FDB C library (or null if nothing wrong happened)</summary>
-		private static readonly Exception LibraryLoadError;
+		private static readonly ExceptionDispatchInfo LibraryLoadError;
 
 		[UnmanagedFunctionPointer(CallingConvention.Cdecl)]
 		public delegate void FdbFutureCallback(IntPtr future, IntPtr parameter);
@@ -242,7 +243,15 @@ namespace FoundationDB.Client.Native
 				{
 					if (FdbCLib != null) FdbCLib.Dispose();
 					FdbCLib = null;
-					LibraryLoadError = e;
+					if (e is BadImageFormatException && IntPtr.Size == 4)
+					{
+						e = new InvalidOperationException("The native FDB client is 64-bit only, and cannot be loaded in a 32-bit process.", e);
+					}
+					else
+					{
+						e = new InvalidOperationException("An error occured while loading the native FoundationDB library", e);
+					}
+					LibraryLoadError = ExceptionDispatchInfo.Capture(e);
 				}
 			}
 		}
@@ -256,12 +265,7 @@ namespace FoundationDB.Client.Native
 		private static void EnsureLibraryIsLoaded()
 		{
 			// should be inlined
-			if (LibraryLoadError != null || FdbCLib == null) FailLibraryDidNotLoad();
-		}
-
-		private static void FailLibraryDidNotLoad()
-		{
-			throw new InvalidOperationException("An error occured while loading native FoundationDB library", LibraryLoadError);
+			if (LibraryLoadError != null || FdbCLib == null) LibraryLoadError.Throw();
 		}
 
 		private static string ToManagedString(byte* nativeString)
