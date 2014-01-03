@@ -285,10 +285,19 @@ namespace FoundationDB.Client.Converters
 			Converters[new KeyValuePair<Type, Type>(typeof(T), typeof(R))] = new Anonymous<T, R>(converter);
 		}
 
-		/// <summary>Registers a new converter</summary>
+		/// <summary>Registers a new type converter</summary>
 		/// <typeparam name="T">Source type</typeparam>
 		/// <typeparam name="R">Destination type</typeparam>
 		/// <param name="converter">Lambda that converts a value of type <typeparamref name="T"/> into a value of type <typeparamref name="R"/></param>
+		public static void Register<T, R>(Func<T, R> converter)
+		{
+			Register<T, R>(new Anonymous<T, R>(converter));
+		}
+
+		/// <summary>Registers a new type converter</summary>
+		/// <typeparam name="T">Source type</typeparam>
+		/// <typeparam name="R">Destination type</typeparam>
+		/// <param name="converter">Instance that can convert values of type <typeparamref name="T"/> into a values of type <typeparamref name="R"/></param>
 		public static void Register<T, R>(IFdbConverter<T, R> converter)
 		{
 			while (true)
