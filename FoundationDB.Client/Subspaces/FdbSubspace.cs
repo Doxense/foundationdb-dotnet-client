@@ -701,6 +701,18 @@ namespace FoundationDB.Client
 			return FdbTuple.ToRange(m_rawPrefix);
 		}
 
+		public FdbKeyRange ToRange(Slice key)
+		{
+			return FdbTuple.ToRange(m_rawPrefix + key);
+		}
+
+		public FdbKeyRange ToRange<TKey>(TKey key)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return FdbTuple.ToRange(m_rawPrefix + key.ToFoundationDbKey());
+		}
+
 		public FdbKeyRange ToRange(IFdbTuple tuple)
 		{
 			return FdbTuple.ToRange(FdbTuple.Concat(m_rawPrefix, tuple));
