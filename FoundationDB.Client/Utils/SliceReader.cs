@@ -143,20 +143,22 @@ namespace FoundationDB.Client
 			int end = this.Buffer.Offset + this.Buffer.Count;
 
 			ulong x = 0;
+			int s = 0;
 
 			// read bytes until the MSB is unset
 			while (count-- > 0)
 			{
 				if (p > end) throw new FormatException("Truncated Varint");
-
 				byte b = buffer[p++];
-				x <<= 7;
 
-				if (b < 0x80) return x | b;
-
-				x |= (b & 0x7FUL);
+				x |= (b & 0x7FUL) << s;
+				if (b < 0x80)
+				{
+					this.Position = p - this.Buffer.Offset;
+					return x;
+				}
+				s += 7;
 			}
-
 			throw new FormatException("Malformed Varint");
 		}
 
