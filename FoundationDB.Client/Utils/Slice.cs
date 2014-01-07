@@ -502,6 +502,36 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Encode an unsigned 32-bit integer into 7-bit encoded unsigned int (aka 'Varint32')</summary>
+		public static Slice FromVarint32(uint value)
+		{
+			if (value < 128)
+			{
+				return FromByte((byte)value);
+			}
+			else
+			{
+				var writer = new SliceWriter(5);
+				writer.WriteVarint32(value);
+				return writer.ToSlice();
+			}
+		}
+
+		/// <summary>Encode an unsigned 64-bit integer into 7-bit encoded unsigned int (aka 'Varint64')</summary>
+		public static Slice FromVarint64(ulong value)
+		{
+			if (value < 128)
+			{
+				return FromByte((byte)value);
+			}
+			else
+			{
+				var writer = new SliceWriter(10);
+				writer.WriteVarint64(value);
+				return writer.ToSlice();
+			}
+		}
+
 		/// <summary>Create a 16-byte slice containing a System.Guid encoding according to RFC 4122 (Big Endian)</summary>
 		/// <remarks>WARNING: Slice.FromGuid(guid).GetBytes() will not produce the same result as guid.ToByteArray() !
 		/// If you need to produce Microsoft compatible byte arrays, use Slice.Create(guid.ToByteArray()) but then you shoud NEVER use Slice.ToGuid() to decode such a value !</remarks>
