@@ -52,9 +52,11 @@ namespace FoundationDB.Client.Tests
 		}
 
 		/// <summary>Connect to the local test database</summary>
-		public static Task<FdbDatabasePartition> OpenTestPartitionAsync(CancellationToken ct = default(CancellationToken))
+		public static async Task<FdbDatabasePartition> OpenTestPartitionAsync(CancellationToken ct = default(CancellationToken))
 		{
-			return Fdb.PartitionTable.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, ct);
+			var db = await Fdb.PartitionTable.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, ct);
+			db.DefaultTimeout = 15 * 1000;
+			return db;
 		}
 
 		public static async Task<FdbDirectorySubspace> GetCleanDirectory(FdbDatabasePartition db, params string[] path)
