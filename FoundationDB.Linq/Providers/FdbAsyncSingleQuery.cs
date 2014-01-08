@@ -26,46 +26,23 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq
+namespace FoundationDB.Linq.Providers
 {
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Linq.Expressions;
 	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
 
-	/// <summary>Database query</summary>
-	/// <remarks>Reads data directly from a database</remarks>
-	public sealed class FdbDatabaseQuery : FdbAsyncQuery<IFdbDatabase>, IFdbDatabaseQueryable
+	/// <summary>Query that returns a single element</summary>
+	/// <typeparam name="T">Type of the element returned</typeparam>
+	public class FdbAsyncSingleQuery<T> : FdbAsyncQuery<T>, IFdbAsyncQueryable<T>
 	{
-		internal FdbDatabaseQuery(IFdbDatabase db)
-			: base(db)
+		public FdbAsyncSingleQuery(IFdbDatabase db, FdbQueryExpression<T> expression)
+			: base(db, expression)
 		{ }
 
-		protected override Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
-		{
-			throw new InvalidOperationException("You cannot execute this operation on the whole database. Try calling Range() or RangeStartsWith() on this query to read from the database.");
-		}
-
-	}
-
-	/// <summary>Database query</summary>
-	/// <remarks>Reads data directly from a database</remarks>
-	public sealed class FdbIndexQuery<TId, TValue> : FdbAsyncQuery<FdbIndexQuery<TId, TValue>>, IFdbIndexQueryable<TId, TValue>
-	{
-		internal FdbIndexQuery(IFdbDatabase db, FdbIndex<TId, TValue> index)
-			: base(db)
-		{
-			this.Index = index;
-		}
-
-		public FdbIndex<TId, TValue> Index { get; private set; }
-
-		protected override Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
-		{
-			throw new InvalidOperationException("You cannot execute this operation on the whole index. Try calling Lookup() on this query to lookup specific values from the index.");
-		}
+		public FdbAsyncSingleQuery(IFdbReadOnlyTransaction trans, FdbQueryExpression<T> expression)
+			: base(trans, expression)
+		{ }
 
 	}
 

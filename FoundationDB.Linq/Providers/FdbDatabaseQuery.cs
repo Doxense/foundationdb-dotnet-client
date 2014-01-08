@@ -26,30 +26,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq
+namespace FoundationDB.Linq.Providers
 {
 	using FoundationDB.Client;
 	using FoundationDB.Linq.Expressions;
-	using FoundationDB.Linq.Utils;
 	using System;
-	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Async LINQ query that returns an async sequence of items</summary>
-	/// <typeparam name="T">Type of the items in the sequence</typeparam>
-	public sealed class FdbAsyncSequenceQuery<T> : FdbAsyncQuery<T>, IFdbAsyncSequenceQueryable<T>
+	/// <summary>Database query</summary>
+	/// <remarks>Reads data directly from a database</remarks>
+	public sealed class FdbDatabaseQuery : FdbAsyncQuery<IFdbDatabase>, IFdbDatabaseQueryable
 	{
-
-		public FdbAsyncSequenceQuery(IFdbDatabase db, FdbQuerySequenceExpression<T> expression)
-			: base(db, expression)
+		internal FdbDatabaseQuery(IFdbDatabase db)
+			: base(db)
 		{ }
 
-		public Type ElementType { get { return typeof(T); } }
-
-		public IFdbAsyncEnumerable<T> ToEnumerable(FdbAsyncMode mode = FdbAsyncMode.Default)
+		protected override Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
-			return FdbAsyncEnumerable.Create((_) => GetEnumerator(this, mode));
+			throw new InvalidOperationException("You cannot execute this operation on the whole database. Try calling Range() or RangeStartsWith() on this query to read from the database.");
 		}
 
 	}

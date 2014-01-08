@@ -31,7 +31,6 @@ namespace FoundationDB.Linq.Expressions
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Linq.Expressions;
 	using System.Reflection;
@@ -107,7 +106,7 @@ namespace FoundationDB.Linq.Expressions
 			if (index == null) throw new ArgumentNullException("index");
 
 			var binary = expression.Body as BinaryExpression;
-			if (binary == null) throw new ArgumentException("Only binary expression are allowed", "expression");
+			if (binary == null) throw new ArgumentException("Only binary expressions are allowed", "expression");
 
 			var constant = binary.Right as ConstantExpression;
 			if (constant == null || constant.Type != typeof(TValue)) throw new ArgumentException(String.Format("Left side of expression '{0}' must be a constant of type {1}", binary.Right.ToString(), typeof(TValue).Name));

@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
@@ -44,11 +43,6 @@ namespace FoundationDB.Linq.Expressions
 		{
 			this.Range = range;
 			this.Options = options;
-		}
-
-		public override FdbQueryNodeType QueryNodeType
-		{
-			get { return FdbQueryNodeType.Range; }
 		}
 
 		public override FdbQueryShape Shape

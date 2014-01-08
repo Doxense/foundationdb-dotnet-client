@@ -26,47 +26,30 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq.Expressions
+namespace FoundationDB.Linq.Providers
 {
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Indexing;
+	using FoundationDB.Linq.Expressions;
 	using System;
-	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>
+	/// <summary>Database query</summary>
+	/// <remarks>Reads data directly from a database</remarks>
+	public sealed class FdbIndexQuery<TId, TValue> : FdbAsyncQuery<FdbIndexQuery<TId, TValue>>, IFdbIndexQueryable<TId, TValue>
 	{
-
-		public FdbQueryAsyncEnumerableExpression(IFdbAsyncEnumerable<T> source)
+		internal FdbIndexQuery(IFdbDatabase db, FdbIndex<TId, TValue> index)
+			: base(db)
 		{
-			this.Source = source;
+			this.Index = index;
 		}
 
-		public override FdbQueryShape Shape
+		public FdbIndex<TId, TValue> Index { get; private set; }
+
+		protected override Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
-			get { return FdbQueryShape.Sequence; }
-		}
-
-		public IFdbAsyncEnumerable<T> Source { get; private set; }
-
-		public override Expression Accept(FdbQueryExpressionVisitor visitor)
-		{
-			return visitor.VisitAsyncEnumerable(this);
-		}
-
-		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
-		{
-			return FdbExpressionHelpers.ToTask(CompileSequence());
-		}
-
-		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
-		{
-			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
-
-			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>>(
-				Expression.Constant(this.Source), 
-				prmTrans
-			);
+			throw new InvalidOperationException("You cannot execute this operation on the whole index. Try calling Lookup() on this query to lookup specific values from the index.");
 		}
 
 	}

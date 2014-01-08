@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq.Utils
+namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client;
@@ -39,7 +39,7 @@ namespace FoundationDB.Linq.Utils
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	internal static class FdbExpressionHelpers
+	public static class FdbExpressionHelpers
 	{
 
 		#region DebugView...

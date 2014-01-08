@@ -26,22 +26,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq
+namespace FoundationDB.Linq.Providers
 {
 	using FoundationDB.Client;
 	using FoundationDB.Linq.Expressions;
-	using FoundationDB.Linq.Utils;
 	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
 
-	/// <summary>Query that returns a single element</summary>
-	/// <typeparam name="T">Type of the element returned</typeparam>
-	public class FdbAsyncSingleQuery<T> : FdbAsyncQuery<T>, IFdbAsyncQueryable<T>
+	/// <summary>Async LINQ query that returns an async sequence of items</summary>
+	/// <typeparam name="T">Type of the items in the sequence</typeparam>
+	public class FdbAsyncSequenceQuery<T> : FdbAsyncQuery<T>, IFdbAsyncSequenceQueryable<T>
 	{
-		public FdbAsyncSingleQuery(IFdbDatabase db, FdbQueryExpression<T> expression)
+
+		public FdbAsyncSequenceQuery(IFdbDatabase db, FdbQuerySequenceExpression<T> expression)
 			: base(db, expression)
 		{ }
+
+		public FdbAsyncSequenceQuery(IFdbReadOnlyTransaction trans, FdbQuerySequenceExpression<T> expression)
+			: base(trans, expression)
+		{ }
+
+		public Type ElementType { get { return typeof(T); } }
+
+		public IFdbAsyncEnumerable<T> ToEnumerable(FdbAsyncMode mode = FdbAsyncMode.Default)
+		{
+			return FdbAsyncEnumerable.Create((_) => GetEnumerator(this, mode));
+		}
 
 	}
 

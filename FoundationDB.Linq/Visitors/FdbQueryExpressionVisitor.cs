@@ -28,14 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
 	using System;
-	using System.Globalization;
 	using System.Linq.Expressions;
-	using System.Reflection;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	public abstract class FdbQueryExpressionVisitor:  ExpressionVisitor
 	{

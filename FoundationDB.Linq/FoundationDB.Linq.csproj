@@ -49,13 +49,14 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
-    <Compile Include="FdbDatabaseQuery.cs" />
-    <Compile Include="Utils\FdbExpressionHelpers.cs" />
-    <Compile Include="FdbAsyncSingleQuery.cs" />
+    <Compile Include="Providers\FdbIndexQuery`2.cs" />
+    <Compile Include="Providers\FdbDatabaseQuery.cs" />
+    <Compile Include="Expressions\FdbExpressionHelpers.cs" />
+    <Compile Include="Providers\FdbAsyncSingleQuery.cs" />
     <Compile Include="Expressions\FdbQuerySingleExpression.cs" />
     <Compile Include="Expressions\FdbQueryAsyncEnumerableExpression.cs" />
-    <Compile Include="FdbAsyncSequenceQuery.cs" />
-    <Compile Include="FdbAsyncQuery.cs" />
+    <Compile Include="Providers\FdbAsyncSequenceQuery.cs" />
+    <Compile Include="Providers\FdbAsyncQuery.cs" />
     <Compile Include="FdbAsyncQueryable.cs" />
     <Compile Include="Expressions\FdbQueryFilterExpression.cs" />
     <Compile Include="Interfaces.cs" />
@@ -66,7 +67,7 @@
     <Compile Include="Expressions\FdbQuerySequenceExpression.cs" />
     <Compile Include="Expressions\FdbQueryExpression.cs" />
     <Compile Include="Expressions\FdbQueryExpressions.cs" />
-    <Compile Include="Utils\FdbDebugStatementWriter.cs" />
+    <Compile Include="Expressions\FdbDebugStatementWriter.cs" />
     <Compile Include="Expressions\FdbQueryNodeType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Visitors\FdbQueryExpressionStringBuilder.cs" />
@@ -82,6 +83,7 @@
       <Name>FoundationDB.Layers.Common</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

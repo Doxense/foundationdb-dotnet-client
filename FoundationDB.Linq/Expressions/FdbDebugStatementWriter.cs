@@ -26,9 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq.Utils
+namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Linq.Expressions;
 	using System;
 	using System.Globalization;
 	using System.Linq.Expressions;

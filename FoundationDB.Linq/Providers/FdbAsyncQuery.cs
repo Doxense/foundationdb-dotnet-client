@@ -26,14 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Linq
+namespace FoundationDB.Linq.Providers
 {
 	using FoundationDB.Client;
 	using FoundationDB.Linq.Expressions;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Collections.Generic;
-	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -46,7 +44,7 @@ namespace FoundationDB.Linq
 			this.Expression = expression;
 		}
 
-		protected FdbAsyncQuery(IFdbTransaction trans, FdbQueryExpression expression = null)
+		protected FdbAsyncQuery(IFdbReadOnlyTransaction trans, FdbQueryExpression expression = null)
 		{
 			this.Transaction = trans;
 			this.Expression = expression;
@@ -56,7 +54,7 @@ namespace FoundationDB.Linq
 
 		public IFdbDatabase Database { get; private set; }
 
-		public IFdbTransaction Transaction { get; private set; }
+		public IFdbReadOnlyTransaction Transaction { get; private set; }
 
 		public virtual Type Type { get { return this.Expression.Type; } }
 
@@ -75,14 +73,20 @@ namespace FoundationDB.Linq
 		{
 			if (expression == null) throw new ArgumentNullException("expression");
 
-			return new FdbAsyncSingleQuery<R>(this.Database, expression);
+			if (this.Transaction != null)
+				return new FdbAsyncSingleQuery<R>(this.Transaction, expression);
+			else
+				return new FdbAsyncSingleQuery<R>(this.Database, expression);
 		}
 
 		public virtual IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression)
 		{
 			if (expression == null) throw new ArgumentNullException("expression");
 
-			return new FdbAsyncSequenceQuery<R>(this.Database, expression);
+			if (this.Transaction != null)
+				return new FdbAsyncSequenceQuery<R>(this.Transaction, expression);
+			else
+				return new FdbAsyncSequenceQuery<R>(this.Database, expression);
 		}
 
 		public async Task<R> ExecuteAsync<R>(FdbQueryExpression expression, CancellationToken ct)
@@ -131,7 +135,7 @@ namespace FoundationDB.Linq
 		{
 			var generator = CompileSingle(expression);
 
-			IFdbTransaction trans = this.Transaction;
+			var trans = this.Transaction;
 			bool owned = false;
 			try
 			{
@@ -239,7 +243,7 @@ namespace FoundationDB.Linq
 		{
 			var generator = CompileSequence(expression);
 
-			IFdbTransaction trans = this.Transaction;
+			var trans = this.Transaction;
 			bool owned = false;
 			try
 			{

@@ -31,13 +31,11 @@ namespace FoundationDB.Linq
 	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq.Expressions;
-	using FoundationDB.Linq.Utils;
+	using FoundationDB.Linq.Providers;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
-	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
 

@@ -28,16 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
 	using System.Linq.Expressions;
-	using System.Reflection;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	public class FdbQueryExpressionStringBuilder : FdbQueryExpressionVisitor
 	{
@@ -93,7 +87,7 @@ namespace FoundationDB.Linq.Expressions
 
 		protected internal override Expression VisitQueryMerge<T>(FdbQueryMergeExpression<T> node)
 		{
-			m_writer.WriteLine("{0}<{1}>(", node.QueryNodeType.ToString(), node.ElementType.Name).Enter();
+			m_writer.WriteLine("{0}<{1}>(", node.MergeType.ToString(), node.ElementType.Name).Enter();
 			for (int i = 0; i < node.Expressions.Length; i++)
 			{
 				Visit(node.Expressions[i]);

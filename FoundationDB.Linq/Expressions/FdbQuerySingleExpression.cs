@@ -30,7 +30,6 @@ namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Diagnostics.Contracts;
 	using System.Globalization;
@@ -46,11 +45,6 @@ namespace FoundationDB.Linq.Expressions
 			this.Sequence = sequence;
 			this.Name = name;
 			this.Lambda = lambda;
-		}
-
-		public override FdbQueryNodeType QueryNodeType
-		{
-			get { return FdbQueryNodeType.Single; }
 		}
 
 		public override FdbQueryShape Shape

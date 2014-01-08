@@ -30,11 +30,8 @@ namespace FoundationDB.Linq
 {
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq.Expressions;
 	using System;
-	using System.Collections.Generic;
-	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
 

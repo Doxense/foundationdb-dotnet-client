@@ -31,7 +31,6 @@ namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Globalization;
 	using System.Linq.Expressions;
@@ -48,11 +47,6 @@ namespace FoundationDB.Linq.Expressions
 			this.Index = index;
 			this.Operator = op;
 			this.Value = value;
-		}
-
-		public override FdbQueryNodeType QueryNodeType
-		{
-			get { return FdbQueryNodeType.IndexLookup; }
 		}
 
 		public override FdbQueryShape Shape

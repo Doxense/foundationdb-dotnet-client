@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Linq.Expressions;
 	using System.Reflection;
@@ -51,8 +50,6 @@ namespace FoundationDB.Linq.Expressions
 		{
 			get { return ExpressionType.Extension; }
 		}
-
-		public abstract FdbQueryNodeType QueryNodeType { get; }
 
 		public abstract FdbQueryShape Shape { get; }
 

@@ -30,25 +30,6 @@ namespace FoundationDB.Linq.Expressions
 {
 	using System;
 
-	public enum FdbQueryNodeType
-	{
-		Invalid = 0,
-
-		Constant = 9,
-
-		Database = 9001,
-		Single,
-		Sequence,
-		IndexName,
-		IndexLookup,
-		Transform,
-		Filter,
-		Range,
-		Intersect,
-		Union,
-		Except,
-	}
-
 	public enum FdbQueryShape
 	{
 		/// <summary>Query does not return anything</summary>
