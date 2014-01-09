@@ -63,6 +63,13 @@ namespace FoundationDB.Linq.Expressions
 			return visitor.VisitQuerySingle(this);
 		}
 
+
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		{
+			builder.Writer.WriteLine("{0}(", this.Name).Enter();
+			builder.Visit(this.Sequence);
+			builder.Writer.Leave().Write(")");
+		}
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<R>>> CompileSingle()
 		{
 			// We want to generate: (trans, ct) => ExecuteEnumerable(source, lambda, trans, ct);

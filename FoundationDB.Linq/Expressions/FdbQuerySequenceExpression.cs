@@ -41,6 +41,11 @@ namespace FoundationDB.Linq.Expressions
 		/// <summary>Type of elements returned by the sequence</summary>
 		public Type ElementType { get { return typeof(T); } }
 
+		public override FdbQueryShape Shape
+		{
+			get { return FdbQueryShape.Sequence; }
+		}
+
 		public abstract Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence();
 
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()

@@ -46,11 +46,6 @@ namespace FoundationDB.Linq.Expressions
 			this.Transform = transform;
 		}
 
-		public override FdbQueryShape Shape
-		{
-			get { return FdbQueryShape.Sequence; }
-		}
-
 		public FdbQuerySequenceExpression<T> Source { get; private set; }
 
 		public Expression<Func<T, R>> Transform { get; private set; }
@@ -58,6 +53,15 @@ namespace FoundationDB.Linq.Expressions
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryTransform(this);
+		}
+
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		{
+			builder.Writer.WriteLine("Transform(").Enter();
+			builder.Visit(this.Source);
+			builder.Writer.WriteLine(",");
+			builder.Visit(this.Transform);
+			builder.Writer.Leave().Write(")");
 		}
 
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<R>>> CompileSequence()

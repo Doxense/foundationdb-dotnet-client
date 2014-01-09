@@ -45,11 +45,6 @@ namespace FoundationDB.Linq.Expressions
 			this.Options = options;
 		}
 
-		public override FdbQueryShape Shape
-		{
-			get { return FdbQueryShape.Sequence; }
-		}
-
 		public FdbKeySelectorPair Range { get; private set; }
 
 		public FdbRangeOptions Options { get; private set; }
@@ -57,6 +52,14 @@ namespace FoundationDB.Linq.Expressions
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryRange(this);
+		}
+
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		{
+			builder.Writer.WriteLine("Range(").Enter()
+				.WriteLine("Start({0}),", this.Range.Begin.ToString())
+				.WriteLine("Stop({0})", this.Range.End.ToString())
+			.Leave().Write(")");
 		}
 
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()

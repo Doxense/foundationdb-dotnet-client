@@ -54,6 +54,11 @@ namespace FoundationDB.Linq.Expressions
 			return visitor.VisitAsyncEnumerable(this);
 		}
 
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		{
+			builder.Writer.Write("Source<{0}>({1})", this.ElementType.Name, this.Source.GetType().Name);
+		}
+
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
 		{
 			return FdbExpressionHelpers.ToTask(CompileSequence());

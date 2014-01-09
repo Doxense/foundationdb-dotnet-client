@@ -46,11 +46,23 @@ namespace FoundationDB.Linq.Expressions
 			m_writer = writer ?? new FdbDebugStatementWriter();
 		}
 
+		public FdbDebugStatementWriter Writer { get { return m_writer; } }
+
 		public override string ToString()
 		{
 			return m_writer.Buffer.ToString();
 		}
 
+		public override Expression Visit(FdbQueryExpression node)
+		{
+			if (node != null)
+			{
+				node.WriteTo(this);
+			}
+			return node;
+		}
+
+#if refactored
 		protected internal override Expression VisitQuerySingle<T, R>(FdbQuerySingleExpression<T, R> node)
 		{
 			m_writer.WriteLine("{0}(", node.Name).Enter();
@@ -129,6 +141,7 @@ namespace FoundationDB.Linq.Expressions
 
 			return node;
 		}
+#endif
 
 		private void VisitExpressions<TExpr>(IList<TExpr> expressions, string open, string close, string sep)
 			where TExpr : Expression

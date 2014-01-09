@@ -105,7 +105,7 @@ namespace FoundationDB.Linq
 
 		public static IFdbAsyncSequenceQueryable<TId> Lookup<TId, TValue>(this IFdbIndexQueryable<TId, TValue> query, Expression<Func<TValue , bool>> predicate)
 		{
-			var expr = FdbQueryExpressions.Lookup(query.Index, predicate);
+			var expr = FdbQueryIndexLookupExpression<TId, TValue>.Lookup(query.Index, predicate);
 
 			return query.Provider.CreateSequenceQuery(expr);
 		}

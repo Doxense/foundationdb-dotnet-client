@@ -65,6 +65,8 @@ namespace FoundationDB.Linq.Expressions
 			}
 		}
 
+		public abstract void WriteTo(FdbQueryExpressionStringBuilder builder);
+
 #if DEBUG
 		public override string ToString()
 		{

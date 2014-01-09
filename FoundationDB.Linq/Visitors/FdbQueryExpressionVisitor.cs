@@ -39,7 +39,7 @@ namespace FoundationDB.Linq.Expressions
 			var expr = node as FdbQueryExpression;
 			if (expr != null)
 			{
-				return expr.Accept(this);
+				return Visit(expr);
 			}
 			return base.VisitExtension(node);
 		}
@@ -78,12 +78,12 @@ namespace FoundationDB.Linq.Expressions
 			throw new NotImplementedException();
 		}
 
-		protected internal virtual Expression VisitQueryIndexLookup<K, V>(FdbQueryIndexLookupExpression<K, V> node)
+		protected internal virtual Expression VisitQueryLookup<K, T>(FdbQueryLookupExpression<K, T> node)
 		{
 			throw new NotImplementedException();
 		}
 
-		protected internal virtual Expression VisitQueryMerge<T>(FdbQueryMergeExpression<T> node)
+		protected internal virtual Expression VisitQueryMerge<K>(FdbQueryMergeExpression<K> node)
 		{
 			throw new NotImplementedException();
 		}

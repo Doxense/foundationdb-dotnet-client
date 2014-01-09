@@ -54,11 +54,6 @@ namespace FoundationDB.Linq.Expressions
 			this.KeyComparer = keyComparer;
 		}
 
-		public override FdbQueryShape Shape
-		{
-			get { return FdbQueryShape.Sequence; }
-		}
-
 		public abstract FdbQueryMergeType MergeType { get; }
 
 		internal FdbQuerySequenceExpression<T>[] Expressions { get; private set; }
@@ -70,6 +65,20 @@ namespace FoundationDB.Linq.Expressions
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryMerge(this);
+		}
+
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		{
+			builder.Writer.WriteLine("{0}<{1}>(", this.MergeType.ToString(), this.ElementType.Name).Enter();
+			for (int i = 0; i < this.Expressions.Length; i++)
+			{
+				builder.Visit(this.Expressions[i]);
+				if (i + 1 < this.Expressions.Length)
+					builder.Writer.WriteLine(",");
+				else
+					builder.Writer.WriteLine();
+			}
+			builder.Writer.Leave().Write(")");
 		}
 
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()

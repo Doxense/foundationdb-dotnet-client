@@ -164,10 +164,12 @@ namespace FoundationDB.Linq.Providers
 		private Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> CompileSequence(FdbQueryExpression expression)
 		{
 			//TODO: caching !
+			Console.WriteLine("Source expression:");
+			Console.WriteLine("> " + expression.GetDebugView().Replace("\r\n", "\r\n> "));
 
 			var expr = ((FdbQuerySequenceExpression<T>) expression).CompileSequence();
-			//Console.WriteLine("Compiled sequence as:");
-			//Console.WriteLine("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
+			Console.WriteLine("Compiled sequence as:");
+			Console.WriteLine("> " + expr.GetDebugView().Replace("\r\n", "\r\n> "));
 			return expr.Compile();
 		}
 

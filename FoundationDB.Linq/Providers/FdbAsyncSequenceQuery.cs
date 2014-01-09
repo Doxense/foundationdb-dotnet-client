@@ -37,11 +37,11 @@ namespace FoundationDB.Linq.Providers
 	public class FdbAsyncSequenceQuery<T> : FdbAsyncQuery<T>, IFdbAsyncSequenceQueryable<T>
 	{
 
-		public FdbAsyncSequenceQuery(IFdbDatabase db, FdbQuerySequenceExpression<T> expression)
+		public FdbAsyncSequenceQuery(IFdbDatabase db, FdbQueryExpression expression)
 			: base(db, expression)
 		{ }
 
-		public FdbAsyncSequenceQuery(IFdbReadOnlyTransaction trans, FdbQuerySequenceExpression<T> expression)
+		public FdbAsyncSequenceQuery(IFdbReadOnlyTransaction trans, FdbQueryExpression expression)
 			: base(trans, expression)
 		{ }
 
