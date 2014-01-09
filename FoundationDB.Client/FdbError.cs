@@ -54,6 +54,8 @@ namespace FoundationDB.Client
 		TransactionTimedOut = 1031,
 		/// <summary>Too many watches are currently set</summary>
 		TooManyWatches = 1032,
+		/// <summary>Broken Promise [UNDOCUMENTED]</summary>
+		BrokenPromise = 1100,
 		/// <summary>Asynchronous operation cancelled</summary>
 		OperationCancelled = 1101,
 		/// <summary>A platform error occurred</summary>

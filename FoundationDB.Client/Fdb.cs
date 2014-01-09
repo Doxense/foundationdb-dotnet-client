@@ -229,6 +229,10 @@ namespace FoundationDB.Client
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
 				{ // Stop received
+#if DEBUG
+					Console.WriteLine("THE NETWORK EVENT LOOP HAS CRASHED! PLEASE RESTART THE PROCESS!");
+					Console.WriteLine("=> " + err);
+#endif
 					//TODO: logging ?
 					if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err.ToString(), GetErrorMessage(err)));
 				}
@@ -440,7 +444,15 @@ namespace FoundationDB.Client
 
 			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", FdbNative.FDB_API_VERSION.ToString()));
 
-			DieOnError(FdbNative.SelectApiVersion(FdbNative.FDB_API_VERSION));
+			FdbError err = FdbNative.SelectApiVersion(FdbNative.FDB_API_VERSION);
+#if DEBUG
+			if (err == FdbError.ApiVersionAlreadySet)
+			{ // Temporary hack to allow multiple debugging using the cached host process in VS
+				Console.WriteLine("REUSING EXISTING PROCESS! IF THINGS BREAK IN WEIRD WAYS, PLEASE RESTART THE PROCESS!");
+				err = FdbError.Success;
+			}
+#endif
+			DieOnError(err);
 
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TracePath))
 			{
