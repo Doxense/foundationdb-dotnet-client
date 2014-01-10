@@ -59,7 +59,7 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
-		/// <summary>Converts a <see cref="Nullable&lt;&gt"/> into a <see cref="Optional&lt;gt;"/></summary>
+		/// <summary>Converts a <see cref="Nullable&lt;&gt;"/> into a <see cref="Optional&lt;gt;"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static Optional<T> Wrap<T>(Nullable<T> value)
 			where T : struct
@@ -69,7 +69,7 @@ namespace FoundationDB.Layers
 			return new Optional<T>(value.Value);
 		}
 
-		/// <summary>Converts an array of <see cref="Nullable&lt;&gt"/> into an array of <see cref="Optional&lt;gt;"/></summary>
+		/// <summary>Converts an array of <see cref="Nullable&lt;&gt;"/> into an array of <see cref="Optional&lt;gt;"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static Optional<T>[] Wrap<T>(Nullable<T>[] values)
 			where T : struct
@@ -95,7 +95,7 @@ namespace FoundationDB.Layers
 
 		#region Single...
 
-		/// <summary>Converts a <see cref="Optional&lt;&gt"/> into a <see cref="Nullable&lt;gt;"/></summary>
+		/// <summary>Converts a <see cref="Optional&lt;&gt;"/> into a <see cref="Nullable&lt;gt;"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static Nullable<T> ToNullable<T>(this Optional<T> value)
 			where T : struct
@@ -121,7 +121,7 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
-		/// <summary>Converts an array of <see cref="Optional&lt;&gt"/> into an array of <see cref="Nullable&lt;gt;"/></summary>
+		/// <summary>Converts an array of <see cref="Optional&lt;&gt;"/> into an array of <see cref="Nullable&lt;gt;"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static Nullable<T>[] ToNullable<T>(Optional<T>[] values)
 			where T : struct
@@ -136,7 +136,7 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
-		/// <summary>Converts an array of <see cref="Optional&lt;&gt"/> into an array of <see cref="Nullable&lt;gt;"/></summary>
+		/// <summary>Converts an array of <see cref="Optional&lt;&gt;"/> into an array of <see cref="Nullable&lt;gt;"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static T[] Unwrap<T>(Optional<T>[] values)
 			where T : class

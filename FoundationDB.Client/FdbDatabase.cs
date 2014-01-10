@@ -91,7 +91,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new database instance</summary>
 		/// <param name="cluster">Parent cluster</param>
-		/// <param name="handle">Handle to the native FDB_DATABASE*</param>
+		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="name">Name of the database</param>
 		/// <param name="subspace">Root namespace of all keys accessible by this database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
@@ -397,7 +397,7 @@ namespace FoundationDB.Client
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <returns>An exception if the key is outside of the allowed key space of this database</exception>
+		/// <returns>An exception if the key is outside of the allowed key space of this database</return>
 		internal Exception ValidateKey(Slice key, bool endExclusive = false)
 		{
 			// null or empty keys are not allowed
@@ -440,7 +440,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Ensures that a serialized value is valid</summary>
-		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</exception>
+		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>
 		internal void EnsureValueIsValid(Slice value)
 		{
 			var ex = ValidateValue(value);

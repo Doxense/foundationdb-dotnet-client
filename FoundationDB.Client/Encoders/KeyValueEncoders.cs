@@ -661,7 +661,7 @@ namespace FoundationDB.Client
 			return new Singleton<T>(encoder, decoder);
 		}
 
-		/// <summary>Convert an array of <typeparamref name="T">s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		public static Slice[] EncodeRange<T>(this IKeyEncoder<T> encoder, T[] values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
@@ -675,7 +675,7 @@ namespace FoundationDB.Client
 			return slices;
 		}
 
-		/// <summary>Transform a sequence of <typeparamref name="T">s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		public static IEnumerable<Slice> EncodeRange<T>(this IKeyEncoder<T> encoder, IEnumerable<T> values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
@@ -731,7 +731,7 @@ namespace FoundationDB.Client
 
 		#region Values...
 
-		/// <summary>Convert an array of <typeparamref name="T">s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		public static Slice[] EncodeRange<T>(this IValueEncoder<T> encoder, T[] values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
@@ -745,7 +745,7 @@ namespace FoundationDB.Client
 			return slices;
 		}
 
-		/// <summary>Transform a sequence of <typeparamref name="T">s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		public static IEnumerable<Slice> EncodeRange<T>(this IValueEncoder<T> encoder, IEnumerable<T> values)
 		{
 			if (values == null) throw new ArgumentNullException("values");

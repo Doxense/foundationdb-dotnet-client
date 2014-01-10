@@ -130,7 +130,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="T1">Type of the primary subspace key</typeparam>
 		/// <typeparam name="T2">Type of the secondary subspace key</typeparam>
 		/// <param name="value1">Value of the primary subspace key</param>
-		/// <param name="value1">Value of the secondary subspace key</param>
+		/// <param name="value2">Value of the secondary subspace key</param>
 		/// <returns>New subspace that is logically contained by the current subspace</returns>
 		/// <remarks>Subspace([Foo, ]).Partition(Bar, Baz) is equivalent to Subspace([Foo, Bar, Baz])</remarks>
 		/// <example>
@@ -144,10 +144,10 @@ namespace FoundationDB.Client
 		/// <summary>Partition this subspace into a child subspace</summary>
 		/// <typeparam name="T1">Type of the primary subspace key</typeparam>
 		/// <typeparam name="T2">Type of the secondary subspace key</typeparam>
-		/// <typeparam name="T2">Type of the tertiary subspace key</typeparam>
+		/// <typeparam name="T3">Type of the tertiary subspace key</typeparam>
 		/// <param name="value1">Value of the primary subspace key</param>
-		/// <param name="value1">Value of the secondary subspace key</param>
-		/// <param name="value1">Value of the tertiary subspace key</param>
+		/// <param name="value2">Value of the secondary subspace key</param>
+		/// <param name="value3">Value of the tertiary subspace key</param>
 		/// <returns>New subspace that is logically contained by the current subspace</returns>
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])

@@ -146,7 +146,7 @@ namespace FoundationDB.Client.Utils
 		}
 
 		/// <summary>Copy a key selector into the buffer, and return a new identical selector</summary>
-		/// <param name="select">Key selector to copy to the buffer</param>
+		/// <param name="selector">Key selector to copy to the buffer</param>
 		/// <returns>Equivalent key selector that is backed by the buffer.</returns>
 		public FdbKeySelector InternSelector(FdbKeySelector selector)
 		{
