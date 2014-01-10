@@ -454,7 +454,7 @@ namespace FoundationDB.Layers.Directories
 				var existingLayer = (await trans.GetAsync(existingNode.Partition(LayerSuffix).Key).ConfigureAwait(false)).ToUnicode();
 				if (!string.IsNullOrEmpty(layer) && layer != existingLayer)
 				{
-					throw new InvalidOperationException(string.Format("The directory {0} exists but was created with an incompatible layer."));
+					throw new InvalidOperationException(string.Format("The directory {0} exists but was created with an incompatible layer.", path));
 				}
 
 				return ContentsOfNode(existingNode, path, existingLayer);
