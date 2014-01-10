@@ -1256,6 +1256,35 @@ namespace FoundationDB.Client
 
 		}
 
+		/// <summary>Concatenate two slices together</summary>
+		public static Slice Concat(Slice a, Slice b)
+		{
+			return a.Concat(b);
+		}
+
+		/// <summary>Concatenate three slices together</summary>
+		public static Slice Concat(Slice a, Slice b, Slice c)
+		{
+			int count = a.Count + b.Count + c.Count;
+			if (count == 0) return Slice.Empty;
+			var writer = new SliceWriter(count);
+			writer.WriteBytes(a);
+			writer.WriteBytes(b);
+			writer.WriteBytes(c);
+			return writer.ToSlice();
+		}
+
+		/// <summary>Concatenate an array of slices into a single slice</summary>
+		public static Slice Concat(params Slice[] args)
+		{
+			int count = 0;
+			for (int i = 0; i < args.Length; i++) count += args.Length;
+			if (count == 0) return Slice.Empty;
+			var writer = new SliceWriter(count);
+			for (int i = 0; i < args.Length; i++) writer.WriteBytes(args[i]);
+			return writer.ToSlice();
+		}
+
 		/// <summary>Implicitly converts a Slice into an ArraySegment&lt;byte&gt;</summary>
 		public static implicit operator ArraySegment<byte>(Slice value)
 		{
