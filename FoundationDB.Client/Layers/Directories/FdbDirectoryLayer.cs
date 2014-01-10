@@ -447,14 +447,14 @@ namespace FoundationDB.Layers.Directories
 			{
 				if (!allowOpen)
 				{
-					if (throwOnError) throw new InvalidOperationException("The directory already exists.");
+					if (throwOnError) throw new InvalidOperationException(string.Format("The directory {0} already exists.", path));
 					return null;
 				}
 
 				var existingLayer = (await trans.GetAsync(existingNode.Partition(LayerSuffix).Key).ConfigureAwait(false)).ToUnicode();
 				if (!string.IsNullOrEmpty(layer) && layer != existingLayer)
 				{
-					throw new InvalidOperationException("The directory exists but was created with an incompatible layer.");
+					throw new InvalidOperationException(string.Format("The directory {0} exists but was created with an incompatible layer."));
 				}
 
 				return ContentsOfNode(existingNode, path, existingLayer);
@@ -462,7 +462,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (!allowCreate)
 			{
-				if (throwOnError) throw new InvalidOperationException("The directory does not exist.");
+				if (throwOnError) throw new InvalidOperationException(string.Format("The directory {0} does not exist.", path));
 				return null;
 			}
 
@@ -488,7 +488,7 @@ namespace FoundationDB.Layers.Directories
 			{
 				parentNode = this.RootNode;
 			}
-			if (parentNode == null) throw new InvalidOperationException("The parent directory doesn't exist.");
+			if (parentNode == null) throw new InvalidOperationException(string.Format("The parent directory of {0} doesn't exist.", path));
 
 			// initialize the metadata for this new directory
 			var node = NodeWithPrefix(prefix);
@@ -515,26 +515,26 @@ namespace FoundationDB.Layers.Directories
 			}
 			if (newPath.StartsWith(oldPath))
 			{
-				throw new InvalidOperationException("The destination directory cannot be a subdirectory of the source directory.");
+				throw new InvalidOperationException(string.Format("The destination directory({0}) cannot be a subdirectory of the source directory({1}).", newPath, oldPath));
 			}
 
 			if ((await Find(trans, newPath).ConfigureAwait(false)) != null)
 			{
-				if (throwOnError) throw new InvalidOperationException("The destination directory already exists. Remove it first.");
+				if (throwOnError) throw new InvalidOperationException(string.Format("The destination directory '{0}' already exists. Remove it first.", newPath));
 				return null;
 			}
 
 			var oldNode = await Find(trans, oldPath).ConfigureAwait(false);
 			if (oldNode == null)
 			{
-				if (throwOnError) throw new InvalidOperationException("The source directory does not exist.");
+				if (throwOnError) throw new InvalidOperationException(string.Format("The source directory '{0}' does not exist.", oldPath));
 				return null;
 			}
 
 			var parentNode = await Find(trans, newPath.Substring(0, newPath.Count - 1)).ConfigureAwait(false);
 			if (parentNode == null)
 			{
-				if (throwOnError) throw new InvalidOperationException("The parent of the destination directory does not exist. Create it first.");
+				if (throwOnError) throw new InvalidOperationException(string.Format("The parent of the destination directory '{0}' does not exist. Create it first.", newPath));
 				return null;
 			}
 
@@ -555,7 +555,7 @@ namespace FoundationDB.Layers.Directories
 			var n = await Find(tr, path).ConfigureAwait(false);
 			if (n == null)
 			{
-				if (throwIfMissing) throw new InvalidOperationException("The directory doesn't exist.");
+				if (throwIfMissing) throw new InvalidOperationException(string.Format("The directory '{0}' does not exist.", path));
 				return false;
 			}
 
@@ -574,7 +574,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (node == null)
 			{
-				if (throwIfMissing) throw new InvalidOperationException("The given directory does not exist.");
+				if (throwIfMissing) throw new InvalidOperationException(string.Format("The directory '{0}' does not exist.", path));
 				return null;
 			}
 
@@ -594,7 +594,7 @@ namespace FoundationDB.Layers.Directories
 			var node = await Find(trans, path).ConfigureAwait(false);
 			if (node == null)
 			{
-				throw new InvalidOperationException("The directory does not exist, or as already been removed.");
+				throw new InvalidOperationException(string.Format("The directory '{0}' does not exist, or as already been removed.", path));
 			}
 
 			var key = node.Pack(LayerSuffix);
