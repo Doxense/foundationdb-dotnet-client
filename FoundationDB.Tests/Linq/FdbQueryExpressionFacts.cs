@@ -46,7 +46,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 		[Test]
 		public void Test_FdbQueryIndexLookupExpression()
 		{
-			var expr = FdbQueryExpressions.Lookup(
+			var expr = FdbQueryIndexLookupExpression<int, string>.Lookup(
 				FooBarIndex,
 				ExpressionType.Equal,
 				Expression.Constant("world")
@@ -69,7 +69,7 @@ namespace FoundationDB.Linq.Expressions.Tests
 		[Test]
 		public void Test_FdbQueryIndexLookupExpression_From_Lambda()
 		{
-			var expr = FdbQueryExpressions.Lookup(
+			var expr = FdbQueryIndexLookupExpression<int, string>.Lookup(
 				FooBarIndex,
 				(bar) => bar == "world"
 			);
@@ -109,11 +109,11 @@ namespace FoundationDB.Linq.Expressions.Tests
 		[Test]
 		public void Test_FdbQueryIntersectExpression()
 		{
-			var expr1 = FdbQueryExpressions.Lookup(
+			var expr1 = FdbQueryIndexLookupExpression<int, string>.Lookup(
 				FooBarIndex,
 				(x) => x == "world"
 			);
-			var expr2 = FdbQueryExpressions.Lookup(
+			var expr2 = FdbQueryIndexLookupExpression<int, long>.Lookup(
 				FooBazIndex,
 				(x) => x == 1234L
 			);
@@ -139,11 +139,11 @@ namespace FoundationDB.Linq.Expressions.Tests
 		[Test]
 		public void Test_FdbQueryUnionExpression()
 		{
-			var expr1 = FdbQueryExpressions.Lookup(
+			var expr1 = FdbQueryIndexLookupExpression<int, string>.Lookup(
 				FooBarIndex,
 				(x) => x == "world"
 			);
-			var expr2 = FdbQueryExpressions.Lookup(
+			var expr2 = FdbQueryIndexLookupExpression<int, long>.Lookup(
 				FooBazIndex,
 				(x) => x == 1234L
 			);
