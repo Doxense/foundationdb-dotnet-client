@@ -30,7 +30,7 @@ namespace FoundationDB.Layers.Messaging
 				string dbName = "DB";
 				using (var db = Fdb.PartitionTable.OpenPartitionAsync(clusterFile, dbName, FdbSubspace.Empty).GetAwaiter().GetResult())
 				{
-					var location = db.CreateOrOpenDirectoryAsync(FdbTuple.Create("T", "WorkerPool")).GetAwaiter().GetResult();
+					var location = db.CreateOrOpenDirectoryAsync(new [] { "T", "WorkerPool" }).GetAwaiter().GetResult();
 					db.ClearRangeAsync(location).GetAwaiter().GetResult();
 
 					// failsafe: remove this when not debugging problems !

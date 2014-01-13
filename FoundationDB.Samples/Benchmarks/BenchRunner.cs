@@ -57,7 +57,7 @@ namespace FoundationDB.Samples.Benchmarks
 		public async Task Init(FdbDatabasePartition db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("Benchmarks"), cancellationToken: ct);
+			this.Subspace = await db.CreateOrOpenDirectoryAsync("Benchmarks", cancellationToken: ct);
 
 		}
 
