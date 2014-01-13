@@ -652,8 +652,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("test", "atomic"));
-				await db.ClearRangeAsync(location);
+				var location = await TestHelpers.GetCleanDirectory(db, "test", "atomic");
 
 				Slice key;
 

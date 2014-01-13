@@ -51,7 +51,7 @@ namespace FoundationDB.Client.Tests
 			{
 				Console.WriteLine("Bulk inserting " + N + " items...");
 
-				var location = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("Bulk"));
+				var location = await TestHelpers.GetCleanDirectory(db, "Bulk");
 
 				var data = Enumerable.Range(0, N)
 					.Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x.ToString("x8")), Slice.FromGuid(Guid.NewGuid())))

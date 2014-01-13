@@ -76,75 +76,69 @@ namespace FoundationDB.Client
 
 		#region DirectoryLayer helpers...
 
-		public Task<FdbDirectorySubspace> CreateOrOpenDirectoryAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateOrOpenDirectoryAsync(IEnumerable<string> path, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.CreateOrOpenAsync(m_database, path, layer, prefix, cancellationToken);
+			return this.Root.CreateOrOpenAsync(m_database, path, layer, Slice.Nil, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> CreateOrOpenDirectoryAsync(string[] path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateOrOpenDirectoryAsync(string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.CreateOrOpenAsync(m_database, path, layer, prefix, cancellationToken);
+			return this.Root.CreateOrOpenAsync(m_database, name, layer, Slice.Nil, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> OpenDirectoryAsync(IFdbTuple path, string layer = null, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> OpenDirectoryAsync(IEnumerable<string> path, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return this.Root.OpenAsync(m_database, path, layer, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> OpenDirectoryAsync(string[] path, string layer = null, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> OpenDirectoryAsync(string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.OpenAsync(m_database, path, layer, cancellationToken);
+			return this.Root.OpenAsync(m_database, name, layer, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> CreateDirectoryAsync(IFdbTuple path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateDirectoryAsync(IEnumerable<string> path, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.CreateAsync(m_database, path, layer, prefix, cancellationToken);
+			return this.Root.CreateAsync(m_database, path, layer, Slice.Nil, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> CreateDirectoryAsync(string[] path, string layer = null, Slice prefix = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateDirectoryAsync(string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.CreateAsync(m_database, path, layer, prefix, cancellationToken);
+			return this.Root.CreateAsync(m_database, name, layer, Slice.Nil, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> MoveDirectoryAsync(IFdbTuple oldPath, IFdbTuple newPath, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> MoveDirectoryAsync(IEnumerable<string> oldPath, IEnumerable<string> newPath, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return this.Root.MoveAsync(m_database, oldPath, newPath, cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> MoveDirectoryAsync(string[] oldPath, string[] newPath, CancellationToken cancellationToken = default(CancellationToken))
-		{
-			return this.Root.MoveAsync(m_database, oldPath, newPath, cancellationToken);
-		}
-
-		public Task RemoveDirectoryAsync(IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task RemoveDirectoryAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return this.Root.RemoveAsync(m_database, path, cancellationToken);
 		}
 
-		public Task<bool> TryRemoveDirectoryAsync(IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task RemoveDirectoryAsync(string name, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return this.Root.RemoveAsync(m_database, name, cancellationToken);
+		}
+
+		public Task<bool> TryRemoveDirectoryAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return this.Root.TryRemoveAsync(m_database, path, cancellationToken);
 		}
 
-		public Task RemoveDirectoryAsync(string[] path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<bool> TryRemoveDirectoryAsync(string name, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.RemoveAsync(m_database, path, cancellationToken);
+			return this.Root.TryRemoveAsync(m_database, name, cancellationToken);
 		}
 
-		public Task<bool> TryRemoveDirectoryAsync(string[] path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<List<string>> ListDirectoryAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.TryRemoveAsync(m_database, path, cancellationToken);
-		}
-
-		public Task<List<IFdbTuple>> ListDirectoryAsync(IFdbTuple path, CancellationToken cancellationToken = default(CancellationToken))
-		{
-			if (path == null) path = FdbTuple.Empty;
 			return this.Root.ListAsync(m_database, path, cancellationToken);
 		}
 
-		public Task<List<IFdbTuple>> ListDirectoryAsync(string[] path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<List<string>> ListDirectoryAsync(string name, CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return this.Root.ListAsync(m_database, path, cancellationToken);
+			return this.Root.ListAsync(m_database, name, cancellationToken);
 		}
 
 		#endregion

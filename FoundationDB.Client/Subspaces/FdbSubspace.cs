@@ -83,11 +83,7 @@ namespace FoundationDB.Client
 		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
 		public FdbSubspace this[IFdbTuple tuple]
 		{
-			get
-			{
-				if (tuple == null) throw new ArgumentNullException("tuple");
-				return new FdbSubspace(FdbTuple.Concat(m_rawPrefix, tuple));
-			}
+			get { return Partition(tuple); }
 		}
 
 		#endregion
@@ -121,7 +117,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
-		public FdbSubspace Partition<T>(T value)
+		public virtual FdbSubspace Partition<T>(T value)
 		{
 			return new FdbSubspace(FdbTuple.Concat<T>(m_rawPrefix, value));
 		}
@@ -136,7 +132,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
-		public FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
+		public virtual FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
 		{
 			return new FdbSubspace(FdbTuple.Concat<T1, T2>(m_rawPrefix, value1, value2));
 		}
@@ -152,7 +148,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
 		/// </example>
-		public FdbSubspace Partition<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		public virtual FdbSubspace Partition<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
 			return new FdbSubspace(FdbTuple.Concat(m_rawPrefix, new FdbTuple<T1, T2, T3>(value1, value2, value3)));
 		}
@@ -164,7 +160,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition(["Contacts", "Friends", ]) => new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
-		public FdbSubspace Partition(IFdbTuple tuple)
+		public virtual FdbSubspace Partition(IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 			if (tuple.Count == 0) return this;
@@ -178,7 +174,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
-		public FdbSubspace Partition(ITupleFormattable formattable)
+		public virtual FdbSubspace Partition(ITupleFormattable formattable)
 		{
 			if (formattable == null) throw new ArgumentNullException("formattable");
 			var tuple = formattable.ToTuple();
@@ -188,7 +184,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns true if <paramref name="key"/> is contained withing this subspace's tuple (or is equal to tuple itself)</summary>
 		/// <remarks>The key Slice.Nil is not contained by any subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
-		public bool Contains(Slice key)
+		public virtual bool Contains(Slice key)
 		{
 			return key.HasValue && key.StartsWith(m_rawPrefix);
 		}
@@ -696,12 +692,14 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		public FdbKeyRange ToRange()
+		#region ToRange...
+
+		public virtual FdbKeyRange ToRange()
 		{
 			return FdbTuple.ToRange(m_rawPrefix);
 		}
 
-		public FdbKeyRange ToRange(Slice key)
+		public virtual FdbKeyRange ToRange(Slice key)
 		{
 			return FdbTuple.ToRange(m_rawPrefix + key);
 		}
@@ -723,6 +721,8 @@ namespace FoundationDB.Client
 			return FdbKeySelectorPair.Create(ToRange());
 		}
 
+		#endregion
+
 		internal SliceWriter OpenBuffer(int extraBytes = 0)
 		{
 			if (extraBytes < 0) throw new ArgumentException("Extra bytes count must be a positive integer", "extraBytes");
@@ -736,7 +736,7 @@ namespace FoundationDB.Client
 
 		public override string ToString()
 		{
-			return m_rawPrefix.ToString();
+			return String.Format("Subspace({0})", m_rawPrefix.ToString());
 		}
 
 		public override int GetHashCode()

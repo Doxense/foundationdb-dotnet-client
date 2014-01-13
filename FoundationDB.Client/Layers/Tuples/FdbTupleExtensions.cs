@@ -66,6 +66,22 @@ namespace FoundationDB.Layers.Tuples
 			return items;
 		}
 
+		/// <summary>Returns a typed array containing all the items of a tuple</summary>
+		public static T[] ToArray<T>(this IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+
+			var items = new T[tuple.Count];
+			if (items.Length > 0)
+			{
+				for (int i = 0; i < items.Length; i++)
+				{
+					items[i] = tuple.Get<T>(i);
+				}
+			}
+			return items;			
+		}
+
 		/// <summary>Returns a byte array containing the packed version of a tuple</summary>
 		public static byte[] GetBytes(this IFdbTuple tuple)
 		{

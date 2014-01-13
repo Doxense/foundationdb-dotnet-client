@@ -35,16 +35,17 @@ namespace FoundationDB.Layers.Directories
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Threading.Tasks;
 
 	/// <summary>Provides a FdbDirectoryLayer class for managing directories in FoundationDB.
 	/// Directories are a recommended approach for administering layers and applications. Directories work in conjunction with subspaces. Each layer or application should create or open at least one directory with which to manage its subspace(s).
 	/// Directories are identified by paths (specified as tuples) analogous to the paths in a Unix-like file system. Each directory has an associated subspace that is used to store content. The layer uses a high-contention allocator to efficiently map each path to a short prefix for its corresponding subspace.
-	/// <see cref="FdbDirectorLayer"/> exposes methods to create, open, move, remove, or list directories. Creating or opening a directory returns the corresponding subspace.
+	/// <see cref="FdbDirectoryLayer"/> exposes methods to create, open, move, remove, or list directories. Creating or opening a directory returns the corresponding subspace.
 	/// The <see cref="FdbDirectorySubspace"/> class represents subspaces that store the contents of a directory. An instance of <see cref="FdbDirectorySubspace"/> can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.
 	/// </summary>
 	[DebuggerDisplay("Nodes={this.NodeSubspace}, Contents={this.ContentsSubspace}")]
-	public class FdbDirectoryLayer
+	public class FdbDirectoryLayer : IFdbDirectory
 	{
 		private const int SUBDIRS = 0;
 		private static readonly Slice LayerSuffix = Slice.FromAscii("layer");
@@ -61,6 +62,12 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Allocated used to generated prefix for new content</summary>
 		internal FdbHighContentionAllocator Allocator { get; private set; }
+
+		public IReadOnlyList<string> Path { get; private set; }
+
+		Slice IFdbDirectory.Layer { get { return Slice.Empty; } }
+
+		FdbDirectoryLayer IFdbDirectory.DirectoryLayer { get { return this; } }
 
 		#region Constructors...
 
@@ -81,6 +88,7 @@ namespace FoundationDB.Layers.Directories
 			// The root node is the one whose contents are the node subspace
 			this.RootNode = nodeSubspace.Partition(nodeSubspace.Key);
 			this.Allocator = new FdbHighContentionAllocator(this.RootNode.Partition(HcaKey));
+			this.Path = new string[0];
 		}
 
 		public static FdbDirectoryLayer FromPrefix(Slice prefix)
@@ -106,28 +114,25 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the directory to create or open</param>
 		/// <param name="layer">If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.</param>
 		/// <param name="prefix">If a prefix is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically inside then Content subspace.</param>
-		/// <param name="allowCreate">If the directory does not exist, it will be created if <paramref name="allowCreate"/> is true, or an exception will be thrown if it is false</param>
-		/// <param name="allowOpen">If the directory already exists, it will be opened if <paramref name="allowOpen"/> is true, or an exception will be thrown if it is false</param>
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default(Slice), Slice prefix = default(Slice))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
-			return CreateOrOpenInternalAsync(trans, path, layer, prefix, allowCreate: true, allowOpen: true, throwOnError: true);
+
+			return CreateOrOpenInternalAsync(trans, ParsePath(path), layer, prefix, allowCreate: true, allowOpen: true, throwOnError: true);
 		}
 
 		/// <summary>Opens the directory with the given path. If the directory does not exist, it is created (creating parent directories if necessary).</summary>
 		/// <param name="tr">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to create or open</param>
+		/// <param name="name">Name of the sub-directory to create or open</param>
 		/// <param name="layer">If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.</param>
 		/// <param name="prefix">If a prefix is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically inside then Content subspace.</param>
-		/// <param name="allowCreate">If the directory does not exist, it will be created if <paramref name="allowCreate"/> is true, or an exception will be thrown if it is false</param>
-		/// <param name="allowOpen">If the directory already exists, it will be opened if <paramref name="allowOpen"/> is true, or an exception will be thrown if it is false</param>
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, string[] path, string layer = null, Slice prefix = default(Slice))
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IFdbTransaction tr, string name, Slice layer = default(Slice), Slice prefix = default(Slice))
 		{
 			if (tr == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
+			if (name == null) throw new ArgumentNullException("path");
 
-			return CreateOrOpenInternalAsync(tr, FdbTuple.CreateRange<string>(path), layer, prefix, allowCreate: true, allowOpen: true, throwOnError: true);
+			return CreateOrOpenInternalAsync(tr, ParsePath(name), layer, prefix, allowCreate: true, allowOpen: true, throwOnError: true);
 		}
 
 		/// <summary>Opens the directory with the given <paramref name="path"/>.
@@ -136,12 +141,12 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to open.</param>
 		/// <param name="layer">Optional layer id of the directory. If it is different than the layer specified when creating the directory, an exception will be thrown.</param>
-		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null)
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, IEnumerable<string> path, Slice layer = default(Slice))
 		{
 			if (tr == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
 
-			return CreateOrOpenInternalAsync(tr, path, layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
+			return CreateOrOpenInternalAsync(tr, ParsePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
 		}
 
 		/// <summary>Opens the directory with the given <paramref name="path"/>.
@@ -150,12 +155,12 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to open.</param>
 		/// <param name="layer">Optional layer id of the directory. If it is different than the layer specified when creating the directory, an exception will be thrown.</param>
-		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, string[] path, string layer = null)
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction tr, string name, Slice layer = default(Slice))
 		{
 			if (tr == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
+			if (name == null) throw new ArgumentNullException("name");
 
-			return CreateOrOpenInternalAsync(tr, FdbTuple.CreateRange<string>(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
+			return CreateOrOpenInternalAsync(tr, ParsePath(name), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
 		}
 
 		/// <summary>Creates a directory with the given <paramref name="path"/> (creating parent directories if necessary).
@@ -165,51 +170,51 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, IEnumerable<string> path, Slice layer = default(Slice), Slice prefix = default(Slice))
 		{
 			if (tr == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
 
-			return CreateOrOpenInternalAsync(tr, path, layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: true);
+			return CreateOrOpenInternalAsync(tr, ParsePath(path), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: true);
 		}
 
 		/// <summary>Creates a directory with the given <paramref name="path"/> (creating parent directories if necessary).
 		/// An exception is thrown if the given directory already exists.
 		/// </summary>
 		/// <param name="tr">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to create</param>
+		/// <param name="name">Name of the sub-directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, string[] path, string layer = null, Slice prefix = default(Slice))
+		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction tr, string name, Slice layer = default(Slice), Slice prefix = default(Slice))
 		{
 			if (tr == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
+			if (name == null) throw new ArgumentNullException("name");
 
-			return CreateOrOpenInternalAsync(tr, FdbTuple.CreateRange<string>(path), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: true);
+			return CreateOrOpenInternalAsync(tr, ParsePath(name), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: true);
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to open.</param>
 		/// <param name="layer">Optional layer id of the directory. If it is different than the layer specified when creating the directory, an exception will be thrown.</param>
-		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbTransaction tr, IFdbTuple path, string layer = null)
+		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbTransaction tr, IEnumerable<string> path, Slice layer = default(Slice))
 		{
 			if (tr == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
 
-			return CreateOrOpenInternalAsync(tr, path, layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
+			return CreateOrOpenInternalAsync(tr, ParsePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to open.</param>
 		/// <param name="layer">Optional layer id of the directory. If it is different than the layer specified when creating the directory, an exception will be thrown.</param>
-		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbTransaction tr, string[] path, string layer = null)
+		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbTransaction tr, string name, Slice layer = default(Slice))
 		{
 			if (tr == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
+			if (name == null) throw new ArgumentNullException("name");
 
-			return CreateOrOpenInternalAsync(tr, FdbTuple.CreateRange<string>(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
+			return CreateOrOpenInternalAsync(tr, ParsePath(name), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
 		}
 
 		/// <summary>Attempts to create a directory with the given <paramref name="path"/> (creating parent directories if necessary).</summary>
@@ -217,25 +222,25 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction tr, IFdbTuple path, string layer = null, Slice prefix = default(Slice))
+		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction tr, IEnumerable<string> path, Slice layer = default(Slice), Slice prefix = default(Slice))
 		{
 			if (tr == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
 
-			return CreateOrOpenInternalAsync(tr, path, layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: false);
+			return CreateOrOpenInternalAsync(tr, ParsePath(path), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: false);
 		}
 
 		/// <summary>Attempts to create a directory with the given <paramref name="path"/> (creating parent directories if necessary).</summary>
 		/// <param name="tr">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to create</param>
+		/// <param name="name">Name of the sub-directory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
 		/// <param name="prefix">If <paramref name="prefix"/> is specified, the directory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
-		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction tr, string[] path, string layer = null, Slice prefix = default(Slice))
+		public Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction tr, string name, Slice layer = default(Slice), Slice prefix = default(Slice))
 		{
 			if (tr == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
+			if (name == null) throw new ArgumentNullException("name");
 
-			return CreateOrOpenInternalAsync(tr, FdbTuple.CreateRange<string>(path), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: false);
+			return CreateOrOpenInternalAsync(tr, ParsePath(name), layer, prefix: prefix, allowCreate: true, allowOpen: false, throwOnError: false);
 		}
 
 		#endregion
@@ -249,12 +254,23 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="oldPath">Path of the directory to move</param>
 		/// <param name="newPath">New path of the directory</param>
-		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, IFdbTuple oldPath, IFdbTuple newPath)
+		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (oldPath == null) throw new ArgumentNullException("oldPath");
 			if (newPath == null) throw new ArgumentNullException("newPath");
-			return MoveInternalAsync(trans, oldPath, newPath, throwOnError: true);
+
+			var oldLocation = FdbTuple.CreateRange(oldPath);
+			VerifyPath(oldLocation, "oldPath");
+			var newLocation = FdbTuple.CreateRange(newPath);
+			VerifyPath(newLocation, "newPath");
+
+			return MoveInternalAsync(trans, oldLocation, newLocation, throwOnError: true);
+		}
+
+		Task<FdbDirectorySubspace> IFdbDirectory.MoveAsync(IFdbTransaction trans, IEnumerable<string> newPath)
+		{
+			throw new NotSupportedException();
 		}
 
 		/// <summary>Attempts to move the directory found at <paramref name="oldPath"/> to <paramref name="newPath"/>.
@@ -264,42 +280,23 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="oldPath">Path of the directory to move</param>
 		/// <param name="newPath">New path of the directory</param>
-		public Task<FdbDirectorySubspace> TryMoveAsync(IFdbTransaction trans, IFdbTuple oldPath, IFdbTuple newPath)
+		public Task<FdbDirectorySubspace> TryMoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (oldPath == null) throw new ArgumentNullException("oldPath");
 			if (newPath == null) throw new ArgumentNullException("newPath");
-			return MoveInternalAsync(trans, oldPath, newPath, throwOnError: false);
+
+			var oldLocation = FdbTuple.CreateRange(oldPath);
+			VerifyPath(oldLocation, "oldPath");
+			var newLocation = FdbTuple.CreateRange(newPath);
+			VerifyPath(newLocation, "newPath");
+
+			return MoveInternalAsync(trans, oldLocation, newLocation, throwOnError: false);
 		}
 
-		/// <summary>Moves the directory found at <paramref name="oldPath"/> to <paramref name="newPath"/>.
-		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
-        /// An error is raised if the old directory does not exist, a directory already exists at `new_path`, or the parent directory of `new_path` does not exist.
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="oldPath">Path of the directory to move</param>
-		/// <param name="newPath">New path of the directory</param>
-		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, string[] oldPath, string[] newPath)
+		Task<FdbDirectorySubspace> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, IEnumerable<string> newPath)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (oldPath == null) throw new ArgumentNullException("oldPath");
-			if (newPath == null) throw new ArgumentNullException("newPath");
-			return MoveInternalAsync(trans, FdbTuple.CreateRange<string>(oldPath), FdbTuple.CreateRange<string>(newPath), throwOnError: true);
-		}
-
-		/// <summary>Attempts to move the directory found at <paramref name="oldPath"/> to <paramref name="newPath"/>.
-		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
-		/// Returns null if the old directory does not exist, a directory already exists at `new_path`, or the parent directory of `new_path` does not exist.
-		/// </summary>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="oldPath">Path of the directory to move</param>
-		/// <param name="newPath">New path of the directory</param>
-		public Task<FdbDirectorySubspace> TryMoveAsync(IFdbTransaction trans, string[] oldPath, string[] newPath)
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (oldPath == null) throw new ArgumentNullException("oldPath");
-			if (newPath == null) throw new ArgumentNullException("newPath");
-			return MoveInternalAsync(trans, FdbTuple.CreateRange<string>(oldPath), FdbTuple.CreateRange<string>(newPath), throwOnError: false);
+			throw new NotSupportedException();
 		}
 
 		#endregion
@@ -311,47 +308,61 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		public Task RemoveAsync(IFdbTransaction tr, IFdbTuple path)
+		public Task RemoveAsync(IFdbTransaction tr, IEnumerable<string> path)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (path == null) throw new ArgumentNullException("path");
-			return RemoveInternalAsync(tr, path, throwIfMissing: true);
+
+			return RemoveInternalAsync(tr, ParsePath(path), throwIfMissing: true);
 		}
 
-		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// <summary>Removes the sub-directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="name">Name of the sub-directory to remove (including any subdirectories)</param>
+		public Task RemoveAsync(IFdbTransaction tr, string name)
+		{
+			if (tr == null) throw new ArgumentNullException("tr");
+			if (name == null) throw new ArgumentNullException("name");
+
+			return RemoveInternalAsync(tr, ParsePath(name), throwIfMissing: true);
+		}
+
+		Task IFdbDirectory.RemoveAsync(IFdbTransaction trans)
+		{
+			throw new NotSupportedException();
+		}
+
+		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		public Task<bool> TryRemoveAsync(IFdbTransaction tr, IFdbTuple path)
+		public Task<bool> TryRemoveAsync(IFdbTransaction tr, IEnumerable<string> path)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (path == null) throw new ArgumentNullException("path");
-			return RemoveInternalAsync(tr, path, throwIfMissing: false);
+
+			return RemoveInternalAsync(tr, ParsePath(path), throwIfMissing: false);
 		}
 
-		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// <summary>Attempts to remove the sub-directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="tr">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		public Task RemoveAsync(IFdbTransaction tr, string[] path)
+		/// <param name="name">Name of the sub-directory to remove (including any subdirectories)</param>
+		public Task<bool> TryRemoveAsync(IFdbTransaction tr, string name)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
-			if (path == null) throw new ArgumentNullException("path");
-			return RemoveInternalAsync(tr, FdbTuple.CreateRange<string>(path), throwIfMissing: true);
+			if (name == null) throw new ArgumentNullException("name");
+
+			return RemoveInternalAsync(tr, ParsePath(name), throwIfMissing: false);
 		}
 
-		/// <summary>Removes the directory, its contents, and all subdirectories.
-		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
-		/// </summary>
-		/// <param name="tr">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		public Task<bool> TryRemoveAsync(IFdbTransaction tr, string[] path)
+		Task<bool> IFdbDirectory.TryRemoveAsync(IFdbTransaction tr)
 		{
-			if (tr == null) throw new ArgumentNullException("tr");
-			if (path == null) throw new ArgumentNullException("path");
-			return RemoveInternalAsync(tr, FdbTuple.CreateRange<string>(path), throwIfMissing: false);
+			throw new NotSupportedException();
 		}
 
 		#endregion
@@ -362,26 +373,34 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="tr">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		public async Task<bool> ExistsAsync(IFdbReadOnlyTransaction tr, IFdbTuple path)
+		public async Task<bool> ExistsAsync(IFdbReadOnlyTransaction tr, IEnumerable<string> path)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (path == null) throw new ArgumentNullException("path");
 			// no reason to disallow checking for the root directory (could be used to check if a directory layer is initialized?)
 
-			var node = await Find(tr, path).ConfigureAwait(false);
+			var node = await Find(tr, ParsePath(path)).ConfigureAwait(false);
 
 			return node != null;
 		}
 
 		/// <summary>Checks if a directory already exists</summary>
 		/// <param name="tr">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
+		/// <param name="name">Name of the sub-directory to remove (including any subdirectories)</param>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction tr, string[] path)
+		public async Task<bool> ExistsAsync(IFdbReadOnlyTransaction tr, string name)
 		{
-			if (path == null) throw new ArgumentNullException("path");
+			if (tr == null) throw new ArgumentNullException("tr");
+			if (name == null) throw new ArgumentNullException("name");
 
-			return ExistsAsync(tr, FdbTuple.CreateRange<string>(path));
+			var node = await Find(tr, ParsePath(name)).ConfigureAwait(false);
+
+			return node != null;
+		}
+
+		Task<bool> IFdbDirectory.ExistsAsync(IFdbReadOnlyTransaction tr)
+		{
+			return Task.FromResult(true);
 		}
 
 		#endregion
@@ -391,46 +410,134 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
-		public Task<List<IFdbTuple>> ListAsync(IFdbReadOnlyTransaction trans, IFdbTuple path)
+		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			return ListInternalAsync(trans, path ?? FdbTuple.Empty, throwIfMissing: true);
+			if (path == null) throw new ArgumentNullException("path");
+
+			return ListInternalAsync(trans, ParsePath(path), throwIfMissing: true);
 		}
 
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
-		public Task<List<IFdbTuple>> ListAsync(IFdbReadOnlyTransaction trans, string[] path)
+		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, string name)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			return ListInternalAsync(trans, FdbTuple.CreateRange<string>(path ?? new string[0]), throwIfMissing: true);
+			if (name == null) throw new ArgumentNullException("name");
+
+			return ListInternalAsync(trans, ParsePath(name), throwIfMissing: true);
+		}
+
+		/// <summary>Returns the list of subdirectories of the root directory</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			return ListInternalAsync(trans, FdbTuple.Empty, throwIfMissing: true);
 		}
 
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/>, if it exists.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
-		public Task<List<IFdbTuple>> TryListAsync(IFdbReadOnlyTransaction trans, IFdbTuple path)
+		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			return ListInternalAsync(trans, path ?? FdbTuple.Empty, throwIfMissing: false);
+			if (path == null) throw new ArgumentNullException("path");
+
+			return ListInternalAsync(trans, ParsePath(path), throwIfMissing: false);
 		}
 
-		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/>, if it exists.</summary>
+		/// <summary>Returns the list of subdirectories of directory with the given <paramref name="name"/>, if it exists.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Path of the directory to list</param>
-		public Task<List<IFdbTuple>> TryListAsync(IFdbReadOnlyTransaction trans, string[] path)
+		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, string name)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			return ListInternalAsync(trans, FdbTuple.CreateRange<string>(path ?? new string[0]), throwIfMissing: false);
+			if (name == null) throw new ArgumentNullException("name");
+
+			return ListInternalAsync(trans, ParsePath(name), throwIfMissing: false);
+		}
+
+		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			return ListInternalAsync(trans, FdbTuple.Empty, throwIfMissing: false);
 		}
 
 		#endregion
+
+		/// <summary>Change the layer id of the directory at <param name="path"/></summary>
+		/// <param name="newLayer">New layer id of the directory</param>
+		public async Task<FdbDirectorySubspace> ChangeLayerAsync(IFdbTransaction trans, IEnumerable<string> path, Slice newLayer)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (path == null) throw new ArgumentNullException("path");
+
+			var location = ParsePath(path);
+
+			// Set the layer to the new value
+			await ChangeLayerInternalAsync(trans, location, newLayer).ConfigureAwait(false);
+
+			// And re-open the directory subspace
+			return await CreateOrOpenInternalAsync(trans, location, newLayer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true).ConfigureAwait(false);
+		}
 
 		#endregion
 
 		#region Internal Helpers...
 
-		internal async Task<FdbDirectorySubspace> CreateOrOpenInternalAsync(IFdbTransaction trans, IFdbTuple path, string layer, Slice prefix, bool allowCreate, bool allowOpen, bool throwOnError)
+		internal IFdbTuple ParsePath(IEnumerable<string> path, string argName = null)
+		{
+			Contract.Requires(path != null);
+
+			var pathCopy = path.ToArray();
+			for (int i = 0; i < pathCopy.Length; i++)
+			{
+				if (string.IsNullOrWhiteSpace(pathCopy[i]))
+				{
+					throw new InvalidOperationException("The path of a directory cannot contain empty strings");
+				}
+			}
+			return FdbTuple.CreateRange<string>(pathCopy);
+		}
+
+		internal IFdbTuple ParsePath(string name, string argName = null)
+		{
+			Contract.Requires(name != null);
+
+			if (name == null) throw new ArgumentNullException(argName ?? "name");
+			if (string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("The name of a sub-directory cannot be an empty string");
+
+			return FdbTuple.Create<string>(name);
+		}
+
+		internal IFdbTuple VerifyPath(IFdbTuple path, string argName = null)
+		{
+			Contract.Requires(path != null);
+
+			// The path should only contain non-empty strings
+			if (path == null) throw new ArgumentNullException(argName ?? "path");
+			int count = path.Count;
+			for (int i = 0; i < count; i++)
+			{
+				if (string.IsNullOrWhiteSpace(path.Get<string>(i)))
+				{
+					throw new InvalidOperationException("The path of a directory cannot contain empty strings");
+				}
+			}
+			return path;
+		}
+
+		internal IReadOnlyList<string> ToAbsolutePath(IFdbTuple path)
+		{
+			if (path.Count == 0) return this.Path;
+			var converted = path.ToArray<string>();
+			if (this.Path.Count == 0) return converted;
+			return this.Path.Concat(converted).ToList();
+		}
+
+		internal async Task<FdbDirectorySubspace> CreateOrOpenInternalAsync(IFdbTransaction trans, IFdbTuple path, Slice layer, Slice prefix, bool allowCreate, bool allowOpen, bool throwOnError)
 		{
 			Contract.Requires(trans != null && path != null);
 
@@ -438,8 +545,6 @@ namespace FoundationDB.Layers.Directories
 			{ // Root directory contains node metadata and so may not be opened.
 				throw new InvalidOperationException("The root directory may not be opened.");
 			}
-
-			//TODO: check that the path only contains strings?
 
 			var existingNode = await Find(trans, path).ConfigureAwait(false);
 
@@ -451,10 +556,10 @@ namespace FoundationDB.Layers.Directories
 					return null;
 				}
 
-				var existingLayer = (await trans.GetAsync(existingNode.Partition(LayerSuffix).Key).ConfigureAwait(false)).ToUnicode();
-				if (!string.IsNullOrEmpty(layer) && layer != existingLayer)
+				Slice existingLayer = (await trans.GetAsync(existingNode.Partition(LayerSuffix).Key).ConfigureAwait(false));
+				if (layer.IsPresent && layer != existingLayer)
 				{
-					throw new InvalidOperationException(string.Format("The directory {0} exists but was created with an incompatible layer(layer=='{1}' but existingLayer=='{2}')", path, layer, existingLayer??"(null)"));
+					throw new InvalidOperationException(String.Format("The directory {0} was created with incompatible layer {1} instead of expected {2}.", path, layer.ToAsciiOrHexaString(), existingLayer.ToAsciiOrHexaString()));
 				}
 
 				return ContentsOfNode(existingNode, path, existingLayer);
@@ -481,7 +586,7 @@ namespace FoundationDB.Layers.Directories
 			FdbSubspace parentNode;
 			if (path.Count > 1)
 			{
-				var parentSubspace = await CreateOrOpenAsync(trans, path.Substring(0, path.Count - 1)).ConfigureAwait(false);
+				var parentSubspace = await CreateOrOpenInternalAsync(trans, path.Substring(0, path.Count - 1), Slice.Nil, Slice.Nil, true, true, true).ConfigureAwait(false);
 				parentNode = NodeWithPrefix(parentSubspace.Key);
 			}
 			else
@@ -492,11 +597,11 @@ namespace FoundationDB.Layers.Directories
 
 			// initialize the metadata for this new directory
 			var node = NodeWithPrefix(prefix);
-			trans.Set(GetSubDirKey(parentNode, path, -1), prefix);
+			trans.Set(GetSubDirKey(parentNode, path.Get<string>(-1)), prefix);
 
 			//note: we are using UTF-8 but layer authors should maybe refrain from using non-ASCII text ?
-			layer = layer ?? String.Empty;
-			trans.Set(node.Pack(LayerSuffix), Slice.FromString(layer));
+			if (layer.IsNull) layer = Slice.Empty;
+			trans.Set(node.Pack(LayerSuffix), layer);
 
 			return ContentsOfNode(node, path, layer);
 		}
@@ -538,11 +643,11 @@ namespace FoundationDB.Layers.Directories
 				return null;
 			}
 
-			trans.Set(GetSubDirKey(parentNode, newPath, -1), this.NodeSubspace.UnpackSingle<Slice>(oldNode.Key));
+			trans.Set(GetSubDirKey(parentNode, newPath.Get<string>(-1)), this.NodeSubspace.UnpackSingle<Slice>(oldNode.Key));
 			await RemoveFromParent(trans, oldPath).ConfigureAwait(false);
 
 			var k = await trans.GetAsync(oldNode.Pack(LayerSuffix)).ConfigureAwait(false);
-			return ContentsOfNode(oldNode, newPath, k.ToUnicode());
+			return ContentsOfNode(oldNode, newPath, k);
 		}
 
 		internal async Task<bool> RemoveInternalAsync(IFdbTransaction tr, IFdbTuple path, bool throwIfMissing)
@@ -566,7 +671,7 @@ namespace FoundationDB.Layers.Directories
 			return true;
 		}
 
-		internal async Task<List<IFdbTuple>> ListInternalAsync(IFdbReadOnlyTransaction trans, IFdbTuple path, bool throwIfMissing)
+		internal async Task<List<string>> ListInternalAsync(IFdbReadOnlyTransaction trans, IFdbTuple path, bool throwIfMissing)
 		{
 			Contract.Requires(trans != null && path != null);
 
@@ -586,10 +691,9 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Change the layer id of this directory</summary>
 		/// <param name="newLayer">New layer id of this directory</param>
-		internal async Task ChangeLayerInternalAsync(IFdbTransaction trans, IFdbTuple path, string newLayer)
+		internal async Task ChangeLayerInternalAsync(IFdbTransaction trans, IFdbTuple path, Slice newLayer)
 		{
 			Contract.Requires(trans != null && path != null);
-
 
 			var node = await Find(trans, path).ConfigureAwait(false);
 			if (node == null)
@@ -597,8 +701,8 @@ namespace FoundationDB.Layers.Directories
 				throw new InvalidOperationException(string.Format("The directory '{0}' does not exist, or as already been removed.", path));
 			}
 
-			var key = node.Pack(LayerSuffix);
-			trans.Set(key, Slice.FromString(newLayer ?? String.Empty));
+			if (newLayer.IsNull) newLayer = Slice.Empty;
+			trans.Set(node.Pack(LayerSuffix), newLayer);
 		}
 
 		private async Task<FdbSubspace> NodeContainingKey(IFdbReadOnlyTransaction tr, Slice key)
@@ -637,7 +741,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Returns a new Directory Subspace given its node subspace, path and layer id</summary>
-		private FdbDirectorySubspace ContentsOfNode(FdbSubspace node, IFdbTuple path, string layer)
+		private FdbDirectorySubspace ContentsOfNode(FdbSubspace node, IFdbTuple path, Slice layer)
 		{
 			Contract.Requires(node != null);
 
@@ -654,22 +758,22 @@ namespace FoundationDB.Layers.Directories
 			var n = this.RootNode;
 			for (int i = 0; i < path.Count; i++)
 			{
-				n = NodeWithPrefix(await tr.GetAsync(GetSubDirKey(n, path, i)).ConfigureAwait(false));
+				n = NodeWithPrefix(await tr.GetAsync(GetSubDirKey(n, path.Get<string>(i))).ConfigureAwait(false));
 				if (n == null) return null;
 			}
 			return n;
 		}
 
 		/// <summary>Returns the list of names and nodes of all children of the specified node</summary>
-		private IFdbAsyncEnumerable<KeyValuePair<IFdbTuple, FdbSubspace>> SubdirNamesAndNodes(IFdbReadOnlyTransaction tr, FdbSubspace node)
+		private IFdbAsyncEnumerable<KeyValuePair<string, FdbSubspace>> SubdirNamesAndNodes(IFdbReadOnlyTransaction tr, FdbSubspace node)
 		{
 			Contract.Requires(tr != null && node != null);
 
 			var sd = node.Partition(SUBDIRS);
 			return tr
 				.GetRange(sd.ToRange())
-				.Select(kvp => new KeyValuePair<IFdbTuple, FdbSubspace>(
-					sd.Unpack(kvp.Key),
+				.Select(kvp => new KeyValuePair<string, FdbSubspace>(
+					sd.UnpackSingle<string>(kvp.Key),
 					NodeWithPrefix(kvp.Value)
 				));
 		}
@@ -683,7 +787,7 @@ namespace FoundationDB.Layers.Directories
 			var parent = await Find(tr, path.Substring(0, path.Count - 1)).ConfigureAwait(false);
 			if (parent != null)
 			{
-				tr.Clear(GetSubDirKey(parent, path, -1));
+				tr.Clear(GetSubDirKey(parent, path.Get<string>(-1)));
 				return true;
 			}
 			return false;
@@ -697,7 +801,7 @@ namespace FoundationDB.Layers.Directories
 			//note: we could use Task.WhenAll to remove the children, but there is a risk of task explosion if the subtree is very large...
 			await SubdirNamesAndNodes(tr, node).ForEachAsync((kvp) => RemoveRecursive(tr, kvp.Value)).ConfigureAwait(false);
 
-			tr.ClearRange(FdbKeyRange.StartsWith(ContentsOfNode(node, FdbTuple.Empty, null).Key));
+			tr.ClearRange(FdbKeyRange.StartsWith(ContentsOfNode(node, FdbTuple.Empty, Slice.Empty).Key));
 			tr.ClearRange(node.ToRange());
 		}
 
@@ -721,14 +825,27 @@ namespace FoundationDB.Layers.Directories
 				.ConfigureAwait(false);
 		}
 
-		private static Slice GetSubDirKey(FdbSubspace parent, IFdbTuple path, int index)
+		private static Slice GetSubDirKey(FdbSubspace parent, string path)
 		{
 			Contract.Requires(parent != null && path != null);
 
 			// for a path equal to ("foo","bar","baz") and index = -1, we need to generate (parent, SUBDIRS, "baz")
 			// but since the last item of path can be of any type, we will use tuple splicing to copy the last item without changing its type
+			return parent.Pack(SUBDIRS, path);
+		}
 
-			return parent.Append(SUBDIRS).Concat(path.Substring(index, 1)).ToSlice();
+		/// <summary>Convert a tuple representing a path, into a string array</summary>
+		/// <param name="path">Tuple that should only contain strings</param>
+		/// <returns>Array of strings</returns>
+		public static string[] ParsePath(IFdbTuple path)
+		{
+			if (path == null) throw new ArgumentNullException("path");
+			var tmp = new string[path.Count];
+			for (int i = 0; i < tmp.Length; i++)
+			{
+				tmp[i] = path.Get<string>(i);
+			}
+			return tmp;
 		}
 
 		#endregion
