@@ -52,6 +52,9 @@ namespace FoundationDB.Filters.Logging
 			/// <remarks>All commands with the same step number where started in parallel</remarks>
 			public int Step { get; internal set; }
 
+			/// <summary>Return the end step number of this command</summary>
+			public int EndStep { get; internal set; }
+
 			/// <summary>Number of ticks, since the start of the transaction, when the operation was started</summary>
 			public TimeSpan StartOffset { get; internal set; }
 
@@ -195,6 +198,7 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Base class of all types of operations performed on a transaction, that return a result</summary>
 		public abstract class Command<TResult> : Command
 		{
+			private const int MAX_LENGTH = 160;
 
 			/// <summary>Optional result of the operation</summary>
 			public Maybe<TResult> Result { get; internal set; }
@@ -206,9 +210,16 @@ namespace FoundationDB.Filters.Logging
 				if (this.Result.HasFailed) return "<error>";
 				if (!this.Result.HasValue) return "<n/a>";
 				if (this.Result.Value == null) return "<null>";
-				return this.Result.Value.ToString();
+
+				string res = Dump(this.Result.Value);
+				if (res.Length > MAX_LENGTH) res = res.Substring(0, MAX_LENGTH / 2) + "..." + res.Substring(res.Length - (MAX_LENGTH / 2), MAX_LENGTH / 2);
+				return res;
 			}
 
+			protected virtual string Dump(TResult value)
+			{
+				return value.ToString();
+			}
 		}
 
 		public sealed class SetCommand : Command
@@ -386,6 +397,11 @@ namespace FoundationDB.Filters.Logging
 					if (this.Result.Value.IsEmpty) return "''";
 				}
 				return base.GetResult();
+			}
+
+			protected override string Dump(Slice value)
+			{
+				return value.ToAsciiOrHexaString();
 			}
 
 		}
