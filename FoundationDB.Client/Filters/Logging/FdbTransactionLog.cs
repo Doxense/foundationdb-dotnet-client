@@ -30,6 +30,7 @@ namespace FoundationDB.Filters.Logging
 {
 	using FoundationDB.Client;
 	using System;
+	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
@@ -40,19 +41,23 @@ namespace FoundationDB.Filters.Logging
 	{
 		private int m_step;
 
+		private int m_operations;
+		private int m_readSize;
+		private int m_writeSize;
+
 		public FdbTransactionLog(IFdbTransaction trans)
 		{
-			this.Commands = new List<Command>();
+			this.Commands = new ConcurrentQueue<Command>();
 		}
 
 		/// <summary>Id of the logged transaction</summary>
 		public int Id { get; private set; }
 
 		/// <summary>Number of operations performed by the transaction</summary>
-		public int Operations { get; private set; }
+		public int Operations { get { return m_operations; } }
 
 		/// <summary>List of all commands processed by the transaction</summary>
-		public List<Command> Commands { get; private set; }
+		public ConcurrentQueue<Command> Commands { get; private set; }
 
 		/// <summary>Timestamp of the start of transaction</summary>
 		public long StartTimestamp { get; private set; }
@@ -75,8 +80,16 @@ namespace FoundationDB.Filters.Logging
 		/// <remarks>This counter is used to detect sequential vs parallel commands</remarks>
 		public int Step { get { return m_step; } }
 
+		/// <summary>Read size of the last commit attempt</summary>
+		/// <remarks>This value only account for read commands in the last attempt</remarks>
+		public int ReadSize { get { return m_readSize; } }
+
+		/// <summary>Write size of the last commit attempt</summary>
+		/// <remarks>This value only account for write commands in the last attempt</remarks>
+		public int WriteSize { get { return m_writeSize; } }
+
 		/// <summary>Commit size of the last commit attempt</summary>
-		/// <remarks>This value only account for commands in the last attempt</remarks>
+		/// <remarks>This value only account for write commands in the last attempt</remarks>
 		public int CommitSize { get; internal set; }
 
 		/// <summary>Total of the commit size of all attempts performed by this transaction</summary>
@@ -137,34 +150,39 @@ namespace FoundationDB.Filters.Logging
 
 		public void AddOperation(Command cmd, bool countAsOperation = true)
 		{
-			cmd.StartOffset = GetTimeOffset();
-			cmd.Step = Volatile.Read(ref m_step);
+			var ts = GetTimeOffset();
+			int step = Volatile.Read(ref m_step);
+
+			cmd.StartOffset = ts;
+			cmd.Step = step;
 			cmd.EndOffset = cmd.StartOffset;
 			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
-			lock (this.Commands)
-			{
-				if (countAsOperation) this.Operations++;
-				this.Commands.Add(cmd);
-			}
+			if (countAsOperation) Interlocked.Increment(ref m_operations);
+			this.Commands.Enqueue(cmd);
 		}
 
 		public void BeginOperation(Command cmd)
 		{
-			cmd.StartOffset = GetTimeOffset();
-			cmd.Step = Volatile.Read(ref m_step);
+			var ts = GetTimeOffset();
+			int step = Volatile.Read(ref m_step);
+
+			cmd.StartOffset = ts;
+			cmd.Step = step;
 			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
-			lock (this.Commands)
-			{
-				this.Operations++;
-				this.Commands.Add(cmd);
-			}
+			if (cmd.ArgumentBytes.HasValue) Interlocked.Add(ref m_writeSize, cmd.ArgumentBytes.Value);
+			Interlocked.Increment(ref m_operations);
+			this.Commands.Enqueue(cmd);
 		}
 
 		public void EndOperation(Command cmd, Exception error = null)
 		{
-			cmd.EndOffset = GetTimeOffset();
+			var ts = GetTimeOffset();
+			var step = Interlocked.Increment(ref m_step);
+
+			cmd.EndOffset = ts;
+			cmd.EndStep = step;
 			cmd.Error = error;
-			Interlocked.Increment(ref m_step);
+			if (cmd.ResultBytes.HasValue) Interlocked.Add(ref m_readSize, cmd.ResultBytes.Value);
 		}
 
 		public string GetCommandsReport()
@@ -172,10 +190,11 @@ namespace FoundationDB.Filters.Logging
 			var sb = new StringBuilder();
 			sb.AppendLine("Transaction #" + this.Id.ToString() + " command log:");
 			int reads = 0, writes = 0;
-			for (int i = 0; i < this.Commands.Count; i++)
+			var cmds = this.Commands.ToArray();
+			for (int i = 0; i < cmds.Length; i++)
 			{
-				var cmd = this.Commands[i];
-				sb.AppendFormat("{0,3}/{1,3} : {2}", i + 1, this.Commands.Count, cmd.ToString());
+				var cmd = cmds[i];
+				sb.AppendFormat("{0,3}/{1,3} : {2}", i + 1, cmds.Length, cmd.ToString());
 				sb.AppendLine();
 				switch (cmd.Mode)
 				{
@@ -202,8 +221,10 @@ namespace FoundationDB.Filters.Logging
 				flag = !flag;
 			}
 
+			var cmds = this.Commands.ToArray();
+
 			// Header
-			sb.AppendFormat(CultureInfo.InvariantCulture, "Transaction #{0} ({1} operations, '#' = " +  (scale*1000d).ToString("N1") + " ms, started {2}Z", this.Id, this.Commands.Count, this.StartedUtc.TimeOfDay);
+			sb.AppendFormat(CultureInfo.InvariantCulture, "Transaction #{0} ({1} operations, '#' = " + (scale * 1000d).ToString("N1") + " ms, started {2}Z", this.Id, cmds.Length, this.StartedUtc.TimeOfDay);
 			if (this.StoppedUtc.HasValue)
 				sb.AppendFormat(CultureInfo.InvariantCulture, ", ended {0}Z)", this.StoppedUtc.Value.TimeOfDay); 
 			else
@@ -215,7 +236,7 @@ namespace FoundationDB.Filters.Logging
 			bool previousWasOnError = false;
 			int attempts = 1;
 			int charsToSkip = 0;
-			foreach (var cmd in this.Commands)
+			foreach (var cmd in cmds)
 			{
 				if (previousWasOnError)
 				{ // │
@@ -258,7 +279,19 @@ namespace FoundationDB.Filters.Logging
 			// Footer
 			if (this.Completed)
 			{
-				sb.AppendLine("Committed " + this.CommitSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes in " + duration.TotalMilliseconds.ToString("N3", CultureInfo.InvariantCulture) + " ms and " + attempts.ToString(CultureInfo.InvariantCulture) + " attempt(s)");
+				flag = false;
+				if (this.ReadSize > 0)
+				{
+					sb.Append("Read " + this.ReadSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
+					flag = true;
+				}
+				if (this.CommitSize > 0)
+				{
+					if (flag) sb.Append(" and ");
+					sb.Append("Committed " + this.CommitSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
+				}
+				if (!flag) sb.Append("Completed");
+				sb.AppendLine(" in " + duration.TotalMilliseconds.ToString("N3", CultureInfo.InvariantCulture) + " ms and " + attempts.ToString(CultureInfo.InvariantCulture) + " attempt(s)");
 			}
 			return sb.ToString();
 		}
