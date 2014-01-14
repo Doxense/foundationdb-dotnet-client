@@ -48,13 +48,29 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
+		/// <summary>Wraps an existing subspace</summary>
+		protected FdbSubspace(FdbSubspace copy)
+		{
+			if (copy == null) throw new ArgumentNullException("copy");
+			if (copy.m_rawPrefix.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "copy");
+			m_rawPrefix = copy.m_rawPrefix;
+		}
+
+		/// <summary>Create a new subspace from a binary prefix</summary>
+		/// <param name="rawPrefix">Prefix of the new subspace</param>
+		/// <param name="copy">If true, take a copy of the prefix</param>
+		protected FdbSubspace(Slice rawPrefix, bool copy)
+		{
+			if (rawPrefix.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "rawPrefix");
+			if (copy) rawPrefix = rawPrefix.Memoize();
+			m_rawPrefix = rawPrefix.Memoize();
+		}
+
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="rawPrefix">Prefix of the new subspace</param>
 		public FdbSubspace(Slice rawPrefix)
-		{
-			if (rawPrefix.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "rawPrefix");
-			m_rawPrefix = rawPrefix.Memoize();
-		}
+			: this(rawPrefix, true)
+		{ }
 
 		/// <summary>Create a new subspace from a Tuple prefix</summary>
 		/// <param name="tuple">Tuple packed to produce the prefix</param>
@@ -119,6 +135,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public virtual FdbSubspace Partition<T>(T value)
 		{
+			//TODO: this should go into a FdbTupleSubspace, because it collides with FdbEncoderSubspace<T> !
 			return new FdbSubspace(FdbTuple.Concat<T>(m_rawPrefix, value));
 		}
 
@@ -134,6 +151,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public virtual FdbSubspace Partition<T1, T2>(T1 value1, T2 value2)
 		{
+			//TODO: this should go into a FdbTupleSubspace, because it collides with FdbEncoderSubspace<T1, T2> !
 			return new FdbSubspace(FdbTuple.Concat<T1, T2>(m_rawPrefix, value1, value2));
 		}
 
@@ -150,6 +168,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public virtual FdbSubspace Partition<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
+			//TODO: this should go into a FdbTupleSubspace, because it collides with FdbEncoderSubspace<T1, T2, T3> !
 			return new FdbSubspace(FdbTuple.Concat(m_rawPrefix, new FdbTuple<T1, T2, T3>(value1, value2, value3)));
 		}
 
@@ -623,75 +642,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Key/Value encoding
-
-		public Slice Encode<T>(IKeyEncoder<T> encoder, T value)
-		{
-			return m_rawPrefix + encoder.EncodeKey(value);
-		}
-
-		public Slice[] EncodeRange<T>(IKeyEncoder<T> encoder, T[] values)
-		{
-			return FdbKey.Merge(m_rawPrefix, encoder.EncodeRange(values));
-		}
-
-		public Slice[] EncodeRange<T>(IKeyEncoder<T> encoder, IEnumerable<T> values)
-		{
-			return FdbKey.Merge(m_rawPrefix, encoder.EncodeRange(values));
-		}
-
-		public Slice Encode<T1, T2>(ICompositeKeyEncoder<T1, T2> encoder, T1 value1, T2 value2)
-		{
-			return m_rawPrefix + encoder.EncodeKey(value1, value2);
-		}
-
-		public Slice EncodePartial<T1, T2>(ICompositeKeyEncoder<T1, T2> encoder, T1 value1)
-		{
-			return m_rawPrefix + encoder.EncodeComposite(FdbTuple.Create<T1, T2>(value1, default(T2)), 1);
-		}
-
-		public Slice Encode<T1, T2, T3>(ICompositeKeyEncoder<T1, T2, T3> encoder, T1 value1, T2 value2, T3 value3)
-		{
-			return m_rawPrefix + encoder.EncodeKey(value1, value2, value3);
-		}
-
-		public Slice EncodePartial<T1, T2, T3>(ICompositeKeyEncoder<T1, T2, T3> encoder, T1 value1, T2 value2)
-		{
-			return m_rawPrefix + encoder.EncodeComposite(FdbTuple.Create<T1, T2, T3>(value1, value2, default(T3)), 2);
-		}
-
-		public Slice EncodePartial<T1, T2, T3>(ICompositeKeyEncoder<T1, T2, T3> encoder, T1 value1)
-		{
-			return m_rawPrefix + encoder.EncodeComposite(FdbTuple.Create<T1, T2, T3>(value1, default(T2), default(T3)), 1);
-		}
-
-		public T Decode<T>(IKeyEncoder<T> encoder, Slice packedKey)
-		{
-			return encoder.DecodeKey(ExtractAndCheck(packedKey));
-		}
-
-		public T[] DecodeRange<T>(IKeyEncoder<T> encoder, Slice[] packedKeys)
-		{
-			var extracted = new Slice[packedKeys.Length];
-			for (int i = 0; i < packedKeys.Length;i++)
-			{
-				extracted[i] = ExtractAndCheck(packedKeys[i]);
-			}
-			return encoder.DecodeRange(extracted);
-		}
-
-		public FdbTuple<T1, T2> Decode<T1, T2>(ICompositeKeyEncoder<T1, T2> encoder, Slice packedKey)
-		{
-			return encoder.DecodeKey(ExtractAndCheck(packedKey));
-		}
-
-		public FdbTuple<T1, T2, T3> Decode<T1, T2, T3>(ICompositeKeyEncoder<T1, T2, T3> encoder, Slice packedKey)
-		{
-			return encoder.DecodeKey(ExtractAndCheck(packedKey));
-		}
-
-		#endregion
-
 		#region ToRange...
 
 		public virtual FdbKeyRange ToRange()
@@ -727,6 +677,11 @@ namespace FoundationDB.Client
 		{
 			if (extraBytes < 0) throw new ArgumentException("Extra bytes count must be a positive integer", "extraBytes");
 			return new SliceWriter(m_rawPrefix, extraBytes + m_rawPrefix.Count);
+		}
+
+		public virtual string DumpKey(Slice key)
+		{
+			return FdbKey.Dump(this.ExtractAndCheck(key));
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()

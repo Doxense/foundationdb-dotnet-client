@@ -59,13 +59,13 @@ namespace FoundationDB.Layers.Documents
 
 			this.Subspace = subspace;
 			this.IdSelector = selector;
-			this.KeyEncoder = keyEncoder;
 			this.ValueEncoder = valueEncoder;
+			this.Location = new FdbEncoderSubspace<TId, int>(subspace, keyEncoder);
 		}
 
 		protected virtual Task<List<Slice>> LoadPartsAsync(IFdbReadOnlyTransaction trans, TId id)
 		{
-			var key = this.Subspace.EncodePartial(this.KeyEncoder, id);
+			var key = this.Location.Partial.EncodeKey(id);
 
 			return trans
 				.GetRange(FdbKeyRange.StartsWith(key)) //TODO: options ?
@@ -82,8 +82,7 @@ namespace FoundationDB.Layers.Documents
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
 		public FdbSubspace Subspace { get; private set; }
 
-		/// <summary>Encoder that packs the document IDs into keys</summary>
-		public ICompositeKeyEncoder<TId, int> KeyEncoder { get; private set; }
+		protected FdbEncoderSubspace<TId, int> Location { get; private set; }
 
 		/// <summary>Encoder that packs/unpacks the documents</summary>
 		public IValueEncoder<TDocument> ValueEncoder { get; private set; }
@@ -107,7 +106,7 @@ namespace FoundationDB.Layers.Documents
 			var packed = this.ValueEncoder.EncodeValue(document);
 
 			// Key Prefix = ...(id,)
-			var key = this.Subspace.EncodePartial(this.KeyEncoder, id);
+			var key = this.Location.Partial.EncodeKey(id);
 
 			// clear previous value
 			trans.ClearRange(FdbKeyRange.StartsWith(key));
@@ -128,9 +127,7 @@ namespace FoundationDB.Layers.Documents
 				while (remaining > 0)
 				{
 					int sz = Math.Max(remaining, this.ChunkSize);
-
-					trans.Set(this.Subspace.Encode(this.KeyEncoder, id, index), packed.Substring(p, sz));
-
+					this.Location.Set(trans, FdbTuple.Create(id, index), packed.Substring(p, sz));
 					++index;
 					p += sz;
 					remaining -= sz;
@@ -174,7 +171,8 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.ClearRange(FdbKeyRange.StartsWith(this.Subspace.EncodePartial(this.KeyEncoder, id)));
+			var key = this.Location.Partial.EncodeKey(id);
+			trans.ClearRange(FdbKeyRange.StartsWith(key));
 		}
 
 
@@ -186,9 +184,9 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");
 
-			foreach (var id in ids)
+			foreach (var key in this.Location.Partial.EncodeKeyRange(ids))
 			{
-				trans.ClearRange(FdbKeyRange.StartsWith(this.Subspace.EncodePartial(this.KeyEncoder, id)));
+				trans.ClearRange(FdbKeyRange.StartsWith(key));
 			}
 		}
 

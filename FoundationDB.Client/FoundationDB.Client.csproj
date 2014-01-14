@@ -65,7 +65,10 @@
     <Compile Include="Converters\SimilarValueComparer.cs" />
     <Compile Include="Core\IFdbClusterHandler.cs" />
     <Compile Include="Core\IFdbDatabaseHandler.cs" />
+    <Compile Include="Encoders\FdbEncoderSubspace`3.cs" />
+    <Compile Include="Encoders\FdbEncoderSubspace`2.cs" />
     <Compile Include="Encoders\IKeyValueEncoder.cs" />
+    <Compile Include="Encoders\FdbEncoderSubspace`1.cs" />
     <Compile Include="Layers\Directories\IFdbDirectory.cs" />
     <Compile Include="Native\FdbNativeCluster.cs" />
     <Compile Include="IFdbCluster.cs" />

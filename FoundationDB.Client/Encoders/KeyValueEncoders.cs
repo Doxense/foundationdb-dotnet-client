@@ -33,6 +33,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using System.Threading.Tasks;
 
 	/// <summary>Helper class for all key/value encoders</summary>
 	public static class KeyValueEncoders
@@ -129,15 +130,16 @@ namespace FoundationDB.Client
 				return DecodeComposite(encoded, 2);
 			}
 
-			public Slice EncodeKey(T1 item1)
-			{
-				return EncodeComposite(FdbTuple.Create<T1, T2>(item1, default(T2)), 1);
-			}
-
 			public T1 DecodePartialKey(Slice encoded)
 			{
 				return DecodeComposite(encoded, 1).Item1;
 			}
+
+			public HeadEncoder<T1, T2> Head()
+			{
+				return new HeadEncoder<T1, T2>(this);
+			}
+
 		}
 
 		public abstract class CompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2, T3>
@@ -162,20 +164,21 @@ namespace FoundationDB.Client
 				return DecodeComposite(encoded, 3);
 			}
 
-			public Slice EncodeKey(T1 item1, T2 item2)
-			{
-				return EncodeComposite(FdbTuple.Create<T1, T2, T3>(item1, item2, default(T3)), 2);
-			}
-
-			public Slice EncodeKey(T1 item1)
-			{
-				return EncodeComposite(FdbTuple.Create<T1, T2, T3>(item1, default(T2), default(T3)), 1);
-			}
-
 			public FdbTuple<T1, T2, T3> DecodeKey(Slice encoded, int items)
 			{
 				return DecodeComposite(encoded, items);
 			}
+
+			public HeadEncoder<T1, T2, T3> Head()
+			{
+				return new HeadEncoder<T1, T2, T3>(this);
+			}
+
+			public PairEncoder<T1, T2, T3> Pair()
+			{
+				return new PairEncoder<T1, T2, T3>(this);
+			}
+
 		}
 
 		public abstract class CompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2, T3, T4>
@@ -200,21 +203,6 @@ namespace FoundationDB.Client
 				return DecodeComposite(encoded, 4);
 			}
 
-			public Slice EncodeKey(T1 item1, T2 item2, T3 item3)
-			{
-				return EncodeComposite(FdbTuple.Create<T1, T2, T3, T4>(item1, item2, item3, default(T4)), 3);
-			}
-
-			public Slice EncodeKey(T1 item1, T2 item2)
-			{
-				return EncodeComposite(FdbTuple.Create<T1, T2, T3, T4>(item1, item2, default(T3), default(T4)), 2);
-			}
-
-			public Slice EncodeKey(T1 item1)
-			{
-				return EncodeComposite(FdbTuple.Create<T1, T2, T3, T4>(item1, default(T2), default(T3), default(T4)), 1);
-			}
-
 			public FdbTuple<T1, T2, T3, T4> DecodeKey(Slice encoded, int items)
 			{
 				return DecodeComposite(encoded, items);
@@ -236,7 +224,7 @@ namespace FoundationDB.Client
 
 			public static IKeyEncoder<ulong> UInt64Encoder { get { return Tuples.Key<ulong>(); } }
 
-			internal sealed class OrderedKeyEncoder<T> : IKeyEncoder<T>
+			public sealed class OrderedKeyEncoder<T> : IKeyEncoder<T>
 			{
 				private readonly IOrderedTypeCodec<T> m_codec;
 
@@ -290,6 +278,7 @@ namespace FoundationDB.Client
 					if (reader.HasMore) throw new InvalidOperationException(String.Format("Unexpected data at the end of composite key after {0} items", count));
 					return FdbTuple.Create<T1, T2>(key1, key2);
 				}
+
 			}
 
 			public sealed class CodecCompositeKeyEncoder<T1, T2, T3> : CompositeKeyEncoder<T1, T2, T3>
@@ -330,6 +319,7 @@ namespace FoundationDB.Client
 					if (reader.HasMore) throw new InvalidOperationException(String.Format("Unexpected data at the end of composite key after {0} items", count));
 					return FdbTuple.Create<T1, T2, T3>(key1, key2, key3);
 				}
+
 			}
 
 			/// <summary>Create a simple encoder from a codec</summary>
@@ -652,6 +642,86 @@ namespace FoundationDB.Client
 
 		}
 
+		public struct HeadEncoder<T1, T2> : IKeyEncoder<T1>
+		{
+			public readonly ICompositeKeyEncoder<T1, T2> Encoder;
+
+			public HeadEncoder(ICompositeKeyEncoder<T1, T2> encoder)
+			{
+				this.Encoder = encoder;
+			}
+
+			public Slice EncodeKey(T1 value)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2>(value, default(T2)), 1);
+			}
+
+			public T1 DecodeKey(Slice encoded)
+			{
+				return this.Encoder.DecodeComposite(encoded, 1).Item1;
+			}
+		}
+
+		public struct HeadEncoder<T1, T2, T3> : IKeyEncoder<T1>
+		{
+			public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
+
+			public HeadEncoder(ICompositeKeyEncoder<T1, T2, T3> encoder)
+			{
+				this.Encoder = encoder;
+			}
+
+			public Slice EncodeKey(T1 value)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3>(value, default(T2), default(T3)), 1);
+			}
+
+			public T1 DecodeKey(Slice encoded)
+			{
+				return this.Encoder.DecodeComposite(encoded, 1).Item1;
+			}
+		}
+
+		public struct PairEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2>
+		{
+			public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
+
+			public PairEncoder(ICompositeKeyEncoder<T1, T2, T3> encoder)
+			{
+				this.Encoder = encoder;
+			}
+
+			public Slice EncodeKey(T1 value1, T2 value2)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3>(value1, value2, default(T3)), 2);
+			}
+
+			public Slice EncodeComposite(FdbTuple<T1, T2> key, int items)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3>(key.Item1, key.Item2, default(T3)), items);
+			}
+
+			public FdbTuple<T1, T2> DecodeComposite(Slice encoded, int items)
+			{
+				var t = this.Encoder.DecodeComposite(encoded, items);
+				return new FdbTuple<T1, T2>(t.Item1, t.Item2);
+			}
+
+			public Slice EncodeKey(FdbTuple<T1, T2> value)
+			{
+				return EncodeComposite(value, 2);
+			}
+
+			public FdbTuple<T1, T2> DecodeKey(Slice encoded)
+			{
+				return DecodeComposite(encoded, 2);
+			}
+			public HeadEncoder<T1, T2, T3> Head()
+			{
+				return new HeadEncoder<T1, T2, T3>(this.Encoder);
+			}
+		}
+
 		#region Keys...
 
 		public static IKeyEncoder<T> Bind<T>(Func<T, Slice> encoder, Func<Slice, T> decoder)
@@ -725,6 +795,29 @@ namespace FoundationDB.Client
 			if (array != null) return DecodeRange<T>(encoder, array);
 
 			return slices.Select(slice => encoder.DecodeKey(slice));
+		}
+
+		/// <summary>Returns a partial encoder that will only encode the first element</summary>
+		public static HeadEncoder<T1, T2> Head<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			return new HeadEncoder<T1, T2>(encoder);
+		}
+
+		/// <summary>Returns a partial encoder that will only encode the first element</summary>
+		public static HeadEncoder<T1, T2, T3> Head<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+
+			return new HeadEncoder<T1, T2, T3>(encoder);
+		}
+
+		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
+		public static PairEncoder<T1, T2, T3> Pair<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+
+			return new PairEncoder<T1, T2, T3>(encoder);
 		}
 
 		#endregion

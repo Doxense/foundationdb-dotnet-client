@@ -55,7 +55,7 @@ namespace FoundationDB.Layers.Tables
 
 			this.Name = name;
 			this.Subspace = subspace;
-			this.KeyEncoder = keyEncoder;
+			this.Location = new FdbEncoderSubspace<TKey>(subspace, keyEncoder);
 			this.ValueEncoder = valueEncoder;
 		}
 
@@ -67,8 +67,8 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
 
-		/// <summary>Class that can pack/unpack keys into/from slices</summary>
-		public IKeyEncoder<TKey> KeyEncoder { get; private set; }
+		/// <summary>Subspace used to encoded the keys for the items</summary>
+		protected FdbEncoderSubspace<TKey> Location { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		public IValueEncoder<TValue> ValueEncoder { get; private set; }
@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			var data = await trans.GetAsync(this.Subspace.Encode<TKey>(this.KeyEncoder, id)).ConfigureAwait(false);
+			var data = await this.Location.GetAsync(trans, id).ConfigureAwait(false);
 
 			if (data.IsNull) throw new KeyNotFoundException(); //TODO: message!
 			return this.ValueEncoder.DecodeValue(data);
@@ -93,7 +93,7 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			var data = await trans.GetAsync(this.Subspace.Encode<TKey>(this.KeyEncoder, id)).ConfigureAwait(false);
+			var data = await this.Location.GetAsync(trans, id).ConfigureAwait(false);
 
 			if (data.IsNull) return default(Optional<TValue>);
 			return this.ValueEncoder.DecodeValue(data);
@@ -104,7 +104,7 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Set(this.Subspace.Encode<TKey>(this.KeyEncoder, id), this.ValueEncoder.EncodeValue(value));
+			this.Location.Set(trans, id, this.ValueEncoder.EncodeValue(value));
 		}
 
 		public void Clear(IFdbTransaction trans, TKey id)
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Clear(this.Subspace.Encode<TKey>(this.KeyEncoder, id));
+			this.Location.Clear(trans, id);
 		}
 
 		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All(IFdbReadOnlyTransaction trans)
@@ -120,9 +120,9 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRange(this.Subspace.ToRange()) //TODO: options ?
+				.GetRange(this.Location.ToRange()) //TODO: options ?
 				.Select((kvp) => new KeyValuePair<TKey, TValue>(
-					this.Subspace.Decode<TKey>(this.KeyEncoder, kvp.Key),
+					this.Location.DecodeKey(kvp.Key),
 					this.ValueEncoder.DecodeValue(kvp.Value)
 				));
 		}
@@ -132,9 +132,7 @@ namespace FoundationDB.Layers.Tables
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");
 
-			var results = await trans
-				.GetValuesAsync(this.Subspace.EncodeRange(this.KeyEncoder, ids))
-				.ConfigureAwait(false);
+			var results = await this.Location.GetValuesAsync(trans, ids).ConfigureAwait(false);
 
 			return Optional.DecodeRange(this.ValueEncoder, results);
 		}
