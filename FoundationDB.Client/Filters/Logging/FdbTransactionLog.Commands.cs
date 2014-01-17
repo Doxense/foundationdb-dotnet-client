@@ -173,6 +173,7 @@ namespace FoundationDB.Filters.Logging
 						case Operation.Set: return "s ";
 						case Operation.Clear: return "c ";
 						case Operation.ClearRange: return "cr";
+						case Operation.Atomic: return "a ";
 
 						case Operation.Log: return "//";
 						case Operation.Watch: return "W ";
