@@ -249,7 +249,7 @@ namespace FoundationDB.Client.Native
 					}
 					else
 					{
-						e = new InvalidOperationException("An error occured while loading the native FoundationDB library", e);
+						e = new InvalidOperationException("An error occurred while loading the native FoundationDB library", e);
 					}
 					LibraryLoadError = ExceptionDispatchInfo.Capture(e);
 				}

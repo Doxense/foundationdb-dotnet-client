@@ -50,7 +50,7 @@ namespace FoundationDB.Async
 		void OnCompleted();
 
 		/// <summary>Notifies the target that tere was an exception, and that no more values will be published</summary>
-		/// <param name="error">The error that occured</param>
+		/// <param name="error">The error that occurred</param>
 		void OnError(ExceptionDispatchInfo error);
 	}
 
