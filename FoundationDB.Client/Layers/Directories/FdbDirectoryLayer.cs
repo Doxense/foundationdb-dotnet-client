@@ -487,7 +487,7 @@ namespace FoundationDB.Layers.Directories
 
 		#region Internal Helpers...
 
-		internal IFdbTuple ParsePath(IEnumerable<string> path, string argName = null)
+		internal static IFdbTuple ParsePath(IEnumerable<string> path, string argName = null)
 		{
 			Contract.Requires(path != null);
 
@@ -502,7 +502,7 @@ namespace FoundationDB.Layers.Directories
 			return FdbTuple.CreateRange<string>(pathCopy);
 		}
 
-		internal IFdbTuple ParsePath(string name, string argName = null)
+		internal static IFdbTuple ParsePath(string name, string argName = null)
 		{
 			Contract.Requires(name != null);
 
@@ -512,7 +512,7 @@ namespace FoundationDB.Layers.Directories
 			return FdbTuple.Create<string>(name);
 		}
 
-		internal IFdbTuple VerifyPath(IFdbTuple path, string argName = null)
+		internal static IFdbTuple VerifyPath(IFdbTuple path, string argName = null)
 		{
 			Contract.Requires(path != null);
 
@@ -848,6 +848,95 @@ namespace FoundationDB.Layers.Directories
 			return tmp;
 		}
 
+		#endregion
+
+		#region Path Utils...
+
+		public static string[] Combine(IEnumerable<string> parent, string path)
+		{
+			if (parent == null) throw new ArgumentNullException("parent");
+			return parent.Concat(new[] { path }).ToArray();
+		}
+
+		public static string[] Combine(IEnumerable<string> parent, params string[] paths)
+		{
+			if (parent == null) throw new ArgumentNullException("parent");
+			if (paths == null) throw new ArgumentNullException("paths");
+			return parent.Concat(paths).ToArray();
+		}
+
+		public static string[] Combine(IEnumerable<string> parent, IEnumerable<string> paths)
+		{
+			if (parent == null) throw new ArgumentNullException("parent");
+			if (paths == null) throw new ArgumentNullException("paths");
+			return parent.Concat(paths).ToArray();
+		}
+
+		public static string[] Parse(string path)
+		{
+			if (string.IsNullOrEmpty(path)) return new string[0];
+
+			var paths = new List<string>();
+			var sb = new System.Text.StringBuilder();
+			bool escaped = false;
+			foreach(var c in path)
+			{
+				if (escaped)
+				{
+					escaped = false;
+					sb.Append(c);
+					continue;
+				}
+
+				switch (c)
+				{
+					case '\\':
+					{
+						escaped = true;
+						continue;
+					}
+					case '/':
+					{
+						if (sb.Length == 0 && paths.Count == 0)
+						{ // ignore the first '/'
+							continue;
+						}
+						paths.Add(sb.ToString());
+						sb.Clear();
+						break;
+					}
+					default:
+					{
+						sb.Append(c);
+						break;
+					}
+				}
+			}
+			if (sb.Length > 0)
+			{
+				paths.Add(sb.ToString());
+			}
+			return paths.ToArray();
+		}
+		
+		public static string FormatPath(IEnumerable<string> paths)
+		{
+			if (paths == null) throw new ArgumentNullException("paths");
+
+			return String.Join("/", paths.Select(path =>
+			{
+				if (path.Contains('\\') || path.Contains('/'))
+				{
+					return path.Replace("\\", "\\\\").Replace("/", "\\/");
+				}
+				else
+				{
+					return path;
+				}
+			}));
+
+		}
+	
 		#endregion
 
 	}
