@@ -77,6 +77,12 @@ namespace FoundationDB.Layers.Tables
 
 		#region Get / Set / Clear...
 
+		/// <summary>Returns the value of an existing entry in the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="id">Key of the entry to read from the table</param>
+		/// <returns>Value of the entry if it exists; otherwise, throws an exception</returns>
+		/// <exception cref="System.ArgumentNullException">If either <paramref name="trans"/> or <paramref name="id"/> is null.</exception>
+		/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the table does not contain an entry with this key.</exception>
 		public async Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -84,10 +90,14 @@ namespace FoundationDB.Layers.Tables
 
 			var data = await this.Location.GetAsync(trans, id).ConfigureAwait(false);
 
-			if (data.IsNull) throw new KeyNotFoundException(); //TODO: message!
+			if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the table.");
 			return this.ValueEncoder.DecodeValue(data);
 		}
 
+		/// <summary>Returns the value of an entry in the table if it exists.</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="id">Key of the entry to read from the table</param>
+		/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the table.</returns>
 		public async Task<Optional<TValue>> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -99,6 +109,11 @@ namespace FoundationDB.Layers.Tables
 			return this.ValueEncoder.DecodeValue(data);
 		}
 
+		/// <summary>Add or update an entry in the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="id">Key of the entry to add or update</param>
+		/// <param name="value">New value of the entry</param>
+		/// <remarks>If the entry did not exist, it will be created. If not, its value will be replace with <paramref name="value"/>.</remarks>
 		public void Set(IFdbTransaction trans, TKey id, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -107,6 +122,10 @@ namespace FoundationDB.Layers.Tables
 			this.Location.Set(trans, id, this.ValueEncoder.EncodeValue(value));
 		}
 
+		/// <summary>Remove an entry from the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="id">Key of the entry to remove</param>
+		/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
 		public void Clear(IFdbTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -115,6 +134,10 @@ namespace FoundationDB.Layers.Tables
 			this.Location.Clear(trans, id);
 		}
 
+		/// <summary>Reads all the entries in the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
+		/// <remarks>This can be dangerous if the table contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -127,6 +150,10 @@ namespace FoundationDB.Layers.Tables
 				));
 		}
 
+		/// <summary>Reads the values of multiple entries in the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="ids">List of the keys to read</param>
+		/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>
 		public async Task<Optional<TValue>[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
