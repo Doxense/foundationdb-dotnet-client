@@ -460,25 +460,44 @@ namespace FoundationDB.Client
 				DieOnError(SetNetworkOption(FdbNetworkOption.TraceEnable, Fdb.Options.TracePath));
 			}
 
-			if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsCertificatePath))
+			if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSPlugin))
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certifictrace and public key from '{0}'", Fdb.Options.TlsCertificatePath));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will use custom TLS plugin '{0}'", Fdb.Options.TLSPlugin));
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsCertPath, Fdb.Options.TlsCertificatePath));
+				DieOnError(SetNetworkOption(FdbNetworkOption.TLSPlugin, Fdb.Options.TLSPlugin));
 			}
 
-			if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsPrivateKeyPath))
+			if (Fdb.Options.TLSCertificateBytes.IsPresent)
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS private key from '{0}'", Fdb.Options.TlsPrivateKeyPath));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certifictrace and public key from memory ({0} bytes)", Fdb.Options.TLSCertificateBytes.Count));
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsKeyPath, Fdb.Options.TlsPrivateKeyPath));
+				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertBytes, Fdb.Options.TLSCertificateBytes));
+			}
+			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSCertificatePath))
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certifictrace and public key from '{0}'", Fdb.Options.TLSCertificatePath));
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertPath, Fdb.Options.TLSCertificatePath));
 			}
 
-			if (!string.IsNullOrWhiteSpace(Fdb.Options.TlsVerificationPattern))
+			if (Fdb.Options.TLSPrivateKeyBytes.IsPresent)
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will verify TLS peers with pattern '{0}'", Fdb.Options.TlsVerificationPattern));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS private key from memory ({0} bytes)", Fdb.Options.TLSPrivateKeyBytes.Count));
 
-				DieOnError(SetNetworkOption(FdbNetworkOption.TlsVerifyPeers, Fdb.Options.TlsVerificationPattern));
+				DieOnError(SetNetworkOption(FdbNetworkOption.TLSKeyBytes, Fdb.Options.TLSPrivateKeyBytes));
+			}
+			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSPrivateKeyPath))
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS private key from '{0}'", Fdb.Options.TLSPrivateKeyPath));
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TLSKeyPath, Fdb.Options.TLSPrivateKeyPath));
+			}
+
+			if (Fdb.Options.TLSVerificationPattern.IsPresent)
+			{
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will verify TLS peers with pattern '{0}'", Fdb.Options.TLSVerificationPattern));
+
+				DieOnError(SetNetworkOption(FdbNetworkOption.TLSVerifyPeers, Fdb.Options.TLSVerificationPattern));
 			}
 
 			try { }
@@ -521,11 +540,23 @@ namespace FoundationDB.Client
 				var data = FdbNative.ToNativeString(value, nullTerminated: false);
 				fixed (byte* ptr = data.Array)
 				{
-					return FdbNative.NetworkSetOption(FdbNetworkOption.TraceEnable, ptr + data.Offset, data.Count);
+					return FdbNative.NetworkSetOption(option, ptr + data.Offset, data.Count);
 				}
 			}
 		}
-		
+
+		private static FdbError SetNetworkOption(FdbNetworkOption option, Slice value)
+		{
+			SliceHelpers.EnsureSliceIsValid(ref value);
+			unsafe
+			{
+				fixed (byte* ptr = value.Array)
+				{
+					return FdbNative.NetworkSetOption(option, ptr + value.Offset, value.Count);
+				}
+			}
+		}
+
 		/// <summary>Stop the Network Thread</summary>
 		public static void Stop()
 		{

@@ -55,22 +55,46 @@ namespace FoundationDB.Client
 		TraceEnable = 30,
 
 		/// <summary>
-		/// Set file from which to load root certificate and public key for TLS connections
-		/// Parameter: (String) File path
+		/// Set internal tuning or debugging knobs
+		/// Parameter: (String) knob_name=knob_value
 		/// </summary>
-		TlsCertPath = 43,
+		Knob = 40,
 
 		/// <summary>
-		/// Set file from which to load the private key for TLS connections
-		/// Parameter: (String) File path
+		/// Set the TLS plugin to load. This option, if used, must be set before any other TLS options
+		/// Parameter: (String) file path or linker-resolved name
 		/// </summary>
-		TlsKeyPath = 46,
+		TLSPlugin = 41,
 
 		/// <summary>
-		/// Set the pattern with which to verify certificates of TLS peers
-		/// Parameter: (String) Verification pattern
+		/// Set the certificate chain
+		/// Parameter: (Bytes) certificates
 		/// </summary>
-		TlsVerifyPeers = 47,
+		TLSCertBytes = 42,
+
+		/// <summary>
+		/// Set the file from which to load the certificate chain
+		/// Parameter: (String) File path
+		/// </summary>
+		TLSCertPath = 43,
+
+		/// <summary>
+		/// Set the private key corresponding to your own certificate
+		/// Parameter: (Bytes) Key
+		/// </summary>
+		TLSKeyBytes = 45,
+
+		/// <summary>
+		/// Set the file from which to load the private key corresponding to your own certificate
+		/// Parameter: (String) File path
+		/// </summary>
+		TLSKeyPath = 46,
+
+		/// <summary>
+		/// Set the peer certificate field verification criteria
+		/// Parameter: (Bytes) Verification pattern
+		/// </summary>
+		TLSVerifyPeers = 47,
 	}
 
 }

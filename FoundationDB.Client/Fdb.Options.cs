@@ -86,45 +86,95 @@ namespace FoundationDB.Client
 
 			#region TLS...
 
-			/// <summary>Path to the TLS root and client certificatte used for TLS connections (none by default)</summary>
-			public static string TlsCertificatePath = null;
+			/// <summary>File path or linker-resolved name of the custom TLS plugin to load. </summary>
+			public static string TLSPlugin { get; private set; }
+
+			/// <summary>Content of the TLS root and client certificates used for TLS connections (none by default)</summary>
+			public static Slice TLSCertificateBytes { get; private set; }
+
+			/// <summary>Path to the TLS root and client certificates used for TLS connections (none by default)</summary>
+			public static string TLSCertificatePath { get; private set; }
 
 			/// <summary>Path to the Private Key used for TLS connections (none by default)</summary>
-			public static string TlsPrivateKeyPath = null;
+			public static Slice TLSPrivateKeyBytes { get; private set; }
+
+			/// <summary>Path to the Private Key used for TLS connections (none by default)</summary>
+			public static string TLSPrivateKeyPath { get; private set; }
 
 			/// <summary>Pattern used to verifiy certificates of TLS peers (none by default)</summary>
-			public static string TlsVerificationPattern = null;
+			public static Slice TLSVerificationPattern { get; private set; }
+
+			/// <summary>Set the file path or linker-resolved name of the custom TLS plugin to load. </summary>
+			public static void SetTLSPlugin(string name)
+			{
+				Fdb.Options.TLSPlugin = name;
+			}
 
 			/// <summary>Sets the path to the root certificate and public key for TLS connections</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
-			public static void SetTlsCertificatePath(string path)
+			public static void SetTLSCertificate(Slice bytes)
 			{
-				Fdb.Options.TlsCertificatePath = path;
+				Fdb.Options.TLSCertificateBytes = bytes;
+				Fdb.Options.TLSCertificatePath = null;
+			}
+
+			/// <summary>Sets the path to the root certificate and public key for TLS connections</summary>
+			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
+			public static void SetTLSCertificate(string path)
+			{
+				Fdb.Options.TLSCertificatePath = path;
+				Fdb.Options.TLSCertificateBytes = Slice.Nil;
 			}
 
 			/// <summary>Sets the path to the private key for TLS connections</summary>
 			/// <remarks>This must be called before the start of the network thread, otherwise it won't have any effects.</remarks>
-			public static void SetTlsPrivateKeyPath(string path)
+			public static void SetTLSPrivateKey(Slice bytes)
 			{
-				Fdb.Options.TlsPrivateKeyPath = path;
+				Fdb.Options.TLSPrivateKeyBytes = bytes;
+				Fdb.Options.TLSPrivateKeyPath = null;
+			}
+
+			/// <summary>Sets the path to the private key for TLS connections</summary>
+			/// <remarks>This must be called before the start of the network thread, otherwise it won't have any effects.</remarks>
+			public static void SetTLSPrivateKey(string path)
+			{
+				Fdb.Options.TLSPrivateKeyPath = path;
+				Fdb.Options.TLSPrivateKeyBytes = Slice.Nil;
 			}
 
 			/// <summary>Sets the pattern with wich to verify certificates of TLS peers</summary>
 			/// <remarks>This must be called before the start of the network thread, otherwise it won't have any effects.</remarks>
-			public static void SetTlsVerificationPattern(string pattern)
+			public static void SetTlsVerificationPattern(Slice pattern)
 			{
-				Fdb.Options.TlsVerificationPattern = pattern;
+				Fdb.Options.TLSVerificationPattern = pattern;
+			}
+
+			/// <summary>Use TLS to secure the connections to the cluster</summary>
+			/// <param name="certificateBytes">Content of the root certificate and public key</param>
+			/// <param name="privateKeyBytes">Content of the private key</param>
+			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
+			public static void UseTLS(Slice certificateBytes, Slice privateKeyBytes, Slice verificationPattern = default(Slice), string plugin = null)
+			{
+				Fdb.Options.TLSPlugin = plugin;
+				Fdb.Options.TLSCertificateBytes = certificateBytes;
+				Fdb.Options.TLSCertificatePath = null;
+				Fdb.Options.TLSPrivateKeyBytes = privateKeyBytes;
+				Fdb.Options.TLSPrivateKeyPath = null;
+				Fdb.Options.TLSVerificationPattern = verificationPattern;
 			}
 
 			/// <summary>Use TLS to secure the connections to the cluster</summary>
 			/// <param name="certificatePath">Path to the root certificate and public key</param>
 			/// <param name="privateKeyPath">Path to the private key</param>
-			/// <param name="verificationPattern">Verification with which to verify certificates of TLS pe</param>
-			public static void UseTls(string certificatePath, string privateKeyPath, string verificationPattern = null)
+			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
+			public static void UseTLS(string certificatePath, string privateKeyPath, Slice verificationPattern = default(Slice), string plugin = null)
 			{
-				Fdb.Options.TlsCertificatePath = certificatePath;
-				Fdb.Options.TlsPrivateKeyPath = privateKeyPath;
-				Fdb.Options.TlsVerificationPattern = verificationPattern;
+				Fdb.Options.TLSPlugin = plugin;
+				Fdb.Options.TLSCertificatePath = certificatePath;
+				Fdb.Options.TLSCertificateBytes = Slice.Nil;
+				Fdb.Options.TLSPrivateKeyPath = privateKeyPath;
+				Fdb.Options.TLSPrivateKeyBytes = Slice.Nil;
+				Fdb.Options.TLSVerificationPattern = verificationPattern;
 			}
 
 			#endregion
