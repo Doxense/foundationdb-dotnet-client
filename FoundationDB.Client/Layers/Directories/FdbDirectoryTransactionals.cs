@@ -203,15 +203,13 @@ namespace FoundationDB.Layers.Directories
 			return dbOrTrans.ReadWriteAsync((tr) => directory.TryOpenAsync(tr, path, layer), cancellationToken);
 		}
 
-		/// <summary>Opens a subdirectory with the given <paramref name="name"/>.
-		/// An exception is thrown if the directory does not exist, or if a layer is specified and a different layer was specified when the directory was created.
-		/// </summary>
-		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		/// <summary>Attempts to open the directory with the given <paramref name="path"/>.</summary>
+		public static Task<FdbDirectorySubspace> TryOpenAsync(this FdbDirectoryLayer directory, IFdbTransactional dbOrTrans, string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (directory == null) throw new ArgumentNullException("directory");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (name == null) throw new ArgumentNullException("name");
-			return dbOrTrans.ReadWriteAsync((tr) => subspace.OpenAsync(tr, name, layer), cancellationToken);
+			return dbOrTrans.ReadWriteAsync((tr) => directory.TryOpenAsync(tr, name, layer), cancellationToken);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
@@ -223,6 +221,17 @@ namespace FoundationDB.Layers.Directories
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (path == null) throw new ArgumentNullException("path");
 			return dbOrTrans.ReadWriteAsync((tr) => subspace.OpenAsync(tr, path, layer), cancellationToken);
+		}
+
+		/// <summary>Opens a subdirectory with the given <paramref name="name"/>.
+		/// An exception is thrown if the directory does not exist, or if a layer is specified and a different layer was specified when the directory was created.
+		/// </summary>
+		public static Task<FdbDirectorySubspace> OpenAsync(this FdbDirectorySubspace subspace, IFdbTransactional dbOrTrans, string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (name == null) throw new ArgumentNullException("name");
+			return dbOrTrans.ReadWriteAsync((tr) => subspace.OpenAsync(tr, name, layer), cancellationToken);
 		}
 
 		#endregion
