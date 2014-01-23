@@ -35,15 +35,17 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	public static partial class Fdb
 	{
 
+		[Obsolete]//Note: will soon be folded into the DirectoryLayer itself !
 		public static class PartitionTable
 		{
-			internal const string PartitionLayerId = "partition";
+			internal static readonly Slice PartitionLayerId = Slice.FromString("partition");
 
 			/// <summary>Open the root partition of the default cluster</summary>
 			/// <param name="cancellationToken"></param>
@@ -93,20 +95,21 @@ namespace FoundationDB.Client
 			/// <param name="partitionPath"></param>
 			/// <param name="cancellationToken"></param>
 			/// <returns></returns>
-			public static Task<FdbDatabasePartition> OpenNamedPartitionAsync(IFdbTuple partitionPath, CancellationToken cancellationToken = default(CancellationToken))
+			public static Task<FdbDatabasePartition> OpenNamedPartitionAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 			{
-				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, partitionPath: partitionPath, cancellationToken: cancellationToken);
+				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, path: path, cancellationToken: cancellationToken);
 			}
 
 			/// <summary>Open a named partition of a cluster, using its root DirectoryLayer to discover the partition's prefix</summary>
 			/// <param name="clusterFile"></param>
 			/// <param name="dbName"></param>
-			/// <param name="partitionPath"></param>
+			/// <param name="path"></param>
 			/// <param name="cancellationToken"></param>
 			/// <returns></returns>
-			public static async Task<FdbDatabasePartition> OpenNamedPartitionAsync(string clusterFile, string dbName, IFdbTuple partitionPath, CancellationToken cancellationToken = default(CancellationToken))
+			public static async Task<FdbDatabasePartition> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 			{
-				if (partitionPath == null) throw new ArgumentNullException("partitionPath");
+				if (path == null) throw new ArgumentNullException("partitionPath");
+				var partitionPath = path.ToList();
 				if (partitionPath.Count == 0) throw new ArgumentException("The path to the named partition cannot be empty", "partionPath");
 
 				// looks at the global partition table for the specified named partition

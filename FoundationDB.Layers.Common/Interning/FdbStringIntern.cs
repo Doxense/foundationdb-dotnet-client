@@ -41,8 +41,12 @@ namespace FoundationDB.Layers.Interning
 
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
 	[DebuggerDisplay("Subspace={Subspace}")]
+	[Obsolete("FIXME! This version of the layer has a MAJOR bug!")]
 	public class FdbStringIntern
 	{
+		//BUGBUGBUG: the current implementation has a bug with the cache, when a transaction fails to commit!
+		//TODO: rewrite this to use typed subspaces !
+
 		// Based on the stringintern.py implementation at https://github.com/FoundationDB/python-layers/blob/master/lib/stringintern.py
 
 		private const int CacheLimitBytes = 10 * 1000 * 1000;
@@ -277,6 +281,7 @@ namespace FoundationDB.Layers.Interning
 				trans.Set(UidKey(uid), Slice.FromString(value));
 				trans.Set(stringKey, uid);
 
+				//BUGBUG: if the transaction fails to commit, we will inserted a bad value in the cache!
 				AddToCache(value, uid);
 			}
 			else
@@ -315,6 +320,8 @@ namespace FoundationDB.Layers.Interning
 			if (valueBytes.IsNull) throw new KeyNotFoundException("String intern indentifier not found");
 
 			string value = valueBytes.ToUnicode();
+
+			//BUGBUG: if the uid has just been Interned in the current transaction, and if the transaction fails to commit (conflict, ...) we will insert a bad value in the cache!
 			AddToCache(value, uid);
 
 			return value;

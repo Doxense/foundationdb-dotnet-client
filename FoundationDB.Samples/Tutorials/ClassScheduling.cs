@@ -57,7 +57,7 @@ namespace FoundationDB.Samples.Tutorials
 		public async Task Init(FdbDatabasePartition db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("Tutorials", "ClassScheduling"), cancellationToken: ct);
+			this.Subspace = await db.CreateOrOpenDirectoryAsync(new [] { "Tutorials", "ClassScheduling" }, cancellationToken: ct);
 
 			// clear all previous values
 			await db.ClearRangeAsync(this.Subspace, ct);

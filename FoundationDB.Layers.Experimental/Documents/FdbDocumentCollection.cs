@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Documents
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
 	using System;
@@ -58,25 +59,41 @@ namespace FoundationDB.Layers.Documents
 
 			this.Subspace = subspace;
 			this.IdSelector = selector;
-			this.KeyEncoder = keyEncoder;
 			this.ValueEncoder = valueEncoder;
+			this.Location = new FdbEncoderSubspace<TId, int>(subspace, keyEncoder);
+		}
+
+		protected virtual Task<List<Slice>> LoadPartsAsync(IFdbReadOnlyTransaction trans, TId id)
+		{
+			var key = this.Location.Partial.EncodeKey(id);
+
+			return trans
+				.GetRange(FdbKeyRange.StartsWith(key)) //TODO: options ?
+				.Select(kvp => kvp.Value)
+				.ToListAsync();
+		}
+
+		protected virtual TDocument DecodeParts(List<Slice> parts)
+		{
+			var packed = Slice.Join(Slice.Empty, parts);
+			return this.ValueEncoder.DecodeValue(packed);
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
 		public FdbSubspace Subspace { get; private set; }
-		
-		/// <summary>Encode the document IDs into keys</summary>
-		public ICompositeKeyEncoder<TId, int> KeyEncoder { get; private set; }
 
-		/// <summary>Encode the documents into values</summary>
+		protected FdbEncoderSubspace<TId, int> Location { get; private set; }
+
+		/// <summary>Encoder that packs/unpacks the documents</summary>
 		public IValueEncoder<TDocument> ValueEncoder { get; private set; }
 
-		/// <summary>Lambda used to extract the ID from a document</summary>
+		/// <summary>Lambda function used to extract the ID from a document</summary>
 		public Func<TDocument, TId> IdSelector { get; private set; }
 
 		/// <summary>Maximum size of a document chunk (1 MB by default)</summary>
 		public int ChunkSize { get; private set; }
 
+		/// <summary>Insert a new document in the collection</summary>
 		public void Insert(IFdbTransaction trans, TDocument document)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -89,7 +106,7 @@ namespace FoundationDB.Layers.Documents
 			var packed = this.ValueEncoder.EncodeValue(document);
 
 			// Key Prefix = ...(id,)
-			var key = this.Subspace.EncodePartial(this.KeyEncoder, id);
+			var key = this.Location.Partial.EncodeKey(id);
 
 			// clear previous value
 			trans.ClearRange(FdbKeyRange.StartsWith(key));
@@ -110,9 +127,7 @@ namespace FoundationDB.Layers.Documents
 				while (remaining > 0)
 				{
 					int sz = Math.Max(remaining, this.ChunkSize);
-
-					trans.Set(this.Subspace.Encode(this.KeyEncoder, id, index), packed.Substring(p, sz));
-
+					this.Location.Set(trans, FdbTuple.Create(id, index), packed.Substring(p, sz));
 					++index;
 					p += sz;
 					remaining -= sz;
@@ -120,31 +135,64 @@ namespace FoundationDB.Layers.Documents
 			}
 		}
 
+		/// <summary>Load a document from the collection</summary>
+		/// <param name="trans"></param>
+		/// <param name="id"></param>
+		/// <returns></returns>
 		public async Task<TDocument> LoadAsync(IFdbReadOnlyTransaction trans, TId id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id"); // only for ref types
 
-			var key = this.Subspace.EncodePartial(this.KeyEncoder, id);
+			var parts = await LoadPartsAsync(trans, id).ConfigureAwait(false);
 
-			var parts = await trans
-				.GetRange(FdbKeyRange.StartsWith(key)) //TODO: options ?
-				.ToListAsync();
-
-			// merge all the chunks together
-			var packed = Slice.Join(Slice.Empty, parts.Select(kvp => kvp.Value));
-
-			return this.ValueEncoder.DecodeValue(packed);
+			return DecodeParts(parts);
 		}
 
+		/// <summary>Load multiple documents from the collection</summary>
+		/// <param name="trans"></param>
+		/// <param name="ids"></param>
+		/// <returns></returns>
+		public async Task<List<TDocument>> LoadMultipleAsync(IFdbReadOnlyTransaction trans, IEnumerable<TId> ids)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (ids == null) throw new ArgumentNullException("ids");
+
+			var results = await Task.WhenAll(ids.Select(id => LoadPartsAsync(trans, id)));
+
+			return results.Select(parts => DecodeParts(parts)).ToList();
+		}
+
+		/// <summary>Delete a document from the collection</summary>
+		/// <param name="trans"></param>
+		/// <param name="id"></param>
 		public void Delete(IFdbTransaction trans, TId id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.ClearRange(FdbKeyRange.StartsWith(this.Subspace.EncodePartial(this.KeyEncoder, id)));
+			var key = this.Location.Partial.EncodeKey(id);
+			trans.ClearRange(FdbKeyRange.StartsWith(key));
 		}
 
+
+		/// <summary>Delete a document from the collection</summary>
+		/// <param name="trans"></param>
+		/// <param name="id"></param>
+		public void DeleteMultiple(IFdbTransaction trans, IEnumerable<TId> ids)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (ids == null) throw new ArgumentNullException("ids");
+
+			foreach (var key in this.Location.Partial.EncodeKeyRange(ids))
+			{
+				trans.ClearRange(FdbKeyRange.StartsWith(key));
+			}
+		}
+
+		/// <summary>Delete a document from the collection</summary>
+		/// <param name="trans"></param>
+		/// <param name="document"></param>
 		public void Delete(IFdbTransaction trans, TDocument document)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -154,6 +202,17 @@ namespace FoundationDB.Layers.Documents
 			if (id == null) throw new InvalidOperationException();
 
 			Delete(trans, id);
+		}
+
+		/// <summary>Delete a document from the collection</summary>
+		/// <param name="trans"></param>
+		/// <param name="document"></param>
+		public void DeleteMultiple(IFdbTransaction trans, IEnumerable<TDocument> documents)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (documents == null) throw new ArgumentNullException("documents");
+
+			DeleteMultiple(trans, documents.Select(document => this.IdSelector(document)));
 		}
 
 		#region Transactional...
@@ -174,12 +233,36 @@ namespace FoundationDB.Layers.Documents
 			return dbOrTrans.ReadAsync((tr) => LoadAsync(tr, id), cancellationToken);
 		}
 
+		public Task<List<TDocument>> LoadMultipleAsync(IFdbReadOnlyTransactional dbOrTrans, IEnumerable<TId> ids, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (ids == null) throw new ArgumentNullException("ids");
+
+			//note: if the source is not already a collection, we have to assume that it is not safe to read it multiple times (it may be a LINQ query or an iterator)
+			var coll = ids as ICollection<TId>;
+			if (coll == null) coll = ids.ToList();
+
+			return dbOrTrans.ReadAsync((tr) => LoadMultipleAsync(tr, coll), cancellationToken);
+		}
+
 		public Task DeleteAsync(IFdbTransactional dbOrTrans, TId id, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (id == null) throw new ArgumentNullException("id");
 
 			return dbOrTrans.WriteAsync((tr) => this.Delete(tr, id), cancellationToken);
+		}
+
+		public Task DeleteMultipleAsync(IFdbTransactional dbOrTrans, IEnumerable<TId> ids, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (ids == null) throw new ArgumentNullException("ids");
+
+			//note: if the source is not already a collection, we have to assume that it is not safe to read it multiple times (it may be a LINQ query or an iterator)
+			var coll = ids as ICollection<TId>;
+			if (coll == null) coll = ids.ToList();
+
+			return dbOrTrans.WriteAsync((tr) => this.DeleteMultiple(tr, coll), cancellationToken);
 		}
 
 		public Task DeleteAsync(IFdbTransactional dbOrTrans, TDocument document, CancellationToken cancellationToken = default(CancellationToken))

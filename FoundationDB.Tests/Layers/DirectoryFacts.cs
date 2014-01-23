@@ -118,21 +118,21 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				Assert.That(foo, Is.Not.Null);
-				Assert.That(foo.Path, Is.EqualTo(FdbTuple.Create("Foo")));
-				Assert.That(foo.Layer, Is.EqualTo(String.Empty));
+				Assert.That(foo.Path, Is.EqualTo(new[] { "Foo" }));
+				Assert.That(foo.Layer, Is.EqualTo(Slice.Empty));
 				Assert.That(foo.DirectoryLayer, Is.SameAs(directory));
 
 				// second call should return the same subspace
 
 				FdbDirectorySubspace foo2;
 
-				foo2 = await directory.OpenAsync(db, FdbTuple.Create("Foo"));
+				foo2 = await directory.OpenAsync(db, new[] { "Foo" });
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 				Assert.That(foo2, Is.Not.Null);
-				Assert.That(foo2.Path, Is.EqualTo(FdbTuple.Create("Foo")));
-				Assert.That(foo2.Layer, Is.EqualTo(String.Empty));
+				Assert.That(foo2.Path, Is.EqualTo(new[] { "Foo" }));
+				Assert.That(foo2.Layer, Is.EqualTo(Slice.Empty));
 				Assert.That(foo2.DirectoryLayer, Is.SameAs(directory));
 				Assert.That(foo2.Key, Is.EqualTo(foo.Key), "Second call to CreateOrOpen should return the same subspace");
 			}
@@ -156,41 +156,41 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(directory.NodeSubspace.Key, Is.EqualTo(location.Key + Slice.FromByte(254)));
 
 				// first call should create a new subspace (with a random prefix)
-				var foo = await directory.CreateOrOpenAsync(db, new[] { "Foo" }, "AcmeLayer");
+				var foo = await directory.CreateOrOpenAsync(db, new[] { "Foo" }, Slice.FromString("AcmeLayer"));
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 				Assert.That(foo, Is.Not.Null);
-				Assert.That(foo.Path, Is.EqualTo(FdbTuple.Create("Foo")));
-				Assert.That(foo.Layer, Is.EqualTo("AcmeLayer"));
+				Assert.That(foo.Path, Is.EqualTo(new[] { "Foo" }));
+				Assert.That(foo.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
 				Assert.That(foo.DirectoryLayer, Is.SameAs(directory));
 
 				// second call should return the same subspace
-				var foo2 = await directory.OpenAsync(db, FdbTuple.Create("Foo"), "AcmeLayer");
+				var foo2 = await directory.OpenAsync(db, new [] { "Foo" }, Slice.FromString("AcmeLayer"));
 				Assert.That(foo2, Is.Not.Null);
-				Assert.That(foo2.Path, Is.EqualTo(FdbTuple.Create("Foo")));
-				Assert.That(foo2.Layer, Is.EqualTo("AcmeLayer"));
+				Assert.That(foo2.Path, Is.EqualTo(new[] { "Foo" }));
+				Assert.That(foo2.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
 				Assert.That(foo2.DirectoryLayer, Is.SameAs(directory));
 				Assert.That(foo2.Key, Is.EqualTo(foo.Key), "Second call to CreateOrOpen should return the same subspace");
 
 				// opening it with wrong layer id should fail
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, FdbTuple.Create("Foo"), "OtherLayer"), "Opening with invalid layer id should fail");
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new[] { "Foo" }, Slice.FromString("OtherLayer")), "Opening with invalid layer id should fail");
 
 				// opening without specifying a layer should disable the layer check
-				var foo3 = await directory.OpenAsync(db, FdbTuple.Create("Foo"), layer: null);
+				var foo3 = await directory.OpenAsync(db, "Foo", layer: Slice.Nil);
 				Assert.That(foo3, Is.Not.Null);
-				Assert.That(foo3.Layer, Is.EqualTo("AcmeLayer"));
+				Assert.That(foo3.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
 
 				// CheckLayer with the correct value should pass
-				Assert.DoesNotThrow(() => foo3.CheckLayer("AcmeLayer"), "CheckLayer should not throw if the layer id is correct");
+				Assert.DoesNotThrow(() => foo3.CheckLayer(Slice.FromString("AcmeLayer")), "CheckLayer should not throw if the layer id is correct");
 
 				// CheckLayer with the incorrect value should fail
-				Assert.Throws<InvalidOperationException>(() => foo3.CheckLayer("OtherLayer"), "CheckLayer should throw if the layer id is not correct");
+				Assert.Throws<InvalidOperationException>(() => foo3.CheckLayer(Slice.FromString("OtherLayer")), "CheckLayer should throw if the layer id is not correct");
 
 				// CheckLayer with empty string should do nothing
-				foo3.CheckLayer(String.Empty);
-				foo3.CheckLayer(null);
+				foo3.CheckLayer(Slice.Empty);
+				foo3.CheckLayer(Slice.Nil);
 			}
 		}
 
@@ -221,11 +221,11 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				Assert.That(folder, Is.Not.Null);
-				Assert.That(folder.Path, Is.EqualTo(FdbTuple.Create("Foo", "Bar", "Baz")));
+				Assert.That(folder.Path, Is.EqualTo(new [] { "Foo", "Bar", "Baz" }));
 
 				// all the parent folders should also now exist
-				var foo = await directory.OpenAsync(db, FdbTuple.Create("Foo"));
-				var bar = await directory.OpenAsync(db, FdbTuple.Create("Foo", "Bar"));
+				var foo = await directory.OpenAsync(db, new[] { "Foo" });
+				var bar = await directory.OpenAsync(db, new[] { "Foo", "Bar" });
 				Assert.That(foo, Is.Not.Null);
 				Assert.That(bar, Is.Not.Null);
 			}
@@ -252,12 +252,12 @@ namespace FoundationDB.Layers.Directories
 				var subdirs = await directory.ListAsync(db, new[] { "Foo" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
-				Assert.That(subdirs[0], Is.EqualTo(FdbTuple.Create("Bar")));
+				Assert.That(subdirs[0], Is.EqualTo("Bar"));
 
 				subdirs = await directory.ListAsync(db, new[] { "Foo", "Bar" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
-				Assert.That(subdirs[0], Is.EqualTo(FdbTuple.Create("Baz")));
+				Assert.That(subdirs[0], Is.EqualTo("Baz"));
 
 				subdirs = await directory.ListAsync(db, new[] { "Foo", "Bar", "Baz" });
 				Assert.That(subdirs, Is.Not.Null);
@@ -266,7 +266,7 @@ namespace FoundationDB.Layers.Directories
 				subdirs = await directory.ListAsync(db, new[] { "numbers" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(10));
-				Assert.That(subdirs.Select(x => x.Get<string>(0)).ToArray(), Is.EquivalentTo(Enumerable.Range(0, 10).Select(x => x.ToString()).ToArray()));
+				Assert.That(subdirs, Is.EquivalentTo(Enumerable.Range(0, 10).Select(x => x.ToString()).ToList()));
 
 			}
 		}
@@ -281,8 +281,6 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location);
 				var directory = FdbDirectoryLayer.FromSubspace(location);
 
-				var path = FdbTuple.Create("letters");
-
 				// insert letters in random order
 				var rnd = new Random();
 				var letters = Enumerable.Range(65, 10).Select(x => new string((char)x, 1)).ToList();
@@ -291,7 +289,7 @@ namespace FoundationDB.Layers.Directories
 					var i = rnd.Next(letters.Count);
 					var s = letters[i];
 					letters.RemoveAt(i);
-					await directory.CreateOrOpenAsync(db, path.Append(s));
+					await directory.CreateOrOpenAsync(db, new [] { "letters", s });
 				}
 
 #if DEBUG
@@ -299,12 +297,12 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				// they should sorted when listed
-				var subdirs = await directory.ListAsync(db, path);
+				var subdirs = await directory.ListAsync(db, "letters");
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(10));
 				for (int i = 0; i < subdirs.Count; i++)
 				{
-					Assert.That(subdirs[i].Get<string>(0), Is.EqualTo(new string((char)(65 + i), 1)));
+					Assert.That(subdirs[i], Is.EqualTo(new string((char)(65 + i), 1)));
 				}
 
 			}
@@ -325,12 +323,12 @@ namespace FoundationDB.Layers.Directories
 				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
 
 				// create a folder at ('Foo',)
-				var original = await directory.CreateOrOpenAsync(db, new[] { "Foo" });
+				var original = await directory.CreateOrOpenAsync(db, "Foo");
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 				Assert.That(original, Is.Not.Null);
-				Assert.That(original.Path, Is.EqualTo(FdbTuple.Create("Foo")));
+				Assert.That(original.Path, Is.EqualTo(new[] { "Foo" }));
 
 				// rename/move it as ('Bar',)
 				var renamed = await original.MoveAsync(db, new [] { "Bar" });
@@ -338,14 +336,14 @@ namespace FoundationDB.Layers.Directories
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 				Assert.That(renamed, Is.Not.Null);
-				Assert.That(renamed.Path, Is.EqualTo(FdbTuple.Create("Bar")));
+				Assert.That(renamed.Path, Is.EqualTo(new [] { "Bar" }));
 				Assert.That(renamed.Key, Is.EqualTo(original.Key));
 
 				// opening the old path should fail
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new [] { "Foo" }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, "Foo"));
 
 				// opening the new path should succeed
-				var folder = await directory.OpenAsync(db, FdbTuple.Create("Bar"));
+				var folder = await directory.OpenAsync(db, "Bar");
 				Assert.That(folder, Is.Not.Null);
 				Assert.That(folder.Path, Is.EqualTo(renamed.Path));
 				Assert.That(folder.Key, Is.EqualTo(renamed.Key));
@@ -398,7 +396,6 @@ namespace FoundationDB.Layers.Directories
 
 				// removing the root folder is not allowed (too dangerous)
 				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[0]), "Attempting to remove the root directory should fail");
-				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, FdbTuple.Empty), "Attempting to remove the root directory should fail");
 			}
 		}
 
@@ -411,29 +408,29 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location);
 				var directory = FdbDirectoryLayer.FromSubspace(location);
 
-				var folder = await directory.CreateAsync(db, new[] { "Test" }, layer: "foo");
+				var folder = await directory.CreateAsync(db, "Test", layer: Slice.FromString("foo"));
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 				Assert.That(folder, Is.Not.Null);
-				Assert.That(folder.Layer, Is.EqualTo("foo"));
+				Assert.That(folder.Layer.ToUnicode(), Is.EqualTo("foo"));
 
 				// change the layer to 'bar'
-				var folder2 = await folder.ChangeLayerAsync(db, "bar");
+				var folder2 = await folder.ChangeLayerAsync(db, Slice.FromString("bar"));
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 				Assert.That(folder2, Is.Not.Null);
-				Assert.That(folder2.Layer, Is.EqualTo("bar"));
+				Assert.That(folder2.Layer.ToUnicode(), Is.EqualTo("bar"));
 				Assert.That(folder2.Path, Is.EqualTo(FdbTuple.Create("Test")));
 				Assert.That(folder2.Key, Is.EqualTo(folder.Key));
 
 				// opening the directory with the new layer should succeed
-				var folder3 = await directory.OpenAsync(db, new[] { "Test" }, layer: "bar");
+				var folder3 = await directory.OpenAsync(db, "Test", layer: Slice.FromString("bar"));
 				Assert.That(folder3, Is.Not.Null);
 
 				// opening the directory with the old layer should fail
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new[] { "Test" }, layer: "foo"));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, "Test", layer: Slice.FromString("foo")));
 
 			}
 		}
@@ -450,14 +447,32 @@ namespace FoundationDB.Layers.Directories
 				// CreateOrOpen
 				Assert.Throws<ArgumentNullException>(async () => await directory.CreateOrOpenAsync(db, default(string[])));
 				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, new string[0]));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, new string[] { "" }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, new string[] { " " }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, new string[] { "Foo", " ", "Bar" }));
+				Assert.Throws<ArgumentNullException>(async () => await directory.CreateOrOpenAsync(db, default(string)));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, String.Empty));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, " "));
 
 				// Create
 				Assert.Throws<ArgumentNullException>(async () => await directory.CreateAsync(db, default(string[])));
 				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, new string[0]));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, new string[] { "" }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, new string[] { " " }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, new string[] { "Foo", "", "Bar" }));
+				Assert.Throws<ArgumentNullException>(async () => await directory.CreateAsync(db, default(string)));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, String.Empty));
+				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, " "));
 
 				// Open
 				Assert.Throws<ArgumentNullException>(async () => await directory.OpenAsync(db, default(string[])));
 				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new string[0]));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new string[] { "" }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new string[] { " " }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new string[] { "Foo", "", "Bar" }));
+				Assert.Throws<ArgumentNullException>(async () => await directory.OpenAsync(db, default(string)));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, String.Empty));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, " "));
 
 				// Move
 				Assert.Throws<ArgumentNullException>(async () => await directory.MoveAsync(db, default(string[]), new[] { "foo" }));
@@ -468,6 +483,22 @@ namespace FoundationDB.Layers.Directories
 				// Remove
 				Assert.Throws<ArgumentNullException>(async () => await directory.RemoveAsync(db, default(string[])));
 				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[0]));
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[] { "" }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[] { " " }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[] { "Foo", " ", "Bar" }));
+				Assert.Throws<ArgumentNullException>(async () => await directory.RemoveAsync(db, default(string)));
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, String.Empty));
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, " "));
+
+				// List
+				Assert.Throws<ArgumentNullException>(async () => await directory.ListAsync(db, default(string[])));
+				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, new string[] { "" }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, new string[] { " " }));
+				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, new string[] { "Foo", "", "Bar" }));
+				Assert.Throws<ArgumentNullException>(async () => await directory.ListAsync(db, default(string)));
+				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, String.Empty));
+				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, " "));
+
 			}
 		}
 	}

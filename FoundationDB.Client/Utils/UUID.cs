@@ -105,16 +105,7 @@ namespace FoundationDB.Client
 		public Uuid(Slice slice)
 			: this()
 		{
-			if (slice.Array == null) throw new ArgumentNullException("slice");
-			if (slice.Count != 16)  throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
-
-			unsafe
-			{
-				fixed (byte* buf = slice.Array)
-				{
-					m_packed = Read(buf + slice.Offset);
-				}
-			}
+			m_packed = Convert(slice);
 		}
 
 		public Uuid(byte[] bytes)
@@ -148,6 +139,25 @@ namespace FoundationDB.Client
 		public static Uuid NewUuid()
 		{
 			return new Uuid(Guid.NewGuid());
+		}
+
+		internal static Guid Convert(Slice input)
+		{
+			if (input.Count <= 0) return default(Guid);
+
+			if (input.Array == null) throw new ArgumentNullException("slice");
+			if (input.Count == 16)
+			{
+				unsafe
+				{
+					fixed (byte* buf = input.Array)
+					{
+						return Read(buf + input.Offset);
+					}
+				}
+			}
+
+			throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
 		}
 
 		public static Uuid Parse(string input)

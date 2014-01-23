@@ -465,7 +465,7 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (n == count)
 				{ // no NULs in the string, can copy all at once
-					System.Buffer.BlockCopy(value, offset, buffer, p, n);
+					SliceHelpers.CopyBytesUnsafe(buffer, p, value, offset, n);
 					p += n;
 				}
 				else
@@ -501,7 +501,7 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (n == value.Length)
 				{ // no NULs in the string, can copy all at once
-					System.Buffer.BlockCopy(value, 0, buffer, p, n);
+					SliceHelpers.CopyBytesUnsafe(buffer, p, value, 0, n);
 					p += n;
 				}
 				else
@@ -605,7 +605,7 @@ namespace FoundationDB.Layers.Tuples
 			int i = 0;
 			if (offsetOfFirstZero > 0)
 			{
-				Buffer.BlockCopy(buffer, offset, tmp, 0, offsetOfFirstZero);
+				SliceHelpers.CopyBytesUnsafe(tmp, 0, buffer, offset, offsetOfFirstZero);
 				p += offsetOfFirstZero;
 				i = offsetOfFirstZero;
 			}
@@ -666,7 +666,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
-			return new Uuid(slice.GetBytes(1, 16)).ToGuid();
+			return Uuid.Convert(new Slice(slice.Array, slice.Offset + 1, 16));
 		}
 
 		#endregion

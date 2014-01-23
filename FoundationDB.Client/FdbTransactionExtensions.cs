@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
@@ -677,6 +678,27 @@ namespace FoundationDB.Client
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 			return GetBatchAsync<TValue>(trans, keys.Select(key => key.ToFoundationDbKey()).ToArray(), decoder);
+		}
+
+		#endregion
+
+		#region Queries...
+
+		/// <summary>Runs a transactional query inside a read-only transaction context, with optional retry-logic, returning the list of all the elements.</summary>
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyTransactional dbOrTrans, Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> handler, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			return dbOrTrans.ReadAsync(
+				(tr) =>
+				{
+					var query = handler(tr);
+					if (query == null) throw new InvalidOperationException("The query handler returned a null sequence");
+					return query.ToListAsync();
+				},
+				cancellationToken
+			);
 		}
 
 		#endregion

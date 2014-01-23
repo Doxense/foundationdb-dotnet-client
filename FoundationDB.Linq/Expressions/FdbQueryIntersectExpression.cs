@@ -29,13 +29,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Threading;
+
+	public enum FdbQueryMergeType
+	{
+		Intersect,
+		Union,
+		Except,
+	}
 
 	/// <summary>Intersection between two or more sequence</summary>
 	/// <typeparam name="T">Type of the keys returned</typeparam>
@@ -48,10 +54,7 @@ namespace FoundationDB.Linq.Expressions
 			this.KeyComparer = keyComparer;
 		}
 
-		public override FdbQueryShape Shape
-		{
-			get { return FdbQueryShape.Sequence; }
-		}
+		public abstract FdbQueryMergeType MergeType { get; }
 
 		internal FdbQuerySequenceExpression<T>[] Expressions { get; private set; }
 
@@ -62,6 +65,20 @@ namespace FoundationDB.Linq.Expressions
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryMerge(this);
+		}
+
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		{
+			builder.Writer.WriteLine("{0}<{1}>(", this.MergeType.ToString(), this.ElementType.Name).Enter();
+			for (int i = 0; i < this.Expressions.Length; i++)
+			{
+				builder.Visit(this.Expressions[i]);
+				if (i + 1 < this.Expressions.Length)
+					builder.Writer.WriteLine(",");
+				else
+					builder.Writer.WriteLine();
+			}
+			builder.Writer.Leave().Write(")");
 		}
 
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
@@ -78,9 +95,9 @@ namespace FoundationDB.Linq.Expressions
 
 			var array = Expression.NewArrayInit(typeof(IFdbAsyncEnumerable<T>), enumerables);
 			Expression body;
-			switch (this.QueryNodeType)
+			switch (this.MergeType)
 			{
-				case FdbQueryNodeType.Intersect:
+				case FdbQueryMergeType.Intersect:
 				{
 					body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>[], IComparer<T>, IFdbAsyncEnumerable<T>>>(
 						(sources, comparer) => FdbMergeQueryExtensions.Intersect(sources, comparer),
@@ -89,7 +106,7 @@ namespace FoundationDB.Linq.Expressions
 					);
 					break;
 				}
-				case FdbQueryNodeType.Union:
+				case FdbQueryMergeType.Union:
 				{
 					body = FdbExpressionHelpers.RewriteCall<Func<IFdbAsyncEnumerable<T>[], IComparer<T>, IFdbAsyncEnumerable<T>>>(
 						(sources, comparer) => FdbMergeQueryExtensions.Union(sources, comparer),
@@ -100,7 +117,7 @@ namespace FoundationDB.Linq.Expressions
 				}
 				default:
 				{
-					throw new InvalidOperationException(String.Format("Unsupported index merge mode {0}", this.QueryNodeType));
+					throw new InvalidOperationException(String.Format("Unsupported index merge mode {0}", this.MergeType.ToString()));
 				}
 			}
 
@@ -120,9 +137,9 @@ namespace FoundationDB.Linq.Expressions
 			: base(expressions, keyComparer)
 		{ }
 
-		public override FdbQueryNodeType QueryNodeType
+		public override FdbQueryMergeType MergeType
 		{
-			get { return FdbQueryNodeType.Intersect; }
+			get { return FdbQueryMergeType.Intersect; }
 		}
 
 	}
@@ -136,9 +153,9 @@ namespace FoundationDB.Linq.Expressions
 			: base(expressions, keyComparer)
 		{ }
 
-		public override FdbQueryNodeType QueryNodeType
+		public override FdbQueryMergeType MergeType
 		{
-			get { return FdbQueryNodeType.Union; }
+			get { return FdbQueryMergeType.Union; }
 		}
 
 	}

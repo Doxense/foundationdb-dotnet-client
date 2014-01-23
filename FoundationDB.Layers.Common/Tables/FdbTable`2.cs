@@ -55,7 +55,7 @@ namespace FoundationDB.Layers.Tables
 
 			this.Name = name;
 			this.Subspace = subspace;
-			this.KeyEncoder = keyEncoder;
+			this.Location = new FdbEncoderSubspace<TKey>(subspace, keyEncoder);
 			this.ValueEncoder = valueEncoder;
 		}
 
@@ -67,8 +67,8 @@ namespace FoundationDB.Layers.Tables
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
 		public FdbSubspace Subspace { get; private set; }
 
-		/// <summary>Class that can pack/unpack keys into/from slices</summary>
-		public IKeyEncoder<TKey> KeyEncoder { get; private set; }
+		/// <summary>Subspace used to encoded the keys for the items</summary>
+		protected FdbEncoderSubspace<TKey> Location { get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		public IValueEncoder<TValue> ValueEncoder { get; private set; }
@@ -77,64 +77,89 @@ namespace FoundationDB.Layers.Tables
 
 		#region Get / Set / Clear...
 
+		/// <summary>Returns the value of an existing entry in the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="id">Key of the entry to read from the table</param>
+		/// <returns>Value of the entry if it exists; otherwise, throws an exception</returns>
+		/// <exception cref="System.ArgumentNullException">If either <paramref name="trans"/> or <paramref name="id"/> is null.</exception>
+		/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the table does not contain an entry with this key.</exception>
 		public async Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			var data = await trans.GetAsync(this.Subspace.Encode<TKey>(this.KeyEncoder, id)).ConfigureAwait(false);
+			var data = await this.Location.GetAsync(trans, id).ConfigureAwait(false);
 
-			if (data.IsNull) throw new KeyNotFoundException(); //TODO: message!
+			if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the table.");
 			return this.ValueEncoder.DecodeValue(data);
 		}
 
+		/// <summary>Returns the value of an entry in the table if it exists.</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="id">Key of the entry to read from the table</param>
+		/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the table.</returns>
 		public async Task<Optional<TValue>> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			var data = await trans.GetAsync(this.Subspace.Encode<TKey>(this.KeyEncoder, id)).ConfigureAwait(false);
+			var data = await this.Location.GetAsync(trans, id).ConfigureAwait(false);
 
 			if (data.IsNull) return default(Optional<TValue>);
 			return this.ValueEncoder.DecodeValue(data);
 		}
 
+		/// <summary>Add or update an entry in the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="id">Key of the entry to add or update</param>
+		/// <param name="value">New value of the entry</param>
+		/// <remarks>If the entry did not exist, it will be created. If not, its value will be replace with <paramref name="value"/>.</remarks>
 		public void Set(IFdbTransaction trans, TKey id, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Set(this.Subspace.Encode<TKey>(this.KeyEncoder, id), this.ValueEncoder.EncodeValue(value));
+			this.Location.Set(trans, id, this.ValueEncoder.EncodeValue(value));
 		}
 
+		/// <summary>Remove an entry from the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="id">Key of the entry to remove</param>
+		/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
 		public void Clear(IFdbTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Clear(this.Subspace.Encode<TKey>(this.KeyEncoder, id));
+			this.Location.Clear(trans, id);
 		}
 
+		/// <summary>Reads all the entries in the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
+		/// <remarks>This can be dangerous if the table contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRange(this.Subspace.ToRange()) //TODO: options ?
+				.GetRange(this.Location.ToRange()) //TODO: options ?
 				.Select((kvp) => new KeyValuePair<TKey, TValue>(
-					this.Subspace.Decode<TKey>(this.KeyEncoder, kvp.Key),
+					this.Location.DecodeKey(kvp.Key),
 					this.ValueEncoder.DecodeValue(kvp.Value)
 				));
 		}
 
+		/// <summary>Reads the values of multiple entries in the table</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <param name="ids">List of the keys to read</param>
+		/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>
 		public async Task<Optional<TValue>[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");
 
-			var results = await trans
-				.GetValuesAsync(this.Subspace.EncodeRange(this.KeyEncoder, ids))
-				.ConfigureAwait(false);
+			var results = await this.Location.GetValuesAsync(trans, ids).ConfigureAwait(false);
 
 			return Optional.DecodeRange(this.ValueEncoder, results);
 		}

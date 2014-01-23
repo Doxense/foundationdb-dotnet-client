@@ -163,8 +163,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t3.Last<string>(), Is.EqualTo("3"));
 
 			var t4 = FdbTuple.Create(1, 2, 3, 4);
-			Assert.That(t3.Last<int>(), Is.EqualTo(4));
-			Assert.That(t3.Last<string>(), Is.EqualTo("4"));
+			Assert.That(t4.Last<int>(), Is.EqualTo(4));
+			Assert.That(t4.Last<string>(), Is.EqualTo("4"));
 
 			var tn = FdbTuple.Create(1, 2, 3, 4, 5, 6);
 			Assert.That(tn.Last<int>(), Is.EqualTo(6));
@@ -1802,14 +1802,18 @@ namespace FoundationDB.Layers.Tuples.Tests
 			string FUNKY_STRING = "hello\x00world";
 			string UNICODE_STRING = "héllø 世界";
 
-			Console.Write("Creating " + N.ToString("N0") + " random tuples...");
+			Console.Write("Creating " + N.ToString("N0") + " random tuples");
 			var tuples = new List<IFdbTuple>(N);
 			var rnd = new Random(777);
+			var guids = Enumerable.Range(0, 10).Select(_ => Guid.NewGuid()).ToArray();
+			var uuids = Enumerable.Range(0, 10).Select(_ => Uuid.NewUuid()).ToArray();
+			var fuzz = new byte[1024 + 1000]; rnd.NextBytes(fuzz);
 			var sw = Stopwatch.StartNew();
 			for (int i = 0; i < N; i++)
 			{
 				IFdbTuple tuple = FdbTuple.Empty;
 				int s = 1 + (int)Math.Sqrt(rnd.Next(128));
+				if (i % (N / 100) == 0) Console.Write(".");
 				for (int j = 0; j < s; j++)
 				{
 					switch (rnd.Next(16))
@@ -1824,9 +1828,9 @@ namespace FoundationDB.Layers.Tuples.Tests
 						case 7: tuple = tuple.Append<string>(UNICODE_STRING); break;
 						case 8: tuple = tuple.Append<string>(FUNKY_STRING); break;
 						case 9: tuple = tuple.Append<Slice>(FUNKY_ASCII); break;
-						case 10: tuple = tuple.Append(Guid.NewGuid()); break;
-						case 11: tuple = tuple.Append(Uuid.NewUuid()); break;
-						case 12: { var buf = new byte[1 + (int)Math.Sqrt(rnd.Next(1024))]; rnd.NextBytes(buf); tuple = tuple.Append(buf); break; }
+						case 10: tuple = tuple.Append<Guid>(guids[rnd.Next(10)]); break;
+						case 11: tuple = tuple.Append<Uuid>(uuids[rnd.Next(10)]); break;
+						case 12: tuple = tuple.Append<Slice>(Slice.Create(fuzz, rnd.Next(1000), 1 + (int)Math.Sqrt(rnd.Next(1024)))); break;
 						case 13: tuple = tuple.Append(default(string)); break;
 						case 14: tuple = tuple.Append<object>("hello"); break;
 						case 15: tuple = tuple.Append<bool>(rnd.Next(2) == 0); break;

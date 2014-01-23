@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Linq.Expressions;
 	using System.Threading;
@@ -43,11 +42,6 @@ namespace FoundationDB.Linq.Expressions
 			this.Source = source;
 		}
 
-		public override FdbQueryNodeType QueryNodeType
-		{
-			get { return FdbQueryNodeType.Sequence; }
-		}
-
 		public override FdbQueryShape Shape
 		{
 			get { return FdbQueryShape.Sequence; }
@@ -58,6 +52,11 @@ namespace FoundationDB.Linq.Expressions
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitAsyncEnumerable(this);
+		}
+
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		{
+			builder.Writer.Write("Source<{0}>({1})", this.ElementType.Name, this.Source.GetType().Name);
 		}
 
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()

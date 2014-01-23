@@ -258,7 +258,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Fault the future's Task</summary>
-		/// <param name="e">Error that will be the result of the task</param>
+		/// <param name="errors">Error that will be the result of the task</param>
 		/// <param name="fromCallback">If true, called from the network thread callback and will defer the operation on the ThreadPool. If false, may run the continuations inline.</param>
 		protected void SetFaulted(IEnumerable<Exception> errors, bool fromCallback)
 		{

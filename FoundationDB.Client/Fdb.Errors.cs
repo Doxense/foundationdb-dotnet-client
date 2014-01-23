@@ -79,11 +79,12 @@ namespace FoundationDB.Client
 
 			#endregion
 
-
+#if DEPRECATED
 			internal static Exception CannotCreateTransactionOnInvalidDatabase()
 			{
 				return new InvalidOperationException("Cannot create a transaction on an invalid database");
 			}
+#endif
 
 			internal static Exception FailedToRegisterTransactionOnDatabase(IFdbTransaction transaction, FdbDatabase db)
 			{

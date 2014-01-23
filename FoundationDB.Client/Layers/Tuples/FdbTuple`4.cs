@@ -77,7 +77,7 @@ namespace FoundationDB.Layers.Tuples
 					case 1: case -3: return this.Item2;
 					case 2: case -2: return this.Item3;
 					case 3: case -1: return this.Item4;
-					default: throw new IndexOutOfRangeException();
+					default: FdbTuple.FailIndexOutOfRange(index, 4); return null;
 				}
 			}
 		}
@@ -95,7 +95,7 @@ namespace FoundationDB.Layers.Tuples
 					case 1: case -3: return FdbConverters.Convert<T2, R>(this.Item2);
 					case 2: case -2: return FdbConverters.Convert<T3, R>(this.Item3);
 					case 3: case -1: return FdbConverters.Convert<T4, R>(this.Item4);
-					default: throw new IndexOutOfRangeException();
+					default: FdbTuple.FailIndexOutOfRange(index, 4); return default(R);
 			}
 		}
 
@@ -114,13 +114,15 @@ namespace FoundationDB.Layers.Tuples
 
 		IFdbTuple IFdbTuple.Append<T5>(T5 value)
 		{
-			return this.Append<T5>(value);
+			// the caller doesn't care about the return type, so just box everything into a list tuple
+			return new FdbListTuple(new object[5] { this.Item1, this.Item2, this.Item3, this.Item4, value }, 0, 5);
 		}
 
-		public FdbListTuple Append<T5>(T5 value)
+		public FdbLinkedTuple<T5> Append<T5>(T5 value)
 		{
-			// ... or should we return a linked tuple?
-			return new FdbListTuple(new object[] { this.Item1, this.Item2, this.Item3, this.Item4, value }, 0, 5);
+			// the caller probably cares about the return type, since it is using a struct, but whatever tuple type we use will end up boxing this tuple on the heap, and we will loose type information.
+			// but, by returning a FdbLinkedTuple<T5>, the tuple will still remember the exact type, and efficiently serializer/convert the values (without having to guess the type)
+			return new FdbLinkedTuple<T5>(this, value);
 		}
 
 		public void CopyTo(object[] array, int offset)
@@ -172,6 +174,24 @@ namespace FoundationDB.Layers.Tuples
 		public override int GetHashCode()
 		{
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+		}
+
+		public static bool operator ==(FdbTuple<T1, T2, T3, T4> left, FdbTuple<T1, T2, T3, T4> right)
+		{
+			var comparer = SimilarValueComparer.Default;
+			return comparer.Equals(left.Item1, right.Item1)
+				&& comparer.Equals(left.Item2, right.Item2)
+				&& comparer.Equals(left.Item3, right.Item3)
+				&& comparer.Equals(left.Item4, right.Item4);
+		}
+
+		public static bool operator !=(FdbTuple<T1, T2, T3, T4> left, FdbTuple<T1, T2, T3, T4> right)
+		{
+			var comparer = SimilarValueComparer.Default;
+			return !comparer.Equals(left.Item1, right.Item1)
+				|| !comparer.Equals(left.Item2, right.Item2)
+				|| !comparer.Equals(left.Item3, right.Item3)
+				|| !comparer.Equals(left.Item4, right.Item4);
 		}
 
 		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)

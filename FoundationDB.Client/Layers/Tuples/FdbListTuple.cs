@@ -63,7 +63,7 @@ namespace FoundationDB.Layers.Tuples
 		internal FdbListTuple(object[] items, int offset, int count)
 		{
 			Contract.Requires(items != null && offset >= 0 && count >= 0);
-			Contract.Requires(offset + count <= items.Length, null, "inner item array is too small");
+			Contract.Requires(offset + count <= items.Length, "inner item array is too small");
 
 			m_items = items;
 			m_offset = offset;

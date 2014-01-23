@@ -40,6 +40,8 @@ namespace FoundationDB.Layers.Tuples
 	[DebuggerDisplay("{ToString()}")]
 	public sealed class FdbLinkedTuple<T> : IFdbTuple
 	{
+		//TODO: consider changing this to a struct ?
+
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 

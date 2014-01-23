@@ -58,11 +58,8 @@ namespace FoundationDB.Layers.Tuples
 		{
 			get
 			{
-				switch(index)
-				{
-					case 0: case -1: return this.Item1;
-					default: throw new IndexOutOfRangeException();
-				}
+				if (index > 0 || index < -1) FdbTuple.FailIndexOutOfRange(index, 1);
+				return this.Item1;
 			}
 		}
 
@@ -73,8 +70,8 @@ namespace FoundationDB.Layers.Tuples
 
 		public R Get<R>(int index)
 		{
-			if (index == 0 || index == -1) return FdbConverters.Convert<T1, R>(this.Item1);
-			throw new IndexOutOfRangeException();
+			if (index > 0 || index < -1) FdbTuple.FailIndexOutOfRange(index, 1);
+			return FdbConverters.Convert<T1, R>(this.Item1);
 		}
 
 		public R Last<R>()
@@ -89,7 +86,7 @@ namespace FoundationDB.Layers.Tuples
 
 		IFdbTuple IFdbTuple.Append<T2>(T2 value)
 		{
-			return this.Append<T2>(value);
+			return new FdbTuple<T1, T2>(this.Item1, value);
 		}
 
 		public FdbTuple<T1, T2> Append<T2>(T2 value)
@@ -140,6 +137,16 @@ namespace FoundationDB.Layers.Tuples
 		public override int GetHashCode()
 		{
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+		}
+
+		public static bool operator ==(FdbTuple<T1> left, FdbTuple<T1> right)
+		{
+			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
+		}
+
+		public static bool operator !=(FdbTuple<T1> left, FdbTuple<T1> right)
+		{
+			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1);
 		}
 
 		bool IStructuralEquatable.Equals(object other, IEqualityComparer comparer)

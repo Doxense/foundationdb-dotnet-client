@@ -46,7 +46,7 @@ namespace FoundationDB.Filters.Logging.Tests
 
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = await db.CreateOrOpenDirectoryAsync(new[] { "Logging" });
+				var location = await db.CreateOrOpenDirectoryAsync("Logging");
 				await db.ClearRangeAsync(location);
 
 				// note: ensure that all methods are JITed

@@ -3,7 +3,7 @@
 namespace FoundationDB.Samples.Benchmarks
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.IO;
@@ -35,7 +35,7 @@ namespace FoundationDB.Samples.Benchmarks
 		public async Task Init(FdbDatabasePartition db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.CreateOrOpenDirectoryAsync(FdbTuple.Create("Benchmarks", "LeakTest"), cancellationToken: ct);
+			this.Subspace = await db.CreateOrOpenDirectoryAsync(new [] { "Benchmarks", "LeakTest" }, cancellationToken: ct);
 
 			// clear all previous values
 			await db.ClearRangeAsync(this.Subspace, ct);

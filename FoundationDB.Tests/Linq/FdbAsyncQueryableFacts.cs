@@ -33,6 +33,7 @@ namespace FoundationDB.Linq.Tests
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq.Expressions;
+	using FoundationDB.Linq.Providers;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;

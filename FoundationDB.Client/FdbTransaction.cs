@@ -32,6 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Async;
+	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
 	using System;
@@ -40,7 +41,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Wraps an FDB_TRANSACTION handle</summary>
+	/// <summary>FoundationDB transaction</summary>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}")]
 	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadOnlyTransaction, IFdbTransactional, IFdbReadOnlyTransactional, IDisposable
 	{
@@ -65,14 +66,10 @@ namespace FoundationDB.Client
 		/// <summary>Unique internal id for this transaction (for debugging purpose)</summary>
 		private readonly int m_id;
 
-		/// <summary>FDB_TRANSACTION* handle</summary>
-		private readonly TransactionHandle m_handle;
-
 		/// <summary>True if the transaction has been opened in read-only mode</summary>
 		private readonly bool m_readOnly;
 
-		/// <summary>Estimated size of written data (in bytes)</summary>
-		private int m_payloadBytes;
+		private readonly IFdbTransactionHandler m_handler;
 
 		/// <summary>Timeout (in ms) of this transaction</summary>
 		private int m_timeout;
@@ -90,19 +87,19 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		internal FdbTransaction(FdbDatabase db, FdbOperationContext context, int id, TransactionHandle handle, FdbTransactionMode mode)
+		internal FdbTransaction(FdbDatabase db, FdbOperationContext context, int id, IFdbTransactionHandler handler, FdbTransactionMode mode)
 		{
-			Contract.Requires(db != null && context != null && handle != null);
+			Contract.Requires(db != null && context != null && handler != null);
 			Contract.Requires(context.Database != null);
 
 			m_context = context;
 			m_database = db;
 			m_id = id;
-			m_handle = handle;
-			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;
-
 			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Token);
 			m_token = m_cts.Token;
+
+			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;
+			m_handler = handler;
 		}
 
 		#endregion
@@ -122,14 +119,14 @@ namespace FoundationDB.Client
 		/// <summary>Database instance that manages this transaction</summary>
 		public FdbDatabase Database { get { return m_database; } }
 
-		/// <summary>Native FDB_TRANSACTION* handle</summary>
-		internal TransactionHandle Handle { get { return m_handle; } }
+		/// <summary>Returns the handler for this transaction</summary>
+		internal IFdbTransactionHandler Handler { get { return m_handler; } }
 
 		/// <summary>If true, the transaction is still pending (not committed or rolledback).</summary>
 		internal bool StillAlive { get { return this.State == STATE_READY; } }
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
-		public int Size { get { return m_payloadBytes; } }
+		public int Size { get { return m_handler.Size; } }
 
 		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
 		public CancellationToken Token { get { return m_token; } }
@@ -267,10 +264,7 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
-			unsafe
-			{
-				Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, null, 0));
-			}
+			m_handler.SetOption(option, Slice.Nil);
 		}
 
 		/// <summary>Set an option on this transaction that takes a string value</summary>
@@ -281,13 +275,7 @@ namespace FoundationDB.Client
 			EnsureNotFailedOrDisposed();
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
-			unsafe
-			{
-				fixed (byte* ptr = data.Array)
-				{
-					Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, ptr + data.Offset, data.Count));
-				}
-			}
+			m_handler.SetOption(option, data);
 		}
 
 		/// <summary>Set an option on this transaction that takes an integer value</summary>
@@ -297,15 +285,10 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
-			unsafe
-			{
-				// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
+			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
+			var data = Slice.FromFixed64(value);
 
-				//TODO: what if we run on Big-Endian hardware ?
-				Contract.Requires(BitConverter.IsLittleEndian, null, "Not supported on Big-Endian platforms");
-
-				Fdb.DieOnError(FdbNative.TransactionSetOption(m_handle, option, (byte*)&value, 8));
-			}
+			m_handler.SetOption(option, data);
 		}
 
 		#endregion
@@ -318,20 +301,7 @@ namespace FoundationDB.Client
 			EnsureCanRead();
 			//TODO: should we also allow being called after commit or rollback ?
 
-			var future = FdbNative.TransactionGetReadVersion(m_handle);
-			return FdbFuture.CreateTaskFromHandle(future,
-				(h) =>
-				{
-					long version;
-					var err = FdbNative.FutureGetVersion(h, out version);
-#if DEBUG_TRANSACTIONS
-					Debug.WriteLine("FdbTransaction[" + m_id + "].GetReadVersion() => err=" + err + ", version=" + version);
-#endif
-					Fdb.DieOnError(err);
-					return version;
-				},
-				m_token
-			);
+			return m_handler.GetReadVersionAsync(m_token);
 		}
 
 		/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>
@@ -342,13 +312,7 @@ namespace FoundationDB.Client
 			//TODO: should we only allow calls if transaction is in state "COMMITTED" ?
 			EnsureNotFailedOrDisposed();
 
-			long version;
-			var err = FdbNative.TransactionGetCommittedVersion(m_handle, out version);
-#if DEBUG_TRANSACTIONS
-			Debug.WriteLine("FdbTransaction[" + m_id + "].GetCommittedVersion() => err=" + err + ", version=" + version);
-#endif
-			Fdb.DieOnError(err);
-			return version;
+			return m_handler.GetCommittedVersion();
 		}
 
 		/// <summary>
@@ -359,49 +323,12 @@ namespace FoundationDB.Client
 			//Note: this is in IFdbTransaction but it looks like it could also be used for reading ?
 			EnsureCanWrite();
 
-			FdbNative.TransactionSetReadVersion(m_handle, version);
+			m_handler.SetReadVersion(version);
 		}
 
 		#endregion
 
 		#region Get...
-
-		private static bool TryGetValueResult(FutureHandle h, out Slice result)
-		{
-			Contract.Requires(h != null);
-
-			bool present;
-			var err = FdbNative.FutureGetValue(h, out present, out result);
-#if DEBUG_TRANSACTIONS
-			Debug.WriteLine("FdbTransaction[].TryGetValueResult() => err=" + err + ", present=" + present + ", valueLength=" + result.Count);
-#endif
-			Fdb.DieOnError(err);
-			return present;
-		}
-
-		private static Slice GetValueResultBytes(FutureHandle h)
-		{
-			Contract.Requires(h != null);
-
-			Slice result;
-			if (!TryGetValueResult(h, out result))
-			{
-				return Slice.Nil;
-			}
-			return result;
-		}
-
-		internal Task<Slice> GetCoreAsync(Slice key, bool snapshot)
-		{
-			this.Database.EnsureKeyIsValid(key);
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting value for '{0}'", key.ToString()));
-#endif
-
-			var future = FdbNative.TransactionGet(m_handle, key, snapshot);
-			return FdbFuture.CreateTaskFromHandle(future, (h) => GetValueResultBytes(h), m_token);
-		}
 
 		/// <summary>
 		/// Reads a value from the database snapshot represented by transaction.
@@ -416,51 +343,41 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			return GetCoreAsync(key, snapshot: false);
+			m_database.EnsureKeyIsValid(key);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));
+#endif
+
+			return m_handler.GetAsync(key, snapshot: false, cancellationToken: m_token);
+		}
+
+		#endregion
+
+		#region GetValues...
+
+		/// <summary>
+		/// Reads several values from the database snapshot represented by the current transaction
+		/// </summary>
+		public Task<Slice[]> GetValuesAsync(Slice[] keys)
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+			//TODO: should we make a copy of the key array ?
+
+			EnsureCanRead();
+
+			m_database.EnsureKeysAreValid(keys);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", String.Format("Getting batch of {0} values ...", keys.Length.ToString()));
+#endif
+
+			return m_handler.GetValuesAsync(keys, snapshot: false, cancellationToken: m_token);
 		}
 
 		#endregion
 
 		#region GetRangeAsync...
-
-		/// <summary>Extract a chunk of result from a completed Future</summary>
-		/// <param name="h">Handle to the completed Future</param>
-		/// <param name="more">Receives true if there are more result, or false if all results have been transmited</param>
-		/// <returns></returns>
-		private static KeyValuePair<Slice, Slice>[] GetKeyValueArrayResult(FutureHandle h, out bool more)
-		{
-			KeyValuePair<Slice, Slice>[] result;
-			var err = FdbNative.FutureGetKeyValueArray(h, out result, out more);
-			Fdb.DieOnError(err);
-			return result;
-		}
-
-		/// <summary>Asynchronously fetch a new page of results</summary>
-		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-		internal Task<FdbRangeChunk> GetRangeCoreAsync(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, int iteration, bool snapshot)
-		{
-			this.Database.EnsureKeyIsValid(begin.Key);
-			this.Database.EnsureKeyIsValid(end.Key);
-
-			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
-			options.EnsureLegalValues();
-
-			bool reversed = options.Reverse.Value;
-			var future = FdbNative.TransactionGetRange(this.Handle, begin, end, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, snapshot, reversed);
-			return FdbFuture.CreateTaskFromHandle(
-				future,
-				(h) =>
-				{
-					// TODO: quietly return if disposed
-
-					bool hasMore;
-					var chunk = GetKeyValueArrayResult(h, out hasMore);
-
-					return new FdbRangeChunk(hasMore, chunk, iteration, reversed);
-				},
-				m_token
-			);
-		}
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by limit, target_bytes, or mode)
@@ -476,10 +393,16 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
+			m_database.EnsureKeyIsValid(beginInclusive.Key);
+			m_database.EnsureKeyIsValid(endExclusive.Key, endExclusive: true);
+
+			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
+			options.EnsureLegalValues();
+
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
 			if (iteration == 0) iteration = 1;
 
-			return GetRangeCoreAsync(beginInclusive, endExclusive, options, iteration, snapshot: false);
+			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, cancellationToken: m_token);
 		}
 
 		#endregion
@@ -489,7 +412,7 @@ namespace FoundationDB.Client
 		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, bool snapshot)
 		{
 			this.Database.EnsureKeyIsValid(begin.Key);
-			this.Database.EnsureKeyIsValid(end.Key);
+			this.Database.EnsureKeyIsValid(end.Key, endExclusive: true);
 
 			options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
 			options.EnsureLegalValues();
@@ -512,85 +435,28 @@ namespace FoundationDB.Client
 
 		#region GetKey...
 
-		private static Slice GetKeyResult(FutureHandle h)
-		{
-			Contract.Requires(h != null);
-
-			Slice result;
-			var err = FdbNative.FutureGetKey(h, out result);
-#if DEBUG_TRANSACTIONS
-			Debug.WriteLine("FdbTransaction[].GetKeyResult() => err=" + err + ", result=" + result.ToString());
-#endif
-			Fdb.DieOnError(err);
-			return result;
-		}
-
-		internal async Task<Slice> GetKeyCoreAsync(FdbKeySelector selector, bool snapshot)
-		{
-			this.Database.EnsureKeyIsValid(selector.Key);
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyCoreAsync", String.Format("Getting key '{0}'", selector.ToString()));
-#endif
-
-			var future = FdbNative.TransactionGetKey(m_handle, selector, snapshot);
-			var key = await FdbFuture.CreateTaskFromHandle(
-				future,
-				(h) => GetKeyResult(h),
-				m_token
-			).ConfigureAwait(false);
-
-			// don't forget to truncate keys that would fall outside of the database's globalspace !
-			return this.Database.BoundCheck(key);
-		}
-
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
-		public Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		public async Task<Slice> GetKeyAsync(FdbKeySelector selector)
 		{
 			EnsureCanRead();
 
-			return GetKeyCoreAsync(selector, snapshot: false);
+			m_database.EnsureKeyIsValid(selector.Key);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", String.Format("Getting key '{0}'", selector.ToString()));
+#endif
+
+			var key = await m_handler.GetKeyAsync(selector, snapshot: false, cancellationToken: m_token).ConfigureAwait(false);
+
+			// don't forget to truncate keys that would fall outside of the database's globalspace !
+			return m_database.BoundCheck(key);
 		}
 
 		#endregion
 
 		#region GetKeys..
-
-		internal Task<Slice[]> GetKeysCoreAsync(FdbKeySelector[] selectors, bool snapshot)
-		{
-			Contract.Requires(selectors != null);
-
-			foreach (var selector in selectors)
-			{
-				this.Database.EnsureKeyIsValid(selector.Key);
-			}
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysCoreAsync", String.Format("Getting batch of {0} keys ...", selectors.Length.ToString()));
-#endif
-
-			var futures = new FutureHandle[selectors.Length];
-			try
-			{
-				for (int i = 0; i < selectors.Length; i++)
-				{
-					futures[i] = FdbNative.TransactionGetKey(m_handle, selectors[i], snapshot);
-				}
-			}
-			catch
-			{
-				for (int i = 0; i < selectors.Length; i++)
-				{
-					if (futures[i] == null) break;
-					futures[i].Dispose();
-				}
-				throw;
-			}
-			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetKeyResult(h), m_token);
-
-		}
 
 		/// <summary>
 		/// Resolves several key selectors against the keys in the database snapshot represented by the current transaction.
@@ -601,28 +467,21 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			return GetKeysCoreAsync(selectors, snapshot: false);
+			foreach (var selector in selectors)
+			{
+				m_database.EnsureKeyIsValid(selector.Key);
+			}
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", String.Format("Getting batch of {0} keys ...", selectors.Length.ToString()));
+#endif
+
+			return m_handler.GetKeysAsync(selectors, snapshot: false, cancellationToken: m_token);
 		}
 
 		#endregion
 
 		#region Set...
-
-		internal void SetCore(Slice key, Slice value)
-		{
-			this.Database.EnsureKeyIsValid(key);
-			this.Database.EnsureValueIsValid(value);
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetCore", String.Format("Setting '{0}' = {1}", key.ToString(), value.ToString()));
-#endif
-
-			FdbNative.TransactionSet(m_handle, key, value);
-
-			// There is a 28-byte overhead pet Set(..) in a transaction
-			// cf http://community.foundationdb.com/questions/547/transaction-size-limit
-			Interlocked.Add(ref m_payloadBytes, key.Count + value.Count + 28);
-		}
 
 		/// <summary>
 		/// Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.
@@ -634,28 +493,19 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			SetCore(key, value);
+			m_database.EnsureKeyIsValid(key);
+			m_database.EnsureValueIsValid(value);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", String.Format("Setting '{0}' = {1}", FdbKey.Dump(key), Slice.Dump(value)));
+#endif
+
+			m_handler.Set(key, value);
 		}
 
 		#endregion
 
 		#region Atomic Ops...
-
-		internal void AtomicCore(Slice key, Slice param, FdbMutationType type)
-		{
-			this.Database.EnsureKeyIsValid(key);
-			this.Database.EnsureValueIsValid(param);
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", String.Format("Atomic {0} on '{1}' = {2}", type.ToString(), FdbKey.Dump(key), Slice.Dump(param)));
-#endif
-
-			FdbNative.TransactionAtomicOperation(m_handle, key, param, type);
-
-			//TODO: what is the overhead for atomic operations?
-			Interlocked.Add(ref m_payloadBytes, key.Count + param.Count);
-
-		}
 
 		/// <summary>
 		/// Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.
@@ -667,24 +517,23 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			AtomicCore(key, param, mutation);
+			m_database.EnsureKeyIsValid(key);
+			m_database.EnsureValueIsValid(param);
+
+			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
+			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.And && mutation != FdbMutationType.Or && mutation != FdbMutationType.Xor)
+				throw new ArgumentException("Invalid mutation type", "mutation");
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", String.Format("Atomic {0} on '{1}' = {2}", mutation.ToString(), FdbKey.Dump(key), Slice.Dump(param)));
+#endif
+
+			m_handler.Atomic(key, param, mutation);
 		}
 
 		#endregion
 
 		#region Clear...
-
-		internal void ClearCore(Slice key)
-		{
-			this.Database.EnsureKeyIsValid(key);
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearCore", String.Format("Clearing '{0}'", key.ToString()));
-#endif
-
-			FdbNative.TransactionClear(m_handle, key);
-			Interlocked.Add(ref m_payloadBytes, key.Count);
-		}
 
 		/// <summary>
 		/// Modify the database snapshot represented by transaction to remove the given key from the database. If the key was not previously present in the database, there is no effect.
@@ -694,27 +543,18 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			ClearCore(key);
+			m_database.EnsureKeyIsValid(key);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", String.Format("Clearing '{0}'", FdbKey.Dump(key)));
+#endif
+
+			m_handler.Clear(key);
 		}
 
 		#endregion
 
 		#region Clear Range...
-
-		internal void ClearRangeCore(Slice beginKeyInclusive, Slice endKeyExclusive)
-		{
-			this.Database.EnsureKeyIsValid(beginKeyInclusive);
-			this.Database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRangeCore", String.Format("Clearing Range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString()));
-#endif
-
-			FdbNative.TransactionClearRange(m_handle, beginKeyInclusive, endKeyExclusive);
-			//TODO: how to account for these ?
-			//Interlocked.Add(ref m_payloadBytes, beginKey.Count);
-			//Interlocked.Add(ref m_payloadBytes, endKey.Count);
-		}
 
 		/// <summary>
 		/// Modify the database snapshot represented by transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
@@ -726,25 +566,19 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			ClearRangeCore(beginKeyInclusive, endKeyExclusive);
+			m_database.EnsureKeyIsValid(beginKeyInclusive);
+			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", String.Format("Clearing Range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString()));
+#endif
+
+			m_handler.ClearRange(beginKeyInclusive, endKeyExclusive);
 		}
 
 		#endregion
 
 		#region Conflict Range...
-
-		internal void AddConflictRangeCore(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
-		{
-			this.Database.EnsureKeyIsValid(beginKeyInclusive);
-			this.Database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRangeCore", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
-#endif
-
-			FdbError err = FdbNative.TransactionAddConflictRange(m_handle, beginKeyInclusive, endKeyExclusive, type);
-			Fdb.DieOnError(err);
-		}
 
 		/// <summary>
 		/// Adds a conflict range to a transaction without performing the associated read or write.
@@ -752,45 +586,23 @@ namespace FoundationDB.Client
 		/// <param name="beginKeyInclusive">Key specifying the beginning of the conflict range. The key is included</param>
 		/// <param name="endKeyExclusive">Key specifying the end of the conflict range. The key is excluded</param>
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyInclusive, FdbConflictRangeType type)
+		public void AddConflictRange(Slice beginKeyInclusive, Slice endKeyExclusive, FdbConflictRangeType type)
 		{
 			EnsureCanWrite();
 
-			AddConflictRangeCore(beginKeyInclusive, endKeyInclusive, type);
+			m_database.EnsureKeyIsValid(beginKeyInclusive);
+			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+
+#if DEBUG
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRange", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
+#endif
+
+			m_handler.AddConflictRange(beginKeyInclusive, endKeyExclusive, type);
 		}
 
 		#endregion
 
 		#region GetAddressesForKey...
-
-		private static string[] GetStringArrayResult(FutureHandle h)
-		{
-			Contract.Requires(h != null);
-
-			string[] result;
-			var err = FdbNative.FutureGetStringArray(h, out result);
-#if DEBUG_TRANSACTIONS
-			Debug.WriteLine("FdbTransaction[].FutureGetStringArray() => err=" + err + ", results=" + (result == null ? "<null>" : result.Length.ToString()));
-#endif
-			Fdb.DieOnError(err);
-			return result;
-		}
-
-		internal Task<string[]> GetAddressesForKeyCoreAsync(Slice key)
-		{
-			this.Database.EnsureKeyIsValid(key);
-
-#if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyCoreAsync", String.Format("Getting addresses for key '{0}'", key.ToString()));
-#endif
-
-			var future = FdbNative.TransactionGetAddressesForKey(m_handle, key);
-			return FdbFuture.CreateTaskFromHandle(
-				future,
-				(h) => GetStringArrayResult(h),
-				m_token
-			);
-		}
 
 		/// <summary>
 		/// Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <param name="key"/> and its associated value
@@ -801,56 +613,13 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			return GetAddressesForKeyCoreAsync(key);
-		}
-
-		#endregion
-
-		#region Batching...
-
-		internal Task<Slice[]> GetValuesCoreAsync(Slice[] keys, bool snapshot)
-		{
-			Contract.Requires(keys != null);
-
-			foreach (var key in keys)
-			{
-				this.Database.EnsureKeyIsValid(key);
-			}
+			m_database.EnsureKeyIsValid(key);
 
 #if DEBUG
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesCoreAsync", String.Format("Getting batch of {0} values ...", keys.Length.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", String.Format("Getting addresses for key '{0}'", FdbKey.Dump(key)));
 #endif
 
-			var futures = new FutureHandle[keys.Length];
-			try
-			{
-				for (int i = 0; i < keys.Length; i++)
-				{
-					futures[i] = FdbNative.TransactionGet(m_handle, keys[i], snapshot);
-				}
-			}
-			catch
-			{
-				for (int i = 0; i < keys.Length; i++)
-				{
-					if (futures[i] == null) break;
-					futures[i].Dispose();
-				}
-				throw;
-			}
-			return FdbFuture.CreateTaskFromHandleArray(futures, (h) => GetValueResultBytes(h), m_token);
-		}
-
-		/// <summary>
-		/// Reads several values from the database snapshot represented by the current transaction
-		/// </summary>
-		public Task<Slice[]> GetValuesAsync(Slice[] keys)
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			EnsureCanRead();
-
-			return GetValuesCoreAsync(keys, snapshot: false);
+			return m_handler.GetAddressesForKeyAsync(key, cancellationToken: m_token);
 		}
 
 		#endregion
@@ -873,8 +642,7 @@ namespace FoundationDB.Client
 			//TODO: need a STATE_COMMITTING ?
 			try
 			{
-				var future = FdbNative.TransactionCommit(m_handle);
-				await FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, m_token).ConfigureAwait(false);
+				await m_handler.CommitAsync(m_token).ConfigureAwait(false);
 
 				if (Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY) == STATE_READY)
 				{
@@ -895,27 +663,6 @@ namespace FoundationDB.Client
 		
 		#region Watches...
 
-		internal FdbWatch WatchCore(Slice key, CancellationToken cancellationToken)
-		{
-			this.Database.EnsureKeyIsValid(key);
-
-			// keep a copy of the key
-			// > don't keep a reference on a potentially large buffer while the watch is active, preventing it from being garbage collected
-			// > allow the caller to reuse freely the slice underlying buffer, without changing the value that we will return when the task completes
-			key = key.Memoize();
-
-#if DEBUG
-			if (Logging.On) Logging.Verbose(this, "WatchAsync", String.Format("Watching key '{0}'", key.ToString()));
-#endif
-
-			var future = FdbNative.TransactionWatch(m_handle, key);
-			return new FdbWatch(
-				FdbFuture.FromHandle<Slice>(future, (h) => key, cancellationToken),
-				key,
-				Slice.Nil
-			);
-		}
-
 		/// <summary>
 		/// Watch a key for any change in the database.
 		/// </summary>
@@ -928,11 +675,22 @@ namespace FoundationDB.Client
 			cancellationToken.ThrowIfCancellationRequested();
 			EnsureCanRead();
 
+			m_database.EnsureKeyIsValid(key);
+
+			// keep a copy of the key
+			// > don't keep a reference on a potentially large buffer while the watch is active, preventing it from being garbage collected
+			// > allow the caller to reuse freely the slice underlying buffer, without changing the value that we will return when the task completes
+			key = key.Memoize();
+
+#if DEBUG
+			if (Logging.On) Logging.Verbose(this, "WatchAsync", String.Format("Watching key '{0}'", key.ToString()));
+#endif
+
 			// Note: the FDBFuture returned by 'fdb_transaction_watch()' outlives the transaction, and can only be cancelled with 'fdb_future_cancel()' or 'fdb_future_destroy()'
 			// Since Task<T> does not expose any cancellation mechanism by itself (and we don't want to force the caller to create a CancellationTokenSource everytime),
 			// we will return the FdbWatch that wraps the FdbFuture<Slice> directly, since it knows how to cancel itself.
 
-			return WatchCore(key, cancellationToken);
+			return m_handler.Watch(key, cancellationToken);
 		}
 
 		#endregion
@@ -947,18 +705,15 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="code">FdbError code thrown by the previous command</param>
 		/// <returns>Returns a task that completes if the operation can be safely retried, or that rethrows the original exception if the operation is not retryable.</returns>
-		public Task OnErrorAsync(FdbError code)
+		public async Task OnErrorAsync(FdbError code)
 		{
 			EnsureCanRetry();
 
-			var future = FdbNative.TransactionOnError(m_handle, code);
-			return FdbFuture.CreateTaskFromHandle<object>(future, (h) =>
-			{
-				// If fdb_transaction_on_error succeeds, that means that the transaction has been reset and is usable again
-				var state = this.State;
-				if (state != STATE_DISPOSED) Interlocked.CompareExchange(ref m_state, STATE_READY, state);
-				return null;
-			}, m_token);
+			await m_handler.OnErrorAsync(code, cancellationToken: m_token).ConfigureAwait(false);
+
+			// If fdb_transaction_on_error succeeds, that means that the transaction has been reset and is usable again
+			var state = this.State;
+			if (state != STATE_DISPOSED) Interlocked.CompareExchange(ref m_state, STATE_READY, state);
 		}
 
 		#endregion
@@ -972,7 +727,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Reset", "Resetting transaction");
 
-			FdbNative.TransactionReset(m_handle);
+			m_handler.Reset();
 			m_state = STATE_READY;
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Reset", "Transaction has been reset");
@@ -997,7 +752,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Cancel", "Canceling transaction...");
 
-			FdbNative.TransactionCancel(m_handle);
+			m_handler.Cancel();
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Cancel", "Transaction has been canceled");
 		}
@@ -1012,7 +767,7 @@ namespace FoundationDB.Client
 			get { return Volatile.Read(ref m_state); }
 			set
 			{
-				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_FAILED, null, "Invalid state value");
+				Contract.Requires(value >= STATE_DISPOSED && value <= STATE_FAILED, "Invalid state value");
 				Volatile.Write(ref m_state, value);
 			}
 		}
@@ -1125,7 +880,14 @@ namespace FoundationDB.Client
 				finally
 				{
 					// Dispose of the handle
-					if (!m_handle.IsClosed) m_handle.Dispose();
+					if (m_handler != null)
+					{
+						try { m_handler.Dispose(); }
+						catch(Exception e)
+						{
+							if (Logging.On) Logging.Error(this, "Dispose", String.Format("Transaction #{0} failed to dispose the transaction handler: {1}", e.Message));
+						}
+					}
 					if (!m_context.Shared) m_context.Dispose();
 					m_cts.Dispose();
 				}

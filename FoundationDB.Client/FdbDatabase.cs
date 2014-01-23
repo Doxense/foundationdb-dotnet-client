@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Async;
+	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Directories;
@@ -40,17 +41,16 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>FoundationDB Database</summary>
-	/// <remarks>Wraps an FDBDatabase* handle</remarks>
 	[DebuggerDisplay("Name={m_name}, GlobalSpace={m_globalSpace}")]
-	public sealed class FdbDatabase : IFdbDatabase, IFdbTransactional, IDisposable
+	public class FdbDatabase : IFdbDatabase, IFdbTransactional, IDisposable
 	{
 		#region Private Fields...
 
 		/// <summary>Parent cluster that owns the database.</summary>
-		private readonly FdbCluster m_cluster;
+		private readonly IFdbCluster m_cluster;
 
-		/// <summary>Handle that wraps the native FDB_DATABASE*</summary>
-		private readonly DatabaseHandle m_handle;
+		/// <summary>Underlying handler for this database (native, dummy, memory, ...)</summary>
+		private readonly IFdbDatabaseHandler m_handler;
 
 		/// <summary>Name of the database (note: value it is the value that was passed to Connect(...) since we don't have any API to read the name from an FDB_DATABASE* handle)</summary>
 		private readonly string m_name;
@@ -85,26 +85,23 @@ namespace FoundationDB.Client
 		/// <summary>Default RetryLimit value for all transactions</summary>
 		private int m_defaultRetryLimit;
 
-#if REFACTORED
-		/// <summary>Root directory used by this database instance (or null if none)</summary>
-		private FdbDatabasePartition m_rootDirectory;
-#endif
-
 		#endregion
 
 		#region Constructors...
 
 		/// <summary>Create a new database instance</summary>
 		/// <param name="cluster">Parent cluster</param>
-		/// <param name="handle">Handle to the native FDB_DATABASE*</param>
+		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="name">Name of the database</param>
 		/// <param name="subspace">Root namespace of all keys accessible by this database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		internal FdbDatabase(FdbCluster cluster, DatabaseHandle handle, string name, FdbSubspace subspace, bool readOnly, bool ownsCluster)
+		public FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, FdbSubspace subspace, bool readOnly, bool ownsCluster)
 		{
+			Contract.Requires(cluster != null && handler != null && name != null && subspace != null);
+
 			m_cluster = cluster;
-			m_handle = handle;
+			m_handler = handler;
 			m_name = name;
 			m_readOnly = readOnly;
 			m_ownsCluster = ownsCluster;
@@ -121,13 +118,10 @@ namespace FoundationDB.Client
 		#region Public Properties...
 
 		/// <summary>Cluster where the database is located</summary>
-		public FdbCluster Cluster { get { return m_cluster; } }
+		public IFdbCluster Cluster { get { return m_cluster; } }
 
 		/// <summary>Name of the database</summary>
 		public string Name { get { return m_name; } }
-
-		/// <summary>Handle to the underlying FDB_DATABASE*</summary>
-		internal DatabaseHandle Handle { get { return m_handle; } }
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
@@ -168,23 +162,19 @@ namespace FoundationDB.Client
 			if (m_readOnly) mode |= FdbTransactionMode.ReadOnly;
 
 			ThrowIfDisposed();
+#if DEPRECATED
 			if (m_handle.IsInvalid) throw Fdb.Errors.CannotCreateTransactionOnInvalidDatabase();
+#endif
 
 			int id = Interlocked.Increment(ref s_transactionCounter);
-
-			TransactionHandle handle;
-			var err = FdbNative.DatabaseCreateTransaction(m_handle, out handle);
-			if (Fdb.Failed(err))
-			{
-				handle.Dispose();
-				throw Fdb.MapToException(err);
-			}
 
 			// ensure that if anything happens, either we return a valid Transaction, or we dispose it immediately
 			FdbTransaction trans = null;
 			try
 			{
-				trans = new FdbTransaction(this, context, id, handle, mode);
+				var transactionHandler = m_handler.CreateTransaction(context);
+
+				trans = new FdbTransaction(this, context, id, transactionHandler, mode);
 				RegisterTransaction(trans);
 				// set default options..
 				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
@@ -320,7 +310,7 @@ namespace FoundationDB.Client
 		/// <param name="option">Option to set</param>
 		public void SetOption(FdbDatabaseOption option)
 		{
-			SetOption(option, default(string));
+			m_handler.SetOption(option, Slice.Nil);
 		}
 
 		/// <summary>Set an option on this database that takes a string value</summary>
@@ -330,17 +320,8 @@ namespace FoundationDB.Client
 		{
 			ThrowIfDisposed();
 
-			Fdb.EnsureNotOnNetworkThread();
-			//review: maybe we could allow running from the network thread?
-
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
-			unsafe
-			{
-				fixed (byte* ptr = data.Array)
-				{
-					Fdb.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, ptr + data.Offset, data.Count));
-				}
-			}
+			m_handler.SetOption(option, data);
 		}
 
 		/// <summary>Set an option on this database that takes an integer value</summary>
@@ -350,56 +331,12 @@ namespace FoundationDB.Client
 		{
 			ThrowIfDisposed();
 
-			Fdb.EnsureNotOnNetworkThread();
-			//review: maybe we could allow running from the network thread?
-
-			unsafe
-			{
-				// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
-
-				//TODO: what if we run on Big-Endian hardware ?
-				Contract.Requires(BitConverter.IsLittleEndian, null, "Not supported on Big-Endian platforms");
-
-				Fdb.DieOnError(FdbNative.DatabaseSetOption(m_handle, option, (byte*)(&value), 8));
-			}
+			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
+			var data = Slice.FromFixed64(value);
+			m_handler.SetOption(option, data);
 		}
 
 		#endregion
-
-#if REFACTORED
-
-		#region Directory Layer...
-
-		public FdbDatabasePartition Root { get { return m_rootDirectory; } }
-
-		public void UseRootDirectory(FdbDirectoryLayer directoryLayer)
-		{
-			if (directoryLayer == null) throw new ArgumentNullException("directoryLayer");
-			m_rootDirectory = new FdbDatabasePartition(this, directoryLayer);
-		}
-
-		public void UseRootDirectory(FdbSubspace nodes, FdbSubspace content)
-		{
-			if (nodes == null) throw new ArgumentNullException("nodes");
-			if (content == null) throw new ArgumentNullException("content");
-
-			// ensure that both subspaces are reachable
-			if (!m_globalSpace.Contains(nodes.Key)) throw new ArgumentOutOfRangeException("nodes", "The Nodes subspace must be contained inside the Global Space of this database.");
-			if (!m_globalSpace.Contains(content.Key)) throw new ArgumentOutOfRangeException("content", "The Content subspace must be contained inside the Global Space of this database.");
-
-			var dl = new FdbDirectoryLayer(nodes, content);
-			m_rootDirectory = new FdbDatabasePartition(this, dl);
-		}
-
-		public void UseDefaultRootDirectory()
-		{
-			var dl = new FdbDirectoryLayer(this.GlobalSpace[FdbKey.Directory], this.GlobalSpace);
-			m_rootDirectory = new FdbDatabasePartition(this, dl);
-		}
-
-		#endregion
-
-#endif
 
 		#region Key Space Management...
 
@@ -443,10 +380,24 @@ namespace FoundationDB.Client
 			if (ex != null) throw ex;
 		}
 
+		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="keys">Array of keys to verify</param>
+		/// <param name="endExclusive">If true, the keys are allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		internal void EnsureKeysAreValid(Slice[] keys, bool endExclusive = false)
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+			foreach(var key in keys)
+			{
+				var ex = ValidateKey(key, endExclusive);
+				if (ex != null) throw ex;
+			}
+		}
+
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <returns>An exception if the key is outside of the allowed key space of this database</exception>
+		/// <returns>An exception if the key is outside of the allowed key space of this database</return>
 		internal Exception ValidateKey(Slice key, bool endExclusive = false)
 		{
 			// null or empty keys are not allowed
@@ -489,7 +440,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Ensures that a serialized value is valid</summary>
-		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</exception>
+		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>
 		internal void EnsureValueIsValid(Slice value)
 		{
 			var ex = ValidateValue(value);
@@ -556,31 +507,47 @@ namespace FoundationDB.Client
 
 		public void Dispose()
 		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing)
+		{
 			if (!m_disposed)
 			{
 				m_disposed = true;
-
-				try
+				if (disposing)
 				{
-					// mark this db has dead, but keep the handle alive until after all the callbacks have fired
-
-					//TODO: kill all pending transactions on this db? 
-					foreach (var trans in m_transactions.Values)
+					try
 					{
-						if (trans != null && trans.StillAlive)
-						{
-							trans.Cancel();
-						}
-					}
-					m_transactions.Clear();
+						// mark this db has dead, but keep the handle alive until after all the callbacks have fired
 
-					//note: will block until all the registered callbacks have finished executing
-					m_cts.SafeCancelAndDispose();
-				}
-				finally
-				{
-					m_handle.Dispose();
-					if (m_ownsCluster) m_cluster.Dispose();
+						//TODO: kill all pending transactions on this db? 
+						foreach (var trans in m_transactions.Values)
+						{
+							if (trans != null && trans.StillAlive)
+							{
+								trans.Cancel();
+							}
+						}
+						m_transactions.Clear();
+
+						//note: will block until all the registered callbacks have finished executing
+						m_cts.SafeCancelAndDispose();
+					}
+					finally
+					{
+						if (m_handler != null)
+						{
+							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", String.Format("Disposing database {0} handler", m_name));
+							try { m_handler.Dispose(); }
+							catch (Exception e)
+							{
+								if (Logging.On) Logging.Exception(this, "Dispose", e);
+							}
+						}
+						if (m_ownsCluster) m_cluster.Dispose();
+					}
 				}
 			}
 		}

@@ -39,7 +39,7 @@ namespace FoundationDB.Async
 	/// <summary>Pump that takes items from a source, transform them, and outputs them</summary>
 	/// <typeparam name="T"></typeparam>
 	/// <typeparam name="R"></typeparam>
-	public class AsyncTransform<T, R> : IAsyncTarget<T>, IDisposable
+	public sealed class AsyncTransform<T, R> : IAsyncTarget<T>, IDisposable
 	{
 		private readonly IAsyncTarget<Task<R>> m_target;
 		private readonly Func<T, CancellationToken, Task<R>> m_transform;

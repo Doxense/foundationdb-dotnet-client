@@ -48,8 +48,10 @@ namespace FoundationDB.Client
 		private static bool s_started;
 
 		private static int s_apiVersion;
-
+		
 		private static EventHandler s_appDomainUnloadHandler;
+
+		internal static readonly byte[] EmptyArray = new byte[0];
 
 		/// <summary>Keys cannot exceed 10,000 bytes</summary>
 		internal const int MaxKeySize = 10 * 1000;
@@ -163,8 +165,11 @@ namespace FoundationDB.Client
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "StopEventLoop", "Stopping network thread...");
 
 				var err = FdbNative.StopNetwork();
+				if (err != FdbError.Success)
+				{
+					if (Logging.On) Logging.Warning(typeof(Fdb), "StopEventLoop", String.Format("Failed to stop event loop: {0}", err.ToString()));
+				}
 				s_eventLoopStarted = false;
-
 
 				var thread = s_eventLoop;
 				if (thread != null && thread.IsAlive)
@@ -232,6 +237,10 @@ namespace FoundationDB.Client
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
 				{ // Stop received
+#if DEBUG
+					Console.WriteLine("THE NETWORK EVENT LOOP HAS CRASHED! PLEASE RESTART THE PROCESS!");
+					Console.WriteLine("=> " + err);
+#endif
 					//TODO: logging ?
 					if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err.ToString(), GetErrorMessage(err)));
 				}
@@ -322,22 +331,9 @@ namespace FoundationDB.Client
 			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
 			//TODO: check the path ? (exists, readable, ...)
-			var future = FdbNative.CreateCluster(clusterFile);
 
-			return FdbFuture.CreateTaskFromHandle(future,
-				(h) =>
-				{
-					ClusterHandle cluster;
-					var err = FdbNative.FutureGetCluster(h, out cluster);
-					if (err != FdbError.Success)
-					{
-						cluster.Dispose();
-						throw MapToException(err);
-					}
-					return new FdbCluster(cluster, clusterFile);
-				},
-				cancellationToken
-			);
+			//TODO: have a way to configure the default IFdbClusterHander !
+			return FdbNativeCluster.CreateClusterAsync(clusterFile, cancellationToken);
 		}
 
 		#endregion
@@ -439,12 +435,22 @@ namespace FoundationDB.Client
 
 			//BUGBUG: Specs say we cannot restart the network thread anymore in the process after stoping it ! :(
 
+			s_started = true;
+
 			int apiVersion = FdbNative.FDB_API_VERSION;
 
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", apiVersion));
+			FdbError err = FdbNative.SelectApiVersion(apiVersion);
+#if DEBUG
+			if (err == FdbError.ApiVersionAlreadySet)
+			{ // Temporary hack to allow multiple debugging using the cached host process in VS
+				Console.WriteLine("REUSING EXISTING PROCESS! IF THINGS BREAK IN WEIRD WAYS, PLEASE RESTART THE PROCESS!");
+				err = FdbError.Success;
+			}
+#endif
+			DieOnError(err);
 			s_apiVersion = apiVersion;
-			DieOnError(FdbNative.SelectApiVersion(apiVersion));
-
+			
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TracePath))
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will trace client activity in '{0}'", Fdb.Options.TracePath));
@@ -478,6 +484,7 @@ namespace FoundationDB.Client
 			try { }
 			finally
 			{
+			
 				// register with the AppDomain to ensure that everyting is cleared when the process exists
 				s_appDomainUnloadHandler = (sender, args) =>
 				{
@@ -497,6 +504,11 @@ namespace FoundationDB.Client
 				s_started = true;
 			}
 
+			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", "Setting up Network Thread...");
+
+
+			DieOnError(FdbNative.SetupNetwork());
+
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", "Network thread has been set up");
 
 			StartEventLoop();
@@ -513,7 +525,7 @@ namespace FoundationDB.Client
 				}
 			}
 		}
-
+		
 		/// <summary>Stop the Network Thread</summary>
 		public static void Stop()
 		{

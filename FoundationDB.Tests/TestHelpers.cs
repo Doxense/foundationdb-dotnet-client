@@ -42,7 +42,7 @@ namespace FoundationDB.Client.Tests
 		public static readonly string TestClusterFile = null;
 		public static readonly string TestDbName = "DB";
 		public static readonly Slice TestGlobalPrefix = Slice.FromAscii("T");
-		public static readonly IFdbTuple TestPartition = FdbTuple.Create("Tests", Environment.MachineName);
+		public static readonly string[] TestPartition = new string[] { "Tests", Environment.MachineName };
 
 		/// <summary>Connect to the local test database</summary>
 		public static Task<FdbDatabase> OpenTestDatabaseAsync(CancellationToken ct = default(CancellationToken))
@@ -52,26 +52,20 @@ namespace FoundationDB.Client.Tests
 		}
 
 		/// <summary>Connect to the local test database</summary>
-		public static Task<FdbDatabasePartition> OpenTestPartitionAsync(CancellationToken ct = default(CancellationToken))
+		public static async Task<FdbDatabasePartition> OpenTestPartitionAsync(CancellationToken ct = default(CancellationToken))
 		{
-			return Fdb.PartitionTable.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, ct);
+			var db = await Fdb.PartitionTable.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, ct);
+			db.DefaultTimeout = 15 * 1000;
+			return db;
 		}
 
 		public static async Task<FdbDirectorySubspace> GetCleanDirectory(FdbDatabasePartition db, params string[] path)
 		{
-			IFdbTuple tuple;
-			if (path.Length == 0)
-				tuple = FdbTuple.Empty;
-			else if (path.Length == 1)
-				tuple = FdbTuple.Create(path[0]);
-			else
-				tuple = FdbTuple.CreateRange(path, 0, path.Length);
-
 			// remove previous
-			await db.TryRemoveDirectoryAsync(tuple);
+			await db.TryRemoveDirectoryAsync(path);
 
 			// create new
-			var subspace = await db.CreateDirectoryAsync(tuple);
+			var subspace = await db.CreateDirectoryAsync(path);
 			Assert.That(subspace, Is.Not.Null);
 			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True);
 			return subspace;

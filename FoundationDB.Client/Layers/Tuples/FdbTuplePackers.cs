@@ -93,6 +93,15 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
+			if (typeof(IFdbKey).IsAssignableFrom(type))
+			{
+				method = typeof(FdbTuplePackers).GetMethod("SerializeFdbKeyTo", BindingFlags.Static | BindingFlags.Public);
+				if (method != null)
+				{
+					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+				}
+			}
+
 			// TODO: look for a static SerializeTo(BWB, T) method on the type itself ?
 
 			// no luck..
@@ -426,6 +435,13 @@ namespace FoundationDB.Layers.Tuples
 			tuple.PackTo(ref writer);
 		}
 
+		public static void SerializeFdbKeyTo(ref SliceWriter writer, IFdbKey key)
+		{
+			Contract.Requires(key != null);
+			var slice = key.ToFoundationDbKey();
+			writer.WriteBytes(slice);
+		}
+
 		#endregion
 
 		#region Deserializers...
@@ -645,7 +661,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>
 		/// <param name="buffer">Slice that should contain the packed representation of a singleton tuple</param>
 		/// <returns>Decoded slice of the single element in the singleton tuple</returns>
-		internal static Slice UnpackSingle(Slice buffer)
+		public static Slice UnpackSingle(Slice buffer)
 		{
 			var slicer = new SliceReader(buffer);
 
@@ -658,7 +674,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Only returns the last item of a packed tuple</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
 		/// <returns>Raw slice corresponding to the last element of the tuple</returns>
-		internal static Slice UnpackLast(Slice buffer)
+		public static Slice UnpackLast(Slice buffer)
 		{
 			var slicer = new SliceReader(buffer);
 
@@ -677,7 +693,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Decode the next token from a packed tuple</summary>
 		/// <param name="reader">Parser from wich to read the next token</param>
 		/// <returns>Token decoded, or Slice.Nil if there was no more data in the buffer</returns>
-		internal static Slice ParseNext(ref SliceReader reader)
+		public static Slice ParseNext(ref SliceReader reader)
 		{
 			if (!reader.HasMore) return Slice.Nil;
 

@@ -117,7 +117,7 @@ namespace FoundationDB.Client.Tests
 							Assert.That(tr.Id, Is.EqualTo(id.Value), "The same transaction should be passed multiple times");
 
 							if (called < 3)
-							{ // fool the retry loop into thinking that a retryable error occured
+							{ // fool the retry loop into thinking that a retryable error occurred
 								throw new FdbException(FdbError.PastVersion, "Fake error");
 							}
 							Assert.That(called, Is.GreaterThanOrEqualTo(3), "The handler should not be called again if it completed previously");

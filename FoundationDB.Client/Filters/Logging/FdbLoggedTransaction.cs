@@ -73,53 +73,58 @@ namespace FoundationDB.Filters.Logging
 
 		private byte[] m_buffer = new byte[1024];
 		private int m_offset;
+		private readonly object m_lock = new object();
 
 		private Slice Grab(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return slice.IsNull ? Slice.Nil : Slice.Empty;
 
-			//TODO: locking!
+			lock (m_lock)
+			{
+				int remaining = m_buffer.Length - m_offset;
 
-			int remaining = m_buffer.Length - m_offset;
-
-			if (slice.Count > remaining)
-			{ // not enough ?
-				if (slice.Count >= 2048)
-				{
-					return slice.Memoize();
+				if (slice.Count > remaining)
+				{ // not enough ?
+					if (slice.Count >= 2048)
+					{
+						return slice.Memoize();
+					}
+					m_buffer = new byte[4096];
+					m_offset = 0;
+					remaining = m_buffer.Length;
 				}
-				m_buffer = new byte[4096];
-				m_offset = 0;
-				remaining = m_buffer.Length;
-			}
 
-			int start = m_offset;
-			slice.CopyTo(m_buffer, m_offset);
-			m_offset += slice.Count;
-			return new Slice(m_buffer, start, slice.Count);
+				int start = m_offset;
+				slice.CopyTo(m_buffer, m_offset);
+				m_offset += slice.Count;
+				return new Slice(m_buffer, start, slice.Count);
+			}
 		}
 
 		private Slice[] Grab(Slice[] slices)
 		{
-			//TODO: locking!
+			if (slices == null || slices.Length == 0) return slices;
 
-			int total = 0;
-			for (int i = 0; i < slices.Length; i++)
+			lock (m_lock)
 			{
-				total += slices[i].Count;
-			}
+				int total = 0;
+				for (int i = 0; i < slices.Length; i++)
+				{
+					total += slices[i].Count;
+				}
 
-			if (total > m_buffer.Length - m_offset)
-			{
-				return FdbKey.Merge(Slice.Empty, slices);
-			}
+				if (total > m_buffer.Length - m_offset)
+				{
+					return FdbKey.Merge(Slice.Empty, slices);
+				}
 
-			var res = new Slice[slices.Length];
-			for (int i = 0; i < slices.Length; i++)
-			{
-				res[i] = Grab(slices[i]);
+				var res = new Slice[slices.Length];
+				for (int i = 0; i < slices.Length; i++)
+				{
+					res[i] = Grab(slices[i]);
+				}
+				return res;
 			}
-			return res;
 		}
 
 		private FdbKeySelector Grab(FdbKeySelector selector)

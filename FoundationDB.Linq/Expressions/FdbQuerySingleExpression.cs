@@ -30,7 +30,6 @@ namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Diagnostics.Contracts;
 	using System.Globalization;
@@ -46,11 +45,6 @@ namespace FoundationDB.Linq.Expressions
 			this.Sequence = sequence;
 			this.Name = name;
 			this.Lambda = lambda;
-		}
-
-		public override FdbQueryNodeType QueryNodeType
-		{
-			get { return FdbQueryNodeType.Single; }
 		}
 
 		public override FdbQueryShape Shape
@@ -69,6 +63,13 @@ namespace FoundationDB.Linq.Expressions
 			return visitor.VisitQuerySingle(this);
 		}
 
+
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		{
+			builder.Writer.WriteLine("{0}(", this.Name).Enter();
+			builder.Visit(this.Sequence);
+			builder.Writer.Leave().Write(")");
+		}
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<R>>> CompileSingle()
 		{
 			// We want to generate: (trans, ct) => ExecuteEnumerable(source, lambda, trans, ct);

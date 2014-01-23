@@ -28,16 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Collections.Generic;
-	using System.Globalization;
 	using System.Linq.Expressions;
-	using System.Reflection;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	public class FdbQueryExpressionStringBuilder : FdbQueryExpressionVisitor
 	{
@@ -52,11 +46,23 @@ namespace FoundationDB.Linq.Expressions
 			m_writer = writer ?? new FdbDebugStatementWriter();
 		}
 
+		public FdbDebugStatementWriter Writer { get { return m_writer; } }
+
 		public override string ToString()
 		{
 			return m_writer.Buffer.ToString();
 		}
 
+		public override Expression Visit(FdbQueryExpression node)
+		{
+			if (node != null)
+			{
+				node.WriteTo(this);
+			}
+			return node;
+		}
+
+#if refactored
 		protected internal override Expression VisitQuerySingle<T, R>(FdbQuerySingleExpression<T, R> node)
 		{
 			m_writer.WriteLine("{0}(", node.Name).Enter();
@@ -93,7 +99,7 @@ namespace FoundationDB.Linq.Expressions
 
 		protected internal override Expression VisitQueryMerge<T>(FdbQueryMergeExpression<T> node)
 		{
-			m_writer.WriteLine("{0}<{1}>(", node.QueryNodeType.ToString(), node.ElementType.Name).Enter();
+			m_writer.WriteLine("{0}<{1}>(", node.MergeType.ToString(), node.ElementType.Name).Enter();
 			for (int i = 0; i < node.Expressions.Length; i++)
 			{
 				Visit(node.Expressions[i]);
@@ -135,6 +141,7 @@ namespace FoundationDB.Linq.Expressions
 
 			return node;
 		}
+#endif
 
 		private void VisitExpressions<TExpr>(IList<TExpr> expressions, string open, string close, string sep)
 			where TExpr : Expression

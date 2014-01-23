@@ -31,7 +31,6 @@ namespace FoundationDB.Linq.Expressions
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq.Utils;
 	using System;
 	using System.Linq.Expressions;
 	using System.Reflection;
@@ -78,41 +77,6 @@ namespace FoundationDB.Linq.Expressions
 		public static FdbQueryRangeExpression RangeStartsWith(IFdbTuple tuple, FdbRangeOptions options = null)
 		{
 			return Range(tuple.ToSelectorPair(), options);
-		}
-
-		public static FdbQueryIndexLookupExpression<TId, TValue> Lookup<TId, TValue>(FdbIndex<TId, TValue> index, ExpressionType op, Expression value)
-		{
-			if (index == null) throw new ArgumentNullException("index");
-			if (value == null) throw new ArgumentNullException("value");
-
-			switch(op)
-			{
-				case ExpressionType.Equal:
-				case ExpressionType.GreaterThan:
-				case ExpressionType.GreaterThanOrEqual:
-				case ExpressionType.LessThan:
-				case ExpressionType.LessThanOrEqual:
-					break;
-				default:
-					throw new ArgumentException("Index lookups only support the following operators: '==', '!=', '>', '>=', '<' and '<='", "op");
-			}
-
-			if (value.Type != typeof(TValue)) throw new ArgumentException("Value must have a type compatible with the index", "value");
-
-			return new FdbQueryIndexLookupExpression<TId, TValue>(index, op, value);
-		}
-
-		public static FdbQueryIndexLookupExpression<TId, TValue> Lookup<TId, TValue>(FdbIndex<TId, TValue> index, Expression<Func<TValue, bool>> expression)
-		{
-			if (index == null) throw new ArgumentNullException("index");
-
-			var binary = expression.Body as BinaryExpression;
-			if (binary == null) throw new ArgumentException("Only binary expression are allowed", "expression");
-
-			var constant = binary.Right as ConstantExpression;
-			if (constant == null || constant.Type != typeof(TValue)) throw new ArgumentException(String.Format("Left side of expression '{0}' must be a constant of type {1}", binary.Right.ToString(), typeof(TValue).Name));
-
-			return new FdbQueryIndexLookupExpression<TId, TValue>(index, binary.NodeType, constant);
 		}
 
 		public static FdbQueryIntersectExpression<T> Intersect<T>(params FdbQuerySequenceExpression<T>[] expressions)

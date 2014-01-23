@@ -33,6 +33,7 @@ namespace FoundationDB.Layers.Tables.Tests
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
+	using System.Collections.Generic;
 	using System.Threading.Tasks;
 
 	[TestFixture]
@@ -55,16 +56,17 @@ namespace FoundationDB.Layers.Tables.Tests
 				// read non existing value
 				using (var tr = db.BeginTransaction())
 				{
-					var value = await table.GetAsync(tr, "hello");
-					Assert.That(value, Is.Null);
+					Assert.That(async () => await table.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
+
+					var value = await table.TryGetAsync(tr, "hello");
+					Assert.That(value.HasValue, Is.False);
+					Assert.That(value.GetValueOrDefault(), Is.Null);
 				}
 
 				// write value
 				using (var tr = db.BeginTransaction())
 				{
-
 					table.Set(tr, "hello", secret);
-
 					await tr.CommitAsync();
 				}
 
@@ -76,8 +78,11 @@ namespace FoundationDB.Layers.Tables.Tests
 				using (var tr = db.BeginTransaction())
 				{
 					var value = await table.GetAsync(tr, "hello");
-					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
-					Assert.That(value.ToString(), Is.EqualTo(secret));
+					Assert.That(value, Is.EqualTo(secret));
+
+					var opt = await table.TryGetAsync(tr, "hello");
+					Assert.That(opt.HasValue, Is.True);
+					Assert.That(opt.Value, Is.EqualTo(secret));
 				}
 
 				// directly read the value, behind the table's back
@@ -102,9 +107,11 @@ namespace FoundationDB.Layers.Tables.Tests
 				// verifiy that it is gone
 				using (var tr = db.BeginTransaction())
 				{
-					var value = await table.GetAsync(tr, "hello");
-					Assert.That(value, Is.Null);
+					Assert.That(async () => await table.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
 
+					var value = await table.TryGetAsync(tr, "hello");
+					Assert.That(value.HasValue, Is.False);
+					
 					// also check directly
 					var data = await tr.GetAsync(location.Pack("Foos", "hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
@@ -144,9 +151,10 @@ namespace FoundationDB.Layers.Tables.Tests
 					value = await table.GetAsync(tr, "bar");
 					Assert.That(value, Is.EqualTo("bar_value"));
 
-					value = await table.GetAsync(tr, "baz");
-					Assert.That(value, Is.Null);
+					Assert.That(async () => await table.GetAsync(tr, "baz"), Throws.InstanceOf<KeyNotFoundException>());
 
+					var opt = await table.TryGetAsync(tr, "baz");
+					Assert.That(opt.HasValue, Is.False);
 				}
 
 			}

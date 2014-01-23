@@ -241,32 +241,43 @@ namespace FoundationDB.Async
 			// if the first item in the queue is not yet completed, we need to wait for it (semi-fast path)
 			// if the queue is empty, we first need to wait for an item to arrive, then wait for it
 
-			Task waiter;
+			Task<Maybe<TOutput>> task = null;
+			Task waiter = null;
+
 			lock(m_lock)
 			{
 				if (m_queue.Count > 0)
 				{
-					var task = m_queue.Peek();
+					task = m_queue.Peek();
+					Contract.Assert(task != null);
+
 					if (task.IsCompleted)
 					{
 						m_queue.Dequeue();
 						WakeUpProducer_NeedsLocking();
 						return Maybe.Unwrap(task);
 					}
-
-					return ReceiveWhenDoneAsync(task, ct);
 				}
 				else if (m_done)
 				{ // something went wrong...
 					return Maybe<TOutput>.EmptyTask;
 				}
-
-				waiter = WaitForNextItem_NeedsLocking(ct);
-				Contract.Assert(waiter != null);
+				else
+				{
+					waiter = WaitForNextItem_NeedsLocking(ct);
+					Contract.Assert(waiter != null);
+				}
 			}
 
-			// slow code path
-			return ReceiveSlowAsync(waiter, ct);
+
+			if (task != null)
+			{ // the next task is already started, we need to wait for it
+				return ReceiveWhenDoneAsync(task, ct);
+			}
+			else
+			{ // nothing schedule yet, slow code path will wait for something new to happen...
+				return ReceiveSlowAsync(waiter, ct);
+			}
 		}
 
 		private async Task<Maybe<TOutput>> ReceiveWhenDoneAsync(Task<Maybe<TOutput>> task, CancellationToken ct)
@@ -282,8 +293,11 @@ namespace FoundationDB.Async
 			}
 			finally
 			{
-				var _ = m_queue.Dequeue();
-				WakeUpProducer_NeedsLocking();
+				lock (m_lock)
+				{
+					var _ = m_queue.Dequeue();
+					WakeUpProducer_NeedsLocking();
+				}
 			}
 		}
 

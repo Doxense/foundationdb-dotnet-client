@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Tuples
 				{
 					case 0: case -2: return this.Item1;
 					case 1: case -1: return this.Item2;
-					default: throw new IndexOutOfRangeException();
+					default: FdbTuple.FailIndexOutOfRange(index, 2); return null;
 				}
 			}
 		}
@@ -78,9 +78,12 @@ namespace FoundationDB.Layers.Tuples
 
 		public R Get<R>(int index)
 		{
-			if (index == 0 || index == -2) return FdbConverters.Convert<T1, R>(this.Item1);
-			if (index == 1 || index == -1) return FdbConverters.Convert<T2, R>(this.Item2);
-			throw new IndexOutOfRangeException();
+			switch(index)
+			{ 
+				case 0: case -2: return FdbConverters.Convert<T1, R>(this.Item1);
+				case 1: case -1: return FdbConverters.Convert<T2, R>(this.Item2);
+				default: FdbTuple.FailIndexOutOfRange(index, 2); return default(R);
+			}
 		}
 
 		public R Last<R>()
@@ -96,12 +99,15 @@ namespace FoundationDB.Layers.Tuples
 
 		IFdbTuple IFdbTuple.Append<T3>(T3 value)
 		{
-			return this.Append<T3>(value);
+			return new FdbTuple<T1, T2, T3>(this.Item1, this.Item2, value);
 		}
 
 		public FdbTuple<T1, T2, T3> Append<T3>(T3 value)
 		{
 			return new FdbTuple<T1, T2, T3>(this.Item1, this.Item2, value);
+			// Note: By create a FdbTuple<T1, T2, T3> we risk an explosion of the number of combinations of Ts which could potentially cause problems at runtime (too many variants of the same generic types). 
+			// ex: if we have N possible types, then there could be N^3 possible variants of FdbTuple<T1, T2, T3> that the JIT has to deal with.
+			// => if this starts becoming a problem, then we should return a list tuple !
 		}
 
 		public void CopyTo(object[] array, int offset)
@@ -149,6 +155,18 @@ namespace FoundationDB.Layers.Tuples
 		public override int GetHashCode()
 		{
 			return ((IStructuralEquatable)this).GetHashCode(SimilarValueComparer.Default);
+		}
+
+		public static bool operator ==(FdbTuple<T1, T2> left, FdbTuple<T1, T2> right)
+		{
+			return SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
+				&& SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
+		}
+
+		public static bool operator !=(FdbTuple<T1, T2> left, FdbTuple<T1, T2> right)
+		{
+			return !SimilarValueComparer.Default.Equals(left.Item1, right.Item1)
+				|| !SimilarValueComparer.Default.Equals(left.Item2, right.Item2);
 		}
 
 		bool System.Collections.IStructuralEquatable.Equals(object other, System.Collections.IEqualityComparer comparer)
