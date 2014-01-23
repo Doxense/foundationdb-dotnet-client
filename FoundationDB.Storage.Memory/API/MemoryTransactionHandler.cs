@@ -877,7 +877,7 @@ namespace FoundationDB.Storage.Memory.API
 			if (param.IsNull) throw new ArgumentNullException("Parameter cannot be null");
 			CheckAccessToSystemKeys(key);
 
-			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.And && mutation != FdbMutationType.Or && mutation != FdbMutationType.Xor)
+			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.BitAnd && mutation != FdbMutationType.BitOr && mutation != FdbMutationType.BitXor)
 			{
 				//TODO: throw an FdbException instead?
 				throw new ArgumentException("Invalid mutation type", "mutation");

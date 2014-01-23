@@ -521,7 +521,7 @@ namespace FoundationDB.Client
 			m_database.EnsureValueIsValid(param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
-			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.And && mutation != FdbMutationType.Or && mutation != FdbMutationType.Xor)
+			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.BitAnd && mutation != FdbMutationType.BitOr && mutation != FdbMutationType.BitXor)
 				throw new ArgumentException("Invalid mutation type", "mutation");
 
 #if DEBUG

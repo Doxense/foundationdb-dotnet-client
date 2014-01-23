@@ -614,9 +614,9 @@ namespace FoundationDB.Client.Tests
 			int expected = 0;
 			switch(type)
 			{
-				case FdbMutationType.And: expected = x & y; break;
-				case FdbMutationType.Or: expected = x | y; break;
-				case FdbMutationType.Xor: expected = x ^ y; break;
+				case FdbMutationType.BitAnd: expected = x & y; break;
+				case FdbMutationType.BitOr: expected = x | y; break;
+				case FdbMutationType.BitXor: expected = x ^ y; break;
 				case FdbMutationType.Add: expected = x + y; break;
 				default: Assert.Fail("Invalid operation type"); break;
 			}
@@ -665,25 +665,25 @@ namespace FoundationDB.Client.Tests
 				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Add, 987654321);
 
 				key = location.Pack("and");
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.And, 0);
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.And, 0x018055AA);
-				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.And, 0x018055AA);
-				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.And, 0x018055AA);
-				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.And, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitAnd, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitAnd, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.BitAnd, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.BitAnd, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitAnd, 0x018055AA);
 
 				key = location.Pack("or");
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Or, 0);
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Or, 0x018055AA);
-				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.Or, 0x018055AA);
-				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.Or, 0x018055AA);
-				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.Or, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitOr, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitOr, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.BitOr, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.BitOr, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitOr, 0x018055AA);
 
 				key = location.Pack("xor");
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Xor, 0);
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Xor, 0x018055AA);
-				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.Xor, 0x018055AA);
-				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.Xor, 0x018055AA);
-				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.Xor, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitXor, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitXor, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.BitXor, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.BitXor, 0x018055AA);
+				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitXor, 0x018055AA);
 
 				// calling with an invalid mutation type should fail
 				using(var tr = db.BeginTransaction())

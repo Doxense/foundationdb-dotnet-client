@@ -46,16 +46,26 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Performs a bitwise ``and`` operation.  If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
 		/// </summary>
-		And = 6,
+		BitAnd = 6,
 
 		/// <summary>
 		/// Performs a bitwise ``or`` operation.  If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
 		/// </summary>
-		Or = 7,
+		BitOr = 7,
 
 		/// <summary>
 		/// Performs a bitwise ``xor`` operation.  If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
 		/// </summary>
+		BitXor = 8,
+
+
+		// Obsolete names (will be removed in the future)
+
+		[Obsolete("Use FdbMutationType.BitAnd instead")]
+		And = 6,
+		[Obsolete("Use FdbMutationType.BitOr instead")]
+		Or = 7,
+		[Obsolete("Use FdbMutationType.BitXor instead")]
 		Xor = 8,
 
 	}

@@ -201,50 +201,56 @@ namespace FoundationDB.Client
 
 		public static void AtomicAnd(this IFdbTransaction trans, Slice key, Slice mask)
 		{
+			//TODO: rename this to AtomicBitAnd(...) ?
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Atomic(key, mask, FdbMutationType.And);
+			trans.Atomic(key, mask, FdbMutationType.BitAnd);
 		}
 
 		public static void AtomicAnd<TKey>(this IFdbTransaction trans, TKey key, Slice mask)
 			where TKey : IFdbKey
 		{
+			//TODO: rename this to AtomicBitAnd(...) ?
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (key == null) throw new ArgumentNullException("key");
 
-			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.And);
+			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.BitAnd);
 		}
 
 		public static void AtomicOr(this IFdbTransaction trans, Slice key, Slice mask)
 		{
+			//TODO: rename this to AtomicBitOr(...) ?
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Atomic(key, mask, FdbMutationType.Or);
+			trans.Atomic(key, mask, FdbMutationType.BitOr);
 		}
 
 		public static void AtomicOr<TKey>(this IFdbTransaction trans, TKey key, Slice mask)
 			where TKey : IFdbKey
 		{
+			//TODO: rename this to AtomicBitOr(...) ?
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (key == null) throw new ArgumentNullException("key");
 
-			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.Or);
+			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.BitOr);
 		}
 
 		public static void AtomicXor(this IFdbTransaction trans, Slice key, Slice mask)
 		{
+			//TODO: rename this to AtomicBitXOr(...) ?
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Atomic(key, mask, FdbMutationType.Xor);
+			trans.Atomic(key, mask, FdbMutationType.BitXor);
 		}
 
 		public static void AtomicXor<TKey>(this IFdbTransaction trans, TKey key, Slice mask)
 			where TKey : IFdbKey
 		{
+			//TODO: rename this to AtomicBitXOr(...) ?
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (key == null) throw new ArgumentNullException("key");
 
-			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.Xor);
+			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.BitXor);
 		}
 
 		#endregion
