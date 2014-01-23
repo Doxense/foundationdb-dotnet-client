@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>FoundationDB.Storage.Memory</RootNamespace>
+    <AssemblyName>FoundationDB.Storage.Memory</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>FoundationDB.Storage.Memory.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Collections.Immutable">
+      <HintPath>..\packages\Microsoft.Bcl.Immutable.1.0.30\lib\portable-net45+win8+wp8\System.Collections.Immutable.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core" />
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="IO\Win32SnapshotFile.cs" />
+    <Compile Include="Core\Value.cs" />
+    <Compile Include="API\MemoryClusterHandler.cs" />
+    <Compile Include="Core\Key.cs" />
+    <Compile Include="Core\Memory\ValueHeap.cs" />
+    <Compile Include="Core\Memory\KeyHeap.cs" />
+    <Compile Include="Core\SequenceComparer.cs" />
+    <Compile Include="Core\NativeKeyComparer.cs" />
+    <Compile Include="Core\TransactionWindow.cs" />
+    <Compile Include="Core\Entry.cs" />
+    <Compile Include="Core\Memory\EntryPage.cs" />
+    <Compile Include="Core\Memory\ElasticHeap`1.cs" />
+    <Compile Include="API\MemoryDatabaseHandler.cs" />
+    <Compile Include="API\MemoryDatabase.cs" />
+    <Compile Include="API\MemoryTransactionHandler.cs" />
+    <Compile Include="Collections\ColaOrderedDictionary.cs" />
+    <Compile Include="Collections\ColaRangeDictionary.cs" />
+    <Compile Include="Collections\ColaRangeSet.cs" />
+    <Compile Include="Collections\ColaStore`1.cs" />
+    <Compile Include="Collections\ColaStore.cs" />
+    <Compile Include="Collections\ColaOrderedSet.cs" />
+    <Compile Include="Utils\TaskHelpers.cs" />
+    <Compile Include="Utils\UnmanagedHelpers.cs" />
+    <Compile Include="Utils\UnmanagedSliceBuilderPool.cs" />
+    <Compile Include="Utils\USliceComparer.cs" />
+    <Compile Include="Utils\USlice.cs" />
+    <Compile Include="Utils\UnmanagedSliceStream.cs" />
+    <Compile Include="Utils\UnmanagedMemoryHeap.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\UnmanagedSliceBuilder.cs" />
+    <Compile Include="Properties\VersionInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\foundationdb-dotnet-client\FoundationDB.Client\FoundationDB.Client.csproj">
+      <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
+      <Name>FoundationDB.Client</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="FoundationDB.Storage.Memory.snk" />
+    <None Include="packages.config" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
