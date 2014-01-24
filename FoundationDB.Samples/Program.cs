@@ -418,7 +418,7 @@ namespace FoundationDB.Samples
 			var folder = await db.Root.TryOpenAsync(db, path, cancellationToken: ct);
 			if (folder != null)
 			{
-				stream.WriteLine("- Directory already exists!", prm);
+				stream.WriteLine("- Directory {0} already exists!", prm);
 				return;
 			}
 

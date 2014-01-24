@@ -885,7 +885,7 @@ namespace FoundationDB.Client
 						try { m_handler.Dispose(); }
 						catch(Exception e)
 						{
-							if (Logging.On) Logging.Error(this, "Dispose", String.Format("Transaction #{0} failed to dispose the transaction handler: {1}", e.Message));
+							if (Logging.On) Logging.Error(this, "Dispose", String.Format("Transaction #{0} failed to dispose the transaction handler: {1}", m_id.ToString(), e.Message));
 						}
 					}
 					if (!m_context.Shared) m_context.Dispose();
