@@ -523,11 +523,6 @@ namespace FoundationDB.Client
 				s_started = true;
 			}
 
-			if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", "Setting up Network Thread...");
-
-
-			DieOnError(FdbNative.SetupNetwork());
-
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", "Network thread has been set up");
 
 			StartEventLoop();
