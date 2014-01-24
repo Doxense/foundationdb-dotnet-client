@@ -34,11 +34,12 @@ namespace FoundationDB.Layers.Tuples
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Diagnostics;
 
 	/// <summary>Tuple that holds only one item</summary>
 	/// <typeparam name="T1">Type of the item</typeparam>
-	[DebuggerDisplay("{ToString()}")]
+	[ImmutableObject(true), DebuggerDisplay("{ToString()}")]
 	public struct FdbTuple<T1> : IFdbTuple
 	{
 		// This is mostly used by code that create a lot of temporary singleton, to reduce the pressure on the Garbage Collector by allocating them on the stack.
