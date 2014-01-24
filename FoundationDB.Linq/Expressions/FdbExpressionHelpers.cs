@@ -85,7 +85,7 @@ namespace FoundationDB.Linq.Expressions
 			if (expr.Type != typeof(T)) throw new InvalidOperationException("Expression type mismatch");
 
 			var constant = expr as ConstantExpression;
-			return (T)constant.Value;
+			if (constant != null) return (T)constant.Value;
 
 			throw new NotSupportedException(String.Format("Unsupported expression {1}: '{0}' should return a constant value", expression.GetType().Name, expr.ToString()));
 		}

@@ -256,16 +256,10 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		/// <summary>Returns true if the C API dll has been loaded properly</summary>
-		public static bool IsLoaded
-		{
-			get { return LibraryLoadError == null && FdbCLib != null; }
-		}
-
 		private static void EnsureLibraryIsLoaded()
 		{
 			// should be inlined
-			if (LibraryLoadError != null || FdbCLib == null) LibraryLoadError.Throw();
+			if (LibraryLoadError != null) LibraryLoadError.Throw();
 		}
 
 		private static string ToManagedString(byte* nativeString)
