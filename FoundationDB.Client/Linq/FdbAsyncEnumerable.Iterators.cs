@@ -378,7 +378,7 @@ namespace FoundationDB.Linq
 		/// <param name="single">If true, the sequence must contain at most one element</param>
 		/// <param name="orDefault">When the sequence is empty: If true then returns the default value for the type. Otherwise, throws an exception</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
-		/// <returns>Value of the first element of the <paramref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
+		/// <returns>Value of the first element of the <param ref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
 		internal static async Task<TSource> Head<TSource>(IFdbAsyncEnumerable<TSource> source, bool single, bool orDefault, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();

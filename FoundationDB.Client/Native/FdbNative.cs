@@ -256,16 +256,10 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		/// <summary>Returns true if the C API dll has been loaded properly</summary>
-		public static bool IsLoaded
-		{
-			get { return LibraryLoadError == null && FdbCLib != null; }
-		}
-
 		private static void EnsureLibraryIsLoaded()
 		{
 			// should be inlined
-			if (LibraryLoadError != null || FdbCLib == null) LibraryLoadError.Throw();
+			if (LibraryLoadError != null) LibraryLoadError.Throw();
 		}
 
 		private static string ToManagedString(byte* nativeString)
@@ -283,7 +277,6 @@ namespace FoundationDB.Client.Native
 		/// <summary>Converts a string into an ANSI byte array</summary>
 		/// <param name="value">String to convert (or null)</param>
 		/// <param name="nullTerminated">If true, adds a terminating \0 at the end (C-style strings)</param>
-		/// <param name="length">Receives the size of the string including the optional NUL terminator (or 0 if <paramref name="value"/> is null)</param>
 		/// <returns>Byte array with the ANSI-encoded string with an optional NUL terminator, or null if <paramref name="value"/> was null</returns>
 		public static Slice ToNativeString(string value, bool nullTerminated)
 		{

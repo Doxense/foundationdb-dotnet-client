@@ -107,7 +107,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Checks if a list of reads conflicts with at least one write performed in this transaction window</summary>
 		/// <param name="reads">List of reads to check for conflicts</param>
 		/// <param name="version">Sequence number of the transaction that performed the reads</param>
-		/// <returns>True if at least one read is conflicting with a write with a higher sequence number; otherwise, false.<returns>
+		/// <returns>True if at least one read is conflicting with a write with a higher sequence number; otherwise, false.</returns>
 		public bool Conflicts(ColaRangeSet<Slice> reads, ulong version)
 		{
 			Contract.Requires(reads != null);

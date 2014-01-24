@@ -34,12 +34,13 @@ namespace FoundationDB.Layers.Tuples
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Diagnostics;
 
 	/// <summary>Tuple that holds a pair of items</summary>
 	/// <typeparam name="T1">Type of the first item</typeparam>
 	/// <typeparam name="T2">Type of the second item</typeparam>
-	[DebuggerDisplay("{ToString()}")]
+	[ImmutableObject(true), DebuggerDisplay("{ToString()}")]
 	public struct FdbTuple<T1, T2> : IFdbTuple
 	{
 		// This is mostly used by code that create a lot of temporary pair, to reduce the pressure on the Garbage Collector by allocating them on the stack.

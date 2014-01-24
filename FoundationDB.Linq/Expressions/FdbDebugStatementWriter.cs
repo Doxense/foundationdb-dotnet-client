@@ -81,12 +81,12 @@ namespace FoundationDB.Linq.Expressions
 			return this;
 		}
 
-		public FdbDebugStatementWriter WriteLine(string format, params string[] args)
+		public FdbDebugStatementWriter WriteLine(string format, params object[] args)
 		{
 			return WriteLine(String.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
-		public FdbDebugStatementWriter Write(string format, params string[] args)
+		public FdbDebugStatementWriter Write(string format, params object[] args)
 		{
 			return Write(String.Format(CultureInfo.InvariantCulture, format, args));
 		}

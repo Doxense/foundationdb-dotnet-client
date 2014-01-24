@@ -50,7 +50,7 @@ namespace FoundationDB.Client.Utils.Tests
 			return sb.ToString();
 		}
 
-		private delegate void TestHandler<T>(ref SliceWriter writer, T value);
+		private delegate void TestHandler<in T>(ref SliceWriter writer, T value);
 
 		private static void PerformWriterTest<T>(TestHandler<T> action, T value, string expectedResult, string message = null)
 		{

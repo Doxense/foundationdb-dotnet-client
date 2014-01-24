@@ -152,7 +152,6 @@ namespace FoundationDB.Client
 
 		/// <summary>Start a new transaction on this database, with an optional context</summary>
 		/// <param name="context">Optional context in which the transaction will run</param>
-		/// <param name="readOnly">If true, only read operations are allowed, and all write attempts will throw.</param>
 		internal FdbTransaction CreateNewTransaction(FdbOperationContext context)
 		{
 			Contract.Requires(context != null && context.Database != null);
@@ -397,7 +396,7 @@ namespace FoundationDB.Client
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <returns>An exception if the key is outside of the allowed key space of this database</return>
+		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
 		internal Exception ValidateKey(Slice key, bool endExclusive = false)
 		{
 			// null or empty keys are not allowed

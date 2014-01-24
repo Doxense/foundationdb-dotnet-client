@@ -641,7 +641,7 @@ namespace FoundationDB.Client.Tests
 				var data = await tr.GetAsync(key);
 				Assert.That(data.Count, Is.EqualTo(4), "data.Count");
 
-				Assert.That(data.ToInt32(), Is.EqualTo(expected), "0x{0} {1} 0x{2} = 0x{0}", x.ToString("X8"), type.ToString(), y.ToString("X8"), expected.ToString("X8"));
+				Assert.That(data.ToInt32(), Is.EqualTo(expected), "0x{0} {1} 0x{2} = 0x{3}", x.ToString("X8"), type.ToString(), y.ToString("X8"), expected.ToString("X8"));
 			}
 		}
 

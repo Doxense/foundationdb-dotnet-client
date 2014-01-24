@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Tuples
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Text;
 
@@ -41,7 +42,7 @@ namespace FoundationDB.Layers.Tuples
 	/// <typeparam name="T1">Type of the first item</typeparam>
 	/// <typeparam name="T2">Type of the second item</typeparam>
 	/// <typeparam name="T3">Type of the third item</typeparam>
-	[DebuggerDisplay("{ToString()}")]
+	[ImmutableObject(true), DebuggerDisplay("{ToString()}")]
 	public struct FdbTuple<T1, T2, T3> : IFdbTuple
 	{
 		// This is mostly used by code that create a lot of temporary triplet, to reduce the pressure on the Garbage Collector by allocating them on the stack.

@@ -179,7 +179,7 @@ namespace FoundationDB.Client.Tests
 						{
 
 							if (used[i])
-								Assert.Fail("Duplicate index {0} chunk {1}:{2} for worker {2}", i, chunk.Key, chunk.Value, id);
+								Assert.Fail("Duplicate index {0} chunk {1}:{2} for worker {3}", i, chunk.Key, chunk.Value, id);
 							else
 								used[i] = true;
 						}

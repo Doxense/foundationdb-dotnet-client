@@ -41,7 +41,7 @@ namespace FoundationDB.Layers.Messaging
 					const int W = 2; // workers
 
 					RunAsync(db, location, cts.Token, () => cts.Cancel(), N, K, W).GetAwaiter().GetResult();
-				};
+				}
 			}
 			catch (TaskCanceledException)
 			{

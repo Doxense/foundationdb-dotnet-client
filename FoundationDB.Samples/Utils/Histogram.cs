@@ -261,7 +261,7 @@ namespace Doxense.Mathematics.Statistics
 					return r;
 				}
 			}
-			return array.LastOrDefault().Deviation;
+			return array.Length == 0 ? 0 : array[array.Length - 1].Deviation;
 		}
 
 		/// <summary>Retourne la valeur moyenne</summary>

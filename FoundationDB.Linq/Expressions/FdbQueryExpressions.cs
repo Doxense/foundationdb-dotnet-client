@@ -123,7 +123,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public static string ExplainSingle<T>(FdbQueryExpression<T> expression, CancellationToken ct)
 		{
-			if (expression.Shape != FdbQueryShape.Single) throw new InvalidOperationException("Invalid sequence shape"); ;
+			if (expression.Shape != FdbQueryShape.Single) throw new InvalidOperationException("Invalid sequence shape");
 
 			var expr = expression.CompileSingle();
 			return expr.GetDebugView();
@@ -132,7 +132,7 @@ namespace FoundationDB.Linq.Expressions
 
 		public static string ExplainSequence<T>(FdbQuerySequenceExpression<T> expression)
 		{
-			if (expression.Shape != FdbQueryShape.Sequence) throw new InvalidOperationException("Invalid sequence shape"); ;
+			if (expression.Shape != FdbQueryShape.Sequence) throw new InvalidOperationException("Invalid sequence shape");
 
 			var expr = expression.CompileSequence();
 			return expr.GetDebugView();

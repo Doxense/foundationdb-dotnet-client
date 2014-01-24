@@ -1214,7 +1214,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		private static void ThrowDisposed()
 		{
-			throw new ObjectDisposedException("This transaction has already been disposed."); ;
+			throw new ObjectDisposedException("This transaction has already been disposed.");
 		}
 
 		public void Dispose()

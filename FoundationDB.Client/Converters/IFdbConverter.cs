@@ -42,7 +42,7 @@ namespace FoundationDB.Client.Converters
 	/// <summary>Class that can convert values of type <typeparamref name="TSource"/> into values of type <typeparamref name="TDestination"/></summary>
 	/// <typeparam name="TSource">Source type</typeparam>
 	/// <typeparam name="TDestination">Destination type</typeparam>
-	public interface IFdbConverter<TSource, TDestination> : IFdbConverter
+	public interface IFdbConverter<in TSource, out TDestination> : IFdbConverter
 	{
 		/// <summary>Converts a <paramref name="TSource"/> into a <paramref name="TDestination"/></summary>
 		/// <param name="value">Value to convert</param>

@@ -808,7 +808,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Gets a temporary buffer with the length corresponding to the specified level</summary>
 		/// <param name="level">Level of this spare buffer</param>
 		/// <returns>Temporary buffer whose size is 2^level</returns>
-		/// <remarks>The buffer should be returned after use by calling <see cref="PutSpare()"/></remarks>
+		/// <remarks>The buffer should be returned after use by calling <see cref="PutSpare"/></remarks>
 		public T[] GetSpare(int level)
 		{
 			Contract.Requires(level >= 0 && m_spares != null);

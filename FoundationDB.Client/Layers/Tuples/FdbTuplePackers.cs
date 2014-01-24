@@ -41,7 +41,7 @@ namespace FoundationDB.Layers.Tuples
 	{
 		private static readonly Slice[] NoSlices = new Slice[0];
 
-		public delegate void Encoder<T>(ref SliceWriter writer, T value);
+		public delegate void Encoder<in T>(ref SliceWriter writer, T value);
 
 		#region Serializers...
 

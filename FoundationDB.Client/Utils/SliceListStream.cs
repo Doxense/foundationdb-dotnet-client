@@ -258,7 +258,7 @@ namespace FoundationDB.Client
 				int n = Read(buffer, offset, count);
 
 				var task = m_lastTask;
-				return task != null & task.Result == n ? task : (m_lastTask = Task.FromResult(n));
+				return task != null && task.Result == n ? task : (m_lastTask = Task.FromResult(n));
 
 			}
 			catch (Exception e)
