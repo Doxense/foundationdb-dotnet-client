@@ -178,7 +178,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <param name="lambda"></param>
 		/// <param name="arguments"></param>
 		/// <returns></returns>
-		/// <remarks>Typical use case is when we have a dummy Expression<Func<...>> used to get a method call signature, and we want to remplace the parameters of the lambda with the actual values that will be used at runtime</remarks>
+		/// <remarks>Typical use case is when we have a dummy Expression&lt;Func&lt;...&gt;&gt; used to get a method call signature, and we want to remplace the parameters of the lambda with the actual values that will be used at runtime</remarks>
 		public static Expression RewriteCall<TDelegate>(Expression<TDelegate> lambda, params Expression[] arguments)
 		{
 			if (lambda == null) throw new ArgumentNullException("lambda");

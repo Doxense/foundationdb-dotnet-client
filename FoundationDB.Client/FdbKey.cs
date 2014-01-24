@@ -54,8 +54,8 @@ namespace FoundationDB.Client
 		/// <param name="slice">Slice to increment</param>
 		/// <returns>New slice that is guaranteed to be the first key lexicographically higher than <paramref name="slice"/> which does not have <paramref name="slice"/> as a prefix</returns>
 		/// <remarks>If the last byte is already equal to 0xFF, it will rollover to 0x00 and the next byte will be incremented.</remarks>
-		/// <exception cref="System.ArgumentException">If the Slice is equal to Slice.Nil</exception>
-		/// <exception cref="System.OverflowException">If the Slice is the empty string or consists only of 0xFF bytes</exception>
+		/// <exception cref="ArgumentException">If the Slice is equal to Slice.Nil</exception>
+		/// <exception cref="OverflowException">If the Slice is the empty string or consists only of 0xFF bytes</exception>
 		/// <example>
 		/// FdbKey.Increment(Slice.FromString("ABC")) => "ABD"
 		/// FdbKey.Increment(Slice.FromHexa("01 FF")) => { 02 }
