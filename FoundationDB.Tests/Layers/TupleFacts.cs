@@ -783,6 +783,131 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_FdbTuple_Serialize_Singles()
+		{
+			Assert.That(
+				FdbTuple.Create(0f).ToSlice().ToHexaString(' '),
+				Is.EqualTo("20 80 00 00 00")
+			);
+
+			Assert.That(
+				FdbTuple.Create(42f).ToSlice().ToHexaString(' '),
+				Is.EqualTo("20 C2 28 00 00")
+			);
+
+			Assert.That(
+				FdbTuple.Create(-42f).ToSlice().ToHexaString(' '),
+				Is.EqualTo("20 3D D7 FF FF")
+			);
+
+			// minus zero
+			Assert.That(
+				FdbTuple.Create(-0f).ToSlice().ToHexaString(' '),
+				Is.EqualTo("20 7F FF FF FF")
+			);
+
+			// -INF
+			Assert.That(
+				FdbTuple.Create(float.NegativeInfinity).ToSlice().ToHexaString(' '),
+				Is.EqualTo("20 00 7F FF FF")
+			);
+
+			// +INF
+			Assert.That(
+				FdbTuple.Create(float.PositiveInfinity).ToSlice().ToHexaString(' '),
+				Is.EqualTo("20 FF 80 00 00")
+			);
+
+			// all possible variants of NaN should all be equal
+			Assert.That(
+				FdbTuple.Create(float.NaN).ToSlice().ToHexaString(' '),
+				Is.EqualTo("20 00 3F FF FF")
+			);
+
+			// cook up a non standard NaN (with some bits set in the fraction)
+			float f = float.NaN; // defined as 1f / 0f
+			uint nan;
+			unsafe { nan = *((uint*)&f); }
+			nan += 123;
+			unsafe { f = *((float*)&nan); }
+			Assert.That(float.IsNaN(f), Is.True);
+			Assert.That(
+				FdbTuple.Create(f).ToSlice().ToHexaString(' '),
+				Is.EqualTo("20 00 3F FF FF")
+				//note: if we have 20 00 3F FF 84, that means that the NaN was not normalized
+			);
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_Serialize_Doubles()
+		{
+			Assert.That(
+				FdbTuple.Create(0d).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 80 00 00 00 00 00 00 00")
+			);
+
+			Assert.That(
+				FdbTuple.Create(42d).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 C0 45 00 00 00 00 00 00")
+			);
+
+			Assert.That(
+				FdbTuple.Create(-42d).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 3F BA FF FF FF FF FF FF")
+			);
+
+			// Min
+			Assert.That(
+				FdbTuple.Create(double.MinValue).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 00 10 00 00 00 00 00 00")
+			);
+
+			// Max
+			Assert.That(
+				FdbTuple.Create(double.MaxValue).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 FF EF FF FF FF FF FF FF")
+			);
+
+			// minus zero
+			Assert.That(
+				FdbTuple.Create(-0d).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 7F FF FF FF FF FF FF FF")
+			);
+
+			// -INF
+			Assert.That(
+				FdbTuple.Create(double.NegativeInfinity).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 00 0F FF FF FF FF FF FF")
+			);
+
+			// +INF
+			Assert.That(
+				FdbTuple.Create(double.PositiveInfinity).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 FF F0 00 00 00 00 00 00")
+			);
+
+			// all possible variants of NaN should all be equal
+			Assert.That(
+				FdbTuple.Create(double.NaN).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 00 07 FF FF FF FF FF FF")
+			);
+
+			// cook up a non standard NaN (with some bits set in the fraction)
+			double d = double.NaN; // defined as 1d / 0d
+			ulong nan;
+			unsafe { nan = *((ulong*)&d); }
+			nan += 123;
+			unsafe { d = *((double*)&nan); }
+			Assert.That(double.IsNaN(d), Is.True);
+			Assert.That(
+				FdbTuple.Create(d).ToSlice().ToHexaString(' '),
+				Is.EqualTo("21 00 07 FF FF FF FF FF FF")
+				//note: if we have 21 00 07 FF FF FF FF FF 84, that means that the NaN was not normalized
+			);
+		}
+
+		[Test]
 		public void Test_FdbTuple_Serialize_Booleans()
 		{
 			// False is 0, True is 1

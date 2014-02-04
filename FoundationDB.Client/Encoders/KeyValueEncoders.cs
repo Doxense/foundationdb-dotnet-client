@@ -480,6 +480,7 @@ namespace FoundationDB.Client
 		public static class Tuples
 		{
 
+			//TODO: rename to TupleEncoder<T>!
 			internal class TupleKeyEncoder<T> : IKeyEncoder<T>, IValueEncoder<T>
 			{
 				public static readonly TupleKeyEncoder<T> Default = new TupleKeyEncoder<T>();

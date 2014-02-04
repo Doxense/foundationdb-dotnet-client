@@ -239,6 +239,82 @@ namespace FoundationDB.Layers.Tuples
 			writer.Position = p;
 		}
 
+		/// <summary>Writes an Single at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">IEEE Floating point, 32 bits, High Endian</param>
+		public static void WriteSingle(ref SliceWriter writer, float value)
+		{
+			// The double is converted to its Big-Endian IEEE binary representation
+			// - If the sign bit is set, flip all the bits
+			// - If the sign bit is not set, just flip the sign bit
+			// This ensures that all negative numbers have their first byte < 0x80, and all positive numbers have their first byte >= 0x80
+
+			// Special case for NaN: All variants are normalized to float.NaN !
+			if (float.IsNaN(value)) value = float.NaN;
+
+			// note: there is no BitConverter.SingleToInt32Bits(...), so we have to do it ourselves...
+			uint bits;
+			unsafe { bits = *((uint*)&value); }
+
+			if ((bits & 0x80000000U) != 0)
+			{ // negative
+				bits = ~bits;
+			}
+			else
+			{ // postive
+				bits |= 0x80000000U;
+			}
+			writer.EnsureBytes(5);
+			var buffer = writer.Buffer;
+			int p = writer.Position;
+			buffer[p + 0] = 0x20;
+			buffer[p + 1] = (byte)(bits >> 24);
+			buffer[p + 2] = (byte)(bits >> 16);
+			buffer[p + 3] = (byte)(bits >> 8);
+			buffer[p + 4] = (byte)(bits);
+			writer.Position = p + 5;
+		}
+
+		/// <summary>Writes an Double at the end, and advance the cursor</summary>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">IEEE Floating point, 64 bits, High Endian</param>
+		public static void WriteDouble(ref SliceWriter writer, double value)
+		{
+			// The double is converted to its Big-Endian IEEE binary representation
+			// - If the sign bit is set, flip all the bits
+			// - If the sign bit is not set, just flip the sign bit
+			// This ensures that all negative numbers have their first byte < 0x80, and all positive numbers have their first byte >= 0x80
+
+			// Special case for NaN: All variants are normalized to float.NaN !
+			if (double.IsNaN(value)) value = double.NaN;
+
+			// note: we could use BitConverter.DoubleToInt64Bits(...), but it does the same thing, and also it does not exist for floats...
+			ulong bits;
+			unsafe { bits = *((ulong*)&value); }
+
+			if ((bits & 0x8000000000000000UL) != 0)
+			{ // negative
+				bits = ~bits;
+			}
+			else
+			{ // postive
+				bits |= 0x8000000000000000UL;
+			}
+			writer.EnsureBytes(9);
+			var buffer = writer.Buffer;
+			int p = writer.Position;
+			buffer[p] = 0x21;
+			buffer[p + 1] = (byte)(bits >> 56);
+			buffer[p + 2] = (byte)(bits >> 48);
+			buffer[p + 3] = (byte)(bits >> 40);
+			buffer[p + 4] = (byte)(bits >> 32);
+			buffer[p + 5] = (byte)(bits >> 24);
+			buffer[p + 6] = (byte)(bits >> 16);
+			buffer[p + 7] = (byte)(bits >> 8);
+			buffer[p + 8] = (byte)(bits);
+			writer.Position = p + 9;
+		}
+
 		/// <summary>Writes a binary string</summary>
 		public static void WriteBytes(ref SliceWriter writer, byte[] value)
 		{
