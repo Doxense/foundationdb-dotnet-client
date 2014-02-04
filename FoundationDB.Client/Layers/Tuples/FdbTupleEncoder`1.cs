@@ -32,7 +32,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client.Utils;
 	using System;
 
-	public sealed class FdbTupleCodec<T> : FdbTypeCodec<T>
+	public sealed class FdbTupleCodec<T> : FdbTypeCodec<T>, IValueEncoder<T>
 	{
 
 		private static volatile FdbTupleCodec<T> s_defaultSerializer;
@@ -81,6 +81,15 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
+		public Slice EncodeValue(T value)
+		{
+			return EncodeUnordered(value);
+		}
+
+		public T DecodeValue(Slice encoded)
+		{
+			return DecodeUnordered(encoded);
+		}
 	}
 
 }
