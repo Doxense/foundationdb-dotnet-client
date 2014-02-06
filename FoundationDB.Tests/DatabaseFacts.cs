@@ -102,19 +102,19 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Open_Or_CreateCluster_With_Invalid_ClusterFile_Path_Should_Fail()
 		{
-			// Missing/Invalid cluster files should fail with "FileNotReadable"
+			// Missing/Invalid cluster files should fail with "NoClusterFileFound"
 
 			// file not found
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@".\file_not_found.cluster"), FdbError.FileNotReadable, "Should fail if cluster file is missing");
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(@".\file_not_found.cluster", "DB"), FdbError.FileNotReadable, "Should fail if cluster file is missing");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@".\file_not_found.cluster"), FdbError.NoClusterFileFound, "Should fail if cluster file is missing");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(@".\file_not_found.cluster", "DB"), FdbError.NoClusterFileFound, "Should fail if cluster file is missing");
 
 			// unreachable path
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@"C:\..\..\fdb.cluster"), FdbError.FileNotReadable, "Should fail if path is malformed");
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(@"C:\..\..\fdb.cluster", "DB"), FdbError.FileNotReadable, "Should fail if path is malformed");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@"C:\..\..\fdb.cluster"), FdbError.NoClusterFileFound, "Should fail if path is malformed");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(@"C:\..\..\fdb.cluster", "DB"), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 
 			// malformed path
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@"FOO:\invalid$path!/fdb.cluster"), FdbError.FileNotReadable, "Should fail if path is malformed");
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(@"FOO:\invalid$path!/fdb.cluster", "DB"), FdbError.FileNotReadable, "Should fail if path is malformed");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.CreateClusterAsync(@"FOO:\invalid$path!/fdb.cluster"), FdbError.NoClusterFileFound, "Should fail if path is malformed");
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(@"FOO:\invalid$path!/fdb.cluster", "DB"), FdbError.NoClusterFileFound, "Should fail if path is malformed");
 		}
 
 		[Test]
