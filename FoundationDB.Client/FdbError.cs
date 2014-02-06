@@ -54,10 +54,14 @@ namespace FoundationDB.Client
 		TransactionTimedOut = 1031,
 		/// <summary>Too many watches are currently set</summary>
 		TooManyWatches = 1032,
+		/// <summary>Disabling read your writes also disables watches</summary>
+		WatchesDisabled = 1034,
 		/// <summary>Broken Promise [UNDOCUMENTED]</summary>
 		BrokenPromise = 1100,
 		/// <summary>Asynchronous operation cancelled</summary>
 		OperationCancelled = 1101,
+		/// <summary>The future has been released</summary>
+		FutureReleased = 1102,
 		/// <summary>A platform error occurred</summary>
 		PlatformError = 1500,
 		/// <summary>Large block allocation failed</summary>
@@ -110,8 +114,10 @@ namespace FoundationDB.Client
 		FutureNotSet = 2015,
 		/// <summary>The future is not an error</summary>
 		FutureNotError = 2016,
-		/// <summary>The future has been released</summary>
-		FutureReleased = 2017,
+		/// <summary>An operation was issued while a commit was outstanding</summary>
+		UsedDuringCommit = 2017,
+		/// <summary>An invalid atomic mutation type was issued</summary>
+		InvalidMutationType = 2048,
 		/// <summary>Incompatible protocol version</summary>
 		IncompatibleProtocolVersion = 2100,
 		/// <summary>Transaction too large</summary>
@@ -126,6 +132,8 @@ namespace FoundationDB.Client
 		AddressInUse = 2105,
 		/// <summary>Invalid local address</summary>
 		InvalidLocalAddress = 2106,
+		/// <summary>TLS error</summary>
+		TlsError = 2107,
 		/// <summary>Api version must be set</summary>
 		ApiVersionUnset = 2200,
 		/// <summary>Api version may be set only once</summary>

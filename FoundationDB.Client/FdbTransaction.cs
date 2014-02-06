@@ -522,7 +522,7 @@ namespace FoundationDB.Client
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
 			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.BitAnd && mutation != FdbMutationType.BitOr && mutation != FdbMutationType.BitXor)
-				throw new ArgumentException("Invalid mutation type", "mutation");
+				throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued");
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", String.Format("Atomic {0} on '{1}' = {2}", mutation.ToString(), FdbKey.Dump(key), Slice.Dump(param)));
