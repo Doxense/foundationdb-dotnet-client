@@ -49,6 +49,15 @@ namespace FoundationDB.Client
 		/// <summary>Returns true if there are more bytes to parse</summary>
 		public bool HasMore { get { return this.Position < this.Buffer.Count; } }
 
+		/// <summary>Returns the number of bytes remaining</summary>
+		public int Remaining { get { return Math.Max(0, this.Buffer.Count - this.Position); } }
+
+		/// <summary>Returns a slice with all the remaining bytes in the buffer</summary>
+		public Slice Window
+		{
+			get { return this.Buffer.Substring(this.Position); }
+		}
+
 		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
 		public void EnsureBytes(int count)
 		{
@@ -160,6 +169,15 @@ namespace FoundationDB.Client
 				s += 7;
 			}
 			throw new FormatException("Malformed Varint");
+		}
+
+		/// <summary>Reads a variable sized slice, by first reading its size (stored as a Varint32) and then the data</summary>
+		public Slice ReadVarbytes()
+		{
+			uint size = ReadVarint32();
+			if (size > int.MaxValue) throw new FormatException("Malformed variable size");
+			if (size == 0) return Slice.Empty;
+			return ReadBytes((int)size);
 		}
 
 	}

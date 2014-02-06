@@ -622,6 +622,31 @@ namespace FoundationDB.Client
 			this.Position = p;
 		}
 
+		public void WriteVarbytes(Slice value)
+		{
+			SliceHelpers.EnsureSliceIsValid(ref value);
+			int n = value.Count;
+			if (n < 128)
+			{
+				EnsureBytes(n + 1);
+				var buffer = this.Buffer;
+				int p = this.Position;
+				// write the count (single byte)
+				buffer[p] = (byte)n;
+				// write the bytes
+				SliceHelpers.CopyBytesUnsafe(buffer, p + 1, value.Array, value.Offset, n);
+				this.Position = p + n + 1;
+			}
+			else
+			{
+				// write the count
+				WriteVarint32((uint)value.Count);
+				// write the bytes
+				SliceHelpers.CopyBytesUnsafe(this.Buffer, this.Position, value.Array, value.Offset, n);
+				this.Position += n;
+			}
+		}
+
 		/// <summary>Ensures that we can fit a specific amount of data at the end of the buffer</summary>
 		/// <param name="count">Number of bytes that will be written</param>
 		/// <remarks>If the buffer is too small, it will be resized</remarks>

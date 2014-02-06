@@ -37,8 +37,6 @@ namespace FoundationDB.Types.ProtocolBuffers
 	public class ProtobufCodec<TDocument> : IValueEncoder<TDocument>, IUnorderedTypeCodec<TDocument>
 	{
 
-		private static readonly Encoding s_utf8NoBom = new UTF8Encoding(false);
-
 		public ProtobufCodec()
 		{
 			ProtoBuf.Serializer.PrepareSerializer<TDocument>();

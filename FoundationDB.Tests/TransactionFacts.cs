@@ -1670,6 +1670,9 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
+				//var cf = await db.GetCoordinatorsAsync();
+				//Console.WriteLine("Connected to " + cf.ToString());
+
 				using(var tr = db.BeginTransaction().WithAccessToSystemKeys())
 				{
 					// dump nodes
@@ -1693,11 +1696,11 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// dump keyServers
-					Console.WriteLine("Key Servers:");
 					keys = await tr.GetRange(Fdb.SystemKeys.KeyServers, Fdb.SystemKeys.KeyServers + Fdb.SystemKeys.MaxValue)
 						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.SystemKeys.KeyServers.Count), kvp.Value))
 						.ToListAsync();
-					foreach(var key in keys)
+					Console.WriteLine("Key Servers: " + keys.Count + " shards");
+					foreach (var key in keys)
 					{
 						// the node id seems to be at offset 12
 						var nodeId = key.Value.Substring(12, 16).ToHexaString();

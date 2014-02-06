@@ -289,6 +289,7 @@ namespace FoundationDB.Filters.Logging
 				{
 					if (flag) sb.Append(" and ");
 					sb.Append("Committed " + this.CommitSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
+					flag = true;
 				}
 				if (!flag) sb.Append("Completed");
 				sb.AppendLine(" in " + duration.TotalMilliseconds.ToString("N3", CultureInfo.InvariantCulture) + " ms and " + attempts.ToString(CultureInfo.InvariantCulture) + " attempt(s)");

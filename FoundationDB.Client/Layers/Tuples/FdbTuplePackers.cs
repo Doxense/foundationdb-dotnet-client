@@ -102,11 +102,34 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
+			var nullableType = Nullable.GetUnderlyingType(type);
+			if (nullableType != null)
+			{ // nullable types can reuse the underlying type serializer
+				method = typeof(FdbTuplePackers).GetMethod("SerializeNullableTo", BindingFlags.Static | BindingFlags.Public);
+				if (method != null)
+				{
+					return method.MakeGenericMethod(nullableType).CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
+				}
+			}
+
 			// TODO: look for a static SerializeTo(BWB, T) method on the type itself ?
 
 			// no luck..
 			return null;
+		}
 
+		/// <summary>Serialize a nullable value, by checking for null at runtime</summary>
+		/// <typeparam name="T">Underling type of the nullable type</typeparam>
+		/// <param name="writer">Target buffer</param>
+		/// <param name="value">Nullable value to serialize</param>
+		/// <remarks>Uses the underlying type's serializer if the value is not null</remarks>
+		public static void SerializeNullableTo<T>(ref SliceWriter writer, T? value)
+			where T : struct
+		{
+			if (value == null)
+				FdbTupleParser.WriteNil(ref writer);
+			else
+				FdbTuplePacker<T>.Encoder(ref writer, value.Value);
 		}
 
 		/// <summary>Serialize an untyped object, by checking its type at runtime</summary>
@@ -366,6 +389,18 @@ namespace FoundationDB.Layers.Tuples
 		public static void SerializeTo(ref SliceWriter writer, ulong value)
 		{
 			FdbTupleParser.WriteUInt64(ref writer, value);
+		}
+
+		/// <summary>Writes a 32-bit IEEE floating point number</summary>
+		public static void SerializeTo(ref SliceWriter writer, float value)
+		{
+			FdbTupleParser.WriteSingle(ref writer, value);
+		}
+
+		/// <summary>Writes a 64-bit IEEE floating point number</summary>
+		public static void SerializeTo(ref SliceWriter writer, double value)
+		{
+			FdbTupleParser.WriteDouble(ref writer, value);
 		}
 
 		/// <summary>Writes a string as an Unicode string</summary>
