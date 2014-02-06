@@ -230,69 +230,77 @@ namespace FoundationDB.Filters.Logging
 			else
 				sb.AppendLine(", did not finish");
 			sb.AppendLine();
-			sb.AppendLine("┌  oper. ┬" + new string('─', width + 2) + "┬──── start ──── end ── duration ──┬─ sent  recv ┐");
-
-			int step = -1;
-			bool previousWasOnError = false;
-			int attempts = 1;
-			int charsToSkip = 0;
-			foreach (var cmd in cmds)
+			if (cmds.Length > 0)
 			{
-				if (previousWasOnError)
-				{ // │
-					sb.AppendLine("├────────┼" + new string('─', 2 + width) + "┼──────────────────────────────────┼─────────────┤ == Attempt #" + (++attempts).ToString() + " ==");
-				}
+				sb.AppendLine("┌  oper. ┬" + new string('─', width + 2) + "┬──── start ──── end ── duration ──┬─ sent  recv ┐");
 
-				long ticks = cmd.Duration.Ticks;
-				double r = 1.0d * ticks / duration.Ticks;
-				string w = GetFancyGraph(width, cmd.StartOffset.Ticks, ticks, duration.Ticks, charsToSkip);
-
-				sb.AppendFormat(
-					CultureInfo.InvariantCulture, 
-					"│{6}{1,-3:##0}{10}{0,2}{7}│ {2} │ T+{3,7:##0.000} ~ {4,7:##0.000} ({5,7:##,##0} µs) │ {8,5} {9,5} │ {11}",
-					/* 0 */ cmd.ShortName,
-					/* 1 */ cmd.Step,
-					/* 2 */ w,
-					/* 3 */ cmd.StartOffset.TotalMilliseconds,
-					/* 4 */ (cmd.EndOffset ?? TimeSpan.Zero).TotalMilliseconds,
-					/* 5 */ ticks / 10.0,
-					/* 6 */ cmd.Step == step ? ":" : " ",
-					/* 7 */ ticks >= 100000 ? "*" : ticks >= 10000 ? "°" : " ",
-					/* 8 */ cmd.ArgumentBytes,
-					/* 9 */ cmd.ResultBytes,
-					/* 10 */ cmd.Error != null ? "!" : " ",
-					/* 11 */ showCommands ? cmd.ToString() : String.Empty
-				);
-				sb.AppendLine();
-
-				previousWasOnError = cmd.Op == Operation.OnError;
-				if (previousWasOnError)
+				int step = -1;
+				bool previousWasOnError = false;
+				int attempts = 1;
+				int charsToSkip = 0;
+				foreach (var cmd in cmds)
 				{
-					charsToSkip = (int)Math.Floor(1.0d * width * (cmd.EndOffset ?? TimeSpan.Zero).Ticks / duration.Ticks);
+					if (previousWasOnError)
+					{ // │
+						sb.AppendLine("├────────┼" + new string('─', 2 + width) + "┼──────────────────────────────────┼─────────────┤ == Attempt #" + (++attempts).ToString() + " ==");
+					}
+
+					long ticks = cmd.Duration.Ticks;
+					double r = 1.0d * ticks / duration.Ticks;
+					string w = GetFancyGraph(width, cmd.StartOffset.Ticks, ticks, duration.Ticks, charsToSkip);
+
+					sb.AppendFormat(
+						CultureInfo.InvariantCulture,
+						"│{6}{1,-3:##0}{10}{0,2}{7}│ {2} │ T+{3,7:##0.000} ~ {4,7:##0.000} ({5,7:##,##0} µs) │ {8,5} {9,5} │ {11}",
+						/* 0 */ cmd.ShortName,
+						/* 1 */ cmd.Step,
+						/* 2 */ w,
+						/* 3 */ cmd.StartOffset.TotalMilliseconds,
+						/* 4 */ (cmd.EndOffset ?? TimeSpan.Zero).TotalMilliseconds,
+						/* 5 */ ticks / 10.0,
+						/* 6 */ cmd.Step == step ? ":" : " ",
+						/* 7 */ ticks >= 100000 ? "*" : ticks >= 10000 ? "°" : " ",
+						/* 8 */ cmd.ArgumentBytes,
+						/* 9 */ cmd.ResultBytes,
+						/* 10 */ cmd.Error != null ? "!" : " ",
+						/* 11 */ showCommands ? cmd.ToString() : String.Empty
+					);
+					sb.AppendLine();
+
+					previousWasOnError = cmd.Op == Operation.OnError;
+					if (previousWasOnError)
+					{
+						charsToSkip = (int)Math.Floor(1.0d * width * (cmd.EndOffset ?? TimeSpan.Zero).Ticks / duration.Ticks);
+					}
+
+					step = cmd.Step;
 				}
 
-				step = cmd.Step;
+				sb.AppendLine("└────────┴" + new string('─', width + 2) + "┴──────────────────────────────────┴─────────────┘");
+
+				// Footer
+				if (this.Completed)
+				{
+					sb.Append("> ");
+					flag = false;
+					if (this.ReadSize > 0)
+					{
+						sb.Append("Read " + this.ReadSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
+						flag = true;
+					}
+					if (this.CommitSize > 0)
+					{
+						if (flag) sb.Append(" and ");
+						sb.Append("Committed " + this.CommitSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
+						flag = true;
+					}
+					if (!flag) sb.Append("Completed");
+					sb.AppendLine(" in " + duration.TotalMilliseconds.ToString("N3", CultureInfo.InvariantCulture) + " ms and " + attempts.ToString(CultureInfo.InvariantCulture) + " attempt(s)");
+				}
 			}
-
-			sb.AppendLine("└────────┴" + new string('─', width + 2) + "┴──────────────────────────────────┴─────────────┘");
-
-			// Footer
-			if (this.Completed)
-			{
-				flag = false;
-				if (this.ReadSize > 0)
-				{
-					sb.Append("Read " + this.ReadSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
-					flag = true;
-				}
-				if (this.CommitSize > 0)
-				{
-					if (flag) sb.Append(" and ");
-					sb.Append("Committed " + this.CommitSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
-					flag = true;
-				}
-				if (!flag) sb.Append("Completed");
-				sb.AppendLine(" in " + duration.TotalMilliseconds.ToString("N3", CultureInfo.InvariantCulture) + " ms and " + attempts.ToString(CultureInfo.InvariantCulture) + " attempt(s)");
+			else
+			{ // empty transaction
+				sb.AppendLine("> Completed after " + duration.TotalMilliseconds.ToString("N3", CultureInfo.InvariantCulture) + " ms without performing any operation");
 			}
 			return sb.ToString();
 		}
