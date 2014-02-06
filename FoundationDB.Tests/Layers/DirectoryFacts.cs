@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Directories
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
+	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
@@ -51,16 +52,22 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition(Slice.FromString("hca"));
 				await db.ClearRangeAsync(location);
 
+#if DEBUG
+				var list = new List<FdbTransactionLog>();
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
+#else
+				var logged = db;
+#endif
+
 				var hpa = new FdbHighContentionAllocator(location);
 
 				long id;
 				var ids = new HashSet<long>();
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = logged.BeginTransaction())
 				{
 					id = await hpa.AllocateAsync(tr);
 					await tr.CommitAsync();
-
 				}
 				Console.WriteLine(id);
 				ids.Add(id);
@@ -69,7 +76,7 @@ namespace FoundationDB.Layers.Directories
 
 				for (int i = 0; i < 100; i++)
 				{
-					using (var tr = db.BeginTransaction())
+					using (var tr = logged.BeginTransaction())
 					{
 						id = await hpa.AllocateAsync(tr);
 						await tr.CommitAsync();
@@ -84,6 +91,13 @@ namespace FoundationDB.Layers.Directories
 				}
 
 				await TestHelpers.DumpSubspace(db, location);
+
+#if DEBUG
+				foreach(var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true)); 
+				}
+#endif
 			}
 		}
 
@@ -96,6 +110,13 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
 
+#if DEBUG
+				var list = new List<FdbTransactionLog>();
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
+#else
+				var logged = db;
+#endif
+
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
 				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
 
@@ -107,7 +128,7 @@ namespace FoundationDB.Layers.Directories
 				// first call should create a new subspace (with a random prefix)
 				FdbDirectorySubspace foo;
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = logged.BeginTransaction())
 				{
 					foo = await directory.CreateOrOpenAsync(tr, new[] { "Foo" });
 					await tr.CommitAsync();
@@ -126,7 +147,7 @@ namespace FoundationDB.Layers.Directories
 
 				FdbDirectorySubspace foo2;
 
-				foo2 = await directory.OpenAsync(db, new[] { "Foo" });
+				foo2 = await directory.OpenAsync(logged, new[] { "Foo" });
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
@@ -135,6 +156,13 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(foo2.Layer, Is.EqualTo(Slice.Empty));
 				Assert.That(foo2.DirectoryLayer, Is.SameAs(directory));
 				Assert.That(foo2.Key, Is.EqualTo(foo.Key), "Second call to CreateOrOpen should return the same subspace");
+
+#if DEBUG
+				foreach (var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true));
+				}
+#endif
 			}
 		}
 
@@ -147,6 +175,13 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
 
+#if DEBUG
+				var list = new List<FdbTransactionLog>();
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
+#else
+				var logged = db;
+#endif
+
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
 				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
 
@@ -156,7 +191,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(directory.NodeSubspace.Key, Is.EqualTo(location.Key + Slice.FromByte(254)));
 
 				// first call should create a new subspace (with a random prefix)
-				var foo = await directory.CreateOrOpenAsync(db, new[] { "Foo" }, Slice.FromString("AcmeLayer"));
+				var foo = await directory.CreateOrOpenAsync(logged, new[] { "Foo" }, Slice.FromString("AcmeLayer"));
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
@@ -167,7 +202,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(foo.DirectoryLayer, Is.SameAs(directory));
 
 				// second call should return the same subspace
-				var foo2 = await directory.OpenAsync(db, new [] { "Foo" }, Slice.FromString("AcmeLayer"));
+				var foo2 = await directory.OpenAsync(logged, new[] { "Foo" }, Slice.FromString("AcmeLayer"));
 				Assert.That(foo2, Is.Not.Null);
 				Assert.That(foo2.Path, Is.EqualTo(new[] { "Foo" }));
 				Assert.That(foo2.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
@@ -175,10 +210,10 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(foo2.Key, Is.EqualTo(foo.Key), "Second call to CreateOrOpen should return the same subspace");
 
 				// opening it with wrong layer id should fail
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new[] { "Foo" }, Slice.FromString("OtherLayer")), "Opening with invalid layer id should fail");
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(logged, new[] { "Foo" }, Slice.FromString("OtherLayer")), "Opening with invalid layer id should fail");
 
 				// opening without specifying a layer should disable the layer check
-				var foo3 = await directory.OpenAsync(db, "Foo", layer: Slice.Nil);
+				var foo3 = await directory.OpenAsync(logged, "Foo", layer: Slice.Nil);
 				Assert.That(foo3, Is.Not.Null);
 				Assert.That(foo3.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
 
@@ -191,6 +226,13 @@ namespace FoundationDB.Layers.Directories
 				// CheckLayer with empty string should do nothing
 				foo3.CheckLayer(Slice.Empty);
 				foo3.CheckLayer(Slice.Nil);
+
+#if DEBUG
+				foreach (var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true));
+				}
+#endif
 			}
 		}
 
@@ -206,11 +248,18 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
 
+#if DEBUG
+				var list = new List<FdbTransactionLog>();
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
+#else
+				var logged = db;
+#endif
+
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
 				var directory = FdbDirectoryLayer.FromSubspace(location);
 
 				FdbDirectorySubspace folder;
-				using (var tr = db.BeginTransaction())
+				using (var tr = logged.BeginTransaction())
 				{
 
 					folder = await directory.CreateOrOpenAsync(tr, new [] { "Foo", "Bar", "Baz" });
@@ -224,10 +273,17 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder.Path, Is.EqualTo(new [] { "Foo", "Bar", "Baz" }));
 
 				// all the parent folders should also now exist
-				var foo = await directory.OpenAsync(db, new[] { "Foo" });
-				var bar = await directory.OpenAsync(db, new[] { "Foo", "Bar" });
+				var foo = await directory.OpenAsync(logged, new[] { "Foo" });
+				var bar = await directory.OpenAsync(logged, new[] { "Foo", "Bar" });
 				Assert.That(foo, Is.Not.Null);
 				Assert.That(bar, Is.Not.Null);
+
+#if DEBUG
+				foreach (var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true));
+				}
+#endif
 			}
 		}
 
@@ -241,33 +297,46 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location);
 				var directory = FdbDirectoryLayer.FromSubspace(location);
 
+#if DEBUG
+				var list = new List<FdbTransactionLog>();
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
+#else
+				var logged = db;
+#endif
+
 				// linear subtree "/Foo/Bar/Baz"
-				await directory.CreateOrOpenAsync(db, new[] { "Foo", "Bar", "Baz" });
+				await directory.CreateOrOpenAsync(logged, new[] { "Foo", "Bar", "Baz" });
 				// flat subtree "/numbers/0" to "/numbers/9"
-				for (int i = 0; i < 10; i++) await directory.CreateOrOpenAsync(db, new[] { "numbers", i.ToString() });
+				for (int i = 0; i < 10; i++) await directory.CreateOrOpenAsync(logged, new[] { "numbers", i.ToString() });
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 
-				var subdirs = await directory.ListAsync(db, new[] { "Foo" });
+				var subdirs = await directory.ListAsync(logged, new[] { "Foo" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
 				Assert.That(subdirs[0], Is.EqualTo("Bar"));
 
-				subdirs = await directory.ListAsync(db, new[] { "Foo", "Bar" });
+				subdirs = await directory.ListAsync(logged, new[] { "Foo", "Bar" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(1));
 				Assert.That(subdirs[0], Is.EqualTo("Baz"));
 
-				subdirs = await directory.ListAsync(db, new[] { "Foo", "Bar", "Baz" });
+				subdirs = await directory.ListAsync(logged, new[] { "Foo", "Bar", "Baz" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(0));
 
-				subdirs = await directory.ListAsync(db, new[] { "numbers" });
+				subdirs = await directory.ListAsync(logged, new[] { "numbers" });
 				Assert.That(subdirs, Is.Not.Null);
 				Assert.That(subdirs.Count, Is.EqualTo(10));
 				Assert.That(subdirs, Is.EquivalentTo(Enumerable.Range(0, 10).Select(x => x.ToString()).ToList()));
 
+#if DEBUG
+				foreach (var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true));
+				}
+#endif
 			}
 		}
 
@@ -319,11 +388,18 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
 
+#if DEBUG
+				var list = new List<FdbTransactionLog>();
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
+#else
+				var logged = db;
+#endif
+
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
 				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
 
 				// create a folder at ('Foo',)
-				var original = await directory.CreateOrOpenAsync(db, "Foo");
+				var original = await directory.CreateOrOpenAsync(logged, "Foo");
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
@@ -331,7 +407,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(original.Path, Is.EqualTo(new[] { "Foo" }));
 
 				// rename/move it as ('Bar',)
-				var renamed = await original.MoveAsync(db, new [] { "Bar" });
+				var renamed = await original.MoveAsync(logged, new[] { "Bar" });
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
@@ -340,16 +416,22 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(renamed.Key, Is.EqualTo(original.Key));
 
 				// opening the old path should fail
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, "Foo"));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(logged, "Foo"));
 
 				// opening the new path should succeed
-				var folder = await directory.OpenAsync(db, "Bar");
+				var folder = await directory.OpenAsync(logged, "Bar");
 				Assert.That(folder, Is.Not.Null);
 				Assert.That(folder.Path, Is.EqualTo(renamed.Path));
 				Assert.That(folder.Key, Is.EqualTo(renamed.Key));
 
 				// moving the folder under itself should fail
-				Assert.Throws<InvalidOperationException>(async () => await folder.MoveAsync(db, new[] { "Bar", "Baz" }));
+				Assert.Throws<InvalidOperationException>(async () => await folder.MoveAsync(logged, new[] { "Bar", "Baz" }));
+#if DEBUG
+				foreach (var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true));
+				}
+#endif
 			}
 		}
 
@@ -362,40 +444,54 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location);
 				var directory = FdbDirectoryLayer.FromSubspace(location);
 
+#if DEBUG
+				var list = new List<FdbTransactionLog>();
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
+#else
+				var logged = db;
+#endif
+
 				// RemoveAsync
 
 				string[] path = new[] { "CrashTestDummy" };
-				await directory.CreateAsync(db, path);
+				await directory.CreateAsync(logged, path);
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 
 				// removing an existing folder should succeeed
-				await directory.RemoveAsync(db, path);
+				await directory.RemoveAsync(logged, path);
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
 				//TODO: call ExistsAsync(...) once it is implemented!
 
 				// Removing it a second time should fail
-				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, path), "Removing a non-existent directory should fail");
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(logged, path), "Removing a non-existent directory should fail");
 
 				// TryRemoveAsync
 
-				await directory.CreateAsync(db, path);
+				await directory.CreateAsync(logged, path);
 
 				// attempting to remove a folder should return true
-				bool res = await directory.TryRemoveAsync(db, path);
+				bool res = await directory.TryRemoveAsync(logged, path);
 				Assert.That(res, Is.True);
 
 				// further attempts should return false
-				res = await directory.TryRemoveAsync(db, path);
+				res = await directory.TryRemoveAsync(logged, path);
 				Assert.That(res, Is.False);
 
 				// Corner Cases
 
 				// removing the root folder is not allowed (too dangerous)
-				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[0]), "Attempting to remove the root directory should fail");
+				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(logged, new string[0]), "Attempting to remove the root directory should fail");
+
+#if DEBUG
+				foreach (var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true));
+				}
+#endif
 			}
 		}
 
@@ -408,7 +504,14 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location);
 				var directory = FdbDirectoryLayer.FromSubspace(location);
 
-				var folder = await directory.CreateAsync(db, "Test", layer: Slice.FromString("foo"));
+#if DEBUG
+				var list = new List<FdbTransactionLog>();
+				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
+#else
+				var logged = db;
+#endif
+
+				var folder = await directory.CreateAsync(logged, "Test", layer: Slice.FromString("foo"));
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
@@ -416,7 +519,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder.Layer.ToUnicode(), Is.EqualTo("foo"));
 
 				// change the layer to 'bar'
-				var folder2 = await folder.ChangeLayerAsync(db, Slice.FromString("bar"));
+				var folder2 = await folder.ChangeLayerAsync(logged, Slice.FromString("bar"));
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
@@ -426,12 +529,18 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder2.Key, Is.EqualTo(folder.Key));
 
 				// opening the directory with the new layer should succeed
-				var folder3 = await directory.OpenAsync(db, "Test", layer: Slice.FromString("bar"));
+				var folder3 = await directory.OpenAsync(logged, "Test", layer: Slice.FromString("bar"));
 				Assert.That(folder3, Is.Not.Null);
 
 				// opening the directory with the old layer should fail
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, "Test", layer: Slice.FromString("foo")));
+				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(logged, "Test", layer: Slice.FromString("foo")));
 
+#if DEBUG
+				foreach (var log in list)
+				{
+					Console.WriteLine(log.GetTimingsReport(true));
+				}
+#endif
 			}
 		}
 

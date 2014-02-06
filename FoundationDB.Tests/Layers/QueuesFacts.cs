@@ -277,23 +277,32 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await TestHelpers.GetCleanDirectory(db, "queue");
 
+#if DEBUG
 				var list = new List<FdbTransactionLog>(NUM);
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { lock (list) { list.Add(tr.Log); } });
+#else
+				var logged = db;
+#endif
 
 				await RunMultiClientTest(logged, location, false, "simple queue", 4, NUM);
+#if DEBUG
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
 				}
+				list.Clear();
+#endif
 
 				Console.WriteLine("------------------------------------------------");
 
-				list.Clear();
 				await RunMultiClientTest(logged, location, true, "high contention queue", 4, NUM);
+#if DEBUG
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
 				}
+				list.Clear();
+#endif
 
 				Console.WriteLine("------------------------------------------------");
 
