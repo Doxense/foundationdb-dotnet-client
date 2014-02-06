@@ -69,7 +69,7 @@ namespace FoundationDB.Client.Converters
 
 		/// <summary>Helper class to use TypePair as keys in a dictionnary</summary>
 		private sealed class TypePairComparer : IEqualityComparer<TypePair>
-		{
+		{ // REVIEW: this is redundant with FdbConverters.TypePairComparer!
 			public bool Equals(TypePair x, TypePair y)
 			{
 				return x.Left == y.Left && x.Right == y.Right;

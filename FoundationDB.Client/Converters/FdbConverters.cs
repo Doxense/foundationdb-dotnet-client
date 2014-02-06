@@ -112,7 +112,7 @@ namespace FoundationDB.Client.Converters
 		}
 
 		private sealed class TypePairComparer : IEqualityComparer<KeyValuePair<Type, Type>>
-		{
+		{ // REVIEW: this is redundant with ConversionHelper.TypePairComparer!
 
 			public bool Equals(KeyValuePair<Type, Type> x, KeyValuePair<Type, Type> y)
 			{
@@ -251,7 +251,14 @@ namespace FoundationDB.Client.Converters
 		/// <param name="destination"></param>
 		private static void FailCannotConvert(Type source, Type destination)
 		{
-			throw new InvalidOperationException(String.Format("Cannot convert values of type {0} into {1}", source.Name, destination.Name));
+			// prettyprint nullable type names to have something more usefull than "Nullable`1"
+			//TODO: extend this to all generic types ?
+			var nt = Nullable.GetUnderlyingType(source);
+			string sourceName = nt == null ? source.Name : String.Format("Nullable<{0}>", nt.Name);
+			nt = Nullable.GetUnderlyingType(destination);
+			string destinationName = nt == null ? destination.Name : String.Format("Nullable<{0}>", nt.Name);
+
+			throw new InvalidOperationException(String.Format("Cannot convert values of type {0} into {1}", sourceName, destinationName));
 		}
 
 		/// <summary>Create a new delegate that cast a boxed valued of type T (object) into a T</summary>
@@ -371,6 +378,21 @@ namespace FoundationDB.Client.Converters
 			IFdbConverter converter;
 			if (!Converters.TryGetValue(new KeyValuePair<Type, Type>(type, typeof(R)), out converter))
 			{
+				// maybe it is a nullable type ?
+				var nullableType = Nullable.GetUnderlyingType(typeof(R));
+				if (nullableType != null)
+				{ // we already nullchecked value above, so we just have to convert it to the underlying type...
+
+					// shortcut for converting a R into a Nullable<R> ...
+					if (type == nullableType) return (R)value;
+
+					// maybe we have a converter for the underlying type ?
+					if (Converters.TryGetValue(new KeyValuePair<Type, Type>(type, nullableType), out converter))
+					{ 
+						return (R)converter.ConvertBoxed(value);
+					}
+				}
+
 				FailCannotConvert(type, typeof(R));
 			}
 

@@ -437,6 +437,8 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes a Guid as a 128-bit UUID</summary>
 		public static void SerializeTo(ref SliceWriter writer, Guid value)
 		{
+			//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty bytestring) ?
+			// => could spare ~16 bytes per key in indexes on GUID properties that are frequently missing or empty (== default(Guid))
 			FdbTupleParser.WriteGuid(ref writer, value);
 		}
 

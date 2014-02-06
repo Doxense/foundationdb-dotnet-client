@@ -963,6 +963,52 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_FdbTuple_NullableTypes()
+		{
+
+			// serialize
+
+			Assert.That(FdbTuple.Pack<int?>(0), Is.EqualTo(Slice.Unescape("<14>")));
+			Assert.That(FdbTuple.Pack<int?>(123), Is.EqualTo(Slice.Unescape("<15>{")));
+			Assert.That(FdbTuple.Pack<int?>(null), Is.EqualTo(Slice.Unescape("<00>")));
+
+			Assert.That(FdbTuple.Pack<long?>(0L), Is.EqualTo(Slice.Unescape("<14>")));
+			Assert.That(FdbTuple.Pack<long?>(123L), Is.EqualTo(Slice.Unescape("<15>{")));
+			Assert.That(FdbTuple.Pack<long?>(null), Is.EqualTo(Slice.Unescape("<00>")));
+
+			Assert.That(FdbTuple.Pack<bool?>(true), Is.EqualTo(Slice.Unescape("<15><01>")));
+			Assert.That(FdbTuple.Pack<bool?>(false), Is.EqualTo(Slice.Unescape("<14>")));
+			Assert.That(FdbTuple.Pack<bool?>(null), Is.EqualTo(Slice.Unescape("<00>")), "Maybe it was File Not Found?");
+
+			Assert.That(FdbTuple.Pack<Guid?>(Guid.Empty), Is.EqualTo(Slice.Unescape("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>")));
+			Assert.That(FdbTuple.Pack<Guid?>(null), Is.EqualTo(Slice.Unescape("<00>")));
+
+			Assert.That(FdbTuple.Pack<TimeSpan?>(TimeSpan.Zero), Is.EqualTo(Slice.Unescape("<14>")));
+			Assert.That(FdbTuple.Pack<TimeSpan?>(null), Is.EqualTo(Slice.Unescape("<00>")));
+
+			// deserialize
+
+			Assert.That(FdbTuple.UnpackSingle<int?>(Slice.Unescape("<14>")), Is.EqualTo(0));
+			Assert.That(FdbTuple.UnpackSingle<int?>(Slice.Unescape("<15>{")), Is.EqualTo(123));
+			Assert.That(FdbTuple.UnpackSingle<int?>(Slice.Unescape("<00>")), Is.Null);
+
+			Assert.That(FdbTuple.UnpackSingle<int?>(Slice.Unescape("<14>")), Is.EqualTo(0L));
+			Assert.That(FdbTuple.UnpackSingle<long?>(Slice.Unescape("<15>{")), Is.EqualTo(123L));
+			Assert.That(FdbTuple.UnpackSingle<long?>(Slice.Unescape("<00>")), Is.Null);
+
+			Assert.That(FdbTuple.UnpackSingle<bool?>(Slice.Unescape("<15><01>")), Is.True);
+			Assert.That(FdbTuple.UnpackSingle<bool?>(Slice.Unescape("<14>")), Is.False);
+			Assert.That(FdbTuple.UnpackSingle<bool?>(Slice.Unescape("<00>")), Is.Null);
+
+			Assert.That(FdbTuple.UnpackSingle<Guid?>(Slice.Unescape("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>")), Is.EqualTo(Guid.Empty));
+			Assert.That(FdbTuple.UnpackSingle<Guid?>(Slice.Unescape("<00>")), Is.Null);
+
+			Assert.That(FdbTuple.UnpackSingle<TimeSpan?>(Slice.Unescape("<14>")), Is.EqualTo(TimeSpan.Zero));
+			Assert.That(FdbTuple.UnpackSingle<TimeSpan?>(Slice.Unescape("<00>")), Is.Null);
+
+		}
+
+		[Test]
 		public void Test_FdbTuple_Serialize_Alias()
 		{
 			Assert.That(
