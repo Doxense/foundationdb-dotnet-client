@@ -347,7 +347,7 @@ namespace Doxense.Mathematics.Statistics
 			var rr = (double)(VerticalChartChars.Length - 1) / max;
 			for (int i = 0; i < len; i++)
 			{
-				int p =  (int)Math.Ceiling(rr * this.Buckets[i + offset]);
+				int p = Math.Min((int)Math.Ceiling(rr * this.Buckets[i + offset]), 10);
 				cs[i] = VerticalChartChars[p];
 			}
 			return new string(cs);
