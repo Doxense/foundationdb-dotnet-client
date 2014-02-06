@@ -194,10 +194,16 @@ namespace FoundationDB.Client.Tests
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				var coordinators = await db.GetCoordinatorsAsync();
-				Assert.That(coordinators, Is.StringStarting("local:"));
+				Assert.That(coordinators, Is.Not.Null);
+				Assert.That(coordinators.Description, Is.EqualTo("local"));
+				Assert.That(coordinators.Id, Is.Not.Null.And.Length.GreaterThan(0));
+				Assert.That(coordinators.Coordinators, Is.Not.Null.And.Length.GreaterThan(0));
+
+				Assert.That(coordinators.Coordinators[0], Is.Not.Null);
+				Assert.That(coordinators.Coordinators[0].Port, Is.GreaterThanOrEqualTo(4500).And.LessThanOrEqualTo(4510)); //HACKHACK: may not work everywhere !
 
 				//TODO: how can we check that it is correct?
-				Console.WriteLine("Coordinators: " + coordinators);
+				Console.WriteLine("Coordinators: " + coordinators.ToString());
 			}
 		}
 

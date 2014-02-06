@@ -1410,9 +1410,8 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Set_Timeout_And_RetryLimit()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
-
 				using (var tr = db.BeginTransaction())
 				{
 					Assert.That(tr.Timeout, Is.EqualTo(0), "Timeout (default)");
