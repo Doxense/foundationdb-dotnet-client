@@ -1667,19 +1667,19 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Boundary_Keys()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile ?? @"c:\temp\fdb\nuc.cluster", TestHelpers.TestDbName))
 			{
 				//var cf = await db.GetCoordinatorsAsync();
 				//Console.WriteLine("Connected to " + cf.ToString());
 
-				using(var tr = db.BeginTransaction().WithAccessToSystemKeys())
+				using(var tr = db.BeginReadOnlyTransaction().WithAccessToSystemKeys())
 				{
 					// dump nodes
 					Console.WriteLine("Server List:");
-					var keys = await tr.GetRange(Fdb.SystemKeys.ServerList, Fdb.SystemKeys.ServerList + Fdb.SystemKeys.MaxValue)
+					var shards = await tr.GetRange(Fdb.SystemKeys.ServerList, Fdb.SystemKeys.ServerList + Fdb.SystemKeys.MaxValue)
 						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.SystemKeys.ServerList.Count), kvp.Value))
 						.ToListAsync();
-					foreach (var key in keys)
+					foreach (var key in shards)
 					{
 						// the node id seems to be at offset 8
 						var nodeId = key.Value.Substring(8, 16).ToHexaString();
@@ -1695,17 +1695,45 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// dump keyServers
-					keys = await tr.GetRange(Fdb.SystemKeys.KeyServers, Fdb.SystemKeys.KeyServers + Fdb.SystemKeys.MaxValue)
+					shards = await tr.GetRange(Fdb.SystemKeys.KeyServers, Fdb.SystemKeys.KeyServers + Fdb.SystemKeys.MaxValue)
 						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.SystemKeys.KeyServers.Count), kvp.Value))
 						.ToListAsync();
-					Console.WriteLine("Key Servers: " + keys.Count + " shards");
-					foreach (var key in keys)
-					{
-						// the node id seems to be at offset 12
-						var nodeId = key.Value.Substring(12, 16).ToHexaString();
+					Console.WriteLine("Key Servers: " + shards.Count + " shards");
 
-						Console.WriteLine("- (" + key.Value.Count + ") " + key.Value.ToAsciiOrHexaString() + " : " + nodeId + " = " + key.Key);
+					HashSet<string> distinctNodes = new HashSet<string>(StringComparer.Ordinal);
+					int replicationFactor = 0;
+					string[] ids = null;
+					foreach (var key in shards)
+					{
+						// - the first 12 bytes are some sort of header: 
+						//		- bytes 0-5 usually are 01 00 01 10 A2 00
+						//		- bytes 6-7 contains 0x0FDB which is the product's signature
+						//		- bytes 8-9 contains the version (02 00 for "2.0"?)
+						// - they are followed by k x 16-bytes machine id where k is the replication factor of the cluster
+						// - followed by 4 bytes (usually all zeroes)
+						// Size should be 16 x (k + 1) bytes
+
+						int n = (key.Value.Count - 16) >> 4;
+						if (ids == null || ids.Length != n) ids = new string[n];
+						for(int i=0;i<n;i++)
+						{
+							ids[i] = key.Value.Substring(12 + i * 16, 16).ToHexaString();
+							distinctNodes.Add(ids[i]);
+						}
+						replicationFactor = Math.Max(replicationFactor, ids.Length);
+					
+						// the node id seems to be at offset 12
+
+						Console.WriteLine("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
 					}
+					Console.WriteLine();
+					Console.WriteLine("Distinct nodes:");
+					foreach(var machine in distinctNodes)
+					{
+						Console.WriteLine("- " + machine);
+					}
+					Console.WriteLine();
+					Console.WriteLine("Cluster topology: " + distinctNodes.Count + " processes with " + (replicationFactor == 1 ? "single" : replicationFactor == 2 ? "double" : replicationFactor == 3 ? "triple" : replicationFactor.ToString()) + " replication");
 				}
 			}
 		}
