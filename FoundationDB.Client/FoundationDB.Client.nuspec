@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
     <id>FoundationDB.Client</id>
-    <version>0.100.0-pre</version>
+    <version>0.200.0-pre</version>
     <title>FoundationDB Client</title>
     <authors>Doxense</authors>
     <owners>Doxense</owners>
@@ -12,7 +12,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>.NET Binding for FoundationDB</description>
     <releaseNotes>This is an  pre-release of the .NET Binding, the public API is still subject to changes.</releaseNotes>
-    <copyright>Copyright 2013 Doxense SAS</copyright>
+    <copyright>Copyright 2013-2014 Doxense SAS</copyright>
 	<language>en-US</language>
     <tags>foundationdb nosql</tags>
   </metadata>
