@@ -437,6 +437,7 @@ namespace FoundationDB.Client
 
 			s_started = true;
 
+			// by default, always use the highest version number
 			int apiVersion = FdbNative.FDB_API_VERSION;
 
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", apiVersion));
