@@ -333,29 +333,33 @@ namespace Doxense.Mathematics.Statistics
 			return new string(s, 0, p);
 		}
 
-		public string GetDistribution(double start = 1.0d, double end = 1E200)
+		public string GetDistribution(double begin = 1.0d, double end = 1E200, int fold = 0)
 		{
-			int offset = GetBucketIndex(start);
+			if (fold < 1) fold = 1;
+			int offset = GetBucketIndex(begin);
 			int len = GetBucketIndex(end) - offset;
 
-			long max = this.Count > 0 ? this.Buckets.Skip(offset).Take(len).Max() : 0;
+			var data = new long[fold == 1 ? len : (int)Math.Ceiling(1.0 * len / fold)];
+			for (int i = 0; i < len; i++) { data[i / fold] += this.Buckets[offset + i]; }
+
+			long max = this.Count > 0 ? data.Max() : 0;
 
 			if (max <= 0) return new string(' ', len);
 			max = (3 * max + this.Count) / 4;
 
-			char[] cs = new char[len];
+			char[] cs = new char[data.Length];
 			var rr = (double)(VerticalChartChars.Length - 1) / max;
-			for (int i = 0; i < len; i++)
+			for (int i = 0; i < cs.Length; i++)
 			{
-				int p = Math.Min((int)Math.Ceiling(rr * this.Buckets[i + offset]), 10);
+				int p = Math.Min((int)Math.Ceiling(rr * data[i]), 10);
 				cs[i] = VerticalChartChars[p];
 			}
 			return new string(cs);
 		}
 
-		public static string GetDistributionScale(string scaleString, double start = 1.0d, double end = 1E200)
+		public static string GetDistributionScale(string scaleString, double begin = 1.0d, double end = 1E200)
 		{
-			int offset = GetBucketIndex(start) - 1;
+			int offset = GetBucketIndex(begin) - 1;
 			int len = GetBucketIndex(end) - offset - 1;
 			return scaleString.Substring(offset, len);
 		}

@@ -342,6 +342,12 @@ namespace FoundationDB.Samples
 								break;
 							}
 
+							case "sampling":
+							{ // SamplingTest
+								RunAsyncTest(new SamplerTest(0.1));
+								break;
+							}
+
 							case "q":
 							case "x":
 							case "quit":
