@@ -42,17 +42,35 @@ namespace FoundationDB.Samples.Benchmarks
 
 		public async Task Run(FdbDatabasePartition db, TextWriter log, CancellationToken ct)
 		{
-			Console.WriteLine("# Sampler test initialized");
-
 			var keyServers = Slice.FromAscii("\xFF/keyServers/");
+			var serverList = Slice.FromAscii("\xFF/serverList/");
 
+			// estimate the number of machines...
+			Console.WriteLine("# Detecting cluster topology...");
+			var servers = await db.QueryAsync(tr => tr
+				.WithAccessToSystemKeys()
+				.GetRange(FdbKeyRange.StartsWith(serverList))
+				.Select(kvp => new
+				{
+					Node = kvp.Value.Substring(8, 16).ToHexaString(),
+					Machine = kvp.Value.Substring(24, 16).ToHexaString(),
+					DataCenter = kvp.Value.Substring(40, 16).ToHexaString()
+				})
+			);
+
+			var numNodes = servers.Select(s => s.Node).Distinct().Count();
+			var numMachines = servers.Select(s => s.Machine).Distinct().Count();
+			var numDCs = servers.Select(s => s.DataCenter).Distinct().Count();
+
+			Console.WriteLine("# > Found " + numNodes + " process(es) on " + numMachines + " machine(s) in " + numDCs + " datacenter(s)");
+			Console.WriteLine("# Reading list of shards...");
 			// dump keyServers
 			var shards = await db.QueryAsync(tr => tr.WithAccessToSystemKeys()
 				.GetRange(FdbKeyRange.StartsWith(keyServers))
 				.Select(kvp => kvp.Key.Substring(keyServers.Count))
 				.Where(key => key < FdbKey.MaxValue)
 			);
-			Console.WriteLine("Found " + shards.Count + " shards:");
+			Console.WriteLine("# > Found " + shards.Count + " shards:");
 
 			var ranges = shards.Zip(shards.Concat(new[] { Slice.FromAscii("\xFF") }).Skip(1), (x, y) => FdbKeyRange.Create(x, y)).ToList();
 
@@ -68,21 +86,21 @@ namespace FoundationDB.Samples.Benchmarks
 				ranges.RemoveAt(p);
 			}
 
-			Console.WriteLine("Sampling " + (100 * Ratio).ToString("N0") + "% of " + samples.Count + " shards...");
-
-			Console.WriteLine("{0,9}{1,10}{2,10}{3,10}", "Count", "Keys", "Values", "Total");
+			Console.WriteLine("# Sampling " + sz + " out of " + shards.Count + " shards (" + (100.0 * sz / shards.Count).ToString("N1") + "%) ...");
+			Console.WriteLine("{0,9}{1,10}{2,10}{3,10} : K+V size distribution", "Count", "Keys", "Values", "Total");
 
 			var rangeOptions = new FdbRangeOptions { Mode = FdbStreamingMode.WantAll };
 
 			samples = samples.OrderBy(x => x.Begin).ToList();
 
 			long total = 0;
+			int workers = Math.Min(numMachines, 8);
 
 			var sw = Stopwatch.StartNew();
 			var tasks = new List<Task>();
 			while(samples.Count > 0)
 			{
-				while(tasks.Count < 6 && samples.Count > 0)
+				while (tasks.Count < workers && samples.Count > 0)
 				{
 					var range = samples[0];
 					samples.RemoveAt(0);

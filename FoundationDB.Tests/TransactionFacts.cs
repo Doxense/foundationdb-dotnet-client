@@ -1676,17 +1676,17 @@ namespace FoundationDB.Client.Tests
 				{
 					// dump nodes
 					Console.WriteLine("Server List:");
-					var shards = await tr.GetRange(Fdb.SystemKeys.ServerList, Fdb.SystemKeys.ServerList + Fdb.SystemKeys.MaxValue)
+					var servers = await tr.GetRange(Fdb.SystemKeys.ServerList, Fdb.SystemKeys.ServerList + Fdb.SystemKeys.MaxValue)
 						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.SystemKeys.ServerList.Count), kvp.Value))
 						.ToListAsync();
-					foreach (var key in shards)
+					foreach (var key in servers)
 					{
 						// the node id seems to be at offset 8
 						var nodeId = key.Value.Substring(8, 16).ToHexaString();
 						// the machine id seems to be at offset 24
 						var machineId = key.Value.Substring(24, 16).ToHexaString();
-						// the datacenter id seems to be at offset 32
-						var dataCenterId = key.Value.Substring(32, 16).ToHexaString();
+						// the datacenter id seems to be at offset 40
+						var dataCenterId = key.Value.Substring(40, 16).ToHexaString();
 
 						Console.WriteLine("- " + key.Key.ToHexaString() + ": (" + key.Value.Count + ") " + key.Value.ToAsciiOrHexaString());
 						Console.WriteLine("  > node       = " + nodeId);
@@ -1695,7 +1695,7 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// dump keyServers
-					shards = await tr.GetRange(Fdb.SystemKeys.KeyServers, Fdb.SystemKeys.KeyServers + Fdb.SystemKeys.MaxValue)
+					var shards = await tr.GetRange(Fdb.SystemKeys.KeyServers, Fdb.SystemKeys.KeyServers + Fdb.SystemKeys.MaxValue)
 						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.SystemKeys.KeyServers.Count), kvp.Value))
 						.ToListAsync();
 					Console.WriteLine("Key Servers: " + shards.Count + " shards");
