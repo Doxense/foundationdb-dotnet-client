@@ -5,6 +5,7 @@
 namespace FoundationDB.Storage.Memory.API
 {
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Directories;
 	using FoundationDB.Storage.Memory.Utils;
 	using System;
 	using System.Collections.Generic;
@@ -29,13 +30,13 @@ namespace FoundationDB.Storage.Memory.API
 
 			var uid = Guid.NewGuid();
 
-			return new MemoryDatabase(cluster, new MemoryDatabaseHandler(uid), name, globalSpace, readOnly, true);
+			return new MemoryDatabase(cluster, new MemoryDatabaseHandler(uid), name, globalSpace, null, readOnly, true);
 		}
 
 		private readonly MemoryDatabaseHandler m_handler;
 
-		internal MemoryDatabase(IFdbCluster cluster, MemoryDatabaseHandler handler, string name, FdbSubspace globalSpace, bool readOnly, bool ownsCluster)
-			: base(cluster, handler, name, globalSpace, readOnly, ownsCluster)
+		private MemoryDatabase(IFdbCluster cluster, MemoryDatabaseHandler handler, string name, FdbSubspace globalSpace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+			: base(cluster, handler, name, globalSpace, directory, readOnly, ownsCluster)
 		{
 			m_handler = handler;
 		}

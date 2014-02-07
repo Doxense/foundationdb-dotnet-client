@@ -28,9 +28,9 @@ namespace FoundationDB.Layers.Messaging
 				string clusterFile = null;
 				//string clusterFile = @"c:\temp\fdb\nuc.cluster";
 				string dbName = "DB";
-				using (var db = Fdb.PartitionTable.OpenPartitionAsync(clusterFile, dbName, FdbSubspace.Empty).GetAwaiter().GetResult())
+				using (var db = Fdb.OpenAsync(clusterFile, dbName).GetAwaiter().GetResult())
 				{
-					var location = db.CreateOrOpenDirectoryAsync(new [] { "T", "WorkerPool" }).GetAwaiter().GetResult();
+					var location = db.Directory.CreateOrOpenAsync(new [] { "T", "WorkerPool" }).GetAwaiter().GetResult();
 					db.ClearRangeAsync(location).GetAwaiter().GetResult();
 
 					// failsafe: remove this when not debugging problems !

@@ -21,12 +21,12 @@ namespace FoundationDB.Samples
 	public interface IAsyncTest
 	{
 		string Name { get; }
-		Task Run(FdbDatabasePartition db, TextWriter log, CancellationToken ct);
+		Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct);
 	}
 
 	public class Program
 	{
-		private static FdbDatabasePartition Db;
+		private static IFdbDatabase Db;
 
 		private static bool LogEnabled = false;
 		private static string CurrentDirectoryPath = "/";
@@ -48,21 +48,17 @@ namespace FoundationDB.Samples
 			return stream;
 		}
 
-		static FdbDatabasePartition GetLoggedDatabase(FdbDatabasePartition db, StreamWriter stream, bool autoFlush = false)
+		static IFdbDatabase GetLoggedDatabase(IFdbDatabase db, StreamWriter stream, bool autoFlush = false)
 		{
 			if (stream == null) return db;
 
-			return new FdbDatabasePartition(
-				new FdbLoggedDatabase(db, false, false, (tr) => { stream.WriteLine(tr.Log.GetTimingsReport(true)); if (autoFlush) stream.Flush(); }),
-				db.Root,
-				false
-			);
+			return new FdbLoggedDatabase(db, false, false, (tr) => { stream.WriteLine(tr.Log.GetTimingsReport(true)); if (autoFlush) stream.Flush(); });
 		}
 
-		public static void RunAsyncCommand(Func<FdbDatabasePartition, TextWriter, CancellationToken, Task> command)
+		public static void RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command)
 		{
 			TextWriter log = null;
-			FdbDatabasePartition db = Db;
+			var db = Db;
 			if (log == null) log = Console.Out;
 
 			var cts = new CancellationTokenSource();
@@ -148,7 +144,7 @@ namespace FoundationDB.Samples
 			{
 				if (partition == null || partition.Length == 0)
 				{
-					Db = Fdb.PartitionTable.OpenRootAsync(clusterFile, dbName).GetAwaiter().GetResult();
+					Db = Fdb.OpenAsync(clusterFile, dbName).GetAwaiter().GetResult();
 				}
 				else
 				{
@@ -414,21 +410,21 @@ namespace FoundationDB.Samples
 			return path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 		}
 
-		public static async Task CreateDirectory(string prm, string layer, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
+		public static async Task CreateDirectory(string prm, string layer, IFdbDatabase db, TextWriter stream, CancellationToken ct)
 		{
 			if (stream == null) stream = Console.Out;
 
 			var path = ParsePath(prm);
 			stream.WriteLine("# Creating directory {0} with layer '{1}'", prm, layer);
 
-			var folder = await db.Root.TryOpenAsync(db, path, cancellationToken: ct);
+			var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
 			if (folder != null)
 			{
 				stream.WriteLine("- Directory {0} already exists!", prm);
 				return;
 			}
 
-			folder = await db.Root.TryCreateAsync(db, path, Slice.FromString(layer), cancellationToken: ct);
+			folder = await db.Directory.TryCreateAsync(path, Slice.FromString(layer), cancellationToken: ct);
 			stream.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
 
 			// look if there is already stuff under there
@@ -440,14 +436,14 @@ namespace FoundationDB.Samples
 			}
 		}
 
-		public static async Task BrowseDirectory(string prm, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
+		public static async Task BrowseDirectory(string prm, IFdbDatabase db, TextWriter stream, CancellationToken ct)
 		{
 			if (stream == null) stream = Console.Out;
 
 			var path = ParsePath(prm);
 			stream.WriteLine("# Listing {0}:", prm);
 
-			var folders = await db.Root.TryListAsync(db, path);
+			var folders = await db.Directory.TryListAsync(path);
 			if (folders == null)
 			{
 				stream.WriteLine("  Directory not found.");
@@ -456,7 +452,7 @@ namespace FoundationDB.Samples
 			{
 				foreach (var name in folders)
 				{
-					var subfolder = await db.Root.TryOpenAsync(db, path.Concat(new [] { name }), cancellationToken: ct);
+					var subfolder = await db.Directory.TryOpenAsync(path.Concat(new [] { name }), cancellationToken: ct);
 					if (subfolder != null)
 					{
 						stream.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
@@ -476,7 +472,7 @@ namespace FoundationDB.Samples
 			if (prm != "/")
 			{
 				// look if there is something under there
-				var folder = await db.Root.TryOpenAsync(db, path, cancellationToken: ct);
+				var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
 				if (folder != null)
 				{
 					stream.WriteLine("# Content of {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
@@ -500,7 +496,7 @@ namespace FoundationDB.Samples
 			}
 		}
 
-		public static async Task TreeDirectory(string prm, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
+		public static async Task TreeDirectory(string prm, IFdbDatabase db, TextWriter stream, CancellationToken ct)
 		{
 			if (stream == null) stream = Console.Out;
 
@@ -512,7 +508,7 @@ namespace FoundationDB.Samples
 			stream.WriteLine("# done");
 		}
 
-		private static async Task TreeDirectoryWalk(string[] path, List<bool> last, FdbDatabasePartition db, TextWriter stream, CancellationToken ct)
+		private static async Task TreeDirectoryWalk(string[] path, List<bool> last, IFdbDatabase db, TextWriter stream, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -524,7 +520,7 @@ namespace FoundationDB.Samples
 			}
 			stream.WriteLine(sb.ToString() + (path.Length == 0 ? "<root>" : path[path.Length - 1]));
 
-			var children = await db.Root.TryListAsync(db, path);
+			var children = await db.Directory.TryListAsync(path);
 			int n = children.Count;
 			foreach(var child in children)
 			{

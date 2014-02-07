@@ -251,6 +251,19 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.MoveInternalAsync(trans, this.Location, FdbTuple.CreateRange(newPath), throwOnError: true);
 		}
 
+		/// <summary>Moves the current directory to <paramref name="newPath"/>.
+		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
+		public Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (newPath == null) throw new ArgumentNullException("newPath");
+			return this.DirectoryLayer.MoveInternalAsync(trans, this.Location.Concat(FdbTuple.CreateRange(oldPath)), this.Location.Concat(FdbTuple.CreateRange(newPath)), throwOnError: true);
+		}
+
 		#endregion
 
 		#region TryMoveAsync(...)
@@ -266,6 +279,17 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.MoveInternalAsync(trans, this.Location, FdbTuple.CreateRange(newPath), throwOnError: false);
 		}
 
+		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
+		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// </summary>
+		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
+		public Task<FdbDirectorySubspace> TryMoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (newPath == null) throw new ArgumentNullException("newPath");
+			return this.DirectoryLayer.MoveInternalAsync(trans, this.Location.Concat(FdbTuple.CreateRange(oldPath)), this.Location.Concat(FdbTuple.CreateRange(oldPath)), throwOnError: false);
+		}
+
 		#endregion
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
@@ -278,6 +302,17 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.RemoveInternalAsync(trans, this.Location, throwIfMissing: true);
 		}
 
+		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		public Task RemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (path == null) throw new ArgumentNullException("path");
+			return this.DirectoryLayer.RemoveInternalAsync(trans, this.Location.Concat(FdbTuple.CreateRange(path)), throwIfMissing: true);
+		}
+
 		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
@@ -288,12 +323,31 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.RemoveInternalAsync(trans, this.Location, throwIfMissing: false);
 		}
 
+		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		public Task<bool> TryRemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (path == null) throw new ArgumentNullException("path");
+			return this.DirectoryLayer.RemoveInternalAsync(trans, this.Location, throwIfMissing: false);
+		}
+
 		/// <summary>Checks if this directory exists</summary>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
 		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			return this.DirectoryLayer.ExistsAsync(trans, this.Path);
+			return this.DirectoryLayer.ExistsInternalAsync(trans, this.Location);
+		}
+
+		/// <summary>Checks if a sub-directory exists</summary>
+		/// <returns>Returns true if the directory exists, otherwise false.</returns>
+		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			return this.DirectoryLayer.ExistsInternalAsync(trans, this.Location.Concat(FdbTuple.CreateRange(path)));
 		}
 
 		/// <summary>Returns the list of all the subdirectories of the current directory.</summary>
@@ -303,117 +357,33 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.ListInternalAsync(trans, this.Location, throwIfMissing: true);
 		}
 
-		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
+		/// <summary>Returns the list of all the subdirectories of a sub-directory.</summary>
+		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (path == null) throw new ArgumentNullException("path");
+			return this.DirectoryLayer.ListInternalAsync(trans, this.Location.Concat(FdbTuple.CreateRange(path)), throwIfMissing: true);
+		}
+
+		/// <summary>Returns the list of all the subdirectories of a sub-directory, it it exists.</summary>
 		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			return this.DirectoryLayer.ListInternalAsync(trans, this.Location, throwIfMissing: false);
 		}
 
+		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
+		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (path == null) throw new ArgumentNullException("path");
+			return this.DirectoryLayer.ListInternalAsync(trans, this.Location.Concat(FdbTuple.CreateRange(path)), throwIfMissing: false);
+		}
+
 		public override string ToString()
 		{
-			return String.Format("DirectorySubspace({0}, {1})", String.Join("/", this.Path), FdbKey.Dump(this.Key));
+			return String.Format("DirectorySubspace('/{0}', {1})", String.Join("/", this.Path), this.Key.ToAsciiOrHexaString());
 		}
 
-
-		IReadOnlyList<string> IFdbDirectory.Path
-		{
-			get { throw new NotImplementedException(); }
-		}
-
-		Slice IFdbDirectory.Layer
-		{
-			get { throw new NotImplementedException(); }
-		}
-
-		FdbDirectoryLayer IFdbDirectory.DirectoryLayer
-		{
-			get { throw new NotImplementedException(); }
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.CreateOrOpenAsync(IFdbTransaction trans, string name, Slice layer, Slice prefix)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.CreateOrOpenAsync(IFdbTransaction trans, IEnumerable<string> subPath, Slice layer, Slice prefix)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.OpenAsync(IFdbTransaction trans, string name, Slice layer)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.OpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.TryOpenAsync(IFdbTransaction trans, string name, Slice layer)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.TryOpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.CreateAsync(IFdbTransaction trans, string name, Slice layer, Slice prefix)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.CreateAsync(IFdbTransaction trans, IEnumerable<string> subPath, Slice layer, Slice prefix)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.TryCreateAsync(IFdbTransaction trans, string name, Slice layer, Slice prefix)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.TryCreateAsync(IFdbTransaction trans, IEnumerable<string> subPath, Slice layer, Slice prefix)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.MoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<FdbDirectorySubspace> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task IFdbDirectory.RemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<bool> IFdbDirectory.TryRemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<bool> IFdbDirectory.ExistsAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<List<string>> IFdbDirectory.ListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
-		{
-			throw new NotImplementedException();
-		}
-
-		Task<List<string>> IFdbDirectory.TryListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
-		{
-			throw new NotImplementedException();
-		}
 	}
 }

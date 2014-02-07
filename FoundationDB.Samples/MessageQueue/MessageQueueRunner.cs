@@ -60,10 +60,10 @@ namespace FoundationDB.Samples.Tutorials
 		/// <summary>
 		/// Setup the initial state of the database
 		/// </summary>
-		public async Task Init(FdbDatabasePartition db, CancellationToken ct)
+		public async Task Init(IFdbDatabase db, CancellationToken ct)
 		{
 			// open the folder where we will store everything
-			this.Subspace = await db.CreateOrOpenDirectoryAsync(new [] { "Samples", "MessageQueueTest" }, cancellationToken: ct);
+			this.Subspace = await db.Directory.CreateOrOpenAsync(new [] { "Samples", "MessageQueueTest" }, cancellationToken: ct);
 
 			this.WorkerPool = new FdbWorkerPool(this.Subspace);
 
@@ -186,7 +186,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		public string Name { get { return "MessageQueueTest"; } }
 
-		public async Task Run(FdbDatabasePartition db, TextWriter log, CancellationToken ct)
+		public async Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			await Init(db, ct);
 			log.WriteLine("Message queue test initialized");

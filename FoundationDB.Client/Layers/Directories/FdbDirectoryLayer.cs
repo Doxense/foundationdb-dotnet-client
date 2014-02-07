@@ -369,33 +369,35 @@ namespace FoundationDB.Layers.Directories
 
 		#region Exists
 
-		/// <summary>Checks if a directory already exists</summary>
-		/// <param name="tr">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
-		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		public async Task<bool> ExistsAsync(IFdbReadOnlyTransaction tr, IEnumerable<string> path)
+		internal async Task<bool> ExistsInternalAsync(IFdbReadOnlyTransaction trans, IFdbTuple path)
 		{
-			if (tr == null) throw new ArgumentNullException("tr");
-			if (path == null) throw new ArgumentNullException("path");
-			// no reason to disallow checking for the root directory (could be used to check if a directory layer is initialized?)
-
-			var node = await Find(tr, ParsePath(path)).ConfigureAwait(false);
-
+			var node = await Find(trans, path).ConfigureAwait(false);
 			return node != null;
 		}
 
 		/// <summary>Checks if a directory already exists</summary>
-		/// <param name="tr">Transaction to use for the operation</param>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to remove (including any subdirectories)</param>
+		/// <returns>Returns true if the directory exists, otherwise false.</returns>
+		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
+		{
+			if (trans == null) throw new ArgumentNullException("tr");
+			if (path == null) throw new ArgumentNullException("path");
+			// no reason to disallow checking for the root directory (could be used to check if a directory layer is initialized?)
+
+			return ExistsInternalAsync(trans, ParsePath(path));
+		}
+
+		/// <summary>Checks if a directory already exists</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="name">Name of the sub-directory to remove (including any subdirectories)</param>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
-		public async Task<bool> ExistsAsync(IFdbReadOnlyTransaction tr, string name)
+		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, string name)
 		{
-			if (tr == null) throw new ArgumentNullException("tr");
+			if (trans == null) throw new ArgumentNullException("tr");
 			if (name == null) throw new ArgumentNullException("name");
 
-			var node = await Find(tr, ParsePath(name)).ConfigureAwait(false);
-
-			return node != null;
+			return ExistsInternalAsync(trans, ParsePath(name));
 		}
 
 		Task<bool> IFdbDirectory.ExistsAsync(IFdbReadOnlyTransaction tr)
@@ -418,9 +420,9 @@ namespace FoundationDB.Layers.Directories
 			return ListInternalAsync(trans, ParsePath(path), throwIfMissing: true);
 		}
 
-		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/></summary>
+		/// <summary>Returns the list of subdirectories of directory with the given <paramref name="name"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to list</param>
+		/// <param name="name">Name of the directory to list</param>
 		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, string name)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -450,7 +452,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Returns the list of subdirectories of directory with the given <paramref name="name"/>, if it exists.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="path">Path of the directory to list</param>
+		/// <param name="name">Name of the directory to list</param>
 		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, string name)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -468,6 +470,7 @@ namespace FoundationDB.Layers.Directories
 		#endregion
 
 		/// <summary>Change the layer id of the directory at <param name="path"/></summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="newLayer">New layer id of the directory</param>
 		public async Task<FdbDirectorySubspace> ChangeLayerAsync(IFdbTransaction trans, IEnumerable<string> path, Slice newLayer)
 		{

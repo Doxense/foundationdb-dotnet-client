@@ -145,7 +145,7 @@ namespace FoundationDB.Client
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(typeof(FdbCluster), "OpenDatabaseAsync", String.Format("Connected to database '{0}'", databaseName));
 
-			return new FdbDatabase(this, handler, databaseName, subspace, readOnly, ownsCluster);
+			return FdbDatabase.Create(this, handler, databaseName, subspace, null, readOnly, ownsCluster);
 		}
 
 		/// <summary>Set an option on this cluster that does not take any parameter</summary>

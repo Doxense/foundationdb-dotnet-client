@@ -40,7 +40,7 @@ namespace FoundationDB.Samples.Benchmarks
 			return x.ToString("N2") + " GB";
 		}
 
-		public async Task Run(FdbDatabasePartition db, TextWriter log, CancellationToken ct)
+		public async Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			var keyServers = Slice.FromAscii("\xFF/keyServers/");
 			var serverList = Slice.FromAscii("\xFF/serverList/");

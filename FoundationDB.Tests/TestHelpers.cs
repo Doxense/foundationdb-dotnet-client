@@ -52,20 +52,22 @@ namespace FoundationDB.Client.Tests
 		}
 
 		/// <summary>Connect to the local test database</summary>
-		public static async Task<FdbDatabasePartition> OpenTestPartitionAsync(CancellationToken ct = default(CancellationToken))
+		public static async Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct = default(CancellationToken))
 		{
 			var db = await Fdb.PartitionTable.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, ct);
 			db.DefaultTimeout = 15 * 1000;
 			return db;
 		}
 
-		public static async Task<FdbDirectorySubspace> GetCleanDirectory(FdbDatabasePartition db, params string[] path)
+		public static async Task<FdbDirectorySubspace> GetCleanDirectory(IFdbDatabase db, params string[] path)
 		{
+			Assert.That(path, Is.Not.Null.And.Length.GreaterThan(0), "invalid path");
+
 			// remove previous
-			await db.TryRemoveDirectoryAsync(path);
+			await db.Directory.TryRemoveAsync(path);
 
 			// create new
-			var subspace = await db.CreateDirectoryAsync(path);
+			var subspace = await db.Directory.CreateAsync(path);
 			Assert.That(subspace, Is.Not.Null);
 			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True);
 			return subspace;

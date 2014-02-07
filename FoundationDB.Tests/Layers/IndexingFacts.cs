@@ -132,7 +132,7 @@ namespace FoundationDB.Layers.Tables.Tests
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
 
-				var location = await db.CreateOrOpenDirectoryAsync(new [] { "Indexing" });
+				var location = await TestHelpers.GetCleanDirectory(db, "Indexing");
 
 				// clear previous values
 				await TestHelpers.DeleteSubspace(db, location);

@@ -49,6 +49,9 @@ namespace FoundationDB.Filters
 		/// <summary>If true, we have been disposed</summary>
 		protected bool m_disposed;
 
+		/// <summary>Wrapper for the inner db's Directory property</summary>
+		protected FdbDatabasePartition m_directory;
+
 		protected FdbDatabaseFilter(IFdbDatabase database, bool forceReadOnly, bool ownsDatabase)
 		{
 			if (database == null) throw new ArgumentNullException("database");
@@ -81,6 +84,18 @@ namespace FoundationDB.Filters
 		public FdbSubspace GlobalSpace
 		{
 			get { return m_database.GlobalSpace; }
+		}
+
+		public FdbDatabasePartition Directory
+		{
+			get
+			{
+				if (m_directory == null || !object.ReferenceEquals(m_directory.Directory, m_database.Directory))
+				{
+					m_directory = new FdbDatabasePartition(this, m_database.Directory);
+				}
+				return m_directory;
+			}
 		}
 
 		public bool IsReadOnly

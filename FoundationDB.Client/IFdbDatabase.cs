@@ -45,6 +45,9 @@ namespace FoundationDB.Client
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
 		FdbSubspace GlobalSpace { get; }
 
+		/// <summary>Directory partition of this database instance</summary>
+		FdbDatabasePartition Directory { get; }
+
 		bool IsReadOnly { get; }
 
 		void SetOption(FdbDatabaseOption option);

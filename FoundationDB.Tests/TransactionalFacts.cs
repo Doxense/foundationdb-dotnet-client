@@ -41,7 +41,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = await db.CreateOrOpenDirectoryAsync(new[] { "Transactionals" });
+				var location = await db.Directory.CreateOrOpenAsync(new[] { "Transactionals" });
 
 				string secret = Guid.NewGuid().ToString();
 
@@ -94,8 +94,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = await db.CreateOrOpenDirectoryAsync(new[] { "Transactionals" });
-				await db.ClearRangeAsync(location);
+				var location = await TestHelpers.GetCleanDirectory(db, "Transactionals");
 
 				int called = 0;
 				int? id = null;
@@ -170,7 +169,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
 			{
-				var location = await db.CreateOrOpenDirectoryAsync(new[] { "Transactionals" });
+				var location = await TestHelpers.GetCleanDirectory(db, "Transactionals");
 
 				var t = db.ReadAsync((IFdbReadOnlyTransaction tr) =>
 				{

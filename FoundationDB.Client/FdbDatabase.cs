@@ -85,6 +85,9 @@ namespace FoundationDB.Client
 		/// <summary>Default RetryLimit value for all transactions</summary>
 		private int m_defaultRetryLimit;
 
+		/// <summary>Instance of the DirectoryLayer used by this detabase (lazy initialized)</summary>
+		private FdbDatabasePartition m_directory;
+
 		#endregion
 
 		#region Constructors...
@@ -93,24 +96,28 @@ namespace FoundationDB.Client
 		/// <param name="cluster">Parent cluster</param>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="name">Name of the database</param>
-		/// <param name="subspace">Root namespace of all keys accessible by this database instance</param>
+		/// <param name="contentSubspace">Root namespace of all keys accessible by this database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		public FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, FdbSubspace subspace, bool readOnly, bool ownsCluster)
+		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, FdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
-			Contract.Requires(cluster != null && handler != null && name != null && subspace != null);
+			Contract.Requires(cluster != null && handler != null && name != null && contentSubspace != null);
 
 			m_cluster = cluster;
 			m_handler = handler;
 			m_name = name;
 			m_readOnly = readOnly;
 			m_ownsCluster = ownsCluster;
-			ChangeGlobalSpace(subspace);
+			ChangeGlobalSpace(contentSubspace, directory);
+		}
 
-#if REFACTORED
-			// pre-initialize the directory to the default location (depending on the subspace)
-			UseDefaultRootDirectory();
-#endif
+		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, FdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		{
+			if (cluster == null) throw new ArgumentNullException("cluster");
+			if (handler == null) throw new ArgumentNullException("handler");
+			if (contentSubspace == null) throw new ArgumentNullException("contentSubspace");
+
+			return new FdbDatabase(cluster, handler, name, contentSubspace, directory, readOnly, ownsCluster);
 		}
 
 		#endregion
@@ -127,7 +134,32 @@ namespace FoundationDB.Client
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		public CancellationToken Token { get { return m_cts.Token; } }
 
+		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		public bool IsReadOnly { get { return m_readOnly; } }
+
+		public FdbDatabasePartition Directory
+		{
+			get
+			{
+				if (m_directory == null)
+				{
+					lock(this)//TODO: don't use this for locking
+					{
+						if (m_directory == null)
+						{
+							m_directory = GetRootDirectory();
+						}
+					}
+				}
+				return m_directory;
+			}
+		}
+
+		protected virtual FdbDatabasePartition GetRootDirectory()
+		{
+			var dl = new FdbDirectoryLayer(m_globalSpaceCopy[FdbKey.Directory], m_globalSpaceCopy);
+			return new FdbDatabasePartition(this, dl);
+		}
 
 		#endregion
 
@@ -341,11 +373,22 @@ namespace FoundationDB.Client
 
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
-		internal void ChangeGlobalSpace(FdbSubspace subspace)
+		internal void ChangeGlobalSpace(FdbSubspace subspace, IFdbDirectory directory)
 		{
 			subspace = subspace ?? FdbSubspace.Empty;
-			m_globalSpace = subspace;
-			m_globalSpaceCopy = subspace.Copy();
+			lock (this)//TODO: don't use this for locking
+			{
+				m_globalSpace = subspace;
+				m_globalSpaceCopy = subspace.Copy();
+				if (directory == null)
+				{
+					m_directory = null;
+				}
+				else
+				{
+					m_directory = new FdbDatabasePartition(this, directory);
+				}
+			}
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>

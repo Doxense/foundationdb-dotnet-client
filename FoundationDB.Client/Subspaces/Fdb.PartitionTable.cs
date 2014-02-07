@@ -47,55 +47,11 @@ namespace FoundationDB.Client
 		{
 			internal static readonly Slice PartitionLayerId = Slice.FromString("partition");
 
-			/// <summary>Open the root partition of the default cluster</summary>
-			/// <param name="cancellationToken"></param>
-			/// <returns></returns>
-			public static Task<FdbDatabasePartition> OpenRootAsync(CancellationToken cancellationToken = default(CancellationToken))
-			{
-				return OpenPartitionAsync(clusterFile: null, dbName: null, globalSpace: FdbSubspace.Empty, cancellationToken: cancellationToken);
-			}
-
-			/// <summary>Open the root partition of a cluster</summary>
-			public static Task<FdbDatabasePartition> OpenRootAsync(string clusterFile, string dbName, CancellationToken cancellationToken = default(CancellationToken))
-			{
-				return OpenPartitionAsync(clusterFile: clusterFile, dbName: dbName, globalSpace: FdbSubspace.Empty, cancellationToken: cancellationToken);
-			}
-
-			/// <summary>Open a specific partition of the default cluster</summary>
-			/// <param name="globalSpace"></param>
-			/// <param name="cancellationToken"></param>
-			/// <returns></returns>
-			public static Task<FdbDatabasePartition> OpenPartitionAsync(FdbSubspace globalSpace, CancellationToken cancellationToken = default(CancellationToken))
-			{
-				return OpenPartitionAsync(clusterFile: null, dbName: null, globalSpace: globalSpace, cancellationToken: cancellationToken);
-			}
-
-			/// <summary>Open a specific partition of a cluster</summary>
-			/// <param name="clusterFile"></param>
-			/// <param name="dbName"></param>
-			/// <param name="globalSpace"></param>
-			/// <param name="cancellationToken"></param>
-			/// <returns></returns>
-			public static async Task<FdbDatabasePartition> OpenPartitionAsync(string clusterFile, string dbName, FdbSubspace globalSpace, CancellationToken cancellationToken = default(CancellationToken))
-			{
-				FdbDatabase db = null;
-				try
-				{
-					db = await Fdb.OpenAsync(clusterFile, dbName, globalSpace).ConfigureAwait(false);
-					return new FdbDatabasePartition(db, nodes: null, contents: null, ownsDatabase: true);
-				}
-				catch(Exception)
-				{
-					if (db != null) db.Dispose();
-					throw;
-				}
-			}
-
 			/// <summary>Open a named partition of the default cluster, using the root DirectoryLayer to discover the partition's prefix</summary>
-			/// <param name="partitionPath"></param>
+			/// <param name="path"></param>
 			/// <param name="cancellationToken"></param>
 			/// <returns></returns>
-			public static Task<FdbDatabasePartition> OpenNamedPartitionAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
+			public static Task<FdbDatabase> OpenNamedPartitionAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 			{
 				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, path: path, cancellationToken: cancellationToken);
 			}
@@ -106,7 +62,7 @@ namespace FoundationDB.Client
 			/// <param name="path"></param>
 			/// <param name="cancellationToken"></param>
 			/// <returns></returns>
-			public static async Task<FdbDatabasePartition> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
+			public static async Task<FdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 			{
 				if (path == null) throw new ArgumentNullException("partitionPath");
 				var partitionPath = path.ToList();
@@ -128,14 +84,16 @@ namespace FoundationDB.Client
 					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: PartitionLayerId).ConfigureAwait(false);
 					if (Logging.On) Logging.Verbose(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.Path.ToString(), descriptor.ToString()));
 
+					var content = FdbSubspace.Create(descriptor.Key);
+					var dl = new FdbDirectoryLayer(content[FdbKey.Directory], content);
+
 					// switch the global space of the database to the new prefix
 					// note: we make sure to copy the descriptor to be isolated from any changes to the key slices by the caller.
-					db.ChangeGlobalSpace(descriptor.Copy());
+					db.ChangeGlobalSpace(descriptor.Copy(), dl);
 
-					var partition = new FdbDatabasePartition(db, db.GlobalSpace[FdbKey.Directory], db.GlobalSpace, ownsDatabase: true);
-					if (Logging.On) Logging.Info(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Opened partition {0} at {1}, using directory layer at {2}", descriptor.Path.ToString(), db.GlobalSpace.ToString(), partition.Root.NodeSubspace.ToString()));
+					if (Logging.On) Logging.Info(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Opened partition {0} at {1}, using directory layer at {2}", descriptor.Path.ToString(), db.GlobalSpace.ToString(), db.Directory.DirectoryLayer.NodeSubspace.ToString()));
 
-					return partition;
+					return db;
 				}
 				catch(Exception e)
 				{

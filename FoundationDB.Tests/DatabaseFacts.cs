@@ -277,18 +277,19 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.Name, Is.EqualTo(TestHelpers.TestDbName));
 
-				Assert.That(db.Root, Is.Not.Null);
-				Assert.That(db.Root.ContentSubspace, Is.Not.Null);
-				Assert.That(db.Root.ContentSubspace.Key, Is.EqualTo(db.GlobalSpace.Key));
-				Assert.That(db.Root.NodeSubspace, Is.Not.Null);
-				Assert.That(db.Root.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace[Slice.FromByte(254)]));
-				Assert.That(db.GlobalSpace.Contains(db.Root.ContentSubspace.Key), Is.True);
-				Assert.That(db.GlobalSpace.Contains(db.Root.NodeSubspace.Key), Is.True);
+				var directory = db.Directory;
+				Assert.That(directory, Is.Not.Null);
+				Assert.That(directory.Path, Is.Not.Null);
 
-				var innerDb = db.GetInnerDatabase();
-				Assert.That(innerDb, Is.Not.Null);
-				Assert.That(innerDb.Name, Is.EqualTo(db.Name));
-				Assert.That(innerDb.GlobalSpace.Key, Is.EqualTo(db.GlobalSpace.Key));
+				var dl = directory.DirectoryLayer;
+				Assert.That(dl, Is.Not.Null);
+				Assert.That(dl.ContentSubspace, Is.Not.Null);
+				Assert.That(dl.ContentSubspace.Key, Is.EqualTo(db.GlobalSpace.Key));
+				Assert.That(dl.NodeSubspace, Is.Not.Null);
+				Assert.That(dl.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace[Slice.FromByte(254)]));
+				Assert.That(db.GlobalSpace.Contains(dl.ContentSubspace.Key), Is.True);
+				Assert.That(db.GlobalSpace.Contains(dl.NodeSubspace.Key), Is.True);
+
 			}
 		}
 	}
