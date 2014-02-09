@@ -100,6 +100,16 @@ namespace FoundationDB.Client
 			return this.Buffer.Substring(p, count);
 		}
 
+		public uint ReadFixed32()
+		{
+			return ReadBytes(4).ToUInt32();
+		}
+
+		public ulong ReadFixed64()
+		{
+			return ReadBytes(8).ToUInt64();
+		}
+
 		/// <summary>Read an encoded nul-terminated byte array from the buffer</summary>
 		public Slice ReadByteString()
 		{
