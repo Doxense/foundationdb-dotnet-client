@@ -44,14 +44,16 @@ namespace FoundationDB.Layers.Directories
 			: base(prefix)
 		{
 			Contract.Requires(location != null && prefix != null && directoryLayer != null);
+			if (layer.IsNull) layer = Slice.Empty;
 
 			this.Location = location;
-			this.Path = location.ToArray<string>();
+			this.Path = directoryLayer.Location.Concat(location).ToArray<string>();
 			this.DirectoryLayer = directoryLayer;
 			this.Layer = layer;
 		}
 
-		internal IFdbTuple Location { get; private set;}
+		/// <summary>Location of the directory relative to its Directory Layer</summary>
+		protected IFdbTuple Location { get; set;}
 
 		/// <summary>Path of this directory</summary>
 		public IReadOnlyList<string> Path { get; private set; }
@@ -382,7 +384,14 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return String.Format("DirectorySubspace('/{0}', {1})", String.Join("/", this.Path), this.Key.ToAsciiOrHexaString());
+			if (this.Layer.IsNullOrEmpty)
+			{
+				return String.Format("DirectorySubspace(path={0}, prefix={1})", this.Location.ToString(), this.Key.ToAsciiOrHexaString());
+			}
+			else
+			{
+				return String.Format("DirectorySubspace(path={0}, prefix={1}, layer={2})", this.Location.ToString(), this.Key.ToAsciiOrHexaString(), this.Layer.ToAsciiOrHexaString());
+			}
 		}
 
 	}

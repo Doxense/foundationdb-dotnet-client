@@ -822,7 +822,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
 
-				var dl = new FdbDirectoryLayer();
+				var dl = FdbDirectoryLayer.Create();
 
 				using (var tr = db.BeginTransaction())
 				{

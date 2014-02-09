@@ -157,7 +157,7 @@ namespace FoundationDB.Client
 
 		protected virtual FdbDatabasePartition GetRootDirectory()
 		{
-			var dl = new FdbDirectoryLayer(m_globalSpaceCopy[FdbKey.Directory], m_globalSpaceCopy);
+			var dl = FdbDirectoryLayer.Create(m_globalSpaceCopy);
 			return new FdbDatabasePartition(this, dl);
 		}
 

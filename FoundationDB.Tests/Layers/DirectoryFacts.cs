@@ -118,7 +118,7 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
+				var directory = FdbDirectoryLayer.Create(location);
 
 				Assert.That(directory.ContentSubspace, Is.Not.Null);
 				Assert.That(directory.ContentSubspace.Key, Is.EqualTo(location.Key));
@@ -183,7 +183,7 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
+				var directory = FdbDirectoryLayer.Create(location);
 
 				Assert.That(directory.ContentSubspace, Is.Not.Null);
 				Assert.That(directory.ContentSubspace.Key, Is.EqualTo(location.Key));
@@ -256,7 +256,7 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = FdbDirectoryLayer.FromSubspace(location);
+				var directory = FdbDirectoryLayer.Create(location);
 
 				FdbDirectorySubspace folder;
 				using (var tr = logged.BeginTransaction())
@@ -295,7 +295,7 @@ namespace FoundationDB.Layers.Directories
 				// we will put everything under a custom namespace
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
-				var directory = FdbDirectoryLayer.FromSubspace(location);
+				var directory = FdbDirectoryLayer.Create(location);
 
 #if DEBUG
 				var list = new List<FdbTransactionLog>();
@@ -348,7 +348,7 @@ namespace FoundationDB.Layers.Directories
 				// we will put everything under a custom namespace
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
-				var directory = FdbDirectoryLayer.FromSubspace(location);
+				var directory = FdbDirectoryLayer.Create(location);
 
 				// insert letters in random order
 				var rnd = new Random();
@@ -396,7 +396,7 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				// put the nodes under (..,"DL",\xFE,) and the content under (..,"DL",)
-				var directory = new FdbDirectoryLayer(location[FdbKey.Directory], location);
+				var directory = FdbDirectoryLayer.Create(location);
 
 				// create a folder at ('Foo',)
 				var original = await directory.CreateOrOpenAsync(logged, "Foo");
@@ -442,7 +442,7 @@ namespace FoundationDB.Layers.Directories
 			{
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
-				var directory = FdbDirectoryLayer.FromSubspace(location);
+				var directory = FdbDirectoryLayer.Create(location);
 
 #if DEBUG
 				var list = new List<FdbTransactionLog>();
@@ -502,7 +502,7 @@ namespace FoundationDB.Layers.Directories
 			{
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
-				var directory = FdbDirectoryLayer.FromSubspace(location);
+				var directory = FdbDirectoryLayer.Create(location);
 
 #if DEBUG
 				var list = new List<FdbTransactionLog>();
@@ -545,13 +545,56 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		[Test]
+		public async Task Test_Directory_Partitions()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location);
+
+				var directory = FdbDirectoryLayer.Create(location);
+				Console.WriteLine(directory);
+
+				var partition = await directory.CreateAsync(db, "Foo", Slice.FromAscii("partition"));
+				Console.WriteLine(partition);
+				Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
+				Assert.That(partition.Layer, Is.EqualTo(Slice.FromAscii("partition")));
+				Assert.That(partition.Path, Is.EqualTo(new string[] { "Foo" }), "Partition's path should be absolute");
+				Assert.That(partition.DirectoryLayer, Is.Not.SameAs(directory), "Partitions should have their own DL");
+				Assert.That(partition.DirectoryLayer.ContentSubspace.Key, Is.EqualTo(partition.Key), "Partition's content should be under the partition's prefix");
+				Assert.That(partition.DirectoryLayer.NodeSubspace.Key, Is.EqualTo(partition.Key + FdbKey.Directory), "Partition's nodes should be under the partition's prefix");
+
+				var bar = await partition.CreateAsync(db, "Bar");
+				Console.WriteLine(bar);
+				Assert.That(bar, Is.InstanceOf<FdbDirectorySubspace>());
+				Assert.That(bar.Path, Is.EqualTo(new string[] { "Foo", "Bar" }), "Path of directories under a partition should be absolute");
+				Assert.That(bar.Key, Is.Not.EqualTo(partition.Key), "{0} should be located under {1}", bar, partition);
+				Assert.That(bar.Key.StartsWith(partition.Key), Is.True, "{0} should be located under {1}", bar, partition);
+
+				var baz = await partition.CreateAsync(db, "Baz");
+				Console.WriteLine(baz);
+				Assert.That(baz, Is.InstanceOf<FdbDirectorySubspace>());
+				Assert.That(baz.Path, Is.EqualTo(new string[] { "Foo", "Baz" }), "Path of directories under a partition should be absolute");
+				Assert.That(baz.Key, Is.Not.EqualTo(partition.Key), "{0} should be located under {1}", baz, partition);
+				Assert.That(baz.Key.StartsWith(partition.Key), Is.True, "{0} should be located under {1}", baz, partition);
+
+				// create a 'Bar' under the root partition
+				var other = await directory.CreateAsync(db, "Bar");
+				Console.WriteLine(other);
+				Assert.That(other.Path, Is.EqualTo(new string[] { "Bar" }));
+				Assert.That(other.DirectoryLayer, Is.SameAs(directory));
+			}
+		}
+
+
+		[Test]
 		public async Task Test_Directory_Methods_Should_Fail_With_Empty_Paths()
 		{
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			{
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location);
-				var directory = FdbDirectoryLayer.FromSubspace(location);
+				var directory = FdbDirectoryLayer.Create(location);
 
 				// CreateOrOpen
 				Assert.Throws<ArgumentNullException>(async () => await directory.CreateOrOpenAsync(db, default(string[])));

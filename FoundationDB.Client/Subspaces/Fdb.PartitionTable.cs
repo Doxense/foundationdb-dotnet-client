@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 				try
 				{
 					db = await Fdb.OpenAsync(clusterFile, dbName, rootSpace).ConfigureAwait(false);
-					var rootLayer = new FdbDirectoryLayer(rootSpace[FdbKey.Directory], rootSpace);
+					var rootLayer = FdbDirectoryLayer.Create(rootSpace);
 					if (Logging.On) Logging.Verbose(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Opened root layer of database {0} using cluster file '{1}'", db.Name, db.Cluster.Path));
 
 					// look up in the root layer for the named partition
@@ -85,7 +85,7 @@ namespace FoundationDB.Client
 					if (Logging.On) Logging.Verbose(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.Path.ToString(), descriptor.ToString()));
 
 					var content = FdbSubspace.Create(descriptor.Key);
-					var dl = new FdbDirectoryLayer(content[FdbKey.Directory], content);
+					var dl = FdbDirectoryLayer.Create(content);
 
 					// switch the global space of the database to the new prefix
 					// note: we make sure to copy the descriptor to be isolated from any changes to the key slices by the caller.

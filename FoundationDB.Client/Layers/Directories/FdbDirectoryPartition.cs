@@ -39,15 +39,25 @@ namespace FoundationDB.Layers.Directories
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
 
-		private static readonly Slice PartitionLayerId = Slice.FromString("partition");
+		internal static readonly Slice PartitionLayerId = Slice.FromString("partition");
+
+		private readonly IFdbTuple m_parentLocation;
+		private readonly FdbDirectoryLayer m_parentDirectoryLayer;
 
 		internal FdbDirectoryPartition(IFdbTuple location, Slice prefix, FdbDirectoryLayer directoryLayer)
-			: base(location, prefix, directoryLayer, PartitionLayerId)
-		{ }
+			: base(FdbTuple.Empty, prefix, new FdbDirectoryLayer(FdbSubspace.Create(prefix + FdbKey.Directory), FdbSubspace.Create(prefix), location), PartitionLayerId)
+		{
+			m_parentLocation = location;
+			m_parentDirectoryLayer = directoryLayer;
+		}
+
+		internal IFdbTuple ParentLocation { get { return m_parentLocation; } }
+
+		internal FdbDirectoryLayer ParentDirectoryLayer { get { return m_parentDirectoryLayer; } }
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryPartition({0}, {1})", String.Join("/", this.Path), FdbKey.Dump(this.Key));
+			return String.Format("DirectoryPartition(path={0}, prefix={1})", m_parentLocation.ToString(), this.Key.ToAsciiOrHexaString());
 		}
 
 		public override FdbSubspace Partition(IFdbTuple tuple)
