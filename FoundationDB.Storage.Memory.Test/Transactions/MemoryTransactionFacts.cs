@@ -1183,7 +1183,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				Console.WriteLine("Saving ...");
 				sw.Restart();
-				await db.SaveSnapshotAsync(@"C:\temp\pndb\bench.pndb");
+				await db.SaveSnapshotAsync(".\\minibench.pndb");
 				sw.Stop();
 				Console.WriteLine("* Saved in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
 
