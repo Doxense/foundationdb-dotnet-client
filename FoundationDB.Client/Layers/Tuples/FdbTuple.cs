@@ -707,6 +707,27 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Internal Helpers...
 
+		/// <summary>Determines whether the specified tuple instances are considered equal</summary>
+		/// <param name="left">Left tuple</param>
+		/// <param name="right">Right tuple</param>
+		/// <returns>True if the tuples are considered equal; otherwise, false. If both <paramref name="left"/> and <paramref name="right"/> are null, the methods returns true;</returns>
+		/// <remarks>This method is equivalent of calling left.Equals(right), </remarks>
+		public static bool Equals(IFdbTuple left, IFdbTuple right)
+		{
+			if (object.ReferenceEquals(left, null)) return object.ReferenceEquals(right, null);
+			return left.Equals(right);
+		}
+
+		/// <summary>Determines whether the specifield tuple instances are considered similar</summary>
+		/// <param name="left">Left tuple</param>
+		/// <param name="right">Right tuple</param>
+		/// <returns>True if the tuples are considered similar; otherwise, false. If both <paramref name="left"/> and <paramref name="right"/> are null, the methods returns true;</returns>
+		public static bool Equivalent(IFdbTuple left, IFdbTuple right)
+		{
+			if (object.ReferenceEquals(left, null)) return object.ReferenceEquals(right, null);
+			return !object.ReferenceEquals(right, null) && Equals(left, right, FdbTupleComparisons.Default);
+		}
+
 		/// <summary>Create a range that selects all tuples that are stored under the specified subspace: 'prefix\x00' &lt;= k &lt; 'prefix\xFF'</summary>
 		/// <param name="prefix">Subspace binary prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all possible tuples starting with the specified prefix.</returns>

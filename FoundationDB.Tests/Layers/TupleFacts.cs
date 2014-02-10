@@ -1870,6 +1870,31 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_FdbTuple_Substring_Equality()
+		{
+			var x = FdbTuple.CreateRange<string>(new [] { "A", "C" });
+			var y = FdbTuple.CreateRange<string>(new[] { "A", "B", "C" });
+
+			Assert.That(x.Substring(0, 1), Is.EqualTo(y.Substring(0, 1)));
+			Assert.That(x.Substring(1, 1), Is.EqualTo(y.Substring(2, 1)));
+
+			var aa = FdbTuple.Create<string>("A");
+			var bb = FdbTuple.Create<string>("A");
+			Assert.That(aa == bb, Is.True);
+
+			var a = x.Substring(0, 1);
+			var b = y.Substring(0, 1);
+			Assert.That(a.Equals((IFdbTuple)b), Is.True);
+			Assert.That(a.Equals((object)b), Is.True);
+			Assert.That(object.Equals(a, b), Is.True);
+			Assert.That(FdbTuple.Equals(a, b), Is.True);
+			Assert.That(FdbTuple.Equivalent(a, b), Is.True);
+
+			// this is very unfortunate, but 'a == b' does NOT work because IFdbTuple is an interface, and there is no known way to make it work :(
+			//Assert.That(a == b, Is.True);
+		}
+
+		[Test]
 		public void Test_FdbTuple_String_AutoCast()
 		{
 			// 'a' ~= "A"
