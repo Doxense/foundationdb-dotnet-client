@@ -578,35 +578,94 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(baz.Key, Is.Not.EqualTo(partition.Key), "{0} should be located under {1}", baz, partition);
 				Assert.That(baz.Key.StartsWith(partition.Key), Is.True, "{0} should be located under {1}", baz, partition);
 
-				// create a 'Bar' under the root partition
-				var other = await directory.CreateAsync(db, "Bar");
-				Console.WriteLine(other);
-				Assert.That(other.Path, Is.EqualTo(new string[] { "Bar" }));
-				Assert.That(other.DirectoryLayer, Is.SameAs(directory));
-
 				// Rename 'Bar' to 'BarBar'
-				var bar2 = await bar.MoveToAsync(db, new [] { "Foo", "BarBar" });
+				var bar2 = await bar.MoveToAsync(db, new[] { "Foo", "BarBar" });
 				Console.WriteLine(bar2);
 				Assert.That(bar2, Is.InstanceOf<FdbDirectorySubspace>());
 				Assert.That(bar2, Is.Not.SameAs(bar));
 				Assert.That(bar2.Key, Is.EqualTo(bar.Key));
 				Assert.That(bar2.Path, Is.EqualTo(new[] { "Foo", "BarBar" }));
 				Assert.That(bar2.DirectoryLayer, Is.SameAs(bar.DirectoryLayer));
-
-				// Attempting to move 'Baz' to another partition should fail
-				Assert.That(async () => await baz.MoveToAsync(db, new[] { "Baz" }), Throws.InstanceOf<InvalidOperationException>());
-
-				// create a subpart
-				var foo2 = await partition.CreateAsync(db, "Foo2", Slice.FromString("partition"));
-				Assert.That(foo2, Is.InstanceOf<FdbDirectoryPartition>());
-				// Attempting to move 'Baz' to a sub-partition should fail
-				Assert.That(async () => await baz.MoveToAsync(db, new[] { "Foo", "Foo2", "Baz" }), Throws.InstanceOf<InvalidOperationException>());
-
-				var baz2 = await foo2.CreateAsync(db, "Baz");
-				Console.WriteLine(baz2);
-				var movedBaz2 = await baz2.MoveToAsync(db, new [] { "Foo", "Foo2", "BazBaz" });
-				Console.WriteLine(movedBaz2);
 			}
+		}
+
+		[Test]
+		public async Task Test_Directory_Cannot_Move_To_Another_Partition()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location);
+
+				var directory = FdbDirectoryLayer.Create(location);
+				Console.WriteLine(directory);
+
+				var foo = await directory.CreateAsync(db, "Foo", Slice.FromAscii("partition"));
+				Console.WriteLine(foo);
+
+				// create a 'Bar' under the 'Foo' partition
+				var bar = await foo.CreateAsync(db, "Bar");
+				Console.WriteLine(bar);
+				Assert.That(bar.Path, Is.EqualTo(new string[] { "Foo", "Bar" }));
+				Assert.That(bar.DirectoryLayer, Is.Not.SameAs(directory));
+				Assert.That(bar.DirectoryLayer, Is.SameAs(foo.DirectoryLayer));
+
+				// Attempting to move 'Bar' outside the Foo partition should fail
+				Assert.That(async () => await bar.MoveToAsync(db, new[] { "Bar" }), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await directory.MoveAsync(db, new[] { "Foo", "Bar" }, new [] { "Bar" }), Throws.InstanceOf<InvalidOperationException>());
+			}
+
+		}
+
+		[Test]
+		public async Task Test_Directory_Cannot_Move_To_A_Sub_Partition()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location);
+
+				var directory = FdbDirectoryLayer.Create(location);
+				Console.WriteLine(directory);
+
+				var outer = await directory.CreateAsync(db, "Outer", Slice.FromAscii("partition"));
+				Console.WriteLine(outer);
+
+				// create a 'Inner' subpartition under the 'Outer' partition
+				var inner = await outer.CreateAsync(db, "Inner", Slice.FromString("partition"));
+				Console.WriteLine(inner);
+				Assert.That(inner.Path, Is.EqualTo(new string[] { "Outer", "Inner" }));
+				Assert.That(inner.DirectoryLayer, Is.Not.SameAs(directory));
+				Assert.That(inner.DirectoryLayer, Is.Not.SameAs(outer.DirectoryLayer));
+
+				// create folder /Outer/Foo
+				var foo = await outer.CreateAsync(db, "Foo");
+				Assert.That(foo.Path, Is.EqualTo(new string[] { "Outer", "Foo" }));
+				// create folder /Outer/Inner/Bar
+				var bar = await inner.CreateAsync(db, "Bar");
+				Assert.That(bar.Path, Is.EqualTo(new string[] { "Outer", "Inner", "Bar" }));
+
+				// Attempting to move 'Foo' inside the Inner partition should fail
+				Assert.That(async () => await foo.MoveToAsync(db, new[] { "Outer", "Inner", "Foo" }), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await directory.MoveAsync(db, new[] { "Outer", "Foo" }, new[] { "Outer", "Inner", "Foo" }), Throws.InstanceOf<InvalidOperationException>());
+
+				// Attemping to move 'Bar' outside the Inner partition should fail
+				Assert.That(async () => await bar.MoveToAsync(db, new[] { "Outer", "Bar" }), Throws.InstanceOf<InvalidOperationException>());
+				Assert.That(async () => await directory.MoveAsync(db, new[] { "Outer", "Inner", "Bar" }, new[] { "Outer", "Bar" }), Throws.InstanceOf<InvalidOperationException>());
+
+				// Moving 'Foo' inside the Outer partition itself should work
+				await directory.CreateAsync(db, new[] { "Outer", "SubFolder" }); // parent of destination folder must already exist when moving...
+				var foo2 = await directory.MoveAsync(db, new [] { "Outer", "Foo" }, new [] { "Outer", "SubFolder", "Foo" });
+				Assert.That(foo2.Path, Is.EqualTo(new [] { "Outer", "SubFolder", "Foo" }));
+				Assert.That(foo2.Key, Is.EqualTo(foo.Key));
+
+				// Moving 'Bar' inside the Inner partition itself should work
+				await directory.CreateAsync(db, new[] { "Outer", "Inner", "SubFolder" }); // parent of destination folder must already exist when moving...
+				var bar2 = await directory.MoveAsync(db, new[] { "Outer", "Inner", "Bar" }, new[] { "Outer", "Inner", "SubFolder", "Bar" });
+				Assert.That(bar2.Path, Is.EqualTo(new[] { "Outer", "Inner", "SubFolder", "Bar" }));
+				Assert.That(bar2.Key, Is.EqualTo(bar.Key));
+			}
+
 		}
 
 

@@ -610,22 +610,23 @@ namespace FoundationDB.Layers.Directories
 			}
 
 			var newNode = await FindAsync(trans, newPath).ConfigureAwait(false);
-			if (newNode.Exists)
-			{
-				if (throwOnError) throw new InvalidOperationException(string.Format("The destination directory '{0}' already exists. Remove it first.", newPath));
-				return null;
-			}
 
 			// we have already checked that old and new are under this partition path, but one of them (or both?) could be under a sub-partition..
 			if (oldNode.IsInPartition(false) || newNode.IsInPartition(false))
 			{
-				if (!oldNode.IsInPartition(false) || !newNode.IsInPartition(false) || oldNode.Path != newNode.Path)
+				if (!oldNode.IsInPartition(false) || !newNode.IsInPartition(false) || !FdbTuple.Equals(oldNode.Path, newNode.Path))
 				{
 					throw new InvalidOperationException("Cannot move between partitions.");
 				}
 				// both nodes are in the same sub-partition, delegate to it
 				var partition = ContentsOfNode(newNode.Subspace, newNode.Path, newNode.Layer);
 				return await partition.DirectoryLayer.MoveInternalAsync(trans, oldNode.PartitionSubPath, newNode.PartitionSubPath, throwOnError);
+			}
+
+			if (newNode.Exists)
+			{
+				if (throwOnError) throw new InvalidOperationException(string.Format("The destination directory '{0}' already exists. Remove it first.", newPath));
+				return null;
 			}
 
 			var parentNode = await FindAsync(trans, newPath.Substring(0, newPath.Count - 1)).ConfigureAwait(false);
