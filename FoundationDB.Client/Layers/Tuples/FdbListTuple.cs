@@ -87,8 +87,8 @@ namespace FoundationDB.Layers.Tuples
 		{
 			get
 			{
-				int start = FdbTuple.MapIndex(from ?? 0, m_count);
-				int end = FdbTuple.MapIndex(to ?? -1, m_count);
+				int start = FdbTuple.MapIndexBounded(from ?? 0, m_count);
+				int end = FdbTuple.MapIndexBounded(to ?? -1, m_count);
 
 				int len = end - start + 1;
 				if (len <= 0) return FdbTuple.Empty;

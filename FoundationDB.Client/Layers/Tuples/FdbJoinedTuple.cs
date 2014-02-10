@@ -83,6 +83,11 @@ namespace FoundationDB.Layers.Tuples
 			return this.ToSlice();
 		}
 
+		public override string ToString()
+		{
+			return FdbTuple.ToString(this);
+		}
+
 		public int Count
 		{
 			get { return m_count; }
@@ -101,8 +106,8 @@ namespace FoundationDB.Layers.Tuples
 		{
 			get
 			{
-				int begin = from.HasValue ? FdbTuple.MapIndex(from.Value, m_count) : 0;
-				int end = to.HasValue ? FdbTuple.MapIndex(to.Value, m_count) : m_count - 1;
+				int begin = from.HasValue ? FdbTuple.MapIndexBounded(from.Value, m_count) : 0;
+				int end = to.HasValue ? FdbTuple.MapIndexBounded(to.Value, m_count) : m_count - 1;
 
 				if (end < begin) return FdbTuple.Empty;
 

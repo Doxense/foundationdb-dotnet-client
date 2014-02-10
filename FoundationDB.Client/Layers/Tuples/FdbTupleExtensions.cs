@@ -203,8 +203,21 @@ namespace FoundationDB.Layers.Tuples
 			if (left == null) throw new ArgumentNullException("left");
 			if (right == null) throw new ArgumentNullException("right");
 
-			//TODO: move this on IFdbTuple interface ?
+			//REVIEW: move this on IFdbTuple interface ?
 			return FdbTuple.StartsWith(left, right);
+		}
+
+		/// <summary>Test if the end of current tuple is equal to another tuple</summary>
+		/// <param name="left">Larger tuple</param>
+		/// <param name="right">Smaller tuple</param>
+		/// <returns>True if the end of <paramref name="left"/> is equal to <paramref name="right"/> or if both tuples are identical</returns>
+		public static bool EndsWith(this IFdbTuple left, IFdbTuple right)
+		{
+			if (left == null) throw new ArgumentNullException("left");
+			if (right == null) throw new ArgumentNullException("right");
+
+			//REVIEW: move this on IFdbTuple interface ?
+			return FdbTuple.EndsWith(left, right);
 		}
 
 		/// <summary>Returns a key that is immediately after the packed representation of this tuple</summary>

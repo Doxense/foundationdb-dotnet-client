@@ -836,8 +836,8 @@ namespace FoundationDB.Layers.Tuples
 			int count = tuple.Count;
 			if (count == 0) return FdbTuple.Empty;
 
-			int start = MapIndex(from ?? 0, count);
-			int end = MapIndex(to ?? -1, count);
+			int start = MapIndexBounded(from ?? 0, count);
+			int end = MapIndexBounded(to ?? -1, count);
 
 			int len = end - start + 1;
 
@@ -881,6 +881,27 @@ namespace FoundationDB.Layers.Tuples
 			return true;
 		}
 
+		/// <summary>Default (non-optimized) implementation for IFdbTuple.EndsWith()</summary>
+		/// <param name="a">Larger tuple</param>
+		/// <param name="b">Smaller tuple</param>
+		/// <returns>True if <paramref name="a"/> starts with (or is equal to) <paramref name="b"/></returns>
+		internal static bool EndsWith(IFdbTuple a, IFdbTuple b)
+		{
+			if (object.ReferenceEquals(a, b)) return true;
+			int an = a.Count;
+			int bn = b.Count;
+
+			if (bn > an) return false;
+			if (bn == 0) return true; // note: 'an' can only be 0 because of previous test
+
+			int offset = an - bn;
+			for (int i = 0; i < bn; i++)
+			{
+				if (a[offset + i] != b[i]) return false;
+			}
+			return true;
+		}
+
 		/// <summary>Helper to copy the content of a tuple at a specific position in an array</summary>
 		/// <returns>Updated offset just after the last element of the copied tuple</returns>
 		internal static int CopyTo(IFdbTuple tuple, object[] array, int offset)
@@ -901,7 +922,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="count">Size of the tuple</param>
 		/// <returns>Absolute index from the start of the tuple, or exception if outside of the tuple</returns>
 		/// <exception cref="System.IndexOutOfRangeException">If the absolute index is outside of the tuple (&lt;0 or &gt;=<paramref name="count"/>)</exception>
-		internal static int MapIndex(int index, int count, bool dontCheckBounds = false)
+		internal static int MapIndex(int index, int count)
 		{
 			int offset = index;
 			if (offset < 0) offset += count;
