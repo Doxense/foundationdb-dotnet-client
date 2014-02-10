@@ -407,7 +407,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(original.Path, Is.EqualTo(new[] { "Foo" }));
 
 				// rename/move it as ('Bar',)
-				var renamed = await original.MoveAsync(logged, new[] { "Bar" });
+				var renamed = await original.MoveToAsync(logged, new[] { "Bar" });
 #if DEBUG
 				await TestHelpers.DumpSubspace(db, location);
 #endif
@@ -425,7 +425,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(folder.Key, Is.EqualTo(renamed.Key));
 
 				// moving the folder under itself should fail
-				Assert.Throws<InvalidOperationException>(async () => await folder.MoveAsync(logged, new[] { "Bar", "Baz" }));
+				Assert.Throws<InvalidOperationException>(async () => await folder.MoveToAsync(logged, new[] { "Bar", "Baz" }));
 #if DEBUG
 				foreach (var log in list)
 				{
@@ -559,7 +559,7 @@ namespace FoundationDB.Layers.Directories
 				Console.WriteLine(partition);
 				Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
 				Assert.That(partition.Layer, Is.EqualTo(Slice.FromAscii("partition")));
-				Assert.That(partition.Path, Is.EqualTo(new string[] { "Foo" }), "Partition's path should be absolute");
+				Assert.That(partition.Path, Is.EqualTo(new [] { "Foo" }), "Partition's path should be absolute");
 				Assert.That(partition.DirectoryLayer, Is.Not.SameAs(directory), "Partitions should have their own DL");
 				Assert.That(partition.DirectoryLayer.ContentSubspace.Key, Is.EqualTo(partition.Key), "Partition's content should be under the partition's prefix");
 				Assert.That(partition.DirectoryLayer.NodeSubspace.Key, Is.EqualTo(partition.Key + FdbKey.Directory), "Partition's nodes should be under the partition's prefix");
@@ -567,14 +567,14 @@ namespace FoundationDB.Layers.Directories
 				var bar = await partition.CreateAsync(db, "Bar");
 				Console.WriteLine(bar);
 				Assert.That(bar, Is.InstanceOf<FdbDirectorySubspace>());
-				Assert.That(bar.Path, Is.EqualTo(new string[] { "Foo", "Bar" }), "Path of directories under a partition should be absolute");
+				Assert.That(bar.Path, Is.EqualTo(new [] { "Foo", "Bar" }), "Path of directories under a partition should be absolute");
 				Assert.That(bar.Key, Is.Not.EqualTo(partition.Key), "{0} should be located under {1}", bar, partition);
 				Assert.That(bar.Key.StartsWith(partition.Key), Is.True, "{0} should be located under {1}", bar, partition);
 
 				var baz = await partition.CreateAsync(db, "Baz");
 				Console.WriteLine(baz);
 				Assert.That(baz, Is.InstanceOf<FdbDirectorySubspace>());
-				Assert.That(baz.Path, Is.EqualTo(new string[] { "Foo", "Baz" }), "Path of directories under a partition should be absolute");
+				Assert.That(baz.Path, Is.EqualTo(new [] { "Foo", "Baz" }), "Path of directories under a partition should be absolute");
 				Assert.That(baz.Key, Is.Not.EqualTo(partition.Key), "{0} should be located under {1}", baz, partition);
 				Assert.That(baz.Key.StartsWith(partition.Key), Is.True, "{0} should be located under {1}", baz, partition);
 
@@ -583,6 +583,29 @@ namespace FoundationDB.Layers.Directories
 				Console.WriteLine(other);
 				Assert.That(other.Path, Is.EqualTo(new string[] { "Bar" }));
 				Assert.That(other.DirectoryLayer, Is.SameAs(directory));
+
+				// Rename 'Bar' to 'BarBar'
+				var bar2 = await bar.MoveToAsync(db, new [] { "Foo", "BarBar" });
+				Console.WriteLine(bar2);
+				Assert.That(bar2, Is.InstanceOf<FdbDirectorySubspace>());
+				Assert.That(bar2, Is.Not.SameAs(bar));
+				Assert.That(bar2.Key, Is.EqualTo(bar.Key));
+				Assert.That(bar2.Path, Is.EqualTo(new[] { "Foo", "BarBar" }));
+				Assert.That(bar2.DirectoryLayer, Is.SameAs(bar.DirectoryLayer));
+
+				// Attempting to move 'Baz' to another partition should fail
+				Assert.That(async () => await baz.MoveToAsync(db, new[] { "Baz" }), Throws.InstanceOf<InvalidOperationException>());
+
+				// create a subpart
+				var foo2 = await partition.CreateAsync(db, "Foo2", Slice.FromString("partition"));
+				Assert.That(foo2, Is.InstanceOf<FdbDirectoryPartition>());
+				// Attempting to move 'Baz' to a sub-partition should fail
+				Assert.That(async () => await baz.MoveToAsync(db, new[] { "Foo", "Foo2", "Baz" }), Throws.InstanceOf<InvalidOperationException>());
+
+				var baz2 = await foo2.CreateAsync(db, "Baz");
+				Console.WriteLine(baz2);
+				var movedBaz2 = await baz2.MoveToAsync(db, new [] { "Foo", "Foo2", "BazBaz" });
+				Console.WriteLine(movedBaz2);
 			}
 		}
 

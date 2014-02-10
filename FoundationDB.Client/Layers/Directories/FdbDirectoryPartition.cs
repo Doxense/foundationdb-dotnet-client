@@ -41,23 +41,25 @@ namespace FoundationDB.Layers.Directories
 
 		internal static readonly Slice PartitionLayerId = Slice.FromString("partition");
 
-		private readonly IFdbTuple m_parentLocation;
 		private readonly FdbDirectoryLayer m_parentDirectoryLayer;
 
-		internal FdbDirectoryPartition(IFdbTuple location, Slice prefix, FdbDirectoryLayer directoryLayer)
-			: base(FdbTuple.Empty, prefix, new FdbDirectoryLayer(FdbSubspace.Create(prefix + FdbKey.Directory), FdbSubspace.Create(prefix), location), PartitionLayerId)
+		internal FdbDirectoryPartition(IFdbTuple location, IFdbTuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer)
+			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FdbSubspace.Create(prefix + FdbKey.Directory), FdbSubspace.Create(prefix), location), PartitionLayerId)
 		{
-			m_parentLocation = location;
 			m_parentDirectoryLayer = directoryLayer;
 		}
 
-		internal IFdbTuple ParentLocation { get { return m_parentLocation; } }
-
 		internal FdbDirectoryLayer ParentDirectoryLayer { get { return m_parentDirectoryLayer; } }
+
+		protected override IFdbTuple ToRelativePath(IEnumerable<string> path)
+		{
+			Contract.Requires(path != null);
+			return FdbTuple.CreateRange<string>(path);
+		}
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryPartition(path={0}, prefix={1})", m_parentLocation.ToString(), this.Key.ToAsciiOrHexaString());
+			return String.Format("DirectoryPartition(path={0}, prefix={1})", this.Location.ToString(), this.Key.ToAsciiOrHexaString());
 		}
 
 		public override FdbSubspace Partition(IFdbTuple tuple)
