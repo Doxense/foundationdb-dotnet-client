@@ -148,7 +148,7 @@ namespace FoundationDB.Samples
 				}
 				else
 				{
-					Db = Fdb.PartitionTable.OpenNamedPartitionAsync(clusterFile, dbName, partition).GetAwaiter().GetResult();
+					Db = Fdb.Directory.OpenNamedPartitionAsync(clusterFile, dbName, partition).GetAwaiter().GetResult();
 				}
 				using (Db)
 				{
