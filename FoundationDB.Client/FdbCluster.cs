@@ -156,6 +156,8 @@ namespace FoundationDB.Client
 
 			Fdb.EnsureNotOnNetworkThread();
 
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting cluster option {0}", option.ToString()));
+
 			m_handler.SetOption(option, Slice.Nil);
 		}
 
@@ -167,6 +169,8 @@ namespace FoundationDB.Client
 			ThrowIfDisposed();
 
 			Fdb.EnsureNotOnNetworkThread();
+
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting cluster option {0} to '{1}'", option.ToString(), value ?? "<null>"));
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			m_handler.SetOption(option, data);
@@ -180,6 +184,8 @@ namespace FoundationDB.Client
 			ThrowIfDisposed();
 
 			Fdb.EnsureNotOnNetworkThread();
+
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting cluster option {0} to {1}", option.ToString(), value.ToString()));
 
 			var data = Slice.FromFixed64(value);
 			m_handler.SetOption(option, data);

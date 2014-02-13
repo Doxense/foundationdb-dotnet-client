@@ -264,6 +264,8 @@ namespace FoundationDB.Client
 		{
 			EnsureNotFailedOrDisposed();
 
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting transaction option {0}", option.ToString()));
+
 			m_handler.SetOption(option, Slice.Nil);
 		}
 
@@ -273,6 +275,8 @@ namespace FoundationDB.Client
 		public void SetOption(FdbTransactionOption option, string value)
 		{
 			EnsureNotFailedOrDisposed();
+
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting transaction option {0} to '{1}'", option.ToString(), value ?? "<null>"));
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			m_handler.SetOption(option, data);
@@ -284,6 +288,8 @@ namespace FoundationDB.Client
 		public void SetOption(FdbTransactionOption option, long value)
 		{
 			EnsureNotFailedOrDisposed();
+
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting transaction option {0} to {1}", option.ToString(), value.ToString()));
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 			var data = Slice.FromFixed64(value);
