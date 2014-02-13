@@ -1468,6 +1468,49 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Transaction_Retry_Loop_Respects_RetryLimit_Value()
+		{
+			FoundationDB.Client.Utils.Logging.SetLevel(SourceLevels.Verbose);
+
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var go = new CancellationTokenSource())
+			{
+				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
+				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
+
+				// the retry loop should only retry 3 times, so a total of 4 executions
+				db.DefaultRetryLimit = 3;
+
+				int counter = 0;
+				var t = db.ReadAsync(async (tr) =>
+				{
+					++counter;
+					Console.WriteLine("Called " + counter + " time(s)");
+					if (counter > 4)
+					{
+						go.Cancel();
+						tr.Context.Abort = true;
+						Assert.Fail("The retry loop was called too many times!");
+					}
+					// simulate a retryable error condition
+					throw new FdbException(FdbError.PastVersion);
+				}, go.Token);
+
+				try
+				{
+					await t;
+					Assert.Fail("Should have failed!");
+				}
+				catch (AssertionException) { throw; }
+				catch (Exception e)
+				{
+					Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.PastVersion));
+				}
+				Assert.That(counter, Is.EqualTo(4), "1 first attempt + 3 retries = 4 executions");
+			}
+		}
+
+		[Test]
 		public async Task Test_Can_Add_Read_Conflict_Range()
 		{
 			using (var db = await TestHelpers.OpenTestPartitionAsync())
