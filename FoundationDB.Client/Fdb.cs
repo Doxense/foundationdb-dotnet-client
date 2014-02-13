@@ -456,7 +456,7 @@ namespace FoundationDB.Client
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will trace client activity in '{0}'", Fdb.Options.TracePath));
 				// create trace directory if missing...
-				if (!Directory.Exists(Fdb.Options.TracePath)) Directory.CreateDirectory(Fdb.Options.TracePath);
+				if (!System.IO.Directory.Exists(Fdb.Options.TracePath)) System.IO.Directory.CreateDirectory(Fdb.Options.TracePath);
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TraceEnable, Fdb.Options.TracePath));
 			}

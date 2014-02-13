@@ -43,10 +43,8 @@ namespace FoundationDB.Client
 	{
 
 		[Obsolete]//Note: will soon be folded into the DirectoryLayer itself !
-		public static class PartitionTable
+		public static class Directory
 		{
-			internal static readonly Slice PartitionLayerId = Slice.FromString("partition");
-
 			/// <summary>Open a named partition of the default cluster, using the root DirectoryLayer to discover the partition's prefix</summary>
 			/// <param name="path"></param>
 			/// <param name="cancellationToken"></param>
@@ -57,12 +55,12 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Open a named partition of a cluster, using its root DirectoryLayer to discover the partition's prefix</summary>
-			/// <param name="clusterFile"></param>
-			/// <param name="dbName"></param>
-			/// <param name="path"></param>
+			/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
+			/// <param name="dbName">Name of the database, or "DB" if not specified.</param>
+			/// <param name="path">Path of the named partition to open</param>
 			/// <param name="cancellationToken"></param>
-			/// <returns></returns>
-			public static async Task<FdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
+			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
+			public static async Task<FdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, bool readOnly = false, CancellationToken cancellationToken = default(CancellationToken))
 			{
 				if (path == null) throw new ArgumentNullException("partitionPath");
 				var partitionPath = path.ToList();
@@ -71,34 +69,30 @@ namespace FoundationDB.Client
 				// looks at the global partition table for the specified named partition
 
 				// By convention, all named databases will be under the "/Databases" folder
-
 				FdbDatabase db = null;
 				FdbSubspace rootSpace = FdbSubspace.Empty;
 				try
 				{
-					db = await Fdb.OpenAsync(clusterFile, dbName, rootSpace).ConfigureAwait(false);
+					db = await Fdb.OpenAsync(clusterFile, dbName, rootSpace, readOnly: false).ConfigureAwait(false);
 					var rootLayer = FdbDirectoryLayer.Create(rootSpace);
-					if (Logging.On) Logging.Verbose(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Opened root layer of database {0} using cluster file '{1}'", db.Name, db.Cluster.Path));
+					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened root layer of database {0} using cluster file '{1}'", db.Name, db.Cluster.Path));
 
 					// look up in the root layer for the named partition
-					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: PartitionLayerId).ConfigureAwait(false);
-					if (Logging.On) Logging.Verbose(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.Path.ToString(), descriptor.ToString()));
+					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: FdbDirectoryPartition.PartitionLayerId, cancellationToken: cancellationToken).ConfigureAwait(false);
+					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.Path.ToString(), descriptor.ToString()));
 
-					var content = FdbSubspace.Create(descriptor.Key);
-					var dl = FdbDirectoryLayer.Create(content);
+					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
+					rootSpace = FdbSubspace.Create(descriptor.Key.Memoize());
+					db.ChangeRoot(rootSpace, FdbDirectoryLayer.Create(rootSpace), readOnly);
 
-					// switch the global space of the database to the new prefix
-					// note: we make sure to copy the descriptor to be isolated from any changes to the key slices by the caller.
-					db.ChangeGlobalSpace(descriptor.Copy(), dl);
-
-					if (Logging.On) Logging.Info(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", String.Format("Opened partition {0} at {1}, using directory layer at {2}", descriptor.Path.ToString(), db.GlobalSpace.ToString(), db.Directory.DirectoryLayer.NodeSubspace.ToString()));
+					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened partition {0} at {1}, using directory layer at {2}", descriptor.Path.ToString(), db.GlobalSpace.ToString(), db.Directory.DirectoryLayer.NodeSubspace.ToString()));
 
 					return db;
 				}
 				catch(Exception e)
 				{
 					if (db != null) db.Dispose();
-					if (Logging.On) Logging.Exception(typeof(Fdb.PartitionTable), "OpenNamedPartitionAsync", e);
+					if (Logging.On) Logging.Exception(typeof(Fdb.Directory), "OpenNamedPartitionAsync", e);
 					throw;
 				}
 			}

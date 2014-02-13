@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 		private readonly bool m_ownsCluster;
 
 		/// <summary>If true, the database will only allow read-only transactions.</summary>
-		private readonly bool m_readOnly;
+		private bool m_readOnly;
 
 		/// <summary>Global cancellation source that is cancelled when the current db instance gets disposed.</summary>
 		private readonly CancellationTokenSource m_cts = new CancellationTokenSource();
@@ -108,7 +108,7 @@ namespace FoundationDB.Client
 			m_name = name;
 			m_readOnly = readOnly;
 			m_ownsCluster = ownsCluster;
-			ChangeGlobalSpace(contentSubspace, directory);
+			ChangeRoot(contentSubspace, directory, readOnly);
 		}
 
 		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, FdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
@@ -381,11 +381,12 @@ namespace FoundationDB.Client
 
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
-		internal void ChangeGlobalSpace(FdbSubspace subspace, IFdbDirectory directory)
+		internal void ChangeRoot(FdbSubspace subspace, IFdbDirectory directory, bool readOnly)
 		{
 			subspace = subspace ?? FdbSubspace.Empty;
 			lock (this)//TODO: don't use this for locking
 			{
+				m_readOnly = readOnly;
 				m_globalSpace = subspace;
 				m_globalSpaceCopy = subspace.Copy();
 				if (directory == null)

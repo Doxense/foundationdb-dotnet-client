@@ -54,7 +54,7 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Connect to the local test database</summary>
 		public static async Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct = default(CancellationToken))
 		{
-			var db = await Fdb.PartitionTable.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, ct);
+			var db = await Fdb.Directory.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, false, ct);
 			db.DefaultTimeout = 15 * 1000;
 			return db;
 		}
