@@ -207,6 +207,10 @@ namespace FoundationDB.Async
 				if (m_done) throw new InvalidOperationException("OnCompleted() and OnError() can only be called once");
 				m_done = true;
 				m_queue.Enqueue(Task.FromResult(Maybe.Error<TOutput>(error)));
+				if (m_queue.Count == 1)
+				{
+					WakeUpConsumer_NeedLocking();
+				}
 			}
 		}
 
@@ -295,8 +299,11 @@ namespace FoundationDB.Async
 			{
 				lock (m_lock)
 				{
-					var _ = m_queue.Dequeue();
-					WakeUpProducer_NeedsLocking();
+					if (m_queue.Count > 0)
+					{
+						var _ = m_queue.Dequeue();
+						WakeUpProducer_NeedsLocking();
+					}
 				}
 			}
 		}
@@ -310,7 +317,6 @@ namespace FoundationDB.Async
 				Task<Maybe<TOutput>> task = null;
 				lock (m_lock)
 				{
-
 					if (m_queue.Count > 0)
 					{
 						task = m_queue.Peek();

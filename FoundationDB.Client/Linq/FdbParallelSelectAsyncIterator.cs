@@ -26,12 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#undef FULL_DEBUG
+
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -92,7 +95,7 @@ namespace FoundationDB.Linq
 				return false;
 			}
 
-			//Console.WriteLine("[OnFirstAsync] wiring up inner iterator");
+			LogDebug("[OnFirstAsync] wiring up inner iterator");
 
 			m_cts = new CancellationTokenSource();
 			m_token = m_cts.Token;
@@ -105,9 +108,16 @@ namespace FoundationDB.Linq
 			m_pump = new FdbAsyncIteratorPump<TSource>(m_iterator, m_processingQueue);
 
 			// start pumping
-			m_pumpTask = m_pump.PumpAsync(m_token);
+			m_pumpTask = m_pump.PumpAsync(m_token).ContinueWith((t) =>
+			{ 
+				if (t.IsFaulted)
+				{
+					var e = t.Exception;
+					LogDebug("Pump stopped with error: " + e.Message);
+				}
+			});
 
-			//Console.WriteLine("[OnFirstAsync] pump started");
+			LogDebug("[OnFirstAsync] pump started");
 
 			Contract.Ensures(m_pumpTask != null);
 
@@ -118,39 +128,63 @@ namespace FoundationDB.Linq
 		{
 			try
 			{
-				//Console.WriteLine("[OnNextAsync] #" + Thread.CurrentThread.ManagedThreadId);
+				LogDebug("[OnNextAsync] #" + Thread.CurrentThread.ManagedThreadId);
 
 				if (m_done) return false;
 
 				var next = await m_processingQueue.ReceiveAsync(cancellationToken).ConfigureAwait(false);
+				LogDebug("[OnNextAsync] got result from queue");
 
 				if (!next.HasValue)
 				{
 					m_done = true;
 					if (next.HasFailed)
 					{
-						//Console.WriteLine("[OnNextAsync] received failure");
+						LogDebug("[OnNextAsync] received failure");
 						return Failed(next.Error);
 					}
 					else
 					{
-						//Console.WriteLine("[OnNextAsync] received completion");
+						LogDebug("[OnNextAsync] received completion");
 						return Completed();
 					}
 				}
-				//Console.WriteLine("[OnNextAsync] received value " + next.Value);
+				LogDebug("[OnNextAsync] received value " + next.Value);
 
 				return Publish(next.Value);
 			}
-			catch (Exception)
+			catch (Exception e)
 			{
+				LogDebug("[OnNextAsync] received failed: " + e.Message);
 				m_done = true;
 				throw;
 			}
-			//finally
-			//{
-			//	Console.WriteLine("[/OnNextAsync] " + Thread.CurrentThread.ManagedThreadId);
-			//}
+#if FULL_DEBUG
+			finally
+			{
+				LogDebug("[/OnNextAsync] " + Thread.CurrentThread.ManagedThreadId);
+			}
+#endif
+		}
+
+		protected override void Dispose(bool disposing)
+		{
+			try
+			{
+				m_cts.SafeCancelAndDispose();
+				//TODO: cancel the pump and queue ?
+				//TODO: wait for m_pumpTask to complete ??
+			}
+			finally
+			{
+				base.Dispose(disposing);
+			}
+		}
+
+		[Conditional("FULL_DEBUG")]
+		private static void LogDebug(string msg)
+		{
+			Console.WriteLine("[SelectAsync] " + msg);
 		}
 
 	}

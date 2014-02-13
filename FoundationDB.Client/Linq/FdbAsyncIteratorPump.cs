@@ -118,7 +118,7 @@ namespace FoundationDB.Linq
 			}
 			catch (Exception e)
 			{
-				LogDebug("failed...");
+				LogDebug("failed... (" + m_state + ") : " + e.Message);
 				if (m_state == STATE_FAILED)
 				{ // already signaled the target, just throw
 					throw;
@@ -130,6 +130,7 @@ namespace FoundationDB.Linq
 			finally
 			{
 				if (m_state != STATE_FAILED) m_state = STATE_DONE;
+				LogDebug("stopped (" + m_state + ")");
 			}
 		}
 
@@ -140,8 +141,9 @@ namespace FoundationDB.Linq
 				m_state = STATE_FAILED;
 				m_target.OnError(e);
 			}
-			catch
+			catch(Exception x)
 			{
+				LogDebug("failed to push error to target: " + x.Message);
 				//TODO ?
 			}
 		}

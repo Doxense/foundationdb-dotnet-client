@@ -26,8 +26,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define FULL_DEBUG
-
 namespace FoundationDB.Async
 {
 	using System;

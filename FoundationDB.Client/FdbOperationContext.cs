@@ -175,6 +175,7 @@ namespace FoundationDB.Client
 
 						if (e != null)
 						{
+							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format("fdb: transaction {0} failed with error code {1}", trans.Id.ToString(), e.Code.ToString()));
 							await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format("fdb: transaction {0} can be safely retried", trans.Id.ToString()));
 						}

@@ -245,13 +245,15 @@ namespace FoundationDB.Linq
 		protected bool Failed(Exception e)
 		{
 			this.Dispose();
-			return false;
+			//return false;
+			throw e;
 		}
 
 #if !NET_4_0
 		protected bool Failed(ExceptionDispatchInfo e)
 		{
 			this.Dispose();
+			e.Throw();
 			return false;
 		}
 #endif
