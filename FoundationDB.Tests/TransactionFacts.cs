@@ -1468,21 +1468,20 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public async Task Test_Transaction_Retry_Loop_Respects_RetryLimit_Value()
+		public async Task Test_Transaction_RetryLoop_Respects_DefaultRetryLimit_Value()
 		{
-			FoundationDB.Client.Utils.Logging.SetLevel(SourceLevels.Verbose);
-
 			using (var db = await TestHelpers.OpenTestDatabaseAsync())
 			using (var go = new CancellationTokenSource())
 			{
 				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
 				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
 
-				// the retry loop should only retry 3 times, so a total of 4 executions
+				// By default, a transaction that gets reset or retried, clears the RetryLimit and Timeout settings, which needs to be reset everytime.
+				// But if the DefaultRetryLimit and DefaultTimeout are set on the database instance, they should automatically be re-applied inside transaction loops!
 				db.DefaultRetryLimit = 3;
 
 				int counter = 0;
-				var t = db.ReadAsync(async (tr) =>
+				var t = db.ReadAsync((tr) =>
 				{
 					++counter;
 					Console.WriteLine("Called " + counter + " time(s)");
@@ -1492,6 +1491,9 @@ namespace FoundationDB.Client.Tests
 						tr.Context.Abort = true;
 						Assert.Fail("The retry loop was called too many times!");
 					}
+
+					Assert.That(tr.RetryLimit, Is.EqualTo(3));
+
 					// simulate a retryable error condition
 					throw new FdbException(FdbError.PastVersion);
 				}, go.Token);
@@ -1507,6 +1509,38 @@ namespace FoundationDB.Client.Tests
 					Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.PastVersion));
 				}
 				Assert.That(counter, Is.EqualTo(4), "1 first attempt + 3 retries = 4 executions");
+			}
+		}
+
+		[Test]
+		public async Task Test_Transaction_RetryLoop_Resets_RetryLimit_And_Timeout()
+		{
+			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var go = new CancellationTokenSource())
+			{
+				using (var tr = db.BeginTransaction())
+				{
+					// simulate a first error
+					tr.RetryLimit = 10;
+					await tr.OnErrorAsync(FdbError.PastVersion);
+					Assert.That(tr.RetryLimit, Is.EqualTo(0), "Retry limit should be reset");
+
+					// simulate some more errors
+					await tr.OnErrorAsync(FdbError.PastVersion);
+					await tr.OnErrorAsync(FdbError.PastVersion);
+					await tr.OnErrorAsync(FdbError.PastVersion);
+					await tr.OnErrorAsync(FdbError.PastVersion);
+					Assert.That(tr.RetryLimit, Is.EqualTo(0), "Retry limit should be reset");
+
+					// we still haven't failed 10 times..
+					tr.RetryLimit = 10;
+					await tr.OnErrorAsync(FdbError.PastVersion);
+					Assert.That(tr.RetryLimit, Is.EqualTo(0), "Retry limit should be reset");
+
+					// we already have failed 6 times, so this one should abort
+					tr.RetryLimit = 2; // value is too low
+					Assert.That(async () => await tr.OnErrorAsync(FdbError.PastVersion), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.PastVersion));
+				}
 			}
 		}
 

@@ -720,11 +720,31 @@ namespace FoundationDB.Client
 			// If fdb_transaction_on_error succeeds, that means that the transaction has been reset and is usable again
 			var state = this.State;
 			if (state != STATE_DISPOSED) Interlocked.CompareExchange(ref m_state, STATE_READY, state);
+
+			RestoreDefaultSettings();
 		}
 
 		#endregion
 
 		#region Reset/Rollback/Cancel...
+
+		private void RestoreDefaultSettings()
+		{
+			// resetting the state of a transaction automatically clears the RetryLimit and Timeout settings
+			// => we need to set the again!
+
+			m_retryLimit = 0;
+			m_timeout = 0;
+
+			if (m_database.DefaultRetryLimit > 0)
+			{
+				this.RetryLimit = m_database.DefaultRetryLimit;
+			}
+			if (m_database.DefaultTimeout > 0)
+			{
+				this.Timeout = m_database.DefaultTimeout;
+			}
+		}
 
 		/// <summary>Reset the transaction to its initial state.</summary>
 		public void Reset()
@@ -735,6 +755,8 @@ namespace FoundationDB.Client
 
 			m_handler.Reset();
 			m_state = STATE_READY;
+
+			RestoreDefaultSettings();
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Reset", "Transaction has been reset");
 		}
