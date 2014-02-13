@@ -470,13 +470,13 @@ namespace FoundationDB.Client
 
 			if (Fdb.Options.TLSCertificateBytes.IsPresent)
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certifictrace and public key from memory ({0} bytes)", Fdb.Options.TLSCertificateBytes.Count));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certificate and private key from memory ({0} bytes)", Fdb.Options.TLSCertificateBytes.Count));
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertBytes, Fdb.Options.TLSCertificateBytes));
 			}
 			else if (!string.IsNullOrWhiteSpace(Fdb.Options.TLSCertificatePath))
 			{
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certifictrace and public key from '{0}'", Fdb.Options.TLSCertificatePath));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will load TLS root certificate and private key from '{0}'", Fdb.Options.TLSCertificatePath));
 
 				DieOnError(SetNetworkOption(FdbNetworkOption.TLSCertPath, Fdb.Options.TLSCertificatePath));
 			}
