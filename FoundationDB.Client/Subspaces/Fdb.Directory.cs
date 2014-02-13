@@ -42,23 +42,23 @@ namespace FoundationDB.Client
 	public static partial class Fdb
 	{
 
-		[Obsolete]//Note: will soon be folded into the DirectoryLayer itself !
+		/// <summary>Static helper class to open named partitions</summary>
 		public static class Directory
 		{
-			/// <summary>Open a named partition of the default cluster, using the root DirectoryLayer to discover the partition's prefix</summary>
-			/// <param name="path"></param>
-			/// <param name="cancellationToken"></param>
-			/// <returns></returns>
+			/// <summary>Open a named partition of the default cluster</summary>
+			/// <param name="path">Path of the named partition to open</param>
+			/// <param name="cancellationToken">Token used to cancel this operation</param>
+			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
 			public static Task<FdbDatabase> OpenNamedPartitionAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 			{
 				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, path: path, cancellationToken: cancellationToken);
 			}
 
-			/// <summary>Open a named partition of a cluster, using its root DirectoryLayer to discover the partition's prefix</summary>
+			/// <summary>Open a named partition of a specific cluster</summary>
 			/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
 			/// <param name="dbName">Name of the database, or "DB" if not specified.</param>
 			/// <param name="path">Path of the named partition to open</param>
-			/// <param name="cancellationToken"></param>
+			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
 			public static async Task<FdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, bool readOnly = false, CancellationToken cancellationToken = default(CancellationToken))
 			{
