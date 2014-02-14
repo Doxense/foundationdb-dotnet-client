@@ -106,6 +106,26 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransactional dbOrTrans, FdbKeySelectorPair range, FdbRangeOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return dbOrTrans.ReadAsync((tr) => tr.GetRangeAsync(range, options, 0), cancellationToken);
+		}
+
+		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransactional dbOrTrans, FdbKeyRange range, FdbRangeOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			return dbOrTrans.ReadAsync((tr) => tr.GetRangeAsync(FdbKeySelectorPair.Create(range), options, 0), cancellationToken);
+		}
+
+		/// <summary>
 		/// Change the given key to have the given value in the database. If the given key was not previously present in the database it is inserted.
 		/// </summary>
 		public static Task SetAsync(this IFdbTransactional dbOrTrans, Slice key, Slice value, CancellationToken cancellationToken = default(CancellationToken))
