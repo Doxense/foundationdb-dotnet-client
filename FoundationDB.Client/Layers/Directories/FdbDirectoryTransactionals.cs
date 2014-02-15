@@ -401,6 +401,14 @@ namespace FoundationDB.Layers.Directories
 			return dbOrTrans.ReadAsync((tr) => directory.ListAsync(tr, new [] { name }), cancellationToken);
 		}
 
+		/// <summary>Returns the list of subdirectories of the current directory.</summary>
+		public static Task<List<string>> ListAsync(this IFdbDirectory directory, IFdbReadOnlyTransactional dbOrTrans, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (directory == null) throw new ArgumentNullException("directory");
+			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			return dbOrTrans.ReadAsync((tr) => directory.ListAsync(tr), cancellationToken);
+		}
+
 		/// <summary>Returns the list of subdirectories of the sub-directory with the given <paramref name="name"/>.</summary>
 		public static Task<List<string>> ListAsync(this IFdbDirectory directory, IFdbReadOnlyTransaction trans, string name)
 		{
