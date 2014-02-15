@@ -485,7 +485,7 @@ namespace FoundationDB.Client.Tests
 					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					Assert.That(key, Is.EqualTo(FdbKey.MaxValue), "fGT(<FF>) => <FF>");
 					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
-					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.SystemKeys.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
+					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.System.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 
 					tr.WithAccessToSystemKeys();
 
@@ -493,15 +493,15 @@ namespace FoundationDB.Client.Tests
 					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.
 					Assert.That(firstSystemKey, Is.Not.Null);
 					Assert.That(firstSystemKey, Is.GreaterThan(FdbKey.MaxValue), "key should be between <FF> and <FF><FF>");
-					Assert.That(firstSystemKey, Is.LessThan(Fdb.SystemKeys.MaxValue), "key should be between <FF> and <FF><FF>");
+					Assert.That(firstSystemKey, Is.LessThan(Fdb.System.MaxValue), "key should be between <FF> and <FF><FF>");
 
 					// with access to system keys, the maximum possible key becomes <FF><FF>
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Fdb.SystemKeys.MaxValue));
-					Assert.That(key, Is.EqualTo(Fdb.SystemKeys.MaxValue), "fGE(<FF><FF>) => <FF><FF> (with access to system keys)");
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(Fdb.SystemKeys.MaxValue));
-					Assert.That(key, Is.EqualTo(Fdb.SystemKeys.MaxValue), "fGT(<FF><FF>) => <FF><FF> (with access to system keys)");
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Fdb.System.MaxValue));
+					Assert.That(key, Is.EqualTo(Fdb.System.MaxValue), "fGE(<FF><FF>) => <FF><FF> (with access to system keys)");
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(Fdb.System.MaxValue));
+					Assert.That(key, Is.EqualTo(Fdb.System.MaxValue), "fGT(<FF><FF>) => <FF><FF> (with access to system keys)");
 
-					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.SystemKeys.MinValue));
+					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.System.MinValue));
 					Assert.That(key, Is.EqualTo(maxKey), "lLT(<FF><00>) => max_key (with access to system keys)");
 					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(maxKey));
 					Assert.That(key, Is.EqualTo(firstSystemKey), "fGT(max_key) => first_system_key (with access to system keys)");
@@ -1753,8 +1753,8 @@ namespace FoundationDB.Client.Tests
 				{
 					// dump nodes
 					Console.WriteLine("Server List:");
-					var servers = await tr.GetRange(Fdb.SystemKeys.ServerList, Fdb.SystemKeys.ServerList + Fdb.SystemKeys.MaxValue)
-						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.SystemKeys.ServerList.Count), kvp.Value))
+					var servers = await tr.GetRange(Fdb.System.ServerList, Fdb.System.ServerList + Fdb.System.MaxValue)
+						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.System.ServerList.Count), kvp.Value))
 						.ToListAsync();
 					foreach (var key in servers)
 					{
@@ -1772,8 +1772,8 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// dump keyServers
-					var shards = await tr.GetRange(Fdb.SystemKeys.KeyServers, Fdb.SystemKeys.KeyServers + Fdb.SystemKeys.MaxValue)
-						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.SystemKeys.KeyServers.Count), kvp.Value))
+					var shards = await tr.GetRange(Fdb.System.KeyServers, Fdb.System.KeyServers + Fdb.System.MaxValue)
+						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.System.KeyServers.Count), kvp.Value))
 						.ToListAsync();
 					Console.WriteLine("Key Servers: " + shards.Count + " shards");
 

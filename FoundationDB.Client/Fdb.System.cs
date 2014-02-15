@@ -33,7 +33,8 @@ namespace FoundationDB.Client
 	public static partial class Fdb
 	{
 
-		internal static class SystemKeys
+		/// <summary>Helper class for reading from the reserved System subspace</summary>
+		public static class System
 		{
 			/// <summary>"\xFF\xFF"</summary>
 			public static readonly Slice MaxValue = Slice.FromAscii("\xFF\xFF");
@@ -41,7 +42,7 @@ namespace FoundationDB.Client
 			/// <summary>"\xFF\x00"</summary>
 			public static readonly Slice MinValue = Slice.FromAscii("\xFF\x00");
 
-			/// <summary>"\xFF/conf/..."</summary>
+			/// <summary>"\xFF/conf/"</summary>
 			public static readonly Slice ConfigPrefix = Slice.FromAscii("\xFF/conf/");
 
 			/// <summary>"\xFF/coordinators"</summary>

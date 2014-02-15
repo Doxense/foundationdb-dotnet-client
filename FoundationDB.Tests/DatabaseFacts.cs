@@ -177,14 +177,14 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db.IsKeyValid(Slice.Empty), Is.True, "Empty key is allowed");
 				Assert.That(db.IsKeyValid(Slice.FromString("hello")), Is.True);
 				Assert.That(db.IsKeyValid(Slice.Create(Fdb.MaxKeySize + 1)), Is.False, "Key is too large");
-				Assert.That(db.IsKeyValid(Fdb.SystemKeys.Coordinators), Is.True, "System keys are valid");
+				Assert.That(db.IsKeyValid(Fdb.System.Coordinators), Is.True, "System keys are valid");
 
 				// EnsureKeyIsValid
 				Assert.That(() => db.EnsureKeyIsValid(Slice.Nil), Throws.InstanceOf<ArgumentException>());
 				Assert.That(() => db.EnsureKeyIsValid(Slice.Empty), Throws.Nothing);
 				Assert.That(() => db.EnsureKeyIsValid(Slice.FromString("hello")), Throws.Nothing);
 				Assert.That(() => db.EnsureKeyIsValid(Slice.Create(Fdb.MaxKeySize + 1)), Throws.InstanceOf<ArgumentException>());
-				Assert.That(() => db.EnsureKeyIsValid(Fdb.SystemKeys.Coordinators), Throws.Nothing);
+				Assert.That(() => db.EnsureKeyIsValid(Fdb.System.Coordinators), Throws.Nothing);
 			}
 		}
 

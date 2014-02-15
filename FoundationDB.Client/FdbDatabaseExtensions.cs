@@ -284,7 +284,7 @@ namespace FoundationDB.Client
 			var coordinators = await db.ReadAsync<string>(async (tr) =>
 			{
 				tr.SetOption(FdbTransactionOption.AccessSystemKeys);
-				var result = await tr.GetAsync(Fdb.SystemKeys.Coordinators).ConfigureAwait(false);
+				var result = await tr.GetAsync(Fdb.System.Coordinators).ConfigureAwait(false);
 				return result.ToAscii();
 			}, cancellationToken).ConfigureAwait(false);
 
@@ -304,7 +304,7 @@ namespace FoundationDB.Client
 			return db.ReadAsync<Slice>((tr) =>
 			{
 				tr.SetOption(FdbTransactionOption.AccessSystemKeys);
-				return tr.GetAsync(Fdb.SystemKeys.GetConfigKey(name));
+				return tr.GetAsync(Fdb.System.GetConfigKey(name));
 			}, cancellationToken);
 		}
 

@@ -50,14 +50,14 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.System.GetBytes(), Is.EqualTo(new byte[] { 255 }));
 			Assert.That(FdbKey.Directory.GetBytes(), Is.EqualTo(new byte[] { 254 }));
 
-			Assert.That(Fdb.SystemKeys.ConfigPrefix.ToString(), Is.EqualTo("<FF>/conf/"));
-			Assert.That(Fdb.SystemKeys.Coordinators.ToString(), Is.EqualTo("<FF>/coordinators"));
-			Assert.That(Fdb.SystemKeys.KeyServers.ToString(), Is.EqualTo("<FF>/keyServers/"));
-			Assert.That(Fdb.SystemKeys.MinValue.ToString(), Is.EqualTo("<FF><00>"));
-			Assert.That(Fdb.SystemKeys.MaxValue.ToString(), Is.EqualTo("<FF><FF>"));
-			Assert.That(Fdb.SystemKeys.ServerKeys.ToString(), Is.EqualTo("<FF>/serverKeys/"));
-			Assert.That(Fdb.SystemKeys.ServerList.ToString(), Is.EqualTo("<FF>/serverList/"));
-			Assert.That(Fdb.SystemKeys.Workers.ToString(), Is.EqualTo("<FF>/workers/"));
+			Assert.That(Fdb.System.ConfigPrefix.ToString(), Is.EqualTo("<FF>/conf/"));
+			Assert.That(Fdb.System.Coordinators.ToString(), Is.EqualTo("<FF>/coordinators"));
+			Assert.That(Fdb.System.KeyServers.ToString(), Is.EqualTo("<FF>/keyServers/"));
+			Assert.That(Fdb.System.MinValue.ToString(), Is.EqualTo("<FF><00>"));
+			Assert.That(Fdb.System.MaxValue.ToString(), Is.EqualTo("<FF><FF>"));
+			Assert.That(Fdb.System.ServerKeys.ToString(), Is.EqualTo("<FF>/serverKeys/"));
+			Assert.That(Fdb.System.ServerList.ToString(), Is.EqualTo("<FF>/serverList/"));
+			Assert.That(Fdb.System.Workers.ToString(), Is.EqualTo("<FF>/workers/"));
 		}
 
 		[Test]
