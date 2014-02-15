@@ -98,6 +98,11 @@ namespace FoundationDB.Client
 				return m_parent.GetReadVersionAsync();
 			}
 
+			void IFdbReadOnlyTransaction.SetReadVersion(long version)
+			{
+				throw new NotSupportedException("You cannot set the read version on the Snapshot view of a transaction");
+			}
+
 			public Task<Slice> GetAsync(Slice key)
 			{
 				EnsureCanRead();
@@ -188,9 +193,19 @@ namespace FoundationDB.Client
 				return m_parent.m_handler.GetAddressesForKeyAsync(key, cancellationToken: m_parent.m_token);
 			}
 
-			public void Cancel()
+			void IFdbReadOnlyTransaction.Cancel()
 			{
-				m_parent.Cancel();
+				throw new NotSupportedException("You cannot cancel the Snapshot view of a transaction.");
+			}
+
+			void IFdbReadOnlyTransaction.Reset()
+			{
+				throw new NotSupportedException("You cannot reset the Snapshot view of a transaction.");
+			}
+
+			Task IFdbReadOnlyTransaction.OnErrorAsync(FdbError code)
+			{
+				throw new NotSupportedException("You cannot retry on a Snapshot view of a transaction.");
 			}
 
 			public void SetOption(FdbTransactionOption option)

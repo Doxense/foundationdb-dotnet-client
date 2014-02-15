@@ -373,9 +373,24 @@ namespace FoundationDB.Filters
 			return m_transaction.GetReadVersionAsync();
 		}
 
+		public virtual void SetReadVersion(long version)
+		{
+			m_transaction.SetReadVersion(version);
+		}
+
 		public virtual void Cancel()
 		{
 			m_transaction.Cancel();
+		}
+
+		public virtual void Reset()
+		{
+			m_transaction.Reset();
+		}
+
+		public virtual Task OnErrorAsync(FdbError code)
+		{
+			return m_transaction.OnErrorAsync(code);
 		}
 
 		public virtual void SetOption(FdbTransactionOption option)
