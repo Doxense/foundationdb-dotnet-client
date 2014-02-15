@@ -5,6 +5,7 @@ namespace FoundationDB.Samples.Benchmarks
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Layers.Directories;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
@@ -42,14 +43,11 @@ namespace FoundationDB.Samples.Benchmarks
 
 		public async Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
-			var keyServers = Slice.FromAscii("\xFF/keyServers/");
-			var serverList = Slice.FromAscii("\xFF/serverList/");
-
 			// estimate the number of machines...
 			Console.WriteLine("# Detecting cluster topology...");
 			var servers = await db.QueryAsync(tr => tr
 				.WithAccessToSystemKeys()
-				.GetRange(FdbKeyRange.StartsWith(serverList))
+				.GetRange(FdbKeyRange.StartsWith(Fdb.System.ServerList))
 				.Select(kvp => new
 				{
 					Node = kvp.Value.Substring(8, 16).ToHexaString(),
@@ -65,14 +63,8 @@ namespace FoundationDB.Samples.Benchmarks
 			Console.WriteLine("# > Found " + numNodes + " process(es) on " + numMachines + " machine(s) in " + numDCs + " datacenter(s)");
 			Console.WriteLine("# Reading list of shards...");
 			// dump keyServers
-			var shards = await db.QueryAsync(tr => tr.WithAccessToSystemKeys()
-				.GetRange(FdbKeyRange.StartsWith(keyServers))
-				.Select(kvp => kvp.Key.Substring(keyServers.Count))
-				.Where(key => key < FdbKey.MaxValue)
-			);
-			Console.WriteLine("# > Found " + shards.Count + " shards:");
-
-			var ranges = shards.Zip(shards.Concat(new[] { Slice.FromAscii("\xFF") }).Skip(1), (x, y) => FdbKeyRange.Create(x, y)).ToList();
+			var ranges = await Fdb.System.GetChunksAsync(db, FdbKey.MinValue, FdbKey.MaxValue);
+			Console.WriteLine("# > Found " + ranges.Count + " shards:");
 
 			// take a sample
 			var rnd = new Random();
@@ -86,7 +78,7 @@ namespace FoundationDB.Samples.Benchmarks
 				ranges.RemoveAt(p);
 			}
 
-			Console.WriteLine("# Sampling " + sz + " out of " + shards.Count + " shards (" + (100.0 * sz / shards.Count).ToString("N1") + "%) ...");
+			Console.WriteLine("# Sampling " + sz + " out of " + ranges.Count + " shards (" + (100.0 * sz / ranges.Count).ToString("N1") + "%) ...");
 			Console.WriteLine("{0,9}{1,10}{2,10}{3,10} : K+V size distribution", "Count", "Keys", "Values", "Total");
 
 			var rangeOptions = new FdbRangeOptions { Mode = FdbStreamingMode.WantAll };
@@ -175,7 +167,7 @@ namespace FoundationDB.Samples.Benchmarks
 			sw.Stop();
 
 			Console.WriteLine("> Sampled " + FormatSize(total) + " (" + total.ToString("N0") + " bytes) in " + sw.Elapsed.TotalSeconds.ToString("N1") + " sec");
-			Console.WriteLine("> Estimated total size is " + FormatSize(total * shards.Count / sz));
+			Console.WriteLine("> Estimated total size is " + FormatSize(total * ranges.Count / sz));
 		}
 
 		#endregion
