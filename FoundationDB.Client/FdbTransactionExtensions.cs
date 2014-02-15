@@ -340,6 +340,41 @@ namespace FoundationDB.Client
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
 		}
 
+		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		/// <param name="range">Range of keys defining the beginning (inclusive) and the end (exclusive) of the range</param>
+		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <returns></returns>
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, FdbKeyRange range, FdbRangeOptions options = null, int iteration = 0)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			var sp = FdbKeySelectorPair.Create(range);
+			return trans.GetRangeAsync(sp.Begin, sp.End, options, iteration);
+		}
+
+		/// <summary>
+		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)
+		/// which have a key lexicographically greater than or equal to the key resolved by the begin key selector
+		/// and lexicographically less than the key resolved by the end key selector.
+		/// </summary>
+		/// <param name="beginInclusive">Key defining the beginning (inclusive) of the range</param>
+		/// <param name="endExclusive">Key defining the end (exclusive) of the range</param>
+		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
+		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
+		/// <returns></returns>
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			var range = FdbKeySelectorPair.Create(beginInclusive, endExclusive);
+			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
+		}
+
 		#endregion
 
 		#region Clear...
