@@ -36,6 +36,8 @@ namespace FoundationDB.Layers.Directories
 	using System.Diagnostics;
 	using System.Threading.Tasks;
 
+	/// <summary>A Directory Subspace represents the contents of a directory, but it also remembers the path with which it was opened and offers convenience methods to operate on the directory at that path.</summary>
+	/// <remarks>An instance of DirectorySubspace can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.</remarks>
 	[DebuggerDisplay("Path={Path}, Prefix={Key}, Layer={Layer}")]
 	public class FdbDirectorySubspace : FdbSubspace, IFdbDirectory
 	{
@@ -65,11 +67,21 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Path of this directory</summary>
 		public IReadOnlyList<string> Path { get; private set; }
 
+		/// <summary>Name of the directory</summary>
+		public string Name
+		{
+			get { return this.Path.Count == 0 ? String.Empty : this.Path[this.Path.Count - 1]; }
+		}
+
+		/// <summary>Instance of the DirectoryLayer that was used to create or open this directory</summary>
 		public FdbDirectoryLayer DirectoryLayer { get; private set; }
 
 		/// <summary>Layer id of this directory</summary>
 		public Slice Layer { get; private set; }
 
+		/// <summary>Convert a path relative to this directory, into a path relative to the root of the current partition</summary>
+		/// <param name="path">Path relative from this directory</param>
+		/// <returns>Path relative to the path of the current partition</returns>
 		protected virtual IFdbTuple ToRelativePath(IEnumerable<string> path)
 		{
 			Contract.Requires(path != null);
@@ -149,7 +161,6 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to create</param>
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
-		/// <param name="prefix">If <paramref name="prefix"/> is specified, the subdirectory is created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
 		public Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -196,6 +207,7 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
 		public Task<FdbDirectorySubspace> TryMoveToAsync(IFdbTransaction trans, IEnumerable<string> newPath)
 		{
@@ -224,10 +236,11 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: true);
 		}
 
-		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// <summary>Removes a sub-directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="path">Path of the sub-directory to remove (relative to this directory)</param>
 		public Task RemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -245,10 +258,11 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: false);
 		}
 
-		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
+		/// <summary>Attempts to remove a sub-directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="path">Path of the sub-directory to remove (relative to this directory)</param>
 		public Task<bool> TryRemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -302,6 +316,7 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.ListInternalAsync(trans, ToRelativePath(path), throwIfMissing: false);
 		}
 
+		/// <summary>Returns a user-friendly description of this directory</summary>
 		public override string ToString()
 		{
 			if (this.Layer.IsNullOrEmpty)

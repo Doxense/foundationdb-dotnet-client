@@ -60,6 +60,10 @@ namespace FoundationDB.Client
 		/// <summary>Wrapped Directory instance</summary>
 		public IFdbDatabase Database { get { return m_database; } }
 
+		public string Name
+		{
+			get { return m_directory.Name; }
+		}
 
 		public IReadOnlyList<string> Path
 		{
@@ -258,11 +262,13 @@ namespace FoundationDB.Client
 
 		#region List...
 
+		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
 		public Task<List<string>> ListAsync(CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.ListAsync(tr), cancellationToken);
 		}
 
+		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
 		public Task<List<string>> ListAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.ListAsync(tr, path), cancellationToken);
@@ -277,13 +283,19 @@ namespace FoundationDB.Client
 
 		#region TryList...
 
+		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
 		public Task<List<string>> TryListAsync(CancellationToken cancellationToken = default(CancellationToken))
 		{
+			//REVIEW: is it possible for this method to fail on a top-level db partition?
+			// => it not, should be removed because it is a duplicate of ListAsync(..)
 			return m_database.ReadWriteAsync((tr) => m_directory.TryListAsync(tr), cancellationToken);
 		}
 
+		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
 		public Task<List<string>> TryListAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
 		{
+			//REVIEW: is it possible for this method to fail on a top-level db partition?
+			// => it not, should be removed because it is a duplicate of ListAsync(..)
 			return m_database.ReadWriteAsync((tr) => m_directory.TryListAsync(tr, path), cancellationToken);
 		}
 

@@ -32,12 +32,14 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using SystemIO = System.IO;
 
 	public static partial class Fdb
 	{
@@ -97,6 +99,32 @@ namespace FoundationDB.Client
 				}
 			}
 
+			/// <summary>List and open the sub-directories of the given directory</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="parent">Parent directory</param>
+			/// <param name="cancellationToken">Token used to cancel this operation</param>
+			/// <returns>Dictionary of all the sub directories of the <paramref name="parent"/> directory.</returns>
+			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync(IFdbDatabase db, IFdbDirectory parent, CancellationToken cancellationToken = default(CancellationToken))
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (parent == null) throw new ArgumentNullException("parent");
+
+				return await db.ReadWriteAsync(async (tr) =>
+				{
+					// read the names of all the subdirectories
+					var names = await parent.ListAsync(tr).ConfigureAwait(false);
+
+					// open all the subdirectories
+					var folders = await names
+						.ToAsyncEnumerable()
+						.SelectAsync((name, ct) => parent.OpenAsync(tr, name))
+						.ToListAsync();
+
+					// map the result
+					return folders.ToDictionary(ds => ds.Name);
+
+				}, cancellationToken).ConfigureAwait(false);
+			}
 		}
 
 	}

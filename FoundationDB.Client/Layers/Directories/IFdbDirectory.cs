@@ -42,6 +42,9 @@ namespace FoundationDB.Layers.Directories
 	/// </summary>
 	public interface IFdbDirectory
 	{
+		/// <summary>Name of this <code>Directory</code>.</summary>
+		string Name { get; }
+
 		/// <summary>Gets the path represented by this <code>Directory</code>.</summary>
 		IReadOnlyList<string> Path { get;  }
 
