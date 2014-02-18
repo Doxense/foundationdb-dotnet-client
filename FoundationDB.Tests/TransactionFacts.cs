@@ -245,7 +245,7 @@ namespace FoundationDB.Client.Tests
 
 					// but almost immediately cancel the transaction
 					await Task.Delay(1);
-					if (t.IsCompleted) Assert.Inconclusive("Commit task already completed before having a chance to cancel");
+					Assume.That(t.IsCompleted, Is.False, "Commit task already completed before having a chance to cancel");
 					tr.Cancel();
 
 					await TestHelpers.AssertThrowsFdbErrorAsync(
@@ -287,7 +287,7 @@ namespace FoundationDB.Client.Tests
 					// but almost immediately cancel the token source
 					await Task.Delay(1);
 
-					if (t.IsCompleted) Assert.Inconclusive("Commit task already completed before having a chance to cancel");
+					Assume.That(t.IsCompleted, Is.False, "Commit task already completed before having a chance to cancel");
 					cts.Cancel();
 
 					Assert.Throws<TaskCanceledException>(async () => await t, "Cancelling a token passed to CommitAsync that is still pending should cancel the task");

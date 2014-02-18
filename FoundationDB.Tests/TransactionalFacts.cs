@@ -177,7 +177,7 @@ namespace FoundationDB.Client.Tests
 
 					// force the read-only into a writable interface
 					var hijack = tr as IFdbTransaction;
-					if (hijack == null) Assert.Inconclusive("This test requires the transaction to implement IFdbTransaction !");
+					Assume.That(hijack, Is.Not.Null, "This test requires the transaction to implement IFdbTransaction !");
 
 					// this call should fail !
 					hijack.Set(location.Pack("Hello"), Slice.FromString("Hijacked"));
