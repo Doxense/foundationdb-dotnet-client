@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -149,7 +150,7 @@ namespace FoundationDB.Client
 				Contract.Requires(trans != null);
 
 				var results = new List<Slice>();
-				while(begin < end)
+				while (begin < end)
 				{
 					FdbException error = null;
 					Slice lastBegin = begin;
@@ -171,7 +172,7 @@ namespace FoundationDB.Client
 							begin = end;
 						}
 					}
-					catch(FdbException e)
+					catch (FdbException e)
 					{
 						error = e;
 					}
@@ -191,9 +192,135 @@ namespace FoundationDB.Client
 
 				return results;
 			}
-		
+
+			/// <summary>Estimate the number of keys in the specified range.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="range">Range defining the keys to count</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
+			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
+			public static Task<long> EstimateCountAsync(IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken = default(CancellationToken))
+			{
+				return EstimateCountAsync(db, range.Begin, range.End, cancellationToken);
+			}
+
+			/// <summary>Estimate the number of keys in the specified range.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="beginInclusive">Key defining the beginning of the range</param>
+			/// <param name="endExclusive">Key defining the end of the range</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of keys k such that <paramref name="beginInclusive"/> &lt;= k &gt; <paramref name="endExclusive"/></returns>
+			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
+			public static async Task<long> EstimateCountAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken = default(CancellationToken))
+			{
+				const int INIT_WINDOW_SIZE = 1 << 10; // start at 1024
+				const int MAX_WINDOW_SIZE = 1 << 16; // never use more than 65536
+
+				if (db == null) throw new ArgumentNullException("db");
+				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", "endExclusive");
+
+				cancellationToken.ThrowIfCancellationRequested();
+
+				// To count the number of items in the range, we will scan it using a key selector with an offset equal to our window size
+				// > if the returned key is still inside the range, we add the window size to the counter, and start again from the current key
+				// > if the returned key is outside the range, we reduce the size of the window, and start again from the previous key
+				// > if the returned key is exactly equal to the end of range, OR if the window size was 1, then we stop
+
+				// Since we don't know in advance if the range contains 1 key or 1 Billion keys, choosing a good value for the window size is critical:
+				// > if it is too small and the range is very large, we will need too many sequential reads and the network latency will quickly add up
+				// > if it is too large and the range is small, we will spend too many times halving the window size until we get the correct value
+
+				// A few optimizations are possible:
+				// > we could start with a small window size, and then double its size on every full segment (up to a maximum)
+				// > for the last segment, we don't need to wait for a GetKey to complete before issuing the next, so we could split the segment into 4 (or more), do the GetKeyAsync() in parallel, detect the quarter that cross the boundary, and iterate again until the size is small
+				// > once the window size is small enough, we can switch to using GetRange to read the last segment in one shot, instead of iterating with window size 16, 8, 4, 2 and 1 (the wost case being 2^N - 1 items remaning)
+
+				Debug.WriteLine("EstimateCount(" + FdbKey.Dump(beginInclusive) + " .. " + FdbKey.Dump(endExclusive) + "):");
+
+				// note: we make a copy of the keys because the operation could take a long time and the key's could prevent a potentially large underlying buffer from being GCed
+				var cursor = beginInclusive.Memoize();
+				var end = endExclusive.Memoize();
+
+				using (var tr = db.BeginReadOnlyTransaction(cancellationToken))
+				{
+					// start looking for the first key in the range
+					cursor = await tr.Snapshot.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(cursor)).ConfigureAwait(false);
+					if (cursor >= end)
+					{ // the range is empty !
+						return 0;
+					}
+
+					// we already have seen one key, so add it to the count
+					int iter = 1;
+					int counter = 1;
+					// start with a medium-sized window
+					int windowSize = INIT_WINDOW_SIZE;
+					bool last = false;
+
+					while (cursor < end)
+					{
+						Contract.Assert(windowSize > 0);
+
+						Slice next = Slice.Nil;
+						FdbException error = null;
+						try
+						{
+							var selector = FdbKeySelector.FirstGreaterOrEqual(cursor) + windowSize;
+							Debug.WriteLine("> [" + counter + " + " + windowSize + "] " + selector);
+							next = await tr.Snapshot.GetKeyAsync(selector).ConfigureAwait(false);
+							++iter;
+						}
+						catch (FdbException e)
+						{
+							error = e;
+						}
+
+						if (error != null)
+						{
+							// => from this point, the count returned will not be transactionally accurate
+							if (error.Code == FdbError.PastVersion)
+							{ // the transaction used up its time window
+								tr.Reset();
+							}
+							else
+							{ // check to see if we can continue...
+								await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
+							}
+							// retry
+							continue;
+						}
+
+						if (next > end)
+						{ // we have reached past the end, switch to binary search
+
+							last = true;
+
+							// if window size is already 1, then we have counted everything (the range.End key does not exist in the db)
+							if (windowSize == 1) break;
+
+							//TODO: if we have less than, say, a hundred keys, switch to a simple get range....		
+							windowSize >>= 1;
+							Debug.WriteLine("  -> REWIND AND TRY AGAIN WITH STEP " + windowSize);
+							continue;
+						}
+
+						// the range is not finished, advance the cursor
+						counter += windowSize;
+						cursor = next;
+
+						if (!last)
+						{ // double the size of the window if we are not in the last segment
+							windowSize = Math.Min(windowSize << 1, MAX_WINDOW_SIZE);
+						}
+					}
+
+					Debug.WriteLine("# Found " + counter + " keys in " + iter + " iterations.");
+
+					return counter;
+				}
+			}
+
 		}
 
 	}
-
 }
