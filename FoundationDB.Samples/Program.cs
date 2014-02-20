@@ -132,13 +132,42 @@ namespace FoundationDB.Samples
 
 			string clusterFile = null;
 			var dbName = "DB";
-			var partition = new [] { "Samples" };
+			var partition = new string[0];
+
+			int pStart = 0;
+			string startCommand = null;
+			while (pStart < args.Length)
+			{
+				if (args[pStart].StartsWith("-"))
+				{
+					switch (args[pStart].Substring(1))
+					{
+						case "C": case "c":
+						{
+							clusterFile = args[pStart + 1];
+							pStart += 2;
+							break;
+						}
+						case "P": case "p":
+						{
+							partition = args[pStart + 1].Trim().Split("/".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+							pStart += 2;
+							break;
+						}
+					}
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			if (args.Length > 0 && pStart < args.Length)
+			{ // the remainder of the command line will be the first command to execute
+				startCommand = String.Join(" ", args, pStart, args.Length - pStart);
+			}
 
 			// Initialize FDB
-
-			string initial = null;
-			if (args.Length > 0) initial = String.Join(" ", args);
-
 			Fdb.Start();
 			try
 			{
@@ -178,8 +207,8 @@ namespace FoundationDB.Samples
 					while (!stop)
 					{
 						Console.Write("> ");
-						string s = initial != null ? initial : Console.ReadLine();
-						initial = null;
+						string s = startCommand != null ? startCommand : Console.ReadLine();
+						startCommand = null;
 
 						var tokens = s.Trim().Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
 						string cmd = tokens.Length > 0 ? tokens[0] : String.Empty;
