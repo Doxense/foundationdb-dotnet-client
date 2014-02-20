@@ -346,7 +346,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
 
 			return ListInternalAsync(trans, ParsePath(path), throwIfMissing: true);
 		}
@@ -439,7 +438,7 @@ namespace FoundationDB.Layers.Directories
 
 		internal static IFdbTuple ParsePath(IEnumerable<string> path, string argName = null)
 		{
-			Contract.Requires(path != null);
+			if (path == null) return FdbTuple.Empty;
 
 			var pathCopy = path.ToArray();
 			for (int i = 0; i < pathCopy.Length; i++)
@@ -683,6 +682,12 @@ namespace FoundationDB.Layers.Directories
 				return null;
 			}
 
+			if (node.IsInPartition(includeEmptySubPath: true))
+			{
+				var partition = ContentsOfNode(node.Subspace, node.Path, node.Layer);
+				return await partition.DirectoryLayer.ListInternalAsync(trans, node.PartitionSubPath, throwIfMissing).ConfigureAwait(false);
+			}
+
 			return await SubdirNamesAndNodes(trans, node.Subspace)
 				.Select(kvp => kvp.Key)
 				.ToListAsync()
@@ -695,7 +700,17 @@ namespace FoundationDB.Layers.Directories
 
 			await CheckReadVersionAsync(trans).ConfigureAwait(false);
 
-			return (await FindAsync(trans, path).ConfigureAwait(false)).Exists;
+			var node = await FindAsync(trans, path).ConfigureAwait(false);
+
+			if (!node.Exists) return false;
+
+			if (node.IsInPartition(includeEmptySubPath: false))
+			{
+				var partition = ContentsOfNode(node.Subspace, node.Path, node.Layer);
+				return await partition.DirectoryLayer.ExistsInternalAsync(trans, node.PartitionSubPath).ConfigureAwait(false);
+			}
+
+			return true;
 		}
 
 		internal async Task ChangeLayerInternalAsync(IFdbTransaction trans, IFdbTuple path, Slice newLayer)
@@ -709,6 +724,8 @@ namespace FoundationDB.Layers.Directories
 			{
 				throw new InvalidOperationException(string.Format("The directory '{0}' does not exist, or as already been removed.", path));
 			}
+
+			//TODO: handle partitions!
 
 			SetLayer(trans, node.Subspace, newLayer);
 		}

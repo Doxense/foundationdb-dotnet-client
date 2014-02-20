@@ -34,8 +34,36 @@ namespace FoundationDB.Client
 	using System.Linq;
 	using System.Collections.Generic;
 
+	public interface IFdbSubspace : IFdbKey
+	{
+
+		/// <summary>Returns the raw prefix of this subspace</summary>
+		Slice Key { get; }
+
+		/// <summary>Tests whether the specified <paramref name="key"/> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="key"/>.</summary>
+		/// <param name="key">The key to be tested</param>
+		/// <remarks>The key Slice.Nil is not contained by any Subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
+		bool Contains(Slice key);
+
+		/// <summary>Appends a key to the subspace key</summary>
+		/// <remarks>This is the equivalent of calling 'subspace.Key + key'</remarks>
+		Slice Concat(Slice key);
+
+		/// <summary>Removes the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
+		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>
+		/// <returns>Binary suffix of the key (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>
+		Slice Extract(Slice key);
+
+		Slice ExtractAndCheck(Slice key);
+
+		/// <summary>Gets a key range respresenting all keys strictly in the Subspace.</summary>
+		FdbKeyRange ToRange();
+
+		//TODO: add more !
+	}
+
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
-	public class FdbSubspace : IFdbKey
+	public class FdbSubspace : IFdbSubspace
 	{
 		/// <summary>Empty subspace, that does not add any prefix to the keys</summary>
 		public static readonly FdbSubspace Empty = new FdbSubspace(Slice.Empty);
@@ -43,7 +71,7 @@ namespace FoundationDB.Client
 		/// <summary>Binary prefix of this subspace</summary>
 		private readonly Slice m_rawPrefix;
 
-		/// <summary>Returns the binary prefix of this subspace</summary>
+		/// <summary>Returns the raw prefix of this subspace</summary>
 		public Slice Key { get { return m_rawPrefix; } }
 
 		#region Constructors...
@@ -201,11 +229,22 @@ namespace FoundationDB.Client
 			return Partition(tuple);
 		}
 
-		/// <summary>Returns true if <paramref name="key"/> is contained withing this subspace's tuple (or is equal to tuple itself)</summary>
-		/// <remarks>The key Slice.Nil is not contained by any subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
+		/// <summary>Tests whether the specified <paramref name="key"/> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="key"/>.</summary>
+		/// <param name="key">The key to be tested</param>
+		/// <remarks>The key Slice.Nil is not contained by any Subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
 		public virtual bool Contains(Slice key)
 		{
 			return key.HasValue && key.StartsWith(m_rawPrefix);
+		}
+
+		/// <summary>Tests whether the specified <paramref name="key"/> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="key"/>.</summary>
+		/// <param name="key">The key to be tested</param>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="key"/> is null</exception>
+		public bool Contains<TKey>(TKey key)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			return this.Contains(key.ToFoundationDbKey());
 		}
 
 		#endregion
@@ -644,6 +683,7 @@ namespace FoundationDB.Client
 
 		#region ToRange...
 
+		/// <summary>Gets a key range respresenting all keys strictly in the Subspace.</summary>
 		public virtual FdbKeyRange ToRange()
 		{
 			return FdbTuple.ToRange(m_rawPrefix);
@@ -661,6 +701,7 @@ namespace FoundationDB.Client
 			return FdbTuple.ToRange(m_rawPrefix + key.ToFoundationDbKey());
 		}
 
+		/// <summary>Gets a key range representing all keys in the Subspace strictly starting with the specified Tuple.</summary>
 		public FdbKeyRange ToRange(IFdbTuple tuple)
 		{
 			return FdbTuple.ToRange(FdbTuple.Concat(m_rawPrefix, tuple));

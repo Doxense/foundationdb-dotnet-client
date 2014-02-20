@@ -84,8 +84,7 @@ namespace FoundationDB.Layers.Directories
 		/// <returns>Path relative to the path of the current partition</returns>
 		protected virtual IFdbTuple ToRelativePath(IEnumerable<string> path)
 		{
-			Contract.Requires(path != null);
-			return this.RelativeLocation.Concat(FdbTuple.CreateRange<string>(path));
+			return path == null ? this.RelativeLocation : this.RelativeLocation.Concat(FdbTuple.CreateRange<string>(path));
 		}
 
 		/// <summary>Ensure that this directory was registered with the correct layer id</summary>
@@ -297,7 +296,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
 			return this.DirectoryLayer.ListInternalAsync(trans, ToRelativePath(path), throwIfMissing: true);
 		}
 
@@ -312,7 +310,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
 			return this.DirectoryLayer.ListInternalAsync(trans, ToRelativePath(path), throwIfMissing: false);
 		}
 

@@ -53,8 +53,7 @@ namespace FoundationDB.Layers.Directories
 
 		protected override IFdbTuple ToRelativePath(IEnumerable<string> path)
 		{
-			Contract.Requires(path != null);
-			return FdbTuple.CreateRange<string>(path);
+			return path == null ? FdbTuple.Empty : FdbTuple.CreateRange<string>(path);
 		}
 
 		public override string ToString()
