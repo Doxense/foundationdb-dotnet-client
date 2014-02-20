@@ -261,7 +261,8 @@ namespace FoundationDB.Samples
 							case "dir":
 							{
 								prm = CombinePath(CurrentDirectoryPath, prm);
-								RunAsyncCommand((db, log, ct) => BrowseDirectory(prm, db, log, ct));
+								var options = DirectoryBrowseOptions.ShowCount;
+								RunAsyncCommand((db, log, ct) => BrowseDirectory(prm, options, db, log, ct));
 								break;
 							}
 							case "cd":
@@ -465,7 +466,15 @@ namespace FoundationDB.Samples
 			}
 		}
 
-		public static async Task BrowseDirectory(string prm, IFdbDatabase db, TextWriter stream, CancellationToken ct)
+		[Flags]
+		public enum DirectoryBrowseOptions
+		{
+			Default = 0,
+			ShowFirstKeys = 1,
+			ShowCount = 2,
+		}
+
+		public static async Task BrowseDirectory(string prm, DirectoryBrowseOptions options, IFdbDatabase db, TextWriter stream, CancellationToken ct)
 		{
 			if (stream == null) stream = Console.Out;
 
@@ -496,7 +505,15 @@ namespace FoundationDB.Samples
 					var subfolder = kvp.Value;
 					if (subfolder != null)
 					{
-						stream.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
+						if ((options & DirectoryBrowseOptions.ShowCount) != 0)
+						{
+							long count = await Fdb.System.EstimateCountAsync(db, kvp.Value.ToRange(), ct);
+							stream.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(subfolder.Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
+						}
+						else
+						{
+							stream.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
+						}
 					}
 					else
 					{
@@ -510,7 +527,7 @@ namespace FoundationDB.Samples
 				stream.WriteLine("  No sub-directories.");
 			}
 
-			if (prm != "/")
+			if ((options & DirectoryBrowseOptions.ShowFirstKeys) != 0 && prm != "/")
 			{
 				// look if there is something under there
 				var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
@@ -571,7 +588,7 @@ namespace FoundationDB.Samples
 			}
 			else
 			{
-				stream.WriteLine(sb.ToString() + (folder.Layer.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name));
+				stream.WriteLine(sb.ToString() + (folder.Layer.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name) + (folder.Layer.IsNullOrEmpty ? String.Empty : (" [" + folder.Layer.ToString() + "]")));
 				node = folder;
 			}
 
