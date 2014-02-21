@@ -442,9 +442,9 @@ namespace FoundationDB.Layers.Directories
 			var pathCopy = path.ToArray();
 			for (int i = 0; i < pathCopy.Length; i++)
 			{
-				if (string.IsNullOrWhiteSpace(pathCopy[i]))
+				if (pathCopy[i] == null)
 				{
-					throw new InvalidOperationException("The path of a directory cannot contain empty strings");
+					throw new InvalidOperationException("The path of a directory cannot contain null elements");
 				}
 			}
 			return FdbTuple.CreateRange<string>(pathCopy);
@@ -455,7 +455,6 @@ namespace FoundationDB.Layers.Directories
 			Contract.Requires(name != null);
 
 			if (name == null) throw new ArgumentNullException(argName ?? "name");
-			if (string.IsNullOrWhiteSpace(name)) throw new InvalidOperationException("The name of a sub-directory cannot be an empty string");
 
 			return FdbTuple.Create<string>(name);
 		}
@@ -464,14 +463,14 @@ namespace FoundationDB.Layers.Directories
 		{
 			Contract.Requires(path != null);
 
-			// The path should only contain non-empty strings
+			// The path should not contain any null strings
 			if (path == null) throw new ArgumentNullException(argName ?? "path");
 			int count = path.Count;
 			for (int i = 0; i < count; i++)
 			{
-				if (string.IsNullOrWhiteSpace(path.Get<string>(i)))
+				if (path.Get<string>(i) == null)
 				{
-					throw new InvalidOperationException("The path of a directory cannot contain empty strings");
+					throw new InvalidOperationException("The path of a directory cannot contain null elements");
 				}
 			}
 			return path;
