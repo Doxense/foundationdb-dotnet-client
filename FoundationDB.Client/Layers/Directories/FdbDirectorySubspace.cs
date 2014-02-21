@@ -242,7 +242,6 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the sub-directory to remove (relative to this directory)</param>
 		public Task RemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
-			if (path == null) return RemoveAsync(trans);
 			if (trans == null) throw new ArgumentNullException("trans");
 			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: true);
 		}
@@ -264,7 +263,6 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the sub-directory to remove (relative to this directory)</param>
 		public Task<bool> TryRemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
-			if (path == null) return TryRemoveAsync(trans);
 			if (trans == null) throw new ArgumentNullException("trans");
 			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: false);
 		}
@@ -281,7 +279,6 @@ namespace FoundationDB.Layers.Directories
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
 		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
-			if (path == null) return ExistsAsync(trans);
 			if (trans == null) throw new ArgumentNullException("trans");
 			return this.DirectoryLayer.ExistsInternalAsync(trans, ToRelativePath(path));
 		}
@@ -296,7 +293,6 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns the list of all the subdirectories of a sub-directory.</summary>
 		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
-			if (path == null) return ListAsync(trans);
 			if (trans == null) throw new ArgumentNullException("trans");
 			return this.DirectoryLayer.ListInternalAsync(trans, ToRelativePath(path), throwIfMissing: true);
 		}
@@ -311,7 +307,6 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
 		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
-			if (path == null) return TryListAsync(trans);
 			if (trans == null) throw new ArgumentNullException("trans");
 			return this.DirectoryLayer.ListInternalAsync(trans, ToRelativePath(path), throwIfMissing: false);
 		}

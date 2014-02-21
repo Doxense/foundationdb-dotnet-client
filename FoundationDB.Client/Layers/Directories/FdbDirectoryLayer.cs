@@ -345,7 +345,6 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the directory to list</param>
 		public Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
-			if (path == null) return ListAsync(trans);
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return ListInternalAsync(trans, ParsePath(path), throwIfMissing: true);
@@ -364,7 +363,6 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the directory to list</param>
 		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
-			if (path == null) return TryListAsync(trans);
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return ListInternalAsync(trans, ParsePath(path), throwIfMissing: false);
