@@ -132,13 +132,42 @@ namespace FoundationDB.Samples
 
 			string clusterFile = null;
 			var dbName = "DB";
-			var partition = new [] { "Samples" };
+			var partition = new string[0];
+
+			int pStart = 0;
+			string startCommand = null;
+			while (pStart < args.Length)
+			{
+				if (args[pStart].StartsWith("-"))
+				{
+					switch (args[pStart].Substring(1))
+					{
+						case "C": case "c":
+						{
+							clusterFile = args[pStart + 1];
+							pStart += 2;
+							break;
+						}
+						case "P": case "p":
+						{
+							partition = args[pStart + 1].Trim().Split("/".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+							pStart += 2;
+							break;
+						}
+					}
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			if (args.Length > 0 && pStart < args.Length)
+			{ // the remainder of the command line will be the first command to execute
+				startCommand = String.Join(" ", args, pStart, args.Length - pStart);
+			}
 
 			// Initialize FDB
-
-			string initial = null;
-			if (args.Length > 0) initial = String.Join(" ", args);
-
 			Fdb.Start();
 			try
 			{
@@ -178,8 +207,8 @@ namespace FoundationDB.Samples
 					while (!stop)
 					{
 						Console.Write("> ");
-						string s = initial != null ? initial : Console.ReadLine();
-						initial = null;
+						string s = startCommand != null ? startCommand : Console.ReadLine();
+						startCommand = null;
 
 						var tokens = s.Trim().Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
 						string cmd = tokens.Length > 0 ? tokens[0] : String.Empty;
@@ -232,7 +261,8 @@ namespace FoundationDB.Samples
 							case "dir":
 							{
 								prm = CombinePath(CurrentDirectoryPath, prm);
-								RunAsyncCommand((db, log, ct) => BrowseDirectory(prm, db, log, ct));
+								var options = DirectoryBrowseOptions.ShowCount;
+								RunAsyncCommand((db, log, ct) => BrowseDirectory(prm, options, db, log, ct));
 								break;
 							}
 							case "cd":
@@ -436,26 +466,54 @@ namespace FoundationDB.Samples
 			}
 		}
 
-		public static async Task BrowseDirectory(string prm, IFdbDatabase db, TextWriter stream, CancellationToken ct)
+		[Flags]
+		public enum DirectoryBrowseOptions
+		{
+			Default = 0,
+			ShowFirstKeys = 1,
+			ShowCount = 2,
+		}
+
+		public static async Task BrowseDirectory(string prm, DirectoryBrowseOptions options, IFdbDatabase db, TextWriter stream, CancellationToken ct)
 		{
 			if (stream == null) stream = Console.Out;
 
 			var path = ParsePath(prm);
 			stream.WriteLine("# Listing {0}:", prm);
 
-			var folders = await db.Directory.TryListAsync(path);
-			if (folders == null)
+			IFdbDirectory parent = null;
+			if (prm != "/")
 			{
-				stream.WriteLine("  Directory not found.");
-			}
-			else if (folders.Count > 0)
-			{
-				foreach (var name in folders)
+				parent = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
+				if (parent == null)
 				{
-					var subfolder = await db.Directory.TryOpenAsync(path.Concat(new [] { name }), cancellationToken: ct);
+					stream.WriteLine("  Directory not found.");
+					return;
+				}
+			}
+			else
+			{
+				parent = db.Directory;
+			}
+
+			var folders = await Fdb.Directory.BrowseAsync(db, parent, ct);
+			if (folders != null && folders.Count > 0)
+			{
+				foreach (var kvp in folders)
+				{
+					var name = kvp.Key;
+					var subfolder = kvp.Value;
 					if (subfolder != null)
 					{
-						stream.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
+						if ((options & DirectoryBrowseOptions.ShowCount) != 0)
+						{
+							long count = await Fdb.System.EstimateCountAsync(db, kvp.Value.ToRange(), ct);
+							stream.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(subfolder.Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
+						}
+						else
+						{
+							stream.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
+						}
 					}
 					else
 					{
@@ -469,7 +527,7 @@ namespace FoundationDB.Samples
 				stream.WriteLine("  No sub-directories.");
 			}
 
-			if (prm != "/")
+			if ((options & DirectoryBrowseOptions.ShowFirstKeys) != 0 && prm != "/")
 			{
 				// look if there is something under there
 				var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
@@ -503,12 +561,15 @@ namespace FoundationDB.Samples
 			var path = ParsePath(prm);
 			stream.WriteLine("# Tree of {0}:", prm);
 
-			await TreeDirectoryWalk(path, new List<bool>(), db, stream, ct);
+			FdbDirectorySubspace root = null;
+			if (prm != "/") root = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
+
+			await TreeDirectoryWalk(root, new List<bool>(), db, stream, ct);
 
 			stream.WriteLine("# done");
 		}
 
-		private static async Task TreeDirectoryWalk(string[] path, List<bool> last, IFdbDatabase db, TextWriter stream, CancellationToken ct)
+		private static async Task TreeDirectoryWalk(FdbDirectorySubspace folder, List<bool> last, IFdbDatabase db, TextWriter stream, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -518,14 +579,25 @@ namespace FoundationDB.Samples
 				for (int i = 0; i < last.Count - 1; i++) sb.Append(last[i] ? "    " : "|   ");
 				sb.Append(last[last.Count - 1] ? "`-- " : "|-- ");
 			}
-			stream.WriteLine(sb.ToString() + (path.Length == 0 ? "<root>" : path[path.Length - 1]));
 
-			var children = await db.Directory.TryListAsync(path);
+			IFdbDirectory node;
+			if (folder == null)
+			{
+				stream.WriteLine(sb.ToString() + "<root>");
+				node = db.Directory;
+			}
+			else
+			{
+				stream.WriteLine(sb.ToString() + (folder.Layer.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name) + (folder.Layer.IsNullOrEmpty ? String.Empty : (" [" + folder.Layer.ToString() + "]")));
+				node = folder;
+			}
+
+			var children = await Fdb.Directory.BrowseAsync(db, node, ct);
 			int n = children.Count;
 			foreach(var child in children)
 			{
 				last.Add((n--) == 1);
-				await TreeDirectoryWalk(path.Concat(new [] { child }).ToArray(), last, db, stream, ct);
+				await TreeDirectoryWalk(child.Value, last, db, stream, ct);
 				last.RemoveAt(last.Count - 1);
 			}
 		}

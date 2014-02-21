@@ -439,7 +439,7 @@ namespace FoundationDB.Layers.Directories
 
 		internal static IFdbTuple ParsePath(IEnumerable<string> path, string argName = null)
 		{
-			Contract.Requires(path != null);
+			if (path == null) return FdbTuple.Empty;
 
 			var pathCopy = path.ToArray();
 			for (int i = 0; i < pathCopy.Length; i++)
@@ -528,7 +528,6 @@ namespace FoundationDB.Layers.Directories
 				{
 					throw new InvalidOperationException(String.Format("The directory {0} was created with incompatible layer {1} instead of expected {2}.", path, layer.ToAsciiOrHexaString(), existingNode.Layer.ToAsciiOrHexaString()));
 				}
-
 				return ContentsOfNode(existingNode.Subspace, path, existingNode.Layer);
 			}
 
@@ -623,8 +622,7 @@ namespace FoundationDB.Layers.Directories
 					throw new InvalidOperationException("Cannot move between partitions.");
 				}
 				// both nodes are in the same sub-partition, delegate to it
-				var partition = ContentsOfNode(newNode.Subspace, newNode.Path, newNode.Layer);
-				return await partition.DirectoryLayer.MoveInternalAsync(trans, oldNode.PartitionSubPath, newNode.PartitionSubPath, throwOnError);
+				return await GetPartitionForNode(newNode).DirectoryLayer.MoveInternalAsync(trans, oldNode.PartitionSubPath, newNode.PartitionSubPath, throwOnError).ConfigureAwait(false);
 			}
 
 			if (newNode.Exists)
@@ -662,6 +660,13 @@ namespace FoundationDB.Layers.Directories
 				return false;
 			}
 
+			if (n.IsInPartition(includeEmptySubPath: false))
+			{
+				return await GetPartitionForNode(n).DirectoryLayer.RemoveInternalAsync(trans, n.PartitionSubPath, throwIfMissing).ConfigureAwait(false);
+			}
+
+			//TODO: partitions ?
+
 			// Delete the node subtree and all the data
 			await RemoveRecursive(trans, n.Subspace).ConfigureAwait(false);
 			// Remove the node from the tree
@@ -683,6 +688,11 @@ namespace FoundationDB.Layers.Directories
 				return null;
 			}
 
+			if (node.IsInPartition(includeEmptySubPath: true))
+			{
+				return await GetPartitionForNode(node).DirectoryLayer.ListInternalAsync(trans, node.PartitionSubPath, throwIfMissing).ConfigureAwait(false);
+			}
+
 			return await SubdirNamesAndNodes(trans, node.Subspace)
 				.Select(kvp => kvp.Key)
 				.ToListAsync()
@@ -695,7 +705,16 @@ namespace FoundationDB.Layers.Directories
 
 			await CheckReadVersionAsync(trans).ConfigureAwait(false);
 
-			return (await FindAsync(trans, path).ConfigureAwait(false)).Exists;
+			var node = await FindAsync(trans, path).ConfigureAwait(false);
+
+			if (!node.Exists) return false;
+
+			if (node.IsInPartition(includeEmptySubPath: false))
+			{
+				return await GetPartitionForNode(node).DirectoryLayer.ExistsInternalAsync(trans, node.PartitionSubPath).ConfigureAwait(false);
+			}
+
+			return true;
 		}
 
 		internal async Task ChangeLayerInternalAsync(IFdbTransaction trans, IFdbTuple path, Slice newLayer)
@@ -705,9 +724,16 @@ namespace FoundationDB.Layers.Directories
 			await CheckWriteVersionAsync(trans).ConfigureAwait(false);
 
 			var node = await FindAsync(trans, path).ConfigureAwait(false);
+
 			if (!node.Exists)
 			{
 				throw new InvalidOperationException(string.Format("The directory '{0}' does not exist, or as already been removed.", path));
+			}
+
+			if (node.IsInPartition(includeEmptySubPath: false))
+			{
+				await GetPartitionForNode(node).DirectoryLayer.ChangeLayerInternalAsync(trans, node.PartitionSubPath, newLayer).ConfigureAwait(false);
+				return;
 			}
 
 			SetLayer(trans, node.Subspace, newLayer);
@@ -807,6 +833,12 @@ namespace FoundationDB.Layers.Directories
 			{
 				return new FdbDirectorySubspace(path, relativePath, prefix, this, layer);
 			}
+		}
+
+		private FdbDirectoryPartition GetPartitionForNode(Node node)
+		{
+			Contract.Requires(node.Subspace != null && node.Path != null && FdbDirectoryPartition.PartitionLayerId.Equals(node.Layer));
+			return (FdbDirectoryPartition) ContentsOfNode(node.Subspace, node.Path, node.Layer);
 		}
 
 		/// <summary>Finds a node subspace, given its path, by walking the tree from the root.</summary>

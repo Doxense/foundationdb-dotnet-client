@@ -120,6 +120,8 @@ namespace FoundationDB.Filters.Logging
 			return TimeSpan.FromTicks((long)Math.Round(((double)elapsed / Stopwatch.Frequency) * TimeSpan.TicksPerSecond, MidpointRounding.AwayFromZero));
 		}
 
+		/// <summary>Total duration of the transaction</summary>
+		/// <remarks>If the transaction has not yet ended, returns the time elapsed since the start.</remarks>
 		public TimeSpan TotalDuration
 		{
 			get
@@ -131,6 +133,8 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
+		/// <summary>Marks the start of the transaction</summary>
+		/// <param name="trans"></param>
 		public void Start(IFdbTransaction trans)
 		{
 			this.Id = trans.Id;
@@ -138,6 +142,8 @@ namespace FoundationDB.Filters.Logging
 			this.StartTimestamp = GetTimestamp();
 		}
 
+		/// <summary>Marks the end of the transaction</summary>
+		/// <param name="trans"></param>
 		public void Stop(IFdbTransaction trans)
 		{
 			if (!this.Completed)
@@ -148,6 +154,7 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
+		/// <summary>Adds a new already completed command to the log</summary>
 		public void AddOperation(Command cmd, bool countAsOperation = true)
 		{
 			var ts = GetTimeOffset();
@@ -161,6 +168,7 @@ namespace FoundationDB.Filters.Logging
 			this.Commands.Enqueue(cmd);
 		}
 
+		/// <summary>Start tracking the execution of a new command</summary>
 		public void BeginOperation(Command cmd)
 		{
 			var ts = GetTimeOffset();
@@ -174,6 +182,7 @@ namespace FoundationDB.Filters.Logging
 			this.Commands.Enqueue(cmd);
 		}
 
+		/// <summary>Mark the end of the execution of a command</summary>
 		public void EndOperation(Command cmd, Exception error = null)
 		{
 			var ts = GetTimeOffset();
@@ -185,16 +194,19 @@ namespace FoundationDB.Filters.Logging
 			if (cmd.ResultBytes.HasValue) Interlocked.Add(ref m_readSize, cmd.ResultBytes.Value);
 		}
 
+		/// <summary>Generate an ASCII report with all the commands that were executed by the transaction</summary>
 		public string GetCommandsReport()
 		{
+			var culture = CultureInfo.InvariantCulture;
+
 			var sb = new StringBuilder();
-			sb.AppendLine("Transaction #" + this.Id.ToString() + " command log:");
+			sb.AppendLine(String.Format(culture, "Transaction #{0} command log:", this.Id));
 			int reads = 0, writes = 0;
 			var cmds = this.Commands.ToArray();
 			for (int i = 0; i < cmds.Length; i++)
 			{
 				var cmd = cmds[i];
-				sb.AppendFormat("{0,3}/{1,3} : {2}", i + 1, cmds.Length, cmd.ToString());
+				sb.AppendFormat(culture, "{0,3}/{1,3} : {2}", i + 1, cmds.Length, cmd.ToString());
 				sb.AppendLine();
 				switch (cmd.Mode)
 				{
@@ -202,13 +214,16 @@ namespace FoundationDB.Filters.Logging
 					case FdbTransactionLog.Mode.Write: ++writes; break;
 				}
 			}
-			sb.AppendLine("Stats: " + this.Operations + " operations (" + reads + " reads, " + writes + " writes), " + this.CommitSize + " committed bytes");
+			sb.AppendLine(String.Format(culture, "Stats: {0:N0} operations ({1:N0} reads, {2:N0} writes), {3:N0} bytes read, {4:N0} bytes committed", this.Operations, reads, writes, this.ReadSize, this.CommitSize));
 			sb.AppendLine();
 			return sb.ToString();
 		}
 
+		/// <summary>Generate a full ASCII report with the detailed timeline of all the commands that were executed by the transaction</summary>
 		public string GetTimingsReport(bool showCommands = false)
 		{
+			var culture = CultureInfo.InvariantCulture;
+
 			var sb = new StringBuilder();
 			TimeSpan duration = this.TotalDuration;
 			// ideal range is between 10 and 80 chars
@@ -224,15 +239,16 @@ namespace FoundationDB.Filters.Logging
 			var cmds = this.Commands.ToArray();
 
 			// Header
-			sb.AppendFormat(CultureInfo.InvariantCulture, "Transaction #{0} ({1} operations, '#' = " + (scale * 1000d).ToString("N1") + " ms, started {2}Z", this.Id, cmds.Length, this.StartedUtc.TimeOfDay);
+			sb.AppendFormat(culture, "Transaction #{0} ({1} operations, '#' = {2:N1} ms, started {3}Z", this.Id, cmds.Length, (scale * 1000d), this.StartedUtc.TimeOfDay);
 			if (this.StoppedUtc.HasValue)
-				sb.AppendFormat(CultureInfo.InvariantCulture, ", ended {0}Z)", this.StoppedUtc.Value.TimeOfDay); 
+				sb.AppendFormat(culture, ", ended {0}Z)", this.StoppedUtc.Value.TimeOfDay); 
 			else
 				sb.AppendLine(", did not finish");
 			sb.AppendLine();
 			if (cmds.Length > 0)
 			{
-				sb.AppendLine("┌  oper. ┬" + new string('─', width + 2) + "┬──── start ──── end ── duration ──┬─ sent  recv ┐");
+				var bar = new string('─', width + 2);
+				sb.AppendLine(String.Format(culture, "┌  oper. ┬{0}┬──── start ──── end ── duration ──┬─ sent  recv ┐", bar));
 
 				int step = -1;
 				bool previousWasOnError = false;
@@ -241,8 +257,8 @@ namespace FoundationDB.Filters.Logging
 				foreach (var cmd in cmds)
 				{
 					if (previousWasOnError)
-					{ // │
-						sb.AppendLine("├────────┼" + new string('─', 2 + width) + "┼──────────────────────────────────┼─────────────┤ == Attempt #" + (++attempts).ToString() + " ==");
+					{
+						sb.AppendLine(String.Format(culture, "├────────┼{0}┼──────────────────────────────────┼─────────────┤ == Attempt #{1:N0} ==", bar, (++attempts)));
 					}
 
 					long ticks = cmd.Duration.Ticks;
@@ -250,7 +266,7 @@ namespace FoundationDB.Filters.Logging
 					string w = GetFancyGraph(width, cmd.StartOffset.Ticks, ticks, duration.Ticks, charsToSkip);
 
 					sb.AppendFormat(
-						CultureInfo.InvariantCulture,
+						culture,
 						"│{6}{1,-3:##0}{10}{0,2}{7}│ {2} │ T+{3,7:##0.000} ~ {4,7:##0.000} ({5,7:##,##0} µs) │ {8,5} {9,5} │ {11}",
 						/* 0 */ cmd.ShortName,
 						/* 1 */ cmd.Step,
@@ -276,7 +292,7 @@ namespace FoundationDB.Filters.Logging
 					step = cmd.Step;
 				}
 
-				sb.AppendLine("└────────┴" + new string('─', width + 2) + "┴──────────────────────────────────┴─────────────┘");
+				sb.AppendLine(String.Format(culture, "└────────┴{0}┴──────────────────────────────────┴─────────────┘", bar));
 
 				// Footer
 				if (this.Completed)
@@ -285,22 +301,22 @@ namespace FoundationDB.Filters.Logging
 					flag = false;
 					if (this.ReadSize > 0)
 					{
-						sb.Append("Read " + this.ReadSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
+						sb.AppendFormat(culture, "Read {0:N0} bytes", this.ReadSize);
 						flag = true;
 					}
 					if (this.CommitSize > 0)
 					{
 						if (flag) sb.Append(" and ");
-						sb.Append("Committed " + this.CommitSize.ToString("N0", CultureInfo.InvariantCulture) + " bytes");
+						sb.AppendFormat(culture, "Committed {0:N0} bytes", this.CommitSize);
 						flag = true;
 					}
 					if (!flag) sb.Append("Completed");
-					sb.AppendLine(" in " + duration.TotalMilliseconds.ToString("N3", CultureInfo.InvariantCulture) + " ms and " + attempts.ToString(CultureInfo.InvariantCulture) + " attempt(s)");
+					sb.AppendLine(String.Format(culture, " in {0:N3} ms and {1:N0} attempt(s)", duration.TotalMilliseconds, attempts));
 				}
 			}
 			else
 			{ // empty transaction
-				sb.AppendLine("> Completed after " + duration.TotalMilliseconds.ToString("N3", CultureInfo.InvariantCulture) + " ms without performing any operation");
+				sb.AppendLine(String.Format(culture, "> Completed after {0:N3} ms without performing any operation", duration.TotalMilliseconds));
 			}
 			return sb.ToString();
 		}
