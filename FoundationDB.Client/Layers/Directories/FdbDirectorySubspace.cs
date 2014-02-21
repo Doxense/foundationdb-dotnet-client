@@ -243,7 +243,6 @@ namespace FoundationDB.Layers.Directories
 		public Task RemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
 			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: true);
 		}
 
@@ -265,7 +264,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<bool> TryRemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
 			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: false);
 		}
 

@@ -364,7 +364,6 @@ namespace FoundationDB.Layers.Directories
 		public Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (path == null) throw new ArgumentNullException("path");
 
 			return ListInternalAsync(trans, ParsePath(path), throwIfMissing: false);
 		}
