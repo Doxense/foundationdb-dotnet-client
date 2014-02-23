@@ -74,13 +74,13 @@ namespace FoundationDB.Client
 				return ConfigPrefix.Concat(Slice.FromAscii(name));
 			}
 
-			/// <summary>Returns a list of keys k such that <paramref name="begin"/> &lt;= k &lt; <paramref name="end"/> and k is located at the start of a contiguous range stored on a single server</summary>
+			/// <summary>Returns a list of keys k such that <paramref name="beginInclusive"/> &lt;= k &lt; <paramref name="endExclusive"/> and k is located at the start of a contiguous range stored on a single server</summary>
 			/// <param name="trans">Transaction to use for the operation</param>
-			/// <param name="begin">First key (inclusive) of the range to inspect</param>
-			/// <param name="end">End key (exclusive) of the range to inspect</param>
+			/// <param name="beginInclusive">First key (inclusive) of the range to inspect</param>
+			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
 			/// <returns>List of keys that mark the start of a new chunk</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Transaction object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			public static async Task<List<Slice>> GetBoundaryKeysAsync(IFdbReadOnlyTransaction trans, Slice begin, Slice end)
+			public static async Task<List<Slice>> GetBoundaryKeysAsync(IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
 			{
 				if (trans == null) throw new ArgumentNullException("trans");
 				Contract.Assert(trans.Context != null && trans.Context.Database != null);
@@ -93,46 +93,68 @@ namespace FoundationDB.Client
 
 					//TODO: we may need to also copy options like RetryLimit and Timeout ?
 
-					return await GetBoundaryKeysInternalAsync(shadow, begin, end).ConfigureAwait(false);
+					return await GetBoundaryKeysInternalAsync(shadow, beginInclusive, endExclusive).ConfigureAwait(false);
 				}
 			}
 
-			/// <summary>Returns a list of keys k such that <paramref name="begin"/> &lt;= k &lt; <paramref name="end"/> and k is located at the start of a contiguous range stored on a single server</summary>
+			/// <summary>Returns a list of keys k such that <paramref name="beginInclusive"/> &lt;= k &lt; <paramref name="endExclusive"/> and k is located at the start of a contiguous range stored on a single server</summary>
 			/// <param name="db">Database to use for the operation</param>
-			/// <param name="begin">First key (inclusive) of the range to inspect</param>
-			/// <param name="end">End key (exclusive) of the range to inspect</param>
+			/// <param name="beginInclusive">First key (inclusive) of the range to inspect</param>
+			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>List of keys that mark the start of a new chunk</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			public static async Task<List<Slice>> GetBoundaryKeysAsync(IFdbDatabase db, Slice begin, Slice end, CancellationToken cancellationToken = default(CancellationToken))
+			public static async Task<List<Slice>> GetBoundaryKeysAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken = default(CancellationToken))
 			{
 				if (db == null) throw new ArgumentNullException("db");
 
 				using (var trans = db.BeginReadOnlyTransaction(cancellationToken))
 				{
-					return await GetBoundaryKeysInternalAsync(trans, begin, end).ConfigureAwait(false);
+					return await GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive).ConfigureAwait(false);
 				}
 			}
 
+			//REVIEW: should we call this chunks? shard? fragments? contigous ranges?
+
+			/// <summary>Split a range of keys into smaller chunks where each chunk represents a contiguous range stored on a single server</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="range">Range of keys to split up into smaller chunks</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
+			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
 			public static Task<List<FdbKeyRange>> GetChunksAsync(IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken = default(CancellationToken))
 			{
+				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 				return GetChunksAsync(db, range.Begin, range.End, cancellationToken);
 			}
 
-			public static async Task<List<FdbKeyRange>> GetChunksAsync(IFdbDatabase db, Slice begin, Slice end, CancellationToken cancellationToken = default(CancellationToken))
+			/// <summary>Split a range of keys into chunks representing a contiguous range stored on a single server</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="beginInclusive">First key (inclusive) of the range to inspect</param>
+			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
+			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
+			public static async Task<List<FdbKeyRange>> GetChunksAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken = default(CancellationToken))
 			{
-				var boundaries = await GetBoundaryKeysAsync(db, begin, end, cancellationToken).ConfigureAwait(false);
+				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 
-				var chunks = new List<FdbKeyRange>(boundaries.Count + 2);
+				if (db == null) throw new ArgumentNullException("db");
+				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", "endExclusive");
+
+				var boundaries = await GetBoundaryKeysAsync(db, beginInclusive, endExclusive, cancellationToken).ConfigureAwait(false);
+
 				int count = boundaries.Count;
-				if (boundaries.Count == 0)
-				{
-					chunks.Add(new FdbKeyRange(begin, end));
+				var chunks = new List<FdbKeyRange>(count + 2);
+
+				if (count == 0)
+				{ // the range does not cross any boundary, and is contained in just one chunk
+					chunks.Add(new FdbKeyRange(beginInclusive, endExclusive));
 					return chunks;
 				}
 
 				var k = boundaries[0];
-				if (k != begin) chunks.Add(new FdbKeyRange(begin, k));
+				if (k != beginInclusive) chunks.Add(new FdbKeyRange(beginInclusive, k));
 
 				for (int i = 1; i < boundaries.Count; i++)
 				{
@@ -140,14 +162,14 @@ namespace FoundationDB.Client
 					k = boundaries[i];
 				}
 
-				if (k != end) chunks.Add(new FdbKeyRange(k, end));
+				if (k != endExclusive) chunks.Add(new FdbKeyRange(k, endExclusive));
 
 				return chunks;
 			}
 
 			private static async Task<List<Slice>> GetBoundaryKeysInternalAsync(IFdbReadOnlyTransaction trans, Slice begin, Slice end)
 			{
-				Contract.Requires(trans != null);
+				Contract.Requires(trans != null && end >= begin);
 
 				var results = new List<Slice>();
 				while (begin < end)
