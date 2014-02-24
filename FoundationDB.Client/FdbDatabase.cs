@@ -260,6 +260,18 @@ namespace FoundationDB.Client
 
 		#region Transactionals...
 
+		//NOTE: other bindings use different names or concept for transactionals, and some also support ReadOnly vs ReadWrite transaction
+		// - Python uses the @transactional decorator with first arg called db_or_trans
+		// - JAVA uses db.run() and db.runAsync(), but does not have a method for read-only transactions
+		// - Ruby uses db.transact do |tr|
+		// - Go uses db.Transact(...) and db.ReadTransact(...)
+		// - NodeJS uses fdb.doTransaction(function(...) { ... })
+
+		// Conventions:
+		// - ReadAsync() => read-only
+		// - WriteAsync() => write-only
+		// - ReadWriteAsync() => read/write
+
 		#region IFdbReadOnlyTransactional methods...
 
 		/// <summary>Runs a transactional lambda function against this database, inside a read-only transaction context, with retry logic.</summary>
@@ -303,6 +315,26 @@ namespace FoundationDB.Client
 		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
+		}
+
+		/// <summary>Runs a transactional lambda function against this database, inside a write-only transaction context, with retry logic.</summary>
+		/// <param name="asyncHandler">Asynchronous lambda function that is passed a new read-write transaction on each retry.</param>
+		/// <param name="cancellationToken">Optional cancellation token that will be passed to the transaction context, and that can also be used to abort the retry loop.</param>
+		public Task WriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
+
+			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
+			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
+			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, cancellationToken);
+		}
+
+		public Task WriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
+			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
+			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
+			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, cancellationToken);
 		}
 
 		/// <summary>Runs a transactional lambda function against this database, inside a read-write transaction context, with retry logic.</summary>

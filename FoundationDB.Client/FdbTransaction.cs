@@ -191,6 +191,31 @@ namespace FoundationDB.Client
 			}, this, handler, onDone, cancellationToken);
 		}
 
+		Task IFdbTransactional.WriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken)
+		{
+			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
+			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
+			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
+
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+
+			return asyncHandler(this);
+		}
+
+		async Task IFdbTransactional.WriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		{
+			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
+			// => this version of WriteAsync is only there to catch mistakes when someones passes in an async lambda, instead of an Action<IFdbTransaction>
+			//TODO: have a "WriteOnly" mode on transaction to forbid doing any reads ?
+
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			cancellationToken.ThrowIfCancellationRequested();
+
+			await asyncHandler(this);
+			onDone(this);
+		}
+
 		Task IFdbTransactional.ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken)
 		{
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");

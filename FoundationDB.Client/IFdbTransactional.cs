@@ -40,6 +40,11 @@ namespace FoundationDB.Client
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken cancellationToken = default(CancellationToken));
 
+		/// <summary>Runs an idempotent transactional block inside a write-only transaction context, with optional retry logic.</summary>
+		/// <param name="handler">Idempotent async handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		Task WriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken cancellationToken = default(CancellationToken));
+
 		/// <summary>Runs an idempotent transactional block inside a read-write transaction context, with optional retry logic.</summary>
 		/// <param name="asyncHandler">Idempotent asynchronous handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
@@ -53,6 +58,9 @@ namespace FoundationDB.Client
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
 		Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken));
+
+		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
+		Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken));
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
 		Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken));

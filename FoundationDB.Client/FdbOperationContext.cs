@@ -215,19 +215,25 @@ namespace FoundationDB.Client
 		#region Read-Only operations...
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunReadAsync(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task> asyncAction, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public static Task RunReadAsync(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, cancellationToken);
-			return ExecuteInternal(db, context, asyncAction, onDone);
+			return ExecuteInternal(db, context, asyncHandler, onDone);
 		}
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunReadWithResultAsync<R>(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task<R>> asyncAction, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public static async Task<R> RunReadWithResultAsync<R>(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+
 			R result = default(R);
 			Func<IFdbTransaction, Task> handler = async (tr) =>
 			{
-				result = await asyncAction(tr).ConfigureAwait(false);
+				result = await asyncHandler(tr).ConfigureAwait(false);
 			};
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, cancellationToken);
@@ -240,26 +246,35 @@ namespace FoundationDB.Client
 		#region Read/Write operations...
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunWriteAsync(IFdbDatabase db, Func<IFdbTransaction, Task> asyncAction, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public static Task RunWriteAsync(IFdbDatabase db, Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, cancellationToken);
-			return ExecuteInternal(db, context, asyncAction, onDone);
+			return ExecuteInternal(db, context, asyncHandler, onDone);
 		}
 
 		/// <summary>Run a write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunWriteAsync(IFdbDatabase db, Action<IFdbTransaction> action, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public static Task RunWriteAsync(IFdbDatabase db, Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (handler == null) throw new ArgumentNullException("handler");
+
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, cancellationToken);
-			return ExecuteInternal(db, context, action, onDone);
+			return ExecuteInternal(db, context, handler, onDone);
 		}
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunWriteWithResultAsync<R>(IFdbDatabase db, Func<IFdbTransaction, Task<R>> asyncAction, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public static async Task<R> RunWriteWithResultAsync<R>(IFdbDatabase db, Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+
 			R result = default(R);
 			Func<IFdbTransaction, Task> handler = async (tr) =>
 			{
-				result = await asyncAction(tr).ConfigureAwait(false);
+				result = await asyncHandler(tr).ConfigureAwait(false);
 			};
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, cancellationToken);

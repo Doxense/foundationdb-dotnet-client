@@ -38,6 +38,8 @@ namespace FoundationDB.Filters
 	[DebuggerDisplay("Database={m_database.Name}")]
 	public abstract class FdbDatabaseFilter : IFdbDatabase
 	{
+		#region Private Members...
+
 		/// <summary>Inner database</summary>
 		protected readonly IFdbDatabase m_database;
 
@@ -52,6 +54,10 @@ namespace FoundationDB.Filters
 		/// <summary>Wrapper for the inner db's Directory property</summary>
 		protected FdbDatabasePartition m_directory;
 
+		#endregion
+
+		#region Constructors...
+
 		protected FdbDatabaseFilter(IFdbDatabase database, bool forceReadOnly, bool ownsDatabase)
 		{
 			if (database == null) throw new ArgumentNullException("database");
@@ -60,6 +66,10 @@ namespace FoundationDB.Filters
 			m_readOnly = forceReadOnly || database.IsReadOnly;
 			m_owner = ownsDatabase;
 		}
+
+		#endregion
+
+		#region Public Properties...
 
 		/// <summary>Database instance configured to read and write data from this partition</summary>
 		protected IFdbDatabase Database { get { return m_database; } }
@@ -102,6 +112,10 @@ namespace FoundationDB.Filters
 		{
 			get { return m_readOnly; }
 		}
+
+		#endregion
+
+		#region Transactionals...
 
 		public virtual IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken = default(CancellationToken), FdbOperationContext context = null)
 		{
@@ -154,6 +168,18 @@ namespace FoundationDB.Filters
 			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
 		}
 
+		public Task WriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunWriteAsync(this, handler, null, cancellationToken);
+		}
+
+		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			ThrowIfDisposed();
+			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
+		}
+
 		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			ThrowIfDisposed();
@@ -177,6 +203,10 @@ namespace FoundationDB.Filters
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);
 		}
+
+		#endregion
+
+		#region Options...
 
 		public virtual void SetOption(FdbDatabaseOption option)
 		{
@@ -216,6 +246,10 @@ namespace FoundationDB.Filters
 			}
 		}
 
+		#endregion
+
+		#region IDisposable Members...
+
 		protected void ThrowIfDisposed()
 		{
 			if (m_disposed) throw new ObjectDisposedException(this.GetType().Name);
@@ -238,6 +272,8 @@ namespace FoundationDB.Filters
 				}
 			}
 		}
+
+		#endregion
 
 	}
 
