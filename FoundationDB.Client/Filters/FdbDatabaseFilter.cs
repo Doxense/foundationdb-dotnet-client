@@ -275,6 +275,45 @@ namespace FoundationDB.Filters
 
 		#endregion
 
+		#region IFdbSubspace Members...
+
+		Slice IFdbSubspace.Key
+		{
+			get { return m_database.Key; }
+		}
+
+		bool IFdbSubspace.Contains(Slice key)
+		{
+			return m_database.Contains(key);
+		}
+
+		Slice IFdbSubspace.Concat(Slice key)
+		{
+			return m_database.Concat(key);
+		}
+
+		Slice IFdbSubspace.Extract(Slice key)
+		{
+			return m_database.Extract(key);
+		}
+
+		Slice IFdbSubspace.ExtractAndCheck(Slice key)
+		{
+			return m_database.ExtractAndCheck(key);
+		}
+
+		FdbKeyRange IFdbSubspace.ToRange()
+		{
+			return m_database.ToRange();
+		}
+
+		Slice IFdbKey.ToFoundationDbKey()
+		{
+			return m_database.ToFoundationDbKey();
+		}
+
+		#endregion
+
 	}
 
 }
