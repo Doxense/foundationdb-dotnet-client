@@ -82,8 +82,11 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Self reference</summary>
 		FdbDirectoryLayer IFdbDirectory.DirectoryLayer { get { return this; } }
 
+		/// <summary>Convert a relative path in this Directory Layer, into an absolute path from the root of partition of the database</summary>
 		internal IFdbTuple PartitionSubPath(IFdbTuple path = null)
 		{
+			// If the DL is the root, the path is already absolute
+			// If the DL is used by a partition, then the path of the partition will be prepended to the path
 			return path == null ? this.Location : this.Location.Concat(path);
 		}
 
@@ -94,6 +97,7 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		/// <param name="nodeSubspace">Subspace where all the node metadata will be stored ('\xFE' by default)</param>
 		/// <param name="contentSubspace">Subspace where all automatically allocated directories will be stored (empty by default)</param>
+		/// <param name="location">Location of the root of all the directories managed by this Directory Layer. Ususally empty for the root partition of the database.</param>
 		internal FdbDirectoryLayer(FdbSubspace nodeSubspace, FdbSubspace contentSubspace, IFdbTuple location)
 		{
 			Contract.Requires(nodeSubspace != null && contentSubspace != null);
@@ -118,13 +122,14 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Create an instance of the default Directory Layer</summary>
-		/// <returns></returns>
 		public static FdbDirectoryLayer Create()
 		{
 			return new FdbDirectoryLayer(new FdbSubspace(FdbKey.Directory), FdbSubspace.Empty, null);
 		}
 
 		/// <summary>Create an instance of a Directory Layer located under a specific prefix and path</summary>
+		/// <param name="prefix">Prefix for the content. The nodes will be stored under <paramref name="prefix"/> + &lt;FE&gt;</param>
+		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database.</param>
 		public static FdbDirectoryLayer Create(Slice prefix, IEnumerable<string> path = null)
 		{
 			var subspace = FdbSubspace.Create(prefix);
@@ -133,11 +138,26 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Create an instance of a Directory Layer located under a specific subspace and path</summary>
+		/// <param name="subspace">Subspace for the content. The nodes will be stored under <paramref name="subspace"/>.Key + &lt;FE&gt;</param>
+		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database.</param>
 		public static FdbDirectoryLayer Create(FdbSubspace subspace, IEnumerable<string> path = null)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			var location = path != null ? ParsePath(path) : FdbTuple.Empty;
 			return new FdbDirectoryLayer(subspace[FdbKey.Directory], subspace, location);
+		}
+
+		/// <summary>Create an instance of a Directory Layer located under a specific subpsace and path</summary>
+		/// <param name="nodeSubspace">Subspace for the nodes of the Directory Layer.</param>
+		/// <param name="contentSubspace">Subspace for the content of the Directory Layer.</param>
+		/// <param name="path">Optional path, if the Directory Layer is not located at the root of the database</param>
+		public static FdbDirectoryLayer Create(FdbSubspace nodeSubspace, FdbSubspace contentSubspace, IEnumerable<string> path = null)
+		{
+			if (nodeSubspace == null) throw new ArgumentNullException("nodeSubspace");
+			if (contentSubspace == null) throw new ArgumentNullException("contentSubspace");
+			var location = path != null ? ParsePath(path) : FdbTuple.Empty;
+			//TODO: check that nodeSubspace != contentSubspace?
+			return new FdbDirectoryLayer(nodeSubspace, contentSubspace, location);
 		}
 
 		#endregion
