@@ -154,6 +154,12 @@ namespace FoundationDB.Samples
 							pStart += 2;
 							break;
 						}
+						default:
+						{
+							Console.WriteLine(string.Format("Unknown option : '{0}'", args[pStart]));
+							pStart++;
+							break;
+						}
 					}
 				}
 				else
@@ -214,7 +220,8 @@ namespace FoundationDB.Samples
 						string cmd = tokens.Length > 0 ? tokens[0] : String.Empty;
 						string prm = tokens.Length > 1 ? tokens[1] : String.Empty;
 
-						switch (cmd.Trim().ToLowerInvariant())
+						var trimmedCommand = cmd.Trim().ToLowerInvariant();
+						switch (trimmedCommand)
 						{
 							case "":
 							{
@@ -411,7 +418,7 @@ namespace FoundationDB.Samples
 
 							default:
 							{
-								Console.WriteLine("Unknown command");
+								Console.WriteLine(string.Format("Unknown command : '{0}'", trimmedCommand));
 								break;
 							}
 						}
