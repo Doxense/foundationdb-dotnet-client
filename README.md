@@ -7,7 +7,7 @@ This code is licensed under the 3-clause BSD Licence.
 
 It requires the .NET 4.5 Framework, and uses the 64-bit C API binding that is licensed by FoundationDB LLC and must be obtained separately.
 
-It currently targets version 1.0 FoundationDB (API level 100)
+It currently targets version 2.0 FoundationDB (API level 200)
 
 The core C#/.NET binding API (FoundationDB.Client namespace) is relatively stable but is subject to change. Modifications of any of the APIs will be accompanied by a change to the binding's assembly version. As a result, clients that are compiled against one version of the binding will not run when linked against another version of the binding.
 
@@ -113,14 +113,14 @@ You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb
 
 If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012 or 2013 RC, and not an earlier version.
 
-If you see the error `Unable to locate '...\foundationdb-dotnet-client\.nuget\nuget.exe'` then you need to run the `Enable Nuget Package Restore` entry in the `Project` menu (or right click on the solution) that will reinstall nuget.exe in the .nuget folder. Also, Nuget should should redownload the missing packages during the first build.
+If you see the error `Unable to locate '...\foundationdb-dotnet-client\.nuget\nuget.exe'` then you need to run the `Enable Nuget Package Restore` entry in the `Project` menu (or right click on the solution) that will reinstall nuget.exe in the .nuget folder. Also, Nuget should redownload the missing packages during the first build.
 
 How to test
 -----------
 
-The test project is using NUnit 2.6.2, and requires support for async test methods.
+The test project is using NUnit 2.6.3, and requires support for async test methods.
 
-If you are using a custom runner or VS plugin (like TestDriven.net), make sure that is has the correct nunit version, and that it is configured to run the test using 64-bit process. The code will NOT work on 32 bit.
+If you are using a custom runner or VS plugin (like TestDriven.net), make sure that it has the correct nunit version, and that it is configured to run the test using 64-bit process. The code will NOT work on 32 bit.
 
 WARNING: All the tests should work under the ('T',) subspace, but any bug or mistake could end up wiping or corrupting the global keyspace and you may lose all your data. You can specify an alternative cluster file to use in `TestHelper.cs` file.
 
@@ -152,6 +152,6 @@ Known Limitations
 
 * While the .NET API supports UUIDs in the Tuple layer, none of the other bindings currently do. As a result, packed Tuples with UUIDs will not be able to be unpacked in other bindings.
 * The LINQ API is still a work in progress, and may change a lot. Simple LINQ queries, like Select() or Where() on the result of range queries (to convert Slice key/values into oter types) should work.
-* You cannot unload the fdb C native client from the process once the netork thread has started. You can stop the network thread once, but it does not support being restarted.
+* You cannot unload the fdb C native client from the process once the netork thread has started. You can stop the network thread once, but it does not support being restarted. This can cause problems when running under ASP.NET.
 * FoundationDB does not support long running batch or range queries if they take too much time. Such queries will fail with a 'past_version' error.
 * See https://foundationdb.com/documentation/known-limitations.html for other known limitations of the FoundationDB database.
