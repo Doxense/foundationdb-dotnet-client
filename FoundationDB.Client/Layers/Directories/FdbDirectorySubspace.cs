@@ -106,9 +106,14 @@ namespace FoundationDB.Layers.Directories
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (newLayer.IsNull) newLayer = Slice.Empty;
 
+			if (this.RelativeLocation.Count == 0)
+			{ // cannot change the layer of the root of a directory layer
+				throw new InvalidOperationException("Cannot change the layer id of the root of a directory layer or partition.");
+			}
+
 			if (this.Layer == FdbDirectoryPartition.PartitionLayerId)
-			{
-				throw new InvalidOperationException("Cannot change the layer id of a directory partition");
+			{ // cannot change a partition back to a regular directory
+				throw new InvalidOperationException("Cannot change the layer id of a directory partition.");
 			}
 
 			// set the layer to the new value
@@ -126,6 +131,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, ToRelativePath(path), layer, Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true);
 		}
 
@@ -180,18 +186,20 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: false);
 		}
 
-		/// <summary>Moves the current directory to <paramref name="newPath"/>.
+		/// <summary>Moves the current directory to <paramref name="newAbsolutePath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
-		public Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, IEnumerable<string> newPath)
+		/// <param name="newAbsolutePath">Full path (from the root) where this directory will be moved</param>
+		public Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, IEnumerable<string> newAbsolutePath)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
-			if (newPath == null) throw new ArgumentNullException("newPath");
+			if (newAbsolutePath == null) throw new ArgumentNullException("newAbsolutePath");
 
-			var location = FdbDirectoryLayer.ParsePath(newPath, "newPath");
+			//TODO: allow moving the partition inside its parent's Directory Layer
+
+			var location = FdbDirectoryLayer.ParsePath(newAbsolutePath, "newAbsolutePath");
 			if (!location.StartsWith(this.DirectoryLayer.Location)) throw new InvalidOperationException("Cannot move between partitions.");
 			location = location.Substring(this.DirectoryLayer.Location.Count);
 
@@ -213,6 +221,8 @@ namespace FoundationDB.Layers.Directories
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (newPath == null) throw new ArgumentNullException("newPath");
 
+			//TODO: allow moving the partition inside its parent's Directory Layer
+
 			var location = FdbDirectoryLayer.ParsePath(newPath, "newPath");
 			if (!location.StartsWith(this.DirectoryLayer.Location)) throw new InvalidOperationException("Cannot move between partitions.");
 			location = location.Substring(this.DirectoryLayer.Location.Count);
@@ -232,6 +242,9 @@ namespace FoundationDB.Layers.Directories
 		public Task RemoveAsync(IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+
+			//TODO: removing a partition should remove it from its parent's Directory Layer
+
 			return this.DirectoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: true);
 		}
 
@@ -243,6 +256,9 @@ namespace FoundationDB.Layers.Directories
 		public Task RemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+
+			//TODO: removing a partition should remove it from its parent's Directory Layer
+
 			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: true);
 		}
 
@@ -253,6 +269,9 @@ namespace FoundationDB.Layers.Directories
 		public Task<bool> TryRemoveAsync(IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+
+			//TODO: removing a partition should remove it from its parent's Directory Layer
+
 			return this.DirectoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: false);
 		}
 
@@ -264,6 +283,9 @@ namespace FoundationDB.Layers.Directories
 		public Task<bool> TryRemoveAsync(IFdbTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+
+			//TODO: removing a partition should remove it from its parent's Directory Layer
+
 			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: false);
 		}
 
@@ -272,6 +294,9 @@ namespace FoundationDB.Layers.Directories
 		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+
+			//TODO: testing the existance of a partition should check it it exists in its parent's Directory Layer
+
 			return this.DirectoryLayer.ExistsInternalAsync(trans, this.RelativeLocation);
 		}
 
@@ -280,6 +305,9 @@ namespace FoundationDB.Layers.Directories
 		public Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
+
+			//TODO: testing the existance of a partition should check it it exists in its parent's Directory Layer
+
 			return this.DirectoryLayer.ExistsInternalAsync(trans, ToRelativePath(path));
 		}
 

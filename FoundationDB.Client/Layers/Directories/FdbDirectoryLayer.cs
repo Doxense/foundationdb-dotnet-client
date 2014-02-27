@@ -464,7 +464,7 @@ namespace FoundationDB.Layers.Directories
 			{
 				if (pathCopy[i] == null)
 				{
-					throw new InvalidOperationException("The path of a directory cannot contain null elements");
+					throw new ArgumentException("The path of a directory cannot contain null elements", argName ?? "path");
 				}
 			}
 			return FdbTuple.CreateRange<string>(pathCopy);
@@ -490,7 +490,7 @@ namespace FoundationDB.Layers.Directories
 			{
 				if (path.Get<string>(i) == null)
 				{
-					throw new InvalidOperationException("The path of a directory cannot contain null elements");
+					throw new ArgumentException("The path of a directory cannot contain null elements", argName ?? "path");
 				}
 			}
 			return path;
