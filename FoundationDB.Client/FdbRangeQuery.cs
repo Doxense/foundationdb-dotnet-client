@@ -215,6 +215,13 @@ namespace FoundationDB.Client
 			return FdbAsyncEnumerable.ToArrayAsync(this, this.Transaction.Token);
 		}
 
+		/// <summary>Return the number of elements in the range, by reading them</summary>
+		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync"/> when reading potentially large ranges.</remarks>
+		public Task<int> CountAsync()
+		{
+			return FdbAsyncEnumerable.CountAsync(this, this.Transaction.Token);
+		}
+
 		internal FdbRangeQuery<R> Map<R>(Func<KeyValuePair<Slice, Slice>, R> transform)
 		{
 			return new FdbRangeQuery<R>(
