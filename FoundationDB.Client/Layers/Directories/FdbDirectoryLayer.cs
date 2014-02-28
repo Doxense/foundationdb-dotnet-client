@@ -556,7 +556,7 @@ namespace FoundationDB.Layers.Directories
 
 			await CheckWriteVersionAsync(trans).ConfigureAwait(false);
 
-			if (prefix.IsNullOrEmpty)
+			if (prefix == null)
 			{ // automatically allocate a new prefix inside the ContentSubspace
 				long id = await this.Allocator.AllocateAsync(trans).ConfigureAwait(false);
 				prefix = this.ContentSubspace.Pack(id);
