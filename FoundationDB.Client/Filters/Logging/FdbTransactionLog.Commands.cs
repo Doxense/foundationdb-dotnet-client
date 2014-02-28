@@ -133,6 +133,7 @@ namespace FoundationDB.Filters.Logging
 						case Operation.AddConflictRange:
 						case Operation.Commit:
 						case Operation.OnError:
+						case Operation.SetOption:
 							return FdbTransactionLog.Mode.Meta;
 
 						case Operation.Watch:
@@ -164,6 +165,7 @@ namespace FoundationDB.Filters.Logging
 						case Operation.Reset: return "Rz";
 						case Operation.OnError: return "Er";
 						case Operation.GetReadVersion: return "rv";
+						case Operation.SetOption: return "op";
 
 						case Operation.Get: return "G ";
 						case Operation.GetValues: return "G*";
@@ -220,6 +222,73 @@ namespace FoundationDB.Filters.Logging
 			protected virtual string Dump(TResult value)
 			{
 				return value.ToString();
+			}
+		}
+
+		public sealed class LogCommand : FdbTransactionLog.Command
+		{
+			public string Message { get; private set; }
+
+			public override FdbTransactionLog.Operation Op
+			{
+				get { return FdbTransactionLog.Operation.Log; }
+			}
+
+			public LogCommand(string message)
+			{
+				this.Message = message;
+			}
+
+			public override string ToString()
+			{
+				return "// " + this.Message;
+			}
+		}
+
+		public sealed class SetOptionCommand : Command
+		{
+			/// <summary>Option that is set on the transaction</summary>
+			public FdbTransactionOption Option { get; private set; }
+
+			/// <summary>Integer value (if not null)</summary>
+			public long? IntValue { get; private set; }
+
+			/// <summary>String value (if not null)</summary>
+			public string StringValue { get; private set; }
+
+			public override Operation Op { get { return Operation.SetOption; } }
+
+			public SetOptionCommand(FdbTransactionOption option)
+			{
+				this.Option = option;
+			}
+
+			public SetOptionCommand(FdbTransactionOption option, long value)
+			{
+				this.Option = option;
+				this.IntValue = value;
+			}
+
+			public SetOptionCommand(FdbTransactionOption option, string value)
+			{
+				this.Option = option;
+				this.StringValue = value;
+			}
+
+			public override string GetArguments()
+			{
+				if (this.IntValue.HasValue)
+				{
+					return String.Format("{0} = {1}", this.Option.ToString(), this.IntValue.Value);
+				}
+				else if (this.StringValue != null)
+				{
+					return String.Format("{0} = '{1}'", this.Option.ToString(), this.StringValue);
+				}
+				else
+				{
+					return this.Option.ToString();
+				}
 			}
 		}
 

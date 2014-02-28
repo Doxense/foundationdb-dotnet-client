@@ -31,28 +31,9 @@ namespace FoundationDB.Filters.Logging
 	using FoundationDB.Client;
 	using System;
 
+	/// <summary>Set of extension methods that add logging support on transactions</summary>
 	public static class FdbLoggingExtensions
 	{
-
-		public sealed class LogCommand : FdbTransactionLog.Command
-		{
-			public string Message { get; private set; }
-
-			public override FdbTransactionLog.Operation Op
-			{
-				get { return FdbTransactionLog.Operation.Log; }
-			}
-
-			public LogCommand(string message)
-			{
-				this.Message = message;
-			}
-
-			public override string ToString()
-			{
-				return "// " + this.Message;
-			}
-		}
 
 		internal static FdbLoggedTransaction GetLogger(IFdbReadOnlyTransaction trans)
 		{
@@ -68,7 +49,7 @@ namespace FoundationDB.Filters.Logging
 			var logged = GetLogger(trans);
 			if (logged != null)
 			{
-				logged.Log.AddOperation(new LogCommand(message), countAsOperation: false);
+				logged.Log.AddOperation(new FdbTransactionLog.LogCommand(message), countAsOperation: false);
 			}
 		}
 
@@ -76,28 +57,28 @@ namespace FoundationDB.Filters.Logging
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0)
 		{
 			var logged = GetLogger(trans);
-			if (logged != null) logged.Log.AddOperation(new LogCommand(String.Format(format, arg0)), countAsOperation: false);
+			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0, object arg1)
 		{
 			var logged = GetLogger(trans);
-			if (logged != null) logged.Log.AddOperation(new LogCommand(String.Format(format, arg0, arg1)), countAsOperation: false);
+			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0, object arg1, object arg2)
 		{
 			var logged = GetLogger(trans);
-			if (logged != null) logged.Log.AddOperation(new LogCommand(String.Format(format, arg0, arg1, arg2)), countAsOperation: false);
+			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1, arg2)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, params object[] args)
 		{
 			var logged = GetLogger(trans);
-			if (logged != null) logged.Log.AddOperation(new LogCommand(String.Format(format, args)), countAsOperation: false);
+			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, args)), countAsOperation: false);
 		}
 
 	}

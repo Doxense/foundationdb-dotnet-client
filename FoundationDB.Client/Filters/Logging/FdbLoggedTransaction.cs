@@ -490,6 +490,31 @@ namespace FoundationDB.Filters.Logging
 		}
 		#endregion
 
+		#region Options...
+
+		public override void SetOption(FdbTransactionOption option)
+		{
+			ThrowIfDisposed();
+			this.Log.AddOperation(new FdbTransactionLog.SetOptionCommand(option), countAsOperation: false);
+			base.SetOption(option);
+		}
+
+		public override void SetOption(FdbTransactionOption option, long value)
+		{
+			ThrowIfDisposed();
+			this.Log.AddOperation(new FdbTransactionLog.SetOptionCommand(option, value), countAsOperation: false);
+			base.SetOption(option, value);
+		}
+
+		public override void SetOption(FdbTransactionOption option, string value)
+		{
+			ThrowIfDisposed();
+			this.Log.AddOperation(new FdbTransactionLog.SetOptionCommand(option, value), countAsOperation: false);
+			base.SetOption(option, value);
+		}
+
+		#endregion
+
 	}
 
 }

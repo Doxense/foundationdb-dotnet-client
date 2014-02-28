@@ -371,6 +371,7 @@ namespace FoundationDB.Filters.Logging
 			Cancel,
 			Reset,
 			OnError,
+			SetOption,
 
 			Log,
 		}
