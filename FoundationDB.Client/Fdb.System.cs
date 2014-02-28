@@ -173,16 +173,23 @@ namespace FoundationDB.Client
 			{
 				Contract.Requires(trans != null && end >= begin);
 
+#if TRACE_COUTING
+				trans.Annotate("Get boundary keys in range {0}", FdbKeyRange.Create(begin, end));
+#endif
+
+				trans.WithAccessToSystemKeys();
+
 				var results = new List<Slice>();
+				int iterations = 0;
+				var options = new FdbRangeOptions { Mode = FdbStreamingMode.WantAll };
 				while (begin < end)
 				{
 					FdbException error = null;
 					Slice lastBegin = begin;
 					try
 					{
-						trans.WithAccessToSystemKeys();
-						var chunk = await trans.Snapshot.GetRangeAsync(KeyServers + begin, KeyServers + end).ConfigureAwait(false);
-
+						var chunk = await trans.Snapshot.GetRangeAsync(KeyServers + begin, KeyServers + end, options, iterations).ConfigureAwait(false);
+						++iterations;
 						if (chunk.Count > 0)
 						{
 							foreach (var kvp in chunk.Chunk)
@@ -211,8 +218,21 @@ namespace FoundationDB.Client
 						{
 							await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
 						}
+						iterations = 0;
+						trans.WithAccessToSystemKeys();
 					}
 				}
+
+#if TRACE_COUTING
+				if (results.Count == 0)
+				{
+					trans.Annotate("There is no chunk boundary in range {0}", FdbKeyRange.Create(begin, end));
+				}
+				else
+				{
+					trans.Annotate("Found {0} boundaries in {1} iteration(s)", results.Count, iterations);
+				}
+#endif
 
 				return results;
 			}
