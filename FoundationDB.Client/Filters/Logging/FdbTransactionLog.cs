@@ -265,22 +265,40 @@ namespace FoundationDB.Filters.Logging
 					double r = 1.0d * ticks / duration.Ticks;
 					string w = GetFancyGraph(width, cmd.StartOffset.Ticks, ticks, duration.Ticks, charsToSkip);
 
-					sb.AppendFormat(
-						culture,
-						"│{6}{1,-3:##0}{10}{0,2}{7}│ {2} │ T+{3,7:##0.000} ~ {4,7:##0.000} ({5,7:##,##0} µs) │ {8,5} {9,5} │ {11}",
-						/* 0 */ cmd.ShortName,
-						/* 1 */ cmd.Step,
-						/* 2 */ w,
-						/* 3 */ cmd.StartOffset.TotalMilliseconds,
-						/* 4 */ (cmd.EndOffset ?? TimeSpan.Zero).TotalMilliseconds,
-						/* 5 */ ticks / 10.0,
-						/* 6 */ cmd.Step == step ? ":" : " ",
-						/* 7 */ ticks >= 100000 ? "*" : ticks >= 10000 ? "°" : " ",
-						/* 8 */ cmd.ArgumentBytes,
-						/* 9 */ cmd.ResultBytes,
-						/* 10 */ cmd.Error != null ? "!" : " ",
-						/* 11 */ showCommands ? cmd.ToString() : String.Empty
-					);
+					if (ticks > 0)
+					{
+						sb.AppendFormat(
+							culture,
+							"│{6}{1,-3:##0}{10}{0,2}{7}│ {2} │ T+{3,7:##0.000} ~ {4,7:##0.000} ({5,7:##,##0} µs) │ {8,5} {9,5} │ {11}",
+							/* 0 */ cmd.ShortName,
+							/* 1 */ cmd.Step,
+							/* 2 */ w,
+							/* 3 */ cmd.StartOffset.TotalMilliseconds,
+							/* 4 */ (cmd.EndOffset ?? TimeSpan.Zero).TotalMilliseconds,
+							/* 5 */ ticks / 10.0,
+							/* 6 */ cmd.Step == step ? ":" : " ",
+							/* 7 */ ticks >= 100000 ? "*" : ticks >= 10000 ? "°" : " ",
+							/* 8 */ cmd.ArgumentBytes,
+							/* 9 */ cmd.ResultBytes,
+							/* 10 */ cmd.Error != null ? "!" : " ",
+							/* 11 */ showCommands ? cmd.ToString() : String.Empty
+						);
+					}
+					else
+					{ // annotation
+						sb.AppendFormat(
+							culture,
+							"│{0}{1,-3:##0}{2}{3,2}{4}│ {5} │ T+{6,7:##0.000}                        │     -     - │ {7}",
+							/* 0 */ cmd.Step == step ? ":" : " ",
+							/* 1 */ cmd.Step,
+							/* 2 */ cmd.Error != null ? "!" : " ",
+							/* 3 */ cmd.ShortName,
+							/* 4 */ ticks >= 100000 ? "*" : ticks >= 10000 ? "°" : " ",
+							/* 5 */ w,
+							/* 6 */ cmd.StartOffset.TotalMilliseconds,
+							/* 7 */ showCommands ? cmd.ToString() : String.Empty
+						);
+					}
 					sb.AppendLine();
 
 					previousWasOnError = cmd.Op == Operation.OnError;
