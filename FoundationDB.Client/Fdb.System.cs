@@ -335,7 +335,11 @@ namespace FoundationDB.Client
 
 								// Count the keys by reading them. Also, we know that there can not be more than windowSize - 1 remaining
 								int n = await tr.Snapshot
-									.GetRange(selector, FdbKeySelector.FirstGreaterOrEqual(end), new FdbRangeOptions() { Limit = windowSize - 1 })
+									.GetRange(
+										FdbKeySelector.FirstGreaterThan(cursor), // cursor has already been counted once
+										FdbKeySelector.FirstGreaterOrEqual(end),
+										new FdbRangeOptions() { Limit = windowSize - 1 }
+									)
 									.CountAsync()
 									.ConfigureAwait(false);
 
