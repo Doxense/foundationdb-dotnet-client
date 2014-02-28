@@ -897,7 +897,8 @@ namespace FoundationDB.Layers.Tuples
 
 			for (int i = 0; i < bn; i++)
 			{
-				if (a[i] != b[i]) return false;
+				if (a[i] != null && !a[i].Equals(b[i])) return false;
+				if (a[i] == null && b[i] != null) return false;
 			}
 			return true;
 		}
@@ -918,7 +919,8 @@ namespace FoundationDB.Layers.Tuples
 			int offset = an - bn;
 			for (int i = 0; i < bn; i++)
 			{
-				if (a[offset + i] != b[i]) return false;
+				if (a[offset + i] != null && !a[offset + i].Equals(b[i])) return false;
+				if (a[offset + i] == null && b[i] != null) return false;
 			}
 			return true;
 		}
