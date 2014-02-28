@@ -26,12 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#define TRACE_COUTING
+
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Filters.Logging;
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -237,6 +239,7 @@ namespace FoundationDB.Client
 			{
 				const int INIT_WINDOW_SIZE = 1 << 10; // start at 1024
 				const int MAX_WINDOW_SIZE = 1 << 16; // never use more than 65536
+				const int MIN_WINDOW_SIZE = 64; // use range reads when the windows size is smaller than 64
 
 				if (db == null) throw new ArgumentNullException("db");
 				if (endExclusive < beginInclusive) throw new ArgumentException("The end key cannot be less than the begin key", "endExclusive");
@@ -257,14 +260,18 @@ namespace FoundationDB.Client
 				// > for the last segment, we don't need to wait for a GetKey to complete before issuing the next, so we could split the segment into 4 (or more), do the GetKeyAsync() in parallel, detect the quarter that cross the boundary, and iterate again until the size is small
 				// > once the window size is small enough, we can switch to using GetRange to read the last segment in one shot, instead of iterating with window size 16, 8, 4, 2 and 1 (the wost case being 2^N - 1 items remaning)
 
-				Debug.WriteLine("EstimateCount(" + FdbKey.Dump(beginInclusive) + " .. " + FdbKey.Dump(endExclusive) + "):");
-
 				// note: we make a copy of the keys because the operation could take a long time and the key's could prevent a potentially large underlying buffer from being GCed
 				var cursor = beginInclusive.Memoize();
 				var end = endExclusive.Memoize();
 
 				using (var tr = db.BeginReadOnlyTransaction(cancellationToken))
 				{
+#if TRACE_COUTING
+					tr.Annotate("Estimating number of keys in range {0}", FdbKeyRange.Create(beginInclusive, endExclusive));
+#endif
+		
+					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+		
 					// start looking for the first key in the range
 					cursor = await tr.Snapshot.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(cursor)).ConfigureAwait(false);
 					if (cursor >= end)
@@ -283,12 +290,11 @@ namespace FoundationDB.Client
 					{
 						Contract.Assert(windowSize > 0);
 
+						var selector = FdbKeySelector.FirstGreaterOrEqual(cursor) + windowSize;
 						Slice next = Slice.Nil;
 						FdbException error = null;
 						try
 						{
-							var selector = FdbKeySelector.FirstGreaterOrEqual(cursor) + windowSize;
-							Debug.WriteLine("> [" + counter + " + " + windowSize + "] " + selector);
 							next = await tr.Snapshot.GetKeyAsync(selector).ConfigureAwait(false);
 							++iter;
 						}
@@ -309,6 +315,7 @@ namespace FoundationDB.Client
 								await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
 							}
 							// retry
+							tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
 							continue;
 						}
 
@@ -320,9 +327,24 @@ namespace FoundationDB.Client
 							// if window size is already 1, then we have counted everything (the range.End key does not exist in the db)
 							if (windowSize == 1) break;
 
-							//TODO: if we have less than, say, a hundred keys, switch to a simple get range....		
+							if (windowSize <= MIN_WINDOW_SIZE)
+							{ // The window is small enough to switch to reading for counting (will be faster than binary search)
+#if TRACE_COUTING
+								tr.Annotate("Switch to reading all items (window size = {0})", windowSize);
+#endif
+
+								// Count the keys by reading them. Also, we know that there can not be more than windowSize - 1 remaining
+								int n = await tr.Snapshot
+									.GetRange(selector, FdbKeySelector.FirstGreaterOrEqual(end), new FdbRangeOptions() { Limit = windowSize - 1 })
+									.CountAsync()
+									.ConfigureAwait(false);
+
+								counter += n;
+								++iter;
+								break;
+							}
+
 							windowSize >>= 1;
-							Debug.WriteLine("  -> REWIND AND TRY AGAIN WITH STEP " + windowSize);
 							continue;
 						}
 
@@ -335,9 +357,9 @@ namespace FoundationDB.Client
 							windowSize = Math.Min(windowSize << 1, MAX_WINDOW_SIZE);
 						}
 					}
-
-					Debug.WriteLine("# Found " + counter + " keys in " + iter + " iterations.");
-
+#if TRACE_COUTING
+					tr.Annotate("Found {0} keys in {1} iterations", counter, iter);
+#endif
 					return counter;
 				}
 			}
