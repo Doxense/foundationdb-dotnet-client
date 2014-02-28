@@ -531,7 +531,7 @@ namespace FoundationDB.Layers.Directories
 				if (existingNode.IsInPartition(false))
 				{
 					var subpath = existingNode.PartitionSubPath;
-					var dl = ContentsOfNode(existingNode.Subspace, subpath, existingNode.Layer).DirectoryLayer;
+					var dl = GetPartitionForNode(existingNode).DirectoryLayer;
 					return await dl.CreateOrOpenInternalAsync(trans, subpath, layer, prefix, allowCreate, allowOpen, throwOnError).ConfigureAwait(false);
 				}
 
@@ -556,7 +556,7 @@ namespace FoundationDB.Layers.Directories
 
 			await CheckWriteVersionAsync(trans).ConfigureAwait(false);
 
-			if (prefix.IsNullOrEmpty)
+			if (prefix == null)
 			{ // automatically allocate a new prefix inside the ContentSubspace
 				long id = await this.Allocator.AllocateAsync(trans).ConfigureAwait(false);
 				prefix = this.ContentSubspace.Pack(id);
