@@ -82,12 +82,22 @@ namespace FoundationDB.Client
 
 		#region CreateOrOpen...
 
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, new [] { name }, layer), cancellationToken);
+			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IEnumerable<string> path, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(string name, Slice layer, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, new[] { name }, layer), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IEnumerable<string> path, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, path, Slice.Nil), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> CreateOrOpenAsync(IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, path, layer), cancellationToken);
 		}
@@ -101,12 +111,22 @@ namespace FoundationDB.Client
 
 		#region Open...
 
-		public Task<FdbDirectorySubspace> OpenAsync(string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> OpenAsync(string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.OpenAsync(tr, new [] { name }, layer), cancellationToken);
+			return m_database.ReadWriteAsync((tr) => m_directory.OpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> OpenAsync(IEnumerable<string> path, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> OpenAsync(string name, Slice layer, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.OpenAsync(tr, new[] { name }, layer), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> OpenAsync(IEnumerable<string> path, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.OpenAsync(tr, path, Slice.Nil), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> OpenAsync(IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.OpenAsync(tr, path, layer), cancellationToken);
 		}
@@ -120,12 +140,22 @@ namespace FoundationDB.Client
 
 		#region TryOpen...
 
-		public Task<FdbDirectorySubspace> TryOpenAsync(string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> TryOpenAsync(string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryOpenAsync(tr, new [] { name }, layer), cancellationToken);
+			return m_database.ReadWriteAsync((tr) => m_directory.TryOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> TryOpenAsync(IEnumerable<string> path, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> TryOpenAsync(string name, Slice layer, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.TryOpenAsync(tr, new[] { name }, layer), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> TryOpenAsync(IEnumerable<string> path, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.TryOpenAsync(tr, path, Slice.Nil), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> TryOpenAsync(IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.TryOpenAsync(tr, path, layer), cancellationToken);
 		}
@@ -139,12 +169,22 @@ namespace FoundationDB.Client
 
 		#region Create...
 
-		public Task<FdbDirectorySubspace> CreateAsync(string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateAsync(string name, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.CreateAsync(tr, new[] { name }, Slice.Nil), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> CreateAsync(string name, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.CreateAsync(tr, new [] { name }, layer), cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> CreateAsync(IEnumerable<string> path, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> CreateAsync(IEnumerable<string> path, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.CreateAsync(tr, path, Slice.Nil), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> CreateAsync(IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.CreateAsync(tr, path, layer), cancellationToken);
 		}
@@ -158,12 +198,22 @@ namespace FoundationDB.Client
 
 		#region TryCreate...
 
-		public Task<FdbDirectorySubspace> TryCreateAsync(string name, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> TryCreateAsync(string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryCreateAsync(tr, new [] { name }, layer), cancellationToken);
+			return m_database.ReadWriteAsync((tr) => m_directory.TryCreateAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
-		public Task<FdbDirectorySubspace> TryCreateAsync(IEnumerable<string> path, Slice layer = default(Slice), CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> TryCreateAsync(string name, Slice layer, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.TryCreateAsync(tr, new[] { name }, layer), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> TryCreateAsync(IEnumerable<string> path, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.TryCreateAsync(tr, path, Slice.Nil), cancellationToken);
+		}
+
+		public Task<FdbDirectorySubspace> TryCreateAsync(IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.TryCreateAsync(tr, path, layer), cancellationToken);
 		}
@@ -177,7 +227,7 @@ namespace FoundationDB.Client
 
 		#region Move...
 
-		public Task<FdbDirectorySubspace> MoveAsync(IEnumerable<string> oldPath, IEnumerable<string> newPath, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> MoveAsync(IEnumerable<string> oldPath, IEnumerable<string> newPath, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.MoveAsync(tr, oldPath, newPath), cancellationToken);
 		}
@@ -191,7 +241,7 @@ namespace FoundationDB.Client
 
 		#region TryMove...
 
-		public Task<FdbDirectorySubspace> TryMoveAsync(IEnumerable<string> oldPath, IEnumerable<string> newPath, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<FdbDirectorySubspace> TryMoveAsync(IEnumerable<string> oldPath, IEnumerable<string> newPath, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.TryMoveAsync(tr, oldPath, newPath), cancellationToken);
 		}
@@ -205,12 +255,12 @@ namespace FoundationDB.Client
 
 		#region Remove...
 
-		public Task RemoveAsync(string name, CancellationToken cancellationToken = default(CancellationToken))
+		public Task RemoveAsync(string name, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.RemoveAsync(tr, new string[] { name }), cancellationToken);
 		}
 
-		public Task RemoveAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task RemoveAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.RemoveAsync(tr, path), cancellationToken);
 		}
@@ -224,12 +274,12 @@ namespace FoundationDB.Client
 
 		#region TryRemove...
 
-		public Task<bool> TryRemoveAsync(string name, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<bool> TryRemoveAsync(string name, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.TryRemoveAsync(tr, new string[] { name }), cancellationToken);
 		}
 
-		public Task<bool> TryRemoveAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<bool> TryRemoveAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.TryRemoveAsync(tr, path), cancellationToken);
 		}
@@ -243,12 +293,12 @@ namespace FoundationDB.Client
 
 		#region Exists...
 
-		public Task<bool> ExistsAsync(string name, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<bool> ExistsAsync(string name, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.ExistsAsync(tr, new string[] { name }), cancellationToken);
 		}
 
-		public Task<bool> ExistsAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<bool> ExistsAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.ExistsAsync(tr, path), cancellationToken);
 		}
@@ -263,13 +313,13 @@ namespace FoundationDB.Client
 		#region List...
 
 		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
-		public Task<List<string>> ListAsync(CancellationToken cancellationToken = default(CancellationToken))
+		public Task<List<string>> ListAsync(CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.ListAsync(tr), cancellationToken);
 		}
 
 		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
-		public Task<List<string>> ListAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<List<string>> ListAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.ListAsync(tr, path), cancellationToken);
 		}
@@ -284,7 +334,7 @@ namespace FoundationDB.Client
 		#region TryList...
 
 		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
-		public Task<List<string>> TryListAsync(CancellationToken cancellationToken = default(CancellationToken))
+		public Task<List<string>> TryListAsync(CancellationToken cancellationToken)
 		{
 			//REVIEW: is it possible for this method to fail on a top-level db partition?
 			// => it not, should be removed because it is a duplicate of ListAsync(..)
@@ -292,7 +342,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns the list of all the top level directories of this database instance.</summary>
-		public Task<List<string>> TryListAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<List<string>> TryListAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
 			//REVIEW: is it possible for this method to fail on a top-level db partition?
 			// => it not, should be removed because it is a duplicate of ListAsync(..)

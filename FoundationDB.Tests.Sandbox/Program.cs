@@ -127,16 +127,20 @@ namespace FoundationDB.Tests.Sandbox
 					Console.Error.WriteLine("Unhandled exception: " + e.ExceptionObject);
 			};
 
-			try
+			using (var go = new CancellationTokenSource())
 			{
-				ExecuteAsync(MainAsync);
-			}
-			catch (Exception e)
-			{
-				if (e is AggregateException) e = (e as AggregateException).Flatten().InnerException;
-				Console.Error.WriteLine("Oops! something went wrong:");
-				Console.Error.WriteLine(e.ToString());
-				Environment.ExitCode = -1;
+				try
+				{
+					ExecuteAsync(MainAsync, go.Token);
+				}
+				catch (Exception e)
+				{
+					if (e is AggregateException) e = (e as AggregateException).Flatten().InnerException;
+					Console.Error.WriteLine("Oops! something went wrong:");
+					Console.Error.WriteLine(e.ToString());
+					go.Cancel();
+					Environment.ExitCode = -1;
+				}
 			}
 			Console.WriteLine("[PRESS A KEY TO EXIT]");
 			Console.ReadKey();
@@ -153,7 +157,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("\t-help\t\tShow this help text");
 		}
 
-		private static async Task MainAsync()
+		private static async Task MainAsync(CancellationToken ct)
 		{
 			// change the path to the native lib if not default
 			if (NATIVE_PATH != null) Fdb.Options.SetNativeLibPath(NATIVE_PATH);
@@ -171,21 +175,21 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("> Up and running");
 
 				Console.WriteLine("Connecting to local cluster...");
-				using (var cluster = await Fdb.CreateClusterAsync(CLUSTER_FILE))
+				using (var cluster = await Fdb.CreateClusterAsync(CLUSTER_FILE, ct))
 				{
 					Console.WriteLine("> Connected!");
 
 					Console.WriteLine("Opening database 'DB'...");
-					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, new FdbSubspace(FdbTuple.Create(SUBSPACE))))
+					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, new FdbSubspace(FdbTuple.Create(SUBSPACE)), ct))
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
 						// get coordinators
-						var cf = await db.GetCoordinatorsAsync();
+						var cf = await db.GetCoordinatorsAsync(ct);
 						Console.WriteLine("Coordinators: " + cf.ToString());
 
 						// clear everything
-						using (var tr = db.BeginTransaction())
+						using (var tr = db.BeginTransaction(ct))
 						{
 							Console.WriteLine("Clearing subspace " + db.GlobalSpace + " ...");
 							tr.ClearRange(db.GlobalSpace);
@@ -195,46 +199,46 @@ namespace FoundationDB.Tests.Sandbox
 
 						Console.WriteLine("----------");
 
-						await TestSimpleTransactionAsync(db);
+						await TestSimpleTransactionAsync(db, ct);
 
 						Console.WriteLine("----------");
 
-						await BenchInsertSmallKeysAsync(db, N, 16); // some guid
-						await BenchInsertSmallKeysAsync(db, N, 60 * 4); // one Int32 per minutes, over an hour
-						await BenchInsertSmallKeysAsync(db, N, 512); // small JSON payload
-						////await BenchInsertSmallKeysAsync(db, N, 4096); // typical small cunk size
-						////await BenchInsertSmallKeysAsync(db, N / 10, 65536); // typical medium chunk size
-						//await BenchInsertSmallKeysAsync(db, 1, 100000); // Maximum value size (as of beta 1)
+						await BenchInsertSmallKeysAsync(db, N, 16, ct); // some guid
+						await BenchInsertSmallKeysAsync(db, N, 60 * 4, ct); // one Int32 per minutes, over an hour
+						await BenchInsertSmallKeysAsync(db, N, 512, ct); // small JSON payload
+						////await BenchInsertSmallKeysAsync(db, N, 4096, ct); // typical small cunk size
+						////await BenchInsertSmallKeysAsync(db, N / 10, 65536, ct); // typical medium chunk size
+						//await BenchInsertSmallKeysAsync(db, 1, 100000, ct); // Maximum value size (as of beta 1)
 
 						////// insert keys in parrallel
-						await BenchConcurrentInsert(db, 1, 100, 512);
-						await BenchConcurrentInsert(db, 1, 1000, 512);
-						await BenchConcurrentInsert(db, 1, 10000, 512);
+						await BenchConcurrentInsert(db, 1, 100, 512, ct);
+						await BenchConcurrentInsert(db, 1, 1000, 512, ct);
+						await BenchConcurrentInsert(db, 1, 10000, 512, ct);
 
-						await BenchConcurrentInsert(db, 1, N, 16);
-						await BenchConcurrentInsert(db, 2, N, 16);
-						await BenchConcurrentInsert(db, 4, N, 16);
-						await BenchConcurrentInsert(db, 8, N, 16);
-						await BenchConcurrentInsert(db, 16, N, 16);
+						await BenchConcurrentInsert(db, 1, N, 16, ct);
+						await BenchConcurrentInsert(db, 2, N, 16, ct);
+						await BenchConcurrentInsert(db, 4, N, 16, ct);
+						await BenchConcurrentInsert(db, 8, N, 16, ct);
+						await BenchConcurrentInsert(db, 16, N, 16, ct);
 
-						//await BenchSerialWriteAsync(db, N);
-						//await BenchSerialReadAsync(db, N);
-						//await BenchConcurrentReadAsync(db, N);
+						//await BenchSerialWriteAsync(db, N, ct);
+						//await BenchSerialReadAsync(db, N, ct);
+						//await BenchConcurrentReadAsync(db, N, ct);
 
-						//await BenchClearAsync(db, N);
+						//await BenchClearAsync(db, N, ct);
 
-						await BenchUpdateSameKeyLotsOfTimesAsync(db, 1000);
+						await BenchUpdateSameKeyLotsOfTimesAsync(db, 1000, ct);
 
-						await BenchUpdateLotsOfKeysAsync(db, 1000);
+						await BenchUpdateLotsOfKeysAsync(db, 1000, ct);
 
-						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 50, 128);
-						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 128, 50);
-						////await BenchBulkInsertThenBulkReadAsync(db, 1 * 1000 * 1000, 50, 128);
+						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 50, 128, ct);
+						await BenchBulkInsertThenBulkReadAsync(db, 100 * 1000, 128, 50, ct);
+						////await BenchBulkInsertThenBulkReadAsync(db, 1 * 1000 * 1000, 50, 128, ct);
 
-						await BenchMergeSortAsync(db, 100, 3, 20);
-						await BenchMergeSortAsync(db, 1000, 10, 100);
-						await BenchMergeSortAsync(db, 100, 100, 100);
-						await BenchMergeSortAsync(db, 100, 1000, 100);
+						await BenchMergeSortAsync(db, 100, 3, 20, ct);
+						await BenchMergeSortAsync(db, 1000, 10, 100, ct);
+						await BenchMergeSortAsync(db, 100, 100, 100, ct);
+						await BenchMergeSortAsync(db, 100, 1000, 100, ct);
 
 						Console.WriteLine("time to say goodbye...");
 					}
@@ -252,7 +256,7 @@ namespace FoundationDB.Tests.Sandbox
 
 		#region Tests...
 
-		private static async Task HelloWorld()
+		private static async Task HelloWorld(CancellationToken ct)
 		{
 
 			// Connect to the "DB" database on the local cluster
@@ -260,7 +264,7 @@ namespace FoundationDB.Tests.Sandbox
 			{
 
 				// Writes some data in to the database
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(ct))
 				{
 					tr.Set(FdbTuple.Pack("Test", 123), Slice.FromString("Hello World!"));
 					tr.Set(FdbTuple.Pack("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
@@ -270,13 +274,13 @@ namespace FoundationDB.Tests.Sandbox
 
 		}
 
-		private static async Task TestSimpleTransactionAsync(FdbDatabase db)
+		private static async Task TestSimpleTransactionAsync(FdbDatabase db, CancellationToken ct)
 		{
 			Console.WriteLine("Starting new transaction...");
 
 			var location = db.GlobalSpace;
 
-			using (var trans = db.BeginTransaction())
+			using (var trans = db.BeginTransaction(ct))
 			{
 				Console.WriteLine("> Transaction ready");
 
@@ -310,7 +314,7 @@ namespace FoundationDB.Tests.Sandbox
 			}
 		}
 
-		private static async Task BenchInsertSmallKeysAsync(FdbDatabase db, int N, int size)
+		private static async Task BenchInsertSmallKeysAsync(FdbDatabase db, int N, int size, CancellationToken ct)
 		{
 			// insert a lot of small key size, in a single transaction
 			var rnd = new Random();
@@ -322,7 +326,7 @@ namespace FoundationDB.Tests.Sandbox
 			for (int k = 0; k <= 4; k++)
 			{
 				var sw = Stopwatch.StartNew();
-				using (var trans = db.BeginTransaction())
+				using (var trans = db.BeginTransaction(ct))
 				{
 					rnd.NextBytes(tmp);
 					for (int i = 0; i < N; i++)
@@ -342,7 +346,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("[" + Thread.CurrentThread.ManagedThreadId + "] Took " + min.TotalSeconds.ToString("N3", CultureInfo.InvariantCulture) + " sec to insert " + N + " " + size + "-bytes items (" + FormatTimeMicro(min.TotalMilliseconds / N) + "/write)");
 		}
 
-		private static async Task BenchConcurrentInsert(FdbDatabase db, int k, int N, int size)
+		private static async Task BenchConcurrentInsert(FdbDatabase db, int k, int N, int size, CancellationToken ct)
 		{
 			// insert a lot of small key size, in multiple batch running in //
 			// k = number of threads
@@ -377,7 +381,7 @@ namespace FoundationDB.Tests.Sandbox
 					sem.Wait();
 
 					var x = Stopwatch.StartNew();
-					using (var trans = db.BeginTransaction())
+					using (var trans = db.BeginTransaction(ct))
 					{
 						x.Stop();
 						Console.WriteLine("> [" + offset + "] got transaction in " + FormatTimeMilli(x.Elapsed.TotalMilliseconds));
@@ -421,7 +425,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine();
 		}
 
-		private static async Task BenchSerialWriteAsync(FdbDatabase db, int N)
+		private static async Task BenchSerialWriteAsync(FdbDatabase db, int N, CancellationToken ct)
 		{
 			// read a lot of small keys, one by one
 
@@ -433,7 +437,7 @@ namespace FoundationDB.Tests.Sandbox
 			{
 				for (int i = 0; i < N; i++)
 				{
-					if (trans == null) trans = db.BeginTransaction();
+					if (trans == null) trans = db.BeginTransaction(ct);
 					trans.Set(location.Pack(i), Slice.FromInt32(i));
 					if (trans.Size > 100 * 1024)
 					{
@@ -453,7 +457,7 @@ namespace FoundationDB.Tests.Sandbox
 		}
 
 
-		private static async Task BenchSerialReadAsync(FdbDatabase db, int N)
+		private static async Task BenchSerialReadAsync(FdbDatabase db, int N, CancellationToken ct)
 		{
 
 			Console.WriteLine("Reading " + N + " keys (serial, slow!)");
@@ -465,7 +469,7 @@ namespace FoundationDB.Tests.Sandbox
 			var sw = Stopwatch.StartNew();
 			for (int k = 0; k < N; k += 1000)
 			{
-				using (var trans = db.BeginTransaction())
+				using (var trans = db.BeginTransaction(ct))
 				{
 					for (int i = k; i < N && i < k + 1000; i++)
 					{
@@ -479,7 +483,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("Took " + sw.Elapsed + " to read " + N + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/read)");
 		}
 
-		private static async Task BenchConcurrentReadAsync(FdbDatabase db, int N)
+		private static async Task BenchConcurrentReadAsync(FdbDatabase db, int N, CancellationToken ct)
 		{
 			// read a lot of small keys, concurrently
 
@@ -490,7 +494,7 @@ namespace FoundationDB.Tests.Sandbox
 			var keys = Enumerable.Range(0, N).Select(i => location.Pack(i)).ToArray();
 
 			var sw = Stopwatch.StartNew();
-			using (var trans = db.BeginTransaction())
+			using (var trans = db.BeginTransaction(ct))
 			{
 				var results = await Task.WhenAll(Enumerable
 					.Range(0, keys.Length)
@@ -501,7 +505,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("Took " + sw.Elapsed + " to read " + N + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / keys.Length) + "/read)");
 
 			sw = Stopwatch.StartNew();
-			using (var trans = db.BeginTransaction())
+			using (var trans = db.BeginTransaction(ct))
 			{
 				var results = await trans.GetBatchAsync(keys);
 			}
@@ -509,14 +513,14 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("Took " + sw.Elapsed + " to read " + keys.Length + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / keys.Length) + "/read)");
 		}
 
-		private static async Task BenchClearAsync(FdbDatabase db, int N)
+		private static async Task BenchClearAsync(FdbDatabase db, int N, CancellationToken ct)
 		{
 			// clear a lot of small keys, in a single transaction
 
 			var location = db.Partition(Slice.FromAscii("hello"));
 
 			var sw = Stopwatch.StartNew();
-			using (var trans = db.BeginTransaction())
+			using (var trans = db.BeginTransaction(ct))
 			{
 				for (int i = 0; i < N; i++)
 				{
@@ -529,7 +533,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("Took " + sw.Elapsed + " to clear " + N + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/write)");
 		}
 
-		private static async Task BenchUpdateSameKeyLotsOfTimesAsync(FdbDatabase db, int N)
+		private static async Task BenchUpdateSameKeyLotsOfTimesAsync(FdbDatabase db, int N, CancellationToken ct)
 		{
 			// continuously update same key by adding a little bit more
 
@@ -541,7 +545,7 @@ namespace FoundationDB.Tests.Sandbox
 			for (int i = 0; i < N; i++)
 			{
 				list[i] = (byte)i;
-				using (var trans = db.BeginTransaction())
+				using (var trans = db.BeginTransaction(ct))
 				{
 					trans.Set(key, Slice.Create(list));
 					await trans.CommitAsync();
@@ -553,7 +557,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("\rTook " + update.Elapsed + " to fill a byte[" + N + "] one by one (" + FormatTimeMicro(update.Elapsed.TotalMilliseconds / N) + "/update)");
 		}
 
-		private static async Task BenchUpdateLotsOfKeysAsync(FdbDatabase db, int N)
+		private static async Task BenchUpdateLotsOfKeysAsync(FdbDatabase db, int N, CancellationToken ct)
 		{
 			// change one byte in a large number of keys
 
@@ -566,7 +570,7 @@ namespace FoundationDB.Tests.Sandbox
 			var segment = new byte[60];
 
 			for (int i = 0; i < (segment.Length >> 1); i++) segment[i] = (byte) rnd.Next(256);
-			using (var trans = db.BeginTransaction())
+			using (var trans = db.BeginTransaction(ct))
 			{
 				for (int i = 0; i < N; i += 1000)
 				{
@@ -581,7 +585,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine("\rChanging one byte in each of the " + N + " keys...");
 			var sw = Stopwatch.StartNew();
-			using (var trans = db.BeginTransaction())
+			using (var trans = db.BeginTransaction(ct))
 			{
 				Console.WriteLine("READ");
 				// get all the lists
@@ -605,7 +609,7 @@ namespace FoundationDB.Tests.Sandbox
 
 		}
 
-		private static async Task BenchBulkInsertThenBulkReadAsync(FdbDatabase db, int N, int K, int B, bool instrumented = false)
+		private static async Task BenchBulkInsertThenBulkReadAsync(FdbDatabase db, int N, int K, int B, CancellationToken ct, bool instrumented = false)
 		{
 			// test that we can bulk write / bulk read
 
@@ -615,7 +619,7 @@ namespace FoundationDB.Tests.Sandbox
 			var subspace = db.Partition("BulkInsert");
 
 			// cleanup everything
-			using (var tr = db.BeginTransaction())
+			using (var tr = db.BeginTransaction(ct))
 			{
 				tr.ClearRange(subspace);
 				await tr.CommitAsync();
@@ -637,7 +641,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					foreach (var chunk in worker)
 					{
-						using (var tr = db.BeginTransaction())
+						using (var tr = db.BeginTransaction(ct))
 						{
 							int z = 0;
 							foreach (int i in Enumerable.Range(chunk.Key, chunk.Value))
@@ -660,7 +664,7 @@ namespace FoundationDB.Tests.Sandbox
 						}
 
 					}
-				}));
+				}, ct));
 
 			}
 			await Task.WhenAll(tasks);
@@ -685,7 +689,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			// Read values
 
-			using (var tr = db.BeginTransaction())
+			using (var tr = db.BeginTransaction(ct))
 			{
 				Console.WriteLine("Reading all keys...");
 				var sw = Stopwatch.StartNew();
@@ -695,11 +699,11 @@ namespace FoundationDB.Tests.Sandbox
 			}
 		}
 
-		private static async Task BenchMergeSortAsync(FdbDatabase db, int N, int K, int B)
+		private static async Task BenchMergeSortAsync(FdbDatabase db, int N, int K, int B, CancellationToken ct)
 		{
 			// create multiple lists
 			var location = db.Partition("MergeSort");
-			await db.ClearRangeAsync(location);
+			await db.ClearRangeAsync(location, ct);
 
 			var sources = Enumerable.Range(0, K).Select(i => 'A' + i).ToArray();
 			var rnd = new Random();
@@ -708,7 +712,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.Write("> Inserting " + (K * N).ToString("N0", CultureInfo.InvariantCulture) + " items... ");
 			foreach (var source in sources)
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(ct))
 				{
 					var list = location.Partition(source);
 					for (int i = 0; i < N; i++)
@@ -722,7 +726,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			// merge/sort them to get only one (hopefully sorted) list
 
-			using (var tr = db.BeginTransaction())
+			using (var tr = db.BeginTransaction(ct))
 			{
 				var mergesort = tr
 					.MergeSort(
@@ -751,10 +755,10 @@ namespace FoundationDB.Tests.Sandbox
 
 		#region Helpers...
 
-		private static void ExecuteAsync(Func<Task> code)
+		private static void ExecuteAsync(Func<CancellationToken, Task> code, CancellationToken ct)
 		{
 			// poor man's async main loop
-			Task.Run(code).GetAwaiter().GetResult();
+			Task.Run(() => code(ct), ct).GetAwaiter().GetResult();
 		}
 
 		private static string FormatTimeMilli(double ms)

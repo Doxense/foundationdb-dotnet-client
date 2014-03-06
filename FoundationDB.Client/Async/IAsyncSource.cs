@@ -39,8 +39,9 @@ namespace FoundationDB.Async
 		//note: T cannot be covariant because Task<..> is not covariant :(
 
 		/// <summary>Consume a new value from the source</summary>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		/// <returns>Task that will return a new value, nothing (if it has completed) or on exception</returns>
-		Task<Maybe<T>> ReceiveAsync(CancellationToken ct = default(CancellationToken));
+		Task<Maybe<T>> ReceiveAsync(CancellationToken cancellationToken);
 	}
 
 }

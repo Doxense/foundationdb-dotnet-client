@@ -33,10 +33,11 @@ namespace FoundationDB.Filters.Logging.Tests
 	using NUnit.Framework;
 	using System;
 	using System.Linq;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class LoggingFilterFacts
+	public class LoggingFilterFacts : FdbTest
 	{
 
 		[Test]
@@ -44,9 +45,9 @@ namespace FoundationDB.Filters.Logging.Tests
 		{
 			const int N = 10;
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "Logging");
+				var location = await GetCleanDirectory(db, "Logging");
 
 				// note: ensure that all methods are JITed
 				await db.ReadWriteAsync(async (tr) =>
@@ -57,8 +58,7 @@ namespace FoundationDB.Filters.Logging.Tests
 					await tr.GetAsync(location.Pack("Warmup", 2));
 					await tr.GetRange(FdbKeyRange.StartsWith(location.Pack("Warmup", 3))).ToListAsync();
 					tr.ClearRange(location.Pack("Warmup", 4), location.Pack("Warmup", 5));
-				});
-
+				}, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
 				{
@@ -79,7 +79,7 @@ namespace FoundationDB.Filters.Logging.Tests
 						tr.Set(location.Pack("Z", j), Slice.FromInt32(j));
 						tr.Set(location.Pack("W", j), Slice.FromInt32(j));
 					}
-				});
+				}, this.Cancellation);
 
 				bool first = true;
 				Action<FdbLoggedTransaction> logHandler = (tr) =>
@@ -159,7 +159,7 @@ namespace FoundationDB.Filters.Logging.Tests
 							//throw new FdbException(FdbError.PastVersion, "fake timeout");
 						}
 
-					});
+					}, this.Cancellation);
 				}
 			}
 		}

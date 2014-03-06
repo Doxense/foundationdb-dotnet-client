@@ -79,6 +79,14 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Layer id of this directory</summary>
 		public Slice Layer { get; private set; }
 
+		/// <summary>Return the DirectoryLayer instance that should be called for the given path</summary>
+		/// <param name="relativeLocation">Location relative to this directory subspace</param>
+		protected virtual FdbDirectoryLayer GetLayerForPath(IFdbTuple relativeLocation)
+		{
+			// for regular directories, always returns its DL.
+			return this.DirectoryLayer;
+		}
+
 		/// <summary>Convert a path relative to this directory, into a path relative to the root of the current partition</summary>
 		/// <param name="path">Path relative from this directory</param>
 		/// <returns>Path relative to the path of the current partition</returns>

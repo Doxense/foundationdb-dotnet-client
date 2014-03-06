@@ -30,12 +30,15 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Layers.Tuples;
 	using System;
+	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Provides a set of extensions methods shared by all FoundationDB database implementations.</summary>
 	public static class FdbDatabaseExtensions
 	{
+
+		#region Transactions...
 
 		/// <summary>Start a new read-only transaction on this database</summary>
 		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
@@ -47,7 +50,7 @@ namespace FoundationDB.Client
 		///		var result = await tr.Get(Slice.FromString("Hello"));
 		///		var items = await tr.GetRange(FdbKeyRange.StartsWith(Slice.FromString("ABC"))).ToListAsync();
 		/// }</example>
-		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
+		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbDatabase db, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			return db.BeginTransaction(FdbTransactionMode.ReadOnly, cancellationToken, default(FdbOperationContext));
@@ -64,11 +67,13 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		public static IFdbTransaction BeginTransaction(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
+		public static IFdbTransaction BeginTransaction(this IFdbDatabase db, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			return db.BeginTransaction(FdbTransactionMode.Default, cancellationToken, default(FdbOperationContext));
 		}
+
+		#endregion
 
 		#region Options...
 
@@ -118,7 +123,9 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Subspaces...
+		#region Subspaces... [REMOVE ME!]
+
+		//TODO: this should be moved to the IFdbSubspace interface when IFdbDatabase implements it completely
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <typeparam name="T">Type of the value used for the partition</typeparam>
@@ -214,6 +221,105 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Standard Operations
+
+		//REVIEW: this may be too dangerous!
+		// Users may call GetAsync() or SetAsync() multiple times, outside of a transaction...
+
+		public static Task<Slice> GetAsync(this IFdbDatabase db, Slice key, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.ReadAsync((tr) => tr.GetAsync(key), cancellationToken);
+		}
+
+		public static Task<Slice[]> GetValuesAsync(this IFdbDatabase db, Slice[] keys, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.ReadAsync((tr) => tr.GetValuesAsync(keys), cancellationToken);
+		}
+
+		public static Task<Slice[]> GetValuesAsync(this IFdbDatabase db, IEnumerable<Slice> keys, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.ReadAsync((tr) => tr.GetValuesAsync(keys), cancellationToken);
+		}
+
+		public static Task<Slice> GetKeyAsync(this IFdbDatabase db, FdbKeySelector keySelector, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.ReadAsync((tr) => tr.GetKeyAsync(keySelector), cancellationToken);
+		}
+
+		public static Task<Slice[]> GetKeysAsync(this IFdbDatabase db, FdbKeySelector[] keySelectors, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (keySelectors == null) throw new ArgumentNullException("keySelectors");
+			return db.ReadAsync((tr) => tr.GetKeysAsync(keySelectors), cancellationToken);
+		}
+
+		public static Task<Slice[]> GetKeysAsync(this IFdbDatabase db, IEnumerable<FdbKeySelector> keySelectors, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (keySelectors == null) throw new ArgumentNullException("keySelectors");
+			return db.ReadAsync((tr) => tr.GetKeysAsync(keySelectors), cancellationToken);
+		}
+
+		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbDatabase db, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.ReadAsync((tr) => tr.GetRangeAsync(beginInclusive, endExclusive, options, iteration), cancellationToken);
+		}
+
+		public static Task SetAsync(this IFdbDatabase db, Slice key, Slice value, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.Set(key, value), cancellationToken);
+		}
+
+		public static Task ClearAsync(this IFdbDatabase db, Slice key, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.Clear(key), cancellationToken);
+		}
+
+		public static Task ClearRangeAsync(this IFdbDatabase db, Slice beginKeyInclusive, Slice endKeyExclusive, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.ClearRange(beginKeyInclusive, endKeyExclusive), cancellationToken);
+		}
+
+		public static Task ClearRangeAsync(this IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.ClearRange(range), cancellationToken);
+		}
+
+		public static Task AtomicAdd(this IFdbDatabase db, Slice key, Slice value, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Add), cancellationToken);
+		}
+
+		public static Task AtomicBitAnd(this IFdbDatabase db, Slice key, Slice value, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitAnd), cancellationToken);
+		}
+
+		public static Task AtomicBitOr(this IFdbDatabase db, Slice key, Slice value, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitOr), cancellationToken);
+		}
+
+		public static Task AtomicBitXor(this IFdbDatabase db, Slice key, Slice value, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitXor), cancellationToken);
+		}
+
+		#endregion
+
 		#region Watches...
 
 		/// <summary>Reads the value associated with <paramref name="key"/>, and returns a Watch that will complete after a subsequent change to key in the database.</summary>
@@ -277,7 +383,7 @@ namespace FoundationDB.Client
 		//TODO: move these methods to another subspace ? (ex: 'FoundationDb.Client.System' or 'FoundationDb.Client.Administration' ?)
 
 		/// <summary>Returns an object describing the list of the coordinators for the cluster</summary>
-		public static async Task<FdbClusterFile> GetCoordinatorsAsync(this IFdbDatabase db, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<FdbClusterFile> GetCoordinatorsAsync(this IFdbDatabase db, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
@@ -296,7 +402,7 @@ namespace FoundationDB.Client
 		/// <param name="name">"storage_engine"</param>
 		/// <param name="cancellationToken"></param>
 		/// <returns>Value of '\xFF/conf/storage_engine'</returns>
-		public static Task<Slice> GetConfigParameter(this IFdbDatabase db, string name, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<Slice> GetConfigParameter(this IFdbDatabase db, string name, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty", "name");

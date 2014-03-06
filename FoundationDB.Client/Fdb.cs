@@ -311,7 +311,7 @@ namespace FoundationDB.Client
 		/// <summary>Opens a connection to an existing FoundationDB cluster using the default cluster file</summary>
 		/// <param name="cancellationToken">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
-		public static Task<FdbCluster> CreateClusterAsync(CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<FdbCluster> CreateClusterAsync(CancellationToken cancellationToken)
 		{
 			return CreateClusterAsync(null, cancellationToken);
 		}
@@ -320,7 +320,7 @@ namespace FoundationDB.Client
 		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
 		/// <param name="cancellationToken">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
-		public static Task<FdbCluster> CreateClusterAsync(string clusterFile, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<FdbCluster> CreateClusterAsync(string clusterFile, CancellationToken cancellationToken)
 		{
 			EnsureIsStarted();
 

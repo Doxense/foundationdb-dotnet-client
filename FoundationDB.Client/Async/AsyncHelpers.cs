@@ -106,9 +106,9 @@ namespace FoundationDB.Async
 				m_onError = onError;
 			}
 
-			public Task OnNextAsync(T value, CancellationToken ct = default(CancellationToken))
+			public Task OnNextAsync(T value, CancellationToken cancellationToken)
 			{
-				return m_onNextAsync(value, ct);
+				return m_onNextAsync(value, cancellationToken);
 			}
 
 			public void OnCompleted()
@@ -144,9 +144,9 @@ namespace FoundationDB.Async
 				m_onError = onError;
 			}
 
-			public Task OnNextAsync(T value, CancellationToken ct = default(CancellationToken))
+			public Task OnNextAsync(T value, CancellationToken cancellationToken)
 			{
-				return TaskHelpers.Inline(m_onNext, value, ct, ct);
+				return TaskHelpers.Inline(m_onNext, value, cancellationToken, cancellationToken);
 			}
 
 			public void OnCompleted()
@@ -170,20 +170,20 @@ namespace FoundationDB.Async
 
 		#region Pumps...
 
-		public static async Task PumpToAsync<T>(this IAsyncSource<T> source, IAsyncTarget<T> target, CancellationToken ct = default(CancellationToken))
+		public static async Task PumpToAsync<T>(this IAsyncSource<T> source, IAsyncTarget<T> target, CancellationToken cancellationToken)
 		{
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
 			using (var pump = new AsyncPump<T>(source, target))
 			{
-				await pump.PumpAsync(stopOnFirstError: true, cancellationToken: ct);
+				await pump.PumpAsync(stopOnFirstError: true, cancellationToken: cancellationToken);
 			}
 		}
 
 		/// <summary>Pump the content of a source into a list</summary>
-		public static async Task<List<T>> PumpToListAsync<T>(this IAsyncSource<T> source, CancellationToken ct = default(CancellationToken))
+		public static async Task<List<T>> PumpToListAsync<T>(this IAsyncSource<T> source, CancellationToken cancellationToken)
 		{
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
 			var buffer = new FoundationDB.Linq.FdbAsyncEnumerable.Buffer<T>();
 
@@ -191,7 +191,7 @@ namespace FoundationDB.Async
 				(x, _) => buffer.Add(x)
 			);
 
-			await PumpToAsync<T>(source, target, ct);
+			await PumpToAsync<T>(source, target, cancellationToken);
 
 			return buffer.ToList();
 		}
@@ -220,17 +220,19 @@ namespace FoundationDB.Async
 			return new AsyncTransform<T, R>(transform, target, scheduler);
 		}
 
-		public static async Task<List<R>> TransformToListAsync<T, R>(IAsyncSource<T> source, Func<T, CancellationToken, Task<R>> transform, CancellationToken ct = default(CancellationToken), int? maxConcurrency = null, TaskScheduler scheduler = null)
+		public static async Task<List<R>> TransformToListAsync<T, R>(IAsyncSource<T> source, Func<T, CancellationToken, Task<R>> transform, CancellationToken cancellationToken, int? maxConcurrency = null, TaskScheduler scheduler = null)
 		{
+			cancellationToken.ThrowIfCancellationRequested();
+
 			using (var queue = CreateOrderPreservingAsyncBuffer<R>(maxConcurrency ?? 32))
 			{
 				using (var pipe = CreateAsyncTransform<T, R>(transform, queue, scheduler))
 				{
 					// start the output pump
-					var output = PumpToListAsync(queue, ct);
+					var output = PumpToListAsync(queue, cancellationToken);
 
 					// start the intput pump
-					var input = PumpToAsync(source, pipe, ct);
+					var input = PumpToAsync(source, pipe, cancellationToken);
 
 					await Task.WhenAll(input, output);
 

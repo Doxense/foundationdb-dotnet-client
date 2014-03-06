@@ -38,26 +38,26 @@ namespace FoundationDB.Layers.Counters.Tests
 
 	[TestFixture]
 	[Obsolete]
-	public class CounterFacts
+	public class CounterFacts : FdbTest
 	{
 
 		[Test]
 		public async Task Test_FdbCounter_Can_Increment_And_SetTotal()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "counters", "simple");
+				var location = await GetCleanDirectory(db, "counters", "simple");
 
 				var counter = new FdbCounter(db, location);
 
-				await counter.AddAsync(100);
-				Assert.That(await counter.GetSnapshotAsync(), Is.EqualTo(100));
+				await counter.AddAsync(100, this.Cancellation);
+				Assert.That(await counter.GetSnapshotAsync(this.Cancellation), Is.EqualTo(100));
 
-				await counter.AddAsync(-10);
-				Assert.That(await counter.GetSnapshotAsync(), Is.EqualTo(90));
+				await counter.AddAsync(-10, this.Cancellation);
+				Assert.That(await counter.GetSnapshotAsync(this.Cancellation), Is.EqualTo(90));
 
-				await counter.SetTotalAsync(500);
-				Assert.That(await counter.GetSnapshotAsync(), Is.EqualTo(500));
+				await counter.SetTotalAsync(500, this.Cancellation);
+				Assert.That(await counter.GetSnapshotAsync(this.Cancellation), Is.EqualTo(500));
 			}
 		}
 
@@ -66,9 +66,9 @@ namespace FoundationDB.Layers.Counters.Tests
 		{
 			const int N = 100;
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "counters", "big");
+				var location = await GetCleanDirectory(db, "counters", "big");
 
 				var c = new FdbCounter(db, location);
 
@@ -77,17 +77,17 @@ namespace FoundationDB.Layers.Counters.Tests
 				var sw = Stopwatch.StartNew();
 				for (int i = 0; i < N; i++)
 				{
-					await c.AddAsync(1);
+					await c.AddAsync(1, this.Cancellation);
 				}
 				sw.Stop();
 
 				Console.WriteLine("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / N).ToString("N0") + " µs/add)");
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
-				Assert.That(await c.GetSnapshotAsync(), Is.EqualTo(N));
+				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N));
 			}
 
 		}
@@ -99,9 +99,9 @@ namespace FoundationDB.Layers.Counters.Tests
 			const int B = 100;
 			const int N = B * W;
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "counters", "big");
+				var location = await GetCleanDirectory(db, "counters", "big");
 
 				var c = new FdbCounter(db, location);
 
@@ -116,7 +116,7 @@ namespace FoundationDB.Layers.Counters.Tests
 
 						for (int i = 0; i < B; i++)
 						{
-							await c.AddAsync(1).ConfigureAwait(false);
+							await c.AddAsync(1, this.Cancellation).ConfigureAwait(false);
 						}
 					}).ToArray();
 
@@ -128,14 +128,14 @@ namespace FoundationDB.Layers.Counters.Tests
 				sw.Stop();
 				Console.WriteLine("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / B).ToString("N0") + " µs/add)");
 
-				Assert.That(await c.GetSnapshotAsync(), Is.EqualTo(N));
+				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N));
 
 				// wait a bit, in case there was some coalesce still running...
 				await Task.Delay(200);
-				Assert.That(await c.GetSnapshotAsync(), Is.EqualTo(N));
+				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N));
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
 			}

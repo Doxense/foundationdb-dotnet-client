@@ -42,25 +42,25 @@ namespace FoundationDB.Linq.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class FdbAsyncQueryableFacts
+	public class FdbAsyncQueryableFacts : FdbTest
 	{
 
 		[Test]
 		public async Task Test_AsyncQueryable_Basics()
 		{
 
-			using(var db = await TestHelpers.OpenTestPartitionAsync())
+			using(var db = await OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Linq");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
 				{
 					tr.Set(location.Pack("Hello"), Slice.FromString("World!"));
 					tr.Set(location.Pack("Narf"), Slice.FromString("Zort"));
-				});
+				}, this.Cancellation);
 
 				var range = db.Query().RangeStartsWith(location.Key);
 				Assert.That(range, Is.InstanceOf<FdbAsyncSequenceQuery<KeyValuePair<Slice, Slice>>>());
@@ -88,12 +88,12 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_Query_Index_Single()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Linq");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition("Foos", "ByColor"));
 
@@ -103,7 +103,7 @@ namespace FoundationDB.Linq.Tests
 					index.Add(tr, 2, "green");
 					index.Add(tr, 3, "blue");
 					index.Add(tr, 4, "red");
-				});
+				}, this.Cancellation);
 
 				// find all elements that are read
 				var lookup = index.Query(db).Lookup(x => x == "red");
@@ -122,12 +122,12 @@ namespace FoundationDB.Linq.Tests
 		[Test]
 		public async Task Test_Query_Index_Range()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Linq");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition("Foos", "ByScore"));
 
@@ -143,7 +143,7 @@ namespace FoundationDB.Linq.Tests
 					index.Add(tr, "sierra", 667);
 					index.Add(tr, "victor", 1234);
 					index.Add(tr, "whisky", 9001);
-				});
+				}, this.Cancellation);
 
 				// find all up to 100
 				var lookup = index.Query(db).Lookup(x => x <= 100);

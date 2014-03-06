@@ -42,9 +42,9 @@ namespace FoundationDB.Async
 
 		/// <summary>Push a new item onto the target, if it can accept one</summary>
 		/// <param name="value">New value that is being published</param>
-		/// <param name="ct">Cancellation token that is used to abort the call if the target is blocked</param>
+		/// <param name="cancellationToken">Cancellation token that is used to abort the call if the target is blocked</param>
 		/// <returns>Task that completes once the target has accepted the new value (or fails if the cancellation token fires)</returns>
-		Task OnNextAsync(T value, CancellationToken ct = default(CancellationToken));
+		Task OnNextAsync(T value, CancellationToken cancellationToken);
 
 		/// <summary>Notifies the target that the producer is done and that no more values will be published</summary>
 		void OnCompleted();

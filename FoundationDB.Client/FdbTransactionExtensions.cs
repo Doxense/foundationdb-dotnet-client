@@ -726,7 +726,7 @@ namespace FoundationDB.Client
 		#region Queries...
 
 		/// <summary>Runs a transactional query inside a read-only transaction context, with optional retry-logic, returning the list of all the elements.</summary>
-		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyTransactional dbOrTrans, Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> handler, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyTransactional dbOrTrans, Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> handler, CancellationToken cancellationToken)
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (handler == null) throw new ArgumentNullException("handler");

@@ -61,9 +61,9 @@ namespace FoundationDB.Async
 
 		#region IAsyncTarget<T>...
 
-		public Task OnNextAsync(T value, CancellationToken ct)
+		public Task OnNextAsync(T value, CancellationToken cancellationToken)
 		{
-			if (ct.IsCancellationRequested) return TaskHelpers.CompletedTask;
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.CompletedTask;
 
 			if (m_done) throw new InvalidOperationException("Cannot send any more values because this transform has already completed");
 
@@ -75,7 +75,7 @@ namespace FoundationDB.Async
 				Task<R> task;
 				if (m_scheduler == null)
 				{ // execute inline
-					task = m_transform(value, ct);
+					task = m_transform(value, cancellationToken);
 				}
 				else
 				{ // execute in a scheduler
@@ -85,14 +85,14 @@ namespace FoundationDB.Async
 							var prms = (Tuple<AsyncTransform<T, R>, T, CancellationToken>)state;
 							return prms.Item1.m_transform(prms.Item2, prms.Item3);
 						},
-						Tuple.Create(this, value, ct),
-						ct,
+						Tuple.Create(this, value, cancellationToken),
+						cancellationToken,
 						TaskCreationOptions.PreferFairness,
 						m_scheduler
 					).Unwrap();
 				}
 
-				return m_target.OnNextAsync(task, ct);
+				return m_target.OnNextAsync(task, cancellationToken);
 			}
 			catch(Exception e)
 			{

@@ -40,33 +40,33 @@ namespace FoundationDB.Layers.Counters
 		/// Get the value of the counter.
 		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
 		/// </summary>
-		public static Task<long> GetTransactionalAsync(this FdbCounter self, CancellationToken ct = default(CancellationToken))
+		public static Task<long> GetTransactionalAsync(this FdbCounter self, CancellationToken cancellationToken)
 		{
-			return self.Database.ReadAsync((tr) => self.GetTransactional(tr), ct);
+			return self.Database.ReadAsync((tr) => self.GetTransactional(tr), cancellationToken);
 		}
 
 		/// <summary>
 		/// Get the value of the counter with snapshot isolation (no transaction conflicts).
 		/// </summary>
-		public static Task<long> GetSnapshotAsync(this FdbCounter self, CancellationToken ct = default(CancellationToken))
+		public static Task<long> GetSnapshotAsync(this FdbCounter self, CancellationToken cancellationToken)
 		{
-			return self.Database.ReadAsync((tr) => self.GetSnapshot(tr), ct);
+			return self.Database.ReadAsync((tr) => self.GetSnapshot(tr), cancellationToken);
 		}
 
 		/// <summary>
 		/// Add the value x to the counter.
 		/// </summary>
-		public static Task AddAsync(this FdbCounter self, long x, CancellationToken ct = default(CancellationToken))
+		public static Task AddAsync(this FdbCounter self, long x, CancellationToken cancellationToken)
 		{
-			return self.Database.WriteAsync((tr) => self.Add(tr, x), ct);
+			return self.Database.WriteAsync((tr) => self.Add(tr, x), cancellationToken);
 		}
 
 		/// <summary>
 		/// Set the counter to value x.
 		/// </summary>
-		public static Task SetTotalAsync(this FdbCounter self, long x, CancellationToken ct = default(CancellationToken))
+		public static Task SetTotalAsync(this FdbCounter self, long x, CancellationToken cancellationToken)
 		{
-			return self.Database.ReadWriteAsync((tr) => self.SetTotal(tr, x), ct);
+			return self.Database.ReadWriteAsync((tr) => self.SetTotal(tr, x), cancellationToken);
 		}
 
 	}

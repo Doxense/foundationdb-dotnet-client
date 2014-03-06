@@ -51,9 +51,9 @@ namespace FoundationDB.Client
 			/// <param name="path">Path of the named partition to open</param>
 			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
-			public static Task<FdbDatabase> OpenNamedPartitionAsync(IEnumerable<string> path, CancellationToken cancellationToken = default(CancellationToken))
+			public static Task<FdbDatabase> OpenNamedPartitionAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 			{
-				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, path: path, cancellationToken: cancellationToken);
+				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, path: path, readOnly: false, cancellationToken: cancellationToken);
 			}
 
 			/// <summary>Open a named partition of a specific cluster</summary>
@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 			/// <param name="path">Path of the named partition to open</param>
 			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
-			public static async Task<FdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, bool readOnly = false, CancellationToken cancellationToken = default(CancellationToken))
+			public static async Task<FdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, bool readOnly, CancellationToken cancellationToken)
 			{
 				if (path == null) throw new ArgumentNullException("partitionPath");
 				var partitionPath = path.ToList();
@@ -104,7 +104,7 @@ namespace FoundationDB.Client
 			/// <param name="parent">Parent directory</param>
 			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Dictionary of all the sub directories of the <paramref name="parent"/> directory.</returns>
-			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync(IFdbDatabase db, IFdbDirectory parent, CancellationToken cancellationToken = default(CancellationToken))
+			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync(IFdbDatabase db, IFdbDirectory parent, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (parent == null) throw new ArgumentNullException("parent");

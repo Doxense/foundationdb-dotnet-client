@@ -39,36 +39,36 @@ namespace FoundationDB.Layers.Tables
 
 		#region FdbTable<K, V>...
 
-		public static Task<TValue> GetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbReadOnlyTransactional dbOrTrans, TKey id, CancellationToken ct = default(CancellationToken))
+		public static Task<TValue> GetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbReadOnlyTransactional dbOrTrans, TKey id, CancellationToken cancellationToken)
 		{
 			if (table == null) throw new ArgumentNullException("table");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.ReadAsync((tr) => table.GetAsync(tr, id), ct);
+			return dbOrTrans.ReadAsync((tr) => table.GetAsync(tr, id), cancellationToken);
 		}
 
-		public static Task<Optional<TValue>> TryGetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbReadOnlyTransactional dbOrTrans, TKey id, CancellationToken ct = default(CancellationToken))
+		public static Task<Optional<TValue>> TryGetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbReadOnlyTransactional dbOrTrans, TKey id, CancellationToken cancellationToken)
 		{
 			if (table == null) throw new ArgumentNullException("table");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.ReadAsync((tr) => table.TryGetAsync(tr, id), ct);
+			return dbOrTrans.ReadAsync((tr) => table.TryGetAsync(tr, id), cancellationToken);
 		}
 
-		public static Task SetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbTransactional dbOrTrans, TKey id, TValue value, CancellationToken ct = default(CancellationToken))
+		public static Task SetAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbTransactional dbOrTrans, TKey id, TValue value, CancellationToken cancellationToken)
 		{
 			if (table == null) throw new ArgumentNullException("table");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.WriteAsync((tr) => table.Set(tr, id, value), ct);
+			return dbOrTrans.WriteAsync((tr) => table.Set(tr, id, value), cancellationToken);
 		}
 
-		public static Task ClearAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbTransactional dbOrTrans, TKey id, CancellationToken ct = default(CancellationToken))
+		public static Task ClearAsync<TKey, TValue>(this FdbTable<TKey, TValue> table, IFdbTransactional dbOrTrans, TKey id, CancellationToken cancellationToken)
 		{
 			if (table == null) throw new ArgumentNullException("table");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.WriteAsync((tr) => table.Clear(tr, id), ct);
+			return dbOrTrans.WriteAsync((tr) => table.Clear(tr, id), cancellationToken);
 		}
 
 		#endregion

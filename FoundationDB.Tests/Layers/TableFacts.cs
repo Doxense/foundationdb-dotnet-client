@@ -37,24 +37,24 @@ namespace FoundationDB.Layers.Tables.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class TableFacts
+	public class TableFacts : FdbTest
 	{
 
 		[Test]
 		public async Task Test_FdbTable_Read_Write_Delete()
 		{
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = await TestHelpers.GetCleanDirectory(db, "Tables");
+				var location = await GetCleanDirectory(db, "Tables");
 
 				var table = new FdbTable<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				string secret = "world:" + Guid.NewGuid().ToString();
 
 				// read non existing value
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(async () => await table.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
 
@@ -64,18 +64,18 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 				// write value
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					table.Set(tr, "hello", secret);
 					await tr.CommitAsync();
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
 				// read value back
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var value = await table.GetAsync(tr, "hello");
 					Assert.That(value, Is.EqualTo(secret));
@@ -86,7 +86,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 				// directly read the value, behind the table's back
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var value = await tr.GetAsync(location.Pack("Foos", "hello"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
@@ -94,18 +94,18 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 				// delete the value
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					table.Clear(tr, "hello");
 					await tr.CommitAsync();
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
 				// verifiy that it is gone
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(async () => await table.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
 
@@ -124,9 +124,9 @@ namespace FoundationDB.Layers.Tables.Tests
 		[Test]
 		public async Task Test_FdbTable_List()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "Tables");
+				var location = await GetCleanDirectory(db, "Tables");
 
 				var table = new FdbTable<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
 
@@ -135,15 +135,15 @@ namespace FoundationDB.Layers.Tables.Tests
 				{
 					table.Set(tr, "foo", "foo_value");
 					table.Set(tr, "bar", "bar_value");
-				});
+				}, this.Cancellation);
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
 				// read them back
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var value = await table.GetAsync(tr, "foo");
 					Assert.That(value, Is.EqualTo("foo_value"));

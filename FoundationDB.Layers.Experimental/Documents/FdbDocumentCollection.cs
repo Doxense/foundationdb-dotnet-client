@@ -217,7 +217,7 @@ namespace FoundationDB.Layers.Documents
 
 		#region Transactional...
 
-		public async Task InsertAsync(IFdbTransactional dbOrTrans, TDocument document, CancellationToken cancellationToken = default(CancellationToken))
+		public async Task InsertAsync(IFdbTransactional dbOrTrans, TDocument document, CancellationToken cancellationToken)
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
@@ -225,7 +225,7 @@ namespace FoundationDB.Layers.Documents
 
 		}
 
-		public Task<TDocument> LoadAsync(IFdbReadOnlyTransactional dbOrTrans, TId id, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<TDocument> LoadAsync(IFdbReadOnlyTransactional dbOrTrans, TId id, CancellationToken cancellationToken)
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -233,7 +233,7 @@ namespace FoundationDB.Layers.Documents
 			return dbOrTrans.ReadAsync((tr) => LoadAsync(tr, id), cancellationToken);
 		}
 
-		public Task<List<TDocument>> LoadMultipleAsync(IFdbReadOnlyTransactional dbOrTrans, IEnumerable<TId> ids, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<List<TDocument>> LoadMultipleAsync(IFdbReadOnlyTransactional dbOrTrans, IEnumerable<TId> ids, CancellationToken cancellationToken)
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (ids == null) throw new ArgumentNullException("ids");
@@ -245,7 +245,7 @@ namespace FoundationDB.Layers.Documents
 			return dbOrTrans.ReadAsync((tr) => LoadMultipleAsync(tr, coll), cancellationToken);
 		}
 
-		public Task DeleteAsync(IFdbTransactional dbOrTrans, TId id, CancellationToken cancellationToken = default(CancellationToken))
+		public Task DeleteAsync(IFdbTransactional dbOrTrans, TId id, CancellationToken cancellationToken)
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -253,7 +253,7 @@ namespace FoundationDB.Layers.Documents
 			return dbOrTrans.WriteAsync((tr) => this.Delete(tr, id), cancellationToken);
 		}
 
-		public Task DeleteMultipleAsync(IFdbTransactional dbOrTrans, IEnumerable<TId> ids, CancellationToken cancellationToken = default(CancellationToken))
+		public Task DeleteMultipleAsync(IFdbTransactional dbOrTrans, IEnumerable<TId> ids, CancellationToken cancellationToken)
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (ids == null) throw new ArgumentNullException("ids");
@@ -265,7 +265,7 @@ namespace FoundationDB.Layers.Documents
 			return dbOrTrans.WriteAsync((tr) => this.DeleteMultiple(tr, coll), cancellationToken);
 		}
 
-		public Task DeleteAsync(IFdbTransactional dbOrTrans, TDocument document, CancellationToken cancellationToken = default(CancellationToken))
+		public Task DeleteAsync(IFdbTransactional dbOrTrans, TDocument document, CancellationToken cancellationToken)
 		{
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 			if (document == null) throw new ArgumentNullException("document");

@@ -142,7 +142,7 @@ namespace FoundationDB.Linq.Providers
 				if (trans == null)
 				{
 					owned = true;
-					trans = this.Database.BeginTransaction();
+					trans = this.Database.BeginTransaction(ct);
 				}
 
 				T result = await generator(trans, ct).ConfigureAwait(false);
@@ -182,12 +182,15 @@ namespace FoundationDB.Linq.Providers
 				return generator(sequence.Transaction).GetEnumerator(mode);
 			}
 
+			//BUGBUG: how do we get a CancellationToken without a transaction?
+			var ct = CancellationToken.None;
+
 			IFdbTransaction trans = null;
 			IFdbAsyncEnumerator<T> iterator = null;
 			bool success = true;
 			try
 			{
-				trans = sequence.Database.BeginTransaction();
+				trans = sequence.Database.BeginTransaction(ct);
 				iterator = generator(trans).GetEnumerator();
 
 				return new TransactionIterator(trans, iterator);
@@ -252,7 +255,7 @@ namespace FoundationDB.Linq.Providers
 				if (trans == null)
 				{
 					owned = true;
-					trans = this.Database.BeginTransaction();
+					trans = this.Database.BeginTransaction(ct);
 				}
 
 				var enumerable = generator(trans);

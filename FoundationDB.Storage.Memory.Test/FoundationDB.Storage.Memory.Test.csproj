@@ -58,6 +58,7 @@
     <Compile Include="Collections\CountingComparer`1.cs" />
     <Compile Include="Collections\ColaOrderedDictionaryFacts.cs" />
     <Compile Include="Collections\ColaOrderedSetFacts.cs" />
+    <Compile Include="FdbTest.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Transactions\MemoryTransactionFacts.cs" />

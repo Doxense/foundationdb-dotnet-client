@@ -34,18 +34,18 @@ namespace FoundationDB.Client.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class TransactionalFacts
+	public class TransactionalFacts : FdbTest
 	{
 		[Test]
 		public async Task Test_ReadAsync_Should_Normally_Execute_Only_Once()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await db.Directory.CreateOrOpenAsync(new[] { "Transactionals" });
+				var location = await db.Directory.CreateOrOpenAsync(new[] { "Transactionals" }, this.Cancellation);
 
 				string secret = Guid.NewGuid().ToString();
 
-				using(var tr = db.BeginTransaction())
+				using(var tr = db.BeginTransaction(this.Cancellation))
 				{
 					tr.Set(location.Pack("Hello"), Slice.FromString(secret));
 					await tr.CommitAsync();
@@ -61,7 +61,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.Context.Shared, Is.True);
 
 					return tr.GetAsync(location.Pack("Hello"));
-				});
+				}, this.Cancellation);
 
 				Assert.That(called, Is.EqualTo(1)); // note: if this assert fails, first ensure that you did not get a transient error while running this test!
 				Assert.That(result.ToUnicode(), Is.EqualTo(secret));
@@ -71,7 +71,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Transactionals_Rethrow_Regular_Exceptions()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				int called = 0;
 
@@ -81,7 +81,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(called, Is.EqualTo(0), "ReadAsync should not retry on regular exceptions");
 					++called;
 					throw new InvalidOperationException("Boom");
-				});
+				}, this.Cancellation);
 				Assert.That(task, Is.Not.Null);
 				// the exception should be unwrapped (ie: we should not see an AggregateException, but the actual exception)
 				Assert.Throws<InvalidOperationException>(async () => await task, "ReadAsync should rethrow any regular exceptions");
@@ -92,9 +92,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Transactionals_Retries_On_Transient_Errors()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Transactionals");
 
 				int called = 0;
 				int? id = null;
@@ -139,7 +139,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Transactionals_Should_Not_Execute_If_Already_Canceled()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				using (var go = new CancellationTokenSource())
 				{
@@ -167,9 +167,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Transactionals_ReadOnly_Should_Deny_Write_Attempts()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "Transactionals");
+				var location = await GetCleanDirectory(db, "Transactionals");
 
 				var t = db.ReadAsync((IFdbReadOnlyTransaction tr) =>
 				{
@@ -184,7 +184,7 @@ namespace FoundationDB.Client.Tests
 
 					Assert.Fail("Calling Set() on a read-only transaction should fail");
 					return Task.FromResult(123);
-				});
+				}, this.Cancellation);
 
 				Assert.Throws<InvalidOperationException>(async () => await t, "Forcing writes on a read-only transaction should fail");
 			}

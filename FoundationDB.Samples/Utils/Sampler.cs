@@ -53,7 +53,8 @@ namespace FoundationDB.Samples.Benchmarks
 					Node = kvp.Value.Substring(8, 16).ToHexaString(),
 					Machine = kvp.Value.Substring(24, 16).ToHexaString(),
 					DataCenter = kvp.Value.Substring(40, 16).ToHexaString()
-				})
+				}),
+				ct
 			);
 
 			var numNodes = servers.Select(s => s.Node).Distinct().Count();
@@ -63,13 +64,15 @@ namespace FoundationDB.Samples.Benchmarks
 			Console.WriteLine("# > Found " + numNodes + " process(es) on " + numMachines + " machine(s) in " + numDCs + " datacenter(s)");
 			Console.WriteLine("# Reading list of shards...");
 			// dump keyServers
-			var ranges = await Fdb.System.GetChunksAsync(db, FdbKey.MinValue, FdbKey.MaxValue);
+			var ranges = await Fdb.System.GetChunksAsync(db, FdbKey.MinValue, FdbKey.MaxValue, ct);
 			Console.WriteLine("# > Found " + ranges.Count + " shards:");
 
 			// take a sample
-			var rnd = new Random();
+			var rnd = new Random(1234);
 			int sz = Math.Max((int)Math.Ceiling(this.Ratio * ranges.Count), 1);
-			if (sz > 100) sz = 100; //SAFETY
+			if (sz > 500) sz = 500; //SAFETY
+			if (sz < 50) sz = Math.Max(sz, Math.Min(50, ranges.Count));
+
 			var samples = new List<FdbKeyRange>();
 			for (int i = 0; i < sz; i++)
 			{
@@ -100,7 +103,9 @@ namespace FoundationDB.Samples.Benchmarks
 					{
 						var hh = new RobustHistogram(RobustHistogram.TimeScale.Ticks);
 
-						using (var tr = db.BeginTransaction())
+						#region Method 1: get_range everything...
+
+						using (var tr = db.BeginTransaction(ct))
 						{
 							long keySize = 0;
 							long valueSize = 0;
@@ -115,7 +120,6 @@ namespace FoundationDB.Samples.Benchmarks
 								FdbException error = null;
 								try
 								{
-
 									data = await tr.Snapshot.GetRangeAsync(
 										beginSelector,
 										endSelector,
@@ -156,7 +160,15 @@ namespace FoundationDB.Samples.Benchmarks
 
 							Console.WriteLine("{0,9}{1,10}{2,10}{3,10} : {4}", count.ToString("N0"), FormatSize(keySize), FormatSize(valueSize), FormatSize(totalSize), hh.GetDistribution(begin: 1, end: 10000, fold:2));
 						}
-					}));
+						#endregion
+
+						#region Method 2: estimate the count using key selectors...
+
+						//long counter = await Fdb.System.EstimateCountAsync(db, range, ct);
+						//Console.WriteLine("COUNT = " + counter.ToString("N0"));
+
+						#endregion
+					}, ct));
 				}
 
 				var done = await Task.WhenAny(tasks);

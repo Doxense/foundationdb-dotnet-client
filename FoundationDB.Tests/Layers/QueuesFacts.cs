@@ -41,104 +41,104 @@ namespace FoundationDB.Layers.Collections.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class QueuesFacts
+	public class QueuesFacts : FdbTest
 	{
 		[Test]
 		public async Task Test_Queue_Fast()
 		{
 			// without high contention protecction
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "queue");
+				var location = await GetCleanDirectory(db, "queue");
 
 				var queue = new FdbQueue<int>(location, highContention: false);
 
 				Console.WriteLine("Clear Queue");
-				await queue.ClearAsync(db);
+				await queue.ClearAsync(db, this.Cancellation);
 
-				Console.WriteLine("Empty? " + await queue.EmptyAsync(db));
+				Console.WriteLine("Empty? " + await queue.EmptyAsync(db, this.Cancellation));
 
 				Console.WriteLine("Push 10, 8, 6");
-				await queue.PushAsync(db, 10);
-				await queue.PushAsync(db, 8);
-				await queue.PushAsync(db, 6);
+				await queue.PushAsync(db, 10, this.Cancellation);
+				await queue.PushAsync(db, 8, this.Cancellation);
+				await queue.PushAsync(db, 6, this.Cancellation);
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
-				Console.WriteLine("Empty? " + await queue.EmptyAsync(db));
+				Console.WriteLine("Empty? " + await queue.EmptyAsync(db, this.Cancellation));
 
-				Console.WriteLine("Pop item: " + await queue.PopAsync(db));
-				Console.WriteLine("Next item: " + await queue.PeekAsync(db));
+				Console.WriteLine("Pop item: " + await queue.PopAsync(db, this.Cancellation));
+				Console.WriteLine("Next item: " + await queue.PeekAsync(db, this.Cancellation));
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
-				Console.WriteLine("Pop item: " + await queue.PopAsync(db));
+				Console.WriteLine("Pop item: " + await queue.PopAsync(db, this.Cancellation));
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
-				Console.WriteLine("Pop item: " + await queue.PopAsync(db));
+				Console.WriteLine("Pop item: " + await queue.PopAsync(db, this.Cancellation));
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
 
-				Console.WriteLine("Empty? " + await queue.EmptyAsync(db));
+				Console.WriteLine("Empty? " + await queue.EmptyAsync(db, this.Cancellation));
 
 				Console.WriteLine("Push 5");
-				await queue.PushAsync(db, 5);
+				await queue.PushAsync(db, 5, this.Cancellation);
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
 				Console.WriteLine("Clear Queue");
-				await queue.ClearAsync(db);
+				await queue.ClearAsync(db, this.Cancellation);
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
-				Console.WriteLine("Empty? " + await queue.EmptyAsync(db));
+				Console.WriteLine("Empty? " + await queue.EmptyAsync(db, this.Cancellation));
 			}
 		}
 
 		[Test]
 		public async Task Test_Single_Client()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "queue");
+				var location = await GetCleanDirectory(db, "queue");
 
 				var queue = new FdbQueue<int>(location, highContention: false);
 
-				await queue.ClearAsync(db);
+				await queue.ClearAsync(db, this.Cancellation);
 
 				for (int i = 0; i < 10; i++)
 				{
-					await queue.PushAsync(db, i);
+					await queue.PushAsync(db, i, this.Cancellation);
 				}
 
 				for (int i = 0; i < 10; i++)
 				{
-					var r = await queue.PopAsync(db);
+					var r = await queue.PopAsync(db, this.Cancellation);
 					Assert.That(r.HasValue, Is.True);
 					Assert.That(r.Value, Is.EqualTo(i));
 				}
 
-				Assert.That(await queue.EmptyAsync(db), Is.True);
+				Assert.That(await queue.EmptyAsync(db, this.Cancellation), Is.True);
 			}
 
 		}
 
-		private static async Task RunMultiClientTest(IFdbDatabase db, FdbSubspace location, bool highContention, string desc, int K, int NUM)
+		private static async Task RunMultiClientTest(IFdbDatabase db, FdbSubspace location, bool highContention, string desc, int K, int NUM, CancellationToken ct)
 		{
 			Console.WriteLine("Starting {0} test with {1} threads and {2} iterations", desc, K, NUM);
 
 			var queue = new FdbQueue<string>(location, highContention);
-			await queue.ClearAsync(db);
+			await queue.ClearAsync(db, ct);
 
 			// use a CTS to ensure that everything will stop in case of problems...
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
@@ -230,7 +230,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				Assert.That(poppedItems, Is.EquivalentTo(pushedItems));
 
 				// the queue should be empty
-				Assert.That(await queue.EmptyAsync(db), Is.True);
+				Assert.That(await queue.EmptyAsync(db, ct), Is.True);
 			}
 		}
 
@@ -240,14 +240,14 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			int NUM = 100;
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "queue");
+				var location = await GetCleanDirectory(db, "queue");
 
-				await RunMultiClientTest(db, location, false, "simple queue", 1, NUM);
-				await RunMultiClientTest(db, location, false, "simple queue", 2, NUM);
-				await RunMultiClientTest(db, location, false, "simple queue", 4, NUM);
-				await RunMultiClientTest(db, location, false, "simple queue", 10, NUM);
+				await RunMultiClientTest(db, location, false, "simple queue", 1, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, false, "simple queue", 2, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, false, "simple queue", 4, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, false, "simple queue", 10, NUM, this.Cancellation);
 			}
 		}
 
@@ -257,14 +257,14 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			int NUM = 100;
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "queue");
+				var location = await GetCleanDirectory(db, "queue");
 
-				await RunMultiClientTest(db, location, true, "high contention queue", 1, NUM);
-				await RunMultiClientTest(db, location, true, "high contention queue", 2, NUM);
-				await RunMultiClientTest(db, location, true, "high contention queue", 4, NUM);
-				await RunMultiClientTest(db, location, true, "high contention queue", 10, NUM);
+				await RunMultiClientTest(db, location, true, "high contention queue", 1, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, true, "high contention queue", 2, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, true, "high contention queue", 4, NUM, this.Cancellation);
+				await RunMultiClientTest(db, location, true, "high contention queue", 10, NUM, this.Cancellation);
 			}
 		}
 
@@ -273,9 +273,9 @@ namespace FoundationDB.Layers.Collections.Tests
 		{
 			int NUM = 100;
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "queue");
+				var location = await GetCleanDirectory(db, "queue");
 
 #if DEBUG
 				var list = new List<FdbTransactionLog>(NUM);
@@ -284,7 +284,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				var logged = db;
 #endif
 
-				await RunMultiClientTest(logged, location, false, "simple queue", 4, NUM);
+				await RunMultiClientTest(logged, location, false, "simple queue", 4, NUM, this.Cancellation);
 #if DEBUG
 				foreach (var log in list)
 				{
@@ -295,7 +295,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				Console.WriteLine("------------------------------------------------");
 
-				await RunMultiClientTest(logged, location, true, "high contention queue", 4, NUM);
+				await RunMultiClientTest(logged, location, true, "high contention queue", 4, NUM, this.Cancellation);
 #if DEBUG
 				foreach (var log in list)
 				{

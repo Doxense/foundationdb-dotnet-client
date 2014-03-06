@@ -26,35 +26,64 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Interning
+namespace FoundationDB.Storage.Memory.Tests
 {
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Directories;
+	using NUnit.Framework;
 	using System;
+	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public static class FdbStringInternTransactionals
+	public abstract class FdbTest
 	{
 
-		/// <summary>Look up string <paramref name="value"/> in the intern database and return its normalized representation. If value already exists, intern returns the existing representation.</summary>
-		/// <param name="trans">Fdb database</param>
-		/// <param name="value">String to intern</param>
-		/// <returns>Normalized representation of the string</returns>
-		/// <remarks>The length of the string <paramref name="value"/> must not exceed the maximum FoundationDB value size</remarks>
-		public static Task<Slice> InternAsync(this FdbStringIntern self, IFdbTransactional db, string value, CancellationToken cancellationToken)
+		private CancellationTokenSource m_cts;
+		private CancellationToken m_ct;
+
+		[SetUp]
+		protected void BeforeTest()
 		{
-			return db.ReadWriteAsync((tr) => self.InternAsync(tr, value), cancellationToken);
+			lock (this)
+			{
+				m_cts = null;
+				m_ct = CancellationToken.None;
+			}
+			Trace.WriteLine("=== " + TestContext.CurrentContext.Test.FullName + " === " + DateTime.Now.TimeOfDay);
 		}
 
-		/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
-		/// <param name="db">Fdb database</param>
-		/// <param name="uid">Interned uid of the string</param>
-		/// <returns>Original value of the interned string, or an exception if it does it does not exist</returns>
-		public static Task<string> LookupAsync(this FdbStringIntern self, IFdbReadOnlyTransactional db, Slice uid, CancellationToken cancellationToken)
+		[TearDown]
+		protected void AfterTest()
 		{
-			return db.ReadAsync((tr) => self.LookupAsync(tr, uid), cancellationToken);
+			if (m_cts != null)
+			{
+				try { m_cts.Cancel(); } catch { }
+				m_cts.Dispose();
+			}
+		}
+
+		/// <summary>Cancellation token usable by any test</summary>
+		protected CancellationToken Cancellation
+		{
+			get
+			{
+				if (m_cts == null) SetupCancellation();
+				return m_ct;
+			}
+		}
+
+		private void SetupCancellation()
+		{
+			lock (this)
+			{
+				if (m_cts == null)
+				{
+					m_cts = new CancellationTokenSource();
+					m_ct = m_cts.Token;
+				}
+			}
 		}
 
 	}
-
 }

@@ -136,9 +136,9 @@ namespace FoundationDB.Async
 
 		private static readonly Func<object, Task<Maybe<TOutput>>> s_processItemHandler = new Func<object, Task<Maybe<TOutput>>>(ProcessItemHandler);
 
-		public Task OnNextAsync(TInput value, CancellationToken ct)
+		public Task OnNextAsync(TInput value, CancellationToken cancellationToken)
 		{
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
 			AsyncCancelableMutex waiter;
 			lock(m_lock)
@@ -149,8 +149,8 @@ namespace FoundationDB.Async
 				{
 					var t = Task.Factory.StartNew(
 						s_processItemHandler,
-						Tuple.Create(this, value, ct),
-						ct, 
+						Tuple.Create(this, value, cancellationToken),
+						cancellationToken, 
 						TaskCreationOptions.PreferFairness, 
 						m_scheduler
 					).Unwrap();
@@ -173,7 +173,7 @@ namespace FoundationDB.Async
 				}
 
 				// no luck, we need to wait for the queue to become non-full
-				waiter = new AsyncCancelableMutex(ct);
+				waiter = new AsyncCancelableMutex(cancellationToken);
 				m_blockedProducer = waiter;
 			}
 
@@ -218,18 +218,18 @@ namespace FoundationDB.Async
 
 		#region IFdbAsyncBatchTarget<TInput>...
 
-		public async Task OnNextBatchAsync(TInput[] batch, CancellationToken ct)
+		public async Task OnNextBatchAsync(TInput[] batch, CancellationToken cancellationToken)
 		{
 			if (batch == null) throw new ArgumentNullException("batch");
 
 			if (batch.Length == 0) return;
 
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
+			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
 
 			//TODO: optimized version !
 			foreach (var item in batch)
 			{
-				await OnNextAsync(item, ct).ConfigureAwait(false);
+				await OnNextAsync(item, cancellationToken).ConfigureAwait(false);
 			}
 		}
 

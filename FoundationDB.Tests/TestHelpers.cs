@@ -43,43 +43,45 @@ namespace FoundationDB.Client.Tests
 		public static readonly string TestDbName = "DB";
 		public static readonly Slice TestGlobalPrefix = Slice.FromAscii("T");
 		public static readonly string[] TestPartition = new string[] { "Tests", Environment.MachineName };
+		public static readonly int DefaultTimeout = 15 * 1000;
+
+		//TODO: move these methods to FdbTest ?
 
 		/// <summary>Connect to the local test database</summary>
-		public static Task<FdbDatabase> OpenTestDatabaseAsync(CancellationToken ct = default(CancellationToken))
+		public static Task<FdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
 		{
 			var subspace = new FdbSubspace(TestGlobalPrefix.Memoize());
 			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, false, ct);
 		}
 
 		/// <summary>Connect to the local test database</summary>
-		public static async Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct = default(CancellationToken))
+		public static async Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct)
 		{
 			var db = await Fdb.Directory.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, false, ct);
-			db.DefaultTimeout = 15 * 1000;
+			db.DefaultTimeout = DefaultTimeout;
 			return db;
 		}
 
-		public static async Task<FdbDirectorySubspace> GetCleanDirectory(IFdbDatabase db, params string[] path)
+		public static async Task<FdbDirectorySubspace> GetCleanDirectory(IFdbDatabase db, string[] path, CancellationToken ct)
 		{
 			Assert.That(path, Is.Not.Null.And.Length.GreaterThan(0), "invalid path");
 
 			// remove previous
-			await db.Directory.TryRemoveAsync(path);
+			await db.Directory.TryRemoveAsync(path, ct);
 
 			// create new
-			var subspace = await db.Directory.CreateAsync(path);
+			var subspace = await db.Directory.CreateAsync(path, ct);
 			Assert.That(subspace, Is.Not.Null);
 			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True);
 			return subspace;
 		}
 
-
-		public static async Task DumpSubspace(IFdbDatabase db, FdbSubspace subspace)
+		public static async Task DumpSubspace(IFdbDatabase db, FdbSubspace subspace, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null);
 			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
 
-			using (var tr = db.BeginTransaction())
+			using (var tr = db.BeginTransaction(ct))
 			{
 				await DumpSubspace(tr, subspace).ConfigureAwait(false);
 			}
@@ -116,15 +118,6 @@ namespace FoundationDB.Client.Tests
 				Console.WriteLine("> empty !");
 			else
 				Console.WriteLine("> Found " + count + " values");
-		}
-
-		public static async Task DeleteSubspace(IFdbDatabase db, FdbSubspace subspace)
-		{
-			using (var tr = db.BeginTransaction())
-			{
-				tr.ClearRange(subspace);
-				await tr.CommitAsync();
-			}
 		}
 
 		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)

@@ -211,7 +211,7 @@ namespace FoundationDB.Async.Tests
 					TaskScheduler.Default
 				);
 
-				var pumpTask = AsyncHelpers.PumpToListAsync(queue);
+				var pumpTask = AsyncHelpers.PumpToListAsync(queue, token);
 
 				var rnd2 = new Random(5678);
 
@@ -246,16 +246,16 @@ namespace FoundationDB.Async.Tests
 
 				var queue = AsyncHelpers.CreateOrderPreservingAsyncBuffer<int>(MAX_CAPACITY);
 
-				var pumpTask = AsyncHelpers.PumpToListAsync(queue);
+				var pumpTask = AsyncHelpers.PumpToListAsync(queue, token);
 
 				var rnd2 = new Random(5678);
 
 #pragma warning disable 162
 				await queue.OnNextAsync(Task.FromResult(0), token);
 				await queue.OnNextAsync(Task.FromResult(1), token);
-				await queue.OnNextAsync(Task.Run<int>(() => { throw new InvalidOperationException("Oops"); return 123; }));
+				await queue.OnNextAsync(Task.Run<int>(() => { throw new InvalidOperationException("Oops"); return 123; }), token);
 				await queue.OnNextAsync(Task.FromResult(3), token);
-				await queue.OnNextAsync(Task.Run<int>(() => { throw new InvalidOperationException("Epic Fail"); return 456; }));
+				await queue.OnNextAsync(Task.Run<int>(() => { throw new InvalidOperationException("Epic Fail"); return 456; }), token);
 				queue.OnCompleted();
 #pragma warning restore 162
 

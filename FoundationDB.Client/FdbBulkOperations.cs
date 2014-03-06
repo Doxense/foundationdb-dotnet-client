@@ -39,14 +39,15 @@ namespace FoundationDB.Client.Bulk
 	{
 		/// <summary>Insert a (large) sequence of key/value pairs into the database, by using as many transactions as necessary</summary>
 		/// <param name="data">Sequence of key/value pairs</param>
+		/// <param name="progress">Notify of the progress on this instance (or null)</param>
 		/// <param name="cancellationToken">Cancellation Token</param>
 		/// <returns>Total number of values inserted in the database</returns>
-		public static async Task<long> BulkInsertAsync(this IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, IProgress<long> progress = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<long> BulkInsertAsync(this IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, IProgress<long> progress, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (data == null) throw new ArgumentNullException("data");
 
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+			cancellationToken.ThrowIfCancellationRequested();
 
 			// we will batch keys into chunks (bounding by count and bytes),
 			// then attempt to insert that batch in the database.
@@ -97,7 +98,7 @@ namespace FoundationDB.Client.Bulk
 				}
 			}
 
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+			cancellationToken.ThrowIfCancellationRequested();
 
 			return items;
 		}

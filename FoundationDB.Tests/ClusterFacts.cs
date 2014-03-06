@@ -35,13 +35,13 @@ namespace FoundationDB.Client.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class ClusterFacts
+	public class ClusterFacts : FdbTest
 	{
 
 		[Test]
 		public async Task Test_Can_Connect_To_Local_Cluster()
 		{
-			using(var cluster = await Fdb.CreateClusterAsync())
+			using(var cluster = await Fdb.CreateClusterAsync(this.Cancellation))
 			{
 				Assert.That(cluster, Is.Not.Null, "Should return a valid object");
 				Assert.That(cluster.Path, Is.Null, "FdbCluster.Path should be null");

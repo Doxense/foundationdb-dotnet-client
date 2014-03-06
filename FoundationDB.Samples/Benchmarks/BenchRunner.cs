@@ -106,25 +106,25 @@ namespace FoundationDB.Samples.Benchmarks
 						{
 							case BenchMode.GetReadVersion:
 							{
-								await db.ReadAsync(tr => tr.GetReadVersionAsync());
+								await db.ReadAsync(tr => tr.GetReadVersionAsync(), ct);
 								break;
 							}
 							case BenchMode.Get:
 							{
 								if (this.Value <= 1)
 								{
-									await db.ReadAsync(tr => tr.GetAsync(foo));
+									await db.ReadAsync(tr => tr.GetAsync(foo), ct);
 								}
 								else
 								{
 									var foos = FdbTuple.PackRange(foo, Enumerable.Range(1, this.Value).ToArray());
-									await db.ReadAsync(tr => tr.GetValuesAsync(foos));
+									await db.ReadAsync(tr => tr.GetValuesAsync(foos), ct);
 								}
 								break;
 							}
 							case BenchMode.Set:
 							{
-								await db.WriteAsync(tr => tr.Set(foo, bar));
+								await db.WriteAsync(tr => tr.Set(foo, bar), ct);
 								break;
 							}
 							case BenchMode.Watch:
@@ -137,7 +137,7 @@ namespace FoundationDB.Samples.Benchmarks
 								else
 									v = bar;
 
-								await db.WriteAsync((tr) => tr.Set(foo, v));
+								await db.WriteAsync((tr) => tr.Set(foo, v), ct);
 
 								await w;
 

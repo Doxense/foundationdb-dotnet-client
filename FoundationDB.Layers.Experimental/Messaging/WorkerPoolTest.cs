@@ -30,8 +30,8 @@ namespace FoundationDB.Layers.Messaging
 				string dbName = "DB";
 				using (var db = Fdb.OpenAsync(clusterFile, dbName).GetAwaiter().GetResult())
 				{
-					var location = db.Directory.CreateOrOpenAsync(new [] { "T", "WorkerPool" }).GetAwaiter().GetResult();
-					db.ClearRangeAsync(location).GetAwaiter().GetResult();
+					var location = db.Directory.CreateOrOpenAsync(new [] { "T", "WorkerPool" }, cts.Token).GetAwaiter().GetResult();
+					db.ClearRangeAsync(location, cts.Token).GetAwaiter().GetResult();
 
 					// failsafe: remove this when not debugging problems !
 					cts.CancelAfter(TimeSpan.FromSeconds(60));

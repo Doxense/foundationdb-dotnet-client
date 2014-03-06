@@ -39,21 +39,21 @@ namespace FoundationDB.Layers.Collections
 		#region Empty / Size
 
 		/// <summary>Remove all items from the Vector.</summary>
-		public static Task<bool> EmptyAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		public static Task<bool> EmptyAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.ReadAsync((tr) => vector.EmptyAsync(tr), ct);
+			return dbOrTrans.ReadAsync((tr) => vector.EmptyAsync(tr), cancellationToken);
 		}
 
 		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
-		public static Task<long> SizeAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		public static Task<long> SizeAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.ReadAsync((tr) => vector.SizeAsync(tr), ct);
+			return dbOrTrans.ReadAsync((tr) => vector.SizeAsync(tr), cancellationToken);
 		}
 
 		#endregion
@@ -61,21 +61,21 @@ namespace FoundationDB.Layers.Collections
 		#region Clear / Resize
 
 		/// <summary>Remove all items from the Vector.</summary>
-		public static Task ClearAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		public static Task ClearAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.WriteAsync((tr) => vector.Clear(tr), ct);
+			return dbOrTrans.WriteAsync((tr) => vector.Clear(tr), cancellationToken);
 		}
 
 		/// <summary>Grow or shrink the size of the Vector.</summary>
-		public static Task ResizeAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, long length, CancellationToken ct = default(CancellationToken))
+		public static Task ResizeAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, long length, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.ReadWriteAsync((tr) => vector.ResizeAsync(tr, length), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => vector.ResizeAsync(tr, length), cancellationToken);
 		}
 
 		#endregion
@@ -83,21 +83,21 @@ namespace FoundationDB.Layers.Collections
 		#region Push / Pop
 
 		/// <summary>Get and pops the last item off the Vector.</summary>
-		public static Task<Optional<T>> PopAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, CancellationToken ct = default(CancellationToken))
+		public static Task<Optional<T>> PopAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.ReadWriteAsync((tr) => vector.PopAsync(tr), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => vector.PopAsync(tr), cancellationToken);
 		}
 
 		/// <summary>Push a single item onto the end of the Vector.</summary>
-		public static Task PushAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, T value, CancellationToken ct = default(CancellationToken))
+		public static Task PushAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, T value, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.ReadWriteAsync((tr) => vector.PushAsync(tr, value), ct);
+			return dbOrTrans.ReadWriteAsync((tr) => vector.PushAsync(tr, value), cancellationToken);
 		}
 
 		#endregion
@@ -105,21 +105,21 @@ namespace FoundationDB.Layers.Collections
 		#region Get / Set
 
 		/// <summary>Get the item at the specified index.</summary>
-		public static Task<T> GetAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, long index, CancellationToken ct = default(CancellationToken))
+		public static Task<T> GetAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional dbOrTrans, long index, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.ReadAsync((tr) => vector.GetAsync(tr, index), ct);
+			return dbOrTrans.ReadAsync((tr) => vector.GetAsync(tr, index), cancellationToken);
 		}
 
 		/// <summary>Set the value at a particular index in the Vector.</summary>
-		public static Task SetAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, long index, T value, CancellationToken ct = default(CancellationToken))
+		public static Task SetAsync<T>(this FdbVector<T> vector, IFdbTransactional dbOrTrans, long index, T value, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
 
-			return dbOrTrans.WriteAsync((tr) => vector.Set(tr, index, value), ct);
+			return dbOrTrans.WriteAsync((tr) => vector.Set(tr, index, value), cancellationToken);
 		}
 
 		#endregion

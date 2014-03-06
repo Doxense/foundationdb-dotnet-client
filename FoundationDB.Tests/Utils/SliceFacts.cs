@@ -38,7 +38,7 @@ namespace FoundationDB.Client.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class SliceFacts
+	public class SliceFacts : FdbTest
 	{
 
 		[Test]
@@ -878,7 +878,7 @@ namespace FoundationDB.Client.Tests
 			// Reading from a MemoryStream should use the non-async path
 			using (var ms = new MemoryStream(UNICODE_BYTES))
 			{
-				slice = await Slice.FromStreamAsync(ms);
+				slice = await Slice.FromStreamAsync(ms, this.Cancellation);
 			}
 			Assert.That(slice.Count, Is.EqualTo(UNICODE_BYTES.Length));
 			Assert.That(slice.GetBytes(), Is.EqualTo(UNICODE_BYTES));
@@ -891,7 +891,7 @@ namespace FoundationDB.Client.Tests
 				File.WriteAllBytes(tmp, UNICODE_BYTES);
 				using(var fs = File.OpenRead(tmp))
 				{
-					slice = await Slice.FromStreamAsync(fs);
+					slice = await Slice.FromStreamAsync(fs, this.Cancellation);
 				}
 			}
 			finally

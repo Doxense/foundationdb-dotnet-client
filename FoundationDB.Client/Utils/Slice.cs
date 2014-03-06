@@ -1513,7 +1513,7 @@ namespace FoundationDB.Client
 		/// <param name="data">Source stream, that must be in a readable state</param>
 		/// <param name="cancellationToken">Optional cancellation token for this operation</param>
 		/// <returns>Slice containing the stream content (or Slice.Nil if the stream is Stream.Nul)</returns>
-		public static Task<Slice> FromStreamAsync(Stream data, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<Slice> FromStreamAsync(Stream data, CancellationToken cancellationToken)
 		{
 			if (data == null) throw new ArgumentNullException("data");
 			// special case for empty values

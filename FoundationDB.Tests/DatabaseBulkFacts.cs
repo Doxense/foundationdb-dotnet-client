@@ -39,7 +39,7 @@ namespace FoundationDB.Client.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class DatabaseBulkFacts
+	public class DatabaseBulkFacts : FdbTest
 	{
 
 		[Test]
@@ -47,11 +47,11 @@ namespace FoundationDB.Client.Tests
 		{
 			const int N = 2000;
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				Console.WriteLine("Bulk inserting " + N + " items...");
 
-				var location = await TestHelpers.GetCleanDirectory(db, "Bulk");
+				var location = await GetCleanDirectory(db, "Bulk");
 
 				var data = Enumerable.Range(0, N)
 					.Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x.ToString("x8")), Slice.FromGuid(Guid.NewGuid())))
@@ -68,8 +68,9 @@ namespace FoundationDB.Client.Tests
 						++called;
 						lastReport = n;
 						Console.WriteLine("Chunk #" + called + " : " + n.ToString());
-					}
-				));
+					}),
+					this.Cancellation
+				);
 
 				Console.WriteLine("Done in " + called + " chunks");
 
@@ -84,7 +85,7 @@ namespace FoundationDB.Client.Tests
 				var stored = await db.ReadAsync((tr) =>
 				{
 					return tr.GetRangeStartsWith(location).ToArrayAsync();
-				});
+				}, this.Cancellation);
 
 				Assert.That(stored.Length, Is.EqualTo(N));
 				Assert.That(stored, Is.EqualTo(data));

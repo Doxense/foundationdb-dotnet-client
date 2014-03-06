@@ -77,7 +77,7 @@ namespace FoundationDB.Samples
 			}
 		}
 
-		public static void RunAsyncTest(IAsyncTest test)
+		public static void RunAsyncTest(IAsyncTest test, CancellationToken ct)
 		{
 			Console.WriteLine("# Running {0} ...");
 
@@ -85,7 +85,7 @@ namespace FoundationDB.Samples
 			{
 				var db = GetLoggedDatabase(Db, log);
 
-				var cts = new CancellationTokenSource();
+				var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 				try
 				{
 					var t = test.Run(db, log ?? Console.Out, cts.Token);
@@ -173,6 +173,8 @@ namespace FoundationDB.Samples
 				startCommand = String.Join(" ", args, pStart, args.Length - pStart);
 			}
 
+			var go = new CancellationTokenSource();
+
 			// Initialize FDB
 			Fdb.Start();
 			try
@@ -183,7 +185,7 @@ namespace FoundationDB.Samples
 				}
 				else
 				{
-					Db = Fdb.Directory.OpenNamedPartitionAsync(clusterFile, dbName, partition).GetAwaiter().GetResult();
+					Db = Fdb.Directory.OpenNamedPartitionAsync(clusterFile, dbName, partition, false, go.Token).GetAwaiter().GetResult();
 				}
 				using (Db)
 				{
@@ -192,7 +194,7 @@ namespace FoundationDB.Samples
 
 					Console.WriteLine("Using API v" + Fdb.ApiVersion + " (max " + Fdb.GetMaxApiVersion() + ")");
 					Console.WriteLine("Cluster file: " + (clusterFile ?? "<default>"));
-					var cf = Db.GetCoordinatorsAsync().GetAwaiter().GetResult();
+					var cf = Db.GetCoordinatorsAsync(go.Token).GetAwaiter().GetResult();
 					Console.WriteLine("Connnected to: " + cf.Description + " (" + cf.Id + ")");
 					foreach (var coordinator in cf.Coordinators)
 					{
@@ -230,7 +232,7 @@ namespace FoundationDB.Samples
 							case "1":
 							{ // Class Scheduling
 
-								RunAsyncTest(new ClassScheduling());
+								RunAsyncTest(new ClassScheduling(), go.Token);
 								break;
 							}
 
@@ -308,27 +310,27 @@ namespace FoundationDB.Samples
 								{
 									case "read":
 									{
-										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.GetReadVersion));
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.GetReadVersion), go.Token);
 										break;
 									}
 									case "get":
 									{
-										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Get));
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Get), go.Token);
 										break;
 									}
 									case "get10":
 									{
-										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Get, 10));
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Get, 10), go.Token);
 										break;
 									}
 									case "set":
 									{ // Bench Set
-										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Set));
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Set), go.Token);
 										break;
 									}
 									case "watch":
 									{ // Bench Set
-										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Watch));
+										RunAsyncTest(new BenchRunner(BenchRunner.BenchMode.Watch), go.Token);
 										break;
 									}
 								}
@@ -342,22 +344,22 @@ namespace FoundationDB.Samples
 								{
 									case "producer":
 									{ // Queue Producer
-										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Producer, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(200)));
+										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Producer, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(200)), go.Token);
 										break;
 									}
 									case "worker":
 									{ // Queue Worker
-										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Worker, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(10)));
+										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Worker, TimeSpan.FromMilliseconds(10), TimeSpan.FromMilliseconds(10)), go.Token);
 										break;
 									}
 									case "clear":
 									{ // Queue Clear
-										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Clear, TimeSpan.Zero, TimeSpan.Zero));
+										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Clear, TimeSpan.Zero, TimeSpan.Zero), go.Token);
 										break;
 									}
 									case "status":
 									{ // Queue Status
-										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Status, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)));
+										RunAsyncTest(new MessageQueueRunner(PerfCounters.ProcessName + "[" + PerfCounters.ProcessId + "]", MessageQueueRunner.AgentRole.Status, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)), go.Token);
 										break;
 									}
 								}
@@ -368,16 +370,16 @@ namespace FoundationDB.Samples
 							{ // LeastTest
 								switch(prm.ToLowerInvariant())
 								{
-									case "fast": RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(0))); break;
-									case "slow": RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30))); break;
-									default: RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(1))); break;
+									case "fast": RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(0)), go.Token); break;
+									case "slow": RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(30)), go.Token); break;
+									default: RunAsyncTest(new LeakTest(100, 100, 1000, TimeSpan.FromSeconds(1)), go.Token); break;
 								}							
 								break;
 							}
 
 							case "sampling":
 							{ // SamplingTest
-								RunAsyncTest(new SamplerTest(0.1));
+								RunAsyncTest(new SamplerTest(0.1), go.Token);
 								break;
 							}
 
@@ -427,6 +429,7 @@ namespace FoundationDB.Samples
 			}
 			finally
 			{
+				go.Cancel();
 				Fdb.Stop();
 				Console.WriteLine("Bye");
 			}

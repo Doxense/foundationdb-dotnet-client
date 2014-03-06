@@ -70,6 +70,7 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="FdbTest.cs" />
     <Compile Include="ClusterFacts.cs" />
     <Compile Include="Encoders\EncoderFacts.cs" />
     <Compile Include="Encoders\TypeCodecFacts.cs" />

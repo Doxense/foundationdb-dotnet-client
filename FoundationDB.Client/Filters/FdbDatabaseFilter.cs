@@ -132,73 +132,73 @@ namespace FoundationDB.Filters
 			return m_database.BeginTransaction(mode, cancellationToken, context);
 		}
 
-		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken = default(CancellationToken))
+		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunReadAsync(this, asyncHandler, null, cancellationToken);
 		}
 
-		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken))
+		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunReadAsync(this, asyncHandler, onDone, cancellationToken);
 		}
 
-		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
 		}
 
-		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);
 		}
 
-		public Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken cancellationToken = default(CancellationToken))
+		public Task WriteAsync(Action<IFdbTransaction> handler, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteAsync(this, handler, null, cancellationToken);
 		}
 
-		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken))
+		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
 		}
 
-		public Task WriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken cancellationToken = default(CancellationToken))
+		public Task WriteAsync(Func<IFdbTransaction, Task> handler, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteAsync(this, handler, null, cancellationToken);
 		}
 
-		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken))
+		public Task WriteAsync(Func<IFdbTransaction, Task> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
 		}
 
-		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken = default(CancellationToken))
+		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, cancellationToken);
 		}
 
-		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken))
+		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, cancellationToken);
 		}
 
-		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
 		}
 
-		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken = default(CancellationToken))
+		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);

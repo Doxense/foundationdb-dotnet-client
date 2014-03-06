@@ -81,7 +81,6 @@
     <Compile Include="Native\FdbNativeTransaction.cs" />
     <Compile Include="IFdbKey.cs" />
     <Compile Include="FdbTransactionMode.cs" />
-    <Compile Include="FdbTransactionals.cs" />
     <Compile Include="Filters\FdbFilterExtensions.cs" />
     <Compile Include="Filters\FdbTransactionFilter.cs" />
     <Compile Include="Filters\FdbDatabaseFilter.cs" />

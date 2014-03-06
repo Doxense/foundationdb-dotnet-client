@@ -42,18 +42,18 @@ namespace FoundationDB.Layers.Collections.Tests
 
 	[TestFixture]
 	[Obsolete]
-	public class VectorFacts
+	public class VectorFacts : FdbTest
 	{
 		[Test]
 		public async Task Test_Vector_Fast()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "vector");
+				var location = await GetCleanDirectory(db, "vector");
 
 				var vector = new FdbVector<Slice>(location, Slice.Empty, KeyValueEncoders.Values.BinaryEncoder);
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 
 					Console.WriteLine("Clearing any previous values in the vector");

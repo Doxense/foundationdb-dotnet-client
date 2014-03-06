@@ -36,7 +36,7 @@ namespace FoundationDB.Layers.Documents.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class DocumentCollectionFacts
+	public class DocumentCollectionFacts : FdbTest
 	{
 
 		private class Book
@@ -74,9 +74,9 @@ namespace FoundationDB.Layers.Documents.Tests
 		[Test]
 		public async Task Test_Can_Insert_And_Retrieve_Json_Documents()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "Books", "JSON");
+				var location = await GetCleanDirectory(db, "Books", "JSON");
 
 				var docs = new FdbDocumentCollection<Book, int>(
 					location,
@@ -88,13 +88,13 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store a document
 				var book1 = books[0];
-				await docs.InsertAsync(db, book1);
+				await docs.InsertAsync(db, book1, this.Cancellation);
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
 				// retrieve the document
-				var copy = await docs.LoadAsync(db, book1.Id);
+				var copy = await docs.LoadAsync(db, book1.Id, this.Cancellation);
 
 				Assert.That(copy, Is.Not.Null);
 				Assert.That(copy.Id, Is.EqualTo(book1.Id));
@@ -105,9 +105,9 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store another document
 				var book2 = books[1];
-				await docs.InsertAsync(db, book2);
+				await docs.InsertAsync(db, book2, this.Cancellation);
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 			}
 		}
@@ -115,9 +115,9 @@ namespace FoundationDB.Layers.Documents.Tests
 		[Test]
 		public async Task Test_Can_Insert_And_Retrieve_ProtoBuf_Documents()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "Books", "ProtoBuf");
+				var location = await GetCleanDirectory(db, "Books", "ProtoBuf");
 
 				// quickly define the metatype for Books, because I'm too lazy to write a .proto for this, or add [ProtoMember] attributes everywhere
 				var metaType = ProtoBuf.Meta.RuntimeTypeModel.Default.Add(typeof(Book), false);
@@ -134,13 +134,13 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store a document
 				var book1 = books[0];
-				await docs.InsertAsync(db, book1);
+				await docs.InsertAsync(db, book1, this.Cancellation);
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
 				// retrieve the document
-				var copy = await docs.LoadAsync(db, 42);
+				var copy = await docs.LoadAsync(db, 42, this.Cancellation);
 
 				Assert.That(copy, Is.Not.Null);
 				Assert.That(copy.Id, Is.EqualTo(book1.Id));
@@ -151,9 +151,9 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store another document
 				var book2 = books[1];
-				await docs.InsertAsync(db, book2);
+				await docs.InsertAsync(db, book2, this.Cancellation);
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 			}
 		}

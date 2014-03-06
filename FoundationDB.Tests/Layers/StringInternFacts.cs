@@ -35,25 +35,25 @@ namespace FoundationDB.Layers.Interning.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class StringInternFacts
+	public class StringInternFacts : FdbTest
 	{
 
 		[Test]
 		public async Task Test_StringIntern_Example()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var stringSpace = db.Partition("Strings");
 				var dataSpace = db.Partition("Data");
 
 				// clear all previous data
-				await TestHelpers.DeleteSubspace(db, stringSpace);
-				await TestHelpers.DeleteSubspace(db, dataSpace);
+				await DeleteSubspace(db, stringSpace);
+				await DeleteSubspace(db, dataSpace);
 
 				var stringTable = new FdbStringIntern(stringSpace);
 
 				// insert a bunch of strings
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					tr.Set(dataSpace.Pack("a"), await stringTable.InternAsync(tr, "testing 123456789"));
 					tr.Set(dataSpace.Pack("b"), await stringTable.InternAsync(tr, "dog"));
@@ -65,12 +65,12 @@ namespace FoundationDB.Layers.Interning.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, stringSpace);
-				await TestHelpers.DumpSubspace(db, dataSpace);
+				await DumpSubspace(db, stringSpace);
+				await DumpSubspace(db, dataSpace);
 #endif
 
 				// check the contents of the data
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var uid_a = await tr.GetAsync(dataSpace.Pack("a"));
 					var uid_b = await tr.GetAsync(dataSpace.Pack("b"));

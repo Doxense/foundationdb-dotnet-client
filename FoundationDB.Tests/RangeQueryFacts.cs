@@ -39,7 +39,7 @@ namespace FoundationDB.Client.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class RangeQueryFacts
+	public class RangeQueryFacts : FdbTest
 	{
 
 		[Test]
@@ -49,16 +49,16 @@ namespace FoundationDB.Client.Tests
 
 			const int N = 1000; // total item count
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await TestHelpers.GetCleanDirectory(db, "range");
+				var location = await GetCleanDirectory(db, "range");
 
 				// insert all values (batched)
 				Console.WriteLine("Inserting " + N.ToString("N0") + " keys...");
 				var insert = Stopwatch.StartNew();
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{ 
 					foreach (int i in Enumerable.Range(0, N))
 					{
@@ -73,7 +73,7 @@ namespace FoundationDB.Client.Tests
 
 				// GetRange values
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var query = tr.GetRange(location.Pack(0), location.Pack(N));
 					Assert.That(query, Is.Not.Null);
@@ -121,17 +121,17 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Range_First_Single_And_Last()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				// put test values in a namespace
-				var location = await TestHelpers.GetCleanDirectory(db, "range");
+				var location = await GetCleanDirectory(db, "range");
 
 				var a = location.Partition("a");
 				var b = location.Partition("b");
 				var c = location.Partition("c");
 
 				// insert a bunch of keys under 'a', only one under 'b', and nothing under 'c'
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					for (int i = 0; i < 10; i++)
 					{
@@ -144,7 +144,7 @@ namespace FoundationDB.Client.Tests
 				KeyValuePair<Slice, Slice> res;
 
 				// A: more then one item
-				using(var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var query = tr.GetRange(a.ToRange());
 
@@ -176,7 +176,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// B: exactly one item
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var query = tr.GetRange(b.ToRange());
 
@@ -212,7 +212,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// C: no items
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var query = tr.GetRange(c.ToRange());
 
@@ -250,13 +250,13 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
-			using(var db = await TestHelpers.OpenTestPartitionAsync())
+			using(var db = await OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("MergeSort");
 
 				// clear!
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				// create K lists
 				var lists = Enumerable.Range(0, K).Select(i => location.Partition(i)).ToArray();
@@ -269,7 +269,7 @@ namespace FoundationDB.Client.Tests
 
 				for (int k = 0; k < K; k++)
 				{
-					using (var tr = db.BeginTransaction())
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						for (int i = 0; i < N; i++)
 						{
@@ -282,7 +282,7 @@ namespace FoundationDB.Client.Tests
 				// MergeSorting all lists together should produce all integers from 0 to (K*N)-1, in order
 				// we use the last part of the key for sorting
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.MergeSort(
 						lists.Select(list => list.ToSelectorPair()),
@@ -314,13 +314,13 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Intersect");
 
 				// clear!
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				// create K lists
 				var lists = Enumerable.Range(0, K).Select(i => location.Partition(i)).ToArray();
@@ -340,7 +340,7 @@ namespace FoundationDB.Client.Tests
 				for (int k = 0; k < K; k++)
 				{
 					//Console.WriteLine("> k = " + k);
-					using (var tr = db.BeginTransaction())
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						for (int i = 0; i < N; i++)
 						{
@@ -359,7 +359,7 @@ namespace FoundationDB.Client.Tests
 				var expected = xs.ToArray();
 				Console.WriteLine(String.Join(", ", expected));
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.Intersect(
 						lists.Select(list => list.ToSelectorPair()),
@@ -391,13 +391,13 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Except");
 
 				// clear!
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				// create K lists
 				var lists = Enumerable.Range(0, K).Select(i => location.Partition(i)).ToArray();
@@ -417,7 +417,7 @@ namespace FoundationDB.Client.Tests
 				for (int k = 0; k < K; k++)
 				{
 					//Console.WriteLine("> k = " + k);
-					using (var tr = db.BeginTransaction())
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						for (int i = 0; i < N; i++)
 						{
@@ -436,7 +436,7 @@ namespace FoundationDB.Client.Tests
 				var expected = xs.ToArray();
 				Console.WriteLine(String.Join(", ", expected));
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.Except(
 						lists.Select(list => list.ToSelectorPair()),

@@ -40,19 +40,19 @@ namespace FoundationDB.Layers.Tables.Tests
 	using System;
 
 	[TestFixture]
-	public class IndexingFacts
+	public class IndexingFacts : FdbTest
 	{
 
 		[Test]
 		public async Task Task_Can_Add_Update_Remove_From_Index()
 		{
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("Indexing");
 
 				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
+				await DeleteSubspace(db, location);
 
 
 				var subspace = location.Partition("FoosByColor");
@@ -66,15 +66,15 @@ namespace FoundationDB.Layers.Tables.Tests
 					index.Add(tr, 3, "blue");
 					index.Add(tr, 4, "green");
 					index.Add(tr, 5, "yellow");
-				});
+				}, this.Cancellation);
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, subspace);
+				await DumpSubspace(db, subspace);
 #endif
 
 				// lookup values
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var reds = await index.LookupAsync(tr, "red");
 					Assert.That(reds, Is.EqualTo(new int[] { 1 }));
@@ -95,15 +95,15 @@ namespace FoundationDB.Layers.Tables.Tests
 				{
 					index.Update(tr, 3, "indigo", "blue");
 					index.Remove(tr, 5, "yellow");
-				});
+				}, this.Cancellation);
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, subspace);
+				await DumpSubspace(db, subspace);
 #endif
 
 				// check values
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var reds = await index.LookupAsync(tr, "red");
 					Assert.That(reds, Is.EqualTo(new int[] { 1 }));
@@ -129,13 +129,13 @@ namespace FoundationDB.Layers.Tables.Tests
 		public async Task Test_Can_Combine_Indexes()
 		{
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = await TestHelpers.GetCleanDirectory(db, "Indexing");
+				var location = await GetCleanDirectory(db, "Indexing");
 
 				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
+				await DeleteSubspace(db, location);
 
 				// summon our main cast
 				var characters = new List<Character>()
@@ -161,14 +161,14 @@ namespace FoundationDB.Layers.Tables.Tests
 						indexSuperHero.Add(tr, character.Id, character.HasSuperPowers);
 						indexAlignment.Add(tr, character.Id, character.IsVilain);
 					}
-				});
+				}, this.Cancellation);
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
 				// super hereos only (sorry Batman!)
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var superHeroes = await indexSuperHero.LookupAsync(tr, value: true);
 					Console.WriteLine("SuperHeroes: " + string.Join(", ", superHeroes));
@@ -176,7 +176,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 				// Versus !
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var dc = await indexBrand.LookupAsync(tr, value: "DC");
 					Console.WriteLine("DC: " + string.Join(", ", dc));
@@ -188,7 +188,7 @@ namespace FoundationDB.Layers.Tables.Tests
 				}
 
 				// Vilains with superpowers are the worst
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var first = indexAlignment.Lookup(tr, value: true);
 					var second = indexSuperHero.Lookup(tr, value: true);

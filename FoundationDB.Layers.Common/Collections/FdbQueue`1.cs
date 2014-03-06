@@ -123,20 +123,20 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public Task<Optional<T>> PopAsync(IFdbDatabase db, CancellationToken ct = default(CancellationToken))
+		public Task<Optional<T>> PopAsync(IFdbDatabase db, CancellationToken cancellationToken)
 		{
-			if (ct.IsCancellationRequested)
+			if (cancellationToken.IsCancellationRequested)
 			{
-				return TaskHelpers.FromCancellation<Optional<T>>(ct);
+				return TaskHelpers.FromCancellation<Optional<T>>(cancellationToken);
 			}
 
 			if (this.HighContention)
 			{
-				return PopHighContentionAsync(db, ct);
+				return PopHighContentionAsync(db, cancellationToken);
 			}
 			else
 			{
-				return db.ReadWriteAsync((tr) => this.PopSimpleAsync(tr), ct);
+				return db.ReadWriteAsync((tr) => this.PopSimpleAsync(tr), cancellationToken);
 			}
 		}
 

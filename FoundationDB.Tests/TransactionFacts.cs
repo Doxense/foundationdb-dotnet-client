@@ -39,17 +39,17 @@ namespace FoundationDB.Client.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class TransactionFacts
+	public class TransactionFacts : FdbTest
 	{
 
 		[Test]
 		public async Task Test_Can_Create_And_Dispose_Transactions()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				Assert.That(db, Is.InstanceOf<FdbDatabase>(), "This test only works directly on FdbDatabase");
 
-				using (var tr = (FdbTransaction)db.BeginTransaction())
+				using (var tr = (FdbTransaction)db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.Not.Null, "BeginTransaction should return a valid instance");
 					Assert.That(tr.State == FdbTransaction.STATE_READY, "Transaction should be in ready state");
@@ -75,9 +75,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Creating_A_ReadOnly_Transaction_Throws_When_Writing()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = db.BeginReadOnlyTransaction())
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.Not.Null);
 					
@@ -99,7 +99,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Creating_Concurrent_Transactions_Are_Independent()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				IFdbTransaction tr1 = null;
 				IFdbTransaction tr2 = null;
@@ -107,8 +107,8 @@ namespace FoundationDB.Client.Tests
 				{
 					// concurrent transactions should have separate FDB_FUTURE* handles
 
-					tr1 = db.BeginTransaction();
-					tr2 = db.BeginTransaction();
+					tr1 = db.BeginTransaction(this.Cancellation);
+					tr2 = db.BeginTransaction(this.Cancellation);
 
 					Assert.That(tr1, Is.Not.Null);
 					Assert.That(tr2, Is.Not.Null);
@@ -141,9 +141,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Commiting_An_Empty_Transaction_Does_Nothing()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
 
@@ -160,9 +160,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Resetting_An_Empty_Transaction_Does_Nothing()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// do nothing with it
 					await tr.CommitAsync();
@@ -179,9 +179,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Cancelling_An_Empty_Transaction_Does_Nothing()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.InstanceOf<FdbTransaction>());
 
@@ -199,11 +199,11 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Cancelling_Transaction_Before_Commit_Should_Throw_Immediately()
 		{
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
-				using(var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					tr.Set(location.Pack(1), Slice.FromString("hello"));
 					tr.Cancel();
@@ -224,15 +224,15 @@ namespace FoundationDB.Client.Tests
 			// => we will try to commit a very large transaction in order to give us some time
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var rnd = new Random();
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// Writes about 5 MB of stuff in 100k chunks
 					for (int i = 0; i < 50; i++)
@@ -264,11 +264,11 @@ namespace FoundationDB.Client.Tests
 			// => we will try to commit a very large transaction in order to give us some time
 			// note: if this test fails because it commits to fast, that means that your system is foo fast :)
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var rnd = new Random();
 
@@ -298,9 +298,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Transaction_Read_Version()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					long ver = await tr.GetReadVersionAsync();
 					Assert.That(ver, Is.GreaterThan(0), "Read version should be > 0");
@@ -317,7 +317,7 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can read and write simple keys
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				long ticks = DateTime.UtcNow.Ticks;
 				long writeVersion;
@@ -326,7 +326,7 @@ namespace FoundationDB.Client.Tests
 				var location = db.Partition("test");
 
 				// write a bunch of keys
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					tr.Set(location.Pack("hello"), Slice.FromString("World!"));
 					tr.Set(location.Pack("timestamp"), Slice.FromInt64(ticks));
@@ -339,7 +339,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// read them back
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Slice bytes;
 
@@ -366,16 +366,16 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Resolve_Key_Selector()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("keys");
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var minKey = location.Key + FdbKey.MinValue;
 				var maxKey = location.Key + FdbKey.MaxValue;
 
 				#region Insert a bunch of keys ...
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// keys
 					// - (test,) + \0
@@ -391,7 +391,7 @@ namespace FoundationDB.Client.Tests
 				}
 				#endregion
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					FdbKeySelector sel;
 
@@ -460,9 +460,9 @@ namespace FoundationDB.Client.Tests
 			Slice key;
 
 			// note: we can't have any prefix on the keys, so open the test database in read-only mode
-			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, FdbSubspace.Empty, readOnly: true))
+			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, FdbSubspace.Empty, readOnly: true, cancellationToken: this.Cancellation))
 			{
-				using (var tr = db.BeginReadOnlyTransaction())
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					// before <00>
 					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MinValue));
@@ -514,15 +514,15 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Get_Multiple_Values()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("Batch");
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				int[] ids = new int[] { 8, 7, 2, 9, 5, 0, 3, 4, 6, 1 };
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					for (int i = 0; i < ids.Length; i++)
 					{
@@ -531,7 +531,7 @@ namespace FoundationDB.Client.Tests
 					await tr.CommitAsync();
 				}
 
-				using(var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var keys = ids.Select(id => location.Pack(id)).ToArray();
 
@@ -557,17 +557,17 @@ namespace FoundationDB.Client.Tests
 		{
 			const int N = 20;
 
-			using(var db = await TestHelpers.OpenTestPartitionAsync())
+			using(var db = await OpenTestPartitionAsync())
 			{
 
 				var location = db.Partition("keys");
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var minKey = location.Key + FdbKey.MinValue;
 				var maxKey = location.Key + FdbKey.MaxValue;
 
 				#region Insert a bunch of keys ...
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// keys
 					// - (test,) + \0
@@ -583,7 +583,7 @@ namespace FoundationDB.Client.Tests
 				}
 				#endregion
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var selectors = Enumerable.Range(0, N).Select((i) => FdbKeySelector.FirstGreaterOrEqual(location.Pack(i))).ToArray();
 
@@ -622,21 +622,21 @@ namespace FoundationDB.Client.Tests
 			}
 
 			// set key = x
-			using(var tr = db.BeginTransaction())
+			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				tr.Set(key, Slice.FromFixed32(x));
 				await tr.CommitAsync();
 			}
 
 			// atomic key op y
-			using (var tr = db.BeginTransaction())
+			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				tr.Atomic(key, Slice.FromFixed32(y), type);
 				await tr.CommitAsync();
 			}
 
 			// read key
-			using(var tr = db.BeginTransaction())
+			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
 				var data = await tr.GetAsync(key);
 				Assert.That(data.Count, Is.EqualTo(4), "data.Count");
@@ -650,9 +650,9 @@ namespace FoundationDB.Client.Tests
 		{
 			// test that we can perform atomic mutations on keys
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "test", "atomic");
+				var location = await GetCleanDirectory(db, "test", "atomic");
 
 				Slice key;
 
@@ -686,7 +686,7 @@ namespace FoundationDB.Client.Tests
 				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitXor, 0x018055AA);
 
 				// calling with an invalid mutation type should fail
-				using(var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					key = location.Pack("invalid");
 					Assert.That(() => tr.Atomic(key, Slice.FromFixed32(42), (FdbMutationType)42), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidMutationType));
@@ -698,21 +698,21 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Snapshot_Read()
 		{
 
-			using(var db = await TestHelpers.OpenTestPartitionAsync())
+			using(var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				// write a bunch of keys
 				await db.WriteAsync((tr) =>
 				{
 					tr.Set(location.Pack("hello"), Slice.FromString("World!"));
 					tr.Set(location.Pack("foo"), Slice.FromString("bar"));
-				});
+				}, this.Cancellation);
 
 				// read them using snapshot
-				using(var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Slice bytes;
 
@@ -733,9 +733,9 @@ namespace FoundationDB.Client.Tests
 		{
 			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					long ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
@@ -761,9 +761,9 @@ namespace FoundationDB.Client.Tests
 		{
 			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// take the read version (to compare with the committed version below)
 					long readVersion = await tr.GetReadVersionAsync();
@@ -792,9 +792,9 @@ namespace FoundationDB.Client.Tests
 		{
 			//note: until CommitAsync() is called, the value of the committed version is unspecified, but current implementation returns -1
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// take the read version (to compare with the committed version below)
 					long rv1 = await tr.GetReadVersionAsync();
@@ -830,19 +830,19 @@ namespace FoundationDB.Client.Tests
 		{
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
 				{
 					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
-				});
+				}, this.Cancellation);
 
-				using (var trA = db.BeginTransaction())
-				using (var trB = db.BeginTransaction())
+				using (var trA = db.BeginTransaction(this.Cancellation))
+				using (var trB = db.BeginTransaction(this.Cancellation))
 				{
 					// regular read
 					var foo = await trA.GetAsync(location.Pack("foo"));
@@ -869,18 +869,18 @@ namespace FoundationDB.Client.Tests
 
 			// see http://community.foundationdb.com/questions/490/snapshot-read-vs-non-snapshot-read/492
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
 				{
 					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
-				});
+				}, this.Cancellation);
 
-				using (var trA = db.BeginTransaction())
-				using (var trB = db.BeginTransaction())
+				using (var trA = db.BeginTransaction(this.Cancellation))
+				using (var trB = db.BeginTransaction(this.Cancellation))
 				{
 					// reading with snapshot mode should not conflict
 					var foo = await trA.Snapshot.GetAsync(location.Pack("foo"));
@@ -900,7 +900,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_GetRange_With_Concurrent_Change_Should_Conflict()
 		{
-			using(var db = await TestHelpers.OpenTestPartitionAsync())
+			using(var db = await OpenTestPartitionAsync())
 			{
 
 				var loc = db.Partition("test");
@@ -909,13 +909,13 @@ namespace FoundationDB.Client.Tests
 				{
 					tr.ClearRange(loc);
 					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
-				});
+				}, this.Cancellation);
 
 				// we will read the first key from [0, 100), expected 50
 				// but another transaction will insert 42, in effect changing the result of our range
 				// => this should conflict the GetRange
 
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// [0, 100) limit 1 => 50
 					var kvp = await tr1
@@ -924,7 +924,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(kvp.Key, Is.EqualTo(loc.Pack("foo", 50)));
 
 					// 42 < 50 > conflict !!!
-					using (var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						tr2.Set(loc.Pack("foo", 42), Slice.FromAscii("forty-two"));
 						await tr2.CommitAsync();
@@ -944,9 +944,9 @@ namespace FoundationDB.Client.Tests
 				{
 					tr.ClearRange(loc);
 					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
-				});
+				}, this.Cancellation);
 
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// [0, 100) limit 1 => 50
 					var kvp = await tr1
@@ -955,7 +955,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(kvp.Key, Is.EqualTo(loc.Pack("foo", 50)));
 
 					// 77 > 50 => no conflict
-					using (var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						tr2.Set(loc.Pack("foo", 77), Slice.FromAscii("docm"));
 						await tr2.CommitAsync();
@@ -974,7 +974,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_GetKey_With_Concurrent_Change_Should_Conflict()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 
 				var loc = db.Partition("test");
@@ -983,18 +983,18 @@ namespace FoundationDB.Client.Tests
 				{
 					tr.ClearRange(loc);
 					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
-				});
+				}, this.Cancellation);
 
 				// we will ask for the first key from >= 0, expecting 50, but if another transaction inserts something BEFORE 50, our key selector would have returned a different result, causing a conflict
 
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{0} => 50
 					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Pack("foo", 0)));
 					Assert.That(key, Is.EqualTo(loc.Pack("foo", 50)));
 
 					// 42 < 50 => conflict !!!
-					using (var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						tr2.Set(loc.Pack("foo", 42), Slice.FromAscii("forty-two"));
 						await tr2.CommitAsync();
@@ -1012,16 +1012,16 @@ namespace FoundationDB.Client.Tests
 				{
 					tr.ClearRange(loc);
 					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
-				});
+				}, this.Cancellation);
 
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{0} => 50
 					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Pack("foo", 0)));
 					Assert.That(key, Is.EqualTo(loc.Pack("foo", 50)));
 
 					// 77 > 50 => no conflict
-					using (var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						tr2.Set(loc.Pack("foo", 77), Slice.FromAscii("docm"));
 						await tr2.CommitAsync();
@@ -1041,16 +1041,16 @@ namespace FoundationDB.Client.Tests
 					tr.ClearRange(loc);
 					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
 					tr.Set(loc.Pack("foo", 100), Slice.FromAscii("one hundred"));
-				});
+				}, this.Cancellation);
 
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{50} + 1 => 100
 					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Pack("foo", 50)) + 1);
 					Assert.That(key, Is.EqualTo(loc.Pack("foo", 100)));
 
 					// 77 between 50 and 100 => conflict !!!
-					using (var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						tr2.Set(loc.Pack("foo", 77), Slice.FromAscii("docm"));
 						await tr2.CommitAsync();
@@ -1070,16 +1070,16 @@ namespace FoundationDB.Client.Tests
 					tr.ClearRange(loc);
 					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
 					tr.Set(loc.Pack("foo", 100), Slice.FromAscii("one hundred"));
-				});
+				}, this.Cancellation);
 
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGT{50} => 100
 					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterThan(loc.Pack("foo", 50)));
 					Assert.That(key, Is.EqualTo(loc.Pack("foo", 100)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
-					using (var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						tr2.Set(loc.Pack("foo", 100), Slice.FromAscii("cent"));
 						await tr2.CommitAsync();
@@ -1099,16 +1099,16 @@ namespace FoundationDB.Client.Tests
 					tr.ClearRange(loc);
 					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
 					tr.Set(loc.Pack("foo", 100), Slice.FromAscii("one hundred"));
-				});
+				}, this.Cancellation);
 
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// lLT{100} => 50
 					var key = await tr1.GetKeyAsync(FdbKeySelector.LastLessThan(loc.Pack("foo", 100)));
 					Assert.That(key, Is.EqualTo(loc.Pack("foo", 50)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
-					using (var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						tr2.Clear(loc.Pack("foo", 100));
 						await tr2.CommitAsync();
@@ -1138,22 +1138,22 @@ namespace FoundationDB.Client.Tests
 
 			// T1 should see A == 1, because it was started before T2
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 				var key = location.Pack("A");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
-				await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(1)));
-				using(var tr1 = db.BeginTransaction())
+				await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(1)), this.Cancellation);
+				using(var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// make sure that T1 has seen the db BEFORE T2 gets executed, or else it will not really be initialized until after the first read or commit
 					await tr1.GetReadVersionAsync();
 					//T1 should be locked to a specific version of the db
 
 					// change the value in T2
-					await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(2)));
+					await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(2)), this.Cancellation);
 
 					// read the value in T1 and commits
 					var value = await tr1.GetAsync(key);
@@ -1176,13 +1176,13 @@ namespace FoundationDB.Client.Tests
 				// > T1 commits
 
 				// T1 should see A == 2, because in reality, it was started after T2
-				await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(1)));
-				using (var tr1 = db.BeginTransaction())
+				await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(1)), this.Cancellation);
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					//do NOT use T1 yet
 
 					// change the value in T2
-					await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(2)));
+					await db.WriteAsync((tr) => tr.Set(key, Slice.FromInt32(2)), this.Cancellation);
 
 					// read the value in T1 and commits
 					var value = await tr1.GetAsync(key);
@@ -1204,10 +1204,10 @@ namespace FoundationDB.Client.Tests
 			// - Regular reads see the writes made by the transaction itself, but not the writes made by other transactions that committed in between
 			// - Snapshot reads never see the writes made since the transaction read version, including the writes made by the transaction itself
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var a = location.Pack("A");
 				var b = location.Pack("B");
@@ -1227,9 +1227,9 @@ namespace FoundationDB.Client.Tests
 					tr.Set(b, Slice.FromString("b"));
 					tr.Set(c, Slice.FromString("c"));
 					tr.Set(d, Slice.FromString("d"));
-				});
+				}, this.Cancellation);
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var aval = await tr.GetAsync(a);
 					var bval = await tr.GetAsync(b);
@@ -1246,7 +1246,7 @@ namespace FoundationDB.Client.Tests
 					{
 						tr2.Set(b, Slice.FromString("bb"));
 						tr2.Set(d, Slice.FromString("dd"));
-					});
+					}, this.Cancellation);
 
 					aval = await tr.GetAsync(a);
 					bval = await tr.GetAsync(b);
@@ -1265,10 +1265,10 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_ReadYourWritesDisable_Isolation()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var a = location.Pack("A");
 				var b = location.Partition("B");
@@ -1282,9 +1282,9 @@ namespace FoundationDB.Client.Tests
 					tr.Set(a, Slice.FromString("a"));
 					tr.Set(b.Pack(10), Slice.FromString("PRINT \"HELLO\""));
 					tr.Set(b.Pack(20), Slice.FromString("GOTO 10"));
-				});
+				}, this.Cancellation);
 
-				using(var tr = db.BeginTransaction())
+				using(var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"));
@@ -1308,7 +1308,7 @@ namespace FoundationDB.Client.Tests
 
 				// The ReadYourWritesDisable option cause reads to always return the value in the database
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
 
@@ -1340,14 +1340,14 @@ namespace FoundationDB.Client.Tests
 			// * tr2 will set value to 2
 			// * tr3 will SetReadVersion(TR1.CommittedVersion) and we expect it to read 1 (and not 2)
 
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test");
 
 				long commitedVersion;
 
 				// create first version
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					tr1.Set(location.Pack("concurrent"), Slice.FromByte(1));
 					await tr1.CommitAsync();
@@ -1357,14 +1357,14 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// mutate in another transaction
-				using (var tr2 = db.BeginTransaction())
+				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
 					tr2.Set(location.Pack("concurrent"), Slice.FromByte(2));
 					await tr2.CommitAsync();
 				}
 
 				// read the value with TR1's commited version
-				using (var tr3 = db.BeginTransaction())
+				using (var tr3 = db.BeginTransaction(this.Cancellation))
 				{
 					tr3.SetReadVersion(commitedVersion);
 
@@ -1383,10 +1383,10 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Has_Access_To_System_Keys()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 
 					// should fail if access to system keys has not been requested
@@ -1410,9 +1410,9 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Set_Timeout_And_RetryLimit()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr.Timeout, Is.EqualTo(0), "Timeout (default)");
 					Assert.That(tr.RetryLimit, Is.EqualTo(0), "RetryLimit (default)");
@@ -1429,7 +1429,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Timeout_And_RetryLimit_Inherits_Default_From_Database()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			{
 				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
 				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
@@ -1442,7 +1442,7 @@ namespace FoundationDB.Client.Tests
 
 				// transaction should be already configured with the default options
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
 					Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
@@ -1452,7 +1452,7 @@ namespace FoundationDB.Client.Tests
 					db.DefaultTimeout = 600;
 					db.DefaultRetryLimit = 4;
 
-					using(var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						Assert.That(tr2.Timeout, Is.EqualTo(600), "tr2.Timeout");
 						Assert.That(tr2.RetryLimit, Is.EqualTo(4), "tr2.RetryLimit");
@@ -1470,7 +1470,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Transaction_RetryLoop_Respects_DefaultRetryLimit_Value()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			using (var go = new CancellationTokenSource())
 			{
 				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
@@ -1515,10 +1515,10 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Transaction_RetryLoop_Resets_RetryLimit_And_Timeout()
 		{
-			using (var db = await TestHelpers.OpenTestDatabaseAsync())
+			using (var db = await OpenTestDatabaseAsync())
 			using (var go = new CancellationTokenSource())
 			{
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// simulate a first error
 					tr.RetryLimit = 10;
@@ -1547,16 +1547,16 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Add_Read_Conflict_Range()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("conflict");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var key1 = location.Pack(1);
 				var key2 = location.Pack(2);
 
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					await tr1.GetAsync(key1);
 					// tr1 writes to one key
@@ -1564,7 +1564,7 @@ namespace FoundationDB.Client.Tests
 					// but add the second as a conflict range
 					tr1.AddReadConflictKey(key2);
 
-					using (var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						// tr2 writes to the second key
 						tr2.Set(key2, Slice.FromString("world"));
@@ -1586,17 +1586,17 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Add_Write_Conflict_Range()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("conflict");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var keyConflict = location.Pack(0);
 				var key1 = location.Pack(1);
 				var key2 = location.Pack(2);
 
-				using (var tr1 = db.BeginTransaction())
+				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 
 					// tr1 reads the conflicting key
@@ -1604,7 +1604,7 @@ namespace FoundationDB.Client.Tests
 					// and writes to key1
 					tr1.Set(key1, Slice.FromString("hello"));
 
-					using (var tr2 = db.BeginTransaction())
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						// tr2 changes key2, but adds a conflict range on the conflicting key
 						tr2.Set(key2, Slice.FromString("world"));
@@ -1628,11 +1628,11 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Setup_And_Cancel_Watches()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("test", "bigbrother");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var key1 = location.Pack("watched");
 				var key2 = location.Pack("witness");
@@ -1641,14 +1641,14 @@ namespace FoundationDB.Client.Tests
 				{
 					tr.Set(key1, Slice.FromString("some value"));
 					tr.Set(key2, Slice.FromString("some other value"));
-				});
+				}, this.Cancellation);
 
 				using (var cts = new CancellationTokenSource())
 				{
 					FdbWatch w1;
 					FdbWatch w2;
 
-					using (var tr = db.BeginTransaction())
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						w1 = tr.Watch(key1, cts.Token);
 						w2 = tr.Watch(key2, cts.Token);
@@ -1665,7 +1665,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(w1.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w1 should survive the transaction without being triggered");
 					Assert.That(w2.Task.Status, Is.EqualTo(TaskStatus.WaitingForActivation), "w2 should survive the transaction without being triggered");
 
-					await db.WriteAsync((tr) => tr.Set(key1, Slice.FromString("some new value")));
+					await db.WriteAsync((tr) => tr.Set(key1, Slice.FromString("some new value")), this.Cancellation);
 
 					// the first watch should have triggered
 					await Task.Delay(100);
@@ -1687,11 +1687,11 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Addresses_For_Key()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = db.Partition("location_api");
 
-				await db.ClearRangeAsync(location);
+				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var key1 = location.Pack(1);
 				var key404 = location.Pack(404);
@@ -1699,10 +1699,10 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.Set(key1, Slice.FromString("one"));
-				});
+				}, this.Cancellation);
 
 				// look for the address of key1
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var addresses = await tr.GetAddressesForKeyAsync(key1);
 					Assert.That(addresses, Is.Not.Null);
@@ -1722,7 +1722,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// do the same but for a key that does not exist
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var addresses = await tr.GetAddressesForKeyAsync(key404);
 					Assert.That(addresses, Is.Not.Null);
@@ -1744,12 +1744,12 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Get_Boundary_Keys()
 		{
-			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile ?? @"c:\temp\fdb\nuc.cluster", TestHelpers.TestDbName))
+			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, this.Cancellation))
 			{
 				//var cf = await db.GetCoordinatorsAsync();
 				//Console.WriteLine("Connected to " + cf.ToString());
 
-				using(var tr = db.BeginReadOnlyTransaction().WithAccessToSystemKeys())
+				using(var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithAccessToSystemKeys())
 				{
 					// dump nodes
 					Console.WriteLine("Server List:");
@@ -1770,6 +1770,7 @@ namespace FoundationDB.Client.Tests
 						Console.WriteLine("  > machine    = " + machineId);
 						Console.WriteLine("  > datacenter = " + dataCenterId);
 					}
+					Console.WriteLine();
 
 					// dump keyServers
 					var shards = await tr.GetRange(Fdb.System.KeyServers, Fdb.System.KeyServers + Fdb.System.MaxValue)
@@ -1801,10 +1802,10 @@ namespace FoundationDB.Client.Tests
 					
 						// the node id seems to be at offset 12
 
-						Console.WriteLine("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
+						//Console.WriteLine("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
 					}
 					Console.WriteLine();
-					Console.WriteLine("Distinct nodes:");
+					Console.WriteLine("Distinct nodes: " + distinctNodes.Count);
 					foreach(var machine in distinctNodes)
 					{
 						Console.WriteLine("- " + machine);
@@ -1818,11 +1819,11 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Simple_Read_Transaction()
 		{
-			using(var db = await TestHelpers.OpenTestDatabaseAsync())
+			using(var db = await OpenTestDatabaseAsync())
 			{
 				var location = db.GlobalSpace;
 
-				using(var tr = db.BeginTransaction())
+				using(var tr = db.BeginTransaction(this.Cancellation))
 				{
 					await tr.GetReadVersionAsync();
 

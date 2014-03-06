@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken = default(CancellationToken), FdbOperationContext context = null);
+		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken, FdbOperationContext context = null);
 
 	}
 

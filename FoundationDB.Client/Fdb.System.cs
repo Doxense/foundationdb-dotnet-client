@@ -106,14 +106,11 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>List of keys that mark the start of a new chunk</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			public static async Task<List<Slice>> GetBoundaryKeysAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken = default(CancellationToken))
+			public static Task<List<Slice>> GetBoundaryKeysAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 
-				using (var trans = db.BeginReadOnlyTransaction(cancellationToken))
-				{
-					return await GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive).ConfigureAwait(false);
-				}
+				return db.ReadAsync((trans) => GetBoundaryKeysInternalAsync(trans, beginInclusive, endExclusive), cancellationToken);
 			}
 
 			//REVIEW: should we call this chunks? shard? fragments? contigous ranges?
@@ -124,7 +121,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			public static Task<List<FdbKeyRange>> GetChunksAsync(IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken = default(CancellationToken))
+			public static Task<List<FdbKeyRange>> GetChunksAsync(IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 				return GetChunksAsync(db, range.Begin, range.End, cancellationToken);
@@ -137,7 +134,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
-			public static async Task<List<FdbKeyRange>> GetChunksAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken = default(CancellationToken))
+			public static async Task<List<FdbKeyRange>> GetChunksAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 
@@ -243,7 +240,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static Task<long> EstimateCountAsync(IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken = default(CancellationToken))
+			public static Task<long> EstimateCountAsync(IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, cancellationToken);
 			}
@@ -255,7 +252,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that <paramref name="beginInclusive"/> &lt;= k &gt; <paramref name="endExclusive"/></returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static async Task<long> EstimateCountAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken = default(CancellationToken))
+			public static async Task<long> EstimateCountAsync(IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
 			{
 				const int INIT_WINDOW_SIZE = 1 << 10; // start at 1024
 				const int MAX_WINDOW_SIZE = 1 << 16; // never use more than 65536
@@ -338,6 +335,9 @@ namespace FoundationDB.Client
 							tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
 							continue;
 						}
+
+						//BUGBUG: GetKey(...) always truncate the result to \xFF if the selected key would be past the end,
+						// so we need to fall back immediately to the binary search and/or get_range if next == \xFF
 
 						if (next > end)
 						{ // we have reached past the end, switch to binary search

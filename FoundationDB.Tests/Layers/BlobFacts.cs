@@ -36,30 +36,30 @@ namespace FoundationDB.Layers.Blobs.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class BlobFacts
+	public class BlobFacts : FdbTest
 	{
 
 		[Test]
 		public async Task Test_FdbBlob_NotFound_Blob_Is_Empty()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "BlobsFromOuterSpace");
+				var location = await GetCleanDirectory(db, "BlobsFromOuterSpace");
 
 				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
+				await DeleteSubspace(db, location);
 
 				var blob = new FdbBlob(location.Partition("Empty"));
 
 				long? size;
 
-				using (var tr = db.BeginReadOnlyTransaction())
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					size = await blob.GetSizeAsync(tr);
 					Assert.That(size, Is.Null, "Non existing blob should have no size");
 				}
 
-				size = await blob.GetSizeAsync(db);
+				size = await blob.GetSizeAsync(db, this.Cancellation);
 				Assert.That(size, Is.Null, "Non existing blob should have no size");
 
 			}
@@ -68,16 +68,16 @@ namespace FoundationDB.Layers.Blobs.Tests
 		[Test]
 		public async Task Test_FdbBlob_Can_AppendToBlob()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "BlobsFromOuterSpace");
+				var location = await GetCleanDirectory(db, "BlobsFromOuterSpace");
 
 				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
+				await DeleteSubspace(db, location);
 
 				var blob = new FdbBlob(location.Partition("BobTheBlob"));
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					await blob.AppendAsync(tr, Slice.FromString("Attack"));
 					await blob.AppendAsync(tr, Slice.FromString(" of the "));
@@ -87,10 +87,10 @@ namespace FoundationDB.Layers.Blobs.Tests
 				}
 
 #if DEBUG
-				await TestHelpers.DumpSubspace(db, location);
+				await DumpSubspace(db, location);
 #endif
 
-				using(var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					long? size = await blob.GetSizeAsync(tr);
 					Assert.That(size, Is.EqualTo(20));
@@ -105,12 +105,12 @@ namespace FoundationDB.Layers.Blobs.Tests
 		[Test]
 		public async Task Test_FdbBlob_CanAppendLargeChunks()
 		{
-			using (var db = await TestHelpers.OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await TestHelpers.GetCleanDirectory(db, "BlobsFromOuterSpace");
+				var location = await GetCleanDirectory(db, "BlobsFromOuterSpace");
 
 				// clear previous values
-				await TestHelpers.DeleteSubspace(db, location);
+				await DeleteSubspace(db, location);
 
 				var blob = new FdbBlob(location.Partition("BigBlob"));
 
@@ -119,14 +119,14 @@ namespace FoundationDB.Layers.Blobs.Tests
 
 				for (int i = 0; i < 50; i++)
 				{
-					using (var tr = db.BeginTransaction())
+					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						await blob.AppendAsync(tr, Slice.Create(data));
 						await tr.CommitAsync();
 					}
 				}
 
-				using (var tr = db.BeginTransaction())
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					long? size = await blob.GetSizeAsync(tr);
 					Assert.That(size, Is.EqualTo(50 * data.Length));

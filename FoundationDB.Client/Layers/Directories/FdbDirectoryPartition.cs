@@ -56,6 +56,18 @@ namespace FoundationDB.Layers.Directories
 			return path == null ? FdbTuple.Empty : FdbTuple.CreateRange<string>(path);
 		}
 
+		protected override FdbDirectoryLayer GetLayerForPath(IFdbTuple relativeLocation)
+		{
+			if (relativeLocation.Count == 0)
+			{ // Forward all actions on the Partition itself (empty path) to its parent's DL
+				return this.ParentDirectoryLayer;
+			}
+			else
+			{ // For everything else, use the Partition's DL
+				return this.DirectoryLayer;
+			}
+		}
+
 		public override string ToString()
 		{
 			return String.Format("DirectoryPartition(path={0}, prefix={1})", this.Location.ToString(), this.Key.ToAsciiOrHexaString());
