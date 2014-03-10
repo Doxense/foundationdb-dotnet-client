@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 				if (trans == null) throw new ArgumentNullException("trans");
 				Contract.Assert(trans.Context != null && trans.Context.Database != null);
 
-				using (var shadow = trans.Context.Database.BeginReadOnlyTransaction(trans.Token))
+				using (var shadow = trans.Context.Database.BeginReadOnlyTransaction(trans.Cancellation))
 				{
 					// We don't want to change the state of the transaction, so we will create another one at the same read version
 					var readVersion = await trans.GetReadVersionAsync().ConfigureAwait(false);

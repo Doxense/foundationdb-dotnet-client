@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Cancellation Token linked to the life time of the transaction</summary>
 		/// <remarks>Will be triggered if the transaction is aborted or disposed</remarks>
-		CancellationToken Token { get; }
+		CancellationToken Cancellation { get; }
 
 		/// <summary>Ensure thats the transaction is in a valid state for issuing read operations.</summary>
 		/// <exception cref="System.ObjectDisposedException">If <see cref="IDisposable.Dispose">Dispose()</see> has already been called on the transaction</exception>

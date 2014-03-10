@@ -206,20 +206,20 @@ namespace FoundationDB.Client
 		/// <summary>Return a list of all the elements of the range results</summary>
 		public Task<List<T>> ToListAsync()
 		{
-			return FdbAsyncEnumerable.ToListAsync(this, this.Transaction.Token);
+			return FdbAsyncEnumerable.ToListAsync(this, this.Transaction.Cancellation);
 		}
 
 		/// <summary>Return an array with all the elements of the range results</summary>
 		public Task<T[]> ToArrayAsync()
 		{
-			return FdbAsyncEnumerable.ToArrayAsync(this, this.Transaction.Token);
+			return FdbAsyncEnumerable.ToArrayAsync(this, this.Transaction.Cancellation);
 		}
 
 		/// <summary>Return the number of elements in the range, by reading them</summary>
 		/// <remarks>This method has to read all the keys and values, which may exceed the lifetime of a transaction. Please consider using <see cref="Fdb.System.EstimateCountAsync"/> when reading potentially large ranges.</remarks>
 		public Task<int> CountAsync()
 		{
-			return FdbAsyncEnumerable.CountAsync(this, this.Transaction.Token);
+			return FdbAsyncEnumerable.CountAsync(this, this.Transaction.Cancellation);
 		}
 
 		internal FdbRangeQuery<R> Map<R>(Func<KeyValuePair<Slice, Slice>, R> transform)
@@ -303,7 +303,7 @@ namespace FoundationDB.Client
 		/// <summary>Execute an action on each key/value pair of the range results</summary>
 		public Task ForEachAsync(Action<T> action)
 		{
-			return FdbAsyncEnumerable.ForEachAsync(this, action, this.Transaction.Token);
+			return FdbAsyncEnumerable.ForEachAsync(this, action, this.Transaction.Cancellation);
 		}
 
 		internal async Task<T> HeadAsync(bool single, bool orDefault)
@@ -313,7 +313,7 @@ namespace FoundationDB.Client
 			// we can use the EXACT streaming mode with Limit = 1|2, and it will work if TargetBytes is 0
 			if (this.TargetBytes != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
-				return await FdbAsyncEnumerable.Head(this, single, orDefault, this.Transaction.Token).ConfigureAwait(false);
+				return await FdbAsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
 			}
 
 			var options = new FdbRangeOptions()
@@ -350,9 +350,9 @@ namespace FoundationDB.Client
 			if (this.TargetBytes != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
 				if (any)
-					return await FdbAsyncEnumerable.AnyAsync(this, this.Transaction.Token);
+					return await FdbAsyncEnumerable.AnyAsync(this, this.Transaction.Cancellation);
 				else
-					return await FdbAsyncEnumerable.NoneAsync(this, this.Transaction.Token);
+					return await FdbAsyncEnumerable.NoneAsync(this, this.Transaction.Cancellation);
 			}
 
 			var options = new FdbRangeOptions()

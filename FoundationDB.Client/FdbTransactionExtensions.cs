@@ -174,7 +174,7 @@ namespace FoundationDB.Client
 		{
 			trans.EnsureCanWrite();
 
-			Slice value = await Slice.FromStreamAsync(data, trans.Token).ConfigureAwait(false);
+			Slice value = await Slice.FromStreamAsync(data, trans.Cancellation).ConfigureAwait(false);
 
 			trans.Set(key, value);
 		}

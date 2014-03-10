@@ -110,9 +110,9 @@ namespace FoundationDB.Filters
 			}
 		}
 
-		public CancellationToken Token
+		public CancellationToken Cancellation
 		{
-			get { return m_transaction.Token; }
+			get { return m_transaction.Cancellation; }
 		}
 
 		public virtual void EnsureCanRead()
@@ -323,9 +323,9 @@ namespace FoundationDB.Filters
 			get { return this; }
 		}
 
-		public CancellationToken Token
+		public CancellationToken Cancellation
 		{
-			get { return m_transaction.Token; }
+			get { return m_transaction.Cancellation; }
 		}
 
 		public void EnsureCanRead()

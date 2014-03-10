@@ -81,7 +81,7 @@ namespace FoundationDB.Client
 		private readonly CancellationTokenSource m_cts;
 
 		/// <summary>CancellationToken that should be used for all async operations executing inside this transaction</summary>
-		private readonly CancellationToken m_token;
+		private readonly CancellationToken m_cancellation;
 
 		#endregion
 
@@ -96,7 +96,7 @@ namespace FoundationDB.Client
 			m_database = db;
 			m_id = id;
 			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Token);
-			m_token = m_cts.Token;
+			m_cancellation = m_cts.Token;
 
 			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;
 			m_handler = handler;
@@ -129,7 +129,7 @@ namespace FoundationDB.Client
 		public int Size { get { return m_handler.Size; } }
 
 		/// <summary>Cancellation Token that is cancelled when the transaction is disposed</summary>
-		public CancellationToken Token { get { return m_token; } }
+		public CancellationToken Cancellation { get { return m_cancellation; } }
 
 		/// <summary>Returns true if this transaction only supports read operations, or false if it supports both read and write operations</summary>
 		public bool IsReadOnly { get { return m_readOnly; } }
@@ -332,7 +332,7 @@ namespace FoundationDB.Client
 			EnsureCanRead();
 			//TODO: should we also allow being called after commit or rollback ?
 
-			return m_handler.GetReadVersionAsync(m_token);
+			return m_handler.GetReadVersionAsync(m_cancellation);
 		}
 
 		/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>
@@ -380,7 +380,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));
 #endif
 
-			return m_handler.GetAsync(key, snapshot: false, cancellationToken: m_token);
+			return m_handler.GetAsync(key, snapshot: false, cancellationToken: m_cancellation);
 		}
 
 		#endregion
@@ -403,7 +403,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", String.Format("Getting batch of {0} values ...", keys.Length.ToString()));
 #endif
 
-			return m_handler.GetValuesAsync(keys, snapshot: false, cancellationToken: m_token);
+			return m_handler.GetValuesAsync(keys, snapshot: false, cancellationToken: m_cancellation);
 		}
 
 		#endregion
@@ -433,7 +433,7 @@ namespace FoundationDB.Client
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
 			if (iteration == 0) iteration = 1;
 
-			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, cancellationToken: m_token);
+			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, cancellationToken: m_cancellation);
 		}
 
 		#endregion
@@ -479,7 +479,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", String.Format("Getting key '{0}'", selector.ToString()));
 #endif
 
-			var key = await m_handler.GetKeyAsync(selector, snapshot: false, cancellationToken: m_token).ConfigureAwait(false);
+			var key = await m_handler.GetKeyAsync(selector, snapshot: false, cancellationToken: m_cancellation).ConfigureAwait(false);
 
 			// don't forget to truncate keys that would fall outside of the database's globalspace !
 			return m_database.BoundCheck(key);
@@ -507,7 +507,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", String.Format("Getting batch of {0} keys ...", selectors.Length.ToString()));
 #endif
 
-			return m_handler.GetKeysAsync(selectors, snapshot: false, cancellationToken: m_token);
+			return m_handler.GetKeysAsync(selectors, snapshot: false, cancellationToken: m_cancellation);
 		}
 
 		#endregion
@@ -650,7 +650,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", String.Format("Getting addresses for key '{0}'", FdbKey.Dump(key)));
 #endif
 
-			return m_handler.GetAddressesForKeyAsync(key, cancellationToken: m_token);
+			return m_handler.GetAddressesForKeyAsync(key, cancellationToken: m_cancellation);
 		}
 
 		#endregion
@@ -673,7 +673,7 @@ namespace FoundationDB.Client
 			//TODO: need a STATE_COMMITTING ?
 			try
 			{
-				await m_handler.CommitAsync(m_token).ConfigureAwait(false);
+				await m_handler.CommitAsync(m_cancellation).ConfigureAwait(false);
 
 				if (Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY) == STATE_READY)
 				{
@@ -740,7 +740,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRetry();
 
-			await m_handler.OnErrorAsync(code, cancellationToken: m_token).ConfigureAwait(false);
+			await m_handler.OnErrorAsync(code, cancellationToken: m_cancellation).ConfigureAwait(false);
 
 			// If fdb_transaction_on_error succeeds, that means that the transaction has been reset and is usable again
 			var state = this.State;
@@ -860,7 +860,7 @@ namespace FoundationDB.Client
 			}
 
 			// The cancellation token should not be signaled
-			m_token.ThrowIfCancellationRequested();
+			m_cancellation.ThrowIfCancellationRequested();
 
 			// We cannot be called from the network thread (or else we will deadlock)
 			if (!allowFromNetworkThread) Fdb.EnsureNotOnNetworkThread();
