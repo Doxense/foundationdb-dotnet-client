@@ -269,12 +269,15 @@ namespace FoundationDB.Client
 			// if the size overflows, that means that the resulting buffer would need to be >= 2 GB, which is not possible!
 			if (size < 0) throw new OutOfMemoryException();
 
-			var writer = new SliceWriter(size);
+			//note: we want to make sure the buffer of the writer will be the exact size (so that we can use the result as a byte[] without copying again)
+			var tmp = new byte[size];
+			var writer = new SliceWriter(tmp);
 			for (int i = 0; i < values.Length; i++)
 			{
 				if (i > 0) writer.WriteBytes(separator);
 				writer.WriteBytes(values[i]);
 			}
+			Contract.Assert(writer.Buffer.Length == size);
 			return writer.ToSlice();
 		}
 
@@ -288,6 +291,58 @@ namespace FoundationDB.Client
 			if (values == null) throw new ArgumentNullException("values");
 			var array = (values as Slice[]) ?? values.ToArray();
 			return Join(separator, array, 0, array.Length);
+		}
+
+		/// <summary>Concatenates the specified elements of a slice array, using the specified separator between each element.</summary>
+		/// <param name="separator">The slice to use as a separator. Can be empty.</param>
+		/// <param name="values">An array that contains the elements to concatenate.</param>
+		/// <param name="startIndex">The first element in <paramref name="values"/> to use.</param>
+		/// <param name="count">The number of elements of <paramref name="values"/> to use.</param>
+		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an emtpy array if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
+		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
+		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="startIndex"/> or <paramref name="count"/> is less than zero. -or- <paramref name="startIndex"/> plus <paramref name="count"/> is greater than the number of elements in <paramref name="values"/>.</exception>
+		public static byte[] JoinBytes(Slice separator, Slice[] values, int startIndex, int count)
+		{
+			// Note: this method is modeled after String.Join() and should behave the same
+			// - Only difference is that Slice.Nil and Slice.Empty are equivalent (either for separator, or for the elements of the array)
+
+			if (values == null) throw new ArgumentNullException("values");
+			if (startIndex < 0) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must be a positive integer");
+			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count must be a positive integer");
+			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must fit within the array");
+
+			if (count == 0) return new byte[0];
+			if (count == 1) return values[0].GetBytes();
+
+			int size = 0;
+			for (int i = 0; i < values.Length; i++) size += values[i].Count;
+			size += (values.Length - 1) * separator.Count;
+
+			// if the size overflows, that means that the resulting buffer would need to be >= 2 GB, which is not possible!
+			if (size < 0) throw new OutOfMemoryException();
+
+			//note: we want to make sure the buffer of the writer will be the exact size (so that we can use the result as a byte[] without copying again)
+			var tmp = new byte[size];
+			int p = 0;
+			for (int i = 0; i < values.Length; i++)
+			{
+				if (i > 0) separator.WriteTo(tmp, ref p);
+				values[i].WriteTo(tmp, ref p);
+			}
+			Contract.Assert(p == tmp.Length);
+			return tmp;
+		}
+
+		/// <summary>Concatenates the specified elements of a slice sequence, using the specified separator between each element.</summary>
+		/// <param name="separator">The slice to use as a separator. Can be empty.</param>
+		/// <param name="values">A sequence will return the elements to concatenate.</param>
+		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an empty array if <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
+		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
+		public static byte[] JoinBytes(Slice separator, IEnumerable<Slice> values)
+		{
+			if (values == null) throw new ArgumentNullException("values");
+			var array = (values as Slice[]) ?? values.ToArray();
+			return JoinBytes(separator, array, 0, array.Length);
 		}
 
 		/// <summary>Returns a slice array that contains the sub-slices in <paramref name="input"/> that are delimited by <paramref name="separator"/>. A parameter specifies whether to return empty array elements.</summary>
