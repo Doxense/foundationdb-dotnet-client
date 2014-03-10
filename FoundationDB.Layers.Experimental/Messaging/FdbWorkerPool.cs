@@ -194,16 +194,17 @@ namespace FoundationDB.Layers.Messaging
 		}
 
 		/// <summary>Add and Schedule a new Task in the worker pool</summary>
-		/// <param name="dbOrTrans">Either a database or a transaction</param>
+		/// <param name="db"></param>
 		/// <param name="taskId"></param>
 		/// <param name="taskBody"></param>
 		/// <param name="ct"></param>
 		/// <returns></returns>
-		public async Task ScheduleTaskAsync(IFdbTransactional dbOrTrans, Slice taskId, Slice taskBody, CancellationToken ct = default(CancellationToken))
+		public async Task ScheduleTaskAsync(IFdbTransactional db, Slice taskId, Slice taskBody, CancellationToken ct = default(CancellationToken))
 		{
+			if (db == null) throw new ArgumentNullException("db");
 			var now = DateTime.UtcNow;
 
-			await dbOrTrans.ReadWriteAsync(async (tr) =>
+			await db.ReadWriteAsync(async (tr) =>
 			{
 				Interlocked.Increment(ref m_schedulingAttempts);
 #if DEBUG

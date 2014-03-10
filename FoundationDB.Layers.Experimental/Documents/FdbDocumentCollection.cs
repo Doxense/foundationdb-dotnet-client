@@ -217,60 +217,60 @@ namespace FoundationDB.Layers.Documents
 
 		#region Transactional...
 
-		public async Task InsertAsync(IFdbTransactional dbOrTrans, TDocument document, CancellationToken cancellationToken)
+		public async Task InsertAsync(IFdbTransactional db, TDocument document, CancellationToken cancellationToken)
 		{
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (db == null) throw new ArgumentNullException("db");
 
-			await dbOrTrans.WriteAsync((tr) => this.Insert(tr, document), cancellationToken);
+			await db.WriteAsync((tr) => this.Insert(tr, document), cancellationToken);
 
 		}
 
-		public Task<TDocument> LoadAsync(IFdbReadOnlyTransactional dbOrTrans, TId id, CancellationToken cancellationToken)
+		public Task<TDocument> LoadAsync(IFdbReadOnlyTransactional db, TId id, CancellationToken cancellationToken)
 		{
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return dbOrTrans.ReadAsync((tr) => LoadAsync(tr, id), cancellationToken);
+			return db.ReadAsync((tr) => LoadAsync(tr, id), cancellationToken);
 		}
 
-		public Task<List<TDocument>> LoadMultipleAsync(IFdbReadOnlyTransactional dbOrTrans, IEnumerable<TId> ids, CancellationToken cancellationToken)
+		public Task<List<TDocument>> LoadMultipleAsync(IFdbReadOnlyTransactional db, IEnumerable<TId> ids, CancellationToken cancellationToken)
 		{
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (db == null) throw new ArgumentNullException("db");
 			if (ids == null) throw new ArgumentNullException("ids");
 
 			//note: if the source is not already a collection, we have to assume that it is not safe to read it multiple times (it may be a LINQ query or an iterator)
 			var coll = ids as ICollection<TId>;
 			if (coll == null) coll = ids.ToList();
 
-			return dbOrTrans.ReadAsync((tr) => LoadMultipleAsync(tr, coll), cancellationToken);
+			return db.ReadAsync((tr) => LoadMultipleAsync(tr, coll), cancellationToken);
 		}
 
-		public Task DeleteAsync(IFdbTransactional dbOrTrans, TId id, CancellationToken cancellationToken)
+		public Task DeleteAsync(IFdbTransactional db, TId id, CancellationToken cancellationToken)
 		{
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (db == null) throw new ArgumentNullException("db");
 			if (id == null) throw new ArgumentNullException("id");
 
-			return dbOrTrans.WriteAsync((tr) => this.Delete(tr, id), cancellationToken);
+			return db.WriteAsync((tr) => this.Delete(tr, id), cancellationToken);
 		}
 
-		public Task DeleteMultipleAsync(IFdbTransactional dbOrTrans, IEnumerable<TId> ids, CancellationToken cancellationToken)
+		public Task DeleteMultipleAsync(IFdbTransactional db, IEnumerable<TId> ids, CancellationToken cancellationToken)
 		{
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (db == null) throw new ArgumentNullException("db");
 			if (ids == null) throw new ArgumentNullException("ids");
 
 			//note: if the source is not already a collection, we have to assume that it is not safe to read it multiple times (it may be a LINQ query or an iterator)
 			var coll = ids as ICollection<TId>;
 			if (coll == null) coll = ids.ToList();
 
-			return dbOrTrans.WriteAsync((tr) => this.DeleteMultiple(tr, coll), cancellationToken);
+			return db.WriteAsync((tr) => this.DeleteMultiple(tr, coll), cancellationToken);
 		}
 
-		public Task DeleteAsync(IFdbTransactional dbOrTrans, TDocument document, CancellationToken cancellationToken)
+		public Task DeleteAsync(IFdbTransactional db, TDocument document, CancellationToken cancellationToken)
 		{
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (db == null) throw new ArgumentNullException("db");
 			if (document == null) throw new ArgumentNullException("document");
 
-			return dbOrTrans.WriteAsync((tr) => this.Delete(tr, document), cancellationToken);
+			return db.WriteAsync((tr) => this.Delete(tr, document), cancellationToken);
 		}
 
 		#endregion

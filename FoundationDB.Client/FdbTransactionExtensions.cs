@@ -725,13 +725,17 @@ namespace FoundationDB.Client
 
 		#region Queries...
 
-		/// <summary>Runs a transactional query inside a read-only transaction context, with optional retry-logic, returning the list of all the elements.</summary>
-		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyTransactional dbOrTrans, Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> handler, CancellationToken cancellationToken)
+		/// <summary>Runs a query inside a read-only transaction context, with retry-logic.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="handler">Lambda function that returns an async enumerable. The function may be called multiple times if the transaction conflicts.</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <returns>Task returning the list of all the elements of the async enumerable returned by the last successfull call to <paramref name="handler"/>.</returns>
+		public static Task<List<T>> QueryAsync<T>(this IFdbReadOnlyTransactional db, Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> handler, CancellationToken cancellationToken)
 		{
-			if (dbOrTrans == null) throw new ArgumentNullException("dbOrTrans");
+			if (db == null) throw new ArgumentNullException("db");
 			if (handler == null) throw new ArgumentNullException("handler");
 
-			return dbOrTrans.ReadAsync(
+			return db.ReadAsync(
 				(tr) =>
 				{
 					var query = handler(tr);

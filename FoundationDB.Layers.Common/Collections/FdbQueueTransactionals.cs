@@ -42,39 +42,39 @@ namespace FoundationDB.Layers.Collections
 	{
 
 		/// <summary>Remove all items from the queue.</summary>
-		public static Task ClearAsync<T>(this FdbQueue<T> queue, IFdbTransactional dbOrTrans, CancellationToken cancellationToken)
+		public static Task ClearAsync<T>(this FdbQueue<T> queue, IFdbTransactional db, CancellationToken cancellationToken)
 		{
 			if (queue == null) throw new ArgumentNullException("queue");
-			if (dbOrTrans == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException("db");
 
-			return dbOrTrans.WriteAsync((tr) => queue.ClearAsync(tr), cancellationToken);
+			return db.WriteAsync((tr) => queue.ClearAsync(tr), cancellationToken);
 		}
 
 		/// <summary>Test whether the queue is empty.</summary>
-		public static Task<bool> EmptyAsync<T>(this FdbQueue<T> queue, IFdbReadOnlyTransactional dbOrTrans, CancellationToken cancellationToken)
+		public static Task<bool> EmptyAsync<T>(this FdbQueue<T> queue, IFdbReadOnlyTransactional db, CancellationToken cancellationToken)
 		{
 			if (queue == null) throw new ArgumentNullException("queue");
-			if (dbOrTrans == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException("db");
 
-			return dbOrTrans.ReadAsync((tr) => queue.EmptyAsync(tr), cancellationToken);
+			return db.ReadAsync((tr) => queue.EmptyAsync(tr), cancellationToken);
 		}
 
 		/// <summary>Push a single item onto the queue.</summary>
-		public static Task PushAsync<T>(this FdbQueue<T> queue, IFdbTransactional dbOrTrans, T value, CancellationToken cancellationToken)
+		public static Task PushAsync<T>(this FdbQueue<T> queue, IFdbTransactional db, T value, CancellationToken cancellationToken)
 		{
 			if (queue == null) throw new ArgumentNullException("queue");
-			if (dbOrTrans == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException("db");
 
-			return dbOrTrans.ReadWriteAsync((tr) => queue.PushAsync(tr, value), cancellationToken);
+			return db.ReadWriteAsync((tr) => queue.PushAsync(tr, value), cancellationToken);
 		}
 
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
-		public static Task<Optional<T>> PeekAsync<T>(this FdbQueue<T> queue, IFdbTransactional dbOrTrans, CancellationToken cancellationToken)
+		public static Task<Optional<T>> PeekAsync<T>(this FdbQueue<T> queue, IFdbTransactional db, CancellationToken cancellationToken)
 		{
 			if (queue == null) throw new ArgumentNullException("queue");
-			if (dbOrTrans == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException("db");
 
-			return dbOrTrans.ReadWriteAsync((tr) => queue.PeekAsync(tr), cancellationToken);
+			return db.ReadWriteAsync((tr) => queue.PeekAsync(tr), cancellationToken);
 		}
 
 	}
