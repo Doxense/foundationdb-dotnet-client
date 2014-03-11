@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System.Collections.Generic;
 	using System.ComponentModel;
 	using System.Diagnostics;
+	using System.Globalization;
 	using System.IO;
 	using System.Linq;
 	using System.Runtime.InteropServices;
@@ -793,9 +794,30 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
+		private static StringBuilder EscapeString(StringBuilder sb, byte[] buffer, int offset, int count, Encoding encoding)
+		{
+			if (sb == null) sb = new StringBuilder(count + 16);
+			foreach(var c in encoding.GetChars(buffer, offset, count))
+			{
+				if ((c >= ' ' && c <= '~') || (c >= 880 && c <= 2047) || (c >= 12352 && c <= 12591))
+					sb.Append(c);
+				else if (c == '\n')
+					sb.Append(@"\n");
+				else if (c == '\r')
+					sb.Append(@"\r");
+				else if (c == '\t')
+					sb.Append(@"\t");
+				else if (c > 127)
+					sb.Append(@"\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+				else // pas clean!
+					sb.Append(@"\x").Append(((int)c).ToString("x2", CultureInfo.InvariantCulture));
+			}
+			return sb;
+		}
+
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
-		/// <returns>Returns either "'abc'" or "&lt;00 42 7F&gt;". Returns "''" for Slice.Empty, and "" for Slice.Nil</returns>
-		public string ToAsciiOrHexaString()
+		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for Slice.Nil</returns>
+		public string ToAsciiOrHexaString() //REVIEW: rename this to ToPrintableString() ?
 		{
 			//REVIEW: rename this to ToFriendlyString() ? or ToLoggableString() ?
 			if (this.Count == 0) return this.Array != null ? "''" : String.Empty;
@@ -803,17 +825,50 @@ namespace FoundationDB.Client
 			var buffer = this.Array;
 			int n = this.Count;
 			int p = this.Offset;
-			var chars = new char[n + 2];
-			int i = 1;
-			while(n-- > 0)
+
+			// look for UTF-8 BOM
+			if (n >= 3 && buffer[p] == 0xEF && buffer[p + 1] == 0xBB && buffer[p + 2] == 0xBF)
+			{ // this is supposed to be an UTF-8 string
+				return EscapeString(new StringBuilder(n).Append('\''), buffer, p + 3, n - 3, Encoding.UTF8).Append('\'').ToString();
+			}
+
+			if (n >= 2)
+			{
+				// look for JSON objets or arrays
+				if ((buffer[p] == '{' && buffer[p + n - 1] == '}') || (buffer[p] == '[' && buffer[p + n - 1] == ']'))
+				{
+					return EscapeString(new StringBuilder(n + 16), buffer, p, n, Encoding.UTF8).Append('\'').ToString();
+				}
+			}
+
+			// do a first path on the slice to look for binary of possible text
+			bool mustEscape = false;
+			while (n-- > 0)
 			{
 				byte b = buffer[p++];
-				if (b < 32 || b > 127) return "<" + ToHexaString(' ') + ">";
-				chars[i++] = (char)b;
+				if (b >= 32 && b < 127) continue;
+
+				// we accept via escaping the following special chars: CR, LF, TAB
+				if (b == 10 || b == 13 || b == 9)
+				{
+					mustEscape = true;
+					continue;
+				}
+
+				//TODO: are there any chars above 128 that could be accepted ?
+
+				// this looks like binary
+				return "<" + ToHexaString(' ') + ">";
 			}
-			chars[0] = '\'';
-			chars[chars.Length - 1] = '\'';
-			return new string(chars, 0, chars.Length);
+
+			if (!mustEscape)
+			{ // only printable chars found
+				return new StringBuilder(n + 2).Append('\'').Append(Encoding.ASCII.GetString(buffer, this.Offset, this.Count)).Append('\'').ToString();
+			}
+			else
+			{ // some escaping required
+				return EscapeString(new StringBuilder(n + 2).Append('\''), buffer, this.Offset, this.Count, Encoding.UTF8).Append('\'').ToString();
+			}
 		}
 
 		/// <summary>Converts a slice into a byte</summary>
