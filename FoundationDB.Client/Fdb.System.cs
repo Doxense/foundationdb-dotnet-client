@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define TRACE_COUTING
+#define TRACE_COUNTING
 
 namespace FoundationDB.Client
 {
@@ -43,6 +43,9 @@ namespace FoundationDB.Client
 		/// <summary>Helper class for reading from the reserved System subspace</summary>
 		public static class System
 		{
+			//REVIEW: what happens if someone mutates (by mitake or not) the underlying buffer of the defaults keys ?
+			// => eg. Fdb.System.MaxValue.Array[0] = 42;
+
 			/// <summary>"\xFF\xFF"</summary>
 			public static readonly Slice MaxValue = Slice.FromAscii("\xFF\xFF");
 
@@ -67,13 +70,80 @@ namespace FoundationDB.Client
 			/// <summary>"\xFF/workers/(ip:port)/..." => datacenter + machine + mclass</summary>
 			public static readonly Slice Workers = Slice.FromAscii("\xFF/workers/");
 
+			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <remarks>Since the list of coordinators may change at anytime, the results may already be obsolete once this method completes!</remarks>
+			public static async Task<FdbClusterFile> GetCoordinatorsAsync(IFdbDatabase db, CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+
+				var coordinators = await db.ReadAsync((tr) =>
+				{
+					tr.SetOption(FdbTransactionOption.AccessSystemKeys);
+					tr.SetOption(FdbTransactionOption.PrioritySystemImmediate);
+					//note: we ask for high priotity, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
+
+					return tr.GetAsync(Fdb.System.Coordinators);
+				}, cancellationToken).ConfigureAwait(false);
+
+				if (coordinators.IsNull) throw new InvalidOperationException("Failed to read the list of coordinators from the cluster's system keyspace.");
+
+				return FdbClusterFile.Parse(coordinators.ToAscii());
+			}
+
+			/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="name">Name of the configuration key (ex: "storage_engine")</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Value of '\xFF/conf/storage_engine'</returns>
+			public static Task<Slice> GetConfigParameterAsync(IFdbDatabase db, string name, CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty", "name");
+
+				return db.ReadAsync<Slice>((tr) =>
+				{
+					tr.SetOption(FdbTransactionOption.AccessSystemKeys);
+					tr.SetOption(FdbTransactionOption.PrioritySystemImmediate);
+					//note: we ask for high priotity, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
+
+					return tr.GetAsync(Fdb.System.GetConfigKey(name));
+				}, cancellationToken);
+			}
+
 			/// <summary>Return the corresponding key for a config attribute</summary>
 			/// <param name="name">"foo"</param>
 			/// <returns>"\xFF/config/foo"</returns>
-			public static Slice GetConfigKey(string name)
+			internal static Slice GetConfigKey(string name)
 			{
 				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Config key cannot be null or empty", "name");
 				return ConfigPrefix.Concat(Slice.FromAscii(name));
+			}
+
+			/// <summary>Returns the current storage engine mode of the cluster</summary>
+			/// <param name="db">Database to use for the operation</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Returns either "memory" or "ssd"</returns>
+			/// <remarks>Will return a string starting with "unknown" if the storage engine mode is not recognized</remarks>
+			public static async Task<string> GetStorageEngineModeAsync(IFdbDatabase db, CancellationToken cancellationToken)
+			{
+				// The '\xFF/conf/storage_engine' keys has value "0" (ASCII) for ssd engine, and "1" (ASCII) for memory engine
+
+				var value = await GetConfigParameterAsync(db, "storage_engine", cancellationToken).ConfigureAwait(false);
+
+				if (value.IsNull) throw new InvalidOperationException("Failed to read the storage engine mode from the cluster's system keyspace");
+
+				switch(value.ToUnicode())
+				{
+					case "0": return "ssd";
+					case "1": return "memory";
+					default:
+					{ 
+						// welcome to the future!
+						return "unknown(" + value.ToAsciiOrHexaString() + ")";
+					}
+				}
 			}
 
 			/// <summary>Returns a list of keys k such that <paramref name="beginInclusive"/> &lt;= k &lt; <paramref name="endExclusive"/> and k is located at the start of a contiguous range stored on a single server</summary>
@@ -286,7 +356,7 @@ namespace FoundationDB.Client
 #if TRACE_COUTING
 					tr.Annotate("Estimating number of keys in range {0}", FdbKeyRange.Create(beginInclusive, endExclusive));
 #endif
-		
+
 					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
 		
 					// start looking for the first key in the range

@@ -194,7 +194,7 @@ namespace FoundationDB.Samples
 
 					Console.WriteLine("Using API v" + Fdb.ApiVersion + " (max " + Fdb.GetMaxApiVersion() + ")");
 					Console.WriteLine("Cluster file: " + (clusterFile ?? "<default>"));
-					var cf = Db.GetCoordinatorsAsync(go.Token).GetAwaiter().GetResult();
+					var cf = Fdb.System.GetCoordinatorsAsync(Db, go.Token).GetAwaiter().GetResult();
 					Console.WriteLine("Connnected to: " + cf.Description + " (" + cf.Id + ")");
 					foreach (var coordinator in cf.Coordinators)
 					{

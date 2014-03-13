@@ -193,7 +193,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var coordinators = await db.GetCoordinatorsAsync(this.Cancellation);
+				var coordinators = await Fdb.System.GetCoordinatorsAsync(db, this.Cancellation);
 				Assert.That(coordinators, Is.Not.Null);
 				Assert.That(coordinators.Description, Is.EqualTo("local"));
 				Assert.That(coordinators.Id, Is.Not.Null.And.Length.GreaterThan(0));
@@ -204,6 +204,34 @@ namespace FoundationDB.Client.Tests
 
 				//TODO: how can we check that it is correct?
 				Console.WriteLine("Coordinators: " + coordinators.ToString());
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Storage_Engine()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				string mode = await Fdb.System.GetStorageEngineModeAsync(db, this.Cancellation);
+				Console.WriteLine("Storage engine: " + mode);
+				Assert.That(mode, Is.Not.Null);
+				Assert.That(mode, Is.EqualTo("ssd").Or.EqualTo("memory"));
+
+				// in order to verify the value, we need to check ourselves by reading from the cluster config
+				Slice actual;
+				using(var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithAccessToSystemKeys())
+				{
+					actual = await tr.GetAsync(Slice.FromAscii("\xFF/conf/storage_engine"));
+				}
+
+				if (mode == "ssd")
+				{ // ssd = '0'
+					Assert.That(actual, Is.EqualTo(Slice.FromAscii("0")));
+				}
+				else
+				{ // memory = '1'
+					Assert.That(actual, Is.EqualTo(Slice.FromAscii("1")));
+				}
 			}
 		}
 

@@ -185,7 +185,7 @@ namespace FoundationDB.Tests.Sandbox
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
 						// get coordinators
-						var cf = await db.GetCoordinatorsAsync(ct);
+						var cf = await Fdb.System.GetCoordinatorsAsync(db, ct);
 						Console.WriteLine("Coordinators: " + cf.ToString());
 
 						// clear everything

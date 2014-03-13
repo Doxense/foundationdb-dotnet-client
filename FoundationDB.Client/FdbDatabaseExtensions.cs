@@ -378,44 +378,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region System Keys...
-
-		//TODO: move these methods to another subspace ? (ex: 'FoundationDb.Client.System' or 'FoundationDb.Client.Administration' ?)
-
-		/// <summary>Returns an object describing the list of the coordinators for the cluster</summary>
-		public static async Task<FdbClusterFile> GetCoordinatorsAsync(this IFdbDatabase db, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-
-			var coordinators = await db.ReadAsync<string>(async (tr) =>
-			{
-				tr.SetOption(FdbTransactionOption.AccessSystemKeys);
-				var result = await tr.GetAsync(Fdb.System.Coordinators).ConfigureAwait(false);
-				return result.ToAscii();
-			}, cancellationToken).ConfigureAwait(false);
-
-			return FdbClusterFile.Parse(coordinators);
-		}
-
-		/// <summary>Return the value of a configuration parameter (located under '\xFF/conf/')</summary>
-		/// <param name="db"></param>
-		/// <param name="name">"storage_engine"</param>
-		/// <param name="cancellationToken"></param>
-		/// <returns>Value of '\xFF/conf/storage_engine'</returns>
-		public static Task<Slice> GetConfigParameter(this IFdbDatabase db, string name, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (string.IsNullOrEmpty(name)) throw new ArgumentException("Configuration parameter name cannot be null or empty", "name");
-
-			return db.ReadAsync<Slice>((tr) =>
-			{
-				tr.SetOption(FdbTransactionOption.AccessSystemKeys);
-				return tr.GetAsync(Fdb.System.GetConfigKey(name));
-			}, cancellationToken);
-		}
-
-		#endregion
-
 	}
 
 }
