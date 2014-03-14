@@ -136,48 +136,51 @@ namespace FoundationDB.Async
 
 		private static readonly Func<object, Task<Maybe<TOutput>>> s_processItemHandler = new Func<object, Task<Maybe<TOutput>>>(ProcessItemHandler);
 
-		public Task OnNextAsync(TInput value, CancellationToken cancellationToken)
+		public async Task OnNextAsync(TInput value, CancellationToken cancellationToken)
 		{
-			if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
-
-			AsyncCancelableMutex waiter;
-			lock(m_lock)
+			while (!cancellationToken.IsCancellationRequested)
 			{
-				if (m_done) throw new InvalidOperationException("Cannot post more values after calling Complete()");
-
-				if (m_queue.Count < m_capacity)
+				AsyncCancelableMutex waiter;
+				lock (m_lock)
 				{
-					var t = Task.Factory.StartNew(
-						s_processItemHandler,
-						Tuple.Create(this, value, cancellationToken),
-						cancellationToken, 
-						TaskCreationOptions.PreferFairness, 
-						m_scheduler
-					).Unwrap();
+					if (m_done) throw new InvalidOperationException("Cannot post more values after calling Complete()");
 
-					m_queue.Enqueue(t);
-
-					t.ContinueWith((_t) =>
+					if (m_queue.Count < m_capacity)
 					{
-						lock (m_lock)
-						{
-							// we should only wake up the consumers if we are the fist in the queue !
-							if (m_queue.Count > 0 && m_queue.Peek() == _t)
-							{
-								WakeUpConsumer_NeedLocking();
-							}
-						}
-					}, TaskContinuationOptions.ExecuteSynchronously);
+						var t = Task.Factory.StartNew(
+							s_processItemHandler,
+							Tuple.Create(this, value, cancellationToken),
+							cancellationToken,
+							TaskCreationOptions.PreferFairness,
+							m_scheduler
+						).Unwrap();
 
-					return TaskHelpers.CompletedTask;
+						m_queue.Enqueue(t);
+
+						var _ = t.ContinueWith((_t) =>
+						{
+							lock (m_lock)
+							{
+								// we should only wake up the consumers if we are the fist in the queue !
+								if (m_queue.Count > 0 && m_queue.Peek() == _t)
+								{
+									WakeUpConsumer_NeedLocking();
+								}
+							}
+						}, TaskContinuationOptions.ExecuteSynchronously);
+
+						return;
+					}
+
+					// no luck, we need to wait for the queue to become non-full
+					waiter = new AsyncCancelableMutex(cancellationToken);
+					m_blockedProducer = waiter;
 				}
 
-				// no luck, we need to wait for the queue to become non-full
-				waiter = new AsyncCancelableMutex(cancellationToken);
-				m_blockedProducer = waiter;
+				await waiter.Task.ConfigureAwait(false);
 			}
 
-			return waiter.Task;
+			cancellationToken.ThrowIfCancellationRequested();
 		}
 
 		public void OnCompleted()
