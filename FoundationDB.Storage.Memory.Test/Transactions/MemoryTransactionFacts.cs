@@ -573,13 +573,10 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				}
 
 			}
-
-
 		}
 
 		private async Task Scenario1(IFdbTransaction tr)
 		{
-
 			tr.Set(Slice.FromAscii("hello"), Slice.FromAscii("world!"));
 			tr.Clear(Slice.FromAscii("removed"));
 			var result = await tr.GetAsync(Slice.FromAscii("narf"));
@@ -642,12 +639,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			Console.WriteLine(x.ToInt32().ToString("x"));
 		}
 
-		[Test]
+		[Test][Ignore]
 		public async Task Test_Compare_Implementations()
 		{
 			int mode = 6;
 
-			using (var db = await Fdb.OpenAsync(@"c:\temp\fdb\fdb1.cluster", "DB"))
+			using (var db = await Fdb.OpenAsync(this.Cancellation))
 			{
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
