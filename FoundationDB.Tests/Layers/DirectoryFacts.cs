@@ -681,32 +681,17 @@ namespace FoundationDB.Layers.Directories
 				// CreateOrOpen
 				Assert.Throws<ArgumentNullException>(async () => await directory.CreateOrOpenAsync(db, default(string[]), this.Cancellation));
 				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, new string[0], this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, new string[] { "" }, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, new string[] { " " }, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, new string[] { "Foo", " ", "Bar" }, this.Cancellation));
 				Assert.Throws<ArgumentNullException>(async () => await directory.CreateOrOpenAsync(db, default(string), this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, String.Empty, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateOrOpenAsync(db, " ", this.Cancellation));
 
 				// Create
 				Assert.Throws<ArgumentNullException>(async () => await directory.CreateAsync(db, default(string[]), this.Cancellation));
 				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, new string[0], this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, new string[] { "" }, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, new string[] { " " }, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, new string[] { "Foo", "", "Bar" }, this.Cancellation));
 				Assert.Throws<ArgumentNullException>(async () => await directory.CreateAsync(db, default(string), this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, String.Empty, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.CreateAsync(db, " ", this.Cancellation));
 
 				// Open
 				Assert.Throws<ArgumentNullException>(async () => await directory.OpenAsync(db, default(string[]), this.Cancellation));
 				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new string[0], this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new string[] { "" }, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new string[] { " " }, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, new string[] { "Foo", "", "Bar" }, this.Cancellation));
 				Assert.Throws<ArgumentNullException>(async () => await directory.OpenAsync(db, default(string), this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, String.Empty, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(db, " ", this.Cancellation));
 
 				// Move
 				Assert.Throws<ArgumentNullException>(async () => await directory.MoveAsync(db, default(string[]), new[] { "foo" }, this.Cancellation));
@@ -717,21 +702,13 @@ namespace FoundationDB.Layers.Directories
 				// Remove
 				Assert.Throws<ArgumentNullException>(async () => await directory.RemoveAsync(db, default(string[]), this.Cancellation));
 				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[0], this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[] { "" }, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[] { " " }, this.Cancellation));
 				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, new string[] { "Foo", " ", "Bar" }, this.Cancellation));
 				Assert.Throws<ArgumentNullException>(async () => await directory.RemoveAsync(db, default(string), this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, String.Empty, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(db, " ", this.Cancellation));
 
 				// List
 				Assert.Throws<ArgumentNullException>(async () => await directory.ListAsync(db, default(string[]), this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, new string[] { "" }, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, new string[] { " " }, this.Cancellation));
 				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, new string[] { "Foo", "", "Bar" }, this.Cancellation));
 				Assert.Throws<ArgumentNullException>(async () => await directory.ListAsync(db, default(string), this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, String.Empty, this.Cancellation));
-				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, " ", this.Cancellation));
 
 			}
 		}
