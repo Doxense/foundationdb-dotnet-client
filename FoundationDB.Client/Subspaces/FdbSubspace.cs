@@ -384,34 +384,34 @@ namespace FoundationDB.Client
 
 		/// <summary>Return an empty tuple that is attached to this subspace</summary>
 		/// <returns>Empty tuple that can be extended, and whose packed representation will always be prefixed by the subspace key</returns>
-		public FdbSubspaceTuple ToTuple()
+		public IFdbTuple ToTuple()
 		{
-			return new FdbSubspaceTuple(this, FdbTuple.Empty);
+			return new FdbPrefixedTuple(m_rawPrefix, FdbTuple.Empty);
 		}
 
 		/// <summary>Attach a tuple to an existing subspace.</summary>
 		/// <param name="value">Tuple whose items will be appended at the end of the current subspace</param>
 		/// <returns>Tuple that wraps the items of <param name="tuple"/> and whose packed representation will always be prefixed by the subspace key.</returns>
-		public FdbSubspaceTuple Append(IFdbTuple tuple)
+		public IFdbTuple Append(IFdbTuple tuple)
 		{
-			return new FdbSubspaceTuple(this, tuple);
+			return new FdbPrefixedTuple(m_rawPrefix, tuple);
 		}
 
-		public FdbSubspaceTuple AppendBoxed(object value)
+		public IFdbTuple AppendBoxed(object value)
 		{
-			return new FdbSubspaceTuple(this, FdbTuple.CreateBoxed(value));
+			return new FdbPrefixedTuple(m_rawPrefix, FdbTuple.CreateBoxed(value));
 		}
 
 		/// <summary>Convert a formattable item into a tuple that is attached to this subspace.</summary>
 		/// <param name="formattable">Item that can be converted into a tuple</param>
 		/// <returns>Tuple that is the logical representation of the item, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(formattable.ToTuple())'</remarks>
-		public FdbSubspaceTuple Append(ITupleFormattable formattable)
+		public IFdbTuple Append(ITupleFormattable formattable)
 		{
 			if (formattable == null) throw new ArgumentNullException("formattable");
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException("Formattable item cannot return an empty tuple");
-			return new FdbSubspaceTuple(this, tuple);
+			return new FdbPrefixedTuple(m_rawPrefix, tuple);
 		}
 
 		/// <summary>Create a new 1-tuple that is attached to this subspace</summary>
@@ -419,9 +419,9 @@ namespace FoundationDB.Client
 		/// <param name="value">Value that will be appended</param>
 		/// <returns>Tuple of size 1 that contains <paramref name="value"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T&gt;(value))'</remarks>
-		public FdbSubspaceTuple Append<T>(T value)
+		public IFdbTuple Append<T>(T value)
 		{
-			return new FdbSubspaceTuple(this, FdbTuple.Create<T>(value));
+			return new FdbPrefixedTuple(m_rawPrefix, FdbTuple.Create<T>(value));
 		}
 
 		/// <summary>Create a new 2-tuple that is attached to this subspace</summary>
@@ -431,9 +431,9 @@ namespace FoundationDB.Client
 		/// <param name="value2">Second value that will be appended</param>
 		/// <returns>Tuple of size 2 that contains <paramref name="value1"/> and <paramref name="value2"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2&gt;(value1, value2))'</remarks>
-		public FdbSubspaceTuple Append<T1, T2>(T1 value1, T2 value2)
+		public IFdbTuple Append<T1, T2>(T1 value1, T2 value2)
 		{
-			return new FdbSubspaceTuple(this, FdbTuple.Create<T1, T2>(value1, value2));
+			return new FdbPrefixedTuple(m_rawPrefix, FdbTuple.Create<T1, T2>(value1, value2));
 		}
 
 		/// <summary>Create a new 3-tuple that is attached to this subspace</summary>
@@ -445,18 +445,18 @@ namespace FoundationDB.Client
 		/// <param name="value3">Third value that will be appended</param>
 		/// <returns>Tuple of size 3 that contains <paramref name="value1"/>, <paramref name="value2"/> and <paramref name="value3"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3&gt;(value1, value2, value3))'</remarks>
-		public FdbSubspaceTuple Append<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		public IFdbTuple Append<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
-			return new FdbSubspaceTuple(this, FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
+			return new FdbPrefixedTuple(m_rawPrefix, FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
 		}
 
 		/// <summary>Create a new N-tuple that is attached to this subspace</summary>
 		/// <param name="items">Array of items of the new tuple</param>
 		/// <returns>Tuple of size <paramref name="items"/>.Length, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create(items))'</remarks>
-		public FdbSubspaceTuple Append(params object[] items)
+		public IFdbTuple Append(params object[] items)
 		{
-			return new FdbSubspaceTuple(this, FdbTuple.Create(items));
+			return new FdbPrefixedTuple(m_rawPrefix, FdbTuple.Create(items));
 		}
 
 		#endregion
@@ -474,7 +474,7 @@ namespace FoundationDB.Client
 			// This is to simplifiy decoding logic where the caller could do "var foo = FdbTuple.Unpack(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
 			if (key.IsNull) return null;
 
-			return new FdbSubspaceTuple(this, FdbTuple.UnpackWithoutPrefix(key, m_rawPrefix));
+			return new FdbPrefixedTuple(m_rawPrefix, FdbTuple.UnpackWithoutPrefix(key, m_rawPrefix));
 		}
 
 		/// <summary>Unpack a key into a tuple, and return only the last element</summary>
@@ -511,7 +511,7 @@ namespace FoundationDB.Client
 				{
 					if (keys[i].HasValue)
 					{
-						tuples[i] = new FdbSubspaceTuple(this, FdbTuple.UnpackWithoutPrefix(keys[i], prefix));
+						tuples[i] = new FdbPrefixedTuple(prefix, FdbTuple.UnpackWithoutPrefix(keys[i], prefix));
 					}
 				}
 			}

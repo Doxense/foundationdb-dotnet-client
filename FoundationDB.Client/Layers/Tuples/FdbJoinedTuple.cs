@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -102,21 +102,21 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public IFdbTuple this[int? from, int? to]
+		public IFdbTuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
-				int begin = from.HasValue ? FdbTuple.MapIndexBounded(from.Value, m_count) : 0;
-				int end = to.HasValue ? FdbTuple.MapIndexBounded(to.Value, m_count) : m_count - 1;
+				int begin = fromIncluded.HasValue ? FdbTuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
+				int end = toExcluded.HasValue ? FdbTuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
 
-				if (end < begin) return FdbTuple.Empty;
+				if (end <= begin) return FdbTuple.Empty;
 
 				int p = this.Head.Count;
 				if (begin >= p)
 				{ // all selected items are in the tail
 					return this.Tail[begin - p, end - p];
 				}
-				else if (end < p)
+				else if (end <= p)
 				{ // all selected items are in the head
 					return this.Head[begin, end];
 				}

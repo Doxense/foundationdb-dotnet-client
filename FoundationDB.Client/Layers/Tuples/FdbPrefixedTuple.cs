@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,32 +35,34 @@ namespace FoundationDB.Layers.Tuples
 	using System.Collections.Generic;
 	using System.Diagnostics;
 
-	/// <summary>Tuple that is rooted under an existing subspace (that can have an arbitrary binary prefix)</summary>
+	/// <summary>Tuple that has a fixed abitrary binary prefix</summary>
 	[DebuggerDisplay("{ToString()}")]
-	public sealed class FdbSubspaceTuple : IFdbTuple
+	public sealed class FdbPrefixedTuple : IFdbTuple
 	{
 		// Used in scenario where we will append keys to a common base tuple
 		// note: linked list are not very efficient, but we do not expect a very long chain, and the head will usually be a subspace or memoized tuple
 
-		private readonly FdbSubspace m_subspace;
+		private readonly Slice m_prefix;
 		private readonly IFdbTuple m_items;
 
-		internal FdbSubspaceTuple(FdbSubspace subspace, IFdbTuple items)
+		internal FdbPrefixedTuple(Slice prefix, IFdbTuple items)
 		{
-			Contract.Requires(subspace != null);
-			Contract.Requires(items != null);
+			Contract.Requires(!prefix.IsNull && items != null);
 
-			m_subspace = subspace;
+			m_prefix = prefix;
 			m_items = items;
 		}
 
-		/// <summary>Parent subspace that created this tuple</summary>
-		public FdbSubspace Subspace { get { return m_subspace; } }
+		/// <summary>Binary prefix to all the keys produced by this tuple</summary>
+		public Slice Prefix
+		{
+			get { return m_prefix; }
+		}
 
 		public void PackTo(ref SliceWriter writer)
 		{
-			writer.WriteBytes(this.m_subspace.Key);
-			this.m_items.PackTo(ref writer);
+			writer.WriteBytes(m_prefix);
+			m_items.PackTo(ref writer);
 		}
 
 		public Slice ToSlice()
@@ -77,30 +79,27 @@ namespace FoundationDB.Layers.Tuples
 
 		public int Count
 		{
-			get { return this.m_items.Count; }
+			get { return m_items.Count; }
 		}
 
 		public object this[int index]
 		{
-			get
-			{
-				return this.m_items[index];
-			}
+			get { return m_items[index]; }
 		}
 
-		public IFdbTuple this[int? from, int? to]
+		public IFdbTuple this[int? fromIncluded, int? toExcluded]
 		{
-			get { return this.m_items[from, to]; }
+			get { return m_items[fromIncluded, toExcluded]; }
 		}
 
 		public R Get<R>(int index)
 		{
-			return this.m_items.Get<R>(index);
+			return m_items.Get<R>(index);
 		}
 
 		public R Last<R>()
 		{
-			return this.m_items.Last<R>();
+			return m_items.Last<R>();
 		}
 
 		IFdbTuple IFdbTuple.Append<R>(R value)
@@ -108,19 +107,19 @@ namespace FoundationDB.Layers.Tuples
 			return this.Append<R>(value);
 		}
 
-		public FdbSubspaceTuple Append<R>(R value)
+		public FdbPrefixedTuple Append<R>(R value)
 		{
-			return new FdbSubspaceTuple(this.m_subspace, this.m_items.Append<R>(value));
+			return new FdbPrefixedTuple(m_prefix, m_items.Append<R>(value));
 		}
 
 		public void CopyTo(object[] array, int offset)
 		{
-			this.m_items.CopyTo(array, offset);
+			m_items.CopyTo(array, offset);
 		}
 
 		public IEnumerator<object> GetEnumerator()
 		{
-			return this.m_items.GetEnumerator();
+			return m_items.GetEnumerator();
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -153,7 +152,7 @@ namespace FoundationDB.Layers.Tuples
 			if (object.ReferenceEquals(this, other)) return true;
 			if (other == null) return false;
 
-			var linked = other as FdbSubspaceTuple;
+			var linked = other as FdbPrefixedTuple;
 			if (!object.ReferenceEquals(linked, null))
 			{
 				// Should all of these tuples be considered equal ?
@@ -162,17 +161,17 @@ namespace FoundationDB.Layers.Tuples
 				// * Head=() + Tail=(A,B,C,)
 
 				// first check the subspaces
-				if (!object.ReferenceEquals(linked.m_subspace, this.m_subspace) && linked.m_subspace.Key != this.m_subspace.Key)
-				{ // they are from different tuples
+				if (!linked.m_prefix.Equals(m_prefix))
+				{ // they have a different prefix
 					return false;
 				}
 
-				if (this.m_items.Count != linked.m_items.Count)
+				if (m_items.Count != linked.m_items.Count)
 				{ // there's no way they would be equal
 					return false;
 				}
 
-				return comparer.Equals(this.m_items, linked.m_items);
+				return comparer.Equals(m_items, linked.m_items);
 			}
 
 			return FdbTuple.Equals(this, other, comparer);
@@ -181,8 +180,8 @@ namespace FoundationDB.Layers.Tuples
 		int IStructuralEquatable.GetHashCode(System.Collections.IEqualityComparer comparer)
 		{
 			return FdbTuple.CombineHashCodes(
-				this.m_subspace.GetHashCode(),
-				comparer.GetHashCode(this.m_items)
+				m_prefix.GetHashCode(),
+				comparer.GetHashCode(m_items)
 			);
 		}
 

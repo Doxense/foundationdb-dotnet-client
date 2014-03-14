@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -848,19 +848,19 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Default (non-optimized) implementation of IFdbTuple.this[long?, long?]</summary>
 		/// <param name="tuple">Tuple to slice</param>
-		/// <param name="from">Start offset of the section (included)</param>
-		/// <param name="to">End offset of the section (included)</param>
+		/// <param name="fromIncluded">Start offset of the section (included)</param>
+		/// <param name="toExcluded">End offset of the section (included)</param>
 		/// <returns>New tuple only containing items inside this section</returns>
-		internal static IFdbTuple Splice(IFdbTuple tuple, int? from, int? to)
+		internal static IFdbTuple Splice(IFdbTuple tuple, int? fromIncluded, int? toExcluded)
 		{
 			Contract.Requires(tuple != null);
 			int count = tuple.Count;
 			if (count == 0) return FdbTuple.Empty;
 
-			int start = MapIndexBounded(from ?? 0, count);
-			int end = MapIndexBounded(to ?? -1, count);
+			int start = fromIncluded.HasValue ? MapIndexBounded(fromIncluded.Value, count) : 0;
+			int end = toExcluded.HasValue ? MapIndexBounded(toExcluded.Value, count) : count;
 
-			int len = end - start + 1;
+			int len = end - start;
 
 			if (len <= 0) return FdbTuple.Empty;
 			if (start == 0 && len == count) return tuple;
@@ -872,10 +872,10 @@ namespace FoundationDB.Layers.Tuples
 				{
 					var items = new object[len];
 					//note: can be slow for tuples using linked-lists, but hopefully they will have their own Slice implementation...
-					int p = 0, q = start, n = len;
-					while (n-- > 0)
+					int q = start;
+					for (int p = 0; p < items.Length; p++)
 					{
-						items[p++] = tuple[q++];
+						items[p] = tuple[q++];
 					}
 					return new FdbListTuple(items, 0, len);
 				}
@@ -954,8 +954,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Maps a relative index into an absolute index</summary>
 		/// <param name="index">Relative index in the tuple (from the end if negative)</param>
 		/// <param name="count">Size of the tuple</param>
-		/// <returns>Absolute index from the start of the tuple, or exception if outside of the tuple</returns>
-		/// <exception cref="System.IndexOutOfRangeException">If the absolute index is outside of the tuple (&lt;0 or &gt;=<paramref name="count"/>)</exception>
+		/// <returns>Absolute index from the start of the tuple. Truncated to 0 if index is before the start of the tuple, or to <paramref name="count"/> if the index is after the end of the tuple</returns>
 		internal static int MapIndexBounded(int index, int count)
 		{
 			if (index < 0) index += count;

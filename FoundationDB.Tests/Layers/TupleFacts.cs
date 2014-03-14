@@ -236,7 +236,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 #if DEBUG
 				if (Debugger.IsAttached) Debugger.Break();
 #endif
-				Assert.Fail("{0}: Count mismatch between {1} and expected {2}", message, t, FdbTuple.ToString(expected));
+				Assert.Fail("{0}: Count mismatch between observed {1} and expected {2} for tuple of type {3}", message, t, FdbTuple.ToString(expected), t.GetType().Name);
 			}
 
 			// direct access
@@ -295,61 +295,70 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// get all
 			VerifyTuple("[:]", tuple[null, null], items);
-			VerifyTuple("[:]", tuple[null, 5], items);
+			VerifyTuple("[:]", tuple[null, 6], items);
 			VerifyTuple("[:]", tuple[0, null], items);
-			VerifyTuple("[:]", tuple[0, 5], items);
-			VerifyTuple("[:]", tuple[0, -1], items);
-			VerifyTuple("[:]", tuple[-6, -1], items);
-			VerifyTuple("[:]", tuple[-6, 5], items);
+			VerifyTuple("[:]", tuple[0, 6], items);
+			VerifyTuple("[:]", tuple[0, null], items);
+			VerifyTuple("[:]", tuple[-6, null], items);
+			VerifyTuple("[:]", tuple[-6, 6], items);
 
 			// tail
 			VerifyTuple("[n:]", tuple[4, null], new object[] { 456, "bar" });
-			VerifyTuple("[n:+]", tuple[4, 5], new object[] { 456, "bar" });
-			VerifyTuple("[n:-]", tuple[4, -1], new object[] { 456, "bar" });
-			VerifyTuple("[-n:+]", tuple[-2, 5], new object[] { 456, "bar" });
-			VerifyTuple("[-n:-]", tuple[-2, -1], new object[] { 456, "bar" });
+			VerifyTuple("[n:+]", tuple[4, 6], new object[] { 456, "bar" });
+			VerifyTuple("[-n:+]", tuple[-2, 6], new object[] { 456, "bar" });
+			VerifyTuple("[-n:-]", tuple[-2, null], new object[] { 456, "bar" });
 
 			// head
-			VerifyTuple("[:n]", tuple[null, 2], new object[] { "hello", "world", 123 });
-			VerifyTuple("[0:n]", tuple[0, 2], new object[] { "hello", "world", 123 });
-			VerifyTuple("[0:-n]", tuple[0, -4], new object[] { "hello", "world", 123 });
-			VerifyTuple("[-:n]", tuple[-6, 2], new object[] { "hello", "world", 123 });
-			VerifyTuple("[-:-n]", tuple[-6, -4], new object[] { "hello", "world", 123 });
+			VerifyTuple("[:n]", tuple[null, 3], new object[] { "hello", "world", 123 });
+			VerifyTuple("[0:n]", tuple[0, 3], new object[] { "hello", "world", 123 });
+			VerifyTuple("[0:-n]", tuple[0, -3], new object[] { "hello", "world", 123 });
+			VerifyTuple("[-:n]", tuple[-6, 3], new object[] { "hello", "world", 123 });
+			VerifyTuple("[-:-n]", tuple[-6, -3], new object[] { "hello", "world", 123 });
+
+			// single
+			VerifyTuple("[0:1]", tuple[0, 1], new object[] { "hello" });
+			VerifyTuple("[-6:-5]", tuple[-6, -5], new object[] { "hello" });
+			VerifyTuple("[1:2]", tuple[1, 2], new object[] { "world" });
+			VerifyTuple("[-5:-4]", tuple[-5, -4], new object[] { "world" });
+			VerifyTuple("[5:6]", tuple[5, 6], new object[] { "bar" });
+			VerifyTuple("[-1:]", tuple[-1, null], new object[] { "bar" });
 
 			// chunk
-			VerifyTuple("[2:3]", tuple[2, 3], new object[] { 123, "foo" });
-			VerifyTuple("[2:-3]", tuple[2, -3], new object[] { 123, "foo" });
-			VerifyTuple("[-4:-3]", tuple[-4, 3], new object[] { 123, "foo" });
-			VerifyTuple("[-4:-3]", tuple[-4, -3], new object[] { 123, "foo" });
+			VerifyTuple("[2:4]", tuple[2, 4], new object[] { 123, "foo" });
+			VerifyTuple("[2:-2]", tuple[2, -2], new object[] { 123, "foo" });
+			VerifyTuple("[-4:4]", tuple[-4, 4], new object[] { 123, "foo" });
+			VerifyTuple("[-4:-2]", tuple[-4, -2], new object[] { 123, "foo" });
 
 			// remove first
 			VerifyTuple("[1:]", tuple[1, null], new object[] { "world", 123, "foo", 456, "bar" });
-			VerifyTuple("[1:+]", tuple[1, 5], new object[] { "world", 123, "foo", 456, "bar" });
-			VerifyTuple("[1:-]", tuple[1, -1], new object[] { "world", 123, "foo", 456, "bar" });
-			VerifyTuple("[-5:-]", tuple[1, -1], new object[] { "world", 123, "foo", 456, "bar" });
+			VerifyTuple("[1:+]", tuple[1, 6], new object[] { "world", 123, "foo", 456, "bar" });
+			VerifyTuple("[-5:]", tuple[-5, null], new object[] { "world", 123, "foo", 456, "bar" });
+			VerifyTuple("[-5:+]", tuple[-5, 6], new object[] { "world", 123, "foo", 456, "bar" });
 
 			// remove last
-			VerifyTuple("[:4]", tuple[null, 4], new object[] { "hello", "world", 123, "foo", 456 });
-			VerifyTuple("[:-2]", tuple[null, -2], new object[] { "hello", "world", 123, "foo", 456 });
-			VerifyTuple("[0:4]", tuple[0, 4], new object[] { "hello", "world", 123, "foo", 456 });
-			VerifyTuple("[0:-2]", tuple[0, -2], new object[] { "hello", "world", 123, "foo", 456 });
+			VerifyTuple("[:5]", tuple[null, 5], new object[] { "hello", "world", 123, "foo", 456 });
+			VerifyTuple("[:-1]", tuple[null, -1], new object[] { "hello", "world", 123, "foo", 456 });
+			VerifyTuple("[0:5]", tuple[0, 5], new object[] { "hello", "world", 123, "foo", 456 });
+			VerifyTuple("[0:-1]", tuple[0, -1], new object[] { "hello", "world", 123, "foo", 456 });
 
-			// index out of range
-			Assert.That(() => tuple[2, 6], Throws.InstanceOf<IndexOutOfRangeException>());
-			Assert.That(() => tuple[2, 123456], Throws.InstanceOf<IndexOutOfRangeException>());
-
+			// out of range
+			VerifyTuple("[2:7]", tuple[2, 7], new object[] { 123, "foo", 456, "bar" });
+			VerifyTuple("[2:42]", tuple[2, 42], new object[] { 123, "foo", 456, "bar" });
+			VerifyTuple("[2:123456]", tuple[2, 123456], new object[] { 123, "foo", 456, "bar" });
+			VerifyTuple("[-7:2]", tuple[-7, 2], new object[] { "hello", "world" });
+			VerifyTuple("[-42:2]", tuple[-42, 2], new object[] { "hello", "world" });
 		}
 
-		private static object[] GetRange(int from, int to, int count)
+		private static object[] GetRange(int fromIncluded, int toExcluded, int count)
 		{
 			if (count == 0) return new object[0];
 
-			if (from < 0) from += count;
-			if (to < 0) to += count;
+			if (fromIncluded < 0) fromIncluded += count;
+			if (toExcluded < 0) toExcluded += count;
 
-			if (to >= count) to = count - 1;
-			var tmp = new object[to - from + 1];
-			for (int i = 0; i < tmp.Length; i++) tmp[i] = new string((char) (65 + from + i), 1);
+			if (toExcluded > count) toExcluded = count;
+			var tmp = new object[toExcluded - fromIncluded];
+			for (int i = 0; i < tmp.Length; i++) tmp[i] = new string((char) (65 + fromIncluded + i), 1);
 			return tmp;
 		}
 

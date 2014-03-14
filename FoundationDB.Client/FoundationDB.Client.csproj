@@ -136,7 +136,7 @@
     <Compile Include="Layers\Directories\FdbDirectorySubspace.cs" />
     <Compile Include="Layers\Directories\FdbHighContentionAllocator.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryLayer.cs" />
-    <Compile Include="Subspaces\FdbSubspaceTuple.cs" />
+    <Compile Include="Layers\Tuples\FdbPrefixedTuple.cs" />
     <Compile Include="Layers\Tuples\FdbTupleAlias.cs" />
     <Compile Include="Layers\Tuples\Formatters\FdbAnonymousTupleFormatter.cs" />
     <Compile Include="Layers\Tuples\Formatters\FdbGenericTupleFormatter.cs" />

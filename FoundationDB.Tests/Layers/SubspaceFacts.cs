@@ -74,7 +74,6 @@ namespace FoundationDB.Layers.Tuples.Tests
 			// if we derive a tuple from this subspace, it should keep the binary prefix when converted to a key
 			var t = subspace.Append("world", 123, false);
 			Assert.That(t, Is.Not.Null);
-			Assert.That(t.Subspace, Is.SameAs(subspace));
 			Assert.That(t.Count, Is.EqualTo(3));
 			Assert.That(t.Get<string>(0), Is.EqualTo("world"));
 			Assert.That(t.Get<int>(1), Is.EqualTo(123));
@@ -132,7 +131,6 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t.Get<string>(0), Is.EqualTo("world"));
 			Assert.That(t.Get<int>(1), Is.EqualTo(123));
 			Assert.That(t.Get<bool>(2), Is.False);
-			Assert.That(t.Subspace, Is.SameAs(subspace));
 			// but ToSlice() should include the prefix
 			var k = t.ToSlice();
 			Assert.That(k.ToString(), Is.EqualTo("<02>hello<00><02>world<00><15>{<14>"));

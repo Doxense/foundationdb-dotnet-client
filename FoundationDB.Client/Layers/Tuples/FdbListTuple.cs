@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -83,21 +83,21 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public IFdbTuple this[int? from, int? to]
+		public IFdbTuple this[int? fromIncluded, int? toExcluded]
 		{
 			get
 			{
-				int start = FdbTuple.MapIndexBounded(from ?? 0, m_count);
-				int end = FdbTuple.MapIndexBounded(to ?? -1, m_count);
+				int begin = fromIncluded.HasValue ? FdbTuple.MapIndexBounded(fromIncluded.Value, m_count) : 0;
+				int end = toExcluded.HasValue ? FdbTuple.MapIndexBounded(toExcluded.Value, m_count) : m_count;
 
-				int len = end - start + 1;
+				int len = end - begin;
 				if (len <= 0) return FdbTuple.Empty;
-				if (start == 0 && len == m_count) return this;
+				if (begin == 0 && len == m_count) return this;
 
-				Contract.Assert(m_offset + start >= m_offset);
+				Contract.Assert(m_offset + begin >= m_offset);
 				Contract.Assert(len >= 0 && len <= m_count);
 
-				return new FdbListTuple(m_items, m_offset + start, len);
+				return new FdbListTuple(m_items, m_offset + begin, len);
 			}
 		}
 

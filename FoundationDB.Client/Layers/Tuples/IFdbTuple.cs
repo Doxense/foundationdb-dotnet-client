@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,9 +42,11 @@ namespace FoundationDB.Layers.Tuples
 		, System.Collections.IStructuralEquatable
 #endif
 	{
+		// Tuples should, by default, behave as closely to Python's tuples as possible. See http://docs.python.org/2/tutorial/datastructures.html#tuples-and-sequences
 
 		// Implementation notes:
 		// - Tuples are an immutable list of "objects", that can be indexed from the start or the end (negative indexes)
+		// - Unless specified otherwise, end offsets are usually EXCLUDED.
 		// - Appending to a tuple returns a new tuple (does not mutate the previous)
 		// - Getting the substring of a tuple return a new tuple that tries to reuse the objects of the parent tuple
 		// - There are no guarantees that two different tuples containning the "same" values return the same HashCode, meaning that it should not be used as keys in a Dictionary
@@ -71,10 +73,10 @@ namespace FoundationDB.Layers.Tuples
 #endif
 
 		/// <summary>Return a section of the tuple</summary>
-		/// <param name="from">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
-		/// <param name="to">Ending offset of the sub-tuple to return or null to select until the end. Negative values means from the end</param>
-		/// <returns>Tuple that only includes the selected items</returns>
-		IFdbTuple this[int? from, int? to] { get; }
+		/// <param name="fromIncluded">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
+		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end. Negative values means from the end.</param>
+		/// <returns>Tuple that include all items in the current tuple whose offset are greather than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
+		IFdbTuple this[int? fromIncluded, int? toExcluded] { get; }
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="T">Expected type of the item</typeparam>

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,9 +96,9 @@ namespace FoundationDB.Layers.Tuples
 			get { return this.Items[FdbTuple.MapIndex(index, this.Items.Length)]; }
 		}
 
-		public IFdbTuple this[int? from, int? to]
+		public IFdbTuple this[int? fromIncluded, int? toExcluded]
 		{
-			get { return FdbTuple.Splice(this, from, to); }
+			get { return FdbTuple.Splice(this, fromIncluded, toExcluded); }
 		}
 
 		public R Get<R>(int index)
