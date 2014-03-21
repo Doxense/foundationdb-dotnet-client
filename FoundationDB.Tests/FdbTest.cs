@@ -40,26 +40,34 @@ namespace FoundationDB.Client.Tests
 
 		private CancellationTokenSource m_cts;
 		private CancellationToken m_ct;
+		private Stopwatch m_timer;
 
 		[SetUp]
-		protected void BeforeTest()
+		protected void BeforeEachTest()
 		{
 			lock (this)
 			{
 				m_cts = null;
 				m_ct = CancellationToken.None;
 			}
-			Trace.WriteLine("=== " + TestContext.CurrentContext.Test.FullName + " === " + DateTime.Now.TimeOfDay);
+			Trace.WriteLine("=== " + TestContext.CurrentContext.Test.FullName + "() === " + DateTime.Now.TimeOfDay);
+			m_timer = Stopwatch.StartNew();
 		}
 
 		[TearDown]
-		protected void AfterTest()
+		protected void AfterEachTest()
 		{
+			m_timer.Stop();
 			if (m_cts != null)
 			{
 				try { m_cts.Cancel(); } catch { }
 				m_cts.Dispose();
 			}
+		}
+
+		protected TimeSpan TestElapsed
+		{
+			get { return m_timer.Elapsed; }
 		}
 
 		/// <summary>Cancellation token usable by any test</summary>
