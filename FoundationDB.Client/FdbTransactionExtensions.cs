@@ -70,9 +70,25 @@ namespace FoundationDB.Client
 			return trans;
 		}
 
+		/// <summary>Reads performed by a transaction will not see any prior mutations that occurred in that transaction, instead seeing the value which was in the database at the transaction's read version. This option may provide a small performance benefit for the client, but also disables a number of client-side optimizations which are beneficial for transactions which tend to read and write the same keys within a single transaction. Also note that with this option invoked any outstanding reads will return errors when transaction commit is called (rather than the normal behavior of commit waiting for outstanding reads to complete).</summary>
+		public static TTransaction WithReadYourWritesDisable<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbTransaction
+		{
+			trans.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+			return trans;
+		}
+
+		/// <summary>Disables read-ahead caching for range reads. Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).</summary>
+		public static TTransaction WithReadAheadDisable<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbTransaction
+		{
+			trans.SetOption(FdbTransactionOption.ReadAheadDisable);
+			return trans;
+		}
+
 		/// <summary>The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.</summary>
 		public static TTransaction WithNextWriteNoWriteConflictRange<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbReadOnlyTransaction
+			where TTransaction : IFdbTransaction
 		{
 			trans.SetOption(FdbTransactionOption.NextWriteNoWriteConflictRange);
 			return trans;
