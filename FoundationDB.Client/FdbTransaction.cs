@@ -212,8 +212,8 @@ namespace FoundationDB.Client
 		/// <summary>Returns this transaction snapshot read version.</summary>
 		public Task<long> GetReadVersionAsync()
 		{
-			EnsureCanRead();
-			//TODO: should we also allow being called after commit or rollback ?
+			// can be called after the transaction has been committed
+			EnsureCanRetry();
 
 			return m_handler.GetReadVersionAsync(m_cancellation);
 		}
@@ -234,8 +234,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public void SetReadVersion(long version)
 		{
-			//Note: this is in IFdbTransaction but it looks like it could also be used for reading ?
-			EnsureCanWrite();
+			EnsureCanRead();
 
 			m_handler.SetReadVersion(version);
 		}
