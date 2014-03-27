@@ -413,6 +413,102 @@ namespace FoundationDB.Client
 			return new Slice(ByteSprite, value, 1);
 		}
 
+		#region 16-bit integers
+
+		/// <summary>Encode a signed 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
+		public static Slice FromInt16(short value)
+		{
+			if (value >= 0)
+			{
+				if (value <= 255)
+				{
+					return Slice.FromByte((byte)value);
+				}
+				else
+				{
+					return new Slice(new byte[] { (byte)value, (byte)(value >> 8) }, 0, 2);
+				}
+			}
+
+			return FromFixed16(value);
+		}
+
+		/// <summary>Encode a signed 16-bit integer into a 2-byte slice in little-endian</summary>
+		public static Slice FromFixed16(short value)
+		{
+			return new Slice(
+				new byte[]
+				{ 
+					(byte)value,
+					(byte)(value >> 8),
+				},
+				0,
+				2
+			);
+		}
+
+		/// <summary>Encode an unsigned 16-bit integer into a variable size slice (1 or 2 bytes) in little-endian</summary>
+		public static Slice FromUInt16(ushort value)
+		{
+			if (value <= 255)
+			{
+				return Slice.FromByte((byte)value);
+			}
+			else
+			{
+				return FromFixedU16(value);
+			}
+		}
+
+		/// <summary>Encode an unsigned 16-bit integer into a 2-byte slice in little-endian</summary>
+		/// <remarks>0x1122 => 11 22</remarks>
+		public static Slice FromFixedU16(ushort value)
+		{
+			return new Slice(
+				new byte[]
+				{ 
+					(byte)value,
+					(byte)(value >> 8),
+				},
+				0,
+				2
+			);
+		}
+
+		/// <summary>Encode an unsigned 16-bit integer into a 2-byte slice in big-endian</summary>
+		/// <remarks>0x1122 => 22 11</remarks>
+		public static Slice FromFixedU16BE(ushort value)
+		{
+			return new Slice(
+				new byte[]
+				{ 
+					(byte)(value >> 8),
+					(byte)value
+				},
+				0,
+				4
+			);
+		}
+
+		/// <summary>Encode an unsigned 16-bit integer into 7-bit encoded unsigned int (aka 'Varint16')</summary>
+		public static Slice FromVarint16(ushort value)
+		{
+			if (value < 128)
+			{
+				return FromByte((byte)value);
+			}
+			else
+			{
+				var writer = new SliceWriter(3);
+				writer.WriteVarint32(value);
+				return writer.ToSlice();
+			}
+		}
+
+		#endregion
+
+		#region 32-bit integers
+
 		/// <summary>Encode a signed 32-bit integer into a variable size slice (1, 2 or 4 bytes) in little-endian</summary>
 		public static Slice FromInt32(int value)
 		{
@@ -463,6 +559,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode an unsigned 32-bit integer into a 4-byte slice in little-endian</summary>
+		/// <remarks>0x11223344 => 11 22 33 44</remarks>
 		public static Slice FromFixedU32(uint value)
 		{
 			return new Slice(
@@ -477,6 +574,42 @@ namespace FoundationDB.Client
 				4
 			);
 		}
+
+		/// <summary>Encode an unsigned 32-bit integer into a 4-byte slice in big-endian</summary>
+		/// <remarks>0x11223344 => 44 33 22 11</remarks>
+		public static Slice FromFixedU32BE(uint value)
+		{
+			return new Slice(
+				new byte[]
+				{ 
+					(byte)(value >> 24),
+					(byte)(value >> 16),
+					(byte)(value >> 8),
+					(byte)value
+				},
+				0,
+				4
+			);
+		}
+
+		/// <summary>Encode an unsigned 32-bit integer into 7-bit encoded unsigned int (aka 'Varint32')</summary>
+		public static Slice FromVarint32(uint value)
+		{
+			if (value < 128)
+			{
+				return FromByte((byte)value);
+			}
+			else
+			{
+				var writer = new SliceWriter(5);
+				writer.WriteVarint32(value);
+				return writer.ToSlice();
+			}
+		}
+
+		#endregion
+
+		#region 64-bit integers
 
 		/// <summary>Encode a signed 64-bit integer into a variable size slice (1, 2, 4 or 8 bytes) in little-endian</summary>
 		public static Slice FromInt64(long value)
@@ -539,6 +672,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into a 8-byte slice in little-endian</summary>
+		/// <remarks>0x1122334455667788 => 11 22 33 44 55 66 77 88</remarks>
 		public static Slice FromFixedU64(ulong value)
 		{
 			return new Slice(
@@ -558,19 +692,25 @@ namespace FoundationDB.Client
 			);
 		}
 
-		/// <summary>Encode an unsigned 32-bit integer into 7-bit encoded unsigned int (aka 'Varint32')</summary>
-		public static Slice FromVarint32(uint value)
+		/// <summary>Encode an unsigned 64-bit integer into a 8-byte slice in big-endian</summary>
+		/// <remarks>0x1122334455667788 => 88 77 66 55 44 33 22 11</remarks>
+		public static Slice FromFixedU64BE(ulong value)
 		{
-			if (value < 128)
-			{
-				return FromByte((byte)value);
-			}
-			else
-			{
-				var writer = new SliceWriter(5);
-				writer.WriteVarint32(value);
-				return writer.ToSlice();
-			}
+			return new Slice(
+				new byte[]
+				{
+					(byte)(value >> 56),
+					(byte)(value >> 48),
+					(byte)(value >> 40),
+					(byte)(value >> 32),
+					(byte)(value >> 24),
+					(byte)(value >> 16),
+					(byte)(value >> 8),
+					(byte)value
+				},
+				0,
+				8
+			);
 		}
 
 		/// <summary>Encode an unsigned 64-bit integer into 7-bit encoded unsigned int (aka 'Varint64')</summary>
@@ -587,6 +727,8 @@ namespace FoundationDB.Client
 				return writer.ToSlice();
 			}
 		}
+
+		#endregion
 
 		/// <summary>Create a 16-byte slice containing a System.Guid encoding according to RFC 4122 (Big Endian)</summary>
 		/// <remarks>WARNING: Slice.FromGuid(guid).GetBytes() will not produce the same result as guid.ToByteArray() !
