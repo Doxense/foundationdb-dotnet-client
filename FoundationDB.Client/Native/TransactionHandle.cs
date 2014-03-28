@@ -49,6 +49,11 @@ namespace FoundationDB.Client.Native
 			Interlocked.Decrement(ref DebugCounters.TransactionHandles);
 		}
 
+		public override string ToString()
+		{
+			return "TransactionHandle[0x" + this.Handle.ToString("x") + "]";
+		}
+
 	}
 
 }

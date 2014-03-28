@@ -49,6 +49,11 @@ namespace FoundationDB.Client.Native
 			Interlocked.Decrement(ref DebugCounters.ClusterHandles);
 		}
 
+		public override string ToString()
+		{
+			return "ClusterHandle[0x" + this.Handle.ToString("x") + "]";
+		}
+
 	}
 
 }

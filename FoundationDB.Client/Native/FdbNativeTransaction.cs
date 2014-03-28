@@ -28,6 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // enable this to help debug Transactions
 #undef DEBUG_TRANSACTIONS
+// enable this to capture the stacktrace of the ctor, when troubleshooting leaked transaction handles
+#undef CAPTURE_STACKTRACES
 
 namespace FoundationDB.Client.Native
 {
@@ -47,8 +49,12 @@ namespace FoundationDB.Client.Native
 		private readonly FdbNativeDatabase m_database;
 		/// <summary>FDB_TRANSACTION* handle</summary>
 		private readonly TransactionHandle m_handle;
-
+		/// <summary>Estimated current size of the transaction</summary>
 		private int m_payloadBytes;
+
+#if CAPTURE_STACKTRACES
+		private StackTrace m_stackTrace;
+#endif
 
 		public FdbNativeTransaction(FdbNativeDatabase db, TransactionHandle handle)
 		{
@@ -57,10 +63,17 @@ namespace FoundationDB.Client.Native
 
 			m_database = db;
 			m_handle = handle;
+#if CAPTURE_STACKTRACES
+			m_stackTrace = new StackTrace();
+#endif
 		}
 
+		//REVIEW: do we really need a destructor ? The handle is a SafeHandle, and will take care of itself...
 		~FdbNativeTransaction()
 		{
+#if CAPTURE_STACKTRACES
+			Trace.WriteLine("A transaction handle (" + m_handle + ", " + m_payloadBytes + " bytes written) was leaked by " + m_stackTrace);
+#endif
 #if DEBUG
 			// If you break here, that means that a native transaction handler was leaked by a FdbTransaction instance (or that the transaction instance was leaked)
 			if (Debugger.IsAttached) Debugger.Break();
