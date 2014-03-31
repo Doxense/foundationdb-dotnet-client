@@ -513,6 +513,52 @@ namespace FoundationDB.Linq
 			return count;
 		}
 
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static async Task<ulong> SumAsync(this IFdbAsyncEnumerable<ulong> source, CancellationToken ct = default(CancellationToken))
+		{
+			ulong sum = 0;
+
+			await Run<ulong>(source, FdbAsyncMode.All, (x) => { sum += x; }, ct).ConfigureAwait(false);
+
+			return sum;
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
+		public static async Task<ulong> SumAsync(this IFdbAsyncEnumerable<ulong> source, Func<ulong, bool> predicate, CancellationToken ct = default(CancellationToken))
+		{
+			ulong sum = 0;
+
+			await Run<ulong>(source, FdbAsyncMode.All, (x) =>
+			{
+				if (predicate(x)) sum += x;
+			}, ct).ConfigureAwait(false);
+
+			return sum;
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence.</summary>
+		public static async Task<long> SumAsync(this IFdbAsyncEnumerable<long> source, CancellationToken ct = default(CancellationToken))
+		{
+			long sum = 0;
+
+			await Run<long>(source, FdbAsyncMode.All, (x) => { sum += x; }, ct).ConfigureAwait(false);
+
+			return sum;
+		}
+
+		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
+		public static async Task<long> SumAsync(this IFdbAsyncEnumerable<long> source, Func<long, bool> predicate, CancellationToken ct = default(CancellationToken))
+		{
+			long sum = 0;
+
+			await Run<long>(source, FdbAsyncMode.All, (x) =>
+			{
+				if (predicate(x)) sum += x;
+			}, ct).ConfigureAwait(false);
+
+			return sum;
+		}
+
 		/// <summary>Determines whether an async sequence contains any elements.</summary>
 		/// <remarks>This is the logical equivalent to "source.Count() > 0" but can be better optimized by some providers</remarks>
 		public static async Task<bool> AnyAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
