@@ -584,7 +584,15 @@ namespace FoundationDB.Layers.Tuples
 		public static T UnpackLastWithoutPrefix<T>(Slice packedKey, Slice prefix)
 		{
 			// ensure that the key starts with the prefix
-			if (!packedKey.StartsWith(prefix)) throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
+			if (!packedKey.StartsWith(prefix))
+			{
+#if DEBUG
+				//REVIEW: for now only in debug mode, because leaking keys in exceptions mesasges may not be a good idea?
+				throw new ArgumentOutOfRangeException("packedKey", String.Format("The specifed packed tuple ({0}) does not start with the expected prefix ({1})", FdbKey.Dump(packedKey), FdbKey.Dump(prefix)));
+#else
+				throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
+#endif
+			}
 
 			// unpack the key, minus the prefix
 			return UnpackLast<T>(packedKey.Substring(prefix.Count));
