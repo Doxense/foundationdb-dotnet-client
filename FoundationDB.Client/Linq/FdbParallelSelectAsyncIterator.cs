@@ -57,10 +57,6 @@ namespace FoundationDB.Linq
 		private CancellationTokenSource m_cts;
 		private CancellationToken m_token;
 		private volatile bool m_done;
-		private volatile bool m_innerBusy;
-		private Queue<TaskCompletionSource<KeyValuePair<bool, TResult>>> m_pendingTasks;
-		private int m_maxConcurrency;
-		private TaskScheduler m_scheduler;
 
 		/// <summary>Pump that reads values from the inner iterator</summary>
 		private FdbAsyncIteratorPump<TSource> m_pump;
