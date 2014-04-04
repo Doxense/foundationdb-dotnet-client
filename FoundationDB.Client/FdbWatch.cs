@@ -39,10 +39,11 @@ namespace FoundationDB.Client
 	using System.Text;
 	using System.Threading.Tasks;
 
-	/// <summary>Factory class for keys</summary>
+	/// <summary>Watch that triggers when the watched key is changed in the database</summary>
 	[DebuggerDisplay("Status={m_future.Task.Status}, Key={m_key}")]
 	public struct FdbWatch : IDisposable
 	{
+		//REVIEW: sould we change this to a class?
 
 		private readonly FdbFuture<Slice> m_future;
 		private readonly Slice m_key;

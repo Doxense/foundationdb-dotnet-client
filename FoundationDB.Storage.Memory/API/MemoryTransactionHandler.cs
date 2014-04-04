@@ -581,7 +581,7 @@ namespace FoundationDB.Storage.Memory.API
 			return value;
 		}
 
-		public async Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken cancellationToken)
+		public Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken cancellationToken)
 		{
 			Contract.Requires(key.HasValue);
 			cancellationToken.ThrowIfCancellationRequested();
@@ -617,10 +617,10 @@ namespace FoundationDB.Storage.Memory.API
 				}
 			}
 
-			return result;
+			return Task.FromResult(result);
 		}
 
-		public async Task<Slice[]> GetValuesAsync(Slice[] keys, bool snapshot, CancellationToken cancellationToken)
+		public Task<Slice[]> GetValuesAsync(Slice[] keys, bool snapshot, CancellationToken cancellationToken)
 		{
 			Contract.Requires(keys != null);
 			cancellationToken.ThrowIfCancellationRequested();
@@ -676,7 +676,7 @@ namespace FoundationDB.Storage.Memory.API
 				}
 			}
 
-			return results;
+			return Task.FromResult(results);
 		}
 
 		private sealed class SelectorKeyComparer : IComparer<FdbKeySelector>
