@@ -1,7 +1,7 @@
 FoundationDB.Net Client
 =======================
 
-This is a C#/.NET binding for FoundationDB.
+These are the officially supported C#/.NET bindings for FoundationDB.
 
 This code is licensed under the 3-clause BSD Licence. 
 
