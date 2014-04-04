@@ -77,6 +77,7 @@
     <Compile Include="Experimental\ProtobufCodec.cs" />
     <Compile Include="Filters\LoggingFilterFacts.cs" />
     <Compile Include="Experimental\JsonNetCodec.cs" />
+    <Compile Include="Layers\RankedSetFacts.cs" />
     <Compile Include="Layers\VectorFacts.cs" />
     <Compile Include="Layers\QueuesFacts.cs" />
     <Compile Include="TransactionalFacts.cs" />
