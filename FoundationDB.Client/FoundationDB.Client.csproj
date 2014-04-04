@@ -100,7 +100,7 @@
     <Compile Include="Fdb.System.cs" />
     <Compile Include="FdbConflictRangeType.cs" />
     <Compile Include="FdbMutationType.cs" />
-    <Compile Include="FdbBulkOperations.cs" />
+    <Compile Include="Fdb.Bulk.cs" />
     <Compile Include="FdbTransaction.Snapshot.cs" />
     <Compile Include="IFdbTransaction.cs" />
     <Compile Include="IFdbReadOnlyTransaction.cs" />

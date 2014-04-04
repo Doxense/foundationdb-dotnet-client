@@ -30,6 +30,7 @@ namespace FoundationDB.Client.Tests
 {
 	using NUnit.Framework;
 	using System;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -190,5 +191,63 @@ namespace FoundationDB.Client.Tests
 			}
 
 		}
+
+		[Test]
+		public async Task Test_ReadOnly_Transactionals_Do_Not_See_Changes_From_Other_Transactions()
+		{
+			// A read-only transaction will never see changes that have been committed after its read-version, wheter it uses Snapshot reads or not.
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = await GetCleanDirectory(db, "Transactionals");
+
+				// setup the keys from 0 to 9
+				await db.WriteAsync((tr) =>
+				{
+					for (int i = 0; i < 10; i++)
+					{
+						tr.Set(location.Pack(i), Slice.FromInt32(i));
+					}
+				}, this.Cancellation);
+
+
+				// simulate a slow scan that will sequentially read the values, while they are modified by other transactions in the background
+
+				var results = await db.ReadAsync(async (tr) =>
+				{
+					int[] values = new int[10];
+
+					// read 0..2
+					for (int i = 0; i < 3; i++)
+					{
+						values[i] = (await tr.GetAsync(location.Pack(i))).ToInt32();
+					}
+
+					// another transaction commits a change to 3 before we read it
+					await db.WriteAsync((tr2) => tr2.Set(location.Pack(3), Slice.FromInt32(42)), this.Cancellation);
+
+					// read 3 to 7
+					for (int i = 3; i < 7; i++)
+					{
+						values[i] = (await tr.GetAsync(location.Pack(i))).ToInt32();
+					}
+
+					// another transaction commits a change to 6 after it has been read
+					await db.WriteAsync((tr2) => tr2.Set(location.Pack(6), Slice.FromInt32(66)), this.Cancellation);
+
+					// read 7 to 9
+					for (int i = 7; i < 10; i++)
+					{
+						values[i] = (await tr.GetAsync(location.Pack(i))).ToInt32();
+					}
+
+					return values;
+				}, this.Cancellation);
+
+				// The values of 3 and 6 should be the initial values
+				Assert.That(results, Is.EqualTo(Enumerable.Range(0, 10).ToList()));
+			}
+		}
+
 	}
 }
