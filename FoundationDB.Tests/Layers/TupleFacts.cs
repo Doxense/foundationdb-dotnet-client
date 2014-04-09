@@ -36,6 +36,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
+	using System.Net;
 	using System.Text;
 
 	[TestFixture]
@@ -969,6 +970,43 @@ namespace FoundationDB.Layers.Tuples.Tests
 			// When decoded to object, though, they should return 0 and 1
 			Assert.That(FdbTuplePackers.DeserializeBoxed(FdbTuple.Pack(false)), Is.EqualTo(0));
 			Assert.That(FdbTuplePackers.DeserializeBoxed(FdbTuple.Pack(true)), Is.EqualTo(1));
+		}
+
+		[Test]
+		public void Test_FdbTuple_Serialize_IPAddress()
+		{
+		
+			Assert.That(
+				FdbTuple.Create(IPAddress.Loopback).ToSlice().ToHexaString(' '),
+				Is.EqualTo("01 7F 00 FF 00 FF 01 00")
+			);
+
+			Assert.That(
+				FdbTuple.Create(IPAddress.Any).ToSlice().ToHexaString(' '),
+				Is.EqualTo("01 00 FF 00 FF 00 FF 00 FF 00")
+			);
+
+			Assert.That(
+				FdbTuple.Create(IPAddress.Parse("1.2.3.4")).ToSlice().ToHexaString(' '),
+				Is.EqualTo("01 01 02 03 04 00")
+			);
+
+		}
+
+
+		[Test]
+		public void Test_FdbTuple_Deserialize_IPAddress()
+		{
+			Assert.That(FdbTuple.UnpackSingle<IPAddress>(Slice.Unescape("<01><7F><00><FF><00><FF><01><00>")), Is.EqualTo(IPAddress.Parse("127.0.0.1")));
+			Assert.That(FdbTuple.UnpackSingle<IPAddress>(Slice.Unescape("<01><00><FF><00><FF><00><FF><00><FF><00>")), Is.EqualTo(IPAddress.Parse("0.0.0.0")));
+			Assert.That(FdbTuple.UnpackSingle<IPAddress>(Slice.Unescape("<01><01><02><03><04><00>")), Is.EqualTo(IPAddress.Parse("1.2.3.4")));
+
+			Assert.That(FdbTuple.UnpackSingle<IPAddress>(FdbTuple.Pack("127.0.0.1")), Is.EqualTo(IPAddress.Loopback));
+
+			var ip = IPAddress.Parse("192.168.0.1");
+			Assert.That(FdbTuple.UnpackSingle<IPAddress>(FdbTuple.Pack(ip.ToString())), Is.EqualTo(ip));
+			Assert.That(FdbTuple.UnpackSingle<IPAddress>(FdbTuple.Pack(ip.GetAddressBytes())), Is.EqualTo(ip));
+			Assert.That(FdbTuple.UnpackSingle<IPAddress>(FdbTuple.Pack(ip.Address)), Is.EqualTo(ip));
 		}
 
 		[Test]

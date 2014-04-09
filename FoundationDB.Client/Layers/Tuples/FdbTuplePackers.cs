@@ -448,6 +448,12 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.WriteUuid(ref writer, value);
 		}
 
+		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
+		public static void SerializeTo(ref SliceWriter writer, System.Net.IPAddress value)
+		{
+			FdbTupleParser.WriteBytes(ref writer, value != null ? value.GetAddressBytes() : null);
+		}
+
 		public static void SerializeTo(ref SliceWriter writer, FdbTupleAlias value)
 		{
 			Contract.Requires(Enum.IsDefined(typeof(FdbTupleAlias), value));
@@ -660,7 +666,41 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException("Cannot convert slice into this type");
+			throw new FormatException(String.Format("Cannot convert slice of type {0} into System.Guid", type));
+		}
+
+		/// <summary>Deserialize a slice into Guid</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static System.Net.IPAddress DeserializeIPAddress(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return null;
+
+			int type = slice[0];
+
+			switch (type)
+			{
+				case FdbTupleTypes.Bytes:
+				{
+					return new System.Net.IPAddress(slice.GetBytes());
+				}
+				case FdbTupleTypes.Utf8:
+				{
+					return System.Net.IPAddress.Parse(FdbTupleParser.ParseUnicode(slice));
+				}
+				case FdbTupleTypes.Guid:
+				{ // could be an IPv6 encoded as a 128-bits UUID
+					return new System.Net.IPAddress(slice.GetBytes());
+				}
+			}
+
+			if (type >= FdbTupleTypes.IntPos1 && type <= FdbTupleTypes.IntPos4)
+			{ // could be an IPv4 encoded as a 32-bit unsigned integer
+				var value = FdbTupleParser.ParseInt64(type, slice);
+				Contract.Assert(value >= 0 && value <= uint.MaxValue);
+				return new System.Net.IPAddress(value);
+			}
+
+			throw new FormatException(String.Format("Cannot convert slice of type {0} into System.Net.IPAddress", type));
 		}
 
 		public static FdbTupleAlias DeserializeAlias(Slice slice)

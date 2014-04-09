@@ -177,6 +177,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<long, TimeSpan>((value) => TimeSpan.FromTicks(value));
 			RegisterUnsafe<long, double>((value) => { checked { return (double)value; } });
 			RegisterUnsafe<long, float>((value) => { checked { return (float)value; } });
+			RegisterUnsafe<long, System.Net.IPAddress>((value) => { return new System.Net.IPAddress(value); });
 
 			RegisterUnsafe<ulong, Slice>((value) => Slice.FromUInt64(value));
 			RegisterUnsafe<ulong, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
@@ -199,6 +200,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<string, bool>((value) => !string.IsNullOrEmpty(value));
 			RegisterUnsafe<string, float>((value) => string.IsNullOrEmpty(value) ? default(float) : Single.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string, double>((value) => string.IsNullOrEmpty(value) ? default(double) : Double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, System.Net.IPAddress>((value) => string.IsNullOrEmpty(value) ? default(System.Net.IPAddress) : System.Net.IPAddress.Parse(value));
 
 			RegisterUnsafe<byte[], Slice>((value) => Slice.Create(value));
 			RegisterUnsafe<byte[], string>((value) => value == null ? default(string) : value.Length == 0 ? String.Empty : System.Convert.ToBase64String(value));
@@ -210,24 +212,31 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<byte[], Guid>((value) => value == null || value.Length == 0 ? default(Guid) : new Uuid(value).ToGuid());
 			RegisterUnsafe<byte[], Uuid>((value) => value == null || value.Length == 0 ? default(Uuid) : new Uuid(value));
 			RegisterUnsafe<byte[], TimeSpan>((value) => value == null ? TimeSpan.Zero : TimeSpan.FromTicks(Slice.Create(value).ToInt64()));
+			RegisterUnsafe<byte[], System.Net.IPAddress>((value) => value == null || value.Length == 0 ? default(System.Net.IPAddress) : new System.Net.IPAddress(value));
 
 			RegisterUnsafe<Guid, Slice>((value) => Slice.FromGuid(value));
 			RegisterUnsafe<Guid, byte[]>((value) => Slice.FromGuid(value).GetBytes());
 			RegisterUnsafe<Guid, string>((value) => value.ToString("D", null));
 			RegisterUnsafe<Guid, Uuid>((value) => new Uuid(value));
 			RegisterUnsafe<Guid, bool>((value) => value == Guid.Empty);
+			RegisterUnsafe<Guid, System.Net.IPAddress>((value) => new System.Net.IPAddress(new Uuid(value).ToByteArray()));
 
 			RegisterUnsafe<Uuid, Slice>((value) => value.ToSlice());
 			RegisterUnsafe<Uuid, byte[]>((value) => value.ToByteArray());
 			RegisterUnsafe<Uuid, string>((value) => value.ToString("D", null));
 			RegisterUnsafe<Uuid, Guid>((value) => value.ToGuid());
 			RegisterUnsafe<Uuid, bool>((value) => value == Uuid.Empty);
+			RegisterUnsafe<Guid, System.Net.IPAddress>((value) => new System.Net.IPAddress(value.ToByteArray()));
 
 			RegisterUnsafe<TimeSpan, Slice>((value) => Slice.FromInt64(value.Ticks));
 			RegisterUnsafe<TimeSpan, byte[]>((value) => Slice.FromInt64(value.Ticks).GetBytes());
 			RegisterUnsafe<TimeSpan, long>((value) => value.Ticks);
 			RegisterUnsafe<TimeSpan, double>((value) => value.TotalSeconds);
 			RegisterUnsafe<TimeSpan, bool>((value) => value == TimeSpan.Zero);
+
+			RegisterUnsafe<System.Net.IPAddress, Slice>((value) => value != null ? Slice.Create(value.GetAddressBytes()) : Slice.Nil);
+			RegisterUnsafe<System.Net.IPAddress, byte[]>((value) => value != null ? value.GetAddressBytes() : null);
+			RegisterUnsafe<System.Net.IPAddress, string>((value) => value != null ? value.ToString() : null);
 
 			RegisterUnsafe<FdbTupleAlias, int>((value) => (int)value);
 			RegisterUnsafe<FdbTupleAlias, Slice>((value) => Slice.FromByte((byte)value));
@@ -244,6 +253,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<Slice, Uuid>((value) => value.ToUuid());
 			RegisterUnsafe<Slice, TimeSpan>((value) => TimeSpan.FromTicks(value.ToInt64()));
 			RegisterUnsafe<Slice, FdbTupleAlias>((value) => (FdbTupleAlias)value.ToByte());
+			RegisterUnsafe<Slice, System.Net.IPAddress>((value) => !value.IsNullOrEmpty ? new System.Net.IPAddress(value.GetBytes()) : null);
 		}
 
 		/// <summary>Helper method to throw an exception when we don't know how to convert from <paramref name="source"/> to <paramref name="destination"/></summary>
