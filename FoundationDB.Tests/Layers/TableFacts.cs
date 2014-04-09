@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Tables.Tests
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
+	using System.Net;
 	using System.Threading.Tasks;
 
 	[TestFixture]
@@ -160,6 +161,70 @@ namespace FoundationDB.Layers.Tables.Tests
 			}
 		}
 
+		[Test]
+		public async Task Test_FdbTable_With_Custom_Key_Encoder()
+		{
+			// Use a table as a backing store for the rules of a Poor Man's firewall, where each keys are the IPEndPoint (tcp only!), and the values are "pass" or "block"
+
+			// Encode IPEndPoint as the (IP, Port,) encoded with the Tuple codec
+			// note: there is a much simpler way or creating composite keys, this is just a quick and dirty test!
+			var keyEncoder = KeyValueEncoders.Bind<IPEndPoint>(
+				(ipe) => ipe == null ? Slice.Empty : FdbTuple.Pack(ipe.Address, ipe.Port),
+				(packed) =>
+				{
+					if (packed.IsNullOrEmpty) return default(IPEndPoint);
+					var t = FdbTuple.Unpack(packed);
+					return new IPEndPoint(t.Get<IPAddress>(0), t.Get<int>(1));
+				}
+			);
+
+			var rules = new Dictionary<IPEndPoint, string>()
+			{
+				{ new IPEndPoint(IPAddress.Parse("172.16.12.34"), 6667), "block" },
+				{ new IPEndPoint(IPAddress.Parse("192.168.34.56"), 80), "pass" },
+				{ new IPEndPoint(IPAddress.Parse("192.168.34.56"), 443), "pass" }
+			};
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				var location = await GetCleanDirectory(db, "Tables");
+
+				var table = new FdbTable<IPEndPoint, string>("Firewall", location.Partition("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
+
+				// import all the rules
+				await db.WriteAsync((tr) =>
+				{
+					foreach(var rule in rules)
+					{
+						table.Set(tr, rule.Key, rule.Value);
+					}
+				}, this.Cancellation);
+
+#if DEBUG
+				await DumpSubspace(db, location);
+#endif
+
+				// test the rules
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					var value = await table.GetAsync(tr, new IPEndPoint(IPAddress.Parse("172.16.12.34"), 6667));
+					Assert.That(value, Is.EqualTo("block"));
+
+					value = await table.GetAsync(tr, new IPEndPoint(IPAddress.Parse("192.168.34.56"), 443));
+					Assert.That(value, Is.EqualTo("pass"));
+
+					var baz = new IPEndPoint(IPAddress.Parse("172.16.12.34"), 80);
+					Assert.That(async () => await table.GetAsync(tr, baz), Throws.InstanceOf<KeyNotFoundException>());
+
+					var opt = await table.TryGetAsync(tr, baz);
+					Assert.That(opt.HasValue, Is.False);
+				}
+
+			}
+		}
+
 	}
+
 
 }
