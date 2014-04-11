@@ -111,9 +111,15 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			#region Reading...
+			#region Batching...
 
-			public sealed class BatchReadContext
+			//REVIEW: what's a good value for these ?
+			private const int DefaultInitialBatchSize = 100; 
+			private const int DefaultMinimumBatchSize = 4;
+			private const int DefaultMaximumBatchSize = 10000;
+
+
+			public sealed class BatchOperationContext
 			{
 				/// <summary>Transaction corresponding to the current generation</summary>
 				public IFdbReadOnlyTransaction Transaction { get; internal set; }
@@ -142,6 +148,9 @@ namespace FoundationDB.Client
 				/// <summary>Returns true if all values processed up to this point used the same transaction, or false if more than one transaction was used.</summary>
 				public bool IsTransactional { get { return this.Generation == 0; } }
 
+				/// <summary>Returns true if at least one unretryable exception happened during the process of one batch</summary>
+				public bool Failed { get; internal set; }
+
 				/// <summary>If called, will stop immediately after processing this batch, even if the source sequence contains more elements</summary>
 				public void Stop()
 				{
@@ -152,9 +161,11 @@ namespace FoundationDB.Client
 
 			}
 
+			#region ForEach...
+
 			/// <summary>Execute a potentially long read-only operation on batches of elements from a source sequence, using as many transactions as necessary, and automatically scaling the size of each batch to maximize the throughput.</summary>
 			/// <typeparam name="TSource">Type of elements in the source sequence</typeparam>
-			/// <typeparam name="TLocal">Type of the local state that is flowed accross all batch operations</typeparam>
+			/// <typeparam name="TLocal">Type of the local immutable state that is flowed accross all batch operations</typeparam>
 			/// <param name="db">Source database</param>
 			/// <param name="source">Source sequence that will be split into batch. The size of each batch will scale up and down automatically depending on the speed of execution</param>
 			/// <param name="localInit">Lambda function that is called once, and returns the initial state that will be passed to the first batch</param>
@@ -162,11 +173,11 @@ namespace FoundationDB.Client
 			/// <param name="localFinally">Lambda function that will be called after the last batch, and will be passed the last known state.</param>
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Task that completes when all the elements of <paramref name="source"/> have been processed, a non-retryable error occurs, or <paramref name="cancellationToken"/> is triggered</returns>
-			public static Task ReadBatchedAsync<TSource, TLocal>(
+			public static Task ForEachAsync<TSource, TLocal>(
 				IFdbDatabase db,
 				IEnumerable<TSource> source,
 				Func<TLocal> localInit,
-				Func<TSource[], BatchReadContext, TLocal, Task<TLocal>> body,
+				Func<TSource[], BatchOperationContext, TLocal, Task<TLocal>> body,
 				Action<TLocal> localFinally,
 				CancellationToken cancellationToken)
 			{
@@ -176,12 +187,12 @@ namespace FoundationDB.Client
 				if (body == null) throw new ArgumentNullException("body");
 				if (localFinally == null) throw new ArgumentNullException("localFinally");
 
-				return InternalReadBatchAsync(db, source, localInit, body, localFinally, 100, cancellationToken);
+				return RunBatchedOperationAsync<TSource, TLocal, object>(db, source, localInit, body, localFinally, DefaultInitialBatchSize, cancellationToken);
 			}
 
 			/// <summary>Execute a potentially long read-only operation on batches of elements from a source sequence, using as many transactions as necessary, and automatically scaling the size of each batch to maximize the throughput.</summary>
 			/// <typeparam name="TSource">Type of elements in the source sequence</typeparam>
-			/// <typeparam name="TLocal">Type of the local state that is flowed accross all batch operations</typeparam>
+			/// <typeparam name="TLocal">Type of the local immutable state that is flowed accross all batch operations</typeparam>
 			/// <param name="db">Source database</param>
 			/// <param name="source">Source sequence that will be split into batch. The size of each batch will scale up and down automatically depending on the speed of execution</param>
 			/// <param name="localInit">Lambda function that is called once, and returns the initial state that will be passed to the first batch</param>
@@ -189,11 +200,12 @@ namespace FoundationDB.Client
 			/// <param name="localFinally">Lambda function that will be called after the last batch, and will be passed the last known state.</param>
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Task that completes when all the elements of <paramref name="source"/> have been processed, a non-retryable error occurs, or <paramref name="cancellationToken"/> is triggered</returns>
-			public static Task ReadBatchedAsync<TSource, TLocal>(
+			[Obsolete("EXPERIMENTAL: do not use yet!")]
+			public static Task ForEachAsync<TSource, TLocal>(
 				IFdbDatabase db,
 				IEnumerable<TSource> source,
 				Func<TLocal> localInit,
-				Func<TSource[], BatchReadContext, TLocal, TLocal> body,
+				Func<TSource[], BatchOperationContext, TLocal, TLocal> body,
 				Action<TLocal> localFinally,
 				CancellationToken cancellationToken)
 			{
@@ -203,7 +215,12 @@ namespace FoundationDB.Client
 				if (body == null) throw new ArgumentNullException("body");
 				if (localFinally == null) throw new ArgumentNullException("localFinally");
 
-				return InternalReadBatchAsync(db, source, localInit, body, localFinally, 100, cancellationToken);
+				//REVIEW: what is the point if the body is not async ?
+				// > either is can read and generate past_version errors then it needs to be async
+				// > either it's not async, then it could only Write/Clear, and in which case we need a writeable transaction ... ? (and who will commit and when ??)
+				// It could maybe make sense if the source was an IFdbAsyncEnumerable<T> because you could not use Parallel.ForEach(...) for that
+
+				return RunBatchedOperationAsync<TSource, TLocal, object>(db, source, localInit, body, localFinally, DefaultInitialBatchSize, cancellationToken);
 			}
 
 			/// <summary>Execute a potentially long read-only operation on batches of elements from a source sequence, using as many transactions as necessary, and automatically scaling the size of each batch to maximize the throughput.</summary>
@@ -213,17 +230,17 @@ namespace FoundationDB.Client
 			/// <param name="body">Retryable lambda function that receives a batch of elements from the source sequence, the current context, and the previous state. If the transaction expires while this lambda function is running, it will be automatically retried with a new transaction, and a smaller batch.</param>
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Task that completes when all the elements of <paramref name="source"/> have been processed, a non-retryable error occurs, or <paramref name="cancellationToken"/> is triggered</returns>
-			public static Task ReadBatchedAsync<TSource>(
+			public static Task ForEachAsync<TSource>(
 				IFdbDatabase db,
 				IEnumerable<TSource> source,
-				Func<TSource[], BatchReadContext, Task> body,
+				Func<TSource[], BatchOperationContext, Task> body,
 				CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
 				if (body == null) throw new ArgumentNullException("body");
 
-				return InternalReadBatchAsync<TSource, object>(db, source, null, body, null, 100, cancellationToken);
+				return RunBatchedOperationAsync<TSource, object, object>(db, source, null, body, null, DefaultInitialBatchSize, cancellationToken);
 			}
 
 			/// <summary>Execute a potentially long read-only operation on batches of elements from a source sequence, using as many transactions as necessary, and automatically scaling the size of each batch to maximize the throughput.</summary>
@@ -233,47 +250,124 @@ namespace FoundationDB.Client
 			/// <param name="body">Retryable lambda function that receives a batch of elements from the source sequence, the current context, and the previous state. If the transaction expires while this lambda function is running, it will be automatically retried with a new transaction, and a smaller batch.</param>
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Task that completes when all the elements of <paramref name="source"/> have been processed, a non-retryable error occurs, or <paramref name="cancellationToken"/> is triggered</returns>
-			public static Task BatchedAsync<TSource>(
+			[Obsolete("EXPERIMENTAL: do not use yet!")]
+			public static Task ForEachAsync<TSource>(
 				IFdbDatabase db,
 				IEnumerable<TSource> source,
-				Action<TSource[], BatchReadContext> body,
+				Action<TSource[], BatchOperationContext> body,
 				CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
 				if (body == null) throw new ArgumentNullException("body");
 
-				return InternalReadBatchAsync<TSource, object>(db, source, null, body, null, 100, cancellationToken);
+				//REVIEW: what is the point if the body is not async ?
+				// > either is can read and generate past_version errors then it needs to be async
+				// > either it's not async, then it could only Write/Clear, and in which case we need a writeable transaction ... ? (and who will commit and when ??)
+				// It could maybe make sense if the source was an IFdbAsyncEnumerable<T> because you could not use Parallel.ForEach(...) for that
+
+				return RunBatchedOperationAsync<TSource, object, object>(db, source, null, body, null, DefaultInitialBatchSize, cancellationToken);
 			}
+
+			#endregion
+
+			#region Aggregate...
+
+			/// <summary>Execute a potentially long aggregation on batches of elements from a source sequence, using as many transactions as necessary, and automatically scaling the size of each batch to maximize the throughput.</summary>
+			/// <typeparam name="TSource">Type of elements in the source sequence</typeparam>
+			/// <typeparam name="TAggregate">Type of the local immutable aggregate that is flowed accross all batch operations</typeparam>
+			/// <param name="db">Source database</param>
+			/// <param name="source">Source sequence that will be split into batch. The size of each batch will scale up and down automatically depending on the speed of execution</param>
+			/// <param name="localInit">Lambda function that is called once, and returns the initial state that will be passed to the first batch</param>
+			/// <param name="body">Retryable lambda function that receives a batch of elements from the source sequence, the current context, and the previous state. If the transaction expires while this lambda function is running, it will be automatically retried with a new transaction, and a smaller batch.</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Task that completes when all the elements of <paramref name="source"/> have been processed, a non-retryable error occurs, or <paramref name="cancellationToken"/> is triggered</returns>
+			public static Task<TAggregate> AggregateAsync<TSource, TAggregate>(
+				IFdbDatabase db,
+				IEnumerable<TSource> source,
+				Func<TAggregate> localInit,
+				Func<TSource[], BatchOperationContext, TAggregate, Task<TAggregate>> body,
+				CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (source == null) throw new ArgumentNullException("source");
+				if (localInit == null) throw new ArgumentNullException("localInit");
+				if (body == null) throw new ArgumentNullException("body");
+
+				Func<TAggregate, TAggregate> identity = (x) => x;
+				return RunBatchedOperationAsync<TSource, TAggregate, TAggregate>(db, source, localInit, body, identity, DefaultInitialBatchSize, cancellationToken);
+			}
+
+			/// <summary>Execute a potentially long aggregation on batches of elements from a source sequence, using as many transactions as necessary, and automatically scaling the size of each batch to maximize the throughput.</summary>
+			/// <typeparam name="TSource">Type of elements in the source sequence</typeparam>
+			/// <typeparam name="TAggregate">Type of the local immutable aggregate that is flowed accross all batch operations</typeparam>
+			/// <param name="db">Source database</param>
+			/// <param name="source">Source sequence that will be split into batch. The size of each batch will scale up and down automatically depending on the speed of execution</param>
+			/// <param name="localInit">Lambda function that is called once, and returns the initial state that will be passed to the first batch</param>
+			/// <param name="body">Retryable lambda function that receives a batch of elements from the source sequence, the current context, and the previous state. If the transaction expires while this lambda function is running, it will be automatically retried with a new transaction, and a smaller batch.</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Task that completes when all the elements of <paramref name="source"/> have been processed, a non-retryable error occurs, or <paramref name="cancellationToken"/> is triggered</returns>
+			public static Task<TResult> AggregateAsync<TSource, TAggregate, TResult>(
+				IFdbDatabase db,
+				IEnumerable<TSource> source,
+				Func<TAggregate> init,
+				Func<TSource[], BatchOperationContext, TAggregate, Task<TAggregate>> body,
+				Func<TAggregate, TResult> transform,
+				CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (source == null) throw new ArgumentNullException("source");
+				if (init == null) throw new ArgumentNullException("init");
+				if (body == null) throw new ArgumentNullException("body");
+				if (transform == null) throw new ArgumentNullException("transform");
+
+				return RunBatchedOperationAsync<TSource, TAggregate, TResult>(db, source, init, body, transform, DefaultInitialBatchSize, cancellationToken);
+			}
+
+			#endregion
 
 			/// <summary>Runs a long duration bulk read</summary>
-			private static async Task InternalReadBatchAsync<TSource, TLocal>(
+			private static async Task<TResult> RunBatchedOperationAsync<TSource, TLocal, TResult>(
 				IFdbDatabase db,
 				IEnumerable<TSource> source,
 				Func<TLocal> localInit,
 				Delegate body,
-				Action<TLocal> localFinally,
+				Delegate localFinally,
 				int initialBatchSize,
 				CancellationToken cancellationToken
 			)
 			{
 				Contract.Requires(db != null && source != null && initialBatchSize > 0 && body != null);
 
-				var bodyAsyncWithContextAndState = body as Func<TSource[], BatchReadContext, TLocal, Task<TLocal>>;
-				var bodyWithContextAndState = body as Func<TSource[], BatchReadContext, TLocal, TLocal>;
-				var bodyAsyncWithContext = body as Func<TSource[], BatchReadContext, Task>;
-				var bodyWithContext = body as Action<TSource[], BatchReadContext>;
+				var bodyAsyncWithContextAndState = body as Func<TSource[], BatchOperationContext, TLocal, Task<TLocal>>;
+				var bodyWithContextAndState = body as Func<TSource[], BatchOperationContext, TLocal, TLocal>;
+				var bodyAsyncWithContext = body as Func<TSource[], BatchOperationContext, Task>;
+				var bodyWithContext = body as Action<TSource[], BatchOperationContext>;
 
 				if (bodyAsyncWithContextAndState == null &&
 					bodyAsyncWithContext == null &&
 					bodyWithContextAndState == null &&
 					bodyWithContext == null)
 				{
-					throw new ArgumentException("Unsupported delegate type", "body");
+					throw new ArgumentException(String.Format("Unsupported delegate type {0} for body", body.GetType().FullName), "body");
+				}
+
+				var localFinallyVoid = localFinally as Action<TLocal>;
+				var localFinallyWithResult = localFinally as Func<TLocal, TResult>;
+				if (localFinally != null && 
+					localFinallyVoid == null &&
+					localFinallyWithResult == null)
+				{
+					throw new ArgumentException(String.Format("Unsupported delegate type {0} for local finally", body.GetType().FullName), "localFinally");
 				}
 
 				int batchSize = initialBatchSize;
 				var batch = new List<TSource>(batchSize);
+
+				bool localInitialized = false;
+				TLocal localValue = default(TLocal);
+				TSource[] items = null;
+				TResult result = default(TResult);
 
 				using (var iterator = source.GetEnumerator())
 				{
@@ -281,7 +375,7 @@ namespace FoundationDB.Client
 
 					using (var trans = db.BeginReadOnlyTransaction(cancellationToken))
 					{
-						var ctx = new BatchReadContext()
+						var ctx = new BatchOperationContext()
 						{
 							Transaction = trans,
 							Step = batchSize,
@@ -289,9 +383,6 @@ namespace FoundationDB.Client
 							GenerationTimer = Stopwatch.StartNew(),
 						};
 
-						bool localInitialized = false;
-						TLocal localValue = default(TLocal);
-						TSource[] items = null;
 						try
 						{
 							if (localInit != null)
@@ -351,7 +442,8 @@ namespace FoundationDB.Client
 												if (ctx.Cooldown > 0) ctx.Cooldown--;
 												if (ctx.Cooldown <= 0 && sw.Elapsed.TotalSeconds < (5.0 - ctx.ElapsedGeneration.TotalSeconds) / 2)//REVIEW: magical number!
 												{
-													ctx.Step = Math.Min(ctx.Step * 2, 10000); //REVIEW: magical number!
+													ctx.Step = Math.Min(ctx.Step * 2, DefaultMaximumBatchSize); //REVIEW: magical number!
+													//REVIEW: magical number!
 													ctx.Cooldown = 2;
 												}
 												break;
@@ -377,9 +469,10 @@ namespace FoundationDB.Client
 											ctx.Generation++;
 
 											// scale back batch size
-											if (ctx.Step > 1)
+											if (ctx.Step > DefaultMinimumBatchSize)
 											{
-												ctx.Step = Math.Max(ctx.Step >> 1, 1);
+												ctx.Step = Math.Max(ctx.Step >> 1, DefaultMinimumBatchSize);
+												//REVIEW: magical number!
 												ctx.Cooldown = 10;
 											}
 										}
@@ -388,7 +481,9 @@ namespace FoundationDB.Client
 											await trans.OnErrorAsync(error.Code);
 											ctx.GenerationTimer.Reset();
 											ctx.Generation++;
+											//REVIEW: magical number!
 											if (ctx.Cooldown < 2) ctx.Cooldown = 2;
+
 										}
 									}
 								}
@@ -399,15 +494,29 @@ namespace FoundationDB.Client
 							}
 							cancellationToken.ThrowIfCancellationRequested();
 						}
+						catch(Exception)
+						{
+							ctx.Failed = true;
+							throw;
+						}
 						finally
 						{
 							if (localFinally != null && localInitialized)
 							{ // we need to cleanup the state whatever happens
-								localFinally(localValue);
+								if (localFinallyVoid != null)
+								{
+									localFinallyVoid(localValue);
+								}
+								else if (localFinallyWithResult != null)
+								{
+									result = localFinallyWithResult(localValue);
+								}
 							}
 						}
 					}
 				}
+
+				return result;
 			}
 
 			/// <summary>Tries to fill a batch with items from the source</summary>
