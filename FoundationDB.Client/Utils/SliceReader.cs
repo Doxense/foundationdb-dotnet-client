@@ -100,11 +100,19 @@ namespace FoundationDB.Client
 			return this.Buffer.Substring(p, count);
 		}
 
+		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in little-endian</summary>
+		public ushort ReadFixed16()
+		{
+			return ReadBytes(2).ToUInt16();
+		}
+
+		/// <summary>Read the next 4 bytes as an unsigned 32-bit integer, encoded in little-endian</summary>
 		public uint ReadFixed32()
 		{
 			return ReadBytes(4).ToUInt32();
 		}
 
+		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in little-endian</summary>
 		public ulong ReadFixed64()
 		{
 			return ReadBytes(8).ToUInt64();
@@ -139,11 +147,20 @@ namespace FoundationDB.Client
 			throw new FormatException("Truncated byte string (expected terminal NUL not found)");
 		}
 
+		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can Read up to 3 bytes from the input</remarks>
+		public ushort ReadVarint16()
+		{
+			//note: this could read up to 21 bits of data, so we check for overflow
+			return checked((ushort)ReadVarint(3));
+		}
+
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
 		/// <remarks>Can Read up to 5 bytes from the input</remarks>
 		public uint ReadVarint32()
 		{
-			return (uint)ReadVarint(5);
+			//note: this could read up to 35 bits of data, so we check for overflow
+			return checked((uint)ReadVarint(5));
 		}
 
 		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint32') from the buffer, and advances the cursor</summary>

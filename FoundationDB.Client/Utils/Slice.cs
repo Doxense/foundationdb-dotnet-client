@@ -1034,6 +1034,36 @@ namespace FoundationDB.Client
 			//TODO: consider checking if the slice consist of only zeroes ? (ex: Slice.FromFixed32(0) could be considered falsy ...)
 		}
 
+		/// <summary>Converts a slice into a little-endian encoded, signed 16-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 2 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
+		public short ToInt16()
+		{
+			SliceHelpers.EnsureSliceIsValid(ref this);
+			switch (this.Count)
+			{
+				case 0: return 0;
+				case 1: return this.Array[this.Offset];
+				case 2: return (short) (this.Array[this.Offset] | (this.Array[this.Offset + 1] << 8));
+				default: throw new FormatException("Cannot convert slice into an Int16 because it is larger than 2 bytes");
+			}
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 16-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 2 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
+		public ushort ToUInt16()
+		{
+			SliceHelpers.EnsureSliceIsValid(ref this);
+			switch (this.Count)
+			{
+				case 0: return 0;
+				case 1: return this.Array[this.Offset];
+				case 2: return (ushort)(this.Array[this.Offset] | (this.Array[this.Offset + 1] << 8));
+				default: throw new FormatException("Cannot convert slice into an UInt16 because it is larger than 2 bytes");
+			}
+		}
+
 		/// <summary>Converts a slice into a little-endian encoded, signed 32-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 4 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>

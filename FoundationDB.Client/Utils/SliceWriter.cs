@@ -525,6 +525,18 @@ namespace FoundationDB.Client
 			this.Position += count;
 		}
 
+		/// <summary>Writes a 16-bit unsigned integer, using little-endian encoding</summary>
+		/// <remarks>Advances the cursor by 2 bytes</remarks>
+		public void WriteFixed16(uint value)
+		{
+			EnsureBytes(2);
+			var buffer = this.Buffer;
+			int p = this.Position;
+			buffer[p] = (byte)value;
+			buffer[p + 1] = (byte)(value >> 8);
+			this.Position = p + 4;
+		}
+
 		/// <summary>Writes a 32-bit unsigned integer, using little-endian encoding</summary>
 		/// <remarks>Advances the cursor by 4 bytes</remarks>
 		public void WriteFixed32(uint value)
@@ -555,6 +567,32 @@ namespace FoundationDB.Client
 			buffer[p + 6] = (byte)(value >> 48);
 			buffer[p + 7] = (byte)(value >> 56);
 			this.Position = p + 8;
+		}
+
+		/// <summary>Writes a 7-bit encoded unsigned int (aka 'Varint16') at the end, and advances the cursor</summary>
+		public void WriteVarint16(ushort value)
+		{
+			const uint MASK = 128;
+
+			if (value < (1 << 7))
+			{
+				WriteByte((byte)value);
+			}
+			else if (value < (1 << 14))
+			{
+				WriteByte2(
+					(byte)(value | MASK),
+					(byte)(value >> 7)
+				);
+			}
+			else
+			{
+				WriteByte3(
+					(byte)(value | MASK),
+					(byte)((value >> 7) | MASK),
+					(byte)(value >> 14)
+				);
+			}
 		}
 
 		/// <summary>Writes a 7-bit encoded unsigned int (aka 'Varint32') at the end, and advances the cursor</summary>
@@ -622,6 +660,7 @@ namespace FoundationDB.Client
 			this.Position = p;
 		}
 
+		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
 		public void WriteVarbytes(Slice value)
 		{
 			SliceHelpers.EnsureSliceIsValid(ref value);
