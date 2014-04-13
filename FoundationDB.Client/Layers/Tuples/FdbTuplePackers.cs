@@ -748,6 +748,16 @@ namespace FoundationDB.Layers.Tuples
 			return current;
 		}
 
+		/// <summary>Only returns the first item of a packed tuple</summary>
+		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
+		/// <returns>Raw slice corresponding to the first element of the tuple</returns>
+		public static Slice UnpackFirst(Slice buffer)
+		{
+			var slicer = new SliceReader(buffer);
+
+			return ParseNext(ref slicer);
+		}
+
 		/// <summary>Only returns the last item of a packed tuple</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with one or more elements</param>
 		/// <returns>Raw slice corresponding to the last element of the tuple</returns>
