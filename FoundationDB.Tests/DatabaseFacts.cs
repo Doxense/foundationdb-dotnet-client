@@ -32,6 +32,7 @@ namespace FoundationDB.Client.Tests
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
+	using System.IO;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -320,5 +321,39 @@ namespace FoundationDB.Client.Tests
 
 			}
 		}
+
+		[Test]
+		public async Task Test_Check_Timeout_On_Non_Existing_Database()
+		{
+
+			string clusterPath = Path.Combine(TestContext.CurrentContext.WorkDirectory, "notfound.cluster");
+			File.WriteAllText(clusterPath, "local:thisClusterShouldNotExist@127.0.0.1:4566");
+
+			using (var db = await Fdb.OpenAsync(clusterPath, "DB"))
+			{
+				bool exists = false;
+				var err = FdbError.Success;
+				try
+				{
+					using(var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+					{
+						tr.Timeout = 250; // ms
+						Console.WriteLine("check ...");
+						await tr.GetAsync(db.GlobalSpace.Key);
+						Console.WriteLine("Uhoh ...?");
+						exists = true;
+					}
+				}
+				catch(FdbException e)
+				{
+					err = e.Code;
+				}
+
+				Assert.That(exists, Is.False);
+				Assert.That(err, Is.EqualTo(FdbError.TransactionTimedOut));
+			}
+
+		}
+
 	}
 }
