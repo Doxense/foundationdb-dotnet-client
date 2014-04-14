@@ -587,7 +587,10 @@ namespace FoundationDB.Client.Native
 
 		public static FutureHandle TransactionGet(TransactionHandle transaction, Slice key, bool snapshot)
 		{
-			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "key");
+			if (key.IsNull) throw new ArgumentException("Key cannot be null", "key");
+
+			// the empty key is allowed !
+			if (key.Count == 0) key = Slice.Empty;
 
 			fixed (byte* ptrKey = key.Array)
 			{
