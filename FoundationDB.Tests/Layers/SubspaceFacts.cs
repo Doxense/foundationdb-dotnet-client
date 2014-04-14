@@ -91,6 +91,21 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_Subspace_Copy_Does_Not_Share_Key_Buffer()
+		{
+			var original = FdbSubspace.Create(Slice.FromString("Hello"));
+			var copy = original.Copy();
+			Assert.That(copy, Is.Not.Null);
+			Assert.That(copy, Is.Not.SameAs(original), "Copy should be a new instance");
+			Assert.That(copy.Key, Is.EqualTo(original.Key), "Key should be equal");
+			Assert.That(copy.Key.Array, Is.Not.SameAs(original.Key.Array), "Key should be a copy of the original");
+
+			Assert.That(copy, Is.EqualTo(original), "Copy and original should be considered equal");
+			Assert.That(copy.ToString(), Is.EqualTo(original.ToString()), "Copy and original should have the same string representation");
+			Assert.That(copy.GetHashCode(), Is.EqualTo(original.GetHashCode()), "Copy and original should have the same hashcode");
+		}
+
+		[Test]
 		public void Test_Cannot_Create_Or_Partition_Subspace_With_Slice_Nil()
 		{
 			Assert.That(() => new FdbSubspace(Slice.Nil), Throws.ArgumentException);

@@ -38,14 +38,14 @@ namespace FoundationDB.Layers.Directories
 
 	/// <summary>A Directory Subspace represents the contents of a directory, but it also remembers the path with which it was opened and offers convenience methods to operate on the directory at that path.</summary>
 	/// <remarks>An instance of DirectorySubspace can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.</remarks>
-	[DebuggerDisplay("Path={Path}, Prefix={Key}, Layer={Layer}")]
+	[DebuggerDisplay("Path={Path}, Prefix={InternalKey}, Layer={Layer}")]
 	public class FdbDirectorySubspace : FdbSubspace, IFdbDirectory
 	{
 
 		internal FdbDirectorySubspace(IFdbTuple location, IFdbTuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer, Slice layer)
 			: base(prefix)
 		{
-			Contract.Requires(location != null && prefix != null && directoryLayer != null);
+			Contract.Requires(location != null && relativeLocation != null && prefix != null && directoryLayer != null);
 			if (layer.IsNull) layer = Slice.Empty;
 
 			this.DirectoryLayer = directoryLayer;
@@ -64,7 +64,7 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Location of the directory relative to its parent Directory Layer</summary>
 		protected IFdbTuple RelativeLocation { get; set; }
 
-		/// <summary>Path of this directory</summary>
+		/// <summary>Absolute path of this directory</summary>
 		public IReadOnlyList<string> Path { get; private set; }
 
 		/// <summary>Name of the directory</summary>
@@ -125,9 +125,9 @@ namespace FoundationDB.Layers.Directories
 			}
 
 			// set the layer to the new value
-			await this.DirectoryLayer.ChangeLayerInternalAsync(trans, this.RelativeLocation, newLayer);
+			await this.DirectoryLayer.ChangeLayerInternalAsync(trans, this.RelativeLocation, newLayer).ConfigureAwait(false);
 			// and return the new version of the subspace
-			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, this.Key, this.DirectoryLayer, newLayer);
+			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, this.InternalKey, this.DirectoryLayer, newLayer);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
@@ -347,18 +347,26 @@ namespace FoundationDB.Layers.Directories
 			return this.DirectoryLayer.ListInternalAsync(trans, ToRelativePath(path), throwIfMissing: false);
 		}
 
+		public override string DumpKey(Slice key)
+		{
+			string str = base.DumpKey(key);
+			return String.Format("[/{0}]:{1}", String.Join("/", this.Path), str);
+		}
+
 		/// <summary>Returns a user-friendly description of this directory</summary>
 		public override string ToString()
 		{
 			if (this.Layer.IsNullOrEmpty)
 			{
-				return String.Format("DirectorySubspace(path={0}, prefix={1})", this.Location.ToString(), this.Key.ToAsciiOrHexaString());
+				return String.Format("DirectorySubspace(path={0}, prefix={1})", this.Location.ToString(), this.InternalKey.ToAsciiOrHexaString());
 			}
 			else
 			{
-				return String.Format("DirectorySubspace(path={0}, prefix={1}, layer={2})", this.Location.ToString(), this.Key.ToAsciiOrHexaString(), this.Layer.ToAsciiOrHexaString());
+				return String.Format("DirectorySubspace(path={0}, prefix={1}, layer={2})", this.Location.ToString(), this.InternalKey.ToAsciiOrHexaString(), this.Layer.ToAsciiOrHexaString());
 			}
 		}
+
+		//note: Equals() and GetHashcode() are already implemented in FdbSubspace, and don't need to be overriden here
 
 	}
 }

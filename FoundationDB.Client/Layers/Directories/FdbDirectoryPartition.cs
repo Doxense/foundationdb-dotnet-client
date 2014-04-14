@@ -51,6 +51,11 @@ namespace FoundationDB.Layers.Directories
 
 		internal FdbDirectoryLayer ParentDirectoryLayer { get { return m_parentDirectoryLayer; } }
 
+		protected override Slice GetKeyPrefix()
+		{
+			throw new InvalidOperationException("Cannot create keys in the root of a directory partition.");
+		}
+
 		protected override IFdbTuple ToRelativePath(IEnumerable<string> path)
 		{
 			return path == null ? FdbTuple.Empty : FdbTuple.CreateRange<string>(path);
@@ -70,22 +75,7 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryPartition(path={0}, prefix={1})", this.Location.ToString(), this.Key.ToAsciiOrHexaString());
-		}
-
-		public override FdbSubspace Partition(IFdbTuple tuple)
-		{
-			throw new NotSupportedException("Cannot open subspace in the root of a directory partition.");
-		}
-
-		public override FdbSubspace Partition<T>(T value)
-		{
-			throw new NotSupportedException("Cannot open subspace in the root of a directory partition.");
-		}
-
-		public override FdbSubspace Partition(ITupleFormattable formattable)
-		{
-			throw new NotSupportedException("Cannot open subspace in the root of a directory partition.");
+			return String.Format("DirectoryPartition(path={0}, prefix={1})", this.Location.ToString(), this.InternalKey.ToAsciiOrHexaString());
 		}
 
 	}

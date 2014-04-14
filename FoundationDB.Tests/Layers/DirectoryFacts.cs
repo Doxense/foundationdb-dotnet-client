@@ -556,27 +556,29 @@ namespace FoundationDB.Layers.Directories
 				Console.WriteLine(directory);
 
 				var partition = await directory.CreateAsync(db, "Foo", Slice.FromAscii("partition"), this.Cancellation);
+				// we can't get the partition key directory (because it's a root directory) so we need to cheat a little bit
+				var partitionKey = partition.Copy().Key;
 				Console.WriteLine(partition);
 				Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
 				Assert.That(partition.Layer, Is.EqualTo(Slice.FromAscii("partition")));
 				Assert.That(partition.Path, Is.EqualTo(new [] { "Foo" }), "Partition's path should be absolute");
 				Assert.That(partition.DirectoryLayer, Is.Not.SameAs(directory), "Partitions should have their own DL");
-				Assert.That(partition.DirectoryLayer.ContentSubspace.Key, Is.EqualTo(partition.Key), "Partition's content should be under the partition's prefix");
-				Assert.That(partition.DirectoryLayer.NodeSubspace.Key, Is.EqualTo(partition.Key + FdbKey.Directory), "Partition's nodes should be under the partition's prefix");
+				Assert.That(partition.DirectoryLayer.ContentSubspace.Key, Is.EqualTo(partitionKey), "Partition's content should be under the partition's prefix");
+				Assert.That(partition.DirectoryLayer.NodeSubspace.Key, Is.EqualTo(partitionKey + FdbKey.Directory), "Partition's nodes should be under the partition's prefix");
 
 				var bar = await partition.CreateAsync(db, "Bar", this.Cancellation);
 				Console.WriteLine(bar);
 				Assert.That(bar, Is.InstanceOf<FdbDirectorySubspace>());
 				Assert.That(bar.Path, Is.EqualTo(new [] { "Foo", "Bar" }), "Path of directories under a partition should be absolute");
-				Assert.That(bar.Key, Is.Not.EqualTo(partition.Key), "{0} should be located under {1}", bar, partition);
-				Assert.That(bar.Key.StartsWith(partition.Key), Is.True, "{0} should be located under {1}", bar, partition);
+				Assert.That(bar.Key, Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", bar, partition);
+				Assert.That(bar.Key.StartsWith(partitionKey), Is.True, "{0} should be located under {1}", bar, partition);
 
 				var baz = await partition.CreateAsync(db, "Baz", this.Cancellation);
 				Console.WriteLine(baz);
 				Assert.That(baz, Is.InstanceOf<FdbDirectorySubspace>());
 				Assert.That(baz.Path, Is.EqualTo(new [] { "Foo", "Baz" }), "Path of directories under a partition should be absolute");
-				Assert.That(baz.Key, Is.Not.EqualTo(partition.Key), "{0} should be located under {1}", baz, partition);
-				Assert.That(baz.Key.StartsWith(partition.Key), Is.True, "{0} should be located under {1}", baz, partition);
+				Assert.That(baz.Key, Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", baz, partition);
+				Assert.That(baz.Key.StartsWith(partitionKey), Is.True, "{0} should be located under {1}", baz, partition);
 
 				// Rename 'Bar' to 'BarBar'
 				var bar2 = await bar.MoveToAsync(db, new[] { "Foo", "BarBar" }, this.Cancellation);
@@ -709,6 +711,124 @@ namespace FoundationDB.Layers.Directories
 				Assert.Throws<ArgumentNullException>(async () => await directory.ListAsync(db, default(string[]), this.Cancellation));
 				Assert.Throws<InvalidOperationException>(async () => await directory.ListAsync(db, new string[] { "Foo", "", "Bar" }, this.Cancellation));
 				Assert.Throws<ArgumentNullException>(async () => await directory.ListAsync(db, default(string), this.Cancellation));
+
+			}
+		}
+	
+		[Test]
+		public async Task Test_Directory_Partitions_Should_Disallow_Creation_Of_Direct_Keys()
+		{
+			// an instance of FdbDirectoryPartition should throw when attempting to create keys directly under it, and should only be used to create/open sub directories
+			// => this is because keys created directly will most certainly conflict with directory subspaces
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location, this.Cancellation);
+
+				var directory = FdbDirectoryLayer.Create(location);
+				Console.WriteLine(directory);
+
+				var partition = await directory.CreateAsync(db, "Foo", Slice.FromAscii("partition"), this.Cancellation);
+				//note: if we want a testable key INSIDE the partition, we have to get it from a sub-directory
+				var subdir = await partition.CreateOrOpenAsync(db, "Bar", this.Cancellation);
+				var barKey = subdir.Key;
+
+				// the constraint will always be the same for all the checks
+				Action<TestDelegate> shouldFail = (del) =>
+				{
+					Assert.That(del, Throws.InstanceOf<InvalidOperationException>().With.Message.StringContaining("root of a directory partition"));
+				};
+				Action<TestDelegate> shouldPass = (del) =>
+				{
+					Assert.That(del, Throws.Nothing);
+				};
+
+				// === PASS ===
+				// these methods are allowed to succeed on directory partitions, because we need them for the rest to work
+
+				shouldPass(() => { var _ = partition.Copy().Key; }); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
+				shouldPass(() => partition.ToString()); // EXCEPTION: this should never fail!
+				shouldPass(() => partition.DumpKey(barKey)); // EXCEPTION: this should always work, because this can be used for debugging and logging...
+
+				// Bound Check
+				shouldPass(() => partition.BoundCheck(barKey, true)); // EXCEPTION: needs to work because it is used by GetRange() and GetKey()
+
+				// Contains
+				shouldPass(() => partition.Contains(subdir)); // EXCEPTION: testing if a key belongs to a partition should be allowed
+				shouldPass(() => partition.Contains(barKey)); // EXCEPTION: testing if a key belongs to a partition should be allowed
+
+				// === FAIL ====
+
+				// Key
+				shouldFail(() => { var _ = partition.Key; });
+
+				// ToFoundationDBKey
+				shouldFail(() => ((IFdbKey)partition).ToFoundationDbKey());
+
+				// Extract / ExtractAndCheck / BoundCheck
+				shouldFail(() => partition.Extract(barKey));
+				shouldFail(() => partition.Extract(new[] { barKey, barKey + FdbKey.MinValue }));
+				shouldFail(() => partition.ExtractAndCheck(barKey));
+				//TODO: add missing overrides ?
+
+				// Partition
+				shouldFail(() => partition.Partition(123));
+				shouldFail(() => partition.Partition(123, "hello"));
+				shouldFail(() => partition.Partition(123, "hello", false));
+				shouldFail(() => partition.Partition(123, "hello", false, "world"));
+
+				// Concat
+				shouldFail(() => partition.Concat(Slice.FromString("hello")));
+				shouldFail(() => partition.Concat(Slice.FromString("hello"), Slice.FromString("world")));
+				shouldFail(() => partition.Concat(new[] { Slice.FromString("hello"), Slice.FromString("world"), Slice.FromString("!") }));
+				shouldFail(() => partition.Concat(location));
+				shouldFail(() => partition.ConcatRange(new[] { location, location }));
+
+				// Merge
+				shouldFail(() => partition.Merge(new[] { Slice.FromString("hello"), Slice.FromString("world") }));
+				shouldFail(() => partition.Merge((IEnumerable<Slice>)new[] { Slice.FromString("hello"), Slice.FromString("world") }));
+
+				// ToTuple
+				shouldFail(() => partition.ToTuple());
+
+				// Append
+				shouldFail(() => partition.Append(123));
+				shouldFail(() => partition.Append(123, "hello"));
+				shouldFail(() => partition.Append(123, "hello", false));
+				shouldFail(() => partition.Append(123, "hello", false, "world"));
+				shouldFail(() => partition.Append(new object[] { 123, "hello", false, "world" })); //REVIEW: should be renamed to AppendBoxed(...)
+
+				// Pack
+				shouldFail(() => partition.Pack(123));
+				shouldFail(() => partition.Pack(123, "hello"));
+				shouldFail(() => partition.Pack(123, "hello", false));
+				shouldFail(() => partition.Pack(123, "hello", false, "world"));
+				shouldFail(() => partition.PackBoxed(123));
+
+				// PackRange
+				shouldFail(() => partition.PackRange<int>(new[] { 123, 456, 789 }));
+				shouldFail(() => partition.PackRange<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
+				shouldFail(() => partition.PackBoxedRange(new object[] { 123, "hello", true }));
+				shouldFail(() => partition.PackBoxedRange((IEnumerable<object>)new object[] { 123, "hello", true }));
+
+				// Unpack
+				shouldFail(() => partition.Unpack(barKey));
+				shouldFail(() => partition.Unpack(new[] { barKey, barKey + FdbTuple.Pack(123) }));
+				shouldFail(() => partition.UnpackLast<int>(barKey));
+				shouldFail(() => partition.UnpackLast<int>(new[] { barKey, barKey + FdbTuple.Pack(123) }));
+				shouldFail(() => partition.UnpackSingle<int>(barKey));
+				shouldFail(() => partition.UnpackSingle<int>(new[] { barKey, barKey }));
+
+				// ToRange
+				shouldFail(() => partition.ToRange());
+				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
+				shouldFail(() => partition.ToRange(FdbTuple.Create("hello")));
+				shouldFail(() => partition.ToRange(location));
+
+				// ToSelectorPair
+				shouldFail(() => partition.ToSelectorPair());
+
 
 			}
 		}
