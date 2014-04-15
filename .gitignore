@@ -29,4 +29,6 @@ $tf*/
 
 nuget/
 packages/
+*.ide/
+
 fdb_c.dll
