@@ -205,13 +205,15 @@ namespace FoundationDB.Layers.Directories
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (newAbsolutePath == null) throw new ArgumentNullException("newAbsolutePath");
 
-			//TODO: allow moving the partition inside its parent's Directory Layer
+			// if 'this' is a Directory Partition, we need to move it via the parent DL !
+			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
 
+			// verify that it is still inside the same partition
 			var location = FdbDirectoryLayer.ParsePath(newAbsolutePath, "newAbsolutePath");
-			if (!location.StartsWith(this.DirectoryLayer.Location)) throw new InvalidOperationException("Cannot move between partitions.");
-			location = location.Substring(this.DirectoryLayer.Location.Count);
+			if (!location.StartsWith(directoryLayer.Location)) throw new InvalidOperationException("Cannot move between partitions.");
+			location = location.Substring(directoryLayer.Location.Count);
 
-			return this.DirectoryLayer.MoveInternalAsync(trans, this.RelativeLocation, location, throwOnError: true);
+			return directoryLayer.MoveInternalAsync(trans, this.RelativeLocation, location, throwOnError: true);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.MoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
@@ -229,13 +231,14 @@ namespace FoundationDB.Layers.Directories
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (newPath == null) throw new ArgumentNullException("newPath");
 
-			//TODO: allow moving the partition inside its parent's Directory Layer
+			// if 'this' is a Directory Partition, we need to move it via the parent DL !
+			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
 
 			var location = FdbDirectoryLayer.ParsePath(newPath, "newPath");
-			if (!location.StartsWith(this.DirectoryLayer.Location)) throw new InvalidOperationException("Cannot move between partitions.");
-			location = location.Substring(this.DirectoryLayer.Location.Count);
+			if (!location.StartsWith(directoryLayer.Location)) throw new InvalidOperationException("Cannot move between partitions.");
+			location = location.Substring(directoryLayer.Location.Count);
 
-			return this.DirectoryLayer.MoveInternalAsync(trans, this.RelativeLocation, location, throwOnError: false);
+			return directoryLayer.MoveInternalAsync(trans, this.RelativeLocation, location, throwOnError: false);
 		}
 
 		Task<FdbDirectorySubspace> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
@@ -251,9 +254,10 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			//TODO: removing a partition should remove it from its parent's Directory Layer
+			// if 'this' is a Directory Partition, we need to remove it from the parent DL !
+			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
 
-			return this.DirectoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: true);
+			return directoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: true);
 		}
 
 		/// <summary>Removes a sub-directory, its contents, and all subdirectories.
@@ -265,7 +269,12 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			//TODO: removing a partition should remove it from its parent's Directory Layer
+			// If path is empty, we are removing ourselves!
+			var location = FdbDirectoryLayer.ParsePath(path, "path");
+			if (location.Count == 0)
+			{
+				return RemoveAsync(trans);
+			}
 
 			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: true);
 		}
@@ -278,9 +287,10 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			//TODO: removing a partition should remove it from its parent's Directory Layer
+			// if 'this' is a Directory Partition, we need to remove it from the parent DL !
+			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
 
-			return this.DirectoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: false);
+			return directoryLayer.RemoveInternalAsync(trans, this.RelativeLocation, throwIfMissing: false);
 		}
 
 		/// <summary>Attempts to remove a sub-directory, its contents, and all subdirectories.
@@ -292,7 +302,12 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			//TODO: removing a partition should remove it from its parent's Directory Layer
+			// If path is empty, we are removing ourselves!
+			var location = FdbDirectoryLayer.ParsePath(path, "path");
+			if (location.Count == 0)
+			{
+				return TryRemoveAsync(trans);
+			}
 
 			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: false);
 		}
@@ -303,7 +318,8 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			//TODO: testing the existance of a partition should check it it exists in its parent's Directory Layer
+			// if 'this' is a Directory Partition, we need to remove it from the parent DL !
+			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
 
 			return this.DirectoryLayer.ExistsInternalAsync(trans, this.RelativeLocation);
 		}
@@ -314,7 +330,12 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			//TODO: testing the existance of a partition should check it it exists in its parent's Directory Layer
+			// If path is empty, we are checking ourselves!
+			var location = FdbDirectoryLayer.ParsePath(path, "path");
+			if (location.Count == 0)
+			{
+				return ExistsAsync(trans);
+			}
 
 			return this.DirectoryLayer.ExistsInternalAsync(trans, ToRelativePath(path));
 		}

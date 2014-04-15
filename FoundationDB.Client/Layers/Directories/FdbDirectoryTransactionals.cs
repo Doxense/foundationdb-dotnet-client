@@ -528,6 +528,14 @@ namespace FoundationDB.Layers.Directories
 			return db.ReadAsync((tr) => directory.ListAsync(tr), cancellationToken);
 		}
 
+		/// <summary>Returns the list of subdirectories of the current directory.</summary>
+		public static Task<List<string>> ListAsync(this IFdbDirectory directory, IFdbReadOnlyTransaction trans)
+		{
+			if (directory == null) throw new ArgumentNullException("directory");
+			if (trans == null) throw new ArgumentNullException("trans");
+			return directory.ListAsync(trans);
+		}
+
 		/// <summary>Returns the list of subdirectories of the sub-directory with the given <paramref name="name"/>.</summary>
 		public static Task<List<string>> ListAsync(this IFdbDirectory directory, IFdbReadOnlyTransaction trans, string name)
 		{

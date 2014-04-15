@@ -670,6 +670,99 @@ namespace FoundationDB.Layers.Directories
 
 		}
 
+		[Test]
+		public async Task Test_Renaming_Partition_Uses_Parent_DirectoryLayer()
+		{
+			// - Create a partition "foo"
+			// - Verify that DL.List() returns only "foo"
+			// - Rename partition "foo" to "bar"
+			// - Verify that DL.List() now returns only "bar"
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location, this.Cancellation);
+				var directory = FdbDirectoryLayer.Create(location);
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					// create foo
+					var foo = await directory.CreateOrOpenAsync(tr, "foo", Slice.FromString("partition"));
+					Assert.That(foo, Is.Not.Null);
+					Assert.That(foo.Path, Is.EqualTo(new[] { "foo" }));
+					Assert.That(foo.Layer, Is.EqualTo(Slice.FromString("partition")));
+					Assert.That(foo, Is.InstanceOf<FdbDirectoryPartition>());
+
+					// verify list
+					var folders = await directory.ListAsync(tr);
+					Assert.That(folders, Is.EqualTo(new[] { "foo" }));
+
+					// rename to bar
+					var bar = await foo.MoveToAsync(tr, new[] { "bar" });
+					Assert.That(bar, Is.Not.Null);
+					Assert.That(bar.Path, Is.EqualTo(new[] { "bar" }));
+					Assert.That(bar.Layer, Is.EqualTo(Slice.FromString("partition")));
+					Assert.That(bar, Is.InstanceOf<FdbDirectoryPartition>());
+
+					// should have kept the same prefix
+					//note: we need to cheat to get the key of the partition
+					Assert.That(bar.Copy().Key, Is.EqualTo(foo.Copy().Key));
+
+					// verify list again
+					folders = await directory.ListAsync(tr);
+					Assert.That(folders, Is.EqualTo(new[] { "bar" }));
+
+					//no need to commit
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Removing_Partition_Uses_Parent_DirectoryLayer()
+		{
+			// - Create a partition "foo" in ROOT
+			// - Verify that ROOT.List() returns "foo"
+			// - Remove "foo" via dir.RemoveAsync()
+			// - Verify that ROOT.List() now returns an empty list
+			// - Verify that dir.ExistsAsync() returns false
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("DL");
+				await db.ClearRangeAsync(location, this.Cancellation);
+				var directory = FdbDirectoryLayer.Create(location);
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					// create foo
+					var foo = await directory.CreateOrOpenAsync(tr, "foo", Slice.FromString("partition"));
+					Assert.That(foo, Is.Not.Null);
+					Assert.That(foo.Path, Is.EqualTo(new[] { "foo" }));
+					Assert.That(foo.Layer, Is.EqualTo(Slice.FromString("partition")));
+					Assert.That(foo, Is.InstanceOf<FdbDirectoryPartition>());
+
+					// verify list
+					var folders = await directory.ListAsync(tr);
+					Assert.That(folders, Is.EqualTo(new[] { "foo" }));
+
+					// delete foo
+					await foo.RemoveAsync(tr);
+
+					// verify list again
+					folders = await directory.ListAsync(tr);
+					Assert.That(folders, Is.Empty);
+
+					// verify that it does not exist anymore
+					var res = await foo.ExistsAsync(tr);
+					Assert.That(res, Is.False);
+
+					res = await directory.ExistsAsync(tr, "foo");
+					Assert.That(res, Is.False);
+
+					//no need to commit
+				}
+			}
+		}
 
 		[Test]
 		public async Task Test_Directory_Methods_Should_Fail_With_Empty_Paths()
