@@ -256,6 +256,7 @@ namespace FoundationDB.Client
 			// - Only difference is that Slice.Nil and Slice.Empty are equivalent (either for separator, or for the elements of the array)
 
 			if (values == null) throw new ArgumentNullException("values");
+			//REVIEW: support negative indexing ?
 			if (startIndex < 0) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must be a positive integer");
 			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count must be a positive integer");
 			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must fit within the array");
@@ -308,6 +309,7 @@ namespace FoundationDB.Client
 			// - Only difference is that Slice.Nil and Slice.Empty are equivalent (either for separator, or for the elements of the array)
 
 			if (values == null) throw new ArgumentNullException("values");
+			//REVIEW: support negative indexing ?
 			if (startIndex < 0) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must be a positive integer");
 			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count must be a positive integer");
 			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must fit within the array");
@@ -500,7 +502,7 @@ namespace FoundationDB.Client
 			else
 			{
 				var writer = new SliceWriter(3);
-				writer.WriteVarint32(value);
+				writer.WriteVarint16(value);
 				return writer.ToSlice();
 			}
 		}
@@ -1393,6 +1395,7 @@ namespace FoundationDB.Client
 		/// <returns>The zero-based index of <paramref name="value"/> if that slice is found, or -1 if it is not. If <paramref name="value"/> is <see cref="Slice.Empty"/>, then the return value is startIndex</returns>
 		public int IndexOf(Slice value, int startIndex)
 		{
+			//REVIEW: support negative indexing ?
 			if (startIndex < 0 || startIndex > this.Count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must be inside the buffer");
 			if (this.Count == 0)
 			{
