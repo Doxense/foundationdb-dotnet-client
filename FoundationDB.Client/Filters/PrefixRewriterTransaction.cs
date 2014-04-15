@@ -56,7 +56,7 @@ namespace FoundationDB.Filters
 
 		private Slice[] Encode(Slice[] keys)
 		{
-			return m_prefix.Merge(keys);
+			return m_prefix.ConcatRange(keys);
 		}
 
 		private FdbKeySelector Encode(FdbKeySelector selector)
@@ -75,7 +75,7 @@ namespace FoundationDB.Filters
 			{
 				keys[i] = selectors[i].Key;
 			}
-			keys = m_prefix.Merge(keys);
+			keys = m_prefix.ConcatRange(keys);
 
 			var res = new FdbKeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)

@@ -37,12 +37,15 @@ namespace FoundationDB.Client
 
 	public class FdbEncoderSubspace<T> : FdbSubspace, IKeyEncoder<T>
 	{
+		protected readonly FdbSubspace m_parent;
 		protected readonly IKeyEncoder<T> m_encoder;
 
 		public FdbEncoderSubspace(FdbSubspace subspace, IKeyEncoder<T> encoder)
 			: base(subspace)
 		{
+			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
+			m_parent = subspace;
 			m_encoder = encoder;
 		}
 

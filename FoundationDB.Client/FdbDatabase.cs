@@ -417,37 +417,6 @@ namespace FoundationDB.Client
 			return m_globalSpaceCopy.Key;
 		}
 
-		Slice IFdbSubspace.Key
-		{
-			get { return m_globalSpaceCopy.Key; }
-		}
-
-		bool IFdbSubspace.Contains(Slice key)
-		{
-			//TODO: special case for <FF> ?
-			return m_globalSpace.Contains(key);
-		}
-
-		Slice IFdbSubspace.Concat(Slice key)
-		{
-			return m_globalSpace.Concat(key);
-		}
-
-		Slice IFdbSubspace.Extract(Slice key)
-		{
-			return m_globalSpace.Extract(key);
-		}
-
-		Slice IFdbSubspace.ExtractAndCheck(Slice key)
-		{
-			return m_globalSpace.ExtractAndCheck(key);
-		}
-
-		FdbKeyRange IFdbSubspace.ToRange()
-		{
-			return m_globalSpace.ToRange();
-		}
-
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
 		internal void ChangeRoot(FdbSubspace subspace, IFdbDirectory directory, bool readOnly)

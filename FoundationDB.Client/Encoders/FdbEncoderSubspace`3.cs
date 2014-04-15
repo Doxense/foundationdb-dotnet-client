@@ -37,6 +37,7 @@ namespace FoundationDB.Client
 
 	public class FdbEncoderSubspace<T1, T2, T3> : FdbSubspace, ICompositeKeyEncoder<T1, T2, T3>
 	{
+		protected readonly FdbSubspace m_parent;
 		protected readonly ICompositeKeyEncoder<T1, T2, T3> m_encoder;
 		protected volatile FdbEncoderSubspace<T1> m_head;
 		protected volatile FdbEncoderSubspace<T1, T2> m_partial;
@@ -44,7 +45,9 @@ namespace FoundationDB.Client
 		public FdbEncoderSubspace(FdbSubspace subspace, ICompositeKeyEncoder<T1, T2, T3> encoder)
 			: base(subspace)
 		{
+			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
+			m_parent = subspace;
 			m_encoder = encoder;
 		}
 
@@ -56,7 +59,7 @@ namespace FoundationDB.Client
 			{
 				if (m_head == null)
 				{
-					m_head = new FdbEncoderSubspace<T1>(this, KeyValueEncoders.Head(m_encoder));
+					m_head = new FdbEncoderSubspace<T1>(m_parent, KeyValueEncoders.Head(m_encoder));
 				}
 				return m_head;
 			}
@@ -68,7 +71,7 @@ namespace FoundationDB.Client
 			{
 				if (m_partial == null)
 				{
-					m_partial = new FdbEncoderSubspace<T1, T2>(this, KeyValueEncoders.Pair(m_encoder));
+					m_partial = new FdbEncoderSubspace<T1, T2>(m_parent, KeyValueEncoders.Pair(m_encoder));
 				}
 				return m_partial;
 			}

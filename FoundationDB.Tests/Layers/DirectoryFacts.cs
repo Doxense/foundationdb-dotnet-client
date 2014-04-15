@@ -780,14 +780,11 @@ namespace FoundationDB.Layers.Directories
 
 				// Concat
 				shouldFail(() => partition.Concat(Slice.FromString("hello")));
-				shouldFail(() => partition.Concat(Slice.FromString("hello"), Slice.FromString("world")));
-				shouldFail(() => partition.Concat(new[] { Slice.FromString("hello"), Slice.FromString("world"), Slice.FromString("!") }));
 				shouldFail(() => partition.Concat(location));
-				shouldFail(() => partition.ConcatRange(new[] { location, location }));
 
-				// Merge
-				shouldFail(() => partition.Merge(new[] { Slice.FromString("hello"), Slice.FromString("world") }));
-				shouldFail(() => partition.Merge((IEnumerable<Slice>)new[] { Slice.FromString("hello"), Slice.FromString("world") }));
+				// ConcatRange
+				shouldFail(() => partition.ConcatRange(new[] { Slice.FromString("hello"), Slice.FromString("world"), Slice.FromString("!") }));
+				shouldFail(() => partition.ConcatRange(new[] { location, location }));
 
 				// ToTuple
 				shouldFail(() => partition.ToTuple());
@@ -797,7 +794,8 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.Append(123, "hello"));
 				shouldFail(() => partition.Append(123, "hello", false));
 				shouldFail(() => partition.Append(123, "hello", false, "world"));
-				shouldFail(() => partition.Append(new object[] { 123, "hello", false, "world" })); //REVIEW: should be renamed to AppendBoxed(...)
+				shouldFail(() => partition.Append(FdbTuple.Create(123, "hello", false, "world")));
+				shouldFail(() => partition.AppendBoxed(new object[] { 123, "hello", false, "world" }));
 
 				// Pack
 				shouldFail(() => partition.Pack(123));
