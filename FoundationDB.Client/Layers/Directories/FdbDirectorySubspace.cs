@@ -321,7 +321,7 @@ namespace FoundationDB.Layers.Directories
 			// if 'this' is a Directory Partition, we need to remove it from the parent DL !
 			var directoryLayer = GetLayerForPath(FdbTuple.Empty);
 
-			return this.DirectoryLayer.ExistsInternalAsync(trans, this.RelativeLocation);
+			return directoryLayer.ExistsInternalAsync(trans, this.RelativeLocation);
 		}
 
 		/// <summary>Checks if a sub-directory exists</summary>
