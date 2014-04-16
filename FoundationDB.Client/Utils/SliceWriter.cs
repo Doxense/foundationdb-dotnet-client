@@ -280,7 +280,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Advance the cursor of the buffer without writing anything</summary>
+		/// <summary>Advance the cursor of the buffer without writing anything, and return the previous position</summary>
 		/// <param name="skip">Number of bytes to skip</param>
 		/// <returns>Position of the cursor BEFORE moving it. Can be used as a marker to go back later and fill some value</returns>
 		/// <remarks>Will fill the skipped bytes with 0xFF</remarks>
@@ -288,14 +288,15 @@ namespace FoundationDB.Client
 		{
 			Contract.Requires(skip > 0);
 
-			int before = this.Position;
 			EnsureBytes(skip);
+			var buffer = this.Buffer;
+			int p = this.Position;
 			for (int i = 0; i < skip; i++)
 			{
-				this.Buffer[before + i] = pad;
+				buffer[p + i] = pad;
 			}
-			this.Position = before + skip;
-			return before;
+			this.Position = p + skip;
+			return p;
 		}
 
 		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>

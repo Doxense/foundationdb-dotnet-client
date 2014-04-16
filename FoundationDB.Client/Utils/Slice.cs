@@ -1497,7 +1497,7 @@ namespace FoundationDB.Client
 			SliceHelpers.EnsureSliceIsValid(ref this);
 
 			// pre-allocate by computing final buffer capacity
-			var prefixSize= this.Count;
+			var prefixSize = this.Count;
 			var capacity = slices.Sum((slice) => prefixSize + slice.Count);
 			var writer = new SliceWriter(capacity);
 			var next = new List<int>(slices.Length);
