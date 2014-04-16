@@ -814,15 +814,18 @@ namespace FoundationDB.Layers.Directories
 			var kvp = await tr
 				.GetRange(
 					this.NodeSubspace.ToRange().Begin,
-					this.NodeSubspace.Pack(FdbTuple.Pack(key)) + FdbKey.MinValue
+					this.NodeSubspace.Pack(key) + FdbKey.MinValue
 				)
 				.LastOrDefaultAsync()
 				.ConfigureAwait(false);
 
-			var k = this.NodeSubspace.Unpack(kvp.Key);
-			if (kvp.Key.HasValue && key.StartsWith(this.NodeSubspace.UnpackSingle<Slice>(kvp.Key)))
+			if (kvp.Key.HasValue) 
 			{
-				return new FdbSubspace(k);
+				var prevPrefix = this.NodeSubspace.UnpackFirst<Slice>(kvp.Key);
+				if (key.StartsWith(prevPrefix))
+				{
+					return NodeWithPrefix(prevPrefix);
+				}
 			}
 
 			return null;
