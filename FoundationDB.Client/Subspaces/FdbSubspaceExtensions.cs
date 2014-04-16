@@ -529,7 +529,7 @@ namespace FoundationDB.Client
 		/// <example>new Subspace([FE]).UnpackSingle&lt;int&gt;([FE 02 'H' 'e' 'l' 'l' 'o' 00]) => (string) "Hello"</example>
 		public static T UnpackSingle<T>(this FdbSubspace subspace, Slice key)
 		{
-			return FdbTuple.UnpackLast<T>(subspace.ExtractAndCheck(key));
+			return FdbTuple.UnpackSingle<T>(subspace.ExtractAndCheck(key));
 		}
 
 		/// <summary>Unpack an array of keys in tuples, with the subspace prefix removed</summary>
