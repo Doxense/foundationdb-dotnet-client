@@ -524,6 +524,9 @@ namespace FoundationDB.Layers.Directories
 
 			await CheckReadVersionAsync(trans).ConfigureAwait(false);
 
+			if (prefix.HasValue && this.Path.Count > 0)
+				throw new InvalidOperationException("Cannot specify a prefix in a partition.");
+
 			var existingNode = await FindAsync(trans, path).ConfigureAwait(false);
 
 			if (existingNode.Exists)
