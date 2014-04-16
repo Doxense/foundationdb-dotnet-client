@@ -948,8 +948,8 @@ namespace FoundationDB.Layers.Directories
 
 			return await tr
 				.GetRange(
-					this.NodeSubspace.Pack(FdbTuple.Pack(prefix)),
-					this.NodeSubspace.Pack(FdbTuple.Pack(FdbKey.Increment(prefix)))
+					this.NodeSubspace.Pack(prefix),
+					this.NodeSubspace.Pack(FdbKey.Increment(prefix))
 				)
 				.NoneAsync()
 				.ConfigureAwait(false);
