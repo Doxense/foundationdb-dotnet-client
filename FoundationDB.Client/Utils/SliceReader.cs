@@ -34,6 +34,18 @@ namespace FoundationDB.Client
 	public struct SliceReader
 	{
 
+		/// <summary>Creates a reader on a byte array</summary>
+		public static SliceReader FromBuffer(byte[] buffer)
+		{
+			return new SliceReader(Slice.Create(buffer));
+		}
+
+		/// <summary>Creates a reader on a segment of a byte array</summary>
+		public static SliceReader FromBuffer(byte[] buffer, int offset, int count)
+		{
+			return new SliceReader(Slice.Create(buffer, offset, count));
+		}
+
 		/// <summary>Buffer containing the tuple being parsed</summary>
 		public readonly Slice Buffer;
 

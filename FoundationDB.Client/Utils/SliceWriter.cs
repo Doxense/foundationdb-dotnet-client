@@ -299,6 +299,16 @@ namespace FoundationDB.Client
 			return p;
 		}
 
+		/// <summary>Rewinds the cursor to a previous position in the buffer, while saving the current position</summary>
+		/// <param name="cursor">Will receive the current cursor position</param>
+		/// <param name="position">Previous position in the buffer</param>
+		public void Rewind(out int cursor, int position)
+		{
+			Contract.Requires(position >= 0 && position <= this.Position);
+			cursor = this.Position;
+			this.Position = position;
+		}
+
 		/// <summary>Add a byte to the end of the buffer, and advance the cursor</summary>
 		/// <param name="value">Byte, 8 bits</param>
 #if !NET_4_0
