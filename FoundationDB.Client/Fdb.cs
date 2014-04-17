@@ -125,6 +125,7 @@ namespace FoundationDB.Client
 		private static Thread s_eventLoop;
 		private static bool s_eventLoopStarted;
 		private static bool s_eventLoopRunning;
+		private static bool s_eventLoopStopRequested;
 		private static int? s_eventLoopThreadId;
 
 		/// <summary>Starts the thread running the FDB event loop</summary>
@@ -133,6 +134,10 @@ namespace FoundationDB.Client
 			if (s_eventLoop == null)
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "StartEventLoop", "Starting network thread...");
+
+				s_eventLoopStarted = false;
+				s_eventLoopStopRequested = false;
+				s_eventLoopRunning = false;
 
 				var thread = new Thread(new ThreadStart(EventLoop));
 				thread.Name = "FdbNetworkLoop";
@@ -164,6 +169,8 @@ namespace FoundationDB.Client
 				Fdb.EnsureNotOnNetworkThread();
 
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "StopEventLoop", "Stopping network thread...");
+
+				s_eventLoopStopRequested = true;
 
 				var err = FdbNative.StopNetwork();
 				if (err != FdbError.Success)
@@ -237,13 +244,22 @@ namespace FoundationDB.Client
 
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
-				{ // Stop received
+				{
+					if (s_eventLoopStopRequested || Environment.HasShutdownStarted)
+					{ // this was requested, or can be explained by the computer shutting down...
+						if (Logging.On) Logging.Info(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err.ToString(), GetErrorMessage(err)));
+					}
+					else
+					{ // this was NOT expected !
+						if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err.ToString(), GetErrorMessage(err)));
 #if DEBUG
-					Console.WriteLine("THE NETWORK EVENT LOOP HAS CRASHED! PLEASE RESTART THE PROCESS!");
-					Console.WriteLine("=> " + err);
+						Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS CRASHED! PLEASE RESTART THE PROCESS!");
+						Console.Error.WriteLine("=> " + err);
+						// REVIEW: should we FailFast in release mode also?
+						// => this may be a bit suprising for most users when applications unexpectedly crash for for no apparent reason.
+						Environment.FailFast("FoundationDB network event loop failed with error " + err.ToString());
 #endif
-					//TODO: logging ?
-					if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err.ToString(), GetErrorMessage(err)));
+					}
 				}
 			}
 			catch (Exception e)
