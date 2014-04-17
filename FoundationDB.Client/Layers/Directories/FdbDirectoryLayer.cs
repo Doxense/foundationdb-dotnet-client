@@ -306,6 +306,20 @@ namespace FoundationDB.Layers.Directories
 
 		#endregion
 
+		#region MoveTo / TryMoveTo
+
+		public Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, IEnumerable<string> newAbsolutePath)
+		{
+			throw new NotSupportedException("The root directory cannot be moved");
+		}
+
+		public Task<FdbDirectorySubspace> TryMoveToAsync(IFdbTransaction trans, IEnumerable<string> newAbsolutePath)
+		{
+			throw new NotSupportedException("The root directory cannot be moved");
+		}
+
+		#endregion
+
 		#region Remove / TryRemove
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
