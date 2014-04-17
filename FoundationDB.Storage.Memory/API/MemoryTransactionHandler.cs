@@ -984,7 +984,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		public Task CommitAsync(CancellationToken cancellationToken)
 		{
-			Debug.WriteLine("MemoryTransactionHandler: CommitAsync() called");
+			Log("CommitAsync() called");
 			cancellationToken.ThrowIfCancellationRequested();
 
 			if (!m_readVersion.HasValue)
@@ -1059,9 +1059,9 @@ namespace FoundationDB.Storage.Memory.API
 
 		internal void CommitInternal()
 		{
-			Debug.WriteLine("MemoryTransactionHandler: CommitInternalAsync() called");
+			Log("CommitInternalAsync() called");
 			m_committedVersion = m_db.CommitTransaction(this, m_readVersion.Value, m_readConflicts, m_writeConflicts, m_clears, m_writes);
-			Debug.WriteLine("MemoryTransactionHandler: committed at " + m_committedVersion);
+			Log("committed at " + m_committedVersion);
 		}
 
 		public long GetCommittedVersion()
@@ -1234,6 +1234,14 @@ namespace FoundationDB.Storage.Memory.API
 
 			GC.SuppressFinalize(this);
 		}
+
+		[Conditional("FULL_DEBUG")]
+		private static void Log(string msg)
+		{
+			Trace.WriteLine("MemoryTransactionHandler[#" + Thread.CurrentThread.ManagedThreadId + "]: " + msg);
+		}
+
+
 	}
 
 }
