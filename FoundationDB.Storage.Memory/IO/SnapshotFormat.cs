@@ -2,7 +2,7 @@
 // See License.MD for license information
 #endregion
 
-namespace FoundationDB.Storage.Memory.API
+namespace FoundationDB.Storage.Memory.IO
 {
 	using FoundationDB.Client;
 	using System;
@@ -23,15 +23,17 @@ namespace FoundationDB.Storage.Memory.API
 			ENCRYPTED = 0x400,
 		}
 
-		// Size of the in-memory buffer while writing a snapshot (optimized for SSD?)</summary>
+		// Size of the in-memory buffer while writing a snapshot (optimized for SSD?)
 		public const int FLUSH_SIZE_BITS = 20; // 1MB
 		public const int FLUSH_SIZE = 1 << FLUSH_SIZE_BITS;
 
-		// For convenience, some variable-size sections (header, ...) will be padded to a 'page' size.</summary>
-		public const int PAGE_SIZE_BITS = 12; // 4KB
+		// For convenience, some variable-size sections (header, ...) will be padded to a 'page' size.
+		// => note: the Jump Table must fit in a single page so could probably not be smaller than 512 ...
+		public const int PAGE_SIZE_BITS = 10; // 1KB
 		public const int PAGE_SIZE = 1 << PAGE_SIZE_BITS;
 
-		public const uint MAGIC_NUMBER = 0x42444E50;
+		public const uint DB_HEADER_MAGIC_NUMBER = 0x42444E50; // "PNDB"
+		public const uint JUMP_TABLE_MAGIC_NUMBER = 0x54504D4A; // "JMPT"
 		// Size of the header CRC (in bytes)
 		public const int DB_INFO_BYTES = 64;
 		public const int HEADER_CRC_SIZE = 4;

@@ -9,6 +9,7 @@ namespace FoundationDB.Storage.Memory.API
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Storage.Memory.Core;
+	using FoundationDB.Storage.Memory.IO;
 	using FoundationDB.Storage.Memory.Utils;
 	using System;
 	using System.Collections.Concurrent;

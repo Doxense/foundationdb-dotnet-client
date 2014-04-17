@@ -64,8 +64,14 @@ namespace FoundationDB.Client
 		/// <summary>Returns the number of bytes remaining</summary>
 		public int Remaining { get { return Math.Max(0, this.Buffer.Count - this.Position); } }
 
+		/// <summary>Returns a slice with all the bytes read so far in the buffer</summary>
+		public Slice Head
+		{
+			get { return this.Buffer.Substring(0, this.Position); }
+		}
+
 		/// <summary>Returns a slice with all the remaining bytes in the buffer</summary>
-		public Slice Window
+		public Slice Tail
 		{
 			get { return this.Buffer.Substring(this.Position); }
 		}
