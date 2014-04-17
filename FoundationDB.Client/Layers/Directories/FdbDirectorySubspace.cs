@@ -216,9 +216,17 @@ namespace FoundationDB.Layers.Directories
 			return directoryLayer.MoveInternalAsync(trans, this.RelativeLocation, location, throwOnError: true);
 		}
 
+		/// <summary>Moves the specified subdirectory to <paramref name="newPath"/>.
+		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// An error is raised if a directory already exists at `new_path`.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="oldPath">Relative path under this directory of the subdirectory to be moved</param>
+		/// <param name="newPath">Relative path under this directory where the subdirectory will be moved to</param>
+		/// <returns>Returns the directory at its new location if successful.</returns>
 		Task<FdbDirectorySubspace> IFdbDirectory.MoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
 		{
-			throw new NotSupportedException("Use a Directory Layer instance to move directories");
+			return this.DirectoryLayer.MoveAsync(trans, this.ToRelativePath(oldPath).ToArray<string>(), this.ToRelativePath(newPath).ToArray<string>());
 		}
 
 		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
@@ -241,9 +249,17 @@ namespace FoundationDB.Layers.Directories
 			return directoryLayer.MoveInternalAsync(trans, this.RelativeLocation, location, throwOnError: false);
 		}
 
+		/// <summary>Attempts to move the specified subdirectory to <paramref name="newPath"/>.
+		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// An error is raised if a directory already exists at `new_path`.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="oldPath">Relative path under this directory of the subdirectory to be moved</param>
+		/// <param name="newPath">Relative path under this directory where the subdirectory will be moved to</param>
+		/// <returns>Returns the directory at its new location if successful. If the directory cannot be moved, then null is returned.</returns>
 		Task<FdbDirectorySubspace> IFdbDirectory.TryMoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath)
 		{
-			throw new NotSupportedException("Use a Directory Layer instance to move directories");
+			return this.DirectoryLayer.TryMoveAsync(trans, this.ToRelativePath(oldPath).ToArray<string>(), this.ToRelativePath(newPath).ToArray<string>());
 		}
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
