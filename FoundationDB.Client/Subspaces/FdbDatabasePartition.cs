@@ -253,6 +253,24 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region MoveTo...
+
+		public Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, IEnumerable<string> newAbsolutePath)
+		{
+			throw new NotSupportedException("Database partitions cannot be moved");
+		}
+
+		#endregion
+
+		#region TryMoveTo...
+
+		public Task<FdbDirectorySubspace> TryMoveToAsync(IFdbTransaction trans, IEnumerable<string> newAbsolutePath)
+		{
+			throw new NotSupportedException("Database partitions cannot be moved");
+		}
+
+		#endregion
+
 		#region Remove...
 
 		public Task RemoveAsync(string name, CancellationToken cancellationToken)
