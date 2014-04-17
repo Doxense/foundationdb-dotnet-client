@@ -91,19 +91,24 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
 		Task<FdbDirectorySubspace> TryCreateAsync(IFdbTransaction trans, IEnumerable<string> subPath, Slice layer = default(Slice));
 
-		/// <summary>Moves the current directory to <paramref name="newPath"/>.
+		/// <summary>Moves the specified subdirectory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
-		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
+		/// An error is raised if a directory already exists at `new_path`.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
+		/// <param name="oldPath">Relative path under this directory of the subdirectory to be moved</param>
+		/// <param name="newPath">Relative path under this directory where the subdirectory will be moved to</param>
+		/// <returns>Returns the directory at its new location if successful.</returns>
 		Task<FdbDirectorySubspace> MoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath);
 
-		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
+		/// <summary>Attempts to move the specified subdirectory to <paramref name="newPath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// An error is raised if a directory already exists at `new_path`.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
+		/// <param name="oldPath">Relative path under this directory of the subdirectory to be moved</param>
+		/// <param name="newPath">Relative path under this directory where the subdirectory will be moved to</param>
+		/// <returns>Returns the directory at its new location if successful. If the directory cannot be moved, then null is returned.</returns>
 		Task<FdbDirectorySubspace> TryMoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath);
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
