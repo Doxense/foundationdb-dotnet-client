@@ -408,7 +408,7 @@ namespace FoundationDB.Client
 #if DEBUG_FUTURES
 				// If you breakpoint here, that means that a future callback fired but was not able to find a matching registration
 				// => either the FdbFuture<T> was incorrectly disposed, or there is some problem in the callback dictionary
-				System.Diagnostics.Debugger.Break();
+				if (System.Diagnostics.Debugger.IsAttached)  System.Diagnostics.Debugger.Break();
 #endif
 			}
 			return null;
