@@ -3,20 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
 VisualStudioVersion = 12.0.30324.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Client", "FoundationDB.Client\FoundationDB.Client.csproj", "{773166B7-DE74-4FCC-845C-84080CC89533}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Tests.Sandbox", "FoundationDB.Tests.Sandbox\FoundationDB.Tests.Sandbox.csproj", "{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Tests", "FoundationDB.Tests\FoundationDB.Tests.csproj", "{7C888F78-99B1-4CA1-8973-282EC5CCCACD}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{8DB84402-8AF0-4851-A49F-F8EDF2A04B1E}"
 	ProjectSection(SolutionItems) = preProject
 		.nuget\NuGet.Config = .nuget\NuGet.Config
 		.nuget\NuGet.exe = .nuget\NuGet.exe
-		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Layers.Common", "FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj", "{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{4788B3A8-BFC1-4A57-8062-83071A1D41F7}"
 	ProjectSection(SolutionItems) = preProject
@@ -24,15 +15,33 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Common", "Common", "{4788B3
 		VersionInfo.cs = VersionInfo.cs
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Linq", "FoundationDB.Linq\FoundationDB.Linq.csproj", "{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "build", "build", "{C8815A2F-377D-4A1B-B1DB-7F3EAE852A71}"
+	ProjectSection(SolutionItems) = preProject
+		build.bat = build.bat
+		build.fsx = build.fsx
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Samples", "FoundationDB.Samples\FoundationDB.Samples.csproj", "{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{9F08E939-111F-4E34-9FD7-54BF99AF3F7E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Layers.Experimental", "FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj", "{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{8AA55694-FB1C-443A-997A-F138B29CE46C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Storage.Memory", "FoundationDB.Storage.Memory\FoundationDB.Storage.Memory.csproj", "{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Client", "src\FoundationDB.Client\FoundationDB.Client.csproj", "{773166B7-DE74-4FCC-845C-84080CC89533}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Storage.Memory.Test", "FoundationDB.Storage.Memory.Test\FoundationDB.Storage.Memory.Test.csproj", "{AF76A8D4-E682-4E72-B656-BE3D935712DB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Layers.Common", "src\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj", "{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Layers.Experimental", "src\FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj", "{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Linq", "src\FoundationDB.Linq\FoundationDB.Linq.csproj", "{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Storage.Memory", "src\FoundationDB.Storage.Memory\FoundationDB.Storage.Memory.csproj", "{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Samples", "src\FoundationDB.Samples\FoundationDB.Samples.csproj", "{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Storage.Memory.Test", "src\FoundationDB.Storage.Memory.Test\FoundationDB.Storage.Memory.Test.csproj", "{AF76A8D4-E682-4E72-B656-BE3D935712DB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Tests", "src\FoundationDB.Tests\FoundationDB.Tests.csproj", "{7C888F78-99B1-4CA1-8973-282EC5CCCACD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Tests.Sandbox", "src\FoundationDB.Tests.Sandbox\FoundationDB.Tests.Sandbox.csproj", "{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -44,40 +53,51 @@ Global
 		{773166B7-DE74-4FCC-845C-84080CC89533}.Debug|x64.Build.0 = Debug|x64
 		{773166B7-DE74-4FCC-845C-84080CC89533}.Release|x64.ActiveCfg = Release|x64
 		{773166B7-DE74-4FCC-845C-84080CC89533}.Release|x64.Build.0 = Release|x64
-		{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}.Debug|x64.ActiveCfg = Debug|x64
-		{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}.Debug|x64.Build.0 = Debug|x64
-		{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}.Release|x64.ActiveCfg = Release|x64
-		{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}.Release|x64.Build.0 = Release|x64
-		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Debug|x64.ActiveCfg = Debug|x64
-		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Debug|x64.Build.0 = Debug|x64
-		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Release|x64.ActiveCfg = Release|x64
-		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Release|x64.Build.0 = Release|x64
 		{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}.Debug|x64.ActiveCfg = Debug|x64
 		{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}.Debug|x64.Build.0 = Debug|x64
 		{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}.Release|x64.ActiveCfg = Release|x64
 		{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F}.Release|x64.Build.0 = Release|x64
-		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Debug|x64.ActiveCfg = Debug|x64
-		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Debug|x64.Build.0 = Debug|x64
-		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Release|x64.ActiveCfg = Release|x64
-		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Release|x64.Build.0 = Release|x64
-		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Debug|x64.ActiveCfg = Debug|x64
-		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Debug|x64.Build.0 = Debug|x64
-		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Release|x64.ActiveCfg = Release|x64
-		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Release|x64.Build.0 = Release|x64
 		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Debug|x64.ActiveCfg = Debug|x64
 		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Debug|x64.Build.0 = Debug|x64
 		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Release|x64.ActiveCfg = Release|x64
 		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8}.Release|x64.Build.0 = Release|x64
+		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Debug|x64.ActiveCfg = Debug|x64
+		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Debug|x64.Build.0 = Debug|x64
+		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Release|x64.ActiveCfg = Release|x64
+		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}.Release|x64.Build.0 = Release|x64
 		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}.Debug|x64.ActiveCfg = Debug|x64
 		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}.Debug|x64.Build.0 = Debug|x64
 		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}.Release|x64.ActiveCfg = Release|x64
 		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}.Release|x64.Build.0 = Release|x64
+		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Debug|x64.ActiveCfg = Debug|x64
+		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Debug|x64.Build.0 = Debug|x64
+		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Release|x64.ActiveCfg = Release|x64
+		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA}.Release|x64.Build.0 = Release|x64
 		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Debug|x64.ActiveCfg = Debug|x64
 		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Debug|x64.Build.0 = Debug|x64
 		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Release|x64.ActiveCfg = Release|x64
 		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Release|x64.Build.0 = Release|x64
+		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Debug|x64.ActiveCfg = Debug|x64
+		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Debug|x64.Build.0 = Debug|x64
+		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Release|x64.ActiveCfg = Release|x64
+		{7C888F78-99B1-4CA1-8973-282EC5CCCACD}.Release|x64.Build.0 = Release|x64
+		{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}.Debug|x64.ActiveCfg = Debug|x64
+		{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}.Debug|x64.Build.0 = Debug|x64
+		{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}.Release|x64.ActiveCfg = Release|x64
+		{CC36F01C-64E4-4B2E-8376-19D72EDE7D47}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{773166B7-DE74-4FCC-845C-84080CC89533} = {9F08E939-111F-4E34-9FD7-54BF99AF3F7E}
+		{7C7717D6-A1E7-4541-AF8B-1AC762B5ED0F} = {9F08E939-111F-4E34-9FD7-54BF99AF3F7E}
+		{E631BCD4-386C-4EB1-AD4D-CABCE77BB4C8} = {9F08E939-111F-4E34-9FD7-54BF99AF3F7E}
+		{FAF14E3F-6662-4084-8B92-E6697F6B9D5A} = {9F08E939-111F-4E34-9FD7-54BF99AF3F7E}
+		{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E} = {9F08E939-111F-4E34-9FD7-54BF99AF3F7E}
+		{D2EE84C9-0554-40D2-B61F-8FCB4B67CEAA} = {9F08E939-111F-4E34-9FD7-54BF99AF3F7E}
+		{AF76A8D4-E682-4E72-B656-BE3D935712DB} = {8AA55694-FB1C-443A-997A-F138B29CE46C}
+		{7C888F78-99B1-4CA1-8973-282EC5CCCACD} = {8AA55694-FB1C-443A-997A-F138B29CE46C}
+		{CC36F01C-64E4-4B2E-8376-19D72EDE7D47} = {8AA55694-FB1C-443A-997A-F138B29CE46C}
 	EndGlobalSection
 EndGlobal
