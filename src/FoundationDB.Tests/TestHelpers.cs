@@ -28,112 +28,112 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
-	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
+    using System;
+    using System.Threading;
+    using System.Threading.Tasks;
+    using FoundationDB.Layers.Directories;
+    using FoundationDB.Layers.Tuples;
+    using NUnit.Framework;
 
-	internal static class TestHelpers
-	{
-		// change these to target a specific test cluster
+    internal static class TestHelpers
+    {
+        // change these to target a specific test cluster
 
-		public static readonly string TestClusterFile = @"C:\Program Files\foundationdb\bin\fdb.cluster";
-		public static readonly string TestDbName = "DB";
-		public static readonly Slice TestGlobalPrefix = Slice.FromAscii("T");
-		public static readonly string[] TestPartition = new string[] { "Tests", Environment.MachineName };
-		public static readonly int DefaultTimeout = 15 * 1000;
+        public static readonly string TestClusterFile = @"C:\Program Files\foundationdb\bin\fdb.cluster";
+        public static readonly string TestDbName = "DB";
+        public static readonly Slice TestGlobalPrefix = Slice.FromAscii("T");
+        public static readonly string[] TestPartition = new string[] { "Tests", Environment.MachineName };
+        public static readonly int DefaultTimeout = 15 * 1000;
 
-		//TODO: move these methods to FdbTest ?
+        //TODO: move these methods to FdbTest ?
 
-		/// <summary>Connect to the local test database</summary>
-		public static Task<FdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
-		{
-			var subspace = new FdbSubspace(TestGlobalPrefix.Memoize());
-			return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, false, ct);
-		}
+        /// <summary>Connect to the local test database</summary>
+        public static Task<FdbDatabase> OpenTestDatabaseAsync(CancellationToken ct)
+        {
+            var subspace = new FdbSubspace(TestGlobalPrefix.Memoize());
+            return Fdb.OpenAsync(TestClusterFile, TestDbName, subspace, false, ct);
+        }
 
-		/// <summary>Connect to the local test database</summary>
-		public static async Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct)
-		{
-			var db = await Fdb.Directory.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, false, ct);
-			db.DefaultTimeout = DefaultTimeout;
-			return db;
-		}
+        /// <summary>Connect to the local test database</summary>
+        public static async Task<IFdbDatabase> OpenTestPartitionAsync(CancellationToken ct)
+        {
+            var db = await Fdb.Directory.OpenNamedPartitionAsync(TestClusterFile, TestDbName, TestPartition, false, ct);
+            db.DefaultTimeout = DefaultTimeout;
+            return db;
+        }
 
-		public static async Task<FdbDirectorySubspace> GetCleanDirectory(IFdbDatabase db, string[] path, CancellationToken ct)
-		{
-			Assert.That(path, Is.Not.Null.And.Length.GreaterThan(0), "invalid path");
+        public static async Task<FdbDirectorySubspace> GetCleanDirectory(IFdbDatabase db, string[] path, CancellationToken ct)
+        {
+            Assert.That(path, Is.Not.Null.And.Length.GreaterThan(0), "invalid path");
 
-			// remove previous
-			await db.Directory.TryRemoveAsync(path, ct);
+            // remove previous
+            await db.Directory.TryRemoveAsync(path, ct);
 
-			// create new
-			var subspace = await db.Directory.CreateAsync(path, ct);
-			Assert.That(subspace, Is.Not.Null);
-			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True);
-			return subspace;
-		}
+            // create new
+            var subspace = await db.Directory.CreateAsync(path, ct);
+            Assert.That(subspace, Is.Not.Null);
+            Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True);
+            return subspace;
+        }
 
-		public static async Task DumpSubspace(IFdbDatabase db, FdbSubspace subspace, CancellationToken ct)
-		{
-			Assert.That(db, Is.Not.Null);
-			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
+        public static async Task DumpSubspace(IFdbDatabase db, FdbSubspace subspace, CancellationToken ct)
+        {
+            Assert.That(db, Is.Not.Null);
+            Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
 
-			using (var tr = db.BeginTransaction(ct))
-			{
-				await DumpSubspace(tr, subspace).ConfigureAwait(false);
-			}
-		}
+            using (var tr = db.BeginTransaction(ct))
+            {
+                await DumpSubspace(tr, subspace).ConfigureAwait(false);
+            }
+        }
 
-		public static async Task DumpSubspace(IFdbReadOnlyTransaction tr, FdbSubspace subspace)
-		{
-			Assert.That(tr, Is.Not.Null);
+        public static async Task DumpSubspace(IFdbReadOnlyTransaction tr, FdbSubspace subspace)
+        {
+            Assert.That(tr, Is.Not.Null);
 
-			Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
-			int count = 0;
-			await tr
-				.GetRange(FdbKeyRange.StartsWith(subspace.Key))
-				.ForEachAsync((kvp) =>
-				{
-					var key = subspace.Extract(kvp.Key);
-					++count;
-					string keyDump = null;
-					try
-					{
-						// attemps decoding it as a tuple
-						keyDump = key.ToTuple().ToString();
-					}
-					catch (Exception)
-					{
-						// not a tuple, dump as bytes
-						keyDump = "'" + key.ToString() + "'";
-					}
-						
-					Console.WriteLine("- " + keyDump + " = " + kvp.Value.ToString());
-				});
+            Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
+            int count = 0;
+            await tr
+                .GetRange(FdbKeyRange.StartsWith(subspace.Key))
+                .ForEachAsync((kvp) =>
+                {
+                    var key = subspace.Extract(kvp.Key);
+                    ++count;
+                    string keyDump = null;
+                    try
+                    {
+                        // attemps decoding it as a tuple
+                        keyDump = key.ToTuple().ToString();
+                    }
+                    catch (Exception)
+                    {
+                        // not a tuple, dump as bytes
+                        keyDump = "'" + key.ToString() + "'";
+                    }
 
-			if (count == 0)
-				Console.WriteLine("> empty !");
-			else
-				Console.WriteLine("> Found " + count + " values");
-		}
+                    Console.WriteLine("- " + keyDump + " = " + kvp.Value.ToString());
+                });
 
-		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)
-		{
-			try
-			{
-				await asyncTest();
-				Assert.Fail(message, args);
-			}
-			catch (AssertionException) { throw; }
-			catch (Exception e)
-			{
-				Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(expectedCode), message, args);
-			}
-		}
+            if (count == 0)
+                Console.WriteLine("> empty !");
+            else
+                Console.WriteLine("> Found " + count + " values");
+        }
 
-	}
+        public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)
+        {
+            try
+            {
+                await asyncTest();
+                Assert.Fail(message, args);
+            }
+            catch (AssertionException) { throw; }
+            catch (Exception e)
+            {
+                Assert.That(e, Is.InstanceOf<FdbException>().With.Property("Code").EqualTo(expectedCode), message, args);
+            }
+        }
+
+    }
 
 }
