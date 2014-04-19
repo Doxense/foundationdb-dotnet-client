@@ -53,8 +53,8 @@ namespace FoundationDB.Tests.Sandbox
 		public static void Main(string[] args)
 		{
 			N = 10 * 1000;
-			NATIVE_PATH = null; // set this to the path of the 'bin' folder in your fdb install, like @"C:\Program Files\foundationdb\bin"
-			CLUSTER_FILE = null; // set this to the path to your custom fluster file
+			NATIVE_PATH = @"C:\Program Files\foundationdb\bin"; // set this to the path of the 'bin' folder in your fdb install, like @"C:\Program Files\foundationdb\bin"
+			CLUSTER_FILE = @"C:\Program Files\foundationdb\bin\fdb.cluster"; // set this to the path to your custom fluster file
 			DB_NAME = "DB";
 			SUBSPACE = "Sandbox";
 			WARNING = true;

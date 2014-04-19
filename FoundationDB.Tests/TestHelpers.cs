@@ -39,7 +39,7 @@ namespace FoundationDB.Client.Tests
 	{
 		// change these to target a specific test cluster
 
-		public static readonly string TestClusterFile = null;
+		public static readonly string TestClusterFile = @"C:\Program Files\foundationdb\bin\fdb.cluster";
 		public static readonly string TestDbName = "DB";
 		public static readonly Slice TestGlobalPrefix = Slice.FromAscii("T");
 		public static readonly string[] TestPartition = new string[] { "Tests", Environment.MachineName };
