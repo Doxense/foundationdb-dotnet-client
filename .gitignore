@@ -33,6 +33,7 @@ packages/
 
 fdb_c.dll
 
-/build/
+/build/output/
+/build/tools/
 /test/
 
