@@ -8,6 +8,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Indexing;
 	using FoundationDB.Layers.Tables;
+	using FoundationDB.Linq;
 	using FoundationDB.Storage.Memory.Tests;
 	using NUnit.Framework;
 	using System;
@@ -1184,6 +1185,39 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				await db.SaveSnapshotAsync(".\\minibench.pndb");
 				sw.Stop();
 				Console.WriteLine("* Saved in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
+
+				using (var db2 = MemoryDatabase.CreateNew("FOO"))
+				{
+					await db2.LoadSnapshotAsync(".\\minibench.pndb");
+					Console.WriteLine("* Reloaded");
+
+					// verify that all keys in db are in db2...
+
+					using(var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+					{
+						var cursor = FdbKeySelector.FirstGreaterOrEqual(Slice.Empty);
+						FdbRangeChunk chunk;
+						do
+						{
+							chunk = await tr.GetRangeAsync(cursor, FdbKeySelector.FirstGreaterOrEqual(FdbKey.MaxValue));
+							if (chunk.Count > 0)
+							{
+								Console.Write(".");
+								using (var tr2 = db.BeginReadOnlyTransaction(this.Cancellation))
+								{
+									var res = await tr2.GetValuesAsync(chunk.Chunk.Select(kv => kv.Key));
+									for (int i = 0; i < res.Length; i++)
+									{
+										Assert.That(res[i], Is.EqualTo(chunk.Chunk[i].Value), "Key {0}", chunk.Chunk[i].Key);
+									}
+								}
+								cursor = FdbKeySelector.FirstGreaterThan(chunk.Last.Key);
+							}
+						}
+						while (chunk.HasMore);
+					}
+
+				}
 
 				Console.WriteLine("Warming up reads...");
 				var data = await db.GetValuesAsync(Enumerable.Range(0, 100).Select(i => Slice.FromString(i.ToString(fmt))), this.Cancellation);

@@ -101,7 +101,7 @@ namespace FoundationDB.Storage.Memory.API
 		/// <param name="buffer"></param>
 		/// <param name="userKey"></param>
 		/// <returns></returns>
-		private unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey)
+		internal unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (userKey.IsNull ) throw new ArgumentException("Key cannot be nil");
@@ -444,7 +444,7 @@ namespace FoundationDB.Storage.Memory.API
 			return version;
 		}
 
-		internal unsafe Task BulkLoadAsync(ICollection<KeyValuePair<Slice, Slice>> data, bool ordered, CancellationToken cancellationToken)
+		internal unsafe Task BulkLoadAsync(ICollection<KeyValuePair<Slice, Slice>> data, bool ordered, bool append, CancellationToken cancellationToken)
 		{
 			Contract.Requires(data != null);
 
@@ -458,25 +458,34 @@ namespace FoundationDB.Storage.Memory.API
 			m_dataLock.EnterWriteLock();
 			try
 			{
-				m_data.Clear();
-				m_estimatedSize = 0;
-				//TODO: clear the key and value heaps !
-				//TODO: clear the transaction windows !
-				//TODO: kill all pending transactions !
 
 				// the fastest way to insert data, is to insert vectors that are a power of 2
 				int min = ColaStore.LowestBit(count);
 				int max = ColaStore.HighestBit(count);
 				Contract.Assert(min <= max && max <= 28);
+				if (append)
+				{ // the appended layers have to be currently free
+					for (int level = min; level <= max; level++)
+					{
+						if (!m_data.IsFree(level)) throw new InvalidOperationException(String.Format("Cannot bulk load level {0} because it is already in use", level));
+					}
+				}
+				else
+				{ // start from scratch
+					m_data.Clear();
+					m_estimatedSize = 0;
+					//TODO: clear the key and value heaps !
+					//TODO: clear the transaction windows !
+					//TODO: kill all pending transactions !
+				}
 
 				m_data.EnsureCapacity(count);
 
 				ulong sequence = (ulong)Interlocked.Increment(ref m_currentVersion);
 
 				using (var iter = data.GetEnumerator())
+				using (var writer = new LevelWriter(1 << max, m_keys, m_values))
 				{
-					var list = new List<IntPtr>(1 << max);
-
 					for (int level = max; level >= min && !cancellationToken.IsCancellationRequested; level--)
 					{
 						if (ColaStore.IsFree(level, count)) continue;
@@ -484,7 +493,7 @@ namespace FoundationDB.Storage.Memory.API
 						//TODO: consider pre-sorting the items before inserting them in the heap using m_comparer (maybe faster than doing the same with the key comparer?)
 
 						// take of batch of values
-						list.Clear();
+						writer.Reset();
 						int batch = 1 << level;
 						while(batch-- > 0)
 						{
@@ -492,7 +501,8 @@ namespace FoundationDB.Storage.Memory.API
 							{
 								throw new InvalidOperationException("Iterator stopped before reaching the expected number of items");
 							}
-
+							writer.Add(sequence, iter.Current);
+#if REFACTORED
 							// allocate the key
 							var tmp = PackUserKey(m_scratchKey, iter.Current.Key);
 							Key* key = m_keys.Append(tmp);
@@ -508,10 +518,11 @@ namespace FoundationDB.Storage.Memory.API
 							key->Values = value;
 
 							list.Add(new IntPtr(key));
+#endif
 						}
 
 						// and insert it (should fit nicely in a level without cascading)
-						m_data.InsertItems(list, ordered);
+						m_data.InsertItems(writer.Data, ordered);
 					}
 				}
 			}
@@ -1232,27 +1243,43 @@ namespace FoundationDB.Storage.Memory.API
 			//m_dataLock.EnterWriteLock();
 			try
 			{
-				var writer = new SliceWriter(SnapshotFormat.FLUSH_SIZE);
-				using (var source = new Win32SnapshotFile(path))
+				using (var source = new Win32SnapshotFile(path, true))
 				{
 					var snapshot = new SnapshotReader(source);
 
 					// Read the header
+					Console.WriteLine("> Reading Header");
 					await snapshot.ReadHeaderAsync(cancellationToken);
 
 					// Read the jump table (at the end)
+					Console.WriteLine("> Reading Jump Table");
 					await snapshot.ReadJumpTableAsync(cancellationToken);
 
-					// Read the levels
-					for (int level = 0; level < snapshot.Depth; level++)
+					// we should have enough information to allocate memory
+					m_data.Clear();
+					m_estimatedSize = 0;
+
+					using (var writer = new LevelWriter(1 << snapshot.Depth, m_keys, m_values))
 					{
-						if (snapshot.HasLevel(level))
-						{ 
-							await snapshot.ReadLevelAsync(level, cancellationToken);
+						// Read the levels
+						for (int level = snapshot.Depth - 1; level >= 0; level--)
+						{
+							if (!snapshot.HasLevel(level))
+							{
+								continue;
+							}
+
+							Console.WriteLine("> Reading Level " + level);
+							//TODO: right we read the complete level before bulkloading it
+							// we need to be able to bulk load directly from the stream!
+							await snapshot.ReadLevelAsync(level, writer, cancellationToken);
+
+							m_data.InsertItems(writer.Data, ordered: true);
+							writer.Reset();
 						}
 					}
 
-					throw new NotImplementedException();
+					Console.WriteLine("> done!");
 				}
 			}
 			finally

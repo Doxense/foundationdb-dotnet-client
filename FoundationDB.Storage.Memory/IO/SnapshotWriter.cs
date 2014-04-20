@@ -29,7 +29,7 @@ namespace FoundationDB.Storage.Memory.IO
 		private long m_timestamp;
 		private uint m_headerChecksum;
 
-		private readonly KeyValuePair<long, long>[] m_jumpTable;
+		private readonly KeyValuePair<ulong, ulong>[] m_jumpTable;
 
 		public SnapshotWriter(Win32SnapshotFile file, int levels, int pageSize, int bufferSize)
 		{
@@ -43,10 +43,10 @@ namespace FoundationDB.Storage.Memory.IO
 			m_writer = new SliceWriter(bufferSize);
 			m_levels = levels;
 
-			m_jumpTable = new KeyValuePair<long, long>[levels];
+			m_jumpTable = new KeyValuePair<ulong, ulong>[levels];
 			for (int i = 0; i < levels; i++)
 			{
-				m_jumpTable[i] = new KeyValuePair<long, long>(long.MinValue, 0);
+				m_jumpTable[i] = new KeyValuePair<ulong, ulong>(0, 0);
 			}
 		}
 
@@ -77,9 +77,10 @@ namespace FoundationDB.Storage.Memory.IO
 			// DB Header
 
 			// "PNDB"
-			m_writer.WriteFixed32(SnapshotFormat.DB_HEADER_MAGIC_NUMBER);
+			m_writer.WriteFixed32(SnapshotFormat.HEADER_MAGIC_NUMBER);
 			// v1.0
-			m_writer.WriteFixed32(0x00010000);
+			m_writer.WriteFixed16(1); // major
+			m_writer.WriteFixed16(0); // minor
 			// FLAGS
 			m_writer.WriteFixed64((ulong)headerFlags);
 			// Database ID
@@ -96,19 +97,17 @@ namespace FoundationDB.Storage.Memory.IO
 			int offsetToHeaderSize = m_writer.Skip(4);
 
 			// we should be at the 64 byte mark
-			Contract.Assert(m_writer.Position == SnapshotFormat.DB_INFO_BYTES);
+			Contract.Assert(m_writer.Position == SnapshotFormat.HEADER_METADATA_BYTES);
 
 			// DB Attributes
 			m_writer.WriteFixed32((uint)attributes.Count);
 			foreach (var kvp in attributes)
 			{
-				var slice = Slice.FromAscii(kvp.Key);
-				m_writer.WriteVarint32((uint)slice.Count);
-				m_writer.WriteBytes(slice);
+				// Name
+				m_writer.WriteVarbytes(Slice.FromString(kvp.Key));
 
-				slice = kvp.Value.ToSlice();
-				m_writer.WriteVarint32((uint)slice.Count);
-				m_writer.WriteBytes(slice);
+				// Value
+				m_writer.WriteVarbytes(kvp.Value.ToSlice());
 			}
 
 			// Mark the end of the header
@@ -140,15 +139,15 @@ namespace FoundationDB.Storage.Memory.IO
 				throw new InvalidOperationException("The level has already be written to this snapshot");
 			}
 
-			long levelStart = checked(m_file.Length + m_writer.Position);
-			Console.WriteLine("## level " + level + " starts at " + levelStart);
+			var levelStart = checked(m_file.Length + (uint)m_writer.Position);
+			//Console.WriteLine("## level " + level + " starts at " + levelStart);
 
 			//TODO: ensure that we start on a PAGE?
 
 			//Console.WriteLine("> Writing level " + level);
 
 			// "LVL_"
-			m_writer.WriteFixed32(0x204C564C);
+			m_writer.WriteFixed32(SnapshotFormat.LEVEL_MAGIC_NUMBER);
 			// Level Flags
 			m_writer.WriteFixed32(0); //TODO: flags!
 			// Level ID
@@ -201,12 +200,13 @@ namespace FoundationDB.Storage.Memory.IO
 			}
 
 			m_writer.WriteFixed32(uint.MaxValue);
-			//TODO: CRC? (would need to be computed on the fly, because we don't have the full slice in memory probably)
-			//TODO: offset to the next level ? (simplify page management)
 
-			long levelEnd = checked(m_file.Length + m_writer.Position);
-			m_jumpTable[level] = new KeyValuePair<long, long>(levelStart, levelEnd - levelStart);
-			Console.WriteLine("## level " + level + " ends at " + levelEnd);
+			//TODO: CRC? (would need to be computed on the fly, because we don't have the full slice in memory probably)
+			m_writer.WriteFixed32(0);
+
+			var levelEnd = checked(m_file.Length + (uint)m_writer.Position);
+			m_jumpTable[level] = new KeyValuePair<ulong, ulong>(levelStart, levelEnd - levelStart);
+			//Console.WriteLine("## level " + level + " ends at " + levelEnd);
 
 			// optional padding to fill the rest of the page
 			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, (byte)(0xFC - level));
@@ -277,7 +277,7 @@ namespace FoundationDB.Storage.Memory.IO
 			{ // Pad the remainder of the page
 				int pad = SnapshotFormat.PAGE_SIZE - pageOffset;
 				m_writer.Skip(pad, padByte);
-				Console.WriteLine("@@@ added " + pad + " pad bytes => " + m_writer.Position);
+				//Console.WriteLine("@@@ added " + pad + " pad bytes => " + m_writer.Position);
 			}
 		}
 

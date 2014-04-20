@@ -68,7 +68,7 @@ namespace FoundationDB.Storage.Memory.API
 				coll = data.ToList();
 			}
 
-			return m_handler.BulkLoadAsync(coll, ordered, cancellationToken);
+			return m_handler.BulkLoadAsync(coll, ordered, false, cancellationToken);
 		}
 
 		public Task SaveSnapshotAsync(string path, MemorySnapshotOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -83,6 +83,20 @@ namespace FoundationDB.Storage.Memory.API
 
 			return m_handler.SaveSnapshotAsync(path, options, cancellationToken);
 		}
+
+		public Task LoadSnapshotAsync(string path, MemorySnapshotOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (path == null) throw new ArgumentNullException("path");
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+
+			options = options ?? new MemorySnapshotOptions()
+			{
+				Mode = MemorySnapshotMode.Full
+			};
+
+			return m_handler.LoadSnapshotAsync(path, options, cancellationToken);
+		}
+
 
 	}
 
