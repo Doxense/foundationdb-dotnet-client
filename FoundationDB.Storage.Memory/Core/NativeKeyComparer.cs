@@ -36,8 +36,6 @@ namespace FoundationDB.Storage.Memory.Core
 			uint leftCount = leftKey->Size;
 			uint rightCount = rightKey->Size;
 
-			Contract.Assert(leftCount > 0 && rightCount > 0);
-
 			// but then memcmp will probably have the data in the cpu cache...
 			int c = UnmanagedHelpers.NativeMethods.memcmp(&(leftKey->Data), &(rightKey->Data), new UIntPtr(leftCount < rightCount ? leftCount : rightCount));
 			if (c == 0) c = (int)leftCount - (int)rightCount;

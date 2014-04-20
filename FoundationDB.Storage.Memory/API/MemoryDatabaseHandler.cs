@@ -104,7 +104,7 @@ namespace FoundationDB.Storage.Memory.API
 		private unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (userKey.Count == 0) throw new ArgumentException("Key cannot be empty");
+			if (userKey.IsNull ) throw new ArgumentException("Key cannot be nil");
 			if (userKey.Count < 0 || userKey.Offset < 0 || userKey.Array == null) throw new ArgumentException("Malformed key");
 
 			uint keySize = (uint)userKey.Count;
@@ -115,7 +115,7 @@ namespace FoundationDB.Storage.Memory.API
 			key->Header = ((uint)EntryType.Key) << Entry.TYPE_SHIFT;
 			key->Values = null;
 
-			UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
+			if (userKey.Count > 0) UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
 			return tmp;
 		}
 
