@@ -4,14 +4,13 @@
 
 namespace FoundationDB.Storage.Memory.Core.Test
 {
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Text;
 	using System.Threading;
-	using System.Threading.Tasks;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class ColaStoreFacts
@@ -169,7 +168,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			rnd = new Random(seed);
 
 			var list = Enumerable.Range(0, N).ToList();
-			while(list.Count > 0)
+			while (list.Count > 0)
 			{
 				int p = rnd.Next(list.Count);
 				store.Insert(list[p]);
@@ -281,7 +280,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 
 					var sb = new StringBuilder();
 					sb.Append("Seek -> ");
-					for(int j = 0; j < K; j++)
+					for (int j = 0; j < K; j++)
 					{
 						x = iterator.Current;
 						sb.Append(iterator.Current);
@@ -305,6 +304,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		}
 
 		[Test]
+		[Category("LongRunning")]
 		public void Test_MiniBench()
 		{
 			const int N = (1 << 23) - 1; // 10 * 1000 * 1000;
@@ -427,7 +427,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			Console.WriteLine("* KPS     : " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " key/sec");
 			Console.WriteLine("* Latency : " + (sw.Elapsed.TotalMilliseconds * 1000000 / total).ToString("N1") + " nanos / insert");
 
-			for (int i = 0; i < timings.Count;i++)
+			for (int i = 0; i < timings.Count; i++)
 			{
 				Console.WriteLine("" + ((i + 1) * BS).ToString() + "\t" + timings[i].TotalSeconds);
 			}

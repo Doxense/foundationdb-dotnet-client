@@ -29,9 +29,10 @@ Target "BuildTest" (fun _ ->
     |> Log "TestBuild-Output: ")
 
 Target "Test" (fun _ -> 
-    !!(testDir + "/*Test*.dll") |> NUnit(fun p -> 
+    !!(testDir + "/FoundationDb.Tests.dll") |> NUnit(fun p -> 
                                              { p with DisableShadowCopy = true
-                                                      OutputFile = testDir + "TestResults.xml" }))
+                                                      OutputFile = testDir + "TestResults.xml"
+                                                      ExcludeCategory = "LongRunning" }))
 
 Target "Default" (fun _ -> trace "Hello World from FAKE")
 
