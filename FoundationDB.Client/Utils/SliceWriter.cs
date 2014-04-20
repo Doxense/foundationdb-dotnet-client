@@ -556,7 +556,7 @@ namespace FoundationDB.Client
 			int p = this.Position;
 			buffer[p] = (byte)value;
 			buffer[p + 1] = (byte)(value >> 8);
-			this.Position = p + 4;
+			this.Position = p + 2;
 		}
 
 		/// <summary>Writes a 32-bit unsigned integer, using little-endian encoding</summary>
