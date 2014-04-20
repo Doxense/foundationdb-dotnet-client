@@ -32,7 +32,7 @@ Target "Test" (fun _ ->
     !!(testDir + "/FoundationDb.Tests.dll") |> NUnit(fun p -> 
                                              { p with DisableShadowCopy = true
                                                       OutputFile = testDir + "TestResults.xml"
-                                                      ExcludeCategory = "LongRunning" }))
+                                                      ExcludeCategory = "LongRunning,LocalCluster" }))
 
 Target "Default" (fun _ -> trace "Hello World from FAKE")
 

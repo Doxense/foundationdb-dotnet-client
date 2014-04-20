@@ -28,19 +28,20 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
 	using System.IO;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class DatabaseFacts : FdbTest
 	{
 
 		[Test]
+		[Category("LocalCluster")]
 		public async Task Test_Can_Open_Database()
 		{
 			//README: if your default cluster is remote, you need to be connected to the netword, or it will fail.
@@ -60,7 +61,7 @@ namespace FoundationDB.Client.Tests
 			}
 
 			// the easy way		
-			using(var db = await Fdb.OpenAsync())
+			using (var db = await Fdb.OpenAsync())
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.Name, Is.EqualTo("DB"));
@@ -70,6 +71,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public async Task Test_Open_Database_With_Cancelled_Token_Should_Fail()
 		{
 			using (var cts = new CancellationTokenSource())
@@ -83,6 +85,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public async Task Test_Open_Database_With_Invalid_Name_Should_Fail()
 		{
 			// As of 1.0, the only accepted database name is "DB".
@@ -95,9 +98,9 @@ namespace FoundationDB.Client.Tests
 				await TestHelpers.AssertThrowsFdbErrorAsync(() => cluster.OpenDatabaseAsync("SomeOtherName", this.Cancellation), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
 			}
 
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(null, "SomeOtherName"), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");			
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(null, "SomeOtherName"), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
 
-			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(null, "SomeOtherName", FdbSubspace.Empty), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");			
+			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(null, "SomeOtherName", FdbSubspace.Empty), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
 		}
 
 		[Test]
@@ -143,6 +146,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public async Task Test_Can_Open_Local_Database()
 		{
 			//README: if your test database is remote, and you don't have FDB running locally, this test will fail and you should ignore this one.
@@ -156,6 +160,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public async Task Test_Can_Open_Test_Database()
 		{
 			// note: may be different than local db !
@@ -169,9 +174,10 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public async Task Test_FdbDatabase_Key_Validation()
 		{
-			using(var db = await Fdb.OpenAsync())
+			using (var db = await Fdb.OpenAsync())
 			{
 				// IsKeyValid
 				Assert.That(db.IsKeyValid(Slice.Nil), Is.False, "Null key is invalid");
@@ -220,7 +226,7 @@ namespace FoundationDB.Client.Tests
 
 				// in order to verify the value, we need to check ourselves by reading from the cluster config
 				Slice actual;
-				using(var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithAccessToSystemKeys())
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithAccessToSystemKeys())
 				{
 					actual = await tr.GetAsync(Slice.FromAscii("\xFF/conf/storage_engine"));
 				}
@@ -237,6 +243,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
@@ -297,6 +304,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public async Task Test_Database_Instance_Should_Have_Default_Root_Directory()
 		{
 			//TODO: move this into a dedicated test class for partitions
@@ -335,7 +343,7 @@ namespace FoundationDB.Client.Tests
 				var err = FdbError.Success;
 				try
 				{
-					using(var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
 						tr.Timeout = 250; // ms
 						Console.WriteLine("check ...");
@@ -344,7 +352,7 @@ namespace FoundationDB.Client.Tests
 						exists = true;
 					}
 				}
-				catch(FdbException e)
+				catch (FdbException e)
 				{
 					err = e.Code;
 				}
