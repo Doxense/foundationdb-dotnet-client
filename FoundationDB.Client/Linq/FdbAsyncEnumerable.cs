@@ -78,6 +78,28 @@ namespace FoundationDB.Linq
 			return ToAsyncEnumerable(new [] { asyncLambda }).Select(x => x());
 		}
 
+		/// <summary>Split a sequence of items into several batches</summary>
+		/// <typeparam name="T">Type of the elemenst in <paramref name="source"/></typeparam>
+		/// <param name="source">Source sequence</param>
+		/// <param name="batchSize">Maximum size of each batch</param>
+		/// <returns>Sequence of batches, whose size will always we <paramref name="batchSize"/>, except for the last batch that will only hold the remaning items. If the source is empty, an empty sequence is returned.</returns>
+		public static IEnumerable<List<T>> Buffered<T>(this IEnumerable<T> source, int batchSize)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (batchSize <= 0) throw new ArgumentException("Batch size must be greater than zero.", "batchSize");
+
+			var list = new List<T>(batchSize);
+			foreach (var item in source)
+			{
+				list.Add(item);
+				if (list.Count >= batchSize)
+				{
+					yield return list;
+					list.Clear();
+				}
+			}
+		}
+
 		#endregion
 
 		#region Staying in the Monad...
