@@ -20,7 +20,8 @@ namespace FoundationDB.Storage.Memory
 				//new ColaStoreFacts().Test_MiniBench();
 				//new ColaOrderedSetFacts().Test_MiniBench();
 				//new ColaOrderedDictionaryFacts().Test_MiniBench();
-				new MemoryTransactionFacts().Test_MiniBench().GetAwaiter().GetResult();
+				//new SnapshotFacts().Test_Can_Save_And_Reload_Snapshot().GetAwaiter().GetResult();
+				new Benchmarks().MiniBench().GetAwaiter().GetResult();
 			}
 			catch(Exception e)
 			{

@@ -62,6 +62,11 @@ namespace FoundationDB.Storage.Memory.IO
 			get { return m_levels; }
 		}
 
+		public ulong Sequence { get { return m_sequence; } }
+		public ulong TimeStamp { get { return m_timestamp; } }
+		public Version Version { get { return m_version; } }
+		public Uuid Id { get { return m_uid; } }
+
 		private Exception ParseError(string message)
 		{
 			message = "Database snapshot is invalid or corrupted: " + message;

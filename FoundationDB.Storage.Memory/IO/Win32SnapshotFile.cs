@@ -15,7 +15,6 @@ namespace FoundationDB.Storage.Memory.IO
 		private readonly string m_path;
 		private readonly int m_pageSize;
 		private FileStream m_fs;
-		private byte[] m_scratch;
 
 		public const int SECTOR_SIZE = 4096;
 
@@ -156,9 +155,9 @@ namespace FoundationDB.Storage.Memory.IO
 				}
 				if (count > 0)
 				{ // we have to write full 4K sectors, so we'll need to copy the rest to a temp 4K buffer (padded with 0s)
-					var tmp = m_scratch ?? (m_scratch = new byte[m_pageSize]);
+					var tmp = new byte[m_pageSize];
 					Buffer.BlockCopy(buffer, complete, tmp, 0, count);
-					await m_fs.WriteAsync(tmp, 0, tmp.Length, cancellationToken).ConfigureAwait(false);
+					await m_fs.WriteAsync(tmp, 0, count, cancellationToken).ConfigureAwait(false);
 				}
 			}
 			//REVIEW: since we are using WRITE_THROUGH + NO_BUFFERING, the OS is *supposed* to write directly to the disk ... 
@@ -181,7 +180,6 @@ namespace FoundationDB.Storage.Memory.IO
 			finally
 			{
 				m_fs = null;
-				m_scratch = null;
 			}
 		}
 	}

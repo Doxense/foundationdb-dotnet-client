@@ -17,6 +17,11 @@ namespace FoundationDB.Storage.Memory.API
 	public class MemoryDatabase : FdbDatabase
 	{
 
+		public static MemoryDatabase CreateNew()
+		{
+			return CreateNew("DB", FdbSubspace.Empty, false);
+		}
+
 		public static MemoryDatabase CreateNew(string name)
 		{
 			return CreateNew(name, FdbSubspace.Empty, false);
@@ -31,6 +36,24 @@ namespace FoundationDB.Storage.Memory.API
 			var uid = Guid.NewGuid();
 
 			return new MemoryDatabase(cluster, new MemoryDatabaseHandler(uid), name, globalSpace, null, readOnly, true);
+		}
+
+		public static async Task<MemoryDatabase> LoadFromAsync(string path, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			MemoryDatabaseHandler db = null;
+			try
+			{
+				db = new MemoryDatabaseHandler(Guid.Empty);
+				await db.LoadSnapshotAsync(path, new MemorySnapshotOptions(), cancellationToken);
+
+				return new MemoryDatabase(new FdbCluster(new MemoryClusterHandler(), ":memory:"), db, "DB", FdbSubspace.Empty, null, false, true);
+			}
+			catch(Exception)
+			{
+				if (db != null) db.Dispose();
+				throw;
+			}
 		}
 
 		private readonly MemoryDatabaseHandler m_handler;

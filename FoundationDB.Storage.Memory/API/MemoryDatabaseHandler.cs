@@ -1173,7 +1173,6 @@ namespace FoundationDB.Storage.Memory.API
 				attributes["encryption.keysize"] = FdbTuple.Create(4096); //ex: RSA 4096 ?
 			}
 
-
 			//m_dataLock.EnterReadLock();
 			try
 			{
@@ -1188,7 +1187,7 @@ namespace FoundationDB.Storage.Memory.API
 				{
 					var snapshot = new SnapshotWriter(output, levels, SnapshotFormat.PAGE_SIZE, SnapshotFormat.FLUSH_SIZE);
 
-					Console.WriteLine("> Writing header....");
+					//Console.WriteLine("> Writing header....");
 					await snapshot.WriteHeaderAsync(
 						headerFlags,
 						new Uuid(m_uid),
@@ -1198,30 +1197,30 @@ namespace FoundationDB.Storage.Memory.API
 						attributes
 					).ConfigureAwait(false);
 
-					Console.WriteLine("> Writing level data...");
+					//Console.WriteLine("> Writing level data...");
 					for (int level = levels - 1; level >= 0; level--)
 					{
 						if (ColaStore.IsFree(level, count))
 						{ // this level is not allocated
-							Console.WriteLine("  > Skipping empty level " + level);
+							//Console.WriteLine("  > Skipping empty level " + level);
 							continue;
 						}
 
-						Console.WriteLine("  > Dumping " + levels + " levels...");
+						//Console.WriteLine("  > Dumping " + levels + " levels...");
 						await snapshot.WriteLevelAsync(level, m_data.GetLevel(level), cancellationToken);
 					}
 
 					// Write the JumpTable to the end of the file
-					Console.WriteLine("> Writing Jump Table...");
+					//Console.WriteLine("> Writing Jump Table...");
 					await snapshot.WriteJumpTableAsync(cancellationToken);
 
 					// flush any remaining data to the disc
-					Console.WriteLine("> Flushing...");
+					//Console.WriteLine("> Flushing...");
 					await snapshot.FlushAsync(cancellationToken);
 
-					Console.WriteLine("> Final file size if " + output.Length.ToString("N0") + " bytes");
+					//Console.WriteLine("> Final file size if " + output.Length.ToString("N0") + " bytes");
 				}
-				Console.WriteLine("> Done!");
+				//Console.WriteLine("> Done!");
 
 				return (long)sequence;
 			}
@@ -1248,11 +1247,11 @@ namespace FoundationDB.Storage.Memory.API
 					var snapshot = new SnapshotReader(source);
 
 					// Read the header
-					Console.WriteLine("> Reading Header");
+					//Console.WriteLine("> Reading Header");
 					await snapshot.ReadHeaderAsync(cancellationToken);
 
 					// Read the jump table (at the end)
-					Console.WriteLine("> Reading Jump Table");
+					//Console.WriteLine("> Reading Jump Table");
 					await snapshot.ReadJumpTableAsync(cancellationToken);
 
 					// we should have enough information to allocate memory
@@ -1269,7 +1268,7 @@ namespace FoundationDB.Storage.Memory.API
 								continue;
 							}
 
-							Console.WriteLine("> Reading Level " + level);
+							//Console.WriteLine("> Reading Level " + level);
 							//TODO: right we read the complete level before bulkloading it
 							// we need to be able to bulk load directly from the stream!
 							await snapshot.ReadLevelAsync(level, writer, cancellationToken);
@@ -1279,7 +1278,10 @@ namespace FoundationDB.Storage.Memory.API
 						}
 					}
 
-					Console.WriteLine("> done!");
+					m_uid = snapshot.Id.ToGuid();
+					m_currentVersion = (long)snapshot.Sequence;
+
+					//Console.WriteLine("> done!");
 				}
 			}
 			finally
@@ -1461,7 +1463,7 @@ namespace FoundationDB.Storage.Memory.API
 #endif
 					}
 				}
-				Console.WriteLine("WriteEventLoop exit");
+				Log("WriteEventLoop exit");
 			}
 			catch(Exception)
 			{
@@ -1482,7 +1484,7 @@ namespace FoundationDB.Storage.Memory.API
 		private void StopWriterEventLoop()
 		{
 			// signal a shutdown
-			Console.WriteLine("WriterEventLoop requesting stop...");
+			Log("WriterEventLoop requesting stop...");
 			int oldState;
 			if ((oldState = Interlocked.Exchange(ref m_eventLoopState, STATE_SHUTDOWN)) != STATE_SHUTDOWN)
 			{
@@ -1497,7 +1499,7 @@ namespace FoundationDB.Storage.Memory.API
 						{
 							// what should we do ?
 						}
-						Console.WriteLine("WriterEventLoop stopped");
+						Log("WriterEventLoop stopped");
 						break;
 					}
 					default:
