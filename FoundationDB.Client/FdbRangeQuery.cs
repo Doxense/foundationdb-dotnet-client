@@ -59,6 +59,7 @@ namespace FoundationDB.Client
 			this.Begin = query.Begin;
 			this.End = query.End;
 			this.Transform = query.Transform;
+			this.Snapshot = query.Snapshot;
 			this.Options = options;
 		}
 
