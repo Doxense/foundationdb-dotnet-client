@@ -1,0 +1,5 @@
+; 4-column tab indentation
+[*.cs]
+indent_style = tab
+indent_size = 4
+
