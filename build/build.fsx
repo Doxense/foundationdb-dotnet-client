@@ -43,7 +43,7 @@ Target "Test" (fun _ ->
     let testDir = buildDir + "tests/"
     CreateDir testDir
     !!(buildDir + "**/*Test*.dll")
-    |> NUnitParallel(
+    |> NUnit(
         fun p -> { p with DisableShadowCopy = true
                           OutputFile = "TestResults.xml"
                           StopOnError = false
