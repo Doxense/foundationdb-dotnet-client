@@ -18,5 +18,7 @@
   </metadata>
   <files>
     <file src="output\FoundationDB.Client\FoundationDB.Client.dll" target="lib\net45" />
+    <file src="output\FoundationDB.Client\FoundationDB.Client.XML" target="lib\net45" />
+    <file src="output\FoundationDB.Client\FoundationDB.Client.pdb" target="lib\net45" />
   </files>
 </package>
