@@ -43,7 +43,7 @@ namespace FoundationDB.Storage.Memory.Core
 			if (maxPageSize > MaxAllowedPageSize) throw new ArgumentOutOfRangeException("maxPageSize", maxPageSize, "Maximum page size is too large");
 			if (allocator == null) throw new ArgumentNullException("allocator");
 
-			Trace.WriteLine("Created " + this.GetType().Name + " : min=" + minPageSize + "; max=" + maxPageSize);
+			Debug.WriteLine("Created " + this.GetType().Name + " : min=" + minPageSize + "; max=" + maxPageSize);
 
 			m_pageSize = 0;
 			m_minPageSize = minPageSize;

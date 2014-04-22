@@ -58,6 +58,8 @@
     <Compile Include="FdbTest.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Transactions\Benchmarks.cs" />
+    <Compile Include="Transactions\SnapshotFacts.cs" />
     <Compile Include="Transactions\MemoryTransactionFacts.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -101,10 +101,10 @@ namespace FoundationDB.Storage.Memory.API
 		/// <param name="buffer"></param>
 		/// <param name="userKey"></param>
 		/// <returns></returns>
-		private unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey)
+		internal unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (userKey.Count == 0) throw new ArgumentException("Key cannot be empty");
+			if (userKey.IsNull ) throw new ArgumentException("Key cannot be nil");
 			if (userKey.Count < 0 || userKey.Offset < 0 || userKey.Array == null) throw new ArgumentException("Malformed key");
 
 			uint keySize = (uint)userKey.Count;
@@ -115,7 +115,7 @@ namespace FoundationDB.Storage.Memory.API
 			key->Header = ((uint)EntryType.Key) << Entry.TYPE_SHIFT;
 			key->Values = null;
 
-			UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
+			if (userKey.Count > 0) UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
 			return tmp;
 		}
 
@@ -444,7 +444,7 @@ namespace FoundationDB.Storage.Memory.API
 			return version;
 		}
 
-		internal unsafe Task BulkLoadAsync(ICollection<KeyValuePair<Slice, Slice>> data, bool ordered, CancellationToken cancellationToken)
+		internal unsafe Task BulkLoadAsync(ICollection<KeyValuePair<Slice, Slice>> data, bool ordered, bool append, CancellationToken cancellationToken)
 		{
 			Contract.Requires(data != null);
 
@@ -458,25 +458,34 @@ namespace FoundationDB.Storage.Memory.API
 			m_dataLock.EnterWriteLock();
 			try
 			{
-				m_data.Clear();
-				m_estimatedSize = 0;
-				//TODO: clear the key and value heaps !
-				//TODO: clear the transaction windows !
-				//TODO: kill all pending transactions !
 
 				// the fastest way to insert data, is to insert vectors that are a power of 2
 				int min = ColaStore.LowestBit(count);
 				int max = ColaStore.HighestBit(count);
 				Contract.Assert(min <= max && max <= 28);
+				if (append)
+				{ // the appended layers have to be currently free
+					for (int level = min; level <= max; level++)
+					{
+						if (!m_data.IsFree(level)) throw new InvalidOperationException(String.Format("Cannot bulk load level {0} because it is already in use", level));
+					}
+				}
+				else
+				{ // start from scratch
+					m_data.Clear();
+					m_estimatedSize = 0;
+					//TODO: clear the key and value heaps !
+					//TODO: clear the transaction windows !
+					//TODO: kill all pending transactions !
+				}
 
 				m_data.EnsureCapacity(count);
 
 				ulong sequence = (ulong)Interlocked.Increment(ref m_currentVersion);
 
 				using (var iter = data.GetEnumerator())
+				using (var writer = new LevelWriter(1 << max, m_keys, m_values))
 				{
-					var list = new List<IntPtr>(1 << max);
-
 					for (int level = max; level >= min && !cancellationToken.IsCancellationRequested; level--)
 					{
 						if (ColaStore.IsFree(level, count)) continue;
@@ -484,7 +493,7 @@ namespace FoundationDB.Storage.Memory.API
 						//TODO: consider pre-sorting the items before inserting them in the heap using m_comparer (maybe faster than doing the same with the key comparer?)
 
 						// take of batch of values
-						list.Clear();
+						writer.Reset();
 						int batch = 1 << level;
 						while(batch-- > 0)
 						{
@@ -492,7 +501,8 @@ namespace FoundationDB.Storage.Memory.API
 							{
 								throw new InvalidOperationException("Iterator stopped before reaching the expected number of items");
 							}
-
+							writer.Add(sequence, iter.Current);
+#if REFACTORED
 							// allocate the key
 							var tmp = PackUserKey(m_scratchKey, iter.Current.Key);
 							Key* key = m_keys.Append(tmp);
@@ -508,10 +518,11 @@ namespace FoundationDB.Storage.Memory.API
 							key->Values = value;
 
 							list.Add(new IntPtr(key));
+#endif
 						}
 
 						// and insert it (should fit nicely in a level without cascading)
-						m_data.InsertItems(list, ordered);
+						m_data.InsertItems(writer.Data, ordered);
 					}
 				}
 			}
@@ -1162,7 +1173,6 @@ namespace FoundationDB.Storage.Memory.API
 				attributes["encryption.keysize"] = FdbTuple.Create(4096); //ex: RSA 4096 ?
 			}
 
-
 			//m_dataLock.EnterReadLock();
 			try
 			{
@@ -1177,7 +1187,7 @@ namespace FoundationDB.Storage.Memory.API
 				{
 					var snapshot = new SnapshotWriter(output, levels, SnapshotFormat.PAGE_SIZE, SnapshotFormat.FLUSH_SIZE);
 
-					Console.WriteLine("> Writing header....");
+					//Console.WriteLine("> Writing header....");
 					await snapshot.WriteHeaderAsync(
 						headerFlags,
 						new Uuid(m_uid),
@@ -1187,30 +1197,30 @@ namespace FoundationDB.Storage.Memory.API
 						attributes
 					).ConfigureAwait(false);
 
-					Console.WriteLine("> Writing level data...");
+					//Console.WriteLine("> Writing level data...");
 					for (int level = levels - 1; level >= 0; level--)
 					{
 						if (ColaStore.IsFree(level, count))
 						{ // this level is not allocated
-							Console.WriteLine("  > Skipping empty level " + level);
+							//Console.WriteLine("  > Skipping empty level " + level);
 							continue;
 						}
 
-						Console.WriteLine("  > Dumping " + levels + " levels...");
+						//Console.WriteLine("  > Dumping " + levels + " levels...");
 						await snapshot.WriteLevelAsync(level, m_data.GetLevel(level), cancellationToken);
 					}
 
 					// Write the JumpTable to the end of the file
-					Console.WriteLine("> Writing Jump Table...");
+					//Console.WriteLine("> Writing Jump Table...");
 					await snapshot.WriteJumpTableAsync(cancellationToken);
 
 					// flush any remaining data to the disc
-					Console.WriteLine("> Flushing...");
+					//Console.WriteLine("> Flushing...");
 					await snapshot.FlushAsync(cancellationToken);
 
-					Console.WriteLine("> Final file size if " + output.Length.ToString("N0") + " bytes");
+					//Console.WriteLine("> Final file size if " + output.Length.ToString("N0") + " bytes");
 				}
-				Console.WriteLine("> Done!");
+				//Console.WriteLine("> Done!");
 
 				return (long)sequence;
 			}
@@ -1232,27 +1242,46 @@ namespace FoundationDB.Storage.Memory.API
 			//m_dataLock.EnterWriteLock();
 			try
 			{
-				var writer = new SliceWriter(SnapshotFormat.FLUSH_SIZE);
-				using (var source = new Win32SnapshotFile(path))
+				using (var source = new Win32SnapshotFile(path, true))
 				{
 					var snapshot = new SnapshotReader(source);
 
 					// Read the header
+					//Console.WriteLine("> Reading Header");
 					await snapshot.ReadHeaderAsync(cancellationToken);
 
 					// Read the jump table (at the end)
+					//Console.WriteLine("> Reading Jump Table");
 					await snapshot.ReadJumpTableAsync(cancellationToken);
 
-					// Read the levels
-					for (int level = 0; level < snapshot.Depth; level++)
+					// we should have enough information to allocate memory
+					m_data.Clear();
+					m_estimatedSize = 0;
+
+					using (var writer = new LevelWriter(1 << snapshot.Depth, m_keys, m_values))
 					{
-						if (snapshot.HasLevel(level))
-						{ 
-							await snapshot.ReadLevelAsync(level, cancellationToken);
+						// Read the levels
+						for (int level = snapshot.Depth - 1; level >= 0; level--)
+						{
+							if (!snapshot.HasLevel(level))
+							{
+								continue;
+							}
+
+							//Console.WriteLine("> Reading Level " + level);
+							//TODO: right we read the complete level before bulkloading it
+							// we need to be able to bulk load directly from the stream!
+							await snapshot.ReadLevelAsync(level, writer, cancellationToken);
+
+							m_data.InsertItems(writer.Data, ordered: true);
+							writer.Reset();
 						}
 					}
 
-					throw new NotImplementedException();
+					m_uid = snapshot.Id.ToGuid();
+					m_currentVersion = (long)snapshot.Sequence;
+
+					//Console.WriteLine("> done!");
 				}
 			}
 			finally
@@ -1434,7 +1463,7 @@ namespace FoundationDB.Storage.Memory.API
 #endif
 					}
 				}
-				Console.WriteLine("WriteEventLoop exit");
+				Log("WriteEventLoop exit");
 			}
 			catch(Exception)
 			{
@@ -1455,7 +1484,7 @@ namespace FoundationDB.Storage.Memory.API
 		private void StopWriterEventLoop()
 		{
 			// signal a shutdown
-			Console.WriteLine("WriterEventLoop requesting stop...");
+			Log("WriterEventLoop requesting stop...");
 			int oldState;
 			if ((oldState = Interlocked.Exchange(ref m_eventLoopState, STATE_SHUTDOWN)) != STATE_SHUTDOWN)
 			{
@@ -1470,7 +1499,7 @@ namespace FoundationDB.Storage.Memory.API
 						{
 							// what should we do ?
 						}
-						Console.WriteLine("WriterEventLoop stopped");
+						Log("WriterEventLoop stopped");
 						break;
 					}
 					default:

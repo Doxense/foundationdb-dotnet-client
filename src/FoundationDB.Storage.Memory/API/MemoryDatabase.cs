@@ -17,6 +17,11 @@ namespace FoundationDB.Storage.Memory.API
 	public class MemoryDatabase : FdbDatabase
 	{
 
+		public static MemoryDatabase CreateNew()
+		{
+			return CreateNew("DB", FdbSubspace.Empty, false);
+		}
+
 		public static MemoryDatabase CreateNew(string name)
 		{
 			return CreateNew(name, FdbSubspace.Empty, false);
@@ -31,6 +36,24 @@ namespace FoundationDB.Storage.Memory.API
 			var uid = Guid.NewGuid();
 
 			return new MemoryDatabase(cluster, new MemoryDatabaseHandler(uid), name, globalSpace, null, readOnly, true);
+		}
+
+		public static async Task<MemoryDatabase> LoadFromAsync(string path, CancellationToken cancellationToken)
+		{
+			cancellationToken.ThrowIfCancellationRequested();
+			MemoryDatabaseHandler db = null;
+			try
+			{
+				db = new MemoryDatabaseHandler(Guid.Empty);
+				await db.LoadSnapshotAsync(path, new MemorySnapshotOptions(), cancellationToken);
+
+				return new MemoryDatabase(new FdbCluster(new MemoryClusterHandler(), ":memory:"), db, "DB", FdbSubspace.Empty, null, false, true);
+			}
+			catch(Exception)
+			{
+				if (db != null) db.Dispose();
+				throw;
+			}
 		}
 
 		private readonly MemoryDatabaseHandler m_handler;
@@ -68,7 +91,7 @@ namespace FoundationDB.Storage.Memory.API
 				coll = data.ToList();
 			}
 
-			return m_handler.BulkLoadAsync(coll, ordered, cancellationToken);
+			return m_handler.BulkLoadAsync(coll, ordered, false, cancellationToken);
 		}
 
 		public Task SaveSnapshotAsync(string path, MemorySnapshotOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
@@ -83,6 +106,20 @@ namespace FoundationDB.Storage.Memory.API
 
 			return m_handler.SaveSnapshotAsync(path, options, cancellationToken);
 		}
+
+		public Task LoadSnapshotAsync(string path, MemorySnapshotOptions options = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (path == null) throw new ArgumentNullException("path");
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
+
+			options = options ?? new MemorySnapshotOptions()
+			{
+				Mode = MemorySnapshotMode.Full
+			};
+
+			return m_handler.LoadSnapshotAsync(path, options, cancellationToken);
+		}
+
 
 	}
 

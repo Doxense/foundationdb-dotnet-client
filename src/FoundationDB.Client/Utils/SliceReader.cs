@@ -46,6 +46,12 @@ namespace FoundationDB.Client
 			return new SliceReader(Slice.Create(buffer, offset, count));
 		}
 
+		/// <summary>Creates a reader on a segment of a byte array</summary>
+		public static SliceReader FromBuffer(byte[] buffer, uint offset, uint count)
+		{
+			return new SliceReader(Slice.Create(buffer, (int)offset, (int)count));
+		}
+
 		/// <summary>Buffer containing the tuple being parsed</summary>
 		public readonly Slice Buffer;
 
@@ -79,7 +85,13 @@ namespace FoundationDB.Client
 		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
 		public void EnsureBytes(int count)
 		{
-			if (count < 0 || count > this.Buffer.Count - this.Position) throw new ArgumentOutOfRangeException("count");
+			if (count < 0 || checked(this.Position + count) > this.Buffer.Count) throw new ArgumentOutOfRangeException("count");
+		}
+
+		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
+		public void EnsureBytes(uint count)
+		{
+			EnsureBytes(checked((int)count));
 		}
 
 		/// <summary>Return the value of the next byte in the buffer, or -1 if we reached the end</summary>
@@ -95,6 +107,11 @@ namespace FoundationDB.Client
 			EnsureBytes(count);
 
 			this.Position += count;
+		}
+
+		public void Skip(uint count)
+		{
+			Skip(checked((int)count));
 		}
 
 		/// <summary>Read the next byte from the buffer</summary>
@@ -116,6 +133,11 @@ namespace FoundationDB.Client
 			int p = this.Position;
 			this.Position = p + count;
 			return this.Buffer.Substring(p, count);
+		}
+
+		public Slice ReadBytes(uint count)
+		{
+			return ReadBytes(checked((int)count));
 		}
 
 		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in little-endian</summary>

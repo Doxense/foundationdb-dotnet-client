@@ -32,11 +32,22 @@ namespace FoundationDB.Storage.Memory.IO
 		public const int PAGE_SIZE_BITS = 10; // 1KB
 		public const int PAGE_SIZE = 1 << PAGE_SIZE_BITS;
 
-		public const uint DB_HEADER_MAGIC_NUMBER = 0x42444E50; // "PNDB"
+		public const uint HEADER_MAGIC_NUMBER = 0x42444E50; // "PNDB"
 		public const uint JUMP_TABLE_MAGIC_NUMBER = 0x54504D4A; // "JMPT"
+		public const uint LEVEL_MAGIC_NUMBER = 0x204C564C; // "LVL ";
+
 		// Size of the header CRC (in bytes)
-		public const int DB_INFO_BYTES = 64;
+		public const int HEADER_METADATA_BYTES = 64;
 		public const int HEADER_CRC_SIZE = 4;
+		public const int LEVEL_HEADER_BYTES = 16;
+
+		// The maximum size for key + value is 10,000 + 100,000 with 2 + 3 additional bytes to encode the variable-length size
+		// The buffer size should be multiple of the pageSize value AND a power of two for convenience.
+		// Also, it would help if the buffer is x2 that to simplify buffering
+		// The worst case scenario would be where the first byte of the key starts on the last byte of a page, and last byte of the value cross into a new page, added 2 pages to the total
+		// Minimum size will be 2 + 10,000 + 3 + 100,000 + 2 * 1,024 = 112,053 and the next power of two is 2 ^ 17, so use 2 ^ 18 for double buffering
+		public const int MAX_KEYVALUE_BITS = 18;
+		public const int BUFFER_SIZE = 1 << MAX_KEYVALUE_BITS;
 
 		public static uint ComputeChecksum(Slice data)
 		{

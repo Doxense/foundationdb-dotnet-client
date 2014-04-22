@@ -146,7 +146,7 @@ namespace FoundationDB.Filters.Logging
 						{ 
 #if DEBUG
 							//FIXME: we probably forgot to add a case for a new type of command !
-							Debugger.Break();
+							if (Debugger.IsAttached) Debugger.Break();
 #endif
 							return FdbTransactionLog.Mode.Invalid;
 						}
