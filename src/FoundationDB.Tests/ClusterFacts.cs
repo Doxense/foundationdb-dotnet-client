@@ -28,20 +28,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Client;
-	using NUnit.Framework;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using NUnit.Framework;
 
 	[TestFixture]
 	public class ClusterFacts : FdbTest
 	{
 
 		[Test]
+		[Category("LocalCluster")]
 		public async Task Test_Can_Connect_To_Local_Cluster()
 		{
-			using(var cluster = await Fdb.CreateClusterAsync(this.Cancellation))
+			using (var cluster = await Fdb.CreateClusterAsync(this.Cancellation))
 			{
 				Assert.That(cluster, Is.Not.Null, "Should return a valid object");
 				Assert.That(cluster.Path, Is.Null, "FdbCluster.Path should be null");

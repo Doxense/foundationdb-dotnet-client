@@ -28,17 +28,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
-	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
+	using NUnit.Framework;
 
 	[TestFixture]
+	[Category("LongRunning")]
 	public class DatabaseBulkFacts : FdbTest
 	{
 

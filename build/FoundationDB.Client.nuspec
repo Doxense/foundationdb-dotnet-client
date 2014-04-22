@@ -16,4 +16,7 @@
 	<language>en-US</language>
     <tags>foundationdb nosql</tags>
   </metadata>
+  <files>
+    <file src="output\FoundationDB.Client\FoundationDB.Client.dll" target="lib\net40" />
+  </files>
 </package>

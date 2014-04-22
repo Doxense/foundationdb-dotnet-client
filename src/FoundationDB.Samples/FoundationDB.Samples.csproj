@@ -60,10 +60,6 @@
       <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
       <Name>FoundationDB.Client</Name>
     </ProjectReference>
-    <ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj">
-      <Project>{7c7717d6-a1e7-4541-af8b-1ac762b5ed0f}</Project>
-      <Name>FoundationDB.Layers.Common</Name>
-    </ProjectReference>
     <ProjectReference Include="..\FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj">
       <Project>{e631bcd4-386c-4eb1-ad4d-cabce77bb4c8}</Project>
       <Name>FoundationDB.Layers.Experimental</Name>
