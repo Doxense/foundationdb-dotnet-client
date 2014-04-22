@@ -28,12 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq.Expressions;
-	using System.Threading;
+	using FoundationDB.Client;
 
 	/// <summary>Expression that represents a GetRange query using a pair of key selectors</summary>
 	public class FdbQueryRangeExpression : FdbQuerySequenceExpression<KeyValuePair<Slice, Slice>>
