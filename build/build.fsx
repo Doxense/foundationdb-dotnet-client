@@ -6,7 +6,7 @@ open Fake
 RestorePackages()
 
 // Properties
-let version = "0.200.0-pre"
+let version = "0.200.5-pre"
 let buildDir = "./build/output/"
 let nugetOutDir = buildDir + "_packages/"
 
@@ -69,7 +69,7 @@ Target "Release" (fun _ ->
             NuGetPack (
                 fun p ->
                     { p with WorkingDir = binariesDir
-                             OutputPath = binariesDir
+                             OutputPath = nugetOutDir
                              Version = version}) nuspec
 
             let targetLoc = (buildDir + (sprintf "%s/%s.%s.nupkg" name name version))
