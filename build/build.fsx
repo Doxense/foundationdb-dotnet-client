@@ -40,12 +40,15 @@ Target "BuildApp" (fun _ ->
 
 
 Target "Test" (fun _ ->
+    let testDir = buildDir + "tests/"
+    CreateDir testDir
     !!(buildDir + "**/*Test*.dll")
     |> NUnitParallel(
         fun p -> { p with DisableShadowCopy = true
-                          OutputFile = buildDir + "TestResults.xml"
+                          OutputFile = "TestResults.xml"
                           StopOnError = false
                           ErrorLevel = DontFailBuild
+                          WorkingDir = testDir
                           ExcludeCategory = "LongRunning,LocalCluster" }))
 
 let replaceVersionInNuspec nuspecFileName version =
