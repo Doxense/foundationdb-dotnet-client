@@ -170,3 +170,9 @@ Known Limitations
 * You cannot unload the fdb C native client from the process once the netork thread has started. You can stop the network thread once, but it does not support being restarted. This can cause problems when running under ASP.NET.
 * FoundationDB does not support long running batch or range queries if they take too much time. Such queries will fail with a 'past_version' error.
 * See https://foundationdb.com/documentation/known-limitations.html for other known limitations of the FoundationDB database.
+
+Contributing
+------------
+
+* It is important to point out that this solution uses tabs instead of spaces for various reasons. In order to ease the transition for people who want to start contributing and avoid having to switch their Visual Studio configuration manually an .editorconfig file has been added to the root folder of the solution. The easiest way to use this is to install the [Extension for Visual Studio](http://visualstudiogallery.msdn.microsoft.com/c8bccfe2-650c-4b42-bc5c-845e21f96328). This will switch visual studio's settings for white space in csharp files to use tabs.
+
