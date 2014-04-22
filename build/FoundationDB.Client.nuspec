@@ -17,6 +17,6 @@
     <tags>foundationdb nosql</tags>
   </metadata>
   <files>
-    <file src="output\FoundationDB.Client\FoundationDB.Client.dll" target="lib\net40" />
+    <file src="output\FoundationDB.Client\FoundationDB.Client.dll" target="lib\net45" />
   </files>
 </package>

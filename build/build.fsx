@@ -6,7 +6,7 @@ open Fake
 RestorePackages()
 
 // Properties
-let version = "0.205.0-pre"
+let version = "0.200.0-pre"
 let buildDir = "./build/output/"
 let nugetOutDir = buildDir + "_packages/"
 

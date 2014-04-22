@@ -20,6 +20,6 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="output\FoundationDB.Layers.Common\FoundationDB.Layers.Common.dll" target="lib\net-40" />
+    <file src="output\FoundationDB.Layers.Common\FoundationDB.Layers.Common.dll" target="lib\net-45" />
   </files>
 </package>
