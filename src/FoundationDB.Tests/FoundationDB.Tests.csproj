@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{7C888F78-99B1-4CA1-8973-282EC5CCCACD}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>FoundationDB.Tests</RootNamespace>
+    <AssemblyName>FoundationDB.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+    <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\..\</SolutionDir>
+    <RestorePackages>true</RestorePackages>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>true</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>..\Common\foundationdb-net-client.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
+    <DebugSymbols>true</DebugSymbols>
+    <OutputPath>bin\x64\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugType>full</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
+    <OutputPath>bin\x64\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\Newtonsoft.Json.6.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework, Version=2.6.3.13283, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\packages\NUnit.2.6.3\lib\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="protobuf-net">
+      <HintPath>..\..\packages\protobuf-net.2.0.0.668\lib\net40\protobuf-net.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Common\VersionInfo.cs">
+      <Link>Properties\VersionInfo.cs</Link>
+    </Compile>
+    <Compile Include="FdbTest.cs" />
+    <Compile Include="ClusterFacts.cs" />
+    <Compile Include="Encoders\EncoderFacts.cs" />
+    <Compile Include="Encoders\TypeCodecFacts.cs" />
+    <Compile Include="Experimental\ProtobufCodec.cs" />
+    <Compile Include="Filters\LoggingFilterFacts.cs" />
+    <Compile Include="Experimental\JsonNetCodec.cs" />
+    <Compile Include="Layers\RankedSetFacts.cs" />
+    <Compile Include="Layers\VectorFacts.cs" />
+    <Compile Include="Layers\QueuesFacts.cs" />
+    <Compile Include="TransactionalFacts.cs" />
+    <Compile Include="UuidFacts.cs" />
+    <Compile Include="Utils\SliceFacts.cs" />
+    <Compile Include="DatabaseBulkFacts.cs" />
+    <Compile Include="Layers\SubspaceFacts.cs" />
+    <Compile Include="Layers\DirectoryFacts.cs" />
+    <Compile Include="Layers\DocumentCollectionFacts.cs" />
+    <Compile Include="Layers\IndexingFacts.cs" />
+    <Compile Include="Async\AsyncBufferFacts.cs" />
+    <Compile Include="Linq\FdbAsyncQueryableFacts.cs" />
+    <Compile Include="Linq\FdbQueryExpressionFacts.cs" />
+    <Compile Include="RangeQueryFacts.cs" />
+    <Compile Include="ErrorFacts.cs" />
+    <Compile Include="KeyFacts.cs" />
+    <Compile Include="Layers\BlobFacts.cs" />
+    <Compile Include="Layers\CounterFacts.cs" />
+    <Compile Include="TestHelpers.cs" />
+    <Compile Include="Layers\TableFacts.cs" />
+    <Compile Include="Layers\TupleFacts.cs" />
+    <Compile Include="Layers\StringInternFacts.cs" />
+    <Compile Include="TransactionFacts.cs" />
+    <Compile Include="DatabaseFacts.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Utils\SliceWriterFacts.cs" />
+    <Compile Include="Utils\ConversionFacts.cs" />
+    <Compile Include="Linq\FdbAsyncEnumerableFacts.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Service Include="{82A7F48D-3B50-4B1E-B82E-3ADA8210C358}" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj">
+      <Project>{773166b7-de74-4fcc-845c-84080cc89533}</Project>
+      <Name>FoundationDB.Client</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\FoundationDB.Layers.Common\FoundationDB.Layers.Common.csproj">
+      <Project>{7c7717d6-a1e7-4541-af8b-1ac762b5ed0f}</Project>
+      <Name>FoundationDB.Layers.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\FoundationDB.Layers.Experimental\FoundationDB.Layers.Experimental.csproj">
+      <Project>{e631bcd4-386c-4eb1-ad4d-cabce77bb4c8}</Project>
+      <Name>FoundationDB.Layers.Experimental</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\FoundationDB.Linq\FoundationDB.Linq.csproj">
+      <Project>{faf14e3f-6662-4084-8b92-e6697f6b9d5a}</Project>
+      <Name>FoundationDB.Linq</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="$(SolutionDir)\.nuget\nuget.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
