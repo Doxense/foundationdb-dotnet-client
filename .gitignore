@@ -33,9 +33,6 @@ packages/
 
 fdb_c.dll
 
-# Test artifacts
-notfound.cluster
-
 # Build tools and artifacts
 /build/tools/
 /build/output/
