@@ -32,3 +32,8 @@ packages/
 *.ide/
 
 fdb_c.dll
+
+# Build tools and artifacts
+/build/tools/
+/build/output/
+

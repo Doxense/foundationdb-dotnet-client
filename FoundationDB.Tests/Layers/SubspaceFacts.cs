@@ -53,6 +53,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public void Test_Subspace_With_Binary_Prefix()
 		{
 			var subspace = new FdbSubspace(Slice.Create(new byte[] { 42, 255, 0, 127 }));
@@ -123,6 +124,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public void Test_Subspace_With_Tuple_Prefix()
 		{
 			var subspace = new FdbSubspace(FdbTuple.Create("hello"));
@@ -189,6 +191,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		[Category("LocalCluster")]
 		public void Test_Subspace_Partitioning_With_Tuple_Suffix()
 		{
 			// start from a parent subspace
