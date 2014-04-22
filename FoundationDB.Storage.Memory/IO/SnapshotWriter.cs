@@ -2,10 +2,11 @@
 // See License.MD for license information
 #endregion
 
-namespace FoundationDB.Storage.Memory.API
+namespace FoundationDB.Storage.Memory.IO
 {
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Storage.Memory.API;
 	using FoundationDB.Storage.Memory.Core;
 	using System;
 	using System.Collections.Generic;
@@ -76,7 +77,7 @@ namespace FoundationDB.Storage.Memory.API
 			// DB Header
 
 			// "PNDB"
-			m_writer.WriteFixed32(SnapshotFormat.MAGIC_NUMBER);
+			m_writer.WriteFixed32(SnapshotFormat.DB_HEADER_MAGIC_NUMBER);
 			// v1.0
 			m_writer.WriteFixed32(0x00010000);
 			// FLAGS
@@ -126,7 +127,7 @@ namespace FoundationDB.Storage.Memory.API
 			m_headerChecksum = headerChecksum;
 
 			// optional padding to fill the rest of the page
-			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, 0xAA);
+			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, 0xFD);
 
 		}
 
@@ -146,20 +147,28 @@ namespace FoundationDB.Storage.Memory.API
 
 			//Console.WriteLine("> Writing level " + level);
 
-			m_writer.WriteFixed32(0x204C564C);				// "LVL_"
-			m_writer.WriteFixed32((uint)level);				// Level ID
-			m_writer.WriteFixed32((uint)segment.Length);		// Item count (always 2^level)
+			// "LVL_"
+			m_writer.WriteFixed32(0x204C564C);
+			// Level Flags
+			m_writer.WriteFixed32(0); //TODO: flags!
+			// Level ID
+			m_writer.WriteFixed32((uint)level);
+			// Item count (always 2^level)
+			m_writer.WriteFixed32((uint)segment.Length);
 
 			for (int i = 0; i < segment.Length; i++)
 			{
 				unsafe
 				{
+					//REVIEW: need a better way to read raw values,
+					// maybe the DB handler could give us a Func<...> ?
+					// or maybe a Stream or Iterator view over the segment's data ?
 					Value* value = MemoryDatabaseHandler.ResolveValueAtVersion(segment[i], m_sequence);
 					if (value == null)
 					{
 						continue;
 					}
-					Key* key = (Key*)segment[i].ToPointer();
+					Key* key = (Key*)segment[i]; //.ToPointer();
 					Contract.Assert(key != null && key->Size <= int.MaxValue);
 
 					// Key Size
@@ -192,7 +201,7 @@ namespace FoundationDB.Storage.Memory.API
 			}
 
 			m_writer.WriteFixed32(uint.MaxValue);
-			//TODO: CRC?
+			//TODO: CRC? (would need to be computed on the fly, because we don't have the full slice in memory probably)
 			//TODO: offset to the next level ? (simplify page management)
 
 			long levelEnd = checked(m_file.Length + m_writer.Position);
@@ -200,7 +209,7 @@ namespace FoundationDB.Storage.Memory.API
 			Console.WriteLine("## level " + level + " ends at " + levelEnd);
 
 			// optional padding to fill the rest of the page
-			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, 0x55);
+			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, (byte)(0xFC - level));
 		}
 
 		public async Task WriteJumpTableAsync(CancellationToken ct)
@@ -213,11 +222,19 @@ namespace FoundationDB.Storage.Memory.API
 			// - it repeats a few important values (sequence, header crc, ...)
 			// - it would contain any optional signature or data that is only know after writing the data to disk, and are needed to decode the rest
 
-			m_writer.WriteFixed32(0x54504D4A);				// "JMPT"
-			m_writer.WriteFixed32((uint)m_pageSize);		// Page Size (repeated)
-			m_writer.WriteFixed64(m_sequence);				// Sequence Number (repeated)
-			m_writer.WriteBytes(m_uid.ToSlice());			// Database ID (repeated)
-			m_writer.WriteFixed32(m_headerChecksum);		// Header CRC (repeated)
+			// marks the start of the JT because we will need to compute the checksum later on
+			int startOffset = m_writer.Position;
+
+			// "JMPT"
+			m_writer.WriteFixed32(SnapshotFormat.JUMP_TABLE_MAGIC_NUMBER);
+			// Page Size (repeated)
+			m_writer.WriteFixed32((uint)m_pageSize);
+			// Sequence Number (repeated)
+			m_writer.WriteFixed64(m_sequence);
+			// Database ID (repeated)
+			m_writer.WriteBytes(m_uid.ToSlice());
+			// Header CRC (repeated)
+			m_writer.WriteFixed32(m_headerChecksum);
 
 			int levels = m_levels;
 			m_writer.WriteFixed32((uint)levels);			// Level Count
@@ -236,11 +253,12 @@ namespace FoundationDB.Storage.Memory.API
 			m_writer.WriteFixed32(uint.MaxValue);
 
 			// Checksum
-			uint jumpTableChecksum = 0x12345678; // TODO!!!
+			int endOffset = m_writer.Position;
+			uint jumpTableChecksum = SnapshotFormat.ComputeChecksum(m_writer[startOffset, endOffset]);
 			m_writer.WriteFixed32(jumpTableChecksum);
 
 			// optional padding to fill the rest of the page
-			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, 0xBB);
+			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, 0xFE);
 
 			// we are done !
 		}

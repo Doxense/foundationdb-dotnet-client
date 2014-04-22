@@ -50,9 +50,9 @@
     <Reference Include="Microsoft.CSharp" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="API\SnapshotFormat.cs" />
-    <Compile Include="API\SnapshotWriter.cs" />
-    <Compile Include="API\SnapshotReader.cs" />
+    <Compile Include="IO\SnapshotFormat.cs" />
+    <Compile Include="IO\SnapshotWriter.cs" />
+    <Compile Include="IO\SnapshotReader.cs" />
     <Compile Include="IO\Win32SnapshotFile.cs" />
     <Compile Include="Core\Value.cs" />
     <Compile Include="API\MemoryClusterHandler.cs" />

@@ -108,8 +108,26 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="oldPath">Relative path under this directory of the subdirectory to be moved</param>
 		/// <param name="newPath">Relative path under this directory where the subdirectory will be moved to</param>
-		/// <returns>Returns the directory at its new location if successful. If the directory cannot be moved, then null is returned.</returns>
+		/// <returns>Returns the directory at its new location if successful. If the directory doesn't exist, then null is returned.</returns>
 		Task<FdbDirectorySubspace> TryMoveAsync(IFdbTransaction trans, IEnumerable<string> oldPath, IEnumerable<string> newPath);
+
+		/// <summary>Moves the current directory to <paramref name="newAbsolutePath"/>.
+		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="newAbsolutePath">Full path (from the root) where this directory will be moved</param>
+		/// <returns>Returns the directory at its new location if successful.</returns>
+		Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, IEnumerable<string> newAbsolutePath);
+
+		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
+		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
+		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
+		/// </summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
+		/// <returns>Returns the directory at its new location if successful. If the directory doesn't exist, then null is returned.</returns>
+		Task<FdbDirectorySubspace> TryMoveToAsync(IFdbTransaction trans, IEnumerable<string> newAbsolutePath);
 
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.

@@ -2,7 +2,7 @@
 // See License.MD for license information
 #endregion
 
-namespace FoundationDB.Storage.Memory.API
+namespace FoundationDB.Storage.Memory.IO
 {
 	using System;
 	using System.Diagnostics.Contracts;
@@ -63,6 +63,14 @@ namespace FoundationDB.Storage.Memory.API
 				var fs = m_fs;
 				return fs != null ? fs.Length : 0;
 			}
+		}
+
+		public void Seek(long position)
+		{
+			Contract.Requires(position >= 0);
+
+			var pos = m_fs.Seek(position, SeekOrigin.Begin);
+			if (pos != position) throw new IOException("Failed to seek to the desired position");
 		}
 
 		/// <summary>Read a certain number of bytes into a buffer</summary>

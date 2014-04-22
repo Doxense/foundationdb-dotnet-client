@@ -129,25 +129,36 @@ namespace FoundationDB.Client
 		{
 			get
 			{
-				Contract.Assert(this.Buffer != null && this.Position >= 0);
-				//note: we will get bound checking for free
-				return this.Buffer[index < 0 ? index + this.Position : index];
+				Contract.Assert(this.Buffer != null && this.Position >= 0 && index < this.Position && -index <= this.Position);
+				//note: we will get bound checking for free in release builds
+				if (index < 0) index += this.Position;
+				return this.Buffer[index];
 			}
 		}
 
 		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
-		/// <param name="begin">The starting position of the substring. Positive values means from the start, negative values means from the end</param>
-		/// <param name="end">The end position (exlucded) of the substring. Positive values means from the start, negative values means from the end</param>
-		public Slice this[int begin, int end]
+		/// <param name="beginInclusive">The starting position of the substring. Positive values means from the start, negative values means from the end</param>
+		/// <param name="endExclusive">The end position (excluded) of the substring. Positive values means from the start, negative values means from the end</param>
+		/// <returns>Slice that corresponds to the section selected. If the <paramref name="beginInclusive"/> if equal to or greater than <paramref name="endExclusive"/> then an empty Slice is returned</returns>
+		/// <exception cref="ArgumentOutOfRangeException">If either <paramref name="beginInclusive"/> or <paramref name="endExclusive"/> is outside of the currently allocated buffer.</exception>
+		public Slice this[int? beginInclusive, int? endExclusive]
 		{
 			get
 			{
-				if (begin < 0) begin += this.Position;
-				if (end < 0) end += this.Position;
-				if (begin < 0 || begin > this.Position) throw new ArgumentOutOfRangeException("begin", "The start index must be inside the slice buffer.");
-				if (end < begin || end > this.Position) throw new ArgumentOutOfRangeException("end", "The end index must be after the start index, and inside the slice buffer.");
-				int count = end - begin;
-				return count > 0 ? new Slice(this.Buffer, begin, end - begin) : Slice.Empty;
+				int from = beginInclusive ?? 0;
+				int until = endExclusive ?? this.Position;
+
+				// remap negative indexes
+				if (from < 0) from += this.Position;
+				if (until < 0) until += this.Position;
+
+				// bound check
+				if (from < 0 || from >= this.Position) throw new ArgumentOutOfRangeException("beginInclusive", "The start index must be inside the bounds of the buffer.");
+				if (until < 0 || until > this.Position) throw new ArgumentOutOfRangeException("endExclusive", "The end index must be inside the bounds of the buffer.");
+
+				// chop chop
+				int count = until - from;
+				return count > 0 ? new Slice(this.Buffer, from, count) : Slice.Empty;
 			}
 		}
 

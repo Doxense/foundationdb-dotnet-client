@@ -9,6 +9,7 @@ namespace FoundationDB.Storage.Memory.API
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Storage.Memory.Core;
+	using FoundationDB.Storage.Memory.IO;
 	using FoundationDB.Storage.Memory.Utils;
 	using System;
 	using System.Collections.Concurrent;
@@ -181,7 +182,7 @@ namespace FoundationDB.Storage.Memory.API
 			// commit version created by this transaction (if it writes something)
 			ulong committedSequence = 0;
 
-			//Debug.WriteLine("Comitting transaction created at readVersion " + readVersion + " ...");
+			Log("Comitting transaction created at readVersion " + readVersion + " ...");
 
 			bool hasReadConflictRanges = readConflicts != null && readConflicts.Count > 0;
 			bool hasWriteConflictRanges = writeConflicts != null && writeConflicts.Count > 0;
@@ -200,11 +201,11 @@ namespace FoundationDB.Storage.Memory.API
 					committedSequence = (ulong)Interlocked.Increment(ref m_currentVersion);
 					window = GetActiveTransactionWindow_NeedsLocking(committedSequence);
 					Contract.Assert(window != null);
-					//Debug.WriteLine("... will create version " + committedSequence + " in window " + window.ToString());
+					Log("... will create version " + committedSequence + " in window " + window.ToString());
 				}
 				else
 				{
-					//Debug.WriteLine("... which is read-only");
+					Log("... which is read-only");
 					window = null;
 				}
 
@@ -1306,10 +1307,10 @@ namespace FoundationDB.Storage.Memory.API
 
 		}
 
-		[Conditional("DEBUG")]
+		[Conditional("FULL_DEBUG")]
 		private static void Log(string msg)
 		{
-			Debug.WriteLine("MemoryDatabaseHandler[#" + Thread.CurrentThread.ManagedThreadId + "]: " + msg);
+			Trace.WriteLine("MemoryDatabaseHandler[#" + Thread.CurrentThread.ManagedThreadId + "]: " + msg);
 		}
 
 		private const int STATE_IDLE = 0;
