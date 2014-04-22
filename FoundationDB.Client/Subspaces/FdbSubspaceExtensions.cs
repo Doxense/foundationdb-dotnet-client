@@ -299,7 +299,7 @@ namespace FoundationDB.Client
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T&gt;(value))'</remarks>
 		public static IFdbTuple Append<T>(this FdbSubspace subspace, T value)
 		{
-			return Append(subspace, FdbTuple.Create<T>(value));
+			return Append(subspace, (IFdbTuple)FdbTuple.Create<T>(value));
 		}
 
 		/// <summary>Create a new 2-tuple that is attached to this subspace</summary>
@@ -311,7 +311,7 @@ namespace FoundationDB.Client
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2&gt;(value1, value2))'</remarks>
 		public static IFdbTuple Append<T1, T2>(this FdbSubspace subspace, T1 value1, T2 value2)
 		{
-			return Append(subspace, FdbTuple.Create<T1, T2>(value1, value2));
+			return Append(subspace, (IFdbTuple)FdbTuple.Create<T1, T2>(value1, value2));
 		}
 
 		/// <summary>Create a new 3-tuple that is attached to this subspace</summary>
@@ -325,7 +325,7 @@ namespace FoundationDB.Client
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3&gt;(value1, value2, value3))'</remarks>
 		public static IFdbTuple Append<T1, T2, T3>(this FdbSubspace subspace, T1 value1, T2 value2, T3 value3)
 		{
-			return Append(subspace, FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
+			return Append(subspace, (IFdbTuple)FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
 		}
 
 		/// <summary>Create a new 4-tuple that is attached to this subspace</summary>
@@ -341,7 +341,7 @@ namespace FoundationDB.Client
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3, T4&gt;(value1, value2, value3, value4))'</remarks>
 		public static IFdbTuple Append<T1, T2, T3, T4>(this FdbSubspace subspace, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			return Append(subspace, FdbTuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
+			return Append(subspace, (IFdbTuple)FdbTuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
 		}
 
 		/// <summary>Create a new N-tuple that is attached to this subspace</summary>
