@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
     <id>FoundationDB.Layers.Common</id>
-    <version>0.205.0-pre</version>
+    <version>0.200.5-pre</version>
     <title>FoundationDB Common Layers</title>
     <authors>Doxense</authors>
     <owners>Doxense</owners>
