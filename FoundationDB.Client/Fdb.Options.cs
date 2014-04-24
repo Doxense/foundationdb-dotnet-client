@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -86,7 +86,7 @@ namespace FoundationDB.Client
 
 			#region TLS...
 
-			/// <summary>File path or linker-resolved name of the custom TLS plugin to load. </summary>
+			/// <summary>File path or linker-resolved name of the custom TLS plugin to load.</summary>
 			public static string TLSPlugin { get; private set; }
 
 			/// <summary>Content of the TLS root and client certificates used for TLS connections (none by default)</summary>
@@ -153,6 +153,7 @@ namespace FoundationDB.Client
 			/// <param name="certificateBytes">Content of the root certificate and public key</param>
 			/// <param name="privateKeyBytes">Content of the private key</param>
 			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
+			/// <param name="plugin">Optional file path or linker-resolved name of the custom TLS plugin to load</param>
 			public static void UseTLS(Slice certificateBytes, Slice privateKeyBytes, Slice verificationPattern = default(Slice), string plugin = null)
 			{
 				Fdb.Options.TLSPlugin = plugin;
@@ -167,6 +168,7 @@ namespace FoundationDB.Client
 			/// <param name="certificatePath">Path to the root certificate and public key</param>
 			/// <param name="privateKeyPath">Path to the private key</param>
 			/// <param name="verificationPattern">Verification with which to verify certificates of TLS peers</param>
+			/// <param name="plugin">Optional file path or linker-resolved name of the custom TLS plugin to load</param>
 			public static void UseTLS(string certificatePath, string privateKeyPath, Slice verificationPattern = default(Slice), string plugin = null)
 			{
 				Fdb.Options.TLSPlugin = plugin;

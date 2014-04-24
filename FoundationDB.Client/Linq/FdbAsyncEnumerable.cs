@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ namespace FoundationDB.Linq
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Provides a set of static methods for querying objects that implement IFdbAsyncEnumerable&lt;T&gt;.</summary>
 	public static partial class FdbAsyncEnumerable
 	{
 		// Welcome to the wonderful world of the Monads! 
@@ -191,7 +192,7 @@ namespace FoundationDB.Linq
 
 		#region Select...
 
-		/// <summary>Projects each element of a async sequence into a new form.</summary>
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
 		public static IFdbAsyncEnumerable<TResult> Select<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, TResult> selector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -206,7 +207,7 @@ namespace FoundationDB.Linq
 			return Map<TSource, TResult>(source, selector);
 		}
 
-		/// <summary>Projects each element of a async sequence into a new form.</summary>
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
 		public static IFdbAsyncEnumerable<TResult> Select<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, Task<TResult>> asyncSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -215,7 +216,7 @@ namespace FoundationDB.Linq
 			return Select<TSource, TResult>(source, TaskHelpers.WithCancellation(asyncSelector));
 		}
 
-		/// <summary>Projects each element of a async sequence into a new form.</summary>
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
 		public static IFdbAsyncEnumerable<TResult> Select<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -277,6 +278,7 @@ namespace FoundationDB.Linq
 
 		#region Take...
 
+		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
 		public static IFdbAsyncEnumerable<TSource> Take<TSource>(this IFdbAsyncEnumerable<TSource> source, int limit)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -295,6 +297,7 @@ namespace FoundationDB.Linq
 
 		#region TakeWhile...
 
+		/// <summary>Returns elements from an async sequence as long as a specified condition is true, and then skips the remaining elements.</summary>
 		public static IFdbAsyncEnumerable<TSource> TakeWhile<TSource>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, bool> condition)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -313,6 +316,7 @@ namespace FoundationDB.Linq
 
 		#region SelectAsync
 
+		/// <summary>Projects each element of an async sequence into a new form.</summary>
 		public static IFdbAsyncEnumerable<TResult> SelectAsync<TSource, TResult>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, FdbParallelQueryOptions options = null)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -399,6 +403,7 @@ namespace FoundationDB.Linq
 			return list.ToArray();
 		}
 
+		/// <summary>Applies an accumulator function over an async sequence.</summary>
 		public static async Task<TSource> AggregateAsync<TSource>(IFdbAsyncEnumerable<TSource> source, Func<TSource, TSource, TSource> aggregator, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -423,6 +428,7 @@ namespace FoundationDB.Linq
 			}
 		}
 
+		/// <summary>Applies an accumulator function over an async sequence.</summary>
 		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>(IFdbAsyncEnumerable<TSource> source, TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> aggregator, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -441,6 +447,7 @@ namespace FoundationDB.Linq
 			}
 		}
 
+		/// <summary>Applies an accumulator function over an async sequence.</summary>
 		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>(IFdbAsyncEnumerable<TSource> source, TAccumulate seed, Func<TAccumulate, TSource, TAccumulate> aggregator, Func<TAccumulate, TResult> resultSelector, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");

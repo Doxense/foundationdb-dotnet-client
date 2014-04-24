@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -64,6 +64,8 @@ namespace FoundationDB.Client.Utils
 
 		/// <summary>Assert that a condition is verified, at debug time</summary>
 		/// <param name="condition">Condition that must be true</param>
+		/// <param name="_line">Line number of the calling source file</param>
+		/// <param name="_path">Path of the calling source file</param>
 		/// <remarks>This method is not compiled on Release builds</remarks>
 		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
@@ -77,6 +79,9 @@ namespace FoundationDB.Client.Utils
 
 		/// <summary>Assert that a condition is verified, at debug time</summary>
 		/// <param name="condition">Condition that must be true</param>
+		/// <param name="message">Error message if the condition does not pass</param>
+		/// <param name="_line">Line number of the calling source file</param>
+		/// <param name="_path">Path of the calling source file</param>
 		/// <remarks>This method is not compiled on Release builds</remarks>
 		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
@@ -92,6 +97,11 @@ namespace FoundationDB.Client.Utils
 
 		#region Ensures
 
+		/// <summary>Assert that a condition is verified, at debug time</summary>
+		/// <param name="condition">Condition that must be true</param>
+		/// <param name="_line">Line number of the calling source file</param>
+		/// <param name="_path">Path of the calling source file</param>
+		/// <remarks>This method is not compiled on Release builds</remarks>
 		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
 #if !NET_4_0
@@ -102,6 +112,12 @@ namespace FoundationDB.Client.Utils
 			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Postcondition, null, _path, _line);
 		}
 
+		/// <summary>Assert that a condition is verified, at debug time</summary>
+		/// <param name="condition">Condition that must be true</param>
+		/// <param name="message">Error message if the condition does not pass</param>
+		/// <param name="_line">Line number of the calling source file</param>
+		/// <param name="_path">Path of the calling source file</param>
+		/// <remarks>This method is not compiled on Release builds</remarks>
 		[DebuggerStepThrough, DebuggerHidden]
 		[Conditional("DEBUG")]
 #if !NET_4_0

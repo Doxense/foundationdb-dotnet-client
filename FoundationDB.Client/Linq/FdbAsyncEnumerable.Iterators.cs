@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -62,6 +62,7 @@ namespace FoundationDB.Linq
 			return new EnumerableSequence<TSource, TResult>(source, factory);
 		}
 
+		/// <summary>Create a new async sequence from a factory method</summary>
 		public static IFdbAsyncEnumerable<TResult> Create<TResult>(Func<object, IFdbAsyncEnumerator<TResult>> factory, object state = null)
 		{
 			return new AnonymousIterable<TResult>(factory, state);
@@ -322,6 +323,7 @@ namespace FoundationDB.Linq
 		/// <summary>Immediately execute an asunc action on each element of an async sequence</summary>
 		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 		/// <param name="source">Source async sequence</param>
+		/// <param name="mode">Expected execution mode of the query</param>
 		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
@@ -348,6 +350,7 @@ namespace FoundationDB.Linq
 		/// <summary>Immediately execute an asunc action on each element of an async sequence</summary>
 		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 		/// <param name="source">Source async sequence</param>
+		/// <param name="mode">Expected execution mode of the query</param>
 		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
@@ -373,7 +376,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Helper async method to get the first element of an async sequence</summary>
-		/// <typeparam name="T">Type of elements of the async sequence</typeparam>
+		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 		/// <param name="source">Source async sequence</param>
 		/// <param name="single">If true, the sequence must contain at most one element</param>
 		/// <param name="orDefault">When the sequence is empty: If true then returns the default value for the type. Otherwise, throws an exception</param>

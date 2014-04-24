@@ -60,6 +60,7 @@ namespace FoundationDB.Client
 			/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
 			/// <param name="dbName">Name of the database, or "DB" if not specified.</param>
 			/// <param name="path">Path of the named partition to open</param>
+			/// <param name="readOnly">If true, the database instance will only allow read operations</param>
 			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
 			public static async Task<FdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, bool readOnly, CancellationToken cancellationToken)
