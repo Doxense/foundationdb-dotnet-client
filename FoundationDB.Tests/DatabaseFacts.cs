@@ -315,7 +315,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(dl.ContentSubspace, Is.Not.Null);
 				Assert.That(dl.ContentSubspace.Key, Is.EqualTo(db.GlobalSpace.Key));
 				Assert.That(dl.NodeSubspace, Is.Not.Null);
-				Assert.That(dl.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace[Slice.FromByte(254)]));
+				Assert.That(dl.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace.Concat(Slice.FromByte(254))));
 				Assert.That(db.GlobalSpace.Contains(dl.ContentSubspace.Key), Is.True);
 				Assert.That(db.GlobalSpace.Contains(dl.NodeSubspace.Key), Is.True);
 

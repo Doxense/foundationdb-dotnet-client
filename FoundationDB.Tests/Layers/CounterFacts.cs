@@ -128,11 +128,11 @@ namespace FoundationDB.Layers.Counters.Tests
 				sw.Stop();
 				Console.WriteLine("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / B).ToString("N0") + " µs/add)");
 
-				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N));
+				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N), "Counter value does not match (first call)");
 
 				// wait a bit, in case there was some coalesce still running...
 				await Task.Delay(200);
-				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N));
+				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N), "Counter value does not match (second call)");
 
 #if DEBUG
 				await DumpSubspace(db, location);
