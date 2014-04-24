@@ -111,6 +111,7 @@ namespace FoundationDB.Client.Converters
 			RegisterDefaultConverters();
 		}
 
+#if REFACTORED
 		private sealed class TypePairComparer : IEqualityComparer<KeyValuePair<Type, Type>>
 		{ // REVIEW: this is redundant with ConversionHelper.TypePairComparer!
 
@@ -127,10 +128,11 @@ namespace FoundationDB.Client.Converters
 				return h;
 			}
 		}
+#endif
 
 		/// <summary>Map of all known converters from T to R</summary>
 		/// <remarks>No locking required, because all changes will replace this instance with a new Dictionary</remarks>
-		private static Dictionary<KeyValuePair<Type, Type>, IFdbConverter> Converters = new Dictionary<KeyValuePair<Type, Type>, IFdbConverter>(new TypePairComparer());
+		private static Dictionary<ComparisonHelper.TypePair, IFdbConverter> Converters = new Dictionary<ComparisonHelper.TypePair, IFdbConverter>(ComparisonHelper.TypePairComparer.Default);
 
 		/// <summary>Register all the default converters</summary>
 		private static void RegisterDefaultConverters()
@@ -299,7 +301,7 @@ namespace FoundationDB.Client.Converters
 		/// <param name="converter">Lambda that converts a value of type <typeparamref name="T"/> into a value of type <typeparamref name="R"/></param>
 		internal static void RegisterUnsafe<T, R>(Func<T, R> converter)
 		{
-			Converters[new KeyValuePair<Type, Type>(typeof(T), typeof(R))] = new Anonymous<T, R>(converter);
+			Converters[new ComparisonHelper.TypePair(typeof(T), typeof(R))] = new Anonymous<T, R>(converter);
 		}
 
 		/// <summary>Registers a new type converter</summary>
@@ -320,8 +322,8 @@ namespace FoundationDB.Client.Converters
 			while (true)
 			{
 				var previous = Converters;
-				var dic = new Dictionary<KeyValuePair<Type, Type>, IFdbConverter>(previous);
-				dic[new KeyValuePair<Type, Type>(typeof(T), typeof(R))] = converter;
+				var dic = new Dictionary<ComparisonHelper.TypePair, IFdbConverter>(previous, previous.Comparer);
+				dic[new ComparisonHelper.TypePair(typeof(T), typeof(R))] = converter;
 				if (Interlocked.CompareExchange(ref Converters, dic, previous) == previous)
 				{
 					break;
@@ -343,7 +345,7 @@ namespace FoundationDB.Client.Converters
 
 			// Try to get from the known converters
 			IFdbConverter converter;
-			if (!Converters.TryGetValue(new KeyValuePair<Type, Type>(typeof(T), typeof(R)), out converter))
+			if (!Converters.TryGetValue(new ComparisonHelper.TypePair(typeof(T), typeof(R)), out converter))
 			{
 				//TODO: ..?
 				FailCannotConvert(typeof(T), typeof(R));
@@ -386,7 +388,7 @@ namespace FoundationDB.Client.Converters
 			if (type == typeof(R)) return (R)value;
 
 			IFdbConverter converter;
-			if (!Converters.TryGetValue(new KeyValuePair<Type, Type>(type, typeof(R)), out converter))
+			if (!Converters.TryGetValue(new ComparisonHelper.TypePair(type, typeof(R)), out converter))
 			{
 				// maybe it is a nullable type ?
 				var nullableType = Nullable.GetUnderlyingType(typeof(R));
@@ -397,7 +399,7 @@ namespace FoundationDB.Client.Converters
 					if (type == nullableType) return (R)value;
 
 					// maybe we have a converter for the underlying type ?
-					if (Converters.TryGetValue(new KeyValuePair<Type, Type>(type, nullableType), out converter))
+					if (Converters.TryGetValue(new ComparisonHelper.TypePair(type, nullableType), out converter))
 					{ 
 						return (R)converter.ConvertBoxed(value);
 					}

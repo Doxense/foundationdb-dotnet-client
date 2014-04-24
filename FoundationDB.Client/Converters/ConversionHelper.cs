@@ -39,7 +39,7 @@ namespace FoundationDB.Client.Converters
 	{
 
 		/// <summary>Pair of types that can be used as a key in a dictionary</summary>
-		private struct TypePair
+		internal struct TypePair
 		{
 			public readonly Type Left;
 			public readonly Type Right;
@@ -68,8 +68,13 @@ namespace FoundationDB.Client.Converters
 		}
 
 		/// <summary>Helper class to use TypePair as keys in a dictionnary</summary>
-		private sealed class TypePairComparer : IEqualityComparer<TypePair>
+		internal sealed class TypePairComparer : IEqualityComparer<TypePair>
 		{ // REVIEW: this is redundant with FdbConverters.TypePairComparer!
+
+			public static readonly TypePairComparer Default = new TypePairComparer();
+
+			private TypePairComparer() { }
+
 			public bool Equals(TypePair x, TypePair y)
 			{
 				return x.Left == y.Left && x.Right == y.Right;
@@ -83,7 +88,7 @@ namespace FoundationDB.Client.Converters
 
 		/// <summary>Cache of all the comparison lambda for a pair of types</summary>
 		/// <remarks>Contains lambda that can compare two objects (of different types) for "similarity"</remarks>
-		private static readonly ConcurrentDictionary<TypePair, Func<object, object, bool>> EqualityComparers = new ConcurrentDictionary<TypePair, Func<object, object, bool>>(new TypePairComparer());
+		private static readonly ConcurrentDictionary<TypePair, Func<object, object, bool>> EqualityComparers = new ConcurrentDictionary<TypePair, Func<object, object, bool>>(ComparisonHelper.TypePairComparer.Default);
 
 		/// <summary>Tries to convert an object into an equivalent string representation (for equality comparison)</summary>
 		/// <param name="value">Object to adapt</param>
