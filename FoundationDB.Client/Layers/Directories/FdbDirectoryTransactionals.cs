@@ -416,6 +416,16 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Removes the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
+		public static Task RemoveAsync(this IFdbDirectory directory, IFdbTransactional db, CancellationToken cancellationToken)
+		{
+			if (directory == null) throw new ArgumentNullException("directory");
+			if (db == null) throw new ArgumentNullException("db");
+			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr), cancellationToken);
+		}
+
+		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
+		/// </summary>
 		public static Task RemoveAsync(this IFdbDirectory directory, IFdbTransaction trans, string name)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
