@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Tests
 {
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
@@ -43,7 +44,7 @@ namespace FoundationDB.Client.Tests
 	{
 
 		[Test]
-		public async Task Test_Can_Bulk_Insert()
+		public async Task Test_Can_Bulk_Insert_Raw_Data()
 		{
 			const int N = 20 * 1000;
 
@@ -51,7 +52,7 @@ namespace FoundationDB.Client.Tests
 			{
 				Console.WriteLine("Bulk inserting " + N + " random items...");
 
-				var location = await GetCleanDirectory(db, "Bulk");
+				var location = await GetCleanDirectory(db, "Bulk", "Write");
 
 				var rnd = new Random(2403);
 				var data = Enumerable.Range(0, N)
@@ -99,6 +100,77 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Bulk_Insert_Items()
+		{
+			const int N = 20 * 1000;
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				db.DefaultTimeout = 60 * 1000;
+
+				Console.WriteLine("Generating " + N + " random items...");
+
+				var location = await GetCleanDirectory(db, "Bulk", "Insert");
+
+				var rnd = new Random(2403);
+				var data = Enumerable.Range(0, N)
+					.Select((x) => new KeyValuePair<int, int>(x, 16 + (int)(Math.Pow(rnd.NextDouble(), 4) * 10 * 1000)))
+					.ToList();
+
+				long totalSize = data.Sum(x => (long)x.Value);
+				Console.WriteLine("Total size is ~ " + totalSize.ToString("N0") + " bytes");
+
+				Console.WriteLine("Starting...");
+
+				long called = 0;
+				var uniqueKeys = new HashSet<int>();
+				var sw = Stopwatch.StartNew();
+				long count = await Fdb.Bulk.InsertAsync(
+					db,
+					data,
+					(kv, tr) =>
+					{
+						++called;
+						uniqueKeys.Add(kv.Key);
+						tr.Set(
+							location.Pack(kv.Key),
+							Slice.FromString(new string('A', kv.Value))
+						);
+					},
+					this.Cancellation
+				);
+				sw.Stop();
+
+				Console.WriteLine("Done in " + sw.Elapsed.TotalSeconds.ToString("N3") + " secs for " + count.ToString("N0") + " keys and " + totalSize.ToString("N0") + " bytes");
+				Console.WriteLine("> Throughput " + (count / sw.Elapsed.TotalSeconds).ToString("N0") + " key/sec and " + (totalSize / (1048576 * sw.Elapsed.TotalSeconds)).ToString("N3") + " MB/sec");
+				Console.WriteLine("Called " + called.ToString("N0") + " for " + uniqueKeys.Count.ToString("N0") + " unique keys");
+
+				Assert.That(count, Is.EqualTo(N), "count");
+				Assert.That(uniqueKeys.Count, Is.EqualTo(N), "unique keys");
+				Assert.That(called, Is.EqualTo(N), "number of calls (no retries)");
+
+				// read everything back...
+
+				Console.WriteLine("Reading everything back...");
+
+				var stored = await db.ReadAsync((tr) =>
+				{
+					return tr.GetRange(location.ToRange()).ToArrayAsync();
+				}, this.Cancellation);
+
+				Assert.That(stored.Length, Is.EqualTo(N), "DB contains less or more items than expected");
+				for (int i = 0; i < stored.Length;i++)
+				{
+					Assert.That(stored[i].Key, Is.EqualTo(location.Pack(data[i].Key)), "Key #{0}", i);
+					Assert.That(stored[i].Value.Count, Is.EqualTo(data[i].Value), "Value #{0}", i);
+				}
+
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(db, this.Cancellation);
+			}
+		}
+
+		[Test]
 		public async Task Test_Can_Batch_ForEach_AsyncWithContextAndState()
 		{
 			const int N = 50 * 1000;
@@ -107,7 +179,7 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Console.WriteLine("Bulk inserting " + N + " items...");
-				var location = await GetCleanDirectory(db, "Bulk");
+				var location = await GetCleanDirectory(db, "Bulk", "ForEach");
 
 				Console.WriteLine("Preparing...");
 
@@ -155,6 +227,9 @@ namespace FoundationDB.Client.Tests
 
 				Console.WriteLine("Done in " + sw.Elapsed.TotalSeconds.ToString("N3") + " seconds and " + chunks + " chunks");
 				Console.WriteLine("Sum of integers 1 to " + count + " is " + total);
+
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(db, this.Cancellation);
 			}
 		}
 
@@ -167,7 +242,7 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Console.WriteLine("Bulk inserting " + N + " items...");
-				var location = await GetCleanDirectory(db, "Bulk");
+				var location = await GetCleanDirectory(db, "Bulk", "ForEach");
 
 				Console.WriteLine("Preparing...");
 
@@ -219,6 +294,8 @@ namespace FoundationDB.Client.Tests
 				Console.WriteLine("Done in " + sw.Elapsed.TotalSeconds.ToString("N3") + " seconds and " + chunks + " chunks");
 				Console.WriteLine("Sum of integers 1 to " + count + " is " + total);
 
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(db, this.Cancellation);
 			}
 		}
 
@@ -231,7 +308,7 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Console.WriteLine("Bulk inserting " + N + " items...");
-				var location = await GetCleanDirectory(db, "Bulk");
+				var location = await GetCleanDirectory(db, "Bulk", "ForEach");
 
 				Console.WriteLine("Preparing...");
 
@@ -275,6 +352,8 @@ namespace FoundationDB.Client.Tests
 				Console.WriteLine("Done in " + sw.Elapsed.TotalSeconds.ToString("N3") + " seconds and " + chunks + " chunks");
 				Console.WriteLine("Sum of integers 1 to " + count + " is " + total);
 
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(db, this.Cancellation);
 			}
 		}
 
@@ -287,7 +366,7 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Console.WriteLine("Bulk inserting " + N + " items...");
-				var location = await GetCleanDirectory(db, "Bulk");
+				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
 
 				Console.WriteLine("Preparing...");
 
@@ -334,6 +413,9 @@ namespace FoundationDB.Client.Tests
 				Console.WriteLine("> Computed sum of the " + N.ToString("N0") + " random values is " + total.ToString("N0"));
 				Console.WriteLine("> Actual sum of the " + N.ToString("N0") + " random values is " + actual.ToString("N0"));
 				Assert.That(total, Is.EqualTo(actual));
+
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(db, this.Cancellation);
 			}
 		}
 
@@ -346,7 +428,7 @@ namespace FoundationDB.Client.Tests
 			{
 
 				Console.WriteLine("Bulk inserting " + N + " items...");
-				var location = await GetCleanDirectory(db, "Bulk");
+				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
 
 				Console.WriteLine("Preparing...");
 
@@ -395,6 +477,9 @@ namespace FoundationDB.Client.Tests
 				Console.WriteLine("> Computed average of the " + N.ToString("N0") + " random values is " + average.ToString("N3"));
 				Console.WriteLine("> Actual average of the " + N.ToString("N0") + " random values is " + actual.ToString("N3"));
 				Assert.That(average, Is.EqualTo(actual).Within(double.Epsilon));
+
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(db, this.Cancellation);
 			}
 		}
 

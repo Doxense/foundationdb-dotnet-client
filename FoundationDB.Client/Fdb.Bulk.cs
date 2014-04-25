@@ -72,8 +72,8 @@ namespace FoundationDB.Client
 				// We will batch keys into chunks (bounding by count and bytes), then attempt to insert that batch in the database.
 				// Each transaction should try to never exceed ~1MB of size
 
-				int maxBatchCount = 2 * 1000;
-				int maxBatchSize = 1 * 1000 * 1000; //REVIEW: 100KB may be better, and we could also try with multiple transactions in // ?
+				int maxBatchCount = 2 * 1024;
+				int maxBatchSize = 256 * 1024; //REVIEW: 256KB seems reasonable, but maybe we could also try with multiple transactions in // ?
 
 				var chunk = new List<KeyValuePair<Slice, Slice>>();
 
@@ -143,7 +143,8 @@ namespace FoundationDB.Client
 					db,
 					source,
 					handler,
-					1000, //TODO: configure?
+					2 * 1024, //TODO: configure?
+					256 * 1024, //TODO: configure?
 					cancellationToken
 				);
 			}
@@ -168,7 +169,8 @@ namespace FoundationDB.Client
 					db,
 					source,
 					handler,
-					1000, //TODO: configure?
+					2 * 1024, //TODO: configure?
+					256 * 1024, //TODO: configure?
 					cancellationToken
 				);
 			}
@@ -178,11 +180,12 @@ namespace FoundationDB.Client
 				IFdbDatabase db,
 				IEnumerable<TSource> source,
 				Delegate body,
-				int initialBatchSize,
+				int maxBatchCount,
+				int maxBatchSize,
 				CancellationToken cancellationToken
 			)
 			{
-				Contract.Requires(db != null && source != null && initialBatchSize > 0 && body != null);
+				Contract.Requires(db != null && source != null && maxBatchCount > 0 && maxBatchSize > 0 && body != null);
 				
 				var bodyAsync = body as Func<TSource, IFdbTransaction, Task>;
 				var bodyBlocking = body as Action<TSource, IFdbTransaction>;
@@ -191,8 +194,8 @@ namespace FoundationDB.Client
 					throw new ArgumentException(String.Format("Unsupported delegate type {0} for body", body.GetType().FullName), "body");
 				}
 
-				int sizeThreshold = 100 * 1000; //TODO: more? less? dynamic?
-				int batchSize = initialBatchSize;
+				int batchSize = maxBatchCount;
+				int sizeThreshold = maxBatchSize;
 				var batch = new List<TSource>(batchSize);
 				long itemCount = 0;
 
@@ -202,6 +205,8 @@ namespace FoundationDB.Client
 
 					Func<Task> commit = async () =>
 					{
+						Debug.WriteLine("> commit called with " + batch.Count.ToString("N0") + " items and " + trans.Size.ToString("N0") + " bytes");
+
 						FdbException error = null;
 
 						// if transaction Size is bigger than Fdb.MaxTransactionSize (10MB) then commit will fail, but we will retry with a smaller batch anyway
@@ -218,6 +223,8 @@ namespace FoundationDB.Client
 
 						if (error != null)
 						{ // we failed to commit this batch, we need to retry...
+
+							Debug.WriteLine("> commit failed : " + error);
 
 							if (error.Code == FdbError.TransactionTooLarge)
 							{
@@ -295,6 +302,8 @@ namespace FoundationDB.Client
 
 			localRetry:
 
+				Debug.WriteLine("> replaying chunk @" + offset + ", " + count);
+
 				trans.Cancellation.ThrowIfCancellationRequested();
 
 				trans.Reset();
@@ -317,6 +326,7 @@ namespace FoundationDB.Client
 				FdbException error;
 				try
 				{
+					Debug.WriteLine("> retrying chunk...");
 					await trans.CommitAsync().ConfigureAwait(false);
 					return;
 				}
@@ -325,6 +335,8 @@ namespace FoundationDB.Client
 					error = e;
 					//TODO: update this for C# 6.0
 				}
+
+				Debug.WriteLine("> oh noes " + error);
 
 				// it failed again
 				if (error.Code == FdbError.TransactionTooLarge)
