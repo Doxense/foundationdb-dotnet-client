@@ -1093,6 +1093,8 @@ namespace FoundationDB.Storage.Memory.API
 					//HACKHACK: implement a real back-off delay logic
 					await Task.Delay(15, cancellationToken).ConfigureAwait(false);
 
+					this.Reset();
+
 					return;
 				}
 				default:

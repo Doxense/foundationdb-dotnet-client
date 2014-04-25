@@ -392,17 +392,23 @@ namespace FoundationDB.Client.Native
 		public Task OnErrorAsync(FdbError code, CancellationToken cancellationToken)
 		{
 			var future = FdbNative.TransactionOnError(m_handle, code);
-			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => null, cancellationToken);
+			return FdbFuture.CreateTaskFromHandle<object>(future, (h) => { ResetInternal(); return null; }, cancellationToken);
 		}
 
 		public void Reset()
 		{
 			FdbNative.TransactionReset(m_handle);
+			ResetInternal();
 		}
 
 		public void Cancel()
 		{
 			FdbNative.TransactionCancel(m_handle);
+		}
+
+		private void ResetInternal()
+		{
+			m_payloadBytes = 0;
 		}
 
 		#endregion
