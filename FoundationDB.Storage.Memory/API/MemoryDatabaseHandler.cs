@@ -517,23 +517,6 @@ namespace FoundationDB.Storage.Memory.API
 								throw new InvalidOperationException("Iterator stopped before reaching the expected number of items");
 							}
 							writer.Add(sequence, iter.Current);
-#if REFACTORED
-							// allocate the key
-							var tmp = PackUserKey(m_scratchKey, iter.Current.Key);
-							Key* key = m_keys.Append(tmp);
-							Contract.Assert(key != null, "key == null");
-
-							// allocate the value
-							Slice userValue = iter.Current.Value;
-							uint size = checked((uint)userValue.Count);
-							Value* value = m_values.Allocate(size, sequence, null, key);
-							Contract.Assert(value != null, "value == null");
-							UnmanagedHelpers.CopyUnsafe(&(value->Data), userValue);
-
-							key->Values = value;
-
-							list.Add(new IntPtr(key));
-#endif
 						}
 
 						// and insert it (should fit nicely in a level without cascading)
@@ -640,44 +623,6 @@ namespace FoundationDB.Storage.Memory.API
 			return true;
 
 		}
-
-#if REFACTORED
-		internal unsafe Task<Slice> GetValueAtVersionAsync(Slice userKey, long readVersion)
-		{
-			if (m_disposed) ThrowDisposed();
-			if (userKey.Count <= 0) throw new ArgumentException("Key cannot be empty");
-
-			m_dataLock.EnterReadLock();
-			try
-			{
-				ulong sequence = (ulong)readVersion;
-				EnsureReadVersionNotInTheFuture_NeedsLocking(sequence);
-
-				// create a lookup key
-				using (var scratch = m_scratchPool.Use())
-				{
-					var lookupKey = PackUserKey(scratch.Builder, userKey);
-
-					USlice value;
-					if (!TryGetValueAtVersion(lookupKey, sequence, out value))
-					{ // la clé n'existe pas (ou plus à cette version)
-						return NilResult;
-					}
-
-					if (value.Count == 0)
-					{ // la clé existe, mais est vide
-						return EmptyResult;
-					}
-
-					return Task.FromResult(value.ToSlice());
-				}
-			}
-			finally
-			{
-				m_dataLock.ExitReadLock();
-			}
-		}
-#endif
 
 		/// <summary>Read the value of one or more keys, at a specific database version</summary>
 		/// <param name="userKeys">List of keys to read (MUST be ordered)</param>
@@ -832,59 +777,6 @@ namespace FoundationDB.Storage.Memory.API
 
 			return iterator;
 		}
-
-#if REFACTORED
-		internal unsafe Task<Slice> GetKeyAtVersion(FdbKeySelector selector, long readVersion)
-		{
-			if (m_disposed) ThrowDisposed();
-			if (selector.Key.IsNullOrEmpty) throw new ArgumentException("selector");
-
-			m_dataLock.EnterReadLock();
-			try
-			{
-				ulong sequence = (ulong)readVersion;
-				EnsureReadVersionNotInTheFuture_NeedsLocking(sequence);
-
-				// TODO: convert all selectors to a FirstGreaterThan ?
-
-				using (var scratch = m_scratchPool.Use())
-				{
-					var lookupKey = PackUserKey(scratch.Builder, selector.Key);
-
-					var iterator = ResolveCursor(lookupKey, selector.OrEqual, selector.Offset, sequence);
-					Contract.Assert(iterator != null);
-
-					if (iterator.Current == IntPtr.Zero)
-					{
-						if (iterator.Direction <= 0)
-						{
-							// specs: "If a key selector would otherwise describe a key off the beginning of the database, it instead resolves to the empty key ''."
-							return EmptyResult;
-						}
-						else
-						{
-							//TODO: access to system keys !
-							return MaxResult;
-						}
-					}
-
-					//Trace.WriteLine("> Found it !");
-
-					// we want the key!
-					Key* key = (Key*)iterator.Current.ToPointer();
-					Contract.Assert(key != null && key->Size > 0);
-
-					var tmp = Key.GetData(key);
-					return Task.FromResult(tmp.ToSlice());
-				}
-			}
-			finally
-			{
-				m_dataLock.ExitReadLock();
-			}
-
-		}
-#endif
 
 		internal unsafe Task<Slice[]> GetKeysAtVersion(FdbKeySelector[] selectors, long readVersion)
 		{
