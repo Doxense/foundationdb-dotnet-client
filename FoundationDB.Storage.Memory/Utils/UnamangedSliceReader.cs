@@ -150,53 +150,147 @@ namespace FoundationDB.Storage.Memory.Utils
 		}
 
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can Read up to 3 bytes from the input</remarks>
+		/// <remarks>Can read up to 3 bytes from the input</remarks>
 		public ushort ReadVarint16()
-		{
-			//note: this could read up to 21 bits of data, so we check for overflow
-			return checked((ushort)ReadVarint(3));
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can Read up to 5 bytes from the input</remarks>
-		public uint ReadVarint32()
-		{
-			//note: this could read up to 35 bits of data, so we check for overflow
-			return checked((uint)ReadVarint(5));
-		}
-
-		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint32') from the buffer, and advances the cursor</summary>
-		/// <remarks>Can Read up to 10 bytes from the input</remarks>
-		public ulong ReadVarint64()
-		{
-			return ReadVarint(10);
-		}
-
-		/// <summary>Reads a Base 128 Varint from the input</summary>
-		/// <param name="count">Maximum number of bytes allowed (5 for 32 bits, 10 for 64 bits)</param>
-		private ulong ReadVarint(uint count)
 		{
 			byte* p = this.Position;
 			byte* end = this.End;
+			uint n = 1;
 
-			ulong x = 0;
-			int s = 0;
+			if (p >= end) goto overflow;
+			uint b = p[0];
+			uint res = b & 0x7F;
+			if (res < 0x80) { goto done; }
 
-			// read bytes until the MSB is unset
-			while (count-- > 0)
-			{
-				if (p > end) throw new FormatException("Truncated Varint");
-				byte b = *p++;
+			if (p >= end) goto overflow;
+			b = p[1];
+			res |= (b & 0x7F) << 7;
+			if (b < 0x80) { n = 2; goto done; }
 
-				x |= (b & 0x7FUL) << s;
-				if (b < 0x80)
-				{
-					this.Position = p;
-					return x;
-				}
-				s += 7;
-			}
-			throw new FormatException("Malformed Varint");
+			// the third byte should only have 2 bits worth of data
+			if (p >= end) goto overflow;
+			b = p[2];
+			if (b >= 0x4) throw new FormatException("Varint is bigger than 16 bits");
+			res |= (b & 0x2) << 14;
+			n = 3;
+
+		done:
+			this.Position = checked(p + n);
+			return (ushort)res;
+
+		overflow:
+			throw new FormatException("Truncated Varint");
+		}
+
+		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint32') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 5 bytes from the input</remarks>
+		public uint ReadVarint32()
+		{
+			byte* p = this.Position;
+			byte* end = this.End;
+			uint n = 1;
+
+			if (p >= end) goto overflow;
+			uint b = p[0];
+			uint res = b & 0x7F;
+			if (res < 0x80) { goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[1];
+			res |= (b & 0x7F) << 7;
+			if (b < 0x80) { n = 2; goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[2];
+			res |= (b & 0x7F) << 14;
+			if (b < 0x80) { n = 3; goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[3];
+			res |= (b & 0x7F) << 21;
+			if (b < 0x80) { n = 4; goto done; }
+
+			// the fifth byte should only have 4 bits worth of data
+			if (p >= end) goto overflow;
+			b = p[4];
+			if (b >= 0x20) throw new FormatException("Varint is bigger than 32 bits");
+			res |= (b & 0x1F) << 28;
+			n = 5;
+
+		done:
+			this.Position = checked(p + n);
+			return res;
+
+		overflow:
+			throw new FormatException("Truncated Varint");
+		}
+
+		/// <summary>Reads a 7-bit encoded unsigned long (aka 'Varint32') from the buffer, and advances the cursor</summary>
+		/// <remarks>Can read up to 10 bytes from the input</remarks>
+		public ulong ReadVarint64()
+		{
+			byte* p = this.Position;
+			byte* end = this.End;
+			uint n = 1;
+
+			if (p >= end) goto overflow;
+			uint b = p[0];
+			ulong res = b & 0x7F;
+			if (res < 0x80) { goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[1];
+			res |= (b & 0x7F) << 7;
+			if (b < 0x80) { n = 2; goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[2];
+			res |= (b & 0x7F) << 14;
+			if (b < 0x80) { n = 3; goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[3];
+			res |= (b & 0x7F) << 21;
+			if (b < 0x80) { n = 4; goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[4];
+			res |= (b & 0x7F) << 28;
+			if (b < 0x80) { n = 5; goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[5];
+			res |= (b & 0x7F) << 35;
+			if (b < 0x80) { n = 6; goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[6];
+			res |= (b & 0x7F) << 42;
+			if (b < 0x80) { n = 7; goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[7];
+			res |= (b & 0x7F) << 49;
+			if (b < 0x80) { n = 8; goto done; }
+
+			if (p >= end) goto overflow;
+			b = p[8];
+			res |= (b & 0x7F) << 56;
+			if (b < 0x80) { n = 9; goto done; }
+
+			// the tenth byte should only have 1 bit worth of data
+			if (p >= end) goto overflow;
+			b = p[4];
+			if (b > 1) throw new FormatException("Varint is bigger than 64 bits");
+			res |= (b & 0x1) << 63;
+			n = 10;
+
+		done:
+			this.Position = checked(p + n);
+			return res;
+
+		overflow:
+			throw new FormatException("Truncated Varint");
 		}
 
 		/// <summary>Reads a variable sized slice, by first reading its size (stored as a Varint32) and then the data</summary>

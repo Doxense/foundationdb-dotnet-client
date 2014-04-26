@@ -91,8 +91,9 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 						for (int i = 0; i < res.Count; i++)
 						{
-							Assert.That(res[i].Key, Is.EqualTo(batch[i].Key), "Key is different :(");
-							Assert.That(res[i].Value, Is.EqualTo(batch[i].Value), "Value is different for key {0} :(", batch[i].Key);
+							// note: Is.EqualTo(...) is slow on Slices so we speed things a bit
+							if (res[i].Key != batch[i].Key) Assert.That(res[i].Key, Is.EqualTo(batch[i].Key), "Key is different :(");
+							if (res[i].Value != batch[i].Value) Assert.That(res[i].Value, Is.EqualTo(batch[i].Value), "Value is different for key {0} :(", batch[i].Key);
 						}
 					}
 					n += batch.Count;

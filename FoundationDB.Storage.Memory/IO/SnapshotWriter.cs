@@ -8,6 +8,7 @@ namespace FoundationDB.Storage.Memory.IO
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Storage.Memory.API;
 	using FoundationDB.Storage.Memory.Core;
+	using FoundationDB.Storage.Memory.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics.Contracts;
@@ -58,7 +59,7 @@ namespace FoundationDB.Storage.Memory.IO
 		/// <param name="timestamp"></param>
 		/// <param name="attributes"></param>
 		/// <remarks>This needs to be called before writing any level to the file</remarks>
-		public async Task WriteHeaderAsync(SnapshotFormat.Flags headerFlags, Uuid uid, ulong sequence, long count, long timestamp, IDictionary<string, IFdbTuple> attributes)
+		public Task WriteHeaderAsync(SnapshotFormat.Flags headerFlags, Uuid uid, ulong sequence, long count, long timestamp, IDictionary<string, IFdbTuple> attributes)
 		{
 			// The header will be use on ore more "pages", to simplify the job of loading / peeking at a stream content (no need for fancy buffering, just need to read 4K pages)
 			// > The last page is padded with 0xAAs to detect corruption.
@@ -128,6 +129,7 @@ namespace FoundationDB.Storage.Memory.IO
 			// optional padding to fill the rest of the page
 			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, 0xFD);
 
+			return TaskHelpers.CompletedTask;
 		}
 
 		public async Task WriteLevelAsync(int level, IntPtr[] segment, CancellationToken ct)
@@ -212,7 +214,7 @@ namespace FoundationDB.Storage.Memory.IO
 			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, (byte)(0xFC - level));
 		}
 
-		public async Task WriteJumpTableAsync(CancellationToken ct)
+		public Task WriteJumpTableAsync(CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -261,6 +263,7 @@ namespace FoundationDB.Storage.Memory.IO
 			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, 0xFE);
 
 			// we are done !
+			return TaskHelpers.CompletedTask;
 		}
 
 		public Task FlushAsync(CancellationToken ct)

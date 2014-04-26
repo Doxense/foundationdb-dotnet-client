@@ -167,10 +167,10 @@ namespace FoundationDB.Storage.Memory.IO
 			var attributes = new Dictionary<string, IFdbTuple>(attributeCount);
 			for (int i = 0; i < attributeCount; i++)
 			{
-				var name = reader.ReadVarbytes().ToSlice();
+				var name = reader.ReadVarbytes().ToSlice(); //TODO: max size ?
 				if (name.IsNullOrEmpty) throw ParseError("Header attribute name is empty");
 
-				var data = reader.ReadVarbytes().ToSlice();	//TODO: have a small scratch pad buffer for these?
+				var data = reader.ReadVarbytes().ToSlice();	//TODO: max size + have a small scratch pad buffer for these ?
 				var value = FdbTuple.Unpack(data);
 				attributes.Add(name.ToUnicode(), value);
 			}

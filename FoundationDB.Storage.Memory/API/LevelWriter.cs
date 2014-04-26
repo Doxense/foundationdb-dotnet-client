@@ -11,11 +11,12 @@ namespace FoundationDB.Storage.Memory.API
 	using System.Collections.Generic;
 	using System.Diagnostics.Contracts;
 
+	/// <summary>Helper class to add key/value pairs to a level</summary>
+	/// <remarks>This class is not thread-safe</remarks>
 	internal sealed class LevelWriter : IDisposable
 	{
 
-		/// <summary>Scratch use to format keys when committing (single writer)</summary>
-		private UnmanagedSliceBuilder m_scratch = new UnmanagedSliceBuilder(128 * 1024);
+		private UnmanagedSliceBuilder m_scratch = new UnmanagedSliceBuilder(128 * 1024); // > 80KB will go to the LOH
 		private List<IntPtr> m_list;
 		private KeyHeap m_keys;
 		private ValueHeap m_values;

@@ -97,13 +97,15 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
-		/// <summary>Format a user key</summary>
+		/// <summary>Format a user key using a slice buffer for temporary storage</summary>
+		/// <remarks>The buffer is cleared prior to usage!</remarks>
 		internal unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (userKey.IsNull ) throw new ArgumentException("Key cannot be nil");
 			if (userKey.Count < 0 || userKey.Offset < 0 || userKey.Array == null) throw new ArgumentException("Malformed key");
 
+			buffer.Clear();
 			uint keySize = (uint)userKey.Count;
 			var size = Key.SizeOf + keySize;
 			var tmp = buffer.Allocate(size);
@@ -122,6 +124,7 @@ namespace FoundationDB.Storage.Memory.API
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (userKey.Count > 0  && userKey.Data == null) throw new ArgumentException("Malformed key");
 
+			buffer.Clear();
 			uint keySize = userKey.Count;
 			var size = Key.SizeOf + keySize;
 			var tmp = buffer.Allocate(size);
@@ -279,7 +282,6 @@ namespace FoundationDB.Storage.Memory.API
 							// For both case, we will do a lookup in the db to get the previous value and location
 
 							// create the lookup key
-							m_scratchKey.Clear();
 							USlice lookupKey = PackUserKey(m_scratchKey, write.Key);
 
 							IntPtr previous;
@@ -653,7 +655,6 @@ namespace FoundationDB.Storage.Memory.API
 						for (int i = 0; i < userKeys.Length; i++)
 						{
 							// create a lookup key
-							builder.Clear();
 							var lookupKey = PackUserKey(builder, userKeys[i]);
 
 							USlice value;
@@ -796,12 +797,13 @@ namespace FoundationDB.Storage.Memory.API
 
 				using (var scratch = m_scratchPool.Use())
 				{
+					var builder = scratch.Builder;
 
 					for (int i = 0; i < selectors.Length; i++)
 					{
 						var selector = selectors[i];
 
-						var lookupKey = PackUserKey(scratch.Builder, selector.Key);
+						var lookupKey = PackUserKey(builder, selector.Key);
 
 						var iterator = ResolveCursor(lookupKey, selector.OrEqual, selector.Offset, sequence);
 						Contract.Assert(iterator != null);

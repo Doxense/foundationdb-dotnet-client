@@ -28,9 +28,8 @@ namespace FoundationDB.Storage.Memory.Core
 			Contract.Assert(left != IntPtr.Zero && right != IntPtr.Zero);
 
 			// unwrap as pointers to the Key struct
-			var leftKey = (Key*)left.ToPointer();
-			var rightKey = (Key*)right.ToPointer();
-
+			var leftKey = (Key*)left;
+			var rightKey = (Key*)right;
 
 			// these will probably cause a cache miss
 			uint leftCount = leftKey->Size;
@@ -45,8 +44,8 @@ namespace FoundationDB.Storage.Memory.Core
 		public bool Equals(IntPtr left, IntPtr right)
 		{
 			// unwrap as pointers to the Key struct
-			var leftKey = (Key*)left.ToPointer();
-			var rightKey = (Key*)right.ToPointer();
+			var leftKey = (Key*)left;
+			var rightKey = (Key*)right;
 
 			uint leftCount, rightCount;
 
