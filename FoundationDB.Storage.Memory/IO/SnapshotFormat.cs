@@ -5,6 +5,7 @@
 namespace FoundationDB.Storage.Memory.IO
 {
 	using FoundationDB.Client;
+	using FoundationDB.Storage.Memory.Utils;
 	using System;
 
 	internal static class SnapshotFormat
@@ -51,8 +52,33 @@ namespace FoundationDB.Storage.Memory.IO
 
 		public static uint ComputeChecksum(Slice data)
 		{
-			//BUGBUG: use a REAL hashcode !
-			return (uint)data.GetHashCode();
+			if (data.Offset < 0 || data.Count < 0 || (data.Array == null && data.Count > 0)) throw new ArgumentException("Data is invalid");
+
+			unsafe
+			{
+				fixed (byte* ptr = data.Array)
+				{
+					return ComputeChecksum(ptr + data.Offset, (ulong)data.Count);
+				}
+			}
+		}
+
+		public static unsafe uint ComputeChecksum(byte* start, ulong count)
+		{
+			if (start == null && count != 0) throw new ArgumentException("Invalid address");
+
+			byte* ptr = start;
+			byte* end = checked(ptr + count);
+
+			// <HACKHACK>: unoptimized 32 bits FNV-1a implementation
+			uint h = 2166136261; // FNV1 32 bits offset basis
+			while (ptr < end)
+			{
+				h = (h ^ *ptr) * 16777619;   // FNV1 32 prime
+				++ptr;
+			}
+			return h;
+			// </HACKHACK>
 		}
 
 	}

@@ -98,9 +98,6 @@ namespace FoundationDB.Storage.Memory.API
 		}
 
 		/// <summary>Format a user key</summary>
-		/// <param name="buffer"></param>
-		/// <param name="userKey"></param>
-		/// <returns></returns>
 		internal unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
@@ -115,7 +112,25 @@ namespace FoundationDB.Storage.Memory.API
 			key->Header = ((uint)EntryType.Key) << Entry.TYPE_SHIFT;
 			key->Values = null;
 
-			if (userKey.Count > 0) UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
+			if (keySize > 0) UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
+			return tmp;
+		}
+
+		/// <summary>Format a user key</summary>
+		internal unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, USlice userKey)
+		{
+			if (buffer == null) throw new ArgumentNullException("buffer");
+			if (userKey.Count > 0  && userKey.Data == null) throw new ArgumentException("Malformed key");
+
+			uint keySize = userKey.Count;
+			var size = Key.SizeOf + keySize;
+			var tmp = buffer.Allocate(size);
+			var key = (Key*)tmp.Data;
+			key->Size = keySize;
+			key->Header = ((uint)EntryType.Key) << Entry.TYPE_SHIFT;
+			key->Values = null;
+
+			if (keySize > 0) UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
 			return tmp;
 		}
 
@@ -1230,29 +1245,34 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
-		internal async Task LoadSnapshotAsync(string path, MemorySnapshotOptions options, CancellationToken cancellationToken)
+		internal Task LoadSnapshotAsync(string path, MemorySnapshotOptions options, CancellationToken cancellationToken)
 		{
-			Contract.Requires(path != null && options != null);
-
 			if (string.IsNullOrWhiteSpace(path)) throw new ArgumentNullException("path");
-			cancellationToken.ThrowIfCancellationRequested();
+
+			//TODO: should this run on the writer thread ?
+			return Task.Run(() => LoadSnapshotInternal(path, options, cancellationToken), cancellationToken);
+		}
+
+		private void LoadSnapshotInternal(string path, MemorySnapshotOptions options, CancellationToken cancellationToken)
+		{ 
+			Contract.Requires(path != null && options != null);
 
 			var attributes = new Dictionary<string, IFdbTuple>(StringComparer.Ordinal);
 
 			//m_dataLock.EnterWriteLock();
 			try
 			{
-				using (var source = new Win32SnapshotFile(path, true))
+				using (var source = Win32MemoryMappedFile.OpenRead(path))
 				{
 					var snapshot = new SnapshotReader(source);
 
 					// Read the header
 					//Console.WriteLine("> Reading Header");
-					await snapshot.ReadHeaderAsync(cancellationToken);
+					snapshot.ReadHeader(cancellationToken);
 
 					// Read the jump table (at the end)
 					//Console.WriteLine("> Reading Jump Table");
-					await snapshot.ReadJumpTableAsync(cancellationToken);
+					snapshot.ReadJumpTable(cancellationToken);
 
 					// we should have enough information to allocate memory
 					m_data.Clear();
@@ -1271,7 +1291,7 @@ namespace FoundationDB.Storage.Memory.API
 							//Console.WriteLine("> Reading Level " + level);
 							//TODO: right we read the complete level before bulkloading it
 							// we need to be able to bulk load directly from the stream!
-							await snapshot.ReadLevelAsync(level, writer, cancellationToken);
+							snapshot.ReadLevel(level, writer, cancellationToken);
 
 							m_data.InsertItems(writer.Data, ordered: true);
 							writer.Reset();

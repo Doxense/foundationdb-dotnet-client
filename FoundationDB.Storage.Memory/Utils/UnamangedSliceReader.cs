@@ -26,73 +26,75 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+namespace FoundationDB.Storage.Memory.Utils
 {
 	using System;
+	using System.Diagnostics.Contracts;
+
+
 
 	/// <summary>Helper class that holds the internal state used to parse tuples from slices</summary>
-	public struct SliceReader
+	public unsafe class UnamangedSliceReader
 	{
 
 		/// <summary>Creates a reader on a byte array</summary>
-		public static SliceReader FromBuffer(byte[] buffer)
+		public static UnamangedSliceReader FromSlice(USlice slice)
 		{
-			return new SliceReader(Slice.Create(buffer));
+			return new UnamangedSliceReader(slice.Data, slice.Count);
 		}
 
 		/// <summary>Creates a reader on a segment of a byte array</summary>
-		public static SliceReader FromBuffer(byte[] buffer, int offset, int count)
+		public static UnamangedSliceReader FromAddress(byte* address, ulong count)
 		{
-			return new SliceReader(Slice.Create(buffer, offset, count));
+			if (address == null && count != 0) throw new ArgumentException("Address cannot be null");
+			return new UnamangedSliceReader(address, count);
 		}
 
 		/// <summary>Buffer containing the tuple being parsed</summary>
-		public readonly Slice Buffer;
+		public readonly byte* Base;
 
 		/// <summary>Current position inside the buffer</summary>
-		public int Position;
+		public byte* Position;
 
-		/// <summary>Creates a new reader over a slice</summary>
-		/// <param name="buffer">Slice that will be used as the underlying buffer</param>
-		public SliceReader(Slice buffer)
+		/// <summary>Memory address just after the end of the buffer</summary>
+		public readonly byte* End;
+
+		private UnamangedSliceReader(byte* address, ulong count)
 		{
-			this.Buffer = buffer;
-			this.Position = 0;
+			Contract.Requires(address != null || count == 0);
+
+			this.Base = address;
+			this.Position = address;
+			this.End = address + count;
+
+			Contract.Ensures(this.End >= this.Base && this.Position >= this.Base && this.Position <= this.End);
 		}
+
+		public ulong Offset { get { return this.Position > this.Base ? (ulong)(this.Position - this.Base) : 0UL; } }
+
+		public ulong Length { get { return (ulong)(this.End - this.Base); } }
 
 		/// <summary>Returns true if there are more bytes to parse</summary>
-		public bool HasMore { get { return this.Position < this.Buffer.Count; } }
+		public bool HasMore { get { return this.Position < this.End; } }
 
 		/// <summary>Returns the number of bytes remaining</summary>
-		public int Remaining { get { return Math.Max(0, this.Buffer.Count - this.Position); } }
-
-		/// <summary>Returns a slice with all the bytes read so far in the buffer</summary>
-		public Slice Head
-		{
-			get { return this.Buffer.Substring(0, this.Position); }
-		}
-
-		/// <summary>Returns a slice with all the remaining bytes in the buffer</summary>
-		public Slice Tail
-		{
-			get { return this.Buffer.Substring(this.Position); }
-		}
+		public ulong Remaining { get { return this.Position < this.End ? (ulong)(this.End - this.Position) : 0UL; } }
 
 		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
-		public void EnsureBytes(int count)
+		public void EnsureBytes(uint count)
 		{
-			if (count < 0 || checked(this.Position + count) > this.Buffer.Count) throw new ArgumentOutOfRangeException("count");
+			if (checked(this.Position + count) > this.End) throw new ArgumentOutOfRangeException("count");
 		}
 
 		/// <summary>Return the value of the next byte in the buffer, or -1 if we reached the end</summary>
 		public int PeekByte()
 		{
-			int p = this.Position;
-			return p < this.Buffer.Count ? this.Buffer[p] : -1;
+			byte* p = this.Position;
+			return p < this.End ? (*p) : -1;
 		}
 
 		/// <summary>Skip the next <paramref name="count"/> bytes of the buffer</summary>
-		public void Skip(int count)
+		public void Skip(uint count)
 		{
 			EnsureBytes(count);
 
@@ -104,67 +106,47 @@ namespace FoundationDB.Client
 		{
 			EnsureBytes(1);
 
-			int p = this.Position;
-			byte b = this.Buffer[p];
-			this.Position = p + 1;
+			byte* p = this.Position;
+			byte b = *p;
+			this.Position = checked(p + 1);
 			return b;
 		}
 
 		/// <summary>Read the next <paramref name="count"/> bytes from the buffer</summary>
-		public Slice ReadBytes(int count)
+		public USlice ReadBytes(uint count)
 		{
 			EnsureBytes(count);
 
-			int p = this.Position;
-			this.Position = p + count;
-			return this.Buffer.Substring(p, count);
+			byte* p = this.Position;
+			this.Position = checked(p + count);
+			return new USlice(p, count);
 		}
 
 		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in little-endian</summary>
 		public ushort ReadFixed16()
 		{
-			return ReadBytes(2).ToUInt16();
+			EnsureBytes(2);
+			byte* p = this.Position;
+			this.Position = checked(p + 2);
+			return (ushort)(p[0] | p[1] << 8);
 		}
 
 		/// <summary>Read the next 4 bytes as an unsigned 32-bit integer, encoded in little-endian</summary>
 		public uint ReadFixed32()
 		{
-			return ReadBytes(4).ToUInt32();
+			EnsureBytes(4);
+			byte* p = this.Position;
+			this.Position = checked(p + 4);
+			return p[0] | (uint)p[1] << 8 | (uint)p[2] << 16 | (uint)p[3] << 24;
 		}
 
 		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in little-endian</summary>
 		public ulong ReadFixed64()
 		{
-			return ReadBytes(8).ToUInt64();
-		}
-
-		/// <summary>Read an encoded nul-terminated byte array from the buffer</summary>
-		public Slice ReadByteString()
-		{
-			var buffer = this.Buffer.Array;
-			int start = this.Buffer.Offset + this.Position;
-			int p = start;
-			int end = this.Buffer.Offset + this.Buffer.Count;
-
-			while (p < end)
-			{
-				byte b = buffer[p++];
-				if (b == 0)
-				{
-					//TODO: decode \0\xFF ?
-					if (p < end && buffer[p] == 0xFF)
-					{
-						// skip the next byte and continue
-						p++;
-						continue;
-					}
-
-					this.Position = p - this.Buffer.Offset;
-					return new Slice(buffer, start, p - start);
-				}
-			}
-
-			throw new FormatException("Truncated byte string (expected terminal NUL not found)");
+			EnsureBytes(8);
+			byte* p = this.Position;
+			this.Position = checked(p + 8);
+			return p[0] | (ulong)p[1] << 8 | (ulong)p[2] << 16 | (ulong)p[3] << 24 | (ulong)p[4] << 32 | (ulong)p[5] << 40 | (ulong)p[6] << 48 | (ulong)p[7] << 56;
 		}
 
 		/// <summary>Reads a 7-bit encoded unsigned int (aka 'Varint16') from the buffer, and advances the cursor</summary>
@@ -192,11 +174,10 @@ namespace FoundationDB.Client
 
 		/// <summary>Reads a Base 128 Varint from the input</summary>
 		/// <param name="count">Maximum number of bytes allowed (5 for 32 bits, 10 for 64 bits)</param>
-		private ulong ReadVarint(int count)
+		private ulong ReadVarint(uint count)
 		{
-			var buffer = this.Buffer.Array;
-			int p = this.Buffer.Offset + this.Position;
-			int end = this.Buffer.Offset + this.Buffer.Count;
+			byte* p = this.Position;
+			byte* end = this.End;
 
 			ulong x = 0;
 			int s = 0;
@@ -205,12 +186,12 @@ namespace FoundationDB.Client
 			while (count-- > 0)
 			{
 				if (p > end) throw new FormatException("Truncated Varint");
-				byte b = buffer[p++];
+				byte b = *p++;
 
 				x |= (b & 0x7FUL) << s;
 				if (b < 0x80)
 				{
-					this.Position = p - this.Buffer.Offset;
+					this.Position = p;
 					return x;
 				}
 				s += 7;
@@ -219,12 +200,12 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reads a variable sized slice, by first reading its size (stored as a Varint32) and then the data</summary>
-		public Slice ReadVarbytes()
+		public USlice ReadVarbytes()
 		{
 			uint size = ReadVarint32();
-			if (size > int.MaxValue) throw new FormatException("Malformed variable size");
-			if (size == 0) return Slice.Empty;
-			return ReadBytes((int)size);
+			if (size > uint.MaxValue) throw new FormatException("Malformed variable size");
+			if (size == 0) return USlice.Nil;
+			return ReadBytes(size);
 		}
 
 	}

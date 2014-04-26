@@ -24,7 +24,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		public async Task Test_Can_Save_And_Reload_Snapshot()
 		{
 			const string FILE_PATH = ".\\test.pndb";
-			const int N = 10 * 1000 * 1000;
+			const int N = 1 * 1000 * 1000;
 
 			if (File.Exists(FILE_PATH)) File.Delete(FILE_PATH);
 
@@ -36,8 +36,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			for (int i = 0; i < N; i++)
 			{
 				data[i] = new KeyValuePair<Slice, Slice>(
-				 FdbTuple.Pack(i),
-				 Slice.FromFixed32(rnd.Next())
+					Slice.FromAscii(i.ToString("D16")),
+					Slice.Random(rnd, 50)
 				);
 			}
 
@@ -62,30 +62,37 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 			var fi = new FileInfo(FILE_PATH);
 			Assert.That(fi.Exists, Is.True, "Snapshot file not found");
-			Console.WriteLine("File size is " + fi.Length.ToString("N0") + " bytes (" + (fi.Length * 1.0d / N).ToString("N2") + " bytes/item)");
+			Console.WriteLine("File size is " + fi.Length.ToString("N0") + " bytes (" + (fi.Length * 1.0d / N).ToString("N2") + " bytes/item, " + (fi.Length / (1048576.0 * sw.Elapsed.TotalSeconds)).ToString("N3") + " MB/sec)");
 
 			Console.Write("Loading...");
 			sw.Restart();
 			using (var db = await MemoryDatabase.LoadFromAsync(FILE_PATH, this.Cancellation))
 			{
 				sw.Stop();
-				Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds.ToString("N1") + " secs");
+				Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds.ToString("N1") + " secs (" + (fi.Length / (1048576.0 * sw.Elapsed.TotalSeconds)).ToString("N0") + " MB/sec)");
 				db.Debug_Dump();
 
 				Console.WriteLine("Checking data integrity...");
 				sw.Restart();
 				long n = 0;
-				foreach (var batch in data.Buffered(10 * 1000))
+				foreach (var batch in data.Buffered(50 * 1000))
 				{
 					using (var tx = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
-						var res = await tx.GetValuesAsync(batch.Select(kv => kv.Key)).ConfigureAwait(false);
-						for (int i = 0; i < res.Length; i++)
+						var res = await tx
+							.Snapshot
+							.GetRange(
+								FdbKeySelector.FirstGreaterOrEqual(batch[0].Key),
+								FdbKeySelector.FirstGreaterThan(batch[batch.Count - 1].Key))
+							.ToListAsync()
+							.ConfigureAwait(false);
+
+						Assert.That(res.Count, Is.EqualTo(batch.Count), "Some keys are missing from {0} to {1} :(", batch[0], batch[batch.Count - 1]);
+
+						for (int i = 0; i < res.Count; i++)
 						{
-							if (res[i].IsNull)
-								Assert.Fail("Key {0} is missing ({1})", batch[i].Key, batch[i].Value);
-							else
-								Assert.That(res[i], Is.EqualTo(batch[i].Value), "Key {0} is different", batch[i].Key);
+							Assert.That(res[i].Key, Is.EqualTo(batch[i].Key), "Key is different :(");
+							Assert.That(res[i].Value, Is.EqualTo(batch[i].Value), "Value is different for key {0} :(", batch[i].Key);
 						}
 					}
 					n += batch.Count;

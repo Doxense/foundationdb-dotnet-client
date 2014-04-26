@@ -15,7 +15,7 @@ namespace FoundationDB.Storage.Memory.IO
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	internal sealed class SnapshotReader
+	internal unsafe sealed class SnapshotReader
 	{
 		private struct LevelAddress
 		{
@@ -24,7 +24,7 @@ namespace FoundationDB.Storage.Memory.IO
 			public ulong PaddedSize;
 		}
 
-		private Win32SnapshotFile m_file;
+		private Win32MemoryMappedFile m_file;
 
 		private bool m_hasHeader;
 		private bool m_hasJumpTable;
@@ -48,13 +48,10 @@ namespace FoundationDB.Storage.Memory.IO
 		private int m_levels;
 		private byte[] m_buffer;
 
-		public SnapshotReader(Win32SnapshotFile file)
+		public SnapshotReader(Win32MemoryMappedFile file)
 		{
 			Contract.Requires(file != null); //TODO: && file.CanRead ?
 			m_file = file;
-			// pre-allocate the buffer that can old the largest possible key+value in the worst case
-			m_buffer = new byte[SnapshotFormat.BUFFER_SIZE];
-			Contract.Assume((uint)m_buffer.Length == UnmanagedHelpers.NextPowerOfTwo((uint)m_buffer.Length), "Buffer length must be a power of two");
 		}
 
 		public int Depth
@@ -101,22 +98,14 @@ namespace FoundationDB.Storage.Memory.IO
 			return checked(size + pageSize - 1UL) & ~((ulong)pageSize - 1UL);
 		}
 
-		public async Task ReadHeaderAsync(CancellationToken ct)
+		public void ReadHeader(CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
 			// minimum header prolog size is 64 but most will only a single page
 			// we can preallocate a full page, and we will resize it later if needed
-			var bytes = m_buffer;
-			Contract.Assert(bytes.Length >= SnapshotFormat.HEADER_METADATA_BYTES);
 
-			var n = await m_file.ReadExactlyAsync(bytes, 0, SnapshotFormat.HEADER_METADATA_BYTES, ct).ConfigureAwait(false);
-			if (n != SnapshotFormat.HEADER_METADATA_BYTES)
-			{
-				throw new InvalidOperationException("Invalid database snapshot: could not read the complete header");
-			}
-
-			var reader = SliceReader.FromBuffer(bytes, 0, n);
+			var reader = m_file.CreateReader(0, SnapshotFormat.HEADER_METADATA_BYTES);
 
 			// "PNDB"
 			var signature = reader.ReadFixed32();
@@ -127,7 +116,7 @@ namespace FoundationDB.Storage.Memory.IO
 			// FLAGS
 			m_dbFlags = (SnapshotFormat.Flags) reader.ReadFixed64();
 			// Database ID
-			m_uid = new Uuid(reader.ReadBytes(16));
+			m_uid = new Uuid(reader.ReadBytes(16).GetBytes());
 			// Database Version
 			m_sequence = reader.ReadFixed64();
 			// Number of items in the database
@@ -167,28 +156,22 @@ namespace FoundationDB.Storage.Memory.IO
 			// we know the page size and header size, read the rest...
 
 			// read the rest
-			n = await m_file.ReadExactlyAsync(bytes, SnapshotFormat.HEADER_METADATA_BYTES, m_headerSize - SnapshotFormat.HEADER_METADATA_BYTES, ct).ConfigureAwait(false);
-			if (n != m_headerSize - SnapshotFormat.HEADER_METADATA_BYTES)
-			{
-				throw ParseError("Could not read the complete header");
-			}
-
-			// reset the reader with the new data
-			reader = SliceReader.FromBuffer(bytes, 0, m_headerSize);
-			reader.Position = SnapshotFormat.HEADER_METADATA_BYTES;
+			reader = m_file.CreateReader(0, m_headerSize);
+			reader.Skip(SnapshotFormat.HEADER_METADATA_BYTES);
 
 			// parse the attributes
-			Contract.Assert(reader.Position == SnapshotFormat.HEADER_METADATA_BYTES);
+			Contract.Assert(reader.Offset == SnapshotFormat.HEADER_METADATA_BYTES);
 			var attributeCount = checked((int)reader.ReadFixed32());
 			if (attributeCount < 0 || attributeCount > 1024) throw ParseError("Attributes count is invalid");
 
 			var attributes = new Dictionary<string, IFdbTuple>(attributeCount);
-			for(int i = 0;i<attributeCount;i++)
+			for (int i = 0; i < attributeCount; i++)
 			{
-				var name = reader.ReadVarbytes();
+				var name = reader.ReadVarbytes().ToSlice();
 				if (name.IsNullOrEmpty) throw ParseError("Header attribute name is empty");
 
-				var value = FdbTuple.Unpack(reader.ReadVarbytes());
+				var data = reader.ReadVarbytes().ToSlice();	//TODO: have a small scratch pad buffer for these?
+				var value = FdbTuple.Unpack(data);
 				attributes.Add(name.ToUnicode(), value);
 			}
 			m_attributes = attributes;
@@ -198,7 +181,7 @@ namespace FoundationDB.Storage.Memory.IO
 			if (marker != uint.MaxValue) throw ParseError("Header end marker is invalid");
 
 			// verify the header checksum
-			uint actualHeaderChecksum = SnapshotFormat.ComputeChecksum(reader.Head);
+			uint actualHeaderChecksum = SnapshotFormat.ComputeChecksum(reader.Base, reader.Offset);
 			uint headerChecksum = reader.ReadFixed32();
 			m_headerChecksum = headerChecksum;
 
@@ -216,7 +199,7 @@ namespace FoundationDB.Storage.Memory.IO
 			return m_hasJumpTable && level >= 0 && level < m_jumpTable.Length && m_jumpTable[level].Size != 0;
 		}
 
-		public async Task ReadJumpTableAsync(CancellationToken ct)
+		public void ReadJumpTable(CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -243,15 +226,7 @@ namespace FoundationDB.Storage.Memory.IO
 			Contract.Assert(jumpTableStart % m_pageSize == 0);
 			m_dataEnd = jumpTableStart;
 
-			m_file.Seek(jumpTableStart);
-
-			var bytes = m_buffer;
-			Contract.Assert(bytes != null && bytes.Length >= m_pageSize);
-
-			var n = await m_file.ReadExactlyAsync(bytes, 0, m_pageSize, ct).ConfigureAwait(false);
-			if (n < m_pageSize) throw ParseError("Failed to read the complete Jump Table page");
-
-			var reader = SliceReader.FromBuffer(bytes, 0, n);
+			var reader = m_file.CreateReader(jumpTableStart, m_pageSize);
 
 			// "JMPT"
 			var signature = reader.ReadFixed32();
@@ -260,7 +235,7 @@ namespace FoundationDB.Storage.Memory.IO
 			// Sequence Number (repeated)
 			var sequenceRepeated = reader.ReadFixed64();
 			// Database ID (repeated)
-			var uidRepeated = new Uuid(reader.ReadBytes(16));
+			var uidRepeated = new Uuid(reader.ReadBytes(16).GetBytes());
 			// Header CRC (repeated)
 			var headerChecksumRepeated = reader.ReadFixed32();
 
@@ -301,7 +276,7 @@ namespace FoundationDB.Storage.Memory.IO
 			if (reader.ReadFixed32() != uint.MaxValue) throw ParseError("Jump Table end marker not found");
 
 			// checksum
-			uint actualChecksum = SnapshotFormat.ComputeChecksum(reader.Head);
+			uint actualChecksum = SnapshotFormat.ComputeChecksum(reader.Base, reader.Offset);
 			uint checksum = reader.ReadFixed32();
 			if (actualChecksum != checksum) throw ParseError("Jump Table checksum does not match ({0} != {1}). This may be an indication of data corruption", checksum, actualChecksum);
 
@@ -310,7 +285,7 @@ namespace FoundationDB.Storage.Memory.IO
 			m_hasJumpTable = true;
 		}
 
-		public async Task ReadLevelAsync(int level, LevelWriter writer, CancellationToken ct)
+		public void ReadLevel(int level, LevelWriter writer, CancellationToken ct)
 		{
 			Contract.Requires(level >= 0 && writer != null);
 			ct.ThrowIfCancellationRequested();
@@ -333,22 +308,7 @@ namespace FoundationDB.Storage.Memory.IO
 				throw ParseError("Level {0} size ({1}) is invalid", level, address.PaddedSize);
 			}
 
-			m_file.Seek(address.Offset);
-
-			//the level header is only 16 bytes, it can fit in the scratch pad
-			var bytes = m_buffer;
-			Contract.Assert(bytes != null && bytes.Length >= m_pageSize);
-
-			// round up size to a multiple of pages
-			ulong remainingSize = address.PaddedSize;
-			Contract.Assert(remainingSize % m_pageSize == 0, "total level size should be a multiple of the page size");
-
-			// just start by reading as much as possible...
-			var n = await m_file.ReadExactlyAsync(bytes, 0, Math.Min(remainingSize, (ulong)bytes.Length), ct);
-			if (n < m_pageSize) throw ParseError("Failed to read the first page of level {0} data", level);
-			remainingSize -= n;
-
-			var reader = SliceReader.FromBuffer(bytes, 0, n);
+			var reader = m_file.CreateReader(address.Offset, address.PaddedSize);
 
 			// "LVL_"
 			var signature = reader.ReadFixed32();
@@ -364,71 +324,22 @@ namespace FoundationDB.Storage.Memory.IO
 			if (levelId != level) throw ParseError("Page contains the header of a different Level ({0} != {1})", levelId, level);
 			if (levelCount != itemCount) throw ParseError("Item count ({0}) in level {1} header is not valid", levelCount, level);
 			
-			//TODO: stream and read the data as fast as possible
-			var data = new List<KeyValuePair<Slice, Slice>>(levelCount);
-
-			// maximum possible size for a valid item
-			uint minimum = 2 + MemoryDatabaseHandler.MAX_KEY_SIZE + 10 + 3 + MemoryDatabaseHandler.MAX_VALUE_SIZE;
-
 			for (int i = 0; i < levelCount;i++)
 			{
-				// note: if we have at least 'minimum' bytes we are sure to be able to read one item
-				if (reader.Remaining < minimum && remainingSize > 0)
-				{ // try reading more from the stream
-
-					// note: we want to keep things aligned on pages, so we will only shift complete pages
-					uint position = (uint) reader.Position;
-					uint complete = RoundDown((uint)position, m_pageSize);
-					if (complete > 0)
-					{ // shift these bytes out
-
-						uint count = (uint)reader.Buffer.Count;
-
-						unsafe
-						{
-							fixed (byte* ptr = bytes)
-							{
-								UnmanagedHelpers.CopyUnsafe(ptr, ptr + complete, count - complete);
-							}
-							position -= complete;
-							count -= complete;
-						}
-
-						// fill the rest of the buffer as much as possible
-						uint sz = (uint)reader.Buffer.Count - count;
-						if (sz > remainingSize) sz = (uint)remainingSize;
-
-						n = await m_file.ReadExactlyAsync(bytes, count, sz, ct).ConfigureAwait(false);
-						remainingSize -= n;
-						if (n < sz) throw ParseError("Unexpected end of file while reading level {0} data", level);
-
-						reader = SliceReader.FromBuffer(bytes, 0, count + n);
-						reader.Position = (int)position;
-
-						Contract.Assert(reader.Buffer.Count % m_pageSize == 0);
-					}
-				}
-
 				// read the key
-				int keySize = (int)reader.ReadVarint32();
-				if (keySize < 0 || keySize > MemoryDatabaseHandler.MAX_KEY_SIZE) throw ParseError("Key size ({0}) is too big", keySize);
-				Slice key = keySize == 0 ? Slice.Empty : reader.ReadBytes(keySize);
+				uint keySize = reader.ReadVarint32();
+				if (keySize > MemoryDatabaseHandler.MAX_KEY_SIZE) throw ParseError("Key size ({0}) is too big", keySize);
+				USlice key = keySize == 0 ? USlice.Nil : reader.ReadBytes(keySize);
 
 				// read the sequence
 				ulong sequence = reader.ReadVarint64();
 
 				// read the value
-				int valueSize = (int)reader.ReadVarint32();
-				if (valueSize < 0 || valueSize > MemoryDatabaseHandler.MAX_VALUE_SIZE) throw ParseError("Value size ({0) is too big", valueSize);
-				Slice value = valueSize == 0 ? Slice.Empty : reader.ReadBytes(valueSize);
+				uint valueSize = reader.ReadVarint32();
+				if (valueSize > MemoryDatabaseHandler.MAX_VALUE_SIZE) throw ParseError("Value size ({0) is too big", valueSize);
+				USlice value = valueSize == 0 ? USlice.Nil : reader.ReadBytes(valueSize);
 
-				writer.Add(sequence, new KeyValuePair<Slice, Slice>(key, value));
-			}
-
-			//TODO: we could be unlucky, and the end marker + CRC be on the last page that was not loaded
-			if (reader.Remaining < 8 && remainingSize > 0)
-			{
-				//TODO: read!
+				writer.Add(sequence, key, value);
 			}
 
 			if (reader.ReadFixed32() != uint.MaxValue) throw ParseError("Invalid end marker in level");
