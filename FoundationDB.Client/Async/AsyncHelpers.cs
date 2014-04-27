@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -176,7 +176,7 @@ namespace FoundationDB.Async
 
 			using (var pump = new AsyncPump<T>(source, target))
 			{
-				await pump.PumpAsync(stopOnFirstError: true, cancellationToken: cancellationToken);
+				await pump.PumpAsync(stopOnFirstError: true, cancellationToken: cancellationToken).ConfigureAwait(false);
 			}
 		}
 
@@ -191,7 +191,7 @@ namespace FoundationDB.Async
 				(x, _) => buffer.Add(x)
 			);
 
-			await PumpToAsync<T>(source, target, cancellationToken);
+			await PumpToAsync<T>(source, target, cancellationToken).ConfigureAwait(false);
 
 			return buffer.ToList();
 		}
@@ -234,7 +234,7 @@ namespace FoundationDB.Async
 					// start the intput pump
 					var input = PumpToAsync(source, pipe, cancellationToken);
 
-					await Task.WhenAll(input, output);
+					await Task.WhenAll(input, output).ConfigureAwait(false);
 
 					return output.Result;
 				}
