@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,20 +34,24 @@ namespace FoundationDB.Layers
 	using System.Linq;
 	using System.Runtime.InteropServices;
 
+	/// <summary>Helper class for the <see cref="Optional{T}"/> value type</summary>
 	public static class Optional
 	{
 		#region Wrapping...
 
+		/// <summary>Returns an <see cref="Optional{T}"/> with the specified value</summary>
 		public static Optional<T> Return<T>(T value)
 		{
 			return new Optional<T>(value);
 		}
 
+		/// <summary>Returns an empty <see cref="Optional{T}"/></summary>
 		public static Optional<T> Empty<T>()
 		{
 			return default(Optional<T>);
 		}
 
+		/// <summary>Returns an array of <see cref="Optional{T}"/> from an array of values</summary>
 		public static Optional<T>[] Wrap<T>(T[] values)
 		{
 			if (values == null) return null;
@@ -59,7 +63,7 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
-		/// <summary>Converts a <see cref="Nullable&lt;&gt;"/> into a <see cref="Optional&lt;gt;"/></summary>
+		/// <summary>Converts a <see cref="Nullable{T}"/> into an <see cref="Optional{T}"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static Optional<T> Wrap<T>(Nullable<T> value)
 			where T : struct
@@ -69,7 +73,7 @@ namespace FoundationDB.Layers
 			return new Optional<T>(value.Value);
 		}
 
-		/// <summary>Converts an array of <see cref="Nullable&lt;&gt;"/> into an array of <see cref="Optional&lt;gt;"/></summary>
+		/// <summary>Converts an array of <see cref="Nullable{T}"/> into an array of <see cref="Optional{T}"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static Optional<T>[] Wrap<T>(Nullable<T>[] values)
 			where T : struct
@@ -83,6 +87,7 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
+		/// <summary>Transforms a sequence of <see cref="Nullable{T}"/> into a sequence of <see cref="Optional{T}"/></summary>
 		public static IEnumerable<Optional<T>> AsOptional<T>(IEnumerable<Nullable<T>> source)
 			where T : struct
 		{
@@ -95,7 +100,7 @@ namespace FoundationDB.Layers
 
 		#region Single...
 
-		/// <summary>Converts a <see cref="Optional&lt;&gt;"/> into a <see cref="Nullable&lt;gt;"/></summary>
+		/// <summary>Converts a <see cref="Optional{T}"/> into a <see cref="Nullable{T}"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static Nullable<T> ToNullable<T>(this Optional<T> value)
 			where T : struct
@@ -109,6 +114,11 @@ namespace FoundationDB.Layers
 
 		#region Array...
 
+		/// <summary>Extract the values from an array of <see cref="Optional{T}"/></summary>
+		/// <typeparam name="T">Nullable value type</typeparam>
+		/// <param name="values">Array of optional values</param>
+		/// <param name="defaultValue">Default value for empty values</param>
+		/// <returns>Array of values</returns>
 		public static T[] Unwrap<T>(Optional<T>[] values, T defaultValue)
 		{
 			if (values == null) throw new ArgumentNullException("values");
@@ -121,7 +131,7 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
-		/// <summary>Converts an array of <see cref="Optional&lt;&gt;"/> into an array of <see cref="Nullable&lt;gt;"/></summary>
+		/// <summary>Converts an array of <see cref="Optional{T}"/> into an array of <see cref="Nullable{T}"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static Nullable<T>[] ToNullable<T>(Optional<T>[] values)
 			where T : struct
@@ -136,7 +146,7 @@ namespace FoundationDB.Layers
 			return tmp;
 		}
 
-		/// <summary>Converts an array of <see cref="Optional&lt;&gt;"/> into an array of <see cref="Nullable&lt;gt;"/></summary>
+		/// <summary>Converts an array of <see cref="Optional{T}"/> into an array of <see cref="Nullable{T}"/></summary>
 		/// <typeparam name="T">Nullable value type</typeparam>
 		public static T[] Unwrap<T>(Optional<T>[] values)
 			where T : class
@@ -155,6 +165,11 @@ namespace FoundationDB.Layers
 
 		#region Enumerable...
 
+		/// <summary>Transforms a sequence of <see cref="Optional{T}"/> into a sequence of values.</summary>
+		/// <typeparam name="T">Type of the elements of <paramref name="source"/></typeparam>
+		/// <param name="source">Sequence of optional values</param>
+		/// <param name="defaultValue">Default value for empty entries</param>
+		/// <returns>Sequence of values, using <paramref name="defaultValue"/> for empty entries</returns>
 		public static IEnumerable<T> Unwrap<T>(this IEnumerable<Optional<T>> source, T defaultValue)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -162,6 +177,10 @@ namespace FoundationDB.Layers
 			return source.Select(value => value.GetValueOrDefault(defaultValue));
 		}
 
+		/// <summary>Transforms a sequence of <see cref="Optional{T}"/> into a sequence of <see cref="Nullable{T}"/></summary>
+		/// <typeparam name="T">Type of the elements of <paramref name="source"/></typeparam>
+		/// <param name="source">Source of optional values</param>
+		/// <returns>Sequence of nullable values</returns>
 		public static IEnumerable<Nullable<T>> AsNullable<T>(this IEnumerable<Optional<T>> source)
 			where T : struct
 		{
@@ -170,6 +189,10 @@ namespace FoundationDB.Layers
 			return source.Select(value => value.HasValue ? new Nullable<T>(value.Value) : default(Nullable<T>));
 		}
 
+		/// <summary>Transforms a squence of <see cref="Optional{T}"/> into a sequence of values</summary>
+		/// <typeparam name="T">Type of the elements of <paramref name="source"/></typeparam>
+		/// <param name="source">Source of optional values</param>
+		/// <returns>Sequence of values, using the default of <typeparamref name="T"/> for empty entries</returns>
 		public static IEnumerable<T> Unwrap<T>(this IEnumerable<Optional<T>> source)
 			where T : class
 		{
@@ -182,29 +205,39 @@ namespace FoundationDB.Layers
 
 		#region Decoding...
 
-		public static Optional<T>[] DecodeRange<T>(IValueEncoder<T> encoder, Slice[] values)
+		/// <summary>Decode an array of slices into an array of <see cref="Optional{T}"/></summary>
+		/// <typeparam name="T">Type of the decoded values</typeparam>
+		/// <param name="decoder">Decoder used to produce the values</param>
+		/// <param name="data">Array of slices to decode. Entries equal to <see cref="Slice.Nil"/> will not be decoded and returned as an empty optional.</param>
+		/// <returns>Array of decoded <see cref="Optional{T}"/>.</returns>
+		public static Optional<T>[] DecodeRange<T>(IValueEncoder<T> decoder, Slice[] data)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (values == null) throw new ArgumentNullException("values");
+			if (decoder == null) throw new ArgumentNullException("encoder");
+			if (data == null) throw new ArgumentNullException("values");
 
-			var tmp = new Optional<T>[values.Length];
+			var values = new Optional<T>[data.Length];
 			Slice item;
-			for (int i = 0; i < values.Length; i++)
+			for (int i = 0; i < data.Length; i++)
 			{
-				if ((item = values[i]).HasValue)
+				if ((item = data[i]).HasValue)
 				{
-					tmp[i] = new Optional<T>(encoder.DecodeValue(item));
+					values[i] = new Optional<T>(decoder.DecodeValue(item));
 				}
 			}
-			return tmp;
+			return values;
 		}
 
-		public static IEnumerable<Optional<T>> Decode<T>(this IEnumerable<Slice> source, IValueEncoder<T> encoder)
+		/// <summary>Decode a sequence of slices into a sequence of <see cref="Optional{T}"/></summary>
+		/// <typeparam name="T">Type of the decoded values</typeparam>
+		/// <param name="source">Sequence of slices to decode. Entries equal to <see cref="Slice.Nil"/> will not be decoded and returned as an empty optional.</param>
+		/// <param name="decoder">Decoder used to produce the values</param>
+		/// <returns>Sequence of decoded <see cref="Optional{T}"/>.</returns>
+		public static IEnumerable<Optional<T>> Decode<T>(this IEnumerable<Slice> source, IValueEncoder<T> decoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (decoder == null) throw new ArgumentNullException("encoder");
 			if (source == null) throw new ArgumentNullException("values");
 
-			return source.Select(value => value.HasValue ? encoder.DecodeValue(value) : default(Optional<T>));
+			return source.Select(value => value.HasValue ? decoder.DecodeValue(value) : default(Optional<T>));
 		}
 
 		#endregion
@@ -220,18 +253,18 @@ namespace FoundationDB.Layers
 		// The main difference is that, 'null' is a legal value for reference types, which is distinct from "no value"
 		// i.e.: new Optional<string>(null).HasValue == true
 
-		public readonly bool m_hasValue;
+		private readonly bool m_hasValue;
 
-		public readonly T m_value;
+		private readonly T m_value;
 
-		/// <summary>Initializes a new instance of the <see cref="Optional&lt;&gt;"/> structure to the specified value.</summary>
+		/// <summary>Initializes a new instance of the <see cref="Optional{T}"/> structure to the specified value.</summary>
 		public Optional(T value)
 		{
 			m_hasValue = true;
 			m_value = value;
 		}
 
-		/// <summary>Gets the value of the current <see cref="Value&lt;&gt;"/> value.</summary>
+		/// <summary>Gets the value of the current <see cref="Optional{T}"/> value.</summary>
 		/// <remarks>This can return null for reference types!</remarks>
 		public T Value
 		{
@@ -245,16 +278,16 @@ namespace FoundationDB.Layers
 			}
 		}
 
-		/// <summary>Gets a value indicating whether the current <see cref="Optional&lt;&gt;"/> object has a value.</summary>
+		/// <summary>Gets a value indicating whether the current <see cref="Optional{T}"/> object has a value.</summary>
 		public bool HasValue { get { return m_hasValue; } }
 
-		/// <summary>Retrieves the value of the current <see cref="Value&lt;&gt;"/> object, or the object's default value.</summary>
+		/// <summary>Retrieves the value of the current <see cref="Optional{T}"/> object, or the object's default value.</summary>
 		public T GetValueOrDefault()
 		{
 			return m_value;
 		}
 
-		/// <summary>Retrieves the value of the current <see cref="Value&lt;&gt;"/> object, or the specified default value.</summary>
+		/// <summary>Retrieves the value of the current <see cref="Optional{T}"/> object, or the specified default value.</summary>
 		public T GetValueOrDefault(T defaultValue)
 		{
 			return m_hasValue ? m_value : defaultValue;
@@ -282,7 +315,7 @@ namespace FoundationDB.Layers
 			return m_value.GetHashCode();
 		}
 
-		/// <summary>Indicates whether the current <see cref="Value&lt;&gt;"/> object is equal to a specified object.</summary>
+		/// <summary>Indicates whether the current <see cref="Optional{T}"/> object is equal to a specified object.</summary>
 		public override bool Equals(object obj)
 		{
 			if (!m_hasValue) return obj == null;

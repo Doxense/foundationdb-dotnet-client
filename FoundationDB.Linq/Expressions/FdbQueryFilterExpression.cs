@@ -33,9 +33,8 @@ namespace FoundationDB.Linq.Expressions
 	using System.Linq.Expressions;
 	using System.Threading;
 
-	/// <summary>Expression that represent a projection from one type into another</summary>
-	/// <typeparam name="T">Type of elements in the inner sequence</typeparam>
-	/// <typeparam name="R">Type of elements in the outer sequence</typeparam>
+	/// <summary>Expression that represent a filter on a source sequence</summary>
+	/// <typeparam name="T">Type of elements in the source sequence</typeparam>
 	public class FdbQueryFilterExpression<T> : FdbQuerySequenceExpression<T>
 	{
 

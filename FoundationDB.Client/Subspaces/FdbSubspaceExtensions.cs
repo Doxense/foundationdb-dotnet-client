@@ -100,7 +100,7 @@ namespace FoundationDB.Client
 		/// <summary>Tests whether a subspace is a child of this Subspace.</summary>
 		/// <param name="child">Child subspace to be tested</param>
 		/// <returns>True if the child is contained by (or is equal to) the current subspace</returns>
-		/// <exception cref="System.ArgumentNullException">If <paramref name="key"/> is null</exception>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="child"/> is null</exception>
 		public static bool Contains(this FdbSubspace subspace, FdbSubspace child)
 		{
 			if (child == null) throw new ArgumentNullException("child");
@@ -118,7 +118,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Merge an array of keys with the subspace's prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="keys">Array of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] ConcatRange(this FdbSubspace subspace, params Slice[] keys)
@@ -127,7 +126,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Merge a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] ConcatRange(this FdbSubspace subspace, IEnumerable<Slice> keys)
@@ -148,7 +146,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Append a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
 		/// <typeparam name="TKey">type of the key, must implements IFdbKey</typeparam>
-		/// <param name="key"></param>
+		/// <param name="keys"></param>
 		/// <returns>Return Slice : 'subspace.Key + key'</returns>
 		public static Slice[] ConcatRange<TKey>(this FdbSubspace subspace, IEnumerable<TKey> keys)
 			where TKey : IFdbKey
@@ -268,8 +266,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Attach a tuple to an existing subspace.</summary>
-		/// <param name="value">Tuple whose items will be appended at the end of the current subspace</param>
-		/// <returns>Tuple that wraps the items of <param name="tuple"/> and whose packed representation will always be prefixed by the subspace key.</returns>
+		/// <param name="tuple">Tuple whose items will be appended at the end of the current subspace</param>
+		/// <returns>Tuple that wraps the items of <paramref name="tuple"/> and whose packed representation will always be prefixed by the subspace key.</returns>
 		public static IFdbTuple Append(this FdbSubspace subspace, IFdbTuple tuple)
 		{
 			return new FdbPrefixedTuple(subspace.Key, tuple);
@@ -332,11 +330,11 @@ namespace FoundationDB.Client
 		/// <typeparam name="T1">Type of the first value to append</typeparam>
 		/// <typeparam name="T2">Type of the second value to append</typeparam>
 		/// <typeparam name="T3">Type of the third value to append</typeparam>
-		/// <typeparam name="T3">Type of the fourth value to append</typeparam>
+		/// <typeparam name="T4">Type of the fourth value to append</typeparam>
 		/// <param name="value1">First value that will be appended</param>
 		/// <param name="value2">Second value that will be appended</param>
 		/// <param name="value3">Third value that will be appended</param>
-		/// <param name="value3">Fourth value that will be appended</param>
+		/// <param name="value4">Fourth value that will be appended</param>
 		/// <returns>Tuple of size 4 that contains <paramref name="value1"/>, <paramref name="value2"/>, <paramref name="value3"/> and <paramref name="value4"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3, T4&gt;(value1, value2, value3, value4))'</remarks>
 		public static IFdbTuple Append<T1, T2, T3, T4>(this FdbSubspace subspace, T1 value1, T2 value2, T3 value3, T4 value4)
@@ -375,8 +373,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new key by appending a value to the current subspace</summary>
-		/// <param name="key">Value that will be appended at the end of the key</param>
-		/// <returns>Key the correspond to the concatenation of the current subspace's prefix and <paramref name="key"/></returns>
+		/// <param name="item">Value that will be appended at the end of the key</param>
+		/// <returns>Key the correspond to the concatenation of the current subspace's prefix and <paramref name="item"/></returns>
 		/// <example>tuple.PackBoxed(x) is the non-generic equivalent of tuple.Pack&lt;object&gt;(tuple)</example>
 		public static Slice PackBoxed(this FdbSubspace subspace, object item)
 		{

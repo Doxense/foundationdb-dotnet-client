@@ -44,6 +44,7 @@ namespace FoundationDB.Linq.Expressions
 			return base.VisitExtension(node);
 		}
 
+		/// <summary>Visit this expression</summary>
 		public virtual Expression Visit(FdbQueryExpression node)
 		{
 			if (node != null)

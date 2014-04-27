@@ -45,15 +45,19 @@ namespace FoundationDB.Linq.Expressions
 			this.Options = options;
 		}
 
+		/// <summary>Returns the pair of key selectors for this range query</summary>
 		public FdbKeySelectorPair Range { get; private set; }
 
+		/// <summary>Returns the options for this range query</summary>
 		public FdbRangeOptions Options { get; private set; }
 
+		/// <summary>Visit this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryRange(this);
 		}
 
+		/// <summary>Explains this range query</summary>
 		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("Range(").Enter()
@@ -79,6 +83,7 @@ namespace FoundationDB.Linq.Expressions
 			);
 		}
 
+		/// <summary>Returns a short description of this range query</summary>
 		public override string ToString()
 		{
 			return String.Format(CultureInfo.InvariantCulture, "GetRange({0}, {1})", this.Range.Begin.ToString(), this.Range.End.ToString());

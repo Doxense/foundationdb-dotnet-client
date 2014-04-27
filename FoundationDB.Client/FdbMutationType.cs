@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -61,10 +61,15 @@ namespace FoundationDB.Client
 
 		// Obsolete names (will be removed in the future)
 
+		/// <summary>Deprecated name of <see cref="BitAnd"/></summary>
 		[Obsolete("Use FdbMutationType.BitAnd instead")]
 		And = 6,
+
+		/// <summary>Deprecated name of <see cref="BitAnd"/></summary>
 		[Obsolete("Use FdbMutationType.BitOr instead")]
 		Or = 7,
+
+		/// <summary>Deprecated name of <see cref="BitAnd"/></summary>
 		[Obsolete("Use FdbMutationType.BitXor instead")]
 		Xor = 8,
 

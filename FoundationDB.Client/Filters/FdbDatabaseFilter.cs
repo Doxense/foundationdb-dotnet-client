@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@ namespace FoundationDB.Filters
 		/// <summary>Inner database</summary>
 		protected readonly IFdbDatabase m_database;
 
+		/// <summary>If true, forces the inner database to be read only</summary>
 		protected readonly bool m_readOnly;
 
 		/// <summary>If true, dispose the inner database when we get disposed</summary>
@@ -79,6 +80,7 @@ namespace FoundationDB.Filters
 			return m_database;
 		}
 
+		/// <summary>Name of the database</summary>
 		public string Name
 		{
 			get { return m_database.Name; }

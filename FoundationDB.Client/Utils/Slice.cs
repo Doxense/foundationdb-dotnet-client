@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,6 @@ namespace FoundationDB.Client
 	using System.Globalization;
 	using System.IO;
 	using System.Linq;
-	using System.Runtime.InteropServices;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -169,6 +168,7 @@ namespace FoundationDB.Client
 		/// <summary>Create a new slice filled with random bytes taken from a cryptographic random number generator</summary>
 		/// <param name="rng">Random generator to use (needs locking if instance is shared)</param>
 		/// <param name="count">Number of random bytes to generate</param>
+		/// <param name="nonZeroBytes">If true, produce a sequence of non-zero bytes.</param>
 		/// <returns>Slice of <paramref name="count"/> bytes taken from <paramref name="rng"/></returns>
 		/// <remarks>Warning: All RNG implementations may not be thread-safe ! If the <paramref name="rng"/> instance is shared between threads, then it may need to be locked before calling this method.</remarks>
 		public static Slice Random(System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
@@ -1665,36 +1665,43 @@ namespace FoundationDB.Client
 		// note: We also need overloads with Nullable<Slice>'s to be able to do things like "if (slice == null)", "if (slice != null)" or "if (null != slice)".
 		// For structs that have "==" / "!=" operators, the compiler will think that when you write "slice == null", you really mean "(Slice?)slice == default(Slice?)", and that would ALWAYS false if you don't have specialized overloads to intercept.
 
+		/// <summary>Determines whether two specified instances of <see cref="Slice"/> are equal</summary>
 		public static bool operator ==(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault().Equals(b.GetValueOrDefault());
 		}
 
+		/// <summary>Determines whether two specified instances of <see cref="Slice"/> are not equal</summary>
 		public static bool operator !=(Slice? a, Slice? b)
 		{
 			return !a.GetValueOrDefault().Equals(b.GetValueOrDefault());
 		}
 
+		/// <summary>Determines whether one specified <see cref="Slice"/> is less than another specified <see cref="Slice"/>.</summary>
 		public static bool operator <(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault() < b.GetValueOrDefault();
 		}
 
+		/// <summary>Determines whether one specified <see cref="Slice"/> is less than or equal to another specified <see cref="Slice"/>.</summary>
 		public static bool operator <=(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault() <= b.GetValueOrDefault();
 		}
 
+		/// <summary>Determines whether one specified <see cref="Slice"/> is greater than another specified <see cref="Slice"/>.</summary>
 		public static bool operator >(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault() > b.GetValueOrDefault();
 		}
 
+		/// <summary>Determines whether one specified <see cref="Slice"/> is greater than or equal to another specified <see cref="Slice"/>.</summary>
 		public static bool operator >=(Slice? a, Slice? b)
 		{
 			return a.GetValueOrDefault() >= b.GetValueOrDefault();
 		}
 
+		/// <summary>Concatenates two <see cref="Slice"/> together.</summary>
 		public static Slice operator +(Slice? a, Slice? b)
 		{
 			// note: makes "slice + null" work!

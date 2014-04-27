@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ namespace FoundationDB.Filters
 	{
 		/// <summary>Inner database</summary>
 		protected readonly IFdbTransaction m_transaction;
+		/// <summary>If true, forces the underlying transaction to be read only</summary>
 		protected readonly bool m_readOnly;
 		/// <summary>If true, dispose the inner database when we get disposed</summary>
 		protected readonly bool m_owner;

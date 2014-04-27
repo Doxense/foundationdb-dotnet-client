@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -200,36 +200,36 @@ namespace FoundationDB.Async
 	}
 
 	/// <summary>
-	/// Helper methods for creating <see cref="Maybe&lt;T&gt;"/> instances
+	/// Helper methods for creating <see cref="Maybe{T}"/> instances
 	/// </summary>
 	public static class Maybe
 	{
 
-		/// <summary>Wraps a value into a <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Wraps a value into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<T> Return<T>(T value)
 		{
 			return new Maybe<T>(true, value, null);
 		}
 
-		/// <summary>Returns an empty <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Returns an empty <see cref="Maybe{T}"/></summary>
 		public static Maybe<T> Nothing<T>()
 		{
 			return Maybe<T>.Empty;
 		}
 
-		/// <summary>Capture an exception into a <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Capture an exception into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<T> Error<T>(Exception e)
 		{
 			return new Maybe<T>(false, default(T), e);
 		}
 
-		/// <summary>Capture an exception into a <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Capture an exception into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<T> Error<T>(ExceptionDispatchInfo e)
 		{
 			return new Maybe<T>(false, default(T), e);
 		}
 
-		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<R> Apply<T, R>(T value, Func<T, R> lambda)
 		{
 			try
@@ -242,7 +242,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<R> Apply<T, R>(T value, Func<T, Maybe<R>> lambda)
 		{
 			try
@@ -255,7 +255,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<R> Apply<T, R>(Maybe<T> value, Func<T, R> lambda)
 		{
 			if (!value.HasValue)
@@ -273,7 +273,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<R> Apply<T, R>(Maybe<T> value, Func<T, Maybe<R>> lambda)
 		{
 			if (!value.HasValue)
@@ -291,7 +291,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		/// <summary>Convert a completed <see cref="Task&lt;T&gt;"/> into an equivalent <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Convert a completed <see cref="Task{T}"/> into an equivalent <see cref="Maybe{T}"/></summary>
 		public static Maybe<T> FromTask<T>(Task<T> task)
 		{
 			Contract.Requires(task != null);
@@ -322,7 +322,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		/// <summary>Convert a completed <see cref="Task&lt;T&gt;"/> into an equivalent <see cref="Maybe&lt;T&gt;"/></summary>
+		/// <summary>Convert a completed <see cref="Task{T}"/> into an equivalent <see cref="Maybe{T}"/></summary>
 		public static Maybe<T> FromTask<T>(Task<Maybe<T>> task)
 		{
 			Contract.Requires(task != null);
@@ -347,7 +347,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		/// <summary>Streamline a potentially failed Task&lt;Maybe&lt;T&gt;&gt; into a version that capture the error into the <see cref="Maybe&lt;T&gt;"/> itself</summary>
+		/// <summary>Streamline a potentially failed Task&lt;Maybe&lt;T&gt;&gt; into a version that capture the error into the <see cref="Maybe{T}"/> itself</summary>
 		public static Task<Maybe<T>> Unwrap<T>(Task<Maybe<T>> task)
 		{
 			switch(task.Status)
