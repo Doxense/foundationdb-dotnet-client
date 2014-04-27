@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
-	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Cluster connection context.</summary>
 	public interface IFdbCluster : IDisposable
 	{
+		/// <summary>Path to the cluster file used by this connection, or null if the default cluster file is being used</summary>
 		string Path { get; }
 
+		/// <summary>Set an option on this cluster that does not take any parameter</summary>
+		/// <param name="option">Option to set</param>
 		void SetOption(FdbClusterOption option);
+
+		/// <summary>Set an option on this cluster that takes a string value</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter (can be null)</param>
 		void SetOption(FdbClusterOption option, string value);
+
+		/// <summary>Set an option on this cluster that takes an integer value</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter</param>
 		void SetOption(FdbClusterOption option, long value);
 
+		/// <summary>Opens a database on this cluster, configured to only access a specific subspace of keys</summary>
+		/// <param name="databaseName">Name of the database. Must be 'DB' (as of Beta 2)</param>
+		/// <param name="subspace">Subspace of keys that will be accessed.</param>
+		/// <param name="cancellationToken">Cancellation Token (optionnal) for the connect operation</param>
+		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, CancellationToken cancellationToken);
+		//REVIEW: we should return an IFdbDatabase instead !
 	}
 
 }

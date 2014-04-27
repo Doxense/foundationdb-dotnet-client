@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -96,7 +96,8 @@ namespace FoundationDB.Client
 		/// <param name="cluster">Parent cluster</param>
 		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
 		/// <param name="name">Name of the database</param>
-		/// <param name="contentSubspace">Root namespace of all keys accessible by this database instance</param>
+		/// <param name="contentSubspace">Subspace of the all keys accessible by this database instance</param>
+		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
 		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, FdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
@@ -138,6 +139,7 @@ namespace FoundationDB.Client
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		public bool IsReadOnly { get { return m_readOnly; } }
 
+		/// <summary>Root directory of this database instance</summary>
 		public FdbDatabasePartition Directory
 		{
 			get
@@ -156,6 +158,7 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>When overriden in a derived class, gets a database partition that wraps the root directory of this database instance</summary>
 		protected virtual FdbDatabasePartition GetRootDirectory()
 		{
 			var dl = FdbDirectoryLayer.Create(m_globalSpaceCopy);
@@ -167,7 +170,9 @@ namespace FoundationDB.Client
 		#region Transaction Management...
 
 		/// <summary>Start a new transaction on this database</summary>
+		/// <param name="mode">Mode of the new transaction (read-only, read-write, ...)</param>
 		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>
+		/// <param name="context">If not null, attach the new transaction to an existing context.</param>
 		/// <returns>New transaction instance that can read from or write to the database.</returns>
 		/// <remarks>You MUST call Dispose() on the transaction when you are done with it. You SHOULD wrap it in a 'using' statement to ensure that it is disposed in all cases.</remarks>
 		/// <example>
@@ -283,6 +288,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunReadAsync(this, asyncHandler, null, cancellationToken);
 		}
 
+		//EXPERIMENTAL
 		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunReadAsync(this, asyncHandler, onDone, cancellationToken);
@@ -296,6 +302,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
 		}
 
+		//EXPERIMENTAL
 		public Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);
@@ -313,6 +320,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunWriteAsync(this, handler, null, cancellationToken);
 		}
 
+		//EXPERIMENTAL
 		public Task WriteAsync(Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
@@ -330,6 +338,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, cancellationToken);
 		}
 
+		//EXPERIMENTAL
 		public Task WriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
@@ -346,6 +355,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, cancellationToken);
 		}
 
+		//EXPERIMENTAL
 		public Task ReadWriteAsync(Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, cancellationToken);
@@ -359,6 +369,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
 		}
 
+		//EXPERIMENTAL
 		public Task<R> ReadWriteAsync<R>(Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);

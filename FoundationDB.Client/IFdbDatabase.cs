@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Threading;
 
-	/// <summary>FoundationDB database instance that supports read operations.</summary>
+	/// <summary>Database connection context.</summary>
 	public interface IFdbDatabase : IFdbReadOnlyTransactional, IFdbTransactional, IFdbKey, IDisposable
 	{
 		/// <summary>Name of the database</summary>
@@ -48,12 +48,21 @@ namespace FoundationDB.Client
 		/// <summary>Directory partition of this database instance</summary>
 		FdbDatabasePartition Directory { get; }
 
+		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		bool IsReadOnly { get; }
 
+		/// <summary>Set a parameter-less option on this database</summary>
+		/// <param name="option">Option to set</param>
 		void SetOption(FdbDatabaseOption option);
 
+		/// <summary>Set an option on this database that takes a string value</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter (can be null)</param>
 		void SetOption(FdbDatabaseOption option, string value);
 
+		/// <summary>Set an option on this database that takes an integer value</summary>
+		/// <param name="option">Option to set</param>
+		/// <param name="value">Value of the parameter</param>
 		void SetOption(FdbDatabaseOption option, long value);
 
 		/// <summary>Default Timeout value (in milliseconds) for all transactions created from this database instance.</summary>

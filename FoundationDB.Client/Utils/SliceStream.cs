@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ namespace FoundationDB.Client
 		private int m_position;
 		private Task<int> m_lastTask;
 
+		/// <summary>Creates a new stream that reads from an underlying slice</summary>
 		public SliceStream(Slice slice)
 		{
 			m_slice = slice;
@@ -49,11 +50,13 @@ namespace FoundationDB.Client
 
 		#region Seeking...
 
+		/// <summary>Returns true if the underlying slice is not null</summary>
 		public override bool CanSeek
 		{
 			get { return m_slice.HasValue; }
 		}
 
+		/// <summary>Gets or sets the current position in the underlying slice</summary>
 		public override long Position
 		{
 			get
@@ -66,11 +69,13 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Getes the length of the underlying slice</summary>
 		public override long Length
 		{
 			get { return m_slice.Count; }
 		}
 
+		/// <summary>Seeks to a specific location in the underlying slice</summary>
 		public override long Seek(long offset, SeekOrigin origin)
 		{
 			if (!m_slice.HasValue) StreamIsClosed();
@@ -79,24 +84,23 @@ namespace FoundationDB.Client
 			switch (origin)
 			{
 				case SeekOrigin.Begin:
-					{
-						break;
-					}
-
+				{
+					break;
+				}
 				case SeekOrigin.Current:
-					{
-						offset += m_position;
-						break;
-					}
+				{
+					offset += m_position;
+					break;
+				}
 				case SeekOrigin.End:
-					{
-						offset = m_slice.Count - offset;
-						break;
-					}
+				{
+					offset = m_slice.Count - offset;
+					break;
+				}
 				default:
-					{
-						throw new ArgumentException("origin");
-					}
+				{
+					throw new ArgumentException("origin");
+				}
 			}
 
 			if (offset < 0) throw new IOException("Cannot seek before the beginning of the slice");
@@ -112,6 +116,7 @@ namespace FoundationDB.Client
 
 		}
 
+		/// <summary>This methods is not supported</summary>
 		public override void SetLength(long value)
 		{
 			throw new NotSupportedException();
@@ -121,11 +126,13 @@ namespace FoundationDB.Client
 
 		#region Reading...
 
+		/// <summary>Returns true unless the current position is after the end of the underlying slice</summary>
 		public override bool CanRead
 		{
 			get { return m_position < m_slice.Count; }
 		}
 
+		/// <summary>Reads from byte from the underyling slice and advances the position within the slice by one byte, or returns -1 if the end of the slice has been reached.</summary>
 		public override int ReadByte()
 		{
 			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
@@ -137,6 +144,7 @@ namespace FoundationDB.Client
 			return -1;
 		}
 
+		/// <summary>Reads a sequence of bytes from the underlying slice and advances the position within the slice by the number of bytes that are read.</summary>
 		public override int Read(byte[] buffer, int offset, int count)
 		{
 			ValidateBuffer(buffer, offset, count);
@@ -171,6 +179,7 @@ namespace FoundationDB.Client
 
 #if !NET_4_0
 
+		/// <summary>Asynchronously reads a sequence of bytes from the underlying slice and advances the position within the slice by the number of bytes read.</summary>
 		public override Task<int> ReadAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
 		{
 			ValidateBuffer(buffer, offset, count);
@@ -194,6 +203,7 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Asynchronously reads the bytes from the underlying slice and writes them to another stream, using a specified buffer size and cancellation token.</summary>
 		public override Task CopyToAsync(Stream destination, int bufferSize, System.Threading.CancellationToken cancellationToken)
 		{
 			Contract.Ensures(m_position >= 0 && m_position <= m_slice.Count);
@@ -217,11 +227,13 @@ namespace FoundationDB.Client
 
 		#region Writing...
 
+		/// <summary>Always return false</summary>
 		public override bool CanWrite
 		{
 			get { return false; }
 		}
 
+		/// <summary>This methods is not supported</summary>
 		public override void Write(byte[] buffer, int offset, int count)
 		{
 			throw new NotSupportedException();
@@ -229,6 +241,7 @@ namespace FoundationDB.Client
 
 #if !NET_4_0
 
+		/// <summary>This methods is not supported</summary>
 		public override Task WriteAsync(byte[] buffer, int offset, int count, System.Threading.CancellationToken cancellationToken)
 		{
 			return TaskHelpers.FromException<object>(new NotSupportedException());
@@ -236,11 +249,13 @@ namespace FoundationDB.Client
 
 #endif
 
+		/// <summary>This methods does nothing.</summary>
 		public override void Flush()
 		{
 			// Not supported, but don't throw here
 		}
 
+		/// <summary>This methods does nothing.</summary>
 		public override Task FlushAsync(System.Threading.CancellationToken cancellationToken)
 		{
 			// Not supported, but don't throw here
@@ -262,6 +277,7 @@ namespace FoundationDB.Client
 			throw new ObjectDisposedException(null, "The stream was already closed");
 		}
 
+		/// <summary>Closes the stream</summary>
 		protected override void Dispose(bool disposing)
 		{
 			m_slice = Slice.Nil;

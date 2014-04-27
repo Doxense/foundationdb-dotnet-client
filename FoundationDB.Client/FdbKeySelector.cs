@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,15 +33,21 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Text;
 
+	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString()}")]
 	public struct FdbKeySelector
 	{
+		/// <summary>Empty key selector</summary>
 		public static readonly FdbKeySelector None = default(FdbKeySelector);
 
+		/// <summary>Key of the selector</summary>
 		public readonly Slice Key;
+		/// <summary>If true, the selected key can be equal to <see cref="Key"/>.</summary>
 		public readonly bool OrEqual;
+		/// <summary>Offset of the selected key</summary>
 		public readonly int Offset;
 
+		/// <summary>Creates a new selector</summary>
 		public FdbKeySelector(Slice key, bool orEqual, int offset)
 		{
 			this.Key = key;
@@ -49,6 +55,7 @@ namespace FoundationDB.Client
 			this.Offset = offset;
 		}
 
+		/// <summary>Creates a new selector</summary>
 		public FdbKeySelector(IFdbKey key, bool orEqual, int offset)
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -57,6 +64,7 @@ namespace FoundationDB.Client
 			this.Offset = offset;
 		}
 
+		/// <summary>Returns a displayable representation of the key selector</summary>
 		public string PrettyPrint(FdbKey.PrettyPrintMode mode)
 		{
 			var sb = new StringBuilder();
@@ -81,6 +89,7 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
+		/// <summary>Converts the value of the current <see cref="FdbKeySelector"/> object into its equivalent string representation</summary>
 		public override string ToString()
 		{
 			return PrettyPrint(FdbKey.PrettyPrintMode.Single);
@@ -155,6 +164,10 @@ namespace FoundationDB.Client
 			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset + offset);
 		}
 
+		/// <summary>Substract a value to the selector's offset</summary>
+		/// <param name="selector">ex: fGE('abc')</param>
+		/// <param name="offset">ex: 7</param>
+		/// <returns>fGE('abc')-7</returns>
 		public static FdbKeySelector operator -(FdbKeySelector selector, int offset)
 		{
 			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset - offset);

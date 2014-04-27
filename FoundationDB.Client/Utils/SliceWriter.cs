@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -208,7 +208,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a slice pointing to a segment inside the buffer</summary>
 		/// <param name="offset">Offset of the segment from the start of the buffer</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
-		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less then zero, or do not fit inside the current buffer</exception>
+		/// <exception cref="ArgumentException">If <paramref name="offset"/> is less then zero, or after the current position</exception>
 		public Slice Substring(int offset)
 		{
 			if (offset < 0 || offset > this.Position) throw new ArgumentException("Offset must be inside the buffer", "offset");
@@ -293,8 +293,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Advance the cursor of the buffer without writing anything, and return the previous position</summary>
 		/// <param name="skip">Number of bytes to skip</param>
+		/// <param name="pad">Pad value (0xFF by default)</param>
 		/// <returns>Position of the cursor BEFORE moving it. Can be used as a marker to go back later and fill some value</returns>
-		/// <remarks>Will fill the skipped bytes with 0xFF</remarks>
+		/// <remarks>Will fill the skipped bytes with <paramref name="pad"/></remarks>
 		public int Skip(int skip, byte pad = 0xFF)
 		{
 			Contract.Requires(skip > 0);
