@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -307,7 +307,7 @@ namespace FoundationDB.Client.Utils
 				return "FdbTransaction#" + tr.Id.ToString(CultureInfo.InvariantCulture) + suffix;
 			}
 
-			var db = obj as FdbDatabase;
+			var db = obj as IFdbDatabase;
 			if (db != null)
 			{
 				return "FdbDatabase('" + db.Name + "')" + suffix;

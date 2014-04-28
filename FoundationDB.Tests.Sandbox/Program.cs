@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -425,7 +425,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine();
 		}
 
-		private static async Task BenchSerialWriteAsync(FdbDatabase db, int N, CancellationToken ct)
+		private static async Task BenchSerialWriteAsync(IFdbDatabase db, int N, CancellationToken ct)
 		{
 			// read a lot of small keys, one by one
 
@@ -457,7 +457,7 @@ namespace FoundationDB.Tests.Sandbox
 		}
 
 
-		private static async Task BenchSerialReadAsync(FdbDatabase db, int N, CancellationToken ct)
+		private static async Task BenchSerialReadAsync(IFdbDatabase db, int N, CancellationToken ct)
 		{
 
 			Console.WriteLine("Reading " + N + " keys (serial, slow!)");
@@ -483,7 +483,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("Took " + sw.Elapsed + " to read " + N + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / N) + "/read)");
 		}
 
-		private static async Task BenchConcurrentReadAsync(FdbDatabase db, int N, CancellationToken ct)
+		private static async Task BenchConcurrentReadAsync(IFdbDatabase db, int N, CancellationToken ct)
 		{
 			// read a lot of small keys, concurrently
 
@@ -513,7 +513,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("Took " + sw.Elapsed + " to read " + keys.Length + " items (" + FormatTimeMicro(sw.Elapsed.TotalMilliseconds / keys.Length) + "/read)");
 		}
 
-		private static async Task BenchClearAsync(FdbDatabase db, int N, CancellationToken ct)
+		private static async Task BenchClearAsync(IFdbDatabase db, int N, CancellationToken ct)
 		{
 			// clear a lot of small keys, in a single transaction
 
