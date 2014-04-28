@@ -112,7 +112,7 @@ namespace FoundationDB.Async.Tests
 
 		}
 
-		[Test][Ignore("Does not work")]
+		[Test]
 		public async Task Test_AsyncTaskBuffer_In_Completion_Order()
 		{
 			// Test that we can queue N async tasks in a buffer that will only accept K tasks at a time,

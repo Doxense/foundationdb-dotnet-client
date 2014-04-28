@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#undef ENABLE_LOGGING
+
 namespace FoundationDB.Layers.Directories
 {
 	using FoundationDB.Client;
@@ -52,7 +54,7 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition(Slice.FromString("hca"));
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>();
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
 #else
@@ -92,7 +94,7 @@ namespace FoundationDB.Layers.Directories
 
 				await DumpSubspace(db, location);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach(var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true)); 
@@ -110,7 +112,7 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>();
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
 #else
@@ -157,7 +159,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(foo2.DirectoryLayer, Is.SameAs(directory));
 				Assert.That(foo2.Key, Is.EqualTo(foo.Key), "Second call to CreateOrOpen should return the same subspace");
 
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
@@ -175,7 +177,7 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>();
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
 #else
@@ -227,7 +229,7 @@ namespace FoundationDB.Layers.Directories
 				foo3.CheckLayer(Slice.Empty);
 				foo3.CheckLayer(Slice.Nil);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
@@ -248,7 +250,7 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>();
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
 #else
@@ -278,7 +280,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(foo, Is.Not.Null);
 				Assert.That(bar, Is.Not.Null);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
@@ -297,7 +299,7 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>();
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
 #else
@@ -331,7 +333,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(subdirs.Count, Is.EqualTo(10));
 				Assert.That(subdirs, Is.EquivalentTo(Enumerable.Range(0, 10).Select(x => x.ToString()).ToList()));
 
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
@@ -388,7 +390,7 @@ namespace FoundationDB.Layers.Directories
 				var location = db.Partition("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>();
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
 #else
@@ -426,7 +428,7 @@ namespace FoundationDB.Layers.Directories
 
 				// moving the folder under itself should fail
 				Assert.Throws<InvalidOperationException>(async () => await folder.MoveToAsync(logged, new[] { "Bar", "Baz" }, this.Cancellation));
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
@@ -444,7 +446,7 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>();
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
 #else
@@ -486,7 +488,7 @@ namespace FoundationDB.Layers.Directories
 				// removing the root folder is not allowed (too dangerous)
 				Assert.Throws<InvalidOperationException>(async () => await directory.RemoveAsync(logged, new string[0], this.Cancellation), "Attempting to remove the root directory should fail");
 
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
@@ -504,7 +506,7 @@ namespace FoundationDB.Layers.Directories
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
-#if DEBUG
+#if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>();
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { list.Add(tr.Log); });
 #else
@@ -535,7 +537,7 @@ namespace FoundationDB.Layers.Directories
 				// opening the directory with the old layer should fail
 				Assert.Throws<InvalidOperationException>(async () => await directory.OpenAsync(logged, "Test", layer: Slice.FromString("foo"), cancellationToken: this.Cancellation));
 
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));

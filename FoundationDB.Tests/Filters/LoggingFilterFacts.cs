@@ -96,7 +96,7 @@ namespace FoundationDB.Filters.Logging.Tests
 				// create a logged version of the database
 				var logged = new FdbLoggedDatabase(db, false, false, logHandler);
 
-				for (int k = 0; k < 100; k++)
+				for (int k = 0; k < N; k++)
 				{
 					Console.WriteLine("==== " + k + " ==== ");
 					Console.WriteLine();

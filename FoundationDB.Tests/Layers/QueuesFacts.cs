@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#undef ENABLE_LOGGING
+
 namespace FoundationDB.Layers.Collections.Tests
 {
 	using FoundationDB.Async;
@@ -277,7 +279,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "queue");
 
-#if DEBUG
+#if ENABLE_LOGGING
 				var list = new List<FdbTransactionLog>(NUM);
 				var logged = new FdbLoggedDatabase(db, false, false, (tr) => { lock (list) { list.Add(tr.Log); } });
 #else
@@ -285,7 +287,7 @@ namespace FoundationDB.Layers.Collections.Tests
 #endif
 
 				await RunMultiClientTest(logged, location, false, "simple queue", 4, NUM, this.Cancellation);
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
@@ -296,7 +298,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				Console.WriteLine("------------------------------------------------");
 
 				await RunMultiClientTest(logged, location, true, "high contention queue", 4, NUM, this.Cancellation);
-#if DEBUG
+#if ENABLE_LOGGING
 				foreach (var log in list)
 				{
 					Console.WriteLine(log.GetTimingsReport(true));
