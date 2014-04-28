@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
-		CancellationToken Token { get; } //REVIEW: rename this to "Cancellation" ?
+		CancellationToken Cancellation { get; }
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>

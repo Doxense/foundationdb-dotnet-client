@@ -134,7 +134,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
 		//REVIEW: rename this to 'Cancellation'? ('Token' is a keyword that may have different meaning in some apps)
-		public CancellationToken Token { get { return m_cts.Token; } }
+		public CancellationToken Cancellation { get { return m_cts.Token; } }
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		public bool IsReadOnly { get { return m_readOnly; } }

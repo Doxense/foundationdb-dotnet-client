@@ -59,6 +59,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Owner database that created this instance</summary>
 		private readonly FdbDatabase m_database;
+		//REVIEW: this should be changed to "IFdbDatabase" if possible
 
 		/// <summary>Context of the transaction when running inside a retry loop, or other custom scenario</summary>
 		private readonly FdbOperationContext m_context;
@@ -95,7 +96,7 @@ namespace FoundationDB.Client
 			m_context = context;
 			m_database = db;
 			m_id = id;
-			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Token);
+			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Cancellation);
 			m_cancellation = m_cts.Token;
 
 			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;

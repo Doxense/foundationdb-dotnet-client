@@ -94,9 +94,9 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
-		public CancellationToken Token
+		public CancellationToken Cancellation
 		{
-			get { return m_database.Token; }
+			get { return m_database.Cancellation; }
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>

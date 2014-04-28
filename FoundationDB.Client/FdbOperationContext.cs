@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 		public object Result { get; set; }
 
 		/// <summary>Cancellation token associated with the operation</summary>
-		public CancellationToken Token { get; internal set; }
+		public CancellationToken Cancellation { get; internal set; }
 
 		/// <summary>If set to true, will abort and not commit the transaction. If false, will try to commit the transaction (and retry on failure)</summary>
 		public bool Abort { get; set; }
@@ -83,13 +83,13 @@ namespace FoundationDB.Client
 			this.Duration = new Stopwatch();
 
 			// by default, we hook ourselves on the db's CancellationToken
-			var token = db.Token;
+			var token = db.Cancellation;
 			if (cancellationToken.CanBeCanceled && cancellationToken != token)
 			{
 				this.TokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 				token = this.TokenSource.Token;
 			}
-			this.Token = token;
+			this.Cancellation = token;
 		}
 
 		internal static async Task ExecuteInternal(IFdbDatabase db, FdbOperationContext context, Delegate handler, Delegate onDone)
@@ -108,7 +108,7 @@ namespace FoundationDB.Client
 
 				using (var trans = db.BeginTransaction(context.Mode, CancellationToken.None, context))
 				{
-					while (!context.Committed && !context.Token.IsCancellationRequested)
+					while (!context.Committed && !context.Cancellation.IsCancellationRequested)
 					{
 						FdbException e = null;
 						try
@@ -188,11 +188,11 @@ namespace FoundationDB.Client
 						context.Retries++;
 					}
 				}
-				context.Token.ThrowIfCancellationRequested();
+				context.Cancellation.ThrowIfCancellationRequested();
 
 				if (context.Abort)
 				{
-					throw new OperationCanceledException(context.Token);
+					throw new OperationCanceledException(context.Cancellation);
 				}
 
 			}
