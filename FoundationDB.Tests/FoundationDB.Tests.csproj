@@ -123,9 +123,9 @@
       <Project>{e631bcd4-386c-4eb1-ad4d-cabce77bb4c8}</Project>
       <Name>FoundationDB.Layers.Experimental</Name>
     </ProjectReference>
-    <ProjectReference Include="..\FoundationDB.Linq\FoundationDB.Linq.csproj">
+    <ProjectReference Include="..\FoundationDB.Linq.Providers\FoundationDB.Linq.Providers.csproj">
       <Project>{faf14e3f-6662-4084-8b92-e6697f6b9d5a}</Project>
-      <Name>FoundationDB.Linq</Name>
+      <Name>FoundationDB.Linq.Providers</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

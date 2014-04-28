@@ -7,8 +7,8 @@
     <ProjectGuid>{FAF14E3F-6662-4084-8B92-E6697F6B9D5A}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>FoundationDB.Linq.Expressions</RootNamespace>
-    <AssemblyName>FoundationDB.Linq</AssemblyName>
+    <RootNamespace>FoundationDB.Linq</RootNamespace>
+    <AssemblyName>FoundationDB.Linq.Providers</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -30,7 +30,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Release\FoundationDB.Linq.XML</DocumentationFile>
+    <DocumentationFile>bin\Release\FoundationDB.Linq.Providers.xml</DocumentationFile>
     <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
