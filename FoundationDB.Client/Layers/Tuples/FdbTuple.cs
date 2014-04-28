@@ -706,12 +706,12 @@ namespace FoundationDB.Layers.Tuples
 
 		#endregion
 
-		#region Concat...
+		#region PackWithPrefix...
 		
 		//note: they are equivalent to the Pack<...>() methods, they only take a binary prefix
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a tuple</summary>
-		public static Slice Concat(Slice prefix, IFdbTuple tuple)
+		public static Slice PackWithPrefix(Slice prefix, IFdbTuple tuple)
 		{
 			if (tuple == null || tuple.Count == 0) return prefix;
 
@@ -722,8 +722,8 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
-		/// <remarks>This is the non-generic equivalent of FdbTuple.Concat&lt;object&gt;()</remarks>
-		public static Slice ConcatBoxed(Slice prefix, object value)
+		/// <remarks>This is the non-generic equivalent of <see cref="FdbTuple.Pack{T}()"/></remarks>
+		public static Slice PackBoxedWithPrefix(Slice prefix, object value)
 		{
 			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
@@ -732,7 +732,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
-		public static Slice Concat<T>(Slice prefix, T value)
+		public static Slice PackWithPrefix<T>(Slice prefix, T value)
 		{
 			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
@@ -741,7 +741,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
-		public static Slice Concat<T1, T2>(Slice prefix, T1 value1, T2 value2)
+		public static Slice PackWithPrefix<T1, T2>(Slice prefix, T1 value1, T2 value2)
 		{
 			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
@@ -751,7 +751,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 3-tuple</summary>
-		public static Slice Concat<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
+		public static Slice PackWithPrefix<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
 		{
 			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);
@@ -762,7 +762,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
-		public static Slice Concat<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
+		public static Slice PackWithPrefix<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			var writer = SliceWriter.Empty;
 			writer.WriteBytes(prefix);

@@ -135,7 +135,7 @@ namespace FoundationDB.Client
 			{
 				if (tuple == null) throw new ArgumentNullException("tuple");
 				if (tuple.Count == 0) return this;
-				return new FdbSubspace(FdbTuple.Concat(GetKeyPrefix(), tuple));
+				return new FdbSubspace(FdbTuple.PackWithPrefix(GetKeyPrefix(), tuple));
 			}
 		}
 

@@ -89,18 +89,39 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Concatenates two tuples together</summary>
-		public static IFdbTuple Concat(this IFdbTuple first, IFdbTuple second)
+		public static IFdbTuple Concat(this IFdbTuple head, IFdbTuple tail)
 		{
-			if (first == null) throw new ArgumentNullException("first");
-			if (second == null) throw new ArgumentNullException("second");
+			if (head == null) throw new ArgumentNullException("head");
+			if (tail == null) throw new ArgumentNullException("tail");
 
-			int n1 = first.Count;
-			if (n1 == 0) return second;
+			int n1 = head.Count;
+			if (n1 == 0) return tail;
 
-			int n2 = second.Count;
-			if (n2 == 0) return first;
+			int n2 = tail.Count;
+			if (n2 == 0) return head;
 
-			return new FdbJoinedTuple(first, second);
+			return new FdbJoinedTuple(head, tail);
+		}
+
+		/// <summary>Appends two values at the end of a tuple</summary>
+		public static IFdbTuple Append<T1, T2>(this IFdbTuple tuple, T1 value1, T2 value2)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			return new FdbJoinedTuple(tuple, FdbTuple.Create<T1, T2>(value1, value2));
+		}
+
+		/// <summary>Appends three values at the end of a tuple</summary>
+		public static IFdbTuple Append<T1, T2, T3>(this IFdbTuple tuple, T1 value1, T2 value2, T3 value3)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			return new FdbJoinedTuple(tuple, FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
+		}
+
+		/// <summary>Appends four values at the end of a tuple</summary>
+		public static IFdbTuple Append<T1, T2, T3, T4>(this IFdbTuple tuple, T1 value1, T2 value2, T3 value3, T4 value4)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			return new FdbJoinedTuple(tuple, FdbTuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
 		}
 
 		/// <summary>Creates a key range containing all children of this tuple, from tuple.pack()+'\0' to tuple.pack()+'\xFF'</summary>
