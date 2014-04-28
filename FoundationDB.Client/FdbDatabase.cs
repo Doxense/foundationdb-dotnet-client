@@ -459,78 +459,54 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Test if a key is allowed to be used with this database instance</summary>
-		/// <param name="key">Key to test</param>
-		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
-		public bool IsKeyValid(Slice key)
-		{
-			// key is legal if...
-			return key.HasValue							// is not null (note: empty key is allowed)
-				&& key.Count <= Fdb.MaxKeySize			// not too big
-				&& m_globalSpace.Contains(key);			// not outside the namespace
-		}
-
-		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
-		/// <param name="key">Key to verify</param>
-		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal void EnsureKeyIsValid(Slice key, bool endExclusive = false)
-		{
-			var ex = ValidateKey(key, endExclusive);
-			if (ex != null) throw ex;
-		}
-
-		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
-		/// <param name="keys">Array of keys to verify</param>
-		/// <param name="endExclusive">If true, the keys are allowed to be one past the maximum key allowed by the global namespace</param>
-		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal void EnsureKeysAreValid(Slice[] keys, bool endExclusive = false)
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-			foreach(var key in keys)
-			{
-				var ex = ValidateKey(key, endExclusive);
-				if (ex != null) throw ex;
-			}
-		}
-
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
-		internal Exception ValidateKey(Slice key, bool endExclusive = false)
+		internal static bool ValidateKey(IFdbDatabase database, Slice key, bool endExclusive, bool ignoreError, out Exception error)
 		{
+			error = null;
+
 			// null or empty keys are not allowed
 			if (key.IsNull)
 			{
-				return Fdb.Errors.KeyCannotBeNull();
+				if (!ignoreError) error = Fdb.Errors.KeyCannotBeNull();
+				return false;
 			}
 
 			// key cannot be larger than maximum allowed key size
 			if (key.Count > Fdb.MaxKeySize)
 			{
-				return Fdb.Errors.KeyIsTooBig(key);
+				if (!ignoreError) error = Fdb.Errors.KeyIsTooBig(key);
+				return false;
 			}
 
 			// special case for system keys
 			if (IsSystemKey(key))
 			{
 				// note: it will fail later if the transaction does not have access to the system keys!
-				return null;
+				return true;
 			}
 
 			// first, it MUST start with the root prefix of this database (if any)
-			if (!m_globalSpace.Contains(key))
+			if (!database.Contains(key))
 			{
 				// special case: if endExclusive is true (we are validating the end key of a ClearRange),
 				// and the key is EXACTLY equal to strinc(globalSpace.Prefix), we let is slide
-				if (!endExclusive || !key.Equals(FdbKey.Increment(m_globalSpace.Key)))
+				if (!endExclusive
+				 || !key.Equals(FdbKey.Increment(database.GlobalSpace.Key))) //TODO: cache this?
 				{
-					return Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(this, key);
+					if (!ignoreError) error = Fdb.Errors.InvalidKeyOutsideDatabaseNamespace(database, key);
+					return false;
 				}
 			}
 
-			return null;
+			return true;
+		}
+
+		public bool Contains(Slice key)
+		{
+			return key.HasValue && m_globalSpace.Contains(key);
 		}
 
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>

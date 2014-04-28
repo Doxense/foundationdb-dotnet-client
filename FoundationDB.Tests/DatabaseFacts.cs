@@ -51,7 +51,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(cluster, Is.Not.Null);
 				Assert.That(cluster.Path, Is.Null);
 
-				using (var db = await cluster.OpenDatabaseAsync("DB", this.Cancellation))
+				using (var db = await cluster.OpenDatabaseAsync("DB", FdbSubspace.Empty, false, this.Cancellation))
 				{
 					Assert.That(db, Is.Not.Null, "Should return a valid object");
 					Assert.That(db.Name, Is.EqualTo("DB"), "FdbDatabase.Name should match");
@@ -77,7 +77,7 @@ namespace FoundationDB.Client.Tests
 				using (var cluster = await Fdb.CreateClusterAsync(cts.Token))
 				{
 					cts.Cancel();
-					Assert.Throws<OperationCanceledException>(() => cluster.OpenDatabaseAsync("DB", cts.Token).GetAwaiter().GetResult());
+					Assert.Throws<OperationCanceledException>(() => cluster.OpenDatabaseAsync("DB", FdbSubspace.Empty, false, cts.Token).GetAwaiter().GetResult());
 				}
 			}
 		}
@@ -92,7 +92,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var cluster = await Fdb.CreateClusterAsync(this.Cancellation))
 			{
-				await TestHelpers.AssertThrowsFdbErrorAsync(() => cluster.OpenDatabaseAsync("SomeOtherName", this.Cancellation), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
+				await TestHelpers.AssertThrowsFdbErrorAsync(() => cluster.OpenDatabaseAsync("SomeOtherName", FdbSubspace.Empty, false, this.Cancellation), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");
 			}
 
 			await TestHelpers.AssertThrowsFdbErrorAsync(() => Fdb.OpenAsync(null, "SomeOtherName"), FdbError.InvalidDatabaseName, "Passing anything other then 'DB' should fail");			

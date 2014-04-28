@@ -123,9 +123,51 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Subspaces... [REMOVE ME!]
+		#region Key Validation...
 
-		//TODO: this should be moved to the IFdbSubspace interface when IFdbDatabase implements it completely
+		/// <summary>Test if a key is allowed to be used with this database instance</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
+		public static bool IsKeyValid(this IFdbDatabase db, Slice key)
+		{
+			Exception _;
+			return FdbDatabase.ValidateKey(db, key, false, true, out _);
+#if REFACTORED
+			// key is legal if...
+			return key.HasValue							// is not null (note: empty key is allowed)
+				&& key.Count <= Fdb.MaxKeySize			// not too big
+				&& this.Contains(key);			// not outside the namespace
+#endif
+		}
+
+		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		internal static void EnsureKeyIsValid(this IFdbDatabase db, Slice key, bool endExclusive = false)
+		{
+			Exception ex;
+			if (!FdbDatabase.ValidateKey(db, key, endExclusive, false, out ex)) throw ex;
+		}
+
+		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="keys">Array of keys to verify</param>
+		/// <param name="endExclusive">If true, the keys are allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		internal static void EnsureKeysAreValid(this IFdbDatabase db, Slice[] keys, bool endExclusive = false)
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+			Exception ex;
+			foreach (var key in keys)
+			{
+				if (!FdbDatabase.ValidateKey(db, key, endExclusive, false, out ex)) throw ex;
+			}
+		}
+		#endregion
+
+		#region Partitionning...
+
+		//REVIEW: make all Partition(..) / Pack(..) / Concat(...) extension methods hook into IFdbKey, instead of having a set for FdbSubspace, and a set for IFdbDatabase ?
 
 		/// <summary>Return a new partition of the current database</summary>
 		/// <typeparam name="T">Type of the value used for the partition</typeparam>
@@ -156,6 +198,39 @@ namespace FoundationDB.Client
 		{
 			return db.GlobalSpace.Partition(tuple);
 		}
+
+		/// <summary>Add the global namespace prefix to a relative key</summary>
+		/// <param name="keyRelative">Key that is relative to the global namespace</param>
+		/// <returns>Key that starts with the global namespace prefix</returns>
+		/// <example>
+		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
+		/// db.Concat('&lt;02&gt;Bar&lt;00&gt;') => '&lt;02&gt;Foo&lt;00&gt;&gt;&lt;02&gt;Bar&lt;00&gt;'
+		/// db.Concat(Slice.Empty) => '&lt;02&gt;Foo&lt;00&gt;'
+		/// db.Concat(Slice.Nil) => Slice.Nil
+		/// </example>
+		public static Slice Concat(this IFdbDatabase db, Slice keyRelative)
+		{
+			return db.GlobalSpace.Concat(keyRelative);
+		}
+
+		/// <summary>Remove the global namespace prefix of this database form the key, and return the rest of the bytes, or Slice.Nil is the key is outside the namespace</summary>
+		/// <param name="keyAbsolute">Binary key that starts with the namespace prefix, followed by some bytes</param>
+		/// <returns>Binary key that contain only the bytes after the namespace prefix</returns>
+		/// <example>
+		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
+		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;&lt;02&gt;Bar&lt;00&gt;') => '&gt;&lt;02&gt;Bar&lt;00&gt;'
+		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;') => Slice.Empty
+		/// db.Extract('&lt;02&gt;TopSecret&lt;00&gt;&lt;02&gt;Password&lt;00&gt;') => Slice.Nil
+		/// db.Extract(Slice.Nil) => Slice.Nil
+		/// </example>
+		public static Slice Extract(this IFdbDatabase db, Slice keyAbsolute)
+		{
+			return db.GlobalSpace.Extract(keyAbsolute);
+		}
+
+		#endregion
+
+		#region Packing / Unpacking...
 
 		/// <summary>Create a new key by appending a value to the global namespace</summary>
 		public static Slice Pack<T>(this IFdbDatabase db, T key)
@@ -188,35 +263,6 @@ namespace FoundationDB.Client
 		public static T UnpackSingle<T>(this IFdbDatabase db, Slice key)
 		{
 			return db.GlobalSpace.UnpackSingle<T>(key);
-		}
-
-		/// <summary>Add the global namespace prefix to a relative key</summary>
-		/// <param name="keyRelative">Key that is relative to the global namespace</param>
-		/// <returns>Key that starts with the global namespace prefix</returns>
-		/// <example>
-		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
-		/// db.Concat('&lt;02&gt;Bar&lt;00&gt;') => '&lt;02&gt;Foo&lt;00&gt;&gt;&lt;02&gt;Bar&lt;00&gt;'
-		/// db.Concat(Slice.Empty) => '&lt;02&gt;Foo&lt;00&gt;'
-		/// db.Concat(Slice.Nil) => Slice.Nil
-		/// </example>
-		public static Slice Concat(this IFdbDatabase db, Slice keyRelative)
-		{
-			return db.GlobalSpace.Concat(keyRelative);
-		}
-
-		/// <summary>Remove the global namespace prefix of this database form the key, and return the rest of the bytes, or Slice.Nil is the key is outside the namespace</summary>
-		/// <param name="keyAbsolute">Binary key that starts with the namespace prefix, followed by some bytes</param>
-		/// <returns>Binary key that contain only the bytes after the namespace prefix</returns>
-		/// <example>
-		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
-		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;&lt;02&gt;Bar&lt;00&gt;') => '&gt;&lt;02&gt;Bar&lt;00&gt;'
-		/// db.Extract('&lt;02&gt;Foo&lt;00&gt;') => Slice.Empty
-		/// db.Extract('&lt;02&gt;TopSecret&lt;00&gt;&lt;02&gt;Password&lt;00&gt;') => Slice.Nil
-		/// db.Extract(Slice.Nil) => Slice.Nil
-		/// </example>
-		public static Slice Extract(this IFdbDatabase db, Slice keyAbsolute)
-		{
-			return db.GlobalSpace.Extract(keyAbsolute);
 		}
 
 		#endregion

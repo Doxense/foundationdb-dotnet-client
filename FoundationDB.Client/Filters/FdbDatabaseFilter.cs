@@ -86,6 +86,13 @@ namespace FoundationDB.Filters
 			get { return m_database.Name; }
 		}
 
+		/// <summary>Cluster of the database</summary>
+		public IFdbCluster Cluster
+		{
+			//REVIEW: do we need a Cluster Filter ?
+			get { return m_database.Cluster; }
+		}
+
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		public CancellationToken Token
 		{
@@ -98,6 +105,7 @@ namespace FoundationDB.Filters
 			get { return m_database.GlobalSpace; }
 		}
 
+		/// <summary>Directory partition of this database instance</summary>
 		public FdbDatabasePartition Directory
 		{
 			get
@@ -110,6 +118,7 @@ namespace FoundationDB.Filters
 			}
 		}
 
+		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		public bool IsReadOnly
 		{
 			get { return m_readOnly; }
@@ -132,6 +141,11 @@ namespace FoundationDB.Filters
 			}
 
 			return m_database.BeginTransaction(mode, cancellationToken, context);
+		}
+
+		public virtual bool Contains(Slice key)
+		{
+			return m_database.Contains(key);
 		}
 
 		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken)

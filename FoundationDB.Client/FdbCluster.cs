@@ -96,42 +96,32 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Opens a database on this cluster</summary>
-		/// <param name="databaseName">Name of the database. Must be 'DB'</param>
-		/// <param name="cancellationToken">Cancellation Token</param>
-		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
-		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
-		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, CancellationToken cancellationToken)
-		{
-			return OpenDatabaseAsync(databaseName, FdbSubspace.Empty, readOnly: false, ownsCluster: false, cancellationToken: cancellationToken);
-		}
-
 		/// <summary>Opens a database on this cluster, configured to only access a specific subspace of keys</summary>
 		/// <param name="databaseName">Name of the database. Must be 'DB' (as of Beta 2)</param>
 		/// <param name="subspace">Subspace of keys that will be accessed.</param>
+		/// <param name="readOnly">If true, the database will only allow read operations.</param>
 		/// <param name="cancellationToken">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>Any attempt to use a key outside the specified subspace will throw an exception</remarks>
-		public Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, CancellationToken cancellationToken)
+		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool readOnly, CancellationToken cancellationToken)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			return OpenDatabaseAsync(databaseName, subspace, readOnly: false, ownsCluster: false, cancellationToken: cancellationToken);
+			return await OpenDatabaseInternalAsync(databaseName, subspace, readOnly: readOnly, ownsCluster: false, cancellationToken: cancellationToken).ConfigureAwait(false);
 		}
 
 		/// <summary>Opens a database on this cluster</summary>
 		/// <param name="databaseName">Name of the database. Must be 'DB'</param>
 		/// <param name="subspace">Subspace of keys that will be accessed.</param>
+		/// <param name="readOnly">If true, the database will only allow read operations.</param>
 		/// <param name="ownsCluster">If true, the database will dispose this cluster when it is disposed.</param>
 		/// <param name="cancellationToken">Cancellation Token</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		internal async Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
+		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, FdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");
@@ -190,6 +180,11 @@ namespace FoundationDB.Client
 			var data = Slice.FromFixed64(value);
 			m_handler.SetOption(option, data);
 		}
+
+	}
+
+	public static class FdbClusterExtensions
+	{
 
 	}
 

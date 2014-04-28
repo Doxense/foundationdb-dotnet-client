@@ -93,7 +93,7 @@ namespace FoundationDB.Client.Tests
 		}
 
 		/// <summary>Connect to the local test database</summary>
-		protected Task<FdbDatabase> OpenTestDatabaseAsync()
+		protected Task<IFdbDatabase> OpenTestDatabaseAsync()
 		{
 			return TestHelpers.OpenTestDatabaseAsync(this.Cancellation);
 		}

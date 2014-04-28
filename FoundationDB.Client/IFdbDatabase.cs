@@ -37,9 +37,12 @@ namespace FoundationDB.Client
 		/// <summary>Name of the database</summary>
 		string Name { get; }
 
+		/// <summary>Cluster of the database</summary>
+		IFdbCluster Cluster { get; }
+
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
-		CancellationToken Token { get; }
+		CancellationToken Token { get; } //REVIEW: rename this to "Cancellation" ?
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
@@ -87,6 +90,12 @@ namespace FoundationDB.Client
 		///		await tr.CommitAsync();
 		/// }</example>
 		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken, FdbOperationContext context = null);
+
+		/// <summary>Test if a key is inside the range of keys allowed to be read or writtent by the database</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns>True if the key is inside the database keyspace, or inside the system keyspace.</returns>
+		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the allowed range of keys defined by <see cref="GlobalSpace"/>.</remarks>
+		bool Contains(Slice key);
 
 	}
 

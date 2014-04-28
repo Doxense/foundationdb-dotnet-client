@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 			/// <param name="path">Path of the named partition to open</param>
 			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
-			public static Task<FdbDatabase> OpenNamedPartitionAsync(IEnumerable<string> path, CancellationToken cancellationToken)
+			public static Task<IFdbDatabase> OpenNamedPartitionAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 			{
 				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, path: path, readOnly: false, cancellationToken: cancellationToken);
 			}
@@ -63,7 +63,7 @@ namespace FoundationDB.Client
 			/// <param name="readOnly">If true, the database instance will only allow read operations</param>
 			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
-			public static async Task<FdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, bool readOnly, CancellationToken cancellationToken)
+			public static async Task<IFdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, bool readOnly, CancellationToken cancellationToken)
 			{
 				if (path == null) throw new ArgumentNullException("partitionPath");
 				var partitionPath = path.ToList();
@@ -76,7 +76,7 @@ namespace FoundationDB.Client
 				FdbSubspace rootSpace = FdbSubspace.Empty;
 				try
 				{
-					db = await Fdb.OpenAsync(clusterFile, dbName, rootSpace, readOnly: false).ConfigureAwait(false);
+					db = await Fdb.OpenInternalAsync(clusterFile, dbName, rootSpace, readOnly: false, cancellationToken: cancellationToken).ConfigureAwait(false);
 					var rootLayer = FdbDirectoryLayer.Create(rootSpace);
 					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened root layer of database {0} using cluster file '{1}'", db.Name, db.Cluster.Path));
 
@@ -86,6 +86,7 @@ namespace FoundationDB.Client
 
 					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
 					rootSpace = descriptor.Copy(); //note: create a copy of the key
+					//TODO: find a nicer way to do that!
 					db.ChangeRoot(rootSpace, FdbDirectoryLayer.Create(rootSpace), readOnly);
 
 					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened partition {0} at {1}, using directory layer at {2}", descriptor.Path.ToString(), db.GlobalSpace.ToString(), db.Directory.DirectoryLayer.NodeSubspace.ToString()));

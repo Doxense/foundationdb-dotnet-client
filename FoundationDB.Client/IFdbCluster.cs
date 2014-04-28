@@ -55,9 +55,10 @@ namespace FoundationDB.Client
 		/// <summary>Opens a database on this cluster, configured to only access a specific subspace of keys</summary>
 		/// <param name="databaseName">Name of the database. Must be 'DB' (as of Beta 2)</param>
 		/// <param name="subspace">Subspace of keys that will be accessed.</param>
+		/// <param name="readOnly">If true, the database will only allow read operations.</param>
 		/// <param name="cancellationToken">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		Task<FdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, CancellationToken cancellationToken);
+		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool readOnly, CancellationToken cancellationToken);
 		//REVIEW: we should return an IFdbDatabase instead !
 	}
 

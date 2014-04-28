@@ -64,7 +64,7 @@ namespace FoundationDB.Client
 				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count.ToString(), Fdb.MaxValueSize.ToString()), paramName);
 			}
 
-			internal static Exception InvalidKeyOutsideDatabaseNamespace(FdbDatabase db, Slice key)
+			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, Slice key)
 			{
 				Contract.Requires(db != null);
 				return new FdbException(
