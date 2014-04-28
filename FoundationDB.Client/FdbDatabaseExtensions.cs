@@ -132,12 +132,6 @@ namespace FoundationDB.Client
 		{
 			Exception _;
 			return FdbDatabase.ValidateKey(db, key, false, true, out _);
-#if REFACTORED
-			// key is legal if...
-			return key.HasValue							// is not null (note: empty key is allowed)
-				&& key.Count <= Fdb.MaxKeySize			// not too big
-				&& this.Contains(key);			// not outside the namespace
-#endif
 		}
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -163,56 +157,6 @@ namespace FoundationDB.Client
 				if (!FdbDatabase.ValidateKey(db, key, endExclusive, false, out ex)) throw ex;
 			}
 		}
-		#endregion
-
-		#region Partitionning...
-
-		//REVIEW: make all Partition(..) / Pack(..) / Concat(...) extension methods hook into IFdbKey, instead of having a set for FdbSubspace, and a set for IFdbDatabase ?
-
-		/// <summary>Return a new partition of the current database</summary>
-		/// <typeparam name="T">Type of the value used for the partition</typeparam>
-		/// <param name="value">Prefix of the new partition</param>
-		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="value"/></returns>
-		public static FdbSubspace Partition<T>(this IFdbDatabase db, T value)
-		{
-			return db.GlobalSpace.Partition<T>(value);
-		}
-
-		/// <summary>Return a new partition of the current database</summary>
-		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
-		public static FdbSubspace Partition<T1, T2>(this IFdbDatabase db, T1 value1, T2 value2)
-		{
-			return db.GlobalSpace.Partition<T1, T2>(value1, value2);
-		}
-
-		/// <summary>Return a new partition of the current database</summary>
-		/// <returns>Subspace that is the concatenation of the database global namespace and the specified values</returns>
-		public static FdbSubspace Partition<T1, T2, T3>(this IFdbDatabase db, T1 value1, T2 value2, T3 value3)
-		{
-			return db.GlobalSpace.Partition<T1, T2, T3>(value1, value2, value3);
-		}
-
-		/// <summary>Return a new partition of the current database</summary>
-		/// <returns>Subspace that is the concatenation of the database global namespace and the specified <paramref name="tuple"/></returns>
-		public static FdbSubspace Partition(this IFdbDatabase db, IFdbTuple tuple)
-		{
-			return db.GlobalSpace.Partition(tuple);
-		}
-
-		/// <summary>Add the global namespace prefix to a relative key</summary>
-		/// <param name="keyRelative">Key that is relative to the global namespace</param>
-		/// <returns>Key that starts with the global namespace prefix</returns>
-		/// <example>
-		/// // db with namespace prefix equal to"&lt;02&gt;Foo&lt;00&gt;"
-		/// db.Concat('&lt;02&gt;Bar&lt;00&gt;') => '&lt;02&gt;Foo&lt;00&gt;&gt;&lt;02&gt;Bar&lt;00&gt;'
-		/// db.Concat(Slice.Empty) => '&lt;02&gt;Foo&lt;00&gt;'
-		/// db.Concat(Slice.Nil) => Slice.Nil
-		/// </example>
-		public static Slice Concat(this IFdbDatabase db, Slice keyRelative)
-		{
-			return db.GlobalSpace.Concat(keyRelative);
-		}
-
 		/// <summary>Remove the global namespace prefix of this database form the key, and return the rest of the bytes, or Slice.Nil is the key is outside the namespace</summary>
 		/// <param name="keyAbsolute">Binary key that starts with the namespace prefix, followed by some bytes</param>
 		/// <returns>Binary key that contain only the bytes after the namespace prefix</returns>
@@ -230,19 +174,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Packing / Unpacking...
-
-		/// <summary>Create a new key by appending a value to the global namespace</summary>
-		public static Slice Pack<T>(this IFdbDatabase db, T key)
-		{
-			return db.GlobalSpace.Pack<T>(key);
-		}
-
-		/// <summary>Create a new key by appending two values to the global namespace</summary>
-		public static Slice Pack<T1, T2>(this IFdbDatabase db, T1 key1, T2 key2)
-		{
-			return db.GlobalSpace.Pack<T1, T2>(key1, key2);
-		}
+		#region Unpack...
 
 		/// <summary>Unpack a key using the current namespace of the database</summary>
 		/// <param name="key">Key that should fit inside the current namespace of the database</param>

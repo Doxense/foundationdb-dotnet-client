@@ -144,6 +144,7 @@
     <Compile Include="Layers\Tuples\Formatters\ITupleFormattable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleComparisons.cs" />
     <Compile Include="Layers\Tuples\FdbJoinedTuple.cs" />
+    <Compile Include="Subspaces\IFdbSubspace.cs" />
     <Compile Include="Subspaces\FdbSubspaceExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbLinkedTuple.cs" />
     <Compile Include="Layers\Tuples\IFdbTuple.cs" />

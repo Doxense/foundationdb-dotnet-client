@@ -95,17 +95,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Key handling...
-
-		/// <summary>Tests whether a subspace is a child of this Subspace.</summary>
-		/// <param name="child">Child subspace to be tested</param>
-		/// <returns>True if the child is contained by (or is equal to) the current subspace</returns>
-		/// <exception cref="System.ArgumentNullException">If <paramref name="child"/> is null</exception>
-		public static bool Contains(this FdbSubspace subspace, FdbSubspace child)
-		{
-			if (child == null) throw new ArgumentNullException("child");
-			return object.ReferenceEquals(subspace, child) || subspace.Contains(child.Key);
-		}
+		#region Contains...
 
 		/// <summary>Tests whether the specified <paramref name="key"/> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="key"/>.</summary>
 		/// <param name="key">The key to be tested</param>
@@ -117,47 +107,59 @@ namespace FoundationDB.Client
 			return subspace.Contains(key.ToFoundationDbKey());
 		}
 
-		/// <summary>Merge an array of keys with the subspace's prefix, all sharing the same buffer</summary>
-		/// <param name="keys">Array of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] ConcatRange(this FdbSubspace subspace, params Slice[] keys)
-		{
-			return subspace.Key.ConcatRange(keys);
-		}
+		#endregion
 
-		/// <summary>Merge a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] ConcatRange(this FdbSubspace subspace, IEnumerable<Slice> keys)
+		#region Concat...
+
+		/// <summary>Append a key to the subspace key</summary>
+		public static Slice Concat(this IFdbSubspace subspace, Slice key)
 		{
-			return subspace.Key.ConcatRange(keys);
+			return Slice.Concat(subspace.ToFoundationDbKey(), key);
 		}
 
 		/// <summary>Append a key to the subspace key</summary>
 		/// <typeparam name="TKey">type of the key, must implements IFdbKey</typeparam>
 		/// <param name="key"></param>
 		/// <returns>Return Slice : 'subspace.Key + key'</returns>
-		public static Slice Concat<TKey>(this FdbSubspace subspace, TKey key)
+		public static Slice Concat<TKey>(this IFdbSubspace subspace, TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
-			return subspace.Key + key.ToFoundationDbKey();
+			return Slice.Concat(subspace.ToFoundationDbKey(), key.ToFoundationDbKey());
+		}
+
+		/// <summary>Merge an array of keys with the subspace's prefix, all sharing the same buffer</summary>
+		/// <param name="keys">Array of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] ConcatRange(this IFdbSubspace subspace, params Slice[] keys)
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+			return subspace.ToFoundationDbKey().ConcatRange(keys);
+		}
+
+		/// <summary>Merge a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
+		/// <param name="keys">Sequence of keys to pack</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] ConcatRange(this IFdbSubspace subspace, IEnumerable<Slice> keys)
+		{
+			if (keys == null) throw new ArgumentNullException("keys");
+			return subspace.ToFoundationDbKey().ConcatRange(keys);
 		}
 
 		/// <summary>Append a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
 		/// <typeparam name="TKey">type of the key, must implements IFdbKey</typeparam>
 		/// <param name="keys"></param>
 		/// <returns>Return Slice : 'subspace.Key + key'</returns>
-		public static Slice[] ConcatRange<TKey>(this FdbSubspace subspace, IEnumerable<TKey> keys)
+		public static Slice[] ConcatRange<TKey>(this IFdbSubspace subspace, IEnumerable<TKey> keys)
 			where TKey : IFdbKey
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
-			return subspace.Key.ConcatRange(keys.Select((key) => key.ToFoundationDbKey()));
+			return subspace.ToFoundationDbKey().ConcatRange(keys.Select((key) => key.ToFoundationDbKey()));
 		}
 
 		#endregion
 
-		#region Partitions...
+		#region Partition...
 
 		/// <summary>Partition this subspace into a child subspace</summary>
 		/// <typeparam name="T">Type of the child subspace key</typeparam>
@@ -167,10 +169,10 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
-		public static FdbSubspace Partition<T>(this FdbSubspace subspace, T value)
+		public static FdbSubspace Partition<T>(this IFdbSubspace subspace, T value)
 		{
 			//TODO: this should go into a FdbTupleSubspace, because it collides with FdbEncoderSubspace<T> !
-			return new FdbSubspace(FdbTuple.Concat<T>(subspace.Key, value));
+			return new FdbSubspace(FdbTuple.Concat<T>(subspace.ToFoundationDbKey(), value));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -183,10 +185,10 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
-		public static FdbSubspace Partition<T1, T2>(this FdbSubspace subspace, T1 value1, T2 value2)
+		public static FdbSubspace Partition<T1, T2>(this IFdbSubspace subspace, T1 value1, T2 value2)
 		{
 			//TODO: this should go into a FdbTupleSubspace, because it collides with FdbEncoderSubspace<T1, T2> !
-			return new FdbSubspace(FdbTuple.Concat<T1, T2>(subspace.Key, value1, value2));
+			return new FdbSubspace(FdbTuple.Concat<T1, T2>(subspace.ToFoundationDbKey(), value1, value2));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -200,10 +202,10 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
 		/// </example>
-		public static FdbSubspace Partition<T1, T2, T3>(this FdbSubspace subspace, T1 value1, T2 value2, T3 value3)
+		public static FdbSubspace Partition<T1, T2, T3>(this IFdbSubspace subspace, T1 value1, T2 value2, T3 value3)
 		{
 			//TODO: this should go into a FdbTupleSubspace, because it collides with FdbEncoderSubspace<T1, T2, T3> !
-			return new FdbSubspace(FdbTuple.Concat(subspace.Key, new FdbTuple<T1, T2, T3>(value1, value2, value3)));
+			return new FdbSubspace(FdbTuple.Concat(subspace.ToFoundationDbKey(), new FdbTuple<T1, T2, T3>(value1, value2, value3)));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -219,10 +221,10 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends", "Messages") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", "Messages", ])
 		/// </example>
-		public static FdbSubspace Partition<T1, T2, T3, T4>(this FdbSubspace subspace, T1 value1, T2 value2, T3 value3, T4 value4)
+		public static FdbSubspace Partition<T1, T2, T3, T4>(this IFdbSubspace subspace, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			//TODO: this should go into a FdbTupleSubspace, because it collides with FdbEncoderSubspace<T1, T2, T3, T4> !
-			return new FdbSubspace(FdbTuple.Concat(subspace.Key, new FdbTuple<T1, T2, T3, T4>(value1, value2, value3, value4)));
+			return new FdbSubspace(FdbTuple.Concat(subspace.ToFoundationDbKey(), new FdbTuple<T1, T2, T3, T4>(value1, value2, value3, value4)));
 		}
 
 		/// <summary>Parition this subspace by appending a tuple</summary>
@@ -232,11 +234,13 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition(["Contacts", "Friends", ]) => new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
-		public static FdbSubspace Partition(this FdbSubspace subspace, IFdbTuple tuple)
+		public static FdbSubspace Partition(this IFdbSubspace subspace, IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
-			if (tuple.Count == 0) return new FdbSubspace(subspace.Key);
-			return new FdbSubspace(FdbTuple.Concat(subspace.Key, tuple));
+			if (tuple.Count == 0)
+				return new FdbSubspace(subspace.ToFoundationDbKey());
+			else
+				return new FdbSubspace(FdbTuple.Concat(subspace.ToFoundationDbKey(), tuple));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -246,7 +250,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
-		public static FdbSubspace Partition(this FdbSubspace subspace, ITupleFormattable formattable)
+		public static FdbSubspace Partition(this IFdbSubspace subspace, ITupleFormattable formattable)
 		{
 			if (formattable == null) throw new ArgumentNullException("formattable");
 			var tuple = formattable.ToTuple();
@@ -260,34 +264,34 @@ namespace FoundationDB.Client
 
 		/// <summary>Return an empty tuple that is attached to this subspace</summary>
 		/// <returns>Empty tuple that can be extended, and whose packed representation will always be prefixed by the subspace key</returns>
-		public static IFdbTuple ToTuple(this FdbSubspace subspace)
+		public static IFdbTuple ToTuple(this IFdbSubspace subspace)
 		{
-			return new FdbPrefixedTuple(subspace.Key, FdbTuple.Empty);
+			return new FdbPrefixedTuple(subspace.ToFoundationDbKey(), FdbTuple.Empty);
 		}
 
 		/// <summary>Attach a tuple to an existing subspace.</summary>
 		/// <param name="tuple">Tuple whose items will be appended at the end of the current subspace</param>
 		/// <returns>Tuple that wraps the items of <paramref name="tuple"/> and whose packed representation will always be prefixed by the subspace key.</returns>
-		public static IFdbTuple Append(this FdbSubspace subspace, IFdbTuple tuple)
+		public static IFdbTuple Append(this IFdbSubspace subspace, IFdbTuple tuple)
 		{
-			return new FdbPrefixedTuple(subspace.Key, tuple);
+			return new FdbPrefixedTuple(subspace.ToFoundationDbKey(), tuple);
 		}
 
-		public static IFdbTuple AppendBoxed(this FdbSubspace subspace, object value)
+		public static IFdbTuple AppendBoxed(this IFdbSubspace subspace, object value)
 		{
-			return new FdbPrefixedTuple(subspace.Key, FdbTuple.CreateBoxed(value));
+			return new FdbPrefixedTuple(subspace.ToFoundationDbKey(), FdbTuple.CreateBoxed(value));
 		}
 
 		/// <summary>Convert a formattable item into a tuple that is attached to this subspace.</summary>
 		/// <param name="formattable">Item that can be converted into a tuple</param>
 		/// <returns>Tuple that is the logical representation of the item, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(formattable.ToTuple())'</remarks>
-		public static IFdbTuple Append(this FdbSubspace subspace, ITupleFormattable formattable)
+		public static IFdbTuple Append(this IFdbSubspace subspace, ITupleFormattable formattable)
 		{
 			if (formattable == null) throw new ArgumentNullException("formattable");
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException("Formattable item cannot return an empty tuple");
-			return new FdbPrefixedTuple(subspace.Key, tuple);
+			return new FdbPrefixedTuple(subspace.ToFoundationDbKey(), tuple);
 		}
 
 		/// <summary>Create a new 1-tuple that is attached to this subspace</summary>
@@ -295,9 +299,9 @@ namespace FoundationDB.Client
 		/// <param name="value">Value that will be appended</param>
 		/// <returns>Tuple of size 1 that contains <paramref name="value"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T&gt;(value))'</remarks>
-		public static IFdbTuple Append<T>(this FdbSubspace subspace, T value)
+		public static IFdbTuple Append<T>(this IFdbSubspace subspace, T value)
 		{
-			return Append(subspace, (IFdbTuple)FdbTuple.Create<T>(value));
+			return new FdbPrefixedTuple(subspace.ToFoundationDbKey(), FdbTuple.Create<T>(value));
 		}
 
 		/// <summary>Create a new 2-tuple that is attached to this subspace</summary>
@@ -307,9 +311,9 @@ namespace FoundationDB.Client
 		/// <param name="value2">Second value that will be appended</param>
 		/// <returns>Tuple of size 2 that contains <paramref name="value1"/> and <paramref name="value2"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2&gt;(value1, value2))'</remarks>
-		public static IFdbTuple Append<T1, T2>(this FdbSubspace subspace, T1 value1, T2 value2)
+		public static IFdbTuple Append<T1, T2>(this IFdbSubspace subspace, T1 value1, T2 value2)
 		{
-			return Append(subspace, (IFdbTuple)FdbTuple.Create<T1, T2>(value1, value2));
+			return new FdbPrefixedTuple(subspace.ToFoundationDbKey(), FdbTuple.Create<T1, T2>(value1, value2));
 		}
 
 		/// <summary>Create a new 3-tuple that is attached to this subspace</summary>
@@ -321,9 +325,9 @@ namespace FoundationDB.Client
 		/// <param name="value3">Third value that will be appended</param>
 		/// <returns>Tuple of size 3 that contains <paramref name="value1"/>, <paramref name="value2"/> and <paramref name="value3"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3&gt;(value1, value2, value3))'</remarks>
-		public static IFdbTuple Append<T1, T2, T3>(this FdbSubspace subspace, T1 value1, T2 value2, T3 value3)
+		public static IFdbTuple Append<T1, T2, T3>(this IFdbSubspace subspace, T1 value1, T2 value2, T3 value3)
 		{
-			return Append(subspace, (IFdbTuple)FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
+			return new FdbPrefixedTuple(subspace.ToFoundationDbKey(), FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
 		}
 
 		/// <summary>Create a new 4-tuple that is attached to this subspace</summary>
@@ -337,16 +341,16 @@ namespace FoundationDB.Client
 		/// <param name="value4">Fourth value that will be appended</param>
 		/// <returns>Tuple of size 4 that contains <paramref name="value1"/>, <paramref name="value2"/>, <paramref name="value3"/> and <paramref name="value4"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3, T4&gt;(value1, value2, value3, value4))'</remarks>
-		public static IFdbTuple Append<T1, T2, T3, T4>(this FdbSubspace subspace, T1 value1, T2 value2, T3 value3, T4 value4)
+		public static IFdbTuple Append<T1, T2, T3, T4>(this IFdbSubspace subspace, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			return Append(subspace, (IFdbTuple)FdbTuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
+			return new FdbPrefixedTuple(subspace.ToFoundationDbKey(), FdbTuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
 		}
 
 		/// <summary>Create a new N-tuple that is attached to this subspace</summary>
 		/// <param name="items">Array of items of the new tuple</param>
 		/// <returns>Tuple of size <paramref name="items"/>.Length, and whose packed representation will always be prefixed by the subspace key.</returns>
 		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create(items))'</remarks>
-		public static IFdbTuple AppendBoxed(this FdbSubspace subspace, params object[] items)
+		public static IFdbTuple AppendBoxed(this IFdbSubspace subspace, params object[] items)
 		{ //REVIEW: Append(arrayOfObjects) is ambiguous with Append(new object[] { arrayOfObjects }) because an object[] is also an object
 			return Append(subspace, FdbTuple.Create(items));
 		}
@@ -354,9 +358,9 @@ namespace FoundationDB.Client
 		/// <summary>Create a new key by appending a formattable object to the current subspace</summary>
 		/// <param name="tuple">Tuple to pack (can be empty)</param>
 		/// <returns>Key the correspond to the concatenation of the current subspace's prefix and the packed representation of <paramref name="tuple"/></returns>
-		public static Slice Pack(this FdbSubspace subspace, IFdbTuple tuple)
+		public static Slice Pack(this IFdbSubspace subspace, IFdbTuple tuple)
 		{
-			return FdbTuple.Concat(subspace.Key, tuple);
+			return FdbTuple.Concat(subspace.ToFoundationDbKey(), tuple);
 		}
 
 		/// <summary>Create a new key by appending a formattable object to the current subspace</summary>
@@ -364,7 +368,7 @@ namespace FoundationDB.Client
 		/// <returns>Key the correspond to the concatenation of the current subspace's prefix and the packed representation of the tuple returned by <paramref name="item"/>.ToTuple()</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="item"/> is null</exception>
 		/// <exception cref="System.InvalidOperationException">If calling <paramref name="item"/>.ToTuple() returns null.</exception>
-		public static Slice Pack(this FdbSubspace subspace, ITupleFormattable item)
+		public static Slice Pack(this IFdbSubspace subspace, ITupleFormattable item)
 		{
 			if (item == null) throw new ArgumentNullException("item");
 			var tuple = item.ToTuple();
@@ -376,9 +380,9 @@ namespace FoundationDB.Client
 		/// <param name="item">Value that will be appended at the end of the key</param>
 		/// <returns>Key the correspond to the concatenation of the current subspace's prefix and <paramref name="item"/></returns>
 		/// <example>tuple.PackBoxed(x) is the non-generic equivalent of tuple.Pack&lt;object&gt;(tuple)</example>
-		public static Slice PackBoxed(this FdbSubspace subspace, object item)
+		public static Slice PackBoxed(this IFdbSubspace subspace, object item)
 		{
-			return FdbTuple.ConcatBoxed(subspace.Key, item);
+			return FdbTuple.ConcatBoxed(subspace.ToFoundationDbKey(), item);
 		}
 
 		/// <summary>Create a new key by appending a value to the current subspace</summary>
@@ -386,9 +390,9 @@ namespace FoundationDB.Client
 		/// <param name="key">Value that will be appended at the end of the key</param>
 		/// <returns>Key the correspond to the concatenation of the current subspace's prefix and <paramref name="key"/></returns>
 		/// <example>tuple.Pack(x) is equivalent to tuple.Append(x).ToSlice()</example>
-		public static Slice Pack<T>(this FdbSubspace subspace, T key)
+		public static Slice Pack<T>(this IFdbSubspace subspace, T key)
 		{
-			return FdbTuple.Concat<T>(subspace.Key, key);
+			return FdbTuple.Concat<T>(subspace.ToFoundationDbKey(), key);
 		}
 
 		/// <summary>Create a new key by appending two values to the current subspace</summary>
@@ -398,9 +402,9 @@ namespace FoundationDB.Client
 		/// <param name="key2">Value that will be in the last position</param>
 		/// <returns>Key the correspond to the concatenation of the current subspace's prefix, <paramref name="key1"/> and <paramref name="key2"/></returns>
 		/// <example>(...,).Pack(x, y) is equivalent to (...,).Append(x).Append(y).ToSlice()</example>
-		public static Slice Pack<T1, T2>(this FdbSubspace subspace, T1 key1, T2 key2)
+		public static Slice Pack<T1, T2>(this IFdbSubspace subspace, T1 key1, T2 key2)
 		{
-			return FdbTuple.Concat<T1, T2>(subspace.Key, key1, key2);
+			return FdbTuple.Concat<T1, T2>(subspace.ToFoundationDbKey(), key1, key2);
 		}
 
 		/// <summary>Create a new key by appending three values to the current subspace</summary>
@@ -412,9 +416,9 @@ namespace FoundationDB.Client
 		/// <param name="key3">Value that will be appended third</param>
 		/// <returns>Key the correspond to the concatenation of the current subspace's prefix, <paramref name="key1"/>, <paramref name="key2"/> and <paramref name="key3"/></returns>
 		/// <example>tuple.Pack(x, y, z) is equivalent to tuple.Append(x).Append(y).Append(z).ToSlice()</example>
-		public static Slice Pack<T1, T2, T3>(this FdbSubspace subspace, T1 key1, T2 key2, T3 key3)
+		public static Slice Pack<T1, T2, T3>(this IFdbSubspace subspace, T1 key1, T2 key2, T3 key3)
 		{
-			return FdbTuple.Concat<T1, T2, T3>(subspace.Key, key1, key2, key3);
+			return FdbTuple.Concat<T1, T2, T3>(subspace.ToFoundationDbKey(), key1, key2, key3);
 		}
 
 		/// <summary>Create a new key by appending three values to the current subspace</summary>
@@ -428,63 +432,69 @@ namespace FoundationDB.Client
 		/// <param name="key4">Value that will be appended fourth</param>
 		/// <returns>Key the correspond to the concatenation of the current subspace's prefix, <paramref name="key1"/>, <paramref name="key2"/>, <paramref name="key3"/> and <paramref name="key4"/></returns>
 		/// <example>tuple.Pack(w, x, y, z) is equivalent to tuple.Append(w).Append(x).Append(y).Append(z).ToSlice()</example>
-		public static Slice Pack<T1, T2, T3, T4>(this FdbSubspace subspace, T1 key1, T2 key2, T3 key3, T4 key4)
+		public static Slice Pack<T1, T2, T3, T4>(this IFdbSubspace subspace, T1 key1, T2 key2, T3 key3, T4 key4)
 		{
-			return FdbTuple.Concat<T1, T2, T3, T4>(subspace.Key, key1, key2, key3, key4);
+			return FdbTuple.Concat<T1, T2, T3, T4>(subspace.ToFoundationDbKey(), key1, key2, key3, key4);
 		}
 
 		/// <summary>Pack a sequence of tuples, all sharing the same buffer</summary>
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
-		public static Slice[] PackRange(this FdbSubspace subspace, params IFdbTuple[] tuples)
+		public static Slice[] PackRange(this IFdbSubspace subspace, params IFdbTuple[] tuples)
 		{
-			return FdbTuple.PackRange(subspace.Key, tuples);
+			return FdbTuple.PackRange(subspace.ToFoundationDbKey(), tuples);
 		}
 
 		/// <summary>Pack a sequence of tuples, all sharing the same buffer</summary>
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
-		public static Slice[] PackRange(this FdbSubspace subspace, IEnumerable<IFdbTuple> tuples)
+		public static Slice[] PackRange(this IFdbSubspace subspace, IEnumerable<IFdbTuple> tuples)
 		{
-			return FdbTuple.PackRange(subspace.Key, tuples);
+			return FdbTuple.PackRange(subspace.ToFoundationDbKey(), tuples);
 		}
 
 		/// <summary>Merge a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] PackRange<T>(this FdbSubspace subspace, IEnumerable<T> keys)
+		public static Slice[] PackRange<T>(this IFdbSubspace subspace, IEnumerable<T> keys)
 		{
-			return FdbTuple.PackRange<T>(subspace.Key, keys);
+			return FdbTuple.PackRange<T>(subspace.ToFoundationDbKey(), keys);
 		}
 
 		/// <summary>Merge a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] PackRange<T>(this FdbSubspace subspace, T[] keys)
+		public static Slice[] PackRange<T>(this IFdbSubspace subspace, T[] keys)
 		{
-			return FdbTuple.PackRange<T>(subspace.Key, keys);
+			return FdbTuple.PackRange<T>(subspace.ToFoundationDbKey(), keys);
 		}
 
 		/// <summary>Pack a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] PackBoxedRange(this FdbSubspace subspace, IEnumerable<object> keys)
+		public static Slice[] PackBoxedRange(this IFdbSubspace subspace, IEnumerable<object> keys)
 		{
-			return FdbTuple.PackBoxedRange(subspace.Key, keys);
+			return FdbTuple.PackBoxedRange(subspace.ToFoundationDbKey(), keys);
 		}
 
 		/// <summary>Pack a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] PackBoxedRange(this FdbSubspace subspace, object[] keys)
+		public static Slice[] PackBoxedRange(this IFdbSubspace subspace, object[] keys)
 		{
 			//note: cannot use "params object[]" because it may conflict with PackRange(IEnumerable<object>)
-			return FdbTuple.PackBoxedRange(subspace.Key, keys);
+			return FdbTuple.PackBoxedRange(subspace.ToFoundationDbKey(), keys);
 		}
+
+		#endregion
+
+		#region Unpack...
+
+		//REVIEW: right now we can't hook these methods to the IFdbKey interface because we need "ExtractAndCheck" that is on defined on FdbSubspace
 
 		/// <summary>Unpack a key into a tuple, with the subspace prefix removed</summary>
 		/// <param name="key">Packed version of a key that should fit inside this subspace.</param>
