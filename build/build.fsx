@@ -8,6 +8,7 @@ RestorePackages()
 // Properties
 let version = "0.200.5-pre"
 let buildDir = "./build/output/"
+let nugetPath = ".nuget/nuget.exe"
 let nugetOutDir = buildDir + "_packages/"
 
 let BuildProperties =
@@ -38,7 +39,6 @@ Target "BuildApp" (fun _ ->
     |> Seq.iter(fun (f,d) -> MSBuild d "Build" BuildProperties (seq { yield f }) |> ignore)
 )
 
-
 Target "Test" (fun _ ->
     let testDir = buildDir + "tests/"
     CreateDir testDir
@@ -51,14 +51,19 @@ Target "Test" (fun _ ->
                           WorkingDir = testDir
                           ExcludeCategory = "LongRunning,LocalCluster" }))
 
+Target "Release" (fun _ ->
+    traceHeader "BUILDING RELEASE"
+)
+
 let replaceVersionInNuspec nuspecFileName version =
     let re = @"(?<start>\<version\>|""FoundationDB.Client""\s?version="")[^""<>]+(?<end>\<\/version\>|"")"
     let nuspecContents = ReadFileAsString nuspecFileName
     let replacedContents = regex_replace re (sprintf "${start}%s${end}" version) nuspecContents
     WriteStringToFile false nuspecFileName replacedContents
 
-Target "Release" (fun _ ->
-    let projects = [ "FoundationDb.Client"; "FoundationDb.Layers.Common" ]
+Target "BuildNuget" (fun _ ->
+    trace "Building Nuget Packages"
+    let projects = [ "FoundationDb.Client"; "FoundationDb.Layers.Common" ]   
     CreateDir nugetOutDir
     projects
     |> List.iter (
@@ -70,6 +75,7 @@ Target "Release" (fun _ ->
                 fun p ->
                     { p with WorkingDir = binariesDir
                              OutputPath = nugetOutDir
+                             ToolPath = nugetPath
                              Version = version}) nuspec
 
             let targetLoc = (buildDir + (sprintf "%s/%s.%s.nupkg" name name version))
@@ -83,6 +89,7 @@ Target "Default" (fun _ -> trace "Starting build")
 
 // Dependencies
 "Clean" ==> "BuildApp" ==> "Test" ==> "Build"
+"Clean" ==> "BuildApp" ==> "BuildNuget" ==> "Release"
 
 // start build
 RunTargetOrDefault "Build"
