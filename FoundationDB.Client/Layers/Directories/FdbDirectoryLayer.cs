@@ -529,7 +529,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			Contract.Requires(readTrans != null || trans != null, "Need at least one transaction");
 			Contract.Requires(path != null, "Path must be specified");
-			Contract.Requires(trans == null || object.ReferenceEquals(readTrans, trans), "The write transaction should be the same as the read transaction");
+			Contract.Requires(readTrans == null || trans == null || object.ReferenceEquals(readTrans, trans), "The write transaction should be the same as the read transaction");
 
 			if (path.Count == 0)
 			{ // Root directory contains node metadata and so may not be opened.
