@@ -162,7 +162,7 @@ namespace FoundationDB.Client
 		/// <summary>Tests whether the specified <paramref name="key"/> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="key"/>.</summary>
 		/// <param name="key">The key to be tested</param>
 		/// <remarks>The key Slice.Nil is not contained by any Subspace, so subspace.Contains(Slice.Nil) will always return false</remarks>
-		public bool Contains(Slice key)
+		public virtual bool Contains(Slice key)
 		{
 			return key.HasValue && key.StartsWith(this.InternalKey);
 		}

@@ -845,13 +845,7 @@ namespace FoundationDB.Layers.Directories
 				shouldPass(() => { var _ = partition.Copy().Key; }); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
 				shouldPass(() => partition.ToString()); // EXCEPTION: this should never fail!
 				shouldPass(() => partition.DumpKey(barKey)); // EXCEPTION: this should always work, because this can be used for debugging and logging...
-
-				// Bound Check
 				shouldPass(() => partition.BoundCheck(barKey, true)); // EXCEPTION: needs to work because it is used by GetRange() and GetKey()
-
-				// Contains
-				shouldPass(() => partition.Contains(subdir)); // EXCEPTION: testing if a key belongs to a partition should be allowed
-				shouldPass(() => partition.Contains(barKey)); // EXCEPTION: testing if a key belongs to a partition should be allowed
 
 				// === FAIL ====
 
@@ -860,6 +854,10 @@ namespace FoundationDB.Layers.Directories
 
 				// ToFoundationDBKey
 				shouldFail(() => ((IFdbKey)partition).ToFoundationDbKey());
+
+				// Contains
+				shouldFail(() => partition.Contains(subdir));
+				shouldFail(() => partition.Contains(barKey));
 
 				// Extract / ExtractAndCheck / BoundCheck
 				shouldFail(() => partition.Extract(barKey));

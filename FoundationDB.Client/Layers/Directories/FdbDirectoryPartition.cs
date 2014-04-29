@@ -56,6 +56,11 @@ namespace FoundationDB.Layers.Directories
 			throw new InvalidOperationException("Cannot create keys in the root of a directory partition.");
 		}
 
+		public override bool Contains(Slice key)
+		{
+			throw new InvalidOperationException("Cannot check whether a key belongs to the root of a directory partition.");
+		}
+
 		protected override IFdbTuple ToRelativePath(IEnumerable<string> path)
 		{
 			return path == null ? FdbTuple.Empty : FdbTuple.CreateRange<string>(path);
