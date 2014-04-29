@@ -48,8 +48,8 @@ namespace FoundationDB.Layers.Messaging
 		public DateTimeOffset Received { get; internal set; }
 	}
 
-    public class FdbWorkerPool
-    {
+	public class FdbWorkerPool
+	{
 		/// <summary>Size of the randomly generate id. Range will be 0..(2^(8*N))-1</summary>
 		/// <remarks>Should be in the same scale as the hashcode generated from the queue names !</remarks>
 		private const int RANDOM_ID_BYTES = 4;

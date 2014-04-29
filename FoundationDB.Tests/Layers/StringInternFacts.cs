@@ -101,6 +101,8 @@ namespace FoundationDB.Layers.Interning.Tests
 					Assert.That(str_d, Is.EqualTo("cat"));
 					Assert.That(str_e, Is.EqualTo(str_d));
 				}
+
+				stringTable.Dispose();
 			}
 		}
 

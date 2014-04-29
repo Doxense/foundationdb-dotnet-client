@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ namespace FoundationDB.Layers.Interning
 	/// <summary>Provides a class for interning (aka normalizing, aliasing) commonly-used long strings into shorter representations.</summary>
 	[DebuggerDisplay("Subspace={Subspace}")]
 	[Obsolete("FIXME! This version of the layer has a MAJOR bug!")]
-	public class FdbStringIntern
+	public class FdbStringIntern : IDisposable
 	{
 		//BUGBUGBUG: the current implementation has a bug with the cache, when a transaction fails to commit!
 		//TODO: rewrite this to use typed subspaces !
@@ -328,6 +328,20 @@ namespace FoundationDB.Layers.Interning
 		}
 
 		#endregion
+
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+		protected virtual void Dispose(bool disposing)
+		{
+			if (disposing)
+			{
+				m_lock.Dispose();
+			}
+		}
 
 	}
 
