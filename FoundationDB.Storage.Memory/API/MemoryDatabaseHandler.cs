@@ -2,6 +2,8 @@
 // See License.MD for license information
 #endregion
 
+#undef FULLDEBUG
+
 namespace FoundationDB.Storage.Memory.API
 {
 	using FoundationDB.Client;
@@ -190,6 +192,15 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
+		/// <summary>Commits the changes made by a transaction to the database.</summary>
+		/// <param name="trans"></param>
+		/// <param name="readVersion"></param>
+		/// <param name="readConflicts"></param>
+		/// <param name="writeConflicts"></param>
+		/// <param name="clearRanges"></param>
+		/// <param name="writes"></param>
+		/// <returns></returns>
+		/// <remarks>This method is not thread safe and must be called from the writer thread.</remarks>
 		internal unsafe long CommitTransaction(MemoryTransactionHandler trans, long readVersion, ColaRangeSet<Slice> readConflicts, ColaRangeSet<Slice> writeConflicts, ColaRangeSet<Slice> clearRanges, ColaOrderedDictionary<Slice, MemoryTransactionHandler.WriteCommand[]> writes)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -847,6 +858,119 @@ namespace FoundationDB.Storage.Memory.API
 			return new KeyValuePair<Slice, Slice>(keyData, valueData);
 		}
 
+		/// <summary>Range iterator that will return the keys and values at a specific sequence</summary>
+		internal sealed unsafe class RangeIterator : IDisposable
+		{
+			private readonly MemoryDatabaseHandler m_handler;
+			private readonly ulong m_sequence;
+			private readonly ColaStore.Iterator<IntPtr> m_iterator;
+			private readonly IntPtr m_stopKey;
+			private readonly IComparer<IntPtr> m_comparer;
+			private readonly long m_limit;
+			private readonly long m_targetBytes;
+			private readonly bool m_reverse;
+			private bool m_done;
+			private long m_readKeys;
+			private long m_readBytes;
+			private Key* m_currentKey;
+			private Value* m_currentValue;
+			private bool m_disposed;
+
+			internal RangeIterator(MemoryDatabaseHandler handler, ulong sequence, ColaStore.Iterator<IntPtr> iterator, IntPtr stopKey, IComparer<IntPtr> comparer, bool reverse)
+			{
+				Contract.Requires(handler != null && iterator != null && comparer != null);
+				m_handler = handler;
+				m_sequence = sequence;
+				m_iterator = iterator;
+				m_stopKey = stopKey;
+				m_comparer = comparer;
+				m_reverse = reverse;
+			}
+
+			public long Sequence { get { return (long)m_sequence; } }
+
+			public long Count { get { return m_readKeys; } }
+
+			public long Bytes { get { return m_readBytes; } }
+
+			public long TargetBytes { get { return m_targetBytes; } }
+
+			public bool Reverse { get { return m_reverse; } }
+
+			public Key* Key { get { return m_currentKey; } }
+
+			public Value* Value { get { return m_currentValue; } }
+
+			public bool Done { get { return m_done; } }
+
+			public bool MoveNext()
+			{
+				if (m_done || m_disposed) return false;
+
+				bool gotOne = false;
+
+				while (!gotOne)
+				{
+					var current = m_iterator.Current;
+					DumpKey("current", current);
+
+					Value* value = MemoryDatabaseHandler.ResolveValueAtVersion(current, m_sequence);
+					if (value != null)
+					{
+						if (m_stopKey != IntPtr.Zero)
+						{
+							int c = m_comparer.Compare(current, m_stopKey);
+							if (m_reverse ? (c < 0 /* BEGIN KEY IS INCLUDED! */) : (c >= 0 /* END KEY IS EXCLUDED! */))
+							{	// we reached the end, stop there !
+								DumpKey("stopped at ", current);
+								MarkAsDone();
+								break;
+							}
+						}
+						Key* key = (Key*)current;
+						++m_readKeys;
+						m_readBytes += checked(key->Size + value->Size);
+						m_currentKey = key;
+						m_currentValue = value;
+						gotOne = true;
+					}
+
+					// prepare for the next value
+					if (!(m_reverse ? m_iterator.Previous() : m_iterator.Next()))
+					{
+						// out of data to read ?
+						MarkAsDone();
+						break;
+					}
+				}
+
+				if (gotOne)
+				{ // we have found a value
+					return true;
+				}
+
+				m_currentKey = null;
+				m_currentValue = null;
+				return false;
+			}
+
+			private void MarkAsDone()
+			{
+				m_done = true;
+			}
+
+			public void Dispose()
+			{
+				if (!m_disposed)
+				{
+					m_disposed = true;
+					m_currentKey = null;
+					m_currentValue = null;
+					//TODO: release any locks taken
+				}
+			}
+		}
+
 		internal unsafe Task<FdbRangeChunk> GetRangeAtVersion(FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool reverse, long readVersion)
 		{
 			if (m_disposed) ThrowDisposed();
@@ -857,7 +981,7 @@ namespace FoundationDB.Storage.Memory.API
 			if (limit == 0) limit = 10000;
 			if (targetBytes == 0) targetBytes = int.MaxValue;
 
-			bool done = false;
+			//bool done = false;
 
 			m_dataLock.EnterReadLock();
 			try
@@ -885,6 +1009,7 @@ namespace FoundationDB.Storage.Memory.API
 						if (iterator.Current == IntPtr.Zero) iterator.SeekFirst();
 					}
 
+#if REFACTORED
 					while (limit > 0 && targetBytes > 0)
 					{
 						DumpKey("current", iterator.Current);
@@ -911,7 +1036,7 @@ namespace FoundationDB.Storage.Memory.API
 							break;
 						}
 					}
-
+#endif
 				}
 				else
 				{ // reverse range read: we start from the key before endKey, and stop once we read a key < beginKey
@@ -929,13 +1054,19 @@ namespace FoundationDB.Storage.Memory.API
 						// now, set the cursor to the end of the range
 						iterator = ResolveCursor(PackUserKey(scratch.Builder, end.Key), end.OrEqual, end.Offset, sequence);
 						DumpKey("resolved(" + end + ")", iterator.Current);
-						if (iterator.Current == IntPtr.Zero) iterator.SeekLast();
-						DumpKey("endKey", iterator.Current);
-
-						// note: since the end is NOT included in the result, we need to already move the cursor once
-						iterator.Previous();
+						if (iterator.Current == IntPtr.Zero)
+						{
+							iterator.SeekLast();
+							DumpKey("endKey", iterator.Current);
+						}
+						else
+						{
+							// note: since the end is NOT included in the result, we need to already move the cursor once
+							iterator.Previous();
+						}
 					}
 
+#if REFACTORED
 					while (limit > 0 && targetBytes > 0)
 					{
 						DumpKey("current", iterator.Current);
@@ -963,18 +1094,31 @@ namespace FoundationDB.Storage.Memory.API
 							break;
 						}
 					}
+#endif
 				}
 
-				bool hasMore = !done;
+				// run the iterator until we reach the end of the range, the end of the database, or any count or size limit
+				using (var rangeIterator = new RangeIterator(this, sequence, iterator, stopKey, m_data.Comparer, reverse))
+				{
+					while (rangeIterator.MoveNext())
+					{
+						var item = CopyResultToManagedMemory(buffer, rangeIterator.Key, rangeIterator.Value);
+						results.Add(item);
 
-				var chunk = new FdbRangeChunk(
-					hasMore,
-					results.ToArray(),
-					iteration,
-					reverse
-				);
-				return Task.FromResult(chunk);
+						if (limit > 0 && rangeIterator.Count >= limit) break;
+						if (targetBytes > 0 && rangeIterator.Bytes >= targetBytes) break;
+					}
 
+					bool hasMore = !rangeIterator.Done;
+
+					var chunk = new FdbRangeChunk(
+						hasMore,
+						results.ToArray(),
+						iteration,
+						reverse
+					);
+					return Task.FromResult(chunk);
+				}
 			}
 			finally
 			{
@@ -1012,6 +1156,8 @@ namespace FoundationDB.Storage.Memory.API
 			//HACKHACK: TODO!
 			return (ulong)Volatile.Read(ref m_currentVersion);
 		}
+
+		#region Loading & Saving...
 
 		internal async Task<long> SaveSnapshotAsync(string path, MemorySnapshotOptions options, CancellationToken cancellationToken)
 		{
@@ -1203,6 +1349,8 @@ namespace FoundationDB.Storage.Memory.API
 				//m_dataLock.ExitWriteLock();
 			}
 		}
+
+		#endregion
 
 		#region Writer Thread...
 

@@ -46,7 +46,6 @@ namespace FoundationDB.Storage.Memory.IO
 		private ulong m_dataEnd;
 
 		private int m_levels;
-		private byte[] m_buffer;
 
 		public SnapshotReader(Win32MemoryMappedFile file)
 		{

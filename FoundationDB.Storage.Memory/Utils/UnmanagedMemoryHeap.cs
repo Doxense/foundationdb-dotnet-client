@@ -14,7 +14,7 @@ namespace FoundationDB.Storage.Memory.Utils
 
 	/// <summary>Allocate of unmanage memory pages</summary>
 	[DebuggerDisplay("Used={m_memoryUsage}, PageSize={m_pageSize}, Pages={m_pages.Count}")]
-	public unsafe class UnmanagedMemoryHeap : IDisposable
+	public unsafe sealed class UnmanagedMemoryHeap : IDisposable
 	{
 		// Allocator strategy:
 		// To keep it simple, we have several pages that get filled one by one

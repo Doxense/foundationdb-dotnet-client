@@ -81,12 +81,12 @@ namespace FoundationDB.Storage.Memory.IO
 		[SecurityCritical, DllImport("kernel32.dll", SetLastError = true)]
 		private static extern void GetSystemInfo(ref SYSTEM_INFO lpSystemInfo);
 
-		[SecurityCritical, DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+		[SecurityCritical, DllImport("kernel32.dll", SetLastError = true)]
 		[return: MarshalAs(UnmanagedType.Bool)]
 		public static extern bool GlobalMemoryStatusEx([In, Out] MEMORYSTATUSEX lpBuffer);
 
-		[SecurityCritical, DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-		public static extern SafeMemoryMappedFileHandle CreateFileMapping(SafeFileHandle hFile, SECURITY_ATTRIBUTES lpAttributes, FileMapProtection fProtect, uint dwMaximumSizeHigh, uint dwMaximumSizeLow, [MarshalAs(UnmanagedType.LPStr)] string lpName);
+		[SecurityCritical, DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+		public static extern SafeMemoryMappedFileHandle CreateFileMapping(SafeFileHandle hFile, SECURITY_ATTRIBUTES lpAttributes, FileMapProtection fProtect, uint dwMaximumSizeHigh, uint dwMaximumSizeLow, string lpName);
 
 		[SecurityCritical, DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
 		public static extern SafeMemoryMappedViewHandle MapViewOfFile(SafeMemoryMappedFileHandle handle, FileMapAccess dwDesiredAccess, uint dwFileOffsetHigh, uint dwFileOffsetLow, UIntPtr dwNumberOfBytesToMap);

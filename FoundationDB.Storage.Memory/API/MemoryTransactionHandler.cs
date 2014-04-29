@@ -21,7 +21,7 @@ namespace FoundationDB.Storage.Memory.API
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public class MemoryTransactionHandler : IFdbTransactionHandler, IDisposable
+	public sealed class MemoryTransactionHandler : IFdbTransactionHandler, IDisposable
 	{
 		internal const int MaxKeySize = 10 * 1000; //note: this should be the same as FoundationDB !
 		internal const int MaxValueSize = 100 * 1000; //note: this should be the same as FoundationDB !

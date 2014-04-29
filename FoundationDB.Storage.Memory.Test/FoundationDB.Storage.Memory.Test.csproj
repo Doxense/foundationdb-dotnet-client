@@ -24,6 +24,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
+    <UseVSHostingProcess>false</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -62,6 +63,7 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Transactions\Benchmarks.cs" />
+    <Compile Include="Transactions\Comparisons.cs" />
     <Compile Include="Transactions\SnapshotFacts.cs" />
     <Compile Include="Transactions\MemoryTransactionFacts.cs" />
   </ItemGroup>

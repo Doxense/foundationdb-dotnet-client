@@ -69,13 +69,18 @@ namespace FoundationDB.Storage.Memory.Core
 		{
 			get
 			{
-				if (index < 0 || index >= m_items.Count) throw new IndexOutOfRangeException("Index is out of range");
+				if (index < 0 || index >= m_items.Count) ThrowIndexOutOfRangeException();
 				int offset;
 				int level = ColaStore.MapOffsetToLocation(m_items.Count, index, out offset);
 				Contract.Assert(level >= 0);
 				return m_items.GetAt(level, offset);
 			}
 		}
+
+		private static void ThrowIndexOutOfRangeException()
+		{
+			throw new IndexOutOfRangeException("Index is out of range");
+        }
 
 		#endregion
 
