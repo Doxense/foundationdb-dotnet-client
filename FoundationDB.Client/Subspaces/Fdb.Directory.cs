@@ -111,7 +111,7 @@ namespace FoundationDB.Client
 				if (db == null) throw new ArgumentNullException("db");
 				if (parent == null) throw new ArgumentNullException("parent");
 
-				return await db.ReadWriteAsync(async (tr) =>
+				return await db.ReadAsync(async (tr) =>
 				{
 					// read the names of all the subdirectories
 					var names = await parent.ListAsync(tr).ConfigureAwait(false);

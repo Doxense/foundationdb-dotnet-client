@@ -113,25 +113,25 @@ namespace FoundationDB.Client
 
 		public Task<FdbDirectorySubspace> OpenAsync(string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.OpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
+			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> OpenAsync(string name, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.OpenAsync(tr, new[] { name }, layer), cancellationToken);
+			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> OpenAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.OpenAsync(tr, path, Slice.Nil), cancellationToken);
+			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> OpenAsync(IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.OpenAsync(tr, path, layer), cancellationToken);
+			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, path, layer), cancellationToken);
 		}
 
-		Task<FdbDirectorySubspace> IFdbDirectory.OpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer)
+		Task<FdbDirectorySubspace> IFdbDirectory.OpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer)
 		{
 			return m_directory.OpenAsync(trans, path, layer);
 		}
@@ -142,25 +142,25 @@ namespace FoundationDB.Client
 
 		public Task<FdbDirectorySubspace> TryOpenAsync(string name, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
+			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> TryOpenAsync(string name, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryOpenAsync(tr, new[] { name }, layer), cancellationToken);
+			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> TryOpenAsync(IEnumerable<string> path, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryOpenAsync(tr, path, Slice.Nil), cancellationToken);
+			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
 		public Task<FdbDirectorySubspace> TryOpenAsync(IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
-			return m_database.ReadWriteAsync((tr) => m_directory.TryOpenAsync(tr, path, layer), cancellationToken);
+			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, path, layer), cancellationToken);
 		}
 
-		Task<FdbDirectorySubspace> IFdbDirectory.TryOpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer)
+		Task<FdbDirectorySubspace> IFdbDirectory.TryOpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer)
 		{
 			return m_directory.TryOpenAsync(trans, path, layer);
 		}

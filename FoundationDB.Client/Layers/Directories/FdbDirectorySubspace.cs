@@ -141,7 +141,7 @@ namespace FoundationDB.Layers.Directories
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
 
-			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, ToRelativePath(path), layer, Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true);
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(null, trans, ToRelativePath(path), layer, Slice.Nil, allowCreate: true, allowOpen: true, throwOnError: true);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
@@ -150,11 +150,11 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		/// <param name="layer">If specified, the opened directory must have the same layer id.</param>
-		public Task<FdbDirectorySubspace> OpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
+		public Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
-			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, null, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: true);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
@@ -164,11 +164,11 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Relative path of the subdirectory to open</param>
 		/// <param name="layer">If specified, the opened directory must have the same layer id.</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
-		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
+		public Task<FdbDirectorySubspace> TryOpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default(Slice))
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
-			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, null, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: false, allowOpen: true, throwOnError: false);
 		}
 
 		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
@@ -181,7 +181,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
-			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: true);
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(null, trans, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: true);
 		}
 
 		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
@@ -194,7 +194,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (path == null) throw new ArgumentNullException("path");
-			return this.DirectoryLayer.CreateOrOpenInternalAsync(trans, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: false);
+			return this.DirectoryLayer.CreateOrOpenInternalAsync(null, trans, ToRelativePath(path), layer, prefix: Slice.Nil, allowCreate: true, allowOpen: false, throwOnError: false);
 		}
 
 		/// <summary>Moves the current directory to <paramref name="newAbsolutePath"/>.
