@@ -13,7 +13,6 @@ let nugetOutDir = buildDir + "_packages/"
 
 let BuildProperties =
     [
-        "Configuration", "Release"
         "TargetPlatform", "AnyCPU"
         "AllowUnsafeBlocks", "true"
     ]
@@ -24,7 +23,7 @@ Target "Clean" (fun _ ->
 // Default target
 Target "Build" (fun _ -> traceHeader "STARTING BUILD")
 
-Target "BuildApp" (fun _ ->
+let buildProject mode =
     let binDirs =
         !! "**/bin/**"
         |> Seq.map DirectoryName
@@ -33,13 +32,23 @@ Target "BuildApp" (fun _ ->
 
     CleanDirs binDirs
 
-    //Compile each csproj and output it seperately in build/output/PROJECTNAME
+    //Compile each csproj and output it separately in build/output/PROJECTNAME
     !! "**/*.csproj"
     |> Seq.map(fun f -> (f, buildDir + directoryInfo(f).Name.Replace(".csproj", "")))
-    |> Seq.iter(fun (f,d) -> MSBuild d "Build" BuildProperties (seq { yield f }) |> ignore)
+    |> Seq.iter(fun (f,d) -> MSBuild d "Build" (BuildProperties @ [ "Configuration", mode ]) (seq { yield f }) |> ignore)
+
+Target "BuildAppRelease" (fun _ ->
+    traceHeader "BUILDING APP (Release)"
+    buildProject "Release"
+)
+
+Target "BuildAppDebug" (fun _ ->
+    traceHeader "BUILDING APP (Debug)"
+    buildProject "Debug"
 )
 
 Target "Test" (fun _ ->
+    traceHeader "RUNNING UNIT TESTS"
     let testDir = buildDir + "tests/"
     CreateDir testDir
     !!(buildDir + "**/*Test*.dll")
@@ -88,8 +97,8 @@ Target "BuildNuget" (fun _ ->
 Target "Default" (fun _ -> trace "Starting build")
 
 // Dependencies
-"Clean" ==> "BuildApp" ==> "Test" ==> "Build"
-"Clean" ==> "BuildApp" ==> "BuildNuget" ==> "Release"
+"Clean" ==> "BuildAppDebug" ==> "Test" ==> "Build"
+"Clean" ==> "BuildAppRelease" ==> "BuildNuget" ==> "Release"
 
 // start build
 RunTargetOrDefault "Build"
