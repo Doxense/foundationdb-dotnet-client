@@ -51,7 +51,9 @@ Target "Test" (fun _ ->
     traceHeader "RUNNING UNIT TESTS"
     let testDir = buildDir + "tests/"
     CreateDir testDir
+    ActivateFinalTarget "CloseTestRunner"
     !!(buildDir + "**/*Test*.dll")
+    ++(buildDir + "**/*Test*.exe")
     |> NUnit(
         fun p -> { p with DisableShadowCopy = true
                           OutputFile = "TestResults.xml"
@@ -59,6 +61,10 @@ Target "Test" (fun _ ->
                           ErrorLevel = DontFailBuild
                           WorkingDir = testDir
                           ExcludeCategory = "LongRunning,LocalCluster" }))
+
+FinalTarget "CloseTestRunner" (fun _ ->  
+    ProcessHelper.killProcess "nunit-agent.exe"
+)
 
 Target "Release" (fun _ ->
     traceHeader "BUILDING RELEASE"
@@ -85,6 +91,7 @@ Target "BuildNuget" (fun _ ->
                     { p with WorkingDir = binariesDir
                              OutputPath = nugetOutDir
                              ToolPath = nugetPath
+                             TimeOut = System.TimeSpan.FromMinutes 10.0
                              Version = version}) nuspec
 
             let targetLoc = (buildDir + (sprintf "%s/%s.%s.nupkg" name name version))
