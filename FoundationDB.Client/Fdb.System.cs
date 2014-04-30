@@ -52,11 +52,20 @@ namespace FoundationDB.Client
 			/// <summary>"\xFF\x00"</summary>
 			public static readonly Slice MinValue = Slice.FromAscii("\xFF\x00");
 
+			/// <summary>"\xFF/backupDataFormat"</summary>
+			public static readonly Slice BackupDataFormat = Slice.FromAscii("\xFF/backupDataFormat");
+
 			/// <summary>"\xFF/conf/"</summary>
 			public static readonly Slice ConfigPrefix = Slice.FromAscii("\xFF/conf/");
 
 			/// <summary>"\xFF/coordinators"</summary>
 			public static readonly Slice Coordinators = Slice.FromAscii("\xFF/coordinators");
+
+			/// <summary>"\xFF/globals/"</summary>
+			public static readonly Slice GlobalsPrefix = Slice.FromAscii("\xFF/globals/");
+
+			/// <summary>"\xFF/init_id"</summary>
+			public static readonly Slice InitId = Slice.FromAscii("\xFF/init_id");
 
 			/// <summary>"\xFF/keyServer/(key_boundary)" => (..., node_id, ...)</summary>
 			public static readonly Slice KeyServers = Slice.FromAscii("\xFF/keyServers/");
@@ -68,7 +77,7 @@ namespace FoundationDB.Client
 			public static readonly Slice ServerList = Slice.FromAscii("\xFF/serverList/");
 
 			/// <summary>"\xFF/workers/(ip:port)/..." => datacenter + machine + mclass</summary>
-			public static readonly Slice Workers = Slice.FromAscii("\xFF/workers/");
+			public static readonly Slice WorkersPrefix = Slice.FromAscii("\xFF/workers/");
 
 			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
 			/// <param name="db">Database to use for the operation</param>
@@ -108,17 +117,37 @@ namespace FoundationDB.Client
 					tr.SetOption(FdbTransactionOption.PrioritySystemImmediate);
 					//note: we ask for high priotity, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
-					return tr.GetAsync(Fdb.System.GetConfigKey(name));
+					return tr.GetAsync(Fdb.System.ConfigKey(name));
 				}, cancellationToken);
 			}
 
 			/// <summary>Return the corresponding key for a config attribute</summary>
 			/// <param name="name">"foo"</param>
-			/// <returns>"\xFF/config/foo"</returns>
-			internal static Slice GetConfigKey(string name)
+			/// <returns>"\xFF/conf/foo"</returns>
+			public static Slice ConfigKey(string name)
 			{
-				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Config key cannot be null or empty", "name");
-				return ConfigPrefix.Concat(Slice.FromAscii(name));
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", "name");
+				return ConfigPrefix + Slice.FromAscii(name);
+			}
+
+			/// <summary>Return the corresponding key for a global attribute</summary>
+			/// <param name="name">"foo"</param>
+			/// <returns>"\xFF/globals/foo"</returns>
+			public static Slice GlobalsKey(string name)
+			{
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", "name");
+				return GlobalsPrefix + Slice.FromAscii(name);
+			}
+
+			/// <summary>Return the corresponding key for a global attribute</summary>
+			/// <param name="id">"ABC123"</param>
+			/// <param name="name">"foo"</param>
+			/// <returns>"\xFF/workers/ABC123/foo"</returns>
+			public static Slice WorkersKey(string id, string name)
+			{
+				if (string.IsNullOrEmpty(id)) throw new ArgumentException("Id cannot be null or empty", "id");
+				if (string.IsNullOrEmpty(name)) throw new ArgumentException("Attribute name cannot be null or empty", "name");
+				return WorkersPrefix + Slice.FromAscii(id) + Slice.FromChar('/') + Slice.FromAscii(name);
 			}
 
 			/// <summary>Returns the current storage engine mode of the cluster</summary>
