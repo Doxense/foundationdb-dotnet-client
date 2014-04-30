@@ -135,6 +135,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		}
 
 		[Test]
+		[Category("LongRunning")]
 		public void Test_MiniBench()
 		{
 			const int N = 10 * 1000 * 1000;

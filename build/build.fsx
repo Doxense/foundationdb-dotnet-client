@@ -60,6 +60,7 @@ Target "Test" (fun _ ->
                           StopOnError = false
                           ErrorLevel = DontFailBuild
                           WorkingDir = testDir
+                          TimeOut = System.TimeSpan.FromMinutes 10.0
                           ExcludeCategory = "LongRunning,LocalCluster" }))
 
 FinalTarget "CloseTestRunner" (fun _ ->  
@@ -91,7 +92,6 @@ Target "BuildNuget" (fun _ ->
                     { p with WorkingDir = binariesDir
                              OutputPath = nugetOutDir
                              ToolPath = nugetPath
-                             TimeOut = System.TimeSpan.FromMinutes 10.0
                              Version = version}) nuspec
 
             let targetLoc = (buildDir + (sprintf "%s/%s.%s.nupkg" name name version))

@@ -19,6 +19,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
+	[Category("LongRunning")]
 	public class Benchmarks : FdbTest
 	{
 
