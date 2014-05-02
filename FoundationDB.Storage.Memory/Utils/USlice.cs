@@ -132,7 +132,6 @@ namespace FoundationDB.Storage.Memory.Utils
 		public bool Equals(USlice other)
 		{
 			if (this.Count != other.Count) return false;
-
 			if (this.Data == other.Data) return true;
 			if (this.Data == null || other.Data == null) return false;
 
@@ -143,6 +142,17 @@ namespace FoundationDB.Storage.Memory.Utils
 		public int CompareTo(USlice other)
 		{
 			return UnmanagedHelpers.CompareUnsafe(this.Data, this.Count, other.Data, other.Count);
+		}
+
+		public override bool Equals(object obj)
+		{
+			if (obj == null) return this.Data == null && this.Count == 0;
+			return obj is USlice && Equals((USlice)obj);
+		}
+
+		public override int GetHashCode()
+		{
+			return UnmanagedHelpers.ComputeHashCode(ref this);
 		}
 
 		public override string ToString()
