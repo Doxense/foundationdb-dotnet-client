@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
+	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
@@ -279,18 +280,18 @@ namespace FoundationDB.Linq
 		#region Take...
 
 		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
-		public static IFdbAsyncEnumerable<TSource> Take<TSource>(this IFdbAsyncEnumerable<TSource> source, int limit)
+		public static IFdbAsyncEnumerable<TSource> Take<TSource>(this IFdbAsyncEnumerable<TSource> source, int count)
 		{
 			if (source == null) throw new ArgumentNullException("source");
-			if (limit < 0) throw new ArgumentOutOfRangeException("limit", "Limit cannot be less than zero");
+			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be less than zero");
 
 			var iterator = source as FdbAsyncIterator<TSource>;
 			if (iterator != null)
 			{
-				return iterator.Take(limit);
+				return iterator.Take(count);
 			}
 
-			return Limit<TSource>(source, limit);
+			return Limit<TSource>(source, count);
 		}
 
 		#endregion
@@ -310,6 +311,19 @@ namespace FoundationDB.Linq
 			}
 
 			return FdbAsyncEnumerable.Limit<TSource>(source, condition);
+		}
+
+		#endregion
+
+		#region Skip...
+
+		/// <summary>[NOT IMPLEMENTED YET]</summary>
+		public static IFdbAsyncEnumerable<TSource> Skip<TSource>(this IFdbAsyncEnumerable<TSource> source, int count)
+		{
+			if (source == null) throw new ArgumentNullException("count");
+			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be less than zero");
+
+			throw new NotImplementedException("Skip() is not implemented yet");
 		}
 
 		#endregion
@@ -471,12 +485,24 @@ namespace FoundationDB.Linq
 		/// <summary>Returns the first element of an async sequence, or an exception if it is empty</summary>
 		public static Task<T> FirstAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
+			if (source == null) throw new ArgumentNullException("source");
+			ct.ThrowIfCancellationRequested();
+
+			var rq = source as FdbRangeQuery<T>;
+			if (rq != null) return rq.FirstAsync();
+
 			return Head<T>(source, single: false, orDefault: false, ct: ct);
 		}
 
 		/// <summary>Returns the first element of an async sequence, or the default value for the type if it is empty</summary>
 		public static Task<T> FirstOrDefaultAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
+			if (source == null) throw new ArgumentNullException("source");
+			ct.ThrowIfCancellationRequested();
+
+			var rq = source as FdbRangeQuery<T>;
+			if (rq != null) return rq.FirstOrDefaultAsync();
+
 			return Head<T>(source, single: false, orDefault: true, ct: ct);
 		}
 
@@ -484,6 +510,12 @@ namespace FoundationDB.Linq
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static Task<T> SingleAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
+			if (source == null) throw new ArgumentNullException("source");
+			ct.ThrowIfCancellationRequested();
+
+			var rq = source as FdbRangeQuery<T>;
+			if (rq != null) return rq.SingleAsync();
+
 			return Head<T>(source, single: true, orDefault: false, ct: ct);
 		}
 
@@ -491,12 +523,24 @@ namespace FoundationDB.Linq
 		/// <remarks>Will need to call MoveNext at least twice to ensure that there is no second element.</remarks>
 		public static Task<T> SingleOrDefaultAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
+			if (source == null) throw new ArgumentNullException("source");
+			ct.ThrowIfCancellationRequested();
+
+			var rq = source as FdbRangeQuery<T>;
+			if (rq != null) return rq.SingleOrDefaultAsync();
+
 			return Head<T>(source, single: true, orDefault: true, ct: ct);
 		}
 
 		/// <summary>Returns the last element of an async sequence, or an exception if it is empty</summary>
 		public static async Task<T> LastAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
+			if (source == null) throw new ArgumentNullException("source");
+			ct.ThrowIfCancellationRequested();
+
+			var rq = source as FdbRangeQuery<T>;
+			if (rq != null) return await rq.LastAsync();
+
 			bool found = false;
 			T last = default(T);
 
@@ -509,6 +553,12 @@ namespace FoundationDB.Linq
 		/// <summary>Returns the last element of an async sequence, or the default value for the type if it is empty</summary>
 		public static async Task<T> LastOrDefaultAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
+			if (source == null) throw new ArgumentNullException("source");
+			ct.ThrowIfCancellationRequested();
+
+			var rq = source as FdbRangeQuery<T>;
+			if (rq != null) return await rq.LastOrDefaultAsync();
+
 			bool found = false;
 			T last = default(T);
 
@@ -520,6 +570,9 @@ namespace FoundationDB.Linq
 		/// <summary>Returns the number of elements in an async sequence.</summary>
 		public static async Task<int> CountAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
+			if (source == null) throw new ArgumentNullException("source");
+			ct.ThrowIfCancellationRequested();
+
 			int count = 0;
 
 			await Run<T>(source, FdbAsyncMode.All, (_) => { ++count; }, ct).ConfigureAwait(false);

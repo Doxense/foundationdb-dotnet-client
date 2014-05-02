@@ -106,10 +106,8 @@ namespace FoundationDB.Client
 		/// <returns>A new query object that will only return up to <paramref name="count"/> results when executed</returns>
 		public FdbRangeQuery<T> Take(int count)
 		{
-			//REVIEW: this should maybe renamed to "Limit(..)" to align with FDB's naming convention, but at the same times it would not match with LINQ...
-			// But, having both Take(..) and Limit(..) could be confusing...
-
-			if (count < 0) throw new ArgumentOutOfRangeException("count", "Value cannot be less than zero");
+			//BUGBUG: If we only rely on the Limit range options, this may break LastAsync() because it will still execute on the full range!
+			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Value cannot be less than zero");
 
 			if (this.Options.Limit == count)
 			{
@@ -122,11 +120,24 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>[NOT YET IMPLEMENTED] Bypasses a specified number of elements in a sequence and then returns the remaining elements.</summary>
+		/// <param name="count"></param>
+		/// <returns></returns>
+		public FdbRangeQuery<T> Skip(int count)
+		{
+			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Value cannot be less than zero");
+
+			//TODO!
+			throw new NotImplementedException("Skip() is not yet implemented!");
+		}
+
 		/// <summary>Reverse the order in which the results will be returned</summary>
 		/// <returns>A new query object that will return the results in reverse order when executed</returns>
 		/// <rremarks>Calling Reversed() on an already reversed query will cancel the effect, and the results will be returned in their natural order.</rremarks>
 		public FdbRangeQuery<T> Reversed()
 		{
+			//BUGBUG: this may break if Take() or Skip() have been called!
+
 			return new FdbRangeQuery<T>(
 				this,
 				new FdbRangeOptions(this.Options) { Reverse = !this.Reverse }
@@ -264,12 +275,16 @@ namespace FoundationDB.Client
 
 		public Task<T> LastOrDefaultAsync()
 		{
+			//BUGBUG: if there is a Take(N) on the query, Last() will mean "The Nth key" and not the "last key in the original range".
+
 			// we can optimize by reversing the current query and calling FirstOrDefault !
 			return this.Reversed().HeadAsync(single:false, orDefault:true);
 		}
 
 		public Task<T> LastAsync()
 		{
+			//BUGBUG: if there is a Take(N) on the query, Last() will mean "The Nth key" and not the "last key in the original range".
+
 			// we can optimize this by reversing the current query and calling First !
 			return this.Reversed().HeadAsync(single: false, orDefault:false);
 		}
@@ -310,6 +325,7 @@ namespace FoundationDB.Client
 		internal async Task<T> HeadAsync(bool single, bool orDefault)
 		{
 			// Optimized code path for First/Last/Single variants where we can be smart and only ask for 1 or 2 results from the db
+			//BUGBUG: this is not true if Skip() or Take() have been used on the query!!!
 
 			// we can use the EXACT streaming mode with Limit = 1|2, and it will work if TargetBytes is 0
 			if (this.TargetBytes != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))

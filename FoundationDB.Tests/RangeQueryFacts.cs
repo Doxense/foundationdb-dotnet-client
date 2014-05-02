@@ -131,20 +131,19 @@ namespace FoundationDB.Client.Tests
 				var c = location.Partition("c");
 
 				// insert a bunch of keys under 'a', only one under 'b', and nothing under 'c'
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				await db.WriteAsync((tr) =>
 				{
 					for (int i = 0; i < 10; i++)
 					{
 						tr.Set(a.Pack(i), Slice.FromInt32(i));
 					}
 					tr.Set(b.Pack(0), Slice.FromInt32(42));
-					await tr.CommitAsync();
-				}
+				}, this.Cancellation);
 
 				KeyValuePair<Slice, Slice> res;
 
 				// A: more then one item
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var query = tr.GetRange(a.ToRange());
 
@@ -176,7 +175,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// B: exactly one item
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var query = tr.GetRange(b.ToRange());
 
@@ -212,7 +211,7 @@ namespace FoundationDB.Client.Tests
 				}
 
 				// C: no items
-				using (var tr = db.BeginTransaction(this.Cancellation))
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					var query = tr.GetRange(c.ToRange());
 
@@ -239,6 +238,38 @@ namespace FoundationDB.Client.Tests
 
 					// should fail because there is none
 					Assert.Throws<InvalidOperationException>(async () => await query.SingleAsync(), "SingleAsync should throw if the range returns nothing");
+				}
+
+				// A: with a size limit
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(a.ToRange()).Take(5);
+
+					// should return the fifth one
+					res = await query.LastOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(a.Pack(4)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(4)));
+
+					// should return the fifth one
+					res = await query.LastAsync();
+					Assert.That(res.Key, Is.EqualTo(a.Pack(4)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(4)));
+				}
+
+				// A: with an offset
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(a.ToRange()).Skip(5);
+
+					// should return the fifth one
+					res = await query.FirstOrDefaultAsync();
+					Assert.That(res.Key, Is.EqualTo(a.Pack(5)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(5)));
+
+					// should return the fifth one
+					res = await query.FirstAsync();
+					Assert.That(res.Key, Is.EqualTo(a.Pack(5)));
+					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(5)));
 				}
 
 			}

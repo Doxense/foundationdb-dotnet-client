@@ -201,6 +201,8 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Limit<TResult>(this, condition);
 		}
 
+		//TODO: Skip(...) ?
+
 		public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
 		{
 			return FdbAsyncEnumerable.Run<TResult>(this, FdbAsyncMode.All, action, ct);
