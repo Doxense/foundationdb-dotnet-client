@@ -56,8 +56,8 @@ namespace FoundationDB.Client.Tests
 			Assert.That(Fdb.System.MaxValue.ToString(), Is.EqualTo("<FF><FF>"));
 			Assert.That(Fdb.System.ServerKeys.ToString(), Is.EqualTo("<FF>/serverKeys/"));
 			Assert.That(Fdb.System.ServerList.ToString(), Is.EqualTo("<FF>/serverList/"));
-			Assert.That(Fdb.System.BackupDataFormat, Is.EqualTo("<FF>/backupDataFormat/"));
-			Assert.That(Fdb.System.InitId.ToString(), Is.EqualTo("<FF>/init_id/"));
+			Assert.That(Fdb.System.BackupDataFormat.ToString(), Is.EqualTo("<FF>/backupDataFormat"));
+			Assert.That(Fdb.System.InitId.ToString(), Is.EqualTo("<FF>/init_id"));
 			Assert.That(Fdb.System.ConfigKey("hello").ToString(), Is.EqualTo("<FF>/conf/hello"));
 			Assert.That(Fdb.System.GlobalsKey("world").ToString(), Is.EqualTo("<FF>/globals/world"));
 			Assert.That(Fdb.System.WorkersKey("foo", "bar").ToString(), Is.EqualTo("<FF>/workers/foo/bar"));
