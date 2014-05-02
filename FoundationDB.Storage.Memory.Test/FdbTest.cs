@@ -33,6 +33,7 @@ namespace FoundationDB.Storage.Memory.Tests
 	using NUnit.Framework;
 	using System;
 	using System.Diagnostics;
+	using System.Globalization;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -42,8 +43,15 @@ namespace FoundationDB.Storage.Memory.Tests
 		private CancellationTokenSource m_cts;
 		private CancellationToken m_ct;
 
+		[TestFixtureSetUp]
+		protected void BeforeAllTests()
+		{
+			Trace.WriteLine("### " + this.GetType().FullName + " starting");
+			//TODO?
+		}
+
 		[SetUp]
-		protected void BeforeTest()
+		protected void BeforeEachTest()
 		{
 			lock (this)
 			{
@@ -54,13 +62,20 @@ namespace FoundationDB.Storage.Memory.Tests
 		}
 
 		[TearDown]
-		protected void AfterTest()
+		protected void AfterEachTest()
 		{
 			if (m_cts != null)
 			{
 				try { m_cts.Cancel(); } catch { }
 				m_cts.Dispose();
 			}
+		}
+
+		[TestFixtureTearDown]
+		protected void AfterAllTests()
+		{
+			//TODO?
+			Trace.WriteLine("### " + this.GetType().FullName + " completed");
 		}
 
 		/// <summary>Cancellation token usable by any test</summary>

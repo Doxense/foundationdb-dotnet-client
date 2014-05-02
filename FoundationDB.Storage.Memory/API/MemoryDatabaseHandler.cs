@@ -32,6 +32,44 @@ namespace FoundationDB.Storage.Memory.API
 		internal const uint VALUEHEAP_MIN_PAGESIZE = 256 * 1024;
 		internal const uint VALUEHEAP_MAX_PAGESIZE = 16 * 1024 * 1024;
 
+		internal void PopulateSystemKeys()
+		{
+			// we need to create the System keyspace, under \xFF
+
+			// cheap way to generate machine & datacenter ids
+			var databaseId = new Uuid(m_uid).ToSlice();
+			var machineId = Slice.FromFixed64(Environment.MachineName.GetHashCode()) + databaseId[0, 8];
+			var datacenterId = Slice.FromFixed64(Environment.MachineName.GetHashCode()) + databaseId[8, 16];
+			var keyServerBlob = Slice.FromFixed16(1) + Slice.FromFixed32(0xA22000) + Slice.FromFixed16(0xFDB) + Slice.FromFixed32(1) + databaseId + Slice.FromFixed32(0);
+			var one = Slice.FromAscii("1");
+
+			var systemKeys = new Dictionary<Slice, Slice>()
+			{
+				{ Fdb.System.BackupDataFormat, one },
+				{ Fdb.System.ConfigKey("initialized"), one },
+				{ Fdb.System.ConfigKey("storage_engine"), one },	// ~= memory
+				{ Fdb.System.ConfigKey("storage_replicas"), one },	// single replica
+				{ Fdb.System.Coordinators, Slice.FromString("local:" + m_uid.ToString("N") + "@memory") },
+				{ Fdb.System.GlobalsKey("lastEpochEnd"), Slice.FromFixed64(0) },
+				{ Fdb.System.InitId, Slice.FromAscii(Guid.NewGuid().ToString("N")) },
+
+				{ Fdb.System.KeyServers, keyServerBlob },
+				{ Fdb.System.KeyServers + Fdb.System.KeyServers, keyServerBlob },
+				{ Fdb.System.KeyServers + Fdb.System.MaxValue, Slice.Empty },
+
+				{ Fdb.System.ServerKeys + databaseId + Slice.FromAscii("/"), one },
+				{ Fdb.System.ServerKeys + databaseId + Slice.FromAscii("/\xFF\xFF"), Slice.Empty },
+
+				//TODO: serverList ?
+
+				{ Fdb.System.WorkersKey("memory", "datacenter"), datacenterId },
+				{ Fdb.System.WorkersKey("memory", "machine"), machineId },
+				{ Fdb.System.WorkersKey("memory", "mclass"), Slice.FromAscii("unset") },
+			};
+
+			BulkLoadAsync(systemKeys, false, false, CancellationToken.None).GetAwaiter().GetResult();
+		}
+
 		#region Private Members...
 
 		/// <summary>Set to true when the current db instance gets disposed.</summary>
@@ -49,8 +87,8 @@ namespace FoundationDB.Storage.Memory.API
 		private static readonly ReaderWriterLockSlim m_dataLock = new ReaderWriterLockSlim();
 		private static readonly object m_heapLock = new object();
 
-		private KeyHeap m_keys = new KeyHeap(KEYHEAP_MIN_PAGESIZE, KEYHEAP_MAX_PAGESIZE);
-		private ValueHeap m_values = new ValueHeap(VALUEHEAP_MIN_PAGESIZE, VALUEHEAP_MAX_PAGESIZE);
+		private KeyHeap m_keys = new KeyHeap();
+		private ValueHeap m_values = new ValueHeap();
 
 		private ColaStore<IntPtr> m_data = new ColaStore<IntPtr>(0, new NativeKeyComparer());
 		private long m_estimatedSize;
@@ -103,17 +141,17 @@ namespace FoundationDB.Storage.Memory.API
 		/// <remarks>The buffer is cleared prior to usage!</remarks>
 		internal unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, Slice userKey)
 		{
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (userKey.IsNull ) throw new ArgumentException("Key cannot be nil");
-			if (userKey.Count < 0 || userKey.Offset < 0 || userKey.Array == null) throw new ArgumentException("Malformed key");
+			Contract.Requires(buffer != null && userKey.Array != null && userKey.Count >= 0 && userKey.Offset >= 0);
+			Contract.Requires(userKey.Count <= MemoryDatabaseHandler.MAX_KEY_SIZE);
 
 			buffer.Clear();
 			uint keySize = (uint)userKey.Count;
-			var size = Key.SizeOf + keySize;
+			uint size = Key.SizeOf + keySize;
 			var tmp = buffer.Allocate(size);
 			var key = (Key*)tmp.Data;
-			key->Size = keySize;
-			key->Header = ((uint)EntryType.Key) << Entry.TYPE_SHIFT;
+			key->Size = (ushort)keySize;
+			key->HashCode = UnmanagedHelpers.ComputeHashCode(ref userKey);
+			key->Header = ((ushort)EntryType.Key) << Entry.TYPE_SHIFT;
 			key->Values = null;
 
 			if (keySize > 0) UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
@@ -123,16 +161,17 @@ namespace FoundationDB.Storage.Memory.API
 		/// <summary>Format a user key</summary>
 		internal unsafe static USlice PackUserKey(UnmanagedSliceBuilder buffer, USlice userKey)
 		{
-			if (buffer == null) throw new ArgumentNullException("buffer");
-			if (userKey.Count > 0  && userKey.Data == null) throw new ArgumentException("Malformed key");
+			Contract.Requires(buffer != null && userKey.Data != null);
+			Contract.Requires(userKey.Count <= MemoryDatabaseHandler.MAX_KEY_SIZE);
 
 			buffer.Clear();
 			uint keySize = userKey.Count;
 			var size = Key.SizeOf + keySize;
 			var tmp = buffer.Allocate(size);
 			var key = (Key*)tmp.Data;
-			key->Size = keySize;
-			key->Header = ((uint)EntryType.Key) << Entry.TYPE_SHIFT;
+			key->Size = (ushort)keySize;
+			key->HashCode = UnmanagedHelpers.ComputeHashCode(ref userKey);
+			key->Header = ((ushort)EntryType.Key) << Entry.TYPE_SHIFT;
 			key->Values = null;
 
 			if (keySize > 0) UnmanagedHelpers.CopyUnsafe(&(key->Data), userKey);
@@ -1578,6 +1617,10 @@ namespace FoundationDB.Storage.Memory.API
 		/// <summary>Perform a complete garbage collection</summary>
 		public void Collect()
 		{
+			// - determine the old read version that is in use
+			// - look for all the windows that are older than that
+			// - collect all keys that were modified in these windows (value changed, or deleted)
+			// - for all heap pages that are above a freespace threshold, merge them into fewer full pages
 
 			m_dataLock.EnterUpgradeableReadLock();
 			try
@@ -1594,7 +1637,6 @@ namespace FoundationDB.Storage.Memory.API
 					// pack the keys
 					//m_keys.Collect(sequence);
 					//BUGBUG: need to purge the colastore also !
-
 				}
 
 				m_oldestVersion = (long)sequence;
@@ -1646,15 +1688,18 @@ namespace FoundationDB.Storage.Memory.API
 			m_dataLock.EnterReadLock();
 			try
 			{
-				Debug.WriteLine("> Version: " + m_currentVersion);
-				Debug.WriteLine("> Items: " + m_data.Count.ToString("N0"));
-				Debug.WriteLine("> Estimated size: " + m_estimatedSize.ToString("N0") + " bytes");
-				Debug.WriteLine("> Transaction windows: " + m_transactionWindows.Count);
+				Debug.WriteLine("> Version: {0}", m_currentVersion);
+				Debug.WriteLine("> Items: {0:N0}", m_data.Count);
+				Debug.WriteLine("> Estimated size: {0:N0} bytes", m_estimatedSize);
+				Debug.WriteLine("> Transaction windows: {0}", m_transactionWindows.Count);
 				foreach(var window in m_transactionWindows)
 				{
-					Debug.WriteLine("  > " + window.ToString() + ": " + window.CommitCount.ToString("N0") + " commits" + (window.Closed ? " [CLOSED]" : ""));
+					Debug.WriteLine("  > {0} : {1:N0} commits{2}", window.ToString(), window.CommitCount, window.Closed ? " [CLOSED]" : "");
 				}
-
+				long cmps, eqs, ghcs;
+				NativeKeyComparer.GetCounters(out cmps, out eqs, out ghcs);
+				Debug.WriteLine("> Comparisons: {0:N0} compares, {1:N0} equals, {2:N0} hashcodes", cmps, eqs, ghcs);
+				NativeKeyComparer.ResetCounters();
 				lock (m_heapLock)
 				{
 					unsafe

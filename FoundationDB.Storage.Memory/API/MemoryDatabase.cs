@@ -14,8 +14,11 @@ namespace FoundationDB.Storage.Memory.API
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>In-memory database instance</summary>
 	public class MemoryDatabase : FdbDatabase
 	{
+
+		#region Static Helpers...
 
 		public static MemoryDatabase CreateNew()
 		{
@@ -30,31 +33,54 @@ namespace FoundationDB.Storage.Memory.API
 		public static MemoryDatabase CreateNew(string name, FdbSubspace globalSpace, bool readOnly)
 		{
 			globalSpace = globalSpace ?? FdbSubspace.Empty;
-
-			var cluster = new FdbCluster(new MemoryClusterHandler(), ":memory:");
-
 			var uid = Guid.NewGuid();
 
-			return new MemoryDatabase(cluster, new MemoryDatabaseHandler(uid), name, globalSpace, null, readOnly, true);
+			MemoryClusterHandler cluster = null;
+			MemoryDatabaseHandler db = null;
+            try
+			{
+				cluster = new MemoryClusterHandler();
+				db = cluster.OpenDatabase(uid);
+
+				// initialize the system keys for this new db
+				db.PopulateSystemKeys();
+
+				return new MemoryDatabase(new FdbCluster(cluster, ":memory:"), db, name, globalSpace, null, readOnly, true);
+			}
+			catch
+			{
+				if (db != null) db.Dispose();
+				if (cluster != null) cluster.Dispose();
+				throw;
+			}
 		}
 
 		public static async Task<MemoryDatabase> LoadFromAsync(string path, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
+
+			MemoryClusterHandler cluster = null;
 			MemoryDatabaseHandler db = null;
 			try
 			{
-				db = new MemoryDatabaseHandler(Guid.Empty);
-				await db.LoadSnapshotAsync(path, new MemorySnapshotOptions(), cancellationToken);
+				cluster = new MemoryClusterHandler();
+                db = cluster.OpenDatabase(Guid.Empty);
 
-				return new MemoryDatabase(new FdbCluster(new MemoryClusterHandler(), ":memory:"), db, "DB", FdbSubspace.Empty, null, false, true);
+				// load the snapshot from the disk
+				var options = new MemorySnapshotOptions(); //TODO!
+                await db.LoadSnapshotAsync(path, options, cancellationToken);
+
+				return new MemoryDatabase(new FdbCluster(cluster, ":memory:"), db, "DB", FdbSubspace.Empty, null, false, true);
 			}
 			catch(Exception)
 			{
 				if (db != null) db.Dispose();
+				if (cluster != null) cluster.Dispose();
 				throw;
 			}
 		}
+
+		#endregion
 
 		private readonly MemoryDatabaseHandler m_handler;
 
@@ -70,6 +96,8 @@ namespace FoundationDB.Storage.Memory.API
 			m_handler.Debug_Dump(detailed);
 		}
 
+		/// <summary>Trigger a garbage collection of the memory database</summary>
+		/// <remarks>If the amount of memory that can be collected is too small, this operation will do nothing.</remarks>
 		public void Collect()
 		{
 			m_handler.Collect();

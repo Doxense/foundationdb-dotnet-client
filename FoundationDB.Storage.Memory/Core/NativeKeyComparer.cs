@@ -2,6 +2,8 @@
 // See License.MD for license information
 #endregion
 
+#define INSTRUMENT
+
 namespace FoundationDB.Storage.Memory.Core
 {
 	using FoundationDB.Storage.Memory.Utils;
@@ -11,20 +13,18 @@ namespace FoundationDB.Storage.Memory.Core
 
 	internal unsafe sealed class NativeKeyComparer : IComparer<IntPtr>, IEqualityComparer<IntPtr>
 	{
-		// Keys:
-		// * KEY_SIZE		UInt16		Size of the key
-		// * KEY_FLAGS		UInt16		Misc flags
-		// * VALUE_PTR		IntPtr		Pointer to the head of the value chain for this key
-		// * KEY_BYTES		variable	Content of the key
-		// * (padding)		variable	padding to align the size to 4 or 8 bytes
 
 		public int Compare(IntPtr left, IntPtr right)
 		{
+#if INSTRUMENT
+			System.Threading.Interlocked.Increment(ref s_compareCalls);
+#endif
 			// this method will be called A LOT, so it should be as fast as possible...
 			// We know that:
 			// - caller should never compare nulls (it's a bug)
-			// - empty keys do not exist
-
+			// - empty keys can exist
+			// - number of calls with left == right will be very small so may not be worth it to optimize (will slow down everything else)
+			// - for db using the DirectoryLayer, almost all keys will start with 0x15 (prefix for an int in a tuple) so checking the first couple of bytes will not help much (long runs of keys starting with the same 2 or 3 bytes)
 			Contract.Assert(left != IntPtr.Zero && right != IntPtr.Zero);
 
 			// unwrap as pointers to the Key struct
@@ -36,16 +36,27 @@ namespace FoundationDB.Storage.Memory.Core
 			uint rightCount = rightKey->Size;
 
 			// but then memcmp will probably have the data in the cpu cache...
-			int c = UnmanagedHelpers.NativeMethods.memcmp(&(leftKey->Data), &(rightKey->Data), new UIntPtr(leftCount < rightCount ? leftCount : rightCount));
-			if (c == 0) c = (int)leftCount - (int)rightCount;
-			return c;
+			int c = UnmanagedHelpers.NativeMethods.memcmp(
+				&(leftKey->Data),
+				&(rightKey->Data),
+				new UIntPtr(leftCount < rightCount ? leftCount : rightCount)
+			);
+			return c != 0 ? c : (int)leftCount - (int)rightCount;
 		}
 
 		public bool Equals(IntPtr left, IntPtr right)
 		{
+#if INSTRUMENT
+			System.Threading.Interlocked.Increment(ref s_equalsCalls);
+#endif
 			// unwrap as pointers to the Key struct
 			var leftKey = (Key*)left;
 			var rightKey = (Key*)right;
+
+			if (leftKey->HashCode != rightKey->HashCode)
+			{
+				return false;
+			}
 
 			uint leftCount, rightCount;
 
@@ -57,27 +68,42 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public int GetHashCode(IntPtr value)
 		{
+#if INSTRUMENT
+			System.Threading.Interlocked.Increment(ref s_getHashCodeCalls);
+#endif
 			var key = (Key*)value.ToPointer();
 			if (key == null) return -1;
-			uint size = key->Size;
-			if (size == 0) return 0;
-
-			//TODO: use a better hash algorithm? (xxHash, CityHash, SipHash, ...?)
-			// => will be called a lot when Slices are used as keys in an hash-based dictionary (like Dictionary<Slice, ...>)
-			// => won't matter much for *ordered* dictionary that will probably use IComparer<T>.Compare(..) instead of the IEqalityComparer<T>.GetHashCode()/Equals() combo
-			// => we don't need a cryptographic hash, just something fast and suitable for use with hashtables...
-			// => probably best to select an algorithm that works on 32-bit or 64-bit chunks
-
-			// <HACKHACK>: unoptimized 32 bits FNV-1a implementation
-			uint h = 2166136261; // FNV1 32 bits offset basis
-			byte* bytes = &(key->Data);
-			while (size-- > 0)
-			{
-				h = (h ^ *bytes++) * 16777619; // FNV1 32 prime
-			}
-			return (int)h;
-			// </HACKHACK>
+			return key->HashCode;
 		}
+
+#if INSTRUMENT
+		private static long s_compareCalls;
+		private static long s_equalsCalls;
+		private static long s_getHashCodeCalls;
+#endif
+
+		public static void GetCounters(out long compare, out long equals, out long getHashCode)
+		{
+#if INSTRUMENT
+			compare = System.Threading.Interlocked.Read(ref s_compareCalls);
+			equals = System.Threading.Interlocked.Read(ref s_equalsCalls);
+			getHashCode = System.Threading.Interlocked.Read(ref s_getHashCodeCalls);
+#else
+			compare = 0;
+			equals = 0;
+			getHashCode = 0;
+#endif
+		}
+
+		public static void ResetCounters()
+		{
+#if INSTRUMENT
+			System.Threading.Interlocked.Exchange(ref s_compareCalls, 0);
+			System.Threading.Interlocked.Exchange(ref s_equalsCalls, 0);
+			System.Threading.Interlocked.Exchange(ref s_getHashCodeCalls, 0);
+#endif
+		}
+
 	}
 
 }

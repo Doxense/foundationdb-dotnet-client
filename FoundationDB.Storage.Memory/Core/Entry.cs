@@ -8,7 +8,7 @@ namespace FoundationDB.Storage.Memory.Core
 	using System.Diagnostics;
 	using System.Runtime.InteropServices;
 
-	public enum EntryType
+	public enum EntryType : ushort
 	{
 		Free = 0,
 		Key = 1,
@@ -24,35 +24,52 @@ namespace FoundationDB.Storage.Memory.Core
 		public const int ALIGNMENT = 8; // MUST BE A POWER OF 2 !
 		public const int ALIGNMENT_MASK = ~(ALIGNMENT - 1);
 
+		/// <summary>A read lock has been taken on this entry</summary>
+		public const ushort FLAGS_READ_LOCK = 1 << 8;
+
+		/// <summary>A write lock has been taken on this entry</summary>
+		public const ushort FLAGS_WRITE_LOCK = 1 << 9;
+
+		/// <summary>A GC lock has been taken on this entry</summary>
+		public const ushort FLAGS_GC_LOCK = 1 << 10;
+
 		/// <summary>This entry has been moved to another page by the last GC</summary>
-		public const uint FLAGS_MOVED = 0x100;
+		public const ushort FLAGS_MOVED = 1 << 11;
 
 		/// <summary>This key has been flaged as being unreachable by current of future transaction (won't survive the next GC)</summary>
-		public const uint FLAGS_UNREACHABLE = 0x2000;
+		public const ushort FLAGS_UNREACHABLE = 1 << 12;
 
 		/// <summary>The entry has been disposed and should be access anymore</summary>
-		public const uint FLAGS_DISPOSED = 0x80000000;
+		public const ushort FLAGS_DISPOSED = 1 << 15;
 
-		public const int TYPE_SHIFT = 29;
-		public const uint TYPE_MASK_AFTER_SHIFT = 0x3;
+		public const int TYPE_SHIFT = 13;
+		public const ushort TYPE_MASK_AFTER_SHIFT = 0x3;
 
 		// Object Layout
 		// ==============
 
 		// Offset	Field	Type	Desc
 		// 
-		//      0	HEADER	uint	Type, Flags, ...
+		//      0	HEADER	ushort	type, Flags, ...
+		//      2	HASH  	ushort	16-bit hashcode
 		//		4	SIZE	uint	Size of the data
 		//		... object fields ...
 		//		x	DATA	byte[]	Value of the object, size in the SIZE field
 		//		y	(pad)	0..7	padding bytes (set to 00 or FF ?)
 		//
 		// HEADER: bit flags
-		// - bit 31: DISPOSED, set if object is disposed
-		// - bit 29-30: TYPE
+		// - bit 8: READ LOCK
+		// - bit 9: WRITE LOCK
+		// - bit 10: GC LOCK
+		// - bit 11: MOVED
+		// - bit 12: UNREACHABLE
+		// - bit 13-14: TYPE
+		// - bit 15: DISPOSED, set if object is disposed
 
-		/// <summary>Various flags (TODO: enum?)</summary>
-		public uint Header;
+		/// <summary>Various flags</summary>
+		public ushort Header;
+
+		public ushort Hash;
 
 		/// <summary>Size of the key (in bytes)</summary>
 		public uint Size;

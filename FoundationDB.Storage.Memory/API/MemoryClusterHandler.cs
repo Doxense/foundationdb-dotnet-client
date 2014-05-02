@@ -35,9 +35,18 @@ namespace FoundationDB.Storage.Memory.API
 			throw new NotImplementedException();
 		}
 
+		internal MemoryDatabaseHandler OpenDatabase(Guid uid)
+		{
+			return new MemoryDatabaseHandler(uid);
+		}
+
 		public Task<IFdbDatabaseHandler> OpenDatabaseAsync(string databaseName, CancellationToken cancellationToken)
 		{
-			throw new NotImplementedException();
+			// fdb currently disallow anthing other than "DB"
+			if (databaseName != null && databaseName != "DB") throw new FdbException(FdbError.InvalidDatabaseName);
+
+			var uid = Guid.NewGuid();
+			return Task.FromResult<IFdbDatabaseHandler>(OpenDatabase(uid));
 		}
 
 		public void Dispose()
