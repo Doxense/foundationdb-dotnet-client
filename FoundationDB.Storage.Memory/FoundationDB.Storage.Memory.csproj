@@ -50,6 +50,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="API\LevelWriter.cs" />
+    <Compile Include="API\MemorySnapshotOptions.cs" />
     <Compile Include="IO\SnapshotFormat.cs" />
     <Compile Include="IO\SnapshotWriter.cs" />
     <Compile Include="IO\SnapshotReader.cs" />
