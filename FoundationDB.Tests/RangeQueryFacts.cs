@@ -359,6 +359,46 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Original_Range_Does_Not_Overflow()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// put test values in a namespace
+				var location = await GetCleanDirectory(db, "range");
+
+				// import test data
+				var data = Enumerable.Range(0, 30).Select(x => new KeyValuePair<Slice, Slice>(location.Pack(x), Slice.FromFixed32(x)));
+				await Fdb.Bulk.WriteAsync(db, data, this.Cancellation);
+
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr
+						.GetRange(location.Pack(10), location.Pack(20)) // 10 -> 19
+						.Take(20) // 10 -> 19 (limit 20)
+						.Reversed(); // 19 -> 10 (limit 20)
+					Console.WriteLine(query);
+
+					// set a limit that overflows, and then reverse from it
+					var res = await query.ToListAsync();
+					Assert.That(res.Count, Is.EqualTo(10));
+				}
+
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr
+						.GetRange(location.Pack(10), location.Pack(20)) // 10 -> 19
+						.Reversed() // 19 -> 10
+						.Take(20)  // 19 -> 10 (limit 20)
+						.Reversed(); // 10 -> 19 (limit 20)
+					Console.WriteLine(query);
+
+					var res = await query.ToListAsync();
+					Assert.That(res.Count, Is.EqualTo(10));
+				}
+			}
+		}
+
+		[Test]
 		public async Task Test_Can_MergeSort()
 		{
 			int K = 3;
