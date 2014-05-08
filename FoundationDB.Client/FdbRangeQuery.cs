@@ -51,6 +51,7 @@ namespace FoundationDB.Client
 			this.Transform = transform;
 			this.Snapshot = snapshot;
 			this.Options = options ?? new FdbRangeOptions();
+			this.OriginalRange = FdbKeySelectorPair.Create(begin, end);
 		}
 
 		private FdbRangeQuery(FdbRangeQuery<T> query, FdbRangeOptions options)
@@ -61,6 +62,7 @@ namespace FoundationDB.Client
 			this.Transform = query.Transform;
 			this.Snapshot = query.Snapshot;
 			this.Options = options;
+			this.OriginalRange = query.OriginalRange;
 		}
 
 		#region Public Properties...
@@ -76,6 +78,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Stores all the settings for this range query</summary>
 		internal FdbRangeOptions Options { get; private set; }
+
+		internal FdbKeySelectorPair OriginalRange { get; private set; }
 
 		/// <summary>Limit in number of rows to return</summary>
 		public int Limit { get { return this.Options.Limit ?? 0; } }
@@ -127,21 +131,74 @@ namespace FoundationDB.Client
 		{
 			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Value cannot be less than zero");
 
-			//TODO!
-			throw new NotImplementedException("Skip() is not yet implemented!");
+			var limit = this.Options.Limit;
+			var begin = this.Begin;
+			var end = this.End;
+
+			// Take(N).Skip(k) ?
+			if (limit.HasValue)
+			{	
+				// If k >= N, then the result will be empty
+				// If k < N, then we need to update the begin key, and limit accordingly
+				if (count >= limit.Value)
+				{ 
+					limit = 0; // hopefully this would be optimized an runtime?
+				}
+				else
+				{  
+					limit -= count;
+				}
+			}
+
+			if (this.Reverse)
+			{
+				end = end - count;
+			}
+			else
+			{
+				begin = begin + count;
+			}
+
+			return new FdbRangeQuery<T>(
+				this,
+				new FdbRangeOptions(this.Options) { Limit = limit }
+			)
+			{
+				Begin = begin,
+				End = end,
+			};
 		}
 
 		/// <summary>Reverse the order in which the results will be returned</summary>
 		/// <returns>A new query object that will return the results in reverse order when executed</returns>
 		/// <rremarks>Calling Reversed() on an already reversed query will cancel the effect, and the results will be returned in their natural order.</rremarks>
-		public FdbRangeQuery<T> Reversed()
+		public FdbRangeQuery<T> Reversed()   //REVIEW: shouldn't this be called "Reverse()" instead?
 		{
-			//BUGBUG: this may break if Take() or Skip() have been called!
+			var begin = this.Begin;
+			var end = this.End;
+			var limit = this.Options.Limit;
+			if (limit.HasValue)
+			{
+				// If Take() of Skip() have been called, we need to update the end bound when reversing (or begin if already reversed)
+				if (!this.Reverse)
+				{
+					end = this.Begin + limit.Value;
+				}
+				else
+				{
+					begin = this.End - limit.Value;
+				}
+				limit = null;
+			}
 
 			return new FdbRangeQuery<T>(
 				this,
-				new FdbRangeOptions(this.Options) { Reverse = !this.Reverse }
-			);
+				new FdbRangeOptions(this.Options) { Reverse = !this.Reverse, Limit = limit }
+			)
+			{
+				Begin = begin,
+				End = end,
+			};
 		}
 
 		/// <summary>Use a specific target bytes size</summary>

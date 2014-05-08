@@ -86,9 +86,9 @@ namespace FoundationDB.Client
 		/// <param name="mode">Default value for StreamingMode if not provided</param>
 		/// <param name="reverse">Default value for Reverse if not provided</param>
 		/// <returns>Options with all the values filled</returns>
-		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions options, int limit, int targetBytes, FdbStreamingMode mode, bool reverse)
+		public static FdbRangeOptions EnsureDefaults(FdbRangeOptions options, int? limit, int? targetBytes, FdbStreamingMode mode, bool reverse)
 		{
-			Contract.Requires(limit >= 0 && targetBytes >= 0 && Enum.IsDefined(typeof(FdbStreamingMode), mode));
+			Contract.Requires((limit ?? 0) >= 0 && (targetBytes ?? 0) >= 0 && Enum.IsDefined(typeof(FdbStreamingMode), mode));
 
 			if (options == null)
 			{
@@ -111,9 +111,9 @@ namespace FoundationDB.Client
 				};
 			}
 
-			Contract.Ensures(options != null && options.Limit != null && options.TargetBytes != null && options.Mode != null && options.Reverse != null);
-			Contract.Ensures(options.Limit >= 0, "Limit cannot be negative");
-			Contract.Ensures(options.TargetBytes >= 0, "TargetBytes cannot be negative");
+			Contract.Ensures(options != null && options.Mode != null && options.Reverse != null);
+			Contract.Ensures((options.Limit ?? 0) >= 0, "Limit cannot be negative");
+			Contract.Ensures((options.TargetBytes ?? 0) >= 0, "TargetBytes cannot be negative");
 			Contract.Ensures(options.Mode.HasValue && Enum.IsDefined(typeof(FdbStreamingMode), options.Mode.Value), "Streaming mode must be valid");
 
 			return options;

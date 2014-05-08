@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
+	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
 	using NUnit.Framework;
@@ -272,6 +273,88 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(5)));
 				}
 
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Skip()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// put test values in a namespace
+				var location = await GetCleanDirectory(db, "range");
+
+				// import test data
+				var data = Enumerable.Range(0, 100).Select(x => new KeyValuePair<Slice, Slice>(location.Pack(x), Slice.FromFixed32(x)));
+				await Fdb.Bulk.WriteAsync(db, data, this.Cancellation);
+
+				// from the start
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(location.ToRange());
+
+					// |>>>>>>>>>>>>(50---------->99)|
+					var res = await query.Skip(50).ToListAsync();
+					Assert.That(res, Is.EqualTo(data.Skip(50).ToList()), "50 --> 99");
+
+					// |>>>>>>>>>>>>>>>>(60------>99)|
+					res = await query.Skip(50).Skip(10).ToListAsync();
+					Assert.That(res, Is.EqualTo(data.Skip(60).ToList()), "60 --> 99");
+
+					// |xxxxxxxxxxxxxxxxxxxxxxx(99->)|
+					res = await query.Skip(99).ToListAsync();
+					Assert.That(res.Count, Is.EqualTo(1));
+					Assert.That(res, Is.EqualTo(data.Skip(99).ToList()), "99 --> 99");
+
+					// |xxxxxxxxxxxxxxxxxxxxxxxxxxxxx|(100->)
+					res = await query.Skip(100).ToListAsync();
+					Assert.That(res.Count, Is.EqualTo(0), "100 --> 99");
+
+					// |xxxxxxxxxxxxxxxxxxxxxxxxxxxxx|_____________(150->)
+					res = await query.Skip(150).ToListAsync();
+					Assert.That(res.Count, Is.EqualTo(0), "150 --> 100");
+				}
+
+				// from the end
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(location.ToRange());
+
+					// |(0 <--------- 49)<<<<<<<<<<<<<|
+					var res = await query.Reversed().Skip(50).ToListAsync();
+					Assert.That(res, Is.EqualTo(data.Reverse().Skip(50).ToList()), "0 <-- 49");
+
+					// |(0 <----- 39)<<<<<<<<<<<<<<<<<|
+					res = await query.Reversed().Skip(50).Skip(10).ToListAsync();
+					Assert.That(res, Is.EqualTo(data.Reverse().Skip(60).ToList()), "0 <-- 39");
+
+					// |(<- 0)<<<<<<<<<<<<<<<<<<<<<<<<|
+					res = await query.Reversed().Skip(99).ToListAsync();
+					Assert.That(res.Count, Is.EqualTo(1));
+					Assert.That(res, Is.EqualTo(data.Reverse().Skip(99).ToList()), "0 <-- 0");
+
+					// (<- -1)|<<<<<<<<<<<<<<<<<<<<<<<<<<<<<|
+					res = await query.Reversed().Skip(100).ToListAsync();
+					Assert.That(res.Count, Is.EqualTo(0), "0 <-- -1");
+
+					// (<- -51)<<<<<<<<<<<<<|<<<<<<<<<<<<<<<<<<<<<<<<<<<<<|
+					res = await query.Reversed().Skip(100).ToListAsync();
+					Assert.That(res.Count, Is.EqualTo(0), "0 <-- -51");
+				}
+
+				// from both sides
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(location.ToRange());
+
+					// |>>>>>>>>>(25<------------74)<<<<<<<<|
+					var res = await query.Skip(25).Reversed().Skip(25).ToListAsync();
+					Assert.That(res, Is.EqualTo(data.Skip(25).Reverse().Skip(25).ToList()), "25 <-- 74");
+
+					// |>>>>>>>>>(25------------>74)<<<<<<<<|
+					res = await query.Skip(25).Reversed().Skip(25).Reversed().ToListAsync();
+					Assert.That(res, Is.EqualTo(data.Skip(25).Reverse().Skip(25).Reverse().ToList()), "25 --> 74");
+				}
 			}
 		}
 

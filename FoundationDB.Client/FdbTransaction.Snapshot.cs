@@ -171,7 +171,7 @@ namespace FoundationDB.Client
 				m_parent.m_database.EnsureKeyIsValid(beginInclusive.Key);
 				m_parent.m_database.EnsureKeyIsValid(endExclusive.Key);
 
-				options = FdbRangeOptions.EnsureDefaults(options, 0, 0, FdbStreamingMode.Iterator, false);
+				options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, false);
 				options.EnsureLegalValues();
 
 				// The iteration value is only needed when in iterator mode, but then it should start from 1
