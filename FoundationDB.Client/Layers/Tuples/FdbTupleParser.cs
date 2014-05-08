@@ -343,10 +343,11 @@ namespace FoundationDB.Layers.Tuples
 			{
 				fixed(char* chars = value)
 				{
-					if (TryWriteUnescapedUtf8String(ref writer, chars, value.Length)) return;
+					if (!TryWriteUnescapedUtf8String(ref writer, chars, value.Length))
+					{ // the string contains \0 chars, we need to do it the hard way
+						WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value));
+					}
 				}
-				// the string contains \0 chars, we need to do it the hard way
-				WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value));
 			}
 		}
 
