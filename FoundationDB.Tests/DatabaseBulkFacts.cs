@@ -79,11 +79,14 @@ namespace FoundationDB.Client.Tests
 				);
 				sw.Stop();
 
+				//note: calls to Progress<T> are async, so we need to wait a bit ...
+				Thread.Sleep(640); // "Should be enough"
+
 				Console.WriteLine("Done in " + sw.Elapsed.TotalSeconds.ToString("N3") + " secs and " + called + " chunks");
 
-				Assert.That(count, Is.EqualTo(N));
-				Assert.That(lastReport, Is.EqualTo(N));
-				Assert.That(called, Is.GreaterThan(0));
+				Assert.That(count, Is.EqualTo(N), "count");
+				Assert.That(lastReport, Is.EqualTo(N), "lastResport");
+				Assert.That(called, Is.GreaterThan(0), "called");
 
 				// read everything back...
 
@@ -140,6 +143,9 @@ namespace FoundationDB.Client.Tests
 					this.Cancellation
 				);
 				sw.Stop();
+
+				//note: calls to Progress<T> are async, so we need to wait a bit ...
+				Thread.Sleep(640);   // "Should be enough"
 
 				Console.WriteLine("Done in " + sw.Elapsed.TotalSeconds.ToString("N3") + " secs for " + count.ToString("N0") + " keys and " + totalSize.ToString("N0") + " bytes");
 				Console.WriteLine("> Throughput " + (count / sw.Elapsed.TotalSeconds).ToString("N0") + " key/sec and " + (totalSize / (1048576 * sw.Elapsed.TotalSeconds)).ToString("N3") + " MB/sec");

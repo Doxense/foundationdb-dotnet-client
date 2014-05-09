@@ -47,7 +47,7 @@ namespace FoundationDB.Client
 			/// <summary>Writes a potentially large sequence of key/value pairs into the database, by using as many transactions as necessary, and automatically scaling the size of each batch.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="data">Sequence of key/value pairs</param>
-			/// <param name="cancellationToken">Cancellation Token</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Total number of values inserted in the database</returns>
 			/// <remarks>In case of a non-retryable error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
 			public static Task<long> WriteAsync(IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, CancellationToken cancellationToken)
@@ -58,8 +58,8 @@ namespace FoundationDB.Client
 			/// <summary>Writes a potentially large sequence of key/value pairs into the database, by using as many transactions as necessary, and automatically scaling the size of each batch.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="data">Sequence of key/value pairs</param>
-			/// <param name="progress">Notify of the progress on this instance (or null)</param>
-			/// <param name="cancellationToken">Cancellation Token</param>
+			/// <param name="progress">Notify of the progress on this instance (or null). Since progress notification is async, this object could be called even after the bulk operation has completed!</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Total number of values inserted in the database</returns>
 			/// <remarks>In case of a non-retryable error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
 			public static async Task<long> WriteAsync(IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> data, IProgress<long> progress, CancellationToken cancellationToken)
