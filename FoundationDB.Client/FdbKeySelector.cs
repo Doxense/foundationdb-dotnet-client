@@ -35,7 +35,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString()}")]
-	public struct FdbKeySelector
+	public struct FdbKeySelector : IEquatable<FdbKeySelector>
 	{
 		/// <summary>Empty key selector</summary>
 		public static readonly FdbKeySelector None = default(FdbKeySelector);
@@ -93,6 +93,21 @@ namespace FoundationDB.Client
 		public override string ToString()
 		{
 			return PrettyPrint(FdbKey.PrettyPrintMode.Single);
+		}
+
+		public bool Equals(FdbKeySelector other)
+		{
+			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && this.Key.Equals(other.Key);
+		}
+
+		public override bool Equals(object obj)
+		{
+			return obj is FdbKeySelector && Equals((FdbKeySelector)obj);
+		}
+
+		public override int GetHashCode()
+		{
+			return this.Key.GetHashCode() ^ this.Offset ^ (this.OrEqual ? 0 : -1);
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
@@ -171,6 +186,16 @@ namespace FoundationDB.Client
 		public static FdbKeySelector operator -(FdbKeySelector selector, int offset)
 		{
 			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset - offset);
+		}
+
+		public static bool operator ==(FdbKeySelector left, FdbKeySelector right)
+		{
+			return left.Equals(right);
+		}
+
+		public static bool operator !=(FdbKeySelector left, FdbKeySelector right)
+		{
+			return !left.Equals(right);
 		}
 
 	}
