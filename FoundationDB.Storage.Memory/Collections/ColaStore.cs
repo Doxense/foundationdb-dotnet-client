@@ -535,8 +535,6 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public static IEnumerable<T> FindBetween<T>(T[][] levels, int count, T begin, bool beginOrEqual, T end, bool endOrEqual, int limit, IComparer<T> comparer)
 		{
-			//Trace.WriteLine("Looking for " + begin + (beginOrEqual ? " <= k " : " < k ") + (endOrEqual ? "<= " : "< ") + end + ", max " + limit);
-
 			if (limit > 0)
 			{
 				for (int i = 0; i < levels.Length; i++)
@@ -544,15 +542,12 @@ namespace FoundationDB.Storage.Memory.Core
 					if (ColaStore.IsFree(i, count)) continue;
 
 					var segment = levels[i];
-					//Trace.WriteLine("> Looking at level " + i + " : " + String.Join(", ", segment));
 
 					int to = ColaStore.BinarySearch<T>(segment, 0, segment.Length, end, comparer);
-					//Trace.WriteLine("  > binSearch(end=" + end + ") => " + to);
 					if (to >= 0)
 					{
 						if (!endOrEqual)
 						{
-							//Trace.WriteLine("  > excluding matching end");
 							to--;
 						}
 					}
@@ -560,32 +555,26 @@ namespace FoundationDB.Storage.Memory.Core
 					{
 						to = ~to;
 					}
-					//Trace.WriteLine("  > to = " + to);
 					if (to < 0 || to >= segment.Length) continue;
 
 					int from = ColaStore.BinarySearch<T>(segment, 0, segment.Length, begin, comparer);
-					//Trace.WriteLine("  > binSearch(begin=" + begin + ") => " + from);
 					if (from >= 0)
 					{
 						if (!beginOrEqual)
 						{
-							//Trace.WriteLine("  > excluding matching begin");
-							from++;
+							++from;
 						}
 					}
 					else
 					{
 						from = ~from;
 					}
-					//Trace.WriteLine("  > from = " + from);
 					if (from >= segment.Length) continue;
 
 					if (from > to) continue;
 
-					//Trace.WriteLine("  > fetch(" + from + "..." + to + ")");
 					for (int j = from; j <= to && limit > 0; j++)
 					{
-						//Trace.WriteLine("    > " + j + " :" + segment[j]);
 						yield return segment[j];
 						--limit;
 					}
@@ -603,7 +592,6 @@ namespace FoundationDB.Storage.Memory.Core
 		internal static int IterateFindNext<T>(T[][] inputs, int[] cursors, int min, int max, IComparer<T> comparer, out T result)
 		{
 			Contract.Requires(inputs != null && cursors != null && min >= 0 && max >= min && comparer != null);
-			//Trace.WriteLine("IterateFindNext(" + min + ".." + max + ")");
 
 			int index = NOT_FOUND;
 			int pos = NOT_FOUND;
@@ -1183,79 +1171,6 @@ namespace FoundationDB.Storage.Memory.Core
 				return maxLevel >= 0;
 			}
 
-#if false
-			/// <summary>Seek the iterator at the smallest value that is closest to the desired item</summary>
-			/// <param name="item">Item to seek to</param>
-			/// <param name="orEqual">If true, then seek to this item is found. If false, seek to the previous value</param>
-			/// <param name="reverse">If true, the cursors are setup for moving backward (by calling Previous). Is false, the cursors are set up for moving forward (by calling Next)</param>
-			public void Seek(T item, bool orEqual)
-			{
-				//Trace.WriteLine("# Seeking to " + item + " (orEqual = " + orEqual + ")");
-
-				var cursors = m_cursors;
-
-				T max = default(T);
-				int maxLevel = NOT_FOUND;
-
-				Debug_Dump("Seek:prepare");
-
-				bool exact = false;
-				for (int i = m_min; i <= m_max; i++)
-				{
-					if (ColaStore.IsFree(i, m_count)) continue;
-
-					var segment = m_levels[i];
-					int pos = ColaStore.BinarySearch<T>(segment, 0, segment.Length, item, m_comparer);
-					//Trace.WriteLine("  > binsearch L" + i + " => " + pos + " (~" + (~pos) + ")");
-					if (pos >= 0)
-					{ // exact match!
-						if (orEqual)
-						{
-							exact = true;
-							cursors[i] = pos + 1;
-							max = segment[pos];
-							maxLevel = i;
-							continue;
-						}
-
-					}
-					else
-					{
-						pos = ~pos;
-					}
-
-					--pos;
-
-					// note: the binary search points to the position where it would go, if it was found,
-					// but the selectors want the PREVIOUS version
-
-					cursors[i] = pos;
-					if (pos >= 0 && pos < segment.Length)
-					{
-						if (!exact && (maxLevel == NOT_FOUND || m_comparer.Compare(segment[pos], max) > 0))
-						{
-							max = segment[pos];
-							maxLevel = i;
-						}
-					}
-				}
-
-				if (!exact)
-				{
-					Debug_Dump("Seek:before_tweak");
-					// we did not find an exact match, meaning that we found the closest candidate, and all the other cursors point to values less than that
-					for (int i = m_min; i <= m_max; i++)
-					{
-						if (cursors[i] < (1 << i) && i != maxLevel) ++cursors[i];
-					}
-				}
-
-				m_current = max;
-				m_currentLevel = maxLevel;
-				Debug_Dump("Seek:done");
-			}
-#endif
-
 			/// <summary>Value of the current entry</summary>
 			public T Current
 			{
@@ -1273,212 +1188,6 @@ namespace FoundationDB.Storage.Memory.Core
 			{
 				get { return m_direction; }
 			}
-
-#if false
-			[Obsolete("DOES NOT WORK")]
-			public bool Next()
-			{
-
-				//Trace.WriteLine("# Looking for next between levels " + m_min + " and " + m_max);
-				T min = default(T);
-				int minLevel = NOT_FOUND;
-
-				// cursors:
-				// -1 = we are before the first item
-				// 2^L = we are after the last item
-
-				var count = m_count;
-				var cursors = m_cursors;
-
-				// first, we need to increment the last position
-				if (m_currentLevel >= 0)
-				{
-					cursors[m_currentLevel]++;
-				}
-
-				bool hasIdleSegment = false;
-
-				for (int i = m_min; i <= m_max; i++)
-				{
-					if (ColaStore.IsFree(i, count))
-					{
-						//Trace.WriteLine("  > level " + i + " is unallocated");
-						continue;
-					}
-
-					int pos = cursors[i];
-					var segment = m_levels[i];
-					if (pos >= segment.Length)
-					{ // we have passed the end of this one
-						//Trace.WriteLine("  > level " + i + " is done");
-						continue;
-					}
-
-					if (pos < 0)
-					{ // we still haven't entered this one
-						hasIdleSegment = true;
-						//Trace.WriteLine("  > level " + i + " is not opened yet");
-						continue;
-					}
-
-					// it is active!
-					//Trace.WriteLine("  > level " + i + " is at pos " + pos);
-					var x = segment[pos];
-					int c = minLevel < 0 ? -1 : m_comparer.Compare(x, min);
-					if (c < 0)
-					{
-						min = x;
-						minLevel = i;
-					}
-				}
-
-				if (minLevel >= 0)
-				{ // we have found the next item
-					//Trace.WriteLine("  > and the winner is level " + minLevel + " !");
-					m_current = min;
-					m_currentLevel = minLevel;
-					Debug_Dump("Next:found");
-					return true;
-				}
-
-				if (hasIdleSegment)
-				{ // did not find anthing, but there were some unopened segments, open them and try again
-
-					//Trace.WriteLine("  > not all hope is lost, there are still opened levels!");
-					for (int i = m_min; i < m_max; i++)
-					{
-						if (!IsFree(i, count) && cursors[i] == -1)
-						{
-							//Trace.WriteLine("    > opening level " + i);
-							cursors[i] = 0;
-						}
-					}
-					Debug_Dump("Next:opened");
-
-					return Next();
-				}
-
-				//Trace.WriteLine("  > nope :(");
-
-				// all segments are done, we have reached the end
-				m_current = default(T);
-				m_currentLevel = NOT_FOUND;
-				Debug_Dump("Next:done");
-				return false;
-			}
-
-			[Obsolete("DOES NOT WORK")]
-			public void ReverseDirection()
-			{
-				var cursors = m_cursors;
-				var count = m_count;
-
-				for (int i = m_min; i < m_max; i++)
-				{
-					if (ColaStore.IsFree(i, count) || i == m_currentLevel) continue;
-
-					int p = cursors[i];
-					//if (p == 1 << i) cursors[i] = p - 1;
-					if (p >= 0) cursors[i] = p - 1;
-				}
-
-				Debug_Dump("ReverseDirection:done");
-			}
-
-			[Obsolete("DOES NOT WORK")]
-			public bool Previous()
-			{
-
-				//Trace.WriteLine("# Looking for previous between levels " + m_min + " and " + m_max);
-				T max = default(T);
-				int maxLevel = NOT_FOUND;
-
-				// cursors:
-				// -1 = we are before the first item
-				// 2^L = we are after the last item
-
-				var count = m_count;
-				var cursors = m_cursors;
-
-				// first, we need to decrement the last position
-				if (m_currentLevel >= 0)
-				{
-					cursors[m_currentLevel]--;
-				}
-
-				bool hasIdleSegment = false;
-
-				for (int i = m_min; i <= m_max; i++)
-				{
-					if (ColaStore.IsFree(i, count))
-					{
-						//Trace.WriteLine("  > level " + i + " is unallocated");
-						continue;
-					}
-
-					int pos = cursors[i];
-					if (pos < 0)
-					{ // we have passed the start of this one
-						//Trace.WriteLine("  > level " + i + " is done");
-						continue;
-					}
-
-					var segment = m_levels[i];
-					if (pos >= segment.Length)
-					{ // we still haven't entered this one
-						hasIdleSegment = true;
-						//Trace.WriteLine("  > level " + i + " is not opened yet");
-						continue;
-					}
-
-					// it is active!
-					//Trace.WriteLine("  > level " + i + " is at pos " + pos);
-					var x = segment[pos];
-					int c = maxLevel < 0 ? +1 : m_comparer.Compare(x, max);
-					if (c > 0)
-					{
-						max = x;
-						maxLevel = i;
-					}
-				}
-
-				if (maxLevel >= 0)
-				{ // we have found the previous item
-					//Trace.WriteLine("  > and the winner is level " + minLevel + " !");
-					m_current = max;
-					m_currentLevel = maxLevel;
-					Debug_Dump("Previous:found");
-					return true;
-				}
-
-				if (hasIdleSegment)
-				{ // did not find anything, but there were some unopened segments, open them and try again
-
-					//Trace.WriteLine("  > not all hope is lost, there are still opened levels!");
-					for (int i = m_min; i < m_max; i++)
-					{
-						if (!IsFree(i, count) && cursors[i] == 1 << i)
-						{
-							//Trace.WriteLine("    > opening level " + i);
-							cursors[i]--;
-						}
-					}
-
-					Debug_Dump("Previous:opened");
-
-					return Next();
-				}
-
-				//Trace.WriteLine("  > nope :(");
-
-				// all segments are done, we have reached the end
-				m_current = default(T);
-				m_currentLevel = NOT_FOUND;
-				Debug_Dump("Previous:notfound");
-				return false;
-			}
-
-#endif
 
 		}
 

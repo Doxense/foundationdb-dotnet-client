@@ -180,7 +180,7 @@ namespace FoundationDB.Storage.Memory.Utils
 					Array.Resize(ref m_buffer, (int)newsize);
 				}
 				m_handle = GCHandle.Alloc(m_buffer, GCHandleType.Pinned);
-				m_data = (byte*)m_handle.AddrOfPinnedObject().ToPointer();
+				m_data = (byte*)m_handle.AddrOfPinnedObject();
 			}
 			Contract.Ensures(m_buffer != null && m_handle.IsAllocated && m_data != null && m_count >= 0 && m_count <= m_buffer.Length, "GrowBuffer corruption");
 		}

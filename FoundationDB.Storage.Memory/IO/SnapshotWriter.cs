@@ -170,7 +170,7 @@ namespace FoundationDB.Storage.Memory.IO
 						continue;
 					}
 					Key* key = (Key*)segment[i]; //.ToPointer();
-					Contract.Assert(key != null && key->Size <= int.MaxValue);
+					Contract.Assert(key != null && key->Size <= MemoryDatabaseHandler.MAX_KEY_SIZE);
 
 					// Key Size
 					uint size = key->Size;

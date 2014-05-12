@@ -177,14 +177,10 @@ namespace FoundationDB.Storage.Memory.Core
 			var entry = new Entry(begin, end);
 			Entry cursor;
 
-			//Console.WriteLine("# Inserting " + entry);
-
 			switch (m_items.Count)
 			{
 				case 0:
 				{ // the list empty
-
-					//Console.WriteLine("> empty: inserted");
 
 					// no checks required
 					m_items.Insert(entry);
@@ -256,8 +252,6 @@ namespace FoundationDB.Storage.Memory.Core
 						level = m_items.FindNext(entry, false, out offset, out cursor);
 						if (level < 0) break;
 
-						//Console.WriteLine("> Next: " + cursor);
-
 						if (inserted)
 						{ // we already have inserted the key so conflicts will remove the next segment
 							if (Resolve(entry, cursor))
@@ -286,7 +280,6 @@ namespace FoundationDB.Storage.Memory.Core
 
 					if (!inserted)
 					{ // no conflict, we have to insert the new range
-						//Console.WriteLine("> inserted: " + entry);
 						m_items.Insert(entry);
 					}
 

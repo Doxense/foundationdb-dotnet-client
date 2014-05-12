@@ -336,7 +336,7 @@ namespace FoundationDB.Storage.Memory.API
 
 							IntPtr previous;
 							int offset, level = m_data.Find(lookupKey.GetPointer(), out offset, out previous);
-							key = level >= 0 ? (Key*)previous.ToPointer() : null;
+							key = level >= 0 ? (Key*)previous : null;
 							Contract.Assert((level < 0 && key == null) || (level >= 0 && offset >= 0 && key != null));
 
 							bool valueMutated = false;
@@ -612,7 +612,7 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				sb.Append(userKey).Append(" => ");
 
-				Key* key = (Key*)userKey.ToPointer();
+				Key* key = (Key*)userKey;
 				Contract.Assert(key != null);
 
 				sb.Append('\'').Append(FdbKey.Dump(Key.GetData(key).ToSlice())).Append('\'');
@@ -649,7 +649,7 @@ namespace FoundationDB.Storage.Memory.API
 				return false;
 			}
 
-			Key* key = (Key*)existing.ToPointer();
+			Key* key = (Key*)existing;
 			//TODO: aserts!
 
 			// walk the chain of version until we find one that existed at the request version
@@ -742,9 +742,9 @@ namespace FoundationDB.Storage.Memory.API
 		{
 			if (userKey == IntPtr.Zero) return null;
 
-			Key* key = (Key*)userKey.ToPointer();
+			Key* key = (Key*)userKey;
 			Contract.Assert((key->Header & Entry.FLAGS_DISPOSED) == 0, "Attempted to read value from a disposed key");
-			Contract.Assert(key->Size > 0, "Attempted to read value from an empty key");
+			Contract.Assert(key->Size <= MemoryDatabaseHandler.MAX_KEY_SIZE, "Attempted to read value from a key that is too large");
 
 			Value* current = key->Values;
 			while(current != null && current->Sequence > sequence)
@@ -866,8 +866,8 @@ namespace FoundationDB.Storage.Memory.API
 						}
 
 						// we want the key!
-						Key* key = (Key*)iterator.Current.ToPointer();
-						Contract.Assert(key != null && key->Size > 0);
+						Key* key = (Key*)iterator.Current;
+						Contract.Assert(key != null && key->Size <= MemoryDatabaseHandler.MAX_KEY_SIZE);
 
 						var data = buffer.Allocate(checked((int)key->Size));
 						Contract.Assert(data.Array != null && data.Offset >= 0 && data.Count == (int)key->Size);

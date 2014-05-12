@@ -33,7 +33,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 			m_handle = handle;
 			m_capacity = capacity;
-			m_start = (byte*) handle.DangerousGetHandle().ToPointer();
+			m_start = (byte*) handle.DangerousGetHandle();
 			m_end = m_start + capacity;
 			m_current = m_start;
 			CheckInvariants();

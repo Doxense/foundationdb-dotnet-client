@@ -46,7 +46,7 @@ namespace FoundationDB.Storage.Memory.Utils
 				m_handle = handle;
 				m_size = size;
 
-				m_begin = (byte*)handle.ToPointer();
+				m_begin = (byte*)handle;
 
 				// fill with zeroes !
 				UnmanagedHelpers.FillUnsafe(m_begin, size, 0);

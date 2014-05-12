@@ -2,7 +2,7 @@
 // See License.MD for license information
 #endregion
 
-#define INSTRUMENT
+#undef INSTRUMENT
 
 namespace FoundationDB.Storage.Memory.Core
 {
@@ -71,7 +71,7 @@ namespace FoundationDB.Storage.Memory.Core
 #if INSTRUMENT
 			System.Threading.Interlocked.Increment(ref s_getHashCodeCalls);
 #endif
-			var key = (Key*)value.ToPointer();
+			var key = (Key*)value;
 			if (key == null) return -1;
 			return key->HashCode;
 		}

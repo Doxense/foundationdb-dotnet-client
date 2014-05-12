@@ -240,8 +240,6 @@ namespace FoundationDB.Storage.Memory.Core
 			var cmp = m_keyComparer;
 			int c1, c2;
 
-			//Console.WriteLine("# Inserting " + entry);
-
 			try
 			{
 
@@ -249,8 +247,6 @@ namespace FoundationDB.Storage.Memory.Core
 				{
 					case 0:
 					{ // the list empty
-
-						//Debug.WriteLine("> empty: inserted");
 
 						// no checks required
 						m_items.Insert(entry);
@@ -412,7 +408,6 @@ namespace FoundationDB.Storage.Memory.Core
 						m_bounds.End = Max(m_bounds.End, end);
 
 						cursor = iterator.Current;
-						//Console.WriteLine("  . first match = " + cursor);
 
 						c1 = cmp.Compare(cursor.Begin, begin);
 						c2 = cmp.Compare(cursor.End, end);
@@ -420,7 +415,6 @@ namespace FoundationDB.Storage.Memory.Core
 						{
 							if (c2 == 0)
 							{ // same end
-								//Console.WriteLine("  . exact replace !");
 								//   [-------)..           [-------)..
 								// + [=======)        + [==========)
 								// = [=======)..      = [==========)..
@@ -497,9 +491,6 @@ namespace FoundationDB.Storage.Memory.Core
 							// cursor: existing range that we need to either delete or mutate
 							cursor = iterator.Current;
 
-							//Console.WriteLine("  > " + this.ToString());
-							//Console.WriteLine("  . propagate to " + cursor);
-
 							c1 = cmp.Compare(cursor.Begin, end);
 							if (c1 >= 0)
 							{ // we are past the inserted range, nothing to do any more
@@ -520,13 +511,11 @@ namespace FoundationDB.Storage.Memory.Core
 								// = [...=======)      = [...=======...)
 								if (!inserted)
 								{ // use that slot to insert ourselves
-									//Console.WriteLine("  . covered => reuse");
 									cursor.Set(entry);
 									inserted = true;
 								}
 								else
 								{
-									//Console.WriteLine("  . covered => delete");
 									//note: we can't really delete while iterating with a cursor, so just mark it for deletion
 									if (deleted == null) deleted = new List<Entry>();
 									deleted.Add(cursor);
@@ -540,7 +529,6 @@ namespace FoundationDB.Storage.Memory.Core
 								//   [....========)
 								// = [....========|---)
 
-								//Console.WriteLine("  . overlap => truncate + break");
 								cursor.Begin = end;
 								break;
 							}
@@ -548,13 +536,11 @@ namespace FoundationDB.Storage.Memory.Core
 
 						if (deleted != null && deleted.Count > 0)
 						{
-							//Console.WriteLine("  . removing: " + String.Join(", ", deleted));
 							m_items.RemoveItems(deleted);
 						}
 
 						if (!inserted)
 						{ // we did not find an existing spot to re-use, so we need to insert the new range
-							//Console.WriteLine("  . final insert");
 							m_items.Insert(entry);
 						}
 						break;
@@ -662,7 +648,6 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 
 			return sb.ToString();
-			//return "{ " + String.Join("; ", this) + " }";
 		}
 
 	}

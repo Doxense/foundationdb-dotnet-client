@@ -50,7 +50,7 @@ namespace FoundationDB.Storage.Memory.Core
 		//		4 [ , , , , , , , , , , , , , , , ] 16
 		//		...
 		// * A segment is either EMPTY, or completely FULL
-		//		legal:		[ , , , ] ou [1,2,3,4]
+		//		legal:		[ , , , ] or [1,2,3,4]
 		//		illegal:	[1,2,3, ]
 		// * A segment has all its elements sorted
 		//		legal:		[3,12,42,66]
@@ -553,7 +553,6 @@ namespace FoundationDB.Storage.Memory.Core
 			{
 				if (count == 1)
 				{
-					//Console.WriteLine("InsertItems([1]) Simple");
 					Insert(values[0]);
 				}
 				return;
@@ -576,7 +575,6 @@ namespace FoundationDB.Storage.Memory.Core
 				}
 				else
 				{
-					//Console.WriteLine("InsertItems([2]) Cascade");
 					spare = GetSpare(1);
 					spare[0] = values[0];
 					spare[1] = values[1];
@@ -597,8 +595,6 @@ namespace FoundationDB.Storage.Memory.Core
 				int min = ColaStore.LowestBit(count);
 				int max = ColaStore.HighestBit(count);
 
-				//Console.WriteLine("InsertItems([" + count + " ]) " + min + ".." + max);
-
 				if (max >= m_levels.Length)
 				{ // we need to allocate new levels
 					Grow(max);
@@ -612,7 +608,6 @@ namespace FoundationDB.Storage.Memory.Core
 					segment = m_levels[i];
 					if (IsFree(i))
 					{ // the target level is free, we can copy and sort in place
-						//Console.WriteLine("InsertItems([" + count + " ]) " + i+ " free");
 						values.CopyTo(p, segment, 0, segment.Length);
 						if (!ordered) Array.Sort(segment, 0, segment.Length, m_comparer);
 						p += segment.Length;
@@ -620,7 +615,6 @@ namespace FoundationDB.Storage.Memory.Core
 					}
 					else
 					{ // the target level is used, we will have to do a cascade merge, using a spare
-						//Console.WriteLine("InsertItems([" + count + " ]) " + i + " cascade");
 						spare = GetSpare(i);
 						values.CopyTo(p, spare, 0, spare.Length);
 						if (!ordered) Array.Sort(spare, 0, spare.Length, m_comparer);
@@ -828,7 +822,6 @@ namespace FoundationDB.Storage.Memory.Core
 				}
 #if ENFORCE_INVARIANTS
 				m_spareUsed[level] = true;
-				//Trace.WriteLine("GetSpare(" + level + ", " + t.GetHashCode() + ")");
 #endif
 				return t;
 			}
@@ -847,7 +840,6 @@ namespace FoundationDB.Storage.Memory.Core
 			Contract.Assert(level >= 0 && spare != null);
 
 #if ENFORCE_INVARIANTS
-			//Trace.WriteLine("PutSpare(" + level + ", " + spare.GetHashCode() + ")");
 			// make sure that we do not mix levels and spares
 			for (int i = 0; i < m_levels.Length; i++)
 			{
@@ -1078,7 +1070,6 @@ namespace FoundationDB.Storage.Memory.Core
 
 				if (IsFree(n - 1))
 				{ // less than 25% full
-
 
 					// remove the last level
 					var tmpSegments = new T[n][];

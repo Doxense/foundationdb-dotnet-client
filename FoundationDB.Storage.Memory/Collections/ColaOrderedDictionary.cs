@@ -138,7 +138,7 @@ namespace FoundationDB.Storage.Memory.Core
 			if (!m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: false))
 			{
 				--m_version;
-				throw new InvalidOperationException("An entry with the same key but a different value already exists.");
+				ThrowKeyAlreadyExists();
 			}
 		}
 
@@ -147,7 +147,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <param name="value">The key value to set.</param>
 		public void SetItem(TKey key, TValue value)
 		{
-			if (key == null) throw new ArgumentNullException("key");
+			if (key == null) ThrowKeyCannotBeNull();
 			++m_version;
 			m_items.SetOrAdd(new KeyValuePair<TKey, TValue>(key, value), overwriteExistingValue: true);
 		}
@@ -370,6 +370,11 @@ namespace FoundationDB.Storage.Memory.Core
 		private static void ThrowKeyNotFound()
 		{
 			throw new KeyNotFoundException();
+		}
+
+		private static void ThrowKeyAlreadyExists()
+		{
+			throw new InvalidOperationException("An entry with the same key but a different value already exists.");
 		}
 
 		//TODO: remove or set to internal !
