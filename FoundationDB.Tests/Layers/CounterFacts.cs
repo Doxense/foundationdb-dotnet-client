@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -95,49 +95,58 @@ namespace FoundationDB.Layers.Counters.Tests
 		[Test]
 		public async Task Bench_FdbCounter_Increment_Concurrently()
 		{
-			const int W = 50;
 			const int B = 100;
-			const int N = B * W;
 
-			using (var db = await OpenTestPartitionAsync())
+			// repeat the process 10 times...
+			foreach(int W in new [] { 1, 2, 5, 10, 20, 50, 100 })
 			{
-				var location = await GetCleanDirectory(db, "counters", "big");
+				int N = B * W;
 
-				var c = new FdbCounter(db, location);
+				using (var db = await OpenTestPartitionAsync())
+				{
+					var location = await GetCleanDirectory(db, "counters", "big", W.ToString());
 
-				Console.WriteLine("Doing " + W + " x " + B + " inserts in " + W + " threads...");
+					var c = new FdbCounter(db, location);
 
-				var signal = new TaskCompletionSource<object>();
+					Console.WriteLine("Doing " + W + " x " + B + " inserts in " + W + " threads...");
 
-				var workers = Enumerable.Range(0, W)
-					.Select(async (id) =>
-					{
-						await signal.Task.ConfigureAwait(false);
-
-						for (int i = 0; i < B; i++)
+					var signal = new TaskCompletionSource<object>();
+					var done = new TaskCompletionSource<object>();
+					var workers = Enumerable.Range(0, W)
+						.Select(async (id) =>
 						{
-							await c.AddAsync(1, this.Cancellation).ConfigureAwait(false);
-						}
-					}).ToArray();
+							await signal.Task.ConfigureAwait(false);
+							for (int i = 0; i < B; i++)
+							{
+								await c.AddAsync(1, this.Cancellation).ConfigureAwait(false);
+							}
+						}).ToArray();
 
-				var sw = Stopwatch.StartNew();
-				// start
-				ThreadPool.UnsafeQueueUserWorkItem((_) => signal.TrySetResult(null), null);
-				// wait
-				await Task.WhenAll(workers);
-				sw.Stop();
-				Console.WriteLine("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / B).ToString("N0") + " µs/add)");
+					var sw = Stopwatch.StartNew();
+					// start
+					ThreadPool.UnsafeQueueUserWorkItem((_) => signal.TrySetResult(null), null);
+					// wait
+					await Task.WhenAll(workers);
+					sw.Stop();
+					Console.WriteLine("> " + N + " completed in " + sw.Elapsed.TotalMilliseconds.ToString("N1") + " ms (" + (sw.Elapsed.TotalMilliseconds * 1000 / B).ToString("N0") + " µs/add)");
 
-				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N), "Counter value does not match (first call)");
+					long n = await c.GetSnapshotAsync(this.Cancellation);
+					if (n != N)
+					{ // fail
+						await DumpSubspace(db, location);
+						Assert.That(n, Is.EqualTo(N), "Counter value does not match (first call)");
+					}
 
-				// wait a bit, in case there was some coalesce still running...
-				await Task.Delay(200);
-				Assert.That(await c.GetSnapshotAsync(this.Cancellation), Is.EqualTo(N), "Counter value does not match (second call)");
+					// wait a bit, in case there was some coalesce still running...
+					await Task.Delay(200);
+					n = await c.GetSnapshotAsync(this.Cancellation);
+					if (n != N)
+					{ // fail
+						await DumpSubspace(db, location);
+						Assert.That(n, Is.EqualTo(N), "Counter value does not match (second call)");
+					}
 
-#if DEBUG
-				await DumpSubspace(db, location);
-#endif
-
+				}
 			}
 
 		}

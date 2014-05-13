@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,9 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Flag use to know if a background coalescing is already running</summary>
 		private int m_coalesceRunning;
 
+		private const int NOT_RUNNING = 0;
+		private const int RUNNING = 1;
+
 		/// <summary>
 		/// Create a new object representing a binary large object (blob).
 		/// Only keys within the subspace will be used by the object. 
@@ -94,7 +97,10 @@ namespace FoundationDB.Layers.Counters
 
 		protected virtual Slice RandomId()
 		{
-			return Slice.Random(this.Rng, 20);
+			lock (this.Rng) //note: the Rng is not thread-safe
+			{
+				return Slice.Random(this.Rng, 20);
+			}
 		}
 
 		private async Task Coalesce(int N, CancellationToken ct)
@@ -106,17 +112,14 @@ namespace FoundationDB.Layers.Counters
 				try
 				{
 					// read N writes from a random place in ID space
-					var loc = this.Subspace.Pack(FdbTuple.Create(RandomId()));
+					var loc = this.Subspace.Pack(RandomId());
 
-					List<KeyValuePair<Slice, Slice>> shards;
-					if (this.Rng.NextDouble() < 0.5)
-					{
-						shards = await tr.Snapshot.GetRange(loc, this.Subspace.ToRange().End, new FdbRangeOptions { Limit = N }).ToListAsync().ConfigureAwait(false);
-					}
-					else
-					{
-						shards = await tr.Snapshot.GetRange(this.Subspace.ToRange().Begin, loc, new FdbRangeOptions { Limit = N , Reverse = true }).ToListAsync().ConfigureAwait(false);
-					}
+					bool right;
+					lock(this.Rng) { right = this.Rng.NextDouble() < 0.5; }
+					var query = right
+						? tr.Snapshot.GetRange(loc, this.Subspace.ToRange().End, limit: N, reverse: false)
+						: tr.Snapshot.GetRange(this.Subspace.ToRange().Begin, loc, limit: N, reverse: true);
+					var shards = await query.ToListAsync().ConfigureAwait(false);
 
 					if (shards.Count > 0)
 					{
@@ -128,16 +131,17 @@ namespace FoundationDB.Layers.Counters
 							tr.Clear(shard.Key);
 						}
 
-						tr.Set(this.Subspace.Pack(FdbTuple.Create(RandomId())), EncodeInt(total));
+						tr.Set(this.Subspace.Pack(RandomId()), EncodeInt(total));
 
 						// note: contrary to the python impl, we will await the commit, and rely on the caller to not wait to the Coalesce task itself to complete.
 						// That way, the transaction will live as long as the task, and we ensure that it gets disposed at some time
 						await tr.CommitAsync().ConfigureAwait(false);
 					}
 				}
-				catch (FdbException)
+				catch (FdbException x)
 				{
 					//TODO: logging ?
+					System.Diagnostics.Debug.WriteLine("Coalesce error: " + x.Message);
 					return;
 				}
 			}
@@ -146,7 +150,7 @@ namespace FoundationDB.Layers.Counters
 		private void BackgroundCoalesce(int n, CancellationToken ct)
 		{
 			// only coalesce if it is not already running
-			if (Interlocked.CompareExchange(ref m_coalesceRunning, 1, 0) == 0)
+			if (Interlocked.CompareExchange(ref m_coalesceRunning, RUNNING, NOT_RUNNING) == NOT_RUNNING)
 			{
 				try
 				{
@@ -156,16 +160,20 @@ namespace FoundationDB.Layers.Counters
 						.ContinueWith((t) =>
 						{
 							// reset the flag
-							Volatile.Write(ref m_coalesceRunning, 0);
+							Volatile.Write(ref m_coalesceRunning, NOT_RUNNING);
 
 							// observe any exceptions
-							if (t.IsFaulted) { var x = t.Exception; }
-							//TODO: logging ?
+							if (t.IsFaulted)
+							{
+								var x = t.Exception;
+								//TODO: logging ?
+								System.Diagnostics.Debug.WriteLine("Background Coalesce error: " + x.ToString());
+							}
 						});
 				}
 				catch (Exception)
 				{ // something went wrong starting the background coesle
-					Volatile.Write(ref m_coalesceRunning, 1);
+					Volatile.Write(ref m_coalesceRunning, NOT_RUNNING);
 					throw;
 				}
 			}
