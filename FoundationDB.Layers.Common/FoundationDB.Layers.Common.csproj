@@ -68,8 +68,8 @@
     <Compile Include="Interning\FdbStringInternTransactionals.cs" />
     <Compile Include="Interning\FdbStringIntern.cs" />
     <Compile Include="Blobs\FdbBlob.cs" />
-    <Compile Include="Tables\FdbTableExtensions.cs" />
-    <Compile Include="Tables\FdbTable`2.cs" />
+    <Compile Include="Collections\FdbMapTransactionals.cs" />
+    <Compile Include="Collections\FdbMap`2.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FoundationDB.Client\FoundationDB.Client.csproj">

@@ -5,9 +5,9 @@
 namespace FoundationDB.Storage.Memory.API.Tests
 {
 	using FoundationDB.Client;
+	using FoundationDB.Layers.Collections;
 	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Layers.Tables;
 	using FoundationDB.Linq;
 	using FoundationDB.Storage.Memory.Tests;
 	using NUnit.Framework;
@@ -680,14 +680,14 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
 
-				var table = new FdbTable<int, string>("Foos", db.GlobalSpace.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<int, string>("Foos", db.GlobalSpace.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
 				var index = new FdbIndex<int, string>("Foos.ByColor", db.GlobalSpace.Partition("Foos", "Color"));
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					table.Set(tr, 3, @"{ ""name"": ""Juliet"", ""color"": ""red"" }");
-					table.Set(tr, 2, @"{ ""name"": ""Joey"", ""color"": ""blue"" }");
-					table.Set(tr, 1, @"{ ""name"": ""Bob"", ""color"": ""red"" }");
+					map.Set(tr, 3, @"{ ""name"": ""Juliet"", ""color"": ""red"" }");
+					map.Set(tr, 2, @"{ ""name"": ""Joey"", ""color"": ""blue"" }");
+					map.Set(tr, 1, @"{ ""name"": ""Bob"", ""color"": ""red"" }");
 
 					index.Add(tr, 3, "red");
 					index.Add(tr, 2, "blue");

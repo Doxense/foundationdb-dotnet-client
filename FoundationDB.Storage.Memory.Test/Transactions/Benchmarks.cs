@@ -7,7 +7,6 @@ namespace FoundationDB.Storage.Memory.API.Tests
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Indexing;
-	using FoundationDB.Layers.Tables;
 	using FoundationDB.Linq;
 	using FoundationDB.Storage.Memory.Tests;
 	using NUnit.Framework;

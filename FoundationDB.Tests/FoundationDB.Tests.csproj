@@ -97,7 +97,7 @@
     <Compile Include="Layers\BlobFacts.cs" />
     <Compile Include="Layers\CounterFacts.cs" />
     <Compile Include="TestHelpers.cs" />
-    <Compile Include="Layers\TableFacts.cs" />
+    <Compile Include="Layers\MapFacts.cs" />
     <Compile Include="Layers\TupleFacts.cs" />
     <Compile Include="Layers\StringInternFacts.cs" />
     <Compile Include="TransactionFacts.cs" />

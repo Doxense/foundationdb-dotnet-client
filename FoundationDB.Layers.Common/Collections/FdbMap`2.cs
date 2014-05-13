@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tables
+namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
@@ -39,14 +39,14 @@ namespace FoundationDB.Layers.Tables
 	using System.Threading.Tasks;
 
 	[DebuggerDisplay("Name={Name}, Subspace={Subspace}")]
-	public class FdbTable<TKey, TValue>
+	public class FdbMap<TKey, TValue>
 	{
 
-		public FdbTable(string name, FdbSubspace subspace, IValueEncoder<TValue> valueEncoder)
+		public FdbMap(string name, FdbSubspace subspace, IValueEncoder<TValue> valueEncoder)
 			: this(name, subspace, KeyValueEncoders.Tuples.Key<TKey>(), valueEncoder)
 		{ }
 
-		public FdbTable(string name, FdbSubspace subspace, IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
+		public FdbMap(string name, FdbSubspace subspace, IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -61,10 +61,11 @@ namespace FoundationDB.Layers.Tables
 
 		#region Public Properties...
 
-		/// <summary>Name of the table</summary>
+		/// <summary>Name of the map</summary>
+		// REVIEW: do we really need this property?
 		public string Name { get; private set; }
 
-		/// <summary>Subspace used as a prefix for all items in this table</summary>
+		/// <summary>Subspace used as a prefix for all items in this map</summary>
 		public FdbSubspace Subspace { get; private set; }
 
 		/// <summary>Subspace used to encoded the keys for the items</summary>
@@ -77,12 +78,12 @@ namespace FoundationDB.Layers.Tables
 
 		#region Get / Set / Clear...
 
-		/// <summary>Returns the value of an existing entry in the table</summary>
+		/// <summary>Returns the value of an existing entry in the map</summary>
 		/// <param name="trans">Transaction used for the operation</param>
-		/// <param name="id">Key of the entry to read from the table</param>
+		/// <param name="id">Key of the entry to read from the map</param>
 		/// <returns>Value of the entry if it exists; otherwise, throws an exception</returns>
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="trans"/> or <paramref name="id"/> is null.</exception>
-		/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the table does not contain an entry with this key.</exception>
+		/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the map does not contain an entry with this key.</exception>
 		public async Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -90,14 +91,14 @@ namespace FoundationDB.Layers.Tables
 
 			var data = await this.Location.GetAsync(trans, id).ConfigureAwait(false);
 
-			if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the table.");
+			if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
 			return this.ValueEncoder.DecodeValue(data);
 		}
 
-		/// <summary>Returns the value of an entry in the table if it exists.</summary>
+		/// <summary>Returns the value of an entry in the map if it exists.</summary>
 		/// <param name="trans">Transaction used for the operation</param>
-		/// <param name="id">Key of the entry to read from the table</param>
-		/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the table.</returns>
+		/// <param name="id">Key of the entry to read from the map</param>
+		/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
 		public async Task<Optional<TValue>> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -109,7 +110,7 @@ namespace FoundationDB.Layers.Tables
 			return this.ValueEncoder.DecodeValue(data);
 		}
 
-		/// <summary>Add or update an entry in the table</summary>
+		/// <summary>Add or update an entry in the map</summary>
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="id">Key of the entry to add or update</param>
 		/// <param name="value">New value of the entry</param>
@@ -122,7 +123,7 @@ namespace FoundationDB.Layers.Tables
 			this.Location.Set(trans, id, this.ValueEncoder.EncodeValue(value));
 		}
 
-		/// <summary>Remove an entry from the table</summary>
+		/// <summary>Remove an entry from the map</summary>
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="id">Key of the entry to remove</param>
 		/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
@@ -134,10 +135,10 @@ namespace FoundationDB.Layers.Tables
 			this.Location.Clear(trans, id);
 		}
 
-		/// <summary>Reads all the entries in the table</summary>
+		/// <summary>Reads all the entries in the map</summary>
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
-		/// <remarks>This can be dangerous if the table contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
+		/// <remarks>This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All(IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -150,7 +151,7 @@ namespace FoundationDB.Layers.Tables
 				));
 		}
 
-		/// <summary>Reads the values of multiple entries in the table</summary>
+		/// <summary>Reads the values of multiple entries in the map</summary>
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="ids">List of the keys to read</param>
 		/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>

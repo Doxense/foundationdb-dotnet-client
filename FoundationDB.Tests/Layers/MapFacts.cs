@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Layers.Tables.Tests
+namespace FoundationDB.Layers.Collections.Tests
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Tests;
@@ -38,7 +38,7 @@ namespace FoundationDB.Layers.Tables.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class TableFacts : FdbTest
+	public class MapFacts : FdbTest
 	{
 
 		[Test]
@@ -50,7 +50,7 @@ namespace FoundationDB.Layers.Tables.Tests
 
 				var location = await GetCleanDirectory(db, "Tables");
 
-				var table = new FdbTable<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var table = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				string secret = "world:" + Guid.NewGuid().ToString();
 
@@ -129,7 +129,7 @@ namespace FoundationDB.Layers.Tables.Tests
 			{
 				var location = await GetCleanDirectory(db, "Tables");
 
-				var table = new FdbTable<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var table = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				// write a bunch of keys
 				await db.WriteAsync((tr) =>
@@ -189,7 +189,7 @@ namespace FoundationDB.Layers.Tables.Tests
 			{
 				var location = await GetCleanDirectory(db, "Tables");
 
-				var table = new FdbTable<IPEndPoint, string>("Firewall", location.Partition("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
+				var table = new FdbMap<IPEndPoint, string>("Firewall", location.Partition("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
 
 				// import all the rules
 				await db.WriteAsync((tr) =>
