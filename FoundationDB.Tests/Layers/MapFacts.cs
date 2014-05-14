@@ -42,24 +42,23 @@ namespace FoundationDB.Layers.Collections.Tests
 	{
 
 		[Test]
-		public async Task Test_FdbTable_Read_Write_Delete()
+		public async Task Test_FdbMap_Read_Write_Delete()
 		{
 
 			using (var db = await OpenTestPartitionAsync())
 			{
+				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var location = await GetCleanDirectory(db, "Tables");
-
-				var table = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				string secret = "world:" + Guid.NewGuid().ToString();
 
 				// read non existing value
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					Assert.That(async () => await table.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
+					Assert.That(async () => await map.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
 
-					var value = await table.TryGetAsync(tr, "hello");
+					var value = await map.TryGetAsync(tr, "hello");
 					Assert.That(value.HasValue, Is.False);
 					Assert.That(value.GetValueOrDefault(), Is.Null);
 				}
@@ -67,7 +66,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// write value
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					table.Set(tr, "hello", secret);
+					map.Set(tr, "hello", secret);
 					await tr.CommitAsync();
 				}
 
@@ -78,10 +77,10 @@ namespace FoundationDB.Layers.Collections.Tests
 				// read value back
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var value = await table.GetAsync(tr, "hello");
+					var value = await map.GetAsync(tr, "hello");
 					Assert.That(value, Is.EqualTo(secret));
 
-					var opt = await table.TryGetAsync(tr, "hello");
+					var opt = await map.TryGetAsync(tr, "hello");
 					Assert.That(opt.HasValue, Is.True);
 					Assert.That(opt.Value, Is.EqualTo(secret));
 				}
@@ -97,7 +96,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// delete the value
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					table.Clear(tr, "hello");
+					map.Clear(tr, "hello");
 					await tr.CommitAsync();
 				}
 
@@ -108,9 +107,9 @@ namespace FoundationDB.Layers.Collections.Tests
 				// verifiy that it is gone
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					Assert.That(async () => await table.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
+					Assert.That(async () => await map.GetAsync(tr, "hello"), Throws.InstanceOf<KeyNotFoundException>());
 
-					var value = await table.TryGetAsync(tr, "hello");
+					var value = await map.TryGetAsync(tr, "hello");
 					Assert.That(value.HasValue, Is.False);
 					
 					// also check directly
@@ -123,19 +122,19 @@ namespace FoundationDB.Layers.Collections.Tests
 		}
 
 		[Test]
-		public async Task Test_FdbTable_List()
+		public async Task Test_FdbMap_List()
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Tables");
+				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var table = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				// write a bunch of keys
 				await db.WriteAsync((tr) =>
 				{
-					table.Set(tr, "foo", "foo_value");
-					table.Set(tr, "bar", "bar_value");
+					map.Set(tr, "foo", "foo_value");
+					map.Set(tr, "bar", "bar_value");
 				}, this.Cancellation);
 
 #if DEBUG
@@ -146,15 +145,15 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var value = await table.GetAsync(tr, "foo");
+					var value = await map.GetAsync(tr, "foo");
 					Assert.That(value, Is.EqualTo("foo_value"));
 
-					value = await table.GetAsync(tr, "bar");
+					value = await map.GetAsync(tr, "bar");
 					Assert.That(value, Is.EqualTo("bar_value"));
 
-					Assert.That(async () => await table.GetAsync(tr, "baz"), Throws.InstanceOf<KeyNotFoundException>());
+					Assert.That(async () => await map.GetAsync(tr, "baz"), Throws.InstanceOf<KeyNotFoundException>());
 
-					var opt = await table.TryGetAsync(tr, "baz");
+					var opt = await map.TryGetAsync(tr, "baz");
 					Assert.That(opt.HasValue, Is.False);
 				}
 
@@ -162,7 +161,7 @@ namespace FoundationDB.Layers.Collections.Tests
 		}
 
 		[Test]
-		public async Task Test_FdbTable_With_Custom_Key_Encoder()
+		public async Task Test_FdbMap_With_Custom_Key_Encoder()
 		{
 			// Use a table as a backing store for the rules of a Poor Man's firewall, where each keys are the IPEndPoint (tcp only!), and the values are "pass" or "block"
 
@@ -187,16 +186,16 @@ namespace FoundationDB.Layers.Collections.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Tables");
+				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var table = new FdbMap<IPEndPoint, string>("Firewall", location.Partition("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
 
 				// import all the rules
 				await db.WriteAsync((tr) =>
 				{
 					foreach(var rule in rules)
 					{
-						table.Set(tr, rule.Key, rule.Value);
+						map.Set(tr, rule.Key, rule.Value);
 					}
 				}, this.Cancellation);
 
@@ -208,16 +207,16 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var value = await table.GetAsync(tr, new IPEndPoint(IPAddress.Parse("172.16.12.34"), 6667));
+					var value = await map.GetAsync(tr, new IPEndPoint(IPAddress.Parse("172.16.12.34"), 6667));
 					Assert.That(value, Is.EqualTo("block"));
 
-					value = await table.GetAsync(tr, new IPEndPoint(IPAddress.Parse("192.168.34.56"), 443));
+					value = await map.GetAsync(tr, new IPEndPoint(IPAddress.Parse("192.168.34.56"), 443));
 					Assert.That(value, Is.EqualTo("pass"));
 
 					var baz = new IPEndPoint(IPAddress.Parse("172.16.12.34"), 80);
-					Assert.That(async () => await table.GetAsync(tr, baz), Throws.InstanceOf<KeyNotFoundException>());
+					Assert.That(async () => await map.GetAsync(tr, baz), Throws.InstanceOf<KeyNotFoundException>());
 
-					var opt = await table.TryGetAsync(tr, baz);
+					var opt = await map.TryGetAsync(tr, baz);
 					Assert.That(opt.HasValue, Is.False);
 				}
 
