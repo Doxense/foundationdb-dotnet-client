@@ -101,24 +101,23 @@ namespace FoundationDB.Client
 			switch (origin)
 			{
 				case SeekOrigin.Begin:
-					{
-						break;
-					}
-
+				{
+					break;
+				}
 				case SeekOrigin.Current:
-					{
-						offset += m_position;
-						break;
-					}
+				{
+					offset += m_position;
+					break;
+				}
 				case SeekOrigin.End:
-					{
-						offset = m_length - offset;
-						break;
-					}
+				{
+					offset = m_length - offset;
+					break;
+				}
 				default:
-					{
-						throw new ArgumentException("origin");
-					}
+				{
+					throw new ArgumentException("origin");
+				}
 			}
 
 			if (offset < 0) throw new IOException("Cannot seek before the beginning of the slice");
@@ -135,7 +134,10 @@ namespace FoundationDB.Client
 				{
 					m_indexOfCurrentSlice = n;
 					m_offsetInCurrentSlice = (int)(offset - p);
+					break;
 				}
+				p += slice.Count;
+				++n;
 			}
 
 			m_position = (int)offset;
