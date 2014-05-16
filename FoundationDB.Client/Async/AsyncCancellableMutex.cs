@@ -69,15 +69,8 @@ namespace FoundationDB.Async
 		{
 			if (ct.CanBeCanceled)
 			{
-				try
-				{
-					m_state = CTR_REGISTERED;
-					m_ctr = ct.Register(s_cancellationCallback, new WeakReference<AsyncCancelableMutex>(this), useSynchronizationContext: false);
-				}
-				catch
-				{
-					throw;
-				}
+				m_state = CTR_REGISTERED;
+				m_ctr = ct.Register(s_cancellationCallback, new WeakReference<AsyncCancelableMutex>(this), useSynchronizationContext: false);
 			}
 			GC.SuppressFinalize(this);
 		}
