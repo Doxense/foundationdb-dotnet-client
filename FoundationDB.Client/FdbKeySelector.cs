@@ -65,6 +65,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns a displayable representation of the key selector</summary>
+		[System.Diagnostics.Contracts.Pure]
 		public string PrettyPrint(FdbKey.PrettyPrintMode mode)
 		{
 			var sb = new StringBuilder();

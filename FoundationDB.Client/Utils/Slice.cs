@@ -356,6 +356,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ArgumentException">If <paramref name="separator"/> is empty, or if <paramref name="options"/> is not one of the <see cref="StringSplitOptions"/> values.</exception>
 		/// <remarks>If <paramref name="input"/> does not contain the delimiter, the returned array consists of a single element that repeats the input, or an empty array if input is itself empty.
 		/// To reduce memory usage, the sub-slices returned in the array will all share the same underlying buffer of the input slice.</remarks>
+		[System.Diagnostics.Contracts.Pure]
 		public static Slice[] Split(Slice input, Slice separator, StringSplitOptions options = StringSplitOptions.None)
 		{
 			// this method is made to behave the same way as String.Split(), especially the following edge cases
@@ -831,6 +832,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a byte array containing all the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of the slice, or null</returns>
+		[System.Diagnostics.Contracts.Pure]
 		public byte[] GetBytes()
 		{
 			if (this.Count == 0) return this.Array == null ? null : Slice.EmptyArray;
@@ -843,6 +845,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Return a byte array containing a subset of the bytes of the slice, or null if the slice is null</summary>
 		/// <returns>Byte array with a copy of a subset of the slice, or null</returns>
+		[System.Diagnostics.Contracts.Pure]
 		public byte[] GetBytes(int offset, int count)
 		{
 			//TODO: throw if this.Array == null ? (what does "Slice.Nil.GetBytes(..., 0)" mean ?)
@@ -961,6 +964,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
 		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for Slice.Nil</returns>
+		[System.Diagnostics.Contracts.Pure]
 		public string ToAsciiOrHexaString() //REVIEW: rename this to ToPrintableString() ?
 		{
 			//REVIEW: rename this to ToFriendlyString() ? or ToLoggableString() ?
@@ -1226,6 +1230,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
+		[System.Diagnostics.Contracts.Pure]
 		public Slice Memoize()
 		{
 			if (this.Count == 0) return this.Array == null ? Slice.Nil : Slice.Empty;
@@ -1333,6 +1338,7 @@ namespace FoundationDB.Client
 		/// Slice.Nil.Substring(0) => Slice.Emtpy
 		/// </example>
 		/// <exception cref="System.ArgumentOutOfRangeException"><paramref name="offset"/> indicates a position not within this instance, or <paramref name="offset"/> is less than zero</exception>
+		[System.Diagnostics.Contracts.Pure]
 		public Slice Substring(int offset)
 		{
 			if (offset == 0) return this;
@@ -1358,6 +1364,7 @@ namespace FoundationDB.Client
 		/// Slice.Nil.Substring(0, 0) => Slice.Emtpy
 		/// </example>
 		/// <exception cref="System.ArgumentOutOfRangeException"><paramref name="offset"/> plus <paramref name="count"/> indicates a position not within this instance, or <paramref name="offset"/> or <paramref name="count"/> is less than zero</exception>
+		[System.Diagnostics.Contracts.Pure]
 		public Slice Substring(int offset, int count)
 		{
 			if (count == 0) return Slice.Empty;
@@ -1376,6 +1383,7 @@ namespace FoundationDB.Client
 		/// <param name="separator">The slice that delimits the sub-slices in this instance.</param>
 		/// <param name="options"><see cref="StringSplitOptions.RemoveEmptyEntries"/> to omit empty array elements from the array returned; or <see cref="StringSplitOptions.None"/> to include empty array elements in the array returned.</param>
 		/// <returns>An array whose elements contains the sub-slices in this instance that are delimited by the value of <paramref name="separator"/>.</returns>
+		[System.Diagnostics.Contracts.Pure]
 		public Slice[] Split(Slice separator, StringSplitOptions options = StringSplitOptions.None)
 		{
 			return Split(this, separator, options);
