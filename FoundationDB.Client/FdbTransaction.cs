@@ -96,6 +96,7 @@ namespace FoundationDB.Client
 			m_context = context;
 			m_database = db;
 			m_id = id;
+			//REVIEW: the operation context may already have created its own CTS, maybe we can merge them ?
 			m_cts = CancellationTokenSource.CreateLinkedTokenSource(context.Cancellation);
 			m_cancellation = m_cts.Token;
 

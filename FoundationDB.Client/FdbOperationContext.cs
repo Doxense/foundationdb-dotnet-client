@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 			var token = db.Cancellation;
 			if (cancellationToken.CanBeCanceled && cancellationToken != token)
 			{
-				this.TokenSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+				this.TokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, cancellationToken);
 				token = this.TokenSource.Token;
 			}
 			this.Cancellation = token;
