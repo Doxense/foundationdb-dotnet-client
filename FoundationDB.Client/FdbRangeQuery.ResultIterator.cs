@@ -44,7 +44,6 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
-		/// <typeparam name="TResult">Type of the results returned</typeparam>
 		[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInBatch={m_remainingInBatch}, ReadLastBatch={m_lastBatchRead}")]
 		private sealed class ResultIterator : FdbAsyncIterator<T>
 		{

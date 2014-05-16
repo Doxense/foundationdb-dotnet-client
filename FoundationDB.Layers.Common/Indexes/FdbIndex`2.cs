@@ -79,7 +79,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
 		/// <param name="value">Value of this entity in the index</param>
-		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and <see cref="IndexNullValue"/> is false)</returns>
+		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and <see cref="IndexNullValues"/> is false)</returns>
 		public bool Add(IFdbTransaction trans, TId id, TValue value)
 		{
 			if (this.IndexNullValues || value != null)

@@ -123,6 +123,7 @@ namespace FoundationDB.Linq
 
 	/// <summary>Iterates over an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
+	/// <typeparam name="TCollection">Type of the elements of the sequences produced from each <typeparamref name="TSource"/> elements</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	internal sealed class SelectManyAsyncIterator<TSource, TCollection, TResult> : FdbAsyncFilter<TSource, TResult>
 	{

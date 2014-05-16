@@ -602,9 +602,11 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
+		/// <typeparam name="TValue">Type of the value</typeparam>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
+		/// <param name="encoder">Encoder use to convert <paramref name="value"/> into a slice</param>
 		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
 		public static FdbWatch SetAndWatch<TValue>(this IFdbTransaction trans, Slice key, TValue value, IValueEncoder<TValue> encoder, CancellationToken cancellationToken)
@@ -616,9 +618,11 @@ namespace FoundationDB.Client
 
 		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
 		/// <typeparam name="TKey">Type of the key, which must implement the IFdbKey interface</typeparam>
+		/// <typeparam name="TValue">Type of the value</typeparam>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
 		/// <param name="value">Value to be inserted into the database.</param>
+		/// <param name="encoder">Encoder use to convert <paramref name="value"/> into a slice</param>
 		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
 		public static FdbWatch SetAndWatch<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, IValueEncoder<TValue> encoder, CancellationToken cancellationToken)
@@ -709,7 +713,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of key/value pairs, or an exception. Each pair in the array will contain the key at the same index in <paramref name="keys"/>, and its corresponding value in the database or Slice.Nil if that key does not exist.</returns>
-		/// <remarks>This method is equivalent to calling <see cref="IFdbReadOnlyTransaction.GetValueAsync"/>, except that it will return the keys in addition to the values.</remarks>
+		/// <remarks>This method is equivalent to calling <see cref="IFdbReadOnlyTransaction.GetValuesAsync"/>, except that it will return the keys in addition to the values.</remarks>
 		public static Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync(this IFdbReadOnlyTransaction trans, IEnumerable<Slice> keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -725,7 +729,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="keys">Array of keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of key/value pairs, or an exception. Each pair in the array will contain the key at the same index in <paramref name="keys"/>, and its corresponding value in the database or Slice.Nil if that key does not exist.</returns>
-		/// <remarks>This method is equivalent to calling <see cref="IFdbReadOnlyTransaction.GetValueAsync"/>, except that it will return the keys in addition to the values.</remarks>
+		/// <remarks>This method is equivalent to calling <see cref="IFdbReadOnlyTransaction.GetValuesAsync"/>, except that it will return the keys in addition to the values.</remarks>
 		public static async Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync(this IFdbReadOnlyTransaction trans, Slice[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -784,7 +788,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="keys">Sequence of keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of key/value pairs, or an exception. Each pair in the array will contain the key at the same index in <paramref name="keys"/>, and its corresponding value in the database or Slice.Nil if that key does not exist.</returns>
-		/// <remarks>This method is equivalent to calling <see cref="IFdbReadOnlyTransaction.GetValueAsync"/>, except that it will return the keys in addition to the values.</remarks>
+		/// <remarks>This method is equivalent to calling <see cref="IFdbReadOnlyTransaction.GetValuesAsync"/>, except that it will return the keys in addition to the values.</remarks>
 		public static Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<TKey> keys)
 			where TKey : IFdbKey
 		{

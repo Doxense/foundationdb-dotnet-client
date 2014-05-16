@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new subspace of the current subspace</summary>
 		/// <param name="tuple">Binary suffix that will be appended to the current prefix</param>
-		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
+		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="tuple"/></returns>
 		public FdbSubspace this[IFdbTuple tuple]
 		{
 			get
@@ -197,7 +197,6 @@ namespace FoundationDB.Client
 		/// <summary>Remove the subspace prefix from a batch of binary keys, and only return the tail, or Slice.Nil if a key does not fit inside the namespace</summary>
 		/// <param name="keys">Array of complete keys that contains the current subspace prefix, and a binary suffix</param>
 		/// <returns>Array of only the binary suffix of the keys, Slice.Empty for a key that is exactly equal to the subspace prefix, or Slice.Nil for a key that is outside of the subspace</returns>
-		/// <remarks>This is the inverse operation of <see cref="FdbSubspace.Concat(Slice[])"/></remarks>
 		public Slice[] Extract(Slice[] keys)
 		{ //REVIEW: rename to ExtractRange ?
 			if (keys == null) throw new ArgumentNullException("keys");

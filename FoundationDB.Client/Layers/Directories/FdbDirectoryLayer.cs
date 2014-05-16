@@ -410,6 +410,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Change the layer id of the directory at <param name="path"/></summary>
 		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to change</param>
 		/// <param name="newLayer">New layer id of the directory</param>
 		public async Task<FdbDirectorySubspace> ChangeLayerAsync(IFdbTransaction trans, IEnumerable<string> path, Slice newLayer)
 		{

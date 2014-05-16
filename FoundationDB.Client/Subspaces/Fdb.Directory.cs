@@ -65,9 +65,9 @@ namespace FoundationDB.Client
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
 			public static async Task<IFdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, IEnumerable<string> path, bool readOnly, CancellationToken cancellationToken)
 			{
-				if (path == null) throw new ArgumentNullException("partitionPath");
+				if (path == null) throw new ArgumentNullException("path");
 				var partitionPath = path.ToList();
-				if (partitionPath.Count == 0) throw new ArgumentException("The path to the named partition cannot be empty", "partionPath");
+				if (partitionPath.Count == 0) throw new ArgumentException("The path to the named partition cannot be empty", "path");
 
 				// looks at the global partition table for the specified named partition
 

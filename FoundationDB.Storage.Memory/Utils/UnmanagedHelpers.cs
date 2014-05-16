@@ -151,8 +151,9 @@ namespace FoundationDB.Storage.Memory.Utils
 
 		/// <summary>Retourne l'offset de la première différence trouvée entre deux buffers de même taille</summary>
 		/// <param name="left">Pointeur sur le premier buffer (de taille égale à 'count')</param>
+		/// <param name="leftCount">Taille du premier buffer (en octets)</param>
 		/// <param name="right">Pointeur sur le deuxième buffer (de taille égale à 'count')</param>
-		/// <param name="count">Nombre d'éléments à comparer</param>
+		/// <param name="rightCount">Taille du deuxième buffer (en octets)</param>
 		/// <returns>Offset vers le premier élément qui diffère, ou -1 si les deux buffers sont identiques</returns>
 		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]

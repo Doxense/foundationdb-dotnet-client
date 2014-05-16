@@ -178,7 +178,7 @@ namespace FoundationDB.Layers.Documents
 
 		/// <summary>Delete a document from the collection</summary>
 		/// <param name="trans"></param>
-		/// <param name="id"></param>
+		/// <param name="ids"></param>
 		public void DeleteMultiple(IFdbTransaction trans, IEnumerable<TId> ids)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -206,7 +206,7 @@ namespace FoundationDB.Layers.Documents
 
 		/// <summary>Delete a document from the collection</summary>
 		/// <param name="trans"></param>
-		/// <param name="document"></param>
+		/// <param name="documents"></param>
 		public void DeleteMultiple(IFdbTransaction trans, IEnumerable<TDocument> documents)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");

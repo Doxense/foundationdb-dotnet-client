@@ -178,6 +178,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Try to add an entry with the specified key and value to the sorted dictionary, if it does not already exists.</summary>
 		/// <param name="key">The key of the entry to add.</param>
 		/// <param name="value">The value of the entry to add.</param>
+		/// <param name="actualValue">Receives the previous value if <paramref name="key"/> already exists, or <paramref name="value"/> if it was inserted</param>
 		/// <returns>true if the key did not previously exist and was inserted; otherwise, false.</returns>
 		public bool GetOrAdd(TKey key, TValue value, out TValue actualValue)
 		{

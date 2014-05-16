@@ -8,7 +8,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 	using System.Collections.Generic;
 	using System.Threading;
 
-	/// <summary>Wrapper for an <see cref="IComparer{T}"/> that counts the number of calls to the <see cref="Compare()"/> method</summary>
+	/// <summary>Wrapper for an <see cref="IComparer{T}"/> that counts the number of calls to the <see cref="Compare"/> method</summary>
 	public class CountingComparer<T> : IComparer<T>
 	{
 

@@ -556,6 +556,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Checks if there is at least one range in the dictionary that intersects with the specified range, and matches the predicate</summary>
 		/// <param name="begin">Lower bound of the intersection</param>
 		/// <param name="end">Higher bound (excluded) of the intersection</param>
+		/// <param name="arg">Value that is passed as the second argument to <paramref name="predicate"/></param>
 		/// <param name="predicate">Predicate called for each intersected range.</param>
 		/// <returns>True if there was at least one intersecting range, and <paramref name="predicate"/> returned true for that range.</returns>
 		public bool Intersect(TKey begin, TKey end, TValue arg, Func<TValue, TValue, bool> predicate)

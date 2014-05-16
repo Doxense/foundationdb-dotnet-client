@@ -212,8 +212,8 @@ namespace FoundationDB.Layers
 		/// <returns>Array of decoded <see cref="Optional{T}"/>.</returns>
 		public static Optional<T>[] DecodeRange<T>(IValueEncoder<T> decoder, Slice[] data)
 		{
-			if (decoder == null) throw new ArgumentNullException("encoder");
-			if (data == null) throw new ArgumentNullException("values");
+			if (decoder == null) throw new ArgumentNullException("decoder");
+			if (data == null) throw new ArgumentNullException("data");
 
 			var values = new Optional<T>[data.Length];
 			Slice item;
@@ -234,8 +234,8 @@ namespace FoundationDB.Layers
 		/// <returns>Sequence of decoded <see cref="Optional{T}"/>.</returns>
 		public static IEnumerable<Optional<T>> Decode<T>(this IEnumerable<Slice> source, IValueEncoder<T> decoder)
 		{
-			if (decoder == null) throw new ArgumentNullException("encoder");
-			if (source == null) throw new ArgumentNullException("values");
+			if (decoder == null) throw new ArgumentNullException("decoder");
+			if (source == null) throw new ArgumentNullException("source");
 
 			return source.Select(value => value.HasValue ? decoder.DecodeValue(value) : default(Optional<T>));
 		}

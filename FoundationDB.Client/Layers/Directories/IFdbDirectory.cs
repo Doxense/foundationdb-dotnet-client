@@ -65,6 +65,7 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
 		Task<FdbDirectorySubspace> OpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default(Slice));
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
@@ -72,10 +73,11 @@ namespace FoundationDB.Layers.Directories
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
 		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		Task<FdbDirectorySubspace> TryOpenAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path, Slice layer = default(Slice));
 
-		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
+		/// <summary>Creates a subdirectory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given subdirectory already exists.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -83,7 +85,7 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the subdirectory and will be checked by future calls to open.</param>
 		Task<FdbDirectorySubspace> CreateAsync(IFdbTransaction trans, IEnumerable<string> subPath, Slice layer = default(Slice));
 
-		/// <summary>Creates a subdirectory with the given <paramref name="path"/> (creating intermediate subdirectories if necessary).
+		/// <summary>Creates a subdirectory with the given <paramref name="subPath"/> (creating intermediate subdirectories if necessary).
 		/// An exception is thrown if the given subdirectory already exists.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -120,35 +122,43 @@ namespace FoundationDB.Layers.Directories
 		/// <returns>Returns the directory at its new location if successful.</returns>
 		Task<FdbDirectorySubspace> MoveToAsync(IFdbTransaction trans, IEnumerable<string> newAbsolutePath);
 
-		/// <summary>Attempts to move the current directory to <paramref name="newPath"/>.
+		/// <summary>Attempts to move the current directory to <paramref name="newAbsolutePath"/>.
 		/// There is no effect on the physical prefix of the given directory, or on clients that already have the directory open.
 		/// An error is raised if a directory already exists at `new_path`, or if the new path points to a child of the current directory.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="newPath">Full path (from the root) where this directory will be moved</param>
+		/// <param name="newAbsolutePath">Full path (from the root) where this directory will be moved</param>
 		/// <returns>Returns the directory at its new location if successful. If the directory doesn't exist, then null is returned.</returns>
 		Task<FdbDirectorySubspace> TryMoveToAsync(IFdbTransaction trans, IEnumerable<string> newAbsolutePath);
 
-		/// <summary>Removes the directory, its contents, and all subdirectories.
+		/// <summary>Removes a directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to remove. Will remove the current directory if <paramref name="path"/> is null</param>
 		Task RemoveAsync(IFdbTransaction trans, IEnumerable<string> path = null);
 
 		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
 		/// Warning: Clients that have already opened the directory might still insert data into its contents after it is removed.
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to remove. Will remove the current directory if <paramref name="path"/> is null</param>
 		Task<bool> TryRemoveAsync(IFdbTransaction trans, IEnumerable<string> path = null);
 
 		/// <summary>Checks if this directory exists</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to test</param>
 		/// <returns>Returns true if the directory exists, otherwise false.</returns>
 		Task<bool> ExistsAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path = null);
 
 		/// <summary>Returns the list of all the subdirectories of the current directory.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to list</param>
 		Task<List<string>> ListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path = null);
 
 		/// <summary>Returns the list of all the subdirectories of the current directory, it it exists.</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="path">Path of the directory to list</param>
 		Task<List<string>> TryListAsync(IFdbReadOnlyTransaction trans, IEnumerable<string> path = null);
 
 	}

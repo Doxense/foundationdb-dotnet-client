@@ -44,7 +44,7 @@ namespace FoundationDB.Client.Converters
 	/// <typeparam name="TDestination">Destination type</typeparam>
 	public interface IFdbConverter<in TSource, out TDestination> : IFdbConverter
 	{
-		/// <summary>Converts a <paramref name="TSource"/> into a <paramref name="TDestination"/></summary>
+		/// <summary>Converts a <typeparamref name="TSource"/> into a <typeparamref name="TDestination"/></summary>
 		/// <param name="value">Value to convert</param>
 		/// <returns>Converted value</returns>
 		TDestination Convert(TSource value);

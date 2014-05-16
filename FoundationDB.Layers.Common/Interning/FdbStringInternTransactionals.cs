@@ -37,7 +37,7 @@ namespace FoundationDB.Layers.Interning
 	{
 
 		/// <summary>Look up string <paramref name="value"/> in the intern database and return its normalized representation. If value already exists, intern returns the existing representation.</summary>
-		/// <param name="trans">Fdb database</param>
+		/// <param name="db">Fdb database</param>
 		/// <param name="value">String to intern</param>
 		/// <returns>Normalized representation of the string</returns>
 		/// <remarks>The length of the string <paramref name="value"/> must not exceed the maximum FoundationDB value size</remarks>

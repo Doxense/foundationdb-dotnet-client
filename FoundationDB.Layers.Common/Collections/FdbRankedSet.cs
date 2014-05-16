@@ -56,9 +56,8 @@ namespace FoundationDB.Layers.Collections
 		// TODO: should we use a PRNG ? If two counter instances are created at the same moment, they could share the same seed ?
 		private readonly Random Rng = new Random();
 
-		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
-		/// <param name="subspace">Subspace where the queue will be stored</param>
-		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
+		/// <summary>Initializes a new ranked set at a given location</summary>
+		/// <param name="subspace">Subspace where the set will be stored</param>
 		public FdbRankedSet(FdbSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");

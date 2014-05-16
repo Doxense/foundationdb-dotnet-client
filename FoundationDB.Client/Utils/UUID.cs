@@ -145,7 +145,7 @@ namespace FoundationDB.Client
 		{
 			if (input.Count <= 0) return default(Guid);
 
-			if (input.Array == null) throw new ArgumentNullException("slice");
+			if (input.Array == null) throw new ArgumentNullException("input");
 			if (input.Count == 16)
 			{
 				unsafe

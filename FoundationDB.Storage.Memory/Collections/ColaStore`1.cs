@@ -540,7 +540,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <param name="values">Array of elements to insert. Warning: if a value already exist, the store will be corrupted !</param>
 		/// <param name="ordered">If true, the entries in <paramref name="values"/> are guaranteed to already be sorted (using the store default comparer).</param>
 		/// <remarks>The best performances are achieved when inserting a number of items that is a power of 2. The worst performances are when doubling the size of a store that is full.
-		/// Warning: if <paramref name="order"/> is true but <paramref name="values"/> is not sorted, or is sorted using a different comparer, then the store will become corrupted !
+		/// Warning: if <paramref name="ordered"/> is true but <paramref name="values"/> is not sorted, or is sorted using a different comparer, then the store will become corrupted !
 		/// </remarks>
 		public void InsertItems(List<T> values, bool ordered = false)
 		{
