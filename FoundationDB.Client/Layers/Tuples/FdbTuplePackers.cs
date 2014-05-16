@@ -311,7 +311,7 @@ namespace FoundationDB.Layers.Tuples
 
 			if (value)
 			{ // true => 15 01
-				writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)1);
+				writer.WriteByte2(FdbTupleTypes.IntPos1, 1);
 			}
 			else
 			{ // false => 14
@@ -328,7 +328,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else if (value.Value)
 			{ // true => 15 01
-				writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)1);
+				writer.WriteByte2(FdbTupleTypes.IntPos1, 1);
 			}
 			else
 			{ // false => 14

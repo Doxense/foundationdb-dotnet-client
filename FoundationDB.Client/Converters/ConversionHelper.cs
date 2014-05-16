@@ -123,13 +123,13 @@ namespace FoundationDB.Client.Converters
 			{
 				switch (Type.GetTypeCode(type))
 				{
-					case TypeCode.Int16: return (double?)(short)value;
-					case TypeCode.UInt16: return (double?)(ushort)value;
-					case TypeCode.Int32: return (double?)(int)value;
-					case TypeCode.UInt32: return (double?)(uint)value;
-					case TypeCode.Int64: return (double?)(long)value;
-					case TypeCode.UInt64: return (double?)(ulong)value;
-					case TypeCode.Single: return (double?)(float)value;
+					case TypeCode.Int16: return (short)value;
+					case TypeCode.UInt16: return (ushort)value;
+					case TypeCode.Int32: return (int)value;
+					case TypeCode.UInt32: return (uint)value;
+					case TypeCode.Int64: return (long)value;
+					case TypeCode.UInt64: return (ulong)value;
+					case TypeCode.Single: return (float)value;
 					case TypeCode.Double: return (double)value;
 					//TODO: string?
 				}
@@ -147,10 +147,10 @@ namespace FoundationDB.Client.Converters
 			{
 				switch (Type.GetTypeCode(type))
 				{
-					case TypeCode.Int16: return (long?)(short)value;
-					case TypeCode.UInt16: return (long?)(ushort)value;
-					case TypeCode.Int32: return (long?)(int)value;
-					case TypeCode.UInt32: return (long?)(uint)value;
+					case TypeCode.Int16: return (short)value;
+					case TypeCode.UInt16: return (ushort)value;
+					case TypeCode.Int32: return (int)value;
+					case TypeCode.UInt32: return (uint)value;
 					case TypeCode.Int64: return (long)value;
 					case TypeCode.UInt64: return (long?)(ulong)value;
 					case TypeCode.Single: return (long?)(float)value;

@@ -265,7 +265,7 @@ namespace FoundationDB.Client.Native
 		private static string ToManagedString(byte* nativeString)
 		{
 			if (nativeString == null) return null;
-			return Marshal.PtrToStringAnsi(new IntPtr((void*)nativeString));
+			return Marshal.PtrToStringAnsi(new IntPtr(nativeString));
 		}
 
 		private static string ToManagedString(IntPtr nativeString)
