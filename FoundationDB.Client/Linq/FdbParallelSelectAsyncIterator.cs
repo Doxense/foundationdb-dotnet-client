@@ -106,12 +106,9 @@ namespace FoundationDB.Linq
 			// start pumping
 			m_pumpTask = m_pump.PumpAsync(m_token).ContinueWith((t) =>
 			{ 
-				if (t.IsFaulted)
-				{
-					var e = t.Exception;
-					LogDebug("Pump stopped with error: " + e.Message);
-				}
-			});
+				var e = t.Exception;
+				LogDebug("Pump stopped with error: " + e.Message);
+			}, TaskContinuationOptions.OnlyOnFaulted);
 
 			LogDebug("[OnFirstAsync] pump started");
 
