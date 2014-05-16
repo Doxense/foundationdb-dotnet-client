@@ -74,7 +74,7 @@ namespace FoundationDB.Filters.Logging
 		public DateTimeOffset? CommittedUtc { get; internal set; }
 
 		/// <summary>Committed version of the transaction (if a commit was successfull)</summary>
-		public long? CommittedVersion { get; private set; }
+		public long? CommittedVersion { get; internal set; }
 
 		/// <summary>Internal step counter of the transaction</summary>
 		/// <remarks>This counter is used to detect sequential vs parallel commands</remarks>
