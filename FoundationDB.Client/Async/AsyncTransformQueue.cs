@@ -134,7 +134,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		private static readonly Func<object, Task<Maybe<TOutput>>> s_processItemHandler = new Func<object, Task<Maybe<TOutput>>>(ProcessItemHandler);
+		private static readonly Func<object, Task<Maybe<TOutput>>> s_processItemHandler = ProcessItemHandler;
 
 		public async Task OnNextAsync(TInput value, CancellationToken cancellationToken)
 		{

@@ -329,10 +329,7 @@ namespace FoundationDB.Client
 		private static void PostCancellationOnThreadPool(TaskCompletionSource<T> future)
 		{
 			ThreadPool.UnsafeQueueUserWorkItem(
-				(_state) =>
-				{
-					((TaskCompletionSource<T>)_state).TrySetCanceled();
-				},
+				(_state) => ((TaskCompletionSource<T>)_state).TrySetCanceled(),
 				future
 			);
 		}

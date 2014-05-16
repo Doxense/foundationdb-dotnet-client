@@ -173,8 +173,8 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<long, string>((value) => value.ToString(CultureInfo.InvariantCulture));
 			RegisterUnsafe<long, short>((value) => { checked { return (short)value; } });
 			RegisterUnsafe<long, int>((value) => { checked { return (int)value; } });
-			RegisterUnsafe<long, uint>((value) => { return (uint)value; });
-			RegisterUnsafe<long, ulong>((value) => { return (ulong)value; });
+			RegisterUnsafe<long, uint>((value) => (uint)value);
+			RegisterUnsafe<long, ulong>((value) => (ulong)value);
 			RegisterUnsafe<long, bool>((value) => value != 0);
 			RegisterUnsafe<long, TimeSpan>((value) => TimeSpan.FromTicks(value));
 			RegisterUnsafe<long, double>((value) => { checked { return (double)value; } });

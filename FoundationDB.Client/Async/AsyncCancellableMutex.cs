@@ -42,7 +42,7 @@ namespace FoundationDB.Async
 
 		// note: this is not really a mutex because there is no "Reset()" method (not possible to reset a TCS)...
 
-		private static readonly Action<object> s_cancellationCallback = new Action<object>(CancellationHandler);
+		private static readonly Action<object> s_cancellationCallback = CancellationHandler;
 
 		private const int CTR_NONE = 0;
 		private const int CTR_REGISTERED = 1;
@@ -94,7 +94,7 @@ namespace FoundationDB.Async
 
 			if (async)
 			{
-				ThreadPool.QueueUserWorkItem((state) => { ((AsyncCancelableMutex)state).TrySetResult(null); }, this);
+				ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetResult(null), this);
 			}
 			else
 			{
@@ -113,7 +113,7 @@ namespace FoundationDB.Async
 
 			if (async)
 			{
-				ThreadPool.QueueUserWorkItem((state) => { ((AsyncCancelableMutex)state).TrySetCanceled(); }, this);
+				ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetCanceled(), this);
 			}
 			else
 			{

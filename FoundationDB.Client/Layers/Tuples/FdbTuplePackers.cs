@@ -53,7 +53,7 @@ namespace FoundationDB.Layers.Tuples
 			var encoder = (Encoder<T>)GetSerializerFor(typeof(T));
 			if (encoder == null && required)
 			{
-				encoder = delegate(ref SliceWriter _, T __) { throw new InvalidOperationException(String.Format("Does not know how to serialize values of type {0} into keys", typeof(T).Name)); };
+				encoder = delegate { throw new InvalidOperationException(String.Format("Does not know how to serialize values of type {0} into keys", typeof(T).Name)); };
 			}
 			return encoder;
 		}
