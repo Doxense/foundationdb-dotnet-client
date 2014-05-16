@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 		/// <returns>true if <paramref name="x"/> and <paramref name="y"/> have the same size and contain the same sequence of bytes; otherwise, false.</returns>
 		public bool Equals(Slice x, Slice y)
 		{
-			return x.Count == y.Count && SliceHelpers.SameBytes(x.Array, x.Offset, x.Array, x.Offset, y.Count);
+			return x.Count == y.Count && SliceHelpers.SameBytes(x.Array, x.Offset, y.Array, y.Offset, y.Count);
 		}
 
 		/// <summary>Computes the hash code of a slice</summary>
