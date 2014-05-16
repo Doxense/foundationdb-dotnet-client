@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -206,7 +206,7 @@ namespace FoundationDB.Filters.Logging
 			for (int i = 0; i < cmds.Length; i++)
 			{
 				var cmd = cmds[i];
-				sb.AppendFormat(culture, "{0,3}/{1,3} : {2}", i + 1, cmds.Length, cmd.ToString());
+				sb.AppendFormat(culture, "{0,3}/{1,3} : {2}", i + 1, cmds.Length, cmd);
 				sb.AppendLine();
 				switch (cmd.Mode)
 				{

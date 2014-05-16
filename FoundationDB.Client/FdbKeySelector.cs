@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Diagnostics;
 	using System.Text;
@@ -83,9 +82,9 @@ namespace FoundationDB.Client
 			sb.Append("}");
 
 			if (offset > 0)
-				sb.Append(" + ").Append(offset.ToString());
+				sb.Append(" + ").Append(offset);
 			else if (offset < 0)
-				sb.Append(" - ").Append((-offset).ToString());
+				sb.Append(" - ").Append(-offset);
 
 			return sb.ToString();
 		}

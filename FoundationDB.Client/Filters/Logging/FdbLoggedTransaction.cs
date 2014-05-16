@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -157,7 +157,7 @@ namespace FoundationDB.Filters.Logging
 #if DEBUG
 				catch(Exception e)
 				{
-					System.Diagnostics.Trace.WriteLine("Logged transction handler failed: " + e.ToString());
+					System.Diagnostics.Debug.WriteLine("Logged transaction handler failed: " + e.ToString());
 				}
 #else
 				catch { }

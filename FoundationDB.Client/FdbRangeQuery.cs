@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
 	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Threading;
+	using System.Globalization;
 	using System.Threading.Tasks;
 
 	/// <summary>Query describing an ongoing GetRange operation</summary>
@@ -448,7 +447,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a printable version of the range query</summary>
 		public override string ToString()
 		{
-			return String.Format("Range({0}, {1}, {2})", this.Range.ToString(), this.Limit.ToString(), this.Reverse ? "reverse" : "forward");
+			return String.Format(CultureInfo.InvariantCulture, "Range({0}, {1}, {2})", this.Range.ToString(), this.Limit, this.Reverse ? "reverse" : "forward");
 		}
 
 	}

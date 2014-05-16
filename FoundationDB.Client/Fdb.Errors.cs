@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 
 			internal static Exception KeyIsTooBig(Slice key, string paramName = "key")
 			{
-				return new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count.ToString(), Fdb.MaxKeySize.ToString()), paramName);
+				return new ArgumentException(String.Format("Key is too big ({0} > {1}).", key.Count, Fdb.MaxKeySize), paramName);
 			}
 
 			internal static Exception ValueCannotBeNull(Slice value, string paramName = "value")
@@ -61,7 +61,7 @@ namespace FoundationDB.Client
 
 			internal static Exception ValueIsTooBig(Slice value, string paramName = "value")
 			{
-				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count.ToString(), Fdb.MaxValueSize.ToString()), paramName);
+				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), paramName);
 			}
 
 			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, Slice key)
@@ -70,9 +70,9 @@ namespace FoundationDB.Client
 				return new FdbException(
 					FdbError.KeyOutsideLegalRange,
 #if DEBUG
-					String.Format("An attempt was made to use a key '{2}' that is outside of the global namespace {0} of database '{1}'", db.GlobalSpace.ToString(), db.Name, key.ToString())
+					String.Format("An attempt was made to use a key '{2}' that is outside of the global namespace {0} of database '{1}'", db.GlobalSpace, db.Name, FdbKey.Dump(key))
 #else
-					String.Format("An attempt was made to use a key that is outside of the global namespace {0} of database '{1}'", db.GlobalSpace.ToString(), db.Name)
+					String.Format("An attempt was made to use a key that is outside of the global namespace {0} of database '{1}'", db.GlobalSpace, db.Name)
 #endif
 				);
 			}
@@ -89,7 +89,7 @@ namespace FoundationDB.Client
 			internal static Exception FailedToRegisterTransactionOnDatabase(IFdbTransaction transaction, FdbDatabase db)
 			{
 				Contract.Requires(transaction != null && db != null);
-				return new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id.ToString(), db.Name));
+				return new InvalidOperationException(String.Format("Failed to register transaction #{0} with this instance of database {1}", transaction.Id, db.Name));
 			}
 
 			internal static Exception CannotIncrementKey()

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ namespace FoundationDB.Filters.Logging
 	using FoundationDB.Client;
 	using System;
 	using System.Diagnostics;
+	using System.Globalization;
 	using System.Text;
 
 	public partial class FdbTransactionLog
@@ -647,7 +648,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments()
 			{
-				string s = String.Concat(this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End));
+				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
 				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
 				if (this.Options != null)
 				{
@@ -662,7 +663,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				if (this.Result.HasValue)
 				{
-					string s = this.Result.Value.Count.ToString() + " results";
+					string s = String.Format("{0} result(s)", this.Result.Value.Count);
 					if (this.Result.Value.HasMore) s += ", has_more";
 					return s;
 				}
@@ -708,9 +709,8 @@ namespace FoundationDB.Filters.Logging
 
 			public override string GetArguments()
 			{
-				return String.Format(this.Code.ToString(), " (", ((int)this.Code).ToString() + ")");
+				return String.Format(CultureInfo.InvariantCulture, "{0} ({1})", this.Code, (int)this.Code);
 			}
-
 		}
 
 		public sealed class WatchCommand : Command

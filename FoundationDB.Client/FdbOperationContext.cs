@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
+	using System.Globalization;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -175,14 +176,14 @@ namespace FoundationDB.Client
 
 						if (e != null)
 						{
-							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format("fdb: transaction {0} failed with error code {1}", trans.Id.ToString(), e.Code.ToString()));
+							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} failed with error code {1}", trans.Id, e.Code));
 							await trans.OnErrorAsync(e.Code).ConfigureAwait(false);
-							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format("fdb: transaction {0} can be safely retried", trans.Id.ToString()));
+							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} can be safely retried", trans.Id));
 						}
 
 						if (context.Duration.Elapsed.TotalSeconds >= 1)
 						{
-							if (Logging.On) Logging.Info(String.Format("fdb WARNING: long transaction ({0} sec elapsed in transaction lambda function ({1} retries, {2})", context.Duration.Elapsed.TotalSeconds.ToString("N1"), context.Retries.ToString(), context.Committed ? "committed" : "not yet committed"));
+							if (Logging.On) Logging.Info(String.Format(CultureInfo.InvariantCulture, "fdb WARNING: long transaction ({0:N1} sec elapsed in transaction lambda function ({1} retries, {2})", context.Duration.Elapsed.TotalSeconds, context.Retries, context.Committed ? "committed" : "not yet committed"));
 						}
 
 						context.Retries++;

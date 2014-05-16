@@ -155,7 +155,7 @@ namespace FoundationDB.Client
 			if (code == FdbError.Success) return null;
 
 			string msg = GetErrorMessage(code);
-			if (msg == null) throw new FdbException(code, String.Format("Unexpected error code {0}", ((int)code).ToString()));
+			if (msg == null) throw new FdbException(code, String.Format("Unexpected error code {0}", (int)code));
 
 			//TODO: create a custom FdbException to be able to store the error code and error message
 			switch(code)
@@ -187,7 +187,7 @@ namespace FoundationDB.Client
 				s_eventLoopStopRequested = false;
 				s_eventLoopRunning = false;
 
-				var thread = new Thread(new ThreadStart(EventLoop));
+				var thread = new Thread(EventLoop);
 				thread.Name = "FdbNetworkLoop";
 				thread.IsBackground = true;
 				thread.Priority = ThreadPriority.AboveNormal;
@@ -288,24 +288,24 @@ namespace FoundationDB.Client
 
 				s_eventLoopThreadId = Thread.CurrentThread.ManagedThreadId;
 
-				if (Logging.On) Logging.Verbose(typeof(Fdb), "EventLoop", String.Format("FDB Event Loop running on thread #{0}...", s_eventLoopThreadId.Value.ToString()));
+				if (Logging.On) Logging.Verbose(typeof(Fdb), "EventLoop", String.Format("FDB Event Loop running on thread #{0}...", s_eventLoopThreadId.Value));
 
 				var err = FdbNative.RunNetwork();
 				if (err != FdbError.Success)
 				{
 					if (s_eventLoopStopRequested || Environment.HasShutdownStarted)
 					{ // this was requested, or can be explained by the computer shutting down...
-						if (Logging.On) Logging.Info(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err.ToString(), GetErrorMessage(err)));
+						if (Logging.On) Logging.Info(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err, GetErrorMessage(err)));
 					}
 					else
 					{ // this was NOT expected !
-						if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err.ToString(), GetErrorMessage(err)));
+						if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err, GetErrorMessage(err)));
 #if DEBUG
 						Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS CRASHED! PLEASE RESTART THE PROCESS!");
 						Console.Error.WriteLine("=> " + err);
 						// REVIEW: should we FailFast in release mode also?
 						// => this may be a bit suprising for most users when applications unexpectedly crash for for no apparent reason.
-						Environment.FailFast("FoundationDB network event loop failed with error " + err.ToString());
+						Environment.FailFast("FoundationDB network event loop failed with error " + err);
 #endif
 					}
 				}
@@ -313,10 +313,11 @@ namespace FoundationDB.Client
 			catch (Exception e)
 			{
 				if (e is ThreadAbortException)
-				{ // bie bie
+				{ // bye bye
 					Thread.ResetAbort();
 					return;
 				}
+				//TODO: logging ?
 			}
 			finally
 			{
@@ -472,7 +473,7 @@ namespace FoundationDB.Client
 			dbName = dbName ?? "DB";
 			globalSpace = globalSpace ?? FdbSubspace.Empty;
 
-			if (Logging.On) Logging.Info(typeof(Fdb), "OpenAsync", String.Format("Connecting to database '{0}' using cluster file '{1}' and subspace '{2}' ...", dbName, clusterFile, globalSpace.ToString()));
+			if (Logging.On) Logging.Info(typeof(Fdb), "OpenAsync", String.Format("Connecting to database '{0}' using cluster file '{1}' and subspace '{2}' ...", dbName, clusterFile, globalSpace));
 
 			FdbCluster cluster = null;
 			FdbDatabase db = null;
