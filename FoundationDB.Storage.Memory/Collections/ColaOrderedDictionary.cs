@@ -20,7 +20,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Debug view helper</summary>
 		private sealed class DebugView
 		{
-			private ColaOrderedDictionary<TKey, TValue> m_dictionary;
+			private readonly ColaOrderedDictionary<TKey, TValue> m_dictionary;
 
 			public DebugView(ColaOrderedDictionary<TKey, TValue> dictionary)
 			{

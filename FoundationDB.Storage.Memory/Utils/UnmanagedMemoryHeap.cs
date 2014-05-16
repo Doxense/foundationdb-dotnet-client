@@ -136,7 +136,7 @@ namespace FoundationDB.Storage.Memory.Utils
 
 			private sealed class DebugView
 			{
-				private Page m_page;
+				private readonly Page m_page;
 
 				public DebugView(Page page)
 				{

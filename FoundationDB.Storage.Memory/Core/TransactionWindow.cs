@@ -27,10 +27,10 @@ namespace FoundationDB.Storage.Memory.Core
 		private volatile bool m_disposed;
 
 		/// <summary>Heap used to store the write conflict keys</summary>
-		private UnmanagedMemoryHeap m_keys = new UnmanagedMemoryHeap(65536);
+		private readonly UnmanagedMemoryHeap m_keys = new UnmanagedMemoryHeap(65536);
 
 		/// <summary>List of all the writes made by transactions committed in this window</summary>
-		private ColaRangeDictionary<USlice, ulong> m_writeConflicts = new ColaRangeDictionary<USlice, ulong>(USliceComparer.Default, SequenceComparer.Default);
+		private readonly ColaRangeDictionary<USlice, ulong> m_writeConflicts = new ColaRangeDictionary<USlice, ulong>(USliceComparer.Default, SequenceComparer.Default);
 
 		public TransactionWindow(DateTime startedUtc, ulong version)
 		{

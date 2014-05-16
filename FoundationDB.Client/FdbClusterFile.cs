@@ -133,7 +133,7 @@ namespace FoundationDB.Client
 	/// <summary>Represents a FoundationDB network endpoint as an IP address, port number and TLS mode.</summary>
 	public sealed class FdbEndPoint : IPEndPoint
 	{
-		private bool m_tls;
+		private readonly bool m_tls;
 
 		public FdbEndPoint(IPAddress address, int port, bool tls)
 			: base(address, port)
@@ -146,7 +146,6 @@ namespace FoundationDB.Client
 		public bool Tls
 		{
 			get { return m_tls; }
-			set { m_tls = value; }
 		}
 
 		public override SocketAddress Serialize()
@@ -191,7 +190,7 @@ namespace FoundationDB.Client
 		public override bool Equals(object comparand)
 		{
 			var fep = comparand as FdbEndPoint;
-			return fep != null && fep.Tls == m_tls && base.Equals(fep);
+			return fep != null && fep.m_tls == m_tls && base.Equals(fep);
 		}
 
 		public override int GetHashCode()

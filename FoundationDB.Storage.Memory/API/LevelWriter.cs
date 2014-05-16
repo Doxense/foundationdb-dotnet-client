@@ -16,10 +16,10 @@ namespace FoundationDB.Storage.Memory.API
 	internal sealed class LevelWriter : IDisposable
 	{
 
-		private UnmanagedSliceBuilder m_scratch = new UnmanagedSliceBuilder(128 * 1024); // > 80KB will go to the LOH
-		private List<IntPtr> m_list;
-		private KeyHeap m_keys;
-		private ValueHeap m_values;
+		private readonly UnmanagedSliceBuilder m_scratch = new UnmanagedSliceBuilder(128 * 1024); // > 80KB will go to the LOH
+		private readonly List<IntPtr> m_list;
+		private readonly KeyHeap m_keys;
+		private readonly ValueHeap m_values;
 
 		public LevelWriter(int count, KeyHeap keyHeap, ValueHeap valueHeap)
 		{

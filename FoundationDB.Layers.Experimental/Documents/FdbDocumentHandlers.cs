@@ -93,7 +93,7 @@ namespace FoundationDB.Layers.Documents
 				this.IdName = idName ?? "id";
 			}
 
-			private IEqualityComparer<string> m_keyComparer;
+			private readonly IEqualityComparer<string> m_keyComparer;
 
 			public string IdName { get; private set; }
 

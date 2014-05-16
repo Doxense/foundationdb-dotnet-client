@@ -51,8 +51,8 @@ namespace FoundationDB.Linq
 		// that will kick off tasks for each one (say, a fetch or load for each of the ids) and output the results of these tasks *in order* as they complete
 		// Since we can't spin out too many tasks, we also want to be able to put a cap no the max number of pending tasks
 
-		private Func<TSource, CancellationToken, Task<TResult>> m_taskSelector;
-		private FdbParallelQueryOptions m_options;
+		private readonly Func<TSource, CancellationToken, Task<TResult>> m_taskSelector;
+		private readonly FdbParallelQueryOptions m_options;
 
 		private CancellationTokenSource m_cts;
 		private CancellationToken m_token;

@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 		private readonly FutureHandle m_handle;
 
 		/// <summary>Lambda used to extract the result of this FDBFuture</summary>
-		private Func<FutureHandle, T> m_resultSelector;
+		private readonly Func<FutureHandle, T> m_resultSelector;
 
 		#endregion
 

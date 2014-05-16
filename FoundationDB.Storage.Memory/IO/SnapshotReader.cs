@@ -24,7 +24,7 @@ namespace FoundationDB.Storage.Memory.IO
 			public ulong PaddedSize;
 		}
 
-		private Win32MemoryMappedFile m_file;
+		private readonly Win32MemoryMappedFile m_file;
 
 		private bool m_hasHeader;
 		private bool m_hasJumpTable;

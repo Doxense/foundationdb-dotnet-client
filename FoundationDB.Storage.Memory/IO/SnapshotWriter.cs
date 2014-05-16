@@ -17,7 +17,7 @@ namespace FoundationDB.Storage.Memory.IO
 
 	internal class SnapshotWriter
 	{
-		private Win32SnapshotFile m_file;
+		private readonly Win32SnapshotFile m_file;
 		private SliceWriter m_writer;
 
 		private readonly int m_levels;

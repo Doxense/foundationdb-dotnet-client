@@ -84,11 +84,11 @@ namespace FoundationDB.Storage.Memory.API
 		private Guid m_uid;
 
 		//TODO: replace this with an Async lock ?
-		private static readonly ReaderWriterLockSlim m_dataLock = new ReaderWriterLockSlim();
-		private static readonly object m_heapLock = new object();
+		private readonly ReaderWriterLockSlim m_dataLock = new ReaderWriterLockSlim();
+		private readonly object m_heapLock = new object();
 
-		private KeyHeap m_keys = new KeyHeap();
-		private ValueHeap m_values = new ValueHeap();
+		private readonly KeyHeap m_keys = new KeyHeap();
+		private readonly ValueHeap m_values = new ValueHeap();
 
 		private ColaStore<IntPtr> m_data = new ColaStore<IntPtr>(0, new NativeKeyComparer());
 		private long m_estimatedSize;
@@ -679,7 +679,6 @@ namespace FoundationDB.Storage.Memory.API
 		/// <summary>Read the value of one or more keys, at a specific database version</summary>
 		/// <param name="userKeys">List of keys to read (MUST be ordered)</param>
 		/// <param name="readVersion">Version of the read</param>
-		/// <param name="localClears">If not null, list of ranges cleared by the transaction</param>
 		/// <returns>Array of results</returns>
 		internal unsafe Slice[] GetValuesAtVersion(Slice[] userKeys, long readVersion)
 		{
@@ -1661,8 +1660,8 @@ namespace FoundationDB.Storage.Memory.API
 				m_writerEvent.Dispose();
 				m_shutdownEvent.Dispose();
 
-				if (m_keys != null) m_keys.Dispose();
-				if (m_values != null) m_values.Dispose();
+				m_keys.Dispose();
+				m_values.Dispose();
 				if (m_transactionWindows != null)
 				{
 					foreach (var window in m_transactionWindows)

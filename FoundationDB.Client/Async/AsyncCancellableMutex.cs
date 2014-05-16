@@ -49,7 +49,7 @@ namespace FoundationDB.Async
 		private const int CTR_CANCELLED_OR_DISPOSED = 2;
 
 		private int m_state;
-		private readonly CancellationTokenRegistration m_ctr;
+		private CancellationTokenRegistration m_ctr;
 
 		/// <summary>Handler called if the CancellationToken linked to a waiter is signaled</summary>
 		/// <param name="state"></param>

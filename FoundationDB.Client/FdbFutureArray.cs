@@ -49,7 +49,7 @@ namespace FoundationDB.Client
 		private int m_pending;
 
 		/// <summary>Lambda used to extract the result of this FDBFuture</summary>
-		private Func<FutureHandle, T> m_resultSelector;
+		private readonly Func<FutureHandle, T> m_resultSelector;
 
 		#endregion
 
