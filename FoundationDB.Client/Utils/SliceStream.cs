@@ -218,7 +218,7 @@ namespace FoundationDB.Client
 			m_position += remaining;
 
 			// we can write everyting in one go, so just call WriteAsync and return that
-			return destination.WriteAsync(m_slice.Array, m_slice.Offset, remaining);
+			return destination.WriteAsync(m_slice.Array, m_slice.Offset, remaining, cancellationToken);
 		}
 
 #endif
