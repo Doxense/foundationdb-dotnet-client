@@ -423,6 +423,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (keySelector == null) throw new ArgumentNullException("keySelector");
 
+			cancellationToken.ThrowIfCancellationRequested();
 			var results = new Dictionary<TKey, TSource>(comparer ?? EqualityComparer<TKey>.Default);
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
 			{
@@ -444,6 +445,7 @@ namespace FoundationDB.Linq
 			if (keySelector == null) throw new ArgumentNullException("keySelector");
 			if (elementSelector == null) throw new ArgumentNullException("elementSelector");
 
+			cancellationToken.ThrowIfCancellationRequested();
 			var results = new Dictionary<TKey, TElement>(comparer ?? EqualityComparer<TKey>.Default);
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
 			{
@@ -458,12 +460,33 @@ namespace FoundationDB.Linq
 			return results;
 		}
 
+		/// <summary>Creates a Dictionary from an async sequence of pairs of keys and values.</summary>
+		public static async Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> source, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			cancellationToken.ThrowIfCancellationRequested();
+
+			var results = new Dictionary<TKey, TValue>(comparer ?? EqualityComparer<TKey>.Default);
+			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
+			{
+				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator"); //TODO: refactor!
+
+				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				{
+					results[iterator.Current.Key] = iterator.Current.Value;
+				}
+			}
+
+			return results;
+		}
+
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
 		public static async Task<TSource> AggregateAsync<TSource>(this IFdbAsyncEnumerable<TSource> source, Func<TSource, TSource, TSource> aggregator, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
 
+			cancellationToken.ThrowIfCancellationRequested();
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
 			{
 				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator"); //TODO: refactor!
@@ -489,6 +512,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
 
+			cancellationToken.ThrowIfCancellationRequested();
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
 			{
 				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator"); //TODO: refactor!
@@ -509,6 +533,7 @@ namespace FoundationDB.Linq
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
 			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
 
+			cancellationToken.ThrowIfCancellationRequested();
 			var accumulate = seed;
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
 			{
