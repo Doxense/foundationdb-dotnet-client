@@ -54,6 +54,7 @@
     </Compile>
     <Compile Include="Blobs\FdbBlobTransactionals.cs" />
     <Compile Include="Collections\FdbRankedSet.cs" />
+    <Compile Include="Collections\FdbMultimap`2.cs" />
     <Compile Include="Optional`1.cs" />
     <Compile Include="Collections\FdbVectorTransactionals.cs" />
     <Compile Include="Collections\FdbVector`1.cs" />
