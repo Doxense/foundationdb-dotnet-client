@@ -229,6 +229,7 @@ namespace FoundationDB.Client.Utils
 
 				string msg = String.Format("Exception in {0} - {1}.", GetObjectUniqueId(obj, method), e.Message);
 				if (!string.IsNullOrWhiteSpace(e.StackTrace)) msg += "\r\n" + e.StackTrace;
+				PrintLine(TraceEventType.Error, 0, msg);
 			}
 		}
 
