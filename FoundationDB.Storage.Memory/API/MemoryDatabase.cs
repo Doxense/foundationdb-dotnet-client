@@ -113,11 +113,7 @@ namespace FoundationDB.Storage.Memory.API
 			if (data == null) throw new ArgumentNullException("data");
 			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
 
-			var coll = data as ICollection<KeyValuePair<Slice, Slice>>;
-			if (coll == null)
-			{
-				coll = data.ToList();
-			}
+			var coll = data as ICollection<KeyValuePair<Slice, Slice>> ?? data.ToList();
 
 			return m_handler.BulkLoadAsync(coll, ordered, false, cancellationToken);
 		}

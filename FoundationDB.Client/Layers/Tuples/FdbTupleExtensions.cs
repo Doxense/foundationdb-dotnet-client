@@ -168,11 +168,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (tuple == null) return null;
 
-			var memoized = tuple as FdbMemoizedTuple;
-			if (memoized == null)
-			{
-				memoized = new FdbMemoizedTuple(tuple.ToArray(), tuple.ToSlice());
-			}
+			var memoized = tuple as FdbMemoizedTuple ?? new FdbMemoizedTuple(tuple.ToArray(), tuple.ToSlice());
 
 			return memoized;
 		}

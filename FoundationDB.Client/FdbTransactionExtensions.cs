@@ -647,8 +647,7 @@ namespace FoundationDB.Client
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			var array = keys as Slice[];
-			if (array == null) array = keys.ToArray();
+			var array = keys as Slice[] ?? keys.ToArray();
 
 			return trans.GetValuesAsync(array);
 		}
@@ -702,8 +701,7 @@ namespace FoundationDB.Client
 		{
 			if (selectors == null) throw new ArgumentNullException("selectors");
 
-			var array = selectors as FdbKeySelector[];
-			if (array == null) array = selectors.ToArray();
+			var array = selectors as FdbKeySelector[] ?? selectors.ToArray();
 
 			return trans.GetKeysAsync(array);
 		}
@@ -718,8 +716,7 @@ namespace FoundationDB.Client
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			var array = keys as Slice[];
-			if (array == null) array = keys.ToArray();
+			var array = keys as Slice[] ?? keys.ToArray();
 
 			return trans.GetBatchAsync(array);
 		}
@@ -755,8 +752,7 @@ namespace FoundationDB.Client
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
-			var array = keys as Slice[];
-			if (array == null) array = keys.ToArray();
+			var array = keys as Slice[] ?? keys.ToArray();
 
 			return trans.GetBatchAsync(array, decoder);
 		}

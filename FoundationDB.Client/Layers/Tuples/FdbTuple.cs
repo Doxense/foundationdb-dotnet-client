@@ -259,11 +259,7 @@ namespace FoundationDB.Layers.Tuples
 			if (items == null) throw new ArgumentNullException("items");
 
 			// may already be a tuple (because it implements IE<obj>)
-			var tuple = items as IFdbTuple;
-			if (tuple == null)
-			{
-				tuple = new FdbListTuple(items);
-			}
+			var tuple = items as IFdbTuple ?? new FdbListTuple(items);
 			return tuple;
 		}
 

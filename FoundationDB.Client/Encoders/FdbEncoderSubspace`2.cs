@@ -56,14 +56,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a partial encoder for (T1,)</summary>
 		public FdbEncoderSubspace<T1> Partial
 		{
-			get
-			{
-				if (m_head == null)
-				{
-					m_head = new FdbEncoderSubspace<T1>(m_parent, KeyValueEncoders.Head(m_encoder));
-				}
-				return m_head;
-			}
+			get { return m_head ?? (m_head = new FdbEncoderSubspace<T1>(m_parent, KeyValueEncoders.Head(m_encoder))); }
 		}
 
 		#region Transaction Helpers...

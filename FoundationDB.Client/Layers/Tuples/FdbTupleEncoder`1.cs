@@ -39,14 +39,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public static FdbTupleCodec<T> Default
 		{
-			get
-			{
-				if (s_defaultSerializer == null)
-				{
-					s_defaultSerializer = new FdbTupleCodec<T>(default(T));
-				}
-				return s_defaultSerializer;
-			}
+			get { return s_defaultSerializer ?? (s_defaultSerializer = new FdbTupleCodec<T>(default(T))); }
 		}
 
 		private readonly T m_missingValue;

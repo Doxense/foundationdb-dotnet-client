@@ -55,26 +55,12 @@ namespace FoundationDB.Client
 
 		public FdbEncoderSubspace<T1> Head
 		{
-			get
-			{
-				if (m_head == null)
-				{
-					m_head = new FdbEncoderSubspace<T1>(m_parent, KeyValueEncoders.Head(m_encoder));
-				}
-				return m_head;
-			}
+			get { return m_head ?? (m_head = new FdbEncoderSubspace<T1>(m_parent, KeyValueEncoders.Head(m_encoder))); }
 		}
 
 		public FdbEncoderSubspace<T1, T2> Partial
 		{
-			get
-			{
-				if (m_partial == null)
-				{
-					m_partial = new FdbEncoderSubspace<T1, T2>(m_parent, KeyValueEncoders.Pair(m_encoder));
-				}
-				return m_partial;
-			}
+			get { return m_partial ?? (m_partial = new FdbEncoderSubspace<T1, T2>(m_parent, KeyValueEncoders.Pair(m_encoder))); }
 		}
 
 		#region Transaction Helpers...

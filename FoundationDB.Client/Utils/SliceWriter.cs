@@ -194,7 +194,7 @@ namespace FoundationDB.Client
 			else
 			{
 				Contract.Assert(this.Buffer.Length >= this.Position);
-				return new Slice(this.Buffer ?? Slice.EmptyArray, 0, this.Position);
+				return new Slice(this.Buffer, 0, this.Position);
 			}
 		}
 

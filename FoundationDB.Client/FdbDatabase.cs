@@ -438,14 +438,7 @@ namespace FoundationDB.Client
 				m_readOnly = readOnly;
 				m_globalSpace = subspace;
 				m_globalSpaceCopy = subspace.Copy();
-				if (directory == null)
-				{
-					m_directory = null;
-				}
-				else
-				{
-					m_directory = new FdbDatabasePartition(this, directory);
-				}
+				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}
 

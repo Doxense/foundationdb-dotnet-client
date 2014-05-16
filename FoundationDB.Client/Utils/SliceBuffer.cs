@@ -68,14 +68,7 @@ namespace FoundationDB.Client.Utils
 		public SliceBuffer(int pageSize)
 		{
 			if (pageSize < 0) throw new ArgumentOutOfRangeException("pageSize", "Page size cannt be less than zero");
-			if (pageSize == 0)
-			{
-				m_pageSize = DefaultPageSize;
-			}
-			else
-			{
-				m_pageSize = SliceHelpers.Align(pageSize);
-			}
+			m_pageSize = pageSize == 0 ? DefaultPageSize : SliceHelpers.Align(pageSize);
 		}
 
 		/// <summary>Gets the number of bytes used by all the slice allocated in this buffer</summary>
