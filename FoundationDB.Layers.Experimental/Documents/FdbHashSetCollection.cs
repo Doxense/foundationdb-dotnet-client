@@ -221,7 +221,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>List of all fields. If the list is empty, the hashset does not exist</returns>
-		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, IFdbTuple id, CancellationToken ct = default(CancellationToken))
+		public Task<List<string>> GetKeys(IFdbReadOnlyTransaction trans, IFdbTuple id, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			//note: As of Beta2, FDB does not have a fdb_get_range that only return the keys. That means that we will have to also read the values from the db, in order to just get the names of the fields :(
 			//TODO: find a way to optimize this ?
@@ -235,7 +235,7 @@ namespace FoundationDB.Layers.Blobs
 			return trans
 				.GetRange(FdbKeyRange.StartsWith(prefix))
 				.Select((kvp) => ParseFieldKey(FdbTuple.Unpack(kvp.Key)))
-				.ToListAsync(ct);
+				.ToListAsync(cancellationToken);
 		}
 
 		#endregion

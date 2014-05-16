@@ -233,7 +233,7 @@ namespace FoundationDB.Client
 		/// <summary>Update the Task with the state of a ready Future</summary>
 		/// <param name="fromCallback">If true, the method is called from the network thread and must defer the continuations from the Thread Pool</param>
 		/// <returns>True if we got a result, or false in case of error (or invalid state)</returns>
-		private unsafe void HandleCompletion(bool fromCallback)
+		private void HandleCompletion(bool fromCallback)
 		{
 			if (HasAnyFlags(FdbFuture.Flags.DISPOSED | FdbFuture.Flags.COMPLETED))
 			{

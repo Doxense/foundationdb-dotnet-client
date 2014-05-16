@@ -151,9 +151,9 @@ namespace FoundationDB.Client
 		internal static void EnsureKeysAreValid(this IFdbDatabase db, Slice[] keys, bool endExclusive = false)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
-			Exception ex;
 			foreach (var key in keys)
 			{
+				Exception ex;
 				if (!FdbDatabase.ValidateKey(db, key, endExclusive, false, out ex)) throw ex;
 			}
 		}

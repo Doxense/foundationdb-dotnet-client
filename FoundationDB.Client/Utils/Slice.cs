@@ -443,7 +443,7 @@ namespace FoundationDB.Client
 				new byte[]
 				{ 
 					(byte)value,
-					(byte)(value >> 8),
+					(byte)(value >> 8)
 				},
 				0,
 				2
@@ -471,7 +471,7 @@ namespace FoundationDB.Client
 				new byte[]
 				{ 
 					(byte)value,
-					(byte)(value >> 8),
+					(byte)(value >> 8)
 				},
 				0,
 				2

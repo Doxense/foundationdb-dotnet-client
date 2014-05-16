@@ -718,7 +718,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
-		/// <remarks>This is the non-generic equivalent of <see cref="FdbTuple.Pack{T}()"/></remarks>
+		/// <remarks>This is the non-generic equivalent of <see cref="FdbTuple.Pack{T}"/></remarks>
 		public static Slice PackBoxedWithPrefix(Slice prefix, object value)
 		{
 			var writer = SliceWriter.Empty;
@@ -828,14 +828,14 @@ namespace FoundationDB.Layers.Tuples
 			);
 		}
 
-		private static readonly string TokenNull = "null";
-		private static readonly string TokenDoubleQuote = "\"";
-		private static readonly string TokenSingleQuote = "'";
-		private static readonly string TokenOpenBracket = "{";
-		private static readonly string TokenCloseBracket = "}";
-		private static readonly string TokenTupleEmpty = "()";
-		private static readonly string TokenTupleSep = ", ";
-		private static readonly string TokenTupleClose = ",)";
+		private const string TokenNull = "null";
+		private const string TokenDoubleQuote = "\"";
+		private const string TokenSingleQuote = "'";
+		private const string TokenOpenBracket = "{";
+		private const string TokenCloseBracket = "}";
+		private const string TokenTupleEmpty = "()";
+		private const string TokenTupleSep = ", ";
+		private const string TokenTupleClose = ",)";
 
 		/// <summary>Converts any object into a displayble string, for logging/debugging purpose</summary>
 		/// <param name="item">Object to stringify</param>

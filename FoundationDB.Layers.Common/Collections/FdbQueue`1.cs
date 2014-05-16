@@ -254,7 +254,7 @@ namespace FoundationDB.Layers.Collections
 
 		private async Task<bool> FulfillConflictedPops(IFdbDatabase db, CancellationToken ct)
 		{
-			int numPops = 100;
+			const int numPops = 100;
 
 			using (var tr = db.BeginTransaction(ct))
 			{

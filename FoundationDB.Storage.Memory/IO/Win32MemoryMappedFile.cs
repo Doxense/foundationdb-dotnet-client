@@ -166,7 +166,7 @@ namespace FoundationDB.Storage.Memory.IO
 		[SecurityCritical]
 		public static Win32MemoryMappedFile OpenRead(string path)
 		{
-			Contract.Requires(path != null && path.Length > 0);
+			Contract.Requires(!string.IsNullOrEmpty(path));
 
 
 			if (!File.Exists(path))

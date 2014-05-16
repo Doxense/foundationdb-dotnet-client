@@ -84,7 +84,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Array of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
@@ -111,7 +110,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <typeparam name="T">Type of the keys</typeparam>
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
@@ -266,6 +264,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Produce a user-friendly version of the slice</summary>
 		/// <param name="key">Random binary key</param>
+		/// <param name="mode">Defines if the key is standalone, or is the begin or end part or a key range. This will enable or disable some heuristics that try to properly format key ranges.</param>
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
 		public static string PrettyPrint(Slice key, PrettyPrintMode mode)
@@ -336,7 +335,7 @@ namespace FoundationDB.Client
 
 						if (tuple != null) return tuple.ToString() + suffix;
 					}
-					catch { }
+					catch (Exception) { }
 				}
 			}
 

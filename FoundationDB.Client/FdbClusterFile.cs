@@ -51,8 +51,12 @@ namespace FoundationDB.Client
 		private FdbClusterFile()
 		{ }
 
-		public FdbClusterFile(string description, string identifier, FdbEndPoint[] coordinators)
+		public FdbClusterFile(string description, string identifier, IEnumerable<FdbEndPoint> coordinators)
 		{
+			if (description == null) throw new ArgumentNullException("description");
+			if (identifier == null) throw new ArgumentNullException("identifier");
+			if (coordinators == null) throw new ArgumentNullException("coordinators");
+
 			this.Description = description;
 			this.Id = identifier;
 			this.Coordinators = coordinators.ToArray(); // create a copy of the array

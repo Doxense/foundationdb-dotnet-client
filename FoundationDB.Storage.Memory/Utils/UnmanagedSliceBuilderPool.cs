@@ -13,7 +13,7 @@ namespace FoundationDB.Storage.Memory.Utils
 	[DebuggerDisplay("Count={m_buckets.Count}, Used={m_memoryUsed}, Loaned={m_memoryLoaned}")]
 	public class UnmanagedSliceBuilderPool : IDisposable
 	{
-		public readonly Stack<UnmanagedSliceBuilder> m_buckets;
+		private readonly Stack<UnmanagedSliceBuilder> m_buckets;
 		private uint m_initialCapacity;
 		private int m_maxCount;
 		private long m_memoryUsed;

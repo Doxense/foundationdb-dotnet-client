@@ -53,7 +53,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 
 			for(int i = 1; i < 100; i++)
 			{
-				cola.Add(-i, "-" + i.ToString());
+				cola.Add(-i, (-i).ToString());
 			}
 			cola.Debug_Dump();
 

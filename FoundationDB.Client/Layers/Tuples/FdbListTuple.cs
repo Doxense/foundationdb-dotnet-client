@@ -39,8 +39,6 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>Tuple that can hold any number of untyped items</summary>
 	public sealed class FdbListTuple : IFdbTuple
 	{
-		private static readonly object[] EmptyList = new object[0];
-
 		/// <summary>List of the items in the tuple.</summary>
 		/// <remarks>It is supposed to be immutable!</remarks>
 		private readonly object[] m_items;

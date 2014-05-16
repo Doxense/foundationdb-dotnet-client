@@ -27,7 +27,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <summary>Handle to the allocated memory</summary>
 		protected SafeHandle m_handle;
 
-		public EntryPage(SafeHandle handle, uint capacity)
+		protected EntryPage(SafeHandle handle, uint capacity)
 		{
 			Contract.Requires(handle != null && !handle.IsInvalid && !handle.IsClosed);
 
