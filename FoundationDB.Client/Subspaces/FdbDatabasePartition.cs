@@ -65,6 +65,11 @@ namespace FoundationDB.Client
 			get { return m_directory.Name; }
 		}
 
+		public string FullName
+		{
+			get { return m_directory.FullName; }
+		}
+
 		public IReadOnlyList<string> Path
 		{
 			get { return m_directory.Path; }

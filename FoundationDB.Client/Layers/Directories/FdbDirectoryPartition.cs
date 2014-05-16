@@ -61,9 +61,9 @@ namespace FoundationDB.Layers.Directories
 			throw new InvalidOperationException("Cannot check whether a key belongs to the root of a directory partition.");
 		}
 
-		protected override IFdbTuple ToRelativePath(IEnumerable<string> path)
+		protected override IFdbTuple ToRelativePath(IFdbTuple location)
 		{
-			return path == null ? FdbTuple.Empty : FdbTuple.CreateRange<string>(path);
+			return location ?? FdbTuple.Empty;
 		}
 
 		protected override FdbDirectoryLayer GetLayerForPath(IFdbTuple relativeLocation)

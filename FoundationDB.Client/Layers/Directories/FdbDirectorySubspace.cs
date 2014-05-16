@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -38,7 +38,7 @@ namespace FoundationDB.Layers.Directories
 
 	/// <summary>A Directory Subspace represents the contents of a directory, but it also remembers the path with which it was opened and offers convenience methods to operate on the directory at that path.</summary>
 	/// <remarks>An instance of DirectorySubspace can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.</remarks>
-	[DebuggerDisplay("Path={Path}, Prefix={InternalKey}, Layer={Layer}")]
+	[DebuggerDisplay("Path={this.FullName}, Prefix={InternalKey}, Layer={Layer}")]
 	public class FdbDirectorySubspace : FdbSubspace, IFdbDirectory
 	{
 
@@ -73,6 +73,12 @@ namespace FoundationDB.Layers.Directories
 			get { return this.Path.Count == 0 ? String.Empty : this.Path[this.Path.Count - 1]; }
 		}
 
+		/// <summary>Formatted path of this directory</summary>
+		public string FullName
+		{
+			get { return String.Join("/", this.Path); }
+		}
+
 		/// <summary>Instance of the DirectoryLayer that was used to create or open this directory</summary>
 		public FdbDirectoryLayer DirectoryLayer { get; private set; }
 
@@ -88,11 +94,19 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Convert a path relative to this directory, into a path relative to the root of the current partition</summary>
+		/// <param name="location">Path relative from this directory</param>
+		/// <returns>Path relative to the path of the current partition</returns>
+		protected virtual IFdbTuple ToRelativePath(IFdbTuple location)
+		{
+			return location == null ? this.RelativeLocation : this.RelativeLocation.Concat(location);
+		}
+
+		/// <summary>Convert a path relative to this directory, into a path relative to the root of the current partition</summary>
 		/// <param name="path">Path relative from this directory</param>
 		/// <returns>Path relative to the path of the current partition</returns>
-		protected virtual IFdbTuple ToRelativePath(IEnumerable<string> path)
+		protected IFdbTuple ToRelativePath(IEnumerable<string> path)
 		{
-			return path == null ? this.RelativeLocation : this.RelativeLocation.Concat(FdbTuple.CreateRange<string>(path));
+			return ToRelativePath(path == null ? null :  FdbTuple.CreateRange<string>(path));
 		}
 
 		/// <summary>Ensure that this directory was registered with the correct layer id</summary>
@@ -295,7 +309,7 @@ namespace FoundationDB.Layers.Directories
 				return RemoveAsync(trans);
 			}
 
-			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: true);
+			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(location), throwIfMissing: true);
 		}
 
 		/// <summary>Attempts to remove the directory, its contents, and all subdirectories.
@@ -328,7 +342,7 @@ namespace FoundationDB.Layers.Directories
 				return TryRemoveAsync(trans);
 			}
 
-			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(path), throwIfMissing: false);
+			return this.DirectoryLayer.RemoveInternalAsync(trans, ToRelativePath(location), throwIfMissing: false);
 		}
 
 		/// <summary>Checks if this directory exists</summary>
@@ -356,7 +370,7 @@ namespace FoundationDB.Layers.Directories
 				return ExistsAsync(trans);
 			}
 
-			return this.DirectoryLayer.ExistsInternalAsync(trans, ToRelativePath(path));
+			return this.DirectoryLayer.ExistsInternalAsync(trans, ToRelativePath(location));
 		}
 
 		/// <summary>Returns the list of all the subdirectories of the current directory.</summary>
@@ -390,7 +404,7 @@ namespace FoundationDB.Layers.Directories
 		public override string DumpKey(Slice key)
 		{
 			string str = base.DumpKey(key);
-			return String.Format("[/{0}]:{1}", String.Join("/", this.Path), str);
+			return String.Format("[/{0}]:{1}", this.FullName, str);
 		}
 
 		/// <summary>Returns a user-friendly description of this directory</summary>
@@ -398,11 +412,11 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (this.Layer.IsNullOrEmpty)
 			{
-				return String.Format("DirectorySubspace(path={0}, prefix={1})", this.Location.ToString(), this.InternalKey.ToAsciiOrHexaString());
+				return String.Format("DirectorySubspace(path={0}, prefix={1})", this.FullName, this.InternalKey.ToAsciiOrHexaString());
 			}
 			else
 			{
-				return String.Format("DirectorySubspace(path={0}, prefix={1}, layer={2})", this.Location.ToString(), this.InternalKey.ToAsciiOrHexaString(), this.Layer.ToAsciiOrHexaString());
+				return String.Format("DirectorySubspace(path={0}, prefix={1}, layer={2})", this.FullName, this.InternalKey.ToAsciiOrHexaString(), this.Layer.ToAsciiOrHexaString());
 			}
 		}
 

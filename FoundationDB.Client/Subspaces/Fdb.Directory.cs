@@ -82,14 +82,14 @@ namespace FoundationDB.Client
 
 					// look up in the root layer for the named partition
 					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: FdbDirectoryPartition.PartitionLayerId, cancellationToken: cancellationToken).ConfigureAwait(false);
-					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.Path.ToString(), descriptor.ToString()));
+					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.FullName, descriptor));
 
 					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
 					rootSpace = descriptor.Copy(); //note: create a copy of the key
 					//TODO: find a nicer way to do that!
 					db.ChangeRoot(rootSpace, FdbDirectoryLayer.Create(rootSpace), readOnly);
 
-					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened partition {0} at {1}, using directory layer at {2}", descriptor.Path.ToString(), db.GlobalSpace.ToString(), db.Directory.DirectoryLayer.NodeSubspace.ToString()));
+					if (Logging.On) Logging.Info(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened partition {0} at {1}, using directory layer at {2}", descriptor.FullName, db.GlobalSpace, db.Directory.DirectoryLayer.NodeSubspace));
 
 					return db;
 				}

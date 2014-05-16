@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,6 +44,9 @@ namespace FoundationDB.Layers.Directories
 	{
 		/// <summary>Name of this <code>Directory</code>.</summary>
 		string Name { get; }
+
+		/// <summary>Formatted path of this <code>Directory</code></summary>
+		string FullName { get; }
 
 		/// <summary>Gets the path represented by this <code>Directory</code>.</summary>
 		IReadOnlyList<string> Path { get;  }
