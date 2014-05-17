@@ -183,9 +183,4 @@ namespace FoundationDB.Client
 
 	}
 
-	public static class FdbClusterExtensions
-	{
-
-	}
-
 }
