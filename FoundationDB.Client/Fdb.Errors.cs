@@ -56,12 +56,12 @@ namespace FoundationDB.Client
 
 			internal static Exception ValueCannotBeNull(Slice value, string paramName = "value")
 			{
-				throw new ArgumentException("Value cannot be null", paramName);
+				return new ArgumentException("Value cannot be null", paramName);
 			}
 
 			internal static Exception ValueIsTooBig(Slice value, string paramName = "value")
 			{
-				throw new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), paramName);
+				return new ArgumentException(String.Format("Value is too big ({0} > {1}).", value.Count, Fdb.MaxValueSize), paramName);
 			}
 
 			internal static Exception InvalidKeyOutsideDatabaseNamespace(IFdbDatabase db, Slice key)
