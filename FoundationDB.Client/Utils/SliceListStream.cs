@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.IO;
@@ -315,6 +316,7 @@ namespace FoundationDB.Client
 			if (offset > buffer.Length - count) throw new ArgumentException("Offset and count must fit inside the buffer");
 		}
 
+		[ContractAnnotation("=> halt")]
 		private static void StreamIsClosed()
 		{
 			throw new ObjectDisposedException(null, "The stream was already closed");

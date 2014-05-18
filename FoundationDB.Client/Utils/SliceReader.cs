@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using JetBrains.Annotations;
 	using System;
 
 	/// <summary>Helper class that holds the internal state used to parse tuples from slices</summary>
@@ -85,6 +86,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return the value of the next byte in the buffer, or -1 if we reached the end</summary>
+		[Pure]
 		public int PeekByte()
 		{
 			int p = this.Position;

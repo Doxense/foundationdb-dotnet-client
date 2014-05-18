@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
@@ -126,10 +126,18 @@ namespace FoundationDB.Client
 		#region Public Properties...
 
 		/// <summary>Cluster where the database is located</summary>
-		public IFdbCluster Cluster { get { return m_cluster; } }
+		public IFdbCluster Cluster
+		{
+			[NotNull]
+			get { return m_cluster; }
+		}
 
 		/// <summary>Name of the database</summary>
-		public string Name { get { return m_name; } }
+		public string Name
+		{
+			[NotNull]
+			get { return m_name; }
+		}
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
@@ -142,6 +150,7 @@ namespace FoundationDB.Client
 		/// <summary>Root directory of this database instance</summary>
 		public FdbDatabasePartition Directory
 		{
+			[NotNull]
 			get
 			{
 				if (m_directory == null)
@@ -151,6 +160,7 @@ namespace FoundationDB.Client
 						if (m_directory == null)
 						{
 							m_directory = GetRootDirectory();
+							Contract.Assert(m_directory != null);
 						}
 					}
 				}
@@ -184,6 +194,7 @@ namespace FoundationDB.Client
 		/// }</example>
 		public IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken, FdbOperationContext context = null)
 		{
+			cancellationToken.ThrowIfCancellationRequested();
 			if (context == null) context = new FdbOperationContext(this, mode, cancellationToken);
 			return CreateNewTransaction(context);
 		}
@@ -232,6 +243,7 @@ namespace FoundationDB.Client
 
 		internal void EnsureTransactionIsValid(FdbTransaction transaction)
 		{
+			Contract.Requires(transaction != null);
 			if (m_disposed) ThrowIfDisposed();
 			//TODO?
 		}
@@ -445,6 +457,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns the global namespace used by this database instance</summary>
 		public FdbSubspace GlobalSpace
 		{
+			[NotNull]
 			get
 			{
 				// return a copy of the subspace, to be sure that nobody can change the real globalspace and read elsewhere.

@@ -232,6 +232,7 @@ namespace FoundationDB.Async
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<R> Apply<T, R>(T value, Func<T, R> lambda)
 		{
+			Contract.Requires(lambda != null);
 			try
 			{
 				return Return<R>(lambda(value));
@@ -245,6 +246,7 @@ namespace FoundationDB.Async
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<R> Apply<T, R>(T value, Func<T, Maybe<R>> lambda)
 		{
+			Contract.Requires(lambda != null);
 			try
 			{
 				return lambda(value);
@@ -258,6 +260,7 @@ namespace FoundationDB.Async
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<R> Apply<T, R>(Maybe<T> value, Func<T, R> lambda)
 		{
+			Contract.Requires(lambda != null);
 			if (!value.HasValue)
 			{
 				if (value.HasFailed) return Error<R>(value.Error);
@@ -276,6 +279,7 @@ namespace FoundationDB.Async
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<R> Apply<T, R>(Maybe<T> value, Func<T, Maybe<R>> lambda)
 		{
+			Contract.Requires(lambda != null);
 			if (!value.HasValue)
 			{
 				if (value.HasFailed) return Error<R>(value.Error);
@@ -350,6 +354,7 @@ namespace FoundationDB.Async
 		/// <summary>Streamline a potentially failed Task&lt;Maybe&lt;T&gt;&gt; into a version that capture the error into the <see cref="Maybe{T}"/> itself</summary>
 		public static Task<Maybe<T>> Unwrap<T>(Task<Maybe<T>> task)
 		{
+			Contract.Requires(task != null);
 			switch(task.Status)
 			{
 				case TaskStatus.RanToCompletion:

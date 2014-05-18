@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,8 +31,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
-	using System.Collections.Generic;
 	using System.Runtime.CompilerServices;
 	using System.Runtime.ConstrainedExecution;
 	using System.Runtime.InteropServices;
@@ -52,6 +52,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Reject an invalid slice by throw an error with the appropriate diagnostic message.</summary>
 		/// <param name="slice">Slice that is being naugthy</param>
+		[ContractAnnotation("=> halt")]
 		public static void ThrowMalformedSlice(Slice slice)
 		{
 #if DEBUG
@@ -81,6 +82,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Reject an invalid slice by throw an error with the appropriate diagnostic message.</summary>
+		[ContractAnnotation("=> halt")]
 		public static void ThrowMalformedBuffer(byte[] array, int offset, int count)
 		{
 			if (offset < 0) throw new ArgumentException("The specified segment has a negative offset, which is not legal. This may be a side effect of memory corruption.", "offset");

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.ComponentModel;
 	using System.Runtime.InteropServices;
@@ -308,11 +309,13 @@ namespace FoundationDB.Client
 			Write(m_packed, ptr);
 		}
 
+		[Pure]
 		public Guid ToGuid()
 		{
 			return m_packed;
 		}
 
+		[Pure][NotNull]
 		public byte[] ToByteArray()
 		{
 			// We must use Big Endian when serializing the UUID
@@ -328,6 +331,7 @@ namespace FoundationDB.Client
 			return res;
 		}
 
+		[Pure]
 		public Slice ToSlice()
 		{
 			return new Slice(ToByteArray(), 0, 16);

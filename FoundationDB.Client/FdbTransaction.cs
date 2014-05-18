@@ -35,6 +35,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -116,13 +117,25 @@ namespace FoundationDB.Client
 		public bool IsSnapshot { get { return false; } }
 
 		/// <summary>Returns the context of this transaction</summary>
-		public FdbOperationContext Context { get { return m_context; } }
+		public FdbOperationContext Context
+		{
+			[NotNull]
+			get { return m_context; }
+		}
 
 		/// <summary>Database instance that manages this transaction</summary>
-		public FdbDatabase Database { get { return m_database; } }
+		public FdbDatabase Database
+		{
+			[NotNull]
+			get { return m_database; }
+		}
 
 		/// <summary>Returns the handler for this transaction</summary>
-		internal IFdbTransactionHandler Handler { get { return m_handler; } }
+		internal IFdbTransactionHandler Handler
+		{
+			[NotNull]
+			get { return m_handler; }
+		}
 
 		/// <summary>If true, the transaction is still pending (not committed or rolledback).</summary>
 		internal bool StillAlive { get { return this.State == STATE_READY; } }
@@ -787,6 +800,7 @@ namespace FoundationDB.Client
 
 		}
 
+		[ContractAnnotation("=> halt")]
 		internal static void ThrowOnInvalidState(FdbTransaction trans)
 		{
 			switch (trans.State)
@@ -800,6 +814,7 @@ namespace FoundationDB.Client
 			}
 		}
 
+		[ContractAnnotation("=> halt")]
 		internal static void ThrowReadOnlyTransaction(FdbTransaction trans)
 		{
 			throw new InvalidOperationException("Cannot write to a read-only transaction");

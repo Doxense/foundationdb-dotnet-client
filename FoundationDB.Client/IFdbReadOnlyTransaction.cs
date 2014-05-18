@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
@@ -41,13 +42,13 @@ namespace FoundationDB.Client
 		int Id { get; }
 
 		/// <summary>Context of this transaction.</summary>
-		FdbOperationContext Context { get; }
+		FdbOperationContext Context { [NotNull] get; }
 
 		/// <summary>If true, the transaction is operating in Snapshot mode</summary>
 		bool IsSnapshot { get; }
 
 		/// <summary>Return a Snapshotted version of this transaction, or the transaction itself it is already operating in Snapshot mode.</summary>
-		IFdbReadOnlyTransaction Snapshot { get; }
+		IFdbReadOnlyTransaction Snapshot { [NotNull] get; }
 
 		/// <summary>Cancellation Token linked to the life time of the transaction</summary>
 		/// <remarks>Will be triggered if the transaction is aborted or disposed</remarks>

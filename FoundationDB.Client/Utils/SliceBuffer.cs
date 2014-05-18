@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Utils
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -90,7 +91,8 @@ namespace FoundationDB.Client.Utils
 		}
 
 		/// <summary>Return the list of all the pages used by this buffer</summary>
-		/// <returns></returns>
+		/// <returns>Array of pages used by the buffer</returns>
+		[NotNull]
 		public Slice[] GetPages()
 		{
 			var pages = new Slice[this.PageCount];

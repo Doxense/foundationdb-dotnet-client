@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
@@ -50,6 +51,7 @@ namespace FoundationDB.Client
 		///		var result = await tr.Get(Slice.FromString("Hello"));
 		///		var items = await tr.GetRange(FdbKeyRange.StartsWith(Slice.FromString("ABC"))).ToListAsync();
 		/// }</example>
+		[NotNull]
 		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbDatabase db, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
@@ -67,6 +69,7 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
+		[NotNull]
 		public static IFdbTransaction BeginTransaction(this IFdbDatabase db, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
@@ -178,6 +181,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Unpack a key using the current namespace of the database</summary>
 		/// <param name="key">Key that should fit inside the current namespace of the database</param>
+		[CanBeNull]
 		public static IFdbTuple Unpack(this IFdbDatabase db, Slice key)
 		{
 			return db.GlobalSpace.Unpack(key);

@@ -32,8 +32,7 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.IO;
@@ -361,6 +360,7 @@ namespace FoundationDB.Client
 			}
 		}
 
+		[ContractAnnotation("=> halt")]
 		private static void FailCannotExecuteOnNetworkThread()
 		{
 #if DEBUG_THREADS

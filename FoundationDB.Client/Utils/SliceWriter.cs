@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
@@ -117,7 +118,7 @@ namespace FoundationDB.Client
 
 		#region Public Properties...
 
-		/// <summary>Returns true is the buffer contains at least some data</summary>
+		/// <summary>Returns true if the buffer contains at least some data</summary>
 		public bool HasData
 		{
 			get { return this.Position > 0; }
@@ -127,7 +128,7 @@ namespace FoundationDB.Client
 		/// <param name="index">Index in the buffer (0-based if positive, from the end if negative)</param>
 		public byte this[int index]
 		{
-			[System.Diagnostics.Contracts.Pure]
+			[Pure]
 			get
 			{
 				Contract.Assert(this.Buffer != null && this.Position >= 0 && index < this.Position && -index <= this.Position);
@@ -144,7 +145,7 @@ namespace FoundationDB.Client
 		/// <exception cref="ArgumentOutOfRangeException">If either <paramref name="beginInclusive"/> or <paramref name="endExclusive"/> is outside of the currently allocated buffer.</exception>
 		public Slice this[int? beginInclusive, int? endExclusive]
 		{
-			[System.Diagnostics.Contracts.Pure]
+			[Pure]
 			get
 			{
 				int from = beginInclusive ?? 0;
@@ -168,7 +169,7 @@ namespace FoundationDB.Client
 		
 		/// <summary>Returns a byte array filled with the contents of the buffer</summary>
 		/// <remarks>The buffer is copied in the byte array. And change to one will not impact the other</remarks>
-		[System.Diagnostics.Contracts.Pure]
+		[Pure][NotNull]
 		public byte[] GetBytes()
 		{
 			Contract.Requires(this.Position >= 0);
@@ -184,7 +185,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a slice pointing to the content of the buffer</summary>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
-		[System.Diagnostics.Contracts.Pure]
+		[Pure]
 		public Slice ToSlice()
 		{
 			if (this.Buffer == null || this.Position == 0)
@@ -202,7 +203,7 @@ namespace FoundationDB.Client
 		/// <param name="count">Size of the segment</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If <paramref name="count"/> is less than zero, or larger than the current buffer size</exception>
-		[System.Diagnostics.Contracts.Pure]
+		[Pure]
 		public Slice ToSlice(int count)
 		{
 			if (count < 0 || count > this.Position) throw new ArgumentException("count");
@@ -214,7 +215,7 @@ namespace FoundationDB.Client
 		/// <param name="offset">Offset of the segment from the start of the buffer</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If <paramref name="offset"/> is less then zero, or after the current position</exception>
-		[System.Diagnostics.Contracts.Pure]
+		[Pure]
 		public Slice Substring(int offset)
 		{
 			if (offset < 0 || offset > this.Position) throw new ArgumentException("Offset must be inside the buffer", "offset");
@@ -228,7 +229,7 @@ namespace FoundationDB.Client
 		/// <param name="count">Size of the segment</param>
 		/// <remarks>Any change to the slice will change the buffer !</remarks>
 		/// <exception cref="ArgumentException">If either <paramref name="offset"/> or <paramref name="count"/> are less then zero, or do not fit inside the current buffer</exception>
-		[System.Diagnostics.Contracts.Pure]
+		[Pure]
 		public Slice Substring(int offset, int count)
 		{
 			if (offset < 0 || offset >= this.Position) throw new ArgumentException("Offset must be inside the buffer", "offset");
@@ -770,6 +771,7 @@ namespace FoundationDB.Client
 			Array.Resize(ref buffer, size);
 		}
 
+		[ContractAnnotation("=> halt")]
 		private static void FailCannotGrowBuffer()
 		{
 #if DEBUG

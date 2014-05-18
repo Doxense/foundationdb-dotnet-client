@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
@@ -37,13 +38,13 @@ namespace FoundationDB.Client
 	public sealed class FdbClusterFile
 	{
 		/// <summary>The raw value of the file</summary>
-		internal string RawValue { get; private set; }
+		internal string RawValue { [NotNull] get; private set; }
 
 		/// <summary>Cluster Identifier</summary>
-		public string Id { get; private set; }
+		public string Id { [NotNull] get; private set; }
 
 		/// <summary>Logical description of the database</summary>
-		public string Description { get; private set; }
+		public string Description { [NotNull] get; private set; }
 
 		/// <summary>List of coordination servers</summary>
 		public FdbEndPoint[] Coordinators { get; private set; }
@@ -70,6 +71,7 @@ namespace FoundationDB.Client
 			);
 		}
 
+		[NotNull]
 		public static FdbClusterFile Parse(string rawValue)
 		{
 			if (string.IsNullOrEmpty(rawValue)) throw new FormatException("Cluster file descriptor cannot be empty");

@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 
 	public sealed class FdbTupleCodec<T> : FdbTypeCodec<T>, IValueEncoder<T>
@@ -39,6 +39,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public static FdbTupleCodec<T> Default
 		{
+			[NotNull]
 			get { return s_defaultSerializer ?? (s_defaultSerializer = new FdbTupleCodec<T>(default(T))); }
 		}
 

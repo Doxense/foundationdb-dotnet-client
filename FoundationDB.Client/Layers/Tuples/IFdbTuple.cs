@@ -29,13 +29,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.ComponentModel;
 
 	/// <summary>Represents a Tuple of N elements</summary>
 	[ImmutableObject(true)]
+	[CannotApplyEqualityOperator]
 	public interface IFdbTuple : IEnumerable<object>, IEquatable<IFdbTuple>, IReadOnlyCollection<object>, IFdbKey
 #if !NET_4_0
 		, IReadOnlyList<object>
@@ -76,7 +77,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="fromIncluded">Starting offset of the sub-tuple to return, or null to select from the start. Negative values means from the end</param>
 		/// <param name="toExcluded">Ending offset (excluded) of the sub-tuple to return or null to select until the end. Negative values means from the end.</param>
 		/// <returns>Tuple that include all items in the current tuple whose offset are greather than or equal to <paramref name="fromIncluded"/> and strictly less than <paramref name="toExcluded"/>. The tuple may be smaller than expected if the range is larger than the parent tuple. If the range does not intersect with the tuple, the Empty tuple will be returned.</returns>
-		IFdbTuple this[int? fromIncluded, int? toExcluded] { get; }
+		IFdbTuple this[int? fromIncluded, int? toExcluded] { [NotNull] get; }
 
 		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
 		/// <typeparam name="T">Expected type of the item</typeparam>
@@ -101,6 +102,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="value">Value that will be appended at the end</param>
 		/// <returns>New tuple with the new value</returns>
 		/// <example>("Hello,").Append("World") => ("Hello", "World",)</example>
+		[NotNull]
 		IFdbTuple Append<T>(T value);
 
 		/// <summary>Copy all items of the tuple into an array at a specific location</summary>

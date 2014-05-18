@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
@@ -43,7 +44,7 @@ namespace FoundationDB.Client
 	public sealed class FdbOperationContext : IDisposable
 	{
 		/// <summary>The database used by the operation</summary>
-		public IFdbDatabase Database { get; private set; }
+		public IFdbDatabase Database { [NotNull] get; private set; }
 
 		/// <summary>Result of the operation (or null)</summary>
 		public object Result { get; set; }
@@ -61,7 +62,7 @@ namespace FoundationDB.Client
 		public DateTime StartedUtc { get; private set; }
 
 		/// <summary>Time spent since the start of the first attempt</summary>
-		public Stopwatch Duration { get; private set; }
+		public Stopwatch Duration { [NotNull] get; private set; }
 
 		/// <summary>If true, the transaction has been committed successfully</summary>
 		public bool Committed { get; private set; }
@@ -77,7 +78,7 @@ namespace FoundationDB.Client
 
 		public FdbOperationContext(IFdbDatabase db, FdbTransactionMode mode, CancellationToken cancellationToken)
 		{
-			Contract.Requires(db != null);
+			if (db == null) throw new ArgumentNullException("db");
 
 			this.Database = db;
 			this.Mode = mode;

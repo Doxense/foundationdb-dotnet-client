@@ -31,6 +31,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Diagnostics;
 	using System.Text;
+	using JetBrains.Annotations;
 
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString()}")]
@@ -64,7 +65,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns a displayable representation of the key selector</summary>
-		[System.Diagnostics.Contracts.Pure]
+		[Pure]
 		public string PrettyPrint(FdbKey.PrettyPrintMode mode)
 		{
 			var sb = new StringBuilder();

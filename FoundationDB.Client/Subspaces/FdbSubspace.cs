@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
@@ -85,16 +86,19 @@ namespace FoundationDB.Client
 
 		#region Static Prefix Helpers...
 
+		[NotNull]
 		public static FdbSubspace Create(Slice slice)
 		{
 			return new FdbSubspace(slice);
 		}
 
+		[NotNull]
 		public static FdbSubspace Create(IFdbTuple tuple)
 		{
 			return new FdbSubspace(tuple);
 		}
 
+		[NotNull]
 		internal FdbSubspace Copy()
 		{
 			return new FdbSubspace(this.InternalKey.Memoize());
@@ -119,6 +123,7 @@ namespace FoundationDB.Client
 		{
 			// note: there is a difference with the Pyton layer because here we don't use Tuple encoding, but just concat the slices together.
 			// the .NET equivalent of the subspace.__getitem__(self, name) method would be subspace.Partition<Slice>(name) or subspace[FdbTuple.Create<Slice>(name)] !
+			[ContractAnnotation("null => halt; notnull => notnull")]
 			get
 			{
 				if (suffix.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "suffix");
@@ -131,6 +136,7 @@ namespace FoundationDB.Client
 		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="tuple"/></returns>
 		public FdbSubspace this[IFdbTuple tuple]
 		{
+			[ContractAnnotation("null => halt; notnull => notnull")]
 			get
 			{
 				if (tuple == null) throw new ArgumentNullException("tuple");
@@ -197,6 +203,7 @@ namespace FoundationDB.Client
 		/// <summary>Remove the subspace prefix from a batch of binary keys, and only return the tail, or Slice.Nil if a key does not fit inside the namespace</summary>
 		/// <param name="keys">Array of complete keys that contains the current subspace prefix, and a binary suffix</param>
 		/// <returns>Array of only the binary suffix of the keys, Slice.Empty for a key that is exactly equal to the subspace prefix, or Slice.Nil for a key that is outside of the subspace</returns>
+		[NotNull]
 		public Slice[] Extract(Slice[] keys)
 		{ //REVIEW: rename to ExtractRange ?
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -230,6 +237,7 @@ namespace FoundationDB.Client
 			return key.Substring(prefix.Count);
 		}
 
+		[NotNull]
 		public Slice[] ExtractAndCheck(Slice[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -317,6 +325,7 @@ namespace FoundationDB.Client
 				return FdbKey.System;
 		}
 
+		[ContractAnnotation("=> halt")]
 		protected void FailKeyOutOfBound(Slice key)
 		{
 #if DEBUG

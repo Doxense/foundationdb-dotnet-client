@@ -188,6 +188,7 @@
     <Compile Include="Layers\Tuples\FdbTupleParser.cs" />
     <Compile Include="TypeSystem\IUnorderedTypeCodec.cs" />
     <Compile Include="TypeSystem\IOrderedTypeCodec.cs" />
+    <Compile Include="Utils\CodeAnnotations.cs" />
     <Compile Include="Utils\DebugCounters.cs" />
     <Compile Include="Encoders\KeyValueEncoders.cs" />
     <Compile Include="TypeSystem\FdbTypeCodec`1.cs" />

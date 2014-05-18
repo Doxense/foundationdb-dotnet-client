@@ -29,8 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Directories
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -46,16 +45,16 @@ namespace FoundationDB.Layers.Directories
 		string Name { get; }
 
 		/// <summary>Formatted path of this <code>Directory</code></summary>
-		string FullName { get; }
+		string FullName { [NotNull] get; }
 
 		/// <summary>Gets the path represented by this <code>Directory</code>.</summary>
-		IReadOnlyList<string> Path { get;  }
+		IReadOnlyList<string> Path { [NotNull] get; }
 
 		/// <summary>Gets the layer id slice that was stored when this <code>Directory</code> was created.</summary>
 		Slice Layer { get; }
 
 		/// <summary>Get the <code>DirectoryLayer</code> that was used to create this <code>Directory</code>.</summary>
-		FdbDirectoryLayer DirectoryLayer { get; }
+		FdbDirectoryLayer DirectoryLayer { [NotNull] get; }
 
 		/// <summary>Opens a subdirectory with the given path.
 		/// If the subdirectory does not exist, it is created (creating intermediate subdirectories if necessary).

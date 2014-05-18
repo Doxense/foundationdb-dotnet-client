@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Async;
 namespace FoundationDB.Linq
 {
+	using FoundationDB.Async;
+	using JetBrains.Annotations;
+	using System;
 
 	public interface IFdbAsyncEnumerable<out T> : IAsyncEnumerable<T>
 	{
@@ -38,6 +40,7 @@ namespace FoundationDB.Linq
 		/// </summary>
 		/// <param name="mode">Defines how the enumerator will be used by the caller. The source provider can use the mode to optimize how the results are produced.</param>
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
+		[NotNull]
 		IFdbAsyncEnumerator<T> GetEnumerator(FdbAsyncMode mode = FdbAsyncMode.Default);
 
 	}

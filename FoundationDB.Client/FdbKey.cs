@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,12 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using System.Text;
 
 	/// <summary>Factory class for keys</summary>
 	public static class FdbKey
@@ -87,6 +86,7 @@ namespace FoundationDB.Client
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Array of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[NotNull]
 		public static Slice[] Merge(Slice prefix, Slice[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
@@ -113,6 +113,7 @@ namespace FoundationDB.Client
 		/// <param name="prefix">Prefix shared by all keys</param>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[NotNull]
 		public static Slice[] Merge(Slice prefix, IEnumerable<Slice> keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
@@ -145,6 +146,7 @@ namespace FoundationDB.Client
 		/// <param name="endOffsets">Array containing, for each segment, the offset of the following segment</param>
 		/// <returns>Array of segments</returns>
 		/// <example>SplitIntoSegments("HelloWorld", 0, [5, 10]) => [{"Hello"}, {"World"}]</example>
+		[NotNull]
 		internal static Slice[] SplitIntoSegments(byte[] buffer, int start, List<int> endOffsets)
 		{
 			var result = new Slice[endOffsets.Count];
@@ -257,6 +259,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Random binary key</param>
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
+		[NotNull]
 		public static string Dump(Slice key)
 		{
 			return PrettyPrint(key, PrettyPrintMode.Single);
@@ -267,6 +270,7 @@ namespace FoundationDB.Client
 		/// <param name="mode">Defines if the key is standalone, or is the begin or end part or a key range. This will enable or disable some heuristics that try to properly format key ranges.</param>
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
+		[NotNull]
 		public static string PrettyPrint(Slice key, PrettyPrintMode mode)
 		{
 			if (key.Count > 1)

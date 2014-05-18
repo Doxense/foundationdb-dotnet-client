@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Converters
 {
 	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
@@ -261,6 +262,7 @@ namespace FoundationDB.Client.Converters
 		/// <summary>Helper method to throw an exception when we don't know how to convert from <paramref name="source"/> to <paramref name="destination"/></summary>
 		/// <param name="source"></param>
 		/// <param name="destination"></param>
+		[ContractAnnotation("=> halt")]
 		private static void FailCannotConvert(Type source, Type destination)
 		{
 			// prettyprint nullable type names to have something more usefull than "Nullable`1"
@@ -336,6 +338,7 @@ namespace FoundationDB.Client.Converters
 		/// <typeparam name="R">Destination type</typeparam>
 		/// <returns>Valid convertir for this types, or an exception if there are no known convertions</returns>
 		/// <exception cref="System.InvalidOperationException">No valid converter for these types was found</exception>
+		[NotNull]
 		public static IFdbConverter<T, R> GetConverter<T, R>()
 		{
 			if (typeof(T) == typeof(R))
@@ -426,6 +429,7 @@ namespace FoundationDB.Client.Converters
 
 		/// <summary>Converts all the elements of a list</summary>
 		/// <returns>New list with all the converted elements</returns>
+		[NotNull]
 		public static List<R> ConvertAll<T, R>(this IFdbConverter<T, R> converter, List<T> items)
 		{
 			if (converter == null) throw new ArgumentNullException("converter");
@@ -436,6 +440,7 @@ namespace FoundationDB.Client.Converters
 
 		/// <summary>Converts all the elements of an array</summary>
 		/// <returns>New array with all the converted elements</returns>
+		[NotNull]
 		public static R[] ConvertAll<T, R>(this IFdbConverter<T, R> converter, T[] items)
 		{
 			if (converter == null) throw new ArgumentNullException("converter");

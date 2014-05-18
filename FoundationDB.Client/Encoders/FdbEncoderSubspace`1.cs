@@ -30,6 +30,7 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
@@ -49,7 +50,11 @@ namespace FoundationDB.Client
 			m_encoder = encoder;
 		}
 
-		public IKeyEncoder<T> Encoder { get { return m_encoder; } }
+		public IKeyEncoder<T> Encoder
+		{
+			[NotNull]
+			get { return m_encoder; }
+		}
 
 		#region Transaction Helpers...
 

@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 
@@ -35,10 +36,10 @@ namespace FoundationDB.Client
 	public interface IFdbDatabase : IFdbReadOnlyTransactional, IFdbTransactional, IFdbSubspace, IFdbKey, IDisposable
 	{
 		/// <summary>Name of the database</summary>
-		string Name { get; }
+		string Name { [NotNull] get; }
 
 		/// <summary>Cluster of the database</summary>
-		IFdbCluster Cluster { get; }
+		IFdbCluster Cluster { [NotNull] get; }
 
 		/// <summary>Returns a cancellation token that is linked with the lifetime of this database instance</summary>
 		/// <remarks>The token will be cancelled if the database instance is disposed</remarks>
@@ -46,10 +47,10 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
 		/// <remarks>Makes a copy of the subspace tuple, so you should not call this property a lot. Use any of the Partition(..) methods to create a subspace of the database</remarks>
-		FdbSubspace GlobalSpace { get; }
+		FdbSubspace GlobalSpace { [NotNull] get; }
 
 		/// <summary>Directory partition of this database instance</summary>
-		FdbDatabasePartition Directory { get; }
+		FdbDatabasePartition Directory { [NotNull] get; }
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
 		bool IsReadOnly { get; }
@@ -89,6 +90,7 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
+		[NotNull]
 		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken, FdbOperationContext context = null);
 
 		/// <summary>Test if a key is inside the range of keys allowed to be read or writtent by the database</summary>

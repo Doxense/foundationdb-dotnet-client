@@ -33,12 +33,12 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.InteropServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -73,6 +73,7 @@ namespace FoundationDB.Client
 		/// <param name="selector">Func that will be called to get the result once the future completes (and did not fail)</param>
 		/// <param name="cancellationToken">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of the FDBFuture handle</returns>
+		[NotNull]
 		public static FdbFutureSingle<T> FromHandle<T>(FutureHandle handle, Func<FutureHandle, T> selector, CancellationToken cancellationToken)
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
@@ -86,6 +87,7 @@ namespace FoundationDB.Client
 		/// <param name="selector">Func that will be called for each future that complete (and did not fail)</param>
 		/// <param name="cancellationToken">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Object that tracks the execution of all the FDBFuture handles</returns>
+		[NotNull]
 		public static FdbFutureArray<T> FromHandleArray<T>(FutureHandle[] handles, Func<FutureHandle, T> selector, CancellationToken cancellationToken)
 		{
 			if (handles == null) throw new ArgumentNullException("handles");
@@ -342,7 +344,7 @@ namespace FoundationDB.Client
 		private static readonly ConcurrentDictionary<IntPtr, FdbFuture<T>> s_futures = new ConcurrentDictionary<IntPtr, FdbFuture<T>>();
 
 		/// <summary>Internal counter to generated a unique parameter value for each futures</summary>
-		private static long s_futureCounter = 0;
+		private static long s_futureCounter;
 
 		/// <summary>Register a future in the callback context and return the corresponding callback parameter</summary>
 		/// <param name="future">Future instance</param>

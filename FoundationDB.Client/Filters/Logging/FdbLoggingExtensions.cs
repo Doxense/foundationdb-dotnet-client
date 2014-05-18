@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Filters.Logging
 {
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 
 	/// <summary>Set of extension methods that add logging support on transactions</summary>
@@ -54,6 +55,7 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
+		[StringFormatMethod("format")]
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0)
 		{
 			var logged = GetLogger(trans);
@@ -61,6 +63,7 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
+		[StringFormatMethod("format")]
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0, object arg1)
 		{
 			var logged = GetLogger(trans);
@@ -68,6 +71,7 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
+		[StringFormatMethod("format")]
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0, object arg1, object arg2)
 		{
 			var logged = GetLogger(trans);
@@ -75,6 +79,7 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
+		[StringFormatMethod("format")]
 		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, params object[] args)
 		{
 			var logged = GetLogger(trans);

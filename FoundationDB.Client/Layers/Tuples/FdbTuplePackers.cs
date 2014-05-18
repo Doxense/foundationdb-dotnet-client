@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Globalization;
 	using System.Reflection;
@@ -712,6 +713,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Unpack a tuple from a buffer</summary>
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with zero or more elements</param>
 		/// <returns>Decoded tuple</returns>
+		[NotNull]
 		internal static FdbSlicedTuple Unpack(Slice buffer)
 		{
 			var slicer = new SliceReader(buffer);
