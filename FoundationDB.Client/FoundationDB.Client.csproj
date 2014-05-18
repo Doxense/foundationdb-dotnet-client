@@ -69,6 +69,7 @@
     <Compile Include="Encoders\FdbEncoderSubspace`2.cs" />
     <Compile Include="Encoders\IKeyValueEncoder.cs" />
     <Compile Include="Encoders\FdbEncoderSubspace`1.cs" />
+    <Compile Include="FdbEndPoint.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryPartition.cs" />
     <Compile Include="Layers\Directories\IFdbDirectory.cs" />
     <Compile Include="Native\FdbNativeCluster.cs" />
