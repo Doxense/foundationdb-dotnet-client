@@ -221,6 +221,7 @@ namespace FoundationDB.Client
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.ReadOnly | FdbTransactionMode.InsideRetryLoop, cancellationToken);
 			return ExecuteInternal(db, context, asyncHandler, onDone);
@@ -231,6 +232,7 @@ namespace FoundationDB.Client
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			cancellationToken.ThrowIfCancellationRequested();
 
 			R result = default(R);
 			Func<IFdbTransaction, Task> handler = async (tr) =>
@@ -252,6 +254,7 @@ namespace FoundationDB.Client
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, cancellationToken);
 			return ExecuteInternal(db, context, asyncHandler, onDone);
@@ -262,6 +265,7 @@ namespace FoundationDB.Client
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (handler == null) throw new ArgumentNullException("handler");
+			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<object>(cancellationToken);
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, cancellationToken);
 			return ExecuteInternal(db, context, handler, onDone);
@@ -272,6 +276,7 @@ namespace FoundationDB.Client
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+			cancellationToken.ThrowIfCancellationRequested();
 
 			R result = default(R);
 			Func<IFdbTransaction, Task> handler = async (tr) =>
