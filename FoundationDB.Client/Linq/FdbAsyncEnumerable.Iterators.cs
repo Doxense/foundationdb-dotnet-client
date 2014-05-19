@@ -129,13 +129,13 @@ namespace FoundationDB.Linq
 
 		#region Map...
 
-		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, TResult> selector, int? limit = null)
+		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, TResult> selector, int? limit = null, int? offset = null)
 		{
-			return new FdbWhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: selector, asyncTransform: null, limit: limit);
+			return new FdbWhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: selector, asyncTransform: null, limit: limit, offset: offset);
 		}
-		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, int? limit = null)
+		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, int? limit = null, int? offset = null)
 		{
-			return new FdbWhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: null, asyncTransform: asyncSelector, limit: limit);
+			return new FdbWhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: null, asyncTransform: asyncSelector, limit: limit, offset: offset);
 		}
 
 		#endregion
@@ -154,11 +154,20 @@ namespace FoundationDB.Linq
 
 		#endregion
 
+		#region Offset...
+
+		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Offset<TResult>(IFdbAsyncEnumerable<TResult> source, int offset)
+		{
+			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: null, offset: offset);
+		}
+
+		#endregion
+
 		#region Limit...
 
 		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, int limit)
 		{
-			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: limit);
+			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: limit, offset: null);
 		}
 
 		internal static FdbTakeWhileAsyncIterator<TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> condition)

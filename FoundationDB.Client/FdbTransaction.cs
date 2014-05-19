@@ -349,7 +349,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", begin.ToString(), end.ToString()));
 #endif
 
-			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, (kvp) => kvp, snapshot, options);
+			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity, snapshot, options);
 		}
 
 		/// <summary>

@@ -39,6 +39,9 @@ namespace FoundationDB.Linq
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
 	internal abstract class FdbAsyncIterator<TResult> : IFdbAsyncEnumerable<TResult>, IFdbAsyncEnumerator<TResult>
 	{
+		//REVIEW: we could need an IFdbAsyncIterator<T> interface that holds all the Select(),Where(),Take(),... so that it can be used by FdbAsyncEnumerable to either call them directly (if the query supports it) or use a generic implementation
+		// => this would be implemented by FdbAsyncIterator<T> as well as FdbRangeQuery<T> (and ony other 'self optimizing' class)
+
 		private const int STATE_SEQ = 0;
 		private const int STATE_INIT = 1;
 		private const int STATE_ITERATING = 2;
@@ -191,9 +194,9 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, asyncCollectionSelector, resultSelector);
 		}
 
-		public virtual FdbAsyncIterator<TResult> Take(int limit)
+		public virtual FdbAsyncIterator<TResult> Take(int count)
 		{
-			return FdbAsyncEnumerable.Limit<TResult>(this, limit);
+			return FdbAsyncEnumerable.Limit<TResult>(this, count);
 		}
 
 		public virtual FdbAsyncIterator<TResult> TakeWhile(Func<TResult, bool> condition)
@@ -201,7 +204,10 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Limit<TResult>(this, condition);
 		}
 
-		//TODO: Skip(...) ?
+		public virtual FdbAsyncIterator<TResult> Skip(int count)
+		{
+			return FdbAsyncEnumerable.Offset<TResult>(this, count);
+		}
 
 		public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
 		{

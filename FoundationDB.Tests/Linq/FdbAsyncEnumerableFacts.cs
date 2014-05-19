@@ -229,6 +229,18 @@ namespace FoundationDB.Linq.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Where()
+		{
+			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
+
+			var query = source.Where(x => x % 2 == 1);
+			Assert.That(query, Is.Not.Null);
+
+			var results = await query.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
+		}
+
+		[Test]
 		public async Task Test_Can_Take()
 		{
 			var source = Enumerable.Range(0, 42).ToAsyncEnumerable();
@@ -238,7 +250,6 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(query, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
 
 			var results = await query.ToListAsync();
-			Assert.That(results.Count, Is.EqualTo(10));
 			Assert.That(results, Is.EqualTo(new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }));
 		}
 
@@ -255,7 +266,6 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(query, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>());
 
 			var results = await query.ToListAsync();
-			Assert.That(results.Count, Is.EqualTo(10));
 			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9, 11, 13, 15, 17, 19 }));
 		}
 
@@ -271,10 +281,53 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(query, Is.InstanceOf<FdbWhereAsyncIterator<int>>());
 
 			var results = await query.ToListAsync();
-			Assert.That(results.Count, Is.EqualTo(5));
 			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
 		}
 
+		[Test]
+		public async Task Test_Can_Combine_Where_Clauses()
+		{
+			var source = Enumerable.Range(0, 42).ToAsyncEnumerable();
+
+			var query = source
+				.Where(x => x % 2 == 1)
+				.Where(x => x % 3 == 0);
+			Assert.That(query, Is.Not.Null);
+			Assert.That(query, Is.InstanceOf<FdbWhereAsyncIterator<int>>()); // should have been optimized
+
+			var results = await query.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 3, 9, 15, 21, 27, 33, 39 }));
+		}
+
+		[Test]
+		public async Task Test_Can_Skip_And_Where()
+		{
+			var source = Enumerable.Range(0, 42).ToAsyncEnumerable();
+
+			var query = source
+				.Skip(21)
+				.Where(x => x % 2 == 1);
+			Assert.That(query, Is.Not.Null);
+			Assert.That(query, Is.InstanceOf<FdbWhereAsyncIterator<int>>());
+
+			var results = await query.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 21, 23, 25, 27, 29, 31, 33, 35, 37, 39, 41 }));
+		}
+
+		[Test]
+		public async Task Test_Can_Where_And_Skip()
+		{
+			var source = Enumerable.Range(0, 42).ToAsyncEnumerable();
+
+			var query = source
+				.Where(x => x % 2 == 1)
+				.Skip(15);
+			Assert.That(query, Is.Not.Null);
+			Assert.That(query, Is.InstanceOf<FdbWhereSelectAsyncIterator<int, int>>()); // should be optimized
+
+			var results = await query.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 31, 33, 35, 37, 39, 41 }));
+		}
 		[Test]
 		public async Task Test_Can_SelectMany()
 		{
@@ -285,18 +338,6 @@ namespace FoundationDB.Linq.Tests
 
 			var results = await query.ToListAsync();
 			Assert.That(results, Is.EqualTo(new [] { 'B', 'C', 'C', 'D', 'D', 'D', 'E', 'E', 'E', 'E' }));
-		}
-
-		[Test]
-		public async Task Test_Can_Where()
-		{
-			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
-
-			var query = source.Where(x => x % 2 == 1);
-			Assert.That(query, Is.Not.Null);
-
-			var results = await query.ToListAsync();
-			Assert.That(results, Is.EqualTo(new int[] { 1, 3, 5, 7, 9 }));
 		}
 
 		[Test]
@@ -531,7 +572,6 @@ namespace FoundationDB.Linq.Tests
 			Assert.That(results.Select(t => t.Value).ToArray(), Is.EqualTo(new double[] { 1.0, 3.0, 5.0, 7.0, 9.0 }));
 			Assert.That(results.All(t => t.Odd), Is.True);
 		}
-
 
 		[Test]
 		public async Task Test_Can_SelectMany_With_LINQ_Syntax()

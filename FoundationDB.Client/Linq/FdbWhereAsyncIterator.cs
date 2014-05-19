@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -44,7 +44,7 @@ namespace FoundationDB.Linq
 		public FdbWhereAsyncIterator(IFdbAsyncEnumerable<TSource> source, Func<TSource, bool> filter, Func<TSource, CancellationToken, Task<bool>> asyncFilter)
 			: base(source)
 		{
-			Contract.Requires(filter != null ^ asyncFilter != null);
+			Contract.Requires(filter != null ^ asyncFilter != null, "there can be only one kind of filter specified");
 
 			m_filter = filter;
 			m_asyncFilter = asyncFilter;
@@ -91,18 +91,38 @@ namespace FoundationDB.Linq
 
 		public override FdbAsyncIterator<TSource> Where(Func<TSource, bool> predicate)
 		{
-			return FdbAsyncEnumerable.Filter<TSource>(
-				m_source,
-				async (x, ct) => (await m_asyncFilter(x, ct)) && predicate(x)
-			);
+			if (m_asyncFilter != null)
+			{
+				return FdbAsyncEnumerable.Filter<TSource>(
+					m_source,
+					async (x, ct) => (await m_asyncFilter(x, ct).ConfigureAwait(false)) && predicate(x)
+				);
+			}
+			else
+			{
+				return FdbAsyncEnumerable.Filter<TSource>(
+					m_source,
+					(x) => m_filter(x) && predicate(x)
+				);
+			}
 		}
 
 		public override FdbAsyncIterator<TSource> Where(Func<TSource, CancellationToken, Task<bool>> asyncPredicate)
 		{
-			return FdbAsyncEnumerable.Filter<TSource>(
-				m_source,
-				async (x, ct) => (await m_asyncFilter(x, ct)) && (await asyncPredicate(x, ct))
-			);
+			if (m_asyncFilter != null)
+			{
+				return FdbAsyncEnumerable.Filter<TSource>(
+					m_source,
+					async (x, ct) => (await m_asyncFilter(x, ct).ConfigureAwait(false)) && (await asyncPredicate(x, ct).ConfigureAwait(false))
+				);
+			}
+			else
+			{
+				return FdbAsyncEnumerable.Filter<TSource>(
+					m_source,
+					async (x, ct) => m_filter(x) && (await asyncPredicate(x, ct).ConfigureAwait(false))
+				);
+			}
 		}
 
 		public override FdbAsyncIterator<TNew> Select<TNew>(Func<TSource, TNew> selector)
@@ -111,9 +131,10 @@ namespace FoundationDB.Linq
 				m_source,
 				m_filter,
 				m_asyncFilter,
-				selector,
-				null,
-				null
+				transform: selector,
+				asyncTransform: null,
+				limit: null,
+				offset: null
 			);
 		}
 
@@ -123,9 +144,10 @@ namespace FoundationDB.Linq
 				m_source,
 				m_filter,
 				m_asyncFilter,
-				null,
-				asyncSelector,
-				null
+				transform: null,
+				asyncTransform: asyncSelector,
+				limit: null,
+				offset: null
 			);
 		}
 
@@ -137,9 +159,10 @@ namespace FoundationDB.Linq
 				m_source,
 				m_filter,
 				m_asyncFilter,
-				TaskHelpers.Cache<TSource>.Identity,
-				null,
-				limit
+				transform: TaskHelpers.Cache<TSource>.Identity,
+				asyncTransform: null,
+				limit: limit,
+				offset: null
 			);
 		}
 

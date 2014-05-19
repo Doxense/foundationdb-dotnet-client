@@ -310,7 +310,7 @@ namespace FoundationDB.Linq
 				return iterator.Take(count);
 			}
 
-			return Limit<TSource>(source, count);
+			return FdbAsyncEnumerable.Limit<TSource>(source, count);
 		}
 
 		#endregion
@@ -344,7 +344,13 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("count");
 			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be less than zero");
 
-			throw new NotImplementedException("Skip() is not implemented yet");
+			var iterator = source as FdbAsyncIterator<TSource>;
+			if (iterator != null)
+			{
+				return iterator.Skip(count);
+			}
+
+			return FdbAsyncEnumerable.Offset<TSource>(source, count);
 		}
 
 		#endregion
