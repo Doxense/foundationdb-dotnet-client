@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,9 @@ namespace FoundationDB.Client
 	public interface IFdbSubspace : IFdbKey
 	{
 		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitionning and concatenation
+
+		//REVIEW: Consider adding Contains(Slice) to this interface?
+		//REVIEW: Consider adding IEquatable<IFdbSubspace> and maybe IComparable<IFdbSubspace> ?
 	}
 
 }

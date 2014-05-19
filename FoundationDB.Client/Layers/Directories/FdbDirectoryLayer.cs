@@ -431,7 +431,7 @@ namespace FoundationDB.Layers.Directories
 
 		public override string ToString()
 		{
-			return String.Format("DirectoryLayer(path={0}, contents={1}, nodes={2})", this.Location.ToString(), this.ContentSubspace.Key.ToAsciiOrHexaString(), this.NodeSubspace.Key.ToAsciiOrHexaString());
+			return String.Format("DirectoryLayer(path={0}, contents={1}, nodes={2})", this.FullName, this.ContentSubspace.Key.ToAsciiOrHexaString(), this.NodeSubspace.Key.ToAsciiOrHexaString());
 		}
 
 		#endregion

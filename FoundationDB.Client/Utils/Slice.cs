@@ -1557,12 +1557,12 @@ namespace FoundationDB.Client
 		{
 			if (slices == null) throw new ArgumentNullException("slices");
 
-			var next = new List<int>();
-			var writer = SliceWriter.Empty;
-
 			// use optimized version for arrays
 			var array = slices as Slice[];
 			if (array != null) return ConcatRange(array);
+
+			var next = new List<int>();
+			var writer = SliceWriter.Empty;
 
 			//TODO: use multiple buffers if item count is huge ?
 

@@ -72,6 +72,8 @@ namespace FoundationDB.Client
 		/// <summary>Determine if this FDBError represents a success code from the native layer.</summary>
 		public bool Success { get { return this.Code == FdbError.Success; } }
 
+		//REVIEW: do we need to add more properties? TransactionId ? DBName? 
+
 	}
 
 }

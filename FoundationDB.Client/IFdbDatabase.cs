@@ -98,6 +98,7 @@ namespace FoundationDB.Client
 		/// <returns>True if the key is inside the database keyspace, or inside the system keyspace.</returns>
 		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the allowed range of keys defined by <see cref="GlobalSpace"/>.</remarks>
 		bool Contains(Slice key);
+		//TODO: if we add Contains(Slice) to IFdbSubspace, this method needs to be moved!
 
 	}
 
