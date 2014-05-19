@@ -83,7 +83,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(query.End.Key, Is.EqualTo(location.Pack(N)));
 					Assert.That(query.Limit, Is.EqualTo(0));
 					Assert.That(query.TargetBytes, Is.EqualTo(0));
-					Assert.That(query.Reverse, Is.False);
+					Assert.That(query.Reversed, Is.False);
 					Assert.That(query.Mode, Is.EqualTo(FdbStreamingMode.Iterator));
 					Assert.That(query.Snapshot, Is.False);
 					Assert.That(query.Range.Begin, Is.EqualTo(query.Begin));
@@ -321,24 +321,24 @@ namespace FoundationDB.Client.Tests
 					var query = tr.GetRange(location.ToRange());
 
 					// |(0 <--------- 49)<<<<<<<<<<<<<|
-					var res = await query.Reversed().Skip(50).ToListAsync();
+					var res = await query.Reverse().Skip(50).ToListAsync();
 					Assert.That(res, Is.EqualTo(data.Reverse().Skip(50).ToList()), "0 <-- 49");
 
 					// |(0 <----- 39)<<<<<<<<<<<<<<<<<|
-					res = await query.Reversed().Skip(50).Skip(10).ToListAsync();
+					res = await query.Reverse().Skip(50).Skip(10).ToListAsync();
 					Assert.That(res, Is.EqualTo(data.Reverse().Skip(60).ToList()), "0 <-- 39");
 
 					// |(<- 0)<<<<<<<<<<<<<<<<<<<<<<<<|
-					res = await query.Reversed().Skip(99).ToListAsync();
+					res = await query.Reverse().Skip(99).ToListAsync();
 					Assert.That(res.Count, Is.EqualTo(1));
 					Assert.That(res, Is.EqualTo(data.Reverse().Skip(99).ToList()), "0 <-- 0");
 
 					// (<- -1)|<<<<<<<<<<<<<<<<<<<<<<<<<<<<<|
-					res = await query.Reversed().Skip(100).ToListAsync();
+					res = await query.Reverse().Skip(100).ToListAsync();
 					Assert.That(res.Count, Is.EqualTo(0), "0 <-- -1");
 
 					// (<- -51)<<<<<<<<<<<<<|<<<<<<<<<<<<<<<<<<<<<<<<<<<<<|
-					res = await query.Reversed().Skip(100).ToListAsync();
+					res = await query.Reverse().Skip(100).ToListAsync();
 					Assert.That(res.Count, Is.EqualTo(0), "0 <-- -51");
 				}
 
@@ -348,11 +348,11 @@ namespace FoundationDB.Client.Tests
 					var query = tr.GetRange(location.ToRange());
 
 					// |>>>>>>>>>(25<------------74)<<<<<<<<|
-					var res = await query.Skip(25).Reversed().Skip(25).ToListAsync();
+					var res = await query.Skip(25).Reverse().Skip(25).ToListAsync();
 					Assert.That(res, Is.EqualTo(data.Skip(25).Reverse().Skip(25).ToList()), "25 <-- 74");
 
 					// |>>>>>>>>>(25------------>74)<<<<<<<<|
-					res = await query.Skip(25).Reversed().Skip(25).Reversed().ToListAsync();
+					res = await query.Skip(25).Reverse().Skip(25).Reverse().ToListAsync();
 					Assert.That(res, Is.EqualTo(data.Skip(25).Reverse().Skip(25).Reverse().ToList()), "25 --> 74");
 				}
 			}
@@ -375,7 +375,7 @@ namespace FoundationDB.Client.Tests
 					var query = tr
 						.GetRange(location.Pack(10), location.Pack(20)) // 10 -> 19
 						.Take(20) // 10 -> 19 (limit 20)
-						.Reversed(); // 19 -> 10 (limit 20)
+						.Reverse(); // 19 -> 10 (limit 20)
 					Console.WriteLine(query);
 
 					// set a limit that overflows, and then reverse from it
@@ -387,9 +387,9 @@ namespace FoundationDB.Client.Tests
 				{
 					var query = tr
 						.GetRange(location.Pack(10), location.Pack(20)) // 10 -> 19
-						.Reversed() // 19 -> 10
+						.Reverse() // 19 -> 10
 						.Take(20)  // 19 -> 10 (limit 20)
-						.Reversed(); // 10 -> 19 (limit 20)
+						.Reverse(); // 10 -> 19 (limit 20)
 					Console.WriteLine(query);
 
 					var res = await query.ToListAsync();

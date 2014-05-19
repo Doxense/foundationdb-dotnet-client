@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -167,7 +167,7 @@ namespace FoundationDB.Client
 					Limit = this.Remaining.GetValueOrDefault(),
 					TargetBytes = this.Query.TargetBytes,
 					Mode = this.Query.Mode,
-					Reverse = this.Query.Reverse
+					Reverse = this.Query.Reversed
 				};
 
 				// select the appropriate streaming mode if purpose is not default
@@ -215,7 +215,7 @@ namespace FoundationDB.Client
 						if (!this.AtEnd)
 						{ // update begin..end so that next call will continue from where we left...
 							var lastKey = result.Last.Key;
-							if (this.Query.Reverse)
+							if (this.Query.Reversed)
 							{
 								this.End = FdbKeySelector.FirstGreaterOrEqual(lastKey);
 							}
