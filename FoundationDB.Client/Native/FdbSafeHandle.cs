@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,21 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #undef DEBUG_HANDLES
 
-using Microsoft.Win32.SafeHandles;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.ConstrainedExecution;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
-
 namespace FoundationDB.Client.Native
 {
+	using System;
+	using System.Runtime.ConstrainedExecution;
+	using System.Runtime.InteropServices;
 
 	/// <summary>Base class for all wrappers on FDBxxxx* opaque pointers</summary>
 	internal abstract class FdbSafeHandle : CriticalHandle

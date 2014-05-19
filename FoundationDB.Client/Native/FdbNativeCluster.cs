@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,13 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Diagnostics;
 	using System.Threading;

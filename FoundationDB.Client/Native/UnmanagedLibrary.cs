@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,14 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using Microsoft.Win32.SafeHandles;
-using System;
-using System.Runtime.ConstrainedExecution;
-using System.Runtime.InteropServices;
-using System.Security;
-
 namespace FoundationDB.Client.Native
 {
+	using JetBrains.Annotations;
+	using Microsoft.Win32.SafeHandles;
+	using System;
+	using System.Runtime.ConstrainedExecution;
+	using System.Runtime.InteropServices;
+	using System.Security;
 
 	/// <summary>Native Library Loader</summary>
 	internal sealed class UnmanagedLibrary : IDisposable
@@ -68,17 +68,20 @@ namespace FoundationDB.Client.Native
 		/// <param name="path">Path to the native dll.</param>
 		/// <remarks>Throws exceptions on failure. Most common failure would be file-not-found, or that the file is not a  loadable image.</remarks>
 		/// <exception cref="System.IO.FileNotFoundException">if fileName can't be found</exception>
-		public static UnmanagedLibrary LoadLibrary(string path)
+		[NotNull]
+		public static UnmanagedLibrary Load(string path)
 		{
+			if (path == null) throw new ArgumentNullException("path");
+
 			var handle = NativeMethods.LoadLibrary(path);
 			if (handle == null || handle.IsInvalid)
 			{
-				int hr = Marshal.GetHRForLastWin32Error();
-				var ex = Marshal.GetExceptionForHR(hr);
+				var ex = Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error());
 				if (ex is System.IO.FileNotFoundException)
+				{
 					throw new System.IO.FileNotFoundException(String.Format("Failed to load native {0} library: {1}", IntPtr.Size == 8 ? "x64" : "x86", path), path, ex);
-				else
-					throw ex;
+				}
+				throw ex;
 			}
 			return new UnmanagedLibrary(handle, path);
 		}
@@ -93,10 +96,10 @@ namespace FoundationDB.Client.Native
 		}
 
 		/// <summary>Path of the native library, as passed to LoadLibrary</summary>
-		public string Path { get; private set; }
+		public string Path { [NotNull] get; private set; }
 
 		/// <summary>Unmanaged resource. CLR will ensure SafeHandles get freed, without requiring a finalizer on this class.</summary>
-		public SafeLibraryHandle Handle { get; private set; }
+		public SafeLibraryHandle Handle { [NotNull] get; private set; }
 
 		/// <summary>Call FreeLibrary on the unmanaged dll. All function pointers handed out from this class become invalid after this.</summary>
 		/// <remarks>This is very dangerous because it suddenly invalidate everything retrieved from this dll. This includes any functions handed out via GetProcAddress, and potentially any objects returned from those functions (which may have an implemention in the dll)./// </remarks>

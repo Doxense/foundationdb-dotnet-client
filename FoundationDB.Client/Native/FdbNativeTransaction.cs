@@ -220,8 +220,8 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Requires(options != null);
 
-			bool reversed = options.Reverse.Value;
-			var future = FdbNative.TransactionGetRange(m_handle, begin, end, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, snapshot, reversed);
+			bool reversed = options.Reverse ?? false;
+			var future = FdbNative.TransactionGetRange(m_handle, begin, end, options.Limit ?? 0, options.TargetBytes ?? 0, options.Mode ?? FdbStreamingMode.Iterator, iteration, snapshot, reversed);
 			return FdbFuture.CreateTaskFromHandle(
 				future,
 				(h) =>

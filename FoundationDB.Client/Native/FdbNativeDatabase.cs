@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,17 +31,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Tuples;
 	using System;
-	using System.Collections.Concurrent;
 	using System.Diagnostics;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	/// <summary>Wraps a native FDBDatabase* handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Closed={m_handle.IsClosed}")]
@@ -51,7 +43,7 @@ namespace FoundationDB.Client.Native
 		private readonly DatabaseHandle m_handle;
 
 #if CAPTURE_STACKTRACES
-		private StackTrace m_stackTrace;
+		private readonly StackTrace m_stackTrace;
 #endif
 
 		public FdbNativeDatabase(DatabaseHandle handle)

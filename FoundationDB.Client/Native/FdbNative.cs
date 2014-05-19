@@ -237,7 +237,7 @@ namespace FoundationDB.Client.Native
 			{
 				try
 				{
-					FdbCLib = UnmanagedLibrary.LoadLibrary(Path.Combine(Fdb.Options.NativeLibPath, FDB_C_DLL));
+					FdbCLib = UnmanagedLibrary.Load(Path.Combine(Fdb.Options.NativeLibPath, FDB_C_DLL));
 				}
 				catch (Exception e)
 				{
