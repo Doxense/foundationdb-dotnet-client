@@ -138,7 +138,7 @@ namespace FoundationDB.Client
 		/// <param name="offset">Offset of the start of the segment in the buffer</param>
 		/// <param name="count">Number of bytes in the segment</param>
 		/// <returns>A 32-bit signed hash code calculated from all the bytes in the segment.</returns>
-		public static int ComputeHashCode(byte[] bytes, int offset, int count)
+		public static int ComputeHashCode([NotNull] byte[] bytes, int offset, int count)
 		{
 			if (bytes == null || offset < 0 || count < 0 || offset + count > bytes.Length) SliceHelpers.ThrowMalformedBuffer(bytes, offset, count);
 
@@ -150,7 +150,7 @@ namespace FoundationDB.Client
 		/// <param name="offset">Offset of the start of the segment in the buffer</param>
 		/// <param name="count">Number of bytes in the segment</param>
 		/// <returns>A 32-bit signed hash code calculated from all the bytes in the segment.</returns>
-		public static int ComputeHashCodeUnsafe(byte[] bytes, int offset, int count)
+		public static int ComputeHashCodeUnsafe([NotNull] byte[] bytes, int offset, int count)
 		{
 			Contract.Requires(bytes != null && offset >= 0 && count >= 0);
 
@@ -195,7 +195,7 @@ namespace FoundationDB.Client
 		/// <param name="rightOffset">Start offset in right buffer</param>
 		/// <param name="count">Number of bytes to compare</param>
 		/// <returns>true if all bytes are the same in both segments</returns>
-		public static bool SameBytesUnsafe(byte[] left, int leftOffset, byte[] right, int rightOffset, int count)
+		public static bool SameBytesUnsafe([NotNull] byte[] left, int leftOffset, [NotNull] byte[] right, int rightOffset, int count)
 		{
 			Contract.Requires(left != null && leftOffset >= 0 && right != null && rightOffset >= 0 && count >= 0);
 
@@ -270,7 +270,7 @@ namespace FoundationDB.Client
 		/// * "A" &lt; "B"
 		/// * "A" &lt; "AA"
 		/// * "AA" &lt; "B"</remarks>
-		public static int CompareBytesUnsafe(byte[] left, int leftOffset, int leftCount, byte[] right, int rightOffset, int rightCount)
+		public static int CompareBytesUnsafe([NotNull] byte[] left, int leftOffset, int leftCount, [NotNull] byte[] right, int rightOffset, int rightCount)
 		{
 			Contract.Requires(left != null && right != null && leftOffset >= 0 && leftCount >= 0 && rightOffset >= 0 && rightCount >= 0);
 
@@ -327,7 +327,7 @@ namespace FoundationDB.Client
 		/// <param name="srcOffset">Offset in source buffer</param>
 		/// <param name="count">Number of bytes to copy</param>
 		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		public static void CopyBytesUnsafe(byte[] dst, int dstOffset, byte[] src, int srcOffset, int count)
+		public static void CopyBytesUnsafe([NotNull] byte[] dst, int dstOffset, [NotNull] byte[] src, int srcOffset, int count)
 		{
 			Contract.Requires(dst != null && src != null && dstOffset >= 0 && srcOffset >= 0 && count >= 0);
 
@@ -369,7 +369,7 @@ namespace FoundationDB.Client
 		/// <param name="src">Point to the source buffer</param>
 		/// <param name="count">Number of bytes to copy</param>
 		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		public static unsafe void CopyBytesUnsafe(byte[] dst, int dstOffset, byte* src, int count)
+		public static unsafe void CopyBytesUnsafe([NotNull] byte[] dst, int dstOffset, byte* src, int count)
 		{
 			Contract.Requires(dst != null && src != null && dstOffset >= 0 && count >= 0);
 

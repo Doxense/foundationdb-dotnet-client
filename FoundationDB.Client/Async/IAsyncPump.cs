@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Async
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -36,10 +37,10 @@ namespace FoundationDB.Async
 	public interface IAsyncPump<T> : IDisposable
 	{
 		/// <summary>Source of the pump (that produces new items)</summary>
-		IAsyncSource<T> Source { get; }
+		IAsyncSource<T> Source { [NotNull] get; }
 
 		/// <summary>Target of the tump (that will consume the items)</summary>
-		IAsyncTarget<T> Target { get; }
+		IAsyncTarget<T> Target { [NotNull] get; }
 
 		/// <summary>True if all the items of the source have been consumed by the target</summary>
 		bool IsCompleted { get; }

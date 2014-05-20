@@ -47,19 +47,19 @@ namespace FoundationDB.Client
 		private int m_offsetInCurrentSlice;
 		private Task<int> m_lastTask;
 
-		internal SliceListStream(Slice[] slices)
+		internal SliceListStream([NotNull] Slice[] slices)
 		{
 			if (slices == null) throw new ArgumentNullException("slices");
 			Init(slices);
 		}
 
-		public SliceListStream(IEnumerable<Slice> slices)
+		public SliceListStream([NotNull] IEnumerable<Slice> slices)
 		{
 			if (slices == null) throw new ArgumentNullException("slices");
 			Init(slices.ToArray());
 		}
 
-		private void Init(Slice[] slices)
+		private void Init([NotNull] Slice[] slices)
 		{
 			m_slices = slices;
 			long total = 0;

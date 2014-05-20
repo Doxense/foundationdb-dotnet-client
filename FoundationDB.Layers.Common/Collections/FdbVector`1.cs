@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SARL
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,10 @@ namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 	using System;
 	using System.Linq;
-	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Represents a potentially sparse array in FoundationDB.</summary>
@@ -61,16 +60,16 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <remarks>Sparse entries will be assigned the value Slice.Empty</remarks>
-		public FdbVector(FdbSubspace subspace)
+		public FdbVector([NotNull] FdbSubspace subspace)
 			: this(subspace, default(T))
 		{ }
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
-		public FdbVector(FdbSubspace subspace, T defaultValue)
+		public FdbVector([NotNull] FdbSubspace subspace, T defaultValue)
 			: this(subspace, defaultValue, KeyValueEncoders.Tuples.Value<T>())
 		{ }
-		public FdbVector(FdbSubspace subspace, T defaultValue, IValueEncoder<T> encoder)
+		public FdbVector([NotNull] FdbSubspace subspace, T defaultValue, [NotNull] IValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
@@ -82,15 +81,15 @@ namespace FoundationDB.Layers.Collections
 
 
 		/// <summary>Subspace used as a prefix for all items in this vector</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public FdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Default value for sparse entries</summary>
 		public T DefaultValue { get; private set; }
 
-		public IValueEncoder<T> Encoder { get; private set; }
+		public IValueEncoder<T> Encoder { [NotNull] get; private set; }
 
 		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
-		public Task<long> SizeAsync(IFdbReadOnlyTransaction tr)
+		public Task<long> SizeAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -98,7 +97,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Push a single item onto the end of the Vector.</summary>
-		public async Task PushAsync(IFdbTransaction tr, T value)
+		public async Task PushAsync([NotNull] IFdbTransaction tr, T value)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -108,7 +107,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get the value of the last item in the Vector.</summary>
-		public Task<T> BackAsync(IFdbReadOnlyTransaction tr)
+		public Task<T> BackAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -119,13 +118,13 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get the value of the first item in the Vector.</summary>
-		public Task<T> FrontAsync(IFdbReadOnlyTransaction tr)
+		public Task<T> FrontAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
 			return GetAsync(tr, 0);
 		}
 
 		/// <summary>Get and pops the last item off the Vector.</summary>
-		public async Task<Optional<T>> PopAsync(IFdbTransaction tr)
+		public async Task<Optional<T>> PopAsync([NotNull] IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -160,7 +159,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Swap the items at positions i1 and i2.</summary>
-		public async Task SwapAsync(IFdbTransaction tr, long index1, long index2)
+		public async Task SwapAsync([NotNull] IFdbTransaction tr, long index1, long index2)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -197,7 +196,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get the item at the specified index.</summary>
-		public async Task<T> GetAsync(IFdbReadOnlyTransaction tr, long index)
+		public async Task<T> GetAsync([NotNull] IFdbReadOnlyTransaction tr, long index)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 			if (index < 0) throw new IndexOutOfRangeException(String.Format("Index {0} must be positive", index));
@@ -226,7 +225,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>[NOT YET IMPLEMENTED] Get a range of items in the Vector, returned as an async sequence.</summary>
-		public IFdbAsyncEnumerable<T> GetRangeAsync(IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
+		public IFdbAsyncEnumerable<T> GetRangeAsync([NotNull] IFdbReadOnlyTransaction tr, long startIndex, long endIndex, long step)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -236,7 +235,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Set the value at a particular index in the Vector.</summary>
-		public void Set(IFdbTransaction tr, long index, T value)
+		public void Set([NotNull] IFdbTransaction tr, long index, T value)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -244,7 +243,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Test whether the Vector is empty.</summary>
-		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
+		public async Task<bool> EmptyAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -252,7 +251,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Grow or shrink the size of the Vector.</summary>
-		public async Task ResizeAsync(IFdbTransaction tr, long length)
+		public async Task ResizeAsync([NotNull] IFdbTransaction tr, long length)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
@@ -275,7 +274,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Remove all items from the Vector.</summary>
-		public void Clear(IFdbTransaction tr)
+		public void Clear([NotNull] IFdbTransaction tr)
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 

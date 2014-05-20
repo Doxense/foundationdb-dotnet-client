@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -92,7 +93,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Continue processing a task, if it succeeded</summary>
-		public static async Task Then<T>(this Task<T> task, Action<T> inlineContinuation)
+		public static async Task Then<T>(this Task<T> task, [NotNull] Action<T> inlineContinuation)
 		{
 			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateExecption)
 
@@ -101,7 +102,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Continue processing a task, if it succeeded</summary>
-		public static async Task<R> Then<T, R>(this Task<T> task, Func<T, R> inlineContinuation)
+		public static async Task<R> Then<T, R>(this Task<T> task, [NotNull] Func<T, R> inlineContinuation)
 		{
 			// Note: we use 'await' instead of ContinueWith, so that we can give the caller a nicer callstack in case of errors (instead of an AggregateExecption)
 
@@ -115,7 +116,7 @@ namespace FoundationDB.Async
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that either contains the result of the lambda, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="lambda"/> is null</exception>
-		public static Task<R> Inline<R>(Func<R> lambda, CancellationToken ct = default(CancellationToken))
+		public static Task<R> Inline<R>([NotNull] Func<R> lambda, CancellationToken ct = default(CancellationToken))
 		{
 			if (lambda == null) throw new ArgumentNullException("lambda");
 
@@ -138,7 +139,7 @@ namespace FoundationDB.Async
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1>(Action<T1> action, T1 arg1, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1>([NotNull] Action<T1> action, T1 arg1, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException("action");
@@ -164,7 +165,7 @@ namespace FoundationDB.Async
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1, T2>(Action<T1, T2> action, T1 arg1, T2 arg2, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1, T2>([NotNull] Action<T1, T2> action, T1 arg1, T2 arg2, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException("action");
@@ -192,7 +193,7 @@ namespace FoundationDB.Async
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1, T2, T3>(Action<T1, T2, T3> action, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1, T2, T3>([NotNull] Action<T1, T2, T3> action, T1 arg1, T2 arg2, T3 arg3, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException("action");
@@ -222,7 +223,7 @@ namespace FoundationDB.Async
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1, T2, T3, T4>(Action<T1, T2, T3, T4> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1, T2, T3, T4>([NotNull] Action<T1, T2, T3, T4> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException("action");
@@ -254,7 +255,7 @@ namespace FoundationDB.Async
 		/// <param name="ct">Cancellation token</param>
 		/// <returns>Task that is either already completed, wraps the exception that was thrown, or is in the cancelled state if the cancellation token fired or if the task throwed an OperationCanceledException</returns>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="action"/> is null</exception>
-		public static Task Inline<T1, T2, T3, T4, T5>(Action<T1, T2, T3, T4, T5> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken ct = default(CancellationToken))
+		public static Task Inline<T1, T2, T3, T4, T5>([NotNull] Action<T1, T2, T3, T4, T5> action, T1 arg1, T2 arg2, T3 arg3, T4 arg4, T5 arg5, CancellationToken ct = default(CancellationToken))
 		{
 			// note: if action is null, then there is a bug in the caller, and it should blow up instantly (will help preserving the call stack)
 			if (action == null) throw new ArgumentNullException("action");
@@ -274,7 +275,7 @@ namespace FoundationDB.Async
 		/// <summary>Wraps a classic lambda into one that supports cancellation</summary>
 		/// <param name="lambda">Lambda that does not support cancellation</param>
 		/// <returns>New lambda that will check if the token is cancelled before calling <paramref name="lambda"/></returns>
-		public static Func<TSource, CancellationToken, TResult> WithCancellation<TSource, TResult>(Func<TSource, TResult> lambda)
+		public static Func<TSource, CancellationToken, TResult> WithCancellation<TSource, TResult>([NotNull] Func<TSource, TResult> lambda)
 		{
 			Contract.Requires(lambda != null);
 			return (value, ct) =>
@@ -287,7 +288,7 @@ namespace FoundationDB.Async
 		/// <summary>Wraps a classic lambda into one that supports cancellation</summary>
 		/// <param name="lambda">Lambda that does not support cancellation</param>
 		/// <returns>New lambda that will check if the token is cancelled before calling <paramref name="lambda"/></returns>
-		public static Func<TSource, CancellationToken, Task<TResult>> WithCancellation<TSource, TResult>(Func<TSource, Task<TResult>> lambda)
+		public static Func<TSource, CancellationToken, Task<TResult>> WithCancellation<TSource, TResult>([NotNull] Func<TSource, Task<TResult>> lambda)
 		{
 			Contract.Requires(lambda != null);
 			return (value, ct) =>
@@ -360,7 +361,7 @@ namespace FoundationDB.Async
 			return FromException<T>(e);
 		}
 
-		public static void PropagateException<T>(TaskCompletionSource<T> tcs, Exception e)
+		public static void PropagateException<T>([NotNull] TaskCompletionSource<T> tcs, Exception e)
 		{
 			if (e is OperationCanceledException)
 			{

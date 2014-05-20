@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,14 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Indexing
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
@@ -46,11 +44,11 @@ namespace FoundationDB.Layers.Indexing
 	public class FdbIndex<TId, TValue>
 	{
 
-		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
 			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Tuples.CompositeKey<TValue, TId>())
 		{ }
 
-		public FdbIndex(string name, FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, ICompositeKeyEncoder<TValue, TId> encoder)
+		public FdbIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] ICompositeKeyEncoder<TValue, TId> encoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -63,13 +61,13 @@ namespace FoundationDB.Layers.Indexing
 			this.Location = new FdbEncoderSubspace<TValue,TId>(subspace, encoder);
 		}
 
-		public string Name { get; private set; }
+		public string Name { [NotNull] get; private set; }
 
-		public FdbSubspace Subspace { get; private set; }
+		public FdbSubspace Subspace { [NotNull] get; private set; }
 
-		protected FdbEncoderSubspace<TValue, TId> Location { get; private set; }
+		protected FdbEncoderSubspace<TValue, TId> Location { [NotNull] get; private set; }
 
-		public IEqualityComparer<TValue> ValueComparer { get; private set; }
+		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; private set; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
 		/// <remarks>This has no effect if <typeparam name="TValue" /> is not a reference type</remarks>
@@ -80,7 +78,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
 		/// <param name="value">Value of this entity in the index</param>
 		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and <see cref="IndexNullValues"/> is false)</returns>
-		public bool Add(IFdbTransaction trans, TId id, TValue value)
+		public bool Add([NotNull] IFdbTransaction trans, TId id, TValue value)
 		{
 			if (this.IndexNullValues || value != null)
 			{
@@ -97,7 +95,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="previousValue">New value of this entity in the index</param>
 		/// <returns>True if a change was performed in the index; otherwise false (if <paramref name="previousValue"/> and <paramref name="newValue"/>)</returns>
 		/// <remarks>If <paramref name="newValue"/> and <paramref name="previousValue"/> are identical, then nothing will be done. Otherwise, the old index value will be deleted and the new value will be added</remarks>
-		public bool Update(IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
+		public bool Update([NotNull] IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
 		{
 			if (!this.ValueComparer.Equals(newValue, previousValue))
 			{
@@ -123,7 +121,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the entity that has been deleted</param>
 		/// <param name="value">Previous value of the entity in the index</param>
-		public void Remove(IFdbTransaction trans, TId id, TValue value)
+		public void Remove([NotNull] IFdbTransaction trans, TId id, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -135,7 +133,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse"></param>
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
-		public Task<List<TId>> LookupAsync(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
+		public Task<List<TId>> LookupAsync([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
 			var query = Lookup(trans, value, reverse);
 			//TODO: limits? paging? ...
@@ -147,6 +145,7 @@ namespace FoundationDB.Layers.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
 		/// <returns>Range query that returns all the ids of entities that match the value</returns>
+		[NotNull]
 		public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
 			var prefix = this.Location.Partial.EncodeKey(value);
@@ -156,7 +155,8 @@ namespace FoundationDB.Layers.Indexing
 				.Select((kvp) => this.Location.DecodeKey(kvp.Key).Item2);
 		}
 
-		public FdbRangeQuery<TId> LookupGreaterThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		[NotNull]
+		public FdbRangeQuery<TId> LookupGreaterThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var prefix = this.Location.Partial.EncodeKey(value);
 			if (!orEqual) prefix = FdbKey.Increment(prefix);
@@ -171,8 +171,8 @@ namespace FoundationDB.Layers.Indexing
 				.Select((kvp) => this.Location.DecodeKey(kvp.Key).Item2);
 		}
 
-
-		public FdbRangeQuery<TId> LookupLessThan(IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
+		[NotNull]
+		public FdbRangeQuery<TId> LookupLessThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
 			var prefix = this.Location.Partial.EncodeKey(value);
 			if (orEqual) prefix = FdbKey.Increment(prefix);

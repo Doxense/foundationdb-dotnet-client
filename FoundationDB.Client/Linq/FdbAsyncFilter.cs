@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -39,10 +40,10 @@ namespace FoundationDB.Linq
 		/// <summary>Source sequence (when in iterable mode)</summary>
 		protected IFdbAsyncEnumerable<TSource> m_source;
 
-		/// <summary>Active iterator on the source (when in terator mode)</summary>
+		/// <summary>Active iterator on the source (when in iterator mode)</summary>
 		protected IFdbAsyncEnumerator<TSource> m_iterator;
 
-		protected FdbAsyncFilter(IFdbAsyncEnumerable<TSource> source)
+		protected FdbAsyncFilter([NotNull] IFdbAsyncEnumerable<TSource> source)
 		{
 			Contract.Requires(source != null);
 			m_source = source;
@@ -61,7 +62,7 @@ namespace FoundationDB.Linq
 				if (mode == FdbAsyncMode.Head) mode = FdbAsyncMode.Iterator;
 
 				iterator = m_source.GetEnumerator(mode);
-				return TaskHelpers.FromResult(iterator != null);
+				return iterator != null ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
 			}
 			catch (Exception)
 			{

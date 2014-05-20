@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,19 +29,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
 #if DEBUG
 	using FoundationDB.Filters.Logging;
 #endif
-	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 	using System;
-	using System.Collections.Generic;
 	using System.Linq;
-	using System.Threading;
 	using System.Threading.Tasks;
-	using FoundationDB.Async;
-	using System.Globalization;
-	using FoundationDB.Client.Utils;
 
 	/// <summary>
 	/// Provides a high-contention Queue class
@@ -58,26 +54,26 @@ namespace FoundationDB.Layers.Collections
 
 		/// <summary>Initializes a new ranked set at a given location</summary>
 		/// <param name="subspace">Subspace where the set will be stored</param>
-		public FdbRankedSet(FdbSubspace subspace)
+		public FdbRankedSet([NotNull] FdbSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
 			this.Subspace = subspace;
 		}
 
-		public Task OpenAsync(IFdbTransaction trans)
+		public Task OpenAsync([NotNull] IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			return SetupLevelsAsync(trans);
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public FdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Returns the number of items in the set.</summary>
 		/// <param name="trans"></param>
 		/// <returns></returns>
-		public Task<long> SizeAsync(IFdbReadOnlyTransaction trans)
+		public Task<long> SizeAsync([NotNull] IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -87,7 +83,7 @@ namespace FoundationDB.Layers.Collections
 				.SumAsync();
 		}
 
-		public async Task InsertAsync(IFdbTransaction trans, Slice key)
+		public async Task InsertAsync([NotNull] IFdbTransaction trans, Slice key)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -125,7 +121,7 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
-		public async Task<bool> ContainsAsync(IFdbReadOnlyTransaction trans, Slice key)
+		public async Task<bool> ContainsAsync([NotNull] IFdbReadOnlyTransaction trans, Slice key)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", "key");
@@ -133,7 +129,7 @@ namespace FoundationDB.Layers.Collections
 			return (await trans.GetAsync(this.Subspace.Pack(0, key)).ConfigureAwait(false)).HasValue;
 		}
 
-		public async Task EraseAsync(IFdbTransaction trans, Slice key)
+		public async Task EraseAsync([NotNull] IFdbTransaction trans, Slice key)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -159,7 +155,7 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
-		public async Task<long?> Rank(IFdbReadOnlyTransaction trans, Slice key)
+		public async Task<long?> Rank([NotNull] IFdbReadOnlyTransaction trans, Slice key)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (key.IsNull) throw new ArgumentException("Empty key not allowed in set", "key");
@@ -194,7 +190,7 @@ namespace FoundationDB.Layers.Collections
 			return r;
 		}
 
-		public async Task<Slice> GetNthAsync(IFdbReadOnlyTransaction trans, long rank)
+		public async Task<Slice> GetNthAsync([NotNull] IFdbReadOnlyTransaction trans, long rank)
 		{
 			if (rank < 0) return Slice.Nil;
 
@@ -228,7 +224,7 @@ namespace FoundationDB.Layers.Collections
 		//TODO: get_range
 
 		/// <summary>Clears the entire set.</summary>
-		public Task ClearAllAsync(IFdbTransaction trans)
+		public Task ClearAllAsync([NotNull] IFdbTransaction trans)
 		{
 			trans.ClearRange(this.Subspace.ToRange());
 			return SetupLevelsAsync(trans);

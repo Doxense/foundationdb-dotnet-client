@@ -214,13 +214,13 @@ namespace FoundationDB.Client
 			return db.ReadAsync((tr) => tr.GetAsync(key), cancellationToken);
 		}
 
-		public static Task<Slice[]> GetValuesAsync(this IFdbDatabase db, Slice[] keys, CancellationToken cancellationToken)
+		public static Task<Slice[]> GetValuesAsync(this IFdbDatabase db, [NotNull] Slice[] keys, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			return db.ReadAsync((tr) => tr.GetValuesAsync(keys), cancellationToken);
 		}
 
-		public static Task<Slice[]> GetValuesAsync(this IFdbDatabase db, IEnumerable<Slice> keys, CancellationToken cancellationToken)
+		public static Task<Slice[]> GetValuesAsync(this IFdbDatabase db, [NotNull] IEnumerable<Slice> keys, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			return db.ReadAsync((tr) => tr.GetValuesAsync(keys), cancellationToken);
@@ -232,14 +232,14 @@ namespace FoundationDB.Client
 			return db.ReadAsync((tr) => tr.GetKeyAsync(keySelector), cancellationToken);
 		}
 
-		public static Task<Slice[]> GetKeysAsync(this IFdbDatabase db, FdbKeySelector[] keySelectors, CancellationToken cancellationToken)
+		public static Task<Slice[]> GetKeysAsync(this IFdbDatabase db, [NotNull] FdbKeySelector[] keySelectors, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (keySelectors == null) throw new ArgumentNullException("keySelectors");
 			return db.ReadAsync((tr) => tr.GetKeysAsync(keySelectors), cancellationToken);
 		}
 
-		public static Task<Slice[]> GetKeysAsync(this IFdbDatabase db, IEnumerable<FdbKeySelector> keySelectors, CancellationToken cancellationToken)
+		public static Task<Slice[]> GetKeysAsync(this IFdbDatabase db, [NotNull] IEnumerable<FdbKeySelector> keySelectors, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (keySelectors == null) throw new ArgumentNullException("keySelectors");

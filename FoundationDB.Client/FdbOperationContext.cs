@@ -76,7 +76,7 @@ namespace FoundationDB.Client
 		/// <summary>Internal source of cancellation, able to abort any pending IO operations attached to this transaction</summary>
 		internal CancellationTokenSource TokenSource { get; private set; }
 
-		public FdbOperationContext(IFdbDatabase db, FdbTransactionMode mode, CancellationToken cancellationToken)
+		public FdbOperationContext([NotNull] IFdbDatabase db, FdbTransactionMode mode, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
@@ -94,7 +94,7 @@ namespace FoundationDB.Client
 			this.Cancellation = token;
 		}
 
-		internal static async Task ExecuteInternal(IFdbDatabase db, FdbOperationContext context, Delegate handler, Delegate onDone)
+		internal static async Task ExecuteInternal([NotNull] IFdbDatabase db, [NotNull] FdbOperationContext context, [NotNull] Delegate handler, Delegate onDone)
 		{
 			Contract.Requires(db != null && context != null && handler != null);
 			Contract.Requires(context.Shared);
@@ -217,7 +217,7 @@ namespace FoundationDB.Client
 		#region Read-Only operations...
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunReadAsync(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public static Task RunReadAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
@@ -228,7 +228,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Run a read-only operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunReadWithResultAsync<R>(IFdbDatabase db, Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
+		public static async Task<R> RunReadWithResultAsync<R>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
@@ -250,7 +250,7 @@ namespace FoundationDB.Client
 		#region Read/Write operations...
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunWriteAsync(IFdbDatabase db, Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
@@ -261,7 +261,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Run a write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static Task RunWriteAsync(IFdbDatabase db, Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public static Task RunWriteAsync([NotNull] IFdbDatabase db, [NotNull] Action<IFdbTransaction> handler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (handler == null) throw new ArgumentNullException("handler");
@@ -272,7 +272,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Run a read/write operation until it suceeds, timeouts, or fail with non-retryable error</summary>
-		public static async Task<R> RunWriteWithResultAsync<R>(IFdbDatabase db, Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
+		public static async Task<R> RunWriteWithResultAsync<R>([NotNull] IFdbDatabase db, [NotNull] Func<IFdbTransaction, Task<R>> asyncHandler, Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");

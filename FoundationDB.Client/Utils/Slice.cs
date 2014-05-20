@@ -68,7 +68,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <summary>Pointer to the buffer (or null for Slice.Nil)</summary>
+		/// <summary>Pointer to the buffer (or null for <see cref="Slice.Nil"/>)</summary>
 		public readonly byte[] Array;
 
 		/// <summary>Offset of the first byte of the slice in the parent buffer</summary>
@@ -155,7 +155,7 @@ namespace FoundationDB.Client
 		/// <param name="count">Number of random bytes to generate</param>
 		/// <returns>Slice of <paramref name="count"/> bytes taken from <paramref name="prng"/></returns>
 		/// <remarks>Warning: <see cref="System.Random"/> is not thread-safe ! If the <paramref name="prng"/> instance is shared between threads, then it needs to be locked before calling this method.</remarks>
-		public static Slice Random(Random prng, int count)
+		public static Slice Random([NotNull] Random prng, int count)
 		{
 			if (prng == null) throw new ArgumentNullException("prng");
 			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be negative");
@@ -172,7 +172,7 @@ namespace FoundationDB.Client
 		/// <param name="nonZeroBytes">If true, produce a sequence of non-zero bytes.</param>
 		/// <returns>Slice of <paramref name="count"/> bytes taken from <paramref name="rng"/></returns>
 		/// <remarks>Warning: All RNG implementations may not be thread-safe ! If the <paramref name="rng"/> instance is shared between threads, then it may need to be locked before calling this method.</remarks>
-		public static Slice Random(System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
+		public static Slice Random([NotNull] System.Security.Cryptography.RandomNumberGenerator rng, int count, bool nonZeroBytes = false)
 		{
 			if (rng == null) throw new ArgumentNullException("rng");
 			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count cannot be negative");
@@ -233,7 +233,7 @@ namespace FoundationDB.Client
 		/// <param name="values">An array that contains the elements to concatenate.</param>
 		/// <returns>A slice that consists of the elements in a value delimited by the <paramref name="separator"/> slice. If <paramref name="values"/> is an empty array, the method returns <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
-		public static Slice Join(Slice separator, Slice[] values)
+		public static Slice Join(Slice separator, [NotNull] Slice[] values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 
@@ -251,7 +251,7 @@ namespace FoundationDB.Client
 		/// <returns>A slice that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- <see cref="Slice.Empty"/> if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="startIndex"/> or <paramref name="count"/> is less than zero. -or- <paramref name="startIndex"/> plus <paramref name="count"/> is greater than the number of elements in <paramref name="values"/>.</exception>
-		public static Slice Join(Slice separator, Slice[] values, int startIndex, int count)
+		public static Slice Join(Slice separator, [NotNull] Slice[] values, int startIndex, int count)
 		{
 			// Note: this method is modeled after String.Join() and should behave the same
 			// - Only difference is that Slice.Nil and Slice.Empty are equivalent (either for separator, or for the elements of the array)
@@ -289,7 +289,7 @@ namespace FoundationDB.Client
 		/// <param name="values">A sequence will return the elements to concatenate.</param>
 		/// <returns>A slice that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- <see cref="Slice.Empty"/> if <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
-		public static Slice Join(Slice separator, IEnumerable<Slice> values)
+		public static Slice Join(Slice separator, [NotNull] IEnumerable<Slice> values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 			var array = (values as Slice[]) ?? values.ToArray();
@@ -304,7 +304,7 @@ namespace FoundationDB.Client
 		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an emtpy array if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="startIndex"/> or <paramref name="count"/> is less than zero. -or- <paramref name="startIndex"/> plus <paramref name="count"/> is greater than the number of elements in <paramref name="values"/>.</exception>
-		public static byte[] JoinBytes(Slice separator, Slice[] values, int startIndex, int count)
+		public static byte[] JoinBytes(Slice separator, [NotNull] Slice[] values, int startIndex, int count)
 		{
 			// Note: this method is modeled after String.Join() and should behave the same
 			// - Only difference is that Slice.Nil and Slice.Empty are equivalent (either for separator, or for the elements of the array)
@@ -342,7 +342,7 @@ namespace FoundationDB.Client
 		/// <param name="values">A sequence will return the elements to concatenate.</param>
 		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an empty array if <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
-		public static byte[] JoinBytes(Slice separator, IEnumerable<Slice> values)
+		public static byte[] JoinBytes(Slice separator, [NotNull] IEnumerable<Slice> values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 			var array = (values as Slice[]) ?? values.ToArray();
@@ -969,7 +969,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Helper method that dumps the slice as a string (if it contains only printable ascii chars) or an hex array if it contains non printable chars. It should only be used for logging and troubleshooting !</summary>
-		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for Slice.Nil</returns>
+		/// <returns>Returns either "'abc'", "&lt;00 42 7F&gt;", or "{ ...JSON... }". Returns "''" for Slice.Empty, and "" for <see cref="Slice.Nil"/></returns>
 		[Pure][NotNull]
 		public string ToAsciiOrHexaString() //REVIEW: rename this to ToPrintableString() ?
 		{
@@ -1526,7 +1526,7 @@ namespace FoundationDB.Client
 		/// <param name="slices">Slices that must be appended</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure][NotNull]
-		public Slice[] ConcatRange(Slice[] slices)
+		public Slice[] ConcatRange([NotNull] Slice[] slices)
 		{
 			if (slices == null) throw new ArgumentNullException("slices");
 			SliceHelpers.EnsureSliceIsValid(ref this);
@@ -1553,7 +1553,7 @@ namespace FoundationDB.Client
 		/// <param name="slices">Slices that must be appended</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[Pure][NotNull]
-		public Slice[] ConcatRange(IEnumerable<Slice> slices)
+		public Slice[] ConcatRange([NotNull] IEnumerable<Slice> slices)
 		{
 			if (slices == null) throw new ArgumentNullException("slices");
 
@@ -1813,8 +1813,8 @@ namespace FoundationDB.Client
 
 		/// <summary>Read the content of a stream into a slice</summary>
 		/// <param name="data">Source stream, that must be in a readable state</param>
-		/// <returns>Slice containing the stream content (or Slice.Nil if the stream is Stream.Nul)</returns>
-		public static Slice FromStream(Stream data)
+		/// <returns>Slice containing the stream content (or <see cref="Slice.Nil"/> if the stream is <see cref="Stream.Null"/>)</returns>
+		public static Slice FromStream([NotNull] Stream data)
 		{
 			if (data == null) throw new ArgumentNullException("data");
 
@@ -1841,8 +1841,8 @@ namespace FoundationDB.Client
 		/// <summary>Asynchronously read the content of a stream into a slice</summary>
 		/// <param name="data">Source stream, that must be in a readable state</param>
 		/// <param name="cancellationToken">Optional cancellation token for this operation</param>
-		/// <returns>Slice containing the stream content (or Slice.Nil if the stream is Stream.Nul)</returns>
-		public static Task<Slice> FromStreamAsync(Stream data, CancellationToken cancellationToken)
+		/// <returns>Slice containing the stream content (or <see cref="Slice.Nil"/> if the stream is <see cref="Stream.Null"/>)</returns>
+		public static Task<Slice> FromStreamAsync([NotNull] Stream data, CancellationToken cancellationToken)
 		{
 			if (data == null) throw new ArgumentNullException("data");
 			// special case for empty values
@@ -1871,7 +1871,7 @@ namespace FoundationDB.Client
 		/// <param name="source">Source stream</param>
 		/// <param name="length">Number of bytes to read from the stream</param>
 		/// <returns>Slice containing the loaded data</returns>
-		private static Slice LoadFromNonBlockingStream(Stream source, int length)
+		private static Slice LoadFromNonBlockingStream([NotNull] Stream source, int length)
 		{
 			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue);
 
@@ -1907,7 +1907,7 @@ namespace FoundationDB.Client
 		/// <param name="length">Number of bytes to read from the stream</param>
 		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
 		/// <returns>Slice containing the loaded data</returns>
-		private static Slice LoadFromBlockingStream(Stream source, int length, int chunkSize = 0)
+		private static Slice LoadFromBlockingStream([NotNull] Stream source, int length, int chunkSize = 0)
 		{
 			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 
@@ -1937,7 +1937,7 @@ namespace FoundationDB.Client
 		/// <param name="chunkSize">If non zero, max amount of bytes to read in one chunk. If zero, tries to read everything at once</param>
 		/// <param name="cancellationToken">Optional cancellation token for this operation</param>
 		/// <returns>Slice containing the loaded data</returns>
-		private static async Task<Slice> LoadFromBlockingStreamAsync(Stream source, int length, int chunkSize, CancellationToken cancellationToken)
+		private static async Task<Slice> LoadFromBlockingStreamAsync([NotNull] Stream source, int length, int chunkSize, CancellationToken cancellationToken)
 		{
 			Contract.Requires(source != null && source.CanRead && source.Length <= int.MaxValue && chunkSize >= 0);
 

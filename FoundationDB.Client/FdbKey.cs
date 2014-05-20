@@ -87,7 +87,7 @@ namespace FoundationDB.Client
 		/// <param name="keys">Array of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[NotNull]
-		public static Slice[] Merge(Slice prefix, Slice[] keys)
+		public static Slice[] Merge(Slice prefix, [NotNull] Slice[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -114,7 +114,7 @@ namespace FoundationDB.Client
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[NotNull]
-		public static Slice[] Merge(Slice prefix, IEnumerable<Slice> keys)
+		public static Slice[] Merge(Slice prefix, [NotNull] IEnumerable<Slice> keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 			if (keys == null) throw new ArgumentNullException("keys");
@@ -147,7 +147,7 @@ namespace FoundationDB.Client
 		/// <returns>Array of segments</returns>
 		/// <example>SplitIntoSegments("HelloWorld", 0, [5, 10]) => [{"Hello"}, {"World"}]</example>
 		[NotNull]
-		internal static Slice[] SplitIntoSegments(byte[] buffer, int start, List<int> endOffsets)
+		internal static Slice[] SplitIntoSegments([NotNull] byte[] buffer, int start, [NotNull] List<int> endOffsets)
 		{
 			var result = new Slice[endOffsets.Count];
 			int i = 0;

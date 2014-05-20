@@ -72,7 +72,7 @@ namespace FoundationDB.Client
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
-		Task<Slice[]> GetValuesAsync(Slice[] keys);
+		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys);
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>
@@ -82,7 +82,7 @@ namespace FoundationDB.Client
 		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selectors">Key selectors to resolve</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors);
+		Task<Slice[]> GetKeysAsync([NotNull] FdbKeySelector[] selectors);
 
 		/// <summary>
 		/// Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode)

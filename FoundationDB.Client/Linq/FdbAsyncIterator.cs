@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Runtime.ExceptionServices;
@@ -136,49 +137,49 @@ namespace FoundationDB.Linq
 
 		#region LINQ...
 
-		public virtual FdbAsyncIterator<TResult> Where(Func<TResult, bool> predicate)
+		public virtual FdbAsyncIterator<TResult> Where([NotNull] Func<TResult, bool> predicate)
 		{
 			if (predicate == null) throw new ArgumentNullException("predicate");
 
 			return FdbAsyncEnumerable.Filter<TResult>(this, predicate);
 		}
 
-		public virtual FdbAsyncIterator<TResult> Where(Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+		public virtual FdbAsyncIterator<TResult> Where([NotNull] Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
 			if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
 
 			return FdbAsyncEnumerable.Filter<TResult>(this, asyncPredicate);
 		}
 
-		public virtual FdbAsyncIterator<TNew> Select<TNew>(Func<TResult, TNew> selector)
+		public virtual FdbAsyncIterator<TNew> Select<TNew>([NotNull] Func<TResult, TNew> selector)
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
 
 			return FdbAsyncEnumerable.Map<TResult, TNew>(this, selector);
 		}
 
-		public virtual FdbAsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
+		public virtual FdbAsyncIterator<TNew> Select<TNew>([NotNull] Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
 		{
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
 			return FdbAsyncEnumerable.Map<TResult, TNew>(this, asyncSelector);
 		}
 
-		public virtual FdbAsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
+		public virtual FdbAsyncIterator<TNew> SelectMany<TNew>([NotNull] Func<TResult, IEnumerable<TNew>> selector)
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
 
 			return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, selector);
 		}
 
-		public virtual FdbAsyncIterator<TNew> SelectMany<TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
+		public virtual FdbAsyncIterator<TNew> SelectMany<TNew>([NotNull] Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
 		{
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
 			return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, asyncSelector);
 		}
 
-		public virtual FdbAsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, IEnumerable<TCollection>> collectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+		public virtual FdbAsyncIterator<TNew> SelectMany<TCollection, TNew>([NotNull] Func<TResult, IEnumerable<TCollection>> collectionSelector, [NotNull] Func<TResult, TCollection, TNew> resultSelector)
 		{
 			if (collectionSelector == null) throw new ArgumentNullException("collectionSelector");
 			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
@@ -186,7 +187,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, collectionSelector, resultSelector);
 		}
 
-		public virtual FdbAsyncIterator<TNew> SelectMany<TCollection, TNew>(Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TResult, TCollection, TNew> resultSelector)
+		public virtual FdbAsyncIterator<TNew> SelectMany<TCollection, TNew>([NotNull] Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, [NotNull] Func<TResult, TCollection, TNew> resultSelector)
 		{
 			if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
 			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
@@ -199,7 +200,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Limit<TResult>(this, count);
 		}
 
-		public virtual FdbAsyncIterator<TResult> TakeWhile(Func<TResult, bool> condition)
+		public virtual FdbAsyncIterator<TResult> TakeWhile([NotNull] Func<TResult, bool> condition)
 		{
 			return FdbAsyncEnumerable.Limit<TResult>(this, condition);
 		}
@@ -209,12 +210,12 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Offset<TResult>(this, count);
 		}
 
-		public virtual Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
+		public virtual Task ExecuteAsync([NotNull] Action<TResult> action, CancellationToken ct)
 		{
 			return FdbAsyncEnumerable.Run<TResult>(this, FdbAsyncMode.All, action, ct);
 		}
 
-		public virtual Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
+		public virtual Task ExecuteAsync([NotNull] Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
 		{
 			return FdbAsyncEnumerable.Run<TResult>(this, FdbAsyncMode.All, asyncAction, ct);
 		}
@@ -250,6 +251,7 @@ namespace FoundationDB.Linq
 			return false;
 		}
 
+		[ContractAnnotation("=> halt")]
 		protected bool Failed(Exception e)
 		{
 			this.Dispose();
@@ -258,6 +260,7 @@ namespace FoundationDB.Linq
 		}
 
 #if !NET_4_0
+		[ContractAnnotation("=> halt")]
 		protected bool Failed(ExceptionDispatchInfo e)
 		{
 			this.Dispose();
@@ -291,7 +294,6 @@ namespace FoundationDB.Linq
 					throw new InvalidOperationException();
 				}
 			}
-
 		}
 
 		protected abstract void Cleanup();

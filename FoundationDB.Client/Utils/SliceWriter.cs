@@ -72,13 +72,13 @@ namespace FoundationDB.Client
 		/// <summary>Create a new binary writer using an existing buffer</summary>
 		/// <param name="buffer">Initial buffer</param>
 		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
-		public SliceWriter(byte[] buffer)
+		public SliceWriter([NotNull] byte[] buffer)
 			: this(buffer, 0)
 		{ }
 
 		/// <summary>Create a new binary buffer using an existing buffer and with the cursor to a specific location</summary>
 		/// <remarks>Since the content of the <paramref name="buffer"/> will be modified, only a temporary or scratch buffer should be used. If the writer needs to grow, a new buffer will be allocated.</remarks>
-		public SliceWriter(byte[] buffer, int index)
+		public SliceWriter([NotNull] byte[] buffer, int index)
 		{
 			if (buffer == null) throw new ArgumentNullException("buffer");
 			if (index < 0 || index > buffer.Length) throw new ArgumentOutOfRangeException("index");

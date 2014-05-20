@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
@@ -53,7 +54,7 @@ namespace FoundationDB.Linq
 		private int? m_skipped;
 
 		public FdbWhereSelectAsyncIterator(
-			IFdbAsyncEnumerable<TSource> source,
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
 			Func<TSource, bool> filter,
 			Func<TSource, CancellationToken, Task<bool>> asyncFilter,
 			Func<TSource, TResult> transform,

@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
@@ -52,12 +53,12 @@ namespace FoundationDB.Async
 		private readonly IAsyncTarget<T> m_target;
 
 		public AsyncPump(
-			IAsyncSource<T> source,
-			IAsyncTarget<T> target
+			[NotNull] IAsyncSource<T> source,
+			[NotNull] IAsyncTarget<T> target
 		)
 		{
-			Contract.Requires(source!= null);
-			Contract.Requires(target != null);
+			if (source == null) throw new ArgumentNullException("source");
+			if (target == null) throw new ArgumentNullException("target");
 
 			m_source = source;
 			m_target = target;

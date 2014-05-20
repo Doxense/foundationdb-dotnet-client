@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,15 +32,12 @@ namespace FoundationDB.Layers.Collections
 #if DEBUG
 	using FoundationDB.Filters.Logging;
 #endif
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
-	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using FoundationDB.Async;
-	using System.Globalization;
 
 	/// <summary>
 	/// Provides a high-contention Queue class
@@ -55,7 +52,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Create a new High Contention Queue</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue(FdbSubspace subspace)
+		public FdbQueue([NotNull] FdbSubspace subspace)
 			: this(subspace, highContention: true, encoder: KeyValueEncoders.Tuples.Value<T>())
 		{ }
 
@@ -63,16 +60,17 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
 		/// <remarks>Uses the default Tuple serializer</remarks>
-		public FdbQueue(FdbSubspace subspace, bool highContention)
+		public FdbQueue([NotNull] FdbSubspace subspace, bool highContention)
 			: this(subspace, highContention: highContention, encoder: KeyValueEncoders.Tuples.Value<T>())
 		{ }
 
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		public FdbQueue(FdbSubspace subspace, bool highContention, IValueEncoder<T> encoder)
+		public FdbQueue([NotNull] FdbSubspace subspace, bool highContention, [NotNull] IValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (encoder == null) throw new ArgumentNullException("encocer");
 
 			this.Subspace = subspace;
 			this.HighContention = highContention;
@@ -84,13 +82,13 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public FdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>If true, the queue is operating in High Contention mode that will scale better with a lot of popping clients.</summary>
 		public bool HighContention { get; private set; }
 
 		/// <summary>Serializer for the elements of the queue</summary>
-		public IValueEncoder<T> Encoder { get; private set; }
+		public IValueEncoder<T> Encoder { [NotNull] get; private set; }
 
 		internal FdbSubspace ConflictedPop { get; private set; }
 
@@ -99,32 +97,36 @@ namespace FoundationDB.Layers.Collections
 		internal FdbSubspace QueueItem { get; private set; }
 
 		/// <summary>Remove all items from the queue.</summary>
-		public void ClearAsync(IFdbTransaction tr)
+		public void ClearAsync([NotNull] IFdbTransaction trans)
 		{
-			if (tr == null) throw new ArgumentNullException("tr");
+			if (trans == null) throw new ArgumentNullException("trans");
 
-			tr.ClearRange(this.Subspace);
+			trans.ClearRange(this.Subspace);
 		}
 
 		/// <summary>Push a single item onto the queue.</summary>
-		public async Task PushAsync(IFdbTransaction tr, T value)
+		public async Task PushAsync([NotNull] IFdbTransaction trans, T value)
 		{
-#if DEBUG
-			tr.Annotate("Push({0})", value);
-#endif
-
-			long index = await GetNextIndexAsync(tr.Snapshot, this.QueueItem).ConfigureAwait(false);
+			if (trans == null) throw new ArgumentNullException("trans");
 
 #if DEBUG
-			tr.Annotate("Index = {0}", index);
+			trans.Annotate("Push({0})", value);
 #endif
 
-			await PushAtAsync(tr, value, index).ConfigureAwait(false);
+			long index = await GetNextIndexAsync(trans.Snapshot, this.QueueItem).ConfigureAwait(false);
+
+#if DEBUG
+			trans.Annotate("Index = {0}", index);
+#endif
+
+			await PushAtAsync(trans, value, index).ConfigureAwait(false);
 		}
 
 		/// <summary>Pop the next item from the queue. Cannot be composed with other functions in a single transaction.</summary>
-		public Task<Optional<T>> PopAsync(IFdbDatabase db, CancellationToken cancellationToken)
+		public Task<Optional<T>> PopAsync([NotNull] IFdbDatabase db, CancellationToken cancellationToken)
 		{
+			if (db == null) throw new ArgumentNullException("db");
+
 			if (cancellationToken.IsCancellationRequested)
 			{
 				return TaskHelpers.FromCancellation<Optional<T>>(cancellationToken);
@@ -141,13 +143,13 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Test whether the queue is empty.</summary>
-		public async Task<bool> EmptyAsync(IFdbReadOnlyTransaction tr)
+		public async Task<bool> EmptyAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
 			return (await GetFirstItemAsync(tr).ConfigureAwait(false)).Key.IsNull;
 		}
 
 		/// <summary>Get the value of the next item in the queue without popping it.</summary>
-		public async Task<Optional<T>> PeekAsync(IFdbReadOnlyTransaction tr)
+		public async Task<Optional<T>> PeekAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
 			var firstItem = await GetFirstItemAsync(tr).ConfigureAwait(false);
 			if (firstItem.Key.IsNull)
@@ -175,7 +177,7 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
-		private async Task PushAtAsync(IFdbTransaction tr, T value, long index)
+		private async Task PushAtAsync([NotNull] IFdbTransaction tr, T value, long index)
 		{
 			// Items are pushed on the queue at an (index, randomID) pair. Items pushed at the
 			// same time will have the same index, and so their ordering will be random.
@@ -187,7 +189,7 @@ namespace FoundationDB.Layers.Collections
 			tr.Set(key, this.Encoder.EncodeValue(value));
 		}
 
-		private async Task<long> GetNextIndexAsync(IFdbReadOnlyTransaction tr, FdbSubspace subspace)
+		private async Task<long> GetNextIndexAsync([NotNull] IFdbReadOnlyTransaction tr, FdbSubspace subspace)
 		{
 			var range = subspace.ToRange();
 
@@ -201,13 +203,13 @@ namespace FoundationDB.Layers.Collections
 			return subspace.Unpack(lastKey).Get<long>(0) + 1;
 		}
 
-		private Task<KeyValuePair<Slice, Slice>> GetFirstItemAsync(IFdbReadOnlyTransaction tr)
+		private Task<KeyValuePair<Slice, Slice>> GetFirstItemAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
 			var range = this.QueueItem.ToRange();
 			return tr.GetRange(range).FirstOrDefaultAsync();
 		}
 
-		private async Task<Optional<T>> PopSimpleAsync(IFdbTransaction tr)
+		private async Task<Optional<T>> PopSimpleAsync([NotNull] IFdbTransaction tr)
 		{
 #if DEBUG
 			tr.Annotate("PopSimple()");
@@ -220,12 +222,12 @@ namespace FoundationDB.Layers.Collections
 			return this.Encoder.DecodeValue(firstItem.Value);
 		}
 
-		private Task<Slice> AddConflictedPopAsync(IFdbDatabase db, bool forced, CancellationToken ct)
+		private Task<Slice> AddConflictedPopAsync([NotNull] IFdbDatabase db, bool forced, CancellationToken ct)
 		{
 			return db.ReadWriteAsync((tr) => AddConflictedPopAsync(tr, forced), ct);
 		}
 
-		private async Task<Slice> AddConflictedPopAsync(IFdbTransaction tr, bool forced)
+		private async Task<Slice> AddConflictedPopAsync([NotNull] IFdbTransaction tr, bool forced)
 		{
 			long index = await GetNextIndexAsync(tr.Snapshot, this.ConflictedPop).ConfigureAwait(false);
 
@@ -240,19 +242,19 @@ namespace FoundationDB.Layers.Collections
 			return waitKey;
 		}
 
-		private Task<List<KeyValuePair<Slice, Slice>>> GetWaitingPopsAsync(IFdbReadOnlyTransaction tr, int numPops)
+		private Task<List<KeyValuePair<Slice, Slice>>> GetWaitingPopsAsync([NotNull] IFdbReadOnlyTransaction tr, int numPops)
 		{
 			var range = this.ConflictedPop.ToRange();
 			return tr.GetRange(range, limit: numPops, reverse: false).ToListAsync();
 		}
 
-		private Task<List<KeyValuePair<Slice, Slice>>> GetItemsAsync(IFdbReadOnlyTransaction tr, int numItems)
+		private Task<List<KeyValuePair<Slice, Slice>>> GetItemsAsync([NotNull] IFdbReadOnlyTransaction tr, int numItems)
 		{
 			var range = this.QueueItem.ToRange();
 			return tr.GetRange(range, limit: numItems, reverse: false).ToListAsync();
 		}
 
-		private async Task<bool> FulfillConflictedPops(IFdbDatabase db, CancellationToken ct)
+		private async Task<bool> FulfillConflictedPops([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
 			const int numPops = 100;
 
@@ -316,7 +318,7 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
-		private async Task<Optional<T>> PopHighContentionAsync(IFdbDatabase db, CancellationToken ct)
+		private async Task<Optional<T>> PopHighContentionAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 		{
 			int backOff = 10;
 			Slice waitKey = Slice.Empty;

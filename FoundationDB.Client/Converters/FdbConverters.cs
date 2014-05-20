@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Converters
 {
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;
@@ -83,7 +84,7 @@ namespace FoundationDB.Client.Converters
 		{
 			private Func<T, R> Converter { get; set; }
 
-			public Anonymous(Func<T, R> converter)
+			public Anonymous([NotNull] Func<T, R> converter)
 			{
 				if (converter == null) throw new ArgumentNullException("converter");
 				this.Converter = converter;
@@ -291,7 +292,7 @@ namespace FoundationDB.Client.Converters
 		/// <typeparam name="R">Destination type</typeparam>
 		/// <param name="converter">Lambda that converts a value of type <typeparamref name="T"/> into a value of type <typeparamref name="R"/></param>
 		/// <returns>Converters that wraps the lambda</returns>
-		public static IFdbConverter<T, R> Create<T, R>(Func<T, R> converter)
+		public static IFdbConverter<T, R> Create<T, R>([NotNull] Func<T, R> converter)
 		{
 			if (converter == null) throw new ArgumentNullException("converter");
 			return new Anonymous<T, R>(converter);
@@ -301,8 +302,9 @@ namespace FoundationDB.Client.Converters
 		/// <typeparam name="T">Source type</typeparam>
 		/// <typeparam name="R">Destination type</typeparam>
 		/// <param name="converter">Lambda that converts a value of type <typeparamref name="T"/> into a value of type <typeparamref name="R"/></param>
-		internal static void RegisterUnsafe<T, R>(Func<T, R> converter)
+		internal static void RegisterUnsafe<T, R>([NotNull] Func<T, R> converter)
 		{
+			Contract.Requires(converter != null);
 			Converters[new ComparisonHelper.TypePair(typeof(T), typeof(R))] = new Anonymous<T, R>(converter);
 		}
 
@@ -310,8 +312,9 @@ namespace FoundationDB.Client.Converters
 		/// <typeparam name="T">Source type</typeparam>
 		/// <typeparam name="R">Destination type</typeparam>
 		/// <param name="converter">Lambda that converts a value of type <typeparamref name="T"/> into a value of type <typeparamref name="R"/></param>
-		public static void Register<T, R>(Func<T, R> converter)
+		public static void Register<T, R>([NotNull] Func<T, R> converter)
 		{
+			Contract.Requires(converter != null);
 			Register<T, R>(new Anonymous<T, R>(converter));
 		}
 
@@ -319,8 +322,9 @@ namespace FoundationDB.Client.Converters
 		/// <typeparam name="T">Source type</typeparam>
 		/// <typeparam name="R">Destination type</typeparam>
 		/// <param name="converter">Instance that can convert values of type <typeparamref name="T"/> into a values of type <typeparamref name="R"/></param>
-		public static void Register<T, R>(IFdbConverter<T, R> converter)
+		public static void Register<T, R>([NotNull] IFdbConverter<T, R> converter)
 		{
+			if (converter == null) throw new ArgumentNullException("converter");
 			while (true)
 			{
 				var previous = Converters;
@@ -416,7 +420,7 @@ namespace FoundationDB.Client.Converters
 
 		/// <summary>Converts all the elements of a sequence</summary>
 		/// <returns>New sequence with all the converted elements</returns>
-		public static IEnumerable<R> ConvertAll<T, R>(this IFdbConverter<T, R> converter, IEnumerable<T> items)
+		public static IEnumerable<R> ConvertAll<T, R>(this IFdbConverter<T, R> converter, [NotNull] IEnumerable<T> items)
 		{
 			if (converter == null) throw new ArgumentNullException("converter");
 			if (items == null) throw new ArgumentNullException("items");
@@ -430,7 +434,7 @@ namespace FoundationDB.Client.Converters
 		/// <summary>Converts all the elements of a list</summary>
 		/// <returns>New list with all the converted elements</returns>
 		[NotNull]
-		public static List<R> ConvertAll<T, R>(this IFdbConverter<T, R> converter, List<T> items)
+		public static List<R> ConvertAll<T, R>(this IFdbConverter<T, R> converter, [NotNull] List<T> items)
 		{
 			if (converter == null) throw new ArgumentNullException("converter");
 			if (items == null) throw new ArgumentNullException("items");
@@ -441,7 +445,7 @@ namespace FoundationDB.Client.Converters
 		/// <summary>Converts all the elements of an array</summary>
 		/// <returns>New array with all the converted elements</returns>
 		[NotNull]
-		public static R[] ConvertAll<T, R>(this IFdbConverter<T, R> converter, T[] items)
+		public static R[] ConvertAll<T, R>(this IFdbConverter<T, R> converter, [NotNull] T[] items)
 		{
 			if (converter == null) throw new ArgumentNullException("converter");
 			if (items == null) throw new ArgumentNullException("items");

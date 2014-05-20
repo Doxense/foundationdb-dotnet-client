@@ -161,12 +161,12 @@ namespace FoundationDB.Client
 			throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
 		}
 
-		public static Uuid Parse(string input)
+		public static Uuid Parse([NotNull] string input)
 		{
 			return new Uuid(Guid.Parse(input));
 		}
 
-		public static Uuid ParseExact(string input, string format)
+		public static Uuid ParseExact([NotNull] string input, string format)
 		{
 			return new Uuid(Guid.ParseExact(input, format));
 		}

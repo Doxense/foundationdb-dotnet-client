@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -40,18 +41,18 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Runs a transactional lambda function inside a read-only transaction context, with optional retry-logic.
 		/// </summary>
-		Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken);
+		Task ReadAsync([NotNull] Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken);
 
 		//REVIEW: should we keep this?
-		Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
+		Task ReadAsync([NotNull] Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
 
 		/// <summary>
 		/// Runs a transactional lambda function inside a read-only transaction context, with optional retry-logic.
 		/// </summary>
-		Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken);
+		Task<R> ReadAsync<R>([NotNull] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken);
 
 		//REVIEW: should we keep this?
-		Task<R> ReadAsync<R>(Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
+		Task<R> ReadAsync<R>([NotNull] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
 
 	}
 

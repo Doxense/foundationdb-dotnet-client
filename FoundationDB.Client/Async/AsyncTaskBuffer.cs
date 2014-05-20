@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Runtime.ExceptionServices;
@@ -118,7 +119,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Observe the completion of a task to wake up the consumer</summary>
-		private void ObserveTaskCompletion(Task<T> task)
+		private void ObserveTaskCompletion([NotNull] Task<T> task)
 		{
 			var _ = task.ContinueWith(
 				(t, state) =>
@@ -170,7 +171,7 @@ namespace FoundationDB.Async
 			WakeUpBlockedConsumer_NeedsLocking();
 		}
 
-		private async Task WaitForNextFreeSlotThenEnqueueAsync(Task<T> task, Task wait, CancellationToken ct)
+		private async Task WaitForNextFreeSlotThenEnqueueAsync(Task<T> task, [NotNull] Task wait, CancellationToken ct)
 		{
 			await wait.ConfigureAwait(false);
 
@@ -270,7 +271,7 @@ namespace FoundationDB.Async
 			return Task.FromResult(item);
 		}
 
-		private async Task<Maybe<T>> WaitForTaskToCompleteAsync(Task<T> task, CancellationToken ct)
+		private async Task<Maybe<T>> WaitForTaskToCompleteAsync([NotNull] Task<T> task, CancellationToken ct)
 		{
 			// we just need to wait for this task to complete, and return it
 
@@ -296,7 +297,7 @@ namespace FoundationDB.Async
 			}
 		}
 
-		private async Task<Maybe<T>> WaitForCompletionOrNextItemAsync(Task wait, CancellationToken ct)
+		private async Task<Maybe<T>> WaitForCompletionOrNextItemAsync([NotNull] Task wait, CancellationToken ct)
 		{
 			// we wait for any activity (new task or one that completes)
 

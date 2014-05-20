@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -50,7 +51,7 @@ namespace FoundationDB.Async
 		private bool m_done;
 		private readonly TaskScheduler m_scheduler;
 
-		public AsyncTransformQueue(Func<TInput, CancellationToken, Task<TOutput>> transform, int capacity, TaskScheduler scheduler)
+		public AsyncTransformQueue([NotNull] Func<TInput, CancellationToken, Task<TOutput>> transform, int capacity, TaskScheduler scheduler)
 		{
 			if (transform == null) throw new ArgumentNullException("transform");
 			if (capacity <= 0) throw new ArgumentOutOfRangeException("capacity", "Capacity must be greater than zero");
@@ -221,7 +222,7 @@ namespace FoundationDB.Async
 
 		#region IFdbAsyncBatchTarget<TInput>...
 
-		public async Task OnNextBatchAsync(TInput[] batch, CancellationToken cancellationToken)
+		public async Task OnNextBatchAsync([NotNull] TInput[] batch, CancellationToken cancellationToken)
 		{
 			if (batch == null) throw new ArgumentNullException("batch");
 
@@ -377,7 +378,7 @@ namespace FoundationDB.Async
 			return ReceiveBatchSlowAsync(batch, count, ct);
 		}
 
-		private async Task<Maybe<TOutput>[]> ReceiveBatchSlowAsync(List<Maybe<TOutput>> batch, int count, CancellationToken ct)
+		private async Task<Maybe<TOutput>[]> ReceiveBatchSlowAsync([NotNull] List<Maybe<TOutput>> batch, int count, CancellationToken ct)
 		{
 			// got nothing, wait for at least one
 			while (batch.Count == 0)
@@ -410,7 +411,7 @@ namespace FoundationDB.Async
 
 		#endregion
 
-		private bool DrainItems_NeedsLocking(List<Maybe<TOutput>> buffer, int count)
+		private bool DrainItems_NeedsLocking([NotNull] List<Maybe<TOutput>> buffer, int count)
 		{
 			// tries to return all completed tasks at the start of the queue
 

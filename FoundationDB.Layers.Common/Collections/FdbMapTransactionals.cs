@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -44,7 +44,7 @@ namespace FoundationDB.Layers.Collections
 		/// <returns>Value of the entry if it exists; otherwise, throws an exception</returns>
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="db"/> or <paramref name="id"/> is null.</exception>
 		/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the map does not contain an entry with this key.</exception>
-		public static Task<TValue> GetAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, IFdbReadOnlyTransactional db, TKey id, CancellationToken cancellationToken)
+		public static Task<TValue> GetAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, [NotNull] IFdbReadOnlyTransactional db, TKey id, CancellationToken cancellationToken)
 		{
 			if (map == null) throw new ArgumentNullException("map");
 			if (db == null) throw new ArgumentNullException("db");
@@ -57,7 +57,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="id">Key of the entry to read from the map</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
-		public static Task<Optional<TValue>> TryGetAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, IFdbReadOnlyTransactional db, TKey id, CancellationToken cancellationToken)
+		public static Task<Optional<TValue>> TryGetAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, [NotNull] IFdbReadOnlyTransactional db, TKey id, CancellationToken cancellationToken)
 		{
 			if (map == null) throw new ArgumentNullException("map");
 			if (db == null) throw new ArgumentNullException("db");
@@ -71,7 +71,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="value">New value of the entry</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		/// <remarks>If the entry did not exist, it will be created. If not, its value will be replace with <paramref name="value"/>.</remarks>
-		public static Task SetAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, IFdbTransactional db, TKey id, TValue value, CancellationToken cancellationToken)
+		public static Task SetAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, [NotNull] IFdbTransactional db, TKey id, TValue value, CancellationToken cancellationToken)
 		{
 			if (map == null) throw new ArgumentNullException("map");
 			if (db == null) throw new ArgumentNullException("db");
@@ -84,7 +84,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="id">Key of the entry to remove</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
-		public static Task ClearAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, IFdbTransactional db, TKey id, CancellationToken cancellationToken)
+		public static Task ClearAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, [NotNull] IFdbTransactional db, TKey id, CancellationToken cancellationToken)
 		{
 			if (map == null) throw new ArgumentNullException("map");
 			if (db == null) throw new ArgumentNullException("db");

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -27,13 +27,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 #undef FULL_DEBUG
+using JetBrains.Annotations;
 
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -66,15 +67,13 @@ namespace FoundationDB.Linq
 		private AsyncTransformQueue<TSource, TResult> m_processingQueue;
 
 		public FdbParallelSelectAsyncIterator(
-			IFdbAsyncEnumerable<TSource> source,
-			Func<TSource, CancellationToken, Task<TResult>> taskSelector,
-			FdbParallelQueryOptions options
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
+			[NotNull] Func<TSource, CancellationToken, Task<TResult>> taskSelector,
+			[NotNull] FdbParallelQueryOptions options
 		)
 			: base(source)
 		{
-			Contract.Requires(source != null);
-			Contract.Requires(taskSelector != null);
-			Contract.Requires(options != null);
+			Contract.Requires(taskSelector != null && options != null);
 
 			m_taskSelector = taskSelector;
 			m_options = options;

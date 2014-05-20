@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Core
 {
+	using JetBrains.Annotations;
 	using System;
 
 	/// <summary>Basic API for FoundationDB databases</summary>
@@ -38,6 +39,7 @@ namespace FoundationDB.Client.Core
 
 		void SetOption(FdbDatabaseOption option, Slice data);
 
+		[NotNull]
 		IFdbTransactionHandler CreateTransaction(FdbOperationContext context);
 
 	}

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Core
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -76,7 +77,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
-		Task<Slice[]> GetValuesAsync(Slice[] keys, bool snapshot, CancellationToken cancellationToken);
+		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys, bool snapshot, CancellationToken cancellationToken);
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>
@@ -90,7 +91,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, bool snapshot, CancellationToken cancellationToken);
+		Task<Slice[]> GetKeysAsync([NotNull] FdbKeySelector[] selectors, bool snapshot, CancellationToken cancellationToken);
 
 		/// <summary>Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode) which have a key lexicographically greater than or equal to the key resolved by the begin key selector and lexicographically less than the key resolved by the end key selector.</summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>

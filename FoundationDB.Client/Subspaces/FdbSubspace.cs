@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 		#region Constructors...
 
 		/// <summary>Wraps an existing subspace</summary>
-		protected FdbSubspace(FdbSubspace copy)
+		protected FdbSubspace([NotNull] FdbSubspace copy)
 		{
 			if (copy == null) throw new ArgumentNullException("copy");
 			if (copy.m_rawPrefix.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "copy");
@@ -204,7 +204,7 @@ namespace FoundationDB.Client
 		/// <param name="keys">Array of complete keys that contains the current subspace prefix, and a binary suffix</param>
 		/// <returns>Array of only the binary suffix of the keys, Slice.Empty for a key that is exactly equal to the subspace prefix, or Slice.Nil for a key that is outside of the subspace</returns>
 		[NotNull]
-		public Slice[] Extract(Slice[] keys)
+		public Slice[] Extract([NotNull] Slice[] keys)
 		{ //REVIEW: rename to ExtractRange ?
 			if (keys == null) throw new ArgumentNullException("keys");
 
@@ -238,7 +238,7 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
-		public Slice[] ExtractAndCheck(Slice[] keys)
+		public Slice[] ExtractAndCheck([NotNull] Slice[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 

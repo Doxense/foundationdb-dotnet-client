@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,24 +29,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
-	using System.Threading;
 	using System.Threading.Tasks;
 
 	[DebuggerDisplay("Name={Name}, Subspace={Subspace}")]
 	public class FdbMap<TKey, TValue>
 	{
 
-		public FdbMap(string name, FdbSubspace subspace, IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] string name, [NotNull] FdbSubspace subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
 			: this(name, subspace, KeyValueEncoders.Tuples.Key<TKey>(), valueEncoder)
 		{ }
 
-		public FdbMap(string name, FdbSubspace subspace, IKeyEncoder<TKey> keyEncoder, IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] string name, [NotNull] FdbSubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -63,16 +61,16 @@ namespace FoundationDB.Layers.Collections
 
 		/// <summary>Name of the map</summary>
 		// REVIEW: do we really need this property?
-		public string Name { get; private set; }
+		public string Name { [NotNull] get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this map</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public FdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Subspace used to encoded the keys for the items</summary>
-		protected FdbEncoderSubspace<TKey> Location { get; private set; }
+		protected FdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
-		public IValueEncoder<TValue> ValueEncoder { get; private set; }
+		public IValueEncoder<TValue> ValueEncoder { [NotNull] get; private set; }
 
 		#endregion
 
@@ -84,7 +82,7 @@ namespace FoundationDB.Layers.Collections
 		/// <returns>Value of the entry if it exists; otherwise, throws an exception</returns>
 		/// <exception cref="System.ArgumentNullException">If either <paramref name="trans"/> or <paramref name="id"/> is null.</exception>
 		/// <exception cref="System.Collections.Generic.KeyNotFoundException">If the map does not contain an entry with this key.</exception>
-		public async Task<TValue> GetAsync(IFdbReadOnlyTransaction trans, TKey id)
+		public async Task<TValue> GetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -99,7 +97,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="id">Key of the entry to read from the map</param>
 		/// <returns>Optional with the value of the entry it it exists, or an empty result if it is not present in the map.</returns>
-		public async Task<Optional<TValue>> TryGetAsync(IFdbReadOnlyTransaction trans, TKey id)
+		public async Task<Optional<TValue>> TryGetAsync([NotNull] IFdbReadOnlyTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -115,7 +113,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="id">Key of the entry to add or update</param>
 		/// <param name="value">New value of the entry</param>
 		/// <remarks>If the entry did not exist, it will be created. If not, its value will be replace with <paramref name="value"/>.</remarks>
-		public void Set(IFdbTransaction trans, TKey id, TValue value)
+		public void Set([NotNull] IFdbTransaction trans, TKey id, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -127,7 +125,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="id">Key of the entry to remove</param>
 		/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
-		public void Clear(IFdbTransaction trans, TKey id)
+		public void Clear([NotNull] IFdbTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -139,7 +137,8 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
 		/// <remarks>This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
-		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All(IFdbReadOnlyTransaction trans)
+		[NotNull]
+		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -155,7 +154,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="ids">List of the keys to read</param>
 		/// <returns>Array of results, in the same order as specified in <paramref name="ids"/>.</returns>
-		public async Task<Optional<TValue>[]> GetValuesAsync(IFdbReadOnlyTransaction trans, IEnumerable<TKey> ids)
+		public async Task<Optional<TValue>[]> GetValuesAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> ids)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");

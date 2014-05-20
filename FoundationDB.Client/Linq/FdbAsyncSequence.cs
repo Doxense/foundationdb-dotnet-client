@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 
 	/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
@@ -39,8 +41,9 @@ namespace FoundationDB.Linq
 		public readonly IFdbAsyncEnumerable<TSource> Source;
 		public readonly Func<IFdbAsyncEnumerator<TSource>, IFdbAsyncEnumerator<TResult>> Factory;
 
-		public FdbAsyncSequence(IFdbAsyncEnumerable<TSource> source, Func<IFdbAsyncEnumerator<TSource>, IFdbAsyncEnumerator<TResult>> factory)
+		public FdbAsyncSequence([NotNull] IFdbAsyncEnumerable<TSource> source, [NotNull] Func<IFdbAsyncEnumerator<TSource>, IFdbAsyncEnumerator<TResult>> factory)
 		{
+			Contract.Requires(source != null && factory != null);
 			this.Source = source;
 			this.Factory = factory;
 		}
@@ -56,7 +59,7 @@ namespace FoundationDB.Linq
 			try
 			{
 				inner = this.Source.GetEnumerator(mode);
-				if (inner == null) throw new InvalidOperationException("The underlying async sequence returned an empty enumerator");
+				Contract.Requires(inner != null, "The underlying async sequence returned an empty enumerator");
 
 				var outer = this.Factory(inner);
 				if (outer == null) throw new InvalidOperationException("The async factory returned en empty enumerator");

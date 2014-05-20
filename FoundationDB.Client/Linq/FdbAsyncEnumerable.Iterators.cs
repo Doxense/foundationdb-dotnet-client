@@ -105,9 +105,9 @@ namespace FoundationDB.Linq
 			return new FdbSelectManyAsyncIterator<TSource, TResult>(source, null, asyncSelector);
 		}
 
-		internal static SelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		internal static FdbSelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
-			return new SelectManyAsyncIterator<TSource, TCollection, TResult>(
+			return new FdbSelectManyAsyncIterator<TSource, TCollection, TResult>(
 				source,
 				collectionSelector,
 				null,
@@ -115,9 +115,9 @@ namespace FoundationDB.Linq
 			);
 		}
 
-		internal static SelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		internal static FdbSelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
 		{
-			return new SelectManyAsyncIterator<TSource, TCollection, TResult>(
+			return new FdbSelectManyAsyncIterator<TSource, TCollection, TResult>(
 				source,
 				null,
 				asyncCollectionSelector,

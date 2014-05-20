@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Runtime.ExceptionServices;
@@ -244,7 +245,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
-		public static Maybe<R> Apply<T, R>(T value, Func<T, Maybe<R>> lambda)
+		public static Maybe<R> Apply<T, R>(T value, [NotNull] Func<T, Maybe<R>> lambda)
 		{
 			Contract.Requires(lambda != null);
 			try
@@ -258,7 +259,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
-		public static Maybe<R> Apply<T, R>(Maybe<T> value, Func<T, R> lambda)
+		public static Maybe<R> Apply<T, R>(Maybe<T> value, [NotNull] Func<T, R> lambda)
 		{
 			Contract.Requires(lambda != null);
 			if (!value.HasValue)
@@ -277,7 +278,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
-		public static Maybe<R> Apply<T, R>(Maybe<T> value, Func<T, Maybe<R>> lambda)
+		public static Maybe<R> Apply<T, R>(Maybe<T> value, [NotNull] Func<T, Maybe<R>> lambda)
 		{
 			Contract.Requires(lambda != null);
 			if (!value.HasValue)
@@ -296,7 +297,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Convert a completed <see cref="Task{T}"/> into an equivalent <see cref="Maybe{T}"/></summary>
-		public static Maybe<T> FromTask<T>(Task<T> task)
+		public static Maybe<T> FromTask<T>([NotNull] Task<T> task)
 		{
 			Contract.Requires(task != null);
 			switch (task.Status)
@@ -327,7 +328,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Convert a completed <see cref="Task{T}"/> into an equivalent <see cref="Maybe{T}"/></summary>
-		public static Maybe<T> FromTask<T>(Task<Maybe<T>> task)
+		public static Maybe<T> FromTask<T>([NotNull] Task<Maybe<T>> task)
 		{
 			Contract.Requires(task != null);
 			switch (task.Status)
@@ -352,7 +353,7 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Streamline a potentially failed Task&lt;Maybe&lt;T&gt;&gt; into a version that capture the error into the <see cref="Maybe{T}"/> itself</summary>
-		public static Task<Maybe<T>> Unwrap<T>(Task<Maybe<T>> task)
+		public static Task<Maybe<T>> Unwrap<T>([NotNull] Task<Maybe<T>> task)
 		{
 			Contract.Requires(task != null);
 			switch(task.Status)

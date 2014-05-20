@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Async
 {
+	using JetBrains.Annotations;
 
 	// note: these interfaces are modeled after the IAsyncEnumerable<T> and IAsyncEnumerator<T> found in Rx
 	//TODO: if/when async enumerables are avail in C#, we would just need to either remove these interfaces, or make them implement the real stuff
@@ -38,6 +39,7 @@ namespace FoundationDB.Async
 	{
 		/// <summary>Gets an asynchronous enumerator over the sequence.</summary>
 		/// <returns>Enumerator for asynchronous enumeration over the sequence.</returns>
+		[NotNull]
 		IAsyncEnumerator<T> GetEnumerator();
 	}
 

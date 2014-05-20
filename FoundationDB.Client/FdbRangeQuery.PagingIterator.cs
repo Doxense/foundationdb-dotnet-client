@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -87,7 +88,7 @@ namespace FoundationDB.Client
 
 			#endregion
 
-			public PagingIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction)
+			public PagingIterator([NotNull] FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction)
 			{
 				Contract.Requires(query != null);
 

@@ -44,7 +44,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
-		internal FdbRangeQuery(IFdbReadOnlyTransaction transaction, FdbKeySelector begin, FdbKeySelector end, Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, FdbRangeOptions options)
+		internal FdbRangeQuery([NotNull] IFdbReadOnlyTransaction transaction, FdbKeySelector begin, FdbKeySelector end, [NotNull] Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, FdbRangeOptions options)
 		{
 			Contract.Requires(transaction != null && transform != null);
 
@@ -58,7 +58,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Copy constructor</summary>
-		private FdbRangeQuery(FdbRangeQuery<T> query, FdbRangeOptions options)
+		private FdbRangeQuery([NotNull] FdbRangeQuery<T> query, [NotNull] FdbRangeOptions options)
 		{
 			Contract.Requires(query != null && options != null);
 
@@ -248,7 +248,7 @@ namespace FoundationDB.Client
 		/// <param name="transaction">Transaction to use when executing this query</param>
 		/// <returns>A new query object that will use the specified transaction when executed</returns>
 		[NotNull]
-		public FdbRangeQuery<T> UseTransaction(IFdbReadOnlyTransaction transaction)
+		public FdbRangeQuery<T> UseTransaction([NotNull] IFdbReadOnlyTransaction transaction)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
 
@@ -296,7 +296,7 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
-		internal FdbRangeQuery<R> Map<R>(Func<KeyValuePair<Slice, Slice>, R> transform)
+		internal FdbRangeQuery<R> Map<R>([NotNull] Func<KeyValuePair<Slice, Slice>, R> transform)
 		{
 			Contract.Requires(transform != null);
 			return new FdbRangeQuery<R>(
@@ -311,7 +311,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Projects each element of the range results into a new form.</summary>
 		[NotNull]
-		public FdbRangeQuery<R> Select<R>(Func<T, R> lambda)
+		public FdbRangeQuery<R> Select<R>([NotNull] Func<T, R> lambda)
 		{
 			Contract.Requires(lambda != null);
 			// note: avoid storing the query in the scope by storing the transform locally so that only 'f' and 'lambda' are kept alive
@@ -323,7 +323,7 @@ namespace FoundationDB.Client
 		/// <summary>Filters the range results based on a predicate.</summary>
 		/// <remarks>Caution: filtering occurs on the client side !</remarks>
 		[NotNull]
-		public IFdbAsyncEnumerable<T> Where(Func<T, bool> predicate)
+		public IFdbAsyncEnumerable<T> Where([NotNull] Func<T, bool> predicate)
 		{
 			return FdbAsyncEnumerable.Where(this, predicate);
 		}
@@ -384,7 +384,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Execute an action on each key/value pair of the range results</summary>
-		public Task ForEachAsync(Action<T> action)
+		public Task ForEachAsync([NotNull] Action<T> action)
 		{
 			return FdbAsyncEnumerable.ForEachAsync(this, action, this.Transaction.Cancellation);
 		}
@@ -483,7 +483,7 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
-		public static FdbRangeQuery<R> Keys<K, V, R>(this FdbRangeQuery<KeyValuePair<K, V>> query, Func<K, R> transform)
+		public static FdbRangeQuery<R> Keys<K, V, R>(this FdbRangeQuery<KeyValuePair<K, V>> query, [NotNull] Func<K, R> transform)
 		{
 			if (query == null) throw new ArgumentNullException("query");
 			if (transform == null) throw new ArgumentNullException("transform");
@@ -508,7 +508,7 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
-		public static FdbRangeQuery<R> Values<K, V, R>(this FdbRangeQuery<KeyValuePair<K, V>> query, Func<V, R> transform)
+		public static FdbRangeQuery<R> Values<K, V, R>(this FdbRangeQuery<KeyValuePair<K, V>> query, [NotNull] Func<V, R> transform)
 		{
 			if (query == null) throw new ArgumentNullException("query");
 			if (transform == null) throw new ArgumentNullException("transform");

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Collections
 {
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -39,7 +40,7 @@ namespace FoundationDB.Layers.Collections
 		#region Empty / Size
 
 		/// <summary>Remove all items from the Vector.</summary>
-		public static Task<bool> EmptyAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional db, CancellationToken cancellationToken)
+		public static Task<bool> EmptyAsync<T>(this FdbVector<T> vector, [NotNull] IFdbReadOnlyTransactional db, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (db == null) throw new ArgumentNullException("db");
@@ -48,7 +49,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Get the number of items in the Vector. This number includes the sparsely represented items.</summary>
-		public static Task<long> SizeAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional db, CancellationToken cancellationToken)
+		public static Task<long> SizeAsync<T>(this FdbVector<T> vector, [NotNull] IFdbReadOnlyTransactional db, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (db == null) throw new ArgumentNullException("db");
@@ -61,7 +62,7 @@ namespace FoundationDB.Layers.Collections
 		#region Clear / Resize
 
 		/// <summary>Remove all items from the Vector.</summary>
-		public static Task ClearAsync<T>(this FdbVector<T> vector, IFdbTransactional db, CancellationToken cancellationToken)
+		public static Task ClearAsync<T>(this FdbVector<T> vector, [NotNull] IFdbTransactional db, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (db == null) throw new ArgumentNullException("db");
@@ -70,7 +71,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Grow or shrink the size of the Vector.</summary>
-		public static Task ResizeAsync<T>(this FdbVector<T> vector, IFdbTransactional db, long length, CancellationToken cancellationToken)
+		public static Task ResizeAsync<T>(this FdbVector<T> vector, [NotNull] IFdbTransactional db, long length, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (db == null) throw new ArgumentNullException("db");
@@ -83,7 +84,7 @@ namespace FoundationDB.Layers.Collections
 		#region Push / Pop
 
 		/// <summary>Get and pops the last item off the Vector.</summary>
-		public static Task<Optional<T>> PopAsync<T>(this FdbVector<T> vector, IFdbTransactional db, CancellationToken cancellationToken)
+		public static Task<Optional<T>> PopAsync<T>(this FdbVector<T> vector, [NotNull] IFdbTransactional db, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (db == null) throw new ArgumentNullException("db");
@@ -92,7 +93,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Push a single item onto the end of the Vector.</summary>
-		public static Task PushAsync<T>(this FdbVector<T> vector, IFdbTransactional db, T value, CancellationToken cancellationToken)
+		public static Task PushAsync<T>(this FdbVector<T> vector, [NotNull] IFdbTransactional db, T value, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (db == null) throw new ArgumentNullException("db");
@@ -105,7 +106,7 @@ namespace FoundationDB.Layers.Collections
 		#region Get / Set
 
 		/// <summary>Get the item at the specified index.</summary>
-		public static Task<T> GetAsync<T>(this FdbVector<T> vector, IFdbReadOnlyTransactional db, long index, CancellationToken cancellationToken)
+		public static Task<T> GetAsync<T>(this FdbVector<T> vector, [NotNull] IFdbReadOnlyTransactional db, long index, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (db == null) throw new ArgumentNullException("db");
@@ -114,7 +115,7 @@ namespace FoundationDB.Layers.Collections
 		}
 
 		/// <summary>Set the value at a particular index in the Vector.</summary>
-		public static Task SetAsync<T>(this FdbVector<T> vector, IFdbTransactional db, long index, T value, CancellationToken cancellationToken)
+		public static Task SetAsync<T>(this FdbVector<T> vector, [NotNull] IFdbTransactional db, long index, T value, CancellationToken cancellationToken)
 		{
 			if (vector == null) throw new ArgumentNullException("vector");
 			if (db == null) throw new ArgumentNullException("db");

@@ -30,6 +30,7 @@ namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -41,7 +42,7 @@ namespace FoundationDB.Linq
 		private readonly Func<TSource, bool> m_filter;
 		private readonly Func<TSource, CancellationToken, Task<bool>> m_asyncFilter;
 
-		public FdbWhereAsyncIterator(IFdbAsyncEnumerable<TSource> source, Func<TSource, bool> filter, Func<TSource, CancellationToken, Task<bool>> asyncFilter)
+		public FdbWhereAsyncIterator([NotNull] IFdbAsyncEnumerable<TSource> source, Func<TSource, bool> filter, Func<TSource, CancellationToken, Task<bool>> asyncFilter)
 			: base(source)
 		{
 			Contract.Requires(filter != null ^ asyncFilter != null, "there can be only one kind of filter specified");

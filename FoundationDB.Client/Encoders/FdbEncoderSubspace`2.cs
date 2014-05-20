@@ -41,7 +41,7 @@ namespace FoundationDB.Client
 		protected readonly ICompositeKeyEncoder<T1, T2> m_encoder;
 		protected volatile FdbEncoderSubspace<T1> m_head;
 
-		public FdbEncoderSubspace(FdbSubspace subspace, ICompositeKeyEncoder<T1, T2> encoder)
+		public FdbEncoderSubspace([NotNull] FdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 			: base(subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -66,27 +66,27 @@ namespace FoundationDB.Client
 
 		#region Transaction Helpers...
 
-		public void Set(IFdbTransaction trans, T1 key1, T2 key2, Slice value)
+		public void Set([NotNull] IFdbTransaction trans, T1 key1, T2 key2, Slice value)
 		{
 			trans.Set(EncodeKey(key1, key2), value);
 		}
 
-		public void Set(IFdbTransaction trans, FdbTuple<T1, T2> key, Slice value)
+		public void Set([NotNull] IFdbTransaction trans, FdbTuple<T1, T2> key, Slice value)
 		{
 			trans.Set(EncodeKey(key), value);
 		}
 
-		public void Clear(IFdbTransaction trans, T1 key1, T2 key2)
+		public void Clear([NotNull] IFdbTransaction trans, T1 key1, T2 key2)
 		{
 			trans.Clear(EncodeKey(key1, key2));
 		}
 
-		public void Clear(IFdbTransaction trans, FdbTuple<T1, T2> key)
+		public void Clear([NotNull] IFdbTransaction trans, FdbTuple<T1, T2> key)
 		{
 			trans.Clear(EncodeKey(key));
 		}
 
-		public Task<Slice> GetAsync(IFdbReadOnlyTransaction trans, T1 key1, T2 key2)
+		public Task<Slice> GetAsync([NotNull] IFdbReadOnlyTransaction trans, T1 key1, T2 key2)
 		{
 			return trans.GetAsync(EncodeKey(key1, key2));
 		}

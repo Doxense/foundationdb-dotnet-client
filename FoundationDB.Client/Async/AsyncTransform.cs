@@ -28,9 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Async
 {
-	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
@@ -46,8 +45,11 @@ namespace FoundationDB.Async
 		private readonly TaskScheduler m_scheduler;
 		private bool m_done;
 
-		public AsyncTransform(Func<T, CancellationToken, Task<R>> transform, IAsyncTarget<Task<R>> target, TaskScheduler scheduler = null)
+		public AsyncTransform([NotNull] Func<T, CancellationToken, Task<R>> transform, [NotNull] IAsyncTarget<Task<R>> target, TaskScheduler scheduler = null)
 		{
+			if (transform == null) throw new ArgumentNullException("transform");
+			if (target == null) throw new ArgumentNullException("target");
+
 			m_transform = transform;
 			m_target = target;
 			m_scheduler = scheduler;

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
@@ -43,7 +44,7 @@ namespace FoundationDB.Linq
 		private readonly Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> m_asyncSelector;
 		private IEnumerator<TResult> m_batch;
 
-		public FdbSelectManyAsyncIterator(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
+		public FdbSelectManyAsyncIterator([NotNull] IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
 			: base(source)
 		{
 			// Must have at least one, but not both
@@ -125,7 +126,7 @@ namespace FoundationDB.Linq
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TCollection">Type of the elements of the sequences produced from each <typeparamref name="TSource"/> elements</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	internal sealed class SelectManyAsyncIterator<TSource, TCollection, TResult> : FdbAsyncFilter<TSource, TResult>
+	internal sealed class FdbSelectManyAsyncIterator<TSource, TCollection, TResult> : FdbAsyncFilter<TSource, TResult>
 	{
 		private readonly Func<TSource, IEnumerable<TCollection>> m_collectionSelector;
 		private readonly Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> m_asyncCollectionSelector;
@@ -133,11 +134,11 @@ namespace FoundationDB.Linq
 		private TSource m_sourceCurrent;
 		private IEnumerator<TCollection> m_batch;
 
-		public SelectManyAsyncIterator(
-			IFdbAsyncEnumerable<TSource> source,
+		public FdbSelectManyAsyncIterator(
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
 			Func<TSource, IEnumerable<TCollection>> collectionSelector,
 			Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector,
-			Func<TSource, TCollection, TResult> resultSelector
+			[NotNull] Func<TSource, TCollection, TResult> resultSelector
 		)
 			: base(source)
 		{
@@ -152,7 +153,7 @@ namespace FoundationDB.Linq
 
 		protected override FdbAsyncIterator<TResult> Clone()
 		{
-			return new SelectManyAsyncIterator<TSource, TCollection, TResult>(m_source, m_collectionSelector, m_asyncCollectionSelector, m_resultSelector);
+			return new FdbSelectManyAsyncIterator<TSource, TCollection, TResult>(m_source, m_collectionSelector, m_asyncCollectionSelector, m_resultSelector);
 		}
 
 		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)

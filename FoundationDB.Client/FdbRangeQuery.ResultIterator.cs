@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -73,7 +74,7 @@ namespace FoundationDB.Client
 
 			#region IFdbAsyncEnumerator<T>...
 
-			public ResultIterator(FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction, Func<KeyValuePair<Slice, Slice>, T> transform)
+			public ResultIterator([NotNull] FdbRangeQuery<T> query, IFdbReadOnlyTransaction transaction, [NotNull] Func<KeyValuePair<Slice, Slice>, T> transform)
 			{
 				Contract.Requires(query != null && transform != null);
 

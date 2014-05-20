@@ -345,7 +345,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Create a simple encoder from a codec</summary>
 			[NotNull]
-			public static IKeyEncoder<T> Bind<T>(IOrderedTypeCodec<T> codec)
+			public static IKeyEncoder<T> Bind<T>([NotNull] IOrderedTypeCodec<T> codec)
 			{
 				if (codec == null) throw new ArgumentNullException("codec");
 
@@ -354,7 +354,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Create a composite encoder from a pair of codecs</summary>
 			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2> Bind<T1, T2>(IOrderedTypeCodec<T1> codec1, IOrderedTypeCodec<T2> codec2)
+			public static ICompositeKeyEncoder<T1, T2> Bind<T1, T2>([NotNull] IOrderedTypeCodec<T1> codec1, [NotNull] IOrderedTypeCodec<T2> codec2)
 			{
 				if (codec1 == null) throw new ArgumentNullException("codec1");
 				if (codec2 == null) throw new ArgumentNullException("codec2");
@@ -364,7 +364,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Create a composite encoder from a triplet of codecs</summary>
 			[NotNull]
-			public static ICompositeKeyEncoder<T1, T2, T3> Bind<T1, T2, T3>(IOrderedTypeCodec<T1> codec1, IOrderedTypeCodec<T2> codec2, IOrderedTypeCodec<T3> codec3)
+			public static ICompositeKeyEncoder<T1, T2, T3> Bind<T1, T2, T3>([NotNull] IOrderedTypeCodec<T1> codec1, [NotNull] IOrderedTypeCodec<T2> codec2, [NotNull] IOrderedTypeCodec<T3> codec3)
 			{
 				if (codec1 == null) throw new ArgumentNullException("codec1");
 				if (codec2 == null) throw new ArgumentNullException("codec2");
@@ -379,16 +379,16 @@ namespace FoundationDB.Client
 				codec1.EncodeOrderedSelfTerm(ref writer, value1);
 			}
 
-			public static void Encode<T1, T2>(ref SliceWriter writer, IOrderedTypeCodec<T1> codec1, T1 value1, IOrderedTypeCodec<T2> codec2, T2 value2)
+			public static void Encode<T1, T2>(ref SliceWriter writer, [NotNull] IOrderedTypeCodec<T1> codec1, T1 value1, [NotNull] IOrderedTypeCodec<T2> codec2, T2 value2)
 			{
 				Contract.Assert(codec1 != null && codec2 != null);
 				codec1.EncodeOrderedSelfTerm(ref writer, value1);
 				codec2.EncodeOrderedSelfTerm(ref writer, value2);
 			}
 
-			public static void Encode<T1, T2, T3>(ref SliceWriter writer, IOrderedTypeCodec<T1> codec1, T1 value1, IOrderedTypeCodec<T2> codec2, T2 value2, IOrderedTypeCodec<T3> codec3, T3 value3)
+			public static void Encode<T1, T2, T3>(ref SliceWriter writer, [NotNull] IOrderedTypeCodec<T1> codec1, T1 value1, [NotNull] IOrderedTypeCodec<T2> codec2, T2 value2, [NotNull] IOrderedTypeCodec<T3> codec3, T3 value3)
 			{
-				Contract.Assert(codec1 != null && codec2 != null);
+				Contract.Assert(codec1 != null && codec2 != null && codec3 != null);
 				codec1.EncodeOrderedSelfTerm(ref writer, value1);
 				codec2.EncodeOrderedSelfTerm(ref writer, value2);
 				codec3.EncodeOrderedSelfTerm(ref writer, value3);
@@ -402,7 +402,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Create a simple encoder from a codec</summary>
 			[NotNull]
-			public static IKeyEncoder<T> Bind<T>(IUnorderedTypeCodec<T> codec)
+			public static IKeyEncoder<T> Bind<T>([NotNull] IUnorderedTypeCodec<T> codec)
 			{
 				if (codec == null) throw new ArgumentNullException("codec");
 
@@ -453,7 +453,7 @@ namespace FoundationDB.Client
 
 			/// <summary>Create a simple encoder from a codec</summary>
 			[NotNull]
-			public static IValueEncoder<T> Bind<T>(IUnorderedTypeCodec<T> codec)
+			public static IValueEncoder<T> Bind<T>([NotNull] IUnorderedTypeCodec<T> codec)
 			{
 				if (codec == null) throw new ArgumentNullException("codec");
 
@@ -776,7 +776,7 @@ namespace FoundationDB.Client
 		#region Keys...
 
 		[NotNull]
-		public static IKeyEncoder<T> Bind<T>(Func<T, Slice> encoder, Func<Slice, T> decoder)
+		public static IKeyEncoder<T> Bind<T>([NotNull] Func<T, Slice> encoder, [NotNull] Func<Slice, T> decoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (decoder == null) throw new ArgumentNullException("decoder");
@@ -785,7 +785,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static Slice[] EncodeRange<T>(this IKeyEncoder<T> encoder, T[] values)
+		public static Slice[] EncodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] T[] values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 			if (encoder == null) throw new ArgumentNullException("encoder");
@@ -800,7 +800,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<Slice> EncodeRange<T>(this IKeyEncoder<T> encoder, IEnumerable<T> values)
+		public static IEnumerable<Slice> EncodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 			if (encoder == null) throw new ArgumentNullException("encoder");
@@ -813,7 +813,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static T[] DecodeRange<T>(this IKeyEncoder<T> encoder, Slice[] slices)
+		public static T[] DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] Slice[] slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -828,7 +828,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static List<T> DecodeRange<T>(this IKeyEncoder<T> encoder, List<Slice> slices)
+		public static List<T> DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] List<Slice> slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -843,7 +843,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<T> DecodeRange<T>(this IKeyEncoder<T> encoder, IEnumerable<Slice> slices)
+		public static IEnumerable<T> DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -883,7 +883,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static Slice[] EncodeRange<T>(this IValueEncoder<T> encoder, T[] values)
+		public static Slice[] EncodeRange<T>(this IValueEncoder<T> encoder, [NotNull] T[] values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 			if (encoder == null) throw new ArgumentNullException("encoder");
@@ -898,7 +898,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<Slice> EncodeRange<T>(this IValueEncoder<T> encoder, IEnumerable<T> values)
+		public static IEnumerable<Slice> EncodeRange<T>(this IValueEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 			if (encoder == null) throw new ArgumentNullException("encoder");
@@ -926,7 +926,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static List<T> DecodeRange<T>(this IValueEncoder<T> encoder, List<Slice> slices)
+		public static List<T> DecodeRange<T>(this IValueEncoder<T> encoder, [NotNull] List<Slice> slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -941,7 +941,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<T> DecodeRange<T>(this IValueEncoder<T> encoder, IEnumerable<Slice> slices)
+		public static IEnumerable<T> DecodeRange<T>(this IValueEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
