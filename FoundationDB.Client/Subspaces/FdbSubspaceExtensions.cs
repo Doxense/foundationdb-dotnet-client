@@ -77,7 +77,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public static Task<Slice> GetAsync(this IFdbReadOnlyTransaction trans, [NotNull] FdbSubspace subspace, IFdbTuple key)
 		{
-			Contract.Requires(trans != null && subspace != null && key != null);
+			Contract.Requires(trans != null && subspace != null);
 
 			return trans.GetAsync(subspace.Pack(key));
 		}
@@ -102,7 +102,7 @@ namespace FoundationDB.Client
 		/// <summary>Tests whether the specified <paramref name="key"/> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="key"/>.</summary>
 		/// <param name="key">The key to be tested</param>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="key"/> is null</exception>
-		public static bool Contains<TKey>(this FdbSubspace subspace, TKey key)
+		public static bool Contains<TKey>(this FdbSubspace subspace, [NotNull] TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -123,7 +123,7 @@ namespace FoundationDB.Client
 		/// <typeparam name="TKey">type of the key, must implements IFdbKey</typeparam>
 		/// <param name="key"></param>
 		/// <returns>Return Slice : 'subspace.Key + key'</returns>
-		public static Slice Concat<TKey>(this IFdbSubspace subspace, TKey key)
+		public static Slice Concat<TKey>(this IFdbSubspace subspace, [NotNull] TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -662,7 +662,7 @@ namespace FoundationDB.Client
 
 		#region ToRange...
 
-		public static FdbKeyRange ToRange<TKey>(this FdbSubspace subspace, TKey key)
+		public static FdbKeyRange ToRange<TKey>(this FdbSubspace subspace, [NotNull] TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");

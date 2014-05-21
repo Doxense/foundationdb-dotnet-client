@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Filters
 {
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Threading;
@@ -73,8 +74,13 @@ namespace FoundationDB.Filters
 		#region Public Properties...
 
 		/// <summary>Database instance configured to read and write data from this partition</summary>
-		protected IFdbDatabase Database { get { return m_database; } }
+		protected IFdbDatabase Database
+		{
+			[NotNull]
+			get { return m_database; }
+		}
 
+		[NotNull]
 		internal IFdbDatabase GetInnerDatabase()
 		{
 			return m_database;
@@ -90,6 +96,7 @@ namespace FoundationDB.Filters
 		public IFdbCluster Cluster
 		{
 			//REVIEW: do we need a Cluster Filter ?
+			[NotNull]
 			get { return m_database.Cluster; }
 		}
 
@@ -102,6 +109,7 @@ namespace FoundationDB.Filters
 		/// <summary>Returns the global namespace used by this database instance</summary>
 		public FdbSubspace GlobalSpace
 		{
+			[NotNull]
 			get { return m_database.GlobalSpace; }
 		}
 

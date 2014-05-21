@@ -304,6 +304,7 @@ namespace FoundationDB.Client
 		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an emtpy array if <paramref name="count"/> is zero, <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
 		/// <exception cref="ArgumentOutOfRangeException">If <paramref name="startIndex"/> or <paramref name="count"/> is less than zero. -or- <paramref name="startIndex"/> plus <paramref name="count"/> is greater than the number of elements in <paramref name="values"/>.</exception>
+		[NotNull]
 		public static byte[] JoinBytes(Slice separator, [NotNull] Slice[] values, int startIndex, int count)
 		{
 			// Note: this method is modeled after String.Join() and should behave the same
@@ -342,6 +343,7 @@ namespace FoundationDB.Client
 		/// <param name="values">A sequence will return the elements to concatenate.</param>
 		/// <returns>A byte array that consists of the slices in <paramref name="values"/> delimited by the <paramref name="separator"/> slice. -or- an empty array if <paramref name="values"/> has no elements, or <paramref name="separator"/> and all the elements of <paramref name="values"/> are <see cref="Slice.Empty"/>.</returns>
 		/// <exception cref="ArgumentNullException">If <paramref name="values"/> is null.</exception>
+		[NotNull]
 		public static byte[] JoinBytes(Slice separator, [NotNull] IEnumerable<Slice> values)
 		{
 			if (values == null) throw new ArgumentNullException("values");
@@ -357,6 +359,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.ArgumentException">If <paramref name="separator"/> is empty, or if <paramref name="options"/> is not one of the <see cref="StringSplitOptions"/> values.</exception>
 		/// <remarks>If <paramref name="input"/> does not contain the delimiter, the returned array consists of a single element that repeats the input, or an empty array if input is itself empty.
 		/// To reduce memory usage, the sub-slices returned in the array will all share the same underlying buffer of the input slice.</remarks>
+		[NotNull]
 		public static Slice[] Split(Slice input, Slice separator, StringSplitOptions options = StringSplitOptions.None)
 		{
 			// this method is made to behave the same way as String.Split(), especially the following edge cases

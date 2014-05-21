@@ -76,7 +76,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new subspace from a Tuple prefix</summary>
 		/// <param name="tuple">Tuple packed to produce the prefix</param>
-		public FdbSubspace(IFdbTuple tuple)
+		public FdbSubspace([NotNull] IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 			m_rawPrefix = tuple.ToSlice().Memoize();
@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
-		public static FdbSubspace Create(IFdbTuple tuple)
+		public static FdbSubspace Create([NotNull] IFdbTuple tuple)
 		{
 			return new FdbSubspace(tuple);
 		}
@@ -116,14 +116,14 @@ namespace FoundationDB.Client
 			return m_rawPrefix;
 		}
 
-		/// <summary>Create a new subspace of the current subspace</summary>
+		/// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
 		/// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
 		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
 		public FdbSubspace this[Slice suffix]
 		{
 			// note: there is a difference with the Pyton layer because here we don't use Tuple encoding, but just concat the slices together.
 			// the .NET equivalent of the subspace.__getitem__(self, name) method would be subspace.Partition<Slice>(name) or subspace[FdbTuple.Create<Slice>(name)] !
-			[ContractAnnotation("null => halt; notnull => notnull")]
+			[NotNull]
 			get
 			{
 				if (suffix.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", "suffix");
@@ -337,6 +337,7 @@ namespace FoundationDB.Client
 			throw new ArgumentException(msg, "key");
 		}
 
+		[NotNull]
 		public virtual string DumpKey(Slice key)
 		{
 			// note: we can't use ExtractAndCheck(...) because it may throw in derived classes
