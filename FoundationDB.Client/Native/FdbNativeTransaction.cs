@@ -177,7 +177,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Requires(keys != null);
 
-			if (keys.Length == 0) return Task.FromResult(new Slice[0]);
+			if (keys.Length == 0) return Task.FromResult(Slice.EmptySliceArray);
 
 			var futures = new FutureHandle[keys.Length];
 			try

@@ -40,7 +40,6 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
 	public static class FdbTuplePackers
 	{
-		private static readonly Slice[] NoSlices = new Slice[0];
 
 		public delegate void Encoder<in T>(ref SliceWriter writer, T value);
 
@@ -734,7 +733,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			if (slicer.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
-			return new FdbSlicedTuple(p == 0 ? NoSlices : items, 0, p);
+			return new FdbSlicedTuple(p == 0 ? Slice.EmptySliceArray : items, 0, p);
 		}
 
 		/// <summary>Ensure that a slice is a packed tuple that contains a single and valid element</summary>

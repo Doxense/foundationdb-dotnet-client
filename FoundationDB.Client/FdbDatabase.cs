@@ -466,8 +466,11 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
+		/// <param name="database"></param>
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <param name="ignoreError"></param>
+		/// <param name="error"></param>
 		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
 		internal static bool ValidateKey(IFdbDatabase database, Slice key, bool endExclusive, bool ignoreError, out Exception error)
 		{
@@ -518,7 +521,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
 		internal static bool IsSystemKey(Slice key)
 		{
-			return key.IsPresent && key.Array[key.Offset] == 0xFF;
+			return key.IsPresent && key[0] == 0xFF;
 		}
 
 		/// <summary>Ensures that a serialized value is valid</summary>

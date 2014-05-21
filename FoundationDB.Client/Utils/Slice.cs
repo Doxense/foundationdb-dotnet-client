@@ -48,15 +48,20 @@ namespace FoundationDB.Client
 	{
 		#region Static Members...
 
+		/// <summary>Cached empty array of bytes</summary>
 		internal static readonly byte[] EmptyArray = new byte[0];
+
+		/// <summary>Cached empty array of slices</summary>
+		internal static readonly Slice[] EmptySliceArray = new Slice[0];
+
+		/// <summary>Cached array of bytes from 0 to 255</summary>
+		internal static readonly byte[] ByteSprite;
 
 		/// <summary>Null slice ("no segment")</summary>
 		public static readonly Slice Nil = default(Slice);
 
 		/// <summary>Empty slice ("segment of 0 bytes")</summary>
 		public static readonly Slice Empty = new Slice(EmptyArray, 0, 0);
-
-		private static readonly byte[] ByteSprite;
 
 		[System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Usage", "CA2207:InitializeValueTypeStaticFieldsInline")]
 		static Slice()
@@ -316,7 +321,7 @@ namespace FoundationDB.Client
 			if (count < 0) throw new ArgumentOutOfRangeException("count", count, "Count must be a positive integer");
 			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must fit within the array");
 
-			if (count == 0) return new byte[0];
+			if (count == 0) return Slice.EmptyArray;
 			if (count == 1) return values[0].GetBytes();
 
 			int size = 0;
@@ -377,7 +382,7 @@ namespace FoundationDB.Client
 			bool skipEmpty = options.HasFlag(StringSplitOptions.RemoveEmptyEntries);
 			if (input.Count == 0)
 			{
-				return skipEmpty ? new Slice[0] : new Slice[1] { Slice.Empty };
+				return skipEmpty ? Slice.EmptySliceArray : new Slice[1] { Slice.Empty };
 			}
 
 			while (input.Count > 0)

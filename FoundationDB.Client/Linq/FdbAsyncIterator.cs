@@ -128,8 +128,7 @@ namespace FoundationDB.Linq
 			}
 			catch (Exception e)
 			{
-				Failed(e);
-				throw;
+				return Failed(e);
 			}
 		}
 

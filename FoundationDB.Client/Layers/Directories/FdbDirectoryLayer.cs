@@ -48,10 +48,10 @@ namespace FoundationDB.Layers.Directories
 	public class FdbDirectoryLayer : IFdbDirectory
 	{
 		private const int SUBDIRS = 0;
-		private static readonly Version VERSION = new Version(1, 0, 0);
-		private static readonly Slice LayerSuffix = Slice.FromAscii("layer");
-		private static readonly Slice HcaKey = Slice.FromAscii("hca");
-		private static readonly Slice VersionKey = Slice.FromAscii("version");
+		internal static readonly Version LayerVersion = new Version(1, 0, 0);
+		internal static readonly Slice LayerSuffix = Slice.FromAscii("layer");
+		internal static readonly Slice HcaKey = Slice.FromAscii("hca");
+		internal static readonly Slice VersionKey = Slice.FromAscii("version");
 
 		/// <summary>Subspace where the content of each folder will be stored</summary>
 		public FdbSubspace ContentSubspace { get; private set; }
@@ -814,17 +814,17 @@ namespace FoundationDB.Layers.Directories
 			var minor = reader.ReadFixed32();
 			var upgrade = reader.ReadFixed32();
 
-			if (major > VERSION.Major) throw new InvalidOperationException(String.Format("Cannot load directory with version {0}.{1}.{2} using directory layer {3}", major, minor, upgrade, VERSION));
-			if (writeAccess && minor > VERSION.Minor) throw new InvalidOperationException(String.Format("Directory with version {0}.{1}.{2} is read-only when opened using directory layer {3}", major, minor, upgrade, VERSION));
+			if (major > LayerVersion.Major) throw new InvalidOperationException(String.Format("Cannot load directory with version {0}.{1}.{2} using directory layer {3}", major, minor, upgrade, LayerVersion));
+			if (writeAccess && minor > LayerVersion.Minor) throw new InvalidOperationException(String.Format("Directory with version {0}.{1}.{2} is read-only when opened using directory layer {3}", major, minor, upgrade, LayerVersion));
 		}
 
 		private void InitializeDirectory(IFdbTransaction trans)
 		{
 			// Set the version key
 			var writer = new SliceWriter(3 * 4);
-			writer.WriteFixed32((uint)VERSION.Major);
-			writer.WriteFixed32((uint)VERSION.Minor);
-			writer.WriteFixed32((uint)VERSION.Build);
+			writer.WriteFixed32((uint)LayerVersion.Major);
+			writer.WriteFixed32((uint)LayerVersion.Minor);
+			writer.WriteFixed32((uint)LayerVersion.Build);
 			trans.Set(this.RootNode.Pack(VersionKey), writer.ToSlice());
 		}
 
