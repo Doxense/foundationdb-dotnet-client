@@ -41,18 +41,18 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Runs a transactional lambda function inside a read-only transaction context, with optional retry-logic.
 		/// </summary>
-		Task ReadAsync([NotNull] Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken);
+		Task ReadAsync([NotNull][InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken);
 
 		//REVIEW: should we keep this?
-		Task ReadAsync([NotNull] Func<IFdbReadOnlyTransaction, Task> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
+		Task ReadAsync([NotNull][InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
 
 		/// <summary>
 		/// Runs a transactional lambda function inside a read-only transaction context, with optional retry-logic.
 		/// </summary>
-		Task<R> ReadAsync<R>([NotNull] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken);
+		Task<R> ReadAsync<R>([NotNull][InstantHandle] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken);
 
 		//REVIEW: should we keep this?
-		Task<R> ReadAsync<R>([NotNull] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
+		Task<R> ReadAsync<R>([NotNull][InstantHandle] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken);
 
 	}
 

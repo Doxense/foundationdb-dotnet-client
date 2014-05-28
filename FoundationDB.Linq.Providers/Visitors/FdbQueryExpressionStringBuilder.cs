@@ -191,7 +191,7 @@ namespace FoundationDB.Linq.Expressions
 
 		protected override Expression VisitParameter(ParameterExpression node)
 		{
-			m_writer.Write(node.Name ?? "<param>");
+			m_writer.Write(node.Name);
 
 			return node;
 		}

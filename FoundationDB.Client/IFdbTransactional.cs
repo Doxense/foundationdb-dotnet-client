@@ -39,35 +39,35 @@ namespace FoundationDB.Client
 		/// <summary>Runs an idempotent transactional block inside a write-only transaction context, with optional retry logic.</summary>
 		/// <param name="handler">Idempotent handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
-		Task WriteAsync([NotNull] Action<IFdbTransaction> handler, CancellationToken cancellationToken);
+		Task WriteAsync([NotNull][InstantHandle]  Action<IFdbTransaction> handler, CancellationToken cancellationToken);
 
 		/// <summary>Runs an idempotent transactional block inside a write-only transaction context, with optional retry logic.</summary>
 		/// <param name="handler">Idempotent async handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
-		Task WriteAsync([NotNull] Func<IFdbTransaction, Task> handler, CancellationToken cancellationToken);
+		Task WriteAsync([NotNull][InstantHandle]  Func<IFdbTransaction, Task> handler, CancellationToken cancellationToken);
 
 		/// <summary>Runs an idempotent transactional block inside a read-write transaction context, with optional retry logic.</summary>
 		/// <param name="asyncHandler">Idempotent asynchronous handler that will be retried until the transaction commits, or a non-recoverable error occurs.</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
-		Task ReadWriteAsync([NotNull] Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken);
+		Task ReadWriteAsync([NotNull][InstantHandle]  Func<IFdbTransaction, Task> asyncHandler, CancellationToken cancellationToken);
 
 		/// <summary>Runs an idempotent transactional block that returns a value, inside a read-write transaction context, with optional retry logic.</summary>
 		/// <param name="asyncHandler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		/// <returns>Result of the lambda function if the transaction committed sucessfully.</returns>
-		Task<R> ReadWriteAsync<R>([NotNull] Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken);
+		Task<R> ReadWriteAsync<R>([NotNull][InstantHandle]  Func<IFdbTransaction, Task<R>> asyncHandler, CancellationToken cancellationToken);
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task WriteAsync([NotNull] Action<IFdbTransaction> handler, [NotNull] Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
+		Task WriteAsync([NotNull][InstantHandle]  Action<IFdbTransaction> handler, [NotNull][InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task WriteAsync([NotNull] Func<IFdbTransaction, Task> handler, [NotNull] Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
+		Task WriteAsync([NotNull][InstantHandle]  Func<IFdbTransaction, Task> handler, [NotNull][InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task ReadWriteAsync([NotNull] Func<IFdbTransaction, Task> asyncHandler, [NotNull] Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
+		Task ReadWriteAsync([NotNull][InstantHandle]  Func<IFdbTransaction, Task> asyncHandler, [NotNull][InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
 
 		/// <summary>[EXPERIMENTAL] do not use yet!.</summary>
-		Task<R> ReadWriteAsync<R>([NotNull] Func<IFdbTransaction, Task<R>> asyncHandler, [NotNull] Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
+		Task<R> ReadWriteAsync<R>([NotNull][InstantHandle]  Func<IFdbTransaction, Task<R>> asyncHandler, [NotNull][InstantHandle]  Action<IFdbTransaction> onDone, CancellationToken cancellationToken);
 	}
 
 }

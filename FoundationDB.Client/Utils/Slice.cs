@@ -1329,7 +1329,6 @@ namespace FoundationDB.Client
 		/// <summary>Copy this slice into another buffer, and move the cursor</summary>
 		/// <param name="buffer">Buffer where to copy this slice</param>
 		/// <param name="cursor">Offset into the destination buffer</param>
-		[Pure]
 		public void WriteTo(byte[] buffer, ref int cursor)
 		{
 			SliceHelpers.EnsureBufferIsValid(buffer, cursor, this.Count);
@@ -1345,7 +1344,6 @@ namespace FoundationDB.Client
 		/// <summary>Copy this slice into another buffer</summary>
 		/// <param name="buffer">Buffer where to copy this slice</param>
 		/// <param name="offset">Offset into the destination buffer</param>
-		[Pure]
 		public void CopyTo(byte[] buffer, int offset)
 		{
 			SliceHelpers.EnsureBufferIsValid(buffer, offset, this.Count);
