@@ -131,18 +131,28 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Create a new subspace of the current subspace</summary>
-		/// <param name="tuple">Binary suffix that will be appended to the current prefix</param>
-		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="tuple"/></returns>
-		public FdbSubspace this[IFdbTuple tuple]
+		IFdbSubspace IFdbSubspace.this[Slice suffix]
+		{
+			get { return this[suffix]; }
+		}
+
+		/// <summary>Create a new subspace by adding a <paramref name="key"/> to the current subspace's prefix</summary>
+		/// <param name="key">Key that will be appended to the current prefix</param>
+		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and the packed representation of <paramref name="key"/></returns>
+		public FdbSubspace this[IFdbKey key]
 		{
 			[ContractAnnotation("null => halt; notnull => notnull")]
 			get
 			{
-				if (tuple == null) throw new ArgumentNullException("tuple");
-				if (tuple.Count == 0) return this;
-				return new FdbSubspace(FdbTuple.PackWithPrefix(GetKeyPrefix(), tuple));
+				if (key == null) throw new ArgumentNullException("key");
+				var packed = key.ToFoundationDbKey();
+				return packed.Count == 0 ? this : FdbSubspace.Create(GetKeyPrefix() + packed);
 			}
+		}
+
+		IFdbSubspace IFdbSubspace.this[IFdbKey key]
+		{
+			get { return this[key]; }
 		}
 
 		#endregion

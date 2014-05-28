@@ -114,7 +114,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Directory partition of this database instance</summary>
-		public FdbDatabasePartition Directory
+		public virtual FdbDatabasePartition Directory
 		{
 			get
 			{
@@ -127,9 +127,24 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>If true, this database instance will only allow starting read-only transactions.</summary>
-		public bool IsReadOnly
+		public virtual bool IsReadOnly
 		{
 			get { return m_readOnly; }
+		}
+
+		public virtual IFdbSubspace this[Slice suffix]
+		{
+			get { return m_database[suffix]; }
+		}
+
+		public virtual IFdbSubspace this[IFdbKey key]
+		{
+			get { return m_database[key]; }
+		}
+
+		public virtual bool Contains(Slice key)
+		{
+			return m_database.Contains(key);
 		}
 
 		#endregion
@@ -149,11 +164,6 @@ namespace FoundationDB.Filters
 			}
 
 			return m_database.BeginTransaction(mode, cancellationToken, context);
-		}
-
-		public virtual bool Contains(Slice key)
-		{
-			return m_database.Contains(key);
 		}
 
 		public Task ReadAsync(Func<IFdbReadOnlyTransaction, Task> asyncHandler, CancellationToken cancellationToken)

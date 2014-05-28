@@ -465,6 +465,26 @@ namespace FoundationDB.Client
 			}
 		}
 
+		public FdbSubspace this[Slice suffix]
+		{
+			get { return suffix.IsNullOrEmpty ? m_globalSpace : m_globalSpaceCopy[suffix]; }
+		}
+
+		public FdbSubspace this[IFdbKey key]
+		{
+			get { return key == null ? m_globalSpace : m_globalSpaceCopy[key]; }
+		}
+
+		IFdbSubspace IFdbSubspace.this[Slice suffix]
+		{
+			get { return this[suffix]; }
+		}
+
+		IFdbSubspace IFdbSubspace.this[IFdbKey key]
+		{
+			get { return this[key]; }
+		}
+
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
 		/// <param name="database"></param>
 		/// <param name="key">Key to verify</param>

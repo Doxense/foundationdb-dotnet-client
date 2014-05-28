@@ -93,13 +93,6 @@ namespace FoundationDB.Client
 		[NotNull]
 		IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken, FdbOperationContext context = null);
 
-		/// <summary>Test if a key is inside the range of keys allowed to be read or writtent by the database</summary>
-		/// <param name="key">Key to test</param>
-		/// <returns>True if the key is inside the database keyspace, or inside the system keyspace.</returns>
-		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the allowed range of keys defined by <see cref="GlobalSpace"/>.</remarks>
-		bool Contains(Slice key);
-		//TODO: if we add Contains(Slice) to IFdbSubspace, this method needs to be moved!
-
 	}
 
 }
