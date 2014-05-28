@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,10 +43,24 @@ namespace FoundationDB.Async
 		// note: this is not really a mutex because there is no "Reset()" method (not possible to reset a TCS)...
 
 		private static readonly Action<object> s_cancellationCallback = CancellationHandler;
+		private static readonly AsyncCancelableMutex s_alreadyCompleted = CreateAlreadyDone();
 
-		private const int CTR_NONE = 0;
-		private const int CTR_REGISTERED = 1;
-		private const int CTR_CANCELLED_OR_DISPOSED = 2;
+		/// <summary>Returns an already completed, new mutex instance</summary>
+		private static AsyncCancelableMutex CreateAlreadyDone()
+		{
+			var mtx = new AsyncCancelableMutex(CancellationToken.None);
+			mtx.Set(async: false);
+			return mtx;
+		}
+
+		public static AsyncCancelableMutex AlreadyDone
+		{
+			get { return s_alreadyCompleted; }
+		}
+
+		private const int STATE_NONE = 0;
+		private const int STATE_SET = 1;
+		private const int STATE_CANCELED = 2;
 
 		private int m_state;
 		private CancellationTokenRegistration m_ctr;
@@ -69,49 +83,59 @@ namespace FoundationDB.Async
 		{
 			if (ct.CanBeCanceled)
 			{
-				m_state = CTR_REGISTERED;
 				m_ctr = ct.Register(s_cancellationCallback, new WeakReference<AsyncCancelableMutex>(this), useSynchronizationContext: false);
 			}
 			GC.SuppressFinalize(this);
 		}
 
-		public void Set(bool async = false)
+		public bool IsCompleted { get { return m_state != 0; } }
+
+		public bool Set(bool async = false)
 		{
-			// we don't really care if the cancellation token has already fired (or is firing at the same time),
-			// because TrySetResult(..) and TrySetCanceled(..) will fight it out by themselves
-			// we just need to dispose the registration if it hasn't already been done
-			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELLED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
-			{
-				m_ctr.Dispose();
+			if (Interlocked.CompareExchange(ref m_state, STATE_SET, STATE_NONE) != STATE_NONE)
+			{ // someone beat us to it
+				return false;
 			}
+			m_ctr.Dispose();
 
 			if (async)
 			{
-				ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetResult(null), this);
+				SetDefered(this);
 			}
 			else
 			{
 				this.TrySetResult(null);
 			}
+			return true;
 		}
 
-		public void Abort(bool async = false)
+		public bool Abort(bool async = false)
 		{
-			// we don't really care if the cancellation token has already fired (or is firing at the same time), because TrySetCanceled(..) will be called either way.
-			// we just need to dispose the registration if it hasn't already been done
-			if (Interlocked.CompareExchange(ref m_state, CTR_CANCELLED_OR_DISPOSED, CTR_REGISTERED) == CTR_REGISTERED)
-			{
-				m_ctr.Dispose();
+			if (Interlocked.CompareExchange(ref m_state, STATE_CANCELED, STATE_NONE) != STATE_NONE)
+			{ // someone beat us to it
+				return false;
 			}
+			m_ctr.Dispose();
 
 			if (async)
 			{
-				ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetCanceled(), this);
+				CancelDefered(this);
 			}
 			else
 			{
 				this.TrySetCanceled();
 			}
+			return true;
+		}
+
+		private static void SetDefered(AsyncCancelableMutex mutex)
+		{
+			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetResult(null), mutex);
+		}
+
+		private static void CancelDefered(AsyncCancelableMutex mutex)
+		{
+			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetCanceled(), mutex);
 		}
 
 	}

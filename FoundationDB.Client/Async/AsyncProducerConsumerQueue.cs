@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef FULL_DEBUG
+//#define FULL_DEBUG
 
 namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Runtime.CompilerServices;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	[DebuggerDisplay("Capacity={m_capacity}, ReceivedLast={m_receivedLast}, Done={m_done}")]
 	public abstract class AsyncProducerConsumerQueue<T> : IAsyncTarget<T>, IDisposable
 	{
 		/// <summary>Lock used to secure the global state</summary>
@@ -53,10 +54,10 @@ namespace FoundationDB.Async
 		protected bool m_receivedLast;
 
 		/// <summary>Mutex signaling that the producer is blocked on a full queue</summary>
-		protected AsyncCancelableMutex m_producerLock;
+		protected AsyncCancelableMutex m_producerLock = AsyncCancelableMutex.AlreadyDone;
 
 		/// <summary>Mutex signaling that the consumer is blocked on an empty queue</summary>
-		protected AsyncCancelableMutex m_consumerLock;
+		protected AsyncCancelableMutex m_consumerLock = AsyncCancelableMutex.AlreadyDone;
 
 		protected AsyncProducerConsumerQueue(int capacity)
 		{
@@ -80,7 +81,7 @@ namespace FoundationDB.Async
 			{
 				return TaskHelpers.FromCancellation<object>(ct);
 			}
-			if (m_producerLock == null || m_producerLock.Task.IsCompleted)
+			if (m_producerLock.IsCompleted)
 			{
 				m_producerLock = new AsyncCancelableMutex(ct);
 			}
@@ -91,10 +92,9 @@ namespace FoundationDB.Async
 		/// <summary>Wake up the producer if it is blocked</summary>
 		protected void WakeUpBlockedProducer_NeedsLocking()
 		{
-			if (m_producerLock != null && !m_producerLock.Task.IsCompleted)
+			if (m_producerLock.Set(async: true))
 			{
-				LogConsumer("waking up blocked producer");
-				m_producerLock.Set(async: true);
+				LogConsumer("Woke up blocked producer");
 			}
 		}
 
@@ -107,7 +107,7 @@ namespace FoundationDB.Async
 			{
 				return TaskHelpers.FromCancellation<object>(ct);
 			}
-			if (m_consumerLock == null || m_consumerLock.Task.IsCompleted)
+			if (m_consumerLock.IsCompleted)
 			{
 				m_consumerLock = new AsyncCancelableMutex(ct);
 			}
@@ -118,10 +118,9 @@ namespace FoundationDB.Async
 		/// <summary>Wake up the consumer if it is blocked</summary>
 		protected void WakeUpBlockedConsumer_NeedsLocking()
 		{
-			if (m_consumerLock != null && !m_consumerLock.Task.IsCompleted)
+			if (m_consumerLock.Set(async: true))
 			{
-				LogProducer("waking up blocked consumer");
-				m_consumerLock.Set(async: true);
+				LogProducer("Woke up blocked consumer");				
 			}
 		}
 
@@ -141,15 +140,15 @@ namespace FoundationDB.Async
 		#region Debug Logging...
 
 		[Conditional("FULL_DEBUG")]
-		protected void LogProducer(string msg)
+		protected void LogProducer(string msg, [CallerMemberName] string caller = null)
 		{
-			Console.WriteLine("[producer#" + Thread.CurrentThread.ManagedThreadId + "] " + msg);
+			Console.WriteLine("@@@ [producer#{0}] {1} [{2}]", Thread.CurrentThread.ManagedThreadId, msg, caller);
 		}
 
 		[Conditional("FULL_DEBUG")]
-		protected void LogConsumer(string msg)
+		protected void LogConsumer(string msg, [CallerMemberName] string caller = null)
 		{
-			Console.WriteLine("[consumer#" + Thread.CurrentThread.ManagedThreadId + "] " + msg);
+			Console.WriteLine("@@@ [consumer#{0}] {1} [{2}]", Thread.CurrentThread.ManagedThreadId, msg, caller);
 		}
 
 		#endregion

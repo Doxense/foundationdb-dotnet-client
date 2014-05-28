@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+//#define FULL_DEBUG
+
 namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
@@ -51,7 +53,7 @@ namespace FoundationDB.Async
 		protected LinkedList<Task<T>> m_queue = new LinkedList<Task<T>>();
 
 		/// <summary>Only used in mode CompletionOrder</summary>
-		private AsyncCancelableMutex m_completionLock;
+		private AsyncCancelableMutex m_completionLock = AsyncCancelableMutex.AlreadyDone;
 
 		#endregion
 
@@ -111,10 +113,11 @@ namespace FoundationDB.Async
 
 		private void NotifyConsumerOfTaskCompletion_NeedsLocking()
 		{
-			if (!m_receivedLast && IsConsumerAwaitingCompletion)
+			Contract.Requires(m_mode == AsyncOrderingMode.CompletionOrder);
+
+			if (!m_receivedLast && m_completionLock.Set(async: true))
 			{
-				LogProducer("Waking up blocked consumer because one task completed");
-				m_completionLock.Set(async: true);
+				LogProducer("Woke up blocked consumer because one task completed");
 			}
 		}
 
@@ -146,7 +149,7 @@ namespace FoundationDB.Async
 					m_done = true;
 					m_queue.AddLast(new LinkedListNode<Task<T>>(null));
 					WakeUpBlockedConsumer_NeedsLocking();
-					if (IsConsumerAwaitingCompletion) m_completionLock.Set(async: true);
+					if (m_mode == AsyncOrderingMode.CompletionOrder) NotifyConsumerOfTaskCompletion_NeedsLocking();
 				}
 			}
 		}
@@ -160,7 +163,7 @@ namespace FoundationDB.Async
 					LogProducer("Error received: " + error.SourceException.Message);
 					m_queue.AddLast(new LinkedListNode<Task<T>>(TaskHelpers.FromException<T>(error.SourceException)));
 					WakeUpBlockedConsumer_NeedsLocking();
-					if (IsConsumerAwaitingCompletion) m_completionLock.Set(async: true);
+					if (m_mode == AsyncOrderingMode.CompletionOrder) NotifyConsumerOfTaskCompletion_NeedsLocking();
 				}
 			}
 		}
@@ -304,18 +307,16 @@ namespace FoundationDB.Async
 			await wait.ConfigureAwait(false);
 
 			// recursive call, but should be ok since we are (almost) sure to have a completed task in the queue
-			return await ReceiveAsync(ct);
-		}
-
-		protected bool IsConsumerAwaitingCompletion
-		{
-			get { return m_completionLock != null && !m_completionLock.Task.IsCompleted; }
+			return await ReceiveAsync(ct).ConfigureAwait(false);
 		}
 
 		protected Task MarkConsumerAsAwaitingCompletion_NeedsLocking(CancellationToken ct)
 		{
-			if (!IsConsumerAwaitingCompletion)
+			Contract.Requires(m_mode == AsyncOrderingMode.CompletionOrder);
+
+			if (m_completionLock.IsCompleted)
 			{
+				LogConsumer("Creating new task completion lock");
 				m_completionLock = new AsyncCancelableMutex(ct);
 			}
 			LogConsumer("marked as waiting for task completion");
@@ -333,9 +334,9 @@ namespace FoundationDB.Async
 				lock (m_lock)
 				{
 					m_done = true;
-					if (m_producerLock != null) m_producerLock.Abort();
-					if (m_consumerLock != null) m_consumerLock.Abort();
-					if (m_completionLock != null) m_completionLock.Abort();
+					m_producerLock.Abort();
+					m_consumerLock.Abort();
+					m_completionLock.Abort();
 					m_queue.Clear();
 				}
 			}

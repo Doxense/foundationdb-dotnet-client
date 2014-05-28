@@ -26,9 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+//#define FULL_DEBUG
+
 namespace FoundationDB.Async
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -54,7 +57,7 @@ namespace FoundationDB.Async
 
 		#region Constructors...
 
-		public AsyncBuffer(Func<T, R> transform, int capacity)
+		public AsyncBuffer([NotNull] Func<T, R> transform, int capacity)
 			: base(capacity)
 		{
 			if (transform == null) throw new ArgumentNullException("transform");
@@ -226,8 +229,8 @@ namespace FoundationDB.Async
 					if (!m_done)
 					{
 						m_done = true;
-						if (m_producerLock != null) m_producerLock.Abort();
-						if (m_consumerLock != null) m_consumerLock.Abort();
+						m_producerLock.Abort();
+						m_consumerLock.Abort();
 					}
 				}
 			}

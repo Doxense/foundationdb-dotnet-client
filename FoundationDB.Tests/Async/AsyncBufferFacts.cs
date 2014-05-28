@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using System.Diagnostics;
+
 namespace FoundationDB.Async.Tests
 {
 	using FoundationDB.Async;
@@ -39,7 +41,7 @@ namespace FoundationDB.Async.Tests
 	using System.Threading.Tasks;
 
 	[TestFixture]
-	public class AsyncBufferFacts
+	public class AsyncBufferFacts : FdbTest
 	{
 
 		[Test]
@@ -55,6 +57,7 @@ namespace FoundationDB.Async.Tests
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
 			{
 				var token = go.Token;
+				token.Register(() => Console.WriteLine("### TIMEOUT EXPIRED!"));
 
 				var list = new List<int>();
 				bool didComplete = false;
@@ -88,10 +91,10 @@ namespace FoundationDB.Async.Tests
 					int x = i;
 					var task = Task.Run(async () =>
 					{
-						await Task.Delay(10 + rnd.Next(50));
+						await Task.Delay(10 + rnd.Next(50), token);
 						Console.WriteLine("[source#" + Thread.CurrentThread.ManagedThreadId + "] produced " + x);
 						return x;
-					});
+					}, token);
 
 					await buffer.OnNextAsync(task, token);
 				}
@@ -102,7 +105,7 @@ namespace FoundationDB.Async.Tests
 
 				await pumpTask;
 
-				Console.WriteLine("finsihed pumping");
+				Console.WriteLine("finished pumping");
 
 				Console.WriteLine("Result: " + String.Join(", ", list));
 				Assert.That(didComplete, Is.True);
@@ -121,29 +124,33 @@ namespace FoundationDB.Async.Tests
 			const int N = 20;
 			const int K = 5;
 
+
 			// since this can lock up, we need a global timeout !
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(10)))
 			{
 				var token = go.Token;
+				token.Register(() => Console.WriteLine("### TIMEOUT EXPIRED!"));
 
 				var list = new List<int>();
 				bool didComplete = false;
 				ExceptionDispatchInfo error = null;
+				var clock = Stopwatch.StartNew();
+
 				var target = AsyncHelpers.CreateTarget<int>(
 					(x, ct) =>
 					{
-						Console.WriteLine("[target#" + Thread.CurrentThread.ManagedThreadId + "] received " + x);
+						Console.WriteLine("[target#" + Thread.CurrentThread.ManagedThreadId + " @ " + clock.ElapsedTicks + "] received " + x);
 						list.Add(x);
 					},
 					() =>
 					{
 						didComplete = true;
-						Console.WriteLine("[target#" + Thread.CurrentThread.ManagedThreadId + "] completed");
+						Console.WriteLine("[target#" + Thread.CurrentThread.ManagedThreadId + " @ " + clock.ElapsedTicks + "] completed");
 					},
 					(e) =>
 					{
 						error = e;
-						Console.WriteLine("[target#" + Thread.CurrentThread.ManagedThreadId + "] error " + e.SourceException.ToString());
+						Console.WriteLine("[target#" + Thread.CurrentThread.ManagedThreadId + " @ " + clock.ElapsedTicks + "] error " + e.SourceException.ToString());
 					}
 				);
 
@@ -158,10 +165,11 @@ namespace FoundationDB.Async.Tests
 					int x = i;
 					var task = Task.Run(async () =>
 					{
-						await Task.Delay(10 + rnd.Next(50));
-						Console.WriteLine("[source#" + Thread.CurrentThread.ManagedThreadId + "] produced " + x);
+						Console.WriteLine("[source#" + Thread.CurrentThread.ManagedThreadId + " @ " + clock.ElapsedTicks + "] thinking " + x);
+						await Task.Delay(10 + rnd.Next(50), token);
+						Console.WriteLine("[source#" + Thread.CurrentThread.ManagedThreadId + " @ " + clock.ElapsedTicks + "] produced " + x);
 						return x;
-					});
+					}, token);
 
 					await buffer.OnNextAsync(task, token);
 				}
@@ -172,11 +180,11 @@ namespace FoundationDB.Async.Tests
 
 				await pumpTask;
 
-				Console.WriteLine("finsihed pumping");
+				Console.WriteLine("finished pumping");
 
 				Console.WriteLine("Result: " + String.Join(", ", list));
 				Assert.That(didComplete, Is.True);
-				if (error != null) error.Throw();
+				Assert.That(error, Is.Null);
 				//note: order doesn't matter, but all should be there
 				Assert.That(list, Is.EquivalentTo(Enumerable.Range(0, N).ToArray()));
 			}
@@ -266,10 +274,6 @@ namespace FoundationDB.Async.Tests
 
 		}
 
-
-
 	}
-
-
 
 }
