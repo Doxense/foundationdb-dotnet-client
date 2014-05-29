@@ -834,7 +834,7 @@ namespace FoundationDB.Client
 				{
 					slices.Add(encoder.EncodeKey(value));
 				}
-				return slice;
+				return slices;
 			}
 
 			// "slow" path
