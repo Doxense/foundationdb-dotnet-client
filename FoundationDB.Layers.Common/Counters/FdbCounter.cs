@@ -31,7 +31,6 @@ namespace FoundationDB.Layers.Counters
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
 	using System;
-	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -236,6 +235,43 @@ namespace FoundationDB.Layers.Counters
 			long value = await GetSnapshot(trans).ConfigureAwait(false);
 			Add(trans, x - value);
 		}
+
+		#region Transactionals...
+
+		/// <summary>
+		/// Get the value of the counter.
+		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
+		/// </summary>
+		public Task<long> GetTransactionalAsync(CancellationToken cancellationToken)
+		{
+			return this.Database.ReadAsync((tr) => this.GetTransactional(tr), cancellationToken);
+		}
+
+		/// <summary>
+		/// Get the value of the counter with snapshot isolation (no transaction conflicts).
+		/// </summary>
+		public Task<long> GetSnapshotAsync(CancellationToken cancellationToken)
+		{
+			return this.Database.ReadAsync((tr) => this.GetSnapshot(tr), cancellationToken);
+		}
+
+		/// <summary>
+		/// Add the value x to the counter.
+		/// </summary>
+		public Task AddAsync(long x, CancellationToken cancellationToken)
+		{
+			return this.Database.WriteAsync((tr) => this.Add(tr, x), cancellationToken);
+		}
+
+		/// <summary>
+		/// Set the counter to value x.
+		/// </summary>
+		public Task SetTotalAsync(long x, CancellationToken cancellationToken)
+		{
+			return this.Database.ReadWriteAsync((tr) => this.SetTotal(tr, x), cancellationToken);
+		}
+
+		#endregion
 
 	}
 
