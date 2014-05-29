@@ -1605,7 +1605,7 @@ namespace FoundationDB.Client
 		public static Slice Concat(params Slice[] args)
 		{
 			int count = 0;
-			for (int i = 0; i < args.Length; i++) count += args.Length;
+			for (int i = 0; i < args.Length; i++) count += args[i].Count;
 			if (count == 0) return Slice.Empty;
 			var writer = new SliceWriter(count);
 			for (int i = 0; i < args.Length; i++) writer.WriteBytes(args[i]);
