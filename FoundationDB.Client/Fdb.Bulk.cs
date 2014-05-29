@@ -74,8 +74,8 @@ namespace FoundationDB.Client
 				// We will batch keys into chunks (bounding by count and bytes), then attempt to insert that batch in the database.
 				// Each transaction should try to never exceed ~1MB of size
 
-				int maxBatchCount = 2 * 1024;
-				int maxBatchSize = 256 * 1024; //REVIEW: 256KB seems reasonable, but maybe we could also try with multiple transactions in // ?
+				const int maxBatchCount = 2 * 1024;
+				const int maxBatchSize = 256 * 1024; //REVIEW: 256KB seems reasonable, but maybe we could also try with multiple transactions in // ?
 
 				var chunk = new List<KeyValuePair<Slice, Slice>>();
 

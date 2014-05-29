@@ -148,7 +148,7 @@ namespace FoundationDB.Client
 		#endregion
 
 		/// <summary>Cached delegate of the future completion callback handler</summary>
-		private static readonly FdbNative.FdbFutureCallback CallbackHandler = new FdbNative.FdbFutureCallback(FutureCompletionCallback);
+		private static readonly FdbNative.FdbFutureCallback CallbackHandler = FutureCompletionCallback;
 
 		/// <summary>Handler called when a FDBFuture becomes ready</summary>
 		/// <param name="futureHandle">Handle on the future that became ready</param>

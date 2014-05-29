@@ -245,7 +245,7 @@ namespace FoundationDB.Client.Utils
 
 				s_traceSource = new TraceSource("FoundationDB.Client");
 
-				bool shouldTrace = false;
+				bool shouldTrace;
 				try
 				{
 					shouldTrace = s_traceSource.Switch.ShouldTrace(TraceEventType.Critical);

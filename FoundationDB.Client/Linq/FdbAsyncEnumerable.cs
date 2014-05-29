@@ -430,7 +430,7 @@ namespace FoundationDB.Linq
 
 			var buffer = new Buffer<T>();
 
-			await ForEachAsync<T>(source, (x) => { buffer.Add(x); }, ct).ConfigureAwait(false);
+			await ForEachAsync<T>(source, (x) => buffer.Add(x), ct).ConfigureAwait(false);
 
 			return buffer.ToArray();
 		}

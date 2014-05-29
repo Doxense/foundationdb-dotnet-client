@@ -201,7 +201,7 @@ namespace FoundationDB.Async
 			// in completion order mode, we look at the first completed task in the queue
 			// we have to take special care of the "done" message that needs to be returned last !
 
-			Task wait = null;
+			Task wait;
 			lock (m_lock)
 			{
 				if (m_receivedLast)

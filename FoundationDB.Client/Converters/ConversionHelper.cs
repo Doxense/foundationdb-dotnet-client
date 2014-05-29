@@ -208,18 +208,12 @@ namespace FoundationDB.Client.Converters
 			{
 				if (IsDecimalType(t1) || IsDecimalType(t2))
 				{
-					return (x, y) =>
-					{
-						return x == null ? y == null : y != null && TryAdaptToDecimal(x, t1) == TryAdaptToDecimal(y, t2);
-					};
+					return (x, y) => x == null ? y == null : y != null && TryAdaptToDecimal(x, t1) == TryAdaptToDecimal(y, t2);
 				}
 
 				//TODO: handle UInt64 with values > long.MaxValue that will overflow to negative values when casted down to Int64
 
-				return (x, y) =>
-				{
-					return x == null ? y == null : y != null && TryAdaptToInteger(x, t1) == TryAdaptToInteger(y, t2);
-				};
+				return (x, y) => x == null ? y == null : y != null && TryAdaptToInteger(x, t1) == TryAdaptToInteger(y, t2);
 			}
 
 			//TODO: some other way to compare ?

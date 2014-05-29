@@ -417,7 +417,7 @@ namespace FoundationDB.Async
 		{
 			if (source != null)
 			{
-				ThreadPool.QueueUserWorkItem((state) => { SafeCancel((CancellationTokenSource)state); }, source);
+				ThreadPool.QueueUserWorkItem((state) => SafeCancel((CancellationTokenSource)state), source);
 			}
 		}
 
@@ -427,7 +427,7 @@ namespace FoundationDB.Async
 		{
 			if (source != null)
 			{
-				ThreadPool.QueueUserWorkItem((state) => { SafeCancelAndDispose((CancellationTokenSource)state); }, source);
+				ThreadPool.QueueUserWorkItem((state) => SafeCancelAndDispose((CancellationTokenSource)state), source);
 			}
 		}
 

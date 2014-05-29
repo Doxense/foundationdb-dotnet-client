@@ -441,7 +441,7 @@ namespace FoundationDB.Layers.Tuples
 			// Here we know that there is at least one unicode char, and that there are no \0
 			// We will tterate through the string, filling as much of the buffer as possible
 
-			bool done = false;
+			bool done;
 			int charsUsed, bytesUsed;
 			int remaining = count;
 			ptr = chars;

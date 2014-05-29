@@ -476,9 +476,9 @@ namespace FoundationDB.Layers.Directories
 			if (path == null) return FdbTuple.Empty;
 
 			var pathCopy = path.ToArray();
-			for (int i = 0; i < pathCopy.Length; i++)
+			foreach (var s in pathCopy)
 			{
-				if (pathCopy[i] == null)
+				if (s == null)
 				{
 					throw new ArgumentException("The path of a directory cannot contain null elements", argName ?? "path");
 				}

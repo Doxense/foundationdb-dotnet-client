@@ -659,8 +659,8 @@ namespace FoundationDB.Client.Native
 
 		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out Slice value)
 		{
-			byte* ptr = null;
-			int valueLength = 0;
+			byte* ptr;
+			int valueLength;
 			var err = NativeMethods.fdb_future_get_value(future, out valuePresent, out ptr, out valueLength);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_value(0x" + future.Handle.ToString("x") + ") => err=" + err + ", present=" + valuePresent + ", valueLength=" + valueLength);
@@ -680,8 +680,8 @@ namespace FoundationDB.Client.Native
 
 		public static FdbError FutureGetKey(FutureHandle future, out Slice key)
 		{
-			byte* ptr = null;
-			int keyLength = 0;
+			byte* ptr;
+			int keyLength;
 			var err = NativeMethods.fdb_future_get_key(future, out ptr, out keyLength);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_future_get_key(0x" + future.Handle.ToString("x") + ") => err=" + err + ", keyLength=" + keyLength);
@@ -704,7 +704,6 @@ namespace FoundationDB.Client.Native
 		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more)
 		{
 			result = null;
-			more = false;
 
 			int count;
 			FdbKeyValue* kvp;

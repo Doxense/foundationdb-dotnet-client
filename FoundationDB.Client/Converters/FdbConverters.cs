@@ -181,7 +181,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<long, TimeSpan>((value) => TimeSpan.FromTicks(value));
 			RegisterUnsafe<long, double>((value) => { checked { return (double)value; } });
 			RegisterUnsafe<long, float>((value) => { checked { return (float)value; } });
-			RegisterUnsafe<long, System.Net.IPAddress>((value) => { return new System.Net.IPAddress(value); });
+			RegisterUnsafe<long, System.Net.IPAddress>((value) => new System.Net.IPAddress(value));
 
 			RegisterUnsafe<ulong, Slice>((value) => Slice.FromUInt64(value));
 			RegisterUnsafe<ulong, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
@@ -439,7 +439,7 @@ namespace FoundationDB.Client.Converters
 			if (converter == null) throw new ArgumentNullException("converter");
 			if (items == null) throw new ArgumentNullException("items");
 
-			return items.ConvertAll<R>(new Converter<T, R>(converter.Convert));
+			return items.ConvertAll<R>(converter.Convert);
 		}
 
 		/// <summary>Converts all the elements of an array</summary>
