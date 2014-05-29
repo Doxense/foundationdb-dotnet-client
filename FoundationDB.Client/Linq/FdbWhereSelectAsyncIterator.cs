@@ -326,8 +326,10 @@ namespace FoundationDB.Linq
 			// remember: limit/offset are applied AFTER the filtering, so can only combine if they are null
 			if (m_asyncFilter == null && m_limit == null && (m_offset == null || m_offset.Value == 0) && typeof(TSource) == typeof(TResult))
 			{
-				var filter = (Func<TSource, bool>)(Delegate)predicate;
-				if (m_filter != null) filter = (x) => m_filter(x) && filter(x);
+				var func = (Func<TSource, bool>)(Delegate)predicate;
+				var filter = m_filter == null
+					? func
+					: (x) => m_filter(x) && func(x);
 
 				return new FdbWhereSelectAsyncIterator<TSource, TResult>(
 					m_source,
@@ -351,8 +353,10 @@ namespace FoundationDB.Linq
 			// note: the only possible optimization here is if TSource == TResult, then we can combine both predicates
 			if (m_filter == null && m_limit == null && (m_offset == null || m_offset.Value == 0) && typeof(TSource) == typeof(TResult))
 			{
-				var asyncFilter = (Func<TSource, CancellationToken, Task<bool>>)(Delegate)asyncPredicate;
-				if (m_asyncFilter != null) asyncFilter = async (x, ct) => await m_asyncFilter(x, ct) && await asyncFilter(x, ct);
+				var func = (Func<TSource, CancellationToken, Task<bool>>)(Delegate)asyncPredicate;
+				var asyncFilter = m_asyncFilter == null
+					? func
+					: async (x, ct) => await m_asyncFilter(x, ct) && await func(x, ct);
 
 				return new FdbWhereSelectAsyncIterator<TSource, TResult>(
 					m_source,
