@@ -2,7 +2,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
   <metadata>
     <id>FoundationDB.Client</id>
-    <version>0.200.6-pre</version>
+    <version>0.9.7-pre</version>
     <title>FoundationDB Client</title>
     <authors>Doxense</authors>
     <owners>Doxense</owners>
