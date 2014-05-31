@@ -58,6 +58,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.Database, Is.SameAs(db), "Transaction should reference the parent Database");
 					Assert.That(tr.Size, Is.EqualTo(0), "Estimated size should be zero");
 					Assert.That(tr.IsReadOnly, Is.False, "Transaction is not read-only");
+					Assert.That(tr.IsSnapshot, Is.False, "Transaction is not in snapshot mode by default");
 
 					// manually dispose the transaction
 					tr.Dispose();
@@ -68,6 +69,27 @@ namespace FoundationDB.Client.Tests
 
 					// multiple calls to dispose should not do anything more
 					Assert.That(() => { tr.Dispose(); }, Throws.Nothing);
+				}
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_A_Snapshot_Version_Of_A_Transaction()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					Assert.That(tr, Is.Not.Null, "BeginTransaction should return a valid instance");
+					Assert.That(tr.IsSnapshot, Is.False, "Transaction is not in snapshot mode by default");
+
+					// verify that the snapshot version is also ok
+					var snapshot = tr.Snapshot;
+					Assert.That(snapshot, Is.Not.Null, "tr.Snapshot should never return null");
+					Assert.That(snapshot.IsSnapshot, Is.True, "Snapshot transaction should be marked as such");
+					Assert.That(tr.Snapshot, Is.SameAs(snapshot), "tr.Snapshot should not create a new instance");
+					Assert.That(snapshot.Id, Is.EqualTo(tr.Id), "Snapshot transaction should have the same id as its parent");
+					Assert.That(snapshot.Context, Is.SameAs(tr.Context), "Snapshot transaction should have the same context as its parent");
 				}
 			}
 		}

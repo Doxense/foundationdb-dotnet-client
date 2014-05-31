@@ -105,7 +105,11 @@ namespace FoundationDB.Client
 			const int ALIGNMENT = 16; // MUST BE A POWER OF TWO!
 			const int MASK = (-ALIGNMENT) & int.MaxValue;
 
-			if (size <= ALIGNMENT) return ALIGNMENT;
+			if (size <= ALIGNMENT)
+			{
+				if (size < 0) throw new ArgumentOutOfRangeException("size", "Size cannot be negative");
+				return ALIGNMENT;
+			}
 			// force an exception if we overflow above 2GB
 			checked { return (size + (ALIGNMENT - 1)) & MASK; }
 		}

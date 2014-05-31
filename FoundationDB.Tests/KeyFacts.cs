@@ -254,6 +254,12 @@ namespace FoundationDB.Client.Tests
 			Assert.That(range.Test(Slice.FromAscii("Z"), endIncluded: true), Is.EqualTo(INSIDE));
 			Assert.That(range.Test(Slice.FromAscii("Z\x00"), endIncluded: true), Is.EqualTo(AFTER));
 			Assert.That(range.Test(Slice.FromAscii("\xFF"), endIncluded: true), Is.EqualTo(AFTER));
+
+			range = FdbKeyRange.Create(FdbTuple.Pack("A"), FdbTuple.Pack("Z"));
+			Assert.That(range.Test(FdbTuple.Create("@")), Is.EqualTo((BEFORE)));
+			Assert.That(range.Test(FdbTuple.Create("A")), Is.EqualTo((INSIDE)));
+			Assert.That(range.Test(FdbTuple.Create("Z")), Is.EqualTo((AFTER)));
+			Assert.That(range.Test(FdbTuple.Create("Z"), endIncluded: true), Is.EqualTo(INSIDE));
 		}
 
 		[Test]
