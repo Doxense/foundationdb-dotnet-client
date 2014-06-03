@@ -131,9 +131,10 @@ namespace FoundationDB.Client
 			[Pure]
 			get
 			{
-				Contract.Assert(this.Buffer != null && this.Position >= 0 && index < this.Position && -index <= this.Position);
+				Contract.Assert(this.Buffer != null && this.Position >= 0);
 				//note: we will get bound checking for free in release builds
 				if (index < 0) index += this.Position;
+				if (index < 0 || index >= this.Position) throw new IndexOutOfRangeException();
 				return this.Buffer[index];
 			}
 		}
@@ -273,6 +274,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
+				//REVIEW: should we throw if there are less bytes in the buffer than we want to flush ?
 				this.Position = 0;
 				return 0;
 			}
@@ -694,6 +696,8 @@ namespace FoundationDB.Client
 		/// <summary>Writes a length-prefixed byte array, and advances the cursor</summary>
 		public void WriteVarbytes(Slice value)
 		{
+			//REVIEW: what should we do for Slice.Nil ?
+
 			SliceHelpers.EnsureSliceIsValid(ref value);
 			int n = value.Count;
 			if (n < 128)
@@ -704,7 +708,10 @@ namespace FoundationDB.Client
 				// write the count (single byte)
 				buffer[p] = (byte)n;
 				// write the bytes
-				SliceHelpers.CopyBytesUnsafe(buffer, p + 1, value.Array, value.Offset, n);
+				if (n > 0)
+				{
+					SliceHelpers.CopyBytesUnsafe(buffer, p + 1, value.Array, value.Offset, n);
+				}
 				this.Position = p + n + 1;
 			}
 			else
