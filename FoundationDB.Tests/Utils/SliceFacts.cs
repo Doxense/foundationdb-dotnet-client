@@ -1155,6 +1155,8 @@ namespace FoundationDB.Client.Tests
 			Assert.That(Slice.FromString("A<@>BB<@>CCC").Split(sep), Is.EqualTo(new[] { a, b, c }));
 		}
 
+		#region SliceHelpers...
+
 		[Test]
 		public void Test_SliceHelpers_Align()
 		{
@@ -1197,6 +1199,9 @@ namespace FoundationDB.Client.Tests
 				Assert.That(SliceHelpers.NextPowerOfTwo((1 << i) - 1), Is.EqualTo(1 << i));
 				Assert.That(SliceHelpers.NextPowerOfTwo(1 << i), Is.EqualTo(1 << i));
 			}
+
+			Assert.That(() => SliceHelpers.NextPowerOfTwo(-1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => SliceHelpers.NextPowerOfTwo(-42), Throws.InstanceOf<ArgumentOutOfRangeException>());
 		}
 
 		[Test]
@@ -1218,6 +1223,85 @@ namespace FoundationDB.Client.Tests
 			Assert.That(SliceHelpers.ComputeHashCodeUnsafe(new byte[2], 0, 2), Is.EqualTo(292984781));
 			Assert.That(SliceHelpers.ComputeHashCodeUnsafe(Encoding.Default.GetBytes("hello"), 0, 5), Is.EqualTo(1335831723));
 		}
+
+		#endregion
+
+		#region SliceComparer...
+
+		[Test]
+		public void Test_SliceComparer_Equals()
+		{
+			var cmp = SliceComparer.Default;
+			Assert.That(cmp, Is.Not.Null);
+			Assert.That(SliceComparer.Default, Is.SameAs(cmp));
+
+			Assert.That(cmp.Equals(Slice.Nil, Slice.Nil), Is.True);
+			Assert.That(cmp.Equals(Slice.Empty, Slice.Empty), Is.True);
+			Assert.That(cmp.Equals(Slice.Nil, Slice.Empty), Is.False);
+			Assert.That(cmp.Equals(Slice.Empty, Slice.Nil), Is.False);
+
+			Assert.That(cmp.Equals(Slice.FromByte(42), Slice.FromByte(42)), Is.True);
+			Assert.That(cmp.Equals(Slice.FromByte(42), Slice.Create(new byte[] { 42 })), Is.True);
+			Assert.That(cmp.Equals(Slice.FromByte(42), Slice.FromByte(77)), Is.False);
+
+			Assert.That(cmp.Equals(Slice.Create(new byte[] { 65, 66, 67 }), Slice.FromString("ABC")), Is.True);
+			Assert.That(cmp.Equals(Slice.Create(new byte[] { 65, 66, 67, 68 }), Slice.FromString("ABC")), Is.False);
+
+			var buf1 = Encoding.ASCII.GetBytes("ABBAABA");
+			var buf2 = Encoding.ASCII.GetBytes("ABBAABA");
+			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 2), Slice.Create(buf1, 0, 2)), Is.True);
+			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 2), Slice.Create(buf1, 0, 3)), Is.False);
+			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 2), Slice.Create(buf1, 4, 2)), Is.True);
+			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 3), Slice.Create(buf1, 4, 3)), Is.False);
+			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 2), Slice.Create(buf2, 4, 2)), Is.True);
+			Assert.That(cmp.Equals(Slice.Create(buf1, 0, 3), Slice.Create(buf2, 4, 3)), Is.False);
+		}
+
+		[Test]
+		public void Test_SliceComparer_GetHashCode_Should_Return_Same_As_Slice()
+		{
+			var cmp = SliceComparer.Default;
+			Assert.That(cmp, Is.Not.Null);
+
+			Assert.That(cmp.GetHashCode(Slice.Nil), Is.EqualTo(Slice.Nil.GetHashCode()));
+			Assert.That(cmp.GetHashCode(Slice.Empty), Is.EqualTo(Slice.Empty.GetHashCode()));
+			Assert.That(cmp.GetHashCode(Slice.Nil), Is.Not.EqualTo(Slice.Empty));
+
+			var rnd = new Random(123456);
+			for (int i = 0; i < 100; i++)
+			{
+				var s = Slice.Random(rnd, rnd.Next(1, 16));
+				Assert.That(cmp.GetHashCode(s), Is.EqualTo(s.GetHashCode()));
+			}
+		}
+
+		[Test]
+		public void Test_SliceComparer_Compare()
+		{
+			var cmp = SliceComparer.Default;
+			Assert.That(cmp, Is.Not.Null);
+
+			Assert.That(cmp.Compare(Slice.Nil, Slice.Nil), Is.EqualTo(0));
+			Assert.That(cmp.Compare(Slice.Empty, Slice.Empty), Is.EqualTo(0));
+			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(42)), Is.EqualTo(0));
+
+			//REVIEW: Inconsistency: compare(nil, empty) == 0, but Equals(nil, empty) == false
+			Assert.That(cmp.Compare(Slice.Nil, Slice.Empty), Is.EqualTo(0), "Nil and Empty are considered similar regarding ordering");
+			Assert.That(cmp.Compare(Slice.Empty, Slice.Nil), Is.EqualTo(0), "Nil and Empty are considered similar regarding ordering");
+
+			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(77)), Is.LessThan(0));
+			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.FromByte(21)), Is.GreaterThan(0));
+			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.Empty), Is.GreaterThan(0));
+			Assert.That(cmp.Compare(Slice.FromByte(42), Slice.Nil), Is.GreaterThan(0));
+
+			Assert.That(cmp.Compare(Slice.FromString("hello"), Slice.FromString("world")), Is.LessThan(0));
+			Assert.That(cmp.Compare(Slice.FromString("world"), Slice.FromString("hello")), Is.GreaterThan(0));
+
+			Assert.That(cmp.Compare(Slice.FromString("hell"), Slice.FromString("hello")), Is.LessThan(0));
+			Assert.That(cmp.Compare(Slice.FromString("help"), Slice.FromString("hello")), Is.GreaterThan(0));
+		}
+
+		#endregion
 
 		#region Black Magic Incantations...
 
