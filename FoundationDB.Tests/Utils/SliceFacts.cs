@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -696,6 +696,40 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public void Test_Slice_Equals_Slice()
+		{
+
+			var a = Slice.Create(new byte[] { 1, 2, 3 });
+			var b = Slice.Create(new byte[] { 1, 2, 3 });
+			var c = Slice.Create(new byte[] { 0, 1, 2, 3, 4 }, 1, 3);
+			var x = Slice.Create(new byte[] { 4, 5, 6 });
+			var y = Slice.Create(new byte[] { 1, 2, 3 }, 0, 2);
+			var z = Slice.Create(new byte[] { 1, 2, 3, 4 });
+
+			// equals
+			Assert.That(a.Equals(a), Is.True);
+			Assert.That(a.Equals(b), Is.True);
+			Assert.That(a.Equals(c), Is.True);
+			Assert.That(b.Equals(a), Is.True);
+			Assert.That(b.Equals(b), Is.True);
+			Assert.That(b.Equals(c), Is.True);
+			Assert.That(c.Equals(a), Is.True);
+			Assert.That(c.Equals(b), Is.True);
+			Assert.That(c.Equals(c), Is.True);
+			Assert.That(Slice.Nil.Equals(Slice.Nil), Is.True);
+			Assert.That(Slice.Empty.Equals(Slice.Empty), Is.True);
+
+			// not equals
+			Assert.That(a.Equals(x), Is.False);
+			Assert.That(a.Equals(y), Is.False);
+			Assert.That(a.Equals(z), Is.False);
+			Assert.That(a.Equals(Slice.Nil), Is.False);
+			Assert.That(a.Equals(Slice.Empty), Is.False);
+			Assert.That(Slice.Empty.Equals(Slice.Nil), Is.False);
+			Assert.That(Slice.Nil.Equals(Slice.Empty), Is.False);
+		}
+
+		[Test]
 		public void Test_Slice_Equality_Corner_Cases()
 		{
 			Assert.That(Slice.Create(null), Is.EqualTo(Slice.Nil));
@@ -905,152 +939,45 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_SliceStream_Basics()
+		public void Test_Slice_Concat()
 		{
-			using (var stream = Slice.FromString(UNICODE_TEXT).AsStream())
-			{
-				Assert.That(stream, Is.Not.Null);
-				Assert.That(stream.Length, Is.EqualTo(UNICODE_BYTES.Length));
-				Assert.That(stream.Position, Is.EqualTo(0));
+			var a = Slice.FromString("a");
+			var b = Slice.FromString("b");
+			var c = Slice.FromString("c");
+			var ab = Slice.FromString("ab");
+			var bc = Slice.FromString("bc");
+			var abc = Slice.FromString("abc");
 
-				Assert.That(stream.CanRead, Is.True);
-				Assert.That(stream.CanWrite, Is.False);
-				Assert.That(stream.CanSeek, Is.True);
+			Assert.That(Slice.Concat(a, b).ToUnicode(), Is.EqualTo("ab"));
+			Assert.That(Slice.Concat(b, c).ToUnicode(), Is.EqualTo("bc"));
 
-				Assert.That(stream.CanTimeout, Is.False);
-				Assert.That(() => stream.ReadTimeout, Throws.InstanceOf<InvalidOperationException>());
-				Assert.That(() => stream.ReadTimeout = 123, Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(Slice.Concat(ab, c).ToUnicode(), Is.EqualTo("abc"));
+			Assert.That(Slice.Concat(a, bc).ToUnicode(), Is.EqualTo("abc"));
+			Assert.That(Slice.Concat(a, b, c).ToUnicode(), Is.EqualTo("abc"));
 
-				stream.Close();
-				Assert.That(stream.Length, Is.EqualTo(0));
-				Assert.That(stream.CanRead, Is.False);
-				Assert.That(stream.CanSeek, Is.False);
-			}
-		}
+			Assert.That(Slice.Concat(abc[0, 2], c).ToUnicode(), Is.EqualTo("abc"));
+			Assert.That(Slice.Concat(a, abc[1, 3]).ToUnicode(), Is.EqualTo("abc"));
+			Assert.That(Slice.Concat(abc[0, 1], abc[1, 2], abc[2, 3]).ToUnicode(), Is.EqualTo("abc"));
 
-		[Test]
-		public void Test_SliceStream_ReadByte()
-		{
+			Assert.That(Slice.Concat(Slice.Empty, Slice.Empty), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat(Slice.Nil, Slice.Empty), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat(Slice.Empty, Slice.Nil), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat(Slice.Nil, Slice.Nil), Is.EqualTo(Slice.Empty));
 
-			// ReadByte
-			using (var stream = Slice.FromString(UNICODE_TEXT).AsStream())
-			{
-				var ms = new MemoryStream();
-				int b;
-				while ((b = stream.ReadByte()) >= 0)
-				{
-					ms.WriteByte((byte)b);
-					Assert.That(ms.Length, Is.LessThanOrEqualTo(UNICODE_BYTES.Length));
-				}
-				Assert.That(ms.Length, Is.EqualTo(UNICODE_BYTES.Length));
-				Assert.That(ms.ToArray(), Is.EqualTo(UNICODE_BYTES));
-			}
-		}
+			Assert.That(Slice.Concat(abc, Slice.Empty), Is.EqualTo(abc));
+			Assert.That(Slice.Concat(abc, Slice.Nil), Is.EqualTo(abc));
+			Assert.That(Slice.Concat(Slice.Empty, abc), Is.EqualTo(abc));
+			Assert.That(Slice.Concat(Slice.Nil, abc), Is.EqualTo(abc));
 
-		[Test]
-		public void Test_SliceStream_Read()
-		{
-			var rnd = new Random();
+			Assert.That(Slice.Concat(Slice.Empty, b, c), Is.EqualTo(bc));
+			Assert.That(Slice.Concat(ab, Slice.Empty, c), Is.EqualTo(abc));
+			Assert.That(Slice.Concat(a, b, Slice.Empty), Is.EqualTo(ab));
+			Assert.That(Slice.Concat(a, Slice.Empty, Slice.Nil), Is.EqualTo(a));
+			Assert.That(Slice.Concat(Slice.Empty, b, Slice.Nil), Is.EqualTo(b));
+			Assert.That(Slice.Concat(Slice.Nil, Slice.Empty, c), Is.EqualTo(c));
 
-			// Read (all at once)
-			using (var stream = Slice.FromString(UNICODE_TEXT).AsStream())
-			{
-				var buf = new byte[UNICODE_BYTES.Length];
-				int readBytes = stream.Read(buf, 0, UNICODE_BYTES.Length);
-				Assert.That(readBytes, Is.EqualTo(UNICODE_BYTES.Length));
-				Assert.That(buf, Is.EqualTo(UNICODE_BYTES));
-			}
-
-			// Read (random chunks)
-			for (int i = 0; i < 100; i++)
-			{
-				using (var stream = Slice.FromString(UNICODE_TEXT).AsStream())
-				{
-					var ms = new MemoryStream();
-
-					int remaining = UNICODE_BYTES.Length;
-					while (remaining > 0)
-					{
-						int chunkSize = 1 + rnd.Next(remaining - 1);
-						var buf = new byte[chunkSize];
-
-						int readBytes = stream.Read(buf, 0, chunkSize);
-						Assert.That(readBytes, Is.EqualTo(chunkSize));
-
-						ms.Write(buf, 0, buf.Length);
-						remaining -= chunkSize;
-					}
-
-					Assert.That(ms.ToArray(), Is.EqualTo(UNICODE_BYTES));
-				}
-			}
-		}
-
-		[Test]
-		public void Test_SliceStream_CopyTo()
-		{
-			// CopyTo
-			using (var stream = Slice.FromString(UNICODE_TEXT).AsStream())
-			{
-				var ms = new MemoryStream();
-				stream.CopyTo(ms);
-				Assert.That(ms.Length, Is.EqualTo(UNICODE_BYTES.Length));
-			}
-
-		}
-	
-		[Test]
-		public void Test_SliceListStream_Basics()
-		{
-			const int N = 65536;
-			var rnd = new Random();
-			Slice slice;
-
-			// create a random buffer
-			var bytes = new byte[N];
-			rnd.NextBytes(bytes);
-
-			// splits it in random slices
-			var slices = new List<Slice>();
-			int r = N;
-			int p = 0;
-			while(r > 0)
-			{
-				int sz = Math.Min(1 + rnd.Next(1024), r);
-				slice = Slice.Create(bytes, p, sz);
-				if (rnd.Next(2) == 1) slice = slice.Memoize();
-				slices.Add(slice);
-
-				p += sz;
-				r -= sz;
-			}
-			Assert.That(slices.Sum(sl => sl.Count), Is.EqualTo(N));
-
-			using(var stream = new SliceListStream(slices.ToArray()))
-			{
-				Assert.That(stream.Position, Is.EqualTo(0));
-				Assert.That(stream.Length, Is.EqualTo(N));
-				Assert.That(stream.CanRead, Is.True);
-				Assert.That(stream.CanSeek, Is.True);
-				Assert.That(stream.CanWrite, Is.False);
-				Assert.That(stream.CanTimeout, Is.False);
-
-				// CopyTo
-				var ms = new MemoryStream();
-				stream.CopyTo(ms);
-				Assert.That(ms.ToArray(), Is.EqualTo(bytes));
-
-				// Seek
-				Assert.That(stream.Position, Is.EqualTo(N));
-				Assert.That(stream.Seek(0, SeekOrigin.Begin), Is.EqualTo(0));
-				Assert.That(stream.Position, Is.EqualTo(0));
-
-				// Read All
-				var buf = new byte[N];
-				int readBytes = stream.Read(buf, 0, N);
-				Assert.That(readBytes, Is.EqualTo(N));
-				Assert.That(buf, Is.EqualTo(bytes));
-			}
+			Assert.That(Slice.Concat(Slice.Nil, Slice.Nil, Slice.Nil), Is.EqualTo(Slice.Empty));
+			Assert.That(Slice.Concat(Slice.Empty, Slice.Empty, Slice.Empty), Is.EqualTo(Slice.Empty));
 		}
 
 		[Test]
@@ -1126,6 +1053,53 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public void Test_Slice_JoinBytes()
+		{
+			var sep = Slice.FromChar(' ');
+			var tokens = new[] { Slice.FromString("hello"), Slice.FromString("world"), Slice.FromString("!") };
+
+			var joined = Slice.JoinBytes(sep, tokens);
+			Assert.That(joined, Is.Not.Null);
+			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("hello world !"));
+
+			joined = Slice.JoinBytes(Slice.Empty, tokens);
+			Assert.That(joined, Is.Not.Null);
+			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("helloworld!"));
+
+			joined = Slice.JoinBytes(sep, tokens, 0, 3);
+			Assert.That(joined, Is.Not.Null);
+			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("hello world !"));
+
+			joined = Slice.JoinBytes(sep, tokens, 0, 2);
+			Assert.That(joined, Is.Not.Null);
+			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("hello world"));
+
+			joined = Slice.JoinBytes(sep, tokens, 1, 1);
+			Assert.That(joined, Is.Not.Null);
+			Assert.That(Encoding.ASCII.GetString(joined), Is.EqualTo("world"));
+
+			joined = Slice.JoinBytes(sep, tokens, 0, 0);
+			Assert.That(joined, Is.Not.Null);
+			Assert.That(joined.Length, Is.EqualTo(0));
+
+			joined = Slice.JoinBytes(sep, new Slice[0], 0, 0);
+			Assert.That(joined, Is.Not.Null);
+			Assert.That(joined.Length, Is.EqualTo(0));
+
+			joined = Slice.JoinBytes(sep, Enumerable.Empty<Slice>());
+			Assert.That(joined, Is.Not.Null);
+			Assert.That(joined.Length, Is.EqualTo(0));
+
+			Assert.That(() => Slice.JoinBytes(sep, default(Slice[]), 0, 0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => Slice.JoinBytes(sep, default(IEnumerable<Slice>)), Throws.InstanceOf<ArgumentNullException>());
+
+			Assert.That(() => Slice.JoinBytes(sep, tokens, 0, 4), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => Slice.JoinBytes(sep, tokens, -1, 1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => Slice.JoinBytes(sep, tokens, 0, -1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+			Assert.That(() => Slice.JoinBytes(sep, tokens, 3, 1), Throws.InstanceOf<ArgumentOutOfRangeException>());
+		}
+
+		[Test]
 		public void Test_Slice_Split()
 		{
 			var a = Slice.FromString("A");
@@ -1157,8 +1131,8 @@ namespace FoundationDB.Client.Tests
 
 		#region Black Magic Incantations...
 
-		// The Slice struct is not blittable, so we can't take its address and change it via pointers.
-		// It is also checking its arguments in Debug mode, and all the fields are readonly, so the only way to inject bad values it is to use reflection.
+		// The Slice struct is not blittable, so we can't take its address and modify it via pointers trickery.
+		// Since its ctor is checking the arguments in Debug mode and all its fields are readonly, the only way to inject bad values is to use reflection.
 
 		private static Slice MutateOffset(Slice value, int offset)
 		{

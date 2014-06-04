@@ -82,6 +82,9 @@
     <Compile Include="Layers\VectorFacts.cs" />
     <Compile Include="Layers\QueuesFacts.cs" />
     <Compile Include="TransactionalFacts.cs" />
+    <Compile Include="Utils\SliceComparerFacts.cs" />
+    <Compile Include="Utils\SliceStreamFacts.cs" />
+    <Compile Include="Utils\SliceHelperFacts.cs" />
     <Compile Include="UuidFacts.cs" />
     <Compile Include="Utils\SliceFacts.cs" />
     <Compile Include="DatabaseBulkFacts.cs" />

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ namespace FoundationDB.Client.Tests
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Base class for all FoundationDB tests</summary>
 	public abstract class FdbTest
 	{
 
@@ -50,7 +51,19 @@ namespace FoundationDB.Client.Tests
 				m_cts = null;
 				m_ct = CancellationToken.None;
 			}
-			Trace.WriteLine("=== " + TestContext.CurrentContext.Test.FullName + "() === " + DateTime.Now.TimeOfDay);
+
+			//note: some test runners fail with a nulref in the Test.FullName property ...
+			string fullName;
+			try
+			{
+				fullName = TestContext.CurrentContext.Test.FullName;
+			}
+			catch
+			{
+				fullName = this.GetType().Name + ".???";
+			}
+			Trace.WriteLine("=== " + fullName + "() === " + DateTime.Now.TimeOfDay);
+
 			m_timer = Stopwatch.StartNew();
 		}
 
@@ -65,6 +78,7 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
+		/// <summary>Time elapsed since the start of the current test</summary>
 		protected TimeSpan TestElapsed
 		{
 			get { return m_timer.Elapsed; }

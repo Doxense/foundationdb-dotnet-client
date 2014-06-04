@@ -44,13 +44,17 @@ namespace FoundationDB.Client
 		private SliceComparer()
 		{ }
 
-		/// <summary>Lexicographically compare two slices and returns an indication of their relative sort order</summary>
+		/// <summary>Lexicographically compare two slices and returns an indication of their relative sort order.</summary>
 		/// <param name="x">Slice compared with <paramref name="y"/></param>
 		/// <param name="y">Slice compared with <paramref name="x"/></param>
 		/// <returns>Returns a NEGATIVE value if <paramref name="x"/> is LESS THAN <paramref name="y"/>, ZERO if <paramref name="x"/> is EQUAL TO <paramref name="y"/>, and a POSITIVE value if <paramref name="x"/> is GREATER THAN <paramref name="y"/>.</returns>
-		/// <remarks>If both <paramref name="x"/> and <paramref name="y"/> are nil or empty, the comparison will return ZERO. If only <paramref name="y"/> is nil or empty, it will return a NEGATIVE value. If only <paramref name="x"/> is nil or empty, it will return a POSITIVE value.</remarks>
+		/// <remarks>
+		/// <para>If both <paramref name="x"/> and <paramref name="y"/> are nil or empty, the comparison will return ZERO. If only <paramref name="y"/> is nil or empty, it will return a NEGATIVE value. If only <paramref name="x"/> is nil or empty, it will return a POSITIVE value.</para>
+		/// <para>There are no guarantees that non-zero results will be exactly -1 or +1. You should always use comparison operators or the sign of the returned value, instead of testing for equality with -1 or +1.</para>
+		/// </remarks>
 		public int Compare(Slice x, Slice y)
 		{
+			//REVIEW: cmp(Nil, Empty) returns 0 but Nil != Empty ?
 			if (x.Count == 0) return y.Count == 0 ? 0 : -1;
 			if (y.Count == 0) return +1;
 			return SliceHelpers.CompareBytes(x.Array, x.Offset, x.Count, y.Array, y.Offset, y.Count);
