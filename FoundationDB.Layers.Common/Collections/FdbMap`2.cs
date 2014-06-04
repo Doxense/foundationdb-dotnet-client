@@ -150,6 +150,20 @@ namespace FoundationDB.Layers.Collections
 				));
 		}
 
+		/// <summary>Reads all the value in the map without decoding them</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <returns>Async sequence of values as slices, ordered by keys ascending.</returns>
+		/// <remarks>This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
+		[NotNull]
+		public IFdbAsyncEnumerable<Slice> AllValuesAsSlices([NotNull] IFdbReadOnlyTransaction trans)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			return trans
+				.GetRange(this.Location.ToRange()) //TODO: options ?
+				.Select((kvp) => kvp.Value);
+		}
+
 		/// <summary>Reads the values of multiple entries in the map</summary>
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="ids">List of the keys to read</param>
