@@ -322,11 +322,11 @@ namespace FoundationDB.Client
 			if (startIndex > values.Length - count) throw new ArgumentOutOfRangeException("startIndex", startIndex, "Start index must fit within the array");
 
 			if (count == 0) return Slice.EmptyArray;
-			if (count == 1) return values[0].GetBytes();
+			if (count == 1) return values[startIndex].GetBytes() ?? Slice.EmptyArray;
 
 			int size = 0;
-			for (int i = 0; i < values.Length; i++) size += values[i].Count;
-			size += (values.Length - 1) * separator.Count;
+			for (int i = 0; i < count; i++) size = checked(size + values[startIndex + i].Count);
+			size = checked(size + (count - 1) * separator.Count);
 
 			// if the size overflows, that means that the resulting buffer would need to be >= 2 GB, which is not possible!
 			if (size < 0) throw new OutOfMemoryException();
@@ -334,10 +334,10 @@ namespace FoundationDB.Client
 			//note: we want to make sure the buffer of the writer will be the exact size (so that we can use the result as a byte[] without copying again)
 			var tmp = new byte[size];
 			int p = 0;
-			for (int i = 0; i < values.Length; i++)
+			for (int i = 0; i < count; i++)
 			{
 				if (i > 0) separator.WriteTo(tmp, ref p);
-				values[i].WriteTo(tmp, ref p);
+				values[startIndex + i].WriteTo(tmp, ref p);
 			}
 			Contract.Assert(p == tmp.Length);
 			return tmp;
@@ -1506,11 +1506,11 @@ namespace FoundationDB.Client
 
 		/// <summary>Append/Merge a slice at the end of the current slice</summary>
 		/// <param name="tail">Slice that must be appended</param>
-		/// <returns>Merged slice if both slices are contigous, or a new slice containg the content of the current slice, followed by the tail slice</returns>
+		/// <returns>Merged slice if both slices are contigous, or a new slice containg the content of the current slice, followed by the tail slice. Or Slice.Empty if both parts are nil or empty</returns>
 		[Pure]
 		public Slice Concat(Slice tail)
 		{
-			if (tail.Count == 0) return this;
+			if (tail.Count == 0) return this.Count > 0 ? this: Slice.Empty;
 			if (this.Count == 0) return tail;
 
 			SliceHelpers.EnsureSliceIsValid(ref tail);
@@ -1820,6 +1820,8 @@ namespace FoundationDB.Client
 		/// <summary>Read the content of a stream into a slice</summary>
 		/// <param name="data">Source stream, that must be in a readable state</param>
 		/// <returns>Slice containing the stream content (or <see cref="Slice.Nil"/> if the stream is <see cref="Stream.Null"/>)</returns>
+		/// <exception cref="ArgumentNullException">If <paramref name="data"/> is null.</exception>
+		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
 		public static Slice FromStream([NotNull] Stream data)
 		{
 			if (data == null) throw new ArgumentNullException("data");
@@ -1848,14 +1850,17 @@ namespace FoundationDB.Client
 		/// <param name="data">Source stream, that must be in a readable state</param>
 		/// <param name="cancellationToken">Optional cancellation token for this operation</param>
 		/// <returns>Slice containing the stream content (or <see cref="Slice.Nil"/> if the stream is <see cref="Stream.Null"/>)</returns>
+		/// <exception cref="ArgumentNullException">If <paramref name="data"/> is null.</exception>
+		/// <exception cref="InvalidOperationException">If the size of the <paramref name="data"/> stream exceeds <see cref="int.MaxValue"/> or if it does not support reading.</exception>
 		public static Task<Slice> FromStreamAsync([NotNull] Stream data, CancellationToken cancellationToken)
 		{
 			if (data == null) throw new ArgumentNullException("data");
+
 			// special case for empty values
 			if (data == Stream.Null) return Task.FromResult(Slice.Nil);
-			if (data.Length == 0) return Task.FromResult(Slice.Empty);
+			if (!data.CanRead) throw new InvalidOperationException("Cannot read from provided stream");
 
-			if (!data.CanRead) throw new ArgumentException("Cannot read from provided stream", "data");
+			if (data.Length == 0) return Task.FromResult(Slice.Empty);
 			if (data.Length > int.MaxValue) throw new InvalidOperationException("Streams of more than 2GB are not supported");
 			//TODO: other checks?
 
