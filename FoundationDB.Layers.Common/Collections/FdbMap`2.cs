@@ -133,17 +133,17 @@ namespace FoundationDB.Layers.Collections
 			this.Location.Clear(trans, id);
 		}
 
-		/// <summary>Reads all the entries in the map</summary>
+		/// <summary>Reads all the entries in the map within a single transaction</summary>
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
 		/// <remarks>This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 		[NotNull]
-		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans)
+		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRange(this.Location.ToRange()) //TODO: options ?
+				.GetRange(this.Location.ToRange(), options)
 				.Select((kvp) => new KeyValuePair<TKey, TValue>(
 					this.Location.DecodeKey(kvp.Key),
 					this.ValueEncoder.DecodeValue(kvp.Value)
@@ -155,13 +155,13 @@ namespace FoundationDB.Layers.Collections
 		/// <returns>Async sequence of values as slices, ordered by keys ascending.</returns>
 		/// <remarks>This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 		[NotNull]
-		public IFdbAsyncEnumerable<Slice> AllValuesAsSlices([NotNull] IFdbReadOnlyTransaction trans)
+		public IFdbAsyncEnumerable<Slice> AllValuesAsSlices([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRange(this.Location.ToRange()) //TODO: options ?
-				.Select((kvp) => kvp.Value);
+				.GetRange(this.Location.ToRange(), options)
+				.Values();
 		}
 
 		/// <summary>Reads the values of multiple entries in the map</summary>
