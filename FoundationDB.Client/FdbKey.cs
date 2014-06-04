@@ -319,7 +319,7 @@ namespace FoundationDB.Client
 
 									if (key.Count > 2 && key[-1] == 0 && key[-2] != 0xFF)
 									{
-										tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
+										tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key);
 										suffix = ".<00>";
 									}
 									break;
