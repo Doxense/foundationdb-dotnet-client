@@ -36,6 +36,28 @@ namespace FoundationDB.Filters.Logging
 	public static class FdbLoggingExtensions
 	{
 
+		[NotNull]
+		public static FdbLoggedDatabase Logged(this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler)
+		{
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			// prevent multiple logging
+			database = WithoutLogging(database);
+
+			return new FdbLoggedDatabase(database, false, false, handler);
+		}
+
+		/// <summary>Strip the logging behaviour of this database. Use this for boilerplate or test code that would pollute the logs otherwise.</summary>
+		/// <param name="database">Database instance (that may or may not be logged)</param>
+		/// <returns>Either <paramref name="database"/> itself if it is not logged, or the inner database if it was.</returns>
+		public static IFdbDatabase WithoutLogging(this IFdbDatabase database)
+		{
+			var logged = database as FdbLoggedDatabase;
+			if (logged != null) return logged.GetInnerDatabase();
+
+			return database;
+		}
+
 		internal static FdbLoggedTransaction GetLogger(IFdbReadOnlyTransaction trans)
 		{
 			//TODO: the logged transaction could also be wrapped in other filters.

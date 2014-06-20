@@ -28,8 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
+	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using NUnit.Framework;
 	using System;
 	using System.Threading;
@@ -62,9 +64,13 @@ namespace FoundationDB.Client.Tests
 			return db;
 		}
 
-		public static async Task<FdbDirectorySubspace> GetCleanDirectory(IFdbDatabase db, string[] path, CancellationToken ct)
+		public static async Task<FdbDirectorySubspace> GetCleanDirectory([NotNull] IFdbDatabase db, [NotNull] string[] path, CancellationToken ct)
 		{
+			Assert.That(db, Is.Not.Null, "null db");
 			Assert.That(path, Is.Not.Null.And.Length.GreaterThan(0), "invalid path");
+
+			// do not log
+			db = db.WithoutLogging();
 
 			// remove previous
 			await db.Directory.TryRemoveAsync(path, ct);
@@ -76,10 +82,13 @@ namespace FoundationDB.Client.Tests
 			return subspace;
 		}
 
-		public static async Task DumpSubspace(IFdbDatabase db, FdbSubspace subspace, CancellationToken ct)
+		public static async Task DumpSubspace([NotNull] IFdbDatabase db, [NotNull] FdbSubspace subspace, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null);
 			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
+
+			// do not log
+			db = db.WithoutLogging();
 
 			using (var tr = db.BeginTransaction(ct))
 			{
@@ -87,7 +96,7 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		public static async Task DumpSubspace(IFdbReadOnlyTransaction tr, FdbSubspace subspace)
+		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] FdbSubspace subspace)
 		{
 			Assert.That(tr, Is.Not.Null);
 
@@ -120,7 +129,7 @@ namespace FoundationDB.Client.Tests
 				Console.WriteLine("> Found " + count + " values");
 		}
 
-		public static async Task AssertThrowsFdbErrorAsync(Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)
+		public static async Task AssertThrowsFdbErrorAsync([NotNull] Func<Task> asyncTest, FdbError expectedCode, string message = null, object[] args = null)
 		{
 			try
 			{
