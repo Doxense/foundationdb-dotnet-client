@@ -29,13 +29,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Tests
 {
 	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Directories;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Globalization;
+	using System.IO;
 	using System.Linq;
+	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -486,6 +490,76 @@ namespace FoundationDB.Client.Tests
 
 				// cleanup because this test can produce a lot of data
 				await location.RemoveAsync(db, this.Cancellation);
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Export_To_Disk()
+		{
+			const int N = 50 * 1000;
+
+			using (var zedb = await OpenTestPartitionAsync())
+			{
+				var db = zedb.Logged((tr) =>  Console.WriteLine(tr.Log.GetTimingsReport(true)));
+	
+				Console.WriteLine("Bulk inserting " + N + " items...");
+				var location = await GetCleanDirectory(db, "Bulk", "Export");
+
+				Console.WriteLine("Preparing...");
+
+				var rnd = new Random(2403);
+				var source = Enumerable
+					.Range(1, N)
+					.Select((x) => new KeyValuePair<Guid, Slice>(Guid.NewGuid(), Slice.Random(rnd, rnd.Next(8, 256))))
+					.ToList();
+
+				Console.WriteLine("Inserting...");
+
+				await Fdb.Bulk.WriteAsync(
+					db.WithoutLogging(),
+					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x.Key), x.Value)),
+					null,
+					this.Cancellation
+				);
+
+				string path = Path.Combine(TestContext.CurrentContext.WorkDirectory, "export.txt");
+				Console.WriteLine("Exporting to disk... " + path);
+				int chunks = 0;
+				var sw = Stopwatch.StartNew();
+				using (var file = File.CreateText(path))
+				{
+					double average = await Fdb.Bulk.ExportAsync(
+						db,
+						location.ToRange(),
+						async (xs, pos, ct) =>
+						{
+							Assert.That(xs, Is.Not.Null);
+
+							Interlocked.Increment(ref chunks);
+							Console.WriteLine("> Called with batch [{0:N0}..{1:N0}] ({2:N0} items, {3:N0} bytes)", pos, pos + xs.Length - 1, xs.Length, xs.Sum(kv => kv.Key.Count + kv.Value.Count));
+
+							//TO CHECK:
+							// => keys are ordered in the batch
+							// => no duplicates
+
+							var sb = new StringBuilder(4096);
+							foreach(var x in xs)
+							{
+								sb.AppendFormat("{0} = {1}\r\n", location.UnpackSingle<Guid>(x.Key), x.Value.ToBase64());
+							}
+							await file.WriteAsync(sb.ToString());
+						},
+						this.Cancellation
+					);
+				}
+				sw.Stop();
+				Console.WriteLine("Done in " + sw.Elapsed.TotalSeconds.ToString("N3") + " seconds and " + chunks + " chunks");
+				Console.WriteLine("File size is " + new FileInfo(path).Length.ToString("N0"));
+
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(zedb, this.Cancellation);
+
+				File.Delete(path);
 			}
 		}
 

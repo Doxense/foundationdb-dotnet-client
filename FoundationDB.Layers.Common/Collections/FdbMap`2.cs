@@ -34,6 +34,7 @@ namespace FoundationDB.Layers.Collections
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	[DebuggerDisplay("Name={Name}, Subspace={Subspace}")]
@@ -180,6 +181,75 @@ namespace FoundationDB.Layers.Collections
 
 		#endregion
 
+		#region Bulk Operations...
+
+		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="handler">Handler called for each entry in the map. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
+		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <returns>Task that completes once all the entries have been processed.</returns>
+		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map. Any change made to the map while the export is running may be partially exported.</remarks>
+		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Func<KeyValuePair<TKey, TValue>, CancellationToken, Task> handler, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			return Fdb.Bulk.ExportAsync(
+				db, 
+				this.Location.ToRange(),
+				async (batch, _, ct) =>
+				{
+					foreach (var item in batch)
+					{
+						await handler(
+							new KeyValuePair<TKey, TValue>(
+								this.Location.DecodeKey(item.Key),
+								this.ValueEncoder.DecodeValue(item.Value)
+							),
+							cancellationToken
+						);
+					}
+				},
+				cancellationToken
+			);
+		}
+
+		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="handler">Handler called for each batch of items in the map. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
+		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <returns>Task that completes once all the entries have been processed.</returns>
+		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
+		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Func<KeyValuePair<TKey, TValue>[], CancellationToken, Task> handler, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			var keyEncoder = (IKeyEncoder<TKey>) this.Location;
+			var valueEncoder = this.ValueEncoder;
+
+			return Fdb.Bulk.ExportAsync(
+				db,
+				this.Location.ToRange(),
+				async (batch, _, ct) =>
+				{
+					var items = new KeyValuePair<TKey, TValue>[batch.Length];
+
+					for (int i = 0; i < batch.Length; i++)
+					{
+						items[i] = new KeyValuePair<TKey, TValue>(
+							keyEncoder.DecodeKey(batch[i].Key),
+							valueEncoder.DecodeValue(batch[i].Value)
+						);
+					}
+
+					await handler(items, cancellationToken);
+				},
+				cancellationToken
+			);
+		}
+
+		#endregion
 	}
 
 }

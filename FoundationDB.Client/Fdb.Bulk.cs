@@ -26,15 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
+	using FoundationDB.Filters.Logging;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -796,6 +795,139 @@ namespace FoundationDB.Client
 				}
 				return count;
 			}
+
+			#endregion
+
+			#region Import/Export...
+
+			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, [NotNull] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
+			{
+				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(beginInclusive), FdbKeySelector.FirstGreaterOrEqual(endExclusive), handler, cancellationToken);
+			}
+
+			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeyRange range, [NotNull] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
+			{
+				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(range.Begin), FdbKeySelector.FirstGreaterOrEqual(range.End), handler, cancellationToken);
+			}
+	
+			/// <summary>Export the content of potentially large range of keys defined by a pair of selectors.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="begin">Selector defining the start of the range (included)</param>
+			/// <param name="end">Selector defining the end of the range (excluded)</param>
+			/// <param name="handler">Lambda that will be called for each batch of data read from the database. The first argument is the array of ordered key/value pairs in the batch, taken from the same database snapshot. The second argument is the offset of the first item in the array, from the start of the range. The third argument is a token should be used by any async i/o performed by the lambda.</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of keys exported</returns>
+			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
+			public static async Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeySelector begin, FdbKeySelector end, [NotNull] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (handler == null) throw new ArgumentNullException("handler");
+				cancellationToken.ThrowIfCancellationRequested();
+
+				// to maximize throughput, we want to read as much as possible per transaction, so that means that we should prefetch the next batch while the current batch is processing
+
+				// If handler() is always faster than the prefetch(), the bottleneck is the database (or possibly the network).
+				//	R: [ Read B1 ... | Read B2 ........ | Read B3 ..... ]
+				//	W:               [ Process B1 ]-----[ Process B2 ]--[ Process B3]X
+
+				// If handler() is always slower than the prefetch(), the bottleneck is the local processing (or possibly local disk if writing to disk)
+				//	R: [ Read B1 | Read B2 ]----------[ Read B3 ]-------[ Read B4 ]--------
+				//	W:           [ Process B1 ....... | Process B2 .... | Process B3 .... | Process B4 ]
+
+				// If handler() does some buffering, and only flush to disk every N batches, then reading may stall because we could have prefetch more pages (TODO: we could prefetch more pages in queue ?)
+				//	R: [ Read B1 | Read B2 | Read B3 | Read B4 | Read B5 ]------------------[ Read B6 | Read B7 ]....
+				//	W:           [*B1]-----[*B2]-----[*B3]-----[ *B4 + flush to disk ...... |*B5]-----[*B6]------....
+				
+				using (var tr = db.BeginReadOnlyTransaction(cancellationToken))
+				{
+					// should export be lower priority? TODO: make if configurable!
+					tr.WithPriorityBatch();
+
+					//TODO: make options configurable!
+					var options = new FdbRangeOptions
+					{
+						// serial mode is optimized for a single client with maximum throughput
+						Mode = FdbStreamingMode.Serial,
+					};
+
+					long count = 0;
+					long chunks = 0;
+					long waitForFetch = 0;
+
+					// read the first batch
+					var page = await FetchNextBatchAsync(tr, begin, end, options);
+					++waitForFetch;
+
+					while (page.HasMore)
+					{
+						// prefetch the next one (don't wait for the task yet)
+						var next = FetchNextBatchAsync(tr, FdbKeySelector.FirstGreaterThan(page.Last.Key), end, options);
+
+						// process the current one
+						if (page.Count > 0)
+						{
+							cancellationToken.ThrowIfCancellationRequested();
+							await handler(page.Chunk, count, cancellationToken);
+							++chunks;
+							count += page.Count;
+						}
+
+						if (next.Status != TaskStatus.RanToCompletion) ++waitForFetch;
+						page = await next;
+					}
+
+					// process the last page, if any
+					if (page.Count > 0)
+					{
+						cancellationToken.ThrowIfCancellationRequested();
+						await handler(page.Chunk, count, cancellationToken);
+						++chunks;
+						count += page.Count;
+					}
+
+					tr.Annotate("Exported {0} items in {1} chunks ({2:N1}% network)", count, chunks, chunks > 0 ? (100.0 * waitForFetch / chunks) : 0.0);
+
+					return count;
+				}
+			}
+
+			/// <summary>Read the next batch from a transaction, and retries if needed</summary>
+			/// <param name="tr">Transaction used to read, which may be reset if a retry is needed</param>
+			/// <param name="begin">Begin selector</param>
+			/// <param name="end">End selector</param>
+			/// <param name="options">Range read options</param>
+			/// <returns>Task that will return the next batch</returns>
+			private static async Task<FdbRangeChunk> FetchNextBatchAsync(IFdbReadOnlyTransaction tr, FdbKeySelector begin, FdbKeySelector end, [NotNull] FdbRangeOptions options)
+			{
+				Contract.Requires(tr != null && options != null);
+
+				// read the next batch from the db, retrying if needed
+				while (true)
+				{
+					FdbException error = null;
+					try
+					{
+						return await tr.GetRangeAsync(begin, end, options).ConfigureAwait(false);
+					}
+					catch (FdbException e)
+					{
+						error = e;
+						//TODO: update this once we can await inside catch blocks in C# 6.0
+					}
+					if (error != null)
+					{
+						if (error.Code == FdbError.PastVersion)
+						{
+							tr.Reset();
+						}
+						else
+						{
+							await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
+						}
+						// retry
+					}
+				}
+			}		
 
 			#endregion
 
