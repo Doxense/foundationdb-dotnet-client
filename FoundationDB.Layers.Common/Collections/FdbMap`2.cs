@@ -28,7 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Linq;
 	using JetBrains.Annotations;
 	using System;
@@ -183,6 +185,63 @@ namespace FoundationDB.Layers.Collections
 
 		#region Bulk Operations...
 
+		private KeyValuePair<TKey, TValue> DecodeItem(KeyValuePair<Slice, Slice> item)
+		{
+			return new KeyValuePair<TKey, TValue>(
+				this.Location.DecodeKey(item.Key),
+				this.ValueEncoder.DecodeValue(item.Value)
+			);
+		}
+
+		[NotNull]
+		private KeyValuePair<TKey, TValue>[] DecodeItems(KeyValuePair<Slice, Slice>[] batch)
+		{
+			Contract.Requires(batch != null);
+
+			var keyEncoder = this.Location;
+			var valueEncoder = this.ValueEncoder;
+
+			var items = new KeyValuePair<TKey, TValue>[batch.Length];
+			for (int i = 0; i < batch.Length; i++)
+			{
+				items[i] = new KeyValuePair<TKey, TValue>(
+					keyEncoder.DecodeKey(batch[i].Key),
+					valueEncoder.DecodeValue(batch[i].Value)
+				);
+			}
+			return items;
+		}
+
+		#region Export...
+
+		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="handler">Handler called for each entry in the map. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
+		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <returns>Task that completes once all the entries have been processed.</returns>
+		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map. Any change made to the map while the export is running may be partially exported.</remarks>
+		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Action<KeyValuePair<TKey, TValue>> handler, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			var keyEncoder = this.Location;
+			var valueEncoder = this.ValueEncoder;
+
+			return Fdb.Bulk.ExportAsync(
+				db, 
+				this.Location.ToRange(),
+				async (batch, _, ct) =>
+				{
+					foreach (var item in batch)
+					{
+						handler(DecodeItem(item));
+					}
+				},
+				cancellationToken
+			);
+		}
+
 		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="handler">Handler called for each entry in the map. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
@@ -194,21 +253,44 @@ namespace FoundationDB.Layers.Collections
 			if (db == null) throw new ArgumentNullException("db");
 			if (handler == null) throw new ArgumentNullException("handler");
 
+			var keyEncoder = this.Location;
+			var valueEncoder = this.ValueEncoder;
+
 			return Fdb.Bulk.ExportAsync(
-				db, 
+				db,
 				this.Location.ToRange(),
 				async (batch, _, ct) =>
 				{
 					foreach (var item in batch)
 					{
-						await handler(
-							new KeyValuePair<TKey, TValue>(
-								this.Location.DecodeKey(item.Key),
-								this.ValueEncoder.DecodeValue(item.Value)
-							),
-							cancellationToken
-						);
+						await handler(DecodeItem(item), cancellationToken);
 					}
+				},
+				cancellationToken
+			);
+		}
+
+		/// <summary>Exports the content of this map out of the database, by using as many transactions as necessary.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="handler">Handler called for each batch of items in the map. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
+		/// <param name="cancellationToken">Token used to cancel the operation.</param>
+		/// <returns>Task that completes once all the entries have been processed.</returns>
+		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
+		public Task ExportAsync([NotNull] IFdbDatabase db, [NotNull] Action<KeyValuePair<TKey, TValue>[]> handler, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			return Fdb.Bulk.ExportAsync(
+				db,
+				this.Location.ToRange(),
+				(batch, _, ct) =>
+				{
+					if (batch.Length > 0)
+					{
+						handler(DecodeItems(batch));
+					}
+					return TaskHelpers.CompletedTask;
 				},
 				cancellationToken
 			);
@@ -225,30 +307,27 @@ namespace FoundationDB.Layers.Collections
 			if (db == null) throw new ArgumentNullException("db");
 			if (handler == null) throw new ArgumentNullException("handler");
 
-			var keyEncoder = (IKeyEncoder<TKey>) this.Location;
-			var valueEncoder = this.ValueEncoder;
-
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.Location.ToRange(),
-				async (batch, _, ct) =>
-				{
-					var items = new KeyValuePair<TKey, TValue>[batch.Length];
-
-					for (int i = 0; i < batch.Length; i++)
-					{
-						items[i] = new KeyValuePair<TKey, TValue>(
-							keyEncoder.DecodeKey(batch[i].Key),
-							valueEncoder.DecodeValue(batch[i].Value)
-						);
-					}
-
-					await handler(items, cancellationToken);
-				},
+				(batch, _, ct) => handler(DecodeItems(batch), ct),
 				cancellationToken
 			);
 		}
 
+		#endregion
+
+		#region Import...
+
+		/// <summary>Imports a potentially large sequence of items into the map.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="items">Sequence of items to import. If the item already exists in the map, its value will be overwritten.</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <remarks>
+		/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
+		/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
+		/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
+		/// </remarks>
 		public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
@@ -257,10 +336,62 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.InsertAsync(
 				db,
 				items,
-				(item, tr) => this.Location.Set(tr, item.Key, this.ValueEncoder.EncodeValue(item.Value)),
+				(item, tr) => this.Set(tr, item.Key, item.Value),
 				cancellationToken		
 			);
 		}
+
+		/// <summary>Imports a potentially large sequence of items into the map, using a specific key selector.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="items">Sequence of elements to import. If an item with the same key already exists in the map, its value will be overwritten.</param>
+		/// <param name="keySelector">Lambda that will extract the key of an element</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <remarks>
+		/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
+		/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
+		/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
+		/// </remarks>
+		public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TValue> items, [NotNull] Func<TValue, TKey> keySelector, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (items == null) throw new ArgumentNullException("items");
+			if (keySelector == null) throw new ArgumentException("keySelector");
+
+			return Fdb.Bulk.InsertAsync(
+				db,
+				items,
+				(item, tr) => this.Set(tr, keySelector(item), item),
+				cancellationToken
+			);
+		}
+
+		/// <summary>Imports a potentially large sequence of elements into the map, using specific key and value selectors.</summary>
+		/// <param name="db">Database used for the operation</param>
+		/// <param name="items">Sequence of elements to import. If an item with the same key already exists in the map, its value will be overwritten.</param>
+		/// <param name="keySelector">Lambda that will return the key of an element</param>
+		/// <param name="valueSelector">Lambda that will return the value of an element</param>
+		/// <param name="cancellationToken">Token used to cancel the operation</param>
+		/// <remarks>
+		/// <p>Any previously existing items in the map will remain. If you want to get from the previous content, you need to clear the map before hand.</p>
+		/// <p>Other transactions may see a partial view of the map while the sequence is being imported. If this is a problem, you may need to import the map into a temporary subspace, and then 'publish' the final result using an indirection layer (like the Directory Layer)</p>
+		/// <p>If the import operation fails midway, all items that have already been successfully imported will be kept in the database.</p>
+		/// </remarks>
+		public Task ImportAsync<TElement>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<TElement> items, [NotNull] Func<TElement, TKey> keySelector, [NotNull] Func<TElement, TValue> valueSelector, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (items == null) throw new ArgumentNullException("items");
+			if (keySelector == null) throw new ArgumentException("keySelector");
+			if (valueSelector == null) throw new ArgumentException("valueSelector");
+
+			return Fdb.Bulk.InsertAsync(
+				db,
+				items,
+				(item, tr) => this.Set(tr, keySelector(item), valueSelector(item)),
+				cancellationToken
+			);
+		}
+
+		#endregion
 
 		#endregion
 	}
