@@ -53,7 +53,7 @@ Target "Test" (fun _ ->
     CreateDir testDir
     ActivateFinalTarget "CloseTestRunner"
     !!(buildDir + "**/*Test*.dll")
-    ++(buildDir + "**/*Test*.exe")
+    //++(buildDir + "**/*Test*.exe")
     |> NUnit(
         fun p -> { p with DisableShadowCopy = true
                           OutputFile = "TestResults.xml"
