@@ -249,6 +249,19 @@ namespace FoundationDB.Layers.Collections
 			);
 		}
 
+		public Task ImportAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<TKey, TValue>> items, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (items == null) throw new ArgumentNullException("items");
+
+			return Fdb.Bulk.InsertAsync(
+				db,
+				items,
+				(item, tr) => this.Location.Set(tr, item.Key, this.ValueEncoder.EncodeValue(item.Value)),
+				cancellationToken		
+			);
+		}
+
 		#endregion
 	}
 
