@@ -77,7 +77,7 @@ namespace FoundationDB.Layers.Collections
 
 		#endregion
 
-		#region Get / Set / Clear...
+		#region Get / Set / Remove...
 
 		/// <summary>Returns the value of an existing entry in the map</summary>
 		/// <param name="trans">Transaction used for the operation</param>
@@ -136,10 +136,10 @@ namespace FoundationDB.Layers.Collections
 			this.Location.Clear(trans, id);
 		}
 
-		/// <summary>Reads all the entries in the map within a single transaction</summary>
+		/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <returns>Async sequence of pairs of keys and values, ordered by keys ascending.</returns>
-		/// <remarks>This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
+		/// <remarks>CAUTION: This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
 		[NotNull]
 		public IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> All([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
 		{
@@ -147,24 +147,7 @@ namespace FoundationDB.Layers.Collections
 
 			return trans
 				.GetRange(this.Location.ToRange(), options)
-				.Select((kvp) => new KeyValuePair<TKey, TValue>(
-					this.Location.DecodeKey(kvp.Key),
-					this.ValueEncoder.DecodeValue(kvp.Value)
-				));
-		}
-
-		/// <summary>Reads all the value in the map without decoding them</summary>
-		/// <param name="trans">Transaction used for the operation</param>
-		/// <returns>Async sequence of values as slices, ordered by keys ascending.</returns>
-		/// <remarks>This can be dangerous if the map contains a lot of entries! You should always use .Take() to limit the number of results returned.</remarks>
-		[NotNull]
-		public IFdbAsyncEnumerable<Slice> AllValuesAsSlices([NotNull] IFdbReadOnlyTransaction trans, FdbRangeOptions options = null)
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-
-			return trans
-				.GetRange(this.Location.ToRange(), options)
-				.Values();
+				.Select(this.DecodeItem);
 		}
 
 		/// <summary>Reads the values of multiple entries in the map</summary>
