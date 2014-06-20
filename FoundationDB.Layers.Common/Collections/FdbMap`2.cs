@@ -124,11 +124,11 @@ namespace FoundationDB.Layers.Collections
 			this.Location.Set(trans, id, this.ValueEncoder.EncodeValue(value));
 		}
 
-		/// <summary>Remove an entry from the map</summary>
+		/// <summary>Remove a single entry from the map</summary>
 		/// <param name="trans">Transaction used for the operation</param>
 		/// <param name="id">Key of the entry to remove</param>
 		/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
-		public void Clear([NotNull] IFdbTransaction trans, TKey id)
+		public void Remove([NotNull] IFdbTransaction trans, TKey id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -210,6 +210,16 @@ namespace FoundationDB.Layers.Collections
 				);
 			}
 			return items;
+		}
+
+		/// <summary>Clear all the entries in the map</summary>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <remarks>This will delete EVERYTHING in the map!</remarks>
+		public void Clear([NotNull] IFdbTransaction trans)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.ClearRange(this.Location.ToRange());
 		}
 
 		#region Export...

@@ -96,7 +96,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// delete the value
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					map.Clear(tr, "hello");
+					map.Remove(tr, "hello");
 					await tr.CommitAsync();
 				}
 

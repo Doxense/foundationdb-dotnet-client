@@ -79,17 +79,29 @@ namespace FoundationDB.Layers.Collections
 			return db.WriteAsync((tr) => map.Set(tr, id, value), cancellationToken);
 		}
 
-		/// <summary>Remove an entry from the map</summary>
+		/// <summary>Remove a single entry from the map</summary>
 		/// <param name="db">Transactional used for the operation</param>
 		/// <param name="id">Key of the entry to remove</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
 		/// <remarks>If the entry did not exist, the operation will not do anything.</remarks>
-		public static Task ClearAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, [NotNull] IFdbTransactional db, TKey id, CancellationToken cancellationToken)
+		public static Task RemoveAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, [NotNull] IFdbTransactional db, TKey id, CancellationToken cancellationToken)
 		{
 			if (map == null) throw new ArgumentNullException("map");
 			if (db == null) throw new ArgumentNullException("db");
 
-			return db.WriteAsync((tr) => map.Clear(tr, id), cancellationToken);
+			return db.WriteAsync((tr) => map.Remove(tr, id), cancellationToken);
+		}
+
+		/// <summary>Clear all the entries in the map</summary>
+		/// <param name="db">Transactional used for the operation</param>
+		/// <param name="trans">Transaction used for the operation</param>
+		/// <remarks>This will delete EVERYTHING in the map!</remarks>
+		public static Task ClearAsync<TKey, TValue>(this FdbMap<TKey, TValue> map, [NotNull] IFdbTransactional db, CancellationToken cancellationToken)
+		{
+			if (map == null) throw new ArgumentNullException("map");
+			if (db == null) throw new ArgumentNullException("db");
+
+			return db.WriteAsync((tr) => map.Clear(tr), cancellationToken);
 		}
 
 	}
