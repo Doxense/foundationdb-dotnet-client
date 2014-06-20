@@ -120,6 +120,38 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Get_Range_Take_Zero_Should_Return_Empty_List()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+
+				// put test values in a namespace
+				var location = await GetCleanDirectory(db, "range");
+
+				var a = location.Partition("a");
+
+				// insert a bunch of keys under 'a'
+				await db.WriteAsync((tr) =>
+				{
+					for (int i = 0; i < 10; i++)
+					{
+						tr.Set(a.Pack(i), Slice.FromInt32(i));
+					}
+				}, this.Cancellation);
+
+				KeyValuePair<Slice, Slice> res;
+
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(a.ToRange()).Take(0);
+					var elements = await query.ToListAsync();
+					Assert.That(elements.Count, Is.EqualTo(0));
+				}
+			
+			}
+		}
+
+		[Test]
 		public async Task Test_Can_Get_Range_First_Single_And_Last()
 		{
 			using (var db = await OpenTestPartitionAsync())
