@@ -90,12 +90,13 @@ namespace FoundationDB.Client
 		internal FdbKeySelectorPair OriginalRange { get; private set; }
 
 		/// <summary>Limit in number of rows to return</summary>
-		public int Limit { get { return this.Options.Limit ?? 0; } }
+		public int? Limit { get { return this.Options.Limit; } }
 
 		/// <summary>Limit in number of bytes to return</summary>
-		public int TargetBytes { get { return this.Options.TargetBytes ?? 0; } }
+		public int? TargetBytes { get { return this.Options.TargetBytes; } }
 
 		/// <summary>Streaming mode</summary>
+		//REVIEW: nullable?
 		public FdbStreamingMode Mode { get { return this.Options.Mode ?? FdbStreamingMode.Iterator; } }
 
 		/// <summary>Should we perform the range using snapshot mode ?</summary>
@@ -394,7 +395,7 @@ namespace FoundationDB.Client
 			// Optimized code path for First/Last/Single variants where we can be smart and only ask for 1 or 2 results from the db
 
 			// we can use the EXACT streaming mode with Limit = 1|2, and it will work if TargetBytes is 0
-			if (this.TargetBytes != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
+			if ((this.TargetBytes ?? 0) != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
 				return await FdbAsyncEnumerable.Head(this, single, orDefault, this.Transaction.Cancellation).ConfigureAwait(false);
 			}
@@ -432,7 +433,7 @@ namespace FoundationDB.Client
 			// Optimized code path for Any/None where we can be smart and only ask for 1 from the db
 
 			// we can use the EXACT streaming mode with Limit = 1, and it will work if TargetBytes is 0
-			if (this.TargetBytes != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
+			if ((this.TargetBytes ?? 0) != 0 || (this.Mode != FdbStreamingMode.Iterator && this.Mode != FdbStreamingMode.Exact))
 			{ // fallback to the default implementation
 				if (any)
 					return await FdbAsyncEnumerable.AnyAsync(this, this.Transaction.Cancellation);

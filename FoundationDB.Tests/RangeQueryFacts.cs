@@ -81,8 +81,8 @@ namespace FoundationDB.Client.Tests
 					Assert.That(query.Transaction, Is.SameAs(tr));
 					Assert.That(query.Begin.Key, Is.EqualTo(location.Pack(0)));
 					Assert.That(query.End.Key, Is.EqualTo(location.Pack(N)));
-					Assert.That(query.Limit, Is.EqualTo(0));
-					Assert.That(query.TargetBytes, Is.EqualTo(0));
+					Assert.That(query.Limit, Is.Null);
+					Assert.That(query.TargetBytes, Is.Null);
 					Assert.That(query.Reversed, Is.False);
 					Assert.That(query.Mode, Is.EqualTo(FdbStreamingMode.Iterator));
 					Assert.That(query.Snapshot, Is.False);
@@ -116,38 +116,6 @@ namespace FoundationDB.Client.Tests
 					}
 				}
 
-			}
-		}
-
-		[Test]
-		public async Task Test_Can_Get_Range_Take_Zero_Should_Return_Empty_List()
-		{
-			using (var db = await OpenTestPartitionAsync())
-			{
-
-				// put test values in a namespace
-				var location = await GetCleanDirectory(db, "range");
-
-				var a = location.Partition("a");
-
-				// insert a bunch of keys under 'a'
-				await db.WriteAsync((tr) =>
-				{
-					for (int i = 0; i < 10; i++)
-					{
-						tr.Set(a.Pack(i), Slice.FromInt32(i));
-					}
-				}, this.Cancellation);
-
-				KeyValuePair<Slice, Slice> res;
-
-				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
-				{
-					var query = tr.GetRange(a.ToRange()).Take(0);
-					var elements = await query.ToListAsync();
-					Assert.That(elements.Count, Is.EqualTo(0));
-				}
-			
 			}
 		}
 
@@ -303,6 +271,81 @@ namespace FoundationDB.Client.Tests
 					res = await query.FirstAsync();
 					Assert.That(res.Key, Is.EqualTo(a.Pack(5)));
 					Assert.That(res.Value, Is.EqualTo(Slice.FromInt32(5)));
+				}
+
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Get_Range_With_Limit()
+		{
+			using (var db = await OpenTestPartitionAsync())
+			{
+
+				// put test values in a namespace
+				var location = await GetCleanDirectory(db, "range");
+
+				var a = location.Partition("a");
+
+				// insert a bunch of keys under 'a'
+				await db.WriteAsync((tr) =>
+				{
+					for (int i = 0; i < 10; i++)
+					{
+						tr.Set(a.Pack(i), Slice.FromInt32(i));
+					}
+					// add guard keys
+					tr.Set(location.Key, Slice.FromInt32(-1));
+					tr.Set(location.Key + (byte)255, Slice.FromInt32(-1));
+				}, this.Cancellation);
+
+				// Take(5) should return the first 5 items
+
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(a.ToRange()).Take(5);
+					Assert.That(query, Is.Not.Null);
+					Assert.That(query.Limit, Is.EqualTo(5));
+
+					var elements = await query.ToListAsync();
+					Assert.That(elements, Is.Not.Null);
+					Assert.That(elements.Count, Is.EqualTo(5));
+					for (int i = 0; i < 5; i++)
+					{
+						Assert.That(elements[i].Key, Is.EqualTo(a.Pack(i)));
+						Assert.That(elements[i].Value, Is.EqualTo(Slice.FromInt32(i)));
+					}
+				}
+
+				// Take(12) should return only the 10 items
+
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(a.ToRange()).Take(12);
+					Assert.That(query, Is.Not.Null);
+					Assert.That(query.Limit, Is.EqualTo(12));
+
+					var elements = await query.ToListAsync();
+					Assert.That(elements, Is.Not.Null);
+					Assert.That(elements.Count, Is.EqualTo(10));
+					for (int i = 0; i < 10; i++)
+					{
+						Assert.That(elements[i].Key, Is.EqualTo(a.Pack(i)));
+						Assert.That(elements[i].Value, Is.EqualTo(Slice.FromInt32(i)));
+					}
+				}
+
+				// Take(0) should return nothing
+
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					var query = tr.GetRange(a.ToRange()).Take(0);
+					Assert.That(query, Is.Not.Null);
+					Assert.That(query.Limit, Is.EqualTo(0));
+
+					var elements = await query.ToListAsync();
+					Assert.That(elements, Is.Not.Null);
+					Assert.That(elements.Count, Is.EqualTo(0));
 				}
 
 			}
