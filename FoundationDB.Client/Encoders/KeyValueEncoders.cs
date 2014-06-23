@@ -820,6 +820,8 @@ namespace FoundationDB.Client
 			if (values == null) throw new ArgumentNullException("values");
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
+			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
+
 			var array = values as T[];
 			if (array != null)
 			{ // optimized path for arrays
@@ -856,6 +858,21 @@ namespace FoundationDB.Client
 			return values;
 		}
 
+		/// <summary>Convert the keys of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		[NotNull]
+		public static T[] DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (items == null) throw new ArgumentNullException("items");
+
+			var values = new T[items.Length];
+			for (int i = 0; i < items.Length; i++)
+			{
+				values[i] = encoder.DecodeKey(items[i].Key);
+			}
+			return values;
+		}
+
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
 		public static IEnumerable<T> DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
@@ -863,24 +880,8 @@ namespace FoundationDB.Client
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
 
-			var array = slices as Slice[];
-			if (array != null)
-			{ // optimized path for arrays
-				return DecodeRange<T>(encoder, array);
-			}
+			// Slice=>T may be filtered in LINQ queries, so we should probably stream the values (so no optimization needed)
 
-			var coll = slices as ICollection<Slice>;
-			if (coll != null)
-			{ // optimized path when we know the count
-				var values = new List<T>(coll.Count);
-				foreach (var slice in coll)
-				{
-					values.Add(encoder.DecodeKey(slice));
-				}
-				return values;
-			}
-
-			// "slow" path
 			return slices.Select(slice => encoder.DecodeKey(slice));
 		}
 
@@ -923,6 +924,7 @@ namespace FoundationDB.Client
 			{
 				slices[i] = encoder.EncodeValue(values[i]);
 			}
+
 			return slices;
 		}
 
@@ -933,8 +935,24 @@ namespace FoundationDB.Client
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (values == null) throw new ArgumentNullException("values");
 
+			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
+
 			var array = values as T[];
-			if (array != null) return EncodeRange<T>(encoder, array);
+			if (array != null)
+			{ // optimized path for arrays
+				return EncodeRange<T>(encoder, array);
+			}
+
+			var coll = values as ICollection<T>;
+			if (coll != null)
+			{ // optimized path when we know the count
+				var slices = new List<Slice>(coll.Count);
+				foreach (var value in coll)
+				{
+					slices.Add(encoder.EncodeValue(value));
+				}
+				return slices;
+			}
 
 			return values.Select(value => encoder.EncodeValue(value));
 		}
@@ -951,21 +969,23 @@ namespace FoundationDB.Client
 			{
 				values[i] = encoder.DecodeValue(slices[i]);
 			}
+
 			return values;
 		}
 
-		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
+		/// <summary>Convert the values of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static List<T> DecodeRange<T>(this IValueEncoder<T> encoder, [NotNull] List<Slice> slices)
+		public static T[] DecodeRange<T>(this IValueEncoder<T> encoder, KeyValuePair<Slice, Slice>[] items)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
-			if (slices == null) throw new ArgumentNullException("slices");
+			if (items == null) throw new ArgumentNullException("items");
 
-			var values = new List<T>(slices.Count);
-			foreach (var slice in slices)
+			var values = new T[items.Length];
+			for (int i = 0; i < items.Length; i++)
 			{
-				values.Add(encoder.DecodeValue(slice));
+				values[i] = encoder.DecodeValue(items[i].Value);
 			}
+
 			return values;
 		}
 
@@ -976,8 +996,7 @@ namespace FoundationDB.Client
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
 
-			var array = slices as Slice[];
-			if (array != null) return DecodeRange<T>(encoder, array);
+			// Slice=>T may be filtered in LINQ queries, so we should probably stream the values (so no optimization needed)
 
 			return slices.Select(slice => encoder.DecodeValue(slice));
 		}
