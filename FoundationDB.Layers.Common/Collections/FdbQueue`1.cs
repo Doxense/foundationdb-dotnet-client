@@ -162,6 +162,93 @@ namespace FoundationDB.Layers.Collections
 			}
 		}
 
+		#region Bulk Operations
+
+		public Task ExportAsync(IFdbDatabase db, Action<T, long> handler, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			//REVIEW: is this approach correct ?
+
+			return Fdb.Bulk.ExportAsync(
+				db,
+				this.QueueItem.ToRange(),
+				(kvs, offset, ct) =>
+				{
+					foreach(var kv in kvs)
+					{
+						if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+
+						handler(this.Encoder.DecodeValue(kv.Value), offset);
+						++offset;
+					}
+					return TaskHelpers.CompletedTask;
+				},
+				cancellationToken
+			);
+		}
+
+		public Task ExportAsync(IFdbDatabase db, Func<T, long, Task> handler, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			//REVIEW: is this approach correct ?
+
+			return Fdb.Bulk.ExportAsync(
+				db,
+				this.QueueItem.ToRange(),
+				async (kvs, offset, ct) =>
+				{
+					foreach (var kv in kvs)
+					{
+						if (cancellationToken.IsCancellationRequested) cancellationToken.ThrowIfCancellationRequested();
+
+						await handler(this.Encoder.DecodeValue(kv.Value), offset);
+						++offset;
+					}
+				},
+				cancellationToken
+			);
+		}
+
+		public Task ExportAsync(IFdbDatabase db, Action<T[], long> handler, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			//REVIEW: is this approach correct ?
+
+			return Fdb.Bulk.ExportAsync(
+				db,
+				this.QueueItem.ToRange(),
+				(kvs, offset, ct) =>
+				{
+					handler(this.Encoder.DecodeRange(kvs), offset);
+					return TaskHelpers.CompletedTask;
+				},
+				cancellationToken
+			);
+		}
+
+		public Task ExportAsync(IFdbDatabase db, Func<T[], long, Task> handler, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			//REVIEW: is this approach correct ?
+
+			return Fdb.Bulk.ExportAsync(
+				db,
+				this.QueueItem.ToRange(),
+				(kvs, offset, ct) => handler(this.Encoder.DecodeRange(kvs), offset),
+				cancellationToken
+			);
+		}
+
+		#endregion
+
 		#region Private Helpers...
 
 		private Slice ConflictedItemKey(object subKey)
