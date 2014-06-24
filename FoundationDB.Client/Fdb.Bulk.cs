@@ -809,7 +809,7 @@ namespace FoundationDB.Client
 			{
 				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(range.Begin), FdbKeySelector.FirstGreaterOrEqual(range.End), handler, cancellationToken);
 			}
-	
+
 			/// <summary>Export the content of potentially large range of keys defined by a pair of selectors.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="begin">Selector defining the start of the range (included)</param>
@@ -837,11 +837,17 @@ namespace FoundationDB.Client
 				// If handler() does some buffering, and only flush to disk every N batches, then reading may stall because we could have prefetch more pages (TODO: we could prefetch more pages in queue ?)
 				//	R: [ Read B1 | Read B2 | Read B3 | Read B4 | Read B5 ]------------------[ Read B6 | Read B7 ]....
 				//	W:           [*B1]-----[*B2]-----[*B3]-----[ *B4 + flush to disk ...... |*B5]-----[*B6]------....
-				
-				using (var tr = db.BeginReadOnlyTransaction(cancellationToken))
+
+				// this lambda should be applied on any new or reset transaction
+				Action<IFdbReadOnlyTransaction> reset = (tr) =>
 				{
 					// should export be lower priority? TODO: make if configurable!
 					tr.WithPriorityBatch();
+				};
+
+				using (var tr = db.BeginReadOnlyTransaction(cancellationToken))
+				{
+					reset(tr);
 
 					//TODO: make options configurable!
 					var options = new FdbRangeOptions
@@ -855,13 +861,13 @@ namespace FoundationDB.Client
 					long waitForFetch = 0;
 
 					// read the first batch
-					var page = await FetchNextBatchAsync(tr, begin, end, options);
+					var page = await FetchNextBatchAsync(tr, begin, end, options, reset);
 					++waitForFetch;
 
 					while (page.HasMore)
 					{
 						// prefetch the next one (don't wait for the task yet)
-						var next = FetchNextBatchAsync(tr, FdbKeySelector.FirstGreaterThan(page.Last.Key), end, options);
+						var next = FetchNextBatchAsync(tr, FdbKeySelector.FirstGreaterThan(page.Last.Key), end, options, reset);
 
 						// process the current one
 						if (page.Count > 0)
@@ -897,7 +903,7 @@ namespace FoundationDB.Client
 			/// <param name="end">End selector</param>
 			/// <param name="options">Range read options</param>
 			/// <returns>Task that will return the next batch</returns>
-			private static async Task<FdbRangeChunk> FetchNextBatchAsync(IFdbReadOnlyTransaction tr, FdbKeySelector begin, FdbKeySelector end, [NotNull] FdbRangeOptions options)
+			private static async Task<FdbRangeChunk> FetchNextBatchAsync(IFdbReadOnlyTransaction tr, FdbKeySelector begin, FdbKeySelector end, [NotNull] FdbRangeOptions options, Action<IFdbReadOnlyTransaction> onReset = null)
 			{
 				Contract.Requires(tr != null && options != null);
 
@@ -924,7 +930,11 @@ namespace FoundationDB.Client
 						{
 							await tr.OnErrorAsync(error.Code).ConfigureAwait(false);
 						}
-						// retry
+						// before retrying, we need to re-configure the transaction if needed
+						if (onReset != null)
+						{
+							onReset(tr);
+						}
 					}
 				}
 			}		
