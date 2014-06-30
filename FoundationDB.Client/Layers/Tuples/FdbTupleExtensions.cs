@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using System;
+	using System.Collections.Generic;
 
 	/// <summary>Add extensions methods that deal with tuples on various types</summary>
 	public static class FdbTupleExtensions
@@ -243,6 +244,22 @@ namespace FoundationDB.Layers.Tuples
 
 			//REVIEW: move this on IFdbTuple interface ?
 			return FdbTuple.EndsWith(left, right);
+		}
+
+		/// <summary>Transform a tuple of N elements into a list of N singletons</summary>
+		/// <param name="tuple">Tuple that contains any number of elements</param>
+		/// <returns>Sequence of tuples that contains a single element</returns>
+		/// <example>(123, ABC, false,).Explode() => [ (123,), (ABC,), (false,) ]</example>
+		public static IEnumerable<IFdbTuple> Explode(this IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+
+			int p = 0;
+			int n = tuple.Count;
+			while (p < n)
+			{
+				yield return tuple[p, p + 1];
+			}
 		}
 
 		/// <summary>Returns a key that is immediately after the packed representation of this tuple</summary>
