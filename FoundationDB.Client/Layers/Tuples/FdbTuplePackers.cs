@@ -45,7 +45,7 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Serializers...
 
-		/// <summary>Returns a lambda that will be abl to serialize values of type <typeparamref name="T"/></summary>
+		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
 		internal static Encoder<T> GetSerializer<T>(bool required)
