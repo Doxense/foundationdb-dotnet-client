@@ -46,7 +46,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		}
 
 		[Test]
-		public void Test_RangeDictionary_Insert_Non_Overlapping()
+		public void Test_RangeDictionary_Insert_In_Order_Non_Overlapping()
 		{
 			var cola = new ColaRangeDictionary<int, string>();
 			Assert.That(cola.Count, Is.EqualTo(0));
@@ -60,16 +60,69 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			Assert.That(cola.Count, Is.EqualTo(2));
 
 			cola.Mark(4, 5, "C");
+			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
+
 			Assert.That(cola.Count, Is.EqualTo(3));
+			var runs = cola.ToArray();
+			Assert.That(runs.Length, Is.EqualTo(3));
+
+			Assert.That(runs[0].Begin, Is.EqualTo(0));
+			Assert.That(runs[0].End, Is.EqualTo(1));
+			Assert.That(runs[0].Value, Is.EqualTo("A"));
+
+			Assert.That(runs[1].Begin, Is.EqualTo(2));
+			Assert.That(runs[1].End, Is.EqualTo(3));
+			Assert.That(runs[1].Value, Is.EqualTo("B"));
+
+			Assert.That(runs[2].Begin, Is.EqualTo(4));
+			Assert.That(runs[2].End, Is.EqualTo(5));
+			Assert.That(runs[2].Value, Is.EqualTo("C"));
+
+			Assert.That(cola.Bounds.Begin, Is.EqualTo(0));
+			Assert.That(cola.Bounds.End, Is.EqualTo(5));
+		}
+
+		[Test]
+		public void Test_RangeDictionary_Insert_Out_Of_Order_Non_Overlapping()
+		{
+			var cola = new ColaRangeDictionary<int, string>();
+			Assert.That(cola.Count, Is.EqualTo(0));
+
+			cola.Mark(0, 1, "A");
+			cola.Debug_Dump();
+			Assert.That(cola.Count, Is.EqualTo(1));
+
+			cola.Mark(4, 5, "B");
+			cola.Debug_Dump();
+			Assert.That(cola.Count, Is.EqualTo(2));
+
+			cola.Mark(2, 3, "C");
+			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
+			cola.Debug_Dump();
+
+			Assert.That(cola.Count, Is.EqualTo(3));
+			var runs = cola.ToArray();
+			Assert.That(runs.Length, Is.EqualTo(3));
+
+			Assert.That(runs[0].Begin, Is.EqualTo(0));
+			Assert.That(runs[0].End, Is.EqualTo(1));
+			Assert.That(runs[0].Value, Is.EqualTo("A"));
+
+			Assert.That(runs[1].Begin, Is.EqualTo(2));
+			Assert.That(runs[1].End, Is.EqualTo(3));
+			Assert.That(runs[1].Value, Is.EqualTo("C"));
+
+			Assert.That(runs[2].Begin, Is.EqualTo(4));
+			Assert.That(runs[2].End, Is.EqualTo(5));
+			Assert.That(runs[2].Value, Is.EqualTo("B"));
 
 			Assert.That(cola.Bounds.Begin, Is.EqualTo(0));
 			Assert.That(cola.Bounds.End, Is.EqualTo(5));
 
-			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
-			Console.WriteLine("Bounds = " + cola.Bounds);
 		}
-
 		[Test]
 		public void Test_RangeDictionary_Insert_Partially_Overlapping()
 		{
@@ -101,20 +154,30 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		{
 			var cola = new ColaRangeDictionary<int, string>();
 			cola.Mark(4, 5, "A");
+			Console.WriteLine("BEFORE = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 			Assert.That(cola.Count, Is.EqualTo(1));
 			Assert.That(cola.Bounds.Begin, Is.EqualTo(4));
 			Assert.That(cola.Bounds.End, Is.EqualTo(5));
 
 			// overlaps all the ranges at once
+			// 0123456789   0123456789   0123456789
+			// ____A_____ + BBBBBBBBBB = BBBBBBBBBB
 			cola.Mark(0, 10, "B");
+			Console.WriteLine("AFTER  = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
+
 			Assert.That(cola.Count, Is.EqualTo(1));
+			var runs = cola.ToArray();
+			Assert.That(runs.Length, Is.EqualTo(1));
+			Assert.That(runs[0].Begin, Is.EqualTo(0));
+			Assert.That(runs[0].End, Is.EqualTo(10));
+			Assert.That(runs[0].Value, Is.EqualTo("B"));
+
 			Assert.That(cola.Bounds.Begin, Is.EqualTo(0));
 			Assert.That(cola.Bounds.End, Is.EqualTo(10));
-
-			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
-			Console.WriteLine("Bounds = " + cola.Bounds);
 		}
 
 		[Test]
@@ -122,21 +185,22 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		{
 			var cola = new ColaRangeDictionary<int, string>();
 			cola.Mark(0, 10, "A");
+			Console.WriteLine("BEFORE = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 			Assert.That(cola.Count, Is.EqualTo(1));
 			Assert.That(cola.Bounds.Begin, Is.EqualTo(0));
 			Assert.That(cola.Bounds.End, Is.EqualTo(10));
 
 			// overlaps all the ranges at once
+
+			// 0123456789   0123456789   0123456789
+			// AAAAAAAAAA + ____B_____ = AAAABAAAAA
 			cola.Mark(4, 5, "B");
+			Console.WriteLine("AFTER  = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 			Assert.That(cola.Count, Is.EqualTo(3));
-			Assert.That(cola.Bounds.Begin, Is.EqualTo(0));
-			Assert.That(cola.Bounds.End, Is.EqualTo(10));
-
-			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
-			Console.WriteLine("Bounds = " + cola.Bounds);
-
 			var items = cola.ToArray();
 			Assert.That(items.Length, Is.EqualTo(3));
 
@@ -152,6 +216,8 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			Assert.That(items[2].End, Is.EqualTo(10));
 			Assert.That(items[2].Value, Is.EqualTo("A"));
 
+			Assert.That(cola.Bounds.Begin, Is.EqualTo(0));
+			Assert.That(cola.Bounds.End, Is.EqualTo(10));
 		}
 
 		[Test]
