@@ -155,7 +155,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		}
 
 		[Test]
-		public void Test_RangeSet_Insert_That_Fits_Between_Two_Ranges()
+		public void Test_RangeDictionary_Insert_That_Fits_Between_Two_Ranges()
 		{
 			var cola = new ColaRangeDictionary<int, string>();
 			cola.Mark(0, 1, "A");
@@ -188,24 +188,32 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		}
 
 		[Test]
-		public void Test_RangeSet_Insert_That_Join_Two_Ranges()
+		public void Test_RangeDictionary_Insert_That_Join_Two_Ranges()
 		{
 			var cola = new ColaRangeDictionary<int, string>();
 			cola.Mark(0, 1, "A");
 			cola.Mark(2, 3, "A");
+			Console.WriteLine("BEFORE = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 			Assert.That(cola.Count, Is.EqualTo(2));
 
-			cola.Mark(1, 2, "B");
-			cola.Debug_Dump();
-			Assert.That(cola.Count, Is.EqualTo(1));
-
-			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
+			// A_A_ + _A__ = AAA_
+			cola.Mark(1, 2, "A");
+			Console.WriteLine("AFTER  = { " + String.Join(", ", cola) + " }");
 			Console.WriteLine("Bounds = " + cola.Bounds);
+			cola.Debug_Dump();
+
+			Assert.That(cola.Count, Is.EqualTo(1));
+			var runs = cola.ToArray();
+			Assert.That(runs[0].Begin, Is.EqualTo(0));
+			Assert.That(runs[0].End, Is.EqualTo(3));
+			Assert.That(runs[0].Value, Is.EqualTo("A"));
+
 		}
 
 		[Test]
-		public void Test_RangeSet_Insert_That_Replace_All_Ranges()
+		public void Test_RangeDictionary_Insert_That_Replace_All_Ranges()
 		{
 			var cola = new ColaRangeDictionary<int, string>();
 			cola.Mark(0, 1, "A");
@@ -228,7 +236,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		}
 
 		[Test]
-		public void Test_RangeSet_Insert_Backwards()
+		public void Test_RangeDictionary_Insert_Backwards()
 		{
 			const int N = 100;
 

@@ -17,9 +17,10 @@ namespace FoundationDB.Storage.Memory.Core.Test
 		[Test]
 		public void Test_Empty_Dictionary()
 		{
-			var cola = new ColaOrderedSet<string>(42, StringComparer.Ordinal);
+			var cola = new ColaOrderedDictionary<int, string>(42, Comparer<int>.Default, StringComparer.Ordinal);
 			Assert.That(cola.Count, Is.EqualTo(0));
-			Assert.That(cola.Comparer, Is.SameAs(StringComparer.Ordinal));
+			Assert.That(cola.KeyComparer, Is.SameAs(Comparer<int>.Default));
+			Assert.That(cola.ValueComparer, Is.SameAs(StringComparer.Ordinal));
 			Assert.That(cola.Capacity, Is.EqualTo(63), "Capacity should be the next power of 2, minus 1");
 		}
 

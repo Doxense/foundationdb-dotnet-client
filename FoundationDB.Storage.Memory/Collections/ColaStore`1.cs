@@ -1097,7 +1097,7 @@ namespace FoundationDB.Storage.Memory.Core
 			for(int i = 0; i < m_levels.Length; i++)
 			{
 				string s = dump == null ? String.Join(", ", m_levels[i]) : String.Join(", ", m_levels[i].Select(dump));
-				Trace.WriteLine(String.Format(CultureInfo.InvariantCulture, "  - {0,2}: [{1}] {2}", i, IsFree(i) ? "free" : "USED", s));
+				Trace.WriteLine(String.Format(CultureInfo.InvariantCulture, "  - {0,2}|{1}: {2}", i, IsFree(i) ? "_" : "#", s));
 			}
 #if false
 			Trace.WriteLine("> " + m_spares.Length + " spares:");
