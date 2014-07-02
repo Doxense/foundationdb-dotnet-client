@@ -466,13 +466,29 @@ namespace FoundationDB.Storage.Memory.Core
 								return;
 							}
 
-							//   [---------)????..
-							//       [=========)
-							// = [---|=========)..
-
-							cursor.End = begin;
-							inserted = false;
-							//TODO: need to propagate !
+							int c3 = cmp.Compare(begin, cursor.End);
+							if (c3 >= 0)
+							{
+								if (c3 == 0 && m_valueComparer.Compare(value, cursor.Value) == 0)
+								{ // touching same value => merge
+									cursor.End = end;
+									entry = cursor;
+									inserted = true;
+								}
+								else
+								{
+									//   [---)
+									//         [=====????
+									// = [---) [=====????
+								}
+							}
+							else
+							{
+								//   [--------????
+								//       [====????
+								// = [---|====????
+								cursor.End = begin;
+							}
 						}
 
 						// if we end up here, it means that we may be overlapping with following items
@@ -492,14 +508,46 @@ namespace FoundationDB.Storage.Memory.Core
 							cursor = iterator.Current;
 
 							c1 = cmp.Compare(cursor.Begin, end);
-							if (c1 >= 0)
+							if (c1 == 0)
+							{ // touching the next range
+								if (m_valueComparer.Compare(value, cursor.Value) == 0)
+								{ // contiguous block with same value => merge
+									//         [===========)
+									//   [=====)
+									// = [=================)
+									if (inserted)
+									{
+										if (cmp.Compare(cursor.End, entry.End) > 0)
+										{
+											entry.End = cursor.End;
+										}
+										//note: we can't really delete while iterating with a cursor, so just mark it for deletion
+										if (deleted == null) deleted = new List<Entry>();
+										deleted.Add(cursor);
+									}
+									else
+									{
+										cursor.Begin = begin;
+										entry = cursor;
+										inserted = true;
+									}
+									break;
+								}
+								else
+								{
+									//         [-----------)
+									//   [=====)
+									// = [=====|-----------)
+								}
+								break;
+							}
+							else if (c1 > 0)
 							{ // we are past the inserted range, nothing to do any more
 								//            [------------)
 								//   [=====)
 								// = [=====)  [------------)
 								//Console.WriteLine("  . no overlap => break");
 								break;
-
 							}
 
 							c1 = cmp.Compare(cursor.End, end);

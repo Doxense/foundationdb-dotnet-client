@@ -52,15 +52,19 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			Assert.That(cola.Count, Is.EqualTo(0));
 
 			cola.Mark(0, 1, "A");
+			Console.WriteLine("FIRST  = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 			Assert.That(cola.Count, Is.EqualTo(1));
 
 			cola.Mark(2, 3, "B");
+			Console.WriteLine("SECOND = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 			Assert.That(cola.Count, Is.EqualTo(2));
 
 			cola.Mark(4, 5, "C");
-			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("THIRD  = { " + String.Join(", ", cola) + " }");
 			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 
@@ -91,15 +95,19 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			Assert.That(cola.Count, Is.EqualTo(0));
 
 			cola.Mark(0, 1, "A");
+			Console.WriteLine("FIRST  = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 			Assert.That(cola.Count, Is.EqualTo(1));
 
 			cola.Mark(4, 5, "B");
+			Console.WriteLine("SECOND = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 			Assert.That(cola.Count, Is.EqualTo(2));
 
 			cola.Mark(2, 3, "C");
-			Console.WriteLine("Result = { " + String.Join(", ", cola) + " }");
+			Console.WriteLine("THIRD  = { " + String.Join(", ", cola) + " }");
 			Console.WriteLine("Bounds = " + cola.Bounds);
 			cola.Debug_Dump();
 
