@@ -40,21 +40,21 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Uuid_Empty()
 		{
-			Assert.That(Uuid.Empty.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
-			Assert.That(Uuid.Empty, Is.EqualTo(default(Uuid)));
-			Assert.That(Uuid.Empty, Is.EqualTo(new Uuid(new byte[16])));
+			Assert.That(Uuid128.Empty.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
+			Assert.That(Uuid128.Empty, Is.EqualTo(default(Uuid128)));
+			Assert.That(Uuid128.Empty, Is.EqualTo(new Uuid128(new byte[16])));
 		}
 
 		[Test]
 		public void Test_Uuid_Parse()
 		{
-			Uuid uuid;
+			Uuid128 uuid;
 
-			uuid = Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f");
+			uuid = Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f");
 			Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
 			Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }));
 
-			uuid = Uuid.Parse("{00010203-0405-0607-0809-0a0b0c0d0e0f}");
+			uuid = Uuid128.Parse("{00010203-0405-0607-0809-0a0b0c0d0e0f}");
 			Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
 			Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }));
 		}
@@ -62,13 +62,13 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Uuid_From_Bytes()
 		{
-			Uuid uuid;
+			Uuid128 uuid;
 
-			uuid = new Uuid(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
+			uuid = new Uuid128(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 });
 			Assert.That(uuid.ToString(), Is.EqualTo("00010203-0405-0607-0809-0a0b0c0d0e0f"));
 			Assert.That(uuid.ToByteArray(), Is.EqualTo(new byte[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 }));
 
-			uuid = new Uuid(new byte[16]);
+			uuid = new Uuid128(new byte[16]);
 			Assert.That(uuid.ToString(), Is.EqualTo("00000000-0000-0000-0000-000000000000"));
 		}
 
@@ -77,12 +77,12 @@ namespace FoundationDB.Client.Tests
 		{
 			Guid guid = Guid.NewGuid();
 
-			var uuid = new Uuid(guid);
+			var uuid = new Uuid128(guid);
 			Assert.That(uuid.ToString(), Is.EqualTo(guid.ToString()));
 			Assert.That(uuid.ToGuid(), Is.EqualTo(guid));
 			Assert.That((Guid)uuid, Is.EqualTo(guid));
-			Assert.That((Uuid)guid, Is.EqualTo(uuid));
-			Assert.That(Uuid.Parse(guid.ToString()), Is.EqualTo(uuid));
+			Assert.That((Uuid128)guid, Is.EqualTo(uuid));
+			Assert.That(Uuid128.Parse(guid.ToString()), Is.EqualTo(uuid));
 			Assert.That(uuid.Equals(guid), Is.True);
 			Assert.That(uuid.Equals((object)guid), Is.True);
 			Assert.That(uuid == guid, Is.True);
@@ -96,11 +96,11 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Uuid_Equality()
 		{
-			Assert.That(Uuid.Empty.Equals(new Uuid(new byte[16])), Is.True);
-			Assert.That(Uuid.Empty.Equals(Uuid.NewUuid()), Is.False);
+			Assert.That(Uuid128.Empty.Equals(new Uuid128(new byte[16])), Is.True);
+			Assert.That(Uuid128.Empty.Equals(Uuid128.NewUuid()), Is.False);
 
-			var uuid1 = Uuid.NewUuid();
-			var uuid2 = Uuid.NewUuid();
+			var uuid1 = Uuid128.NewUuid();
+			var uuid2 = Uuid128.NewUuid();
 
 			Assert.That(uuid1.Equals(uuid1), Is.True);
 			Assert.That(uuid2.Equals(uuid2), Is.True);
@@ -112,7 +112,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(uuid1.Equals((object)uuid2), Is.False);
 			Assert.That(uuid2.Equals((object)uuid1), Is.False);
 
-			var uuid1b = Uuid.Parse(uuid1.ToString());
+			var uuid1b = Uuid128.Parse(uuid1.ToString());
 			Assert.That(uuid1b.Equals(uuid1), Is.True);
 			Assert.That(uuid1b.Equals((object)uuid1), Is.True);
 
@@ -121,15 +121,15 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public void Test_Uuid_NewUuid()
 		{
-			var uuid = Uuid.NewUuid();
-			Assert.That(uuid, Is.Not.EqualTo(Uuid.Empty));
+			var uuid = Uuid128.NewUuid();
+			Assert.That(uuid, Is.Not.EqualTo(Uuid128.Empty));
 			Assert.That(uuid.ToGuid().ToString(), Is.EqualTo(uuid.ToString()));
 		}
 
 		[Test]
 		public void Test_Uuid_ToSlice()
 		{
-			var uuid = Uuid.NewUuid();
+			var uuid = Uuid128.NewUuid();
 			Assert.That(uuid.ToSlice().Count, Is.EqualTo(16));
 			Assert.That(uuid.ToSlice().Offset, Is.GreaterThanOrEqualTo(0));
 			Assert.That(uuid.ToSlice().Array, Is.Not.Null);
@@ -143,18 +143,18 @@ namespace FoundationDB.Client.Tests
 		{
 			//note: these UUIDs are from http://docs.python.org/2/library/uuid.html
 
-			Uuid uuid;
+			Uuid128 uuid;
 
-			uuid = Uuid.Parse("a8098c1a-f86e-11da-bd1a-00112444be1e");
+			uuid = Uuid128.Parse("a8098c1a-f86e-11da-bd1a-00112444be1e");
 			Assert.That(uuid.Version, Is.EqualTo(1));
 
-			uuid = Uuid.Parse("6fa459ea-ee8a-3ca4-894e-db77e160355e");
+			uuid = Uuid128.Parse("6fa459ea-ee8a-3ca4-894e-db77e160355e");
 			Assert.That(uuid.Version, Is.EqualTo(3));
 
-			uuid = Uuid.Parse("16fd2706-8baf-433b-82eb-8c7fada847da");
+			uuid = Uuid128.Parse("16fd2706-8baf-433b-82eb-8c7fada847da");
 			Assert.That(uuid.Version, Is.EqualTo(4));
 
-			uuid = Uuid.Parse("886313e1-3b8a-5372-9b90-0c9aee199e5d");
+			uuid = Uuid128.Parse("886313e1-3b8a-5372-9b90-0c9aee199e5d");
 			Assert.That(uuid.Version, Is.EqualTo(5));
 		}
 
@@ -166,7 +166,7 @@ namespace FoundationDB.Client.Tests
 			// UUID V1 : 60-bit timestamp, in 100-ns ticks since 1582-10-15T00:00:00.000
 
 			// note: this uuid was generated in Python as 'uuid.uuid1(None, 12345)' on the 2013-09-09 at 14:33:50 GMT+2
-			var uuid = Uuid.Parse("14895400-194c-11e3-b039-1803deadb33f");
+			var uuid = Uuid128.Parse("14895400-194c-11e3-b039-1803deadb33f");
 			Assert.That(uuid.Timestamp, Is.EqualTo(135980228304000000L));
 			Assert.That(uuid.ClockSequence, Is.EqualTo(12345));
 			Assert.That(uuid.Node, Is.EqualTo(0x1803deadb33f)); // no, this is not my real mac address !
@@ -178,19 +178,19 @@ namespace FoundationDB.Client.Tests
 			// UUID V3 : MD5 hash of the name
 
 			//note: this uuid was generated in Python as 'uuid.uuid3(uuid.NAMESPACE_DNS, 'foundationdb.com')'
-			uuid = Uuid.Parse("4b1ddea9-d4d0-39a0-82d8-9d53e2c42a3d");
+			uuid = Uuid128.Parse("4b1ddea9-d4d0-39a0-82d8-9d53e2c42a3d");
 			Assert.That(uuid.Timestamp, Is.EqualTo(0x9A0D4D04B1DDEA9L));
 			Assert.That(uuid.ClockSequence, Is.EqualTo(728));
 			Assert.That(uuid.Node, Is.EqualTo(0x9D53E2C42A3D));
 
 			// UUID V5 : SHA1 hash of the name
-						
+
 			//note: this uuid was generated in Python as 'uuid.uuid5(uuid.NAMESPACE_DNS, 'foundationdb.com')'
-			uuid = Uuid.Parse("e449df19-a87d-5410-aaab-d5870625c6b7");
+			uuid = Uuid128.Parse("e449df19-a87d-5410-aaab-d5870625c6b7");
 			Assert.That(uuid.Timestamp, Is.EqualTo(0x410a87de449df19L));
 			Assert.That(uuid.ClockSequence, Is.EqualTo(10923));
 			Assert.That(uuid.Node, Is.EqualTo(0xD5870625C6B7));
-			
+
 		}
 
 		[Test]
@@ -199,8 +199,8 @@ namespace FoundationDB.Client.Tests
 			const int N = 1000;
 
 			// create a a list of random ids
-			var source = new List<Uuid>(N);
-			for (int i = 0; i < N; i++) source.Add(Uuid.NewUuid());
+			var source = new List<Uuid128>(N);
+			for (int i = 0; i < N; i++) source.Add(Uuid128.NewUuid());
 
 			// sort them by their string literals
 			var literals = source.Select(id => id.ToString()).ToList();
@@ -214,14 +214,14 @@ namespace FoundationDB.Client.Tests
 			source.Sort();
 
 			// they all should be in the same order
-			for(int i=0;i<N;i++)
+			for (int i = 0; i < N; i++)
 			{
 				Assert.That(literals[i], Is.EqualTo(source[i].ToString()));
 				Assert.That(bytes[i], Is.EqualTo(source[i].ToSlice()));
 			}
 
 		}
-	
+
 	}
 
 }

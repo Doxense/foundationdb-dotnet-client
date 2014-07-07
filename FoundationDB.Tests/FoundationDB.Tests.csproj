@@ -85,7 +85,8 @@
     <Compile Include="Utils\SliceComparerFacts.cs" />
     <Compile Include="Utils\SliceStreamFacts.cs" />
     <Compile Include="Utils\SliceHelperFacts.cs" />
-    <Compile Include="UuidFacts.cs" />
+    <Compile Include="Uuid64Facts.cs" />
+    <Compile Include="Uuid128Facts.cs" />
     <Compile Include="Utils\SliceFacts.cs" />
     <Compile Include="DatabaseBulkFacts.cs" />
     <Compile Include="Layers\SubspaceFacts.cs" />

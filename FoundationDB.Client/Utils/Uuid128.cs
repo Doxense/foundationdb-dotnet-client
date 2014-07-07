@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
 	using System.ComponentModel;
@@ -36,7 +37,7 @@ namespace FoundationDB.Client
 	/// <summary>RFC 4122 compliant 128-bit UUID</summary>
 	/// <remarks>You should use this type if you are primarily exchanged UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>
 	[ImmutableObject(true), StructLayout(LayoutKind.Explicit), Serializable]
-	public struct Uuid : IFormattable, IComparable, IEquatable<Uuid>, IComparable<Uuid>, IEquatable<Guid>
+	public struct Uuid128 : IFormattable, IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>
 	{
 		// This is just a wrapper struct on System.Guid that makes sure that ToByteArray() and Parse(byte[]) and new(byte[]) will parse according to RFC 4122 (http://www.ietf.org/rfc/rfc4122.txt)
 		// For performance reasons, we will store the UUID as a System.GUID (Microsoft in-memory format), and swap the bytes when needed.
@@ -93,53 +94,53 @@ namespace FoundationDB.Client
 
 		#region Constructors...
 
-		public Uuid(Guid guid)
+		public Uuid128(Guid guid)
 			: this()
 		{
 			m_packed = guid;
 		}
 
-		public Uuid(string value)
+		public Uuid128(string value)
 			: this(new Guid(value))
 		{ }
 
-		public Uuid(Slice slice)
+		public Uuid128(Slice slice)
 			: this()
 		{
 			m_packed = Convert(slice);
 		}
 
-		public Uuid(byte[] bytes)
+		public Uuid128(byte[] bytes)
 			: this(Slice.Create(bytes))
 		{ }
 
-		public Uuid(int a, short b, short c, byte[] d)
+		public Uuid128(int a, short b, short c, byte[] d)
 			: this(new Guid(a, b, c, d))
 		{ }
 
-		public Uuid(int a, short b, short c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
+		public Uuid128(int a, short b, short c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
 			: this(new Guid(a, b, c, d, e, f, g, h, i, j, k))
 		{ }
 
-		public Uuid(uint a, ushort b, ushort c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
+		public Uuid128(uint a, ushort b, ushort c, byte d, byte e, byte f, byte g, byte h, byte i, byte j, byte k)
 			: this(new Guid(a, b, c, d, e, f, g, h, i, j, k))
 		{ }
 
-		public static explicit operator Guid(Uuid uuid)
+		public static explicit operator Guid(Uuid128 uuid)
 		{
 			return uuid.m_packed;
 		}
 
-		public static explicit operator Uuid(Guid guid)
+		public static explicit operator Uuid128(Guid guid)
 		{
-			return new Uuid(guid);
+			return new Uuid128(guid);
 		}
 
-		public static readonly Uuid Empty = default(Uuid);
+		public static readonly Uuid128 Empty = default(Uuid128);
 
-		public static Uuid NewUuid()
+		public static Uuid128 NewUuid()
 		{
-			return new Uuid(Guid.NewGuid());
+			return new Uuid128(Guid.NewGuid());
 		}
 
 		internal static Guid Convert(Slice input)
@@ -161,37 +162,37 @@ namespace FoundationDB.Client
 			throw new ArgumentException("Slice for UUID must be exactly 16 bytes long");
 		}
 
-		public static Uuid Parse([NotNull] string input)
+		public static Uuid128 Parse([NotNull] string input)
 		{
-			return new Uuid(Guid.Parse(input));
+			return new Uuid128(Guid.Parse(input));
 		}
 
-		public static Uuid ParseExact([NotNull] string input, string format)
+		public static Uuid128 ParseExact([NotNull] string input, string format)
 		{
-			return new Uuid(Guid.ParseExact(input, format));
+			return new Uuid128(Guid.ParseExact(input, format));
 		}
 
-		public static bool TryParse(string input, out Uuid result)
+		public static bool TryParse(string input, out Uuid128 result)
 		{
 			Guid guid;
 			if (!Guid.TryParse(input, out guid))
 			{
-				result = default(Uuid);
+				result = default(Uuid128);
 				return false;
 			}
-			result = new Uuid(guid);
+			result = new Uuid128(guid);
 			return true;
 		}
 
-		public static bool TryParseExact(string input, string format, out Uuid result)
+		public static bool TryParseExact(string input, string format, out Uuid128 result)
 		{
 			Guid guid;
 			if (!Guid.TryParseExact(input, format, out guid))
 			{
-				result = default(Uuid);
+				result = default(Uuid128);
 				return false;
 			}
-			result = new Uuid(guid);
+			result = new Uuid128(guid);
 			return true;
 		}
 
@@ -334,6 +335,7 @@ namespace FoundationDB.Client
 		[Pure]
 		public Slice ToSlice()
 		{
+			//TODO: optimize this ?
 			return new Slice(ToByteArray(), 0, 16);
 		}
 
@@ -359,12 +361,12 @@ namespace FoundationDB.Client
 		public override bool Equals(object obj)
 		{
 			if (obj == null) return false;
-			if (obj is Uuid) return m_packed == ((Uuid)obj);
+			if (obj is Uuid128) return m_packed == ((Uuid128)obj);
 			if (obj is Guid) return m_packed == ((Guid)obj);
 			return false;
 		}
 
-		public bool Equals(Uuid other)
+		public bool Equals(Uuid128 other)
 		{
 			return m_packed == other.m_packed;
 		}
@@ -374,32 +376,32 @@ namespace FoundationDB.Client
 			return m_packed == other;
 		}
 
-		public static bool operator ==(Uuid a, Uuid b)
+		public static bool operator ==(Uuid128 a, Uuid128 b)
 		{
 			return a.m_packed == b.m_packed;
 		}
 
-		public static bool operator !=(Uuid a, Uuid b)
+		public static bool operator !=(Uuid128 a, Uuid128 b)
 		{
 			return a.m_packed != b.m_packed;
 		}
 
-		public static bool operator ==(Uuid a, Guid b)
+		public static bool operator ==(Uuid128 a, Guid b)
 		{
 			return a.m_packed == b;
 		}
 
-		public static bool operator !=(Uuid a, Guid b)
+		public static bool operator !=(Uuid128 a, Guid b)
 		{
 			return a.m_packed != b;
 		}
 
-		public static bool operator ==(Guid a, Uuid b)
+		public static bool operator ==(Guid a, Uuid128 b)
 		{
 			return a == b.m_packed;
 		}
 
-		public static bool operator !=(Guid a, Uuid b)
+		public static bool operator !=(Guid a, Uuid128 b)
 		{
 			return a != b.m_packed;
 		}
@@ -409,7 +411,7 @@ namespace FoundationDB.Client
 			return m_packed.GetHashCode();
 		}
 
-		public int CompareTo(Uuid other)
+		public int CompareTo(Uuid128 other)
 		{
 			return m_packed.CompareTo(other.m_packed);
 		}
@@ -418,8 +420,8 @@ namespace FoundationDB.Client
 		{
 			if (obj == null) return 1;
 
-			if (obj is Uuid)
-				return m_packed.CompareTo(((Uuid)obj).m_packed);
+			if (obj is Uuid128)
+				return m_packed.CompareTo(((Uuid128)obj).m_packed);
 			else
 				return m_packed.CompareTo(obj);
 		}

@@ -32,7 +32,7 @@ namespace FoundationDB.Storage.Memory.IO
 
 		private Version m_version;
 		private SnapshotFormat.Flags m_dbFlags;
-		private Uuid m_uid;
+		private Uuid128 m_uid;
 		private ulong m_sequence;
 		private long m_itemCount;
 		private ulong m_timestamp;
@@ -61,7 +61,7 @@ namespace FoundationDB.Storage.Memory.IO
 		public ulong Sequence { get { return m_sequence; } }
 		public ulong TimeStamp { get { return m_timestamp; } }
 		public Version Version { get { return m_version; } }
-		public Uuid Id { get { return m_uid; } }
+		public Uuid128 Id { get { return m_uid; } }
 
 		private Exception ParseError(string message)
 		{
@@ -115,7 +115,7 @@ namespace FoundationDB.Storage.Memory.IO
 			// FLAGS
 			m_dbFlags = (SnapshotFormat.Flags) reader.ReadFixed64();
 			// Database ID
-			m_uid = new Uuid(reader.ReadBytes(16).GetBytes());
+			m_uid = new Uuid128(reader.ReadBytes(16).GetBytes());
 			// Database Version
 			m_sequence = reader.ReadFixed64();
 			// Number of items in the database
@@ -234,7 +234,7 @@ namespace FoundationDB.Storage.Memory.IO
 			// Sequence Number (repeated)
 			var sequenceRepeated = reader.ReadFixed64();
 			// Database ID (repeated)
-			var uidRepeated = new Uuid(reader.ReadBytes(16).GetBytes());
+			var uidRepeated = new Uuid128(reader.ReadBytes(16).GetBytes());
 			// Header CRC (repeated)
 			var headerChecksumRepeated = reader.ReadFixed32();
 

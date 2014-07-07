@@ -749,14 +749,20 @@ namespace FoundationDB.Client
 			// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
 			// => we will convert the GUID into a UUID under the hood, and hope that it gets converted back when read from the db
 
-			return new Uuid(value).ToSlice();
+			return new Uuid128(value).ToSlice();
 		}
 
 		/// <summary>Create a 16-byte slice containing an RFC 4122 compliant 128-bit UUID</summary>
 		/// <remarks>You should never call this method on a slice created from the result of calling System.Guid.ToByteArray() !</remarks>
-		public static Slice FromUuid(Uuid value)
+		public static Slice FromUuid128(Uuid128 value)
 		{
 			// UUID should already be in the RFC 4122 ordering
+			return value.ToSlice();
+		}
+
+		/// <summary>Create an 8-byte slice containing an 64-bit UUID</summary>
+		public static Slice FromUuid64(Uuid64 value)
+		{
 			return value.ToSlice();
 		}
 
@@ -1220,7 +1226,7 @@ namespace FoundationDB.Client
 				// UUID are stored using the RFC4122 format (Big Endian), while .NET's System.GUID use Little Endian
 				// we need to swap the byte order of the Data1, Data2 and Data3 chunks, to ensure that Guid.ToString() will return the proper value.
 
-				return new Uuid(this).ToGuid();
+				return new Uuid128(this).ToGuid();
 			}
 
 			if (this.Count == 36)
@@ -1231,26 +1237,53 @@ namespace FoundationDB.Client
 			throw new FormatException("Cannot convert slice into a Guid because it has an incorrect size");
 		}
 
-		/// <summary>Converts a slice into an Uuid.</summary>
+		/// <summary>Converts a slice into a 128-bit UUID.</summary>
 		/// <returns>Uuid decoded from the Slice.</returns>
 		/// <remarks>The slice can either be a 16-byte RFC4122 GUID, or an ASCII string of 36 chars</remarks>
 		[Pure]
-		public Uuid ToUuid()
+		public Uuid128 ToUuid128()
 		{
-			if (this.Count == 0) return default(Uuid);
+			if (this.Count == 0) return default(Uuid128);
 			SliceHelpers.EnsureSliceIsValid(ref this);
 
 			if (this.Count == 16)
 			{
-				return new Uuid(this);
+				return new Uuid128(this);
 			}
 
 			if (this.Count == 36)
 			{
-				return Uuid.Parse(this.ToAscii());
+				return Uuid128.Parse(this.ToAscii());
 			}
 
-			throw new FormatException("Cannot convert slice into Uuid because it has an incorrect size");
+			throw new FormatException("Cannot convert slice into an Uuid128 because it has an incorrect size");
+		}
+
+		/// <summary>Converts a slice into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the Slice.</returns>
+		/// <remarks>The slice can either be an 8-byte array, or an ASCII string of 16, 17 or 19 chars</remarks>
+		[Pure]
+		public Uuid64 ToUuid64()
+		{
+			if (this.Count == 0) return default(Uuid64);
+			SliceHelpers.EnsureSliceIsValid(ref this);
+
+			switch(this.Count)
+			{
+				case 8:
+				{ // binary (8 bytes)
+					return new Uuid64(this);
+				}
+
+				case 16: // hex16
+				case 17: // hex8-hex8
+				case 19: // {hex8-hex8}
+				{
+					return Uuid64.Parse(this.ToAscii());
+				}
+			}
+
+			throw new FormatException("Cannot convert slice into an Uuid64 because it has an incorrect size");
 		}
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>

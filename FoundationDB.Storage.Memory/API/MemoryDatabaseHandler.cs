@@ -37,7 +37,7 @@ namespace FoundationDB.Storage.Memory.API
 			// we need to create the System keyspace, under \xFF
 
 			// cheap way to generate machine & datacenter ids
-			var databaseId = new Uuid(m_uid).ToSlice();
+			var databaseId = new Uuid128(m_uid).ToSlice();
 			var machineId = Slice.FromFixed64(Environment.MachineName.GetHashCode()) + databaseId[0, 8];
 			var datacenterId = Slice.FromFixed64(Environment.MachineName.GetHashCode()) + databaseId[8, 16];
 			var keyServerBlob = Slice.FromFixed16(1) + Slice.FromFixed32(0xA22000) + Slice.FromFixed16(0xFDB) + Slice.FromFixed32(1) + databaseId + Slice.FromFixed32(0);
@@ -1283,7 +1283,7 @@ namespace FoundationDB.Storage.Memory.API
 					//Console.WriteLine("> Writing header....");
 					await snapshot.WriteHeaderAsync(
 						headerFlags,
-						new Uuid(m_uid),
+						new Uuid128(m_uid),
 						sequence,
 						count,
 						timestamp,

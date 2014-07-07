@@ -613,45 +613,103 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_FdbTuple_Serialize_Uuids()
+		public void Test_FdbTuple_Serialize_Uuid128s()
 		{
-			// UUIDs are stored with prefix '03' followed by 16 bytes formatted according to RFC 4122
+			// UUID128s are stored with prefix '30' followed by 16 bytes formatted according to RFC 4122
 
 			Slice packed;
 
 			// note: new Uuid(bytes from 0 to 15) => "03020100-0504-0706-0809-0a0b0c0d0e0f";
-			packed = FdbTuple.Create(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")).ToSlice();
+			packed = FdbTuple.Create(Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")).ToSlice();
 			Assert.That(packed.ToString(), Is.EqualTo("0<00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
 
-			packed = FdbTuple.Create(Uuid.Empty).ToSlice();
+			packed = FdbTuple.Create(Uuid128.Empty).ToSlice();
 			Assert.That(packed.ToString(), Is.EqualTo("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
 		}
 
 		[Test]
-		public void Test_FdbTuple_Deserialize_Uuids()
+		public void Test_FdbTuple_Deserialize_Uuid128s()
 		{
-			// UUIDs are stored with prefix '03' followed by 16 bytes (the result of uuid.ToByteArray())
+			// UUID128s are stored with prefix '30' followed by 16 bytes (the result of uuid.ToByteArray())
 			// we also accept byte arrays (prefix '01') if they are of length 16
 
 			IFdbTuple packed;
 
 			// note: new Uuid(bytes from 0 to 15) => "00010203-0405-0607-0809-0a0b0c0d0e0f";
 			packed = FdbTuple.Unpack(Slice.Unescape("<30><00><01><02><03><04><05><06><07><08><09><0A><0B><0C><0D><0E><0F>"));
-			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
-			Assert.That(packed[0], Is.EqualTo(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
+			Assert.That(packed.Get<Uuid128>(0), Is.EqualTo(Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
+			Assert.That(packed[0], Is.EqualTo(Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
 
 			packed = FdbTuple.Unpack(Slice.Unescape("<30><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>"));
-			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Empty));
-			Assert.That(packed[0], Is.EqualTo(Uuid.Empty));
+			Assert.That(packed.Get<Uuid128>(0), Is.EqualTo(Uuid128.Empty));
+			Assert.That(packed[0], Is.EqualTo(Uuid128.Empty));
 
 			// unicode string
 			packed = FdbTuple.Unpack(Slice.Unescape("<02>00010203-0405-0607-0809-0a0b0c0d0e0f<00>"));
-			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
+			Assert.That(packed.Get<Uuid128>(0), Is.EqualTo(Uuid128.Parse("00010203-0405-0607-0809-0a0b0c0d0e0f")));
 			//note: t[0] returns a string, not a UUID
 
 			// null maps to Uuid.Empty
 			packed = FdbTuple.Unpack(Slice.Unescape("<00>"));
-			Assert.That(packed.Get<Uuid>(0), Is.EqualTo(Uuid.Empty));
+			Assert.That(packed.Get<Uuid128>(0), Is.EqualTo(Uuid128.Empty));
+			//note: t[0] returns null, not a UUID
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_Serialize_Uuid64s()
+		{
+			// UUID64s are stored with prefix '31' followed by 8 bytes formatted according to RFC 4122
+
+			Slice packed;
+
+			// note: new Uuid(bytes from 0 to 7) => "00010203-04050607";
+			packed = FdbTuple.Create(Uuid64.Parse("00010203-04050607")).ToSlice();
+			Assert.That(packed.ToString(), Is.EqualTo("1<00><01><02><03><04><05><06><07>"));
+
+			packed = FdbTuple.Create(Uuid64.Parse("01234567-89ABCDEF")).ToSlice();
+			Assert.That(packed.ToString(), Is.EqualTo("1<01>#Eg<89><AB><CD><EF>"));
+
+			packed = FdbTuple.Create(Uuid64.Empty).ToSlice();
+			Assert.That(packed.ToString(), Is.EqualTo("1<00><00><00><00><00><00><00><00>"));
+
+			packed = FdbTuple.Create(new Uuid64(0xBADC0FFEE0DDF00DUL)).ToSlice();
+			Assert.That(packed.ToString(), Is.EqualTo("1<BA><DC><0F><FE><E0><DD><F0><0D>"));
+
+			packed = FdbTuple.Create(new Uuid64(0xDEADBEEFL)).ToSlice();
+			Assert.That(packed.ToString(), Is.EqualTo("1<00><00><00><00><DE><AD><BE><EF>"));
+		}
+
+		[Test]
+		public void Test_FdbTuple_Deserialize_Uuid64s()
+		{
+			// UUIDs are stored with prefix '31' followed by 8 bytes (the result of uuid.ToByteArray())
+			// we also accept byte arrays (prefix '01') if they are of length 8, and unicode strings (prefix '02')
+
+			IFdbTuple packed;
+
+			// note: new Uuid(bytes from 0 to 15) => "00010203-0405-0607-0809-0a0b0c0d0e0f";
+			packed = FdbTuple.Unpack(Slice.Unescape("<31><01><23><45><67><89><AB><CD><EF>"));
+			Assert.That(packed.Get<Uuid64>(0), Is.EqualTo(Uuid64.Parse("01234567-89abcdef")));
+			Assert.That(packed[0], Is.EqualTo(Uuid64.Parse("01234567-89abcdef")));
+
+			packed = FdbTuple.Unpack(Slice.Unescape("<31><00><00><00><00><00><00><00><00>"));
+			Assert.That(packed.Get<Uuid64>(0), Is.EqualTo(Uuid64.Empty));
+			Assert.That(packed[0], Is.EqualTo(Uuid64.Empty));
+
+			// 8 bytes
+			packed = FdbTuple.Unpack(Slice.Unescape("<01><01><23><45><67><89><ab><cd><ef><00>"));
+			Assert.That(packed.Get<Uuid64>(0), Is.EqualTo(Uuid64.Parse("01234567-89abcdef")));
+			//note: t[0] returns a string, not a UUID
+
+			// unicode string
+			packed = FdbTuple.Unpack(Slice.Unescape("<02>01234567-89abcdef<00>"));
+			Assert.That(packed.Get<Uuid64>(0), Is.EqualTo(Uuid64.Parse("01234567-89abcdef")));
+			//note: t[0] returns a string, not a UUID
+
+			// null maps to Uuid.Empty
+			packed = FdbTuple.Unpack(Slice.Unescape("<00>"));
+			Assert.That(packed.Get<Uuid64>(0), Is.EqualTo(Uuid64.Empty));
 			//note: t[0] returns null, not a UUID
 
 		}
@@ -2049,7 +2107,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 			var tuples = new List<IFdbTuple>(N);
 			var rnd = new Random(777);
 			var guids = Enumerable.Range(0, 10).Select(_ => Guid.NewGuid()).ToArray();
-			var uuids = Enumerable.Range(0, 10).Select(_ => Uuid.NewUuid()).ToArray();
+			var uuid128s = Enumerable.Range(0, 10).Select(_ => Uuid128.NewUuid()).ToArray();
+			var uuid64s = Enumerable.Range(0, 10).Select(_ => Uuid64.NewUuid()).ToArray();
 			var fuzz = new byte[1024 + 1000]; rnd.NextBytes(fuzz);
 			var sw = Stopwatch.StartNew();
 			for (int i = 0; i < N; i++)
@@ -2059,7 +2118,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 				if (i % (N / 100) == 0) Console.Write(".");
 				for (int j = 0; j < s; j++)
 				{
-					switch (rnd.Next(16))
+					switch (rnd.Next(17))
 					{
 						case 0: tuple = tuple.Append<int>(rnd.Next(255)); break;
 						case 1: tuple = tuple.Append<int>(-1 - rnd.Next(255)); break;
@@ -2072,11 +2131,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 						case 8: tuple = tuple.Append<string>(FUNKY_STRING); break;
 						case 9: tuple = tuple.Append<Slice>(FUNKY_ASCII); break;
 						case 10: tuple = tuple.Append<Guid>(guids[rnd.Next(10)]); break;
-						case 11: tuple = tuple.Append<Uuid>(uuids[rnd.Next(10)]); break;
-						case 12: tuple = tuple.Append<Slice>(Slice.Create(fuzz, rnd.Next(1000), 1 + (int)Math.Sqrt(rnd.Next(1024)))); break;
-						case 13: tuple = tuple.Append(default(string)); break;
-						case 14: tuple = tuple.Append<object>("hello"); break;
-						case 15: tuple = tuple.Append<bool>(rnd.Next(2) == 0); break;
+						case 11: tuple = tuple.Append<Uuid128>(uuid128s[rnd.Next(10)]); break;
+						case 12: tuple = tuple.Append<Uuid64>(uuid64s[rnd.Next(10)]); break;
+						case 13: tuple = tuple.Append<Slice>(Slice.Create(fuzz, rnd.Next(1000), 1 + (int)Math.Sqrt(rnd.Next(1024)))); break;
+						case 14: tuple = tuple.Append(default(string)); break;
+						case 15: tuple = tuple.Append<object>("hello"); break;
+						case 16: tuple = tuple.Append<bool>(rnd.Next(2) == 0); break;
 					}
 				}
 				tuples.Add(tuple);

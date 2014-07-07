@@ -71,7 +71,9 @@ namespace FoundationDB.Layers.Tuples
 		internal const int IntBase = 20;
 
 		/// <summary>RFC4122 UUID (128 bits) [DRAFT]</summary>
-		internal const byte Guid = 48;
+		internal const byte Uuid128 = 48;
+		/// <summary>UUID (64 bits) [DRAFT]</summary>
+		internal const byte Uuid64 = 49; //TODO: this is not official yet! may change!
 
 		/// <summary>Standard prefix of the Directory Layer</summary>
 		/// <remarks>This is not a part of the tuple encoding itself, but helps the tuple decoder pretty-print tuples that would otherwise be unparsable.</remarks>

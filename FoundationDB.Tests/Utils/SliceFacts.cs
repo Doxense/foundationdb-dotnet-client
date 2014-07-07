@@ -521,22 +521,22 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_Slice_FromUuid()
+		public void Test_Slice_FromUuid128()
 		{
 			// Verify that FoundationDb.Client.Uuid are stored as 128-bit UUIDs using RFC 4122
 
 			Slice slice;
 
 			// empty guid should be all zeroes
-			slice = Slice.FromUuid(Uuid.Empty);
+			slice = Slice.FromUuid128(Uuid128.Empty);
 			Assert.That(slice.ToHexaString(), Is.EqualTo("00000000000000000000000000000000"));
 
 			// UUIDs should be stored using RFC 4122 (big endian)
-			var uuid = new Uuid("00112233-4455-6677-8899-aabbccddeeff");
+			var uuid = new Uuid128("00112233-4455-6677-8899-aabbccddeeff");
 
 			// byte order should follow the string!
-			slice = Slice.FromUuid(uuid);
-			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899aabbccddeeff"), "Slice.FromUuid() should preserve RFC 4122 orderig");
+			slice = Slice.FromUuid128(uuid);
+			Assert.That(slice.ToHexaString(), Is.EqualTo("00112233445566778899aabbccddeeff"), "Slice.FromUuid() should preserve RFC 4122 ordering");
 
 			// ToByteArray() should also be safe
 			slice = Slice.Create(uuid.ToByteArray());
@@ -544,33 +544,84 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_Slice_ToUuid()
+		public void Test_Slice_ToUuid128()
 		{
 			Slice slice;
-			Uuid uuid;
+			Uuid128 uuid;
 
 			// all zeroes should return Uuid.Empty
 			slice = Slice.Create(16);
-			Assert.That(slice.ToUuid(), Is.EqualTo(Uuid.Empty));
+			Assert.That(slice.ToUuid128(), Is.EqualTo(Uuid128.Empty));
 
 			// RFC 4122 encoded UUIDs should not keep the byte ordering
 			slice = Slice.FromHexa("00112233445566778899aabbccddeeff");
-			uuid = slice.ToUuid();
+			uuid = slice.ToUuid128();
 			Assert.That(uuid.ToString(), Is.EqualTo("00112233-4455-6677-8899-aabbccddeeff"), "slice.ToUuid() should preserve RFC 4122 ordering");
 
 			// round-trip
-			uuid = Uuid.NewUuid();
-			Assert.That(Slice.FromUuid(uuid).ToUuid(), Is.EqualTo(uuid));
+			uuid = Uuid128.NewUuid();
+			Assert.That(Slice.FromUuid128(uuid).ToUuid128(), Is.EqualTo(uuid));
 
-			Assert.That(Slice.FromAscii(uuid.ToString()).ToUuid(), Is.EqualTo(uuid), "String literals should also be converted if they match the expected format");
+			Assert.That(Slice.FromAscii(uuid.ToString()).ToUuid128(), Is.EqualTo(uuid), "String literals should also be converted if they match the expected format");
 
-			Assert.That(() => Slice.FromAscii("random text").ToUuid(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => Slice.FromAscii("random text").ToUuid128(), Throws.InstanceOf<FormatException>());
 
 			// should validate the arguments
-			var x = Slice.FromUuid(uuid);
-			Assert.That(() => MutateOffset(x, -1).ToUuid(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateCount(x, 17).ToUuid(), Throws.InstanceOf<FormatException>());
-			Assert.That(() => MutateArray(x, null).ToUuid(), Throws.InstanceOf<FormatException>());
+			var x = Slice.FromUuid128(uuid);
+			Assert.That(() => MutateOffset(x, -1).ToUuid128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 17).ToUuid128(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null).ToUuid128(), Throws.InstanceOf<FormatException>());
+		}
+
+		[Test]
+		public void Test_Slice_FromUuid64()
+		{
+			// Verify that FoundationDb.Client.Uuid64 are stored as 64-bit UUIDs in big-endian
+
+			Slice slice;
+
+			// empty guid should be all zeroes
+			slice = Slice.FromUuid64(Uuid64.Empty);
+			Assert.That(slice.ToHexaString(), Is.EqualTo("0000000000000000"));
+
+			// UUIDs should be stored in lexicographical order
+			var uuid = new Uuid64("01234567-89abcdef");
+
+			// byte order should follow the string!
+			slice = Slice.FromUuid64(uuid);
+			Assert.That(slice.ToHexaString(), Is.EqualTo("0123456789abcdef"), "Slice.FromUuid64() should preserve ordering");
+
+			// ToByteArray() should also be safe
+			slice = Slice.Create(uuid.ToByteArray());
+			Assert.That(slice.ToHexaString(), Is.EqualTo("0123456789abcdef"));
+		}
+
+		[Test]
+		public void Test_Slice_ToUuid64()
+		{
+			Uuid64 uuid;
+
+			// all zeroes should return Uuid.Empty
+			uuid = Slice.Create(8).ToUuid64();
+			Assert.That(uuid, Is.EqualTo(Uuid64.Empty));
+
+			// hexadecimal text representation
+			uuid = Slice.FromHexa("0123456789abcdef").ToUuid64();
+			Assert.That(uuid.ToInt64(), Is.EqualTo(0x123456789abcdef), "slice.ToUuid64() should preserve ordering");
+
+			// round-trip
+			uuid = Uuid64.NewUuid();
+			Assert.That(Slice.FromUuid64(uuid).ToUuid64(), Is.EqualTo(uuid));
+
+			Assert.That(Slice.FromAscii(uuid.ToString()).ToUuid64(), Is.EqualTo(uuid), "String literals should also be converted if they match the expected format");
+
+			Assert.That(() => Slice.FromAscii("random text").ToUuid64(), Throws.InstanceOf<FormatException>());
+
+			// should validate the arguments
+			var x = Slice.FromUuid64(uuid);
+			Assert.That(() => MutateOffset(x, -1).ToUuid64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateCount(x, 9).ToUuid64(), Throws.InstanceOf<FormatException>());
+			Assert.That(() => MutateArray(x, null).ToUuid64(), Throws.InstanceOf<FormatException>());
 		}
 
 		[Test]

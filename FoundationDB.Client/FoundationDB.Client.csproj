@@ -197,7 +197,8 @@
     <Compile Include="Utils\SliceHelpers.cs" />
     <Compile Include="Utils\SliceComparer.cs" />
     <Compile Include="Utils\SliceBuffer.cs" />
-    <Compile Include="Utils\Uuid.cs" />
+    <Compile Include="Utils\Uuid64.cs" />
+    <Compile Include="Utils\Uuid128.cs" />
     <Compile Include="Utils\SliceListStream.cs" />
     <Compile Include="Utils\SliceStream.cs" />
     <Compile Include="Utils\Logging.cs" />

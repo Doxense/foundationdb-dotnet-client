@@ -24,7 +24,7 @@ namespace FoundationDB.Storage.Memory.IO
 		private readonly int m_pageSize;
 		private readonly int m_bufferSize;
 
-		private Uuid m_uid;
+		private Uuid128 m_uid;
 		private ulong m_sequence;
 		private long m_itemCount;
 		private long m_timestamp;
@@ -59,7 +59,7 @@ namespace FoundationDB.Storage.Memory.IO
 		/// <param name="timestamp"></param>
 		/// <param name="attributes"></param>
 		/// <remarks>This needs to be called before writing any level to the file</remarks>
-		public Task WriteHeaderAsync(SnapshotFormat.Flags headerFlags, Uuid uid, ulong sequence, long count, long timestamp, IDictionary<string, IFdbTuple> attributes)
+		public Task WriteHeaderAsync(SnapshotFormat.Flags headerFlags, Uuid128 uid, ulong sequence, long count, long timestamp, IDictionary<string, IFdbTuple> attributes)
 		{
 			// The header will be use on ore more "pages", to simplify the job of loading / peeking at a stream content (no need for fancy buffering, just need to read 4K pages)
 			// > The last page is padded with 0xAAs to detect corruption.

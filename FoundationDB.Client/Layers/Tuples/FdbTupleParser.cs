@@ -598,27 +598,40 @@ namespace FoundationDB.Layers.Tuples
 		public static void WriteGuid(ref SliceWriter writer, Guid value)
 		{
 			writer.EnsureBytes(17);
-			writer.UnsafeWriteByte(FdbTupleTypes.Guid);
+			writer.UnsafeWriteByte(FdbTupleTypes.Uuid128);
 			unsafe
 			{
 				// UUIDs are stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid
 
 				byte* ptr = stackalloc byte[16];
-				Uuid.Write(value, ptr);
+				Uuid128.Write(value, ptr);
 				writer.UnsafeWriteBytes(ptr, 16);
 			}
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
-		public static void WriteUuid(ref SliceWriter writer, Uuid value)
+		public static void WriteUuid128(ref SliceWriter writer, Uuid128 value)
 		{
 			writer.EnsureBytes(17);
-			writer.UnsafeWriteByte(FdbTupleTypes.Guid);
+			writer.UnsafeWriteByte(FdbTupleTypes.Uuid128);
 			unsafe
 			{
 				byte* ptr = stackalloc byte[16];
 				value.WriteTo(ptr);
 				writer.UnsafeWriteBytes(ptr, 16);
+			}
+		}
+
+		/// <summary>Writes a 64-bit UUID</summary>
+		public static void WriteUuid64(ref SliceWriter writer, Uuid64 value)
+		{
+			writer.EnsureBytes(9);
+			writer.UnsafeWriteByte(FdbTupleTypes.Uuid64);
+			unsafe
+			{
+				byte* ptr = stackalloc byte[8];
+				value.WriteTo(ptr);
+				writer.UnsafeWriteBytes(ptr, 8);
 			}
 		}
 
@@ -734,16 +747,39 @@ namespace FoundationDB.Layers.Tuples
 
 		internal static Guid ParseGuid(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Guid);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Uuid128);
 
 			if (slice.Count != 17)
 			{
-				//TODO: usefull! error message! 
-				throw new FormatException("Slice has invalid size for a guid");
+				throw new FormatException("Slice has invalid size for a GUID");
 			}
 
 			// We store them in RFC 4122 under the hood, so we need to reverse them to the MS format
-			return Uuid.Convert(new Slice(slice.Array, slice.Offset + 1, 16));
+			return Uuid128.Convert(new Slice(slice.Array, slice.Offset + 1, 16));
+		}
+
+		internal static Uuid128 ParseUuid128(Slice slice)
+		{
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Uuid128);
+
+			if (slice.Count != 17)
+			{
+				throw new FormatException("Slice has invalid size for a 128-bit UUID");
+			}
+
+			return new Uuid128(new Slice(slice.Array, slice.Offset + 1, 8));
+		}
+
+		internal static Uuid64 ParseUuid64(Slice slice)
+		{
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Uuid64);
+
+			if (slice.Count != 9)
+			{
+				throw new FormatException("Slice has invalid size for a 64-bit UUID");
+			}
+
+			return new Uuid64(new Slice(slice.Array, slice.Offset + 1, 8));
 		}
 
 		#endregion
