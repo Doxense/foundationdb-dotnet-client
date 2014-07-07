@@ -28,8 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Tests
 {
+	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -135,6 +138,67 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 
+		}
+
+		[Test][Category("LongRunning")]
+		public async Task Test_Transactionals_Retries_Do_Not_Leak_When_Reading_Too_Much()
+		{
+			// we have a transaction that tries to read too much data, and will always take more than 5 seconds to execute
+			// => in some version of fdb_c.dll, this leaks memory because the internal cache is not clear on each reset.
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				// this is a safety to ensure that you do not kill your server
+				db.DefaultTimeout = 0;
+				db.DefaultRetryLimit = 10;
+				// => with 10 retries, this test may consume about 5 GB of ram is there is a leak.
+
+				var location = await GetCleanDirectory(db, "Transactionals");
+
+				// insert a good amount of test data
+
+				var sw = Stopwatch.StartNew();
+				Console.WriteLine("Inserting test data...");
+				var rnd = new Random();
+				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => new KeyValuePair<Slice, Slice>(location.Pack(i), Slice.Random(rnd, 4096))), this.Cancellation);
+				sw.Stop();
+				Console.WriteLine("> done in " + sw.Elapsed);
+
+				using (var timer = new System.Threading.Timer((_) => { Console.WriteLine("WorkingSet: {0:N0}, Managed: {1:N0}", Environment.WorkingSet, GC.GetTotalMemory(false)); }, null, 1000, 1000))
+				{
+					try
+					{
+						var result = await db.ReadAsync((tr) =>
+						{
+							Console.WriteLine("Retry #" + tr.Context.Retries + " @ " + tr.Context.Duration.Elapsed);
+							return tr.GetRange(location.ToRange()).ToListAsync();
+						}, this.Cancellation);
+
+						Assert.Fail("Too fast! increase the amount of inserted data, or slow down the system!");
+					}
+					catch (FdbException e)
+					{
+						// max retry limit should throw a past_version
+						if (e.Code != FdbError.PastVersion)
+						{ // unexpected
+							throw;
+						}
+					}
+				}
+				// to help see the effect in a profiler, dispose the transaction first, wait 5 sec then do a full GC, and then wait a bit before exiting the process
+				Console.WriteLine("Transaction destroyed!");
+				Thread.Sleep(5000);
+
+				Console.WriteLine("Cleaning managed memory");
+				GC.Collect();
+				GC.WaitForPendingFinalizers();
+				GC.Collect();
+
+				Console.WriteLine("Waiting...");
+				Thread.Sleep(5000);
+
+				Console.WriteLine("byte");
+			}
 		}
 
 		[Test]
