@@ -288,6 +288,133 @@ namespace FoundationDB.Client.Tests
 			Assert.That(uids.Count, Is.EqualTo(N));
 		}
 
+		[Test]
+		public void Test_Uuid64_Equality_Check()
+		{
+			var a = new Uuid64(42);
+			var b = new Uuid64(42);
+			var c = new Uuid64(40) + 2;
+			var d = new Uuid64(0xDEADBEEF);
+
+			// Equals(Uuid64)
+			Assert.That(a.Equals(a), Is.True, "a == a");
+			Assert.That(a.Equals(b), Is.True, "a == b");
+			Assert.That(a.Equals(c), Is.True, "a == c");
+			Assert.That(a.Equals(d), Is.False, "a != d");
+
+			// == Uuid64
+			Assert.That(a == b, Is.True, "a == b");
+			Assert.That(a == c, Is.True, "a == c");
+			Assert.That(a == d, Is.False, "a != d");
+
+			// != Uuid64
+			Assert.That(a != b, Is.False, "a == b");
+			Assert.That(a != c, Is.False, "a == c");
+			Assert.That(a != d, Is.True, "a != d");
+
+			// == numbers
+			Assert.That(a == 42L, Is.True, "a == 42");
+			Assert.That(a == 42UL, Is.True, "a == 42");
+			Assert.That(d == 42L, Is.False, "d != 42");
+			Assert.That(d == 42UL, Is.False, "d != 42");
+
+			// != numbers
+			Assert.That(a != 42L, Is.False, "a == 42");
+			Assert.That(a != 42UL, Is.False, "a == 42");
+			Assert.That(d != 42L, Is.True, "d != 42");
+			Assert.That(d != 42UL, Is.True, "d != 42");
+
+			// Equals(objecct)
+			Assert.That(a.Equals((object)a), Is.True, "a == a");
+			Assert.That(a.Equals((object)b), Is.True, "a == b");
+			Assert.That(a.Equals((object)c), Is.True, "a == c");
+			Assert.That(a.Equals((object)d), Is.False, "a != d");
+			Assert.That(a.Equals((object)42L), Is.True, "a == 42");
+			Assert.That(a.Equals((object)42UL), Is.True, "a == 42");
+			Assert.That(d.Equals((object)42L), Is.False, "d != 42");
+			Assert.That(d.Equals((object)42UL), Is.False, "d != 42");
+
+		}
+
+		[Test]
+		public void Test_Uuid64_Ordering()
+		{
+			var a = new Uuid64(42);
+			var a2 = new Uuid64(42);
+			var b = new Uuid64(77);
+
+			Assert.That(a.CompareTo(a), Is.EqualTo(0));
+			Assert.That(a.CompareTo(b), Is.EqualTo(-1));
+			Assert.That(b.CompareTo(a), Is.EqualTo(+1));
+
+			Assert.That(a < b, Is.True, "a < b");
+			Assert.That(a <= b, Is.True, "a <= b");
+			Assert.That(a < a2, Is.False, "a < a");
+			Assert.That(a <= a2, Is.True, "a <= a");
+
+			Assert.That(a > b, Is.False, "a > b");
+			Assert.That(a >= b, Is.False, "a >= b");
+			Assert.That(a > a2, Is.False, "a > a");
+			Assert.That(a >= a2, Is.True, "a >= a");
+
+			// parsed from string
+			Assert.That(new Uuid64("137bcf31-0c8873a2") < new Uuid64("604bdf8a-2512b4ad"), Is.True);
+			Assert.That(new Uuid64("d8f17a26-82adb1a4") < new Uuid64("22abbf33-1b2c1db0"), Is.False);
+			Assert.That(new Uuid64("{137bcf31-0c8873a2}") > new Uuid64("{604bdf8a-2512b4ad}"), Is.False);
+			Assert.That(new Uuid64("{d8f17a26-82adb1a4}") > new Uuid64("{22abbf33-1b2c1db0}"), Is.True);
+			Assert.That(new Uuid64("2w6CTjUiXVp") < new Uuid64("DVM0UnynZ1Q"), Is.True);
+			Assert.That(new Uuid64("0658JY2ORSJ") > new Uuid64("FMPaNaMEUWc"), Is.False);
+
+			// verify byte ordering
+			var c = new Uuid64(0x0000000100000002);
+			var d = new Uuid64(0x0000000200000001);
+			Assert.That(c.CompareTo(d), Is.EqualTo(-1));
+			Assert.That(d.CompareTo(c), Is.EqualTo(+1));
+
+			// verify that we can sort an array of Uuid64
+			var uids = new Uuid64[100];
+			for (int i = 0; i < uids.Length; i++)
+			{			
+				uids[i] = Uuid64.NewUuid();
+			}
+			Assume.That(uids, Is.Not.Ordered, "This can happen with a very small probability. Please try again");
+			Array.Sort(uids);
+			Assert.That(uids, Is.Ordered);
+
+			// ordering should be preserved in integer or textual form
+
+			Assert.That(uids.Select(x => x.ToUInt64()), Is.Ordered, "order should be preserved when ordering by unsigned value");
+			//note: ToInt64() will not work because of negative values
+			Assert.That(uids.Select(x => x.ToString()), Is.Ordered.Using<string>(StringComparer.Ordinal), "order should be preserved when ordering by text (hexa)");
+			Assert.That(uids.Select(x => x.ToString("Z")), Is.Ordered.Using<string>(StringComparer.Ordinal), "order should be preserved when ordering by text (base62)");
+			//note: ToString("C") will not work for ordering because it will produce "z" > "aa", instead of expected "0z" < "aa"
+		}
+
+		[Test]
+		public void Test_Uuid64_Arithmetic()
+		{
+			var uid = Uuid64.Empty;
+
+			Assert.That(uid + 42L, Is.EqualTo(new Uuid64(42)));
+			Assert.That(uid + 42UL, Is.EqualTo(new Uuid64(42)));
+			uid++;
+			Assert.That(uid.ToInt64(), Is.EqualTo(1));
+			uid++;
+			Assert.That(uid.ToInt64(), Is.EqualTo(2));
+			uid--;
+			Assert.That(uid.ToInt64(), Is.EqualTo(1));
+			uid--;
+			Assert.That(uid.ToInt64(), Is.EqualTo(0));
+
+			uid = Uuid64.NewUuid();
+
+			Assert.That(uid + 123L, Is.EqualTo(new Uuid64(uid.ToInt64() + 123)));
+			Assert.That(uid + 123UL, Is.EqualTo(new Uuid64(uid.ToUInt64() + 123)));
+
+			Assert.That(uid - 123L, Is.EqualTo(new Uuid64(uid.ToInt64() - 123)));
+			Assert.That(uid - 123UL, Is.EqualTo(new Uuid64(uid.ToUInt64() - 123)));
+		}
+
 	}
 
 }

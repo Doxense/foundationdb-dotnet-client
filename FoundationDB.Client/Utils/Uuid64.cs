@@ -300,7 +300,11 @@ namespace FoundationDB.Client
 
 		public override bool Equals(object obj)
 		{
-			return obj is Uuid64 && Equals((Uuid64)obj);
+			if (obj is Uuid64) return Equals((Uuid64)obj);
+			if (obj is ulong) return m_value == (ulong)obj;
+			if (obj is long) return m_value == (ulong)(long)obj;
+			//TODO: string format ? Slice ?
+			return false;
 		}
 
 		public override int GetHashCode()
@@ -572,6 +576,101 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region Operators...
+
+		public static bool operator ==(Uuid64 left, Uuid64 right)
+		{
+			return left.m_value == right.m_value;
+		}
+
+		public static bool operator !=(Uuid64 left, Uuid64 right)
+		{
+			return left.m_value != right.m_value;
+		}
+
+		public static bool operator >(Uuid64 left, Uuid64 right)
+		{
+			return left.m_value > right.m_value;
+		}
+
+		public static bool operator >=(Uuid64 left, Uuid64 right)
+		{
+			return left.m_value >= right.m_value;
+		}
+
+		public static bool operator <(Uuid64 left, Uuid64 right)
+		{
+			return left.m_value < right.m_value;
+		}
+
+		public static bool operator <=(Uuid64 left, Uuid64 right)
+		{
+			return left.m_value <= right.m_value;
+		}
+
+		// Comparing an Uuid64 to a 64-bit integer can have sense for "if (id == 0)" or "if (id != 0)" ?
+
+		public static bool operator ==(Uuid64 left, long right)
+		{
+			return left.m_value == (ulong)right;
+		}
+
+		public static bool operator ==(Uuid64 left, ulong right)
+		{
+			return left.m_value == right;
+		}
+
+		public static bool operator !=(Uuid64 left, long right)
+		{
+			return left.m_value != (ulong)right;
+		}
+
+		public static bool operator !=(Uuid64 left, ulong right)
+		{
+			return left.m_value != right;
+		}
+
+		/// <summary>Add a value from this instance</summary>
+		public static Uuid64 operator +(Uuid64 left, long right)
+		{
+			//TODO: how to handle overflow ? negative values ?
+			ulong v = (ulong)right;
+			return new Uuid64(checked(left.m_value + v));
+		}
+
+		/// <summary>Add a value from this instance</summary>
+		public static Uuid64 operator +(Uuid64 left, ulong right)
+		{
+			return new Uuid64(checked(left.m_value + right));
+		}
+
+		/// <summary>Subtract a value from this instance</summary>
+		public static Uuid64 operator -(Uuid64 left, long right)
+		{
+			//TODO: how to handle overflow ? negative values ?
+			ulong v = (ulong)right;
+			return new Uuid64(checked(left.m_value - v));
+		}
+
+		/// <summary>Subtract a value from this instance</summary>
+		public static Uuid64 operator -(Uuid64 left, ulong right)
+		{
+			return new Uuid64(checked(left.m_value - right));
+		}
+
+		/// <summary>Increments the value of this instance</summary>
+		public static Uuid64 operator ++(Uuid64 value)
+		{
+			return new Uuid64(checked(value.m_value + 1));
+		}
+
+		/// <summary>Decrements the value of this instance</summary>
+		public static Uuid64 operator --(Uuid64 value)
+		{
+			return new Uuid64(checked(value.m_value - 1));
+		}
+
+		#endregion
 
 	}
 
