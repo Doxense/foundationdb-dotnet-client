@@ -129,6 +129,8 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
+			//TODO: should we add the prefix to the string representation ?
+			// => something like "<prefix>(123, 'abc', true)"
 			return FdbTuple.ToString(this);
 		}
 

@@ -153,7 +153,11 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return new StringBuilder().Append('(').Append(FdbTuple.Stringify(this.Item1)).Append(", ").Append(FdbTuple.Stringify(this.Item2)).Append(", ").Append(FdbTuple.Stringify(this.Item3)).Append(",)").ToString();
+			return new StringBuilder(32).Append('(')
+				.Append(FdbTuple.Stringify(this.Item1)).Append(", ")
+				.Append(FdbTuple.Stringify(this.Item2)).Append(", ")
+				.Append(FdbTuple.Stringify(this.Item3)).Append(')')
+				.ToString();
 		}
 
 		public override bool Equals(object obj)

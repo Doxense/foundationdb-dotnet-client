@@ -140,7 +140,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
-			return "(" + FdbTuple.Stringify(this.Item1) + ", " + FdbTuple.Stringify(this.Item2) + ",)";
+			return "(" + FdbTuple.Stringify(this.Item1) + ", " + FdbTuple.Stringify(this.Item2) + ")";
 		}
 
 		public override bool Equals(object obj)

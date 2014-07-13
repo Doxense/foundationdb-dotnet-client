@@ -122,6 +122,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
+			// singleton tuples end with a trailing ','
 			return "(" + FdbTuple.Stringify(this.Item1) + ",)";
 		}
 

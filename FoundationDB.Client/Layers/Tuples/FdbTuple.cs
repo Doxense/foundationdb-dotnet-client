@@ -859,7 +859,8 @@ namespace FoundationDB.Layers.Tuples
 		private const string TokenCloseBracket = "}";
 		private const string TokenTupleEmpty = "()";
 		private const string TokenTupleSep = ", ";
-		private const string TokenTupleClose = ",)";
+		private const string TokenTupleClose = ")";
+		private const string TokenTupleSingleClose = ",)";
 
 		/// <summary>Converts any object into a displayble string, for logging/debugging purpose</summary>
 		/// <param name="item">Object to stringify</param>
@@ -903,36 +904,54 @@ namespace FoundationDB.Layers.Tuples
 		internal static string ToString(object[] items, int offset, int count)
 		{
 			if (items == null) return String.Empty;
-			if (count == 0) return TokenTupleEmpty; /* "()" */
+			Contract.Requires(offset >= 0 && count >= 0);
+
+			if (count == 0)
+			{ // empty tuple: "()"
+				return TokenTupleEmpty;
+			}
 
 			var sb = new StringBuilder();
 			sb.Append('(').Append(Stringify(items[offset++]));
-			while (--count > 0)
-			{
-				sb.Append(TokenTupleSep /* ", " */).Append(Stringify(items[offset++]));
+
+			if (count == 1)
+			{ // singleton tuple : "(X,)"
+				return sb.Append(TokenTupleSingleClose).ToString();
 			}
-			return sb.Append(TokenTupleClose /* ",)" */).ToString();
+			else
+			{
+				while (--count > 0)
+				{
+					sb.Append(TokenTupleSep /* ", " */).Append(Stringify(items[offset++]));
+				}
+				return sb.Append(TokenTupleClose /* ",)" */).ToString();
+			}
 		}
 
 		/// <summary>Convert a sequence of object into a displaying string, for loggin/debugging purpose</summary>
 		/// <param name="items">Sequence of items to stringfy</param>
 		/// <returns>String representation of the tuple in the form "(item1, item2, ... itemN,)"</returns>
-		/// <example>ToString(FdbTuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\",)</example>
+		/// <example>ToString(FdbTuple.Create("hello", 123, true, "world")) => "(\"hello\", 123, true, \"world\")</example>
 		internal static string ToString(IEnumerable<object> items)
 		{
 			if (items == null) return String.Empty;
 			using (var enumerator = items.GetEnumerator())
 			{
-				if (!enumerator.MoveNext()) return TokenTupleEmpty; /* "()" */
+				if (!enumerator.MoveNext())
+				{ // empty tuple : "()"
+					return TokenTupleEmpty;
+				}
 
 				var sb = new StringBuilder();
 				sb.Append('(').Append(Stringify(enumerator.Current));
+				bool singleton = true;
 				while (enumerator.MoveNext())
 				{
-					sb.Append(TokenTupleSep /* ", " */).Append(Stringify(enumerator.Current));
+					singleton = false;
+					sb.Append(TokenTupleSep).Append(Stringify(enumerator.Current));
 				}
-
-				return sb.Append(TokenTupleClose /* ",)" */).ToString();
+				// add a trailing ',' for singletons
+				return sb.Append(singleton ? TokenTupleSingleClose : TokenTupleClose).ToString();
 			}
 		}
 

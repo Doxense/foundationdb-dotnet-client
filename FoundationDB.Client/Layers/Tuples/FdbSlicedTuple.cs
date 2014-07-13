@@ -154,6 +154,8 @@ namespace FoundationDB.Layers.Tuples
 
 		public override string ToString()
 		{
+			//OPTIMIZE: this could be optimized, because it may be called a lot when logging is enabled on keys parsed from range reads
+			// => each slice has a type prefix that could be used to format it to a StringBuilder faster, maybe?
 			return FdbTuple.ToString(this);
 		}
 

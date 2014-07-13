@@ -344,13 +344,18 @@ namespace FoundationDB.Client.Tests
 
 			// tuples should be decoded properly
 
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(123)), Is.EqualTo("(123,)"));		
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(Slice.FromAscii("hello"))), Is.EqualTo("('hello',)"), "ASCII strings use single quotes");
-			Assert.That(FdbKey.Dump(FdbTuple.Pack("héllø")), Is.EqualTo("(\"héllø\",)"), "Unicode strings use double quotes"); 
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(123)), Is.EqualTo("(123,)"), "Singleton tuples should end with a ','");
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(Slice.FromAscii("hello"))), Is.EqualTo("('hello',)"), "ASCII strings should use single quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.Pack("héllø")), Is.EqualTo("(\"héllø\",)"), "Unicode strings should use double quotes"); 
 			Assert.That(FdbKey.Dump(FdbTuple.Pack(Slice.Create(new byte[] { 1, 2, 3 }))), Is.EqualTo("(<01 02 03>,)"));
-			Assert.That(FdbKey.Dump(FdbTuple.Pack("hello", 123, -42)), Is.EqualTo("(\"hello\", 123, -42,)"));
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(123, 456)), Is.EqualTo("(123, 456)"), "Elements should be separated with a space, and not end up with ','");
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(true, false, default(object))), Is.EqualTo("(1, 0, null)"), "Booleans should be displayed as numbers, and null should be in lowercase"); //note: even though it's tempting to using Python's "Nil", it's not very ".NETty"
 			var guid = Guid.NewGuid();
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(guid)), Is.EqualTo("(" + guid.ToString() + ",)"), "GUIDs are displayed as a string literal");
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(guid)), Is.EqualTo(String.Format("({0},)", guid.ToString("D"))), "GUIDs should be displayed as a string literal, without quotes");
+			var uuid128 = Uuid128.NewUuid();
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(uuid128)), Is.EqualTo(String.Format("({0},)", uuid128.ToString("D"))), "Uuid128s should be displayed as a string literal, without quotes");
+			var uuid64 = Uuid64.NewUuid();
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(uuid64)), Is.EqualTo(String.Format("({0},)", uuid64.ToString("D"))), "Uuid64s should be displayed as a string literal, without quotes");
 
 			// ranges should be decoded when possible
 			var key = FdbTuple.ToRange(FdbTuple.Create("hello"));
