@@ -267,7 +267,7 @@ namespace FoundationDB.Layers.Tuples
 			writer.EnsureBytes(5);
 			var buffer = writer.Buffer;
 			int p = writer.Position;
-			buffer[p + 0] = 0x20;
+			buffer[p + 0] = FdbTupleTypes.Single;
 			buffer[p + 1] = (byte)(bits >> 24);
 			buffer[p + 2] = (byte)(bits >> 16);
 			buffer[p + 3] = (byte)(bits >> 8);
@@ -303,7 +303,7 @@ namespace FoundationDB.Layers.Tuples
 			writer.EnsureBytes(9);
 			var buffer = writer.Buffer;
 			int p = writer.Position;
-			buffer[p] = 0x21;
+			buffer[p] = FdbTupleTypes.Double;
 			buffer[p + 1] = (byte)(bits >> 56);
 			buffer[p + 2] = (byte)(bits >> 48);
 			buffer[p + 3] = (byte)(bits >> 40);
@@ -743,6 +743,65 @@ namespace FoundationDB.Layers.Tuples
 			//TODO: check args
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
 			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
+		}
+
+		internal static float ParseSingle(Slice slice)
+		{
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Single);
+
+			if (slice.Count != 5)
+			{
+				throw new FormatException("Slice has invalid size for a Single");
+			}
+
+			// We need to reverse encoding process: if first byte < 0x80 then it is negative (bits need to be flipped), else it is positive (highest bit must be set to 0)
+
+			// read the raw bits
+			uint bits = slice.ReadUInt32(1, 4); //OPTIMIZE: inline version?
+
+			if ((bits & 0x80000000U) == 0)
+			{ // negative
+				bits = ~bits;
+			}
+			else
+			{ // postive
+				bits ^= 0x80000000U;
+			}
+
+			float value;
+			unsafe { value = *((float*)&bits); }
+
+			return value;
+		}
+
+		internal static double ParseDouble(Slice slice)
+		{
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Double);
+
+			if (slice.Count != 9)
+			{
+				throw new FormatException("Slice has invalid size for a Double");
+			}
+
+			// We need to reverse encoding process: if first byte < 0x80 then it is negative (bits need to be flipped), else it is positive (highest bit must be set to 0)
+
+			// read the raw bits
+			ulong bits = slice.ReadUInt64(1, 8); //OPTIMIZE: inline version?
+
+			if ((bits & 0x8000000000000000UL) == 0)
+			{ // negative
+				bits = ~bits;
+			}
+			else
+			{ // postive
+				bits ^= 0x8000000000000000UL;
+			}
+
+			// note: we could use BitConverter.Int64BitsToDouble(...), but it does the same thing, and also it does not exist for floats...
+			double value;
+			unsafe { value = *((double*)&bits); }
+
+			return value;
 		}
 
 		internal static Guid ParseGuid(Slice slice)

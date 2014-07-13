@@ -275,7 +275,9 @@ namespace FoundationDB.Client
 		{
 			if (key.Count > 1)
 			{
-				if (key[0] <= 0x1C || key[0] == 0x30 || key[0] >= 0xFE)
+				byte c = key[0];
+				//OPTIMIZE: maybe we need a lookup table
+				if (c <= 28 || c == 32 || c == 33 || c == 48 || c == 49 || c >= 254)
 				{ // it could be a tuple...
 					try
 					{

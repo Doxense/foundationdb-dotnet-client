@@ -881,12 +881,19 @@ namespace FoundationDB.Layers.Tuples
 			//TODO: escape the string? If it contains \0 or control chars, it can cause problems in the console or debugger output
 			if (s != null) return TokenDoubleQuote + s + TokenDoubleQuote; /* "hello" */
 
+			if (item is int) return ((int)item).ToString(null, CultureInfo.InvariantCulture);
+			if (item is long) return ((long)item).ToString(null, CultureInfo.InvariantCulture);
+
 			if (item is char) return TokenSingleQuote + (char)item + TokenSingleQuote; /* 'X' */ 
 
 			if (item is Slice) return ((Slice)item).ToAsciiOrHexaString();
 			if (item is byte[]) return Slice.Create(item as byte[]).ToAsciiOrHexaString();
 
 			if (item is FdbTupleAlias) return TokenOpenBracket + ((FdbTupleAlias)item).ToString() + TokenCloseBracket; /* {X} */
+
+			// decimals need the "R" representation to have all the digits
+			if (item is double) return ((double)item).ToString("R", CultureInfo.InvariantCulture);
+			if (item is float) return ((float)item).ToString("R", CultureInfo.InvariantCulture);
 
 			var f = item as IFormattable;
 			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);

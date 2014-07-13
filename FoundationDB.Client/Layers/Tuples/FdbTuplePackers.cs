@@ -521,18 +521,17 @@ namespace FoundationDB.Layers.Tuples
 					case FdbTupleTypes.Utf8: return FdbTupleParser.ParseUnicode(slice);
 				}
 			}
-			else if (type == FdbTupleTypes.Uuid128)
+			else
 			{
-				return FdbTupleParser.ParseGuid(slice);
-			}
-			else if (type == FdbTupleTypes.Uuid64)
-			{
-				return FdbTupleParser.ParseUuid64(slice);
-			}
-			else if (type >= FdbTupleTypes.AliasDirectory)
-			{
-				if (type == FdbTupleTypes.AliasSystem) return FdbTupleAlias.System;
-				return FdbTupleAlias.Directory;
+				switch (type)
+				{
+					case FdbTupleTypes.Single: return FdbTupleParser.ParseSingle(slice);
+					case FdbTupleTypes.Double: return FdbTupleParser.ParseDouble(slice);
+					case FdbTupleTypes.Uuid128: return FdbTupleParser.ParseGuid(slice);
+					case FdbTupleTypes.Uuid64: return FdbTupleParser.ParseUuid64(slice);
+					case FdbTupleTypes.AliasDirectory: return FdbTupleAlias.Directory;
+					case FdbTupleTypes.AliasSystem: return FdbTupleAlias.System;
+				}
 			}
 
 			throw new FormatException(String.Format("Cannot convert slice with unknown type code {0}", type));
@@ -885,6 +884,15 @@ namespace FoundationDB.Layers.Tuples
 				case FdbTupleTypes.Utf8:
 				{ // <02>(utf8 bytes)<00>
 					return reader.ReadByteString();
+				}
+
+				case FdbTupleTypes.Single:
+				{ // <20>(4 bytes)
+					return reader.ReadBytes(5);
+				}
+				case FdbTupleTypes.Double:
+				{ // <21>(8 bytes)
+					return reader.ReadBytes(9);
 				}
 				case FdbTupleTypes.Uuid128:
 				{ // <30>(16 bytes)

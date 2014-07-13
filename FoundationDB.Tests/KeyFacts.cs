@@ -350,6 +350,8 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.Dump(FdbTuple.Pack(Slice.Create(new byte[] { 1, 2, 3 }))), Is.EqualTo("(<01 02 03>,)"));
 			Assert.That(FdbKey.Dump(FdbTuple.Pack(123, 456)), Is.EqualTo("(123, 456)"), "Elements should be separated with a space, and not end up with ','");
 			Assert.That(FdbKey.Dump(FdbTuple.Pack(true, false, default(object))), Is.EqualTo("(1, 0, null)"), "Booleans should be displayed as numbers, and null should be in lowercase"); //note: even though it's tempting to using Python's "Nil", it's not very ".NETty"
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(1.0d, Math.PI, Math.E)), Is.EqualTo("(1, 3.1415926535897931, 2.7182818284590451)"), "Doubles should used dot and have full precision (17 digits)");
+			Assert.That(FdbKey.Dump(FdbTuple.Pack(1.0f, (float)Math.PI, (float)Math.E)), Is.EqualTo("(1, 3.14159274, 2.71828175)"), "Singles should used dot and have full precision (10 digits)");
 			var guid = Guid.NewGuid();
 			Assert.That(FdbKey.Dump(FdbTuple.Pack(guid)), Is.EqualTo(String.Format("({0},)", guid.ToString("D"))), "GUIDs should be displayed as a string literal, without quotes");
 			var uuid128 = Uuid128.NewUuid();

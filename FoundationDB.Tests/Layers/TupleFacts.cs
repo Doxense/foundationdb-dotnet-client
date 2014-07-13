@@ -853,44 +853,22 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Singles()
 		{
-			Assert.That(
-				FdbTuple.Create(0f).ToSlice().ToHexaString(' '),
-				Is.EqualTo("20 80 00 00 00")
-			);
+			Assert.That(FdbTuple.Create(0f).ToSlice().ToHexaString(' '), Is.EqualTo("20 80 00 00 00"));
+			Assert.That(FdbTuple.Create(42f).ToSlice().ToHexaString(' '), Is.EqualTo("20 C2 28 00 00"));
+			Assert.That(FdbTuple.Create(-42f).ToSlice().ToHexaString(' '), Is.EqualTo("20 3D D7 FF FF"));
 
-			Assert.That(
-				FdbTuple.Create(42f).ToSlice().ToHexaString(' '),
-				Is.EqualTo("20 C2 28 00 00")
-			);
+			Assert.That(FdbTuple.Create((float)Math.Sqrt(2)).ToSlice().ToHexaString(' '), Is.EqualTo("20 BF B5 04 F3"));
 
-			Assert.That(
-				FdbTuple.Create(-42f).ToSlice().ToHexaString(' '),
-				Is.EqualTo("20 3D D7 FF FF")
-			);
-
-			// minus zero
-			Assert.That(
-				FdbTuple.Create(-0f).ToSlice().ToHexaString(' '),
-				Is.EqualTo("20 7F FF FF FF")
-			);
-
-			// -INF
-			Assert.That(
-				FdbTuple.Create(float.NegativeInfinity).ToSlice().ToHexaString(' '),
-				Is.EqualTo("20 00 7F FF FF")
-			);
-
-			// +INF
-			Assert.That(
-				FdbTuple.Create(float.PositiveInfinity).ToSlice().ToHexaString(' '),
-				Is.EqualTo("20 FF 80 00 00")
-			);
+			Assert.That(FdbTuple.Create(float.MinValue).ToSlice().ToHexaString(' '), Is.EqualTo("20 00 80 00 00"), "float.MinValue");
+			Assert.That(FdbTuple.Create(float.MaxValue).ToSlice().ToHexaString(' '), Is.EqualTo("20 FF 7F FF FF"), "float.MaxValue");
+			Assert.That(FdbTuple.Create(-0f).ToSlice().ToHexaString(' '), Is.EqualTo("20 7F FF FF FF"), "-0f");
+			Assert.That(FdbTuple.Create(float.NegativeInfinity).ToSlice().ToHexaString(' '), Is.EqualTo("20 00 7F FF FF"), "float.NegativeInfinity");
+			Assert.That(FdbTuple.Create(float.PositiveInfinity).ToSlice().ToHexaString(' '), Is.EqualTo("20 FF 80 00 00"), "float.PositiveInfinity");
+			Assert.That(FdbTuple.Create(float.Epsilon).ToSlice().ToHexaString(' '), Is.EqualTo("20 80 00 00 01"), "+float.Epsilon");
+			Assert.That(FdbTuple.Create(-float.Epsilon).ToSlice().ToHexaString(' '), Is.EqualTo("20 7F FF FF FE"), "-float.Epsilon");
 
 			// all possible variants of NaN should all be equal
-			Assert.That(
-				FdbTuple.Create(float.NaN).ToSlice().ToHexaString(' '),
-				Is.EqualTo("20 00 3F FF FF")
-			);
+			Assert.That(FdbTuple.Create(float.NaN).ToSlice().ToHexaString(' '), Is.EqualTo("20 00 3F FF FF"), "float.NaN");
 
 			// cook up a non standard NaN (with some bits set in the fraction)
 			float f = float.NaN; // defined as 1f / 0f
@@ -901,65 +879,58 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(float.IsNaN(f), Is.True);
 			Assert.That(
 				FdbTuple.Create(f).ToSlice().ToHexaString(' '),
-				Is.EqualTo("20 00 3F FF FF")
+				Is.EqualTo("20 00 3F FF FF"),
+				"All variants of NaN must be normalized"
 				//note: if we have 20 00 3F FF 84, that means that the NaN was not normalized
 			);
 
 		}
 
 		[Test]
+		public void Test_FdbTuple_Deserialize_Singles()
+		{
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 80 00 00 00")), Is.EqualTo(0f), "0f");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 C2 28 00 00")), Is.EqualTo(42f), "42f");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 3D D7 FF FF")), Is.EqualTo(-42f), "-42f");
+
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 BF B5 04 F3")), Is.EqualTo((float)Math.Sqrt(2)), "Sqrt(2)");
+
+			// well known values
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.MinValue");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 FF 7F FF FF")), Is.EqualTo(float.MaxValue), "float.MaxValue");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 7F FF FF FF")), Is.EqualTo(-0f), "-0f");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 7F FF FF")), Is.EqualTo(float.NegativeInfinity), "float.NegativeInfinity");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 FF 80 00 00")), Is.EqualTo(float.PositiveInfinity), "float.PositiveInfinity");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.Epsilon");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 80 00 00 01")), Is.EqualTo(float.Epsilon), "+float.Epsilon");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 7F FF FF FE")), Is.EqualTo(-float.Epsilon), "-float.Epsilon");
+
+			// all possible variants of NaN should end up equal and normalized to float.NaN
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
+			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
+		}
+
+		[Test]
 		public void Test_FdbTuple_Serialize_Doubles()
 		{
-			Assert.That(
-				FdbTuple.Create(0d).ToSlice().ToHexaString(' '),
-				Is.EqualTo("21 80 00 00 00 00 00 00 00")
-			);
+			Assert.That(FdbTuple.Create(0d).ToSlice().ToHexaString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 00"));
+			Assert.That(FdbTuple.Create(42d).ToSlice().ToHexaString(' '), Is.EqualTo("21 C0 45 00 00 00 00 00 00"));
+			Assert.That(FdbTuple.Create(-42d).ToSlice().ToHexaString(' '), Is.EqualTo("21 3F BA FF FF FF FF FF FF"));
 
-			Assert.That(
-				FdbTuple.Create(42d).ToSlice().ToHexaString(' '),
-				Is.EqualTo("21 C0 45 00 00 00 00 00 00")
-			);
+			Assert.That(FdbTuple.Create(Math.PI).ToSlice().ToHexaString(' '), Is.EqualTo("21 C0 09 21 FB 54 44 2D 18"));
+			Assert.That(FdbTuple.Create(Math.E).ToSlice().ToHexaString(' '), Is.EqualTo("21 C0 05 BF 0A 8B 14 57 69"));
 
-			Assert.That(
-				FdbTuple.Create(-42d).ToSlice().ToHexaString(' '),
-				Is.EqualTo("21 3F BA FF FF FF FF FF FF")
-			);
-
-			// Min
-			Assert.That(
-				FdbTuple.Create(double.MinValue).ToSlice().ToHexaString(' '),
-				Is.EqualTo("21 00 10 00 00 00 00 00 00")
-			);
-
-			// Max
-			Assert.That(
-				FdbTuple.Create(double.MaxValue).ToSlice().ToHexaString(' '),
-				Is.EqualTo("21 FF EF FF FF FF FF FF FF")
-			);
-
-			// minus zero
-			Assert.That(
-				FdbTuple.Create(-0d).ToSlice().ToHexaString(' '),
-				Is.EqualTo("21 7F FF FF FF FF FF FF FF")
-			);
-
-			// -INF
-			Assert.That(
-				FdbTuple.Create(double.NegativeInfinity).ToSlice().ToHexaString(' '),
-				Is.EqualTo("21 00 0F FF FF FF FF FF FF")
-			);
-
-			// +INF
-			Assert.That(
-				FdbTuple.Create(double.PositiveInfinity).ToSlice().ToHexaString(' '),
-				Is.EqualTo("21 FF F0 00 00 00 00 00 00")
-			);
+			Assert.That(FdbTuple.Create(double.MinValue).ToSlice().ToHexaString(' '), Is.EqualTo("21 00 10 00 00 00 00 00 00"), "double.MinValue");
+			Assert.That(FdbTuple.Create(double.MaxValue).ToSlice().ToHexaString(' '), Is.EqualTo("21 FF EF FF FF FF FF FF FF"), "double.MaxValue");
+			Assert.That(FdbTuple.Create(-0d).ToSlice().ToHexaString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FF"), "-0d");
+			Assert.That(FdbTuple.Create(double.NegativeInfinity).ToSlice().ToHexaString(' '), Is.EqualTo("21 00 0F FF FF FF FF FF FF"), "double.NegativeInfinity");
+			Assert.That(FdbTuple.Create(double.PositiveInfinity).ToSlice().ToHexaString(' '), Is.EqualTo("21 FF F0 00 00 00 00 00 00"), "double.PositiveInfinity");
+			Assert.That(FdbTuple.Create(double.Epsilon).ToSlice().ToHexaString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 01"), "+double.Epsilon");
+			Assert.That(FdbTuple.Create(-double.Epsilon).ToSlice().ToHexaString(' '), Is.EqualTo("21 7F FF FF FF FF FF FF FE"), "-double.Epsilon");
 
 			// all possible variants of NaN should all be equal
-			Assert.That(
-				FdbTuple.Create(double.NaN).ToSlice().ToHexaString(' '),
-				Is.EqualTo("21 00 07 FF FF FF FF FF FF")
-			);
+
+			Assert.That(FdbTuple.Create(double.NaN).ToSlice().ToHexaString(' '), Is.EqualTo("21 00 07 FF FF FF FF FF FF"), "double.NaN");
 
 			// cook up a non standard NaN (with some bits set in the fraction)
 			double d = double.NaN; // defined as 1d / 0d
@@ -973,6 +944,29 @@ namespace FoundationDB.Layers.Tuples.Tests
 				Is.EqualTo("21 00 07 FF FF FF FF FF FF")
 				//note: if we have 21 00 07 FF FF FF FF FF 84, that means that the NaN was not normalized
 			);
+		}
+
+		[Test]
+		public void Test_FdbTuple_Deserialize_Doubles()
+		{
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 00")), Is.EqualTo(0d), "0d");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 C0 45 00 00 00 00 00 00")), Is.EqualTo(42d), "42d");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 3F BA FF FF FF FF FF FF")), Is.EqualTo(-42d), "-42d");
+
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 C0 09 21 FB 54 44 2D 18")), Is.EqualTo(Math.PI), "Math.PI");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 C0 05 BF 0A 8B 14 57 69")), Is.EqualTo(Math.E), "Math.E");
+
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 00 10 00 00 00 00 00 00")), Is.EqualTo(double.MinValue), "double.MinValue");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 FF EF FF FF FF FF FF FF")), Is.EqualTo(double.MaxValue), "double.MaxValue");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FF")), Is.EqualTo(-0d), "-0d");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 00 0F FF FF FF FF FF FF")), Is.EqualTo(double.NegativeInfinity), "double.NegativeInfinity");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 FF F0 00 00 00 00 00 00")), Is.EqualTo(double.PositiveInfinity), "double.PositiveInfinity");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 01")), Is.EqualTo(double.Epsilon), "+double.Epsilon");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FE")), Is.EqualTo(-double.Epsilon), "-double.Epsilon");
+
+			// all possible variants of NaN should end up equal and normalized to double.NaN
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF FF")), Is.EqualTo(double.NaN), "double.NaN");
+			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF 84")), Is.EqualTo(double.NaN), "double.NaN");
 		}
 
 		[Test]

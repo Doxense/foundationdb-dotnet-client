@@ -816,6 +816,11 @@ namespace FoundationDB.Client
 		{
 			if (string.IsNullOrEmpty(hexaString)) return hexaString == null ? Slice.Nil : Slice.Empty;
 
+			if (hexaString.IndexOf(' ') > 0)
+			{ // remove spaces
+				hexaString = hexaString.Replace(" ", "");
+			}
+
 			if ((hexaString.Length & 1) != 0) throw new ArgumentException("Hexadecimal string must be of even length", "hexaString");
 
 			var buffer = new byte[hexaString.Length >> 1];
@@ -1134,6 +1139,33 @@ namespace FoundationDB.Client
 			while (n-- > 0)
 			{
 				value = (value << 8) | buffer[p--];
+			}
+			return value;
+		}
+
+		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
+		/// <param name="offset">Relative offset of the first byte</param>
+		/// <param name="bytes">Number of bytes to read (up to 4)</param>
+		/// <returns>Decoded unsigned integer.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="bytes"/> is less than zero, or more than 4.</exception>
+		[Pure]
+		public uint ReadUInt32(int offset, int bytes)
+		{
+			if (bytes < 0 || bytes > 4) throw new ArgumentOutOfRangeException("bytes");
+
+			uint value = 0;
+			var buffer = this.Array;
+			int p = UnsafeMapToOffset(offset);
+			if (bytes > 0)
+			{
+				value = buffer[p++];
+				--bytes;
+
+				while (bytes-- > 0)
+				{
+					value <<= 8;
+					value |= buffer[p++];
+				}
 			}
 			return value;
 		}
