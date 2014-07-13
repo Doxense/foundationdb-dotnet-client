@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 
 	/// <summary>Factory class for keys</summary>
@@ -270,6 +271,7 @@ namespace FoundationDB.Client
 		/// <param name="mode">Defines if the key is standalone, or is the begin or end part or a key range. This will enable or disable some heuristics that try to properly format key ranges.</param>
 		/// <returns>User friendly version of the key. Attempts to decode the key as a tuple first. Then as an ASCII string. Then as an hex dump of the key.</returns>
 		/// <remarks>This can be slow, and should only be used for logging or troubleshooting.</remarks>
+		[DebuggerNonUserCode]
 		[NotNull]
 		public static string PrettyPrint(Slice key, PrettyPrintMode mode)
 		{
@@ -297,18 +299,20 @@ namespace FoundationDB.Client
 									switch (key[-1])
 									{
 										case 0xFF:
-										{
-											tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
-											suffix = ".<FF>";
-											break;
-										}
+											{
+												//***README*** if you break under here, see README in the last catch() block
+												tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
+												suffix = ".<FF>";
+												break;
+											}
 										case 0x01:
-										{
-											var tmp = key[0, -1] + (byte)0;
-											tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(tmp);
-											suffix = " + 1";
-											break;
-										}
+											{
+												var tmp = key[0, -1] + (byte)0;
+												//***README*** if you break under here, see README in the last catch() block
+												tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(tmp);
+												suffix = " + 1";
+												break;
+											}
 									}
 									break;
 								}
@@ -321,6 +325,7 @@ namespace FoundationDB.Client
 
 									if (key.Count > 2 && key[-1] == 0 && key[-2] != 0xFF)
 									{
+										//***README*** if you break under here, see README in the last catch() block
 										tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key[0, -1]);
 										suffix = ".<00>";
 									}
@@ -336,12 +341,19 @@ namespace FoundationDB.Client
 
 						if (tuple == null && !skip)
 						{ // attempt a regular decoding
+							//***README*** if you break under here, see README in the last catch() block
 							tuple = FoundationDB.Layers.Tuples.FdbTuple.Unpack(key);
 						}
 
 						if (tuple != null) return tuple.ToString() + suffix;
 					}
-					catch (Exception) { }
+					catch (Exception)
+					{
+						//README: If Visual Studio is breaking inside some Tuple parsing method somewhere inside this try/catch,
+						// this is because your debugger is configured to automatically break on thrown exceptions of type FormatException, ArgumentException, or InvalidOperation.
+						// Unfortunately, there isn't much you can do except unchecking "break when this exception type is thrown". If you know a way to disable locally this behaviour, please fix this!
+						// => only other option would be to redesign the parsing of tuples as a TryParseXXX() that does not throw, OR to have a VerifyTuple() methods that only checks for validity....
+					}
 				}
 			}
 
