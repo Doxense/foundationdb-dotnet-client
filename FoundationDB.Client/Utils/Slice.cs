@@ -155,6 +155,20 @@ namespace FoundationDB.Client
 			return new Slice(bytes, 0, count);
 		}
 
+		/// <summary>Creates a new slice that contains the same byte repeated</summary>
+		/// <param name="value">Byte that will fill the slice</param>
+		/// <param name="count">Number of bytes</param>
+		/// <returns>New slice that contains <paramref name="count"/> times the byte <paramref name="value"/>.</returns>
+		public static Slice Repeat(byte value, int count)
+		{
+			if (count < 0) throw new ArgumentException("count");
+			if (count == 0) return Slice.Empty;
+
+			var res = new byte[count];
+			SliceHelpers.SetBytes(res, 0, count, value);
+			return new Slice(res, 0, res.Length);
+		}
+
 		/// <summary>Create a new slice filled with random bytes taken from a random number generator</summary>
 		/// <param name="prng">Pseudo random generator to use (needs locking if instance is shared)</param>
 		/// <param name="count">Number of random bytes to generate</param>
@@ -1067,6 +1081,8 @@ namespace FoundationDB.Client
 			//TODO: consider checking if the slice consist of only zeroes ? (ex: Slice.FromFixed32(0) could be considered falsy ...)
 		}
 
+		#region 16 bits...
+
 		/// <summary>Converts a slice into a little-endian encoded, signed 16-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 2 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
@@ -1079,6 +1095,22 @@ namespace FoundationDB.Client
 				case 0: return 0;
 				case 1: return this.Array[this.Offset];
 				case 2: return (short) (this.Array[this.Offset] | (this.Array[this.Offset + 1] << 8));
+				default: throw new FormatException("Cannot convert slice into an Int16 because it is larger than 2 bytes");
+			}
+		}
+
+		/// <summary>Converts a slice into a big-endian encoded, signed 16-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 2 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
+		[Pure]
+		public short ToInt16BE()
+		{
+			SliceHelpers.EnsureSliceIsValid(ref this);
+			switch (this.Count)
+			{
+				case 0: return 0;
+				case 1: return this.Array[this.Offset];
+				case 2: return (short)(this.Array[this.Offset + 1] | (this.Array[this.Offset] << 8));
 				default: throw new FormatException("Cannot convert slice into an Int16 because it is larger than 2 bytes");
 			}
 		}
@@ -1098,6 +1130,66 @@ namespace FoundationDB.Client
 				default: throw new FormatException("Cannot convert slice into an UInt16 because it is larger than 2 bytes");
 			}
 		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 16-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 2 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 2 bytes in the slice</exception>
+		[Pure]
+		public ushort ToUInt16BE()
+		{
+			SliceHelpers.EnsureSliceIsValid(ref this);
+			switch (this.Count)
+			{
+				case 0: return 0;
+				case 1: return this.Array[this.Offset];
+				case 2: return (ushort)(this.Array[this.Offset + 1] | (this.Array[this.Offset] << 8));
+				default: throw new FormatException("Cannot convert slice into an UInt16 because it is larger than 2 bytes");
+			}
+		}
+
+		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
+		/// <param name="offset">Relative offset of the first byte</param>
+		/// <param name="bytes">Number of bytes to read (up to 2)</param>
+		/// <returns>Decoded unsigned short.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="bytes"/> is less than zero, or more than 2.</exception>
+		[Pure]
+		public ushort ReadUInt16(int offset, int bytes)
+		{
+			if (bytes < 0 || bytes > 2) throw new ArgumentOutOfRangeException("bytes");
+
+			var buffer = this.Array;
+			int p = UnsafeMapToOffset(offset);
+			switch(bytes)
+			{
+				case 0: return 0;
+				case 1: return buffer[p];
+				default: return (ushort)(buffer[p] | (buffer[p + 1] << 8));
+			}
+		}
+
+		/// <summary>Read a variable-length, big-endian encoded, unsigned integer from a specific location in the slice</summary>
+		/// <param name="offset">Relative offset of the first byte</param>
+		/// <param name="bytes">Number of bytes to read (up to 2)</param>
+		/// <returns>Decoded unsigned short.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="bytes"/> is less than zero, or more than 2.</exception>
+		[Pure]
+		public ushort ReadUInt16BE(int offset, int bytes)
+		{
+			if (bytes < 0 || bytes > 2) throw new ArgumentOutOfRangeException("bytes");
+
+			var buffer = this.Array;
+			int p = UnsafeMapToOffset(offset);
+			switch (bytes)
+			{
+				case 0: return 0;
+				case 1: return buffer[p];
+				default: return (ushort)(buffer[p + 1] | (buffer[p] << 8));
+			}
+		}
+
+		#endregion
+
+		#region 32 bits...
 
 		/// <summary>Converts a slice into a little-endian encoded, signed 32-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 4 bytes</returns>
@@ -1121,24 +1213,75 @@ namespace FoundationDB.Client
 			return value;
 		}
 
+		/// <summary>Converts a slice into a big-endian encoded, signed 32-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>
+		[Pure]
+		public int ToInt32BE()
+		{
+			SliceHelpers.EnsureSliceIsValid(ref this);
+
+			int n = this.Count;
+			if (n == 0) return 0;
+			if (n > 4) throw new FormatException("Cannot convert slice into an Int32 because it is larger than 4 bytes");
+
+			var buffer = this.Array;
+			int p = this.Offset;
+
+			int value = buffer[p++];
+			int shift = 8;
+			while (--n > 0)
+			{
+				value |= buffer[p++] << shift;
+				shift += 8;
+			}
+			return value;
+		}
+
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 32-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 4 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>
 		[Pure]
 		public uint ToUInt32()
 		{
-			if (this.Count == 0) return 0;
-			if (this.Count > 4) throw new FormatException("Cannot convert slice into an UInt32 because it is larger than 4 bytes");
 			SliceHelpers.EnsureSliceIsValid(ref this);
 
-			var buffer = this.Array;
 			int n = this.Count;
+			if (n == 0) return 0;
+			if (n > 4) throw new FormatException("Cannot convert slice into an UInt32 because it is larger than 4 bytes");
+
+			var buffer = this.Array;
 			int p = this.Offset + n - 1;
 			uint value = 0;
 
 			while (n-- > 0)
 			{
 				value = (value << 8) | buffer[p--];
+			}
+			return value;
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 32-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 4 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>
+		[Pure]
+		public uint ToUInt32BE()
+		{
+			SliceHelpers.EnsureSliceIsValid(ref this);
+
+			int n = this.Count;
+			if (n == 0) return 0;
+			if (n > 4) throw new FormatException("Cannot convert slice into an UInt32 because it is larger than 4 bytes");
+
+			var buffer = this.Array;
+			int p = this.Offset;
+
+			uint value = buffer[p++];
+			int shift = 8;
+			while (--n > 0)
+			{
+				value |= (uint)buffer[p++] << shift;
+				shift += 8;
 			}
 			return value;
 		}
@@ -1152,23 +1295,46 @@ namespace FoundationDB.Client
 		public uint ReadUInt32(int offset, int bytes)
 		{
 			if (bytes < 0 || bytes > 4) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes == 0) return 0;
 
-			uint value = 0;
 			var buffer = this.Array;
 			int p = UnsafeMapToOffset(offset);
-			if (bytes > 0)
+			uint value = buffer[p++];
+			--bytes;
+			while (bytes-- > 0)
 			{
-				value = buffer[p++];
-				--bytes;
-
-				while (bytes-- > 0)
-				{
-					value <<= 8;
-					value |= buffer[p++];
-				}
+				value <<= 8;
+				value |= buffer[p++];
 			}
 			return value;
 		}
+
+		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
+		/// <param name="offset">Relative offset of the first byte</param>
+		/// <param name="bytes">Number of bytes to read (up to 4)</param>
+		/// <returns>Decoded unsigned integer.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="bytes"/> is less than zero, or more than 4.</exception>
+		[Pure]
+		public uint ReadUInt32BE(int offset, int bytes)
+		{
+			if (bytes < 0 || bytes > 4) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes == 0) return 0;
+
+			var buffer = this.Array;
+			int p = UnsafeMapToOffset(offset);
+			uint value = 0;
+			int shift = 0;
+			while (bytes-- > 0)
+			{
+				value |= (uint)(buffer[p--] << shift);
+				shift += 8;
+			}
+			return value;
+		}
+
+		#endregion
+
+		#region 64 bits...
 
 		/// <summary>Converts a slice into a little-endian encoded, signed 64-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 8 bytes</returns>
@@ -1193,6 +1359,30 @@ namespace FoundationDB.Client
 			return value;
 		}
 
+		/// <summary>Converts a slice into a big-endian encoded, signed 64-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, a signed integer, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
+		[Pure]
+		public long ToInt64BE()
+		{
+			if (this.Count == 0) return 0L;
+			if (this.Count > 8) throw new FormatException("Cannot convert slice into an Int64 because it is larger than 8 bytes");
+			SliceHelpers.EnsureSliceIsValid(ref this);
+
+			var buffer = this.Array;
+			int n = this.Count;
+			int p = this.Offset + n - 1;
+			long value = 0;
+
+			int shift = 0;
+			while (n-- > 0)
+			{
+				value |= (long)(buffer[p--]) << shift;
+				shift += 8;
+			}
+			return value;
+		}
+
 		/// <summary>Converts a slice into a little-endian encoded, unsigned 64-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 8 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
@@ -1213,6 +1403,30 @@ namespace FoundationDB.Client
 				value = (value << 8) | buffer[p--];
 			}
 
+			return value;
+		}
+
+		/// <summary>Converts a slice into a little-endian encoded, unsigned 64-bit integer.</summary>
+		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 8 bytes</returns>
+		/// <exception cref="System.FormatException">If there are more than 8 bytes in the slice</exception>
+		[Pure]
+		public ulong ToUInt64BE()
+		{
+			if (this.Count == 0) return 0L;
+			if (this.Count > 8) throw new FormatException("Cannot convert slice into an UInt64 because it is larger than 8 bytes");
+			SliceHelpers.EnsureSliceIsValid(ref this);
+
+			var buffer = this.Array;
+			int n = this.Count;
+			int p = this.Offset + n - 1;
+			ulong value = 0;
+
+			int shift = 0;
+			while (n-- > 0)
+			{
+				value |= (ulong)(buffer[p--]) << shift;
+				shift += 8;
+			}
 			return value;
 		}
 
@@ -1242,6 +1456,37 @@ namespace FoundationDB.Client
 			}
 			return value;
 		}
+
+		/// <summary>Converts a slice into a 64-bit UUID.</summary>
+		/// <returns>Uuid decoded from the Slice.</returns>
+		/// <remarks>The slice can either be an 8-byte array, or an ASCII string of 16, 17 or 19 chars</remarks>
+		[Pure]
+		public Uuid64 ToUuid64()
+		{
+			if (this.Count == 0) return default(Uuid64);
+			SliceHelpers.EnsureSliceIsValid(ref this);
+
+			switch (this.Count)
+			{
+				case 8:
+					{ // binary (8 bytes)
+						return new Uuid64(this);
+					}
+
+				case 16: // hex16
+				case 17: // hex8-hex8
+				case 19: // {hex8-hex8}
+					{
+						return Uuid64.Parse(this.ToAscii());
+					}
+			}
+
+			throw new FormatException("Cannot convert slice into an Uuid64 because it has an incorrect size");
+		}
+
+		#endregion
+
+		#region 128 bits...
 
 		/// <summary>Converts a slice into a Guid.</summary>
 		/// <returns>Native Guid decoded from the Slice.</returns>
@@ -1291,32 +1536,7 @@ namespace FoundationDB.Client
 			throw new FormatException("Cannot convert slice into an Uuid128 because it has an incorrect size");
 		}
 
-		/// <summary>Converts a slice into a 64-bit UUID.</summary>
-		/// <returns>Uuid decoded from the Slice.</returns>
-		/// <remarks>The slice can either be an 8-byte array, or an ASCII string of 16, 17 or 19 chars</remarks>
-		[Pure]
-		public Uuid64 ToUuid64()
-		{
-			if (this.Count == 0) return default(Uuid64);
-			SliceHelpers.EnsureSliceIsValid(ref this);
-
-			switch(this.Count)
-			{
-				case 8:
-				{ // binary (8 bytes)
-					return new Uuid64(this);
-				}
-
-				case 16: // hex16
-				case 17: // hex8-hex8
-				case 19: // {hex8-hex8}
-				{
-					return Uuid64.Parse(this.ToAscii());
-				}
-			}
-
-			throw new FormatException("Cannot convert slice into an Uuid64 because it has an incorrect size");
-		}
+		#endregion
 
 		/// <summary>Returns a new slice that contains an isolated copy of the buffer</summary>
 		/// <returns>Slice that is equivalent, but is isolated from any changes to the buffer</returns>
@@ -1333,7 +1553,7 @@ namespace FoundationDB.Client
 		private int UnsafeMapToOffset(int index)
 		{
 			int p = NormalizeIndex(index);
-			Contract.Requires(p >= 0 & p < this.Count);
+			Contract.Requires(p >= 0 & p < this.Count, "Index is outside the slice buffer");
 			return this.Offset + p;
 		}
 
