@@ -41,16 +41,19 @@ namespace FoundationDB.Client
 		public static readonly FdbKeySelector None = default(FdbKeySelector);
 
 		/// <summary>Key of the selector</summary>
-		public readonly Slice Key;
+		public Slice Key { get { return m_key; } }
+		private Slice m_key; //PERF: readonly struct
+
 		/// <summary>If true, the selected key can be equal to <see cref="Key"/>.</summary>
 		public readonly bool OrEqual;
+
 		/// <summary>Offset of the selected key</summary>
 		public readonly int Offset;
 
 		/// <summary>Creates a new selector</summary>
 		public FdbKeySelector(Slice key, bool orEqual, int offset)
 		{
-			this.Key = key;
+			m_key = key;
 			this.OrEqual = orEqual;
 			this.Offset = offset;
 		}
@@ -59,7 +62,7 @@ namespace FoundationDB.Client
 		public FdbKeySelector(IFdbKey key, bool orEqual, int offset)
 		{
 			if (key == null) throw new ArgumentNullException("key");
-			this.Key = key.ToFoundationDbKey();
+			m_key = key.ToFoundationDbKey();
 			this.OrEqual = orEqual;
 			this.Offset = offset;
 		}
@@ -79,7 +82,7 @@ namespace FoundationDB.Client
 				--offset;
 				sb.Append(this.OrEqual ? "fGT{" : "fGE{");
 			}
-			sb.Append(FdbKey.PrettyPrint(this.Key, mode));
+			sb.Append(FdbKey.PrettyPrint(m_key, mode));
 			sb.Append("}");
 
 			if (offset > 0)
@@ -98,7 +101,7 @@ namespace FoundationDB.Client
 
 		public bool Equals(FdbKeySelector other)
 		{
-			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && this.Key.Equals(other.Key);
+			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && m_key.Equals(other.m_key);
 		}
 
 		public override bool Equals(object obj)
@@ -108,7 +111,7 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode()
 		{
-			return this.Key.GetHashCode() ^ this.Offset ^ (this.OrEqual ? 0 : -1);
+			return m_key.GetHashCode() ^ this.Offset ^ (this.OrEqual ? 0 : -1);
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
@@ -177,7 +180,7 @@ namespace FoundationDB.Client
 		/// <returns>fGE('abc')+7</returns>
 		public static FdbKeySelector operator +(FdbKeySelector selector, int offset)
 		{
-			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset + offset);
+			return new FdbKeySelector(selector.m_key, selector.OrEqual, selector.Offset + offset);
 		}
 
 		/// <summary>Substract a value to the selector's offset</summary>
@@ -186,7 +189,7 @@ namespace FoundationDB.Client
 		/// <returns>fGE('abc')-7</returns>
 		public static FdbKeySelector operator -(FdbKeySelector selector, int offset)
 		{
-			return new FdbKeySelector(selector.Key, selector.OrEqual, selector.Offset - offset);
+			return new FdbKeySelector(selector.m_key, selector.OrEqual, selector.Offset - offset);
 		}
 
 		public static bool operator ==(FdbKeySelector left, FdbKeySelector right)

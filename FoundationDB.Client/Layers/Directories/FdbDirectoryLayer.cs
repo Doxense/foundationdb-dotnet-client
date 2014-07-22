@@ -452,7 +452,7 @@ namespace FoundationDB.Layers.Directories
 			public readonly FdbSubspace Subspace;
 			public readonly IFdbTuple Path;
 			public readonly IFdbTuple TargetPath;
-			public readonly Slice Layer;
+			public Slice Layer; //PERF: readonly struct
 
 			public bool Exists { get { return this.Subspace != null; } }
 

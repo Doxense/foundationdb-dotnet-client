@@ -36,18 +36,20 @@ namespace FoundationDB.Client
 	public struct FdbKeySelectorPair
 	{
 		/// <summary>Start of the range</summary>
-		public readonly FdbKeySelector Begin;
+		public FdbKeySelector Begin { get { return m_begin; } }
+		private FdbKeySelector m_begin; //PERF: readonly struct
 
 		/// <summary>End of the range</summary>
-		public readonly FdbKeySelector End;
+		public FdbKeySelector End { get { return m_end; } }
+		private FdbKeySelector m_end; //PERF: readonly struct
 
 		/// <summary>Create a new pair of key selectors</summary>
 		/// <param name="beginInclusive">Selector for key from which to start iterating</param>
 		/// <param name="endExclusive">Selector for key where to stop iterating</param>
 		public FdbKeySelectorPair(FdbKeySelector beginInclusive, FdbKeySelector endExclusive)
 		{
-			this.Begin = beginInclusive;
-			this.End = endExclusive;
+			m_begin = beginInclusive;
+			m_end = endExclusive;
 		}
 
 		/// <summary>Factory method for a pair of key selectors</summary>
@@ -111,7 +113,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a printable version of the pair of key selectors</summary>
 		public override string ToString()
 		{
-			return "[ " + this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End) + " )";
+			return "[ " + m_begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", " + m_end.PrettyPrint(FdbKey.PrettyPrintMode.End) + " )";
 		}
 
 	}

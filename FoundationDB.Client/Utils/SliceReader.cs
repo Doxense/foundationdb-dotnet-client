@@ -48,7 +48,8 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Buffer containing the tuple being parsed</summary>
-		public readonly Slice Buffer;
+		public Slice Buffer { get { return m_buffer; } }
+		private Slice m_buffer; //PERF: readonly struct
 
 		/// <summary>Current position inside the buffer</summary>
 		public int Position;
@@ -57,32 +58,32 @@ namespace FoundationDB.Client
 		/// <param name="buffer">Slice that will be used as the underlying buffer</param>
 		public SliceReader(Slice buffer)
 		{
-			this.Buffer = buffer;
+			m_buffer = buffer;
 			this.Position = 0;
 		}
 
 		/// <summary>Returns true if there are more bytes to parse</summary>
-		public bool HasMore { get { return this.Position < this.Buffer.Count; } }
+		public bool HasMore { get { return this.Position < m_buffer.Count; } }
 
 		/// <summary>Returns the number of bytes remaining</summary>
-		public int Remaining { get { return Math.Max(0, this.Buffer.Count - this.Position); } }
+		public int Remaining { get { return Math.Max(0, m_buffer.Count - this.Position); } }
 
 		/// <summary>Returns a slice with all the bytes read so far in the buffer</summary>
 		public Slice Head
 		{
-			get { return this.Buffer.Substring(0, this.Position); }
+			get { return m_buffer.Substring(0, this.Position); }
 		}
 
 		/// <summary>Returns a slice with all the remaining bytes in the buffer</summary>
 		public Slice Tail
 		{
-			get { return this.Buffer.Substring(this.Position); }
+			get { return m_buffer.Substring(this.Position); }
 		}
 
 		/// <summary>Ensure that there are at least <paramref name="count"/> bytes remaining in the buffer</summary>
 		public void EnsureBytes(int count)
 		{
-			if (count < 0 || checked(this.Position + count) > this.Buffer.Count) throw new ArgumentOutOfRangeException("count");
+			if (count < 0 || checked(this.Position + count) > m_buffer.Count) throw new ArgumentOutOfRangeException("count");
 		}
 
 		/// <summary>Return the value of the next byte in the buffer, or -1 if we reached the end</summary>
@@ -90,7 +91,7 @@ namespace FoundationDB.Client
 		public int PeekByte()
 		{
 			int p = this.Position;
-			return p < this.Buffer.Count ? this.Buffer[p] : -1;
+			return p < m_buffer.Count ? m_buffer[p] : -1;
 		}
 
 		/// <summary>Skip the next <paramref name="count"/> bytes of the buffer</summary>
@@ -107,7 +108,7 @@ namespace FoundationDB.Client
 			EnsureBytes(1);
 
 			int p = this.Position;
-			byte b = this.Buffer[p];
+			byte b = m_buffer[p];
 			this.Position = p + 1;
 			return b;
 		}
@@ -119,7 +120,7 @@ namespace FoundationDB.Client
 
 			int p = this.Position;
 			this.Position = p + count;
-			return this.Buffer.Substring(p, count);
+			return m_buffer.Substring(p, count);
 		}
 
 		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in little-endian</summary>
@@ -161,10 +162,10 @@ namespace FoundationDB.Client
 		/// <summary>Read an encoded nul-terminated byte array from the buffer</summary>
 		public Slice ReadByteString()
 		{
-			var buffer = this.Buffer.Array;
-			int start = this.Buffer.Offset + this.Position;
+			var buffer = m_buffer.Array;
+			int start = m_buffer.Offset + this.Position;
 			int p = start;
-			int end = this.Buffer.Offset + this.Buffer.Count;
+			int end = m_buffer.Offset + m_buffer.Count;
 
 			while (p < end)
 			{
@@ -179,7 +180,7 @@ namespace FoundationDB.Client
 						continue;
 					}
 
-					this.Position = p - this.Buffer.Offset;
+					this.Position = p - m_buffer.Offset;
 					return new Slice(buffer, start, p - start);
 				}
 			}
@@ -214,9 +215,9 @@ namespace FoundationDB.Client
 		/// <param name="count">Maximum number of bytes allowed (5 for 32 bits, 10 for 64 bits)</param>
 		private ulong ReadVarint(int count)
 		{
-			var buffer = this.Buffer.Array;
-			int p = this.Buffer.Offset + this.Position;
-			int end = this.Buffer.Offset + this.Buffer.Count;
+			var buffer = m_buffer.Array;
+			int p = m_buffer.Offset + this.Position;
+			int end = m_buffer.Offset + m_buffer.Count;
 
 			ulong x = 0;
 			int s = 0;
@@ -230,7 +231,7 @@ namespace FoundationDB.Client
 				x |= (b & 0x7FUL) << s;
 				if (b < 0x80)
 				{
-					this.Position = p - this.Buffer.Offset;
+					this.Position = p - m_buffer.Offset;
 					return x;
 				}
 				s += 7;

@@ -39,7 +39,7 @@ namespace FoundationDB.Client
 		public static readonly FdbSubspace Empty = new FdbSubspace(Slice.Empty);
 
 		/// <summary>Binary prefix of this subspace</summary>
-		private readonly Slice m_rawPrefix;
+		private Slice m_rawPrefix; //PERF: readonly struct
 
 		/// <summary>Returns the key of this directory subspace</summary>
 		/// <remarks>This should only be used by methods that can use the key internally, even if it is not supposed to be exposed (as is the case for directory partitions)</remarks>

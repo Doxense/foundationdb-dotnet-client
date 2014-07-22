@@ -71,8 +71,8 @@ namespace FoundationDB.Storage.Memory.API
 		[StructLayout(LayoutKind.Sequential)]
 		internal struct WriteCommand
 		{
-			public readonly Slice Key;
-			public readonly Slice Value;
+			public Slice Key; //PERF: readonly struct
+			public Slice Value; //PERF: readonly struct
 			public readonly Operation Type;
 
 			public WriteCommand(Operation type, Slice key, Slice value)

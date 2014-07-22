@@ -46,7 +46,7 @@ namespace FoundationDB.Client
 		//REVIEW: sould we change this to a class?
 
 		private readonly FdbFuture<Slice> m_future;
-		private readonly Slice m_key;
+		private Slice m_key; //PERF: readonly slice
 		private Slice m_value;
 
 		internal FdbWatch(FdbFuture<Slice> future, Slice key, Slice value)
@@ -121,7 +121,7 @@ namespace FoundationDB.Client
 
 		public override string ToString()
 		{
-			return "Watch(" + FdbKey.Dump(m_key) + ")";
+			return "Watch(" + FdbKey.Dump(this.Key) + ")";
 		}
 
 	}

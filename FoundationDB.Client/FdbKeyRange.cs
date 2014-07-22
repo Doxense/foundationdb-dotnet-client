@@ -40,10 +40,12 @@ namespace FoundationDB.Client
 		public static FdbKeyRange Empty { get { return default(FdbKeyRange); } }
 
 		/// <summary>Start of the range</summary>
-		public readonly Slice Begin;
+		public Slice Begin { get { return m_begin; } }
+		private Slice m_begin; //PERF: readonly struct
 
 		/// <summary>End of the range</summary>
-		public readonly Slice End;
+		public Slice End { get { return m_end; } }
+		private Slice m_end; //PERF: readonly struct
 
 		/// <summary>
 		/// Create a new range of keys
@@ -52,10 +54,10 @@ namespace FoundationDB.Client
 		/// <param name="end">End of range (usually excluded)</param>
 		public FdbKeyRange(Slice begin, Slice end)
 		{
-			this.Begin = begin;
-			this.End = end;
+			m_begin = begin;
+			m_end = end;
 
-			Contract.Ensures(this.Begin <= this.End, "The range is inverted");
+			Contract.Ensures(m_begin <= m_end, "The range is inverted");
 		}
 
 		public FdbKeyRange(IFdbKey begin, IFdbKey end)
@@ -63,10 +65,10 @@ namespace FoundationDB.Client
 			if (begin == null) throw new ArgumentNullException("begin");
 			if (end == null) throw new ArgumentNullException("end");
 
-			this.Begin = begin.ToFoundationDbKey();
-			this.End = end.ToFoundationDbKey();
+			m_begin = begin.ToFoundationDbKey();
+			m_end = end.ToFoundationDbKey();
 
-			Contract.Ensures(this.Begin <= this.End, "The range is inverted");
+			Contract.Ensures(m_begin <= m_end, "The range is inverted");
 		}
 
 		public static FdbKeyRange Create(Slice a, Slice b)
@@ -148,30 +150,30 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode()
 		{
-			int h1 = this.Begin.GetHashCode();
-			int h2 = this.End.GetHashCode();
+			int h1 = m_begin.GetHashCode();
+			int h2 = m_end.GetHashCode();
 			return ((h1 << 5) + h1) ^ h2;
 		}
 
 		public bool Equals(FdbKeyRange other)
 		{
-			return this.Begin.Equals(other.Begin) && this.End.Equals(other.End);
+			return m_begin.Equals(other.m_begin) && m_end.Equals(other.m_end);
 		}
 
 		public static bool operator ==(FdbKeyRange left, FdbKeyRange right)
 		{
-			return left.Begin.Equals(right.Begin) && left.End.Equals(right.End);
+			return left.m_begin.Equals(right.m_begin) && left.m_end.Equals(right.m_end);
 		}
 
 		public static bool operator !=(FdbKeyRange left, FdbKeyRange right)
 		{
-			return !left.Begin.Equals(right.Begin) || !left.End.Equals(right.End);
+			return !left.m_begin.Equals(right.m_begin) || !left.m_end.Equals(right.m_end);
 		}
 
 		public int CompareTo(FdbKeyRange other)
 		{
-			int c = this.Begin.CompareTo(other.Begin);
-			if (c == 0) c = this.End.CompareTo(other.End);
+			int c = m_begin.CompareTo(other.m_begin);
+			if (c == 0) c = m_end.CompareTo(other.m_end);
 			return c;
 		}
 
@@ -181,8 +183,8 @@ namespace FoundationDB.Client
 		/// <remarks>If both range are disjoint, then the resulting range will also contain the keys in between.</remarks>
 		public FdbKeyRange Merge(FdbKeyRange other)
 		{
-			Slice begin = this.Begin.CompareTo(other.Begin) <= 0 ? this.Begin : other.Begin;
-			Slice end = this.End.CompareTo(other.End) >= 0 ? this.End : other.End;
+			Slice begin = m_begin.CompareTo(other.m_begin) <= 0 ? m_begin : other.m_begin;
+			Slice end = m_end.CompareTo(other.m_end) >= 0 ? m_end : other.m_end;
 			return new FdbKeyRange(begin, end);
 		}
 
@@ -192,18 +194,18 @@ namespace FoundationDB.Client
 		/// <remarks>Note that ranges [0, 1) and [1, 2) do not intersect, since the end is exclusive by default</remarks>
 		public bool Intersects(FdbKeyRange other)
 		{
-			int c = this.Begin.CompareTo(other.Begin);
+			int c = m_begin.CompareTo(other.m_begin);
 			if (c == 0)
 			{ // share the same begin key
 				return true;
 			}
 			else if (c < 0)
 			{ // after us
-				return this.End.CompareTo(other.Begin) > 0;
+				return m_end.CompareTo(other.m_begin) > 0;
 			}
 			else
 			{  // before us
-				return this.Begin.CompareTo(other.End) < 0;
+				return m_begin.CompareTo(other.m_end) < 0;
 			}
 		}
 
@@ -213,18 +215,18 @@ namespace FoundationDB.Client
 		/// <remarks>Note that ranges [0, 1) and [1, 2) are not disjoint because, even though they do not intersect, they are both contiguous.</remarks>
 		public bool Disjoint(FdbKeyRange other)
 		{
-			int c = this.Begin.CompareTo(other.Begin);
+			int c = m_begin.CompareTo(other.m_begin);
 			if (c == 0)
 			{ // share the same begin key
 				return false;
 			}
 			else if (c < 0)
 			{ // after us
-				return this.End.CompareTo(other.Begin) < 0;
+				return m_end.CompareTo(other.m_begin) < 0;
 			}
 			else
 			{  // before us
-				return this.Begin.CompareTo(other.End) > 0;
+				return m_begin.CompareTo(other.m_end) > 0;
 			}
 		}
 
@@ -233,7 +235,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		public bool Contains(Slice key)
 		{
-			return key.CompareTo(this.Begin) >= 0 && key.CompareTo(this.End) < 0;
+			return key.CompareTo(m_begin) >= 0 && key.CompareTo(m_end) < 0;
 		}
 
 		public bool Contains<TKey>(TKey key)
@@ -251,8 +253,8 @@ namespace FoundationDB.Client
 		{
 			// note: if the range is empty (Begin = End = Slice.Empty) then it should return 0
 
-			if (this.Begin.IsPresent && key.CompareTo(this.Begin) < 0) return -1;
-			if (this.End.IsPresent && key.CompareTo(this.End) >= (endIncluded ? 1 : 0)) return +1;
+			if (m_begin.IsPresent && key.CompareTo(m_begin) < 0) return -1;
+			if (m_end.IsPresent && key.CompareTo(m_end) >= (endIncluded ? 1 : 0)) return +1;
 			return 0;
 		}
 
@@ -266,7 +268,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a printable version of the range</summary>
 		public override string ToString()
 		{
-			return "{" + FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin) + ", " + FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End) + "}";
+			return "{" + FdbKey.PrettyPrint(m_begin, FdbKey.PrettyPrintMode.Begin) + ", " + FdbKey.PrettyPrint(m_end, FdbKey.PrettyPrintMode.End) + "}";
 		}
 	
 	}

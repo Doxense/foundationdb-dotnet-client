@@ -265,7 +265,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			}
 
 			// Memoize
-			tmp = t.Memoize().Items;
+			tmp = t.Memoize().ToArray();
 			for (int i = 0; i < tmp.Length; i++)
 			{
 				Assert.That(ComparisonHelper.AreSimilar(tmp[i], expected[i]), Is.True, "{0}: Memoize.Items[{1}], {2} ~= {3}", message, i, tmp[i], expected[i]);
