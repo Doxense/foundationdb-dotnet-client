@@ -144,7 +144,8 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Transactionals_Retries_Do_Not_Leak_When_Reading_Too_Much()
 		{
 			// we have a transaction that tries to read too much data, and will always take more than 5 seconds to execute
-			// => in some version of fdb_c.dll, this leaks memory because the internal cache is not clear on each reset.
+			// => in versions of fdb_c.dll up to 2.0.7, this leaks memory because the internal cache is not cleared after each reset.
+			// => this is fixed in 2.0.8 and up
 
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -158,7 +159,7 @@ namespace FoundationDB.Client.Tests
 				// insert a good amount of test data
 
 				var sw = Stopwatch.StartNew();
-				Console.WriteLine("Inserting test data...");
+				Console.WriteLine("Inserting test data (this may take a few minutes)...");
 				var rnd = new Random();
 				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => new KeyValuePair<Slice, Slice>(location.Pack(i), Slice.Random(rnd, 4096))), this.Cancellation);
 				sw.Stop();
