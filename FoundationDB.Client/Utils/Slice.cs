@@ -1204,9 +1204,9 @@ namespace FoundationDB.Client
 			var buffer = this.Array;
 			int n = this.Count;
 			int p = this.Offset + n - 1;
-			int value = 0;
 
-			while (n-- > 0)
+			int value = buffer[p--];
+			while (--n > 0)
 			{
 				value = (value << 8) | buffer[p--];
 			}
@@ -1229,11 +1229,9 @@ namespace FoundationDB.Client
 			int p = this.Offset;
 
 			int value = buffer[p++];
-			int shift = 8;
 			while (--n > 0)
 			{
-				value |= buffer[p++] << shift;
-				shift += 8;
+				value = (value << 8) | buffer[p++];
 			}
 			return value;
 		}
@@ -1252,16 +1250,16 @@ namespace FoundationDB.Client
 
 			var buffer = this.Array;
 			int p = this.Offset + n - 1;
-			uint value = 0;
 
-			while (n-- > 0)
+			uint value = buffer[p--];
+			while (--n > 0)
 			{
 				value = (value << 8) | buffer[p--];
 			}
 			return value;
 		}
 
-		/// <summary>Converts a slice into a little-endian encoded, unsigned 32-bit integer.</summary>
+		/// <summary>Converts a slice into a big-endian encoded, unsigned 32-bit integer.</summary>
 		/// <returns>0 of the slice is null or empty, an unsigned integer, or an error if the slice has more than 4 bytes</returns>
 		/// <exception cref="System.FormatException">If there are more than 4 bytes in the slice</exception>
 		[Pure]
@@ -1277,11 +1275,9 @@ namespace FoundationDB.Client
 			int p = this.Offset;
 
 			uint value = buffer[p++];
-			int shift = 8;
 			while (--n > 0)
 			{
-				value |= (uint)buffer[p++] << shift;
-				shift += 8;
+				value = (value << 8) | buffer[p++];
 			}
 			return value;
 		}
@@ -1298,18 +1294,17 @@ namespace FoundationDB.Client
 			if (bytes == 0) return 0;
 
 			var buffer = this.Array;
-			int p = UnsafeMapToOffset(offset);
-			uint value = buffer[p++];
-			--bytes;
-			while (bytes-- > 0)
+			int p = UnsafeMapToOffset(offset) + bytes - 1;
+
+			uint value = buffer[p--];
+			while (--bytes > 0)
 			{
-				value <<= 8;
-				value |= buffer[p++];
+				value = (value << 8) | buffer[p--];
 			}
 			return value;
 		}
 
-		/// <summary>Read a variable-length, little-endian encoded, unsigned integer from a specific location in the slice</summary>
+		/// <summary>Read a variable-length, big-endian encoded, unsigned integer from a specific location in the slice</summary>
 		/// <param name="offset">Relative offset of the first byte</param>
 		/// <param name="bytes">Number of bytes to read (up to 4)</param>
 		/// <returns>Decoded unsigned integer.</returns>
@@ -1322,12 +1317,11 @@ namespace FoundationDB.Client
 
 			var buffer = this.Array;
 			int p = UnsafeMapToOffset(offset);
-			uint value = 0;
-			int shift = 0;
-			while (bytes-- > 0)
+
+			uint value = buffer[p++];
+			while (--bytes > 0)
 			{
-				value |= (uint)(buffer[p--] << shift);
-				shift += 8;
+				value = (value << 8) | buffer[p++];
 			}
 			return value;
 		}
@@ -1349,9 +1343,9 @@ namespace FoundationDB.Client
 			var buffer = this.Array;
 			int n = this.Count;
 			int p = this.Offset + n - 1;
-			long value = 0;
 
-			while (n-- > 0)
+			long value = buffer[p--];
+			while (--n > 0)
 			{
 				value = (value << 8) | buffer[p--];
 			}
@@ -1371,14 +1365,12 @@ namespace FoundationDB.Client
 
 			var buffer = this.Array;
 			int n = this.Count;
-			int p = this.Offset + n - 1;
-			long value = 0;
+			int p = this.Offset;
 
-			int shift = 0;
-			while (n-- > 0)
+			long value = buffer[p++];
+			while (--n > 0)
 			{
-				value |= (long)(buffer[p--]) << shift;
-				shift += 8;
+				value = (value << 8) | buffer[p++];
 			}
 			return value;
 		}
@@ -1396,13 +1388,12 @@ namespace FoundationDB.Client
 			var buffer = this.Array;
 			int n = this.Count;
 			int p = this.Offset + n - 1;
-			ulong value = 0;
 
-			while (n-- > 0)
+			ulong value = buffer[p--];
+			while (--n > 0)
 			{
 				value = (value << 8) | buffer[p--];
 			}
-
 			return value;
 		}
 
@@ -1418,14 +1409,12 @@ namespace FoundationDB.Client
 
 			var buffer = this.Array;
 			int n = this.Count;
-			int p = this.Offset + n - 1;
-			ulong value = 0;
+			int p = this.Offset;
 
-			int shift = 0;
-			while (n-- > 0)
+			ulong value = buffer[p++];
+			while (--n > 0)
 			{
-				value |= (ulong)(buffer[p--]) << shift;
-				shift += 8;
+				value = (value << 8) | buffer[p++];
 			}
 			return value;
 		}
@@ -1439,20 +1428,37 @@ namespace FoundationDB.Client
 		public ulong ReadUInt64(int offset, int bytes)
 		{
 			if (bytes < 0 || bytes > 8) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes == 0) return 0UL;
 
-			ulong value = 0;
+			var buffer = this.Array;
+			int p = UnsafeMapToOffset(offset) + bytes - 1;
+
+			ulong value = buffer[p--];
+			while (--bytes > 0)
+			{
+				value = (value << 8) | buffer[p--];
+			}
+			return value;
+		}
+
+		/// <summary>Read a variable-length, big-endian encoded, unsigned integer from a specific location in the slice</summary>
+		/// <param name="offset">Relative offset of the first byte</param>
+		/// <param name="bytes">Number of bytes to read (up to 8)</param>
+		/// <returns>Decoded unsigned integer.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If <paramref name="bytes"/> is less than zero, or more than 8.</exception>
+		[Pure]
+		public ulong ReadUInt64BE(int offset, int bytes)
+		{
+			if (bytes < 0 || bytes > 8) throw new ArgumentOutOfRangeException("bytes");
+			if (bytes == 0) return 0UL;
+
 			var buffer = this.Array;
 			int p = UnsafeMapToOffset(offset);
-			if (bytes > 0)
-			{
-				value = buffer[p++];
-				--bytes;
 
-				while (bytes-- > 0)
-				{
-					value <<= 8;
-					value |= buffer[p++];
-				}
+			ulong value = buffer[p++];
+			while (--bytes > 0)
+			{
+				value = (value << 8) | buffer[p++];
 			}
 			return value;
 		}
@@ -1469,16 +1475,16 @@ namespace FoundationDB.Client
 			switch (this.Count)
 			{
 				case 8:
-					{ // binary (8 bytes)
-						return new Uuid64(this);
-					}
+				{ // binary (8 bytes)
+					return new Uuid64(this);
+				}
 
 				case 16: // hex16
 				case 17: // hex8-hex8
 				case 19: // {hex8-hex8}
-					{
-						return Uuid64.Parse(this.ToAscii());
-					}
+				{
+					return Uuid64.Parse(this.ToAscii());
+				}
 			}
 
 			throw new FormatException("Cannot convert slice into an Uuid64 because it has an incorrect size");
@@ -1585,7 +1591,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a substring of the current slice that fits withing the specified index range</summary>
 		/// <param name="start">The starting position of the substring. Positive values means from the start, negative values means from the end</param>
-		/// <param name="end">The end position (exlucded) of the substring. Positive values means from the start, negative values means from the end</param>
+		/// <param name="end">The end position (excluded) of the substring. Positive values means from the start, negative values means from the end</param>
 		/// <returns>Subslice</returns>
 		public Slice this[int start, int end]
 		{

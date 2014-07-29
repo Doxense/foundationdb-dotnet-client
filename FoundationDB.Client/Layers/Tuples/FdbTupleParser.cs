@@ -652,7 +652,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			if (bytes > 8) throw new FormatException("Invalid size for tuple integer");
-			long value = (long)slice.ReadUInt64(1, bytes);
+			long value = (long)slice.ReadUInt64BE(1, bytes);
 
 			if (neg)
 			{ // the value is encoded as the one's complement of the absolute value
@@ -757,7 +757,7 @@ namespace FoundationDB.Layers.Tuples
 			// We need to reverse encoding process: if first byte < 0x80 then it is negative (bits need to be flipped), else it is positive (highest bit must be set to 0)
 
 			// read the raw bits
-			uint bits = slice.ReadUInt32(1, 4); //OPTIMIZE: inline version?
+			uint bits = slice.ReadUInt32BE(1, 4); //OPTIMIZE: inline version?
 
 			if ((bits & 0x80000000U) == 0)
 			{ // negative
@@ -786,7 +786,7 @@ namespace FoundationDB.Layers.Tuples
 			// We need to reverse encoding process: if first byte < 0x80 then it is negative (bits need to be flipped), else it is positive (highest bit must be set to 0)
 
 			// read the raw bits
-			ulong bits = slice.ReadUInt64(1, 8); //OPTIMIZE: inline version?
+			ulong bits = slice.ReadUInt64BE(1, 8); //OPTIMIZE: inline version?
 
 			if ((bits & 0x8000000000000000UL) == 0)
 			{ // negative
