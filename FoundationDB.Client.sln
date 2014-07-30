@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.30324.0
+VisualStudioVersion = 12.0.30501.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Client", "FoundationDB.Client\FoundationDB.Client.csproj", "{773166B7-DE74-4FCC-845C-84080CC89533}"
 EndProject
@@ -33,6 +33,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Storage.Memory", "FoundationDB.Storage.Memory\FoundationDB.Storage.Memory.csproj", "{CC98DB39-31A1-4642-B4FC-9CB0AB26BF2E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FoundationDB.Storage.Memory.Test", "FoundationDB.Storage.Memory.Test\FoundationDB.Storage.Memory.Test.csproj", "{AF76A8D4-E682-4E72-B656-BE3D935712DB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FdbShell", "FdbShell\FdbShell.csproj", "{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -76,6 +78,10 @@ Global
 		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AF76A8D4-E682-4E72-B656-BE3D935712DB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{60C39E7E-E6CD-404B-8F9B-9BABF302AABC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
