@@ -141,19 +141,19 @@ namespace FoundationDB.Client
 			return ReadBytes(8).ToUInt64();
 		}
 
-		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in little-endian</summary>
+		/// <summary>Read the next 2 bytes as an unsigned 16-bit integer, encoded in big-endian</summary>
 		public ushort ReadFixed16BE()
 		{
 			return ReadBytes(2).ToUInt16BE();
 		}
 
-		/// <summary>Read the next 4 bytes as an unsigned 32-bit integer, encoded in little-endian</summary>
+		/// <summary>Read the next 4 bytes as an unsigned 32-bit integer, encoded in big-endian</summary>
 		public uint ReadFixed32BE()
 		{
 			return ReadBytes(4).ToUInt32BE();
 		}
 
-		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in little-endian</summary>
+		/// <summary>Read the next 8 bytes as an unsigned 64-bit integer, encoded in big-endian</summary>
 		public ulong ReadFixed64BE()
 		{
 			return ReadBytes(8).ToUInt64BE();

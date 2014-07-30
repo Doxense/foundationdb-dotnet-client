@@ -368,7 +368,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 				{
 					var begin = rnd.Next(S);
 					// 50/50 of inserting a single element, or a range
-					var end = (rnd.Next(2) == 1 ? begin : rnd.Next(2) == 1 ? rnd.Next(begin, S) : Math.Min(S - 1, begin + rnd.Next(5))) + 1; // reminder: +1 because 'end' is EXLUCDED 
+					var end = (rnd.Next(2) == 1 ? begin : rnd.Next(2) == 1 ? rnd.Next(begin, S) : Math.Min(S - 1, begin + rnd.Next(5))) + 1; // reminder: +1 because 'end' is EXCLUDED 
 					Assert.That(begin, Is.LessThan(end));
 					// 50/50 for the coloring
 					var color = rnd.Next(2) == 1 ? RangeColor.White : RangeColor.Black;

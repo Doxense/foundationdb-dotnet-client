@@ -54,7 +54,7 @@ namespace FoundationDB.Client.Utils
 		private int m_remaining;
 		/// <summary>If non null, list of previously used buffers (excluding the current buffer)</summary>
 		private List<Slice> m_chunks;
-		/// <summary>Running total of the length of of all previously used buffers, exluding the size of the current buffer</summary>
+		/// <summary>Running total of the length of of all previously used buffers, excluding the size of the current buffer</summary>
 		private int m_allocated;
 		/// <summary>Running total of the number of bytes stored in the previously used buffers, excluding the size of the current buffer</summary>
 		private int m_used;
