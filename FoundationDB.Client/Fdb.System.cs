@@ -32,6 +32,7 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Filters.Logging;
+	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
@@ -342,17 +343,30 @@ namespace FoundationDB.Client
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
 			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
 			{
-				return EstimateCountAsync(db, range.Begin, range.End, cancellationToken);
+				return EstimateCountAsync(db, range.Begin, range.End, null, cancellationToken);
+			}
+
+			/// <summary>Estimate the number of keys in the specified range.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="range">Range defining the keys to count</param>
+			/// <param name="onProgress">Optional callback called everytime the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
+			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
+			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, FdbKeyRange range, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
+			{
+				return EstimateCountAsync(db, range.Begin, range.End, onProgress, cancellationToken);
 			}
 
 			/// <summary>Estimate the number of keys in the specified range.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="beginInclusive">Key defining the beginning of the range</param>
 			/// <param name="endExclusive">Key defining the end of the range</param>
+			/// <param name="onProgress">Optional callback called everytime the count is updated. The first argument is the current count, and the second argument is the last key that was found.</param>
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that <paramref name="beginInclusive"/> &lt;= k &gt; <paramref name="endExclusive"/></returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
+			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
 			{
 				const int INIT_WINDOW_SIZE = 1 << 10; // start at 1024
 				const int MAX_WINDOW_SIZE = 1 << 16; // never use more than 65536
@@ -398,7 +412,7 @@ namespace FoundationDB.Client
 
 					// we already have seen one key, so add it to the count
 					int iter = 1;
-					int counter = 1;
+					long counter = 1;
 					// start with a medium-sized window
 					int windowSize = INIT_WINDOW_SIZE;
 					bool last = false;
@@ -464,6 +478,7 @@ namespace FoundationDB.Client
 									.ConfigureAwait(false);
 
 								counter += n;
+								if (onProgress != null) onProgress.Report(FdbTuple.Create(counter, end));
 								++iter;
 								break;
 							}
@@ -475,6 +490,7 @@ namespace FoundationDB.Client
 						// the range is not finished, advance the cursor
 						counter += windowSize;
 						cursor = next;
+						if (onProgress != null) onProgress.Report(FdbTuple.Create(counter, cursor));
 
 						if (!last)
 						{ // double the size of the window if we are not in the last segment
