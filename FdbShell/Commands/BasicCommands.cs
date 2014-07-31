@@ -59,7 +59,7 @@ namespace FdbShell
 					{
 						if ((options & DirectoryBrowseOptions.ShowCount) != 0)
 						{
-							if (!subfolder.IsPartition)
+							if (!(subfolder is FdbDirectoryPartition))
 							{
 								long count = await Fdb.System.EstimateCountAsync(db, subfolder.ToRange(), ct);
 								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(subfolder.Copy().Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
