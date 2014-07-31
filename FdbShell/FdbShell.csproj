@@ -45,13 +45,14 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Commands\FdbCliCommands.cs" />
+    <Compile Include="Commands\BasicCommands.cs" />
     <Compile Include="Mono.Options\Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Mono.Options\getline.cs" />
     <Compile Include="Utils\Histogram.cs" />
     <Compile Include="Utils\PerfCounters.cs" />
-    <Compile Include="Commands\Sampling.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

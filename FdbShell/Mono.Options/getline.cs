@@ -186,6 +186,7 @@ namespace Mono.Terminal
 				Handler.Control ('L', CmdRefresh),
 				Handler.Control ('R', CmdReverseSearch),
 				Handler.Control ('G', delegate {} ),
+				Handler.Control ('C', () => Console.WriteLine("YOU CANNOT ESCAPE!!!!") ),
 				Handler.Alt ('B', ConsoleKey.B, CmdBackwardWord),
 				Handler.Alt ('F', ConsoleKey.F, CmdForwardWord),
 				

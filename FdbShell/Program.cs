@@ -23,6 +23,7 @@ namespace FdbShell
 		private static IFdbDatabase Db;
 
 		internal static bool LogEnabled = false;
+
 		internal static string CurrentDirectoryPath = "/";
 
 		private static StreamWriter GetLogFile(string name)
@@ -56,20 +57,28 @@ namespace FdbShell
 			if (log == null) log = Console.Out;
 
 			var cts = new CancellationTokenSource();
+			//ConsoleCancelEventHandler emergencyBreak = (_, a) =>
+			//{
+			//	a.Cancel = true;
+			//	Console.WriteLine();
+			//	Console.WriteLine("[ABORTING]");
+			//	cts.Cancel();
+			//};
+			//Console.CancelKeyPress += emergencyBreak;
 			try
 			{
 				var t = command(db, log, cts.Token);
-				if (t != null)
-				{
-					t.GetAwaiter().GetResult();
-				}
+				t.GetAwaiter().GetResult();
 			}
 			catch (Exception e)
 			{
+				Console.WriteLine("EPIC FAIL!");
 				Console.Error.WriteLine(e.ToString());
+				cts.Cancel();
 			}
 			finally
 			{
+				//Console.CancelKeyPress -= emergencyBreak;
 				cts.Dispose();
 			}
 		}
@@ -195,11 +204,16 @@ namespace FdbShell
 					"mem",
 					"dir",
 					"tree",
+					"show",
+					"count",
 					"sampling",
 					"coordinators",
 					"partition",
 					"version",
 					"help",
+					"topology",
+					"shards",
+					"status",
 				};
 
 				le.AutoCompleteEvent = (txt, pos) =>
@@ -262,9 +276,10 @@ namespace FdbShell
 
 					if (s == null) break;
 
-					var tokens = s.Trim().Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+					var tokens = s.Trim().Split(new [] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 					string cmd = tokens.Length > 0 ? tokens[0] : String.Empty;
 					string prm = tokens.Length > 1 ? tokens[1] : String.Empty;
+					var extras = tokens.Length > 2 ? FdbTuple.CreateRange<string>(tokens.Skip(2)) : FdbTuple.Empty;
 
 					var trimmedCommand = cmd.Trim().ToLowerInvariant();
 					switch (trimmedCommand)
@@ -275,39 +290,68 @@ namespace FdbShell
 						}
 						case "log":
 						{
-							LogCommand(prm);
+							LogCommand(prm, Console.Out);
 
 							break;
 						}
 
 						case "version":
 						{
-							Console.WriteLine("# API version : {0}", Fdb.ApiVersion);
-							Console.WriteLine("# .NET Binding: {0}", new System.Reflection.AssemblyName(typeof(Fdb).Assembly.FullName).Version);
+							VersionCommand(prm, clusterFile, Console.Out);
 							break;
 						}
 
 						case "tree":
 						{
-							var path = CombinePath(CurrentDirectoryPath, prm);
-							RunAsyncCommand((db, log, ct) => TreeDirectory(path, db, log, ct));
+							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+							RunAsyncCommand((db, log, ct) => BasicCommands.Tree(path, extras, db, log, ct));
 							break;
 						}
 						case "dir":
+						case "ls":
 						{
-							var path = CombinePath(CurrentDirectoryPath, prm);
-							var options = DirectoryBrowseOptions.ShowCount;
-							RunAsyncCommand((db, log, ct) => BrowseDirectory(path, options, db, log, ct));
+							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+							RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.Default, db, log, ct));
 							break;
 						}
+						case "ll":
+						{
+							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+							RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.ShowCount, db, log, ct));
+							break;
+						}
+
+						case "count":
+						{
+							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+							RunAsyncCommand((db, log, ct) => BasicCommands.Count(path, extras, db, log, ct));
+							break;
+						}
+
+						case "show":
+						{
+							var path = ParsePath(CurrentDirectoryPath);
+							RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, db, log, ct));
+							break;
+						}
+
 						case "cd":
 						case "pwd":
 						{
 							if (!string.IsNullOrEmpty(prm))
 							{
-								CurrentDirectoryPath = CombinePath(CurrentDirectoryPath, prm);
-								Console.WriteLine("# Directory changed to {0}", CurrentDirectoryPath);
-								updatePrompt(CurrentDirectoryPath);
+								var newPath = CombinePath(CurrentDirectoryPath, prm);
+								var res = RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(newPath), db, ct));
+								if (res == null)
+								{
+									Console.WriteLine("# Directory {0} does not exist!", newPath);
+								}
+								else
+								{
+									CurrentDirectoryPath = newPath;
+									Console.WriteLine("# Directory changed to {0}", CurrentDirectoryPath);
+									updatePrompt(CurrentDirectoryPath);
+								}
 							}
 							else
 							{
@@ -322,21 +366,29 @@ namespace FdbShell
 
 							if (!string.IsNullOrEmpty(prm))
 							{
-								prm = CombinePath(CurrentDirectoryPath, prm);
-								string layer = null;
-								if (tokens.Length > 2)
-								{
-									layer = tokens[2].Trim();
-								}
-								RunAsyncCommand((db, log, ct) => CreateDirectory(prm, layer, db, log, ct));
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								RunAsyncCommand((db, log, ct) => BasicCommands.Create(path, extras, db, log, ct));
 							}
+							break;
+						}
+
+						case "topology":
+						{
+							RunAsyncCommand((db, log, ct) => BasicCommands.Topology(null, extras, db, log, ct));
+							break;
+						}
+
+						case "shards":
+						{
+							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+							RunAsyncCommand((db, log, ct) => BasicCommands.Shards(path, extras, db, log, ct));
 							break;
 						}
 
 						case "sampling":
 						{
-							double ratio = 0.1;
-							RunAsyncCommand((db, log, ct) => new SamplingCommand(ratio).Run(db, log, ct));
+							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+							RunAsyncCommand((db, log, ct) => BasicCommands.Sampling(path, extras, db, log, ct));
 							break;
 						}
 
@@ -416,6 +468,23 @@ namespace FdbShell
 							break;
 						}
 
+
+						case "status":
+						case "wtf":
+						{
+							var result = RunAsyncCommand((_, log, ct) => FdbCliCommands.RunFdbCliCommand("status details", null, clusterFile, log, ct));
+							if (result.HasFailed) break;
+							if (result.Value.ExitCode != 0)
+							{
+								Console.WriteLine("# fdbcli exited with code {0}", result.Value.ExitCode);
+								Console.WriteLine("> StdErr:");
+								Console.WriteLine(result.Value.StdErr);
+								Console.WriteLine("> StdOut:");
+							}
+							Console.WriteLine(result.Value.StdOut);
+							break;
+						}
+
 						default:
 						{
 							Console.WriteLine(string.Format("Unknown command : '{0}'", trimmedCommand));
@@ -448,206 +517,56 @@ namespace FdbShell
 			return path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
 		}
 
-		public static async Task CreateDirectory(string prm, string layer, IFdbDatabase db, TextWriter stream, CancellationToken ct)
-		{
-			if (stream == null) stream = Console.Out;
-
-			var path = ParsePath(prm);
-			stream.WriteLine("# Creating directory {0} with layer '{1}'", prm, layer);
-
-			var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
-			if (folder != null)
-			{
-				stream.WriteLine("- Directory {0} already exists!", prm);
-				return;
-			}
-
-			folder = await db.Directory.TryCreateAsync(path, Slice.FromString(layer), cancellationToken: ct);
-			stream.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
-
-			// look if there is already stuff under there
-			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).FirstOrDefaultAsync(), cancellationToken: ct);
-			if (stuff.Key.IsPresent)
-			{
-				stream.WriteLine("CAUTION: There is already some data under {0} !");
-				stream.WriteLine("  {0} = {1}", FdbKey.Dump(stuff.Key), stuff.Value.ToAsciiOrHexaString());
-			}
-		}
-
-		[Flags]
-		public enum DirectoryBrowseOptions
-		{
-			Default = 0,
-			ShowFirstKeys = 1,
-			ShowCount = 2,
-		}
-
-		private static async Task<IFdbDirectory> TryOpenCurrentDirectoryAsync(string[] path, IFdbDatabase db, CancellationToken ct)
-		{
-			if (path != null && path.Length > 0)
-			{
-				return await db.Directory.TryOpenAsync(path, cancellationToken: ct);
-			}
-			else
-			{
-				return db.Directory;
-			}
-		}
-
-		public static async Task BrowseDirectory(string prm, DirectoryBrowseOptions options, IFdbDatabase db, TextWriter stream, CancellationToken ct)
-		{
-			if (stream == null) stream = Console.Out;
-
-			var path = ParsePath(prm);
-			stream.WriteLine("# Listing {0}:", prm);
-
-			var parent = await TryOpenCurrentDirectoryAsync(path, db, ct);
-			if (parent == null)
-			{
-				stream.WriteLine("  Directory not found.");
-				return;
-			}
-
-			var folders = await Fdb.Directory.BrowseAsync(db, parent, ct);
-			if (folders != null && folders.Count > 0)
-			{
-				foreach (var kvp in folders)
-				{
-					var name = kvp.Key;
-					var subfolder = kvp.Value;
-					if (subfolder != null)
-					{
-						if ((options & DirectoryBrowseOptions.ShowCount) != 0)
-						{
-							long count = await Fdb.System.EstimateCountAsync(db, kvp.Value.ToRange(), ct);
-							stream.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(subfolder.Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
-						}
-						else
-						{
-							stream.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
-						}
-					}
-					else
-					{
-						stream.WriteLine("  WARNING: {0} seems to be missing!", name);
-					}
-				}
-				stream.WriteLine("  {0} sub-directorie(s).", folders.Count);
-			}
-			else
-			{
-				stream.WriteLine("  No sub-directories.");
-			}
-
-			if ((options & DirectoryBrowseOptions.ShowFirstKeys) != 0 && prm != "/")
-			{
-				// look if there is something under there
-				var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
-				if (folder != null)
-				{
-					stream.WriteLine("# Content of {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
-					var keys = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).Take(21).ToListAsync(), cancellationToken: ct);
-					if (keys.Count > 0)
-					{
-						foreach (var key in keys.Take(20))
-						{
-							stream.WriteLine("  ...{0} = {1}", FdbKey.Dump(folder.Extract(key.Key)), key.Value.ToAsciiOrHexaString());
-						}
-						if (keys.Count == 21)
-						{
-							stream.WriteLine("  ... more");
-						}
-					}
-					else
-					{
-						stream.WriteLine("  no content found");
-					}
-				}
-			}
-		}
-
-		public static async Task<string[]> AutoCompleteDirectories(string prm, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		private static async Task<string[]> AutoCompleteDirectories(string prm, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			var path = ParsePath(prm);
-			var parent = await TryOpenCurrentDirectoryAsync(path, db, ct).ConfigureAwait(false);
+			var parent = await BasicCommands.TryOpenCurrentDirectoryAsync(path, db, ct).ConfigureAwait(false);
 			if (parent == null) return null;
 
 			var names = await parent.ListAsync(db, ct).ConfigureAwait(false);
 			return names.ToArray();
 		}
 
-		public static async Task TreeDirectory(string prm, IFdbDatabase db, TextWriter stream, CancellationToken ct)
-		{
-			if (stream == null) stream = Console.Out;
-
-			var path = ParsePath(prm);
-			stream.WriteLine("# Tree of {0}:", prm);
-
-			FdbDirectorySubspace root = null;
-			if (prm != "/") root = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
-
-			await TreeDirectoryWalk(root, new List<bool>(), db, stream, ct);
-
-			stream.WriteLine("# done");
-		}
-
-		private static async Task TreeDirectoryWalk(FdbDirectorySubspace folder, List<bool> last, IFdbDatabase db, TextWriter stream, CancellationToken ct)
-		{
-			ct.ThrowIfCancellationRequested();
-
-			var sb = new StringBuilder(last.Count * 4);
-			if (last.Count > 0)
-			{
-				for (int i = 0; i < last.Count - 1; i++) sb.Append(last[i] ? "    " : "|   ");
-				sb.Append(last[last.Count - 1] ? "`-- " : "|-- ");
-			}
-
-			IFdbDirectory node;
-			if (folder == null)
-			{
-				stream.WriteLine(sb.ToString() + "<root>");
-				node = db.Directory;
-			}
-			else
-			{
-				stream.WriteLine(sb.ToString() + (folder.Layer.ToString() == "partition" ? ("<" + folder.Name + ">") : folder.Name) + (folder.Layer.IsNullOrEmpty ? String.Empty : (" [" + folder.Layer.ToString() + "]")));
-				node = folder;
-			}
-
-			var children = await Fdb.Directory.BrowseAsync(db, node, ct);
-			int n = children.Count;
-			foreach (var child in children)
-			{
-				last.Add((n--) == 1);
-				await TreeDirectoryWalk(child.Value, last, db, stream, ct);
-				last.RemoveAt(last.Count - 1);
-			}
-		}
-
 		#endregion
 
-		private static void LogCommand(string prm)
+		private static void LogCommand(string prm, TextWriter log)
 		{
 			switch (prm.ToLowerInvariant())
 			{
 				case "on":
 				{
 					LogEnabled = true;
-					Console.WriteLine("# Logging enabled");
+					log.WriteLine("# Logging enabled");
 					break;
 				}
 				case "off":
 				{
 					LogEnabled = false;
-					Console.WriteLine("# Logging disabled");
+					log.WriteLine("# Logging disabled");
 					break;
 				}
 				default:
 				{
-					Console.WriteLine("# Logging is {0}", LogEnabled ? "ON" : "OFF");
+					log.WriteLine("# Logging is {0}", LogEnabled ? "ON" : "OFF");
 					break;
 				}
 			} 
+		}
+
+		private static void VersionCommand(string prm, string clusterFile, TextWriter log)
+		{
+			log.WriteLine("Using .NET Binding v{0} with API level {1}", new System.Reflection.AssemblyName(typeof(Fdb).Assembly.FullName).Version, Fdb.ApiVersion);
+			var res = RunAsyncCommand((db, _, ct) => FdbCliCommands.RunFdbCliCommand(null, "-h", clusterFile, log, ct));
+			if (res.HasValue && res.Value.ExitCode == 0)
+			{
+				//HACK HACK HACK
+				log.WriteLine("Found {0}", res.Value.StdOut.Split('\n')[0]);
+			}
+			else
+			{
+				log.WriteLine("# Failed to execute fdbcli :(");
+			}
+			log.WriteLine();
 		}
 
 		private static async Task CoordinatorsCommand(IFdbDatabase db, TextWriter log, CancellationToken ct)
