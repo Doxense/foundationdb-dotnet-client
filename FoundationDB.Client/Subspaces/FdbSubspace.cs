@@ -86,21 +86,31 @@ namespace FoundationDB.Client
 
 		#region Static Prefix Helpers...
 
+		/// <summary>Create a new Subspace using a binary key as the prefix</summary>
+		/// <param name="slice">Prefix of the new subspace</param>
+		/// <returns>New subspace that will use a copy of <paramref name="slice"/> as its prefix</returns>
 		[NotNull]
 		public static FdbSubspace Create(Slice slice)
 		{
 			return new FdbSubspace(slice);
 		}
 
+		/// <summary>Create a new Subspace using a tuples as the prefix</summary>
+		/// <param name="tuple">Tuple that represents the prefix of the new subspace</param>
+		/// <returns>New subspace instance that will use the packed representation of <paramref name="tuple"/> as its prefix</returns>
 		[NotNull]
 		public static FdbSubspace Create([NotNull] IFdbTuple tuple)
 		{
 			return new FdbSubspace(tuple);
 		}
 
+		/// <summary>Clone this subspace</summary>
+		/// <returns>New Subspace that uses the same prefix key</returns>
+		/// <remarks>Hint: Cloning a special Subspace like a <see cref="FdbDirectoryLayer"/>  or <see cref="FdbDirectoryPartition"/> will not keep all the "special abilities" of the parent.</remarks>
 		[NotNull]
-		internal FdbSubspace Copy()
+		public FdbSubspace Copy()
 		{
+			//SPOILER WARNING: You didn't hear it from me, but some say that you can use this to bypass the fact that FdbDirectoryPartition.get_Key and ToRange() throws in v2.x ... If you bypass this protection and bork your database, don't come crying!
 			return new FdbSubspace(this.InternalKey.Memoize());
 		}
 
