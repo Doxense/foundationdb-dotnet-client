@@ -281,7 +281,7 @@ namespace FdbShell
 			}
 		}
 
-		private static string FormatHistoBar(double value, int chars, char pad = '\0', bool sparse = false)
+		public static string FormatHistoBar(double value, int chars, char pad = '\0', bool sparse = false)
 		{
 			int marks = (int)Math.Round((value * chars * 10), MidpointRounding.AwayFromZero);
 

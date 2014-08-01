@@ -204,6 +204,7 @@ namespace FdbShell
 					"mem",
 					"dir",
 					"tree",
+					"map",
 					"show",
 					"count",
 					"sampling",
@@ -214,6 +215,7 @@ namespace FdbShell
 					"topology",
 					"shards",
 					"status",
+					"wide",
 				};
 
 				le.AutoCompleteEvent = (txt, pos) =>
@@ -307,6 +309,13 @@ namespace FdbShell
 							RunAsyncCommand((db, log, ct) => BasicCommands.Tree(path, extras, db, log, ct));
 							break;
 						}
+						case "map":
+						{
+							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+							RunAsyncCommand((db, log, ct) => BasicCommands.Map(path, extras, db, log, ct));
+							break;
+						}
+
 						case "dir":
 						case "ls":
 						{
@@ -468,6 +477,11 @@ namespace FdbShell
 							break;
 						}
 
+						case "wide":
+						{
+							Console.WindowWidth = 160;
+							break;
+						}
 
 						case "status":
 						case "wtf":

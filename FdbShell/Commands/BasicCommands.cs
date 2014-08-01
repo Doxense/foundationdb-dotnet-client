@@ -131,11 +131,11 @@ namespace FdbShell
 
 			var progress = new Progress<FdbTuple<long, Slice>>((state) =>
 			{
-				Console.Write("\r# Found {0:N0} keys...", state.Item1);
+				log.Write("\r# Found {0:N0} keys...", state.Item1);
 			});
 
 			long count = await Fdb.System.EstimateCountAsync(db, copy.ToRange(), progress, ct);
-			Console.WriteLine("\r# Found {0:N0} keys in {1}", count, String.Join("/", folder.Path));
+			log.WriteLine("\r# Found {0:N0} keys in {1}", count, String.Join("/", folder.Path));
 		}
 
 		/// <summary>Shows the first few keys of a directory</summary>
@@ -173,18 +173,18 @@ namespace FdbShell
 		}
 
 		/// <summary>Display a tree of a directory's children</summary>
-		public static async Task Tree(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter stream, CancellationToken ct)
+		public static async Task Tree(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
-			if (stream == null) stream = Console.Out;
+			if (log == null) log = Console.Out;
 
-			stream.WriteLine("# Tree of {0}:", String.Join("/", path));
+			log.WriteLine("# Tree of {0}:", String.Join("/", path));
 
 			FdbDirectorySubspace root = null;
 			if (path.Length > 0) root = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
 
-			await TreeDirectoryWalk(root, new List<bool>(), db, stream, ct);
+			await TreeDirectoryWalk(root, new List<bool>(), db, log, ct);
 
-			stream.WriteLine("# done");
+			log.WriteLine("# done");
 		}
 
 		private static async Task TreeDirectoryWalk(FdbDirectorySubspace folder, List<bool> last, IFdbDatabase db, TextWriter stream, CancellationToken ct)
@@ -218,6 +218,97 @@ namespace FdbShell
 				await TreeDirectoryWalk(child.Value, last, db, stream, ct);
 				last.RemoveAt(last.Count - 1);
 			}
+		}
+
+		public static async Task Map(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		{
+			// we want to merge the map of shards, with the map of directories from the Directory Layer, and count for each directory how many shards intersect
+
+
+			var folder = await TryOpenCurrentDirectoryAsync(path, db, ct);
+			if (folder == null)
+			{
+				log.WriteLine("# Directory not found");
+				return;
+			}
+
+			FdbKeyRange span = FdbKeyRange.All;
+			FdbDirectoryLayer layer = db.Directory.DirectoryLayer;
+			if (folder is FdbDirectorySubspace)
+			{
+				span = ((FdbDirectorySubspace)folder).Copy().ToRange();
+				layer = ((FdbDirectorySubspace)folder).DirectoryLayer;
+			}
+
+			// note: this may break in future versions of the DL! Maybe we need a custom API to get a flat list of all directories in a DL that span a specific range ?
+
+			var shards = await Fdb.System.GetChunksAsync(db, span, ct);
+			int totalShards = shards.Count;
+			log.WriteLine("Found {0} shard(s) in this partition", totalShards);
+
+			log.WriteLine("Listing all directories...");
+			var rootNode = layer.NodeSubspace.Partition(layer.NodeSubspace.Key);
+			var subDirs = rootNode.Partition(0);
+
+			var map = new Dictionary<string, int>(StringComparer.Ordinal);
+			Action<string[], int> account = (p, n) =>
+			{
+				for (int i = 1; i <= p.Length; i++)
+				{
+					var s = "/" + String.Join("/", p, 0, i);
+					int x;
+					map[s] = map.TryGetValue(s, out x) ? (x + n) : n;
+				}
+			};
+
+			var work = new Stack<IFdbDirectory>();
+			work.Push(folder);
+
+			var dirs = new List<IFdbDirectory>();
+			while(work.Count > 0)
+			{
+				var cur = work.Pop();
+				// skip sub partitions
+
+				int n = 0;
+				var names = await cur.ListAsync(db, ct);
+				foreach(var name in names)
+				{
+					var sub = await cur.TryOpenAsync(db, name, ct);
+					if (sub != null)
+					{
+						var p = String.Join("/", sub.Path);
+						if (sub is FdbDirectoryPartition)
+						{
+							continue;
+						}
+						log.Write("\r/{0}{1}", p, p.Length > n ? String.Empty : new string(' ', n - p.Length));
+						n = p.Length;
+						work.Push(sub);
+						dirs.Add(sub);
+					}
+				}
+			}
+			log.WriteLine("> Found {0} sub-directories", dirs.Count);
+
+			int foundShards = 0;
+			foreach (var dir in dirs)
+			{
+				var p = dir.Path.ToArray();
+				var key = ((FdbSubspace)dir).Key;
+				shards = await Fdb.System.GetChunksAsync(db, FdbKeyRange.StartsWith(key), ct);
+				Console.WriteLine("/{0} under {1} with {2} shard(s)", string.Join("/", p), FdbKey.Dump(key), shards.Count);
+				foundShards += shards.Count;
+				account(p, shards.Count);
+			}
+
+			log.WriteLine();
+			log.WriteLine("Consolidated map: {0} shards", foundShards);
+			foreach(var kvp in map.OrderBy(x => x.Key))
+			{
+				log.WriteLine("{0,6} {1,10} {2}", kvp.Value, RobustHistogram.FormatHistoBar((double)kvp.Value / foundShards, 10), kvp.Key);
+			}
+			log.WriteLine();
 		}
 
 		private static string FormatSize(long size)
@@ -317,7 +408,7 @@ namespace FdbShell
 			else
 			{
 				log.WriteLine("Reading list of shards for the whole cluster ...");
-				span = FdbKeyRange.Create(FdbKey.MinValue, FdbKey.MaxValue);
+				span = FdbKeyRange.All;
 			}
 
 			// dump keyServers
