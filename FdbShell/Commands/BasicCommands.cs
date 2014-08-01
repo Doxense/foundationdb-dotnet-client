@@ -251,13 +251,13 @@ namespace FdbShell
 			var subDirs = rootNode.Partition(0);
 
 			var map = new Dictionary<string, int>(StringComparer.Ordinal);
-			Action<string[], int> account = (p, n) =>
+			Action<string[], int> account = (p, c) =>
 			{
 				for (int i = 1; i <= p.Length; i++)
 				{
 					var s = "/" + String.Join("/", p, 0, i);
 					int x;
-					map[s] = map.TryGetValue(s, out x) ? (x + n) : n;
+					map[s] = map.TryGetValue(s, out x) ? (x + c) : c;
 				}
 			};
 
@@ -265,12 +265,12 @@ namespace FdbShell
 			work.Push(folder);
 
 			var dirs = new List<IFdbDirectory>();
+			int n = 0;
 			while(work.Count > 0)
 			{
 				var cur = work.Pop();
 				// skip sub partitions
 
-				int n = 0;
 				var names = await cur.ListAsync(db, ct);
 				foreach(var name in names)
 				{
@@ -280,6 +280,8 @@ namespace FdbShell
 						var p = String.Join("/", sub.Path);
 						if (sub is FdbDirectoryPartition)
 						{
+							log.WriteLine("\r! Skipping partition {0}     ", sub.Name);
+							n = 0;
 							continue;
 						}
 						log.Write("\r/{0}{1}", p, p.Length > n ? String.Empty : new string(' ', n - p.Length));
@@ -289,25 +291,43 @@ namespace FdbShell
 					}
 				}
 			}
-			log.WriteLine("> Found {0} sub-directories", dirs.Count);
+			log.WriteLine("\r> Found {0} sub-directories", dirs.Count);
 
+			log.WriteLine();
+			log.WriteLine("Estimating size of each directory...");
 			int foundShards = 0;
+			n = 0;
+			int max = 0;
+			IFdbDirectory bigBad = null;
 			foreach (var dir in dirs)
 			{
+				log.Write("\r> {0}{1}", dir.Name, dir.Name.Length > n ? String.Empty : new string(' ', n - dir.Name.Length));
+				n = dir.Name.Length;
+
 				var p = dir.Path.ToArray();
 				var key = ((FdbSubspace)dir).Key;
 				shards = await Fdb.System.GetChunksAsync(db, FdbKeyRange.StartsWith(key), ct);
 				Console.WriteLine("/{0} under {1} with {2} shard(s)", string.Join("/", p), FdbKey.Dump(key), shards.Count);
 				foundShards += shards.Count;
 				account(p, shards.Count);
+				if (shards.Count > max) { max = shards.Count; bigBad = dir; }
 			}
+			log.WriteLine("\rFound a total of {0} shard(s) in {1} folder(s)", foundShards, dirs.Count);
+			log.WriteLine();
 
 			log.WriteLine();
-			log.WriteLine("Consolidated map: {0} shards", foundShards);
+			log.WriteLine("Shards %Total     Path");
 			foreach(var kvp in map.OrderBy(x => x.Key))
 			{
-				log.WriteLine("{0,6} {1,10} {2}", kvp.Value, RobustHistogram.FormatHistoBar((double)kvp.Value / foundShards, 10), kvp.Key);
+				log.WriteLine("{0,6} {1,-10} {2}", kvp.Value, RobustHistogram.FormatHistoBar((double)kvp.Value / foundShards, 10), kvp.Key);
 			}
+
+			if (bigBad != null)
+			{
+				log.WriteLine();
+				log.WriteLine("Biggest folder is /{0} with {1} shards ({2:N1}%)", String.Join("/", bigBad.Path), max, 100.0 * max / totalShards);
+			}
+
 			log.WriteLine();
 		}
 

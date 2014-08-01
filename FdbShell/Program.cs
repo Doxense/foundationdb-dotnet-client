@@ -191,7 +191,7 @@ namespace FdbShell
 				Console.WriteLine("Ready...");
 
 
-				var le = new LineEditor(null);
+				var le = new LineEditor("FDBShell");
 
 				string[] cmds = new string[]
 				{
@@ -354,17 +354,25 @@ namespace FdbShell
 								if (res == null)
 								{
 									Console.WriteLine("# Directory {0} does not exist!", newPath);
+									Console.Beep();
 								}
 								else
 								{
 									CurrentDirectoryPath = newPath;
-									Console.WriteLine("# Directory changed to {0}", CurrentDirectoryPath);
 									updatePrompt(CurrentDirectoryPath);
 								}
 							}
 							else
 							{
-								Console.WriteLine("# Current directory is {0}", CurrentDirectoryPath);
+								var res = RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(CurrentDirectoryPath), db, ct));
+								if (res == null)
+								{
+									Console.WriteLine("# Directory {0} does not exist anymore", CurrentDirectoryPath);
+								}
+								else
+								{
+									Console.WriteLine("# {0}", res);
+								}
 							}
 							break;
 						}
