@@ -344,7 +344,7 @@ namespace FdbShell
 
 			long max = this.Count > 0 ? data.Max() : 0;
 
-			if (max <= 0) return new string(' ', len);
+			if (max <= 0) return new string(' ', fold > 1 ? len / fold : len);
 			max = (3 * max + this.Count) / 4;
 
 			char[] cs = new char[data.Length];

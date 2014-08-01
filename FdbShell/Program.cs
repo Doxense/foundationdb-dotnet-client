@@ -108,6 +108,10 @@ namespace FdbShell
 
 		public static void Main(string[] args)
 		{
+#if true || DEBUG
+			Console.WindowWidth = 160;
+			Console.WindowHeight = 60;
+#endif
 
 			#region Options Parsing...
 

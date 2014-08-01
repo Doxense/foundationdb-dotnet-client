@@ -4,6 +4,7 @@ using FoundationDB.Layers.Tuples;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -331,15 +332,16 @@ namespace FdbShell
 			log.WriteLine();
 		}
 
-		private static string FormatSize(long size)
+		private static string FormatSize(long size, CultureInfo ci = null)
 		{
-			if (size < 10000) return size.ToString("N0");
+			ci = ci ?? CultureInfo.InvariantCulture;
+			if (size < 2048) return size.ToString("N0", ci);
 			double x = size / 1024.0;
-			if (x < 800) return x.ToString("N1") + " kB";
+			if (x < 800) return x.ToString("N1", ci) + " k";
 			x /= 1024.0;
-			if (x < 800) return x.ToString("N2") + " MB";
+			if (x < 800) return x.ToString("N2", ci) + " M";
 			x /= 1024.0;
-			return x.ToString("N2") + " GB";
+			return x.ToString("N2", ci) + " G";
 		}
 
 		public static async Task Topology(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
@@ -464,14 +466,17 @@ namespace FdbShell
 			}
 
 			log.WriteLine();
-			log.WriteLine("{0,9}{1,10}{2,10}{3,10} : K+V size distribution", "Count", "Keys", "Values", "Total");
+			const string FORMAT_STRING = "{0,9} ║{1,10}{6,6} {2,-29} ║{3,10}{7,7} {4,-37} ║{5,10}";
+			const string SCALE_KEY = "....--------========########M";
+			const string SCALE_VAL = "....--------========########@@@@@@@@M";
+			log.WriteLine(FORMAT_STRING, "Count", "Keys", SCALE_KEY, "Values", SCALE_VAL, "Total", "med.", "med.");
 
 			var rangeOptions = new FdbRangeOptions { Mode = FdbStreamingMode.WantAll };
 
 			samples = samples.OrderBy(x => x.Begin).ToList();
 
 			long total = 0;
-			int workers = Math.Max(4, Environment.ProcessorCount);
+			int workers = 8; // Math.Max(4, Environment.ProcessorCount);
 
 			var sw = Stopwatch.StartNew();
 			var tasks = new List<Task>();
@@ -484,7 +489,8 @@ namespace FdbShell
 					samples.RemoveAt(0);
 					tasks.Add(Task.Run(async () =>
 					{
-						var hh = new RobustHistogram(RobustHistogram.TimeScale.Ticks);
+						var kk = new RobustHistogram(RobustHistogram.TimeScale.Ticks);
+						var vv = new RobustHistogram(RobustHistogram.TimeScale.Ticks);
 
 						#region Method 1: get_range everything...
 
@@ -529,7 +535,8 @@ namespace FdbShell
 									keySize += kvp.Key.Count;
 									valueSize += kvp.Value.Count;
 
-									hh.Add(TimeSpan.FromTicks(kvp.Key.Count + kvp.Value.Count));
+									kk.Add(TimeSpan.FromTicks(kvp.Key.Count));
+									vv.Add(TimeSpan.FromTicks(kvp.Value.Count));
 								}
 
 								if (!data.HasMore) break;
@@ -543,7 +550,7 @@ namespace FdbShell
 
 							lock (log)
 							{
-								log.WriteLine("{0,9}{1,10}{2,10}{3,10} : {4}", count.ToString("N0"), FormatSize(keySize), FormatSize(valueSize), FormatSize(totalSize), hh.GetDistribution(begin: 1, end: 10000, fold: 2));
+								log.WriteLine(FORMAT_STRING, count.ToString("N0"), FormatSize(keySize), kk.GetDistribution(begin: 1, end: 12000, fold: 2), FormatSize(valueSize), vv.GetDistribution(begin: 1, end: 120000, fold: 2), FormatSize(totalSize), FormatSize((int)Math.Ceiling(kk.Median)), FormatSize((int)Math.Ceiling(vv.Median)));
 							}
 						}
 						#endregion
