@@ -39,6 +39,9 @@ namespace FoundationDB.Client
 		/// <summary>Returns an empty pair of keys</summary>
 		public static FdbKeyRange Empty { get { return default(FdbKeyRange); } }
 
+		/// <summary>Returns a range that contains all the keys in the database</summary>
+		public static FdbKeyRange All { get { return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue); } }
+
 		/// <summary>Start of the range</summary>
 		public Slice Begin { get { return m_begin; } }
 		private Slice m_begin; //PERF: readonly struct
