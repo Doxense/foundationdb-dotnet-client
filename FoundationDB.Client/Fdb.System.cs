@@ -368,8 +368,8 @@ namespace FoundationDB.Client
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
 			public static async Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
 			{
-				const int INIT_WINDOW_SIZE = 1 << 10; // start at 1024
-				const int MAX_WINDOW_SIZE = 1 << 16; // never use more than 65536
+				const int INIT_WINDOW_SIZE = 1 << 8; // start at 256 //1024
+				const int MAX_WINDOW_SIZE = 1 << 13; // never use more than 4096
 				const int MIN_WINDOW_SIZE = 64; // use range reads when the windows size is smaller than 64
 
 				if (db == null) throw new ArgumentNullException("db");
