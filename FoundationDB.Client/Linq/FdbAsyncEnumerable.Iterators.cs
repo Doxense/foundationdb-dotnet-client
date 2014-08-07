@@ -268,30 +268,34 @@ namespace FoundationDB.Linq
 
 			public List<T> ToList()
 			{
-				if (this.Count == 0)
+				int count = this.Count;
+				if (count == 0)
 				{ // empty sequence
 					return new List<T>();
 				}
 
-				int count = this.Count;
 				var list = new List<T>(count);
 				if (count > 0)
 				{
-					for (int i = 0; i < this.Chunks.Length - 1; i++)
+					var chunks = this.Chunks;
+					for (int i = 0; i < chunks.Length - 1; i++)
 					{
-						list.AddRange(this.Chunks[i]);
-						count -= this.Chunks[i].Length;
+						list.AddRange(chunks[i]);
+						count -= chunks[i].Length;
 					}
 
-					if (count == this.Current.Length)
+					var current = this.Current;
+					if (count == current.Length)
 					{ // the last chunk fits perfectly
-						list.AddRange(this.Current);
+						list.AddRange(current);
 					}
 					else
-					{ // there is not AddRange(buffer, offset, count) on List<T>, so we copy to a tmp array and AddRange
-						var tmp = new T[count];
-						Array.Copy(this.Current, tmp, count);
-						list.AddRange(tmp);
+					{ // there is no List<T>.AddRange(buffer, offset, count), and copying in a tmp buffer would waste the memory we tried to save with the buffer
+						// also, for most of the small queries, like FirstOrDefault()/SingleOrDefault(), count will be 1 (or very small) so calling Add(T) will still be optimum
+						for (int i = 0; i < count; i++)
+						{
+							list.Add(current[i]);
+						}
 					}
 				}
 
