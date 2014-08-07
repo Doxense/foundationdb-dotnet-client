@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -36,10 +36,12 @@ namespace FoundationDB.Linq.Providers
 	/// <typeparam name="T">Type of the element returned</typeparam>
 	public class FdbAsyncSingleQuery<T> : FdbAsyncQuery<T>, IFdbAsyncQueryable<T>
 	{
+		/// <summary>Async LINQ query that will execute under a retry loop on a specific Database instance</summary>
 		public FdbAsyncSingleQuery(IFdbDatabase db, FdbQueryExpression<T> expression)
 			: base(db, expression)
 		{ }
 
+		/// <summary>Async LINQ query that will execute on a specific Transaction instance</summary>
 		public FdbAsyncSingleQuery(IFdbReadOnlyTransaction trans, FdbQueryExpression<T> expression)
 			: base(trans, expression)
 		{ }

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics.Contracts;
 	using System.Globalization;
@@ -38,38 +39,63 @@ namespace FoundationDB.Linq.Expressions
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Base class of all queries that return a single element</summary>
+	/// <typeparam name="T">Type of the elements of the source sequence</typeparam>
+	/// <typeparam name="R">Type of the result of the query</typeparam>
 	public class FdbQuerySingleExpression<T, R> : FdbQueryExpression<R>
 	{
+		/// <summary>Create a new expression that returns a single result from a source sequence</summary>
 		public FdbQuerySingleExpression(FdbQuerySequenceExpression<T> sequence, string name, Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> lambda)
 		{
+			Contract.Requires(sequence != null && lambda != null);
 			this.Sequence = sequence;
 			this.Name = name;
 			this.Lambda = lambda;
 		}
 
+		/// <summary>Always returns <see cref="FdbQueryShape.Single"/></summary>
 		public override FdbQueryShape Shape
 		{
 			get { return FdbQueryShape.Single; }
 		}
 
-		public FdbQuerySequenceExpression<T> Sequence { get; private set;}
+		/// <summary>Source sequence</summary>
+		public FdbQuerySequenceExpression<T> Sequence
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public string Name { get; private set; }
+		/// <summary>Name of this query</summary>
+		public string Name
+		{
+			get;
+			private set;
+		}
 
-		public new Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> Lambda { get; private set; }
+		/// <summary>Opeartion that is applied to <see cref="Sequence"/> and that returns a single result</summary>
+		public new Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> Lambda
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		/// <summary>Apply a custom visitor to this expression</summary>
+		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQuerySingle(this);
 		}
 
-
-		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		/// <summary>Write a human-readable explanation of this expression</summary>
+		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("{0}(", this.Name).Enter();
 			builder.Visit(this.Sequence);
 			builder.Writer.Leave().Write(")");
 		}
+
+		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
+		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<R>>> CompileSingle()
 		{
 			// We want to generate: (trans, ct) => ExecuteEnumerable(source, lambda, trans, ct);
@@ -96,6 +122,7 @@ namespace FoundationDB.Linq.Expressions
 			);
 		}
 
+		/// <summary>Returns a textual representation of expression</summary>
 		public override string ToString()
 		{
 			return String.Format(CultureInfo.InvariantCulture, "{0}({1})", this.Name, this.Sequence.ToString());

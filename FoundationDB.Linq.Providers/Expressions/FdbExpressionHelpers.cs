@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics.Contracts;
@@ -39,6 +40,7 @@ namespace FoundationDB.Linq.Expressions
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Helper class for working with extension expressions</summary>
 	public static class FdbExpressionHelpers
 	{
 
@@ -78,7 +80,8 @@ namespace FoundationDB.Linq.Expressions
 
 		#endregion
 
-		public static T EvaluateConstantExpression<T>(Expression expression)
+		/// <summary>Extract a constant value from an expression, if possible</summary>
+		public static T EvaluateConstantExpression<T>([NotNull] Expression expression)
 		{
 			var expr = expression.CanReduce ? expression.Reduce() : expression;
 
@@ -90,7 +93,7 @@ namespace FoundationDB.Linq.Expressions
 			throw new NotSupportedException(String.Format("Unsupported expression {1}: '{0}' should return a constant value", expression.GetType().Name, expr.ToString()));
 		}
 
-		private static Task<T> Inline<T>(Func<IFdbReadOnlyTransaction, T> func, IFdbReadOnlyTransaction trans, CancellationToken ct)
+		private static Task<T> Inline<T>([NotNull] Func<IFdbReadOnlyTransaction, T> func, [NotNull] IFdbReadOnlyTransaction trans, CancellationToken ct)
 		{
 			try
 			{
@@ -103,7 +106,9 @@ namespace FoundationDB.Linq.Expressions
 			}
 		}
 
-		public static Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>> ToTask<T>(Expression<Func<IFdbReadOnlyTransaction, T>> lambda)
+		/// <summary>Wraps an expression into another expression that returns a <see cref="Task{T}"/> with the result of the expression</summary>
+		[NotNull]
+		public static Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>> ToTask<T>([NotNull] Expression<Func<IFdbReadOnlyTransaction, T>> lambda)
 		{
 			// rewrite a Func<..., T> into a Func<..., Task<T>>
 
@@ -124,7 +129,7 @@ namespace FoundationDB.Linq.Expressions
 			);
 		}
 
-		internal static Task<R> ExecuteEnumerable<T, R>(Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> generator, Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>> lambda, IFdbReadOnlyTransaction trans, CancellationToken ct)
+		internal static Task<R> ExecuteEnumerable<T, R>([NotNull] Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>> generator, [NotNull] Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>> lambda, [NotNull] IFdbReadOnlyTransaction trans, CancellationToken ct)
 		{
 			Contract.Requires(generator != null && lambda != null && trans != null);
 			try
@@ -140,6 +145,7 @@ namespace FoundationDB.Linq.Expressions
 			}
 		}
 
+		[NotNull]
 		internal static string GetOperatorAlias(ExpressionType op)
 		{
 			switch (op)
@@ -179,7 +185,7 @@ namespace FoundationDB.Linq.Expressions
 		/// <param name="arguments"></param>
 		/// <returns></returns>
 		/// <remarks>Typical use case is when we have a dummy Expression&lt;Func&lt;...&gt;&gt; used to get a method call signature, and we want to remplace the parameters of the lambda with the actual values that will be used at runtime</remarks>
-		public static Expression RewriteCall<TDelegate>(Expression<TDelegate> lambda, params Expression[] arguments)
+		public static Expression RewriteCall<TDelegate>([NotNull] Expression<TDelegate> lambda, params Expression[] arguments)
 		{
 			if (lambda == null) throw new ArgumentNullException("lambda");
 			if (arguments.Length != lambda.Parameters.Count) throw new InvalidOperationException("Argument count mismatch");
@@ -199,7 +205,7 @@ namespace FoundationDB.Linq.Expressions
 		private sealed class ParameterRewritingVisitor : ExpressionVisitor
 		{
 
-			public Dictionary<ParameterExpression, Expression> Parameters { get; private set; }
+			public Dictionary<ParameterExpression, Expression> Parameters { [NotNull] get; private set; }
 
 			public ParameterRewritingVisitor(Dictionary<ParameterExpression, Expression> rewrittenParameters)
 			{
@@ -209,7 +215,6 @@ namespace FoundationDB.Linq.Expressions
 
 			protected override Expression VisitParameter(ParameterExpression node)
 			{
-
 				Expression expr;
 				if (this.Parameters.TryGetValue(node, out expr))
 				{

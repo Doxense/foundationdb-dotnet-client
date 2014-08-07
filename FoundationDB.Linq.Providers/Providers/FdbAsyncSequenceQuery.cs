@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -37,16 +37,20 @@ namespace FoundationDB.Linq.Providers
 	public class FdbAsyncSequenceQuery<T> : FdbAsyncQuery<T>, IFdbAsyncSequenceQueryable<T>
 	{
 
+		/// <summary>Async LINQ query that will execute under a retry loop on a specific Database instance</summary>
 		public FdbAsyncSequenceQuery(IFdbDatabase db, FdbQueryExpression expression)
 			: base(db, expression)
 		{ }
 
+		/// <summary>Async LINQ query that will execute on a specific Transaction instance</summary>
 		public FdbAsyncSequenceQuery(IFdbReadOnlyTransaction trans, FdbQueryExpression expression)
 			: base(trans, expression)
 		{ }
 
+		/// <summary>Type of the elements of the sequence</summary>
 		public Type ElementType { get { return typeof(T); } }
 
+		/// <summary>Return an async sequence that will return the results of this query</summary>
 		public IFdbAsyncEnumerable<T> ToEnumerable(FdbAsyncMode mode = FdbAsyncMode.Default)
 		{
 			return FdbAsyncEnumerable.Create((_) => GetEnumerator(this, mode));

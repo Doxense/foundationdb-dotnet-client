@@ -31,9 +31,11 @@ namespace FoundationDB.Linq.Expressions
 	using System;
 	using System.Linq.Expressions;
 
+	/// <summary>Base class for FoundationDB LINQ Expression Tree visitors</summary>
 	public abstract class FdbQueryExpressionVisitor:  ExpressionVisitor
 	{
 
+		/// <summary>Visit an extension node</summary>
 		protected override Expression VisitExtension(Expression node)
 		{
 			var expr = node as FdbQueryExpression;
@@ -54,36 +56,43 @@ namespace FoundationDB.Linq.Expressions
 			return null;
 		}
 
+		/// <summary>Visit an Async Sequence query expression</summary>
 		protected internal virtual Expression VisitAsyncEnumerable<T>(FdbQueryAsyncEnumerableExpression<T> node)
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>Visit a Range query expression</summary>
 		protected internal virtual Expression VisitQueryRange(FdbQueryRangeExpression node)
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>Visit a Transform query expression</summary>
 		protected internal virtual Expression VisitQueryTransform<T, R>(FdbQueryTransformExpression<T, R> node)
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>Visit a Filter query expression</summary>
 		protected internal virtual Expression VisitQueryFilter<T>(FdbQueryFilterExpression<T> node)
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>Visit a Single query expression</summary>
 		protected internal virtual Expression VisitQuerySingle<T, R>(FdbQuerySingleExpression<T, R> node)
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>Visit a Lookup query expression</summary>
 		protected internal virtual Expression VisitQueryLookup<K, T>(FdbQueryLookupExpression<K, T> node)
 		{
 			throw new NotImplementedException();
 		}
 
+		/// <summary>Visit a Merge query expression</summary>
 		protected internal virtual Expression VisitQueryMerge<K>(FdbQueryMergeExpression<K> node)
 		{
 			throw new NotImplementedException();

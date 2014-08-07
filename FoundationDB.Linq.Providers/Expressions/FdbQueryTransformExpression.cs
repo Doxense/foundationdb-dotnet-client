@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
 	using System.Reflection;
@@ -42,20 +44,33 @@ namespace FoundationDB.Linq.Expressions
 
 		internal FdbQueryTransformExpression(FdbQuerySequenceExpression<T> source, Expression<Func<T, R>> transform)
 		{
+			Contract.Requires(source != null && transform != null);
 			this.Source = source;
 			this.Transform = transform;
 		}
 
-		public FdbQuerySequenceExpression<T> Source { get; private set; }
+		/// <summary>Source sequence that is being transformed</summary>
+		public FdbQuerySequenceExpression<T> Source
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public Expression<Func<T, R>> Transform { get; private set; }
+		/// <summary>Transformation applied to each element of <see cref="Source"/></summary>
+		public Expression<Func<T, R>> Transform
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		/// <summary>Apply a custom visitor to this expression</summary>
+		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryTransform(this);
 		}
 
-		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		/// <summary>Write a human-readable explanation of this expression</summary>
+		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("Transform(").Enter();
 			builder.Visit(this.Source);
@@ -64,6 +79,8 @@ namespace FoundationDB.Linq.Expressions
 			builder.Writer.Leave().Write(")");
 		}
 
+		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
+		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<R>>> CompileSequence()
 		{
 			var lambda = this.Transform.Compile();

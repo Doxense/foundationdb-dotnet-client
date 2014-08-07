@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Globalization;
 	using System.Linq.Expressions;
@@ -36,16 +37,24 @@ namespace FoundationDB.Linq.Expressions
 	/// <summary>Very simple writer to dump query expressions into a statement usefull for logging/debugging</summary>
 	public sealed class FdbDebugStatementWriter
 	{
+		/// <summary>Create a new statement writer with an empty buffer</summary>
 		public FdbDebugStatementWriter()
 		{
 			this.Buffer = new StringBuilder();
 			this.StartOfLine = true;
 		}
 
-		public StringBuilder Buffer { get; private set; }
+		/// <summary>Underlying buffer used by this writer</summary>
+		public StringBuilder Buffer { [NotNull] get; private set; }
+
+		/// <summary>Current indentation level</summary>
 		public int IndentLevel { get; private set; }
+
+		/// <summary>True if the writer is currently at the start of a new line</summary>
 		public bool StartOfLine {get; private set;}
 
+		/// <summary>Enter a new indentation scope</summary>
+		[NotNull]
 		public FdbDebugStatementWriter Enter()
 		{
 			this.IndentLevel++;
@@ -53,6 +62,8 @@ namespace FoundationDB.Linq.Expressions
 			return this;
 		}
 
+		/// <summary>Leave the current indentation scope</summary>
+		[NotNull]
 		public FdbDebugStatementWriter Leave()
 		{
 			this.IndentLevel--;
@@ -60,7 +71,9 @@ namespace FoundationDB.Linq.Expressions
 			return this;
 		}
 
-		public FdbDebugStatementWriter WriteLine(string text)
+		/// <summary>Writes a line of text</summary>
+		[NotNull]
+		public FdbDebugStatementWriter WriteLine([NotNull] string text)
 		{
 			if (this.StartOfLine) Indent();
 			this.Buffer.AppendLine(text);
@@ -68,12 +81,16 @@ namespace FoundationDB.Linq.Expressions
 			return this;
 		}
 
+		/// <summary>Starts a new line</summary>
+		[NotNull]
 		public FdbDebugStatementWriter WriteLine()
 		{
 			return WriteLine(String.Empty);
 		}
 
-		public FdbDebugStatementWriter Write(string text)
+		/// <summary>Appends text to the current line</summary>
+		[NotNull]
+		public FdbDebugStatementWriter Write([NotNull] string text)
 		{
 			if (this.StartOfLine) Indent();
 			this.Buffer.Append(text);
@@ -81,18 +98,25 @@ namespace FoundationDB.Linq.Expressions
 			return this;
 		}
 
-		public FdbDebugStatementWriter WriteLine(string format, params object[] args)
+		/// <summary>Writes a formatted line of text</summary>
+		[StringFormatMethod("format")]
+		[NotNull]
+		public FdbDebugStatementWriter WriteLine([NotNull] string format, params object[] args)
 		{
 			return WriteLine(String.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
-		public FdbDebugStatementWriter Write(string format, params object[] args)
+		/// <summary>Appends formatted text to the current line</summary>
+		[StringFormatMethod("format")]
+		[NotNull]
+		public FdbDebugStatementWriter Write([NotNull] string format, params object[] args)
 		{
 			return Write(String.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
 		private void Indent()
 		{
+			// Tabs are for winners !!!</troll>
 			switch (this.IndentLevel)
 			{
 				case 0: break;
@@ -104,6 +128,7 @@ namespace FoundationDB.Linq.Expressions
 			this.StartOfLine = false;
 		}
 
+		/// <summary>Returns the text that has been written so far.</summary>
 		public override string ToString()
 		{
 			return this.Buffer.ToString();

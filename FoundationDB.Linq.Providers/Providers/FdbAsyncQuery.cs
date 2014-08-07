@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,27 +35,36 @@ namespace FoundationDB.Linq.Providers
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Base class for all Async LINQ queries</summary>
+	/// <typeparam name="T">Type of the items returned by this query. Single queries return a single <typeparamref name="T"/> while Sequence queries will return a <see cref="List{T}"/></typeparam>
+	/// <remarks>The type <typeparamref name="T"/> will be int for queries that eint </remarks>
 	public abstract class FdbAsyncQuery<T> : IFdbAsyncQueryable, IFdbAsyncQueryProvider
 	{
 
+		/// <summary>Async LINQ query that will execute under a retry loop on a specific Database instance</summary>
 		protected FdbAsyncQuery(IFdbDatabase db, FdbQueryExpression expression = null)
 		{
 			this.Database = db;
 			this.Expression = expression;
 		}
 
+		/// <summary>Async LINQ query that will execute on a specific Transaction instance</summary>
 		protected FdbAsyncQuery(IFdbReadOnlyTransaction trans, FdbQueryExpression expression = null)
 		{
 			this.Transaction = trans;
 			this.Expression = expression;
 		}
 
+		/// <summary>Query expression</summary>
 		public FdbQueryExpression Expression { get; private set; }
 
+		/// <summary>Database used by the query (or null)</summary>
 		public IFdbDatabase Database { get; private set; }
 
+		/// <summary>Transaction used by the query (or null)</summary>
 		public IFdbReadOnlyTransaction Transaction { get; private set; }
 
+		/// <summary>Type of the elements returned by the query</summary>
 		public virtual Type Type { get { return this.Expression.Type; } }
 
 		IFdbAsyncQueryProvider IFdbAsyncQueryable.Provider
@@ -63,12 +72,14 @@ namespace FoundationDB.Linq.Providers
 			get { return this; }
 		}
 
+		/// <summary>Create a new query from a query expression</summary>
 		public virtual IFdbAsyncQueryable CreateQuery(FdbQueryExpression expression)
 		{
 			// source queries are usually only intended to produce some sort of result
 			throw new NotSupportedException();
 		}
 
+		/// <summary>Create a new typed query from a query expression</summary>
 		public virtual IFdbAsyncQueryable<R> CreateQuery<R>(FdbQueryExpression<R> expression)
 		{
 			if (expression == null) throw new ArgumentNullException("expression");
@@ -79,6 +90,7 @@ namespace FoundationDB.Linq.Providers
 				return new FdbAsyncSingleQuery<R>(this.Database, expression);
 		}
 
+		/// <summary>Create a new sequence query from a sequence expression</summary>
 		public virtual IFdbAsyncSequenceQueryable<R> CreateSequenceQuery<R>(FdbQuerySequenceExpression<R> expression)
 		{
 			if (expression == null) throw new ArgumentNullException("expression");
@@ -89,6 +101,8 @@ namespace FoundationDB.Linq.Providers
 				return new FdbAsyncSequenceQuery<R>(this.Database, expression);
 		}
 
+		/// <summary>Execute the query and return the result asynchronously</summary>
+		/// <typeparam name="R">Type of the expected result. Can be a <typeparamref name="T"/> for singleton queries or a <see cref="List{T}"/> for sequence queries</typeparam>
 		public async Task<R> ExecuteAsync<R>(FdbQueryExpression expression, CancellationToken ct)
 		{
 			if (expression == null) throw new ArgumentNullException("ct");
@@ -98,6 +112,7 @@ namespace FoundationDB.Linq.Providers
 			return (R)result;
 		}
 
+		/// <summary>Execute the query and return the result in the expected type</summary>
 		protected virtual Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			switch(expression.Shape)
@@ -121,7 +136,7 @@ namespace FoundationDB.Linq.Providers
 
 		#region Single...
 
-		protected Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>> CompileSingle(FdbQueryExpression expression)
+		private Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>> CompileSingle(FdbQueryExpression expression)
 		{
 			//TODO: caching !
 
@@ -131,6 +146,7 @@ namespace FoundationDB.Linq.Providers
 			return expr.Compile();
 		}
 
+		/// <summary>Execute the query and return a single element in the expected type</summary>
 		protected virtual async Task<object> ExecuteSingleInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			var generator = CompileSingle(expression);
@@ -244,6 +260,7 @@ namespace FoundationDB.Linq.Providers
 			}
 		}
 
+		/// <summary>Execute the query and return a list of elements in the expected type</summary>
 		protected virtual async Task<object> ExecuteSequenceInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			var generator = CompileSequence(expression);

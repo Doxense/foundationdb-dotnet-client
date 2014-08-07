@@ -29,30 +29,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Layers.Indexing;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq.Expressions;
 
+	/// <summary>Helper class for building a string representation of a FoundationDB LINQ Expression Tree</summary>
 	public class FdbQueryExpressionStringBuilder : FdbQueryExpressionVisitor
 	{
 		private readonly FdbDebugStatementWriter m_writer;
 
+		/// <summary>Creates a new expression string builder</summary>
 		public FdbQueryExpressionStringBuilder()
 			: this(null)
 		{ }
 
+		/// <summary>Creates a new expression string builder with a specific writer</summary>
 		public FdbQueryExpressionStringBuilder(FdbDebugStatementWriter writer)
 		{
 			m_writer = writer ?? new FdbDebugStatementWriter();
 		}
 
-		public FdbDebugStatementWriter Writer { get { return m_writer; } }
+		/// <summary>Writer used by this builder</summary>
+		public FdbDebugStatementWriter Writer
+		{
+			[NotNull] get { return m_writer; }
+		}
 
+		/// <summary>Returns the text expression that has been written so far</summary>
 		public override string ToString()
 		{
 			return m_writer.Buffer.ToString();
 		}
 
+		/// <summary>Visit a node and appends it to the string builder</summary>
+		/// <param name="node"></param>
+		/// <returns></returns>
 		public override Expression Visit(FdbQueryExpression node)
 		{
 			if (node != null)
@@ -61,87 +73,6 @@ namespace FoundationDB.Linq.Expressions
 			}
 			return node;
 		}
-
-#if refactored
-		protected internal override Expression VisitQuerySingle<T, R>(FdbQuerySingleExpression<T, R> node)
-		{
-			m_writer.WriteLine("{0}(", node.Name).Enter();
-			Visit(node.Sequence);
-			m_writer.Leave().Write(")");
-
-			return node;
-		}
-
-		protected internal override Expression VisitQueryIndexLookup<K, V>(FdbQueryIndexLookupExpression<K, V> node)
-		{
-			VisitIndex(node.Index);
-			m_writer.Write(".Lookup<{0}>(value {1} ", node.ElementType.Name, FdbExpressionHelpers.GetOperatorAlias(node.Operator));
-			Visit(node.Value);
-			m_writer.Write(")");
-
-			return node;
-		}
-
-		protected internal virtual void VisitIndex<K, V>(FdbIndex<K, V> index)
-		{
-			m_writer.Write("Index['{0}']", index.Name);
-		}
-
-		protected internal override Expression VisitQueryRange(FdbQueryRangeExpression node)
-		{
-			m_writer.WriteLine("Range(").Enter()
-				.WriteLine("Start({0}),", node.Range.Begin.ToString())
-				.WriteLine("Stop({0})", node.Range.End.ToString())
-			.Leave().Write(")");
-
-			return node;
-		}
-
-		protected internal override Expression VisitQueryMerge<T>(FdbQueryMergeExpression<T> node)
-		{
-			m_writer.WriteLine("{0}<{1}>(", node.MergeType.ToString(), node.ElementType.Name).Enter();
-			for (int i = 0; i < node.Expressions.Length; i++)
-			{
-				Visit(node.Expressions[i]);
-				if (i + 1 < node.Expressions.Length)
-					m_writer.WriteLine(",");
-				else
-					m_writer.WriteLine();
-			}
-			m_writer.Leave().Write(")");
-
-			return node;
-		}
-
-		protected internal override Expression VisitAsyncEnumerable<T>(FdbQueryAsyncEnumerableExpression<T> node)
-		{
-			m_writer.Write("Source<{0}>({1})", node.ElementType.Name, node.Source.GetType().Name);
-
-			return node;
-		}
-
-		protected internal override Expression VisitQueryTransform<T, R>(FdbQueryTransformExpression<T, R> node)
-		{
-			m_writer.WriteLine("Transform(").Enter();
-			Visit(node.Source);
-			m_writer.WriteLine(",");
-			Visit(node.Transform);
-			m_writer.Leave().Write(")");
-
-			return node;
-		}
-
-		protected internal override Expression VisitQueryFilter<T>(FdbQueryFilterExpression<T> node)
-		{
-			m_writer.WriteLine("Filter(").Enter();
-			Visit(node.Source);
-			m_writer.WriteLine(",");
-			Visit(node.Filter);
-			m_writer.Leave().Write(")");
-
-			return node;
-		}
-#endif
 
 		private void VisitExpressions<TExpr>(IList<TExpr> expressions, string open, string close, string sep)
 			where TExpr : Expression
@@ -180,6 +111,7 @@ namespace FoundationDB.Linq.Expressions
 			m_writer.Write(close);
 		}
 
+		/// <summary>Visit a Lambda expression</summary>
 		protected override Expression VisitLambda<T>(Expression<T> node)
 		{
 			VisitExpressions(node.Parameters, "(", ")", ", ");
@@ -189,6 +121,7 @@ namespace FoundationDB.Linq.Expressions
 			return node;
 		}
 
+		/// <summary>Visit a Parameter expression</summary>
 		protected override Expression VisitParameter(ParameterExpression node)
 		{
 			m_writer.Write(node.Name);
@@ -196,6 +129,7 @@ namespace FoundationDB.Linq.Expressions
 			return node;
 		}
 
+		/// <summary>Visit a Member expression</summary>
 		protected override Expression VisitMember(MemberExpression node)
 		{
 			Visit(node.Expression);
@@ -204,6 +138,7 @@ namespace FoundationDB.Linq.Expressions
 			return node;
 		}
 
+		/// <summary>Visit a Binary expression</summary>
 		protected override Expression VisitBinary(BinaryExpression node)
 		{
 			Visit(node.Left);
@@ -213,6 +148,7 @@ namespace FoundationDB.Linq.Expressions
 			return node;
 		}
 
+		/// <summary>Visit a Method Call expression</summary>
 		protected override Expression VisitMethodCall(MethodCallExpression node)
 		{
 			if (node.Object == null)
@@ -239,12 +175,14 @@ namespace FoundationDB.Linq.Expressions
 			return node;
 		}
 
+		/// <summary>Visit a Constant expression</summary>
 		protected override Expression VisitConstant(ConstantExpression node)
 		{
 			m_writer.Write(node.GetDebugView());
 			return node;
 		}
 
+#if DEBUG
 		public static void Test()
 		{
 
@@ -256,6 +194,7 @@ namespace FoundationDB.Linq.Expressions
 			Console.WriteLine(w.ToString());
 
 		}
+#endif
 
 	}
 

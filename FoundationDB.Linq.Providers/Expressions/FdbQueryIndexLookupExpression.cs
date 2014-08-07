@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,11 +26,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Indexing;
+	using JetBrains.Annotations;
 	using System;
 	using System.Globalization;
 	using System.Linq.Expressions;
@@ -42,25 +43,44 @@ namespace FoundationDB.Linq.Expressions
 	public abstract class FdbQueryLookupExpression<K, V> : FdbQuerySequenceExpression<K>
 	{
 
+		/// <summary>Create a new expression that looks up a value in a source index</summary>
 		protected FdbQueryLookupExpression(Expression source, ExpressionType op, Expression value)
 		{
+			Contract.Requires(source != null && value != null);
 			this.Source = source;
 			this.Operator = op;
 			this.Value = value;
 		}
 
-		public Expression Source { get; private set; }
+		/// <summary>Source of the lookup (index, range read, ...)</summary>
+		public Expression Source
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public ExpressionType Operator { get; private set; }
+		/// <summary>Operation applied to <see cref="Value"/> on the source</summary>
+		public ExpressionType Operator
+		{
+			get;
+			private set;
+		}
 
-		public Expression Value { get; private set; }
+		/// <summary>Value looked up in the source</summary>
+		public Expression Value
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		/// <summary>Apply a custom visitor to this expression</summary>
+		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryLookup(this);
 		}
 
-		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		/// <summary>Write a human-readable explanation of this expression</summary>
+		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Visit(this.Source);
 			builder.Writer.Write(".Lookup<{0}>(value {1} ", this.ElementType.Name, FdbExpressionHelpers.GetOperatorAlias(this.Operator));
@@ -68,6 +88,7 @@ namespace FoundationDB.Linq.Expressions
 			builder.Writer.Write(")");
 		}
 
+		/// <summary>Returns a textual representation of expression</summary>
 		public override string ToString()
 		{
 			return String.Format(CultureInfo.InvariantCulture, "{0}.Lookup({1}, {2})", this.Source.ToString(), this.Operator, this.Value);
@@ -85,11 +106,19 @@ namespace FoundationDB.Linq.Expressions
 		internal FdbQueryIndexLookupExpression(FdbIndex<K, V> index, ExpressionType op, Expression value)
 			: base(Expression.Constant(index), op, value)
 		{
+			Contract.Requires(index != null);
 			this.Index = index;
 		}
 
-		public FdbIndex<K, V> Index { get; private set; }
+		/// <summary>Index queried by this expression</summary>
+		public FdbIndex<K, V> Index
+		{
+			[NotNull] get;
+			private set;
+		}
 
+		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
+		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<K>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
@@ -144,11 +173,13 @@ namespace FoundationDB.Linq.Expressions
 			return Expression.Lambda<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<K>>>(body, prmTrans);
 		}
 
+		/// <summary>Returns a textual representation of expression</summary>
 		public override string ToString()
 		{
 			return String.Format(CultureInfo.InvariantCulture, "Index['{0}'].Lookup({1}, {2})", this.Index.Name, this.Operator, this.Value);
 		}
 
+		/// <summary>Create a lookup expression on an index</summary>
 		public static FdbQueryIndexLookupExpression<K, V> Lookup(FdbIndex<K, V> index, ExpressionType op, Expression value)
 		{
 			if (index == null) throw new ArgumentNullException("index");
@@ -172,6 +203,10 @@ namespace FoundationDB.Linq.Expressions
 			return new FdbQueryIndexLookupExpression<K, V>(index, op, value);
 		}
 
+		/// <summary>Create a lookup expression on an index</summary>
+		/// <param name="index"></param>
+		/// <param name="expression"></param>
+		/// <returns></returns>
 		public static FdbQueryIndexLookupExpression<K, V> Lookup(FdbIndex<K, V> index, Expression<Func<V, bool>> expression)
 		{
 			if (index == null) throw new ArgumentNullException("index");

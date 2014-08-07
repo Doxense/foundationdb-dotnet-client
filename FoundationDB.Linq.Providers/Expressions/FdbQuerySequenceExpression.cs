@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
 	using System.Threading;
@@ -39,17 +40,25 @@ namespace FoundationDB.Linq.Expressions
 	public abstract class FdbQuerySequenceExpression<T> : FdbQueryExpression<IFdbAsyncEnumerable<T>>
 	{
 		/// <summary>Type of elements returned by the sequence</summary>
-		public Type ElementType { get { return typeof(T); } }
+		public Type ElementType
+		{
+			[NotNull]
+			get { return typeof(T); }
+		}
 
+		/// <summary>Always returns <see cref="FdbQueryShape.Sequence"/></summary>
 		public override FdbQueryShape Shape
 		{
 			get { return FdbQueryShape.Sequence; }
 		}
 
+		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		public abstract Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence();
 
+		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
 		{
+			//REVIEW: why is it called CompileSingle ??
 			return FdbExpressionHelpers.ToTask(CompileSequence());
 		}
 

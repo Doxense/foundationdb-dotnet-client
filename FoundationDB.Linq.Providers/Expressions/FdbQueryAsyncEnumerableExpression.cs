@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,41 +29,57 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Expression that uses an async sequence as the source of elements</summary>
 	public sealed class FdbQueryAsyncEnumerableExpression<T> : FdbQuerySequenceExpression<T>
 	{
 
-		public FdbQueryAsyncEnumerableExpression(IFdbAsyncEnumerable<T> source)
+		internal FdbQueryAsyncEnumerableExpression(IFdbAsyncEnumerable<T> source)
 		{
+			Contract.Requires(source != null);
 			this.Source = source;
 		}
 
+		/// <summary>Returns <see cref="FdbQueryShape.Sequence"/></summary>
 		public override FdbQueryShape Shape
 		{
 			get { return FdbQueryShape.Sequence; }
 		}
 
-		public IFdbAsyncEnumerable<T> Source { get; private set; }
+		/// <summary>Source sequence of this expression</summary>
+		public IFdbAsyncEnumerable<T> Source
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		/// <summary>Apply a custom visitor to this expression</summary>
+		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitAsyncEnumerable(this);
 		}
 
-		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		/// <summary>Write a human-readable explanation of this expression</summary>
+		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.Write("Source<{0}>({1})", this.ElementType.Name, this.Source.GetType().Name);
 		}
 
+		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
+		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
 		{
 			return FdbExpressionHelpers.ToTask(CompileSequence());
 		}
 
+		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
+		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");

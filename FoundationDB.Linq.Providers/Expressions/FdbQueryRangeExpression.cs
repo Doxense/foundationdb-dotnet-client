@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
@@ -52,13 +53,13 @@ namespace FoundationDB.Linq.Expressions
 		public FdbRangeOptions Options { get; private set; }
 
 		/// <summary>Visit this expression</summary>
-		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryRange(this);
 		}
 
 		/// <summary>Explains this range query</summary>
-		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("Range(").Enter()
 				.WriteLine("Start({0}),", this.Range.Begin.ToString())
@@ -66,6 +67,8 @@ namespace FoundationDB.Linq.Expressions
 			.Leave().Write(")");
 		}
 
+		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
+		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>>>> CompileSequence()
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,34 +29,49 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
 	using System.Reflection;
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Base class of all query expression extensions</summary>
     public abstract class FdbQueryExpression : Expression
     {
 		private readonly Type m_type;
 
+		/// <summary>Base ctor</summary>
+		/// <param name="type">Type of the results of this expression</param>
 		protected FdbQueryExpression(Type type)
 		{
+			Contract.Requires(type != null);
 			m_type = type;
 		}
 
-		public override Type Type { get { return m_type; } }
+		/// <summary>Type of the results of the query</summary>
+		public override Type Type
+		{
+			[NotNull]
+			get { return m_type; }
+		}
 
+		/// <summary>Always return <see cref="ExpressionType.Extension"/></summary>
 		public override ExpressionType NodeType
 		{
 			get { return ExpressionType.Extension; }
 		}
 
+		/// <summary>Shape of the query</summary>
 		public abstract FdbQueryShape Shape { get; }
 
-		public abstract Expression Accept(FdbQueryExpressionVisitor visitor);
+		/// <summary>Apply a custom visitor on this expression</summary>
+		public abstract Expression Accept([NotNull] FdbQueryExpressionVisitor visitor);
 
 		internal string DebugView
 		{
+			[NotNull]
 			get
 			{
 				var builder = new FdbQueryExpressionStringBuilder();
@@ -65,7 +80,8 @@ namespace FoundationDB.Linq.Expressions
 			}
 		}
 
-		public abstract void WriteTo(FdbQueryExpressionStringBuilder builder);
+		/// <summary>Write a human-readable explanation of this expression</summary>
+		public abstract void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder);
 
 #if DEBUG
 		public override string ToString()
@@ -76,12 +92,17 @@ namespace FoundationDB.Linq.Expressions
 
     }
 
+	/// <summary>Base class of all typed query expression extensions</summary>
+	/// <typeparam name="T">Type of the results of this expression</typeparam>
 	public abstract class FdbQueryExpression<T> : FdbQueryExpression
 	{
+		/// <summary>Base ctor</summary>
 		protected FdbQueryExpression()
 			: base(typeof(T))
 		{ }
 
+		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
+		[NotNull]
 		public abstract Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<T>>> CompileSingle();
 
 	}

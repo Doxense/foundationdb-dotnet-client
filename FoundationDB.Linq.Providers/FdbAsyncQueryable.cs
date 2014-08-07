@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -95,6 +95,7 @@ namespace FoundationDB.Linq
 
 		#region Index Queries...
 
+		/// <summary>Creates a new query on this index</summary>
 		public static IFdbIndexQueryable<TId, TValue> Query<TId, TValue>(this FdbIndex<TId, TValue> index, IFdbDatabase db)
 		{
 			if (index == null) throw new ArgumentNullException("index");
@@ -103,6 +104,7 @@ namespace FoundationDB.Linq
 			return new FdbIndexQuery<TId, TValue>(db, index);
 		}
 
+		/// <summary>Creates a new query that will lookup specific values on this index</summary>
 		public static IFdbAsyncSequenceQueryable<TId> Lookup<TId, TValue>(this IFdbIndexQueryable<TId, TValue> query, Expression<Func<TValue , bool>> predicate)
 		{
 			var expr = FdbQueryIndexLookupExpression<TId, TValue>.Lookup(query.Index, predicate);
@@ -140,6 +142,7 @@ namespace FoundationDB.Linq
 			return query.Provider.CreateSequenceQuery<T>(expr);
 		}
 
+		/// <summary>Returns an async sequence that would return the results of this query as they arrive.</summary>
 		public static IFdbAsyncEnumerable<T> ToAsyncEnumerable<T>(this IFdbAsyncSequenceQueryable<T> query)
 		{
 			if (query == null) throw new ArgumentNullException("query");
@@ -194,6 +197,7 @@ namespace FoundationDB.Linq
 			return query.Provider.CreateQuery<T>(expr).ExecuteSingle(ct);
 		}
 
+		/// <summary>Immediately executes a sequence query and return a list of all the results once it has completed.</summary>
 		public static Task<List<T>> ToListAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default(CancellationToken))
 		{
 			if (query == null) throw new ArgumentNullException("query");
@@ -203,6 +207,7 @@ namespace FoundationDB.Linq
 
 		}
 
+		/// <summary>Immediately executes a sequence query and return an array of all the results once it has completed.</summary>
 		public static Task<T[]> ToArrayAsync<T>(this IFdbAsyncSequenceQueryable<T> query, CancellationToken ct = default(CancellationToken))
 		{
 			if (query == null) throw new ArgumentNullException("query");

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Linq.Expressions;
 	using System.Threading;
@@ -40,20 +42,33 @@ namespace FoundationDB.Linq.Expressions
 
 		internal FdbQueryFilterExpression(FdbQuerySequenceExpression<T> source, Expression<Func<T, bool>> filter)
 		{
+			Contract.Requires(source != null && filter != null);
 			this.Source = source;
 			this.Filter = filter;
 		}
 
-		public FdbQuerySequenceExpression<T> Source { get; private set; }
+		/// <summary>Source sequence that is being filtered</summary>
+		public FdbQuerySequenceExpression<T> Source
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public Expression<Func<T, bool>> Filter { get; private set; }
+		/// <summary>Filter applied on each element of <see cref="Source"/> and that must return true for the element to be outputed</summary>
+		public Expression<Func<T, bool>> Filter
+		{
+			[NotNull] get;
+			private set;
+		}
 
+		/// <summary>Apply a custom visitor to this expression</summary>
 		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryFilter(this);
 		}
 
-		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		/// <summary>Write a human-readable explanation of this expression</summary>
+		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("Filter(").Enter();
 			builder.Visit(this.Source);
@@ -62,6 +77,8 @@ namespace FoundationDB.Linq.Expressions
 			builder.Writer.Leave().Write(")");
 		}
 
+		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
+		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
 		{
 			var lambda = this.Filter.Compile();

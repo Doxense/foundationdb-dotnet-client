@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq.Expressions
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
@@ -36,10 +38,14 @@ namespace FoundationDB.Linq.Expressions
 	using System.Reflection;
 	using System.Threading;
 
+	/// <summary>Mode of execution of a merge operation</summary>
 	public enum FdbQueryMergeType
 	{
+		/// <summary>Only returns the elements that are present in all the source sequences.</summary>
 		Intersect,
+		/// <summary>Return all the elements that are in all the source sequences, but only once.</summary>
 		Union,
+		/// <summary>Return only the elements that are in the first source sequence, but not in any of the other sequences.</summary>
 		Except,
 	}
 
@@ -48,26 +54,45 @@ namespace FoundationDB.Linq.Expressions
 	public abstract class FdbQueryMergeExpression<T> : FdbQuerySequenceExpression<T>
 	{
 
+		/// <summary>Create a new merge expression</summary>
 		protected FdbQueryMergeExpression(FdbQuerySequenceExpression<T>[] expressions, IComparer<T> keyComparer)
 		{
+			Contract.Requires(expressions != null && keyComparer != null);
 			this.Expressions = expressions;
 			this.KeyComparer = keyComparer;
 		}
 
+		/// <summary>Type of the merge applied to the source sequences</summary>
 		public abstract FdbQueryMergeType MergeType { get; }
 
-		internal FdbQuerySequenceExpression<T>[] Expressions { get; private set; }
+		internal FdbQuerySequenceExpression<T>[] Expressions
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public IReadOnlyList<FdbQuerySequenceExpression<T>> Terms { get { return this.Expressions; } }
+		/// <summary>Liste of the source sequences that are being merged</summary>
+		public IReadOnlyList<FdbQuerySequenceExpression<T>> Terms
+		{
+			[NotNull]
+			get { return this.Expressions; }
+		}
 
-		public IComparer<T> KeyComparer { get; private set; }
+		/// <summary>Comparer used during merging</summary>
+		public IComparer<T> KeyComparer
+		{
+			[NotNull] get;
+			private set;
+		}
 
-		public override Expression Accept(FdbQueryExpressionVisitor visitor)
+		/// <summary>Apply a custom visitor to this expression</summary>
+		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryMerge(this);
 		}
 
-		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
+		/// <summary>Write a human-readable explanation of this expression</summary>
+		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("{0}<{1}>(", this.MergeType.ToString(), this.ElementType.Name).Enter();
 			for (int i = 0; i < this.Expressions.Length; i++)
@@ -81,6 +106,8 @@ namespace FoundationDB.Linq.Expressions
 			builder.Writer.Leave().Write(")");
 		}
 
+		/// <summary>Returns a new expression that creates an async sequence that will execute this query on a transaction</summary>
+		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, IFdbAsyncEnumerable<T>>> CompileSequence()
 		{
 			// compile the key selector
@@ -130,6 +157,8 @@ namespace FoundationDB.Linq.Expressions
 
 	}
 
+	/// <summary>Intersection between two or more sequence</summary>
+	/// <typeparam name="T">Type of the keys returned</typeparam>
 	public sealed class FdbQueryIntersectExpression<T> : FdbQueryMergeExpression<T>
 	{
 
@@ -137,6 +166,7 @@ namespace FoundationDB.Linq.Expressions
 			: base(expressions, keyComparer)
 		{ }
 
+		/// <summary>Returns <see cref="FdbQueryMergeType.Intersect"/></summary>
 		public override FdbQueryMergeType MergeType
 		{
 			get { return FdbQueryMergeType.Intersect; }
@@ -144,7 +174,7 @@ namespace FoundationDB.Linq.Expressions
 
 	}
 
-	/// <summary>Intersection between two or more sequence</summary>
+	/// <summary>Union between two or more sequence</summary>
 	/// <typeparam name="T">Type of the keys returned</typeparam>
 	public sealed class FdbQueryUnionExpression<T> : FdbQueryMergeExpression<T>
 	{
@@ -153,6 +183,7 @@ namespace FoundationDB.Linq.Expressions
 			: base(expressions, keyComparer)
 		{ }
 
+		/// <summary>Returns <see cref="FdbQueryMergeType.Union"/></summary>
 		public override FdbQueryMergeType MergeType
 		{
 			get { return FdbQueryMergeType.Union; }

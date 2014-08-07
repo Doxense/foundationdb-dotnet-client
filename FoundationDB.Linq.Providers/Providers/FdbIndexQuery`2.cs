@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,10 @@ namespace FoundationDB.Linq.Providers
 			this.Index = index;
 		}
 
+		/// <summary>Index used by this query</summary>
 		public FdbIndex<TId, TValue> Index { get; private set; }
 
+		/// <summary>Execute the query and return the result in the expected type</summary>
 		protected override Task<object> ExecuteInternal(FdbQueryExpression expression, Type resultType, CancellationToken ct)
 		{
 			throw new InvalidOperationException("You cannot execute this operation on the whole index. Try calling Lookup() on this query to lookup specific values from the index.");
