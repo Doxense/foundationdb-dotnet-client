@@ -830,6 +830,10 @@ namespace FoundationDB.Client
 				//	R: [ Read B1 ... | Read B2 ........ | Read B3 ..... ]
 				//	W:               [ Process B1 ]-----[ Process B2 ]--[ Process B3]X
 
+				//	R: [ Read B1 ... | Read B2 ..... | Read B3 ..... 
+				//			| Read B10 ...... | Read B9 ..... | Read B8 ..... |
+				//	W:               [ Process B1 | Process B10 | Process B2 | Process B9 | Process B3 | ...
+
 				// If handler() is always slower than the prefetch(), the bottleneck is the local processing (or possibly local disk if writing to disk)
 				//	R: [ Read B1 | Read B2 ]----------[ Read B3 ]-------[ Read B4 ]--------
 				//	W:           [ Process B1 ....... | Process B2 .... | Process B3 .... | Process B4 ]

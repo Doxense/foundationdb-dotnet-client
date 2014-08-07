@@ -22,6 +22,7 @@
     <WarningLevel>4</WarningLevel>
     <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -33,6 +34,7 @@
     <DocumentationFile>bin\Release\FoundationDB.Layers.Experimental.xml</DocumentationFile>
     <WarningsAsErrors>105,108,109,114,472,660,661,628,1066</WarningsAsErrors>
     <PlatformTarget>AnyCPU</PlatformTarget>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
     <SignAssembly>true</SignAssembly>
@@ -52,6 +54,13 @@
     <Compile Include="Documents\FdbDocumentCollection.cs" />
     <Compile Include="Documents\FdbDocumentHandlers.cs" />
     <Compile Include="Documents\FdbHashSetCollection.cs" />
+    <Compile Include="Indexes\Bitmaps\CompressedBitmap.cs" />
+    <Compile Include="Indexes\Bitmaps\CompressedBitmapBuilder.cs" />
+    <Compile Include="Indexes\Bitmaps\CompressedWord.cs" />
+    <Compile Include="Indexes\Bitmaps\CompressedBitmapWriter.cs" />
+    <Compile Include="Indexes\Bitmaps\Sandbox.cs" />
+    <Compile Include="Indexes\Bitmaps\WordAlignHybridEncoder.cs" />
+    <Compile Include="Indexes\FdbCompressedBitmapIndex.cs" />
     <Compile Include="Messaging\WorkerPoolTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Messaging\FdbWorkerPool.cs" />

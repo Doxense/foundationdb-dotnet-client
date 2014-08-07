@@ -70,6 +70,8 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="Experimental\Indexing\SuperSlowUncompressedBitmap.cs" />
+    <Compile Include="Experimental\Indexing\CompressedBitmapsFacts.cs" />
     <Compile Include="FdbTest.cs" />
     <Compile Include="ClusterFacts.cs" />
     <Compile Include="Encoders\EncoderFacts.cs" />
