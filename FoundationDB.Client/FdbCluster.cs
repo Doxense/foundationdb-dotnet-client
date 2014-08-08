@@ -50,6 +50,7 @@ namespace FoundationDB.Client
 		/// <summary>Set to true when the current db instance gets disposed.</summary>
 		private volatile bool m_disposed;
 
+		/// <summary>Wraps a cluster handle</summary>
 		public FdbCluster(IFdbClusterHandler handler, string path)
 		{
 			if (handler == null) throw new ArgumentNullException("handler");

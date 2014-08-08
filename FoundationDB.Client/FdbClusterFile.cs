@@ -35,6 +35,7 @@ namespace FoundationDB.Client
 	using System.Linq;
 	using System.Net;
 
+	/// <summary>Class that exposes the content of a FoundationDB .cluster file</summary>
 	public sealed class FdbClusterFile
 	{
 		/// <summary>The raw value of the file</summary>
@@ -52,6 +53,10 @@ namespace FoundationDB.Client
 		private FdbClusterFile()
 		{ }
 
+		/// <summary>Cluster file with already parsed components</summary>
+		/// <param name="description"></param>
+		/// <param name="identifier"></param>
+		/// <param name="coordinators"></param>
 		public FdbClusterFile(string description, string identifier, IEnumerable<FdbEndPoint> coordinators)
 		{
 			if (description == null) throw new ArgumentNullException("description");
@@ -71,6 +76,9 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Parse the content of a .cluster file</summary>
+		/// <param name="rawValue">First line of a .cluster file</param>
+		/// <returns>Parsed cluster file instance</returns>
 		[NotNull]
 		public static FdbClusterFile Parse(string rawValue)
 		{
@@ -117,17 +125,21 @@ namespace FoundationDB.Client
 
 		}
 
+		/// <summary>Returns the raw text of the cluster file</summary>
+		/// <returns></returns>
 		public override string ToString()
 		{
 			return this.RawValue;
 		}
 
+		/// <summary>Computes the hashcode of the cluster file</summary>
 		public override int GetHashCode()
 		{
 			if (this.RawValue == null) return -1;
 			return this.RawValue.GetHashCode();
 		}
 
+		/// <summary>Check if this cluster file is equal to another object</summary>
 		public override bool Equals(object obj)
 		{
 			var cf = obj as FdbClusterFile;

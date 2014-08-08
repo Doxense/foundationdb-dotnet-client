@@ -390,7 +390,7 @@ namespace FoundationDB.Client
 			return await CreateClusterInternalAsync(clusterFile, cancellationToken).ConfigureAwait(false);
 		}
 
-		public static Task<FdbCluster> CreateClusterInternalAsync(string clusterFile, CancellationToken cancellationToken)
+		internal static Task<FdbCluster> CreateClusterInternalAsync(string clusterFile, CancellationToken cancellationToken)
 		{
 			EnsureIsStarted();
 

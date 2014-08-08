@@ -397,7 +397,10 @@ namespace FoundationDB.Client
 				/// <summary>Cooldown timer used for scaling up and down the step size</summary>
 				public int Cooldown { get; internal set; }
 
+				/// <summary>Total elapsed time since the start of this bulk operation</summary>
 				public TimeSpan ElapsedTotal { get { return this.TotalTimer.Elapsed; } }
+
+				/// <summary>Elapsed time since the start of the current transaction window</summary>
 				public TimeSpan ElapsedGeneration { get { return this.GenerationTimer.Elapsed; } }
 
 				/// <summary>Returns true if all values processed up to this point used the same transaction, or false if more than one transaction was used.</summary>
@@ -800,17 +803,32 @@ namespace FoundationDB.Client
 
 			#region Import/Export...
 
+			/// <summary>Export the content of a potentially large range of keys defined by a pair of begin and end keys.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="beginInclusive">Key defining the start range (included)</param>
+			/// <param name="endExclusive">Key defining the end of the range (excluded)</param>
+			/// <param name="handler">Lambda that will be called for each batch of data read from the database. The first argument is the array of ordered key/value pairs in the batch, taken from the same database snapshot. The second argument is the offset of the first item in the array, from the start of the range. The third argument is a token should be used by any async i/o performed by the lambda.</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of keys exported</returns>
+			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
 			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, [NotNull] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
 			{
 				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(beginInclusive), FdbKeySelector.FirstGreaterOrEqual(endExclusive), handler, cancellationToken);
 			}
 
+			/// <summary>Export the content of a potentially large range of keys defined by a pair of begin and end keys.</summary>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="range">Pair of keys defining the start range</param>
+			/// <param name="handler">Lambda that will be called for each batch of data read from the database. The first argument is the array of ordered key/value pairs in the batch, taken from the same database snapshot. The second argument is the offset of the first item in the array, from the start of the range. The third argument is a token should be used by any async i/o performed by the lambda.</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of keys exported</returns>
+			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
 			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeyRange range, [NotNull] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
 			{
 				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(range.Begin), FdbKeySelector.FirstGreaterOrEqual(range.End), handler, cancellationToken);
 			}
 
-			/// <summary>Export the content of potentially large range of keys defined by a pair of selectors.</summary>
+			/// <summary>Export the content of a potentially large range of keys defined by a pair of selectors.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="begin">Selector defining the start of the range (included)</param>
 			/// <param name="end">Selector defining the end of the range (excluded)</param>
@@ -830,8 +848,9 @@ namespace FoundationDB.Client
 				//	R: [ Read B1 ... | Read B2 ........ | Read B3 ..... ]
 				//	W:               [ Process B1 ]-----[ Process B2 ]--[ Process B3]X
 
-				//	R: [ Read B1 ... | Read B2 ..... | Read B3 ..... 
-				//			| Read B10 ...... | Read B9 ..... | Read B8 ..... |
+				// TODO: alternative method that we could use to almost double the throughput (second thread that exports backwards starting from the end)
+				//	R: [ Read B1 ... | Read B2 ..... | Read B3 ..... | ...
+				//	R:		| Read B10 ...... | Read B9 ..... | Read B8 ..... | ...
 				//	W:               [ Process B1 | Process B10 | Process B2 | Process B9 | Process B3 | ...
 
 				// If handler() is always slower than the prefetch(), the bottleneck is the local processing (or possibly local disk if writing to disk)
@@ -906,6 +925,7 @@ namespace FoundationDB.Client
 			/// <param name="begin">Begin selector</param>
 			/// <param name="end">End selector</param>
 			/// <param name="options">Range read options</param>
+			/// <param name="onReset">Action (optional) that can reconfigure a transaction whenever it gets reset inside the retry loop.</param>
 			/// <returns>Task that will return the next batch</returns>
 			private static async Task<FdbRangeChunk> FetchNextBatchAsync(IFdbReadOnlyTransaction tr, FdbKeySelector begin, FdbKeySelector end, [NotNull] FdbRangeOptions options, Action<IFdbReadOnlyTransaction> onReset = null)
 			{
