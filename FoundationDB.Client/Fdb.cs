@@ -411,32 +411,28 @@ namespace FoundationDB.Client
 
 		#region Database...
 
-		/// <summary>
-		/// Open the "DB" database on the cluster specified by the default cluster file
-		/// </summary>
+		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file.</summary>
 		/// <param name="cancellationToken">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
 		public static Task<IFdbDatabase> OpenAsync(CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return OpenAsync(clusterFile: null, dbName: null, globalSpace: FdbSubspace.Empty, cancellationToken: cancellationToken);
 		}
 
-		/// <summary>
-		/// Open the "DB" database on the cluster specified by the default cluster file, and with the specified global space
-		/// </summary>
+		/// <summary>Create a new connection with the "DB" database on the cluster specified by the default cluster file, and with the specified global subspace</summary>
 		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
 		/// <param name="cancellationToken">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
 		public static Task<IFdbDatabase> OpenAsync(FdbSubspace globalSpace, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return OpenAsync(clusterFile: null, dbName: null, globalSpace: globalSpace, cancellationToken: cancellationToken);
 		}
 
-		/// <summary>
-		/// Open a database on the specified cluster
-		/// </summary>
+		/// <summary>Create a new connection with a database on the specified cluster</summary>
 		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
 		/// <param name="dbName">Name of the database, or "DB" if not specified.</param>
 		/// <param name="cancellationToken">Cancellation Token</param>
@@ -444,14 +440,13 @@ namespace FoundationDB.Client
 		/// <remarks>As of 1.0, the only supported database name is "DB"</remarks>
 		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than "DB"</exception>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
 		public static Task<IFdbDatabase> OpenAsync(string clusterFile, string dbName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return OpenAsync(clusterFile, dbName, FdbSubspace.Empty, readOnly: false, cancellationToken: cancellationToken);
 		}
 
-		/// <summary>
-		/// Open a database on the specified cluster
-		/// </summary>
+		/// <summary>Create a new connection with a database on the specified cluster</summary>
 		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
 		/// <param name="dbName">Name of the database. Must be 'DB'</param>
 		/// <param name="globalSpace">Global subspace used as a prefix for all keys and layers</param>
@@ -461,11 +456,13 @@ namespace FoundationDB.Client
 		/// <remarks>As of 1.0, the only supported database name is 'DB'</remarks>
 		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than 'DB'</exception>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
+		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
 		public static async Task<IFdbDatabase> OpenAsync(string clusterFile, string dbName, FdbSubspace globalSpace, bool readOnly = false, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return await OpenInternalAsync(clusterFile, dbName, globalSpace, readOnly, cancellationToken);
 		}
 
+		/// <summary>Create a new database handler instance using the specificied cluster file, database name, global subspace and read only settings</summary>
 		internal static async Task<FdbDatabase> OpenInternalAsync(string clusterFile, string dbName, FdbSubspace globalSpace, bool readOnly, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
@@ -622,6 +619,7 @@ namespace FoundationDB.Client
 			StartEventLoop();
 		}
 
+		/// <summary>Set the value of a network option on the database handler</summary>
 		private static FdbError SetNetworkOption(FdbNetworkOption option, string value)
 		{
 			unsafe
@@ -634,6 +632,7 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Set the value of a network option on the database handler</summary>
 		private static FdbError SetNetworkOption(FdbNetworkOption option, Slice value)
 		{
 			SliceHelpers.EnsureSliceIsValid(ref value);
