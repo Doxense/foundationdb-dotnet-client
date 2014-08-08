@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Counters.Tests
 			{
 				var location = await GetCleanDirectory(db, "counters", "simple");
 
-				var counter = new FdbCounter(db, location);
+				var counter = new FdbHighContentionCounter(db, location);
 
 				await counter.AddAsync(100, this.Cancellation);
 				Assert.That(await counter.GetSnapshotAsync(this.Cancellation), Is.EqualTo(100));
@@ -70,7 +70,7 @@ namespace FoundationDB.Layers.Counters.Tests
 			{
 				var location = await GetCleanDirectory(db, "counters", "big");
 
-				var c = new FdbCounter(db, location);
+				var c = new FdbHighContentionCounter(db, location);
 
 				Console.WriteLine("Doing " + N + " inserts in one thread...");
 
@@ -106,7 +106,7 @@ namespace FoundationDB.Layers.Counters.Tests
 				{
 					var location = await GetCleanDirectory(db, "counters", "big", W.ToString());
 
-					var c = new FdbCounter(db, location);
+					var c = new FdbHighContentionCounter(db, location);
 
 					Console.WriteLine("Doing " + W + " x " + B + " inserts in " + W + " threads...");
 

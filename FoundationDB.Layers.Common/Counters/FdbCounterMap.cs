@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,43 +29,54 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Counters
 {
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading.Tasks;
 
-	public sealed class FdbCounterMap
+	/// <summary>Providers a dictionary of 64-bit counters that can be updated atomically</summary>
+	/// <typeparam name="TKey">Type of the key in the counter map</typeparam>
+	public sealed class FdbCounterMap<TKey>
 	{
-
 		private static readonly Slice PlusOne = Slice.FromFixed64(1);
 		private static readonly Slice MinusOne = Slice.FromFixed64(-1);
 
+		/// <summary>Create a new counter map.</summary>
 		public FdbCounterMap(FdbSubspace subspace)
+			: this(subspace, KeyValueEncoders.Tuples.Key<TKey>())
+		{ }
+
+		/// <summary>Create a new counter map, using a specific key encoder.</summary>
+		public FdbCounterMap(FdbSubspace subspace, IKeyEncoder<TKey> keyEncoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
 
 			this.Subspace = subspace;
+			this.KeyEncoder = keyEncoder;
+			this.Location = new FdbEncoderSubspace<TKey>(subspace, keyEncoder);
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this counter list</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public FdbSubspace Subspace { [NotNull] get; private set; }
 
-		private Slice GetCounterKey(Slice counterKey)
-		{
-			if (counterKey.IsNull) throw new ArgumentNullException("counterKey");
-			return this.Subspace.Concat(counterKey);
-		}
+		/// <summary>Encoder for the keys of the counter map</summary>
+		public IKeyEncoder<TKey> KeyEncoder { [NotNull] get; private set; }
+
+		internal FdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
 
 		/// <summary>Add a value to a counter in one atomic operation</summary>
 		/// <param name="transaction"></param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <param name="value">Value that will be added</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
-		public void Add(IFdbTransaction transaction, Slice counterKey, long value)
+		public void Add([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
+			if (counterKey == null) throw new ArgumentNullException("counterKey");
 
 			//REVIEW: we could no-op if value == 0 but this may change conflict behaviour for other transactions...
 			Slice param = value == 1 ? PlusOne : value == -1 ? MinusOne : Slice.FromFixed64(value);
-			transaction.AtomicAdd(GetCounterKey(counterKey), param);
+			transaction.AtomicAdd(this.Location.EncodeKey(counterKey), param);
 		}
 
 		/// <summary>Subtract a value from a counter in one atomic operation</summary>
@@ -73,7 +84,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <param name="value">Value that will be substracted. If the value is zero</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
-		public void Subtract(IFdbTransaction transaction, Slice counterKey, long value)
+		public void Subtract([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
 			Add(transaction, counterKey, -value);
 		}
@@ -82,7 +93,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
-		public void Increment(IFdbTransaction transaction, Slice counterKey)
+		public void Increment([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
 		{
 			Add(transaction, counterKey, 1);
 		}
@@ -91,7 +102,7 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <remarks>This operation will not cause the current transaction to conflict. It may create conflicts for transactions that would read the value of the counter.</remarks>
-		public void Decrement(IFdbTransaction transaction, Slice counterKey)
+		public void Decrement([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
 		{
 			Add(transaction, counterKey, -1);
 		}
@@ -100,9 +111,12 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="transaction">Transaction to use for the operation</param>
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <returns></returns>
-		public async Task<long?> ReadAsync(IFdbReadOnlyTransaction transaction, Slice counterKey)
+		public async Task<long?> ReadAsync([NotNull] IFdbReadOnlyTransaction transaction, [NotNull] TKey counterKey)
 		{
-			var data = await transaction.GetAsync(GetCounterKey(counterKey)).ConfigureAwait(false);
+			if (transaction == null) throw new ArgumentNullException("transaction");
+			if (counterKey == null) throw new ArgumentNullException("counterKey");
+
+			var data = await transaction.GetAsync(this.Location.EncodeKey(counterKey)).ConfigureAwait(false);
 			if (data.IsNullOrEmpty) return default(long?);
 			return data.ToInt64();
 		}
@@ -112,11 +126,12 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <returns>New value of the counter. Returns <paramref name="value"/> if the counter did not exist previously.</returns>
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
-		public async Task<long> AddThenReadAsync(IFdbTransaction transaction, Slice counterKey, long value)
+		public async Task<long> AddThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
+			if (counterKey == null) throw new ArgumentNullException("counterKey");
 
-			var key = GetCounterKey(counterKey);
+			var key = this.Location.EncodeKey(counterKey);
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
 
 			if (!res.IsNullOrEmpty) value += res.ToInt64();
@@ -125,17 +140,17 @@ namespace FoundationDB.Layers.Counters
 			return value;
 		}
 
-		public Task<long> SubtractThenReadAsync(IFdbTransaction transaction, Slice counterKey, long value)
+		public Task<long> SubtractThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
 			return AddThenReadAsync(transaction, counterKey, -value);
 		}
 
-		public Task<long> IncrementThenReadAsync(IFdbTransaction transaction, Slice counterKey)
+		public Task<long> IncrementThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
 		{
 			return AddThenReadAsync(transaction, counterKey, 1);
 		}
 
-		public Task<long> DecrementThenReadAsync(IFdbTransaction transaction, Slice counterKey)
+		public Task<long> DecrementThenReadAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
 		{
 			return AddThenReadAsync(transaction, counterKey, -1);
 		}
@@ -145,11 +160,12 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="counterKey">Key of the counter, relative to the list's subspace</param>
 		/// <returns>Previous value of the counter. Returns 0 if the counter did not exist previously.</returns>
 		/// <remarks>This method WILL conflict with other transactions!</remarks>
-		public async Task<long> ReadThenAddAsync(IFdbTransaction transaction, Slice counterKey, long value)
+		public async Task<long> ReadThenAddAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
 			if (transaction == null) throw new ArgumentNullException("transaction");
+			if (counterKey == null) throw new ArgumentNullException("counterKey");
 
-			var key = GetCounterKey(counterKey);
+			var key = this.Location.EncodeKey(counterKey);
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
 
 			long previous = res.IsNullOrEmpty ? 0 : res.ToInt64();
@@ -158,17 +174,17 @@ namespace FoundationDB.Layers.Counters
 			return previous;
 		}
 
-		public Task<long> ReadThenSubtractAsync(IFdbTransaction transaction, Slice counterKey, long value)
+		public Task<long> ReadThenSubtractAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey, long value)
 		{
 			return ReadThenAddAsync(transaction, counterKey, -value);
 		}
 
-		public Task<long> ReadThenIncrementAsync(IFdbTransaction transaction, Slice counterKey)
+		public Task<long> ReadThenIncrementAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
 		{
 			return ReadThenAddAsync(transaction, counterKey, 1);
 		}
 
-		public Task<long> ReadThenDecrementAsync(IFdbTransaction transaction, Slice counterKey)
+		public Task<long> ReadThenDecrementAsync([NotNull] IFdbTransaction transaction, [NotNull] TKey counterKey)
 		{
 			return ReadThenAddAsync(transaction, counterKey, -1);
 		}

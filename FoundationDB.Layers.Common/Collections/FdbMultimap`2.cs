@@ -36,35 +36,43 @@ namespace FoundationDB.Layers.Collections
 	using System.Diagnostics;
 	using System.Threading.Tasks;
 
-	[DebuggerDisplay("Name={Name}, Subspace={Subspace}")]
+	/// <summary>Multimap that tracks the number of times a specific key/value pair has been inserted or removed.</summary>
+	/// <typeparam name="TKey">Type of the keys of the map</typeparam>
+	/// <typeparam name="TValue">Type of the values of the map</typeparam>
+	[DebuggerDisplay("Subspace={Subspace}")]
 	public class FdbMultiMap<TKey, TValue>
 	{
 		// Inspired by https://foundationdb.com/recipes/developer/multimaps
 		// It is the logical equivalent of a Map<KeyValuePair<TKey, TValue>, long> where the value would be incremented each time a specific pair of (key, value) is added (and subtracted when removed)
 
+		// The layer stores each key/value using the following format:
+		// (..., key, value) = 64-bit counter
+
 		private static readonly Slice PlusOne = Slice.FromFixed64(1);
 		private static readonly Slice MinusOne = Slice.FromFixed64(-1);
 
-		public FdbMultiMap([NotNull] string name, [NotNull] FdbSubspace subspace, bool allowNegativeValues)
-			: this(name, subspace, allowNegativeValues, KeyValueEncoders.Tuples.CompositeKey<TKey, TValue>())
+		/// <summary>Create a new multimap</summary>
+		/// <param name="subspace">Location where the map will be stored in the database</param>
+		/// <param name="allowNegativeValues">If true, allow negative or zero values to stay in the map.</param>
+		public FdbMultiMap(FdbSubspace subspace, bool allowNegativeValues)
+			: this(subspace, allowNegativeValues, KeyValueEncoders.Tuples.CompositeKey<TKey, TValue>())
 		{ }
 
-		public FdbMultiMap([NotNull] string name, [NotNull] FdbSubspace subspace, bool allowNegativeValues, [NotNull] ICompositeKeyEncoder<TKey, TValue> encoder)
+		/// <summary>Create a new multimap, using a specific key and value encoder</summary>
+		/// <param name="subspace">Location where the map will be stored in the database</param>
+		/// <param name="allowNegativeValues">If true, allow negative or zero values to stay in the map.</param>
+		/// <param name="encoder">Encoder for the key/value pairs</param>
+		public FdbMultiMap(FdbSubspace subspace, bool allowNegativeValues, ICompositeKeyEncoder<TKey, TValue> encoder)
 		{
-			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
-			this.Name = name;
 			this.Subspace = subspace;
 			this.AllowNegativeValues = allowNegativeValues;
 			this.Location = new FdbEncoderSubspace<TKey, TValue>(subspace, encoder);
 		}
 
 		#region Public Properties...
-
-		/// <summary>Name of the multimap</summary>
-		public string Name { [NotNull] get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this map</summary>
 		public FdbSubspace Subspace { [NotNull] get; private set; }
