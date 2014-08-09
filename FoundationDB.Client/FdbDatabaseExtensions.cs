@@ -326,6 +326,42 @@ namespace FoundationDB.Client
 			return db.WriteAsync((tr) => tr.Set(key, value), cancellationToken);
 		}
 
+		/// <summary>Set the values of a list of keys in the database, using a dedicated transaction.</summary>
+		/// <param name="db">Database instance</param>
+		/// <remarks>
+		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="ReadAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// </remarks>
+		public static Task SetValuesAsync(this IFdbDatabase db, KeyValuePair<Slice, Slice>[] keyValuePairs, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) =>
+			{
+				foreach (var kv in keyValuePairs)
+				{
+					tr.Set(kv.Key, kv.Value);
+				}
+			}, cancellationToken);
+		}
+
+		/// <summary>Set the values of a sequence of keys in the database, using a dedicated transaction.</summary>
+		/// <param name="db">Database instance</param>
+		/// <remarks>
+		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="ReadAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// </remarks>
+		public static Task SetValuesAsync(this IFdbDatabase db, IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) =>
+			{
+				foreach (var kv in keyValuePairs)
+				{
+					tr.Set(kv.Key, kv.Value);
+				}
+			}, cancellationToken);
+		}
+
 		/// <summary>Clear a single key in the database, using a dedicated transaction.</summary>
 		/// <param name="db">Database instance</param>
 		/// <remarks>

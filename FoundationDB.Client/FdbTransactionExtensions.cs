@@ -259,6 +259,103 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region SetValues
+
+		/// <summary>Set the values of a list of keys in the database.</summary>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="keyValuePairs">Array of key and value pairs</param>
+		/// <remarks>
+		/// Only use this method if you know that the approximate size of count of keys and values will not exceed the maximum size allowed per transaction.
+		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
+		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		public static void SetValues(this IFdbTransaction trans, KeyValuePair<Slice, Slice>[] keyValuePairs)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (keyValuePairs == null) throw new ArgumentNullException("keyValuePairs");
+
+			foreach (var kv in keyValuePairs)
+			{
+				trans.Set(kv.Key, kv.Value);
+			}
+		}
+
+		/// <summary>Set the values of a list of keys in the database.</summary>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="keys">Array of keys to set</param>
+		/// <param name="values">Array of values for each key. Must be in the same order as <paramref name="keys"/> and have the same length.</param>
+		/// <remarks>
+		/// Only use this method if you know that the approximate size of count of keys and values will not exceed the maximum size allowed per transaction.
+		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/>, <paramref name="keys"/> or <paramref name="values"/> is null.</exception>
+		/// <exception cref="ArgumentException">If the <paramref name="values"/> does not have the same length as <paramref name="keys"/>.</exception>
+		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		public static void SetValues(this IFdbTransaction trans, Slice[] keys, Slice[] values)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (keys == null) throw new ArgumentNullException("keys");
+			if (values == null) throw new ArgumentNullException("values");
+			if (values.Length != keys.Length) throw new ArgumentException("Both key and value arrays must have the same size.", "values");
+
+			for (int i = 0; i < keys.Length;i++)
+			{
+				trans.Set(keys[i], values[i]);
+			}
+		}
+
+		/// <summary>Set the values of a sequence of keys in the database.</summary>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="keyValuePairs">Sequence of key and value pairs</param>
+		/// <remarks>
+		/// Only use this method if you know that the approximate size of count of keys and values will not exceed the maximum size allowed per transaction.
+		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/> or <paramref name="keyValuePairs"/> is null.</exception>
+		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		public static void SetValues(this IFdbTransaction trans, IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (keyValuePairs == null) throw new ArgumentNullException("keyValuePairs");
+
+			foreach (var kv in keyValuePairs)
+			{
+				trans.Set(kv.Key, kv.Value);
+			}
+		}
+
+		/// <summary>Set the values of a sequence of keys in the database.</summary>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="keys">Sequence of keys to set</param>
+		/// <param name="values">Sequence of values for each key. Must be in the same order as <paramref name="keys"/> and have the same number of elements.</param>
+		/// <remarks>
+		/// Only use this method if you know that the approximate size of count of keys and values will not exceed the maximum size allowed per transaction.
+		/// If the list and size of the keys and values is not known in advance, consider using a bulk operation provided by the <see cref="Fdb.Bulk"/> helper class.
+		/// </remarks>
+		/// <exception cref="ArgumentNullException">If either <paramref name="trans"/>, <paramref name="keys"/> or <paramref name="values"/> is null.</exception>
+		/// <exception cref="ArgumentException">If the <paramref name="values"/> does not have the same number of elements as <paramref name="keys"/>.</exception>
+		/// <exception cref="FdbException">If this operation would exceed the maximum allowed size for a transaction.</exception>
+		public static void SetValues(this IFdbTransaction trans, IEnumerable<Slice> keys, IEnumerable<Slice> values)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (keys == null) throw new ArgumentNullException("keys");
+			if (values == null) throw new ArgumentNullException("values");
+
+			using(var keyIter = keys.GetEnumerator())
+			using(var valueIter = values.GetEnumerator())
+			{
+				while(keyIter.MoveNext())
+				{
+					if (!valueIter.MoveNext()) throw new ArgumentException("Both key and value sequences must have the same size.", "values");
+					trans.Set(keyIter.Current, valueIter.Current);
+				}
+				if (valueIter.MoveNext()) throw new ArgumentException("Both key and values sequences must have the same size.", "values");
+			}
+		}
+
+		#endregion
+
 		#region Atomic Ops...
 
 		/// <summary>Modify the database snapshot represented by this transaction to add the value of <paramref name="value"/> to the value stored by the given <paramref name="key"/>.</summary>
