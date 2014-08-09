@@ -112,6 +112,14 @@ namespace FoundationDB.Client
 			ChangeRoot(contentSubspace, directory, readOnly);
 		}
 
+		/// <summary>Create a new Database instance from a database handler</summary>
+		/// <param name="cluster">Parent cluster</param>
+		/// <param name="handler">Handle to the native FDB_DATABASE*</param>
+		/// <param name="name">Name of the database</param>
+		/// <param name="contentSubspace">Subspace of the all keys accessible by this database instance</param>
+		/// <param name="directory">Root directory of the database instance</param>
+		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
+		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
 		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, FdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
 			if (cluster == null) throw new ArgumentNullException("cluster");
@@ -300,7 +308,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunReadAsync(this, asyncHandler, null, cancellationToken);
 		}
 
-		//EXPERIMENTAL
+		/// <summary>EXPERIMENTAL</summary>
 		public Task ReadAsync([InstantHandle] Func<IFdbReadOnlyTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunReadAsync(this, asyncHandler, onDone, cancellationToken);
@@ -314,7 +322,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
 		}
 
-		//EXPERIMENTAL
+		/// <summary>EXPERIMENTAL</summary>
 		public Task<R> ReadAsync<R>([InstantHandle] Func<IFdbReadOnlyTransaction, Task<R>> asyncHandler, [InstantHandle] Action<IFdbReadOnlyTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunReadWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);
@@ -332,7 +340,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunWriteAsync(this, handler, null, cancellationToken);
 		}
 
-		//EXPERIMENTAL
+		/// <summary>EXPERIMENTAL</summary>
 		public Task WriteAsync([InstantHandle] Action<IFdbTransaction> handler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunWriteAsync(this, handler, onDone, cancellationToken);
@@ -350,7 +358,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, cancellationToken);
 		}
 
-		//EXPERIMENTAL
+		/// <summary>EXPERIMENTAL</summary>
 		public Task WriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			//REVIEW: right now, nothing prevents the lambda from calling read methods on the transaction, making this equivalent to calling ReadWriteAsync()
@@ -367,7 +375,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunWriteAsync(this, asyncHandler, null, cancellationToken);
 		}
 
-		//EXPERIMENTAL
+		/// <summary>EXPERIMENTAL</summary>
 		public Task ReadWriteAsync([InstantHandle] Func<IFdbTransaction, Task> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunWriteAsync(this, asyncHandler, onDone, cancellationToken);
@@ -381,7 +389,7 @@ namespace FoundationDB.Client
 			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, null, cancellationToken);
 		}
 
-		//EXPERIMENTAL
+		/// <summary>EXPERIMENTAL</summary>
 		public Task<R> ReadWriteAsync<R>([InstantHandle] Func<IFdbTransaction, Task<R>> asyncHandler, [InstantHandle] Action<IFdbTransaction> onDone, CancellationToken cancellationToken)
 		{
 			return FdbOperationContext.RunWriteWithResultAsync<R>(this, asyncHandler, onDone, cancellationToken);
@@ -465,13 +473,21 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Create a new subspace prefixed by a binary key</summary>
+		/// <param name="suffix">Suffix of the subspace</param>
+		/// <returns>New subspace with prefix equal to the database's global prefix followed by <paramref name="suffix"/></returns>
 		public FdbSubspace this[Slice suffix]
 		{
+			//REVIEW: return IFdbSusbspace?
 			get { return suffix.IsNullOrEmpty ? m_globalSpace : m_globalSpaceCopy[suffix]; }
 		}
 
+		/// <summary>Create a new subspace prefixed by a key</summary>
+		/// <param name="key">Key that will packed</param>
+		/// <returns>New subspace with prefix equal to the database's global prefix followed by the packed representation of <paramref name="key"/></returns>
 		public FdbSubspace this[IFdbKey key]
 		{
+			//REVIEW: return IFdbSusbspace?
 			get { return key == null ? m_globalSpace : m_globalSpaceCopy[key]; }
 		}
 
@@ -533,6 +549,9 @@ namespace FoundationDB.Client
 			return true;
 		}
 
+		/// <summary>Test if a key is contained by this database instance.</summary>
+		/// <param name="key">Key to test</param>
+		/// <returns>True if the key is not null and contained inside the globale subspace</returns>
 		public bool Contains(Slice key)
 		{
 			return key.HasValue && m_globalSpace.Contains(key);
@@ -610,12 +629,14 @@ namespace FoundationDB.Client
 			if (m_disposed) throw new ObjectDisposedException(this.GetType().Name);
 		}
 
+		/// <summary>Close this database instance, aborting any pending transaction that was created by this instance.</summary>
 		public void Dispose()
 		{
 			Dispose(true);
 			GC.SuppressFinalize(this);
 		}
 
+		/// <summary>Close this database instance, aborting any pending transaction that was created by this instance.</summary>
 		protected virtual void Dispose(bool disposing)
 		{
 			if (!m_disposed)
