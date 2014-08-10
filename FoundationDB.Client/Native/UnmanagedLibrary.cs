@@ -28,16 +28,60 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using JetBrains.Annotations;
-	using Microsoft.Win32.SafeHandles;
-	using System;
-	using System.Runtime.ConstrainedExecution;
-	using System.Runtime.InteropServices;
-	using System.Security;
+    using JetBrains.Annotations;
+    using Microsoft.Win32.SafeHandles;
+    using System;
+    using System.Runtime.ConstrainedExecution;
+    using System.Runtime.InteropServices;
+    using System.Security;
 
-	/// <summary>Native Library Loader</summary>
-	internal sealed class UnmanagedLibrary : IDisposable
-	{
+    /// <summary>Native Library Loader</summary>
+    internal sealed class UnmanagedLibrary : IDisposable
+    {
+#if MONO
+        [SuppressUnmanagedCodeSecurity]
+        public sealed class SafeLibraryHandle
+        {
+            IntPtr handle;
+            public SafeLibraryHandle(IntPtr Handle)
+            {
+
+                handle = Handle;
+
+            }
+
+            public bool IsInvalid
+            {
+                get
+                {
+                    return handle == IntPtr.Zero;
+                }
+            }
+
+            public bool IsClosed
+            {
+                get
+                {
+                    return handle == IntPtr.Zero;
+                }
+            }
+
+
+            public void Close()
+            {
+
+                if (!IsClosed)
+                    ReleaseHandle();
+
+            }
+
+            private bool ReleaseHandle()
+            {
+                return NativeMethods.FreeLibrary(handle);
+            }
+        }
+#else
+
 		// See http://msdn.microsoft.com/msdnmag/issues/05/10/Reliability/ for more about safe handles.
 		[SuppressUnmanagedCodeSecurity]
 		public sealed class SafeLibraryHandle : SafeHandleZeroOrMinusOneIsInvalid
@@ -49,10 +93,31 @@ namespace FoundationDB.Client.Native
 				return NativeMethods.FreeLibrary(handle);
 			}
 		}
+#endif
 
-		[SuppressUnmanagedCodeSecurity]
-		private static class NativeMethods
-		{
+        [SuppressUnmanagedCodeSecurity]
+        private static class NativeMethods
+        {
+#if MONO
+            const string KERNEL = "dl";
+
+            [DllImport(KERNEL)]
+            public static extern IntPtr dlopen(string fileName, int flags);
+
+            [DllImport(KERNEL, SetLastError = true)]
+            [return: MarshalAs(UnmanagedType.Bool)]
+            public static extern int dlclose(IntPtr hModule);
+
+            public static SafeLibraryHandle LoadLibrary(string fileName)
+            {
+
+                IntPtr openLib = dlopen(fileName, 1);
+
+                return new SafeLibraryHandle(openLib);
+            }
+            public static bool FreeLibrary(IntPtr hModule) { return dlclose(hModule) == 0; }
+
+#else
 			const string KERNEL = "kernel32";
 
 			[DllImport(KERNEL, CharSet = CharSet.Auto, BestFitMapping = false, SetLastError = true)]
@@ -62,55 +127,56 @@ namespace FoundationDB.Client.Native
 			[DllImport(KERNEL, SetLastError = true)]
 			[return: MarshalAs(UnmanagedType.Bool)]
 			public static extern bool FreeLibrary(IntPtr hModule);
-		}
+#endif
+        }
 
-		/// <summary>Load a native library into the current process</summary>
-		/// <param name="path">Path to the native dll.</param>
-		/// <remarks>Throws exceptions on failure. Most common failure would be file-not-found, or that the file is not a  loadable image.</remarks>
-		/// <exception cref="System.IO.FileNotFoundException">if fileName can't be found</exception>
-		[NotNull]
-		public static UnmanagedLibrary Load(string path)
-		{
-			if (path == null) throw new ArgumentNullException("path");
+        /// <summary>Load a native library into the current process</summary>
+        /// <param name="path">Path to the native dll.</param>
+        /// <remarks>Throws exceptions on failure. Most common failure would be file-not-found, or that the file is not a  loadable image.</remarks>
+        /// <exception cref="System.IO.FileNotFoundException">if fileName can't be found</exception>
+        [NotNull]
+        public static UnmanagedLibrary Load(string path)
+        {
+            if (path == null) throw new ArgumentNullException("path");
 
-			var handle = NativeMethods.LoadLibrary(path);
-			if (handle == null || handle.IsInvalid)
-			{
-				var ex = Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error());
-				if (ex is System.IO.FileNotFoundException)
-				{
-					throw new System.IO.FileNotFoundException(String.Format("Failed to load native {0} library: {1}", IntPtr.Size == 8 ? "x64" : "x86", path), path, ex);
-				}
-				throw ex;
-			}
-			return new UnmanagedLibrary(handle, path);
-		}
+            var handle = NativeMethods.LoadLibrary(path);
+            if (handle == null || handle.IsInvalid)
+            {
+                var ex = Marshal.GetExceptionForHR(Marshal.GetHRForLastWin32Error());
+                if (ex is System.IO.FileNotFoundException)
+                {
+                    throw new System.IO.FileNotFoundException(String.Format("Failed to load native {0} library: {1}", IntPtr.Size == 8 ? "x64" : "x86", path), path, ex);
+                }
+                throw ex;
+            }
+            return new UnmanagedLibrary(handle, path);
+        }
 
-		/// <summary>Constructor to load a dll and be responible for freeing it.</summary>
-		/// <param name="handle">Handle to the loaded library</param>
-		/// <param name="path">Full path of library to load</param>
-		private UnmanagedLibrary(SafeLibraryHandle handle, string path)
-		{
-			this.Handle = handle;
-			this.Path = path;
-		}
+        /// <summary>Constructor to load a dll and be responible for freeing it.</summary>
+        /// <param name="handle">Handle to the loaded library</param>
+        /// <param name="path">Full path of library to load</param>
+        private UnmanagedLibrary(SafeLibraryHandle handle, string path)
+        {
+            this.Handle = handle;
+            this.Path = path;
+        }
 
-		/// <summary>Path of the native library, as passed to LoadLibrary</summary>
-		public string Path { [NotNull] get; private set; }
+        /// <summary>Path of the native library, as passed to LoadLibrary</summary>
+        public string Path { [NotNull] get; private set; }
 
-		/// <summary>Unmanaged resource. CLR will ensure SafeHandles get freed, without requiring a finalizer on this class.</summary>
-		public SafeLibraryHandle Handle { [NotNull] get; private set; }
+        /// <summary>Unmanaged resource. CLR will ensure SafeHandles get freed, without requiring a finalizer on this class.</summary>
+        public SafeLibraryHandle Handle { [NotNull] get; private set; }
 
-		/// <summary>Call FreeLibrary on the unmanaged dll. All function pointers handed out from this class become invalid after this.</summary>
-		/// <remarks>This is very dangerous because it suddenly invalidate everything retrieved from this dll. This includes any functions handed out via GetProcAddress, and potentially any objects returned from those functions (which may have an implemention in the dll)./// </remarks>
-		public void Dispose()
-		{
-			if (!this.Handle.IsClosed)
-			{
-				this.Handle.Close();
-			}
-		}
+        /// <summary>Call FreeLibrary on the unmanaged dll. All function pointers handed out from this class become invalid after this.</summary>
+        /// <remarks>This is very dangerous because it suddenly invalidate everything retrieved from this dll. This includes any functions handed out via GetProcAddress, and potentially any objects returned from those functions (which may have an implemention in the dll)./// </remarks>
+        public void Dispose()
+        {
+            if (!this.Handle.IsClosed)
+            {
+                this.Handle.Close();
+            }
+        }
 
-	}
+    }
 
 }
