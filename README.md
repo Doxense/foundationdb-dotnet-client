@@ -16,6 +16,9 @@ How to use
 
 ```CSharp
 
+// note: most operations require a valid CancellationToken, which you need to provide
+CancellationToken token = ....; // host-provided cancellation token
+
 // Connect to the db "DB" using the default cluster file
 using (var db = await Fdb.OpenAsync())
 {
@@ -23,7 +26,8 @@ using (var db = await Fdb.OpenAsync())
     var location = db.Partition("Test");
     
     // we need a transaction to be able to make changes to the db
-    using (var trans = db.BeginTransaction())
+    // note: production code should use "db.WriteAsync(..., token)" instead
+    using (var trans = db.BeginTransaction(token))
     {
         // ("Test", "Hello", ) = "World"
         trans.Set(location.Pack("Hello"), Slice.FromString("World"));
@@ -42,7 +46,8 @@ using (var db = await Fdb.OpenAsync())
     }
     
     // we also need a transaction to read from the db
-    using (var trans = db.BeginTransaction())
+    // note: production code should use "db.ReadAsync(..., token)" instead.
+    using (var trans = db.BeginReadOnlyTransaction(token))
     {  
         // Read ("Test", "Hello", ) as a string
         Slice value = await trans.GetAsync(location.Pack("Hello"));
@@ -62,7 +67,8 @@ using (var db = await Fdb.OpenAsync())
     }
 
     // We can also do async "LINQ" queries
-    using (var trans = db.BeginTransaction())
+    // note: production code should use "db.QueryAsync(..., token)" instead.
+    using (var trans = db.BeginReadOnlyTransaction(token))
     {
         // create a child partition for our list
         var list = location.Partition("List");
@@ -97,6 +103,20 @@ using (var db = await Fdb.OpenAsync())
     
 }
 ```
+
+Please note that the above sample is ok for a simple HelloWorld.exe app, but will not scale in production for several reasons:
+
+- You should NOT open a new connection (`Fdb.OpenAsync()`) everytime you need to read or write something. You should open a single database instance somewhere in your startup code, and use this instance everywhere. If you are using a Repository pattern, you can store the IFdbDatabase intance there. Anoter option is to use a Dependency Injection framework
+
+- You should probably not manage transaction yourself (`db.CreateTransaction()`) and prefer using the standard retry loops implemented by `db.ReadAsync(...)`, `db.WriteAsync(...)` and `db.ReadWriteAsync(...)`. These will ensure that your transactions will be retried in case of conflicts. See https://foundationdb.com/key-value-store/documentation/developer-guide.html#conflict-ranges
+
+- Use the `Tuple Layer` to encode and decode your keys, if possible. This will give you a better experience overall, since all the logging filters and key formatters will try to decode tuples by default, and display `(42, "hello", true)` instead of the cryptic `<15>*<02>hello<00><15><01>`. For simple values like strings (ex: JSON text) or 32-bit/64-bit numbers, you can also use `Slice.FromString(...)`, or `Slice.FromInt32(...)`. For composite values, you can also use the Tuple encoding, if the elements types are simple (string, numbers, dates, ...)
+
+- You should use the `Directory Layer` instead of manual partitions. This will help you organize your data into a folder-like structure with nice and description names, while keeping the binary prefixes small. You can access the default DirectoryLayer of your database via the `db.Directory` property.
+
+- You must NEVER block on Task by using .Wait() from non-async code. This will either dead-lock your application, or greatly degrade the performances. If you cannot do otherwise (ex: top-level call in a `void Main()` then at least wrap your code inside a `static async Task MainAsync(string[] args)` method, and do a `MainAsync(args).GetAwaiter().GetResult()`.
+
+- Don't be lazy and never pass in `CancellationToken.None` ! Try to obtain a valid CancellationToken from your execution context (HTTP host, Task Worker environment, ...). This will allow the environment to safely shutdown and abort all pending transactions, without any risks of data corruption. If you don't have any easy source (like in a unit test framework), then at list provide you own using a global `CancellationTokenSource` that you can `Cancel()` in your shutdown code path.
 
 How to build
 ------------
