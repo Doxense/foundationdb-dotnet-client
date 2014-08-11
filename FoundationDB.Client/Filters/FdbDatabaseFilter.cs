@@ -155,7 +155,7 @@ namespace FoundationDB.Filters
 		{
 			ThrowIfDisposed();
 
-			// enfore read-only mode!
+			// enforce read-only mode!
 			if (m_readOnly) mode |= FdbTransactionMode.ReadOnly;
 
 			if (context == null)
