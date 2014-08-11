@@ -25,7 +25,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
-
+#define MONO
 namespace FoundationDB.Client.Native
 {
 	using JetBrains.Annotations;
@@ -38,56 +38,7 @@ namespace FoundationDB.Client.Native
 	/// <summary>Native Library Loader</summary>
 	internal sealed class UnmanagedLibrary : IDisposable
 	{
-#if MONO
-		[SuppressUnmanagedCodeSecurity]
-		public sealed class SafeLibraryHandle
-		{
-			IntPtr handle;
-			public SafeLibraryHandle(IntPtr Handle)
-			{
 
-				handle = Handle;
-
-			}
-
-			public bool IsInvalid
-			{
-				get
-				{
-					return handle == IntPtr.Zero;
-				}
-			}
-
-			public bool IsClosed
-			{
-				get
-				{
-					return handle == IntPtr.Zero;
-				}
-			}
-
-
-			public void Close()
-			{
-
-				if (!IsClosed)
-					ReleaseHandle();
-
-			}
-
-			private bool ReleaseHandle()
-			{
-				if(NativeMethods.FreeLibrary(handle))
-				{
-					handle = IntPtr.Zero;
-					return true;
-				}
-
-				return false;
-
-			}
-		}
-#else
 
 		// See http://msdn.microsoft.com/msdnmag/issues/05/10/Reliability/ for more about safe handles.
 		[SuppressUnmanagedCodeSecurity]
@@ -95,12 +46,20 @@ namespace FoundationDB.Client.Native
 		{
 			private SafeLibraryHandle() : base(true) { }
 
+			internal SafeLibraryHandle(IntPtr Handle)
+				: base(true)
+			{
+
+				SetHandle(Handle);
+			
+			}
+
 			protected override bool ReleaseHandle()
 			{
 				return NativeMethods.FreeLibrary(handle);
 			}
 		}
-#endif
+
 
 		[SuppressUnmanagedCodeSecurity]
 		private static class NativeMethods
@@ -119,7 +78,6 @@ namespace FoundationDB.Client.Native
 			{
 
 				IntPtr openLib = dlopen(fileName, 1);
-
 				return new SafeLibraryHandle(openLib);
 			}
 			public static bool FreeLibrary(IntPtr hModule) { return dlclose(hModule) == 0; }
