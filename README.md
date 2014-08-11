@@ -22,8 +22,8 @@ CancellationToken token = ....; // host-provided cancellation token
 // Connect to the db "DB" using the default cluster file
 using (var db = await Fdb.OpenAsync())
 {
-    // we will use a "Test" subspace to isolate our test data
-    var location = db.Partition("Test");
+    // we will use a "Test" directory to isolate our test data
+    var location = await db.Directory.CreateOrOpenAsync("Test", token);
     
     // we need a transaction to be able to make changes to the db
     // note: production code should use "db.WriteAsync(..., token)" instead
@@ -43,6 +43,8 @@ using (var db = await Fdb.OpenAsync())
         
         // commit the changes to the db
         await trans.CommitAsync();
+        // note: it is only after this completes, that the keys are actually
+        // sent to the database and durably stored.
     }
     
     // we also need a transaction to read from the db
@@ -57,32 +59,76 @@ using (var db = await Fdb.OpenAsync())
         value = await trans.GetAsync(location.Pack("Count"));
         Console.WriteLine(value.ToInt32()); // -> 42
     
-        // missing keys give a result of Slice.Nil, which is the equivalent of "no value"
+        // missing keys give a result of Slice.Nil, which is the equivalent
+        // of "key not found". 
         value = await trans.GetAsync(location.Pack("NotFound"));
         Console.WriteLine(value.HasValue); // -> false
         Console.WriteLine(value == Slice.Nil); // -> true
-        // note: there is also Slice.Empty that is returned for existing keys with no value (used frequently for indexes)
+        // note: there is also Slice.Empty that is returned for existing keys
+        // with no value (used frequently for indexes)
         
-        // no writes, so we don't have to commit the transaction.
+        // this transaction does'nt write aynthing, which means that
+        // we don't have to commit anything.
     }
 
-    // We can also do async "LINQ" queries
-    // note: production code should use "db.QueryAsync(..., token)" instead.
-    using (var trans = db.BeginReadOnlyTransaction(token))
-    {
-        // create a child partition for our list
-        var list = location.Partition("List");
-    
-        // add some data to the list: ("Test", "List", index) = value
+    // Let's make something a little more useful, like a very simple
+    // array of values, indexed by integers (0, 1, 2, ...)
+
+    // First we will create a subdirectory for our little array,
+    // just so that is does not interfere with other things in the cluster.
+    var list = await location.CreateOrOpenAsync(db, "List", token);
+
+	// here we will use db.WriteAsync(...) that implements a retry loop.
+	// this helps protect you against intermitent failures by automatically
+	// retrying the lambda method you provided.
+	await db.WriteAsync((trans) =>
+	{
+        // add some data to the list with the format: (..., index) = value
         trans.Set(list.Pack(0), Slice.FromString("AAA"));
         trans.Set(list.Pack(1), Slice.FromString("BBB"));
         trans.Set(list.Pack(2), Slice.FromString("CCC"));
-    
-        // do a range query on the list partition, that will return the pairs (int index, string value).
-        var results = await (trans.
-            // ask for all keys prefixed by the tuple '("Test", "List", )'
-            .GetRangeStartsWith(list)
-            // transform the results (KeyValuePair<Slice, Slice>) into something nicer
+        // The actual keys will be a concatenation of the prefix of 'list',
+        // and a packed tuple containing the index. Since we are using the
+        // Directory Layer, this should still be fairly small (between 4
+        // and 5 bytes). The values are raw slices, which means that your
+        // application MUST KNOW that they are strings in order to decode
+        // them. If you wan't any tool to be able to find out the type of
+        // your values, you can also use FdbTuple.Pack("AAA") to create
+        // the values, at the cost of 2 extra bytes per entry.
+        
+        // This is always a good idea to maintain a counter of keys in our array.
+        // The cheapest way to do that, is to reuse the subspace key itself, which
+        // is 'in' the subspace, but not 'inside':
+        trans.Set(list.Key, Slice.FromFixed32(3));
+        // We could use FdbTuple.Pack<int>(3) here, but have a fixed size counter
+        // makes it easy to use AtomicAdd(...) to increment (or decrement) the value
+        // when adding or removing entries in the array.
+        
+        // Finally, here we would normally call CommitAsync() to durably commit the
+        // changes, but WriteAsync() will automatically do the commit for you and
+        // return once this is done. This means that you don't even need to mark this
+        // lambda as async, as long as you only call methods like Set(), Clear() or 
+        // any of the AtomicXXX().
+
+        // If something goes wrong with the database, this lambda will be called again,
+        // until the problems goes away, or the retry loop decides that there is no point
+        // in retrying anymore, and the exception will be re-thrown.
+        
+	}, token); // don't forget the cancellation token, which can stop the retry loop !
+
+    // We can read everything back in one shot, using an async "LINQ" query.
+    var results = await db.QueryAsync((trans) =>
+    {
+        // do a range query on the list subspace, which should return all the pairs
+        // in the subspace, one for each entry in the array.
+        // We exploit the fact that subspace.ToRange() usually does not include the
+        // subspace prefix itself, because we don't want our counter to be returned
+        // with the query itself.
+        return trans
+            // ask for all keys that are _inside_ our subspace
+            .GetRange(list.ToRange())
+            // transform the resultoing KeyValuePair<Slice, Slice> into something
+            // nicer to use, like a typed KeyValuePair<int, string>
             .Select((kvp) => 
                 new KeyValuePair<int, string>(
                     // unpack the tuple and returns the last item as an int
@@ -90,21 +136,31 @@ using (var db = await Fdb.OpenAsync())
                     // convert the value into an unicode string
                     kvp.Value.ToUnicode() 
                 ))
-            // only get even values (note: this will execute on the client, the query will still need to fetch ALL the values)
-            .Where((kvp) => kvp.Key % 2 == 0)
-            // actually execute the query, and return a List<KeyValuePair<int, string>> with the results
-            .ToListAsync()
-        );
+            // only get even values
+            // note: this executes on the client, so the query will still need to
+            // fetch ALL the values from the db!
+            .Where((kvp) => kvp.Key % 2 == 0);
 
-       // list.Count -> 2
-       // list[0] -> <int, string>(0, "AAA")
-       // list[1] -> <int, string>(2, "CCC")
-    }
-    
+	    // note that QueryAsync() is a shortcut for calling ReadAsync(...) and then
+	    // calling ToListAsync() on the async LINQ Query. If you want to call a
+	    // different operator than ToListAsync(), just use ReadAsync()
+            
+    }, token);
+
+    // results.Count -> 2
+    // results[0] -> KeyValuePair<int, string>(0, "AAA")
+    // results[1] -> KeyValuePair<int, string>(2, "CCC")
+    //
+    // once you have the result, nothing stops you from using regular LINQ to finish
+    // off your query in memory, outside of the retry loop.
+
+    // now that our little sample program is done, we can dispose the database instance.
+    // in production, you should actually open the connection once in your startup code,
+    // and keep it in a place where the rest of your code can easily access it.
 }
 ```
 
-Please note that the above sample is ok for a simple HelloWorld.exe app, but will not scale in production for several reasons:
+Please note that the above sample is ok for a simple HelloWorld.exe app, but for actual production you need to be careful of a few things:
 
 - You should NOT open a new connection (`Fdb.OpenAsync()`) everytime you need to read or write something. You should open a single database instance somewhere in your startup code, and use that instance everywhere. If you are using a Repository pattern, you can store the IFdbDatabase instance there. Another option is to use a Dependency Injection framework
 
@@ -114,7 +170,7 @@ Please note that the above sample is ok for a simple HelloWorld.exe app, but wil
 
 - You should use the `Directory Layer` instead of manual partitions (`db.Partition(...)`). This will help you organize your data into a folder-like structure with nice and description names, while keeping the binary prefixes small. You can access the default DirectoryLayer of your database via the `db.Directory` property. Using partitions makes it easier to browse the content of your database using tools like `FdbShell`.
 
-- You must NEVER block on Tasks by using .Wait() from non-async code. This will either dead-lock your application, or greatly degrade the performances. If you cannot do otherwise (ex: top-level call in a `void Main()` then at least wrap your code inside a `static async Task MainAsync(string[] args)` method, and do a `MainAsync(args).GetAwaiter().GetResult()`.
+- You should NEVER block on Tasks by using .Wait() from non-async code. This will either dead-lock your application, or greatly degrade the performances. If you cannot do otherwise (ex: top-level call in a `void Main()` then at least wrap your code inside a `static async Task MainAsync(string[] args)` method, and do a `MainAsync(args).GetAwaiter().GetResult()`.
 
 - Don't give in, and resist the tentation of passing `CancellationToken.None` everywhere! Try to obtain a valid `CancellationToken` from your execution context (HTTP host, Task Worker environment, ...). This will allow the environment to safely shutdown and abort all pending transactions, without any risks of data corruption. If you don't have any easy source (like in a unit test framework), then at list provide you own using a global `CancellationTokenSource` that you can `Cancel()` in your shutdown code path. From inside your transactional code, you can get back the token anytime via the `tr.Cancellation` property which will trigger if the transaction completes or is aborted.
 
