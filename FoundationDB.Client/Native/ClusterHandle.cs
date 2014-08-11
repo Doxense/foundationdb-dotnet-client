@@ -30,9 +30,11 @@ namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Client.Utils;
 	using System;
+	using System.Runtime.InteropServices;
 	using System.Threading;
 
 	/// <summary>Wrapper on a FDBCluster*</summary>
+	[StructLayout(LayoutKind.Sequential)]
 	internal sealed class ClusterHandle : FdbSafeHandle
 	{
 

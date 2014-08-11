@@ -25,7 +25,7 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
-
+#define MONO
 namespace FoundationDB.Client.Native
 {
 	using JetBrains.Annotations;
@@ -42,21 +42,12 @@ namespace FoundationDB.Client.Native
 
 		// See http://msdn.microsoft.com/msdnmag/issues/05/10/Reliability/ for more about safe handles.
 		[SuppressUnmanagedCodeSecurity]
-		public sealed class SafeLibraryHandle : SafeHandleZeroOrMinusOneIsInvalid
+		public sealed class SafeLibraryHandle : FdbSafeHandle
 		{
-			private SafeLibraryHandle() : base(true) { }
 
-			internal SafeLibraryHandle(IntPtr Handle)
-				: base(true)
+			protected override void Destroy(IntPtr handle)
 			{
-
-				SetHandle(Handle);
-			
-			}
-
-			protected override bool ReleaseHandle()
-			{
-				return NativeMethods.FreeLibrary(handle);
+				NativeMethods.FreeLibrary(handle);
 			}
 		}
 
@@ -68,7 +59,7 @@ namespace FoundationDB.Client.Native
 			const string KERNEL = "dl";
 
 			[DllImport(KERNEL)]
-			public static extern IntPtr dlopen(string fileName, int flags);
+			public static extern SafeLibraryHandle dlopen(string fileName, int flags);
 
 			[DllImport(KERNEL, SetLastError = true)]
 			[return: MarshalAs(UnmanagedType.Bool)]
@@ -77,8 +68,8 @@ namespace FoundationDB.Client.Native
 			public static SafeLibraryHandle LoadLibrary(string fileName)
 			{
 
-				IntPtr openLib = dlopen(fileName, 1);
-				return new SafeLibraryHandle(openLib);
+				return dlopen(fileName, 1);
+				
 			}
 			public static bool FreeLibrary(IntPtr hModule) { return dlclose(hModule) == 0; }
 
