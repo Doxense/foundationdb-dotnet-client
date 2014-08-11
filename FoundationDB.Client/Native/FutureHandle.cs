@@ -34,7 +34,9 @@ namespace FoundationDB.Client.Native
 	using System.Threading;
 
 	/// <summary>Wrapper on a FDBFuture*</summary>
+#if MONO
 	[StructLayout(LayoutKind.Sequential)]
+#endif
 	internal sealed class FutureHandle : FdbSafeHandle
 	{
 

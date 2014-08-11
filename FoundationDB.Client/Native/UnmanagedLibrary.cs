@@ -41,6 +41,8 @@ namespace FoundationDB.Client.Native
 
 
 		// See http://msdn.microsoft.com/msdnmag/issues/05/10/Reliability/ for more about safe handles.
+
+#if MONO
 		[SuppressUnmanagedCodeSecurity]
 		public sealed class SafeLibraryHandle : FdbSafeHandle
 		{
@@ -50,6 +52,18 @@ namespace FoundationDB.Client.Native
 				NativeMethods.FreeLibrary(handle);
 			}
 		}
+#else
+		[SuppressUnmanagedCodeSecurity]
+		public sealed class SafeLibraryHandle : SafeHandleZeroOrMinusOneIsInvalid
+		{
+			private SafeLibraryHandle() : base(true) { }
+
+			protected override bool ReleaseHandle()
+			{
+				return NativeMethods.FreeLibrary(handle);
+			}
+		}
+#endif
 
 
 		[SuppressUnmanagedCodeSecurity]
