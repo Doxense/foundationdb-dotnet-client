@@ -101,6 +101,8 @@ using (var db = await Fdb.OpenAsync())
 How to build
 ------------
 
+### Visual Studio Solution
+
 You will need Visual Studio .NET 2012 or 2013 and .NET 4.5 minimum to compile the solution.
 
 You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.com wesite, by installing the client SDK:
@@ -114,6 +116,35 @@ You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb
 If you see errors on 'await' or 'async' keywords, please make sure that you are using Visual Studio 2012 or 2013 RC, and not an earlier version.
 
 If you see the error `Unable to locate '...\foundationdb-dotnet-client\.nuget\nuget.exe'` then you need to run the `Enable Nuget Package Restore` entry in the `Project` menu (or right click on the solution) that will reinstall nuget.exe in the .nuget folder. Also, Nuget should redownload the missing packages during the first build.
+
+### From the Command Line
+
+You can also build, test and compile the NuGet packages from the command line, using FAKE.
+
+You will need to perform the same steps as above (download and install FoundationDB)
+
+In a new Command Prompt, go the root folder of the solution and run one of the following commands:
+- `build Test`: to build the solution (Debug) and run the unit tests.
+- `build Release`: to build the solution (Release) and the NuGet packages (which will be copied to `.\build\output\_packages\`)
+- `build BuildAppRelease`: only build the solution (Release)
+- `build BuildAppDebug`: only build the solution (Debug)
+- `build Clean`: clean the solution
+ 
+If you get `System.UnauthorizedAccessException: Access to the path './build/output/FoundationDB.Tests\FoundationDB.Client.dll' is denied.` errors from time to time, you need to kill any `nunit-agent.exe` process that may have stuck around.
+
+### Mono
+
+When building for Mono/Linux, you will need to define the symbol `MONO` when running msbuild or any custom build. This version will look for `libfdb_c.so` instead of `fdb_c.dll`.
+
+More details on running FoundationDB on Linux can be found here: https://foundationdb.com/key-value-store/documentation/getting-started-linux.html
+
+How to build the NuGet packages
+-------------------------------
+
+They are easily build from the command line using FAKE, by running the `build Release` command from the root of the solution.
+
+Once this is done, you can either push these package to your internal NuGet feed, or simplify create a local package folder on your disk. See http://docs.nuget.org/docs/creating-packages/hosting-your-own-nuget-feeds
+
 
 How to test
 -----------
