@@ -77,7 +77,14 @@ namespace FoundationDB.Client.Native
 
 			private bool ReleaseHandle()
 			{
-				return NativeMethods.FreeLibrary(handle);
+				if(NativeMethods.FreeLibrary(handle))
+				{
+					handle = IntPtr.Zero;
+					return true;
+				}
+
+				return false;
+
 			}
 		}
 #else
