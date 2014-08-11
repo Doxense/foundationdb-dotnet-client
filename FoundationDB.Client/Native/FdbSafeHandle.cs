@@ -35,10 +35,11 @@ namespace FoundationDB.Client.Native
 	using System.Runtime.InteropServices;
 
 	/// <summary>Base class for all wrappers on FDBxxxx* opaque pointers</summary>
-	internal abstract class FdbSafeHandle : CriticalHandle
+	[StructLayout(LayoutKind.Sequential)]
+	internal abstract class FdbSafeHandle : SafeHandle
 	{
 		protected FdbSafeHandle()
-			: base(IntPtr.Zero)
+			: base(IntPtr.Zero, true)
 		{ }
 
 		public override bool IsInvalid
