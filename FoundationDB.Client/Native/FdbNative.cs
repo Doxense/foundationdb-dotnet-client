@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 // enable this to help debug native calls to fdbc.dll
 #undef DEBUG_NATIVE_CALLS
-#define MONO
+
 using FoundationDB.Client.Utils;
 using System;
 using System.Collections.Generic;
