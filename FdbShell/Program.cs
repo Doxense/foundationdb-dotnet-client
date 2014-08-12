@@ -50,59 +50,46 @@ namespace FdbShell
 			return new FdbLoggedDatabase(db, false, false, (tr) => { stream.WriteLine(tr.Log.GetTimingsReport(true)); if (autoFlush) stream.Flush(); });
 		}
 
-		public static void RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command)
+		public static async Task RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command, CancellationToken cancel)
 		{
 			TextWriter log = null;
 			var db = Db;
 			if (log == null) log = Console.Out;
 
-			var cts = new CancellationTokenSource();
-			//ConsoleCancelEventHandler emergencyBreak = (_, a) =>
-			//{
-			//	a.Cancel = true;
-			//	Console.WriteLine();
-			//	Console.WriteLine("[ABORTING]");
-			//	cts.Cancel();
-			//};
-			//Console.CancelKeyPress += emergencyBreak;
-			try
-			{
-				var t = command(db, log, cts.Token);
-				t.GetAwaiter().GetResult();
-			}
-			catch (Exception e)
-			{
-				Console.WriteLine("EPIC FAIL!");
-				Console.Error.WriteLine(e.ToString());
-				cts.Cancel();
-			}
-			finally
-			{
-				//Console.CancelKeyPress -= emergencyBreak;
-				cts.Dispose();
+			using(var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel))
+			{ 
+				try
+				{
+					await command(db, log, cts.Token).ConfigureAwait(false);
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine("EPIC FAIL!");
+					Console.Error.WriteLine(e.ToString());
+					cts.Cancel();
+				}
 			}
 		}
 
-		public static Maybe<T> RunAsyncCommand<T>(Func<IFdbDatabase, TextWriter, CancellationToken, Task<T>> command)
+		public static async Task<Maybe<T>> RunAsyncCommand<T>(Func<IFdbDatabase, TextWriter, CancellationToken, Task<T>> command, CancellationToken cancel)
 		{
 			TextWriter log = null;
 			var db = Db;
 			if (log == null) log = Console.Out;
 
-			var cts = new CancellationTokenSource();
-			try
+			using(var cts = CancellationTokenSource.CreateLinkedTokenSource(cancel))
 			{
-				var t = command(db, log, cts.Token);
-				return Maybe.Return(t.GetAwaiter().GetResult());
-			}
-			catch (Exception e)
-			{
-				Console.Error.WriteLine(e.ToString());
-				return Maybe.Error<T>(e);
-			}
-			finally
-			{
-				cts.Dispose();
+				try
+				{
+					return Maybe.Return<T>(await command(db, log, cts.Token).ConfigureAwait(false));
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine("EPIC FAIL!");
+					Console.Error.WriteLine(e.ToString());
+					cts.Cancel();
+					return Maybe.Error<T>(e);
+				}
 			}
 		}
 
@@ -112,7 +99,24 @@ namespace FdbShell
 			Console.WindowWidth = 160;
 			Console.WindowHeight = 60;
 #endif
+			// Initialize FDB
+			Fdb.Start();
+			try
+			{
+				using (var go = new CancellationTokenSource())
+				{
+					MainAsync(args, go.Token).GetAwaiter().GetResult();
+				}
+			}
+			finally
+			{
+				Fdb.Stop();
+				Console.WriteLine("Bye");
+			}
+		}
 
+		private static async Task MainAsync(string[] args, CancellationToken cancel)
+		{
 			#region Options Parsing...
 
 			string clusterFile = null;
@@ -120,7 +124,7 @@ namespace FdbShell
 			var partition = new string[0];
 			bool showHelp = false;
 			int timeout = 30;
-			int maxRetries =  10;
+			int maxRetries = 10;
 
 			var opts = new OptionSet()
 			{
@@ -168,15 +172,11 @@ namespace FdbShell
 
 			#endregion
 
-			var go = new CancellationTokenSource();
 			bool stop = false;
-
-			// Initialize FDB
-			Fdb.Start();
 			Db = null;
 			try
 			{
-				Db = ChangeDatabase(clusterFile, dbName, partition, go.Token).GetAwaiter().GetResult();
+				Db = await ChangeDatabase(clusterFile, dbName, partition, cancel);
 				Db.DefaultTimeout = Math.Max(0, timeout) * 1000;
 				Db.DefaultRetryLimit = Math.Max(0, maxRetries);
 
@@ -248,7 +248,7 @@ namespace FdbShell
 								prefix = arg.Substring(0, p + 1);
 							}
 
-							var subdirs = RunAsyncCommand((db, log, ct) => AutoCompleteDirectories(path, db, log, ct));
+							var subdirs = RunAsyncCommand((db, log, ct) => AutoCompleteDirectories(path, db, log, ct), cancel).GetAwaiter().GetResult();
 							if (!subdirs.HasValue || subdirs.Value == null) return new LineEditor.Completion(txt, null);
 
 							res = subdirs.Value
@@ -303,20 +303,20 @@ namespace FdbShell
 
 						case "version":
 						{
-							VersionCommand(prm, clusterFile, Console.Out);
+							await VersionCommand(prm, clusterFile, Console.Out, cancel);
 							break;
 						}
 
 						case "tree":
 						{
 							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							RunAsyncCommand((db, log, ct) => BasicCommands.Tree(path, extras, db, log, ct));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Tree(path, extras, db, log, ct), cancel);
 							break;
 						}
 						case "map":
 						{
 							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							RunAsyncCommand((db, log, ct) => BasicCommands.Map(path, extras, db, log, ct));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Map(path, extras, db, log, ct), cancel);
 							break;
 						}
 
@@ -324,27 +324,27 @@ namespace FdbShell
 						case "ls":
 						{
 							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.Default, db, log, ct));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.Default, db, log, ct), cancel);
 							break;
 						}
 						case "ll":
 						{
 							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.ShowCount, db, log, ct));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Dir(path, extras, BasicCommands.DirectoryBrowseOptions.ShowCount, db, log, ct), cancel);
 							break;
 						}
 
 						case "count":
 						{
 							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							RunAsyncCommand((db, log, ct) => BasicCommands.Count(path, extras, db, log, ct));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Count(path, extras, db, log, ct), cancel);
 							break;
 						}
 
 						case "show":
 						{
 							var path = ParsePath(CurrentDirectoryPath);
-							RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, db, log, ct));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, db, log, ct), cancel);
 							break;
 						}
 
@@ -354,7 +354,7 @@ namespace FdbShell
 							if (!string.IsNullOrEmpty(prm))
 							{
 								var newPath = CombinePath(CurrentDirectoryPath, prm);
-								var res = RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(newPath), db, ct));
+								var res = await RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(newPath), db, ct), cancel);
 								if (res == null)
 								{
 									Console.WriteLine("# Directory {0} does not exist!", newPath);
@@ -368,8 +368,8 @@ namespace FdbShell
 							}
 							else
 							{
-								var res = RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(CurrentDirectoryPath), db, ct));
-								if (res == null)
+								var res = await RunAsyncCommand((db, log, ct) => BasicCommands.TryOpenCurrentDirectoryAsync(ParsePath(CurrentDirectoryPath), db, ct), cancel);
+								if (res.GetValueOrDefault() == null)
 								{
 									Console.WriteLine("# Directory {0} does not exist anymore", CurrentDirectoryPath);
 								}
@@ -382,40 +382,81 @@ namespace FdbShell
 						}
 						case "mkdir":
 						case "md":
-						{
-							// "mkdir DIRECTORYNAME"
+						{ // "mkdir DIRECTORYNAME"
 
 							if (!string.IsNullOrEmpty(prm))
 							{
 								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-								RunAsyncCommand((db, log, ct) => BasicCommands.Create(path, extras, db, log, ct));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.CreateDirectory(path, extras, db, log, ct), cancel);
 							}
+							break;
+						}
+						case "rmdir":
+						{ // "rmdir DIRECTORYNAME"
+							if (!string.IsNullOrEmpty(prm))
+							{
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.RemoveDirectory(path, extras, db, log, ct), cancel);
+							}
+							break;
+						}
+						case "layer":
+						{
+							if (string.IsNullOrEmpty(prm))
+							{ // displays the layer id of the current folder
+								var path = ParsePath(CurrentDirectoryPath);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.ShowDirectoryLayer(path, extras, db, log, ct), cancel);
+
+							}
+							else
+							{ // change the layer id of the current folder
+								prm = prm.Trim();
+								// double or single quotes can be used to escape the value
+								if (prm.Length >= 2 && (prm.StartsWith("'") && prm.EndsWith("'")) || (prm.StartsWith("\"") && prm.EndsWith("\"")))
+								{
+									prm = prm.Substring(1, prm.Length - 2);
+								}
+								var path = ParsePath(CurrentDirectoryPath);
+								await RunAsyncCommand((db, log, ct) => BasicCommands.ChangeDirectoryLayer(path, prm, extras, db, log, ct), cancel);
+							}
+							break;
+						}
+
+						case "mkpart":
+						{ // "mkpart PARTITIONNAME"
+
+							if (!string.IsNullOrEmpty(prm))
+							{
+								var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+								await RunAsyncCommand((db, log, ct) => BasicCommands.CreateDirectory(path, FdbTuple.Create(FdbDirectoryPartition.LayerId).Concat(extras), db, log, ct), cancel);
+							}
+
 							break;
 						}
 
 						case "topology":
 						{
-							RunAsyncCommand((db, log, ct) => BasicCommands.Topology(null, extras, db, log, ct));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Topology(null, extras, db, log, ct), cancel);
 							break;
 						}
 
 						case "shards":
 						{
 							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							RunAsyncCommand((db, log, ct) => BasicCommands.Shards(path, extras, db, log, ct));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Shards(path, extras, db, log, ct), cancel);
 							break;
 						}
 
 						case "sampling":
 						{
 							var path = ParsePath(CombinePath(CurrentDirectoryPath, prm));
-							RunAsyncCommand((db, log, ct) => BasicCommands.Sampling(path, extras, db, log, ct));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Sampling(path, extras, db, log, ct), cancel);
 							break;
 						}
 
 						case "coordinators":
 						{
-							RunAsyncCommand((db, log, ct) => CoordinatorsCommand(db, log, ct));
+							await RunAsyncCommand((db, log, ct) => CoordinatorsCommand(db, log, ct), cancel);
 							break;
 						}
 
@@ -432,7 +473,7 @@ namespace FdbShell
 							IFdbDatabase newDb = null;
 							try
 							{
-								newDb = ChangeDatabase(clusterFile, dbName, newPartition, go.Token).GetAwaiter().GetResult();
+								newDb = await ChangeDatabase(clusterFile, dbName, newPartition, cancel);
 							}
 							catch (Exception)
 							{
@@ -498,7 +539,7 @@ namespace FdbShell
 						case "status":
 						case "wtf":
 						{
-							var result = RunAsyncCommand((_, log, ct) => FdbCliCommands.RunFdbCliCommand("status details", null, clusterFile, log, ct));
+							var result = await RunAsyncCommand((_, log, ct) => FdbCliCommands.RunFdbCliCommand("status details", null, clusterFile, log, ct), cancel);
 							if (result.HasFailed) break;
 							if (result.Value.ExitCode != 0)
 							{
@@ -521,10 +562,7 @@ namespace FdbShell
 			}
 			finally
 			{
-				go.Cancel();
 				if (Db != null) Db.Dispose();
-				Fdb.Stop();
-				Console.WriteLine("Bye");
 			}
 		}
 
@@ -579,10 +617,10 @@ namespace FdbShell
 			} 
 		}
 
-		private static void VersionCommand(string prm, string clusterFile, TextWriter log)
+		private static async Task VersionCommand(string prm, string clusterFile, TextWriter log, CancellationToken cancel)
 		{
 			log.WriteLine("Using .NET Binding v{0} with API level {1}", new System.Reflection.AssemblyName(typeof(Fdb).Assembly.FullName).Version, Fdb.ApiVersion);
-			var res = RunAsyncCommand((db, _, ct) => FdbCliCommands.RunFdbCliCommand(null, "-h", clusterFile, log, ct));
+			var res = await RunAsyncCommand((db, _, ct) => FdbCliCommands.RunFdbCliCommand(null, "-h", clusterFile, log, ct), cancel);
 			if (res.HasValue && res.Value.ExitCode == 0)
 			{
 				//HACK HACK HACK

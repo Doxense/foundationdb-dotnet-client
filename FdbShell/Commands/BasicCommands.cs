@@ -49,6 +49,11 @@ namespace FdbShell
 				return;
 			}
 
+			if (parent.Layer.IsPresent)
+			{
+				log.WriteLine("# Layer: {0}", parent.Layer.ToAsciiOrHexaString());
+			}
+
 			var folders = await Fdb.Directory.BrowseAsync(db, parent, ct);
 			if (folders != null && folders.Count > 0)
 			{
@@ -84,12 +89,13 @@ namespace FdbShell
 			}
 			else
 			{
+				//TODO: test if it contains data?
 				log.WriteLine("  No sub-directories.");
 			}
 		}
 
 		/// <summary>Creates a new directory</summary>
-		public static async Task Create(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		public static async Task CreateDirectory(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			if (log == null) log = Console.Out;
 
@@ -113,6 +119,67 @@ namespace FdbShell
 			{
 				log.WriteLine("CAUTION: There is already some data under {0} !");
 				log.WriteLine("  {0} = {1}", FdbKey.Dump(stuff.Key), stuff.Value.ToAsciiOrHexaString());
+			}
+		}
+
+		/// <summary>Remove a directory and all its data</summary>
+		public static async Task RemoveDirectory(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		{
+			if (log == null) log = Console.Out;
+
+			string layer = extras.Count > 0 ? extras.Get<string>(0) : null;
+
+			var folder = await db.Directory.TryOpenAsync(path, cancellationToken: ct);
+			if (folder == null)
+			{
+				log.WriteLine("# Directory {0} does not exist", string.Join("/", path));
+				return;
+			}
+
+			// are there any subdirectories ?
+			var subDirs = await folder.TryListAsync(db, ct);
+			if (subDirs.Count > 0)
+			{
+				//TODO: "-r" flag ?
+				log.WriteLine("# Cannot remove {0} because it still contains {1} sub-directorie(s)", string.Join("/", path), subDirs.Count);
+			}
+
+			//TODO: ask for confirmation?
+
+			log.WriteLine("# Deleting directory {0} ...", String.Join("/", path));
+			await folder.RemoveAsync(db, ct);
+			log.WriteLine("# Gone!");
+		}
+
+		public static async Task ShowDirectoryLayer(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		{
+			var dir = await BasicCommands.TryOpenCurrentDirectoryAsync(path, db, ct);
+			if (dir == null)
+			{
+				log.WriteLine("# Directory {0} does not exist anymore", String.Join("/", path));
+			}
+			else
+			{
+				if (dir.Layer == FdbDirectoryPartition.LayerId)
+					log.WriteLine("# Directory {0} is a partition", String.Join("/", path));
+				else if (dir.Layer.IsPresent)
+					log.WriteLine("# Directory {0} has layer {1}", String.Join("/", path), dir.Layer.ToAsciiOrHexaString());
+				else
+					log.WriteLine("# Directory {0} does not have a layer defined", String.Join("/", path));
+			}
+		}
+
+		public static async Task ChangeDirectoryLayer(string[] path, string layer, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		{
+			var dir = await BasicCommands.TryOpenCurrentDirectoryAsync(path, db, ct);
+			if (dir == null)
+			{
+				log.WriteLine("# Directory {0} does not exist anymore", String.Join("/", path));
+			}
+			else
+			{
+				dir = await db.ReadWriteAsync((tr) => dir.ChangeLayerAsync(tr, Slice.FromString(layer)), ct);
+				log.WriteLine("# Directory {0} layer changed to {1}", String.Join("/", path), dir.Layer.ToAsciiOrHexaString());
 			}
 		}
 
