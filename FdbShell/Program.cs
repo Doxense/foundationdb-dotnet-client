@@ -96,8 +96,11 @@ namespace FdbShell
 		public static void Main(string[] args)
 		{
 #if true || DEBUG
-			Console.WindowWidth = 160;
-			Console.WindowHeight = 60;
+			if (Console.LargestWindowWidth > 0)
+			{
+				Console.WindowWidth = 160;
+				Console.WindowHeight = 60;
+			}
 #endif
 			// Initialize FDB
 			Fdb.Start();
@@ -125,6 +128,7 @@ namespace FdbShell
 			bool showHelp = false;
 			int timeout = 30;
 			int maxRetries = 10;
+			string execCommand = null;
 
 			var opts = new OptionSet()
 			{
@@ -149,6 +153,11 @@ namespace FdbShell
 					(int v) => maxRetries = v
 				},
 				{
+					"exec=",
+					"Execute this command, and exits immediately.",
+					v => execCommand = v
+				},
+				{
 					"h|help",
 					"Show this help and exit.",
 					v => showHelp = v != null
@@ -165,7 +174,11 @@ namespace FdbShell
 			}
 
 			string startCommand = null;
-			if (extra.Count > 0)
+			if (!string.IsNullOrEmpty(execCommand))
+			{
+				startCommand = execCommand;
+			}
+			else if (extra.Count > 0)
 			{ // the remainder of the command line will be the first command to execute
 				startCommand = String.Join(" ", extra);
 			}
@@ -574,6 +587,12 @@ namespace FdbShell
 							break;
 						}
 					}
+
+					if (!string.IsNullOrEmpty(execCommand))
+					{ // only run one command, and then exit
+						break;
+					}
+
 				}
 			}
 			finally

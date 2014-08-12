@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -437,7 +438,7 @@ namespace FdbShell
 
 			if (bigBad != null)
 			{
-				log.WriteLine("Biggest folder is /{0} with {1} shards ({2:N1}%)", String.Join("/", bigBad.Path), max, 100.0 * max / totalShards);
+				log.WriteLine("Biggest folder is /{0} with {1} shards ({2:N1}% total, {3:N1}% subtree)", String.Join("/", bigBad.Path), max, 100.0 * max / totalShards, 100.0 * max / foundShards);
 				log.WriteLine();
 			}
 		}
@@ -454,40 +455,97 @@ namespace FdbShell
 			return x.ToString("N2", ci) + " G";
 		}
 
+		/// <summary>Find the DCs, machines and processes in the cluster</summary>
 		public static async Task Topology(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
-			// estimate the number of machines...
-			Console.WriteLine("# Detecting cluster topology...");
+			var coords = await Fdb.System.GetCoordinatorsAsync(db, ct);
+			log.WriteLine("[Cluster] {0}", coords.Id);
+
 			var servers = await db.QueryAsync(tr => tr
 				.WithAccessToSystemKeys()
 				.GetRange(FdbKeyRange.StartsWith(Fdb.System.ServerList))
 				.Select(kvp => new
 				{
-					Node = kvp.Value.Substring(8, 16).ToHexaString(),
-					Machine = kvp.Value.Substring(24, 16).ToHexaString(),
-					DataCenter = kvp.Value.Substring(40, 16).ToHexaString()
+					// Offsets		Size	Type	Name		Description
+					//    0			 2		Word	Version?	0100 (1.0 ?)
+					//    2			 4		DWord	???			0x00 0x20 0xA2 0x00
+					//    6			 2		Word	FDBMagic	0xDB 0x0F "FDB"
+					//    8			16		Guid	NodeId		Unique Process ID
+					//   24			16		Guid	Machine		"machine_id" field in foundationdb.conf (ends with 8x0 if manually specified)
+					//   40			16		Guid	DataCenter	"datacenter_id" field in foundationdb.conf (ends with 8x0 if manually specified)
+					//   56			 4		???		??			4 x 0
+					//   60			12 x24	ARRAY[] ??			array of 12x the same 24-byte struct defined below
+
+					// ...0			 4		DWord	IPAddress	01 00 00 7F => 127.0.0.1
+					// ...4			 4		DWord	Port		94 11 00 00 -> 4500
+					// ...8			 4		DWord	??			randomish, changes every reboot
+					// ..12			 4		DWord	??			randomish, changes every reboot
+					// ..16			 4		DWord	Size?		small L-E integer, usually between 0x20 and 0x40...
+					// ..20			 4		DWord	??			randmoish, changes every reboot
+
+					ProcessId = kvp.Value.Substring(8, 16).ToHexaString(),
+					MachineId = kvp.Value.Substring(24, 16).ToHexaString(),
+					DataCenterId = kvp.Value.Substring(40, 16).ToHexaString(),
+
+					Parts = Enumerable.Range(0, 12).Select(i =>
+					{
+						int p = 60 + 24 * i;
+						return new
+						{
+							Address = new IPAddress(kvp.Value.Substring(p, 4).GetBytes().Reverse().ToArray()),
+							Port = kvp.Value.Substring(p + 4, 4).ToInt32(),
+							Unknown1 = kvp.Value.Substring(p + 8, 4).ToInt32(),
+							Unknown2 = kvp.Value.Substring(p + 12, 4).ToInt32(),
+							Unknown3 = kvp.Value.Substring(p + 16, 4).ToInt32(),
+							Unknown4 = kvp.Value.Substring(p + 20, 4).ToInt32(),
+						};
+					}).ToList(),
+					Raw = kvp.Value,
 				}),
 				ct
 			);
 
-			var numNodes = servers.Select(s => s.Node).Distinct().Count();
-			var numMachines = servers.Select(s => s.Machine).Distinct().Count();
-			var numDCs = servers.Select(s => s.DataCenter).Distinct().Count();
+			var numNodes = servers.Select(s => s.ProcessId).Distinct().Count();
+			var numMachines = servers.Select(s => s.MachineId).Distinct().Count();
+			var numDCs = servers.Select(s => s.DataCenterId).Distinct().Count();
 
-			Console.WriteLine("Found " + numNodes + " process(es) on " + numMachines + " machine(s) in " + numDCs + " datacenter(s)");
-			foreach(var dc in servers.GroupBy(x => x.DataCenter))
+			var dcs = servers.GroupBy(x => x.DataCenterId).ToArray();
+			for (int dcIndex = 0; dcIndex < dcs.Length;dcIndex++)
 			{
-				Console.WriteLine("> DataCenter {0} ({1})", dc.Key, dc.Count());
-				foreach(var machine in dc.GroupBy(x => x.Machine))
+				var dc = dcs[dcIndex];
+				bool lastDc = dcIndex == dcs.Length - 1;
+
+				string dcId = dc.Key.EndsWith("0000000000000000") ? dc.Key.Substring(0, 16) : dc.Key;
+				log.WriteLine((lastDc ? "`- " : "|- ") + "[DataCenter] {0} (#{1})", dcId, dcIndex);
+
+				var machines = dc.GroupBy(x => x.MachineId).ToArray();
+				string dcPrefix = lastDc ? "   " : "|  ";
+				for (int machineIndex = 0; machineIndex < machines.Length; machineIndex++)
 				{
-					Console.WriteLine("  > Machine {0} ({1})", machine.Key, machine.Count());
-					foreach(var proc in machine)
+					var machine = machines[machineIndex];
+					var lastMachine = machineIndex == machines.Length - 1;
+
+					string machineId = machine.Key.EndsWith("0000000000000000") ? machine.Key.Substring(0, 16) : machine.Key;
+					log.WriteLine(dcPrefix + (lastMachine ? "`- " : "|- ") + "[Machine] {0}, {1}", machine.First().Parts[0].Address, machineId);
+
+					var procs = machine.ToArray();
+					string machinePrefix = dcPrefix + (lastMachine ? "   " : "|  ");
+					for (int procIndex = 0; procIndex < procs.Length; procIndex++)
 					{
-						Console.WriteLine("    > Process {0}", proc.Node);
+						var proc = procs[procIndex];
+						bool lastProc = procIndex == procs.Length - 1;
+
+						log.WriteLine(machinePrefix + (lastProc ? "`- " : "|- ") + "[Process] {0}:{1}, {2}", proc.Parts[0].Address, proc.Parts[0].Port, proc.ProcessId);
+						//foreach (var part in proc.Parts)
+						//{
+						//	log.WriteLine(machinePrefix + "|  -> {0}, {1}, {2:X8}, {3:X8}, {4}, {5:X8}", part.Address, part.Port, part.Unknown1, part.Unknown2, part.Unknown3, part.Unknown4);
+						//}
 					}
 				}
 			}
-			Console.WriteLine();
+			log.WriteLine();
+			log.WriteLine("Found {0} process(es) on {1} machine(s) in {2} datacenter(s)", numNodes, numMachines, numDCs);
+			log.WriteLine();
 		}
 
 		public static async Task Shards(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)

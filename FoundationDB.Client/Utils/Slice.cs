@@ -967,10 +967,10 @@ namespace FoundationDB.Client
 			var buffer = this.Array;
 			int p = this.Offset;
 			int n = this.Count;
-			var sb = new StringBuilder(n * 3);
+			var sb = new StringBuilder(n * (sep == '\0' ? 2 : 3));
 			while (n-- > 0)
 			{
-				if (sb.Length > 0) sb.Append(sep);
+				if (sep != '\0' && sb.Length > 0) sb.Append(sep);
 				byte b = buffer[p++];
 				int x = b >> 4;
 				sb.Append((char)(x + (x < 10 ? 48 : 55)));
