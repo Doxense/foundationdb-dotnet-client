@@ -151,6 +151,27 @@ namespace FdbShell
 			log.WriteLine("# Gone!");
 		}
 
+		/// <summary>Move/Rename a directory</summary>
+		public static async Task MoveDirectory(string[] srcPath, string[] dstPath, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		{
+			var folder = await db.Directory.TryOpenAsync(srcPath, cancellationToken: ct);
+			if (folder == null)
+			{
+				log.WriteLine("# Source directory {0} does not exist!", string.Join("/", srcPath));
+				return;
+			}
+
+			folder = await db.Directory.TryOpenAsync(dstPath, cancellationToken: ct);
+			if (folder != null)
+			{
+				log.WriteLine("# Destination directory {0} already exists!", string.Join("/", dstPath));
+				return;
+			}
+
+			await db.Directory.MoveAsync(srcPath, dstPath, ct);
+			Console.WriteLine("Moved {0} to {1}", string.Join("/", srcPath), string.Join("/", dstPath));
+		}
+
 		public static async Task ShowDirectoryLayer(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			var dir = await BasicCommands.TryOpenCurrentDirectoryAsync(path, db, ct);

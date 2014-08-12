@@ -199,26 +199,30 @@ namespace FdbShell
 
 				string[] cmds = new string[]
 				{
-					"exit",
-					"quit",
-					"pwd",
 					"cd",
-					"mkdir",
-					"gc",
-					"mem",
-					"dir",
-					"tree",
-					"map",
-					"show",
-					"count",
-					"sampling",
 					"coordinators",
-					"partition",
-					"version",
+					"count",
+					"dir",
+					"exit",
+					"gc",
 					"help",
-					"topology",
+					"layer",
+					"map",
+					"mem",
+					"mkdir",
+					"mv",
+					"partition",
+					"pwd",
+					"quit",
+					"ren",
+					"rmdir",
+					"sampling",
 					"shards",
+					"show",
 					"status",
+					"topology",
+					"tree",
+					"version",
 					"wide",
 				};
 
@@ -400,6 +404,18 @@ namespace FdbShell
 							}
 							break;
 						}
+
+						case "mv":
+						case "ren":
+						{ // "mv SOURCE DESTINATION"
+							
+							var srcPath = ParsePath(CombinePath(CurrentDirectoryPath, prm));
+							var dstPath = ParsePath(CombinePath(CurrentDirectoryPath, extras.Get<string>(0)));
+							await RunAsyncCommand((db, log, ct) => BasicCommands.MoveDirectory(srcPath, dstPath, extras.Substring(1), db, log, ct), cancel);
+
+							break;
+						}
+
 						case "layer":
 						{
 							if (string.IsNullOrEmpty(prm))
