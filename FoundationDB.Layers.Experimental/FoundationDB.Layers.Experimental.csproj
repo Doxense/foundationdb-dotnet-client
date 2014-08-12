@@ -58,7 +58,9 @@
     <Compile Include="Indexes\Bitmaps\CompressedBitmapBuilder.cs" />
     <Compile Include="Indexes\Bitmaps\CompressedWord.cs" />
     <Compile Include="Indexes\Bitmaps\CompressedBitmapWriter.cs" />
-    <Compile Include="Indexes\Bitmaps\Sandbox.cs" />
+    <Compile Include="Indexes\Bitmaps\CompressedBitmapIterator.cs" />
+    <Compile Include="Indexes\Bitmaps\CompressedBitmapBitView.cs" />
+    <Compile Include="Indexes\Bitmaps\BitRange.cs" />
     <Compile Include="Indexes\Bitmaps\WordAlignHybridEncoder.cs" />
     <Compile Include="Indexes\FdbCompressedBitmapIndex.cs" />
     <Compile Include="Messaging\WorkerPoolTest.cs" />

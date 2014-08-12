@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 	using FoundationDB.Client;
 	using NUnit.Framework;
 	using System;
+	using System.Collections.Generic;
 	using System.Linq;
 	using System.Text;
 
@@ -141,7 +142,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			Assert.That(ClearBitAndVerify(builder, witness, 42), Is.False, "Clear just after clear");
 
 		}
-	
+
 		[Test]
 		public void Test_CompressedBitmapBuilder_Linear_Sets()
 		{
@@ -331,6 +332,144 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				WordAlignHybridEncoder.CompressTo(Slice.Create(buffer), output);
 				Console.WriteLine("{0}\t{1}\t1024", 1.0d * (i + 1) / VALUES, output.Length);
 			}
+
+		}
+
+		private class Character
+		{
+			public int Id { get; set; }
+			public string Name { get; set; } // will mostly be used for sorting
+			public string Gender { get; set; } // poor man's enum with 49%/49%/1% distribution
+			public string Job { get; set; } // regular enum with random distribution
+			public DateTime? Born { get; set; } // accurate to the day, usually used in range queries
+			public bool Dead { get; set; } // zomg, spoilers ahead! probably used as an exclusion flag (like IsDeleted)
+
+		}
+
+		private static Action<TDoc> MakeInserter<TDoc, TKey>(Dictionary<TKey, CompressedBitmap> index, Func<TDoc, int> idFunc, Func<TDoc, TKey> keyFunc)
+		{
+			return (TDoc doc) =>
+			{
+				int docId = idFunc(doc);
+				TKey indexedValue = keyFunc(doc);
+				CompressedBitmap bmp;
+				if (!index.TryGetValue(indexedValue, out bmp)) bmp = CompressedBitmap.Empty;
+
+				var builder = bmp.ToBuilder();
+				builder.Set(docId);
+				index[indexedValue] = builder.ToBitmap();
+			};
+		}
+
+		private static List<Character> DumpIndexQueryResult(Dictionary<int, Character> characters, CompressedBitmap bitmap)
+		{
+			var results = new List<Character>();
+			foreach (var docId in bitmap.GetView())
+			{
+				Character charac;
+				Assert.That(characters.TryGetValue(docId, out charac), Is.True);
+
+				results.Add(charac);
+				Console.WriteLine("- {0}: {1} {2}{3}", docId, charac.Name, charac.Gender == "Male" ? "\u2642" : charac.Gender == "Female" ? "\u2640" : charac.Gender, charac.Dead ? " (\u271D)" : "");
+			}
+			return results;
+		}
+
+		[Test]
+		public void Test_Merging_Multiple_Bitmaps()
+		{
+			var dataSet = new List<Character>()
+			{
+				new Character { Id = 1, Name = "Spike Spiegel", Gender = "Male", Job="Bounty_Hunter", Born = new DateTime(2044, 6, 26), Dead = true /* bang! */ },
+				new Character { Id = 2, Name = "Jet Black", Gender = "Male", Job="Bounty_Hunter", Born = new DateTime(2035, 12, 13) },
+				new Character { Id = 3, Name = "Faye Valentine", Gender = "Female", Job="Bounty_Hunter", Born = new DateTime(1994, 8, 14) },
+				new Character { Id = 4, Name = "Edward Wong Hau Pepelu Tivruski IV", Gender = "Female", Job="Hacker", Born = new DateTime(2058, 1, 1) },
+				new Character { Id = 5, Name = "Ein", Gender = "Male", Job="Dog" },
+				new Character { Id = 6, Name = "Vicious", Gender = "Male", Job = "Vilain", Dead = true },
+				new Character { Id = 7, Name = "Julia", Gender = "Female", Job = "Damsel_In_Distress", Dead = true /* It's all a dream */ },
+				new Character { Id = 8, Name = "Victoria Tepsichore", Gender = "Female", Job = "Space_Trucker" },
+				new Character { Id = 9, Name = "Punch", Gender = "Male", Job = "TV_Host" },
+				new Character { Id = 10, Name = "Judy", Gender = "Female", Job = "TV_Host" },
+			};
+
+			// poor man's in memory database
+			var database = new Dictionary<int, Character>();
+			var indexByGender = new Dictionary<string, CompressedBitmap>(StringComparer.OrdinalIgnoreCase);
+			var indexByJob = new Dictionary<string, CompressedBitmap>(StringComparer.OrdinalIgnoreCase);
+			var indexOfTheDead = new Dictionary<bool, CompressedBitmap>();
+
+			// simulate building the indexes one document at a time
+			var indexers = new[]
+			{
+				MakeInserter<Character, string>(indexByGender, (doc) => doc.Id, (doc) => doc.Gender),
+				MakeInserter<Character, string>(indexByJob, (doc) => doc.Id, (doc) => doc.Job),
+				MakeInserter<Character, bool>(indexOfTheDead, (doc) => doc.Id, (doc) => doc.Dead),
+			};
+
+			Console.WriteLine("Inserting into database...");
+			foreach (var character in dataSet)
+			{
+				database[character.Id] = character;
+				foreach (var indexer in indexers)
+				{
+					indexer(character);
+				}
+			}
+
+			// dump the indexes
+			Console.WriteLine();
+			Console.WriteLine("Genders:");
+			foreach (var kv in indexByGender)
+			{
+				Console.WriteLine("- {0}: {1}", kv.Key, kv.Value.Dump());
+			}
+			Console.WriteLine();
+			Console.WriteLine("Jobs:");
+			foreach (var kv in indexByJob)
+			{
+				Console.WriteLine("- {0}: {1}", kv.Key, kv.Value.Dump());
+			}
+			Console.WriteLine();
+			Console.WriteLine("DeadOrAlive:");
+			foreach (var kv in indexOfTheDead)
+			{
+				Console.WriteLine("- {0}: {1}", kv.Key ? "dead" : "alive", kv.Value.Dump());
+			}
+
+			// Où sont les femmes ?
+			Console.WriteLine();
+			Console.WriteLine("indexByGender.Lookup('Female')");
+			CompressedBitmap females;
+			Assert.That(indexByGender.TryGetValue("Female", out females), Is.True);
+			Console.WriteLine("=> {0}", females.Dump());
+			DumpIndexQueryResult(database, females);
+
+			// R.I.P
+			Console.WriteLine();
+			Console.WriteLine("indexOfTheDead.Lookup(dead: true)");
+			CompressedBitmap deadPeople;
+			Assert.That(indexOfTheDead.TryGetValue(true, out deadPeople), Is.True);
+			Console.WriteLine("=> {0}", deadPeople.Dump());
+			DumpIndexQueryResult(database, deadPeople);
+
+			// combination of both
+			Console.WriteLine();
+			Console.WriteLine("indexByGender.Lookup('Female') AND indexOfTheDead.Lookup(dead: true)");
+			var julia = WordAlignHybridEncoder.LogicalAndCompressed(females, deadPeople);
+			Console.WriteLine("=> {0}", julia.Dump());
+			DumpIndexQueryResult(database, julia);
+
+			// the crew
+			Console.WriteLine();
+			Console.WriteLine("indexByJob.Lookup('Bounty_Hunter' OR 'Hacker' OR 'Dog')");
+			var bmps = new[] { "Bounty_Hunter", "Hacker", "Dog" }.Select(job => indexByJob[job]).ToList();
+			var crew = CompressedBitmap.Empty;
+			foreach (var bmp in bmps)
+			{
+				crew = WordAlignHybridEncoder.LogicalOrCompressed(crew, bmp);
+			}
+			Console.WriteLine("=> {0}", crew.Dump());
+			DumpIndexQueryResult(database, crew);
 
 		}
 

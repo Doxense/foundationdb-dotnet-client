@@ -28,14 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.Text;
 
 	/// <summary>Represent a 32-bit word in a Compressed Bitmap</summary>
 	[DebuggerDisplay("Literal={IsLiteral}, {WordCount} x {WordValue}")]

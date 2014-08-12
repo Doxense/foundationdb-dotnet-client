@@ -29,13 +29,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Globalization;
-	using System.Text;
 
 	/// <summary>Represents a compressed vector of bits</summary>
 	[DebuggerDisplay("{Count} words: {m_bounds.Lowest}..{m_bounds.Highest}")]
@@ -87,6 +84,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <summary>Gets a copy of the compressd bitmap's data</summary>
 		public Slice ToSlice() { return m_data.Memoize(); }
 
+		[NotNull]
 		public CompressedBitmapBuilder ToBuilder()
 		{
 			return new CompressedBitmapBuilder(this);
@@ -173,7 +171,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			// to compute the lowest bit, we need to look for initial fillers with 0-bit, and the check the first literal
 			int lowest = 0;
-			using(var iter = new CompressedBitmapIterator(data))
+			using(var iter = new CompressedBitmapWordIterator(data))
 			{
 				while (iter.MoveNext() && lowest >= 0)
 				{
@@ -229,26 +227,32 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return count;
 		}
 
+		[NotNull]
 		public string Dump()
 		{
 			return WordAlignHybridEncoder.DumpCompressed(m_data).ToString();
 		}
 
+		public CompressedBitmapBitView GetView()
+		{
+			return new CompressedBitmapBitView(this);
+		}
+
 		#region IEnumerable<CompressedWord>...
 
-		public CompressedBitmapIterator GetEnumerator()
+		public CompressedBitmapWordIterator GetEnumerator()
 		{
-			return new CompressedBitmapIterator(m_data);
+			return new CompressedBitmapWordIterator(m_data);
 		}
 
 		IEnumerator<CompressedWord> IEnumerable<CompressedWord>.GetEnumerator()
 		{
-			return new CompressedBitmapIterator(m_data);
+			return new CompressedBitmapWordIterator(m_data);
 		}
 
 		System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
 		{
-			return new CompressedBitmapIterator(m_data);
+			return new CompressedBitmapWordIterator(m_data);
 		}
 
 		#endregion

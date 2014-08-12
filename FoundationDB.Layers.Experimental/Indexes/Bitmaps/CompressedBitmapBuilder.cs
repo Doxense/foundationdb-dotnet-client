@@ -30,12 +30,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Text;
 
 	/// <summary>Builder of compressed bitmaps that can set or clear bits in a random order, in memory</summary>
 	public sealed class CompressedBitmapBuilder
@@ -69,6 +66,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 		}
 
+		[NotNull]
 		internal static CompressedWord[] DecodeWords(Slice data, int size, BitRange bounds)
 		{
 			Contract.Requires(size >= 0 && data.Count >= 4 && (data.Count & 3) == 0);
@@ -361,13 +359,14 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return Pack(m_words, m_size, m_highest);
 		}
 
+		[NotNull]
 		public CompressedBitmap ToBitmap()
 		{
 			if (m_size == 0) return CompressedBitmap.Empty;
 			return new CompressedBitmap(Pack(m_words, m_size, m_highest), new BitRange(m_lowest, m_highest));
 		}
 
-		internal static Slice Pack(CompressedWord[] words, int size, int highest)
+		internal static Slice Pack([NotNull] CompressedWord[] words, int size, int highest)
 		{
 			Contract.Requires(size >= 0 && size <= words.Length);
 
@@ -380,6 +379,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return writer.ToSlice();
 		}
 
+		[NotNull]
 		public bool[] ToBooleanArray()
 		{
 			int n = m_highest + 1;

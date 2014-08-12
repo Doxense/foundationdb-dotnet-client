@@ -418,30 +418,64 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				int lw = 0; // value of current word in left (if ln > 0)
 				int rw = 0; // value of current word in right (if rn > 0)
 
+				const int DONE = -1;
+
 				while (true)
 				{
 					if (ln == 0)
 					{
-						if (!liter.MoveNext()) break; // left is done
+						if (!liter.MoveNext())
+						{ // left is done
+							if (op == LogicalOperation.And || rn == DONE)
+							{ // no need to continue
+								break;
+							}
+							// continue with right until it's done
+							ln = DONE;
+							lw = 0;
+							continue;
+						}
 						ln = liter.Current.WordCount;
 						lw = liter.Current.WordValue;
 					}
 					if (rn == 0)
 					{
-						if (!riter.MoveNext()) break; // right is done
+						if (!riter.MoveNext())
+						{ // right is done
+							if (op == LogicalOperation.And || ln == DONE)
+							{ // no need to continue
+								break;
+							}
+							// continue with left until it's done
+							rn = DONE;
+							rw = 0;
+						}
 						rn = riter.Current.WordCount;
-						rw = liter.Current.WordValue;
+						rw = riter.Current.WordValue;
 					}
 
-					int n = Math.Min(ln, rn);
-					switch (op)
-					{
-						case LogicalOperation.And: writer.Write((uint)(lw & rw), n); break;
-						case LogicalOperation.Or: writer.Write((uint)(lw | rw), n); break;
-						default: writer.Write((uint)(lw ^ rw), n); break;
+					if (ln == DONE)
+					{ // copy right
+						writer.Write((uint)rw, rn);
+						rn = 0;
 					}
-					ln -= n;
-					rn -= n;
+					else if (rn == DONE)
+					{ // copy left
+						writer.Write((uint)lw, ln);
+						ln = 0;
+					}
+					else
+					{ // merge left & right
+						int n = Math.Min(ln, rn);
+						switch (op)
+						{
+							case LogicalOperation.And: writer.Write((uint)(lw & rw), n); break;
+							case LogicalOperation.Or: writer.Write((uint)(lw | rw), n); break;
+							default: writer.Write((uint)(lw ^ rw), n); break;
+						}
+						ln -= n;
+						rn -= n;
+					}
 				}
 			}
 

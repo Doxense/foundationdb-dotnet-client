@@ -30,12 +30,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
-	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
-	using System.Text;
 
 	/// <summary>Writer that compresses a stream of bits into a <see cref="CompressedBitmap"/>, in memory</summary>
 	public sealed class CompressedBitmapWriter
