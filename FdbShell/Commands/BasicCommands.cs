@@ -379,7 +379,9 @@ namespace FdbShell
 						dirs.Add(sub);
 					}
 				}
+	
 			}
+			log.Write("\r" + new string(' ', n + 2));
 			log.WriteLine("\r> Found {0} sub-directories", dirs.Count);
 
 			log.WriteLine();
@@ -395,29 +397,49 @@ namespace FdbShell
 
 				var p = dir.Path.ToArray();
 				var key = ((FdbSubspace)dir).Key;
-				shards = await Fdb.System.GetChunksAsync(db, FdbKeyRange.StartsWith(key), ct);
-				Console.WriteLine("/{0} under {1} with {2} shard(s)", string.Join("/", p), FdbKey.Dump(key), shards.Count);
-				foundShards += shards.Count;
-				account(p, shards.Count);
-				if (shards.Count > max) { max = shards.Count; bigBad = dir; }
+				
+				// verify that the subspace has at least one key inside
+				var bounds = await db.ReadAsync(async (tr) =>
+				{
+					var kvs = await Task.WhenAll(
+						tr.GetRange(FdbKeyRange.StartsWith(key)).FirstOrDefaultAsync(),
+						tr.GetRange(FdbKeyRange.StartsWith(key)).LastOrDefaultAsync()
+					);
+					return new { Min = kvs[0].Key, Max = kvs[1].Key };
+				}, ct);
+
+				if (bounds.Min.HasValue)
+				{ // folder is not empty
+					shards = await Fdb.System.GetChunksAsync(db, FdbKeyRange.StartsWith(key), ct);
+					//TODO: we still need to check if the first and last shard really intersect the subspace
+
+					// we need to check if the shards actually contain data
+					//Console.WriteLine("/{0} under {1} with {2} shard(s)", string.Join("/", p), FdbKey.Dump(key), shards.Count);
+					foundShards += shards.Count;
+					account(p, shards.Count);
+					if (shards.Count > max) { max = shards.Count; bigBad = dir; }
+				}
+				else
+				{
+					account(p, 0);
+				}
 			}
+			log.Write("\r" + new string(' ', n + 2));
 			log.WriteLine("\rFound a total of {0} shard(s) in {1} folder(s)", foundShards, dirs.Count);
 			log.WriteLine();
 
-			log.WriteLine();
 			log.WriteLine("Shards %Total     Path");
 			foreach(var kvp in map.OrderBy(x => x.Key))
 			{
-				log.WriteLine("{0,6} {1,-10} {2}", kvp.Value, RobustHistogram.FormatHistoBar((double)kvp.Value / foundShards, 10), kvp.Key);
+				log.WriteLine("{0,6} {1,-20} {2}", kvp.Value, RobustHistogram.FormatHistoBar((double)kvp.Value / foundShards, 20), kvp.Key);
 			}
+			log.WriteLine();
 
 			if (bigBad != null)
 			{
-				log.WriteLine();
 				log.WriteLine("Biggest folder is /{0} with {1} shards ({2:N1}%)", String.Join("/", bigBad.Path), max, 100.0 * max / totalShards);
+				log.WriteLine();
 			}
-
-			log.WriteLine();
 		}
 
 		private static string FormatSize(long size, CultureInfo ci = null)
