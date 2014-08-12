@@ -163,6 +163,17 @@ namespace FoundationDB.Layers.Directories
 		/// <param name="path">Path of the directory to list</param>
 		Task<List<string>> TryListAsync([NotNull] IFdbReadOnlyTransaction trans, IEnumerable<string> path = null);
 
+
+		/// <summary>Ensure that this directory was registered with the correct layer id</summary>
+		/// <param name="layer">Expected layer id (if not empty)</param>
+		/// <exception cref="System.InvalidOperationException">If the directory was registerd with a different layer id</exception>
+		void CheckLayer(Slice layer);
+
+		/// <summary>Change the layer id of this directory</summary>
+		/// <param name="trans">Transaction to use for the operation</param>
+		/// <param name="newLayer">New layer id of this directory</param>
+		Task<FdbDirectorySubspace> ChangeLayerAsync(IFdbTransaction trans, Slice newLayer);
+
 	}
 
 }

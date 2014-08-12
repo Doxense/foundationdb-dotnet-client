@@ -80,7 +80,7 @@ namespace FoundationDB.Client
 					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Opened root layer of database {0} using cluster file '{1}'", db.Name, db.Cluster.Path));
 
 					// look up in the root layer for the named partition
-					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: FdbDirectoryPartition.PartitionLayerId, cancellationToken: cancellationToken).ConfigureAwait(false);
+					var descriptor = await rootLayer.CreateOrOpenAsync(db, partitionPath, layer: FdbDirectoryPartition.LayerId, cancellationToken: cancellationToken).ConfigureAwait(false);
 					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.FullName, descriptor));
 
 					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'

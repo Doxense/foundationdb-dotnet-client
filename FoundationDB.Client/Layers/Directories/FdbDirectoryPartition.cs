@@ -36,12 +36,13 @@ namespace FoundationDB.Layers.Directories
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
 
-		internal static readonly Slice PartitionLayerId = Slice.FromString("partition");
+		/// <summary>Returns a slice with the ASCII string "partition"</summary>
+		public static Slice LayerId { get { return Slice.FromString("partition"); } }
 
 		private readonly FdbDirectoryLayer m_parentDirectoryLayer;
 
 		internal FdbDirectoryPartition(IFdbTuple location, IFdbTuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer)
-			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FdbSubspace.Create(prefix + FdbKey.Directory), FdbSubspace.Create(prefix), location), PartitionLayerId)
+			: base(location, relativeLocation, prefix, new FdbDirectoryLayer(FdbSubspace.Create(prefix + FdbKey.Directory), FdbSubspace.Create(prefix), location), LayerId)
 		{
 			m_parentDirectoryLayer = directoryLayer;
 		}

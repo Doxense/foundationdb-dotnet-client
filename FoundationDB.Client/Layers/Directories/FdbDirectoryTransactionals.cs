@@ -40,7 +40,7 @@ namespace FoundationDB.Layers.Directories
 
 		#region CreateOrOpen...
 
-		/// <summary>Opens the directory with the given <param name="path"/>.
+		/// <summary>Opens the directory with the given <paramref name="path"/>.
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
@@ -52,7 +52,7 @@ namespace FoundationDB.Layers.Directories
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
-		/// <summary>Opens the directory with the given <param name="path"/>.
+		/// <summary>Opens the directory with the given <paramref name="path"/>.
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
@@ -64,7 +64,7 @@ namespace FoundationDB.Layers.Directories
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, layer), cancellationToken);
 		}
 
-		/// <summary>Opens the directory with the given <param name="name"/>.
+		/// <summary>Opens the directory with the given <paramref name="name"/>.
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
@@ -76,7 +76,7 @@ namespace FoundationDB.Layers.Directories
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
-		/// <summary>Opens the directory with the given <param name="name"/>.
+		/// <summary>Opens the directory with the given <paramref name="name"/>.
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
@@ -88,7 +88,7 @@ namespace FoundationDB.Layers.Directories
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
-		/// <summary>Opens the directory with the given <param name="name"/>.
+		/// <summary>Opens the directory with the given <paramref name="name"/>.
 		/// If the directory does not exist, it is created (creating parent directories if necessary).
 		/// If layer is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
 		/// </summary>
@@ -98,6 +98,45 @@ namespace FoundationDB.Layers.Directories
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
 			return directory.CreateOrOpenAsync(trans, new[] { name }, layer);
+		}
+
+		/// <summary>Opens the directory with the given <paramref name="path"/>.
+		/// If the directory does not exist, and if <paramref name="readOnly"/> is false, it is created. Otherwise, this method returns null.
+		/// If the <paramref name="layer"/> is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
+		/// </summary>
+		/// <param name="directory">Parent directory</param>
+		/// <param name="trans">Transaction used by the operation</param>
+		/// <param name="path">Path to the directory to open or create</param>
+		/// <param name="readOnly">If true, do not make any modifications to the database, and return null if the directory does not exist.</param>
+		/// <param name="layer">Optional layer ID that is checked with the opened directory.</param>
+		/// <returns></returns>
+		public static Task<FdbDirectorySubspace> TryCreateOrOpenAsync(this IFdbDirectory directory, IFdbTransaction trans, IEnumerable<string> path, bool readOnly, Slice layer = default(Slice))
+		{
+			if (directory == null) throw new ArgumentNullException("directory");
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (path == null) throw new ArgumentNullException("path");
+
+			if (readOnly)
+				return directory.TryOpenAsync(trans, path, layer);
+			else
+				return directory.CreateOrOpenAsync(trans, path, layer);
+		}
+
+		/// <summary>Opens the directory with the given <paramref name="name"/>.
+		/// If the directory does not exist, and if <paramref name="readOnly"/> is false, it is created. Otherwise, this method returns null.
+		/// If the <paramref name="layer"/> is specified, it is checked against the layer of an existing directory or set as the layer of a new directory.
+		/// </summary>
+		/// <param name="directory">Parent directory</param>
+		/// <param name="trans">Transaction used by the operation</param>
+		/// <param name="name">Name of the directory to open or create</param>
+		/// <param name="readOnly">If true, do not make any modifications to the database, and return null if the directory does not exist.</param>
+		/// <param name="layer">Optional layer ID that is checked with the opened directory.</param>
+		/// <returns></returns>
+		public static Task<FdbDirectorySubspace> TryCreateOrOpenAsync(this IFdbDirectory directory, IFdbTransaction trans, string name, bool readOnly, Slice layer = default(Slice))
+		{
+			if (name == null) throw new ArgumentNullException("name");
+
+			return TryCreateOrOpenAsync(directory, trans, new[] { name }, readOnly, layer);
 		}
 
 		#endregion

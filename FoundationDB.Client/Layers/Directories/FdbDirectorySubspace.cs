@@ -133,9 +133,14 @@ namespace FoundationDB.Layers.Directories
 				throw new InvalidOperationException("Cannot change the layer id of the root of a directory layer or partition.");
 			}
 
-			if (this.Layer == FdbDirectoryPartition.PartitionLayerId)
+			if (this.Layer == FdbDirectoryPartition.LayerId)
 			{ // cannot change a partition back to a regular directory
 				throw new InvalidOperationException("Cannot change the layer id of a directory partition.");
+			}
+			if (newLayer == FdbDirectoryPartition.LayerId)
+			{ // cannot change a regular directory into a new partition
+				//REVIEW: or maybe we can? This would only be possible if this directory does not contain any sub-directory
+				throw new InvalidOperationException("Cannot transform a regular directory into a partition.");
 			}
 
 			// set the layer to the new value

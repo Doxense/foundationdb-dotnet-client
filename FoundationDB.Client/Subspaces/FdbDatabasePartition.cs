@@ -83,16 +83,33 @@ namespace FoundationDB.Client
 			get { return m_directory.Path; }
 		}
 
-		public Slice Layer
-		{
-			get { return m_directory.Layer; }
-		}
-
 		public FdbDirectoryLayer DirectoryLayer
 		{
 			[NotNull]
 			get { return m_directory.DirectoryLayer; }
 		}
+
+		#region Layer...
+
+		public Slice Layer
+		{
+			get { return m_directory.Layer; }
+		}
+
+		void IFdbDirectory.CheckLayer(Slice layer)
+		{
+			if (layer.IsPresent && layer != this.Layer)
+			{
+				throw new InvalidOperationException(String.Format("The directory {0} is a partition which is not compatible with layer {1}.", String.Join("/", this.Path), layer.ToAsciiOrHexaString()));
+			}
+		}
+
+		Task<FdbDirectorySubspace> IFdbDirectory.ChangeLayerAsync(IFdbTransaction trans, Slice newLayer)
+		{
+			throw new NotSupportedException("You cannot change the layer of an FdbDirectoryPartition.");
+		}
+
+		#endregion
 
 		#region CreateOrOpen...
 
@@ -401,6 +418,7 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
+	
 	}
 
 }

@@ -93,6 +93,19 @@ namespace FoundationDB.Layers.Directories
 			return path == null ? this.Location : this.Location.Concat(path);
 		}
 
+		void IFdbDirectory.CheckLayer(Slice layer)
+		{
+			if (layer.IsPresent)
+			{
+				throw new InvalidOperationException(String.Format("The directory layer {0} is not compatible with layer {1}.", String.Join("/", this.Path), layer.ToAsciiOrHexaString()));
+			}
+		}
+
+		Task<FdbDirectorySubspace> IFdbDirectory.ChangeLayerAsync(IFdbTransaction trans, Slice newLayer)
+		{
+			throw new NotSupportedException("You cannot change the layer of an FdbDirectoryLayer.");
+		}
+
 		#region Constructors...
 
 		/// <summary>
@@ -460,7 +473,7 @@ namespace FoundationDB.Layers.Directories
 
 			public bool IsInPartition(bool includeEmptySubPath)
 			{
-				return this.Exists && this.Layer == FdbDirectoryPartition.PartitionLayerId && (includeEmptySubPath || this.TargetPath.Count > this.Path.Count);
+				return this.Exists && this.Layer == FdbDirectoryPartition.LayerId && (includeEmptySubPath || this.TargetPath.Count > this.Path.Count);
 			}
 
 		}
@@ -873,7 +886,7 @@ namespace FoundationDB.Layers.Directories
 
 			var path = this.Location.Concat(relativePath);
 			var prefix = this.NodeSubspace.UnpackSingle<Slice>(node.Key);
-			if (layer == FdbDirectoryPartition.PartitionLayerId)
+			if (layer == FdbDirectoryPartition.LayerId)
 			{
 				return new FdbDirectoryPartition(path, relativePath, prefix, this);
 			}
@@ -885,7 +898,7 @@ namespace FoundationDB.Layers.Directories
 
 		private FdbDirectoryPartition GetPartitionForNode(Node node)
 		{
-			Contract.Requires(node.Subspace != null && node.Path != null && FdbDirectoryPartition.PartitionLayerId.Equals(node.Layer));
+			Contract.Requires(node.Subspace != null && node.Path != null && FdbDirectoryPartition.LayerId.Equals(node.Layer));
 			return (FdbDirectoryPartition) ContentsOfNode(node.Subspace, node.Path, node.Layer);
 		}
 
@@ -909,9 +922,9 @@ namespace FoundationDB.Layers.Directories
 				}
 
 				layer = await tr.GetAsync(n.Pack(LayerSuffix)).ConfigureAwait(false);
-				if (layer == FdbDirectoryPartition.PartitionLayerId)
+				if (layer == FdbDirectoryPartition.LayerId)
 				{ // stop when reaching a partition
-					return new Node(n, path.Substring(0, i + 1), path, FdbDirectoryPartition.PartitionLayerId);
+					return new Node(n, path.Substring(0, i + 1), path, FdbDirectoryPartition.LayerId);
 				}
 
 				++i;
