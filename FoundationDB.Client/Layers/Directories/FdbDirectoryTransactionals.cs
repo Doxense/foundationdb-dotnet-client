@@ -309,7 +309,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="name"/>.</summary>
-		public static Task<FdbDirectorySubspace> TryOpenAsync(this IFdbDirectory directory, IFdbReadOnlyTransaction trans, string name, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryOpenAsync(this IFdbDirectory directory, IFdbReadOnlyTransaction trans, string name)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
@@ -318,7 +318,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Attempts to open the directory with the given <paramref name="name"/>.</summary>
-		public static Task<FdbDirectorySubspace> TryOpenAsync(this IFdbDirectory directory, IFdbReadOnlyTransaction trans, string name, Slice layer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> TryOpenAsync(this IFdbDirectory directory, IFdbReadOnlyTransaction trans, string name, Slice layer)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
