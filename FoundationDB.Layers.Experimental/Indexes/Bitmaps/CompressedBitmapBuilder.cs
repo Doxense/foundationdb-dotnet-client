@@ -219,7 +219,32 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			if (word.IsLiteral)
 			{
 				//Console.WriteLine("> PATCH [...] [{0}:0x{0:X8}] [...]", offset, mask);
-				return word != (m_words[offset] = new CompressedWord(word.RawValue | mask));
+				var before = word.RawValue;
+				var after = before | mask;
+				if (before == after) return false;
+
+				if (after == CompressedWord.ALL_ONES)
+				{ // convert to an all 1 literal!
+					if (offset > 0)
+					{
+						// check if we can merge with a previous 1-filler
+						var prev = m_words[offset - 1];
+						if (!prev.IsLiteral && prev.FillBit == 1)
+						{
+							m_words[offset - 1] = CompressedWord.MakeOnes(prev.FillCount + 1);
+							int r = m_size - offset - 1;
+							if (r > 0) Array.Copy(m_words, offset + 1, m_words, offset, r);
+							--m_size;
+							return true;
+						}
+					}
+					//TODO: also need to check if the next one is also a filler!
+
+					// convert this one to a filler
+					after = CompressedWord.MakeOnes(1);
+				}
+				m_words[offset] = new CompressedWord(after);
+				return true;
 			}
 
 			// if it an all-1 filler, our job is already done

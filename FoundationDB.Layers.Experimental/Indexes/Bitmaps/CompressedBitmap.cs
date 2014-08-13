@@ -205,26 +205,26 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		}
 
-		/// <summary>Computes the number of bits set in the source bitmap</summary>
-		/// <returns></returns>
-		public uint GetBitCount()
+		/// <summary>Get some statistics on this bitmap</summary>
+		/// <param name="bits">Receives the number of set bits in the bitmap</param>
+		/// <param name="words">Receives the number of data words</param>
+		/// <param name="literals">Receives the number of literal words (&lt;= <paramref name="words"/>)</param>
+		/// <param name="fillers">Receives the number of filler words (&lt;= <paramref name="words"/>)</param>
+		/// <param name="ratio">Receives ratio of the compressed size compared to the size of the equivalent uncompressed bitmap (using the highest set bit as a cutoff)</param>
+		public void GetStatistics(out int bits, out int words, out int literals, out int fillers, out double ratio)
 		{
-			uint count = 0;
-
-			foreach(var word in this)
+			int n = 0, b = 0, l = 0, f = 0;
+			foreach (var word in this)
 			{
-				if (word.IsLiteral)
-				{ // literal
-					count += 0; //TODO: bit count!
-				}
-				else if (word.FillBit == 1)
-				{ // all 1's
-					count += 31;
-				}
-				// else all 0's
+				++n;
+				if (word.IsLiteral) l++; else f++;
+				b += word.CountBits();
 			}
-
-			return count;
+			bits = b;
+			words = n;
+			literals = l;
+			fillers = f;
+			ratio = (32.0 * words) /  m_bounds.Highest;
 		}
 
 		[NotNull]

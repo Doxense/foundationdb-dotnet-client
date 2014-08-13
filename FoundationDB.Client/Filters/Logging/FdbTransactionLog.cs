@@ -351,7 +351,7 @@ namespace FoundationDB.Filters.Logging
 			if (x < 0) x = 0;
 			if (x > 1) x = 1;
 
-			int p = (int)Math.Round(x * 10);
+			int p = (int)Math.Round(x * 10, MidpointRounding.AwayFromZero);
 			return "`.:;+=xX$&#"[p];
 		}
 

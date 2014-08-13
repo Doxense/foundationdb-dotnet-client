@@ -43,6 +43,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <summary>Return the raw 32-bit value of this word</summary>
 		public readonly uint RawValue;
 
+		/// <summary>Create a compressed word from a raw 32-bit value</summary>
+		/// <param name="raw"></param>
 		public CompressedWord(uint raw)
 		{
 			this.RawValue = raw;
@@ -150,20 +152,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>For literals, count the number of bits. For fillers, returns either 0, or 31 multiplied by <see cref="FillCount"/></returns>
 		public int CountBits()
 		{
-			if (!this.IsLiteral)
-			{ // filler word have either 0 bits, or 31 x FillCount bits set
-				return this.FillBit == 0 ? 0 : (31 * this.FillBit);
-			}
-
-			int w = this.Literal;
-			//TODO: use a fast bit tricks algorithm here
-			int n = 0;
-			for(int i = 30; i >= 0; i--)
-			{
-				if ((w & 1) == 1) ++n;
-				w >>= 1;
-			}
-			return n;
+			var r = this.RawValue;
+			return IsLiteralWord(r)
+				? BitCount(this.Literal)
+				: (31 * GetFillBit(r) * GetFillCount(r));
 		}
 
 		#region Boilerplate code...
@@ -234,12 +226,16 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				| ((uint)(length - 1) & WordAlignHybridEncoder.LENGTH_MASK);
 		}
 
+		/// <summary>Make a filler word with all bits set to 0</summary>
+		/// <param name="length">Number of 31-bits word repeated</param>
 		public static uint MakeZeroes(int length)
 		{
 			Contract.Requires(length > 0 && length <= 0x40000000);
 			return WordAlignHybridEncoder.BIT_TYPE_FILL | WordAlignHybridEncoder.BIT_FILL_ZERO | ((uint)(length - 1) & WordAlignHybridEncoder.LENGTH_MASK);
 		}
 
+		/// <summary>Make a filler word with all bits set to 1</summary>
+		/// <param name="length">Number of 31-bits word repeated</param>
 		public static uint MakeOnes(int length)
 		{
 			Contract.Requires(length > 0 && length <= 0x40000000);
@@ -266,7 +262,18 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return 1 + (int)(word & WordAlignHybridEncoder.LENGTH_MASK);
 		}
 
+		/// <summary>Count the number of set bits in a 32-bit word</summary>
+		public static int BitCount(int value)
+		{
+			// cf https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSet64
+			value = value - ((value >> 1) & 0x55555555);
+			value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
+			value = ((value + (value >> 4) & 0xF0F0F0F) * 0x1010101) >> (32 - 8);
+			return (int)value;
+		}
+
 		#endregion
+
 	}
 
 }

@@ -34,6 +34,10 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Text;
+	using MathNet.Numerics.Distributions;
+	using System.Diagnostics;
+	using System.Globalization;
+	using FoundationDB.Layers.Tuples;
 
 	[TestFixture]
 	public class CompressedBitmapsFacts
@@ -346,19 +350,134 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 		}
 
-		private static Action<TDoc> MakeInserter<TDoc, TKey>(Dictionary<TKey, CompressedBitmap> index, Func<TDoc, int> idFunc, Func<TDoc, TKey> keyFunc)
+		public class MemoryIndex<TKey>
+		{
+			public readonly Dictionary<TKey, CompressedBitmap> Values;
+			public readonly Dictionary<TKey, int> Statistics;
+
+			public MemoryIndex(IEqualityComparer<TKey> comparer = null)
+			{
+				comparer = comparer ?? EqualityComparer<TKey>.Default;
+				this.Values = new Dictionary<TKey, CompressedBitmap>(comparer);
+				this.Statistics = new Dictionary<TKey, int>(comparer);
+			}
+
+			public CompressedBitmap Lookup(TKey value)
+			{
+				CompressedBitmap bmp;
+				return this.Values.TryGetValue(value, out bmp) ? bmp : null;
+			}
+
+			public int Count(TKey value)
+			{
+				int cnt;
+				return this.Statistics.TryGetValue(value, out cnt) ? cnt : 0;
+			}
+
+			public double Frequency(TKey value)
+			{
+				return (double)Count(value) / this.Statistics.Values.Sum();
+			}
+		}
+
+		private static Action<TDoc> MakeInserter<TDoc, TKey>(MemoryIndex<TKey> index, Func<TDoc, int> idFunc, Func<TDoc, TKey> keyFunc)
 		{
 			return (TDoc doc) =>
 			{
 				int docId = idFunc(doc);
 				TKey indexedValue = keyFunc(doc);
 				CompressedBitmap bmp;
-				if (!index.TryGetValue(indexedValue, out bmp)) bmp = CompressedBitmap.Empty;
+				int count;
+				if (!index.Values.TryGetValue(indexedValue, out bmp))
+				{
+					bmp = CompressedBitmap.Empty;
+					count = 0;
+				}
+				else
+				{
+					count = index.Statistics[indexedValue];
+				}
 
 				var builder = bmp.ToBuilder();
 				builder.Set(docId);
-				index[indexedValue] = builder.ToBitmap();
+				index.Values[indexedValue] = builder.ToBitmap();
+				index.Statistics[indexedValue] = count + 1;
 			};
+		}
+
+		private static string MakeHeatMap(int[] map)
+		{
+			int max = map.Max();
+			string scale = "`.:;+=xX$&#";
+			double r = (double)(scale.Length - 1) / max;
+			var chars = new char[map.Length];
+			for (int i = 0; i < map.Length; i++)
+			{
+				if (map[i] == 0)
+					chars[i] = '\xA0';
+				else
+					chars[i] = scale[(int)Math.Round(r * map[i], MidpointRounding.AwayFromZero)];
+			}
+			return new string(chars);
+		}
+
+		private static void DumpIndex<TKey, TVal>(string label, MemoryIndex<TKey> index, Func<TKey, int, TVal> orderBy, IComparer<TVal> comparer = null, bool heatMaps = false)
+		{
+			comparer = comparer ?? Comparer<TVal>.Default;
+
+			int total = index.Statistics.Values.Sum();
+			long totalLegacy = 0;
+			int[] map = new int[100];
+			double r = (double)(map.Length - 1) / total;
+			Console.WriteLine("__{0}__", label);
+			Console.WriteLine("| Indexed Value           |  Count | Total % | Words |  Lit%  | 1-Bits |  Word% |   Bitmap | ratio % |   Legacy  | ratio % |" + (heatMaps ? " HeatMap |" : ""));
+			Console.WriteLine("|:------------------------|-------:|--------:|------:|-------:|-------:|-------:|---------:|--------:|----------:|--------:|" + (heatMaps ? ":-----------------------------------------------------------------------|" : ""));
+			foreach (var kv in index.Values.OrderBy((kv) => orderBy(kv.Key, index.Count(kv.Key)), comparer))
+			{
+				var t = FdbTuple.Create(kv.Key);
+				var tk = t.ToSlice();
+
+				int bits, words, literals, fillers;
+				double ratio;
+				kv.Value.GetStatistics(out bits, out words, out literals, out fillers, out ratio);
+
+				long legacyIndexSize = 0; // size estimate of a regular FDB index (..., "Value", GUID) = ""
+				Array.Clear(map, 0, map.Length);
+				foreach(var p in kv.Value.GetView())
+				{
+					map[(int)(r * p)]++;
+					legacyIndexSize += 3 + tk.Count + 17;
+				}
+				totalLegacy += legacyIndexSize;
+
+				int bytes = kv.Value.ToSlice().Count;
+
+				Console.WriteLine(string.Format(
+					CultureInfo.InvariantCulture,
+					"| {0,-24}| {1,6:N0} | {2,6:N2}% | {3,5:N0} | {4,5:N1}% | {5,6:N0} | {6,6:N2} | {7,8:N0} | {8,6:N2}% | {9,9:N0} | {10,6:N2}% |" + (heatMaps ? " `{11}` |" : ""),
+					/*0*/ t,
+					/*1*/ index.Count(kv.Key),
+					/*2*/ 100.0 * index.Frequency(kv.Key),
+					/*3*/ words,
+					/*4*/ (100.0 * literals) / words,
+					/*5*/ bits,
+					/*6*/ 1.0 * bits / words,
+					/*7*/ bytes,
+					/*8*/ 100.0 * ratio,
+					/*9*/ legacyIndexSize,
+					/*A*/ (100.0 * bytes) / legacyIndexSize,
+					/*B*/ heatMaps ? MakeHeatMap(map) : ""
+				));
+			}
+
+			Console.WriteLine(string.Format(
+				CultureInfo.InvariantCulture,
+				"> {0:N0} distinct value(s), {1:N0} document(s), {2:N0} bitmap bytes, {3:N0} legacy bytes",
+				index.Values.Count,
+				total,
+				index.Values.Values.Sum(x => x.ToSlice().Count),
+				totalLegacy
+			));
 		}
 
 		private static List<Character> DumpIndexQueryResult(Dictionary<int, Character> characters, CompressedBitmap bitmap)
@@ -394,9 +513,9 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 			// poor man's in memory database
 			var database = new Dictionary<int, Character>();
-			var indexByGender = new Dictionary<string, CompressedBitmap>(StringComparer.OrdinalIgnoreCase);
-			var indexByJob = new Dictionary<string, CompressedBitmap>(StringComparer.OrdinalIgnoreCase);
-			var indexOfTheDead = new Dictionary<bool, CompressedBitmap>();
+			var indexByGender = new MemoryIndex<string>(StringComparer.OrdinalIgnoreCase);
+			var indexByJob = new MemoryIndex<string>(StringComparer.OrdinalIgnoreCase);
+			var indexOfTheDead = new MemoryIndex<bool>();
 
 			// simulate building the indexes one document at a time
 			var indexers = new[]
@@ -418,37 +537,27 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 
 			// dump the indexes
 			Console.WriteLine();
-			Console.WriteLine("Genders:");
-			foreach (var kv in indexByGender)
-			{
-				Console.WriteLine("- {0}: {1}", kv.Key, kv.Value.Dump());
-			}
+			DumpIndex("Genders", indexByGender, (s, _) => s);
+
 			Console.WriteLine();
-			Console.WriteLine("Jobs:");
-			foreach (var kv in indexByJob)
-			{
-				Console.WriteLine("- {0}: {1}", kv.Key, kv.Value.Dump());
-			}
+			DumpIndex("Jobs", indexByJob, (s, _) => s);
+
 			Console.WriteLine();
-			Console.WriteLine("DeadOrAlive:");
-			foreach (var kv in indexOfTheDead)
-			{
-				Console.WriteLine("- {0}: {1}", kv.Key ? "dead" : "alive", kv.Value.Dump());
-			}
+			DumpIndex("DeadOrAlive", indexOfTheDead, (s, _) => s);
 
 			// Où sont les femmes ?
 			Console.WriteLine();
 			Console.WriteLine("indexByGender.Lookup('Female')");
-			CompressedBitmap females;
-			Assert.That(indexByGender.TryGetValue("Female", out females), Is.True);
+			CompressedBitmap females = indexByGender.Lookup("Female");
+			Assert.That(females, Is.Not.Null);
 			Console.WriteLine("=> {0}", females.Dump());
 			DumpIndexQueryResult(database, females);
 
 			// R.I.P
 			Console.WriteLine();
 			Console.WriteLine("indexOfTheDead.Lookup(dead: true)");
-			CompressedBitmap deadPeople;
-			Assert.That(indexOfTheDead.TryGetValue(true, out deadPeople), Is.True);
+			CompressedBitmap deadPeople = indexOfTheDead.Lookup(true);
+			Assert.That(deadPeople, Is.Not.Null);
 			Console.WriteLine("=> {0}", deadPeople.Dump());
 			DumpIndexQueryResult(database, deadPeople);
 
@@ -462,16 +571,172 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			// the crew
 			Console.WriteLine();
 			Console.WriteLine("indexByJob.Lookup('Bounty_Hunter' OR 'Hacker' OR 'Dog')");
-			var bmps = new[] { "Bounty_Hunter", "Hacker", "Dog" }.Select(job => indexByJob[job]).ToList();
-			var crew = CompressedBitmap.Empty;
+			var bmps = new[] { "Bounty_Hunter", "Hacker", "Dog" }.Select(job => indexByJob.Lookup(job)).ToList();
+			CompressedBitmap crew = null;
 			foreach (var bmp in bmps)
 			{
-				crew = WordAlignHybridEncoder.LogicalOrCompressed(crew, bmp);
+				if (crew == null)
+					crew = bmp;
+				else
+					crew = WordAlignHybridEncoder.LogicalOrCompressed(crew, bmp);
 			}
+			crew = crew ?? CompressedBitmap.Empty;
 			Console.WriteLine("=> {0}", crew.Dump());
 			DumpIndexQueryResult(database, crew);
 
 		}
+
+		#region Coin Toss...
+
+		public sealed class CoinToss
+		{
+			public const int HEAD = 1; // 49.5%
+			public const int TAIL = 2; // 49.5%
+			public const int EDGE = 0; //  1.0%
+
+			/// <summary>Toss unique id (random guid)</summary>
+			public Guid Id { get; set; }
+			/// <summary>False if the toss was discarded as invalid</summary>
+			public bool Valid { get; set; } // 99.9% true, 0.1% false
+			/// <summary>True for head, False for tails, null for edge</summary>
+			public int Result { get; set; }
+			/// <summary>Number of completed 360° flips</summary>
+			public int Flips { get; set; }
+			/// <summary>Coin elevation (in cm)</summary>
+			public double Elevation { get; set; }
+			/// <summary>true for daytime, false for nighttime</summary>
+			public bool Daytime { get; set; }
+			/// <summary>Name of location where the toss was performed</summary>
+			public string Location { get; set; }
+		}
+
+		[Test]
+		public void Test_Randomized_Data()
+		{
+			#region Data Generators...
+
+			Random rnd = null; // initialized later
+
+			var dfFlips = new Cauchy(10, 4, rnd);
+			Func<int> makeFlips = () =>
+			{
+				int x = 0;
+				while (x <= 0 || x >= 30) { x = (int)Math.Floor(dfFlips.Sample()); }
+				return x;
+			};
+
+			var dfElev = new Cauchy(10, 1, rnd);
+			Func<double> makeElevation = () =>
+			{
+				double x = 0;
+				while (x <= 0.0 || x >= 30) { x = dfElev.Sample(); }
+				return x;
+			};
+
+			bool flipFlop = false;
+			Func<bool> makeFlipFlop = () =>
+			{
+				if (rnd.NextDouble() < 0.01) flipFlop = !flipFlop;
+				return flipFlop;
+			};
+
+			var cities = new[]
+			{ 
+				"Paris", "Marseilles", "Lyon", "Toulouse", "Nice",
+				"Nantes", "Strasbourg", "Montpellier", "Bordeaux", "Lille",
+				"Rennes", "Reims", "Le Havre", "Saint-Étienne", "Toulon",
+				"Grenoble", "Dijon", "Angers", "Saint-Denis", "Villeurbanne",
+				"Nîmes", "Le Mans", "Clermont-Ferrand", "Aix-en-Provence", "Brest"
+			};
+			var dfLoc = new Cauchy(0, 1.25, rnd);
+			Func<string> makeLocation = () =>
+			{
+				int x = cities.Length;
+				while (x >= cities.Length) { x = (int)Math.Floor(Math.Abs(dfLoc.Sample())); }
+				return cities[x];
+			};
+			Func<int> makeHeadsOrTails = () => rnd.NextDouble() < 0.01 ? CoinToss.EDGE : rnd.NextDouble() <= 0.5 ? CoinToss.HEAD : CoinToss.TAIL; // biased!
+			Func<bool> makeValid = () => rnd.Next(1000) != 666;
+
+			#endregion
+
+			//foreach (var N in new[] { 1000, 2000, 5000, 10 * 1000, 20 * 1000, 50 * 1000, 100 * 1000 })
+			const int N = 10 * 1000;
+			{
+				Console.WriteLine("=================================================================================================================================================================================================================================");
+				Console.WriteLine("N = {0:N0}", N);
+				Console.WriteLine("=================================================================================================================================================================================================================================");
+
+				rnd = new Random(123456);
+
+				var dataSet = Enumerable
+					.Range(0, N)
+					.Select(i => new KeyValuePair<int, CoinToss>(i, new CoinToss
+					{
+						Id = Guid.NewGuid(),
+						Valid = makeValid(),
+						Result = makeHeadsOrTails(),
+						Flips = makeFlips(),
+						Elevation = makeElevation(),
+						Location = makeLocation(),
+						Daytime = makeFlipFlop(),
+					}))
+					.ToList();
+
+				var indexLoc = new MemoryIndex<string>(StringComparer.Ordinal);
+				var indexValid = new MemoryIndex<bool>();
+				var indexResult = new MemoryIndex<int>();
+				var indexFlips = new MemoryIndex<int>();
+				var indexElevation = new MemoryIndex<double>(); // quantized!
+				var indexFlipFlop = new MemoryIndex<bool>();
+
+				var inserters = new []
+				{
+					MakeInserter<KeyValuePair<int, CoinToss>, int>(indexResult, (kv) => kv.Key, (kv) => kv.Value.Result),
+					MakeInserter<KeyValuePair<int, CoinToss>, bool>(indexValid, (kv) => kv.Key, (kv) => kv.Value.Valid),
+					MakeInserter<KeyValuePair<int, CoinToss>, bool>(indexFlipFlop, (kv) => kv.Key, (kv) => kv.Value.Daytime),
+					MakeInserter<KeyValuePair<int, CoinToss>, int>(indexFlips, (kv) => kv.Key, (kv) => kv.Value.Flips),
+					MakeInserter<KeyValuePair<int, CoinToss>, double>(indexElevation, (kv) => kv.Key, (kv) => Math.Round(kv.Value.Elevation, 0, MidpointRounding.AwayFromZero)),
+					MakeInserter<KeyValuePair<int, CoinToss>, string>(indexLoc, (kv) => kv.Key, (kv) => kv.Value.Location),
+				};
+
+				var database = new Dictionary<int, CoinToss>();
+				//Console.Write("Inserting data: ...");
+				foreach (var data in dataSet)
+				{
+					//if (database.Count % 1000 == 0) Console.Write("\rInserting data: {0} / {1}", database.Count, N);
+					database[data.Key] = data.Value;
+					foreach (var inserter in inserters) inserter(data);
+				}
+				//Console.WriteLine("\rInserting data: {0} / {1}", database.Count, N);
+
+				Console.WriteLine();
+				DumpIndex("Result", indexResult, (s, _) => s);
+
+				Console.WriteLine();
+				DumpIndex("Valid", indexValid, (s, _) => s);
+
+				Console.WriteLine();
+				DumpIndex("FlipFlops", indexFlipFlop, (s, _) => s);
+
+				Console.WriteLine();
+				DumpIndex("Flips", indexFlips, (s, _) => s);
+
+				Console.WriteLine();
+				DumpIndex("Location", indexLoc, (_, n) => -n);
+
+				Console.WriteLine();
+				DumpIndex("Elevation", indexElevation, (s, _) => s);
+
+				//Console.WriteLine(indexValid.Values[true].Dump());
+				//Console.WriteLine(indexValid.Values[true].ToSlice().ToHexaString());
+				Console.WriteLine();
+				Console.WriteLine();
+			}
+
+		}
+
+		#endregion
 
 	}
 

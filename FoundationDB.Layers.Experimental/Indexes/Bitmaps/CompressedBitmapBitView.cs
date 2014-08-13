@@ -72,11 +72,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				}
 				else
 				{ // all ones
-					for (int i = 0; i < 31; i++)
+					int n = word.FillCount * 31;
+					for (int i = 0; i < n; i++)
 					{
 						yield return offset + i;
 					}
-					offset += word.FillCount * 31;
+					offset += n;
 				}
 			}
 		}
