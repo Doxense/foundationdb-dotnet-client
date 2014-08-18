@@ -37,6 +37,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.IO;
+	using System.Linq;
 	using System.Text;
 	using System.Threading.Tasks;
 
@@ -44,14 +45,14 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	/// <typeparam name="TId">Type of the unique id of each document or entity</typeparam>
 	/// <typeparam name="TValue">Type of the value being indexed</typeparam>
 	[DebuggerDisplay("Name={Name}, Subspace={Subspace}, IndexNullValues={IndexNullValues})")]
-	public class FdbCompressedBitmapIndex<TId, TValue>
+	public class FdbCompressedBitmapIndex<TValue>
 	{
 
 		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
-			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Tuples.CompositeKey<TValue, TId>())
+			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Tuples.Key<TValue>())
 		{ }
 
-		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] ICompositeKeyEncoder<TValue, TId> encoder)
+		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] IKeyEncoder<TValue> encoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -61,14 +62,14 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			this.Subspace = subspace;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
-			this.Location = new FdbEncoderSubspace<TValue,TId>(subspace, encoder);
+			this.Location = new FdbEncoderSubspace<TValue>(subspace, encoder);
 		}
 
 		public string Name { [NotNull] get; private set; }
 
 		public FdbSubspace Subspace { [NotNull] get; private set; }
 
-		protected FdbEncoderSubspace<TValue, TId> Location { [NotNull] get; private set; }
+		protected FdbEncoderSubspace<TValue> Location { [NotNull] get; private set; }
 
 		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; private set; }
 
@@ -80,12 +81,22 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the new entity (that was never indexed before)</param>
 		/// <param name="value">Value of this entity in the index</param>
-		/// <returns>True if a value was inserted into the index; otherwise false (if value is null and <see cref="IndexNullValues"/> is false)</returns>
-		public bool Add([NotNull] IFdbTransaction trans, TId id, TValue value)
+		/// <returns>True if a value was inserted into the index; or false if <paramref name="value"/> is null and <see cref="IndexNullValues"/> is false, or if this <paramref name="id"/> was already indexed at this <paramref name="value"/>.</returns>
+		public async Task<bool> AddAsync([NotNull] IFdbTransaction trans, long id, TValue value)
 		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
 			if (this.IndexNullValues || value != null)
 			{
-				trans.Set(this.Location.EncodeKey(value, id), Slice.Empty);
+				var key = this.Location.EncodeKey(value);
+				var data = await trans.GetAsync(key).ConfigureAwait(false);
+				var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
+
+				//TODO: wasteful to crate a builder to only set on bit ?
+				builder.Set((int)id); //BUGBUG: id should be 64-bit!
+
+				//TODO: if bit was already set, skip the set ?
+				trans.Set(key, builder.ToSlice());
 				return true;
 			}
 			return false;
@@ -98,20 +109,33 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="previousValue">New value of this entity in the index</param>
 		/// <returns>True if a change was performed in the index; otherwise false (if <paramref name="previousValue"/> and <paramref name="newValue"/>)</returns>
 		/// <remarks>If <paramref name="newValue"/> and <paramref name="previousValue"/> are identical, then nothing will be done. Otherwise, the old index value will be deleted and the new value will be added</remarks>
-		public bool Update([NotNull] IFdbTransaction trans, TId id, TValue newValue, TValue previousValue)
+		public async Task<bool> UpdateAsync([NotNull] IFdbTransaction trans, long id, TValue newValue, TValue previousValue)
 		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
 			if (!this.ValueComparer.Equals(newValue, previousValue))
 			{
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					this.Location.Clear(trans, FdbTuple.Create(previousValue, id));
+					var key = this.Location.EncodeKey(previousValue);
+					var data = await trans.GetAsync(key).ConfigureAwait(false);
+					if (data.HasValue)
+					{
+						var builder = new CompressedBitmapBuilder(data);
+						builder.Clear((int)id); //BUGBUG: 64 bit id!
+						trans.Set(key, builder.ToSlice());
+					}
 				}
 
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					this.Location.Set(trans, FdbTuple.Create(newValue, id), Slice.Empty);
+					var key = this.Location.EncodeKey(newValue);
+					var data = await trans.GetAsync(key).ConfigureAwait(false);
+					var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
+					builder.Set((int)id); //BUGBUG: 64 bit id!
+					trans.Set(key, builder.ToSlice());
 				}
 
 				// cannot be both null, so we did at least something)
@@ -124,11 +148,20 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="trans">Transaction to use</param>
 		/// <param name="id">Id of the entity that has been deleted</param>
 		/// <param name="value">Previous value of the entity in the index</param>
-		public void Remove([NotNull] IFdbTransaction trans, TId id, TValue value)
+		public async Task<bool> RemoveAsync([NotNull] IFdbTransaction trans, long id, TValue value)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			this.Location.Clear(trans, FdbTuple.Create(value, id));
+			var key = this.Location.EncodeKey(value);
+			var data = await trans.GetAsync(key).ConfigureAwait(false);
+			if (data.HasValue)
+			{
+				var builder = new CompressedBitmapBuilder(data);
+				builder.Clear((int)id); //BUGBUG: 64 bit id!
+				trans.Set(key, builder.ToSlice());
+				return true;
+			}
+			return false;
 		}
 
 		/// <summary>Returns a list of ids matching a specific value</summary>
@@ -136,63 +169,20 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="value">Value to lookup</param>
 		/// <param name="reverse"></param>
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
-		public Task<List<TId>> LookupAsync([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
+		public async Task<IEnumerable<long>> LookupAsync([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var query = Lookup(trans, value, reverse);
-			//TODO: limits? paging? ...
-			return query.ToListAsync();
+			var key = this.Location.EncodeKey(value);
+			var data = await trans.GetAsync(key).ConfigureAwait(false);
+			if (data.IsNull) return null;
+			if (data.IsEmpty) return Enumerable.Empty<long>();
+			var bitmap = new CompressedBitmap(data);
+			if (reverse) throw new NotImplementedException(); //TODO: GetView(reverse:true) !
+			return bitmap.GetView().Select(x => (long)x /*BUGBUG 64 bits*/);
 		}
-
-		/// <summary>Returns a query that will return all id of the entities that have the specified value in this index</summary>
-		/// <param name="trans">Transaction to use</param>
-		/// <param name="value">Value to lookup</param>
-		/// <param name="reverse">If true, returns the results in reverse identifier order</param>
-		/// <returns>Range query that returns all the ids of entities that match the value</returns>
-		[NotNull]
-		public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
-		{
-			var prefix = this.Location.Partial.EncodeKey(value);
-
-			return trans
-				.GetRange(FdbKeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Location.DecodeKey(kvp.Key).Item2);
-		}
-
-		[NotNull]
-		public FdbRangeQuery<TId> LookupGreaterThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
-		{
-			var prefix = this.Location.Partial.EncodeKey(value);
-			if (!orEqual) prefix = FdbKey.Increment(prefix);
-
-			var space = new FdbKeySelectorPair(
-				FdbKeySelector.FirstGreaterThan(prefix),
-				this.Location.ToSelectorPair().End
-			);
-
-			return trans
-				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Location.DecodeKey(kvp.Key).Item2);
-		}
-
-		[NotNull]
-		public FdbRangeQuery<TId> LookupLessThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
-		{
-			var prefix = this.Location.Partial.EncodeKey(value);
-			if (orEqual) prefix = FdbKey.Increment(prefix);
-
-			var space = new FdbKeySelectorPair(
-				this.Location.ToSelectorPair().Begin,
-				FdbKeySelector.FirstGreaterThan(prefix)
-			);
-
-			return trans
-				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Location.DecodeKey(kvp.Key).Item2);
-		}
-
+		
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Index['{0}']", this.Name);
+			return String.Format(CultureInfo.InvariantCulture, "BitmapIndex['{0}']", this.Name);
 		}
 
 	}

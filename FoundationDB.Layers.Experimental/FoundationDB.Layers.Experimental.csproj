@@ -61,7 +61,7 @@
     <Compile Include="Indexes\Bitmaps\CompressedBitmapWordIterator.cs" />
     <Compile Include="Indexes\Bitmaps\CompressedBitmapBitView.cs" />
     <Compile Include="Indexes\Bitmaps\BitRange.cs" />
-    <Compile Include="Indexes\Bitmaps\WordAlignHybridEncoder.cs" />
+    <Compile Include="Indexes\Bitmaps\WordAlignHybridCoding.cs" />
     <Compile Include="Indexes\FdbCompressedBitmapIndex.cs" />
     <Compile Include="Messaging\WorkerPoolTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -40,6 +40,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	{
 		// A compressed bitmap is IMMUTABLE and ReadOnly
 
+		/// <summary>Returns a new instance of an empty bitmap</summary>
 		public static readonly CompressedBitmap Empty = new CompressedBitmap(Slice.Empty, BitRange.Empty);
 
 		private /*readonly*/ Slice m_data;

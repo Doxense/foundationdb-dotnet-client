@@ -38,6 +38,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 	using System.Diagnostics;
 	using System.Globalization;
 	using FoundationDB.Layers.Tuples;
+	using System.IO;
 
 	[TestFixture]
 	public class CompressedBitmapsFacts
@@ -564,7 +565,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			// combination of both
 			Console.WriteLine();
 			Console.WriteLine("indexByGender.Lookup('Female') AND indexOfTheDead.Lookup(dead: true)");
-			var julia = WordAlignHybridEncoder.LogicalAndCompressed(females, deadPeople);
+			var julia = WordAlignHybridEncoder.And(females, deadPeople);
 			Console.WriteLine("=> {0}", julia.Dump());
 			DumpIndexQueryResult(database, julia);
 
@@ -578,11 +579,44 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				if (crew == null)
 					crew = bmp;
 				else
-					crew = WordAlignHybridEncoder.LogicalOrCompressed(crew, bmp);
+					crew = WordAlignHybridEncoder.Or(crew, bmp);
 			}
 			crew = crew ?? CompressedBitmap.Empty;
 			Console.WriteLine("=> {0}", crew.Dump());
 			DumpIndexQueryResult(database, crew);
+
+		}
+
+		[Test]
+		public void Test_Logical_Binary_Operations()
+		{
+
+			var a = SuperSlowUncompressedBitmap.FromBitString("0101").ToBitmap();
+			var b = SuperSlowUncompressedBitmap.FromBitString("0011").ToBitmap();
+
+			var and = a.And(b);
+			Assert.That(and, Is.Not.Null);
+			Assert.That(new SuperSlowUncompressedBitmap(and).ToBitString(), Is.EqualTo("0001000000000000000000000000000"), "a AND b");
+
+			var or  = a.Or(b);
+			Assert.That(or, Is.Not.Null);
+			Assert.That(new SuperSlowUncompressedBitmap(or).ToBitString(), Is.EqualTo("0111000000000000000000000000000"), "a OR b");
+
+			var xor = a.Xor(b);
+			Assert.That(xor, Is.Not.Null);
+			Assert.That(new SuperSlowUncompressedBitmap(xor).ToBitString(), Is.EqualTo("0110000000000000000000000000000"), "a XOR b");
+
+			var andNot = a.AndNot(b);
+			Assert.That(andNot, Is.Not.Null);
+			Assert.That(new SuperSlowUncompressedBitmap(andNot).ToBitString(), Is.EqualTo("0100000000000000000000000000000"), "a AND NOT b");
+
+			var orNot = a.OrNot(b);
+			Assert.That(orNot, Is.Not.Null);
+			Assert.That(new SuperSlowUncompressedBitmap(orNot).ToBitString(), Is.EqualTo("1101111111111111111111111111111"), "a OR NOT b");
+
+			var xorNot = a.XorNot(b);
+			Assert.That(xorNot, Is.Not.Null);
+			Assert.That(new SuperSlowUncompressedBitmap(xorNot).ToBitString(), Is.EqualTo("1001111111111111111111111111111"));
 
 		}
 
@@ -696,7 +730,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 					MakeInserter<KeyValuePair<int, CoinToss>, bool>(indexValid, (kv) => kv.Key, (kv) => kv.Value.Valid),
 					MakeInserter<KeyValuePair<int, CoinToss>, bool>(indexFlipFlop, (kv) => kv.Key, (kv) => kv.Value.Daytime),
 					MakeInserter<KeyValuePair<int, CoinToss>, int>(indexFlips, (kv) => kv.Key, (kv) => kv.Value.Flips),
-					MakeInserter<KeyValuePair<int, CoinToss>, double>(indexElevation, (kv) => kv.Key, (kv) => Math.Round(kv.Value.Elevation, 0, MidpointRounding.AwayFromZero)),
+					MakeInserter<KeyValuePair<int, CoinToss>, double>(indexElevation, (kv) => kv.Key, (kv) => Math.Round(kv.Value.Elevation, 1, MidpointRounding.AwayFromZero)),
 					MakeInserter<KeyValuePair<int, CoinToss>, string>(indexLoc, (kv) => kv.Key, (kv) => kv.Value.Location),
 				};
 
@@ -711,22 +745,22 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				//Console.WriteLine("\rInserting data: {0} / {1}", database.Count, N);
 
 				Console.WriteLine();
-				DumpIndex("Result", indexResult, (s, _) => s);
+				DumpIndex("Result", indexResult, (s, _) => s, heatMaps: true);
 
 				Console.WriteLine();
-				DumpIndex("Valid", indexValid, (s, _) => s);
+				DumpIndex("Valid", indexValid, (s, _) => s, heatMaps: true);
 
 				Console.WriteLine();
-				DumpIndex("FlipFlops", indexFlipFlop, (s, _) => s);
+				DumpIndex("FlipFlops", indexFlipFlop, (s, _) => s, heatMaps: true);
 
 				Console.WriteLine();
-				DumpIndex("Flips", indexFlips, (s, _) => s);
+				DumpIndex("Flips", indexFlips, (s, _) => s, heatMaps: true);
 
 				Console.WriteLine();
-				DumpIndex("Location", indexLoc, (_, n) => -n);
+				DumpIndex("Location", indexLoc, (_, n) => -n, heatMaps: true);
 
 				Console.WriteLine();
-				DumpIndex("Elevation", indexElevation, (s, _) => s);
+				DumpIndex("Elevation", indexElevation, (s, _) => s, heatMaps: true);
 
 				//Console.WriteLine(indexValid.Values[true].Dump());
 				//Console.WriteLine(indexValid.Values[true].ToSlice().ToHexaString());
@@ -737,6 +771,162 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 		}
 
 		#endregion
+
+		public void Test_BigBadIndexOfTheDead()
+		{
+			// simulate a dataset where 50,000 users create a stream of 10,000,000  events, with a non uniform distribution, ie: few users making the bulk, and a long tail of mostly inactive users
+			const int N = 10 * 1000 * 1000;
+			const int K = 50 * 1000;
+
+			var rnd = new Random(123456);
+
+			#region create a non uniform random distribution for the users
+
+			// step1: create a semi random distribution for the values
+			Console.WriteLine("Creating Probability Distribution Function for {0:N0} users...", K);
+			var pk = new double[K];
+			// step1: each gets a random score
+			for (int i = 0; i < pk.Length; i++)
+			{
+				pk[i] = Math.Pow(rnd.NextDouble(), 10);
+			}
+			// then sort + reverse
+			Array.Sort(pk); Array.Reverse(pk);
+			// step2: spread
+			double sum = 0;
+			for(int i = 0; i < pk.Length;i++)
+			{
+				var s = pk[i];
+				pk[i] = sum;
+				sum += s;
+			}
+			// step3: normalize
+			double r = (N - 1) / sum;
+			for (int i = 0; i < pk.Length; i++)
+			{
+				pk[i] = Math.Floor(pk[i] * r);
+			}
+			sum = N;
+
+			// step4: fudge the tail
+			r = pk[pk.Length - 1];
+			double delta = 1;
+			for (int i = pk.Length - 2; i >= 0; i--)
+			{
+				if (pk[i] < r) break;
+				r -= delta;
+				delta *= 1.0001;
+				pk[i] = r;
+			}
+
+			//for (int i = 0; i < pk.Length; i += 500)
+			//{
+			//	Console.WriteLine(pk[i].ToString("R", CultureInfo.InvariantCulture));
+			//}
+
+			int p25 = Array.BinarySearch(pk, 0.25 * sum); p25 = p25 < 0 ? ~p25 : p25;
+			int p50 = Array.BinarySearch(pk, 0.50 * sum); p50 = p50 < 0 ? ~p50 : p50;
+			int p75 = Array.BinarySearch(pk, 0.75 * sum); p75 = p75 < 0 ? ~p75 : p75;
+			int p95 = Array.BinarySearch(pk, 0.95 * sum); p95 = p95 < 0 ? ~p95 : p95;
+			Console.WriteLine("> PDF: P25={0:G2} %, P50={1:G2} %, P75={2:G2} %, P95={3:G2} %", 100.0 * p25 / K, 100.0 * p50 / K, 100.0 * p75 / K, 100.0 * p95 / K);
+
+			#endregion
+
+			#region Create the random event dataset...
+
+			// a user will be selected randomnly, and will be able to produce a random number of consecutive events, until we reach the desired amount of events
+
+			Console.WriteLine("Creating dataset for {0:N0} documents...", N);
+			var dataSet = new int[N];
+			//int j = 0;
+			//for (int i = 0; i < N; i++)
+			//{
+			//	if (pk[j + 1] <= i) j++;
+			//	dataSet[i] = j;
+			//}
+			//// scramble dataset
+			//for (int i = 0; i < N;i++)
+			//{
+			//	var p = rnd.Next(i);
+			//	var tmp = dataSet[i];
+			//	dataSet[i] = dataSet[p];
+			//	dataSet[p] = tmp;
+			//}
+
+			int user = 0;
+			int j = 0;
+			while (j < N)
+			{
+				if (rnd.NextDouble() * sum * 1.005 >= pk[user])
+				{
+					int n = 1 + (int)(Math.Pow(rnd.NextDouble(), 2) * 10);
+					while (n-- > 0 && j < N)
+					{
+						dataSet[j++] = user;
+					}
+				}
+				++user;
+				if (user == K) user = 0;
+			}
+
+			Console.WriteLine("Computing control statistics...");
+			// compute the control value for the counts per value
+			var controlStats = dataSet
+				.GroupBy(x => x).Select(g => new { Value = g.Key, Count = g.Count() })
+				.OrderByDescending(x => x.Count)
+				.ToList();
+			Console.WriteLine("> Found {0:N0} unique values", controlStats.Count);
+
+			#endregion
+
+			// create pseudo-index
+			Console.WriteLine("Indexing {0:N0} documents...", N);
+			var sw = Stopwatch.StartNew();
+			var index = new Dictionary<int, CompressedBitmapBuilder>(K);
+			for (int id = 0; id < dataSet.Length; id++)
+			{
+				int value = dataSet[id];
+				CompressedBitmapBuilder builder;
+				if (!index.TryGetValue(value, out builder))
+				{
+					builder = new CompressedBitmapBuilder(CompressedBitmap.Empty);
+					index[value] = builder;
+				}
+				builder.Set(id);
+			}
+			sw.Stop();
+			Console.WriteLine("> Found {0:N0} unique values in {1:N1} sec", index.Count, sw.Elapsed.TotalSeconds);
+
+			// verify the counts
+			Console.WriteLine("Verifying index results...");
+			var log = new StringWriter(CultureInfo.InvariantCulture);
+			long totalBitmapSize = 0;
+			j = 0;
+			foreach (var kv in controlStats)
+			{
+				CompressedBitmapBuilder builder;
+				Assert.That(index.TryGetValue(kv.Value, out builder), Is.True, "{0} is missing from index", kv.Value);
+				var bmp = builder.ToBitmap();
+				int bits, words, a, b;
+				double ratio;
+				bmp.GetStatistics(out bits, out words, out a, out b, out ratio);
+				Assert.That(bits, Is.EqualTo(kv.Count), "{0} has invalid count", kv.Value);
+				int sz = bmp.ToSlice().Count;
+				log.WriteLine("{0,8} : {1,5} bits, {2} words ({3} lit. / {4} fil.), {5:N0} bytes, {6:N3} bytes/doc, {7:N2}% compression", kv.Value, bits, words, a, b, sz, 1.0 * sz / bits, 100.0 * (4 + 17 + sz) / (17 + (4 + 17) * bits));
+				totalBitmapSize += sz;
+				//if (j % 500 == 0) Console.WriteLine((100.0 * b / words));
+				//if (j % 500 == 0) Console.WriteLine(bmp.Dump());
+				j++;
+			}
+			Assert.That(index.Count, Is.EqualTo(controlStats.Count), "Some values have not been indexed properly");
+			Console.WriteLine("> success!");
+			Console.WriteLine("Total index size for {0:N0} documents and {1:N0} values is {2:N0} bytes", N, K, totalBitmapSize);
+
+			Console.WriteLine();
+			Console.WriteLine("Dumping results:");
+			Trace.WriteLine(log.ToString());
+
+		}
 
 	}
 

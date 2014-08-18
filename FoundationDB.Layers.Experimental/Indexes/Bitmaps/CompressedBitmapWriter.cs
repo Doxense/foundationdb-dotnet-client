@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 
 	/// <summary>Writer that compresses a stream of bits into a <see cref="CompressedBitmap"/>, in memory</summary>
@@ -61,11 +62,24 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		#region Constructors...
 
+		/// <summary>Create a new compressed bitmap writer</summary>
 		public CompressedBitmapWriter()
 			: this(SliceWriter.Empty, true)
 		{ }
 
-		public CompressedBitmapWriter(SliceWriter writer, bool ownsBuffer)
+		/// <summary>Create a new compressed bitmap writer, with a hint for the initial capacity</summary>
+		/// <param name="capacity">Hint of the estimated number of words that will be written.</param>
+		/// <remarks>The size of the initial allocated buffer will be (<paramref name="capacity"/> + 1) * 4 bytes</remarks>
+		public CompressedBitmapWriter(int capacity)
+			: this(new SliceWriter(Math.Max(4 + capacity  * 4, 20)), true)
+		{
+			if (capacity < 0) throw new ArgumentOutOfRangeException("capacity");
+		}
+
+		/// <summary>Create a new compressed bitmap writer, with a specific underlying buffer</summary>
+		/// <param name="writer">Existing where the compressed words will be written to</param>
+		/// <param name="ownsBuffer">If true, the buffer is still private and and can modified at will. If false, the buffer has been exposed publicly and a new buffer must be allocated before reusing this writer</param>
+		internal CompressedBitmapWriter(SliceWriter writer, bool ownsBuffer)
 		{
 			m_writer = writer;
 			m_head = writer.Position;
@@ -83,7 +97,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			get { return m_words; }
 		}
 
-		/// <summary>Length of the Compressed Bitmap</summary>
+		/// <summary>Length (in bytes) of the Compressed Bitmap</summary>
+		/// <remarks>This may be off by 4 bytes if <see cref="Flush"/> hasn't been called since the last write.</remarks>
 		public int Length
 		{
 			get { return m_writer.Position; }
@@ -94,6 +109,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		#region Public Methods...
 
 		/// <summary>Add a single word to the output</summary>
+		/// <param name="word">Value containing 31 bits from the original uncompressed bitmap.</param>
 		public void Write(uint word)
 		{
 			Contract.Requires(word <= CompressedWord.ALL_ONES);
@@ -110,7 +126,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Add a word repetition to the output </summary>
-		/// <param name="word">Word to add</param>
+		/// <param name="word">Value containing 31 bits from the original uncompressed bitmap.</param>
 		/// <param name="count">Number of times <paramref name="word"/> is repeated in the output</param>
 		public void Write(uint word, int count)
 		{
@@ -200,6 +216,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		}
 
 		/// <summary>Flush the curernt state of the writer</summary>
+		/// <remarks>Writing after calling flush may break filler sequences into chunks, and reduce the efficiency of the compression.
+		/// It should only be called if you need to split a bitmap streaming into physical chunks (sending on a socket, writing to disk, ...)
+		/// </remarks>
 		public void Flush()
 		{
 			if (m_packed) ThrowAlreadyPacked();
@@ -217,9 +236,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			m_current = NO_VALUE;
 		}
 
-		/// <summary>Flus the state and update the header</summary>
+		/// <summary>Flush the state and update the header</summary>
 		/// <param name="padding">Padding bits that were added to the last written word</param>
 		/// <returns>Slice contained the finished compressed bitmap</returns>
+		/// <remarks>You cannot write any more words after Packing, until <see cref="Reset"/> is called.</remarks>
 		public void Pack()
 		{
 			if (m_packed) ThrowAlreadyPacked();
@@ -254,6 +274,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			throw new InvalidOperationException("The compressed bitmap has already been packed");
 		}
 
+		/// <summary>Flush the final words and return the bytes of the completed bitmap</summary>
 		public Slice GetBuffer()
 		{
 			if (!m_packed)
@@ -265,15 +286,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return m_writer.ToSlice();
 		}
 
+		/// <summary>Flush the final words and return the compressed bitmap</summary>
+		[NotNull]
 		public CompressedBitmap GetBitmap()
 		{
-			if (!m_packed)
-			{
-				Contract.Assert(m_ownsBuffer);
-				Pack();
-			}
-			m_ownsBuffer = false;
-			return new CompressedBitmap(m_writer.ToSlice(), m_bounds);
+			return new CompressedBitmap(GetBuffer(), m_bounds);
 		}
 
 		/// <summary>Clear the content of the buffer, and start from scratch</summary>

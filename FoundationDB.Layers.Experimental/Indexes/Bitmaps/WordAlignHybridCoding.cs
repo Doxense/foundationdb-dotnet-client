@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -365,39 +366,140 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	
 		internal enum LogicalOperation
 		{
+			Not,
 			And,
 			Or,
 			Xor,
+			AndNot,
+			OrNot,
+			XorNot,
+		}
+
+		/// <summary>Performs a logical NOT on a compressed bitmaps</summary>
+		/// <param name="bitmap">Compressed bitmap</param>
+		/// <param name="size">Minimum logical size of the result (bits in the uncompressed bitmap)</param>
+		/// <returns>Compressed slice with the result of flipping all the bits in <paramref name="bitmap"/>, containing up to at least <paramref name="size"/> bits.</returns>
+		/// <remarks>If <paramref name="bitmap"/> is larger than <paramref name="size"/>, then the resulting bitmap will be larger.</remarks>
+		[NotNull]
+		public static CompressedBitmap Not([NotNull] this CompressedBitmap bitmap, int size)
+		{
+			if (bitmap == null) throw new ArgumentNullException("bitmap");
+
+			// there is a high change that the final bitmap will have the same size, with an optional extra filler word at the end
+			var writer = new CompressedBitmapWriter(bitmap.Count + 1);
+			int n = 0;
+			if (bitmap.Count > 0)
+			{
+				foreach (var word in bitmap)
+				{
+					if (word.IsLiteral)
+					{
+						writer.Write(CompressedWord.MakeLiteral((uint)(~word.Literal)));
+						n += 31;
+					}
+					else
+					{
+						int fc = word.FillCount;
+						writer.Write(word.FillBit == 1 ? CompressedWord.ALL_ZEROES : CompressedWord.ALL_ONES, fc);
+						n += 31 * fc;
+					}
+				}
+			}
+			if (n < size)
+			{
+				writer.Write(CompressedWord.ALL_ONES, size / 31);
+				int r = size % 31;
+				if (r > 0) writer.Write((1u << r) - 1);
+			}
+			return writer.GetBitmap();
 		}
 
 		/// <summary>Performs a logical AND between two compressed bitmaps</summary>
 		/// <param name="left">First compressed bitmap</param>
 		/// <param name="right">Second compressed bitmap</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
-		public static CompressedBitmap LogicalAndCompressed(CompressedBitmap left, CompressedBitmap right)
+		[NotNull]
+		public static CompressedBitmap And([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
 		{
-			//TODO: if left or right is empty, the result is also empty
+			if (left == null) throw new ArgumentNullException("left");
+			if (right == null) throw new ArgumentNullException("right");
+
+			if (left.Count == 0 || right.Count == 0) return CompressedBitmap.Empty;
 			return CompressedBinaryExpression(left, right, LogicalOperation.And);
 		}
 
-		/// <summary>Performs a logical AND between two compressed bitmaps</summary>
+		/// <summary>Performs a logical OR between two compressed bitmaps</summary>
 		/// <param name="left">First compressed bitmap</param>
 		/// <param name="right">Second compressed bitmap</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
-		public static CompressedBitmap LogicalOrCompressed(CompressedBitmap left, CompressedBitmap right)
+		[NotNull]
+		public static CompressedBitmap Or([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
 		{
-			//TODO: if left or right is empty, the result is the other one
+			if (left == null) throw new ArgumentNullException("left");
+			if (right == null) throw new ArgumentNullException("right");
+
+			if (left.Count == 0) return right.Count == 0 ? CompressedBitmap.Empty : right;
+			if (right.Count == 0) return left;
 			return CompressedBinaryExpression(left, right, LogicalOperation.Or);
 		}
 
-		/// <summary>Performs a logical AND between two compressed bitmaps</summary>
+		/// <summary>Performs a logical XOR between two compressed bitmaps</summary>
 		/// <param name="left">First compressed bitmap</param>
 		/// <param name="right">Second compressed bitmap</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
-		public static CompressedBitmap LogicalXorCompressed(CompressedBitmap left, CompressedBitmap right)
+		[NotNull]
+		public static CompressedBitmap Xor([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
 		{
-			//TODO: if left or right is empty, the result is the other one
+			if (left == null) throw new ArgumentNullException("left");
+			if (right == null) throw new ArgumentNullException("right");
+
+			if (left.Count == 0) return right.Count == 0 ? CompressedBitmap.Empty : right;
+			if (right.Count == 0) return left;
 			return CompressedBinaryExpression(left, right, LogicalOperation.Xor);
+		}
+
+		/// <summary>Performs a logical NAND between two compressed bitmaps</summary>
+		/// <param name="left">First compressed bitmap</param>
+		/// <param name="right">Second compressed bitmap</param>
+		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND NOT(<paramref name="right"/>)</returns>
+		[NotNull]
+		public static CompressedBitmap AndNot([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
+		{
+			if (left == null) throw new ArgumentNullException("left");
+			if (right == null) throw new ArgumentNullException("right");
+
+			if (left.Count == 0 || right.Count == 0) return CompressedBitmap.Empty;
+			return CompressedBinaryExpression(left, right, LogicalOperation.AndNot);
+		}
+
+		/// <summary>Performs a logical NOR between two compressed bitmaps</summary>
+		/// <param name="left">First compressed bitmap</param>
+		/// <param name="right">Second compressed bitmap</param>
+		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> OR NOT(<paramref name="right"/>)</returns>
+		[NotNull]
+		public static CompressedBitmap OrNot([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
+		{
+			if (left == null) throw new ArgumentNullException("left");
+			if (right == null) throw new ArgumentNullException("right");
+
+			if (left.Count == 0) return right.Count == 0 ? CompressedBitmap.Empty : right;
+			if (right.Count == 0) return left;
+			return CompressedBinaryExpression(left, right, LogicalOperation.OrNot);
+		}
+
+		/// <summary>Performs a logical NXOR between two compressed bitmaps</summary>
+		/// <param name="left">First compressed bitmap</param>
+		/// <param name="right">Second compressed bitmap</param>
+		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> XOR NOT(<paramref name="right"/>)</returns>
+		[NotNull]
+		public static CompressedBitmap XorNot([NotNull] this CompressedBitmap left, [NotNull] CompressedBitmap right)
+		{
+			if (left == null) throw new ArgumentNullException("left");
+			if (right == null) throw new ArgumentNullException("right");
+
+			if (left.Count == 0) return right.Count == 0 ? CompressedBitmap.Empty : right;
+			if (right.Count == 0) return left;
+			return CompressedBinaryExpression(left, right, LogicalOperation.XorNot);
 		}
 
 		/// <summary>Performs a binary operation between two compressed bitmaps</summary>
@@ -405,10 +507,12 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="right">Second compressed bitmap</param>
 		/// <param name="op">Type of operation to perform (And, Or, Xor, ...)</param>
 		/// <returns>Compressed slice with the result of boolean expression <paramref name="left"/> AND <paramref name="right"/></returns>
-		internal static CompressedBitmap CompressedBinaryExpression(CompressedBitmap left, CompressedBitmap right, LogicalOperation op)
+		[NotNull]
+		internal static CompressedBitmap CompressedBinaryExpression([NotNull] CompressedBitmap left, [NotNull] CompressedBitmap right, LogicalOperation op)
 		{
-			var writer = new CompressedBitmapWriter();
+			Contract.Requires(left != null && right != null && op != LogicalOperation.And && Enum.IsDefined(typeof(LogicalOperation), op));
 
+			var writer = new CompressedBitmapWriter();
 			using (var liter = left.GetEnumerator())
 			using (var riter = right.GetEnumerator())
 			{
@@ -469,9 +573,13 @@ namespace FoundationDB.Layers.Experimental.Indexing
 						int n = Math.Min(ln, rn);
 						switch (op)
 						{
-							case LogicalOperation.And: writer.Write((uint)(lw & rw), n); break;
-							case LogicalOperation.Or: writer.Write((uint)(lw | rw), n); break;
-							default: writer.Write((uint)(lw ^ rw), n); break;
+							case LogicalOperation.And:		writer.Write((uint)(lw & rw), n); break;
+							case LogicalOperation.AndNot:	writer.Write((uint)(lw & ~rw), n); break;
+							case LogicalOperation.Or:		writer.Write((uint)(lw | rw), n); break;
+							case LogicalOperation.OrNot:	writer.Write((uint)(lw | ~rw), n); break;
+							case LogicalOperation.Xor:		writer.Write((uint)(lw ^ rw), n); break;
+							case LogicalOperation.XorNot:	writer.Write((uint)(lw ^ ~rw), n); break;
+							default: throw new InvalidOperationException();
 						}
 						ln -= n;
 						rn -= n;

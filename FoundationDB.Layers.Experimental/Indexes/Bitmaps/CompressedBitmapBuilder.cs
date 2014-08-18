@@ -37,14 +37,22 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	/// <summary>Builder of compressed bitmaps that can set or clear bits in a random order, in memory</summary>
 	public sealed class CompressedBitmapBuilder
 	{
+		private static readonly CompressedWord[] s_emptyArray = new CompressedWord[0];
+
+		/// <summary>Returns a new instance of an empty bitmap builder</summary>
+		public static CompressedBitmapBuilder Empty
+		{
+			get { return new CompressedBitmapBuilder(s_emptyArray, 0, BitRange.Empty); }
+		}
+
 		/// <summary>Buffer of compressed words</summary>
 		private CompressedWord[] m_words;
 		/// <summary>Number of words used in the buffer</summary>
 		private int m_size;
 		/// <summary>Index of the lowest bit that is set (or int.MaxValue)</summary>
-		private int m_lowest = int.MaxValue;
+		private int m_lowest;
 		/// <summary>Index of the highest bit that is set (or -1)</summary>
-		private int m_highest = -1;
+		private int m_highest;
 
 		public CompressedBitmapBuilder(CompressedBitmap bitmap)
 		{
@@ -53,7 +61,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			if (bitmap.Count == 0)
 			{
-				m_words = new CompressedWord[0];
+				m_words = s_emptyArray;
+				var range = BitRange.Empty;
+				m_lowest = range.Lowest;
+				m_highest = range.Highest;
 			}
 			else
 			{
@@ -64,6 +75,19 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				m_lowest = bounds.Lowest;
 				m_highest = bounds.Highest;
 			}
+		}
+
+		public CompressedBitmapBuilder(Slice data)
+			: this(new CompressedBitmap(data))
+		{ }
+
+		internal CompressedBitmapBuilder(CompressedWord[] words, int size, BitRange range)
+		{
+			Contract.Requires(words != null && size >= 0);
+			m_words = words;
+			m_size = size;
+			m_lowest = range.Lowest;
+			m_highest = range.Highest;
 		}
 
 		[NotNull]
@@ -394,6 +418,11 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		internal static Slice Pack([NotNull] CompressedWord[] words, int size, int highest)
 		{
 			Contract.Requires(size >= 0 && size <= words.Length);
+
+			if (size == 0)
+			{ // empty bitmap
+				return Slice.Empty;
+			}
 
 			var writer = new SliceWriter(checked((size + 1) << 2));
 			writer.WriteFixed32(CompressedWord.MakeHeader(highest));

@@ -41,7 +41,10 @@ namespace FoundationDB.Layers.Experimental.Indexing
 	[DebuggerDisplay("[{Lowest}, {Highest}]")]
 	public struct BitRange : IEquatable<BitRange>
 	{
-		public static BitRange Empty { get { return new BitRange(0, -1); } }
+		private const int LOWEST_UNDEFINED = 0;
+		private const int HIGHEST_UNDEFINED = -1;
+
+		public static BitRange Empty { get { return new BitRange(LOWEST_UNDEFINED, HIGHEST_UNDEFINED); } }
 
 		/// <summary>Index of the lowest bit that is set to 1 in the source Bitmap</summary>
 		public readonly int Lowest;

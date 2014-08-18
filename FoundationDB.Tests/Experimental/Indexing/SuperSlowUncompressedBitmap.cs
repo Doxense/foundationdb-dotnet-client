@@ -72,6 +72,15 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 				}
 			}
 			this.Bits = bits;
+			this.LowestBit = bitmap.Bounds.Lowest;
+			this.HighestBit = bitmap.Bounds.Highest;
+		}
+
+		internal SuperSlowUncompressedBitmap(bool[] bits, int lowest, int highest)
+		{
+			this.Bits = bits;
+			this.LowestBit = lowest;
+			this.HighestBit = highest;
 		}
 
 		public bool this[int index]
@@ -120,12 +129,12 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			{ // need to recompute highestbit
 
 				this.HighestBit = FindHighestBit(bits, index);
-				Console.WriteLine("new highest {0}", this.HighestBit);
+				//Console.WriteLine("new highest {0}", this.HighestBit);
 			}
 			if (index == this.LowestBit)
 			{
 				this.LowestBit = FindLowestBit(bits, index);
-				Console.WriteLine("new lowest {0}", this.LowestBit);
+				//Console.WriteLine("new lowest {0}", this.LowestBit);
 			}
 
 			return true;
@@ -191,6 +200,51 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 			}
 
 			return writer.GetBitmap();
+		}
+
+		public string ToBitString()
+		{
+
+			var bits = this.Bits;
+			var sb = new StringBuilder(bits.Length + 30);
+			int hsb = 0;
+			for (int i = 0; i < bits.Length; i++)
+			{
+				if (bits[i])
+				{
+					sb.Append('1');
+					hsb = i;
+				}
+				else
+				{
+					sb.Append('0');
+				}
+			}
+			int m = ((hsb + 30) / 31) * 31;
+			while (sb.Length < m) sb.Append('0');
+			return sb.ToString(0, m);
+		}
+
+		public static SuperSlowUncompressedBitmap FromBitString(string bitString)
+		{
+			var bits = new List<bool>(bitString.Length);
+			int hsb = 0;
+			int lsb = int.MaxValue;
+			foreach(var c in bitString)
+			{
+				if (c == '1')
+				{
+					bits.Add(true);
+					hsb = bits.Count;
+					if (lsb != int.MaxValue) lsb = bits.Count;
+				}
+				else if (c == '0')
+				{
+					bits.Add(false);
+				}
+				//else ignore
+			}
+			return new SuperSlowUncompressedBitmap(bits.ToArray(), lsb, hsb);
 		}
 
 		public StringBuilder Dump(StringBuilder sb = null)
