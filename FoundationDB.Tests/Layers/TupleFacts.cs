@@ -474,6 +474,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_Fdb_Tuple_Serialize_Bytes()
 		{
+			// Byte arrays are stored with prefix '01' followed by the bytes, and terminated by '00'. All occurences of '00' in the byte array are escaped with '00 FF'
+			// - Best case:  packed_size = 2 + array_len
+			// - Worst case: packed_size = 2 + array_len * 2
+
 			Slice packed;
 
 			packed = FdbTuple.Pack(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 });
@@ -517,7 +521,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Unicode_Strings()
 		{
-			// Unicode strings are stored with prefix '02' followed by the utf8 bytes, and terminated by '00'. All occurence of '00' in the UTF8 bytes are escaped with '00 FF'
+			// Unicode strings are stored with prefix '02' followed by the utf8 bytes, and terminated by '00'. All occurences of '00' in the UTF8 bytes are escaped with '00 FF'
 
 			Slice packed;
 
@@ -569,7 +573,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Guids()
 		{
-			// Guids are stored with prefix '03' followed by 16 bytes formatted according to RFC 4122
+			// 128-bit Guids are stored with prefix '30' followed by 16 bytes formatted according to RFC 4122
 
 			// System.Guid are stored in Little-Endian, but RFC 4122's UUIDs are stored in Big Endian, so per convention we will swap them
 
@@ -587,7 +591,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Deserialize_Guids()
 		{
-			// Guids are stored with prefix '03' followed by 16 bytes
+			// 128-bit Guids are stored with prefix '30' followed by 16 bytes
 			// we also accept byte arrays (prefix '01') if they are of length 16
 
 			IFdbTuple packed;
@@ -683,7 +687,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Deserialize_Uuid64s()
 		{
-			// UUIDs are stored with prefix '31' followed by 8 bytes (the result of uuid.ToByteArray())
+			// UUID64s are stored with prefix '31' followed by 8 bytes (the result of uuid.ToByteArray())
 			// we also accept byte arrays (prefix '01') if they are of length 8, and unicode strings (prefix '02')
 
 			IFdbTuple packed;
@@ -717,6 +721,15 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Integers()
 		{
+			// Positive integers are stored with a variable-length encoding.
+			// - The prefix is 0x14 + the minimum number of bytes to encode the integer, from 0 to 8, so valid prefixes range from 0x14 to 0x1C
+			// - The bytes are stored in High-Endian (ie: the upper bits first)
+			// Examples:
+			// - 0 => <14>
+			// - 1..255 => <15><##>
+			// - 256..65535 .. => <16><HH><LL>
+			// - ulong.MaxValue => <1C><FF><FF><FF><FF><FF><FF><FF><FF>
+
 			Assert.That(
 				FdbTuple.Create(0).ToSlice().ToString(),
 				Is.EqualTo("<14>")
@@ -810,6 +823,14 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Negative_Integers()
 		{
+			// Negative integers are stored with a variable-length encoding.
+			// - The prefix is 0x14 - the minimum number of bytes to encode the integer, from 0 to 8, so valid prefixes range from 0x0C to 0x13
+			// - The value is encoded as the one's complement, and stored in High-Endian (ie: the upper bits first)
+			// - There is no way to encode '-0', it will be encoded as '0' (<14>)
+			// Examples:
+			// - -255..-1 => <13><00> .. <13><FE>
+			// - -65535..-256 => <12><00>00> .. <12><FE><FF>
+			// - long.MinValue => <0C><7F><FF><FF><FF><FF><FF><FF><FF>
 
 			Assert.That(
 				FdbTuple.Create(-1).ToSlice().ToString(),
@@ -853,6 +874,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Singles()
 		{
+			// 32-bit floats are stored in 5 bytes, using the prefix 0x20 followed by the High-Endian representation of their normalized form
+
 			Assert.That(FdbTuple.Create(0f).ToSlice().ToHexaString(' '), Is.EqualTo("20 80 00 00 00"));
 			Assert.That(FdbTuple.Create(42f).ToSlice().ToHexaString(' '), Is.EqualTo("20 C2 28 00 00"));
 			Assert.That(FdbTuple.Create(-42f).ToSlice().ToHexaString(' '), Is.EqualTo("20 3D D7 FF FF"));
@@ -913,6 +936,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Doubles()
 		{
+			// 64-bit floats are stored in 9 bytes, using the prefix 0x21 followed by the High-Endian representation of their normalized form
+
 			Assert.That(FdbTuple.Create(0d).ToSlice().ToHexaString(' '), Is.EqualTo("21 80 00 00 00 00 00 00 00"));
 			Assert.That(FdbTuple.Create(42d).ToSlice().ToHexaString(' '), Is.EqualTo("21 C0 45 00 00 00 00 00 00"));
 			Assert.That(FdbTuple.Create(-42d).ToSlice().ToHexaString(' '), Is.EqualTo("21 3F BA FF FF FF FF FF FF"));
@@ -972,7 +997,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Booleans()
 		{
-			// False is 0, True is 1
+			// Booleans are stored as interger 0 (<14>) for false, and integer 1 (<15><01>) for true
 
 			Slice packed;
 
@@ -1027,7 +1052,9 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_IPAddress()
 		{
-		
+			// IP Addresses are stored as a byte array (<01>..<00>), in network order (big-endian)
+			// They will take from 6 to 10 bytes, depending on the number of '.0' in them.
+
 			Assert.That(
 				FdbTuple.Create(IPAddress.Loopback).ToSlice().ToHexaString(' '),
 				Is.EqualTo("01 7F 00 FF 00 FF 01 00")
@@ -1064,6 +1091,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_NullableTypes()
 		{
+			// Nullable types will either be encoded as <14> for null, or their regular encoding if not null
 
 			// serialize
 

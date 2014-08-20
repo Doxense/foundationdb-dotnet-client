@@ -66,16 +66,17 @@ namespace FoundationDB.Layers.Directories
 				long id;
 				var ids = new HashSet<long>();
 
+				// allocate a single new id
 				using (var tr = logged.BeginTransaction(this.Cancellation))
 				{
 					id = await hpa.AllocateAsync(tr);
 					await tr.CommitAsync();
 				}
-				Console.WriteLine(id);
 				ids.Add(id);
 
 				await DumpSubspace(db, location);
 
+				// allocate a batch of new ids
 				for (int i = 0; i < 100; i++)
 				{
 					using (var tr = logged.BeginTransaction(this.Cancellation))
