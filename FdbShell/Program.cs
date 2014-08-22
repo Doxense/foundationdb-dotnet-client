@@ -359,9 +359,16 @@ namespace FdbShell
 						}
 
 						case "show":
+						case "top":
 						{
 							var path = ParsePath(CurrentDirectoryPath);
-							await RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, db, log, ct), cancel);
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, false, db, log, ct), cancel);
+							break;
+						}
+						case "last":
+						{
+							var path = ParsePath(CurrentDirectoryPath);
+							await RunAsyncCommand((db, log, ct) => BasicCommands.Show(path, extras, true, db, log, ct), cancel);
 							break;
 						}
 

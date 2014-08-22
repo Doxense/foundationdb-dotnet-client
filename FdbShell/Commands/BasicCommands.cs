@@ -229,7 +229,7 @@ namespace FdbShell
 		}
 
 		/// <summary>Shows the first few keys of a directory</summary>
-		public static async Task Show(string[] path, IFdbTuple extras, IFdbDatabase db, TextWriter log, CancellationToken ct)
+		public static async Task Show(string[] path, IFdbTuple extras, bool reverse, IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{
 			int count = 20;
 			if (extras.Count > 0)
@@ -243,14 +243,21 @@ namespace FdbShell
 			if (folder != null)
 			{
 				log.WriteLine("# Content of {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
-				var keys = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).Take(count + 1).ToListAsync(), cancellationToken: ct);
+				var keys = await db.QueryAsync((tr) =>
+					{
+						var query = tr.GetRange(folder.ToRange());
+						return reverse
+							? query.Reverse().Take(count)
+							: query.Take(count + 1);
+					}, cancellationToken: ct);
 				if (keys.Count > 0)
 				{
+					if (reverse) keys.Reverse();
 					foreach (var key in keys.Take(count))
 					{
 						log.WriteLine("...{0} = {1}", FdbKey.Dump(folder.Extract(key.Key)), key.Value.ToAsciiOrHexaString());
 					}
-					if (keys.Count == count + 1)
+					if (!reverse && keys.Count == count + 1)
 					{
 						log.WriteLine("... more");
 					}
@@ -322,24 +329,15 @@ namespace FdbShell
 				return;
 			}
 
-			FdbKeyRange span = FdbKeyRange.All;
-			FdbDirectoryLayer layer = db.Directory.DirectoryLayer;
-			if (folder is FdbDirectorySubspace)
-			{
-				span = ((FdbDirectorySubspace)folder).Copy().ToRange();
-				layer = ((FdbDirectorySubspace)folder).DirectoryLayer;
-			}
+			var span = folder.DirectoryLayer.ContentSubspace.ToRange();
 
 			// note: this may break in future versions of the DL! Maybe we need a custom API to get a flat list of all directories in a DL that span a specific range ?
 
 			var shards = await Fdb.System.GetChunksAsync(db, span, ct);
 			int totalShards = shards.Count;
-			log.WriteLine("Found {0} shard(s) in this partition", totalShards);
+			log.WriteLine("Found {0} shard(s) in partition /{1}", totalShards, string.Join("/", folder.DirectoryLayer.Path));
 
 			log.WriteLine("Listing all directories...");
-			var rootNode = layer.NodeSubspace.Partition(layer.NodeSubspace.Key);
-			var subDirs = rootNode.Partition(0);
-
 			var map = new Dictionary<string, int>(StringComparer.Ordinal);
 			Action<string[], int> account = (p, c) =>
 			{
@@ -429,7 +427,7 @@ namespace FdbShell
 			log.WriteLine("\rFound a total of {0} shard(s) in {1} folder(s)", foundShards, dirs.Count);
 			log.WriteLine();
 
-			log.WriteLine("Shards %Total     Path");
+			log.WriteLine("Shards %Total              Path");
 			foreach(var kvp in map.OrderBy(x => x.Key))
 			{
 				log.WriteLine("{0,6} {1,-20} {2}", kvp.Value, RobustHistogram.FormatHistoBar((double)kvp.Value / foundShards, 20), kvp.Key);
@@ -643,7 +641,8 @@ namespace FdbShell
 
 			samples = samples.OrderBy(x => x.Begin).ToList();
 
-			long total = 0;
+			long globalSize = 0;
+			long globalCount = 0;
 			int workers = 8; // Math.Max(4, Environment.ProcessorCount);
 
 			var sw = Stopwatch.StartNew();
@@ -714,7 +713,8 @@ namespace FdbShell
 							}
 
 							long totalSize = keySize + valueSize;
-							Interlocked.Add(ref total, totalSize);
+							Interlocked.Add(ref globalSize, totalSize);
+							Interlocked.Add(ref globalCount, count);
 
 							lock (log)
 							{
@@ -742,12 +742,12 @@ namespace FdbShell
 			log.WriteLine();
 			if (n != ranges.Count)
 			{
-				log.WriteLine("Sampled " + FormatSize(total) + " (" + total.ToString("N0") + " bytes) in " + sw.Elapsed.TotalSeconds.ToString("N1") + " sec");
-				log.WriteLine("> Estimated total size is " + FormatSize(total * ranges.Count / n));
+				log.WriteLine("Sampled " + FormatSize(globalSize) + " (" + globalSize.ToString("N0") + " bytes) and " + globalCount.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N1") + " sec");
+				log.WriteLine("> Estimated total size is " + FormatSize(globalSize * ranges.Count / n));
 			}
 			else
 			{
-				log.WriteLine("Found " + FormatSize(total) + " (" + total.ToString("N0") + " bytes) in " + sw.Elapsed.TotalSeconds.ToString("N1") + " sec");
+				log.WriteLine("Found " + FormatSize(globalSize) + " (" + globalSize.ToString("N0") + " bytes) and " + globalCount.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N1") + " sec");
 				// compare to the whole cluster
 				ranges = await Fdb.System.GetChunksAsync(db, FdbKey.MinValue, FdbKey.MaxValue, ct);
 				log.WriteLine("> This directory contains ~{0:N2}% of all data", (100.0 * n / ranges.Count));
