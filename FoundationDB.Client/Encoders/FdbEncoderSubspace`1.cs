@@ -99,6 +99,12 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
+		public Slice[] EncodeKeyRange<TElement>([NotNull] TElement[] elements, Func<TElement, T> selector)
+		{
+			return FdbKey.Merge(this.Key, m_encoder.EncodeRange(elements, selector));
+		}
+
+		[NotNull]
 		public Slice[] EncodeKeyRange([NotNull] IEnumerable<T> keys)
 		{
 			return FdbKey.Merge(this.Key, m_encoder.EncodeRange(keys));

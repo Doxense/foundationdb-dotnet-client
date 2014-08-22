@@ -423,6 +423,47 @@ namespace FoundationDB.Layers.Tuples
 			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
 		}
 
+		/// <summary>Merge an array of elements, all sharing the same buffer</summary>
+		/// <typeparam name="TElement">Type of the elements</typeparam>
+		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
+		/// <param name="elements">Sequence of elements to pack</param>
+		/// <param name="selector">Lambda that extract the key from each element</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] PackRange<TKey, TElement>(TElement[] elements, Func<TElement, TKey> selector)
+		{
+			return PackRange<TKey, TElement>(Slice.Empty, elements, selector);
+		}
+
+		/// <summary>Merge an array of elements with a same prefix, all sharing the same buffer</summary>
+		/// <typeparam name="TElement">Type of the elements</typeparam>
+		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
+		/// <param name="prefix">Prefix shared by all keys</param>
+		/// <param name="elements">Sequence of elements to pack</param>
+		/// <param name="selector">Lambda that extract the key from each element</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		public static Slice[] PackRange<TKey, TElement>(Slice prefix, TElement[] elements, Func<TElement, TKey> selector)
+		{
+			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (elements == null) throw new ArgumentNullException("elements");
+			if (selector == null) throw new ArgumentNullException("selector");
+
+			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
+			var writer = new SliceWriter(elements.Length * (prefix.Count + 8));
+			var next = new List<int>(elements.Length);
+			var packer = FdbTuplePacker<TKey>.Encoder;
+
+			//TODO: use multiple buffers if item count is huge ?
+
+			foreach (var value in elements)
+			{
+				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				packer(ref writer, selector(value));
+				next.Add(writer.Position);
+			}
+
+			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+		}
+
 		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>

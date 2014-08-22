@@ -802,8 +802,8 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] EncodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] T[] values)
 		{
-			if (values == null) throw new ArgumentNullException("values");
 			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (values == null) throw new ArgumentNullException("values");
 
 			var slices = new Slice[values.Length];
 			for (int i = 0; i < values.Length; i++)
@@ -813,12 +813,28 @@ namespace FoundationDB.Client
 			return slices;
 		}
 
+		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		[NotNull]
+		public static Slice[] EncodeRange<TKey, TElement>(this IKeyEncoder<TKey> encoder, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (elements == null) throw new ArgumentNullException("elements");
+			if (selector == null) throw new ArgumentNullException("selector");
+
+			var slices = new Slice[elements.Length];
+			for (int i = 0; i < elements.Length; i++)
+			{
+				slices[i] = encoder.EncodeKey(selector(elements[i]));
+			}
+			return slices;
+		}
+
 		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
 		public static IEnumerable<Slice> EncodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
-			if (values == null) throw new ArgumentNullException("values");
 			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (values == null) throw new ArgumentNullException("values");
 
 			// note: T=>Slice usually is used for writing batches as fast as possible, which means that keys will be consumed immediately and don't need to be streamed
 

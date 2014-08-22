@@ -497,6 +497,18 @@ namespace FoundationDB.Client
 			return FdbTuple.PackRange<T>(subspace.ToFoundationDbKey(), keys);
 		}
 
+		/// <summary>Merge a sequence of elements with the subspace's prefix, all sharing the same buffer</summary>
+		/// <typeparam name="TElement">Type of the elements</typeparam>
+		/// <typeparam name="TKey">Type of the keys extracted from the elements</typeparam>
+		/// <param name="elements">Sequence of elements to pack</param>
+		/// <param name="selector">Lambda that extract the key from each element</param>
+		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
+		[NotNull]
+		public static Slice[] PackRange<TKey, TElement>(this IFdbSubspace subspace, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
+		{
+			return FdbTuple.PackRange<TKey, TElement>(subspace.ToFoundationDbKey(), elements, selector);
+		}
+
 		/// <summary>Pack a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
