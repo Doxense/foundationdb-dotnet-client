@@ -169,9 +169,19 @@ namespace FoundationDB.Client
 
 		#region Except (x AND NOT y)
 
+		/// <summary>Return the keys that are in the first range, but not in the others</summary>
+		/// <typeparam name="TKey">Type of the keys returned by the query</typeparam>
+		/// <param name="trans">Transaction used by the operation</param>
+		/// <param name="ranges">List of at least one key selector pairs</param>
+		/// <param name="keySelector">Lambda called to extract the keys from the ranges</param>
+		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
+		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (ranges == null) throw new ArgumentNullException("ranges");
+			if (keySelector == null) throw new ArgumentNullException("keySelector");
 
 			trans.EnsureCanRead();
 			return new FdbExceptIterator<KeyValuePair<Slice, Slice>, TKey, KeyValuePair<Slice, Slice>>(
@@ -183,6 +193,28 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Return the keys that are in the first range, but not in the others</summary>
+		/// <typeparam name="TKey">Type of the keys returned by the query</typeparam>
+		/// <param name="trans">Transaction used by the operation</param>
+		/// <param name="ranges">List of at least one key range</param>
+		/// <param name="keySelector">Lambda called to extract the keys from the ranges</param>
+		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
+		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeyRange> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		{
+			if (ranges == null) throw new ArgumentNullException("ranges");
+			return Except<TKey>(trans, ranges.Select(r => FdbKeySelectorPair.Create(r)), keySelector, keyComparer);
+		}
+
+		/// <summary>Return the keys that are in the first range, but not in the others</summary>
+		/// <typeparam name="TKey">Type of the keys used for the comparison</typeparam>
+		/// <typeparam name="TResult">Type of the results returned by the query</typeparam>
+		/// <param name="trans">Transaction used by the operation</param>
+		/// <param name="ranges">List of at least one key selector pairs</param>
+		/// <param name="keySelector">Lambda called to extract the keys used by the sort</param>
+		/// <param name="resultSelector">Lambda called to extract the values returned by the query</param>
+		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
+		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
@@ -197,6 +229,29 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Return the keys that are in the first range, but not in the others</summary>
+		/// <typeparam name="TKey">Type of the keys used for the comparison</typeparam>
+		/// <typeparam name="TResult">Type of the results returned by the query</typeparam>
+		/// <param name="trans">Transaction used by the operation</param>
+		/// <param name="ranges">List of at least one key ranges</param>
+		/// <param name="keySelector">Lambda called to extract the keys used by the sort</param>
+		/// <param name="resultSelector">Lambda called to extract the values returned by the query</param>
+		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
+		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
+		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeyRange> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		{
+			if (ranges == null) throw new ArgumentNullException("ranges");
+			return Except<TKey, TResult>(trans, ranges.Select(r => FdbKeySelectorPair.Create(r)), keySelector, resultSelector, keyComparer);
+		}
+
+		/// <summary>Sequence the return only the elements of <paramref name="first"/> that are not in <paramref name="second"/>, using a custom key comparison</summary>
+		/// <typeparam name="TKey">Type of the keys that will be used for comparison</typeparam>
+		/// <typeparam name="TResult">Type of the results of the query</typeparam>
+		/// <param name="first">Fisrt query that contains the elements that could be in the result</param>
+		/// <param name="second">Second query that contains the elements that cannot be in the result</param>
+		/// <param name="keySelector">Lambda used to extract keys from both queries.</param>
+		/// <param name="keyComparer">Instance used to compare keys</param>
+		/// <returns>Async query that returns only the elements that are in <paramref name="first"/>, and not in <paramref name="second"/></returns>
 		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>(this IFdbAsyncEnumerable<TResult> first, IFdbAsyncEnumerable<TResult> second, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			return new FdbExceptIterator<TResult, TKey, TResult>(
@@ -208,6 +263,12 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Sequence the return only the elements of <paramref name="first"/> that are not in <paramref name="second"/></summary>
+		/// <typeparam name="TResult">Type of the results of the query</typeparam>
+		/// <param name="first">Fisrt query that contains the elements that could be in the result</param>
+		/// <param name="second">Second query that contains the elements that cannot be in the result</param>
+		/// <param name="comparer">Instance used to compare elements</param>
+		/// <returns>Async query that returns only the elements that are in <paramref name="first"/>, and not in <paramref name="second"/></returns>
 		public static IFdbAsyncEnumerable<TResult> Except<TResult>(this IFdbAsyncEnumerable<TResult> first, IFdbAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
 		{
 			return new FdbExceptIterator<TResult, TResult, TResult>(
