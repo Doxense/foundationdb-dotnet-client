@@ -135,6 +135,233 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		/// <summary>Create a new instance that compares a single item position in two tuples</summary>
+		/// <typeparam name="T1">Type of the item to compare</typeparam>
+		/// <param name="offset">Offset of the item to compare (can be negative)</param>
+		/// <param name="comparer">Comparer for the item's type</param>
+		/// <returns>New comparer instance</returns>
+		public static IComparer<IFdbTuple> Composite<T1>(int offset = 0, IComparer<T1> comparer = null)
+		{
+			return new CompositeComparer<T1>(offset, comparer);
+		}
+
+		/// <summary>Create a new instance that compares two consecutive items in two tuples</summary>
+		/// <typeparam name="T1">Type of the first item to compare</typeparam>
+		/// <typeparam name="T2">Type of the second item to compare</typeparam>
+		/// <param name="offset">Offset of the first item to compare (can be negative)</param>
+		/// <param name="comparer1">Comparer for the first item's type</param>
+		/// <param name="comparer2">Comparer for the second item's type</param>
+		/// <returns>New comparer instance</returns>
+		public static IComparer<IFdbTuple> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
+		{
+			return new CompositeComparer<T1, T2>(offset, comparer1, comparer2);
+		}
+
+		/// <summary>Create a new instance that compares three consecutive items in two tuples</summary>
+		/// <typeparam name="T1">Type of the first item to compare</typeparam>
+		/// <typeparam name="T2">Type of the second item to compare</typeparam>
+		/// <typeparam name="T3">Type of the third item to compare</typeparam>
+		/// <param name="offset">Offset of the first item to compare (can be negative)</param>
+		/// <param name="comparer1">Comparer for the first item's type</param>
+		/// <param name="comparer2">Comparer for the second item's type</param>
+		/// <param name="comparer3">Comparer for the third item's type</param>
+		/// <returns>New comparer instance</returns>
+		public static IComparer<IFdbTuple> Composite<T1, T2, T3>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null, IComparer<T3> comparer3 = null)
+		{
+			return new CompositeComparer<T1, T2, T3>(offset, comparer1, comparer2, comparer3);
+		}
+
+		/// <summary>Comparer that compares tuples with at least 1 item</summary>
+		/// <typeparam name="T1">Type of the item</typeparam>
+		public sealed class CompositeComparer<T1> : IComparer<IFdbTuple>
+		{
+
+			public static readonly IComparer<IFdbTuple> Default = new CompositeComparer<T1>();
+
+			/// <summary>Constructor for a new tuple comparer</summary>
+			public CompositeComparer()
+				: this(0, null)
+			{ }
+
+			/// <summary>Constructor for a new tuple comparer</summary>
+			public CompositeComparer(IComparer<T1> comparer)
+				: this(0, comparer)
+			{ }
+
+			/// <summary>Constructor for a new tuple comparer</summary>
+			/// <param name="offset">Offset in the tuples of the element to compare (can be negative)</param>
+			/// <param name="comparer">Comparer for the element type</param>
+			public CompositeComparer(int offset, IComparer<T1> comparer)
+			{
+				this.Offset = offset;
+				this.Comparer = comparer ?? Comparer<T1>.Default;
+			}
+
+			/// <summary>Offset in the tuples where the comparison starts</summary>
+			/// <remarks>If negative, comparison starts from the end.</remarks>
+			public int Offset { get; private set; }
+
+			/// <summary>Comparer for the first element (at possition <see cref="Offset"/>)</summary>
+			public IComparer<T1> Comparer { get; private set; }
+
+			/// <summary>Compare a single item in both tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare(IFdbTuple x, IFdbTuple y)
+			{
+				if (y == null) return x == null ? 0 : +1;
+				if (x == null) return -1;
+
+				int nx = x.Count;
+				int ny = y.Count;
+				if (ny == 0 || nx == 0) return nx - ny;
+
+				int p = this.Offset;
+				return this.Comparer.Compare(x.Get<T1>(p), y.Get<T1>(p));
+			}
+
+		}
+
+		/// <summary>Comparer that compares tuples with at least 2 items</summary>
+		/// <typeparam name="T1">Type of the first item</typeparam>
+		/// <typeparam name="T2">Type of the second item</typeparam>
+		public sealed class CompositeComparer<T1, T2> : IComparer<IFdbTuple>
+		{
+
+			public static readonly IComparer<IFdbTuple> Default = new CompositeComparer<T1, T2>();
+
+			/// <summary>Constructor for a new tuple comparer</summary>
+			public CompositeComparer()
+				: this(0, null, null)
+			{ }
+
+			/// <summary>Constructor for a new tuple comparer</summary>
+			public CompositeComparer(IComparer<T1> comparer1, IComparer<T2> comparer2)
+				: this(0, comparer1, comparer2)
+			{ }
+
+			/// <summary>Constructor for a new tuple comparer</summary>
+			/// <param name="offset">Offset in the tuples of the first element to compare (can be negative)</param>
+			/// <param name="comparer1">Comparer for the first element type</param>
+			/// <param name="comparer2">Comparer for the second element type</param>
+			public CompositeComparer(int offset, IComparer<T1> comparer1, IComparer<T2> comparer2)
+			{
+				this.Offset = offset;
+				this.Comparer1 = comparer1 ?? Comparer<T1>.Default;
+				this.Comparer2 = comparer2 ?? Comparer<T2>.Default;
+			}
+
+			/// <summary>Offset in the tuples where the comparison starts</summary>
+			/// <remarks>If negative, comparison starts from the end.</remarks>
+			public int Offset { get; private set; }
+
+			/// <summary>Comparer for the first element (at possition <see cref="Offset"/>)</summary>
+			public IComparer<T1> Comparer1 { get; private set; }
+
+			/// <summary>Comparer for the second element (at possition <see cref="Offset"/> + 1)</summary>
+			public IComparer<T2> Comparer2 { get; private set; }
+
+			/// <summary>Compare up to two items in both tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare(IFdbTuple x, IFdbTuple y)
+			{
+				if (y == null) return x == null ? 0 : +1;
+				if (x == null) return -1;
+
+				int nx = x.Count;
+				int ny = y.Count;
+				if (ny == 0 || nx == 0) return nx - ny;
+
+				int p = this.Offset;
+
+				int c = this.Comparer1.Compare(x.Get<T1>(p), y.Get<T1>(p));
+				if (c != 0) return c;
+
+				if (ny == 1 || nx == 1) return nx - ny;
+				c = this.Comparer2.Compare(x.Get<T2>(p + 1), y.Get<T2>(p + 1));
+
+				return c;
+			}
+
+		}
+
+		/// <summary>Comparer that compares tuples with at least 3 items</summary>
+		/// <typeparam name="T1">Type of the first item</typeparam>
+		/// <typeparam name="T2">Type of the second item</typeparam>
+		/// <typeparam name="T3">Type of the thrid item</typeparam>
+		public sealed class CompositeComparer<T1, T2, T3> : IComparer<IFdbTuple>
+		{
+
+			public static readonly IComparer<IFdbTuple> Default = new CompositeComparer<T1, T2, T3>();
+
+			/// <summary>Constructor for a new tuple comparer</summary>
+			public CompositeComparer()
+				: this(0, null, null, null)
+			{ }
+
+			/// <summary>Constructor for a new tuple comparer</summary>
+			public CompositeComparer(IComparer<T1> comparer1, IComparer<T2> comparer2, IComparer<T3> comparer3)
+				: this(0, comparer1, comparer2, comparer3)
+			{ }
+
+			/// <summary>Constructor for a new tuple comparer</summary>
+			/// <param name="offset">Offset in the tuples of the first element to compare (can be negative)</param>
+			/// <param name="comparer1">Comparer for the first element type</param>
+			/// <param name="comparer2">Comparer for the second element type</param>
+			public CompositeComparer(int offset, IComparer<T1> comparer1, IComparer<T2> comparer2, IComparer<T3> comparer3)
+			{
+				this.Offset = offset;
+				this.Comparer1 = comparer1 ?? Comparer<T1>.Default;
+				this.Comparer2 = comparer2 ?? Comparer<T2>.Default;
+				this.Comparer3 = comparer3 ?? Comparer<T3>.Default;
+			}
+
+			/// <summary>Offset in the tuples where the comparison starts</summary>
+			/// <remarks>If negative, comparison starts from the end.</remarks>
+			public int Offset { get; private set; }
+
+			/// <summary>Comparer for the first element (at possition <see cref="Offset"/>)</summary>
+			public IComparer<T1> Comparer1 { get; private set; }
+
+			/// <summary>Comparer for the second element (at possition <see cref="Offset"/> + 1)</summary>
+			public IComparer<T2> Comparer2 { get; private set; }
+
+			/// <summary>Comparer for the third element (at possition <see cref="Offset"/> + 2)</summary>
+			public IComparer<T3> Comparer3 { get; private set; }
+
+			/// <summary>Compare up to three items in both tuples</summary>
+			/// <param name="x">First tuple</param>
+			/// <param name="y">Second tuple</param>
+			/// <returns>Returns a positive value if x is greater than y, a negative value if x is less than y and 0 if x is equal to y.</returns>
+			public int Compare(IFdbTuple x, IFdbTuple y)
+			{
+				if (y == null) return x == null ? 0 : +1;
+				if (x == null) return -1;
+
+				int nx = x.Count;
+				int ny = y.Count;
+				if (ny == 0 || nx == 0) return nx - ny;
+
+				int p = this.Offset;
+
+				int c = this.Comparer1.Compare(x.Get<T1>(p), y.Get<T1>(p));
+				if (c != 0) return c;
+
+				if (ny == 1 || nx == 1) return nx - ny;
+				c = this.Comparer2.Compare(x.Get<T2>(p + 1), y.Get<T2>(p + 1));
+				if (c != 0) return c;
+
+				if (ny == 2 || nx == 2) return nx - ny;
+				c = this.Comparer3.Compare(x.Get<T3>(p + 2), y.Get<T3>(p + 2));
+
+				return c;
+			}
+
+		}
+
 	}
 
 
