@@ -139,7 +139,7 @@ namespace FdbShell
 
 			// are there any subdirectories ?
 			var subDirs = await folder.TryListAsync(db, ct);
-			if (subDirs.Count > 0)
+			if (subDirs != null && subDirs.Count > 0)
 			{
 				//TODO: "-r" flag ?
 				log.WriteLine("# Cannot remove {0} because it still contains {1} sub-directorie(s)", string.Join("/", path), subDirs.Count);
