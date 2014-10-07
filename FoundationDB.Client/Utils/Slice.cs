@@ -123,6 +123,32 @@ namespace FoundationDB.Client
 			return new Slice(buffer, offset, count);
 		}
 
+		/// <summary>Creates a slice mapping a section of a buffer, either directly or by making a copy.</summary>
+		/// <param name="buffer">Original buffer</param>
+		/// <param name="offset">Offset into buffer</param>
+		/// <param name="count">Number of bytes</param>
+		/// <param name="copy">If true, creates a copy of the buffer. If false, maps directly into the buffer.</param>
+		/// <remarks>If <paramref name="copy"/> is false, any change made to <paramref name="buffer"/> will also be visible in this slice.</remarks>
+		public static Slice Create(byte[] buffer, int offset, int count, bool copy)
+		{
+			SliceHelpers.EnsureBufferIsValid(buffer, offset, count);
+			if (count == 0)
+			{
+				if (offset != 0) throw new ArgumentException("offset");
+				return buffer == null ? Nil : Empty;
+			}
+			else if (copy)
+			{
+				var tmp = new byte[count];
+				SliceHelpers.CopyBytesUnsafe(tmp, 0, buffer, offset, count);
+				return new Slice(tmp, 0, count);
+			}
+			else
+			{
+				return new Slice(buffer, offset, count);
+			}
+		}
+
 		/// <summary>Create a new empty slice of a specified size containing all zeroes</summary>
 		/// <param name="size"></param>
 		/// <returns></returns>
