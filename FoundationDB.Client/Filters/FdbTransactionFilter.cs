@@ -111,6 +111,14 @@ namespace FoundationDB.Filters
 			}
 		}
 
+		public virtual FdbIsolationLevel IsolationLevel
+		{
+			get
+			{
+				return m_transaction.IsolationLevel;
+			}
+		}
+
 		public CancellationToken Cancellation
 		{
 			get { return m_transaction.Cancellation; }
@@ -322,6 +330,11 @@ namespace FoundationDB.Filters
 		public IFdbReadOnlyTransaction Snapshot
 		{
 			get { return this; }
+		}
+
+		public FdbIsolationLevel IsolationLevel
+		{
+			get { return m_transaction.IsolationLevel; }
 		}
 
 		public CancellationToken Cancellation

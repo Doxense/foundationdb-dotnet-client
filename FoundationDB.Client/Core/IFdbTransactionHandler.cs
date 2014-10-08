@@ -42,6 +42,9 @@ namespace FoundationDB.Client.Core
 		/// <summary>Checks if this transaction handler is closed</summary>
 		bool IsClosed { get; }
 
+		/// <summary>Default isolation Level of this transaction handler</summary>
+		FdbIsolationLevel IsolationLevel { get; }
+
 		/// <summary>Set an option on this transaction</summary>
 		/// <param name="option">Option to set</param>
 		/// <param name="data">Parameter value (or Slice.Nil for parameterless options)</param>

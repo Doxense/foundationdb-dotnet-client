@@ -48,6 +48,7 @@ namespace FoundationDB.Client
 			get
 			{
 				EnsureNotFailedOrDisposed();
+				//TODO: we need to check if the transaction handler supports Snapshot isolation level
 				return m_snapshotted ?? (m_snapshotted = new Snapshotted(this));
 			}
 		}
@@ -86,6 +87,12 @@ namespace FoundationDB.Client
 			public IFdbReadOnlyTransaction Snapshot
 			{
 				get { return this; }
+			}
+
+			public FdbIsolationLevel IsolationLevel
+			{
+				//TODO: not all transaction handlers may support Snapshot isolation level??
+				get { return FdbIsolationLevel.Snapshot; }
 			}
 
 			public void EnsureCanRead()

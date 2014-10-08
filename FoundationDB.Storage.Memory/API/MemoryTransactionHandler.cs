@@ -457,6 +457,15 @@ namespace FoundationDB.Storage.Memory.API
 			get { return m_buffer.Size; }
 		}
 
+		public FdbIsolationLevel IsolationLevel
+		{
+			get
+			{
+				//BUGBUG: this is currently a lie! until we support "ReadYourWrite", we actually only support Snapshot isolation level!
+				return FdbIsolationLevel.Serializable;
+			}
+		}
+
 		/// <summary>Adds a range to teh clear list of this transaction</summary>
 		/// <remarks>Must be called with m_lock taken</remarks>
 		private void AddClearCommand_NeedsLocking(FdbKeyRange range)
@@ -1242,7 +1251,6 @@ namespace FoundationDB.Storage.Memory.API
 		{
 			Trace.WriteLine("MemoryTransactionHandler[#" + Thread.CurrentThread.ManagedThreadId + "]: " + msg);
 		}
-
 
 	}
 

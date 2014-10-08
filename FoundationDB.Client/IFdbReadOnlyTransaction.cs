@@ -44,6 +44,9 @@ namespace FoundationDB.Client
 		/// <summary>Context of this transaction.</summary>
 		FdbOperationContext Context { [NotNull] get; }
 
+		/// <summary>Isolation Level of this transaction.</summary>
+		FdbIsolationLevel IsolationLevel { get; }
+
 		/// <summary>If true, the transaction is operating in Snapshot mode</summary>
 		bool IsSnapshot { get; }
 
