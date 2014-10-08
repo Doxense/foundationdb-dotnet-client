@@ -107,7 +107,7 @@ namespace FoundationDB.Client
 			{
 				EnsureCanRead();
 
-				m_parent.m_database.EnsureKeyIsValid(key);
+				m_parent.m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
 				if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));

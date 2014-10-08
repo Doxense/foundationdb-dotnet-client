@@ -141,7 +141,7 @@ namespace FoundationDB.Client
 		public static bool IsKeyValid(this IFdbDatabase db, Slice key)
 		{
 			Exception _;
-			return FdbDatabase.ValidateKey(db, key, false, true, out _);
+			return FdbDatabase.ValidateKey(db, ref key, false, true, out _);
 		}
 
 		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -152,7 +152,18 @@ namespace FoundationDB.Client
 		internal static void EnsureKeyIsValid(this IFdbDatabase db, Slice key, bool endExclusive = false)
 		{
 			Exception ex;
-			if (!FdbDatabase.ValidateKey(db, key, endExclusive, false, out ex)) throw ex;
+			if (!FdbDatabase.ValidateKey(db, ref key, endExclusive, false, out ex)) throw ex;
+		}
+
+		/// <summary>Checks that a key is inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
+		/// <param name="db">Database instance</param>
+		/// <param name="key">Key to verify</param>
+		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
+		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
+		internal static void EnsureKeyIsValid(this IFdbDatabase db, ref Slice key, bool endExclusive = false)
+		{
+			Exception ex;
+			if (!FdbDatabase.ValidateKey(db, ref key, endExclusive, false, out ex)) throw ex;
 		}
 
 		/// <summary>Checks that one or more keys are inside the global namespace of this database, and contained in the optional legal key space specified by the user</summary>
@@ -163,12 +174,13 @@ namespace FoundationDB.Client
 		internal static void EnsureKeysAreValid(this IFdbDatabase db, Slice[] keys, bool endExclusive = false)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
-			foreach (var key in keys)
+			for (int i = 0; i < keys.Length; i++)
 			{
 				Exception ex;
-				if (!FdbDatabase.ValidateKey(db, key, endExclusive, false, out ex)) throw ex;
+				if (!FdbDatabase.ValidateKey(db, ref keys[i], endExclusive, false, out ex)) throw ex;
 			}
 		}
+
 		/// <summary>Remove the global namespace prefix of this database form the key, and return the rest of the bytes, or Slice.Nil is the key is outside the namespace</summary>
 		/// <param name="db">Database instance</param>
 		/// <param name="keyAbsolute">Binary key that starts with the namespace prefix, followed by some bytes</param>

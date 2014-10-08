@@ -186,6 +186,14 @@ namespace FoundationDB.Client.Tests
 				Assert.That(() => db.EnsureKeyIsValid(Slice.FromString("hello")), Throws.Nothing);
 				Assert.That(() => db.EnsureKeyIsValid(Slice.Create(Fdb.MaxKeySize + 1)), Throws.InstanceOf<ArgumentException>());
 				Assert.That(() => db.EnsureKeyIsValid(Fdb.System.Coordinators), Throws.Nothing);
+
+				// EnsureKeyIsValid ref
+				Assert.That(() => { Slice key = Slice.Nil; db.EnsureKeyIsValid(ref key); }, Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => { Slice key = Slice.Empty; db.EnsureKeyIsValid(ref key); }, Throws.Nothing);
+				Assert.That(() => { Slice key = Slice.FromString("hello"); db.EnsureKeyIsValid(ref key); }, Throws.Nothing);
+				Assert.That(() => { Slice key = Slice.Create(Fdb.MaxKeySize + 1); db.EnsureKeyIsValid(ref key); }, Throws.InstanceOf<ArgumentException>());
+				Assert.That(() => { Slice key = Fdb.System.Coordinators; db.EnsureKeyIsValid(ref key); }, Throws.Nothing);
+
 			}
 		}
 

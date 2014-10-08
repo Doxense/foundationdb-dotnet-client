@@ -509,7 +509,7 @@ namespace FoundationDB.Client
 		/// <param name="ignoreError"></param>
 		/// <param name="error"></param>
 		/// <returns>An exception if the key is outside of the allowed key space of this database</returns>
-		internal static bool ValidateKey(IFdbDatabase database, Slice key, bool endExclusive, bool ignoreError, out Exception error)
+		internal static bool ValidateKey(IFdbDatabase database, ref Slice key, bool endExclusive, bool ignoreError, out Exception error)
 		{
 			error = null;
 
@@ -528,7 +528,7 @@ namespace FoundationDB.Client
 			}
 
 			// special case for system keys
-			if (IsSystemKey(key))
+			if (IsSystemKey(ref key))
 			{
 				// note: it will fail later if the transaction does not have access to the system keys!
 				return true;
@@ -559,20 +559,20 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
-		internal static bool IsSystemKey(Slice key)
+		internal static bool IsSystemKey(ref Slice key)
 		{
 			return key.IsPresent && key[0] == 0xFF;
 		}
 
 		/// <summary>Ensures that a serialized value is valid</summary>
 		/// <remarks>Throws an exception if the value is null, or exceeds the maximum allowed size (Fdb.MaxValueSize)</remarks>
-		internal void EnsureValueIsValid(Slice value)
+		internal void EnsureValueIsValid(ref Slice value)
 		{
-			var ex = ValidateValue(value);
+			var ex = ValidateValue(ref value);
 			if (ex != null) throw ex;
 		}
 
-		internal Exception ValidateValue(Slice value)
+		internal Exception ValidateValue(ref Slice value)
 		{
 			if (value.IsNull)
 			{
@@ -587,10 +587,10 @@ namespace FoundationDB.Client
 			return null;
 		}
 
-		internal Slice BoundCheck(Slice value)
+		internal Slice BoundCheck(Slice key)
 		{
 			//REVIEW: should we always allow access to system keys ?
-			return m_globalSpace.BoundCheck(value, allowSystemKeys: true);
+			return m_globalSpace.BoundCheck(key, allowSystemKeys: true);
 		}
 
 		#endregion

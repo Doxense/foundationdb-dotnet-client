@@ -272,7 +272,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(key);
+			m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));
@@ -429,8 +429,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
-			m_database.EnsureValueIsValid(value);
+			m_database.EnsureKeyIsValid(ref key);
+			m_database.EnsureValueIsValid(ref value);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Set", String.Format("Setting '{0}' = {1}", FdbKey.Dump(key), Slice.Dump(value)));
@@ -453,8 +453,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
-			m_database.EnsureValueIsValid(param);
+			m_database.EnsureKeyIsValid(ref key);
+			m_database.EnsureValueIsValid(ref param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
 			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.BitAnd && mutation != FdbMutationType.BitOr && mutation != FdbMutationType.BitXor)
@@ -479,7 +479,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(key);
+			m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Clear", String.Format("Clearing '{0}'", FdbKey.Dump(key)));
@@ -502,8 +502,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(beginKeyInclusive);
-			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+			m_database.EnsureKeyIsValid(ref beginKeyInclusive);
+			m_database.EnsureKeyIsValid(ref endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "ClearRange", String.Format("Clearing Range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString()));
@@ -526,8 +526,8 @@ namespace FoundationDB.Client
 		{
 			EnsureCanWrite();
 
-			m_database.EnsureKeyIsValid(beginKeyInclusive);
-			m_database.EnsureKeyIsValid(endKeyExclusive, endExclusive: true);
+			m_database.EnsureKeyIsValid(ref beginKeyInclusive);
+			m_database.EnsureKeyIsValid(ref endKeyExclusive, endExclusive: true);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AddConflictRange", String.Format("Adding {2} conflict range '{0}' <= k < '{1}'", beginKeyInclusive.ToString(), endKeyExclusive.ToString(), type.ToString()));
@@ -549,7 +549,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(key);
+			m_database.EnsureKeyIsValid(ref key);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", String.Format("Getting addresses for key '{0}'", FdbKey.Dump(key)));
@@ -611,7 +611,7 @@ namespace FoundationDB.Client
 			cancellationToken.ThrowIfCancellationRequested();
 			EnsureCanRead();
 
-			m_database.EnsureKeyIsValid(key);
+			m_database.EnsureKeyIsValid(ref key);
 
 			// keep a copy of the key
 			// > don't keep a reference on a potentially large buffer while the watch is active, preventing it from being garbage collected
