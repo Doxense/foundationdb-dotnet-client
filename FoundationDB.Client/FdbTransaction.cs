@@ -42,7 +42,8 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>FoundationDB transaction</summary>
+	/// <summary>FounrationDB transaction handle.</summary>
+	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}")]
 	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadOnlyTransaction, IDisposable
 	{
@@ -729,14 +730,14 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read operation</summary>
+		/// <summary>Throws if the transaction is not in a valid state (for reading/writing) and that we can proceed with a read operation</summary>
 		public void EnsureCanRead()
 		{
 			// note: read operations are async, so they can NOT be called from the network without deadlocking the system !
 			EnsureStilValid(allowFromNetworkThread: false, allowFailedState: false);
 		}
 
-		/// <summary>Throws if the transaction is not a valid state (for writing) and that we can proceed with a write operation</summary>
+		/// <summary>Throws if the transaction is not in a valid state (for writing) and that we can proceed with a write operation</summary>
 		public void EnsureCanWrite()
 		{
 			if (m_readOnly) ThrowReadOnlyTransaction(this);
@@ -750,7 +751,7 @@ namespace FoundationDB.Client
 			EnsureStilValid(allowFromNetworkThread: false, allowFailedState: true);
 		}
 
-		/// <summary>Throws if the transaction is not a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
+		/// <summary>Throws if the transaction is not in a valid state (for reading/writing) and that we can proceed with a read or write operation</summary>
 		/// <param name="allowFromNetworkThread">If true, this operation is allowed to run from a callback on the network thread and should NEVER block.</param>
 		/// <param name="allowFailedState">If true, this operation can run even if the transaction is in a failed state.</param>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
@@ -775,7 +776,7 @@ namespace FoundationDB.Client
 			// we are ready to go !
 		}
 
-		/// <summary>Throws if the transaction is not a valid state (for reading/writing)</summary>
+		/// <summary>Throws if the transaction is not in a valid state (for reading/writing)</summary>
 		/// <exception cref="System.ObjectDisposedException">If Dispose as already been called on the transaction</exception>
 		public void EnsureNotFailedOrDisposed()
 		{
@@ -823,7 +824,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Destroy the transaction and release all allocated resources, including all non-committed changes.
 		/// </summary>
-		/// <remarks>This instance will not be usable again and most methods will throws an ObjectDisposedException.</remarks>
+		/// <remarks>This instance will not be usable again and most methods will throw an ObjectDisposedException.</remarks>
 		public void Dispose()
 		{
 			// note: we can be called by user code, or by the FdbDatabase when it is terminating with pending transactions
