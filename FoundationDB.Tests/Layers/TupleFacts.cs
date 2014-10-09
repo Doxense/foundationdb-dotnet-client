@@ -969,6 +969,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 				Is.EqualTo("21 00 07 FF FF FF FF FF FF")
 				//note: if we have 21 00 07 FF FF FF FF FF 84, that means that the NaN was not normalized
 			);
+
+			// roundtripping vectors of doubles
+			var tuple = FdbTuple.Create(Math.PI, Math.E, Math.Log(1), Math.Log(2));
+			Assert.That(FdbTuple.Unpack(FdbTuple.Pack(Math.PI, Math.E, Math.Log(1), Math.Log(2))), Is.EqualTo(tuple));
+			Assert.That(FdbTuple.Unpack(FdbTuple.Create(Math.PI, Math.E, Math.Log(1), Math.Log(2)).ToSlice()), Is.EqualTo(tuple));
+			Assert.That(FdbTuple.Unpack(FdbTuple.Empty.Append(Math.PI).Append(Math.E).Append(Math.Log(1)).Append(Math.Log(2)).ToSlice()), Is.EqualTo(tuple));
 		}
 
 		[Test]

@@ -260,6 +260,16 @@ namespace FoundationDB.Layers.Tuples
 					SerializeTo(ref writer, (DateTime)value);
 					return;
 				}
+				case TypeCode.Double:
+				{
+					SerializeTo(ref writer, (double)value);
+					return;
+				}
+				case TypeCode.Single:
+				{
+					SerializeTo(ref writer, (float)value);
+					return;
+				}
 			}
 
 			var fmt = value as ITupleFormattable;
