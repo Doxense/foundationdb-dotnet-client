@@ -45,6 +45,43 @@ namespace FoundationDB.Client
 
 			#region Writing...
 
+			/// <summary>Options bag for bulk write operations</summary>
+			public sealed class WriteOptions
+			{
+
+				/// <summary>Default options</summary>
+				public WriteOptions()
+				{
+					this.MaxConcurrentTransactions = 1;
+				}
+
+				/// <summary>Maximum number of concurrent transactions to use.</summary>
+				/// <remarks>The default value is 1.</remarks>
+				public int MaxConcurrentTransactions { get; set; }
+
+				/// <summary>Maximum number of items per batch</summary>
+				/// <remarks>If null, the default value should be used.</remarks>
+				public int? BatchCount { get; set; }
+
+				/// <summary>Maximum size (in bytes) per batch</summary>
+				/// <remarks>If null, the default value should be used.</remarks>
+				public int? BatchSize { get; set; }
+
+				/// <summary>Used to report progress during the operation</summary>
+				/// <remarks>Since progress notification is async, this instance could be called even after the bulk operation has completed!</remarks>
+				public IProgress<long> Progress { get; set; }
+			}
+
+			const int DEFAULT_WRITE_BATCH_COUNT = 2 * 1024;
+			const int DEFAULT_WRITE_BATCH_SIZE = 256 * 1024; //REVIEW: 256KB seems reasonable, but maybe we could also try with multiple transactions in // ?
+
+			#region Bulk Write...
+
+			// Use Case: MEMORY-IN => DATABASE-OUT
+
+			// Bulk writing consists of inserting a lot of precomputed keys into the database, as fast as possible.
+			// => the latency will comes exclusively from comitting the transaction to the database (i.e: network delay, disk delay)
+
 			/// <summary>Writes a potentially large sequence of key/value pairs into the database, by using as many transactions as necessary, and automatically scaling the size of each batch.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="data">Sequence of key/value pairs</param>
@@ -53,28 +90,59 @@ namespace FoundationDB.Client
 			/// <remarks>In case of a non-retryable error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
 			public static Task<long> WriteAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<Slice, Slice>> data, CancellationToken cancellationToken)
 			{
-				return WriteAsync(db, data, null, cancellationToken);
+				if (db == null) throw new ArgumentNullException("db");
+				if (data == null) throw new ArgumentNullException("data");
+
+				cancellationToken.ThrowIfCancellationRequested();
+
+				return RunWriteOperationAsync(
+					db,
+					data,
+					new WriteOptions(),
+					cancellationToken
+				);
 			}
 
 			/// <summary>Writes a potentially large sequence of key/value pairs into the database, by using as many transactions as necessary, and automatically scaling the size of each batch.</summary>
 			/// <param name="db">Database used for the operation</param>
 			/// <param name="data">Sequence of key/value pairs</param>
-			/// <param name="progress">Notify of the progress on this instance (or null). Since progress notification is async, this object could be called even after the bulk operation has completed!</param>
+			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Total number of values inserted in the database</returns>
 			/// <remarks>In case of a non-retryable error, some of the keys may remain in the database. Other transactions running at the same time may observe only a fraction of the keys until the operation completes.</remarks>
-			public static async Task<long> WriteAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<Slice, Slice>> data, IProgress<long> progress, CancellationToken cancellationToken)
+			public static Task<long> WriteAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<Slice, Slice>> data, WriteOptions options, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (data == null) throw new ArgumentNullException("data");
 
 				cancellationToken.ThrowIfCancellationRequested();
 
+				return RunWriteOperationAsync(
+					db,
+					data,
+					options ?? new WriteOptions(),
+					cancellationToken
+				);
+			}
+
+			internal static async Task<long> RunWriteOperationAsync([NotNull] IFdbDatabase db, [NotNull] IEnumerable<KeyValuePair<Slice, Slice>> data, WriteOptions options, CancellationToken cancellationToken)
+			{
+				Contract.Requires(db != null && data != null && options != null);
+
+				cancellationToken.ThrowIfCancellationRequested();
+
 				// We will batch keys into chunks (bounding by count and bytes), then attempt to insert that batch in the database.
 				// Each transaction should try to never exceed ~1MB of size
 
-				const int maxBatchCount = 2 * 1024;
-				const int maxBatchSize = 256 * 1024; //REVIEW: 256KB seems reasonable, but maybe we could also try with multiple transactions in // ?
+				int maxBatchCount = options.BatchCount ?? DEFAULT_WRITE_BATCH_COUNT;
+				int maxBatchSize = options.BatchSize ?? DEFAULT_WRITE_BATCH_SIZE;
+				var progress = options.Progress;
+
+				if (options.MaxConcurrentTransactions > 1)
+				{
+					//TODO: implement concurrent transactions when writing !
+					throw new NotImplementedException("Multiple concurrent transactions are not yet supported");
+				}
 
 				var chunk = new List<KeyValuePair<Slice, Slice>>();
 
@@ -124,6 +192,17 @@ namespace FoundationDB.Client
 				return items;
 			}
 
+			#endregion
+
+			#region Bulk Insert...
+
+			// Use Case: CPU-IN => DATABASE-OUT
+
+			// Bulk inserting consists of inserting a lot of documents that must be serialized to slices, into the database, as fast as possible.
+			// => we expect the serialization of the data to be somewhat fast (ie: JSON serialization, Tuple encoding, ....)
+			// => the latency will come mostly from comitting the transaction to the database (i.e: network delay, disk delay)
+			// => with multiple concurrent transaction, the commit latency could be used to serialize the next batch of data
+
 			/// <summary>Inserts a potentially large sequence of items into the database, by using as many transactions as necessary, and automatically retrying if needed.</summary>
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
@@ -140,12 +219,37 @@ namespace FoundationDB.Client
 
 				cancellationToken.ThrowIfCancellationRequested();
 
-				return RunWriteOperationAsync<T>(
+				return RunInsertOperationAsync<T>(
 					db,
 					source,
 					handler,
-					2 * 1024, //TODO: configure?
-					256 * 1024, //TODO: configure?
+					new WriteOptions(),
+					cancellationToken
+				);
+			}
+
+			/// <summary>Inserts a potentially large sequence of items into the database, by using as many transactions as necessary, and automatically retrying if needed.</summary>
+			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="source">Sequence of items to be processed</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of items that have been inserted</returns>
+			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
+			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Action<T, IFdbTransaction> handler, WriteOptions options, CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (source == null) throw new ArgumentNullException("source");
+				if (handler == null) throw new ArgumentNullException("handler");
+
+				cancellationToken.ThrowIfCancellationRequested();
+
+				return RunInsertOperationAsync<T>(
+					db,
+					source,
+					handler,
+					options ?? new WriteOptions(),
 					cancellationToken
 				);
 			}
@@ -166,28 +270,63 @@ namespace FoundationDB.Client
 
 				cancellationToken.ThrowIfCancellationRequested();
 
-				return RunWriteOperationAsync<T>(
+				return RunInsertOperationAsync<T>(
 					db,
 					source,
 					handler,
-					2 * 1024, //TODO: configure?
-					256 * 1024, //TODO: configure?
+					new WriteOptions(),
 					cancellationToken
 				);
 			}
 
-			/// <summary>Runs a long duration bulk write</summary>
-			internal static async Task<long> RunWriteOperationAsync<TSource>(
+			/// <summary>Inserts a potentially large sequence of items into the database, by using as many transactions as necessary, and automatically retrying if needed.</summary>
+			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="source">Sequence of items to be processed</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of items that have been inserted</returns>
+			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
+			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Func<T, IFdbTransaction, Task> handler, WriteOptions options, CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (source == null) throw new ArgumentNullException("source");
+				if (handler == null) throw new ArgumentNullException("handler");
+
+				cancellationToken.ThrowIfCancellationRequested();
+
+				return RunInsertOperationAsync<T>(
+					db,
+					source,
+					handler,
+					options ?? new WriteOptions(),
+					cancellationToken
+				);
+			}
+
+			/// <summary>Runs a long duration bulk insertion</summary>
+			internal static async Task<long> RunInsertOperationAsync<TSource>(
 				[NotNull] IFdbDatabase db,
 				[NotNull] IEnumerable<TSource> source,
 				[NotNull] Delegate body,
-				int maxBatchCount,
-				int maxBatchSize,
+				[NotNull] WriteOptions options,
 				CancellationToken cancellationToken
 			)
 			{
-				Contract.Requires(db != null && source != null && maxBatchCount > 0 && maxBatchSize > 0 && body != null);
-				
+				Contract.Requires(db != null && source != null && body != null && options != null);
+
+				int batchCount = options.BatchCount ?? DEFAULT_WRITE_BATCH_COUNT;
+				int sizeThreshold = options.BatchSize ?? DEFAULT_WRITE_BATCH_SIZE;
+
+				if (batchCount <= 0) throw new InvalidOperationException("Batch count must be a positive integer.");
+				if (sizeThreshold <= 0) throw new InvalidOperationException("Batch size must be a positive integer.");
+				if (options.MaxConcurrentTransactions > 1)
+				{
+					//TODO: implement concurrent transactions when writing !
+					throw new NotImplementedException("Multiple concurrent transactions are not yet supported");
+				}
+
 				var bodyAsync = body as Func<TSource, IFdbTransaction, Task>;
 				var bodyBlocking = body as Action<TSource, IFdbTransaction>;
 				if (bodyAsync == null && bodyBlocking == null)
@@ -195,9 +334,7 @@ namespace FoundationDB.Client
 					throw new ArgumentException(String.Format("Unsupported delegate type {0} for body", body.GetType().FullName), "body");
 				}
 
-				int batchSize = maxBatchCount;
-				int sizeThreshold = maxBatchSize;
-				var batch = new List<TSource>(batchSize);
+				var batch = new List<TSource>(batchCount);
 				long itemCount = 0;
 
 				using (var trans = db.BeginTransaction(cancellationToken))
@@ -268,7 +405,7 @@ namespace FoundationDB.Client
 
 						// commit the batch if ..
 						if (trans.Size >= sizeThreshold			// transaction is startting to get big...
-						 || batch.Count >= batchSize			// too many items would need to be retried...
+						 || batch.Count >= batchCount			// too many items would need to be retried...
 						 || timer.Elapsed.TotalSeconds >= 4		// it's getting late...
 						)
 						{
@@ -363,6 +500,8 @@ namespace FoundationDB.Client
 				await RetryChunk(trans, chunk, offset, half, bodyAsync, bodyBlocking).ConfigureAwait(false);
 				await RetryChunk(trans, chunk, offset + half, count - half, bodyAsync, bodyBlocking).ConfigureAwait(false);
 			}
+
+			#endregion
 
 			#endregion
 
@@ -726,7 +865,7 @@ namespace FoundationDB.Client
 										if (error.Code == FdbError.PastVersion)
 										{ // this generation lasted too long, we need to start a new one and try again...
 											trans.Reset();
-											ctx.GenerationTimer.Reset();
+											ctx.GenerationTimer.Restart();
 											ctx.Generation++;
 
 											// scale back batch size
@@ -740,7 +879,7 @@ namespace FoundationDB.Client
 										else
 										{ // the error may be retryable...
 											await trans.OnErrorAsync(error.Code);
-											ctx.GenerationTimer.Reset();
+											ctx.GenerationTimer.Restart();
 											ctx.Generation++;
 											//REVIEW: magical number!
 											if (ctx.Cooldown < 2) ctx.Cooldown = 2;
