@@ -54,7 +54,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				Console.WriteLine("Bulk inserting {0:N0} random items...", N);
+				Log("Bulk inserting {0:N0} random items...", N);
 
 				var location = await GetCleanDirectory(db, "Bulk", "Write");
 
@@ -63,9 +63,9 @@ namespace FoundationDB.Client.Tests
 					.Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x.ToString("x8")), Slice.Random(rnd, 16 + rnd.Next(240))))
 					.ToArray();
 
-				Console.WriteLine("Total data size is {0:N0} bytes", data.Sum(x => x.Key.Count + x.Value.Count));
+				Log("Total data size is {0:N0} bytes", data.Sum(x => x.Key.Count + x.Value.Count));
 
-				Console.WriteLine("Starting...");
+				Log("Starting...");
 
 				var sw = Stopwatch.StartNew();
 				long? lastReport = null;
@@ -79,7 +79,7 @@ namespace FoundationDB.Client.Tests
 						{
 							++called;
 							lastReport = n;
-							Console.WriteLine("Chunk #{0} : {1}", called, n);
+							Log("Chunk #{0} : {1}", called, n);
 						})
 					},
 					this.Cancellation
@@ -89,7 +89,7 @@ namespace FoundationDB.Client.Tests
 				//note: calls to Progress<T> are async, so we need to wait a bit ...
 				Thread.Sleep(640); // "Should be enough"
 
-				Console.WriteLine("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, called);
+				Log("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, called);
 
 				Assert.That(count, Is.EqualTo(N), "count");
 				Assert.That(lastReport, Is.EqualTo(N), "lastResport");
@@ -97,7 +97,7 @@ namespace FoundationDB.Client.Tests
 
 				// read everything back...
 
-				Console.WriteLine("Reading everything back...");
+				Log("Reading everything back...");
 
 				var stored = await db.ReadAsync((tr) =>
 				{
@@ -118,7 +118,7 @@ namespace FoundationDB.Client.Tests
 			{
 				db.DefaultTimeout = 60 * 1000;
 
-				Console.WriteLine("Generating {0:N0} random items...", N);
+				Log("Generating {0:N0} random items...", N);
 
 				var location = await GetCleanDirectory(db, "Bulk", "Insert");
 
@@ -128,9 +128,9 @@ namespace FoundationDB.Client.Tests
 					.ToList();
 
 				long totalSize = data.Sum(x => (long)x.Value);
-				Console.WriteLine("Total size is ~ {0:N0} bytes", totalSize);
+				Log("Total size is ~ {0:N0} bytes", totalSize);
 
-				Console.WriteLine("Starting...");
+				Log("Starting...");
 
 				long called = 0;
 				var uniqueKeys = new HashSet<int>();
@@ -154,9 +154,9 @@ namespace FoundationDB.Client.Tests
 				//note: calls to Progress<T> are async, so we need to wait a bit ...
 				Thread.Sleep(640);   // "Should be enough"
 
-				Console.WriteLine("Done in {0:N3} sec for {1:N0} keys and {2:N0} bytes", sw.Elapsed.TotalSeconds, count, totalSize);
-				Console.WriteLine("> Throughput {0:N0} key/sec and {1:N3} MB/sec", count / sw.Elapsed.TotalSeconds, totalSize / (1024 * 1024 * sw.Elapsed.TotalSeconds));
-				Console.WriteLine("Called {0:N0} for {1:N0} unique keys", called, uniqueKeys.Count);
+				Log("Done in {0:N3} sec for {1:N0} keys and {2:N0} bytes", sw.Elapsed.TotalSeconds, count, totalSize);
+				Log("> Throughput {0:N0} key/sec and {1:N3} MB/sec", count / sw.Elapsed.TotalSeconds, totalSize / (1024 * 1024 * sw.Elapsed.TotalSeconds));
+				Log("Called {0:N0} for {1:N0} unique keys", called, uniqueKeys.Count);
 
 				Assert.That(count, Is.EqualTo(N), "count");
 				Assert.That(uniqueKeys.Count, Is.EqualTo(N), "unique keys");
@@ -164,7 +164,7 @@ namespace FoundationDB.Client.Tests
 
 				// read everything back...
 
-				Console.WriteLine("Reading everything back...");
+				Log("Reading everything back...");
 
 				var stored = await db.ReadAsync((tr) =>
 				{
@@ -191,10 +191,10 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				Console.WriteLine("Bulk inserting {0:N0} items...", N);
+				Log("Bulk inserting {0:N0} items...", N);
 				var location = await GetCleanDirectory(db, "Bulk", "ForEach");
 
-				Console.WriteLine("Preparing...");
+				Log("Preparing...");
 
 				await Fdb.Bulk.WriteAsync(
 					db,
@@ -202,7 +202,7 @@ namespace FoundationDB.Client.Tests
 					this.Cancellation
 				);
 
-				Console.WriteLine("Reading...");
+				Log("Reading...");
 
 				long total = 0;
 				long count = 0;
@@ -215,7 +215,7 @@ namespace FoundationDB.Client.Tests
 					async (xs, ctx, state) =>
 					{
 						Interlocked.Increment(ref chunks);
-						Console.WriteLine("> Called with batch of {0:N0} items at offset {1:N0} of gen #{2} with step {3:N0} and cooldown {4} (generation = {5:N3} sec, total = {6:N3} sec)", xs.Length, ctx.Position, ctx.Generation, ctx.Step, ctx.Cooldown, ctx.ElapsedGeneration.TotalSeconds, ctx.ElapsedTotal.TotalSeconds);
+						Log("> Called with batch of {0:N0} items at offset {1:N0} of gen #{2} with step {3:N0} and cooldown {4} (generation = {5:N3} sec, total = {6:N3} sec)", xs.Length, ctx.Position, ctx.Generation, ctx.Step, ctx.Cooldown, ctx.ElapsedGeneration.TotalSeconds, ctx.ElapsedTotal.TotalSeconds);
 
 						var throttle = Task.Delay(TimeSpan.FromMilliseconds(10 + (xs.Length / 25) * 5)); // magic numbers to try to last longer than 5 sec
 						var results = await ctx.Transaction.GetValuesAsync(xs);
@@ -237,8 +237,8 @@ namespace FoundationDB.Client.Tests
 				);
 				sw.Stop();
 
-				Console.WriteLine("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
-				Console.WriteLine("Sum of integers 1 to {0:N0} is {1:N0}", count, total);
+				Log("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
+				Log("Sum of integers 1 to {0:N0} is {1:N0}", count, total);
 
 				// cleanup because this test can produce a lot of data
 				await location.RemoveAsync(db, this.Cancellation);
@@ -253,10 +253,10 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				Console.WriteLine("Bulk inserting {0:N0} items...", N);
+				Log("Bulk inserting {0:N0} items...", N);
 				var location = await GetCleanDirectory(db, "Bulk", "ForEach");
 
-				Console.WriteLine("Preparing...");
+				Log("Preparing...");
 
 				await Fdb.Bulk.WriteAsync(
 					db,
@@ -264,7 +264,7 @@ namespace FoundationDB.Client.Tests
 					this.Cancellation
 				);
 
-				Console.WriteLine("Reading...");
+				Log("Reading...");
 
 				long total = 0;
 				long count = 0;
@@ -277,7 +277,7 @@ namespace FoundationDB.Client.Tests
 					(xs, ctx, state) =>
 					{
 						Interlocked.Increment(ref chunks);
-						Console.WriteLine("> Called with batch of " + xs.Length.ToString("N0") + " at offset " + ctx.Position.ToString("N0") + " of gen " + ctx.Generation + " with step " + ctx.Step + " and cooldown " + ctx.Cooldown + " (gen=" + ctx.ElapsedGeneration + ", total=" + ctx.ElapsedTotal + ")");
+						Log("> Called with batch of {0:N0} at offset {1:N0} of gen {2} with step {3} and cooldown {4} (generation = {5:N3} sec, total = {6:N3} sec)", xs.Length, ctx.Position, ctx.Generation, ctx.Step, ctx.Cooldown, ctx.ElapsedGeneration.TotalSeconds, ctx.ElapsedTotal.TotalSeconds);
 
 						var t = ctx.Transaction.GetValuesAsync(xs);
 						Thread.Sleep(TimeSpan.FromMilliseconds(10 + (xs.Length / 25) * 5)); // magic numbers to try to last longer than 5 sec
@@ -302,8 +302,8 @@ namespace FoundationDB.Client.Tests
 				);
 				sw.Stop();
 
-				Console.WriteLine("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
-				Console.WriteLine("Sum of integers 1 to {0:N0} is {1:N0}", count, total);
+				Log("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
+				Log("Sum of integers 1 to {0:N0} is {1:N0}", count, total);
 
 				// cleanup because this test can produce a lot of data
 				await location.RemoveAsync(db, this.Cancellation);
@@ -318,10 +318,10 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				Console.WriteLine("Bulk inserting {0:N0} items...", N);
+				Log("Bulk inserting {0:N0} items...", N);
 				var location = await GetCleanDirectory(db, "Bulk", "ForEach");
 
-				Console.WriteLine("Preparing...");
+				Log("Preparing...");
 
 				await Fdb.Bulk.WriteAsync(
 					db,
@@ -329,7 +329,7 @@ namespace FoundationDB.Client.Tests
 					this.Cancellation
 				);
 
-				Console.WriteLine("Reading...");
+				Log("Reading...");
 
 				long total = 0;
 				long count = 0;
@@ -341,7 +341,7 @@ namespace FoundationDB.Client.Tests
 					async (xs, ctx) =>
 					{
 						Interlocked.Increment(ref chunks);
-						Console.WriteLine("> Called with batch of " + xs.Length.ToString("N0") + " at offset " + ctx.Position.ToString("N0") + " of gen " + ctx.Generation + " with step " + ctx.Step + " and cooldown " + ctx.Cooldown + " (genElapsed=" + ctx.ElapsedGeneration + ", totalElapsed=" + ctx.ElapsedTotal + ")");
+						Log("> Called with batch of " + xs.Length.ToString("N0") + " at offset " + ctx.Position.ToString("N0") + " of gen " + ctx.Generation + " with step " + ctx.Step + " and cooldown " + ctx.Cooldown + " (genElapsed=" + ctx.ElapsedGeneration + ", totalElapsed=" + ctx.ElapsedTotal + ")");
 
 						var throttle = Task.Delay(TimeSpan.FromMilliseconds(10 + (xs.Length / 25) * 5)); // magic numbers to try to last longer than 5 sec
 						var results = await ctx.Transaction.GetValuesAsync(xs);
@@ -359,8 +359,8 @@ namespace FoundationDB.Client.Tests
 				);
 				sw.Stop();
 
-				Console.WriteLine("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
-				Console.WriteLine("Sum of integers 1 to {0:N0} is {1:N0}", count, total);
+				Log("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
+				Log("Sum of integers 1 to {0:N0} is {1:N0}", count, total);
 
 				// cleanup because this test can produce a lot of data
 				await location.RemoveAsync(db, this.Cancellation);
@@ -375,10 +375,10 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				Console.WriteLine("Bulk inserting {0:N0} items...", N);
+				Log("Bulk inserting {0:N0} items...", N);
 				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
 
-				Console.WriteLine("Preparing...");
+				Log("Preparing...");
 
 				var rnd = new Random(2403);
 				var source = Enumerable.Range(1, N).Select((x) => new KeyValuePair<int, int>(x, rnd.Next(1000))).ToList();
@@ -389,7 +389,7 @@ namespace FoundationDB.Client.Tests
 					this.Cancellation
 				);
 
-				Console.WriteLine("Reading...");
+				Log("Reading...");
 
 				int chunks = 0;
 				var sw = Stopwatch.StartNew();
@@ -400,7 +400,7 @@ namespace FoundationDB.Client.Tests
 					async (xs, ctx, sum) =>
 					{
 						Interlocked.Increment(ref chunks);
-						Console.WriteLine("> Called with batch of " + xs.Length.ToString("N0") + " at offset " + ctx.Position.ToString("N0") + " of gen " + ctx.Generation + " with step " + ctx.Step + " and cooldown " + ctx.Cooldown + " (genElapsed=" + ctx.ElapsedGeneration + ", totalElapsed=" + ctx.ElapsedTotal + ")");
+						Log("> Called with batch of " + xs.Length.ToString("N0") + " at offset " + ctx.Position.ToString("N0") + " of gen " + ctx.Generation + " with step " + ctx.Step + " and cooldown " + ctx.Cooldown + " (genElapsed=" + ctx.ElapsedGeneration + ", totalElapsed=" + ctx.ElapsedTotal + ")");
 
 						var throttle = Task.Delay(TimeSpan.FromMilliseconds(10 + (xs.Length / 25) * 5)); // magic numbers to try to last longer than 5 sec
 						var results = await ctx.Transaction.GetValuesAsync(xs);
@@ -416,11 +416,11 @@ namespace FoundationDB.Client.Tests
 				);
 				sw.Stop();
 
-				Console.WriteLine("Done in {0:N0} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
+				Log("Done in {0:N0} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
 
 				long actual = source.Sum(x => (long)x.Value);
-				Console.WriteLine("> Computed sum of the {0:N0} random values is {1:N0}", N, total);
-				Console.WriteLine("> Actual sum of the {0:N0} random values is {1:N0}", N, actual);
+				Log("> Computed sum of the {0:N0} random values is {1:N0}", N, total);
+				Log("> Actual sum of the {0:N0} random values is {1:N0}", N, actual);
 				Assert.That(total, Is.EqualTo(actual));
 
 				// cleanup because this test can produce a lot of data
@@ -436,10 +436,10 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				Console.WriteLine("Bulk inserting {0:N0} items...", N);
+				Log("Bulk inserting {0:N0} items...", N);
 				var location = await GetCleanDirectory(db, "Bulk", "Aggregate");
 
-				Console.WriteLine("Preparing...");
+				Log("Preparing...");
 
 				var rnd = new Random(2403);
 				var source = Enumerable.Range(1, N).Select((x) => new KeyValuePair<int, int>(x, rnd.Next(1000))).ToList();
@@ -450,7 +450,7 @@ namespace FoundationDB.Client.Tests
 					this.Cancellation
 				);
 
-				Console.WriteLine("Reading...");
+				Log("Reading...");
 
 				int chunks = 0;
 				var sw = Stopwatch.StartNew();
@@ -461,7 +461,7 @@ namespace FoundationDB.Client.Tests
 					async (xs, ctx, state) =>
 					{
 						Interlocked.Increment(ref chunks);
-						Console.WriteLine("> Called with batch of " + xs.Length.ToString("N0") + " at offset " + ctx.Position.ToString("N0") + " of gen " + ctx.Generation + " with step " + ctx.Step + " and cooldown " + ctx.Cooldown + " (genElapsed=" + ctx.ElapsedGeneration + ", totalElapsed=" + ctx.ElapsedTotal + ")");
+						Log("> Called with batch of " + xs.Length.ToString("N0") + " at offset " + ctx.Position.ToString("N0") + " of gen " + ctx.Generation + " with step " + ctx.Step + " and cooldown " + ctx.Cooldown + " (genElapsed=" + ctx.ElapsedGeneration + ", totalElapsed=" + ctx.ElapsedTotal + ")");
 
 						var throttle = Task.Delay(TimeSpan.FromMilliseconds(10 + (xs.Length / 25) * 5)); // magic numbers to try to last longer than 5 sec
 						var results = await ctx.Transaction.GetValuesAsync(xs);
@@ -479,11 +479,11 @@ namespace FoundationDB.Client.Tests
 				);
 				sw.Stop();
 
-				Console.WriteLine("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
+				Log("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
 
 				double actual = (double)source.Sum(x => (long)x.Value) / source.Count;
-				Console.WriteLine("> Computed average of the {0:N0} random values is {1:N3}", N, average);
-				Console.WriteLine("> Actual average of the {0:N0} random values is {1:N3}", N, actual);
+				Log("> Computed average of the {0:N0} random values is {1:N3}", N, average);
+				Log("> Actual average of the {0:N0} random values is {1:N3}", N, actual);
 				Assert.That(average, Is.EqualTo(actual).Within(double.Epsilon));
 
 				// cleanup because this test can produce a lot of data
@@ -498,12 +498,12 @@ namespace FoundationDB.Client.Tests
 
 			using (var zedb = await OpenTestPartitionAsync())
 			{
-				var db = zedb.Logged((tr) =>  Console.WriteLine(tr.Log.GetTimingsReport(true)));
-	
-				Console.WriteLine("Bulk inserting {0:N0} items...", N);
+				var db = zedb.Logged((tr) => Log(tr.Log.GetTimingsReport(true)));
+
+				Log("Bulk inserting {0:N0} items...", N);
 				var location = await GetCleanDirectory(db, "Bulk", "Export");
 
-				Console.WriteLine("Preparing...");
+				Log("Preparing...");
 
 				var rnd = new Random(2403);
 				var source = Enumerable
@@ -511,7 +511,7 @@ namespace FoundationDB.Client.Tests
 					.Select((x) => new KeyValuePair<Guid, Slice>(Guid.NewGuid(), Slice.Random(rnd, rnd.Next(8, 256))))
 					.ToList();
 
-				Console.WriteLine("Inserting...");
+				Log("Inserting...");
 
 				await Fdb.Bulk.WriteAsync(
 					db.WithoutLogging(),
@@ -520,7 +520,7 @@ namespace FoundationDB.Client.Tests
 				);
 
 				string path = Path.Combine(TestContext.CurrentContext.WorkDirectory, "export.txt");
-				Console.WriteLine("Exporting to disk... " + path);
+				Log("Exporting to disk... " + path);
 				int chunks = 0;
 				var sw = Stopwatch.StartNew();
 				using (var file = File.CreateText(path))
@@ -533,7 +533,7 @@ namespace FoundationDB.Client.Tests
 							Assert.That(xs, Is.Not.Null);
 
 							Interlocked.Increment(ref chunks);
-							Console.WriteLine("> Called with batch [{0:N0}..{1:N0}] ({2:N0} items, {3:N0} bytes)", pos, pos + xs.Length - 1, xs.Length, xs.Sum(kv => kv.Key.Count + kv.Value.Count));
+							Log("> Called with batch [{0:N0}..{1:N0}] ({2:N0} items, {3:N0} bytes)", pos, pos + xs.Length - 1, xs.Length, xs.Sum(kv => kv.Key.Count + kv.Value.Count));
 
 							//TO CHECK:
 							// => keys are ordered in the batch
@@ -550,8 +550,8 @@ namespace FoundationDB.Client.Tests
 					);
 				}
 				sw.Stop();
-				Console.WriteLine("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
-				Console.WriteLine("File size is {0} bytes", new FileInfo(path).Length);
+				Log("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
+				Log("File size is {0} bytes", new FileInfo(path).Length);
 
 				// cleanup because this test can produce a lot of data
 				await location.RemoveAsync(zedb, this.Cancellation);
