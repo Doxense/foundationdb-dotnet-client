@@ -6,7 +6,7 @@ open Fake
 RestorePackages()
 
 // Properties
-let version = "0.9.7-pre" //TODO: find a way to extract this from somewhere convenient
+let version = "0.9.8-pre" //TODO: find a way to extract this from somewhere convenient
 let buildDir = "./build/output/"
 let nugetPath = ".nuget/nuget.exe"
 let nugetOutDir = buildDir + "_packages/"
