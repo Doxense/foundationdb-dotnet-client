@@ -305,7 +305,7 @@ namespace FoundationDB.Client
 				);
 			}
 
-			/// <summary>Runs a long duration bulk insertion</summary>
+			/// <summary>Runs a long duration bulk insertion, where items are processed one by one</summary>
 			internal static async Task<long> RunInsertOperationAsync<TSource>(
 				[NotNull] IFdbDatabase db,
 				[NotNull] IEnumerable<TSource> source,
@@ -343,7 +343,9 @@ namespace FoundationDB.Client
 
 					Func<Task> commit = async () =>
 					{
-						Debug.WriteLine("> commit called with " + batch.Count.ToString("N0") + " items and " + trans.Size.ToString("N0") + " bytes");
+#if FULL_DEBUG
+						Trace.WriteLine("> commit called with " + batch.Count.ToString("N0") + " items and " + trans.Size.ToString("N0") + " bytes");
+#endif
 
 						FdbException error = null;
 
@@ -362,7 +364,9 @@ namespace FoundationDB.Client
 						if (error != null)
 						{ // we failed to commit this batch, we need to retry...
 
-							Debug.WriteLine("> commit failed : " + error);
+#if FULL_DEBUG
+							Trace.WriteLine("> commit failed : " + error);
+#endif
 
 							if (error.Code == FdbError.TransactionTooLarge)
 							{
@@ -398,7 +402,7 @@ namespace FoundationDB.Client
 						{
 							await bodyAsync(item, trans);
 						}
-						else if (bodyBlocking !=null)
+						else if (bodyBlocking != null)
 						{
 							bodyBlocking(item, trans);
 						}
@@ -410,6 +414,7 @@ namespace FoundationDB.Client
 						)
 						{
 							await commit().ConfigureAwait(false);
+							Contract.Assert(batch.Count == 0);
 						}
 					}
 
@@ -425,7 +430,7 @@ namespace FoundationDB.Client
 				return itemCount;
 			}
 
-			/// <summary>Retry commiting a segment of a batch, splitting it in sub-segments as needed</summary>
+			/// <summary>Retry commiting a segment of a chunk, splitting it in sub-segments as needed</summary>
 			private static async Task RetryChunk<TSource>([NotNull] IFdbTransaction trans, [NotNull] List<TSource> chunk, int offset, int count, Func<TSource, IFdbTransaction, Task> bodyAsync, Action<TSource, IFdbTransaction> bodyBlocking)
 			{
 				Contract.Requires(trans != null && chunk != null && offset >= 0 && count >= 0 && (bodyAsync != null || bodyBlocking != null));
@@ -440,7 +445,9 @@ namespace FoundationDB.Client
 
 			localRetry:
 
-				Debug.WriteLine("> replaying chunk @" + offset + ", " + count);
+#if FULL_DEBUG
+				Trace.WriteLine("> replaying chunk @" + offset + ", " + count);
+#endif
 
 				trans.Cancellation.ThrowIfCancellationRequested();
 
@@ -464,7 +471,9 @@ namespace FoundationDB.Client
 				FdbException error;
 				try
 				{
-					Debug.WriteLine("> retrying chunk...");
+#if FULL_DEBUG
+					Trace.WriteLine("> retrying chunk...");
+#endif
 					await trans.CommitAsync().ConfigureAwait(false);
 					return;
 				}
@@ -474,7 +483,9 @@ namespace FoundationDB.Client
 					//TODO: update this for C# 6.0
 				}
 
-				Debug.WriteLine("> oh noes " + error);
+#if FULL_DEBUG
+				Trace.WriteLine("> oh noes " + error);
+#endif
 
 				// it failed again
 				if (error.Code == FdbError.TransactionTooLarge)
