@@ -105,6 +105,11 @@ namespace FoundationDB.Client
 			return this.Key + m_encoder.EncodeKey(key1, key2);
 		}
 
+		public virtual Slice EncodeKey(T1 key1)
+		{
+			return this.Key + m_encoder.EncodeComposite(FdbTuple.Create<T1, T2>(key1, default(T2)), 1);
+		}
+
 		Slice ICompositeKeyEncoder<FdbTuple<T1, T2>>.EncodeComposite(FdbTuple<T1, T2> key, int items)
 		{
 			return this.Key + m_encoder.EncodeComposite(key, items);
@@ -120,9 +125,19 @@ namespace FoundationDB.Client
 			return m_encoder.DecodeComposite(this.ExtractAndCheck(encoded), items);
 		}
 
+		public virtual FdbKeyRange ToRange(FdbTuple<T1, T2> key)
+		{
+			return FdbTuple.ToRange(this.EncodeKey(key));
+		}
+
 		public virtual FdbKeyRange ToRange(T1 key1, T2 key2)
 		{
 			return FdbTuple.ToRange(this.EncodeKey(key1, key2));
+		}
+
+		public virtual FdbKeyRange ToRange(T1 key1)
+		{
+			return FdbTuple.ToRange(this.EncodeKey(key1));
 		}
 
 		#endregion
