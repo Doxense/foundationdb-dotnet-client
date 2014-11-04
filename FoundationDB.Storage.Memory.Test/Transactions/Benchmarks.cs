@@ -25,12 +25,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		private static void DumpResult(string label, long total, long trans, TimeSpan elapsed)
 		{
 			Console.WriteLine(
-				"{0,-12}: {1, 10} keys in {2,4} sec => {3,9} kps, {4,7} tps",
+				"{0,-12}: {1,10:N0} keys in {2,4:N3} sec => {3,9:N0} kps, {4,7:N0} tps",
 				label,
-				total.ToString("N0"),
-				elapsed.TotalSeconds.ToString("N3"),
-				(total / elapsed.TotalSeconds).ToString("N0"),
-				(trans / elapsed.TotalSeconds).ToString("N0")
+				total,
+				elapsed.TotalSeconds,
+				total / elapsed.TotalSeconds,
+				trans / elapsed.TotalSeconds
 			);
 		}
 
@@ -42,7 +42,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				GC.WaitForPendingFinalizers();
 				GC.Collect();
 			}
-			Console.WriteLine("Total memory: Managed=" + (GC.GetTotalMemory(false) / 1024.0).ToString("N1") + " kB, WorkingSet=" + (Environment.WorkingSet / 1024.0).ToString("N1") + " kB");
+			Console.WriteLine("Total memory: Managed={0:N1} KiB, WorkingSet={1:N1} KiB", GC.GetTotalMemory(false) / 1024.0, Environment.WorkingSet / 1024.0);
 		}
 
 		[Test]
@@ -118,11 +118,11 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				sw.Stop();
 				Console.WriteLine("done");
-				Console.WriteLine("* Inserted: " + total.ToString("N0") + " keys");
-				Console.WriteLine("* Elapsed : " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
-				Console.WriteLine("* TPS: " + (T / sw.Elapsed.TotalSeconds).ToString("N0") + " transaction/sec");
-				Console.WriteLine("* KPS: " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " key/sec");
-				Console.WriteLine("* BPS: " + ((total * (KEYSIZE + VALUESIZE)) / sw.Elapsed.TotalSeconds).ToString("N0") + " byte/sec");
+				Console.WriteLine("* Inserted: {0:N0} keys", total);
+				Console.WriteLine("* Elapsed : {0:N3} sec", sw.Elapsed.TotalSeconds);
+				Console.WriteLine("* TPS: {0:N0} transactions/sec", T / sw.Elapsed.TotalSeconds);
+				Console.WriteLine("* KPS: {0:N0} keys/sec", total / sw.Elapsed.TotalSeconds);
+				Console.WriteLine("* BPS: {0:N0} bytes/sec", (total * (KEYSIZE + VALUESIZE)) / sw.Elapsed.TotalSeconds);
 
 				DumpMemory(collect: true);
 
@@ -130,11 +130,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				DumpResult("WriteSeq" + B, total, total / B, sw.Elapsed);
 
-				Console.WriteLine("Saving ...");
+				string path = @".\\minibench.pndb";
+				Console.WriteLine("Saving {0} ...", path);
 				sw.Restart();
-				await db.SaveSnapshotAsync(".\\minibench.pndb");
+				await db.SaveSnapshotAsync(path);
 				sw.Stop();
-				Console.WriteLine("* Saved in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec");
+				Console.WriteLine("* Saved {0:N0} bytes in {1:N3} sec", new System.IO.FileInfo(path).Length, sw.Elapsed.TotalSeconds);
 
 				Console.WriteLine("Warming up reads...");
 				var data = await db.GetValuesAsync(Enumerable.Range(0, 100).Select(i => Slice.FromString(i.ToString(fmt))), this.Cancellation);
@@ -143,17 +144,6 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				#region sequential reads
 
-				//sw.Restart();
-				//for (int i = 0; i < total; i++)
-				//{
-				//	using (var tr = db.BeginReadOnlyTransaction())
-				//	{
-				//		await tr.GetAsync(Slice.FromString(i.ToString(fmt)));
-				//	}
-				//}
-				//sw.Stop();
-				//Console.WriteLine("SeqRead1   : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
-
 				sw.Restart();
 				for (int i = 0; i < total; i += 10)
 				{
@@ -161,10 +151,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					{
 						await tr.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
 					}
-
 				}
 				sw.Stop();
-				//Console.WriteLine("SeqRead10  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("SeqRead10", total, total / 10, sw.Elapsed);
 
 				sw.Restart();
@@ -172,12 +160,10 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				{
 					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
-						await tr.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
+						await tr.Snapshot.GetValuesAsync(Enumerable.Range(i, 10).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
 					}
-
 				}
 				sw.Stop();
-				//Console.WriteLine("SeqRead10S : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("SeqRead10S", total, total / 10, sw.Elapsed);
 
 				sw.Restart();
@@ -192,10 +178,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(y.ToString(fmt)))
 						).ConfigureAwait(false);
 					}
-
 				}
 				sw.Stop();
-				//Console.WriteLine("SeqRead10R : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("SeqRead10R", total, total / 10, sw.Elapsed);
 
 				sw.Restart();
@@ -205,10 +189,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					{
 						await tr.GetValuesAsync(Enumerable.Range(i, 100).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
 					}
-
 				}
 				sw.Stop();
-				//Console.WriteLine("SeqRead100 : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("SeqRead100", total, total / 100, sw.Elapsed);
 
 				sw.Restart();
@@ -218,10 +200,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					{
 						await tr.Snapshot.GetValuesAsync(Enumerable.Range(i, 100).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
 					}
-
 				}
 				sw.Stop();
-				//Console.WriteLine("SeqRead100S : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("SeqRead100S", total, total / 100, sw.Elapsed);
 
 				sw.Restart();
@@ -236,10 +216,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(y.ToString(fmt)))
 						).ConfigureAwait(false);
 					}
-
 				}
 				sw.Stop();
-				//Console.WriteLine("SeqRead100R : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("SeqRead100R", total, total / 100, sw.Elapsed);
 
 				sw.Restart();
@@ -254,10 +232,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString(y.ToString(fmt)))
 						).ConfigureAwait(false);
 					}
-
 				}
 				sw.Stop();
-				//Console.WriteLine("SeqRead100RS: " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("SeqRead100RS", total, total / 100, sw.Elapsed);
 
 				sw.Restart();
@@ -267,10 +243,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					{
 						await tr.GetValuesAsync(Enumerable.Range(i, 1000).Select(x => Slice.FromString(x.ToString(fmt)))).ConfigureAwait(false);
 					}
-
 				}
 				sw.Stop();
-				//Console.WriteLine("SeqRead1k   : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (1000 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("SeqRead1k", total, total / 1000, sw.Elapsed);
 
 				#endregion

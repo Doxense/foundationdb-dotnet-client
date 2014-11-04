@@ -840,7 +840,10 @@ namespace FoundationDB.Storage.Memory.API
 			// we need the read version
 			EnsureHasReadVersion();
 
-			var result = await m_db.GetRangeAtVersion(beginInclusive, endExclusive, options.Limit.Value, options.TargetBytes.Value, options.Mode.Value, iteration, options.Reverse.Value, m_readVersion.Value).ConfigureAwait(false);
+			options = FdbRangeOptions.EnsureDefaults(options, null, null, FdbStreamingMode.Iterator, false);
+			options.EnsureLegalValues();
+
+			var result = await m_db.GetRangeAtVersion(beginInclusive, endExclusive, options.Limit ?? 0, options.TargetBytes ?? 0, options.Mode.Value, iteration, options.Reverse.Value, m_readVersion.Value).ConfigureAwait(false);
 
 			if (!snapshot)
 			{
