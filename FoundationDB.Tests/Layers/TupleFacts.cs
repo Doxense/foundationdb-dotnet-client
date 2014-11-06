@@ -781,43 +781,112 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Deserialize_Integers()
 		{
-			Slice slice;
 
-			slice = Slice.Unescape("<14>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(0));
+			Action<string, long> verify = (encoded, value) =>
+			{
+				var slice = Slice.Unescape(encoded);
+				Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(value), "DeserializeBoxed({0})", encoded);
 
-			slice = Slice.Unescape("<15>{");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(123));
+				// int64
+				Assert.That(FdbTuplePackers.DeserializeInt64(slice), Is.EqualTo(value), "DeserializeInt64({0})", encoded);
+				Assert.That(FdbTuplePacker<long>.Deserialize(slice), Is.EqualTo(value), "Deserialize<long>({0})", encoded);
 
-			slice = Slice.Unescape("<16><04><D2>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(1234));
+				// uint64
+				if (value >= 0)
+				{
+					Assert.That(FdbTuplePackers.DeserializeUInt64(slice), Is.EqualTo((ulong)value), "DeserializeUInt64({0})", encoded);
+					Assert.That(FdbTuplePacker<ulong>.Deserialize(slice), Is.EqualTo((ulong)value), "Deserialize<ulong>({0})", encoded);
+				}
+				else
+				{
+					Assert.That(() => FdbTuplePackers.DeserializeUInt64(slice), Throws.InstanceOf<OverflowException>(), "DeserializeUInt64({0})", encoded);
+				}
 
-			slice = Slice.Unescape("<13><FE>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(-1));
+				// int32
+				if (value <= int.MaxValue && value >= int.MinValue)
+				{
+					Assert.That(FdbTuplePackers.DeserializeInt32(slice), Is.EqualTo((int)value), "DeserializeInt32({0})", encoded);
+					Assert.That(FdbTuplePacker<long>.Deserialize(slice), Is.EqualTo((int)value), "Deserialize<int>({0})", encoded);
+				}
+				else
+				{
+					Assert.That(() => FdbTuplePackers.DeserializeInt32(slice), Throws.InstanceOf<OverflowException>(), "DeserializeInt32({0})", encoded);
+				}
 
-			slice = Slice.Unescape("<13><00>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(-255));
+				// uint32
+				if (value <= uint.MaxValue && value >= 0)
+				{
+					Assert.That(FdbTuplePackers.DeserializeUInt32(slice), Is.EqualTo((uint)value), "DeserializeUInt32({0})", encoded);
+					Assert.That(FdbTuplePacker<uint>.Deserialize(slice), Is.EqualTo((uint)value), "Deserialize<uint>({0})", encoded);
+				}
+				else
+				{
+					Assert.That(() => FdbTuplePackers.DeserializeUInt32(slice), Throws.InstanceOf<OverflowException>(), "DeserializeUInt32({0})", encoded);
+				}
 
-			slice = Slice.Unescape("<12><FE><FF>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(-256));
+				// int16
+				if (value <= short.MaxValue && value >= short.MinValue)
+				{
+					Assert.That(FdbTuplePackers.DeserializeInt16(slice), Is.EqualTo((short)value), "DeserializeInt16({0})", encoded);
+					Assert.That(FdbTuplePacker<short>.Deserialize(slice), Is.EqualTo((short)value), "Deserialize<short>({0})", encoded);
+				}
+				else
+				{
+					Assert.That(() => FdbTuplePackers.DeserializeInt16(slice), Throws.InstanceOf<OverflowException>(), "DeserializeInt16({0})", encoded);
+				}
 
-			slice = Slice.Unescape("<12><00><00>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(-65535));
+				// uint16
+				if (value <= ushort.MaxValue && value >= 0)
+				{
+					Assert.That(FdbTuplePackers.DeserializeUInt16(slice), Is.EqualTo((ushort)value), "DeserializeUInt16({0})", encoded);
+					Assert.That(FdbTuplePacker<ushort>.Deserialize(slice), Is.EqualTo((ushort)value), "Deserialize<ushort>({0})", encoded);
+				}
+				else
+				{
+					Assert.That(() => FdbTuplePackers.DeserializeUInt16(slice), Throws.InstanceOf<OverflowException>(), "DeserializeUInt16({0})", encoded);
+				}
 
-			slice = Slice.Unescape("<11><FE><FF><FF>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(-65536));
+				// sbyte
+				if (value <= sbyte.MaxValue && value >= sbyte.MinValue)
+				{
+					Assert.That(FdbTuplePackers.DeserializeSByte(slice), Is.EqualTo((sbyte)value), "DeserializeSByte({0})", encoded);
+					Assert.That(FdbTuplePacker<sbyte>.Deserialize(slice), Is.EqualTo((sbyte)value), "Deserialize<sbyte>({0})", encoded);
+				}
+				else
+				{
+					Assert.That(() => FdbTuplePackers.DeserializeSByte(slice), Throws.InstanceOf<OverflowException>(), "DeserializeSByte({0})", encoded);
+				}
 
-			slice = Slice.Unescape("<18><7F><FF><FF><FF>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(int.MaxValue));
+				// byte
+				if (value <= 255 && value >= 0)
+				{
+					Assert.That(FdbTuplePackers.DeserializeByte(slice), Is.EqualTo((byte)value), "DeserializeByte({0})", encoded);
+					Assert.That(FdbTuplePacker<byte>.Deserialize(slice), Is.EqualTo((byte)value), "Deserialize<byte>({0})", encoded);
+				}
+				else
+				{
+					Assert.That(() => FdbTuplePackers.DeserializeByte(slice), Throws.InstanceOf<OverflowException>(), "DeserializeByte({0})", encoded);
+				}
 
-			slice = Slice.Unescape("<10><7F><FF><FF><FF>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(int.MinValue));
-
-			slice = Slice.Unescape("<1C><7F><FF><FF><FF><FF><FF><FF><FF>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(long.MaxValue));
-
-			slice = Slice.Unescape("<0C><7F><FF><FF><FF><FF><FF><FF><FF>");
-			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(long.MinValue));
+			};
+			verify("<14>", 0);
+			verify("<15>{", 123);
+			verify("<15><80>", 128);
+			verify("<15><FF>", 255);
+			verify("<16><01><00>", 256);
+			verify("<16><04><D2>", 1234);
+			verify("<16><80><00>", 32768);
+			verify("<16><FF><FF>", 65535);
+			verify("<17><01><00><00>", 65536);
+			verify("<13><FE>", -1);
+			verify("<13><00>", -255);
+			verify("<12><FE><FF>", -256);
+			verify("<12><00><00>", -65535);
+			verify("<11><FE><FF><FF>", -65536);
+			verify("<18><7F><FF><FF><FF>", int.MaxValue);
+			verify("<10><7F><FF><FF><FF>", int.MinValue);
+			verify("<1C><7F><FF><FF><FF><FF><FF><FF><FF>", long.MaxValue);
+			verify("<0C><7F><FF><FF><FF><FF><FF><FF><FF>", long.MinValue);
 		}
 
 		[Test]
@@ -1116,7 +1185,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(FdbTuple.Pack<Guid?>(Guid.Empty), Is.EqualTo(Slice.Unescape("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>")));
 			Assert.That(FdbTuple.Pack<Guid?>(null), Is.EqualTo(Slice.Unescape("<00>")));
 
-			Assert.That(FdbTuple.Pack<TimeSpan?>(TimeSpan.Zero), Is.EqualTo(Slice.Unescape("<14>")));
+			Assert.That(FdbTuple.Pack<TimeSpan?>(TimeSpan.Zero), Is.EqualTo(Slice.Unescape("!<80><00><00><00><00><00><00><00>")));
 			Assert.That(FdbTuple.Pack<TimeSpan?>(null), Is.EqualTo(Slice.Unescape("<00>")));
 
 			// deserialize

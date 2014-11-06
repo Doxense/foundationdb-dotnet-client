@@ -826,7 +826,7 @@ namespace FoundationDB.Layers.Tuples
 				throw new FormatException("Slice has invalid size for a 128-bit UUID");
 			}
 
-			return new Uuid128(new Slice(slice.Array, slice.Offset + 1, 8));
+			return new Uuid128(new Slice(slice.Array, slice.Offset + 1, 16));
 		}
 
 		internal static Uuid64 ParseUuid64(Slice slice)

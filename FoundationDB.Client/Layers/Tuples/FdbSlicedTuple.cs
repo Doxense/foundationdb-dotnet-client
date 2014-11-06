@@ -110,15 +110,13 @@ namespace FoundationDB.Layers.Tuples
 
 		public R Get<R>(int index)
 		{
-			// TODO: skip the boxing/unboxing and natively convert the Slice into an R
-			return FdbConverters.ConvertBoxed<R>(FdbTuplePackers.DeserializeBoxed(GetSlice(index)));
+			return FdbTuplePacker<R>.Deserialize(GetSlice(index));
 		}
 
 		public R Last<R>()
 		{
 			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
-			// TODO: skip the boxing/unboxing and natively convert the Slice into an R
-			return FdbConverters.ConvertBoxed<R>(FdbTuplePackers.DeserializeBoxed(m_slices[m_offset + m_count - 1]));
+			return FdbTuplePacker<R>.Deserialize(m_slices[m_offset + m_count - 1]);
 		}
 
 		public Slice GetSlice(int index)

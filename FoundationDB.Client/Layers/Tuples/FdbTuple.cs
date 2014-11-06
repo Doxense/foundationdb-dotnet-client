@@ -656,9 +656,7 @@ namespace FoundationDB.Layers.Tuples
 			var slice = FdbTuplePackers.UnpackFirst(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack tuple");
 
-			//TODO: FdbTuplePackers.Deserialize<T>(slice) ?
-			object value = FdbTuplePackers.DeserializeBoxed(slice);
-			return FdbConverters.ConvertBoxed<T>(value);
+			return FdbTuplePacker<T>.Deserialize(slice);
 		}
 
 		/// <summary>Unpack a tuple and only return its first element, after removing <paramref name="prefix"/> from the start of the buffer</summary>
@@ -694,9 +692,7 @@ namespace FoundationDB.Layers.Tuples
 			var slice = FdbTuplePackers.UnpackLast(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack tuple");
 
-			//TODO: FdbTuplePackers.Deserialize<T>(slice) ?
-			object value = FdbTuplePackers.DeserializeBoxed(slice);
-			return FdbConverters.ConvertBoxed<T>(value);
+			return FdbTuplePacker<T>.Deserialize(slice);
 		}
 
 		/// <summary>Unpack a tuple and only return its last element, after removing <paramref name="prefix"/> from the start of the buffer</summary>
@@ -732,9 +728,7 @@ namespace FoundationDB.Layers.Tuples
 			var slice = FdbTuplePackers.UnpackSingle(packedKey);
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack singleton tuple");
 
-			//TODO: FdbTuplePackers.Deserialize<T>(slice) ?
-			object value = FdbTuplePackers.DeserializeBoxed(slice);
-			return FdbConverters.ConvertBoxed<T>(value);
+			return FdbTuplePacker<T>.Deserialize(slice);
 		}
 
 		/// <summary>Unpack the value of a singleton tuple, after removing <paramref name="prefix"/> from the start of the buffer</summary>
@@ -760,8 +754,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			var slice = FdbTuplePackers.ParseNext(ref input);
-			//TODO: FdbTuplePackers.Deserialize<T>(slice) ?
-			value = FdbConverters.ConvertBoxed<T>(FdbTuplePackers.DeserializeBoxed(slice));
+			value = FdbTuplePacker<T>.Deserialize(slice);
 			return true;
 		}
 

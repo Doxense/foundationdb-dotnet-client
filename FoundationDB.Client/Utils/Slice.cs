@@ -781,6 +781,29 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		#region decimals
+
+		/// <summary>Encode a 32-bit decimal into an 4-byte slice</summary>
+		public static Slice FromSingle(float value)
+		{
+			//TODO: may not work on BE platforms?
+			uint bits;
+			unsafe { bits = *(uint*)(&value); }
+			return FromFixedU32(bits);
+		}
+
+		/// <summary>Encode a 64-bit decimal into an 8-byte slice</summary>
+		public static Slice FromDouble(double value)
+		{
+			//TODO: may not work on BE platforms?
+			ulong bits;
+			unsafe { bits = *(ulong*)(&value); }
+			return FromFixedU64(bits);
+		}
+
+		#endregion
+
+
 		/// <summary>Create a 16-byte slice containing a System.Guid encoding according to RFC 4122 (Big Endian)</summary>
 		/// <remarks>WARNING: Slice.FromGuid(guid).GetBytes() will not produce the same result as guid.ToByteArray() !
 		/// If you need to produce Microsoft compatible byte arrays, use Slice.Create(guid.ToByteArray()) but then you shoud NEVER use Slice.ToGuid() to decode such a value !</remarks>

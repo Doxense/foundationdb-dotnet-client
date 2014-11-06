@@ -29,21 +29,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
+	using System.Collections.Generic;
 	using System.Globalization;
+	using System.Linq.Expressions;
 	using System.Reflection;
-	using System.Runtime.CompilerServices;
-	using System.Text;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
 	public static class FdbTuplePackers
 	{
 
-		public delegate void Encoder<in T>(ref SliceWriter writer, T value);
-
 		#region Serializers...
+
+		public delegate void Encoder<in T>(ref SliceWriter writer, T value);
 
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
@@ -436,18 +437,38 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		/// <summary>Writes a DateTime converted to a number of ticks encoded as an integer</summary>
+		/// <summary>Writes a DateTime converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
 		public static void SerializeTo(ref SliceWriter writer, DateTime value)
 		{
-			//TODO: how to deal with negative values ?
-			FdbTupleParser.WriteInt64(ref writer, value.Ticks);
+			// The problem of serializing DateTime: TimeZone? Precision?
+			// - Since we are going to lose the TimeZone infos anyway, we can just store everything in UTC and let the caller deal with it
+			// - DateTime in .NET uses Ticks which produce numbers too large to fit in the 56 bits available in JavaScript
+			// - Most other *nix uses the number of milliseconds since 1970-Jan-01 UTC, but if we store as an integer we will lose some precision (rounded to nearest millisecond)
+			// - We could store the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
+			// - Other database engines store dates as a number of DAYS since Epoch, using a floating point number. This allows for quickly extracting the date by truncating the value, and the time by using the decimal part
+
+			// Right now, we will store the date as the number of DAYS since Epoch, using a 64-bit float.
+			// => storing a number of ticks would be MS-only anyway (56-bit limit in JS)
+			// => JS binding MAY support decoding of 64-bit floats in the future, in which case the value would be preserved exactly.
+
+			const long UNIX_EPOCH_EPOCH = 621355968000000000L;
+			double ms = (value.ToUniversalTime().Ticks - UNIX_EPOCH_EPOCH) / (double)TimeSpan.TicksPerDay;
+
+			FdbTupleParser.WriteDouble(ref writer, ms);
 		}
 
-		/// <summary>Writes a TimeSpan converted to a number of ticks encoded as an integer</summary>
+		/// <summary>Writes a TimeSpan converted to to a number seconds encoded as a 64-bit decimal</summary>
 		public static void SerializeTo(ref SliceWriter writer, TimeSpan value)
 		{
-			//TODO: how to deal with negative values ?
-			FdbTupleParser.WriteInt64(ref writer, value.Ticks);
+			// We have the same precision problem with storing DateTimes:
+			// - Storing the number of ticks keeps the exact value, but is Windows-centric
+			// - Storing the number of milliseconds as an integer will round the precision to 1 millisecond, which is not acceptable
+			// - We could store the the number of milliseconds as a floating point value, which would require support of Floating Points in the Tuple Encoding (currently a Draft)
+			// - It is frequent for JSON APIs and other database engines to represent durations as a number of SECONDS, using a floating point number.
+
+			// Right now, we will store the duration as the number of seconds, using a 64-bit float
+
+			FdbTupleParser.WriteDouble(ref writer, value.TotalSeconds);
 		}
 
 		/// <summary>Writes a Guid as a 128-bit UUID</summary>
@@ -510,6 +531,92 @@ namespace FoundationDB.Layers.Tuples
 		#endregion
 
 		#region Deserializers...
+
+		private static readonly Dictionary<Type, Delegate> s_sliceUnpackers = InitializeDefaultUnpackers();
+
+		private static Dictionary<Type, Delegate> InitializeDefaultUnpackers()
+		{
+			var map = new Dictionary<Type, Delegate>();
+
+			map[typeof(Slice)] = new Func<Slice, Slice>(FdbTuplePackers.DeserializeSlice);
+			map[typeof(byte[])] = new Func<Slice, byte[]>(FdbTuplePackers.DeserializeBytes);
+			map[typeof(bool)] = new Func<Slice, bool>(FdbTuplePackers.DeserializeBoolean);
+			map[typeof(string)] = new Func<Slice, string>(FdbTuplePackers.DeserializeString);
+			map[typeof(sbyte)] = new Func<Slice, sbyte>(FdbTuplePackers.DeserializeSByte);
+			map[typeof(short)] = new Func<Slice, short>(FdbTuplePackers.DeserializeInt16);
+			map[typeof(int)] = new Func<Slice, int>(FdbTuplePackers.DeserializeInt32);
+			map[typeof(long)] = new Func<Slice, long>(FdbTuplePackers.DeserializeInt64);
+			map[typeof(byte)] = new Func<Slice, byte>(FdbTuplePackers.DeserializeByte);
+			map[typeof(ushort)] = new Func<Slice, ushort>(FdbTuplePackers.DeserializeUInt16);
+			map[typeof(uint)] = new Func<Slice, uint>(FdbTuplePackers.DeserializeUInt32);
+			map[typeof(ulong)] = new Func<Slice, ulong>(FdbTuplePackers.DeserializeUInt64);
+			map[typeof(float)] = new Func<Slice, float>(FdbTuplePackers.DeserializeSingle);
+			map[typeof(double)] = new Func<Slice, double>(FdbTuplePackers.DeserializeDouble);
+			map[typeof(Guid)] = new Func<Slice, Guid>(FdbTuplePackers.DeserializeGuid);
+			map[typeof(Uuid128)] = new Func<Slice, Uuid128>(FdbTuplePackers.DeserializeUuid128);
+			map[typeof(Uuid64)] = new Func<Slice, Uuid64>(FdbTuplePackers.DeserializeUuid64);
+			map[typeof(TimeSpan)] = new Func<Slice, TimeSpan>(FdbTuplePackers.DeserializeTimeSpan);
+			map[typeof(DateTime)] = new Func<Slice, DateTime>(FdbTuplePackers.DeserializeDateTime);
+			map[typeof(System.Net.IPAddress)] = new Func<Slice, System.Net.IPAddress>(FdbTuplePackers.DeserializeIPAddress);
+
+			// add Nullable versions for all these types
+			return map;
+		}
+
+		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
+		/// <typeparam name="T">Type of values to serialize</typeparam>
+		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
+		internal static Func<Slice, T> GetDeserializer<T>(bool required)
+		{
+			Type type = typeof(T);
+
+			Delegate decoder;
+			if (s_sliceUnpackers.TryGetValue(type, out decoder))
+			{
+				return (Func<Slice, T>)decoder;
+			}
+
+			//TODO: handle nullable types?
+			var underlyingType = Nullable.GetUnderlyingType(typeof(T));
+			if (underlyingType != null && s_sliceUnpackers.TryGetValue(underlyingType, out decoder))
+			{
+				decoder = MakeNullableDeserializer(type, underlyingType, decoder);
+				if (decoder != null) return (Func<Slice, T>)decoder;
+			}
+
+			if (required)
+			{
+				return (_) => { throw new InvalidOperationException(String.Format("Does not know how to deserialize keys into values of type {0}", typeof(T).Name)); };
+			}
+			else
+			{ // when all else fails...
+				return (value) => FdbConverters.ConvertBoxed<T>(DeserializeBoxed(value));
+			}
+		}
+
+		/// <summary>Check if a tuple segment is the equivalent of 'Nil'</summary>
+		internal static bool IsNilSegment(Slice slice)
+		{
+			return slice.IsNullOrEmpty || slice[0] == FdbTupleTypes.Nil;
+		}
+
+		private static Delegate MakeNullableDeserializer(Type nullableType, Type type, Delegate decoder)
+		{
+			Contract.Requires(nullableType != null && type != null && decoder != null);
+			// We have a Decoder of T, but we have to transform it into a Decoder for Nullable<T>, which returns null if the slice is "nil", or falls back to the underlying decoder if the slice contains something
+
+			var prmSlice = Expression.Parameter(typeof(Slice), "slice");
+			var body = Expression.Condition(
+				// IsNilSegment(slice) ?
+				Expression.Call(typeof(FdbTuplePackers).GetMethod("IsNilSegment", BindingFlags.Static | BindingFlags.NonPublic), prmSlice),
+				// True => default(Nullable<T>)
+				Expression.Default(nullableType),
+				// False => decoder(slice)
+				Expression.Convert(Expression.Invoke(Expression.Constant(decoder), prmSlice), nullableType)
+			);
+
+			return Expression.Lambda(body, prmSlice).Compile();
+		}
 
 		/// <summary>Deserialize a packed element into an object by choosing the most appropriate type at runtime</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
@@ -575,18 +682,107 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
-		/// <summary>Deserialize a slice into an Int32</summary>
-		/// <param name="slice">Slice that contains a single packed element</param>
-		/// <returns></returns>
-		public static int DeserializeInt32(Slice slice)
+		/// <summary>Deserialize a tuple segment into a Slice</summary>
+		public static Slice DeserializeSlice(Slice slice)
 		{
-			checked
+			// Convert the tuple value into a sensible Slice representation.
+			// The behavior should be equivalent to calling the corresponding Slice.From{TYPE}(TYPE value)
+
+			if (slice.IsNullOrEmpty) return Slice.Nil; //TODO: fail ?
+
+			byte type = slice[0];
+			switch(type)
 			{
-				return (int)DeserializeInt64(slice);
+				case FdbTupleTypes.Nil: return Slice.Nil;
+				case FdbTupleTypes.Bytes: return FdbTupleParser.ParseBytes(slice);
+				case FdbTupleTypes.Utf8: return Slice.FromString(FdbTupleParser.ParseUnicode(slice));
+
+				case FdbTupleTypes.Single: return Slice.FromSingle(FdbTupleParser.ParseSingle(slice));
+				case FdbTupleTypes.Double: return Slice.FromDouble(FdbTupleParser.ParseDouble(slice));
+
+				case FdbTupleTypes.Uuid128: return Slice.FromGuid(FdbTupleParser.ParseGuid(slice));
+				case FdbTupleTypes.Uuid64: return Slice.FromUuid64(FdbTupleParser.ParseUuid64(slice));
 			}
+
+			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			{
+				if (type >= FdbTupleTypes.IntBase) return Slice.FromInt64(DeserializeInt64(slice));
+				return Slice.FromUInt64(DeserializeUInt64(slice));
+			}
+
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a Slice", type));
 		}
 
-		/// <summary>Deserialize a slice into an Int64</summary>
+		/// <summary>Deserialize a tuple segment into a byte array</summary>
+		public static byte[] DeserializeBytes(Slice slice)
+		{
+			return DeserializeSlice(slice).GetBytes();
+		}
+
+		/// <summary>Deserialize a tuple segment into a Boolean</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static bool DeserializeBoolean(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return false; //TODO: fail ?
+
+			byte type = slice[0];
+
+			// Booleans are usually encoded as integers, with 0 for False (<14>) and 1 for True (<15><01>)
+			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			{
+				//note: DeserializeInt64 handles most cases
+				return 0 != DeserializeInt64(slice);
+			}
+
+			switch (type)
+			{
+				case FdbTupleTypes.Bytes:
+				{ // empty is false, all other is true
+					return slice.Count != 2; // <01><00>
+				}
+				case FdbTupleTypes.Utf8:
+				{// empty is false, all other is true
+					return slice.Count != 2; // <02><00>
+				}
+				case FdbTupleTypes.Single:
+				{
+					//TODO: should NaN considered to be false ?
+					return 0f != FdbTupleParser.ParseSingle(slice);
+				}
+				case FdbTupleTypes.Double:
+				{
+					//TODO: should NaN considered to be false ?
+					return 0f != FdbTupleParser.ParseDouble(slice);
+				}
+			}
+
+			//TODO: should we handle weird cases like strings "True" and "False"?
+
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a boolean", type));
+		}
+
+		/// <summary>Deserialize a tuple segment into an Int16</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static sbyte DeserializeSByte(Slice slice)
+		{
+			return checked((sbyte)DeserializeInt64(slice));
+		}
+
+		/// <summary>Deserialize a tuple segment into an Int16</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static short DeserializeInt16(Slice slice)
+		{
+			return checked((short)DeserializeInt64(slice));
+		}
+
+		/// <summary>Deserialize a tuple segment into an Int32</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static int DeserializeInt32(Slice slice)
+		{
+			return checked((int)DeserializeInt64(slice));
+		}
+
+		/// <summary>Deserialize a tuple segment into an Int64</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static long DeserializeInt64(Slice slice)
 		{
@@ -605,20 +801,31 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException("Cannot convert slice into this type");
+			throw new FormatException("Cannot convert slice into a signed integer");
+		}
+
+		/// <summary>Deserialize a tuple segment into an UInt32</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static byte DeserializeByte(Slice slice)
+		{
+			return checked((byte)DeserializeUInt64(slice));
+		}
+
+		/// <summary>Deserialize a tuple segment into an UInt32</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static ushort DeserializeUInt16(Slice slice)
+		{
+			return checked((ushort)DeserializeUInt64(slice));
 		}
 
 		/// <summary>Deserialize a slice into an UInt32</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static uint DeserializeUInt32(Slice slice)
 		{
-			checked
-			{
-				return (uint)DeserializeUInt64(slice);
-			}
+			return checked((uint)DeserializeUInt64(slice));
 		}
 
-		/// <summary>Deserialize a slice into an UInt64</summary>
+		/// <summary>Deserialize a tuple segment into an UInt64</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static ulong DeserializeUInt64(Slice slice)
 		{
@@ -627,7 +834,8 @@ namespace FoundationDB.Layers.Tuples
 			int type = slice[0];
 			if (type <= FdbTupleTypes.IntPos8)
 			{
-				if (type >= FdbTupleTypes.IntNeg8) return (ulong)FdbTupleParser.ParseInt64(type, slice);
+				if (type >= FdbTupleTypes.IntZero) return (ulong)FdbTupleParser.ParseInt64(type, slice);
+				if (type < FdbTupleTypes.IntZero) throw new OverflowException(); // negative values
 
 				switch (type)
 				{
@@ -637,41 +845,200 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException("Cannot convert slice into this type");
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into an unsigned integer", type));
 		}
 
-		/// <summary>Deserialize a slice into a Unicode string</summary>
+		public static float DeserializeSingle(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return 0;
+
+			byte type = slice[0];
+			switch (type)
+			{
+				case FdbTupleTypes.Nil:
+				{
+					return 0;
+				}
+				case FdbTupleTypes.Utf8:
+				{
+					return Single.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+				}
+				case FdbTupleTypes.Single:
+				{
+					return FdbTupleParser.ParseSingle(slice);
+				}
+				case FdbTupleTypes.Double:
+				{
+					return (float)FdbTupleParser.ParseDouble(slice);
+				}
+			}
+
+			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			{
+				return checked((float)DeserializeInt64(slice));
+			}
+
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a Single", type));
+		}
+
+		public static double DeserializeDouble(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return 0;
+
+			byte type = slice[0];
+			switch(type)
+			{
+				case FdbTupleTypes.Nil:
+				{
+					return 0;
+				}
+				case FdbTupleTypes.Utf8:
+				{
+					return Double.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+				}
+				case FdbTupleTypes.Single:
+				{
+					return (double)FdbTupleParser.ParseSingle(slice);
+				}
+				case FdbTupleTypes.Double:
+				{
+					return FdbTupleParser.ParseDouble(slice);
+				}
+			}
+
+			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			{
+				return checked((double)DeserializeInt64(slice));
+			}
+
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a Double", type));
+		}
+
+		/// <summary>Deserialize a tuple segment into a DateTime (UTC)</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		/// <returns>DateTime in UTC</returns>
+		/// <remarks>The returned DateTime will be in UTC, because the original TimeZone details are lost.</remarks>
+		public static DateTime DeserializeDateTime(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return DateTime.MinValue; //TODO: fail ?
+
+			byte type = slice[0];
+
+			switch(type)
+			{
+				case FdbTupleTypes.Nil:
+				{
+					return DateTime.MinValue;
+				}
+
+				case FdbTupleTypes.Utf8:
+				{ // we only support ISO 8601 dates. For ex: YYYY-MM-DDTHH:MM:SS.fffff"
+					string str = FdbTupleParser.ParseUnicode(slice);
+					return DateTime.Parse(str, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+				}
+
+				case FdbTupleTypes.Double:
+				{ // Number of days since Epoch
+					const long UNIX_EPOCH_TICKS = 621355968000000000L;
+					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
+					long ticks = UNIX_EPOCH_TICKS + (long)(FdbTupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);			
+					return new DateTime(ticks, DateTimeKind.Utc);
+				}
+			}
+
+			// If we have an integer, we consider it to be a number of Ticks (Windows Only)
+			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			{
+				return new DateTime(DeserializeInt64(slice), DateTimeKind.Utc);
+			}
+
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a DateTime", type));
+		}
+
+		/// <summary>Deserialize a tuple segment into a TimeSpan</summary>
+		/// <param name="slice">Slice that contains a single packed element</param>
+		public static TimeSpan DeserializeTimeSpan(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return TimeSpan.Zero; //TODO: fail ?
+
+			byte type = slice[0];
+
+			// We serialize TimeSpans as number of seconds in a 64-bit float.
+
+			switch(type)
+			{
+				case FdbTupleTypes.Nil:
+				{
+					return TimeSpan.Zero;
+				}
+				case FdbTupleTypes.Utf8:
+				{ // "HH:MM:SS.fffff"
+					return TimeSpan.Parse(FdbTupleParser.ParseUnicode(slice), CultureInfo.InvariantCulture);
+				}
+				case FdbTupleTypes.Double:
+				{ // Number of seconds
+					//note: We can't use TimeSpan.FromSeconds(...) because it rounds to the nearest millisecond!
+					return new TimeSpan((long)(FdbTupleParser.ParseDouble(slice) * (double)TimeSpan.TicksPerSecond));
+				}
+			}
+
+			// If we have an integer, we consider it to be a number of Ticks (Windows Only)
+			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			{
+				return new TimeSpan(DeserializeInt64(slice));
+			}
+
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a TimeSpan", type));
+		}
+
+		/// <summary>Deserialize a tuple segment into a Unicode string</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static string DeserializeString(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
 
-			int type = slice[0];
-			if (type <= FdbTupleTypes.IntPos8)
+			byte type = slice[0];
+			switch (type)
 			{
-				if (type >= FdbTupleTypes.IntNeg8) return FdbTupleParser.ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
-
-				switch (type)
+				case FdbTupleTypes.Nil:
 				{
-					case FdbTupleTypes.Nil: return null;
-					case FdbTupleTypes.Bytes: return FdbTupleParser.ParseAscii(slice);
-					case FdbTupleTypes.Utf8: return FdbTupleParser.ParseUnicode(slice);
+					return null;
+				}
+				case FdbTupleTypes.Bytes:
+				{
+					return FdbTupleParser.ParseAscii(slice);
+				}
+				case FdbTupleTypes.Utf8:
+				{
+					return FdbTupleParser.ParseUnicode(slice);
+				}
+				case FdbTupleTypes.Single:
+				{
+					return FdbTupleParser.ParseSingle(slice).ToString(CultureInfo.InvariantCulture);
+				}
+				case FdbTupleTypes.Double:
+				{
+					return FdbTupleParser.ParseDouble(slice).ToString(CultureInfo.InvariantCulture);
+				}
+				case FdbTupleTypes.Uuid128:
+				{
+					return FdbTupleParser.ParseGuid(slice).ToString();
+				}
+				case FdbTupleTypes.Uuid64:
+				{
+					return FdbTupleParser.ParseUuid64(slice).ToString();
 				}
 			}
-			else if (type == FdbTupleTypes.Uuid128)
+
+			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
 			{
-				return FdbTupleParser.ParseGuid(slice).ToString();
-			}
-			else if (type == FdbTupleTypes.Uuid64)
-			{
-				return FdbTupleParser.ParseUuid64(slice).ToString();
+				return FdbTupleParser.ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
 			}
 
-			throw new FormatException("Cannot convert slice into this type");
-
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a String", type));
 		}
 
-		/// <summary>Deserialize a slice into Guid</summary>
+		/// <summary>Deserialize a tuple segment into Guid</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static Guid DeserializeGuid(Slice slice)
 		{
@@ -693,12 +1060,13 @@ namespace FoundationDB.Layers.Tuples
 				{
 					return FdbTupleParser.ParseGuid(slice);
 				}
+				//REVIEW: should we allow converting a Uuid64 into a Guid? This looks more like a bug than an expected behavior...
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type {0} into System.Guid", type));
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a System.Guid", type));
 		}
 
-		/// <summary>Deserialize a slice into 128-bit UUID</summary>
+		/// <summary>Deserialize a tuple segment into 128-bit UUID</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static Uuid128 DeserializeUuid128(Slice slice)
 		{
@@ -720,12 +1088,13 @@ namespace FoundationDB.Layers.Tuples
 				{
 					return FdbTupleParser.ParseUuid128(slice);
 				}
+				//REVIEW: should we allow converting a Uuid64 into a Uuid128? This looks more like a bug than an expected behavior...
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type {0} into Uuid128", type));
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into an Uuid128", type));
 		}
 
-		/// <summary>Deserialize a slice into 64-bit UUID</summary>
+		/// <summary>Deserialize a tuple segment into 64-bit UUID</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static Uuid64 DeserializeUuid64(Slice slice)
 		{
@@ -748,15 +1117,17 @@ namespace FoundationDB.Layers.Tuples
 					return FdbTupleParser.ParseUuid64(slice);
 				}
 			}
+
 			if (type >= FdbTupleTypes.IntZero && type <= FdbTupleTypes.IntPos8)
 			{ // expect 64-bit number
 				return new Uuid64(FdbTupleParser.ParseInt64(type, slice));
 			}
+			// we don't support negative numbers!
 
-			throw new FormatException(String.Format("Cannot convert slice of type {0} into Uuid64", type));
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into an Uuid64", type));
 		}
 
-		/// <summary>Deserialize a slice into Guid</summary>
+		/// <summary>Deserialize a tuple segment into Guid</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
 		public static System.Net.IPAddress DeserializeIPAddress(Slice slice)
 		{
@@ -768,7 +1139,7 @@ namespace FoundationDB.Layers.Tuples
 			{
 				case FdbTupleTypes.Bytes:
 				{
-					return new System.Net.IPAddress(slice.GetBytes());
+					return new System.Net.IPAddress(FdbTupleParser.ParseBytes(slice).GetBytes());
 				}
 				case FdbTupleTypes.Utf8:
 				{
@@ -787,7 +1158,7 @@ namespace FoundationDB.Layers.Tuples
 				return new System.Net.IPAddress(value);
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type {0} into System.Net.IPAddress", type));
+			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into System.Net.IPAddress", type));
 		}
 
 		public static FdbTupleAlias DeserializeAlias(Slice slice)
