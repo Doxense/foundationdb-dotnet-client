@@ -124,7 +124,7 @@ namespace FoundationDB.Client.Tests
 
 				var rnd = new Random(2403);
 				var data = Enumerable.Range(0, N)
-					.Select((x) => new KeyValuePair<int, int>(x, 16 + (int)(Math.Pow(rnd.NextDouble(), 4) * 10 * 1000)))
+					.Select((x) => new KeyValuePair<int, int>(x, 16 + (int)(Math.Pow(rnd.NextDouble(), 4) * 1 * 1000)))
 					.ToList();
 
 				long totalSize = data.Sum(x => (long)x.Value);
@@ -239,6 +239,92 @@ namespace FoundationDB.Client.Tests
 
 				Log("Done in {0:N3} sec and {1} chunks", sw.Elapsed.TotalSeconds, chunks);
 				Log("Sum of integers 1 to {0:N0} is {1:N0}", count, total);
+
+				// cleanup because this test can produce a lot of data
+				await location.RemoveAsync(db, this.Cancellation);
+			}
+		}
+
+		[Test]
+		public async Task Test_Can_Bulk_Batched_Insert_Items()
+		{
+			const int N = 20 * 1000;
+
+			using (var db = await OpenTestPartitionAsync())
+			{
+				db.DefaultTimeout = 60 * 1000;
+
+				Log("Generating {0:N0} random items...", N);
+
+				var location = await GetCleanDirectory(db, "Bulk", "Insert");
+
+				var rnd = new Random(2403);
+				var data = Enumerable.Range(0, N)
+					.Select((x) => new KeyValuePair<int, int>(x, 16 + (int)(Math.Pow(rnd.NextDouble(), 4) * 1000)))
+					.ToList();
+
+				long totalSize = data.Sum(x => (long)x.Value);
+				Log("Total size is ~ {0:N0} bytes", totalSize);
+
+				Log("Starting...");
+
+				long called = 0;
+				var uniqueKeys = new HashSet<int>();
+				var batchCounts = new List<int>();
+				var trSizes = new List<int>();
+				var sw = Stopwatch.StartNew();
+				long count = await Fdb.Bulk.InsertBatchedAsync(
+					db,
+					data,
+					(kvps, tr) =>
+					{
+						++called;
+						batchCounts.Add(kvps.Length);
+						foreach (var kv in kvps)
+						{
+							uniqueKeys.Add(kv.Key);
+							tr.Set(
+								location.Pack(kv.Key),
+								Slice.FromString(new string('A', kv.Value))
+							);
+						}
+						trSizes.Add(tr.Size);
+						//Log("> Added {0:N0} items to transaction, yielding {1:N0} bytes", kvps.Length, tr.Size);
+					},
+					new Fdb.Bulk.WriteOptions() { BatchCount = 100 },
+					this.Cancellation
+				);
+				sw.Stop();
+
+				//note: calls to Progress<T> are async, so we need to wait a bit ...
+				Thread.Sleep(640);   // "Should be enough"
+
+				Log("Done in {0:N3} sec for {1:N0} keys and {2:N0} bytes", sw.Elapsed.TotalSeconds, count, totalSize);
+				Log("> Throughput {0:N0} key/sec and {1:N3} MB/sec", count / sw.Elapsed.TotalSeconds, totalSize / (1024 * 1024 * sw.Elapsed.TotalSeconds));
+				Log("Called {0:N0} for {1:N0} unique keys", called, uniqueKeys.Count);
+
+				Assert.That(count, Is.EqualTo(N), "count");
+				Assert.That(uniqueKeys.Count, Is.EqualTo(N), "unique keys");
+				Assert.That(batchCounts.Sum(), Is.EqualTo(N), "total of keys per batch (no retries)");
+
+				Log("Batch counts: {0}", String.Join(", ", batchCounts));
+				Log("Batch sizes : {0}", String.Join(", ", trSizes));
+
+				// read everything back...
+
+				Log("Reading everything back...");
+
+				var stored = await db.ReadAsync((tr) =>
+				{
+					return tr.GetRange(location.ToRange()).ToArrayAsync();
+				}, this.Cancellation);
+
+				Assert.That(stored.Length, Is.EqualTo(N), "DB contains less or more items than expected");
+				for (int i = 0; i < stored.Length; i++)
+				{
+					Assert.That(stored[i].Key, Is.EqualTo(location.Pack(data[i].Key)), "Key #{0}", i);
+					Assert.That(stored[i].Value.Count, Is.EqualTo(data[i].Value), "Value #{0}", i);
+				}
 
 				// cleanup because this test can produce a lot of data
 				await location.RemoveAsync(db, this.Cancellation);

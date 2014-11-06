@@ -203,6 +203,11 @@ namespace FoundationDB.Client
 			// => the latency will come mostly from comitting the transaction to the database (i.e: network delay, disk delay)
 			// => with multiple concurrent transaction, the commit latency could be used to serialize the next batch of data
 
+			#region Single...
+
+			// Items in the source are processed one by one, which may limit the throughput per transaction (by adding the latency of all the items)
+			// This is intended for Layers who can only process items one by one, and when there is no easy way to parralelize the work.
+
 			/// <summary>Inserts a potentially large sequence of items into the database, by using as many transactions as necessary, and automatically retrying if needed.</summary>
 			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
 			/// <param name="db">Database used for the operation</param>
@@ -511,6 +516,351 @@ namespace FoundationDB.Client
 				await RetryChunk(trans, chunk, offset, half, bodyAsync, bodyBlocking).ConfigureAwait(false);
 				await RetryChunk(trans, chunk, offset + half, count - half, bodyAsync, bodyBlocking).ConfigureAwait(false);
 			}
+
+			#endregion
+
+			#region Batch...
+
+			// Items in the source are grouped and processed in batches, which allows the caller to process items concurrently within a batch, and maximize the throughput per transaction.
+			// This is intended for Layers that have optimized ways to process multiple items at a time - something like MultiLoad(...) or InsertMultiple(..), or when the caller wants to handle the problem by himself.
+
+			/// <summary>Inserts a potentially large number of batches of items into the database, by using as many transactions as necessary, and automatically retrying if needed.</summary>
+			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="source">Sequence of items to be processed</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of items that have been inserted</returns>
+			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
+			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Action<T[], IFdbTransaction> handler, CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (source == null) throw new ArgumentNullException("source");
+				if (handler == null) throw new ArgumentNullException("handler");
+
+				cancellationToken.ThrowIfCancellationRequested();
+
+				return RunBatchedInsertOperationAsync<T>(
+					db,
+					source,
+					handler,
+					new WriteOptions(),
+					cancellationToken
+				);
+			}
+
+			/// <summary>Inserts a potentially large number of batches of items into the database, by using as many transactions as necessary, and automatically retrying if needed.</summary>
+			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="source">Sequence of items to be processed</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of items that have been inserted</returns>
+			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
+			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Action<T[], IFdbTransaction> handler, WriteOptions options, CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (source == null) throw new ArgumentNullException("source");
+				if (handler == null) throw new ArgumentNullException("handler");
+
+				cancellationToken.ThrowIfCancellationRequested();
+
+				return RunBatchedInsertOperationAsync<T>(
+					db,
+					source,
+					handler,
+					options ?? new WriteOptions(),
+					cancellationToken
+				);
+			}
+
+			/// <summary>Inserts a potentially large number of batches of items into the database, by using as many transactions as necessary, and automatically retrying if needed.</summary>
+			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="source">Sequence of items to be processed</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of items that have been inserted</returns>
+			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
+			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Func<T[], IFdbTransaction, Task> handler, CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (source == null) throw new ArgumentNullException("source");
+				if (handler == null) throw new ArgumentNullException("handler");
+
+				cancellationToken.ThrowIfCancellationRequested();
+
+				return RunBatchedInsertOperationAsync<T>(
+					db,
+					source,
+					handler,
+					new WriteOptions(),
+					cancellationToken
+				);
+			}
+
+			/// <summary>Inserts a potentially large number of batches of items into the database, by using as many transactions as necessary, and automatically retrying if needed.</summary>
+			/// <typeparam name="T">Type of the items in the <paramref name="source"/> sequence</typeparam>
+			/// <param name="db">Database used for the operation</param>
+			/// <param name="source">Sequence of items to be processed</param>
+			/// <param name="handler">Lambda called at least once for each item in the source. The method may not have any side effect outside of the passed transaction.</param>
+			/// <param name="options">Custom options used to configure the behaviour of the operation</param>
+			/// <param name="cancellationToken">Token used to cancel the operation</param>
+			/// <returns>Number of items that have been inserted</returns>
+			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
+			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Func<T[], IFdbTransaction, Task> handler, WriteOptions options, CancellationToken cancellationToken)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+				if (source == null) throw new ArgumentNullException("source");
+				if (handler == null) throw new ArgumentNullException("handler");
+
+				cancellationToken.ThrowIfCancellationRequested();
+
+				return RunBatchedInsertOperationAsync<T>(
+					db,
+					source,
+					handler,
+					options ?? new WriteOptions(),
+					cancellationToken
+				);
+			}
+
+			/// <summary>Runs a long duration bulk insertion, where items are processed in batch</summary>
+			internal static async Task<long> RunBatchedInsertOperationAsync<TSource>(
+				[NotNull] IFdbDatabase db,
+				[NotNull] IEnumerable<TSource> source,
+				[NotNull] Delegate body,
+				[NotNull] WriteOptions options,
+				CancellationToken cancellationToken
+			)
+			{
+				Contract.Requires(db != null && source != null && body != null && options != null);
+
+				int batchCount = options.BatchCount ?? DEFAULT_WRITE_BATCH_COUNT;
+				int sizeThreshold = options.BatchSize ?? DEFAULT_WRITE_BATCH_SIZE;
+
+				if (batchCount <= 0) throw new InvalidOperationException("Batch count must be a positive integer.");
+				if (sizeThreshold <= 0) throw new InvalidOperationException("Batch size must be a positive integer.");
+				if (options.MaxConcurrentTransactions > 1)
+				{
+					//TODO: implement concurrent transactions when writing !
+					throw new NotImplementedException("Multiple concurrent transactions are not yet supported");
+				}
+
+				var bodyAsync = body as Func<TSource[], IFdbTransaction, Task>;
+				var bodyBlocking = body as Action<TSource[], IFdbTransaction>;
+				if (bodyAsync == null && bodyBlocking == null)
+				{
+					throw new ArgumentException(String.Format("Unsupported delegate type {0} for body", body.GetType().FullName), "body");
+				}
+
+			
+				var chunk = new List<TSource>(batchCount); // holds all the items processed in the current transaction cycle
+				long itemCount = 0; // total number of items processed
+
+				using (var trans = db.BeginTransaction(cancellationToken))
+				{
+					var timer = Stopwatch.StartNew();
+
+					Func<Task> commit = async () =>
+					{
+#if FULL_DEBUG
+						Trace.WriteLine("> commit called with " + batch.Count.ToString("N0") + " items and " + trans.Size.ToString("N0") + " bytes");
+#endif
+
+						FdbException error = null;
+
+						// if transaction Size is bigger than Fdb.MaxTransactionSize (10MB) then commit will fail, but we will retry with a smaller batch anyway
+
+						try
+						{
+							await trans.CommitAsync().ConfigureAwait(false);
+
+							// recompute the batch count, so that we do about 4 batch per transaction
+							// we observed that 'chunk.Count' items produced 'trans.Size' bytes.
+							// we would like to have 'sizeThreshold' bytes, and about 8 batch per transaction
+							batchCount = (int)(((long)chunk.Count * sizeThreshold) / (trans.Size * 8L));
+							//Console.WriteLine("New batch size is {0}", batchCount);
+						}
+						catch (FdbException e)
+						{ // the batch failed to commit :(
+							error = e;
+							//TODO: C# 6.0 will support awaits in catch blocks!
+						}
+
+						if (error != null)
+						{ // we failed to commit this batch, we need to retry...
+
+#if FULL_DEBUG
+							Trace.WriteLine("> commit failed : " + error);
+#endif
+
+							if (error.Code == FdbError.TransactionTooLarge)
+							{
+								if (chunk.Count == 1) throw new InvalidOperationException("Cannot insert one the item of the source collection because it exceeds the maximum size allowed per transaction");
+								// reduce the size of future batches
+								if (batchCount > 1) batchCount <<= 1;
+							}
+							else
+							{
+								await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
+							}
+
+							int half = checked(chunk.Count + 1) >> 1;
+							// retry the first half
+							await RetryChunk(trans, chunk, 0, half, bodyAsync, bodyBlocking).ConfigureAwait(false);
+							// retry the second half
+							await RetryChunk(trans, chunk, half, chunk.Count - half, bodyAsync, bodyBlocking).ConfigureAwait(false);
+						}
+
+						// success!
+						chunk.Clear();
+						trans.Reset();
+						timer.Reset();
+					};
+
+					int offset = 0; // offset of the current batch in the chunk
+
+					foreach (var item in source)
+					{
+						if (cancellationToken.IsCancellationRequested) break;
+
+						// store it (in case we need to retry)
+						chunk.Add(item);
+						++itemCount;
+
+						if (chunk.Count - offset >= batchCount
+						 || trans.Size >= sizeThreshold)
+						{ // we have enough items to fill a batch
+
+							var batch = new TSource[chunk.Count - offset];
+							chunk.CopyTo(offset, batch, 0, batch.Length);
+							if (bodyAsync != null)
+							{
+								await bodyAsync(batch, trans);
+							}
+							else if (bodyBlocking != null)
+							{
+								bodyBlocking(batch, trans);
+							}
+							offset += batch.Length;
+
+							// commit the batch if ..
+							if (trans.Size >= sizeThreshold			// transaction is startting to get big...
+							 || timer.Elapsed.TotalSeconds >= 4)	// it's getting late...
+							{
+								await commit().ConfigureAwait(false);
+
+								offset = 0;
+							}
+						}
+					}
+
+					cancellationToken.ThrowIfCancellationRequested();
+
+					// handle the last (or only) batch
+					if (chunk.Count > 0)
+					{
+						var batch = new TSource[chunk.Count - offset];
+						chunk.CopyTo(offset, batch, 0, batch.Length);
+						if (bodyAsync != null)
+						{
+							await bodyAsync(batch, trans);
+						}
+						else if (bodyBlocking != null)
+						{
+							bodyBlocking(batch, trans);
+						}
+
+						await commit().ConfigureAwait(false);
+					}
+				}
+
+				return itemCount;
+			}
+
+			/// <summary>Retry commiting a segment of a chunk, splitting it in sub-segments as needed</summary>
+			private static async Task RetryChunk<TSource>([NotNull] IFdbTransaction trans, [NotNull] List<TSource> chunk, int offset, int count, Func<TSource[], IFdbTransaction, Task> bodyAsync, Action<TSource[], IFdbTransaction> bodyBlocking)
+			{
+				Contract.Requires(trans != null && chunk != null && offset >= 0 && count >= 0 && (bodyAsync != null || bodyBlocking != null));
+
+				// Steps:
+				// - reset transaction
+				// - replay the items in the batch segment
+				// - try to commit
+				// - it still fails, split segment into and retry each half
+
+				if (count <= 0) return;
+
+			localRetry:
+
+#if FULL_DEBUG
+				Trace.WriteLine("> replaying chunk @" + offset + ", " + count);
+#endif
+
+				trans.Cancellation.ThrowIfCancellationRequested();
+
+				trans.Reset();
+
+				// get the slice of the original batch to retry
+				var items = new TSource[count];
+				chunk.CopyTo(offset, items, 0, count);
+
+				if (bodyAsync != null)
+				{
+					await bodyAsync(items, trans).ConfigureAwait(false);
+				}
+				else if (bodyBlocking != null)
+				{
+					bodyBlocking(items, trans);
+				}
+
+				FdbException error;
+				try
+				{
+#if FULL_DEBUG
+					Trace.WriteLine("> retrying chunk...");
+#endif
+					await trans.CommitAsync().ConfigureAwait(false);
+					return;
+				}
+				catch (FdbException e)
+				{
+					error = e;
+					//TODO: update this for C# 6.0
+				}
+
+#if FULL_DEBUG
+				Trace.WriteLine("> oh noes " + error);
+#endif
+
+				// it failed again
+				if (error.Code == FdbError.TransactionTooLarge)
+				{
+					// retrying won't help if a single item is too big
+					if (count == 1) throw new InvalidOperationException("Cannot insert one the item of the source collection because it exceeds the maximum size allowed per transaction");
+				}
+				else
+				{
+					await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
+
+				}
+
+				//TODO: for the moment we do a recursive call, which could potentially cause a stack overflow in addition to being ugly.
+				// => rewrite this to use a stack of work to do, without the need to recurse!
+
+				if (count == 1)
+				{ // protect against stackoverflow if we retry on a single item
+					goto localRetry;
+				}
+
+				int half = checked(count + 1) >> 1;
+				await RetryChunk(trans, chunk, offset, half, bodyAsync, bodyBlocking).ConfigureAwait(false);
+				await RetryChunk(trans, chunk, offset + half, count - half, bodyAsync, bodyBlocking).ConfigureAwait(false);
+			}
+
+			#endregion
 
 			#endregion
 
