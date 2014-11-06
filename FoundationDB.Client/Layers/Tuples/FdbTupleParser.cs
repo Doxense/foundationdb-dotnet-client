@@ -843,6 +843,77 @@ namespace FoundationDB.Layers.Tuples
 
 		#endregion
 
+		#region Parsing...
+
+		/// <summary>Decode the next token from a packed tuple</summary>
+		/// <param name="reader">Parser from wich to read the next token</param>
+		/// <returns>Token decoded, or Slice.Nil if there was no more data in the buffer</returns>
+		public static Slice ParseNext(ref SliceReader reader)
+		{
+			int type = reader.PeekByte();
+			switch (type)
+			{
+				case -1:
+				{ // End of Stream
+					return Slice.Nil;
+				}
+
+				case FdbTupleTypes.Nil:
+				{ // <00> => null
+					reader.Skip(1);
+					return Slice.Empty;
+				}
+
+				case FdbTupleTypes.Bytes:
+				{ // <01>(bytes)<00>
+					return reader.ReadByteString();
+				}
+
+				case FdbTupleTypes.Utf8:
+				{ // <02>(utf8 bytes)<00>
+					return reader.ReadByteString();
+				}
+
+				case FdbTupleTypes.Single:
+				{ // <20>(4 bytes)
+					return reader.ReadBytes(5);
+				}
+
+				case FdbTupleTypes.Double:
+				{ // <21>(8 bytes)
+					return reader.ReadBytes(9);
+				}
+
+				case FdbTupleTypes.Uuid128:
+				{ // <30>(16 bytes)
+					return reader.ReadBytes(17);
+				}
+
+				case FdbTupleTypes.Uuid64:
+				{ // <31>(8 bytes)
+					return reader.ReadBytes(9);
+				}
+
+				case FdbTupleTypes.AliasDirectory:
+				case FdbTupleTypes.AliasSystem:
+				{ // <FE> or <FF>
+					return reader.ReadBytes(1);
+				}
+			}
+
+			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
+			{
+				int bytes = type - FdbTupleTypes.IntZero;
+				if (bytes < 0) bytes = -bytes;
+
+				return reader.ReadBytes(1 + bytes);
+			}
+
+			throw new FormatException(String.Format("Invalid tuple type byte {0} at index {1}/{2}", type, reader.Position, reader.Buffer.Count));
+		}
+
+		#endregion
+
 		#region Bits Twiddling...
 
 		/// <summary>Lookup table used to compute the index of the most significant bit</summary>

@@ -53,7 +53,7 @@ namespace FoundationDB.Layers.Tuples
 			Encoder(ref writer, value);
 		}
 
-		/// <summary>Serialize a <typeparamref name="T"/> into a slices</summary>
+		/// <summary>Serialize a value of type <typeparamref name="T"/> into a tuple segment</summary>
 		/// <param name="value">Value that will be serialized</param>
 		/// <returns>Slice that contains the binary representation of <paramref name="value"/></returns>
 		public static Slice Serialize(T value)
@@ -63,12 +63,15 @@ namespace FoundationDB.Layers.Tuples
 			return writer.ToSlice();
 		}
 
+		/// <summary>Deserialize a tuple segment into a value of type <typeparamref name="T"/></summary>
+		/// <param name="slice">Slice that contains the binary representation of a tuple item</param>
+		/// <returns>Decoded value, or an exception if the item type is not compatible</returns>
 #if !NET_4_0
 		[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
-		public static T Deserialize(Slice value)
+		public static T Deserialize(Slice slice)
 		{
-			return Decoder(value);
+			return Decoder(slice);
 		}
 
 	}

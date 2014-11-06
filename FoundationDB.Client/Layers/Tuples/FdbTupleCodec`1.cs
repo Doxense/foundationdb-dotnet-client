@@ -32,6 +32,8 @@ namespace FoundationDB.Layers.Tuples
 	using JetBrains.Annotations;
 	using System;
 
+	/// <summary>Type codec that uses the Tuple Encoding format</summary>
+	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>
 	public sealed class FdbTupleCodec<T> : FdbTypeCodec<T>, IValueEncoder<T>
 	{
 

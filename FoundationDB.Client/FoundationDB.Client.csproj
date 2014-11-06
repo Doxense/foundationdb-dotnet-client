@@ -131,7 +131,7 @@
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryTransactionals.cs" />
-    <Compile Include="Layers\Tuples\FdbTupleEncoder`1.cs" />
+    <Compile Include="Layers\Tuples\FdbTupleCodec`1.cs" />
     <Compile Include="Layers\Tuples\FdbTuple`4.cs" />
     <Compile Include="Subspaces\Fdb.Directory.cs" />
     <Compile Include="Subspaces\FdbDatabasePartition.cs" />

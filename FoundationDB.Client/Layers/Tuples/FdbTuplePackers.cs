@@ -1180,7 +1180,7 @@ namespace FoundationDB.Layers.Tuples
 
 			Slice item;
 			int p = 0;
-			while ((item = ParseNext(ref slicer)).HasValue)
+			while ((item = FdbTupleParser.ParseNext(ref slicer)).HasValue)
 			{
 				if (p >= items.Length)
 				{
@@ -1201,7 +1201,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var slicer = new SliceReader(buffer);
 
-			var current = ParseNext(ref slicer);
+			var current = FdbTupleParser.ParseNext(ref slicer);
 			if (slicer.HasMore) throw new FormatException("Parsing of singleton tuple failed before reaching the end of the key");
 
 			return current;
@@ -1214,7 +1214,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			var slicer = new SliceReader(buffer);
 
-			return ParseNext(ref slicer);
+			return FdbTupleParser.ParseNext(ref slicer);
 		}
 
 		/// <summary>Only returns the last item of a packed tuple</summary>
@@ -1227,79 +1227,13 @@ namespace FoundationDB.Layers.Tuples
 			Slice item = Slice.Nil;
 
 			Slice current;
-			while ((current = ParseNext(ref slicer)).HasValue)
+			while ((current = FdbTupleParser.ParseNext(ref slicer)).HasValue)
 			{
 				item = current;
 			}
 
 			if (slicer.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
 			return item;
-		}
-
-		/// <summary>Decode the next token from a packed tuple</summary>
-		/// <param name="reader">Parser from wich to read the next token</param>
-		/// <returns>Token decoded, or Slice.Nil if there was no more data in the buffer</returns>
-		public static Slice ParseNext(ref SliceReader reader)
-		{
-			if (!reader.HasMore) return Slice.Nil;
-
-			int type = reader.PeekByte();
-			switch (type)
-			{
-				case -1:
-				{ // End of Stream
-					return Slice.Nil;
-				}
-
-				case FdbTupleTypes.Nil:
-				{ // <00> => null
-					reader.Skip(1);
-					return Slice.Empty;
-				}
-
-				case FdbTupleTypes.Bytes:
-				{ // <01>(bytes)<00>
-					return reader.ReadByteString();
-				}
-
-				case FdbTupleTypes.Utf8:
-				{ // <02>(utf8 bytes)<00>
-					return reader.ReadByteString();
-				}
-
-				case FdbTupleTypes.Single:
-				{ // <20>(4 bytes)
-					return reader.ReadBytes(5);
-				}
-				case FdbTupleTypes.Double:
-				{ // <21>(8 bytes)
-					return reader.ReadBytes(9);
-				}
-				case FdbTupleTypes.Uuid128:
-				{ // <30>(16 bytes)
-					return reader.ReadBytes(17);
-				}
-				case FdbTupleTypes.Uuid64:
-				{ // <31>(8 bytes)
-					return reader.ReadBytes(9);
-				}
-
-				case FdbTupleTypes.AliasDirectory:
-				case FdbTupleTypes.AliasSystem:
-				{ // <FE> or <FF>
-					return reader.ReadBytes(1);
-				}
-			}
-
-			if (type <= FdbTupleTypes.IntPos8 && type >= FdbTupleTypes.IntNeg8)
-			{
-				int bytes = type - FdbTupleTypes.IntZero;
-				if (bytes < 0) bytes = -bytes;
-
-				return reader.ReadBytes(1 + bytes);
-			}
-
-			throw new FormatException(String.Format("Invalid tuple type byte {0} at index {1}/{2}", type, reader.Position, reader.Buffer.Count));
 		}
 
 		#endregion
