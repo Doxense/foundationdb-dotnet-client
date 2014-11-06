@@ -105,6 +105,36 @@ namespace FoundationDB.Client.Converters
 			}
 		}
 
+		private class SubClass<T, R> : IFdbConverter<T, R>
+		{
+			public static readonly IFdbConverter<T, R> Default = new SubClass<T, R>();
+
+			private SubClass()
+			{
+				if (!typeof(R).IsAssignableFrom(typeof(T))) throw new InvalidOperationException(String.Format("Type {0} is not a subclass of {1}", typeof(T).Name, typeof(R).Name));
+			}
+
+			public R Convert(T value)
+			{
+				return (R)(object)value;
+			}
+
+			public Type Source
+			{
+				get { return typeof(T); }
+			}
+
+			public Type Destination
+			{
+				get { return typeof(R); }
+			}
+
+			public object ConvertBoxed(object value)
+			{
+				return value;
+			}
+		}
+
 		#endregion
 
 		/// <summary>Static ctor that initialize the default converters</summary>
@@ -347,6 +377,11 @@ namespace FoundationDB.Client.Converters
 			IFdbConverter converter;
 			if (!Converters.TryGetValue(new ComparisonHelper.TypePair(typeof(T), typeof(R)), out converter))
 			{
+				if (typeof(R).IsAssignableFrom(typeof(T)))
+				{ // T is a subclass of R, so it should work fine
+					return (IFdbConverter<T, R>)SubClass<T, R>.Default;
+				}
+
 				//TODO: ..?
 				FailCannotConvert(typeof(T), typeof(R));
 			}
