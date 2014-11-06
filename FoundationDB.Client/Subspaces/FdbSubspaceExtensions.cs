@@ -213,7 +213,7 @@ namespace FoundationDB.Client
 		public static FdbSubspace Partition<T1, T2, T3>(this IFdbSubspace subspace, T1 value1, T2 value2, T3 value3)
 		{
 			//TODO: this should go into a FdbTupleSubspace, because it collides with FdbEncoderSubspace<T1, T2, T3> !
-			return new FdbSubspace(FdbTuple.PackWithPrefix(subspace.ToFoundationDbKey(), new FdbTuple<T1, T2, T3>(value1, value2, value3)));
+			return new FdbSubspace(FdbTuple.PackWithPrefix(subspace.ToFoundationDbKey(), value1, value2, value3));
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -233,7 +233,7 @@ namespace FoundationDB.Client
 		public static FdbSubspace Partition<T1, T2, T3, T4>(this IFdbSubspace subspace, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			//TODO: this should go into a FdbTupleSubspace, because it collides with FdbEncoderSubspace<T1, T2, T3, T4> !
-			return new FdbSubspace(FdbTuple.PackWithPrefix(subspace.ToFoundationDbKey(), new FdbTuple<T1, T2, T3, T4>(value1, value2, value3, value4)));
+			return new FdbSubspace(FdbTuple.PackWithPrefix(subspace.ToFoundationDbKey(), value1, value2, value3, value4));
 		}
 
 		/// <summary>Parition this subspace by appending a tuple</summary>
