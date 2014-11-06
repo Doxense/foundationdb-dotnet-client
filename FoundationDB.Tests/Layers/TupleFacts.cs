@@ -147,57 +147,84 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_FdbTuple_Last()
+		public void Test_FdbTuple_First_And_Last()
 		{
+			// tuple.First<T>() should be equivalent to tuple.Get<T>(0)
 			// tuple.Last<T>() should be equivalent to tuple.Get<T>(-1)
 
 			var t1 = FdbTuple.Create(1);
+			Assert.That(t1.First<int>(), Is.EqualTo(1));
+			Assert.That(t1.First<string>(), Is.EqualTo("1"));
 			Assert.That(t1.Last<int>(), Is.EqualTo(1));
 			Assert.That(t1.Last<string>(), Is.EqualTo("1"));
 
 			var t2 = FdbTuple.Create(1, 2);
+			Assert.That(t2.First<int>(), Is.EqualTo(1));
+			Assert.That(t2.First<string>(), Is.EqualTo("1"));
 			Assert.That(t2.Last<int>(), Is.EqualTo(2));
 			Assert.That(t2.Last<string>(), Is.EqualTo("2"));
 
 			var t3 = FdbTuple.Create(1, 2, 3);
+			Assert.That(t3.First<int>(), Is.EqualTo(1));
+			Assert.That(t3.First<string>(), Is.EqualTo("1"));
 			Assert.That(t3.Last<int>(), Is.EqualTo(3));
 			Assert.That(t3.Last<string>(), Is.EqualTo("3"));
 
 			var t4 = FdbTuple.Create(1, 2, 3, 4);
+			Assert.That(t4.First<int>(), Is.EqualTo(1));
+			Assert.That(t4.First<string>(), Is.EqualTo("1"));
 			Assert.That(t4.Last<int>(), Is.EqualTo(4));
 			Assert.That(t4.Last<string>(), Is.EqualTo("4"));
 
 			var tn = FdbTuple.Create(1, 2, 3, 4, 5, 6);
+			Assert.That(tn.First<int>(), Is.EqualTo(1));
+			Assert.That(tn.First<string>(), Is.EqualTo("1"));
 			Assert.That(tn.Last<int>(), Is.EqualTo(6));
 			Assert.That(tn.Last<string>(), Is.EqualTo("6"));
 
+			Assert.That(() => FdbTuple.Empty.First<string>(), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => FdbTuple.Empty.Last<string>(), Throws.InstanceOf<InvalidOperationException>());
-
 		}
 
 		[Test]
-		public void Test_FdbTuple_UnpackLast()
+		public void Test_FdbTuple_Unpack_First_And_Last()
 		{
 			// should only work with tuples having at least one element
 
 			Slice packed;
 
 			packed = FdbTuple.Pack(1);
+			Assert.That(FdbTuple.UnpackFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.UnpackFirst<string>(packed), Is.EqualTo("1"));
 			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(1));
 			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("1"));
 
 			packed = FdbTuple.Pack(1, 2);
+			Assert.That(FdbTuple.UnpackFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.UnpackFirst<string>(packed), Is.EqualTo("1"));
 			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(2));
 			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("2"));
 
 			packed = FdbTuple.Pack(1, 2, 3);
+			Assert.That(FdbTuple.UnpackFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.UnpackFirst<string>(packed), Is.EqualTo("1"));
 			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(3));
 			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("3"));
 
 			packed = FdbTuple.Pack(1, 2, 3, 4);
+			Assert.That(FdbTuple.UnpackFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.UnpackFirst<string>(packed), Is.EqualTo("1"));
 			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(4));
 			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("4"));
 
+			packed = FdbTuple.Pack(1, 2, 3, 4, 5);
+			Assert.That(FdbTuple.UnpackFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.UnpackFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(5));
+			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("5"));
+
+			Assert.That(() => FdbTuple.UnpackFirst<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.UnpackFirst<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
 
@@ -223,6 +250,51 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2, 3)), Throws.InstanceOf<FormatException>());
 			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2, 3, 4)), Throws.InstanceOf<FormatException>());
 
+		}
+
+		[Test]
+		public void Test_FdbTuple_Embedded_Tuples()
+		{
+			// (A,B).Append((C,D)) should return (A,B,(C,D)) (length 3) and not (A,B,C,D) (length 4)
+
+			var x = FdbTuple.Create("A", "B");
+			var y = FdbTuple.Create("C", "D");
+
+			// using the instance method that returns a FdbTuple<T1, T2, T3>
+			IFdbTuple z = x.Append(y);
+			Console.WriteLine(z);
+			Assert.That(z, Is.Not.Null);
+			Assert.That(z.Count, Is.EqualTo(3));
+			Assert.That(z[0], Is.EqualTo("A"));
+			Assert.That(z[1], Is.EqualTo("B"));
+			Assert.That(z[2], Is.EqualTo(y));
+			var t = z.Get<IFdbTuple>(2);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo("C"));
+			Assert.That(t[1], Is.EqualTo("D"));
+
+			// using the IFdbTuple extension method
+			z = ((IFdbTuple)x).Append((IFdbTuple)y);
+			Console.WriteLine(z);
+			Assert.That(z, Is.Not.Null);
+			Assert.That(z.Count, Is.EqualTo(3));
+			Assert.That(z[0], Is.EqualTo("A"));
+			Assert.That(z[1], Is.EqualTo("B"));
+			Assert.That(z[2], Is.EqualTo(y));
+			t = z.Get<IFdbTuple>(2);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo("C"));
+			Assert.That(t[1], Is.EqualTo("D"));
+
+			// composite index key "(prefix, value, id)"
+			IFdbTuple subspace = FdbTuple.Create(123, 42);
+			IFdbTuple value = FdbTuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
+			string id = "Doc123";
+			z = subspace.Append(value, id);
+			Console.WriteLine(z);
+			Assert.That(z.Count, Is.EqualTo(4));
 		}
 
 		#endregion

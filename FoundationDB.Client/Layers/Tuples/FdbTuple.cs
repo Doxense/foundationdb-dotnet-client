@@ -57,7 +57,7 @@ namespace FoundationDB.Layers.Tuples
 
 			object IReadOnlyList<object>.this[int index]
 			{
-				get { throw new IndexOutOfRangeException(); }
+				get { throw new InvalidOperationException("Tuple is empty"); }
 			}
 
 			public IFdbTuple this[int? from, int? to]
@@ -68,27 +68,19 @@ namespace FoundationDB.Layers.Tuples
 
 			public R Get<R>(int index)
 			{
-				throw new IndexOutOfRangeException();
-			}
-
-			public R Last<R>()
-			{
 				throw new InvalidOperationException("Tuple is empty");
 			}
 
-			IFdbTuple IFdbTuple.Append<T1>(T1 value)
-			{
-				return this.Append<T1>(value);
-			}
-
-			public FdbTuple<T1> Append<T1>(T1 value)
+			public IFdbTuple Append<T1>(T1 value)
 			{
 				return new FdbTuple<T1>(value);
 			}
 
-			public IFdbTuple AppendRange(IFdbTuple value)
+			public IFdbTuple Concat(IFdbTuple tuple)
 			{
-				return value;
+				if (tuple == null) throw new ArgumentNullException("tuple");
+				if (tuple is EmptyTuple || tuple.Count == 0) return this;
+				return tuple;
 			}
 
 			public void PackTo(ref SliceWriter writer)
@@ -313,6 +305,22 @@ namespace FoundationDB.Layers.Tuples
 			return tuple;
 		}
 
+		/// <summary>Concatenates two tuples together</summary>
+		[NotNull]
+		public static IFdbTuple Concat([NotNull] IFdbTuple head, [NotNull] IFdbTuple tail)
+		{
+			if (head == null) throw new ArgumentNullException("head");
+			if (tail == null) throw new ArgumentNullException("tail");
+
+			int n1 = head.Count;
+			if (n1 == 0) return tail;
+
+			int n2 = tail.Count;
+			if (n2 == 0) return head;
+
+			return new FdbJoinedTuple(head, tail);
+		}
+
 		#endregion
 
 		#region Packing...
@@ -361,6 +369,20 @@ namespace FoundationDB.Layers.Tuples
 			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
 			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
 			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
+			return writer.ToSlice();
+		}
+
+		/// <summary>Pack a N-tuple directory into a slice</summary>
+		public static Slice Pack([NotNull] params object[] items)
+		{
+			if (items == null) throw new ArgumentNullException("items");
+			if (items.Length == 0) return Slice.Empty;
+
+			var writer = SliceWriter.Empty;
+			foreach(var item in items)
+			{
+				FdbTuplePackers.SerializeObjectTo(ref writer, item);
+			}
 			return writer.ToSlice();
 		}
 

@@ -89,20 +89,22 @@ namespace FoundationDB.Layers.Tuples
 			return tuple.ToSlice().GetBytes();
 		}
 
-		/// <summary>Concatenates two tuples together</summary>
-		[NotNull]
-		public static IFdbTuple Concat([NotNull] this IFdbTuple head, [NotNull] IFdbTuple tail)
+		/// <summary>Returns the typed value of the first item in this tuple</summary>
+		/// <typeparam name="T">Expected type of the first item</typeparam>
+		/// <returns>Value of the first item, adapted into type <typeparamref name="T"/>.</returns>
+		public static T First<T>([NotNull] this IFdbTuple tuple)
 		{
-			if (head == null) throw new ArgumentNullException("head");
-			if (tail == null) throw new ArgumentNullException("tail");
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			return tuple.Get<T>(0);
+		}
 
-			int n1 = head.Count;
-			if (n1 == 0) return tail;
-
-			int n2 = tail.Count;
-			if (n2 == 0) return head;
-
-			return new FdbJoinedTuple(head, tail);
+		/// <summary>Returns the typed value of the last item in this tuple</summary>
+		/// <typeparam name="T">Expected type of the last item</typeparam>
+		/// <returns>Value of the last item, adapted into type <typeparamref name="T"/>.</returns>
+		public static T Last<T>([NotNull] this IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			return tuple.Get<T>(-1);
 		}
 
 		/// <summary>Appends two values at the end of a tuple</summary>

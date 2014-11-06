@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
@@ -69,14 +70,13 @@ namespace FoundationDB.Layers.Tuples
 			get { return FdbTuple.Splice(this, fromIncluded, toExcluded); }
 		}
 
+		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
+		/// <typeparam name="R">Expected type of the item</typeparam>
+		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
+		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="R"/>.</returns>
 		public R Get<R>(int index)
 		{
 			if (index > 0 || index < -1) FdbTuple.FailIndexOutOfRange(index, 1);
-			return FdbConverters.Convert<T1, R>(this.Item1);
-		}
-
-		public R Last<R>()
-		{
 			return FdbConverters.Convert<T1, R>(this.Item1);
 		}
 
@@ -90,12 +90,27 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbTuple<T1, T2>(this.Item1, value);
 		}
 
+		/// <summary>Appends a tuple as a single new item at the end of the current tuple.</summary>
+		/// <param name="value">Tuple that will be added as an embedded item</param>
+		/// <returns>New tuple with one extra item</returns>
+		/// <remarks>If you want to append the *items*  of <paramref name="value"/>, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
+		[NotNull]
 		public FdbTuple<T1, T2> Append<T2>(T2 value)
 		{
 			return new FdbTuple<T1, T2>(this.Item1, value);
 		}
 
-		public void CopyTo(object[] array, int offset)
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		[NotNull]
+		public IFdbTuple Concat([NotNull] IFdbTuple tuple)
+		{
+			return FdbTuple.Concat(this, tuple);
+		}
+
+		/// <summary>Copy the item of this singleton into an array at the specified offset</summary>
+		public void CopyTo([NotNull] object[] array, int offset)
 		{
 			array[offset] = this.Item1;
 		}

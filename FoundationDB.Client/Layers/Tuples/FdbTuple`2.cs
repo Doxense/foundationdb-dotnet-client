@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
@@ -77,6 +78,10 @@ namespace FoundationDB.Layers.Tuples
 			get { return FdbTuple.Splice(this, fromIncluded, toExcluded); }
 		}
 
+		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
+		/// <typeparam name="R">Expected type of the item</typeparam>
+		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
+		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="R"/>.</returns>
 		public R Get<R>(int index)
 		{
 			switch(index)
@@ -85,11 +90,6 @@ namespace FoundationDB.Layers.Tuples
 				case 1: case -1: return FdbConverters.Convert<T2, R>(this.Item2);
 				default: FdbTuple.FailIndexOutOfRange(index, 2); return default(R);
 			}
-		}
-
-		public R Last<R>()
-		{
-			return FdbConverters.Convert<T2, R>(this.Item2);
 		}
 
 		public void PackTo(ref SliceWriter writer)
@@ -103,6 +103,11 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbTuple<T1, T2, T3>(this.Item1, this.Item2, value);
 		}
 
+		/// <summary>Appends a single new item at the end of the current tuple.</summary>
+		/// <param name="value">Value that will be added as an embedded item</param>
+		/// <returns>New tuple with one extra item</returns>
+		/// <remarks>If <paramref name="value"/> is a tuple, and you want to append the *items*  of this tuple, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
+		[NotNull]
 		public FdbTuple<T1, T2, T3> Append<T3>(T3 value)
 		{
 			return new FdbTuple<T1, T2, T3>(this.Item1, this.Item2, value);
@@ -111,6 +116,16 @@ namespace FoundationDB.Layers.Tuples
 			// => if this starts becoming a problem, then we should return a list tuple !
 		}
 
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		[NotNull]
+		public IFdbTuple Concat([NotNull] IFdbTuple tuple)
+		{
+			return FdbTuple.Concat(this, tuple);
+		}
+
+		/// <summary>Copy both items of this pair into an array at the specified offset</summary>
 		public void CopyTo(object[] array, int offset)
 		{
 			array[offset] = this.Item1;

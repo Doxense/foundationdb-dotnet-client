@@ -113,20 +113,19 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuplePacker<R>.Deserialize(GetSlice(index));
 		}
 
-		public R Last<R>()
-		{
-			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
-			return FdbTuplePacker<R>.Deserialize(m_slices[m_offset + m_count - 1]);
-		}
-
 		public Slice GetSlice(int index)
 		{
 			return m_slices[m_offset + FdbTuple.MapIndex(index, m_count)];
 		}
 
-		public IFdbTuple Append<T>(T value)
+		IFdbTuple IFdbTuple.Append<T>(T value)
 		{
-			throw new NotImplementedException();
+			throw new NotSupportedException();
+		}
+
+		IFdbTuple IFdbTuple.Concat(IFdbTuple tuple)
+		{
+			throw new NotSupportedException();
 		}
 
 		public void CopyTo(object[] array, int offset)

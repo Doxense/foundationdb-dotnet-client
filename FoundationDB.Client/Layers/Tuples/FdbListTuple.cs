@@ -68,6 +68,45 @@ namespace FoundationDB.Layers.Tuples
 			m_count = count;
 		}
 
+		/// <summary>Create a new list tuple by merging the items of two tuples together</summary>
+		/// <param name="left"></param>
+		/// <param name="right"></param>
+		internal FdbListTuple(IFdbTuple a, IFdbTuple b)
+		{
+			if (a == null) throw new ArgumentNullException("a");
+			if (b == null) throw new ArgumentNullException("b");
+
+			int nA = a.Count;
+			int nB = b.Count;
+
+			m_offset = 0;
+			m_count = nA + nB;
+			m_items = new object[m_count];
+
+			if (nA > 0) a.CopyTo(m_items, 0);
+			if (nB > 0) b.CopyTo(m_items, nA);
+		}
+
+		/// <summary>Create a new list tuple by merging the items of three tuples together</summary>
+		internal FdbListTuple(IFdbTuple a, IFdbTuple b, IFdbTuple c)
+		{
+			if (a == null) throw new ArgumentNullException("a");
+			if (b == null) throw new ArgumentNullException("b");
+			if (c == null) throw new ArgumentNullException("c");
+
+			int nA = a.Count;
+			int nB = b.Count;
+			int nC = c.Count;
+
+			m_offset = 0;
+			m_count = nA + nB + nC;
+			m_items = new object[m_count];
+
+			if (nA > 0) a.CopyTo(m_items, 0);
+			if (nB > 0) b.CopyTo(m_items, nA);
+			if (nC > 0) c.CopyTo(m_items, nA + nB);
+		}
+
 		public int Count
 		{
 			get { return m_count; }
@@ -102,12 +141,6 @@ namespace FoundationDB.Layers.Tuples
 		public R Get<R>(int index)
 		{
 			return FdbConverters.ConvertBoxed<R>(this[index]);
-		}
-
-		public R Last<R>()
-		{
-			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
-			return FdbConverters.ConvertBoxed<R>(m_items[m_offset + m_count - 1]);
 		}
 
 		IFdbTuple IFdbTuple.Append<T>(T value)
@@ -160,6 +193,11 @@ namespace FoundationDB.Layers.Tuples
 			Array.Copy(m_items, m_offset, list, 0, m_count);
 			tuple.CopyTo(list, m_count);
 			return new FdbListTuple(list, 0, list.Length);
+		}
+
+		IFdbTuple IFdbTuple.Concat(IFdbTuple tuple)
+		{
+			return this.Concat(tuple);
 		}
 
 		public void CopyTo(object[] array, int offset)

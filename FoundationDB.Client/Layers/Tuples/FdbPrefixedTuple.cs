@@ -31,6 +31,8 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
+	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -97,22 +99,32 @@ namespace FoundationDB.Layers.Tuples
 			return m_items.Get<R>(index);
 		}
 
-		public R Last<R>()
-		{
-			return m_items.Last<R>();
-		}
-
 		IFdbTuple IFdbTuple.Append<R>(R value)
 		{
 			return this.Append<R>(value);
 		}
 
+		IFdbTuple IFdbTuple.Concat(IFdbTuple tuple)
+		{
+			return this.Concat(tuple);
+		}
+
+		[NotNull]
 		public FdbPrefixedTuple Append<R>(R value)
 		{
 			return new FdbPrefixedTuple(m_prefix, m_items.Append<R>(value));
 		}
 
-		public void CopyTo(object[] array, int offset)
+		[NotNull]
+		public FdbPrefixedTuple Concat([NotNull] IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple.Count == 0) return this;
+
+			return new FdbPrefixedTuple(m_prefix, m_items.Concat(tuple));
+		}
+
+		public void CopyTo([NotNull] object[] array, int offset)
 		{
 			m_items.CopyTo(array, offset);
 		}

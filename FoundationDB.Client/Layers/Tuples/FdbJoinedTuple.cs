@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
@@ -146,9 +147,31 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbLinkedTuple<T>(this, value);
 		}
 
+		[NotNull]
 		public FdbLinkedTuple<T> Append<T>(T value)
 		{
 			return new FdbLinkedTuple<T>(this, value);
+		}
+
+		[NotNull]
+		public IFdbTuple Concat([NotNull] IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+
+			int n1 = tuple.Count;
+			if (n1 == 0) return this;
+
+			int n2 = this.Count;
+
+			if (n1 + n2 >= 10)
+			{ // it's getting bug, merge to a new List tuple
+				return new FdbListTuple(this.Head, this.Tail, tuple);
+			}
+			else
+			{
+				// REVIEW: should we always concat with the tail?
+				return new FdbJoinedTuple(this.Head, this.Tail.Concat(tuple));
+			}
 		}
 
 		public void CopyTo(object[] array, int offset)
