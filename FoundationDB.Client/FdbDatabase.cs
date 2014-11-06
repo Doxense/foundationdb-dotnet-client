@@ -213,15 +213,11 @@ namespace FoundationDB.Client
 		internal FdbTransaction CreateNewTransaction(FdbOperationContext context)
 		{
 			Contract.Requires(context != null && context.Database != null);
+			ThrowIfDisposed();
 
 			// force the transaction to be read-only, if the database itself is read-only
 			var mode = context.Mode;
 			if (m_readOnly) mode |= FdbTransactionMode.ReadOnly;
-
-			ThrowIfDisposed();
-#if DEPRECATED
-			if (m_handle.IsInvalid) throw Fdb.Errors.CannotCreateTransactionOnInvalidDatabase();
-#endif
 
 			int id = Interlocked.Increment(ref s_transactionCounter);
 

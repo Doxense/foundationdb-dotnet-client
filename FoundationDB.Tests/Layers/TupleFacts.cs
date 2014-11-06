@@ -472,7 +472,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		#region Serialization...
 
 		[Test]
-		public void Test_Fdb_Tuple_Serialize_Bytes()
+		public void Test_FdbTuple_Serialize_Bytes()
 		{
 			// Byte arrays are stored with prefix '01' followed by the bytes, and terminated by '00'. All occurences of '00' in the byte array are escaped with '00 FF'
 			// - Best case:  packed_size = 2 + array_len
@@ -493,7 +493,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Fdb_Tuple_Deserialize_Bytes()
+		public void Test_FdbTuple_Deserialize_Bytes()
 		{
 			IFdbTuple t;
 
