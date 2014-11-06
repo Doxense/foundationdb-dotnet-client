@@ -380,20 +380,8 @@ namespace FoundationDB.Client
 		/// <returns>Key the correspond to the concatenation of the current subspace's prefix and the packed representation of <paramref name="tuple"/></returns>
 		public static Slice Pack(this IFdbSubspace subspace, IFdbTuple tuple)
 		{
+			//REVIEW: this class should have a different name, because subspace.Pack(IFdbTuple ...) has a different behavior than subspace.Pack<IFdbTuple>(...) !
 			return FdbTuple.PackWithPrefix(subspace.ToFoundationDbKey(), tuple);
-		}
-
-		/// <summary>Create a new key by appending a formattable object to the current subspace</summary>
-		/// <param name="item">Instance of a type that can be transformed into a Tuple</param>
-		/// <returns>Key the correspond to the concatenation of the current subspace's prefix and the packed representation of the tuple returned by <paramref name="item"/>.ToTuple()</returns>
-		/// <exception cref="System.ArgumentNullException">If <paramref name="item"/> is null</exception>
-		/// <exception cref="System.InvalidOperationException">If calling <paramref name="item"/>.ToTuple() returns null.</exception>
-		public static Slice Pack(this IFdbSubspace subspace, [NotNull] ITupleFormattable item)
-		{
-			if (item == null) throw new ArgumentNullException("item");
-			var tuple = item.ToTuple();
-			if (tuple == null) throw new InvalidOperationException("The specified item returned a null tuple");
-			return Pack(subspace, tuple);
 		}
 
 		/// <summary>Create a new key by appending a value to the current subspace</summary>

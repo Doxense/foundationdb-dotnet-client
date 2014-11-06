@@ -1650,10 +1650,14 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Slice packed;
 
 			packed = FdbTuplePacker<Thing>.Serialize(new Thing { Foo = 123, Bar = "hello" });
-			Assert.That(packed.ToString(), Is.EqualTo("<15>{<02>hello<00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<03><15>{<02>hello<00><04>"));
 
 			packed = FdbTuplePacker<Thing>.Serialize(new Thing());
-			Assert.That(packed.ToString(), Is.EqualTo("<14><00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<03><14><00><04>"));
+
+			packed = FdbTuplePacker<Thing>.Serialize(default(Thing));
+			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
+
 		}
 
 		[Test]
@@ -1662,13 +1666,13 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Slice slice;
 			Thing thing;
 
-			slice = Slice.Unescape("<16><01><C8><02>world<00>");
+			slice = Slice.Unescape("<03><16><01><C8><02>world<00><04>");
 			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(456));
 			Assert.That(thing.Bar, Is.EqualTo("world"));
 
-			slice = Slice.Unescape("<14><00>");
+			slice = Slice.Unescape("<03><14><00><04>");
 			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(0));

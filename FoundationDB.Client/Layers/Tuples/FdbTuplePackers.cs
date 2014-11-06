@@ -284,6 +284,7 @@ namespace FoundationDB.Layers.Tuples
 			if (fmt != null)
 			{
 				tuple = fmt.ToTuple();
+				if (tuple == null) throw new InvalidOperationException(String.Format("An instance of type {0} returned a null Tuple while serialiazing", type.Name));
 				SerializeTupleTo(ref writer, tuple);
 				return;
 			}
@@ -523,7 +524,11 @@ namespace FoundationDB.Layers.Tuples
 
 		public static void SerializeFormattableTo(ref SliceWriter writer, ITupleFormattable formattable)
 		{
-			Contract.Requires(formattable != null);
+			if (formattable == null)
+			{
+				writer.WriteByte(FdbTupleTypes.Nil);
+				return;
+			}
 
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException(String.Format("Custom formatter {0}.ToTuple() cannot return null", formattable.GetType().Name));
@@ -675,7 +680,7 @@ namespace FoundationDB.Layers.Tuples
 		public static T DeserializeFormattable<T>(Slice slice)
 			where T : ITupleFormattable, new()
 		{
-			var tuple = FdbTuple.Unpack(slice);
+			var tuple = FdbTupleParser.ParseTuple(slice);
 			var value = new T();
 			value.FromTuple(tuple);
 			return value;
@@ -689,7 +694,7 @@ namespace FoundationDB.Layers.Tuples
 		public static T DeserializeFormattable<T>(Slice slice, Func<T> factory)
 			where T : ITupleFormattable
 		{
-			var tuple = FdbTuple.Unpack(slice);
+			var tuple = FdbTupleParser.ParseTuple(slice);
 			var value = factory();
 			value.FromTuple(tuple);
 			return value;
@@ -839,7 +844,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Tuple", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a signed integer", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into an UInt32</summary>
