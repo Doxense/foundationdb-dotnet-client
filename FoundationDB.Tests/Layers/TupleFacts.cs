@@ -1317,6 +1317,52 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_FdbTuple_Serialize_Embedded_Tuples()
+		{
+			Slice key;
+			IFdbTuple t;
+
+			// Index composite key
+			IFdbTuple value = FdbTuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
+			string docId = "Doc123";
+			// key would be "(..., value, id)"
+
+			// Create(...).ToSlice()
+			key = FdbTuple.Create(42, value, docId).ToSlice();
+			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
+			t = FdbTuple.Unpack(key);
+			Console.WriteLine(t);
+
+			key = FdbTuple.Create(new object[] { 42, value, docId }).ToSlice();
+			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
+			t = FdbTuple.Unpack(key);
+			Console.WriteLine(t);
+
+			// subspace.Append(value).Append(id).ToSlice()
+			key = FdbTuple.Create(42).Append(value).Append(docId).ToSlice();
+			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
+			t = FdbTuple.Unpack(key);
+			Console.WriteLine(t);
+
+			// subspace.Append(value, id).ToSlice()
+			key = FdbTuple.Create(42).Append(value, docId).ToSlice();
+			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
+			t = FdbTuple.Unpack(key);
+			Console.WriteLine(t);
+
+			// FdbTuple.Pack(..., value, id)
+			key = FdbTuple.Pack(42, value, docId);
+			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
+			t = FdbTuple.Unpack(key);
+			Console.WriteLine(t);
+
+			t = FdbTuple.Create(1, FdbTuple.Create(2, 3), FdbTuple.Create(FdbTuple.Create(4, 5, 6)), 7);
+			Console.WriteLine(t);
+			key = t.ToSlice();
+			Console.WriteLine(key);
+		}
+
+		[Test]
 		public void Test_FdbTuple_SameBytes()
 		{
 			IFdbTuple t1 = FdbTuple.Create("hello world");

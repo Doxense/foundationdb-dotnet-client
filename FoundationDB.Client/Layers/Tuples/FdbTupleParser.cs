@@ -745,6 +745,14 @@ namespace FoundationDB.Layers.Tuples
 			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
+		internal static IFdbTuple ParseTuple(Slice slice)
+		{
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.TupleStart);
+			if (slice.Count <= 2) return FdbTuple.Empty;
+
+			return FdbTuple.Unpack(slice.Substring(1, slice.Count - 2));
+		}
+
 		internal static float ParseSingle(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Single);
@@ -874,6 +882,22 @@ namespace FoundationDB.Layers.Tuples
 					return reader.ReadByteString();
 				}
 
+				case FdbTupleTypes.TupleStart:
+				{ // <03>(packed tuple)<04>
+
+					//PERF: currently, we will first scan to get all the bytes of this tuple, and parse it later.
+					// This means that we may need to scan multiple times the bytes, which may not be efficient if there are multiple embedded tuples inside each other
+					return ReadEmbeddedTupleBytes(ref reader);
+				}
+
+				case FdbTupleTypes.TupleEnd:
+				{ // End Of Tuple
+					// this should not happen in regular parsing (the <04> is eaten by ReadEmbeddedTupleBytes())
+					// but it could happen if someone is parsing a stream of tokens, and want to stops there.
+					reader.Skip(1);
+					return Slice.Nil;
+				}
+
 				case FdbTupleTypes.Single:
 				{ // <20>(4 bytes)
 					return reader.ReadBytes(5);
@@ -910,6 +934,26 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			throw new FormatException(String.Format("Invalid tuple type byte {0} at index {1}/{2}", type, reader.Position, reader.Buffer.Count));
+		}
+
+		/// <summary>Read an embedded tuple, without parsing it</summary>
+		internal static Slice ReadEmbeddedTupleBytes(ref SliceReader reader)
+		{
+			// The current embedded tuple starts here, and stops on a <04>, but itself can contain more embedded tuples, and could have data with a <04> in them (like integer 4, a byte array with 0x04 inside it, ...)
+			// This means that we have to parse the tuple recursively, discard the tokens, and note where the cursor ended. The parsing of the tuple itself will be processed later.
+
+			int start = reader.Position;
+			reader.Skip(1);
+
+			while(reader.PeekByte() != FdbTupleTypes.TupleEnd)
+			{
+				var token = ParseNext(ref reader);
+				if (token.IsNullOrEmpty) throw new FormatException(String.Format("Truncated embedded tuple started at index {0}/{1}", start, reader.Buffer.Count));
+			}
+
+			reader.Skip(1);
+			int end = reader.Position;
+			return reader.Buffer.Substring(start, end - start);
 		}
 
 		#endregion

@@ -273,16 +273,23 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
+			var tuple = value as IFdbTuple;
+			if (tuple != null)
+			{
+				SerializeTupleTo(ref writer, tuple);
+				return;
+			}		
+
 			var fmt = value as ITupleFormattable;
 			if (fmt != null)
 			{
-				var tuple = fmt.ToTuple();
-				tuple.PackTo(ref writer);
+				tuple = fmt.ToTuple();
+				SerializeTupleTo(ref writer, tuple);
 				return;
 			}
 
 			// Not Supported ?
-			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0}", type.Name));
+			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0} into Tuple Encoding format", type.Name));
 		}
 
 		/// <summary>Writes a slice as a byte[] array</summary>
@@ -509,7 +516,9 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(tuple != null);
 
+			writer.WriteByte(FdbTupleTypes.TupleStart);
 			tuple.PackTo(ref writer);
+			writer.WriteByte(FdbTupleTypes.TupleEnd);
 		}
 
 		public static void SerializeFormattableTo(ref SliceWriter writer, ITupleFormattable formattable)
@@ -518,7 +527,10 @@ namespace FoundationDB.Layers.Tuples
 
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException(String.Format("Custom formatter {0}.ToTuple() cannot return null", formattable.GetType().Name));
+
+			writer.WriteByte(FdbTupleTypes.TupleStart);
 			tuple.PackTo(ref writer);
+			writer.WriteByte(FdbTupleTypes.TupleEnd);
 		}
 
 		public static void SerializeFdbKeyTo(ref SliceWriter writer, IFdbKey key)
@@ -636,6 +648,7 @@ namespace FoundationDB.Layers.Tuples
 					case FdbTupleTypes.Nil: return null;
 					case FdbTupleTypes.Bytes: return FdbTupleParser.ParseBytes(slice);
 					case FdbTupleTypes.Utf8: return FdbTupleParser.ParseUnicode(slice);
+					case FdbTupleTypes.TupleStart: return FdbTupleParser.ParseTuple(slice);
 				}
 			}
 			else
@@ -651,7 +664,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice with unknown type code {0}", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment with unknown type code {0}", type));
 		}
 
 		/// <summary>Deserialize a slice into a type that implements ITupleFormattable</summary>
@@ -710,13 +723,38 @@ namespace FoundationDB.Layers.Tuples
 				return Slice.FromUInt64(DeserializeUInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a Slice", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Slice", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into a byte array</summary>
 		public static byte[] DeserializeBytes(Slice slice)
 		{
 			return DeserializeSlice(slice).GetBytes();
+		}
+
+		/// <summary>Deserialize a tuple segment into a tuple</summary>
+		public static IFdbTuple DeserializeTuple(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return null;
+
+			byte type = slice[0];
+			switch(type)
+			{
+				case FdbTupleTypes.Nil:
+				{
+					return null;
+				}
+				case FdbTupleTypes.Bytes:
+				{
+					return FdbTuple.Unpack(FdbTupleParser.ParseBytes(slice));
+				}
+				case FdbTupleTypes.TupleStart:
+				{
+					return FdbTupleParser.ParseTuple(slice);
+				}
+			}
+
+			throw new FormatException("Cannot convert tuple segment into a Tuple");
 		}
 
 		/// <summary>Deserialize a tuple segment into a Boolean</summary>
@@ -758,7 +796,7 @@ namespace FoundationDB.Layers.Tuples
 
 			//TODO: should we handle weird cases like strings "True" and "False"?
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a boolean", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a boolean", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into an Int16</summary>
@@ -801,7 +839,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException("Cannot convert slice into a signed integer");
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Tuple", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into an UInt32</summary>
@@ -845,7 +883,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into an unsigned integer", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into an unsigned integer", type));
 		}
 
 		public static float DeserializeSingle(Slice slice)
@@ -878,7 +916,7 @@ namespace FoundationDB.Layers.Tuples
 				return checked((float)DeserializeInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a Single", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Single", type));
 		}
 
 		public static double DeserializeDouble(Slice slice)
@@ -911,7 +949,7 @@ namespace FoundationDB.Layers.Tuples
 				return checked((double)DeserializeInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a Double", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Double", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into a DateTime (UTC)</summary>
@@ -952,7 +990,7 @@ namespace FoundationDB.Layers.Tuples
 				return new DateTime(DeserializeInt64(slice), DateTimeKind.Utc);
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a DateTime", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a DateTime", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into a TimeSpan</summary>
@@ -988,7 +1026,7 @@ namespace FoundationDB.Layers.Tuples
 				return new TimeSpan(DeserializeInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a TimeSpan", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a TimeSpan", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into a Unicode string</summary>
@@ -1035,7 +1073,7 @@ namespace FoundationDB.Layers.Tuples
 				return FdbTupleParser.ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a String", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a String", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into Guid</summary>
@@ -1063,7 +1101,7 @@ namespace FoundationDB.Layers.Tuples
 				//REVIEW: should we allow converting a Uuid64 into a Guid? This looks more like a bug than an expected behavior...
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a System.Guid", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a System.Guid", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into 128-bit UUID</summary>
@@ -1091,7 +1129,7 @@ namespace FoundationDB.Layers.Tuples
 				//REVIEW: should we allow converting a Uuid64 into a Uuid128? This looks more like a bug than an expected behavior...
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into an Uuid128", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into an Uuid128", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into 64-bit UUID</summary>
@@ -1124,7 +1162,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 			// we don't support negative numbers!
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into an Uuid64", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into an Uuid64", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into Guid</summary>
@@ -1158,12 +1196,12 @@ namespace FoundationDB.Layers.Tuples
 				return new System.Net.IPAddress(value);
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into System.Net.IPAddress", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into System.Net.IPAddress", type));
 		}
 
 		public static FdbTupleAlias DeserializeAlias(Slice slice)
 		{
-			if (slice.Count != 1) throw new FormatException("Cannot convert slice into this type");
+			if (slice.Count != 1) throw new FormatException("Cannot convert tuple segment into this type");
 			return (FdbTupleAlias)slice[0];
 		}
 
