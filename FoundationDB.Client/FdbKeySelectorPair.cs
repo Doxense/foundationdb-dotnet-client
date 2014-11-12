@@ -32,7 +32,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 
 	/// <summary>Represents of pair of key selectors that range 'GetKey(Begin) &lt;= key &lt; GetKey(End)'</summary>
-	[DebuggerDisplay("[ToString()]")]
+	[DebuggerDisplay("{ToString()}")]
 	public struct FdbKeySelectorPair
 	{
 		/// <summary>Start of the range</summary>
