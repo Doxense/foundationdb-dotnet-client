@@ -147,6 +147,16 @@ namespace FoundationDB.Filters
 			return m_database.Contains(key);
 		}
 
+		public virtual Slice ExtractAndCheck(Slice key)
+		{
+			return m_database.ExtractAndCheck(key);
+		}
+
+		public virtual FdbKeyRange ToRange(Slice key)
+		{
+			return m_database.ToRange(key);
+		}
+
 		#endregion
 
 		#region Transactionals...

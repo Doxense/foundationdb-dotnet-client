@@ -325,6 +325,17 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Packing...
 
+		/// <summary>Pack a tuple into a slice</summary>
+		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
+		public static Slice Pack(IFdbTuple tuple)
+		{
+			//note: this is redundant with tuple.ToSlice()
+			// => maybe we should remove this method?
+
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			return tuple.ToSlice();
+		}
+
 		/// <summary>Pack a 1-tuple directly into a slice</summary>
 		/// <remarks>This is the non-generic equivalent of FdbTuple.Pack&lt;object&gt;()</remarks>
 		public static Slice PackBoxed(object item)

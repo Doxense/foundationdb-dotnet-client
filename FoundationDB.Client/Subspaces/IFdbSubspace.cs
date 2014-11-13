@@ -48,6 +48,15 @@ namespace FoundationDB.Client
 		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the range of keys defined by the subspace.</remarks>
 		bool Contains(Slice key);
 
+		/// <summary>Remove the subspace prefix from a binary key, or throw if the key does not belong to this subspace</summary>
+		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix.</param>
+		/// <returns>Binary suffix of the key (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is equal to Slice.Nil, then it will be returned unmodified. If the key is outside of the subspace, the method throws.</returns>
+		/// <exception cref="System.ArgumentException">If key is outside the current subspace.</exception>
+		Slice ExtractAndCheck(Slice key);
+		//REVIEW: what about Extract(..) ? Merge both with an optional "bool throwIfOutside = false" ?
+
+		FdbKeyRange ToRange(Slice suffix);
+
 		//REVIEW: Consider adding IEquatable<IFdbSubspace> and maybe IComparable<IFdbSubspace> ?
 	}
 

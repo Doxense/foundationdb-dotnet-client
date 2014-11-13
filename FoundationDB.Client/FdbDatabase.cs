@@ -554,6 +554,19 @@ namespace FoundationDB.Client
 			return key.HasValue && m_globalSpace.Contains(key);
 		}
 
+		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
+		public Slice ExtractAndCheck(Slice key)
+		{
+			return m_globalSpace.ExtractAndCheck(key);
+		}
+
+		/// <summary>Returns a range that contains all the keys that are inside the database global subspace combined with the suffix <paramref name="key"/>, but not inside the System subspace.</summary>
+		/// <example>If the global space is empty, this will return the range [&lt;00&gt;, &lt;FF&gt;)</exampleremarks>
+		public FdbKeyRange ToRange(Slice key)
+		{
+			return m_globalSpace.ToRange(key);
+		}
+
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
 		internal static bool IsSystemKey(ref Slice key)
 		{
