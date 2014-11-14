@@ -30,17 +30,29 @@ namespace FoundationDB.Client
 {
 	using JetBrains.Annotations;
 	using System;
+	using System.Collections.Generic;
+
 
 	public interface IFdbSubspace : IFdbKey
 	{
 		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitionning and concatenation
 
-		/// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
-		/// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
-		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
-		IFdbSubspace this[Slice suffix] { [NotNull] get; }
+		/// <summary>Returns the prefix of this subspace</summary>
+		Slice Key { get; }
 
-		IFdbSubspace this[IFdbKey key] { [NotNull] get; }
+		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
+		FdbSubspaceKeys Keys { get; }
+
+		/// <summary>Helper that can be used to partition this subspace into smaller subspaces</summary>
+		FdbSubspacePartition Partition { get; }
+
+		/// <summary>Return a view of all the possible tuple-based keys of this subspace</summary>
+		FdbSubspaceTuples Tuples { get; }
+
+		///// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
+		///// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
+		///// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
+		//IFdbSubspace this[Slice suffix] { [NotNull] get; }
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="key">Key to test</param>
@@ -48,16 +60,30 @@ namespace FoundationDB.Client
 		/// <remarks>Please note that this method does not test if the key *actually* exists in the database, only if the key is not ouside the range of keys defined by the subspace.</remarks>
 		bool Contains(Slice key);
 
+		/// <summary>Check that a key fits inside this subspace, and return '' or '\xFF' if it is outside the bounds</summary>
+		/// <param name="key">Key that needs to be checked</param>
+		/// <param name="allowSystemKeys">If true, allow keys that starts with \xFF even if this subspace is not the Empty subspace or System subspace itself.</param>
+		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
+		Slice BoundCheck(Slice key, bool allowSystemKeys);
+
+		Slice ConcatKey(Slice suffix);
+
+		[NotNull]
+		Slice[] ConcatKeys([NotNull] IEnumerable<Slice> suffixes);
+
 		/// <summary>Remove the subspace prefix from a binary key, or throw if the key does not belong to this subspace</summary>
 		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix.</param>
 		/// <returns>Binary suffix of the key (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is equal to Slice.Nil, then it will be returned unmodified. If the key is outside of the subspace, the method throws.</returns>
 		/// <exception cref="System.ArgumentException">If key is outside the current subspace.</exception>
-		Slice ExtractAndCheck(Slice key);
-		//REVIEW: what about Extract(..) ? Merge both with an optional "bool throwIfOutside = false" ?
+		Slice ExtractKey(Slice key, bool boundCheck = false);
 
-		FdbKeyRange ToRange(Slice suffix);
+		[NotNull]
+		Slice[] ExtractKeys([NotNull] IEnumerable<Slice> keys, bool boundCheck = false);
 
-		//REVIEW: Consider adding IEquatable<IFdbSubspace> and maybe IComparable<IFdbSubspace> ?
+		/// <summary>Return a pair of keys that contain all the keys inside this subspace</summary>
+		FdbKeyRange ToRange(Slice suffix = default(Slice));
+		//REVIEW: this is not exactly true if ToRange() use the Tuple ToRange() wich adds <00> and <FF> to the prefix!
+
 	}
 
 }

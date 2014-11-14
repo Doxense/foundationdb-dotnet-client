@@ -60,7 +60,7 @@ namespace FoundationDB.Client.Tests
 
 				var rnd = new Random(2403);
 				var data = Enumerable.Range(0, N)
-					.Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x.ToString("x8")), Slice.Random(rnd, 16 + rnd.Next(240))))
+					.Select((x) => new KeyValuePair<Slice, Slice>(location.Tuples.EncodeKey(x.ToString("x8")), Slice.Random(rnd, 16 + rnd.Next(240))))
 					.ToArray();
 
 				Log("Total data size is {0:N0} bytes", data.Sum(x => x.Key.Count + x.Value.Count));
@@ -143,7 +143,7 @@ namespace FoundationDB.Client.Tests
 						++called;
 						uniqueKeys.Add(kv.Key);
 						tr.Set(
-							location.Pack(kv.Key),
+							location.Tuples.EncodeKey(kv.Key),
 							Slice.FromString(new string('A', kv.Value))
 						);
 					},
@@ -174,7 +174,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(stored.Length, Is.EqualTo(N), "DB contains less or more items than expected");
 				for (int i = 0; i < stored.Length;i++)
 				{
-					Assert.That(stored[i].Key, Is.EqualTo(location.Pack(data[i].Key)), "Key #{0}", i);
+					Assert.That(stored[i].Key, Is.EqualTo(location.Tuples.EncodeKey(data[i].Key)), "Key #{0}", i);
 					Assert.That(stored[i].Value.Count, Is.EqualTo(data[i].Value), "Value #{0}", i);
 				}
 
@@ -198,7 +198,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x), Slice.FromInt32(x))),
+					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Tuples.EncodeKey(x), Slice.FromInt32(x))),
 					this.Cancellation
 				);
 
@@ -210,7 +210,7 @@ namespace FoundationDB.Client.Tests
 				var sw = Stopwatch.StartNew();
 				await Fdb.Bulk.ForEachAsync(
 					db,
-					Enumerable.Range(1, N).Select(x => location.Pack(x)),
+					Enumerable.Range(1, N).Select(x => location.Tuples.EncodeKey(x)),
 					() => FdbTuple.Create(0L, 0L),
 					async (xs, ctx, state) =>
 					{
@@ -284,7 +284,7 @@ namespace FoundationDB.Client.Tests
 						{
 							uniqueKeys.Add(kv.Key);
 							tr.Set(
-								location.Pack(kv.Key),
+								location.Tuples.EncodeKey(kv.Key),
 								Slice.FromString(new string('A', kv.Value))
 							);
 						}
@@ -322,7 +322,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(stored.Length, Is.EqualTo(N), "DB contains less or more items than expected");
 				for (int i = 0; i < stored.Length; i++)
 				{
-					Assert.That(stored[i].Key, Is.EqualTo(location.Pack(data[i].Key)), "Key #{0}", i);
+					Assert.That(stored[i].Key, Is.EqualTo(location.Tuples.EncodeKey(data[i].Key)), "Key #{0}", i);
 					Assert.That(stored[i].Value.Count, Is.EqualTo(data[i].Value), "Value #{0}", i);
 				}
 
@@ -346,7 +346,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x), Slice.FromInt32(x))),
+					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Tuples.EncodeKey(x), Slice.FromInt32(x))),
 					this.Cancellation
 				);
 
@@ -358,7 +358,7 @@ namespace FoundationDB.Client.Tests
 				var sw = Stopwatch.StartNew();
 				await Fdb.Bulk.ForEachAsync(
 					db,
-					Enumerable.Range(1, N).Select(x => location.Pack(x)),
+					Enumerable.Range(1, N).Select(x => location.Tuples.EncodeKey(x)),
 					() => FdbTuple.Create(0L, 0L), // (sum, count)
 					(xs, ctx, state) =>
 					{
@@ -411,7 +411,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x), Slice.FromInt32(x))),
+					Enumerable.Range(1, N).Select((x) => new KeyValuePair<Slice, Slice>(location.Tuples.EncodeKey(x), Slice.FromInt32(x))),
 					this.Cancellation
 				);
 
@@ -423,7 +423,7 @@ namespace FoundationDB.Client.Tests
 				var sw = Stopwatch.StartNew();
 				await Fdb.Bulk.ForEachAsync(
 					db,
-					Enumerable.Range(1, N).Select(x => location.Pack(x)),
+					Enumerable.Range(1, N).Select(x => location.Tuples.EncodeKey(x)),
 					async (xs, ctx) =>
 					{
 						Interlocked.Increment(ref chunks);
@@ -471,7 +471,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x.Key), Slice.FromInt32(x.Value))),
+					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Tuples.EncodeKey(x.Key), Slice.FromInt32(x.Value))),
 					this.Cancellation
 				);
 
@@ -481,7 +481,7 @@ namespace FoundationDB.Client.Tests
 				var sw = Stopwatch.StartNew();
 				long total = await Fdb.Bulk.AggregateAsync(
 					db,
-					source.Select(x => location.Pack(x.Key)),
+					source.Select(x => location.Tuples.EncodeKey(x.Key)),
 					() => 0L,
 					async (xs, ctx, sum) =>
 					{
@@ -532,7 +532,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db,
-					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x.Key), Slice.FromInt32(x.Value))),
+					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Tuples.EncodeKey(x.Key), Slice.FromInt32(x.Value))),
 					this.Cancellation
 				);
 
@@ -542,7 +542,7 @@ namespace FoundationDB.Client.Tests
 				var sw = Stopwatch.StartNew();
 				double average = await Fdb.Bulk.AggregateAsync(
 					db,
-					source.Select(x => location.Pack(x.Key)),
+					source.Select(x => location.Tuples.EncodeKey(x.Key)),
 					() => FdbTuple.Create(0L, 0L),
 					async (xs, ctx, state) =>
 					{
@@ -601,7 +601,7 @@ namespace FoundationDB.Client.Tests
 
 				await Fdb.Bulk.WriteAsync(
 					db.WithoutLogging(),
-					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Pack(x.Key), x.Value)),
+					source.Select((x) => new KeyValuePair<Slice, Slice>(location.Tuples.EncodeKey(x.Key), x.Value)),
 					this.Cancellation
 				);
 
@@ -628,7 +628,7 @@ namespace FoundationDB.Client.Tests
 							var sb = new StringBuilder(4096);
 							foreach(var x in xs)
 							{
-								sb.AppendFormat("{0} = {1}\r\n", location.UnpackSingle<Guid>(x.Key), x.Value.ToBase64());
+								sb.AppendFormat("{0} = {1}\r\n", location.Tuples.DecodeKey<Guid>(x.Key), x.Value.ToBase64());
 							}
 							await file.WriteAsync(sb.ToString());
 						},

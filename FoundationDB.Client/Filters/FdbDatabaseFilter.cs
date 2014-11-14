@@ -31,6 +31,7 @@ namespace FoundationDB.Filters
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -93,7 +94,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Cluster of the database</summary>
-		public IFdbCluster Cluster
+		public virtual IFdbCluster Cluster
 		{
 			//REVIEW: do we need a Cluster Filter ?
 			[NotNull]
@@ -107,7 +108,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public FdbSubspace GlobalSpace
+		public virtual IFdbSubspace GlobalSpace
 		{
 			[NotNull]
 			get { return m_database.GlobalSpace; }
@@ -132,14 +133,24 @@ namespace FoundationDB.Filters
 			get { return m_readOnly; }
 		}
 
-		public virtual IFdbSubspace this[Slice suffix]
+		Slice IFdbSubspace.Key
 		{
-			get { return m_database[suffix]; }
+			get { return this.GlobalSpace.Key; }
 		}
 
-		public virtual IFdbSubspace this[IFdbKey key]
+		public virtual FdbSubspacePartition Partition
 		{
-			get { return m_database[key]; }
+			get { return m_database.Partition; }
+		}
+
+		public virtual FdbSubspaceKeys Keys
+		{
+			get { return m_database.Keys; }
+		}
+
+		public virtual FdbSubspaceTuples Tuples
+		{
+			get { return m_database.Tuples; }
 		}
 
 		public virtual bool Contains(Slice key)
@@ -147,9 +158,29 @@ namespace FoundationDB.Filters
 			return m_database.Contains(key);
 		}
 
-		public virtual Slice ExtractAndCheck(Slice key)
+		public virtual Slice BoundCheck(Slice key, bool allowSystemKeys)
 		{
-			return m_database.ExtractAndCheck(key);
+			return m_database.BoundCheck(key, allowSystemKeys);
+		}
+
+		public virtual Slice ConcatKey(Slice key)
+		{
+			return m_database.ConcatKey(key);
+		}
+
+		public virtual Slice[] ConcatKeys(IEnumerable<Slice> keys)
+		{
+			return m_database.ConcatKeys(keys);
+		}
+
+		public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
+		{
+			return m_database.ExtractKey(key, boundCheck);
+		}
+
+		public virtual Slice[] ExtractKeys(IEnumerable<Slice> keys, bool boundCheck = false)
+		{
+			return m_database.ExtractKeys(keys, boundCheck);
 		}
 
 		public virtual FdbKeyRange ToRange(Slice key)

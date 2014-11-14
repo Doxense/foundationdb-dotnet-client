@@ -28,7 +28,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			tr.ClearRange(FdbKeyRange.StartsWith(location.Key));
 			for (int i = 0; i < 10; i++)
 			{
-				tr.Set(location.Pack(i), Slice.FromString("value of " + i));
+				tr.Set(location.Tuples.EncodeKey(i), Slice.FromString("value of " + i));
 			}
 			return Task.FromResult<object>(null);
 		}
@@ -65,10 +65,10 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			//tr.Set(location.Pack(50), Slice.FromString("50"));
 			//tr.Set(location.Pack(60), Slice.FromString("60"));
 
-			var x = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(location.Pack(49)));
+			var x = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(location.Tuples.EncodeKey(49)));
 			Console.WriteLine(x);
 
-			tr.Set(location.Pack("FOO"), Slice.FromString("BAR"));
+			tr.Set(location.Tuples.EncodeKey("FOO"), Slice.FromString("BAR"));
 
 		}
 
@@ -76,9 +76,9 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		{
 			var location = FdbSubspace.Create(Slice.FromAscii("TEST"));
 
-			tr.AtomicAdd(location.Pack("ATOMIC"), Slice.FromFixed32(0x55555555));
+			tr.AtomicAdd(location.Tuples.EncodeKey("ATOMIC"), Slice.FromFixed32(0x55555555));
 
-			var x = await tr.GetAsync(location.Pack("ATOMIC"));
+			var x = await tr.GetAsync(location.Tuples.EncodeKey("ATOMIC"));
 			Console.WriteLine(x.ToInt32().ToString("x"));
 		}
 

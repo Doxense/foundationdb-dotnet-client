@@ -37,12 +37,12 @@ namespace FoundationDB.Client
 
 	public class FdbEncoderSubspace<T1, T2, T3> : FdbSubspace, ICompositeKeyEncoder<T1, T2, T3>
 	{
-		protected readonly FdbSubspace m_parent;
+		protected readonly IFdbSubspace m_parent;
 		protected readonly ICompositeKeyEncoder<T1, T2, T3> m_encoder;
 		protected volatile FdbEncoderSubspace<T1> m_head;
 		protected volatile FdbEncoderSubspace<T1, T2> m_partial;
 
-		public FdbEncoderSubspace([NotNull] FdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public FdbEncoderSubspace([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 			: base(subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -117,17 +117,17 @@ namespace FoundationDB.Client
 
 		public virtual FdbTuple<T1, T2, T3> DecodeKey(Slice encoded)
 		{
-			return m_encoder.DecodeKey(this.ExtractAndCheck(encoded));
+			return m_encoder.DecodeKey(ExtractKey(encoded, boundCheck: true));
 		}
 
 		FdbTuple<T1, T2, T3> ICompositeKeyEncoder<FdbTuple<T1, T2, T3>>.DecodeComposite(Slice encoded, int items)
 		{
-			return m_encoder.DecodeComposite(this.ExtractAndCheck(encoded), items);
+			return m_encoder.DecodeComposite(ExtractKey(encoded, boundCheck: true), items);
 		}
 
 		public virtual FdbKeyRange ToRange(T1 key1, T2 key2, T3 key3)
 		{
-			return FdbTuple.ToRange(this.EncodeKey(key1, key2, key3));
+			return FdbTuple.ToRange(EncodeKey(key1, key2, key3));
 		}
 
 		#endregion

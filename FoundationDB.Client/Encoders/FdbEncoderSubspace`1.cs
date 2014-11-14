@@ -38,10 +38,10 @@ namespace FoundationDB.Client
 
 	public class FdbEncoderSubspace<T> : FdbSubspace, IKeyEncoder<T>
 	{
-		protected readonly FdbSubspace m_parent;
+		protected readonly IFdbSubspace m_parent;
 		protected readonly IKeyEncoder<T> m_encoder;
 
-		public FdbEncoderSubspace([NotNull] FdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
+		public FdbEncoderSubspace([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
 			: base(subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -93,43 +93,38 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
-		public Slice[] EncodeKeyRange([NotNull] T[] keys)
+		public Slice[] EncodeKeyRange([NotNull] IEnumerable<T> keys)
 		{
-			return FdbKey.Merge(this.Key, m_encoder.EncodeRange(keys));
+			return ConcatKeys(m_encoder.EncodeRange(keys));
+		}
+
+		[NotNull]
+		public Slice[] EncodeKeyRange([NotNull] params T[] keys)
+		{
+			return ConcatKeys(m_encoder.EncodeRange(keys));
 		}
 
 		[NotNull]
 		public Slice[] EncodeKeyRange<TElement>([NotNull] TElement[] elements, Func<TElement, T> selector)
 		{
-			return FdbKey.Merge(this.Key, m_encoder.EncodeRange(elements, selector));
-		}
-
-		[NotNull]
-		public Slice[] EncodeKeyRange([NotNull] IEnumerable<T> keys)
-		{
-			return FdbKey.Merge(this.Key, m_encoder.EncodeRange(keys));
+			return ConcatKeys(m_encoder.EncodeRange(elements, selector));
 		}
 
 		public T DecodeKey(Slice encoded)
 		{
-			return m_encoder.DecodeKey(this.ExtractAndCheck(encoded));
+			return m_encoder.DecodeKey(ExtractKey(encoded, boundCheck: true));
 		}
 
 		[NotNull]
-		public T[] DecodeKeyRange([NotNull] Slice[] encoded)
+		public T[] DecodeKeyRange([NotNull] IEnumerable<Slice> encoded)
 		{
-			var extracted = new Slice[encoded.Length];
-			for (int i = 0; i < encoded.Length; i++)
-			{
-				extracted[i] = ExtractAndCheck(encoded[i]);
-			}
-			return m_encoder.DecodeRange(extracted);
+			return m_encoder.DecodeRange(ExtractKeys(encoded, boundCheck: true));
 		}
 
 		[NotNull]
-		public IEnumerable<T> DecodeKeys([NotNull] IEnumerable<Slice> source)
+		public T[] DecodeKeyRange([NotNull] params Slice[] encoded)
 		{
-			return source.Select(key => m_encoder.DecodeKey(key));
+			return m_encoder.DecodeRange(ExtractKeys(encoded, boundCheck: true));
 		}
 
 		public virtual FdbKeyRange ToRange(T key)

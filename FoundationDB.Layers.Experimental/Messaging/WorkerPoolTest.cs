@@ -142,7 +142,7 @@ namespace FoundationDB.Layers.Messaging
 							.GetRange(FdbKeyRange.StartsWith(location.Key))
 							.ForEachAsync((kvp) =>
 							{
-								Console.WriteLine(" - " + FdbTuple.Unpack(location.Extract(kvp.Key)) + " = " + kvp.Value.ToAsciiOrHexaString());
+								Console.WriteLine(" - " + FdbTuple.Unpack(location.Keys.Extract(kvp.Key)) + " = " + kvp.Value.ToAsciiOrHexaString());
 							}).ConfigureAwait(false);
 					}
 					Console.WriteLine("</dump>");

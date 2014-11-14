@@ -49,7 +49,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<string, string>("Foos", location.Partition.By("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				string secret = "world:" + Guid.NewGuid().ToString();
 
@@ -88,7 +88,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var value = await tr.GetAsync(location.Pack("Foos", "hello"));
+					var value = await tr.GetAsync(location.Tuples.EncodeKey("Foos", "hello"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToString(), Is.EqualTo(secret));
 				}
@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(value.HasValue, Is.False);
 					
 					// also check directly
-					var data = await tr.GetAsync(location.Pack("Foos", "hello"));
+					var data = await tr.GetAsync(location.Tuples.EncodeKey("Foos", "hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}
 
@@ -128,7 +128,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<string, string>("Foos", location.Partition.By("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				// write a bunch of keys
 				await db.WriteAsync((tr) =>
@@ -188,7 +188,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition.By("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
 
 				// import all the rules
 				await db.WriteAsync((tr) =>

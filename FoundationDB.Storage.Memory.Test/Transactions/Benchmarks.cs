@@ -24,7 +24,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 		private static void DumpResult(string label, long total, long trans, TimeSpan elapsed)
 		{
-			Console.WriteLine(
+			Log(
 				"{0,-12}: {1,10:N0} keys in {2,4:N3} sec => {3,9:N0} kps, {4,7:N0} tps",
 				label,
 				total,
@@ -42,7 +42,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				GC.WaitForPendingFinalizers();
 				GC.Collect();
 			}
-			Console.WriteLine("Total memory: Managed={0:N1} KiB, WorkingSet={1:N1} KiB", GC.GetTotalMemory(false) / 1024.0, Environment.WorkingSet / 1024.0);
+			Log("Total memory: Managed={0:N1} KiB, WorkingSet={1:N1} KiB", GC.GetTotalMemory(false) / 1024.0, Environment.WorkingSet / 1024.0);
 		}
 
 		[Test]
@@ -62,12 +62,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			//WARMUP
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
-				await db.WriteAsync((tr) => tr.Set(db.Pack("hello"), Slice.FromString("world")), this.Cancellation);
+				await db.WriteAsync((tr) => tr.Set(db.Tuples.EncodeKey("hello"), Slice.FromString("world")), this.Cancellation);
 				Slice.Random(rnd, KEYSIZE);
 				Slice.Random(rnd, VALUESIZE);
 			}
 
-			Console.WriteLine("Inserting " + KEYSIZE + "-bytes " + (RANDOM ? "random" : "ordered") + " keys / " + VALUESIZE + "-bytes values, in " + T.ToString("N0") + " transactions");
+			Log("Inserting {0}-bytes {1} keys / {2}-bytes values, in {3:N0} transactions", KEYSIZE, RANDOM ? "random" : "ordered", VALUESIZE, T);
 
 			bool random = RANDOM;
 			string fmt = "D" + KEYSIZE;
@@ -117,12 +117,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				}
 
 				sw.Stop();
-				Console.WriteLine("done");
-				Console.WriteLine("* Inserted: {0:N0} keys", total);
-				Console.WriteLine("* Elapsed : {0:N3} sec", sw.Elapsed.TotalSeconds);
-				Console.WriteLine("* TPS: {0:N0} transactions/sec", T / sw.Elapsed.TotalSeconds);
-				Console.WriteLine("* KPS: {0:N0} keys/sec", total / sw.Elapsed.TotalSeconds);
-				Console.WriteLine("* BPS: {0:N0} bytes/sec", (total * (KEYSIZE + VALUESIZE)) / sw.Elapsed.TotalSeconds);
+				Log("done");
+				Log("* Inserted: {0:N0} keys", total);
+				Log("* Elapsed : {0:N3} sec", sw.Elapsed.TotalSeconds);
+				Log("* TPS: {0:N0} transactions/sec", T / sw.Elapsed.TotalSeconds);
+				Log("* KPS: {0:N0} keys/sec", total / sw.Elapsed.TotalSeconds);
+				Log("* BPS: {0:N0} bytes/sec", (total * (KEYSIZE + VALUESIZE)) / sw.Elapsed.TotalSeconds);
 
 				DumpMemory(collect: true);
 
@@ -131,16 +131,16 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				DumpResult("WriteSeq" + B, total, total / B, sw.Elapsed);
 
 				string path = @".\\minibench.pndb";
-				Console.WriteLine("Saving {0} ...", path);
+				Log("Saving {0} ...", path);
 				sw.Restart();
 				await db.SaveSnapshotAsync(path);
 				sw.Stop();
-				Console.WriteLine("* Saved {0:N0} bytes in {1:N3} sec", new System.IO.FileInfo(path).Length, sw.Elapsed.TotalSeconds);
+				Log("* Saved {0:N0} bytes in {1:N3} sec", new System.IO.FileInfo(path).Length, sw.Elapsed.TotalSeconds);
 
-				Console.WriteLine("Warming up reads...");
+				Log("Warming up reads...");
 				var data = await db.GetValuesAsync(Enumerable.Range(0, 100).Select(i => Slice.FromString(i.ToString(fmt))), this.Cancellation);
 
-				Console.WriteLine("Starting read tests...");
+				Log("Starting read tests...");
 
 				#region sequential reads
 
@@ -263,7 +263,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				//	}
 				//}
 				//sw.Stop();
-				//Console.WriteLine("RndRead1   : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//Log("RndRead1   : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
 
 				sw.Restart();
 				for (int i = 0; i < total; i += 10)
@@ -275,7 +275,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				}
 				sw.Stop();
-				//Console.WriteLine("RndRead10  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				//Log("RndRead10  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("RndRead10", total, total / 10, sw.Elapsed);
 
 				sw.Restart();
@@ -288,7 +288,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				}
 				sw.Stop();
-				//Console.WriteLine("RndRead10S : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				//Log("RndRead10S : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("RndRead10S", total, total / 10, sw.Elapsed);
 
 				sw.Restart();
@@ -306,7 +306,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				}
 				sw.Stop();
-				//Console.WriteLine("RndRead10R : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				//Log("RndRead10R : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (10 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("RndRead10R", total, total / 10, sw.Elapsed);
 
 				sw.Restart();
@@ -319,7 +319,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				}
 				sw.Stop();
-				//Console.WriteLine("RndRead100 : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				//Log("RndRead100 : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (100 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("RndRead100", total, total / 100, sw.Elapsed);
 
 				sw.Restart();
@@ -332,7 +332,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 				}
 				sw.Stop();
-				//Console.WriteLine("RndRead1k  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (1000 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
+				//Log("RndRead1k  : " + total.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (total / sw.Elapsed.TotalSeconds).ToString("N0") + " kps, " + (total / (1000 * sw.Elapsed.TotalSeconds)).ToString("N0") + " tps");
 				DumpResult("RndRead1k", total, total / 1000, sw.Elapsed);
 
 				#endregion
@@ -374,7 +374,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				await Task.WhenAll(tasks);
 				sw.Stop();
 				mre.Dispose();
-				//Console.WriteLine("ParaSeqRead: " + read.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (read / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
+				//Log("ParaSeqRead: " + read.ToString("N0") + " keys in " + sw.Elapsed.TotalSeconds.ToString("N3") + " sec => " + (read / sw.Elapsed.TotalSeconds).ToString("N0") + " kps");
 				DumpResult("ParaSeqRead", read, read / 100, sw.Elapsed);
 
 				read = 0;

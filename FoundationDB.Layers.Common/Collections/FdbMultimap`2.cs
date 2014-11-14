@@ -54,7 +54,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Create a new multimap</summary>
 		/// <param name="subspace">Location where the map will be stored in the database</param>
 		/// <param name="allowNegativeValues">If true, allow negative or zero values to stay in the map.</param>
-		public FdbMultiMap(FdbSubspace subspace, bool allowNegativeValues)
+		public FdbMultiMap(IFdbSubspace subspace, bool allowNegativeValues)
 			: this(subspace, allowNegativeValues, KeyValueEncoders.Tuples.CompositeKey<TKey, TValue>())
 		{ }
 
@@ -62,7 +62,7 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="subspace">Location where the map will be stored in the database</param>
 		/// <param name="allowNegativeValues">If true, allow negative or zero values to stay in the map.</param>
 		/// <param name="encoder">Encoder for the key/value pairs</param>
-		public FdbMultiMap(FdbSubspace subspace, bool allowNegativeValues, ICompositeKeyEncoder<TKey, TValue> encoder)
+		public FdbMultiMap(IFdbSubspace subspace, bool allowNegativeValues, ICompositeKeyEncoder<TKey, TValue> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
@@ -75,7 +75,7 @@ namespace FoundationDB.Layers.Collections
 		#region Public Properties...
 
 		/// <summary>Subspace used as a prefix for all items in this map</summary>
-		public FdbSubspace Subspace { [NotNull] get; private set; }
+		public IFdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>If true, allow negative or zero values to stay in the map.</summary>
 		public bool AllowNegativeValues { get; private set; }

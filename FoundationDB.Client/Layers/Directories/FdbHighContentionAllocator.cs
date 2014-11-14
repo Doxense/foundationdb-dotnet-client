@@ -41,21 +41,21 @@ namespace FoundationDB.Layers.Directories
 
 		private readonly Random m_rnd = new Random();
 
-		public FdbHighContentionAllocator(FdbSubspace subspace)
+		public FdbHighContentionAllocator(IFdbSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentException("subspace");
 
 			this.Subspace = subspace;
-			this.Counters = subspace.Partition(COUNTERS);
-			this.Recent = subspace.Partition(RECENT);
+			this.Counters = subspace.Partition.By(COUNTERS);
+			this.Recent = subspace.Partition.By(RECENT);
 		}
 
 		/// <summary>Location of the allocator</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbSubspace Subspace { get; private set; }
 
-		private FdbSubspace Counters { get; set; }
+		private IFdbSubspace Counters { get; set; }
 
-		private FdbSubspace Recent { get; set; }
+		private IFdbSubspace Recent { get; set; }
 
 		/// <summary>Returns a 64-bit integer that
 		/// 1) has never and will never be returned by another call to this
@@ -73,7 +73,7 @@ namespace FoundationDB.Layers.Directories
 
 			if (kv.Key.IsPresent)
 			{
-				start = this.Counters.UnpackSingle<long>(kv.Key);
+				start = this.Counters.Tuples.DecodeKey<long>(kv.Key);
 				count = kv.Value.ToInt64();
 			}
 
@@ -81,13 +81,13 @@ namespace FoundationDB.Layers.Directories
 			int window = GetWindowSize(start);
 			if ((count + 1) * 2 >= window)
 			{ // advance the window
-				trans.ClearRange(this.Counters.Key, this.Counters.Pack(start) + FdbKey.MinValue);
+				trans.ClearRange(this.Counters.Key, this.Counters.Tuples.EncodeKey(start) + FdbKey.MinValue);
 				start += window;
-				trans.ClearRange(this.Recent.Key, this.Recent.Pack(start));
+				trans.ClearRange(this.Recent.Key, this.Recent.Tuples.EncodeKey(start));
 			}
 
 			// Increment the allocation count for the current window
-			trans.AtomicAdd(this.Counters.Pack(start), Slice.FromFixed64(1));
+			trans.AtomicAdd(this.Counters.Tuples.EncodeKey(start), Slice.FromFixed64(1));
 
 			// As of the snapshot being read from, the window is less than half
             // full, so this should be expected to take 2 tries.  Under high
@@ -103,7 +103,7 @@ namespace FoundationDB.Layers.Directories
 				}
 
 				// test if the key is used
-				var key = this.Recent.Pack(candidate);
+				var key = this.Recent.Tuples.EncodeKey(candidate);
 				var value = await trans.GetAsync(key).ConfigureAwait(false);
 
 				if (value.IsNull)

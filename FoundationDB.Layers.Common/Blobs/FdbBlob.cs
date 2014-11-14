@@ -53,7 +53,7 @@ namespace FoundationDB.Layers.Blobs
 		/// Only keys within the subspace will be used by the object. 
 		/// Other clients of the database should refrain from modifying the subspace.</summary>
 		/// <param name="subspace">Subspace to be used for storing the blob data and metadata</param>
-		public FdbBlob(FdbSubspace subspace)
+		public FdbBlob(IFdbSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
@@ -61,7 +61,7 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbSubspace Subspace { get; private set; }
 
 		/// <summary>Returns the key for data chunk at the specified offset</summary>
 		/// <param name="offset"></param>
@@ -69,24 +69,24 @@ namespace FoundationDB.Layers.Blobs
 		protected virtual Slice DataKey(long offset)
 		{
 			//note: python code uses "%16d" % offset, which pads the value with spaces.. Not sure why ?
-			return this.Subspace.Pack(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
+			return this.Subspace.Tuples.EncodeKey(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
 		}
 
 		protected virtual long DataKeyOffset(Slice key)
 		{
-			long offset = Int64.Parse(this.Subspace.UnpackLast<string>(key), CultureInfo.InvariantCulture);
+			long offset = Int64.Parse(this.Subspace.Tuples.DecodeLast<string>(key), CultureInfo.InvariantCulture);
 			if (offset < 0) throw new InvalidOperationException("Chunk offset value cannot be less than zero");
 			return offset;
 		}
 
 		protected virtual Slice SizeKey()
 		{
-			return this.Subspace.Pack(SizeSuffix);
+			return this.Subspace.Tuples.EncodeKey(SizeSuffix);
 		}
 
 		protected virtual Slice AttributeKey(string name)
 		{
-			return this.Subspace.Pack(AttributesSuffix, name);
+			return this.Subspace.Tuples.EncodeKey(AttributesSuffix, name);
 		}
 
 		#region Internal Helpers...

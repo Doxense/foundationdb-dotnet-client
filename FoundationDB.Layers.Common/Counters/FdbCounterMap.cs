@@ -41,12 +41,12 @@ namespace FoundationDB.Layers.Counters
 		private static readonly Slice MinusOne = Slice.FromFixed64(-1);
 
 		/// <summary>Create a new counter map.</summary>
-		public FdbCounterMap(FdbSubspace subspace)
+		public FdbCounterMap(IFdbSubspace subspace)
 			: this(subspace, KeyValueEncoders.Tuples.Key<TKey>())
 		{ }
 
 		/// <summary>Create a new counter map, using a specific key encoder.</summary>
-		public FdbCounterMap(FdbSubspace subspace, IKeyEncoder<TKey> keyEncoder)
+		public FdbCounterMap(IFdbSubspace subspace, IKeyEncoder<TKey> keyEncoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
@@ -57,7 +57,7 @@ namespace FoundationDB.Layers.Counters
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this counter list</summary>
-		public FdbSubspace Subspace { [NotNull] get; private set; }
+		public IFdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Encoder for the keys of the counter map</summary>
 		public IKeyEncoder<TKey> KeyEncoder { [NotNull] get; private set; }

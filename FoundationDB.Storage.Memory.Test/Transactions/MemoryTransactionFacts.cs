@@ -26,7 +26,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		{
 			using (var db = MemoryDatabase.CreateNew("DB", FdbSubspace.Empty, false))
 			{
-				var key = db.Pack("hello");
+				var key = db.Tuples.EncodeKey("hello");
 
 				// v1
 				await db.WriteAsync((tr) => tr.Set(key, Slice.FromString("World!")), this.Cancellation);
@@ -70,14 +70,15 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.Tuples;
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(db.Pack(0), Slice.FromString("first"));
-					tr.Set(db.Pack(10), Slice.FromString("ten"));
-					tr.Set(db.Pack(20), Slice.FromString("ten ten"));
-					tr.Set(db.Pack(42), Slice.FromString("narf!"));
-					tr.Set(db.Pack(100), Slice.FromString("a hundred missipis"));
+					tr.Set(location.EncodeKey(0), Slice.FromString("first"));
+					tr.Set(location.EncodeKey(10), Slice.FromString("ten"));
+					tr.Set(location.EncodeKey(20), Slice.FromString("ten ten"));
+					tr.Set(location.EncodeKey(42), Slice.FromString("narf!"));
+					tr.Set(location.EncodeKey(100), Slice.FromString("a hundred missipis"));
 					await tr.CommitAsync();
 				}
 
@@ -86,35 +87,35 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 
-					value = await tr.GetAsync(db.Pack(42));
+					value = await tr.GetAsync(location.EncodeKey(42));
 					Console.WriteLine(value);
 					Assert.That(value.ToString(), Is.EqualTo("narf!"));
 
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(db.Pack(42)));
-					Assert.That(key, Is.EqualTo(db.Pack(42)));
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(42)));
+					Assert.That(key, Is.EqualTo(location.EncodeKey(42)));
 
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(db.Pack(42)));
-					Assert.That(key, Is.EqualTo(db.Pack(100)));
+					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(location.EncodeKey(42)));
+					Assert.That(key, Is.EqualTo(location.EncodeKey(100)));
 
-					key = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(db.Pack(42)));
-					Assert.That(key, Is.EqualTo(db.Pack(42)));
+					key = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(location.EncodeKey(42)));
+					Assert.That(key, Is.EqualTo(location.EncodeKey(42)));
 
-					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(db.Pack(42)));
-					Assert.That(key, Is.EqualTo(db.Pack(20)));
+					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(location.EncodeKey(42)));
+					Assert.That(key, Is.EqualTo(location.EncodeKey(20)));
 
 					var keys = await tr.GetKeysAsync(new[]
 					{
-						FdbKeySelector.FirstGreaterOrEqual(db.Pack(42)),
-						FdbKeySelector.FirstGreaterThan(db.Pack(42)),
-						FdbKeySelector.LastLessOrEqual(db.Pack(42)),
-						FdbKeySelector.LastLessThan(db.Pack(42))
+						FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(42)),
+						FdbKeySelector.FirstGreaterThan(location.EncodeKey(42)),
+						FdbKeySelector.LastLessOrEqual(location.EncodeKey(42)),
+						FdbKeySelector.LastLessThan(location.EncodeKey(42))
 					});
 
 					Assert.That(keys.Length, Is.EqualTo(4));
-					Assert.That(keys[0], Is.EqualTo(db.Pack(42)));
-					Assert.That(keys[1], Is.EqualTo(db.Pack(100)));
-					Assert.That(keys[2], Is.EqualTo(db.Pack(42)));
-					Assert.That(keys[3], Is.EqualTo(db.Pack(20)));
+					Assert.That(keys[0], Is.EqualTo(location.EncodeKey(42)));
+					Assert.That(keys[1], Is.EqualTo(location.EncodeKey(100)));
+					Assert.That(keys[2], Is.EqualTo(location.EncodeKey(42)));
+					Assert.That(keys[3], Is.EqualTo(location.EncodeKey(20)));
 
 					await tr.CommitAsync();
 				}
@@ -130,11 +131,13 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
-				using(var tr = db.BeginTransaction(this.Cancellation))
+				var location = db.Tuples;
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(db.Pack(42), Slice.FromString("42"));
-					tr.Set(db.Pack(50), Slice.FromString("50"));
-					tr.Set(db.Pack(60), Slice.FromString("60"));
+					tr.Set(location.EncodeKey(42), Slice.FromString("42"));
+					tr.Set(location.EncodeKey(50), Slice.FromString("50"));
+					tr.Set(location.EncodeKey(60), Slice.FromString("60"));
 					await tr.CommitAsync();
 				}
 				db.Debug_Dump();
@@ -150,39 +153,39 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				};
 
 				await check(
-					FdbKeySelector.FirstGreaterOrEqual(db.Pack(50)), 
-					db.Pack(50)
+					FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(50)), 
+					location.EncodeKey(50)
 				);
 				await check(
-					FdbKeySelector.FirstGreaterThan(db.Pack(50)),
-					db.Pack(60)
-				);
-
-				await check(
-					FdbKeySelector.FirstGreaterOrEqual(db.Pack(49)),
-					db.Pack(50)
-				);
-				await check(
-					FdbKeySelector.FirstGreaterThan(db.Pack(49)),
-					db.Pack(50)
+					FdbKeySelector.FirstGreaterThan(location.EncodeKey(50)),
+					location.EncodeKey(60)
 				);
 
 				await check(
-					FdbKeySelector.FirstGreaterOrEqual(db.Pack(49)) + 1,
-					db.Pack(60)
+					FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(49)),
+					location.EncodeKey(50)
 				);
 				await check(
-					FdbKeySelector.FirstGreaterThan(db.Pack(49)) + 1,
-					db.Pack(60)
+					FdbKeySelector.FirstGreaterThan(location.EncodeKey(49)),
+					location.EncodeKey(50)
 				);
 
 				await check(
-					FdbKeySelector.LastLessOrEqual(db.Pack(49)),
-					db.Pack(42)
+					FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(49)) + 1,
+					location.EncodeKey(60)
 				);
 				await check(
-					FdbKeySelector.LastLessThan(db.Pack(49)),
-					db.Pack(42)
+					FdbKeySelector.FirstGreaterThan(location.EncodeKey(49)) + 1,
+					location.EncodeKey(60)
+				);
+
+				await check(
+					FdbKeySelector.LastLessOrEqual(location.EncodeKey(49)),
+					location.EncodeKey(42)
+				);
+				await check(
+					FdbKeySelector.LastLessThan(location.EncodeKey(49)),
+					location.EncodeKey(42)
 				);
 			}
 		}
@@ -194,12 +197,13 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.Tuples;
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					for (int i = 0; i <= 100; i++)
 					{
-						tr.Set(db.Pack(i), Slice.FromString("value of " + i));
+						tr.Set(location.EncodeKey(i), Slice.FromString("value of " + i));
 					}
 					await tr.CommitAsync();
 				}
@@ -214,15 +218,15 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					key = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(FdbKey.MaxValue));
 					if (key != FdbKey.MaxValue) Assert.Inconclusive("Key selectors are buggy: lLE(max)");
 					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MaxValue));
-					if (key != db.Pack(100)) Assert.Inconclusive("Key selectors are buggy: lLT(max)");
+					if (key != location.EncodeKey(100)) Assert.Inconclusive("Key selectors are buggy: lLT(max)");
 				}
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 
 					var chunk = await tr.GetRangeAsync(
-						FdbKeySelector.FirstGreaterOrEqual(db.Pack(0)),
-						FdbKeySelector.FirstGreaterOrEqual(db.Pack(50))
+						FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(0)),
+						FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(50))
 					);
 #if DEBUG
 					for (int i = 0; i < chunk.Count; i++)
@@ -238,7 +242,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 					for (int i = 0; i < 50; i++)
 					{
-						Assert.That(chunk.Chunk[i].Key, Is.EqualTo(db.Pack(i)), "[{0}].Key", i);
+						Assert.That(chunk.Chunk[i].Key, Is.EqualTo(location.EncodeKey(i)), "[{0}].Key", i);
 						Assert.That(chunk.Chunk[i].Value.ToString(), Is.EqualTo("value of " + i), "[{0}].Value", i);
 					}
 
@@ -249,8 +253,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				{
 
 					var chunk = await tr.GetRangeAsync(
-						FdbKeySelector.FirstGreaterOrEqual(db.Pack(0)),
-						FdbKeySelector.FirstGreaterOrEqual(db.Pack(50)),
+						FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(0)),
+						FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(50)),
 						new FdbRangeOptions { Reverse = true }
 					);
 #if DEBUG
@@ -267,7 +271,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 					for (int i = 0; i < 50; i++)
 					{
-						Assert.That(chunk.Chunk[i].Key, Is.EqualTo(db.Pack(49 - i)), "[{0}].Key", i);
+						Assert.That(chunk.Chunk[i].Key, Is.EqualTo(location.EncodeKey(49 - i)), "[{0}].Key", i);
 						Assert.That(chunk.Chunk[i].Value.ToString(), Is.EqualTo("value of " + (49 - i)), "[{0}].Value", i);
 					}
 
@@ -278,7 +282,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				{
 
 					var chunk = await tr.GetRangeAsync(
-						FdbKeySelector.FirstGreaterOrEqual(db.Pack(0)),
+						FdbKeySelector.FirstGreaterOrEqual(location.EncodeKey(0)),
 						FdbKeySelector.FirstGreaterOrEqual(FdbKey.MaxValue),
 						new FdbRangeOptions { Reverse = true, Limit = 1 }
 					);
@@ -307,13 +311,13 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
-				db.Debug_Dump();
+				var location = db.Tuples;
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					for (int i = 0; i <= 100; i++)
 					{
-						tr.Set(db.Pack(i), Slice.FromString("value of " + i));
+						tr.Set(location.EncodeKey(i), Slice.FromString("value of " + i));
 					}
 					await tr.CommitAsync();
 				}
@@ -324,7 +328,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				{
 
 					var results = await tr
-						.GetRange(db.Pack(0), db.Pack(50))
+						.GetRange(location.EncodeKey(0), location.EncodeKey(50))
 						.ToListAsync();
 
 					Assert.That(results, Is.Not.Null);
@@ -338,7 +342,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					Assert.That(results.Count, Is.EqualTo(50));
 					for (int i = 0; i < 50; i++)
 					{
-						Assert.That(results[i].Key, Is.EqualTo(db.Pack(i)), "[{0}].Key", i);
+						Assert.That(results[i].Key, Is.EqualTo(location.EncodeKey(i)), "[{0}].Key", i);
 						Assert.That(results[i].Value.ToString(), Is.EqualTo("value of " + i), "[{0}].Value", i);
 					}
 
@@ -349,7 +353,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				{
 
 					var results = await tr
-						.GetRange(db.Pack(0), db.Pack(50), new FdbRangeOptions { Reverse = true })
+						.GetRange(location.EncodeKey(0), location.EncodeKey(50), new FdbRangeOptions { Reverse = true })
 						.ToListAsync();
 					Assert.That(results, Is.Not.Null);
 #if DEBUG
@@ -362,7 +366,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					Assert.That(results.Count, Is.EqualTo(50));
 					for (int i = 0; i < 50; i++)
 					{
-						Assert.That(results[i].Key, Is.EqualTo(db.Pack(49 - i)), "[{0}].Key", i);
+						Assert.That(results[i].Key, Is.EqualTo(location.EncodeKey(49 - i)), "[{0}].Key", i);
 						Assert.That(results[i].Value.ToString(), Is.EqualTo("value of " + (49 - i)), "[{0}].Value", i);
 					}
 
@@ -372,13 +376,13 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var result = await tr
-						.GetRange(db.Pack(0), FdbKey.MaxValue, new FdbRangeOptions { Reverse = true })
+						.GetRange(location.EncodeKey(0), FdbKey.MaxValue, new FdbRangeOptions { Reverse = true })
 						.FirstOrDefaultAsync();
 
 #if DEBUG
 					Console.WriteLine(result.Key + " = " + result.Value);
 #endif
-					Assert.That(result.Key, Is.EqualTo(db.Pack(100)));
+					Assert.That(result.Key, Is.EqualTo(location.EncodeKey(100)));
 					Assert.That(result.Value.ToString(), Is.EqualTo("value of 100"));
 
 					await tr.CommitAsync();
@@ -395,12 +399,14 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.Tuples;
+
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					long ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
-					var _ = await tr.GetAsync(db.Pack("foo"));
+					var _ = await tr.GetAsync(location.EncodeKey("foo"));
 
 					// until the transction commits, the committed version will stay -1
 					ver = tr.GetCommittedVersion();
@@ -425,6 +431,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.Tuples;
+
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// take the read version (to compare with the committed version below)
@@ -433,7 +441,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					long ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
-					tr.Set(db.Pack("foo"), Slice.FromString("bar"));
+					tr.Set(location.EncodeKey("foo"), Slice.FromString("bar"));
 
 					// until the transction commits, the committed version should still be -1
 					ver = tr.GetCommittedVersion();
@@ -458,12 +466,14 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.Tuples;
+
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					// take the read version (to compare with the committed version below)
 					long rv1 = await tr.GetReadVersionAsync();
 					// do something and commit
-					tr.Set(db.Pack("foo"), Slice.FromString("bar"));
+					tr.Set(location.EncodeKey("foo"), Slice.FromString("bar"));
 					await tr.CommitAsync();
 					long cv1 = tr.GetCommittedVersion();
 					Console.WriteLine("COMMIT: " + rv1 + " / " + cv1);
@@ -479,7 +489,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					//Assert.That(cv2, Is.EqualTo(-1), "Committed version should go back to -1 after reset");
 
 					// read-only + commit
-					await tr.GetAsync(db.Pack("foo"));
+					await tr.GetAsync(location.EncodeKey("foo"));
 					await tr.CommitAsync();
 					cv2 = tr.GetCommittedVersion();
 					Console.WriteLine("COMMIT2: " + rv2 + " / " + cv2);
@@ -496,17 +506,18 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			// this SHOULD NOT conflict
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.Tuples;
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(db.Pack("foo"), Slice.FromString("changed"));
+						tr2.Set(location.EncodeKey("foo"), Slice.FromString("changed"));
 						await tr2.CommitAsync();
 					}
 
-					var x = await tr1.GetAsync(db.Pack("foo"));
-					tr1.Set(db.Pack("bar"), Slice.FromString("other"));
+					var x = await tr1.GetAsync(location.EncodeKey("foo"));
+					tr1.Set(location.EncodeKey("bar"), Slice.FromString("other"));
 
 					await tr1.CommitAsync();
 				}
@@ -516,18 +527,19 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			// this SHOULD conflict
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.Tuples;
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
-					var x = await tr1.GetAsync(db.Pack("foo"));
+					var x = await tr1.GetAsync(location.EncodeKey("foo"));
 
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(db.Pack("foo"), Slice.FromString("changed"));
+						tr2.Set(location.EncodeKey("foo"), Slice.FromString("changed"));
 						await tr2.CommitAsync();
 					}
 
-					tr1.Set(db.Pack("bar"), Slice.FromString("other"));
+					tr1.Set(location.EncodeKey("bar"), Slice.FromString("other"));
 
 					Assert.That(async () => await tr1.CommitAsync(), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
 				}
@@ -537,6 +549,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			// this SHOULD conflict
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.Tuples;
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
@@ -544,12 +557,12 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(db.Pack("foo"), Slice.FromString("changed"));
+						tr2.Set(location.EncodeKey("foo"), Slice.FromString("changed"));
 						await tr2.CommitAsync();
 					}
 
-					var x = await tr1.GetAsync(db.Pack("foo"));
-					tr1.Set(db.Pack("bar"), Slice.FromString("other"));
+					var x = await tr1.GetAsync(location.EncodeKey("foo"));
+					tr1.Set(location.EncodeKey("bar"), Slice.FromString("other"));
 
 					Assert.That(async () => await tr1.CommitAsync(), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.NotCommitted));
 				}
@@ -559,18 +572,19 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			// this SHOULD NOT conflict
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.Tuples;
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
-					var x = await tr1.Snapshot.GetAsync(db.Pack("foo"));
+					var x = await tr1.Snapshot.GetAsync(location.EncodeKey("foo"));
 
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(db.Pack("foo"), Slice.FromString("changed"));
+						tr2.Set(location.EncodeKey("foo"), Slice.FromString("changed"));
 						await tr2.CommitAsync();
 					}
 
-					tr1.Set(db.Pack("bar"), Slice.FromString("other"));
+					tr1.Set(location.EncodeKey("bar"), Slice.FromString("other"));
 
 					await tr1.CommitAsync();
 				}
@@ -583,6 +597,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		{
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
+				var location = db.Tuples;
+
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					tr.Set(Slice.FromString("hello"), Slice.FromString("World!"));
@@ -649,9 +665,11 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		{
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
-				var key1 = db.Pack(1);
-				var key2 = db.Pack(2);
-				var key16 = db.Pack(16);
+				var location = db.Tuples;
+
+				var key1 = location.EncodeKey(1);
+				var key2 = location.EncodeKey(2);
+				var key16 = location.EncodeKey(16);
 
 				for (int i = 0; i < 10; i++)
 				{
@@ -679,9 +697,10 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		{
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
+				var location = db.GlobalSpace;
 
-				var map = new FdbMap<int, string>("Foos", db.GlobalSpace.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
-				var index = new FdbIndex<int, string>("Foos.ByColor", db.GlobalSpace.Partition("Foos", "Color"));
+				var map = new FdbMap<int, string>("Foos", db.GlobalSpace.Partition.By("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var index = new FdbIndex<int, string>("Foos.ByColor", db.GlobalSpace.Partition.By("Foos", "Color"));
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
@@ -710,6 +729,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 		{
 			using (var db = MemoryDatabase.CreateNew("DB"))
 			{
+				var location = db.GlobalSpace;
 
 				var foos = await db.Directory.CreateOrOpenAsync("Foos", this.Cancellation);
 				var bars = await db.Directory.CreateOrOpenAsync("Bars", this.Cancellation);
@@ -819,17 +839,19 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			Console.WriteLine("Warmup...");
 			using (var db = MemoryDatabase.CreateNew("WARMUP"))
 			{
-				await db.BulkLoadAsync(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(db.Pack(i), Slice.FromFixed32(i))).ToList(), ordered: true);
+				await db.BulkLoadAsync(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(db.Tuples.EncodeKey(i), Slice.FromFixed32(i))).ToList(), ordered: true);
 			}
 
 			using(var db = MemoryDatabase.CreateNew("FOO"))
 			{
+				var location = db.Tuples;
+
 				Console.WriteLine("Generating " + N.ToString("N0") + " keys...");
 				var data = new KeyValuePair<Slice, Slice>[N];
 				for (int i = 0; i < N; i++)
 				{
 					data[i] = new KeyValuePair<Slice, Slice>(
-					 db.Pack(i),
+					 location.EncodeKey(i),
 					 Slice.FromFixed32(i)
 					);
 				}
@@ -848,7 +870,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					int x = rnd.Next(N);
 					using (var tx = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
-						var res = await tx.GetAsync(db.Pack(x)).ConfigureAwait(false);
+						var res = await tx.GetAsync(location.EncodeKey(x)).ConfigureAwait(false);
 						Assert.That(res.ToInt32(), Is.EqualTo(x));
 					}
 				}
@@ -866,18 +888,20 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			Console.WriteLine("Warmup...");
 			using(var db = MemoryDatabase.CreateNew("WARMUP"))
 			{
-				await db.BulkLoadAsync(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(db.Pack(i), Slice.FromFixed32(i))).ToList(), ordered: false);
+				await db.BulkLoadAsync(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(db.Tuples.EncodeKey(i), Slice.FromFixed32(i))).ToList(), ordered: false);
 			}
 
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
+				var location = db.Tuples;
+
 				Console.WriteLine("Generating " + N.ToString("N0") + " keys...");
 				var data = new KeyValuePair<Slice, Slice>[N];
 				var rnd = new Random();
 				for (int i = 0; i < N; i++)
 				{
 					data[i] = new KeyValuePair<Slice, Slice>(
-						db.Pack(i),
+						location.EncodeKey(i),
 						Slice.FromFixed32(i)
 					);
 				}
@@ -895,7 +919,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					int x = rnd.Next(N);
 					using (var tx = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
-						var res = await tx.GetAsync(db.Pack(x)).ConfigureAwait(false);
+						var res = await tx.GetAsync(location.EncodeKey(x)).ConfigureAwait(false);
 						Assert.That(res.ToInt32(), Is.EqualTo(x));
 					}
 				}
@@ -913,11 +937,13 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			Console.WriteLine("Warmup...");
 			using (var db = MemoryDatabase.CreateNew("WARMUP"))
 			{
-				await db.BulkLoadAsync(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(db.Pack(i), Slice.FromFixed32(i))).ToList(), ordered: false);
+				await db.BulkLoadAsync(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(db.Tuples.EncodeKey(i), Slice.FromFixed32(i))).ToList(), ordered: false);
 			}
 
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
+				var location = db.Tuples;
+
 				Console.WriteLine("Generating " + N.ToString("N0") + " keys...");
 				var data = new KeyValuePair<Slice, Slice>[N];
 				var ints = new int[N];
@@ -925,7 +951,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 				for (int i = 0; i < N; i++)
 				{
 					data[i] = new KeyValuePair<Slice, Slice>(
-						db.Pack(i),
+						location.EncodeKey(i),
 						Slice.FromFixed32(i)
 					);
 					ints[i] = rnd.Next(int.MaxValue);
@@ -947,7 +973,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					int x = rnd.Next(N);
 					using (var tx = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
-						var res = await tx.GetAsync(db.Pack(x)).ConfigureAwait(false);
+						var res = await tx.GetAsync(location.EncodeKey(x)).ConfigureAwait(false);
 						Assert.That(res.ToInt32(), Is.EqualTo(x));
 					}
 				}

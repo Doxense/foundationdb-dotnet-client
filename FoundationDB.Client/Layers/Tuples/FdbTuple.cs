@@ -403,14 +403,14 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[NotNull]
-		public static Slice[] PackRange<T>(Slice prefix, [NotNull] IEnumerable<T> keys)
+		public static Slice[] PackRangeWithPrefix<T>(Slice prefix, [NotNull] IEnumerable<T> keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 			if (keys == null) throw new ArgumentNullException("keys");
 
 			// use optimized version for arrays
 			var array = keys as T[];
-			if (array != null) return PackRange<T>(prefix, array);
+			if (array != null) return PackRangeWithPrefix<T>(prefix, array);
 
 			var next = new List<int>();
 			var writer = SliceWriter.Empty;
@@ -434,7 +434,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[NotNull]
-		public static Slice[] PackRange<T>(Slice prefix, [NotNull] params T[] keys)
+		public static Slice[] PackRangeWithPrefix<T>(Slice prefix, [NotNull] params T[] keys)
 		{
 			if (keys == null) throw new ArgumentNullException("keys");
 
@@ -463,7 +463,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		public static Slice[] PackRange<TKey, TElement>([NotNull] TElement[] elements, [NotNull] Func<TElement, TKey> selector)
 		{
-			return PackRange<TKey, TElement>(Slice.Empty, elements, selector);
+			return PackRangeWithPrefix<TKey, TElement>(Slice.Empty, elements, selector);
 		}
 
 		/// <summary>Merge an array of elements with a same prefix, all sharing the same buffer</summary>
@@ -473,7 +473,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="elements">Sequence of elements to pack</param>
 		/// <param name="selector">Lambda that extract the key from each element</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public static Slice[] PackRange<TKey, TElement>(Slice prefix, [NotNull] TElement[] elements, [NotNull] Func<TElement, TKey> selector)
+		public static Slice[] PackRangeWithPrefix<TKey, TElement>(Slice prefix, [NotNull] TElement[] elements, [NotNull] Func<TElement, TKey> selector)
 		{
 			if (elements == null) throw new ArgumentNullException("elements");
 			if (selector == null) throw new ArgumentNullException("selector");
@@ -502,7 +502,7 @@ namespace FoundationDB.Layers.Tuples
 		[NotNull]
 		public static Slice[] PackRange([NotNull] IEnumerable<IFdbTuple> tuples)
 		{
-			return PackRange(Slice.Nil, tuples);
+			return PackRangeWithPrefix(Slice.Nil, tuples);
 		}
 
 		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
@@ -511,13 +511,13 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[NotNull]
-		public static Slice[] PackRange(Slice prefix, [NotNull] IEnumerable<IFdbTuple> tuples)
+		public static Slice[] PackRangeWithPrefix(Slice prefix, [NotNull] IEnumerable<IFdbTuple> tuples)
 		{
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
 			// use optimized version for arrays
 			var array = tuples as IFdbTuple[];
-			if (array != null) return PackRange(prefix, array);
+			if (array != null) return PackRangeWithPrefix(prefix, array);
 
 			var next = new List<int>();
 			var writer = SliceWriter.Empty;
@@ -541,7 +541,7 @@ namespace FoundationDB.Layers.Tuples
 		[NotNull]
 		public static Slice[] PackRange([NotNull] IFdbTuple[] tuples)
 		{
-			return PackRange(Slice.Nil, tuples);
+			return PackRangeWithPrefix(Slice.Nil, tuples);
 		}
 
 		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
@@ -550,7 +550,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[NotNull]
-		public static Slice[] PackRange(Slice prefix, params IFdbTuple[] tuples)
+		public static Slice[] PackRangeWithPrefix(Slice prefix, params IFdbTuple[] tuples)
 		{
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
@@ -576,11 +576,11 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[NotNull]
-		public static Slice[] PackRange<T>([NotNull] IFdbTuple prefix, [NotNull] IEnumerable<T> keys)
+		public static Slice[] PackRangeWithPrefix<T>([NotNull] IFdbTuple prefix, [NotNull] IEnumerable<T> keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 
-			return PackRange<T>(prefix.ToSlice(), keys);
+			return PackRangeWithPrefix<T>(prefix.ToSlice(), keys);
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -589,57 +589,11 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="keys">Sequence of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
 		[NotNull]
-		public static Slice[] PackRange<T>([NotNull] IFdbTuple prefix, [NotNull] params T[] keys)
+		public static Slice[] PackRangeWithPrefix<T>([NotNull] IFdbTuple prefix, [NotNull] params T[] keys)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 
-			return PackRange<T>(prefix.ToSlice(), keys);
-		}
-
-		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		[NotNull]
-		public static Slice[] PackBoxedRange(Slice prefix, [NotNull] IEnumerable<object> keys)
-		{
-			return PackRange<object>(prefix, keys);
-		}
-
-		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		[NotNull]
-		public static Slice[] PackBoxedRange(Slice prefix, [NotNull] object[] keys)
-		{
-			//note: we don't use "params object[] keys" because it can be ambiguous when passing an 'object[]' parameter (because an object[] is also an object)
-			return PackRange<object>(prefix, keys);
-		}
-
-		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		[NotNull]
-		public static Slice[] PackBoxedRange([NotNull] IFdbTuple prefix, [NotNull] IEnumerable<object> keys)
-		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-
-			return PackRange<object>(prefix.ToSlice(), keys);
-		}
-
-		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
-		/// <param name="prefix">Prefix shared by all keys</param>
-		/// <param name="keys">Sequence of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		[NotNull]
-		public static Slice[] PackBoxedRange([NotNull] IFdbTuple prefix, [NotNull] object[] keys)
-		{
-			//note: we don't use "params object[] keys" because it can be ambiguous when passing an 'object[]' parameter (because an object[] is also an object)
-			if (prefix == null) throw new ArgumentNullException("prefix");
-
-			return PackRange<object>(prefix.ToSlice(), keys);
+			return PackRangeWithPrefix<T>(prefix.ToSlice(), keys);
 		}
 
 		#endregion
@@ -667,7 +621,12 @@ namespace FoundationDB.Layers.Tuples
 		public static IFdbTuple UnpackWithoutPrefix(Slice packedKey, Slice prefix)
 		{
 			// ensure that the key starts with the prefix
-			if (!packedKey.StartsWith(prefix)) throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
+			if (!packedKey.StartsWith(prefix))
+#if DEBUG
+				throw new ArgumentOutOfRangeException("packedKey", String.Format("The specifed packed tuple does not start with the expected prefix '{0}'", prefix.ToString()));
+#else
+				throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
+#endif
 
 			// unpack the key, minus the prefix
 			return FdbTuplePackers.Unpack(packedKey.Substring(prefix.Count));

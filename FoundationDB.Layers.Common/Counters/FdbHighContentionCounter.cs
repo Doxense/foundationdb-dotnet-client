@@ -100,7 +100,7 @@ namespace FoundationDB.Layers.Counters
 				try
 				{
 					// read N writes from a random place in ID space
-					var loc = this.Subspace.Pack(RandomId());
+					var loc = this.Subspace.Tuples.EncodeKey(RandomId());
 
 					bool right;
 					lock(this.Rng) { right = this.Rng.NextDouble() < 0.5; }
@@ -119,7 +119,7 @@ namespace FoundationDB.Layers.Counters
 							tr.Clear(shard.Key);
 						}
 
-						tr.Set(this.Subspace.Pack(RandomId()), this.Encoder.EncodeValue(total));
+						tr.Set(this.Subspace.Tuples.EncodeKey(RandomId()), this.Encoder.EncodeValue(total));
 
 						// note: contrary to the python impl, we will await the commit, and rely on the caller to not wait to the Coalesce task itself to complete.
 						// That way, the transaction will live as long as the task, and we ensure that it gets disposed at some time
@@ -196,7 +196,7 @@ namespace FoundationDB.Layers.Counters
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Set(this.Subspace.Pack(RandomId()), this.Encoder.EncodeValue(x));
+			trans.Set(this.Subspace.Tuples.EncodeKey(RandomId()), this.Encoder.EncodeValue(x));
 
 			// decide if we must coalesce
 			//note: Random() is not thread-safe so we must lock

@@ -37,11 +37,11 @@ namespace FoundationDB.Client
 
 	public class FdbEncoderSubspace<T1, T2> : FdbSubspace, ICompositeKeyEncoder<T1, T2>
 	{
-		protected readonly FdbSubspace m_parent;
+		protected readonly IFdbSubspace m_parent;
 		protected readonly ICompositeKeyEncoder<T1, T2> m_encoder;
 		protected volatile FdbEncoderSubspace<T1> m_head;
 
-		public FdbEncoderSubspace([NotNull] FdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
+		public FdbEncoderSubspace([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 			: base(subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -97,47 +97,47 @@ namespace FoundationDB.Client
 
 		public virtual Slice EncodeKey(FdbTuple<T1, T2> key)
 		{
-			return this.Key + m_encoder.EncodeKey(key);
+			return ConcatKey(m_encoder.EncodeKey(key));
 		}
 
 		public virtual Slice EncodeKey(T1 key1, T2 key2)
 		{
-			return this.Key + m_encoder.EncodeKey(key1, key2);
+			return ConcatKey(m_encoder.EncodeKey(key1, key2));
 		}
 
 		public virtual Slice EncodeKey(T1 key1)
 		{
-			return this.Key + m_encoder.EncodeComposite(FdbTuple.Create<T1, T2>(key1, default(T2)), 1);
+			return ConcatKey(m_encoder.EncodeComposite(FdbTuple.Create<T1, T2>(key1, default(T2)), 1));
 		}
 
 		Slice ICompositeKeyEncoder<FdbTuple<T1, T2>>.EncodeComposite(FdbTuple<T1, T2> key, int items)
 		{
-			return this.Key + m_encoder.EncodeComposite(key, items);
+			return ConcatKey(m_encoder.EncodeComposite(key, items));
 		}
 
 		public virtual FdbTuple<T1, T2> DecodeKey(Slice encoded)
 		{
-			return m_encoder.DecodeKey(this.ExtractAndCheck(encoded));
+			return m_encoder.DecodeKey(ExtractKey(encoded, boundCheck: true));
 		}
 
 		FdbTuple<T1, T2> ICompositeKeyEncoder<FdbTuple<T1, T2>>.DecodeComposite(Slice encoded, int items)
 		{
-			return m_encoder.DecodeComposite(this.ExtractAndCheck(encoded), items);
+			return m_encoder.DecodeComposite(ExtractKey(encoded, boundCheck: true), items);
 		}
 
 		public virtual FdbKeyRange ToRange(FdbTuple<T1, T2> key)
 		{
-			return FdbTuple.ToRange(this.EncodeKey(key));
+			return FdbTuple.ToRange(EncodeKey(key));
 		}
 
 		public virtual FdbKeyRange ToRange(T1 key1, T2 key2)
 		{
-			return FdbTuple.ToRange(this.EncodeKey(key1, key2));
+			return FdbTuple.ToRange(EncodeKey(key1, key2));
 		}
 
 		public virtual FdbKeyRange ToRange(T1 key1)
 		{
-			return FdbTuple.ToRange(this.EncodeKey(key1));
+			return FdbTuple.ToRange(EncodeKey(key1));
 		}
 
 		#endregion

@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
-		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, FdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
+		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, IFdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();
 			if (string.IsNullOrEmpty(databaseName)) throw new ArgumentNullException("databaseName");

@@ -104,16 +104,16 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr, Is.Not.Null);
 					
 					// reading should not fail
-					await tr.GetAsync(db.Pack("Hello"));
+					await tr.GetAsync(db.Tuples.EncodeKey("Hello"));
 
 					// any attempt to recast into a writeable transaction should fail!
 					var tr2 = (IFdbTransaction)tr;
 					Assert.That(tr2.IsReadOnly, Is.True, "Transaction should be marked as readonly");
-					var location = db.Partition("ReadOnly");
-					Assert.That(() => tr2.Set(location.Pack("Hello"), Slice.Empty), Throws.InvalidOperationException);
-					Assert.That(() => tr2.Clear(location.Pack("Hello")), Throws.InvalidOperationException);
-					Assert.That(() => tr2.ClearRange(location.Pack("ABC"), location.Pack("DEF")), Throws.InvalidOperationException);
-					Assert.That(() => tr2.Atomic(location.Pack("Counter"), Slice.FromFixed32(1), FdbMutationType.Add), Throws.InvalidOperationException);
+					var location = db.Partition.By("ReadOnly");
+					Assert.That(() => tr2.Set(location.Tuples.EncodeKey("Hello"), Slice.Empty), Throws.InvalidOperationException);
+					Assert.That(() => tr2.Clear(location.Tuples.EncodeKey("Hello")), Throws.InvalidOperationException);
+					Assert.That(() => tr2.ClearRange(location.Tuples.EncodeKey("ABC"), location.Tuples.EncodeKey("DEF")), Throws.InvalidOperationException);
+					Assert.That(() => tr2.Atomic(location.Tuples.EncodeKey("Counter"), Slice.FromFixed32(1), FdbMutationType.Add), Throws.InvalidOperationException);
 				}
 			}
 		}
@@ -223,11 +223,11 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(location.Pack(1), Slice.FromString("hello"));
+					tr.Set(location.Tuples.EncodeKey(1), Slice.FromString("hello"));
 					tr.Cancel();
 
 					await TestHelpers.AssertThrowsFdbErrorAsync(
@@ -248,7 +248,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -259,7 +259,7 @@ namespace FoundationDB.Client.Tests
 					// Writes about 5 MB of stuff in 100k chunks
 					for (int i = 0; i < 50; i++)
 					{
-						tr.Set(location.Pack(i), Slice.Random(rnd, 100 * 1000));
+						tr.Set(location.Tuples.EncodeKey(i), Slice.Random(rnd, 100 * 1000));
 					}
 
 					// start commiting
@@ -288,7 +288,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -300,7 +300,7 @@ namespace FoundationDB.Client.Tests
 					// Writes about 5 MB of stuff in 100k chunks
 					for (int i = 0; i < 50; i++)
 					{
-						tr.Set(location.Pack(i), Slice.Random(rnd, 100 * 1000));
+						tr.Set(location.Tuples.EncodeKey(i), Slice.Random(rnd, 100 * 1000));
 					}
 
 					// start commiting with a cancellation token
@@ -345,14 +345,14 @@ namespace FoundationDB.Client.Tests
 				long writeVersion;
 				long readVersion;
 
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 
 				// write a bunch of keys
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(location.Pack("hello"), Slice.FromString("World!"));
-					tr.Set(location.Pack("timestamp"), Slice.FromInt64(ticks));
-					tr.Set(location.Pack("blob"), Slice.Create(new byte[] { 42, 123, 7 }));
+					tr.Set(location.Tuples.EncodeKey("hello"), Slice.FromString("World!"));
+					tr.Set(location.Tuples.EncodeKey("timestamp"), Slice.FromInt64(ticks));
+					tr.Set(location.Tuples.EncodeKey("blob"), Slice.Create(new byte[] { 42, 123, 7 }));
 
 					await tr.CommitAsync();
 
@@ -368,15 +368,15 @@ namespace FoundationDB.Client.Tests
 					readVersion = await tr.GetReadVersionAsync();
 					Assert.That(readVersion, Is.GreaterThan(0), "Read version should be > 0");
 
-					bytes = await tr.GetAsync(location.Pack("hello")); // => 1007 "past_version"
+					bytes = await tr.GetAsync(location.Tuples.EncodeKey("hello")); // => 1007 "past_version"
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(Encoding.UTF8.GetString(bytes.Array, bytes.Offset, bytes.Count), Is.EqualTo("World!"));
 
-					bytes = await tr.GetAsync(location.Pack("timestamp"));
+					bytes = await tr.GetAsync(location.Tuples.EncodeKey("timestamp"));
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(bytes.ToInt64(), Is.EqualTo(ticks));
 
-					bytes = await tr.GetAsync(location.Pack("blob"));
+					bytes = await tr.GetAsync(location.Tuples.EncodeKey("blob"));
 					Assert.That(bytes.Array, Is.Not.Null);
 					Assert.That(bytes.Array, Is.EqualTo(new byte[] { 42, 123, 7 }));
 				}
@@ -390,7 +390,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("keys");
+				var location = db.Partition.By("keys");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var minKey = location.Key + FdbKey.MinValue;
@@ -406,7 +406,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(minKey, Slice.FromString("min"));
 					for (int i = 0; i < 20; i++)
 					{
-						tr.Set(location.Pack(i), Slice.FromString(i.ToString()));
+						tr.Set(location.Tuples.EncodeKey(i), Slice.FromString(i.ToString()));
 					}
 					tr.Set(maxKey, Slice.FromString("max"));
 					await tr.CommitAsync();
@@ -418,43 +418,43 @@ namespace FoundationDB.Client.Tests
 					FdbKeySelector sel;
 
 					// >= 0
-					sel = FdbKeySelector.FirstGreaterOrEqual(location.Pack(0));
-					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Pack(0)), "fGE(0) should return 0");
+					sel = FdbKeySelector.FirstGreaterOrEqual(location.Tuples.EncodeKey(0));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Tuples.EncodeKey(0)), "fGE(0) should return 0");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(minKey), "fGE(0)-1 should return minKey");
-					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(1)), "fGE(0)+1 should return 1");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Tuples.EncodeKey(1)), "fGE(0)+1 should return 1");
 
 					// > 0
-					sel = FdbKeySelector.FirstGreaterThan(location.Pack(0));
-					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Pack(1)), "fGT(0) should return 1");
-					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(0)), "fGT(0)-1 should return 0");
-					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(2)), "fGT(0)+1 should return 2");
+					sel = FdbKeySelector.FirstGreaterThan(location.Tuples.EncodeKey(0));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Tuples.EncodeKey(1)), "fGT(0) should return 1");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Tuples.EncodeKey(0)), "fGT(0)-1 should return 0");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Tuples.EncodeKey(2)), "fGT(0)+1 should return 2");
 
 					// <= 10
-					sel = FdbKeySelector.LastLessOrEqual(location.Pack(10));
-					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Pack(10)), "lLE(10) should return 10");
-					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(9)), "lLE(10)-1 should return 9");
-					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(11)), "lLE(10)+1 should return 11");
+					sel = FdbKeySelector.LastLessOrEqual(location.Tuples.EncodeKey(10));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Tuples.EncodeKey(10)), "lLE(10) should return 10");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Tuples.EncodeKey(9)), "lLE(10)-1 should return 9");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Tuples.EncodeKey(11)), "lLE(10)+1 should return 11");
 
 					// < 10
-					sel = FdbKeySelector.LastLessThan(location.Pack(10));
-					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Pack(9)), "lLT(10) should return 9");
-					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(8)), "lLT(10)-1 should return 8");
-					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(10)), "lLT(10)+1 should return 10");
+					sel = FdbKeySelector.LastLessThan(location.Tuples.EncodeKey(10));
+					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Tuples.EncodeKey(9)), "lLT(10) should return 9");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Tuples.EncodeKey(8)), "lLT(10)-1 should return 8");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Tuples.EncodeKey(10)), "lLT(10)+1 should return 10");
 
 					// < 0
-					sel = FdbKeySelector.LastLessThan(location.Pack(0));
+					sel = FdbKeySelector.LastLessThan(location.Tuples.EncodeKey(0));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(minKey), "lLT(0) should return minKey");
-					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Pack(0)), "lLT(0)+1 should return 0");
+					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Tuples.EncodeKey(0)), "lLT(0)+1 should return 0");
 
 					// >= 20
-					sel = FdbKeySelector.FirstGreaterOrEqual(location.Pack(20));
+					sel = FdbKeySelector.FirstGreaterOrEqual(location.Tuples.EncodeKey(20));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(maxKey), "fGE(20) should return maxKey");
-					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(19)), "fGE(20)-1 should return 19");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Tuples.EncodeKey(19)), "fGE(20)-1 should return 19");
 
 					// > 19
-					sel = FdbKeySelector.FirstGreaterThan(location.Pack(19));
+					sel = FdbKeySelector.FirstGreaterThan(location.Tuples.EncodeKey(19));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(maxKey), "fGT(19) should return maxKey");
-					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Pack(19)), "fGT(19)-1 should return 19");
+					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Tuples.EncodeKey(19)), "fGT(19)-1 should return 19");
 				}
 			}
 		}
@@ -539,7 +539,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("Batch");
+				var location = db.Partition.By("Batch");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				int[] ids = new int[] { 8, 7, 2, 9, 5, 0, 3, 4, 6, 1 };
@@ -548,21 +548,21 @@ namespace FoundationDB.Client.Tests
 				{
 					for (int i = 0; i < ids.Length; i++)
 					{
-						tr.Set(location.Pack(i), Slice.FromString("#" + i.ToString()));
+						tr.Set(location.Tuples.EncodeKey(i), Slice.FromString("#" + i.ToString()));
 					}
 					await tr.CommitAsync();
 				}
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var keys = ids.Select(id => location.Pack(id)).ToArray();
+					var keys = ids.Select(id => location.Tuples.EncodeKey(id)).ToArray();
 
 					var results = await tr.GetValuesAsync(keys);
 
 					Assert.That(results, Is.Not.Null);
 					Assert.That(results.Length, Is.EqualTo(ids.Length));
 
-					Console.WriteLine(String.Join(", ", results));
+					Log(String.Join(", ", results));
 
 					for (int i = 0; i < ids.Length;i++)
 					{
@@ -582,7 +582,7 @@ namespace FoundationDB.Client.Tests
 			using(var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("keys");
+				var location = db.Partition.By("keys");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var minKey = location.Key + FdbKey.MinValue;
@@ -598,7 +598,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(minKey, Slice.FromString("min"));
 					for (int i = 0; i < 20; i++)
 					{
-						tr.Set(location.Pack(i), Slice.FromString(i.ToString()));
+						tr.Set(location.Tuples.EncodeKey(i), Slice.FromString(i.ToString()));
 					}
 					tr.Set(maxKey, Slice.FromString("max"));
 					await tr.CommitAsync();
@@ -607,7 +607,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var selectors = Enumerable.Range(0, N).Select((i) => FdbKeySelector.FirstGreaterOrEqual(location.Pack(i))).ToArray();
+					var selectors = Enumerable.Range(0, N).Select((i) => FdbKeySelector.FirstGreaterOrEqual(location.Tuples.EncodeKey(i))).ToArray();
 
 					// GetKeysAsync([])
 					var results = await tr.GetKeysAsync(selectors);
@@ -615,7 +615,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(results.Length, Is.EqualTo(20));
 					for (int i = 0; i < N; i++)
 					{
-						Assert.That(results[i], Is.EqualTo(location.Pack(i)));
+						Assert.That(results[i], Is.EqualTo(location.Tuples.EncodeKey(i)));
 					}
 
 					// GetKeysAsync(cast to enumerable)
@@ -678,7 +678,7 @@ namespace FoundationDB.Client.Tests
 
 				Slice key;
 
-				key = location.Pack("add");
+				key = location.Tuples.EncodeKey("add");
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Add, 0);
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Add, 1);
 				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Add, 0);
@@ -686,21 +686,21 @@ namespace FoundationDB.Client.Tests
 				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.Add, 1);
 				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Add, 987654321);
 
-				key = location.Pack("and");
+				key = location.Tuples.EncodeKey("and");
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitAnd, 0);
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitAnd, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.BitAnd, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.BitAnd, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitAnd, 0x018055AA);
 
-				key = location.Pack("or");
+				key = location.Tuples.EncodeKey("or");
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitOr, 0);
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitOr, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.BitOr, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.BitOr, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitOr, 0x018055AA);
 
-				key = location.Pack("xor");
+				key = location.Tuples.EncodeKey("xor");
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitXor, 0);
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.BitXor, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.BitXor, 0x018055AA);
@@ -710,7 +710,7 @@ namespace FoundationDB.Client.Tests
 				// calling with an invalid mutation type should fail
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					key = location.Pack("invalid");
+					key = location.Tuples.EncodeKey("invalid");
 					Assert.That(() => tr.Atomic(key, Slice.FromFixed32(42), (FdbMutationType)42), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidMutationType));
 				}
 			}
@@ -722,15 +722,15 @@ namespace FoundationDB.Client.Tests
 
 			using(var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				// write a bunch of keys
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Pack("hello"), Slice.FromString("World!"));
-					tr.Set(location.Pack("foo"), Slice.FromString("bar"));
+					tr.Set(location.Tuples.EncodeKey("hello"), Slice.FromString("World!"));
+					tr.Set(location.Tuples.EncodeKey("foo"), Slice.FromString("bar"));
 				}, this.Cancellation);
 
 				// read them using snapshot
@@ -738,10 +738,10 @@ namespace FoundationDB.Client.Tests
 				{
 					Slice bytes;
 
-					bytes = await tr.Snapshot.GetAsync(location.Pack("hello"));
+					bytes = await tr.Snapshot.GetAsync(location.Tuples.EncodeKey("hello"));
 					Assert.That(bytes.ToUnicode(), Is.EqualTo("World!"));
 
-					bytes = await tr.Snapshot.GetAsync(location.Pack("foo"));
+					bytes = await tr.Snapshot.GetAsync(location.Tuples.EncodeKey("foo"));
 					Assert.That(bytes.ToUnicode(), Is.EqualTo("bar"));
 
 				}
@@ -762,7 +762,7 @@ namespace FoundationDB.Client.Tests
 					long ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
-					var _ = await tr.GetAsync(db.Pack("foo"));
+					var _ = await tr.GetAsync(db.Tuples.EncodeKey("foo"));
 
 					// until the transction commits, the committed version will stay -1
 					ver = tr.GetCommittedVersion();
@@ -793,7 +793,7 @@ namespace FoundationDB.Client.Tests
 					long ver = tr.GetCommittedVersion();
 					Assert.That(ver, Is.EqualTo(-1), "Initial committed version");
 
-					tr.Set(db.Pack("foo"), Slice.FromString("bar"));
+					tr.Set(db.Tuples.EncodeKey("foo"), Slice.FromString("bar"));
 
 					// until the transction commits, the committed version should still be -1
 					ver = tr.GetCommittedVersion();
@@ -821,10 +821,10 @@ namespace FoundationDB.Client.Tests
 					// take the read version (to compare with the committed version below)
 					long rv1 = await tr.GetReadVersionAsync();
 					// do something and commit
-					tr.Set(db.Pack("foo"), Slice.FromString("bar"));
+					tr.Set(db.Tuples.EncodeKey("foo"), Slice.FromString("bar"));
 					await tr.CommitAsync();
 					long cv1 = tr.GetCommittedVersion();
-					Console.WriteLine("COMMIT: " + rv1 + " / " + cv1);
+					Log("COMMIT: {0} / {1}", rv1, cv1);
 					Assert.That(cv1, Is.GreaterThanOrEqualTo(rv1), "Committed version of write transaction should be >= the read version");
 
 					// reset the transaction
@@ -832,15 +832,15 @@ namespace FoundationDB.Client.Tests
 
 					long rv2 = await tr.GetReadVersionAsync();
 					long cv2 = tr.GetCommittedVersion();
-					Console.WriteLine("RESET: " + rv2 + " / " + cv2);
+					Log("RESET: {0} / {1}", rv2, cv2);
 					//Note: the current fdb_c client does not revert the commited version to -1 ... ?
 					//Assert.That(cv2, Is.EqualTo(-1), "Committed version should go back to -1 after reset");
 
 					// read-only + commit
-					await tr.GetAsync(db.Pack("foo"));
+					await tr.GetAsync(db.Tuples.EncodeKey("foo"));
 					await tr.CommitAsync();
 					cv2 = tr.GetCommittedVersion();
-					Console.WriteLine("COMMIT2: " + rv2 + " / " + cv2);
+					Log("COMMIT2: {0} / {1}", rv2, cv2);
 					Assert.That(cv2, Is.EqualTo(-1), "Committed version of read-only transaction should be -1 even the transaction was previously used to write something");
 
 				}
@@ -854,24 +854,24 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
+					tr.Set(location.Tuples.EncodeKey("foo"), Slice.FromString("foo"));
 				}, this.Cancellation);
 
 				using (var trA = db.BeginTransaction(this.Cancellation))
 				using (var trB = db.BeginTransaction(this.Cancellation))
 				{
 					// regular read
-					var foo = await trA.GetAsync(location.Pack("foo"));
-					trA.Set(location.Pack("foo"), Slice.FromString("bar"));
+					var foo = await trA.GetAsync(location.Tuples.EncodeKey("foo"));
+					trA.Set(location.Tuples.EncodeKey("foo"), Slice.FromString("bar"));
 
 					// this will conflict with our read
-					trB.Set(location.Pack("foo"), Slice.FromString("bar"));
+					trB.Set(location.Tuples.EncodeKey("foo"), Slice.FromString("bar"));
 					await trB.CommitAsync();
 
 					// should fail with a "not_comitted" error
@@ -893,23 +893,23 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Pack("foo"), Slice.FromString("foo"));
+					tr.Set(location.Tuples.EncodeKey("foo"), Slice.FromString("foo"));
 				}, this.Cancellation);
 
 				using (var trA = db.BeginTransaction(this.Cancellation))
 				using (var trB = db.BeginTransaction(this.Cancellation))
 				{
 					// reading with snapshot mode should not conflict
-					var foo = await trA.Snapshot.GetAsync(location.Pack("foo"));
-					trA.Set(location.Pack("foo"), Slice.FromString("bar"));
+					var foo = await trA.Snapshot.GetAsync(location.Tuples.EncodeKey("foo"));
+					trA.Set(location.Tuples.EncodeKey("foo"), Slice.FromString("bar"));
 
 					// this would normally conflicts with the previous read if it wasn't a snapshot read
-					trB.Set(location.Pack("foo"), Slice.FromString("bar"));
+					trB.Set(location.Tuples.EncodeKey("foo"), Slice.FromString("bar"));
 					await trB.CommitAsync();
 
 					// should succeed
@@ -925,12 +925,12 @@ namespace FoundationDB.Client.Tests
 			using(var db = await OpenTestPartitionAsync())
 			{
 
-				var loc = db.Partition("test");
+				var loc = db.Partition.By("test");
 
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 50), Slice.FromAscii("fifty"));
 				}, this.Cancellation);
 
 				// we will read the first key from [0, 100), expected 50
@@ -941,19 +941,19 @@ namespace FoundationDB.Client.Tests
 				{
 					// [0, 100) limit 1 => 50
 					var kvp = await tr1
-						.GetRange(loc.Pack("foo"), loc.Pack("foo", 100))
+						.GetRange(loc.Tuples.EncodeKey("foo"), loc.Tuples.EncodeKey("foo", 100))
 						.FirstOrDefaultAsync();
-					Assert.That(kvp.Key, Is.EqualTo(loc.Pack("foo", 50)));
+					Assert.That(kvp.Key, Is.EqualTo(loc.Tuples.EncodeKey("foo", 50)));
 
 					// 42 < 50 > conflict !!!
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Pack("foo", 42), Slice.FromAscii("forty-two"));
+						tr2.Set(loc.Tuples.EncodeKey("foo", 42), Slice.FromAscii("forty-two"));
 						await tr2.CommitAsync();
 					}
 
 					// we need to write something to force a conflict
-					tr1.Set(loc.Pack("bar"), Slice.Empty);
+					tr1.Set(loc.Tuples.EncodeKey("bar"), Slice.Empty);
 
 					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(42) in TR2 should have conflicted with the GetRange(0, 100) in TR1");
 				}
@@ -965,26 +965,26 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 50), Slice.FromAscii("fifty"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// [0, 100) limit 1 => 50
 					var kvp = await tr1
-						.GetRange(loc.Pack("foo"), loc.Pack("foo", 100))
+						.GetRange(loc.Tuples.EncodeKey("foo"), loc.Tuples.EncodeKey("foo", 100))
 						.FirstOrDefaultAsync();
-					Assert.That(kvp.Key, Is.EqualTo(loc.Pack("foo", 50)));
+					Assert.That(kvp.Key, Is.EqualTo(loc.Tuples.EncodeKey("foo", 50)));
 
 					// 77 > 50 => no conflict
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Pack("foo", 77), Slice.FromAscii("docm"));
+						tr2.Set(loc.Tuples.EncodeKey("foo", 77), Slice.FromAscii("docm"));
 						await tr2.CommitAsync();
 					}
 
 					// we need to write something to force a conflict
-					tr1.Set(loc.Pack("bar"), Slice.Empty);
+					tr1.Set(loc.Tuples.EncodeKey("bar"), Slice.Empty);
 
 					// should not conflict!
 					await tr1.CommitAsync();
@@ -999,12 +999,12 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var loc = db.Partition("test");
+				var loc = db.Partition.By("test");
 
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 50), Slice.FromAscii("fifty"));
 				}, this.Cancellation);
 
 				// we will ask for the first key from >= 0, expecting 50, but if another transaction inserts something BEFORE 50, our key selector would have returned a different result, causing a conflict
@@ -1012,18 +1012,18 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{0} => 50
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Pack("foo", 0)));
-					Assert.That(key, Is.EqualTo(loc.Pack("foo", 50)));
+					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Tuples.EncodeKey("foo", 0)));
+					Assert.That(key, Is.EqualTo(loc.Tuples.EncodeKey("foo", 50)));
 
 					// 42 < 50 => conflict !!!
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Pack("foo", 42), Slice.FromAscii("forty-two"));
+						tr2.Set(loc.Tuples.EncodeKey("foo", 42), Slice.FromAscii("forty-two"));
 						await tr2.CommitAsync();
 					}
 
 					// we need to write something to force a conflict
-					tr1.Set(loc.Pack("bar"), Slice.Empty);
+					tr1.Set(loc.Tuples.EncodeKey("bar"), Slice.Empty);
 
 					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(42) in TR2 should have conflicted with the GetKey(fGE{0}) in TR1");
 				}
@@ -1033,24 +1033,24 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 50), Slice.FromAscii("fifty"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{0} => 50
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Pack("foo", 0)));
-					Assert.That(key, Is.EqualTo(loc.Pack("foo", 50)));
+					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Tuples.EncodeKey("foo", 0)));
+					Assert.That(key, Is.EqualTo(loc.Tuples.EncodeKey("foo", 50)));
 
 					// 77 > 50 => no conflict
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Pack("foo", 77), Slice.FromAscii("docm"));
+						tr2.Set(loc.Tuples.EncodeKey("foo", 77), Slice.FromAscii("docm"));
 						await tr2.CommitAsync();
 					}
 
 					// we need to write something to force a conflict
-					tr1.Set(loc.Pack("bar"), Slice.Empty);
+					tr1.Set(loc.Tuples.EncodeKey("bar"), Slice.Empty);
 
 					// should not conflict!
 					await tr1.CommitAsync();
@@ -1061,25 +1061,25 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
-					tr.Set(loc.Pack("foo", 100), Slice.FromAscii("one hundred"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 100), Slice.FromAscii("one hundred"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{50} + 1 => 100
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Pack("foo", 50)) + 1);
-					Assert.That(key, Is.EqualTo(loc.Pack("foo", 100)));
+					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Tuples.EncodeKey("foo", 50)) + 1);
+					Assert.That(key, Is.EqualTo(loc.Tuples.EncodeKey("foo", 100)));
 
 					// 77 between 50 and 100 => conflict !!!
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Pack("foo", 77), Slice.FromAscii("docm"));
+						tr2.Set(loc.Tuples.EncodeKey("foo", 77), Slice.FromAscii("docm"));
 						await tr2.CommitAsync();
 					}
 
 					// we need to write something to force a conflict
-					tr1.Set(loc.Pack("bar"), Slice.Empty);
+					tr1.Set(loc.Tuples.EncodeKey("bar"), Slice.Empty);
 
 					// should conflict!
 					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(77) in TR2 should have conflicted with the GetKey(fGE{50} + 1) in TR1");
@@ -1090,25 +1090,25 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
-					tr.Set(loc.Pack("foo", 100), Slice.FromAscii("one hundred"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 100), Slice.FromAscii("one hundred"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGT{50} => 100
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterThan(loc.Pack("foo", 50)));
-					Assert.That(key, Is.EqualTo(loc.Pack("foo", 100)));
+					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterThan(loc.Tuples.EncodeKey("foo", 50)));
+					Assert.That(key, Is.EqualTo(loc.Tuples.EncodeKey("foo", 100)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Set(loc.Pack("foo", 100), Slice.FromAscii("cent"));
+						tr2.Set(loc.Tuples.EncodeKey("foo", 100), Slice.FromAscii("cent"));
 						await tr2.CommitAsync();
 					}
 
 					// we need to write something to force a conflict
-					tr1.Set(loc.Pack("bar"), Slice.Empty);
+					tr1.Set(loc.Tuples.EncodeKey("bar"), Slice.Empty);
 
 					// this causes a conflict in the current version of FDB
 					await TestHelpers.AssertThrowsFdbErrorAsync(() => tr1.CommitAsync(), FdbError.NotCommitted, "The Set(100) in TR2 should have conflicted with the GetKey(fGT{50}) in TR1");
@@ -1119,25 +1119,25 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.ClearRange(loc);
-					tr.Set(loc.Pack("foo", 50), Slice.FromAscii("fifty"));
-					tr.Set(loc.Pack("foo", 100), Slice.FromAscii("one hundred"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 50), Slice.FromAscii("fifty"));
+					tr.Set(loc.Tuples.EncodeKey("foo", 100), Slice.FromAscii("one hundred"));
 				}, this.Cancellation);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// lLT{100} => 50
-					var key = await tr1.GetKeyAsync(FdbKeySelector.LastLessThan(loc.Pack("foo", 100)));
-					Assert.That(key, Is.EqualTo(loc.Pack("foo", 50)));
+					var key = await tr1.GetKeyAsync(FdbKeySelector.LastLessThan(loc.Tuples.EncodeKey("foo", 100)));
+					Assert.That(key, Is.EqualTo(loc.Tuples.EncodeKey("foo", 50)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
-						tr2.Clear(loc.Pack("foo", 100));
+						tr2.Clear(loc.Tuples.EncodeKey("foo", 100));
 						await tr2.CommitAsync();
 					}
 
 					// we need to write something to force a conflict
-					tr1.Set(loc.Pack("bar"), Slice.Empty);
+					tr1.Set(loc.Tuples.EncodeKey("bar"), Slice.Empty);
 
 					// this causes a conflict in the current version of FDB
 					await tr1.CommitAsync();
@@ -1162,8 +1162,8 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
-				var key = location.Pack("A");
+				var location = db.Partition.By("test");
+				var key = location.Tuples.EncodeKey("A");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -1228,13 +1228,13 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var a = location.Pack("A");
-				var b = location.Pack("B");
-				var c = location.Pack("C");
-				var d = location.Pack("D");
+				var a = location.Tuples.EncodeKey("A");
+				var b = location.Tuples.EncodeKey("B");
+				var c = location.Tuples.EncodeKey("C");
+				var d = location.Tuples.EncodeKey("D");
 
 				// Reads (before and after):
 				// - A and B will use regular reads
@@ -1289,11 +1289,11 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var a = location.Pack("A");
-				var b = location.Partition("B");
+				var a = location.Tuples.EncodeKey("A");
+				var b = location.Partition.By("B");
 
 				#region Default behaviour...
 
@@ -1302,8 +1302,8 @@ namespace FoundationDB.Client.Tests
 				await db.WriteAsync((tr) =>
 				{
 					tr.Set(a, Slice.FromString("a"));
-					tr.Set(b.Pack(10), Slice.FromString("PRINT \"HELLO\""));
-					tr.Set(b.Pack(20), Slice.FromString("GOTO 10"));
+					tr.Set(b.Tuples.EncodeKey(10), Slice.FromString("PRINT \"HELLO\""));
+					tr.Set(b.Tuples.EncodeKey(20), Slice.FromString("GOTO 10"));
 				}, this.Cancellation);
 
 				using(var tr = db.BeginTransaction(this.Cancellation))
@@ -1314,7 +1314,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res, Is.EqualTo(new [] { "PRINT \"HELLO\"", "GOTO 10" }));
 
 					tr.Set(a, Slice.FromString("aa"));
-					tr.Set(b.Pack(15), Slice.FromString("PRINT \"WORLD\""));
+					tr.Set(b.Tuples.EncodeKey(15), Slice.FromString("PRINT \"WORLD\""));
 
 					data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should be visible by default");
@@ -1340,7 +1340,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "GOTO 10" }));
 
 					tr.Set(a, Slice.FromString("aa"));
-					tr.Set(b.Pack(15), Slice.FromString("PRINT \"WORLD\""));
+					tr.Set(b.Tuples.EncodeKey(15), Slice.FromString("PRINT \"WORLD\""));
 
 					data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
@@ -1364,14 +1364,14 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test");
+				var location = db.Partition.By("test");
 
 				long commitedVersion;
 
 				// create first version
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
-					tr1.Set(location.Pack("concurrent"), Slice.FromByte(1));
+					tr1.Set(location.Tuples.EncodeKey("concurrent"), Slice.FromByte(1));
 					await tr1.CommitAsync();
 
 					// get this version
@@ -1381,7 +1381,7 @@ namespace FoundationDB.Client.Tests
 				// mutate in another transaction
 				using (var tr2 = db.BeginTransaction(this.Cancellation))
 				{
-					tr2.Set(location.Pack("concurrent"), Slice.FromByte(2));
+					tr2.Set(location.Tuples.EncodeKey("concurrent"), Slice.FromByte(2));
 					await tr2.CommitAsync();
 				}
 
@@ -1393,7 +1393,7 @@ namespace FoundationDB.Client.Tests
 					long ver = await tr3.GetReadVersionAsync();
 					Assert.That(ver, Is.EqualTo(commitedVersion), "GetReadVersion should return the same value as SetReadVersion!");
 
-					var bytes = await tr3.GetAsync(location.Pack("concurrent"));
+					var bytes = await tr3.GetAsync(location.Tuples.EncodeKey("concurrent"));
 
 					Assert.That(bytes.GetBytes(), Is.EqualTo(new byte[] { 1 }), "Should have seen the first version!");
 				}
@@ -1506,7 +1506,7 @@ namespace FoundationDB.Client.Tests
 				var t = db.ReadAsync((tr) =>
 				{
 					++counter;
-					Console.WriteLine("Called " + counter + " time(s)");
+					Log("Called {0} time(s)", counter);
 					if (counter > 4)
 					{
 						go.Cancel();
@@ -1571,12 +1571,12 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("conflict");
+				var location = db.Partition.By("conflict");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var key1 = location.Pack(1);
-				var key2 = location.Pack(2);
+				var key1 = location.Tuples.EncodeKey(1);
+				var key2 = location.Tuples.EncodeKey(2);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
@@ -1610,13 +1610,13 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("conflict");
+				var location = db.Partition.By("conflict");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var keyConflict = location.Pack(0);
-				var key1 = location.Pack(1);
-				var key2 = location.Pack(2);
+				var keyConflict = location.Tuples.EncodeKey(0);
+				var key1 = location.Tuples.EncodeKey(1);
+				var key2 = location.Tuples.EncodeKey(2);
 
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
@@ -1652,12 +1652,12 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("test", "bigbrother");
+				var location = db.Partition.By("test", "bigbrother");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var key1 = location.Pack("watched");
-				var key2 = location.Pack("witness");
+				var key1 = location.Tuples.EncodeKey("watched");
+				var key2 = location.Tuples.EncodeKey("witness");
 
 				await db.WriteAsync((tr) =>
 				{
@@ -1711,12 +1711,12 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("location_api");
+				var location = db.Partition.By("location_api");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var key1 = location.Pack(1);
-				var key404 = location.Pack(404);
+				var key1 = location.Tuples.EncodeKey(1);
+				var key404 = location.Tuples.EncodeKey(404);
 
 				await db.WriteAsync((tr) =>
 				{
@@ -1769,12 +1769,12 @@ namespace FoundationDB.Client.Tests
 			using (var db = await Fdb.OpenAsync(TestHelpers.TestClusterFile, TestHelpers.TestDbName, this.Cancellation))
 			{
 				//var cf = await db.GetCoordinatorsAsync();
-				//Console.WriteLine("Connected to " + cf.ToString());
+				//Log("Connected to {0}", cf.ToString());
 
 				using(var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithAccessToSystemKeys())
 				{
 					// dump nodes
-					Console.WriteLine("Server List:");
+					Log("Server List:");
 					var servers = await tr.GetRange(Fdb.System.ServerList, Fdb.System.ServerList + Fdb.System.MaxValue)
 						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.System.ServerList.Count), kvp.Value))
 						.ToListAsync();
@@ -1787,18 +1787,18 @@ namespace FoundationDB.Client.Tests
 						// the datacenter id seems to be at offset 40
 						var dataCenterId = key.Value.Substring(40, 16).ToHexaString();
 
-						Console.WriteLine("- " + key.Key.ToHexaString() + ": (" + key.Value.Count + ") " + key.Value.ToAsciiOrHexaString());
-						Console.WriteLine("  > node       = " + nodeId);
-						Console.WriteLine("  > machine    = " + machineId);
-						Console.WriteLine("  > datacenter = " + dataCenterId);
+						Log("- {0} : ({1}) {2}", key.Key.ToHexaString(), key.Value.Count, key.Value.ToAsciiOrHexaString());
+						Log("  > node       = {0}", nodeId);
+						Log("  > machine    = {0}", machineId);
+						Log("  > datacenter = {0}", dataCenterId);
 					}
-					Console.WriteLine();
+					Log();
 
 					// dump keyServers
 					var shards = await tr.GetRange(Fdb.System.KeyServers, Fdb.System.KeyServers + Fdb.System.MaxValue)
 						.Select(kvp => new KeyValuePair<Slice, Slice>(kvp.Key.Substring(Fdb.System.KeyServers.Count), kvp.Value))
 						.ToListAsync();
-					Console.WriteLine("Key Servers: " + shards.Count + " shards");
+					Log("Key Servers: {0} shard(s)", shards.Count);
 
 					HashSet<string> distinctNodes = new HashSet<string>(StringComparer.Ordinal);
 					int replicationFactor = 0;
@@ -1826,14 +1826,14 @@ namespace FoundationDB.Client.Tests
 
 						//Console.WriteLine("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
 					}
-					Console.WriteLine();
-					Console.WriteLine("Distinct nodes: " + distinctNodes.Count);
+					Log();
+					Log("Distinct nodes: {0}", distinctNodes.Count);
 					foreach(var machine in distinctNodes)
 					{
-						Console.WriteLine("- " + machine);
+						Log("- " + machine);
 					}
-					Console.WriteLine();
-					Console.WriteLine("Cluster topology: " + distinctNodes.Count + " processes with " + (replicationFactor == 1 ? "single" : replicationFactor == 2 ? "double" : replicationFactor == 3 ? "triple" : replicationFactor.ToString()) + " replication");
+					Log();
+					Log("Cluster topology: {0} process(es) with {1} replication", distinctNodes.Count, replicationFactor == 1 ? "single" : replicationFactor == 2 ? "double" : replicationFactor == 3 ? "triple" : replicationFactor.ToString());
 				}
 			}
 		}
@@ -1849,10 +1849,10 @@ namespace FoundationDB.Client.Tests
 				{
 					await tr.GetReadVersionAsync();
 
-					var a = location.Concat(Slice.FromString("A"));
-					var b = location.Concat(Slice.FromString("B"));
-					var c = location.Concat(Slice.FromString("C"));
-					var z = location.Concat(Slice.FromString("Z"));
+					var a = location.ConcatKey(Slice.FromString("A"));
+					var b = location.ConcatKey(Slice.FromString("B"));
+					var c = location.ConcatKey(Slice.FromString("C"));
+					var z = location.ConcatKey(Slice.FromString("Z"));
 
 					//await tr.GetAsync(location.Concat(Slice.FromString("KEY")));
 

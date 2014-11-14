@@ -67,7 +67,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Create a new queue using either High Contention mode or Simple mode</summary>
 		/// <param name="subspace">Subspace where the queue will be stored</param>
 		/// <param name="highContention">If true, uses High Contention Mode (lots of popping clients). If true, uses the Simple Mode (a few popping clients).</param>
-		public FdbQueue([NotNull] FdbSubspace subspace, bool highContention, [NotNull] IValueEncoder<T> encoder)
+		public FdbQueue([NotNull] IFdbSubspace subspace, bool highContention, [NotNull] IValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encocer");
@@ -76,13 +76,14 @@ namespace FoundationDB.Layers.Collections
 			this.HighContention = highContention;
 			this.Encoder = encoder;
 
-			this.ConflictedPop = subspace.Partition(Slice.FromAscii("pop"));
-			this.ConflictedItem = subspace.Partition(Slice.FromAscii("conflict"));
-			this.QueueItem = subspace.Partition(Slice.FromAscii("item"));
+			//TODO: rewrite this, using FdbEncoderSubpsace<..> !
+			this.ConflictedPop = subspace.Partition.By(Slice.FromAscii("pop"));
+			this.ConflictedItem = subspace.Partition.By(Slice.FromAscii("conflict"));
+			this.QueueItem = subspace.Partition.By(Slice.FromAscii("item"));
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public FdbSubspace Subspace { [NotNull] get; private set; }
+		public IFdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>If true, the queue is operating in High Contention mode that will scale better with a lot of popping clients.</summary>
 		public bool HighContention { get; private set; }
@@ -90,11 +91,11 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Serializer for the elements of the queue</summary>
 		public IValueEncoder<T> Encoder { [NotNull] get; private set; }
 
-		internal FdbSubspace ConflictedPop { get; private set; }
+		internal IFdbSubspace ConflictedPop { get; private set; }
 
-		internal FdbSubspace ConflictedItem { get; private set; }
+		internal IFdbSubspace ConflictedItem { get; private set; }
 
-		internal FdbSubspace QueueItem { get; private set; }
+		internal IFdbSubspace QueueItem { get; private set; }
 
 		/// <summary>Remove all items from the queue.</summary>
 		public void ClearAsync([NotNull] IFdbTransaction trans)
@@ -253,7 +254,7 @@ namespace FoundationDB.Layers.Collections
 
 		private Slice ConflictedItemKey(object subKey)
 		{
-			return this.ConflictedItem.Pack(subKey);
+			return this.ConflictedItem.Tuples.EncodeKey(subKey);
 		}
 
 		private Slice RandId()
@@ -271,12 +272,12 @@ namespace FoundationDB.Layers.Collections
 			// This makes pushes fast and usually conflict free (unless the queue becomes empty
 			// during the push)
 
-			Slice key = this.QueueItem.Pack(index, this.RandId());
+			Slice key = this.QueueItem.Tuples.EncodeKey(index, this.RandId());
 			await tr.GetAsync(key).ConfigureAwait(false);
 			tr.Set(key, this.Encoder.EncodeValue(value));
 		}
 
-		private async Task<long> GetNextIndexAsync([NotNull] IFdbReadOnlyTransaction tr, FdbSubspace subspace)
+		private async Task<long> GetNextIndexAsync([NotNull] IFdbReadOnlyTransaction tr, IFdbSubspace subspace)
 		{
 			var range = subspace.ToRange();
 
@@ -287,7 +288,7 @@ namespace FoundationDB.Layers.Collections
 				return 0;
 			}
 
-			return subspace.Unpack(lastKey).Get<long>(0) + 1;
+			return subspace.Tuples.DecodeFirst<long>(lastKey) + 1;
 		}
 
 		private Task<KeyValuePair<Slice, Slice>> GetFirstItemAsync([NotNull] IFdbReadOnlyTransaction tr)
@@ -323,7 +324,7 @@ namespace FoundationDB.Layers.Collections
 				return Slice.Nil;
 			}
 
-			Slice waitKey = this.ConflictedPop.Pack(index, this.RandId());
+			Slice waitKey = this.ConflictedPop.Tuples.EncodeKey(index, this.RandId());
 			await tr.GetAsync(waitKey).ConfigureAwait(false);
 			tr.Set(waitKey, Slice.Empty);
 			return waitKey;
@@ -371,7 +372,7 @@ namespace FoundationDB.Layers.Collections
 					var pop = pops[i];
 					var kvp = items[i];
 
-					var key = this.ConflictedPop.Unpack(pop.Key);
+					var key = this.ConflictedPop.Tuples.Unpack(pop.Key);
 					var storageKey = this.ConflictedItemKey(key[1]);
 
 					tr.Set(storageKey, kvp.Value);
@@ -446,7 +447,7 @@ namespace FoundationDB.Layers.Collections
 				}
 
 				// The result of the pop will be stored at this key once it has been fulfilled
-				var resultKey = ConflictedItemKey(this.ConflictedPop.UnpackLast<Slice>(waitKey));
+				var resultKey = ConflictedItemKey(this.ConflictedPop.Tuples.DecodeLast<Slice>(waitKey));
 
 				tr.Reset();
 

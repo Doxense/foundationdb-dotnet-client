@@ -46,7 +46,7 @@ namespace FoundationDB.Layers.Blobs
 	public class FdbHashSetCollection
 	{
 
-		public FdbHashSetCollection(FdbSubspace subspace)
+		public FdbHashSetCollection(IFdbSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
@@ -54,14 +54,15 @@ namespace FoundationDB.Layers.Blobs
 		}
 
 		/// <summary>Subspace used as a prefix for all hashsets in this collection</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbSubspace Subspace { get; private set; }
 
 		/// <summary>Returns the key prefix of an HashSet: (subspace, id, )</summary>
 		/// <param name="id"></param>
 		/// <returns></returns>
 		protected virtual Slice GetKey(IFdbTuple id)
 		{
-			return this.Subspace.Pack(id);
+			//REVIEW: should the id be encoded as a an embedded tuple or not?
+			return this.Subspace.Tuples.Pack(id);
 		}
 
 		/// <summary>Returns the key of a specific field of an HashSet: (subspace, id, field, )</summary>
@@ -70,7 +71,8 @@ namespace FoundationDB.Layers.Blobs
 		/// <returns></returns>
 		protected virtual Slice GetFieldKey(IFdbTuple id, string field)
 		{
-			return this.Subspace.Pack(id, field);
+			//REVIEW: should the id be encoded as a an embedded tuple or not?
+			return this.Subspace.Tuples.Pack(id.Append(field));
 		}
 
 		protected virtual string ParseFieldKey(IFdbTuple key)
@@ -110,7 +112,7 @@ namespace FoundationDB.Layers.Blobs
 				.GetRange(FdbKeyRange.StartsWith(prefix))
 				.ForEachAsync((kvp) =>
 				{
-					string field = this.Subspace.UnpackLast<string>(kvp.Key);
+					string field = this.Subspace.Tuples.DecodeLast<string>(kvp.Key);
 					results[field] = kvp.Value;
 				})
 				.ConfigureAwait(false);
@@ -129,7 +131,7 @@ namespace FoundationDB.Layers.Blobs
 			if (id == null) throw new ArgumentNullException("id");
 			if (fields == null) throw new ArgumentNullException("fields");
 
-			var keys = FdbTuple.PackRange(GetKey(id), fields);
+			var keys = FdbTuple.PackRangeWithPrefix(GetKey(id), fields);
 
 			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);

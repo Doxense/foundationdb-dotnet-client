@@ -69,16 +69,16 @@ namespace FdbShell
 							if (!(subfolder is FdbDirectoryPartition))
 							{
 								long count = await Fdb.System.EstimateCountAsync(db, subfolder.ToRange(), ct);
-								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(subfolder.Copy().Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
+								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(FdbSubspace.Copy(subfolder).Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
 							}
 							else
 							{
-								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(subfolder.Copy().Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, "-");
+								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(FdbSubspace.Copy(subfolder).Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, "-");
 							}
 						}
 						else
 						{
-							log.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(subfolder.Copy().Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
+							log.WriteLine("  {0,-12} {1,-12} {2}", FdbKey.Dump(FdbSubspace.Copy(subfolder).Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name);
 						}
 					}
 					else
@@ -216,7 +216,7 @@ namespace FdbShell
 				return;
 			}
 
-			var copy = folder.Copy();
+			var copy = FdbSubspace.Copy(folder);
 			log.WriteLine("# Counting keys under {0} ...", FdbKey.Dump(copy.Key));
 
 			var progress = new Progress<FdbTuple<long, Slice>>((state) =>
@@ -255,7 +255,7 @@ namespace FdbShell
 					if (reverse) keys.Reverse();
 					foreach (var key in keys.Take(count))
 					{
-						log.WriteLine("...{0} = {1}", FdbKey.Dump(folder.Extract(key.Key)), key.Value.ToAsciiOrHexaString());
+						log.WriteLine("...{0} = {1}", FdbKey.Dump(folder.ExtractKey(key.Key)), key.Value.ToAsciiOrHexaString());
 					}
 					if (!reverse && keys.Count == count + 1)
 					{
@@ -555,7 +555,7 @@ namespace FdbShell
 			var folder = (await TryOpenCurrentDirectoryAsync(path, db, ct)) as FdbDirectorySubspace;
 			if (folder != null)
 			{
-				var r = FdbKeyRange.StartsWith(folder.Copy().Key);
+				var r = FdbKeyRange.StartsWith(FdbSubspace.Copy(folder).Key);
 				Console.WriteLine("Searching for shards that intersect with /{0} ...", String.Join("/", path));
 				ranges = await Fdb.System.GetChunksAsync(db, r, ct);
 				Console.WriteLine("Found {0} ranges intersecting {1}:", ranges.Count, r);
@@ -590,7 +590,7 @@ namespace FdbShell
 			FdbKeyRange span;
 			if (folder is FdbDirectorySubspace)
 			{
-				span = FdbKeyRange.StartsWith((folder as FdbDirectorySubspace).Copy());
+				span = FdbKeyRange.StartsWith(FdbSubspace.Copy(folder as FdbDirectorySubspace).Key);
 				log.WriteLine("Reading list of shards for /{0} under {1} ...", String.Join("/", path), FdbKey.Dump(span.Begin));
 			}
 			else

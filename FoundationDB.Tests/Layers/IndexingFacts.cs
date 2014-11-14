@@ -49,13 +49,13 @@ namespace FoundationDB.Layers.Tables.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition("Indexing");
+				var location = db.Partition.By("Indexing");
 
 				// clear previous values
 				await DeleteSubspace(db, location);
 
 
-				var subspace = location.Partition("FoosByColor");
+				var subspace = location.Partition.By("FoosByColor");
 				var index = new FdbIndex<int, string>("Foos.ByColor", subspace);
 
 				// add items to the index
@@ -148,9 +148,9 @@ namespace FoundationDB.Layers.Tables.Tests
 					new Character { Id = 6, Name = "Catwoman", Brand="DC", IsVilain = default(bool?) },
 				};
 
-				var indexBrand = new FdbIndex<long, string>("Heroes.ByBrand", location.Partition("CharactersByBrand"));
-				var indexSuperHero = new FdbIndex<long, bool>("Heroes.BySuper", location.Partition("SuperHeros"));
-				var indexAlignment = new FdbIndex<long, bool?>("Heros.ByAlignment", location.Partition("FriendsOrFoe"));
+				var indexBrand = new FdbIndex<long, string>("Heroes.ByBrand", location.Partition.By("CharactersByBrand"));
+				var indexSuperHero = new FdbIndex<long, bool>("Heroes.BySuper", location.Partition.By("SuperHeros"));
+				var indexAlignment = new FdbIndex<long, bool?>("Heros.ByAlignment", location.Partition.By("FriendsOrFoe"));
 
 				// index everything
 				await db.WriteAsync((tr) =>

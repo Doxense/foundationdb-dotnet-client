@@ -43,11 +43,11 @@ namespace FoundationDB.Layers.Collections
 	public class FdbMap<TKey, TValue>
 	{
 
-		public FdbMap([NotNull] string name, [NotNull] FdbSubspace subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] string name, [NotNull] IFdbSubspace subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
 			: this(name, subspace, KeyValueEncoders.Tuples.Key<TKey>(), valueEncoder)
 		{ }
 
-		public FdbMap([NotNull] string name, [NotNull] FdbSubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] string name, [NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -67,7 +67,7 @@ namespace FoundationDB.Layers.Collections
 		public string Name { [NotNull] get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this map</summary>
-		public FdbSubspace Subspace { [NotNull] get; private set; }
+		public IFdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Subspace used to encoded the keys for the items</summary>
 		protected FdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }

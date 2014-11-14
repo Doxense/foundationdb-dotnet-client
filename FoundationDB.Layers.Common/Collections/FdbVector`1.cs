@@ -142,7 +142,7 @@ namespace FoundationDB.Layers.Collections
 			if (lastTwo.Count == 0) return default(Optional<T>);
 
 			//note: keys are reversed so indices[0] = last, indices[1] = second to last
-			var indices = lastTwo.Select(kvp => this.Subspace.Unpack(kvp.Key).Get<long>(0)).ToList();
+			var indices = lastTwo.Select(kvp => this.Subspace.Tuples.DecodeFirst<long>(kvp.Key)).ToList();
 
 			if (indices[0] == 0)
 			{ // Vector has size one
@@ -296,12 +296,12 @@ namespace FoundationDB.Layers.Collections
 				return 0;
 			}
 
-			return this.Subspace.Unpack(lastKey).Get<long>(0) + 1;
+			return this.Subspace.Tuples.DecodeFirst<long>(lastKey) + 1;
 		}
 
 		private Slice GetKeyAt(long index)
 		{
-			return this.Subspace.Pack(index);
+			return this.Subspace.Tuples.EncodeKey(index);
 		}
 
 		#endregion

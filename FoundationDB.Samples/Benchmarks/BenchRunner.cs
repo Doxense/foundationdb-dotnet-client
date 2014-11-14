@@ -86,7 +86,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 			var duration = Stopwatch.StartNew();
 
-			var foo = this.Subspace.Pack("foo");
+			var foo = this.Subspace.Tuples.EncodeKey("foo");
 			var bar = Slice.FromString("bar");
 			var barf = Slice.FromString("barf");
 
@@ -117,7 +117,7 @@ namespace FoundationDB.Samples.Benchmarks
 								}
 								else
 								{
-									var foos = FdbTuple.PackRange(foo, Enumerable.Range(1, this.Value).ToArray());
+									var foos = FdbTuple.PackRangeWithPrefix(foo, Enumerable.Range(1, this.Value).ToArray());
 									await db.ReadAsync(tr => tr.GetValuesAsync(foos), ct);
 								}
 								break;

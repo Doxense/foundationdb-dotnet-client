@@ -43,8 +43,8 @@ namespace FoundationDB.Layers.Interning.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var stringSpace = db.Partition("Strings");
-				var dataSpace = db.Partition("Data");
+				var stringSpace = db.Partition.By("Strings");
+				var dataSpace = db.Partition.By("Data");
 
 				// clear all previous data
 				await DeleteSubspace(db, stringSpace);
@@ -55,11 +55,11 @@ namespace FoundationDB.Layers.Interning.Tests
 				// insert a bunch of strings
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(dataSpace.Pack("a"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Pack("b"), await stringTable.InternAsync(tr, "dog"));
-					tr.Set(dataSpace.Pack("c"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Pack("d"), await stringTable.InternAsync(tr, "cat"));
-					tr.Set(dataSpace.Pack("e"), await stringTable.InternAsync(tr, "cat"));
+					tr.Set(dataSpace.Tuples.EncodeKey("a"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Tuples.EncodeKey("b"), await stringTable.InternAsync(tr, "dog"));
+					tr.Set(dataSpace.Tuples.EncodeKey("c"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Tuples.EncodeKey("d"), await stringTable.InternAsync(tr, "cat"));
+					tr.Set(dataSpace.Tuples.EncodeKey("e"), await stringTable.InternAsync(tr, "cat"));
 
 					await tr.CommitAsync();
 				}
@@ -72,11 +72,11 @@ namespace FoundationDB.Layers.Interning.Tests
 				// check the contents of the data
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var uid_a = await tr.GetAsync(dataSpace.Pack("a"));
-					var uid_b = await tr.GetAsync(dataSpace.Pack("b"));
-					var uid_c = await tr.GetAsync(dataSpace.Pack("c"));
-					var uid_d = await tr.GetAsync(dataSpace.Pack("d"));
-					var uid_e = await tr.GetAsync(dataSpace.Pack("e"));
+					var uid_a = await tr.GetAsync(dataSpace.Tuples.EncodeKey("a"));
+					var uid_b = await tr.GetAsync(dataSpace.Tuples.EncodeKey("b"));
+					var uid_c = await tr.GetAsync(dataSpace.Tuples.EncodeKey("c"));
+					var uid_d = await tr.GetAsync(dataSpace.Tuples.EncodeKey("d"));
+					var uid_e = await tr.GetAsync(dataSpace.Tuples.EncodeKey("e"));
 
 					// a, b, d should be different
 					Assert.That(uid_b, Is.Not.EqualTo(uid_a));

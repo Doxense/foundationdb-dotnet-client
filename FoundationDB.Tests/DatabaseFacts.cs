@@ -212,7 +212,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(coordinators.Coordinators[0].Port, Is.GreaterThanOrEqualTo(4500).And.LessThanOrEqualTo(4510)); //HACKHACK: may not work everywhere !
 
 				//TODO: how can we check that it is correct?
-				Console.WriteLine("Coordinators: " + coordinators.ToString());
+				Log("Coordinators: {0}", coordinators);
 			}
 		}
 
@@ -222,7 +222,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				string mode = await Fdb.System.GetStorageEngineModeAsync(db, this.Cancellation);
-				Console.WriteLine("Storage engine: " + mode);
+				Log("Storage engine: {0}", mode);
 				Assert.That(mode, Is.Not.Null);
 				Assert.That(mode, Is.EqualTo("ssd").Or.EqualTo("memory"));
 
@@ -248,13 +248,13 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
-			using (var db = await Fdb.OpenAsync(null, "DB", new FdbSubspace(FdbTuple.Create("test")), false, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(null, "DB", FdbSubspace.Create(FdbTuple.Create("test")), false, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);
 				Assert.That(db.GlobalSpace.Key.ToString(), Is.EqualTo("<02>test<00>"));
 
-				var subspace = db.Partition("hello");
+				var subspace = db.Partition.By("hello");
 				Assert.That(subspace.Key.ToString(), Is.EqualTo("<02>test<00><02>hello<00>"));
 
 				// keys inside the global space are invlaid
@@ -271,7 +271,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db.GlobalSpace, Is.Not.Null);
 				Assert.That(db.GlobalSpace.Key.ToString(), Is.EqualTo("*<FF><00>Z"));
 
-				var subspace = db.Partition("hello");
+				var subspace = db.Partition.By("hello");
 				Assert.That(subspace.Key.ToString(), Is.EqualTo("*<FF><00>Z<02>hello<00>"));
 
 				// keys inside the global space are invlaid
@@ -323,7 +323,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(dl.ContentSubspace, Is.Not.Null);
 				Assert.That(dl.ContentSubspace.Key, Is.EqualTo(db.GlobalSpace.Key));
 				Assert.That(dl.NodeSubspace, Is.Not.Null);
-				Assert.That(dl.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace.Concat(Slice.FromByte(254))));
+				Assert.That(dl.NodeSubspace.Key, Is.EqualTo(db.GlobalSpace.ConcatKey(Slice.FromByte(254))));
 				Assert.That(db.GlobalSpace.Contains(dl.ContentSubspace.Key), Is.True);
 				Assert.That(db.GlobalSpace.Contains(dl.NodeSubspace.Key), Is.True);
 
@@ -346,9 +346,9 @@ namespace FoundationDB.Client.Tests
 					using(var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 					{
 						tr.Timeout = 250; // ms
-						Console.WriteLine("check ...");
+						Log("check ...");
 						await tr.GetAsync(db.GlobalSpace.Key);
-						Console.WriteLine("Uhoh ...?");
+						Log("Uhoh ...?");
 						exists = true;
 					}
 				}

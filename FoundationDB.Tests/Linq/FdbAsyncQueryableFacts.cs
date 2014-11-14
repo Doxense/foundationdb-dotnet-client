@@ -52,14 +52,14 @@ namespace FoundationDB.Linq.Tests
 			using(var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("Linq");
+				var location = db.Partition.By("Linq");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Pack("Hello"), Slice.FromString("World!"));
-					tr.Set(location.Pack("Narf"), Slice.FromString("Zort"));
+					tr.Set(location.Tuples.EncodeKey("Hello"), Slice.FromString("World!"));
+					tr.Set(location.Tuples.EncodeKey("Narf"), Slice.FromString("Zort"));
 				}, this.Cancellation);
 
 				var range = db.Query().RangeStartsWith(location.Key);
@@ -91,11 +91,11 @@ namespace FoundationDB.Linq.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("Linq");
+				var location = db.Partition.By("Linq");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition("Foos", "ByColor"));
+				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition.By("Foos", "ByColor"));
 
 				await db.WriteAsync((tr) =>
 				{
@@ -125,11 +125,11 @@ namespace FoundationDB.Linq.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("Linq");
+				var location = db.Partition.By("Linq");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition("Foos", "ByScore"));
+				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition.By("Foos", "ByScore"));
 
 				await db.WriteAsync((tr) =>
 				{

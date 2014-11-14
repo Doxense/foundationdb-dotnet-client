@@ -51,7 +51,7 @@ namespace FoundationDB.Client.Tests
 
 				using(var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(location.Pack("Hello"), Slice.FromString(secret));
+					tr.Set(location.Tuples.EncodeKey("Hello"), Slice.FromString(secret));
 					await tr.CommitAsync();
 				}
 
@@ -64,7 +64,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(tr.Context.Database, Is.SameAs(db));
 					Assert.That(tr.Context.Shared, Is.True);
 
-					return tr.GetAsync(location.Pack("Hello"));
+					return tr.GetAsync(location.Tuples.EncodeKey("Hello"));
 				}, this.Cancellation);
 
 				Assert.That(called, Is.EqualTo(1)); // note: if this assert fails, first ensure that you did not get a transient error while running this test!
@@ -161,7 +161,7 @@ namespace FoundationDB.Client.Tests
 				var sw = Stopwatch.StartNew();
 				Console.WriteLine("Inserting test data (this may take a few minutes)...");
 				var rnd = new Random();
-				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => new KeyValuePair<Slice, Slice>(location.Pack(i), Slice.Random(rnd, 4096))), this.Cancellation);
+				await Fdb.Bulk.WriteAsync(db, Enumerable.Range(0, 100 * 1000).Select(i => new KeyValuePair<Slice, Slice>(location.Tuples.EncodeKey(i), Slice.Random(rnd, 4096))), this.Cancellation);
 				sw.Stop();
 				Console.WriteLine("> done in " + sw.Elapsed);
 
@@ -246,7 +246,7 @@ namespace FoundationDB.Client.Tests
 					Assume.That(hijack, Is.Not.Null, "This test requires the transaction to implement IFdbTransaction !");
 
 					// this call should fail !
-					hijack.Set(location.Pack("Hello"), Slice.FromString("Hijacked"));
+					hijack.Set(location.Tuples.EncodeKey("Hello"), Slice.FromString("Hijacked"));
 
 					Assert.Fail("Calling Set() on a read-only transaction should fail");
 					return Task.FromResult(123);
@@ -271,7 +271,7 @@ namespace FoundationDB.Client.Tests
 				{
 					for (int i = 0; i < 10; i++)
 					{
-						tr.Set(location.Pack(i), Slice.FromInt32(i));
+						tr.Set(location.Tuples.EncodeKey(i), Slice.FromInt32(i));
 					}
 				}, this.Cancellation);
 
@@ -285,25 +285,25 @@ namespace FoundationDB.Client.Tests
 					// read 0..2
 					for (int i = 0; i < 3; i++)
 					{
-						values[i] = (await tr.GetAsync(location.Pack(i))).ToInt32();
+						values[i] = (await tr.GetAsync(location.Tuples.EncodeKey(i))).ToInt32();
 					}
 
 					// another transaction commits a change to 3 before we read it
-					await db.WriteAsync((tr2) => tr2.Set(location.Pack(3), Slice.FromInt32(42)), this.Cancellation);
+					await db.WriteAsync((tr2) => tr2.Set(location.Tuples.EncodeKey(3), Slice.FromInt32(42)), this.Cancellation);
 
 					// read 3 to 7
 					for (int i = 3; i < 7; i++)
 					{
-						values[i] = (await tr.GetAsync(location.Pack(i))).ToInt32();
+						values[i] = (await tr.GetAsync(location.Tuples.EncodeKey(i))).ToInt32();
 					}
 
 					// another transaction commits a change to 6 after it has been read
-					await db.WriteAsync((tr2) => tr2.Set(location.Pack(6), Slice.FromInt32(66)), this.Cancellation);
+					await db.WriteAsync((tr2) => tr2.Set(location.Tuples.EncodeKey(6), Slice.FromInt32(66)), this.Cancellation);
 
 					// read 7 to 9
 					for (int i = 7; i < 10; i++)
 					{
-						values[i] = (await tr.GetAsync(location.Pack(i))).ToInt32();
+						values[i] = (await tr.GetAsync(location.Tuples.EncodeKey(i))).ToInt32();
 					}
 
 					return values;

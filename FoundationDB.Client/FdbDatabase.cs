@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -76,9 +77,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
 		/// <remarks>This is readonly and is set when creating the database instance</remarks>
-		private FdbSubspace m_globalSpace;
+		private IFdbSubspace m_globalSpace;
 		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
-		private FdbSubspace m_globalSpaceCopy;
+		private IFdbSubspace m_globalSpaceCopy;
 
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
@@ -101,7 +102,7 @@ namespace FoundationDB.Client
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, FdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		protected FdbDatabase(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IFdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
 			Contract.Requires(cluster != null && handler != null && name != null && contentSubspace != null);
 
@@ -121,7 +122,7 @@ namespace FoundationDB.Client
 		/// <param name="directory">Root directory of the database instance</param>
 		/// <param name="readOnly">If true, the database instance will only allow read-only transactions</param>
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
-		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, FdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IFdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
 			if (cluster == null) throw new ArgumentNullException("cluster");
 			if (handler == null) throw new ArgumentNullException("handler");
@@ -447,55 +448,29 @@ namespace FoundationDB.Client
 
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
-		internal void ChangeRoot(FdbSubspace subspace, IFdbDirectory directory, bool readOnly)
+		internal void ChangeRoot(IFdbSubspace subspace, IFdbDirectory directory, bool readOnly)
 		{
+			//REVIEW: rename to "ChangeRootSubspace" ?
 			subspace = subspace ?? FdbSubspace.Empty;
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = subspace;
-				m_globalSpaceCopy = subspace.Copy();
+				m_globalSpace = FdbSubspace.Copy(subspace);
+				m_globalSpaceCopy = FdbSubspace.Copy(subspace); // keep another copy
 				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public FdbSubspace GlobalSpace
+		public IFdbSubspace GlobalSpace
 		{
+			//REVIEW: rename to just "Subspace" ?
 			[NotNull]
 			get
 			{
 				// return a copy of the subspace, to be sure that nobody can change the real globalspace and read elsewhere.
 				return m_globalSpaceCopy;
 			}
-		}
-
-		/// <summary>Create a new subspace prefixed by a binary key</summary>
-		/// <param name="suffix">Suffix of the subspace</param>
-		/// <returns>New subspace with prefix equal to the database's global prefix followed by <paramref name="suffix"/></returns>
-		public FdbSubspace this[Slice suffix]
-		{
-			//REVIEW: return IFdbSusbspace?
-			get { return suffix.IsNullOrEmpty ? m_globalSpace : m_globalSpaceCopy[suffix]; }
-		}
-
-		/// <summary>Create a new subspace prefixed by a key</summary>
-		/// <param name="key">Key that will packed</param>
-		/// <returns>New subspace with prefix equal to the database's global prefix followed by the packed representation of <paramref name="key"/></returns>
-		public FdbSubspace this[IFdbKey key]
-		{
-			//REVIEW: return IFdbSusbspace?
-			get { return key == null ? m_globalSpace : m_globalSpaceCopy[key]; }
-		}
-
-		IFdbSubspace IFdbSubspace.this[Slice suffix]
-		{
-			get { return this[suffix]; }
-		}
-
-		IFdbSubspace IFdbSubspace.this[IFdbKey key]
-		{
-			get { return this[key]; }
 		}
 
 		/// <summary>Checks that a key is valid, and is inside the global key space of this database</summary>
@@ -554,10 +529,53 @@ namespace FoundationDB.Client
 			return key.HasValue && m_globalSpace.Contains(key);
 		}
 
-		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
-		public Slice ExtractAndCheck(Slice key)
+		public Slice BoundCheck(Slice key, bool allowSystemKeys)
 		{
-			return m_globalSpace.ExtractAndCheck(key);
+			return m_globalSpace.BoundCheck(key, allowSystemKeys);
+		}
+
+		Slice IFdbSubspace.ConcatKey(Slice key)
+		{
+			return m_globalSpace.ConcatKey(key);
+		}
+
+		Slice[] IFdbSubspace.ConcatKeys(IEnumerable<Slice> keys)
+		{
+			return m_globalSpace.ConcatKeys(keys);
+		}
+
+		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
+		Slice IFdbSubspace.ExtractKey(Slice key, bool boundCheck)
+		{
+			return m_globalSpace.ExtractKey(key, boundCheck);
+		}
+
+		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
+		Slice[] IFdbSubspace.ExtractKeys(IEnumerable<Slice> keys, bool boundCheck)
+		{
+			return m_globalSpace.ExtractKeys(keys, boundCheck);
+		}
+
+		Slice IFdbSubspace.Key
+		{
+			get { return m_globalSpace.Key; }
+		}
+
+		public FdbSubspacePartition Partition
+		{
+			//REVIEW: should we hide this on the main db?
+			get { return m_globalSpace.Partition; }
+		}
+
+		public FdbSubspaceKeys Keys
+		{
+			get { return m_globalSpace.Keys; }
+		}
+
+		public FdbSubspaceTuples Tuples
+		{
+			//REVIEW: should we hide this on the main db?
+			get { return m_globalSpace.Tuples; }
 		}
 
 		/// <summary>Returns a range that contains all the keys that are inside the database global subspace combined with the suffix <paramref name="key"/>, but not inside the System subspace.</summary>
