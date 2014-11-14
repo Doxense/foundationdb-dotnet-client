@@ -1319,47 +1319,67 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Serialize_Embedded_Tuples()
 		{
-			Slice key;
-			IFdbTuple t;
+			Action<IFdbTuple, string> verify = (t, expected) =>
+			{
+				var key = t.ToSlice();
+				Assert.That(key.ToHexaString(' '), Is.EqualTo(expected));
+				Assert.That(FdbTuple.Pack(t), Is.EqualTo(key));
+				var t2 = FdbTuple.Unpack(key);
+				Assert.That(t2, Is.Not.Null);
+				Assert.That(t2.Count, Is.EqualTo(t.Count), "{0}", t2);
+				Assert.That(t2, Is.EqualTo(t));
+			};
 
 			// Index composite key
 			IFdbTuple value = FdbTuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
 			string docId = "Doc123";
 			// key would be "(..., value, id)"
 
-			// Create(...).ToSlice()
-			key = FdbTuple.Create(42, value, docId).ToSlice();
-			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
-			t = FdbTuple.Unpack(key);
-			Console.WriteLine(t);
+			verify(
+				FdbTuple.Create(42, value, docId),
+				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+			);
+			verify(
+				FdbTuple.Create(new object[] { 42, value, docId }),
+				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+			);
+			verify(
+				FdbTuple.Create(42).Append(value).Append(docId),
+				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+			);
+			verify(
+				FdbTuple.Create(42).Append(value, docId),
+				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+			);
 
-			key = FdbTuple.Create(new object[] { 42, value, docId }).ToSlice();
-			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
-			t = FdbTuple.Unpack(key);
-			Console.WriteLine(t);
+			// multiple depth
+			verify(
+				FdbTuple.Create(1, FdbTuple.Create(2, 3), FdbTuple.Create(FdbTuple.Create(4, 5, 6)), 7),
+				"15 01 03 15 02 15 03 00 03 03 15 04 15 05 15 06 00 00 15 07"
+			);
 
-			// subspace.Append(value).Append(id).ToSlice()
-			key = FdbTuple.Create(42).Append(value).Append(docId).ToSlice();
-			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
-			t = FdbTuple.Unpack(key);
-			Console.WriteLine(t);
+			// corner cases
+			verify(
+				FdbTuple.Create(FdbTuple.Empty),
+				"03 00" // empty tumple should have header and footer
+			);
+			verify(
+				FdbTuple.Create(FdbTuple.Empty, default(string)),
+				"03 00 00" // outer null should not be escaped
+			);
+			verify(
+				FdbTuple.Create(FdbTuple.Create(default(string)), default(string)),
+				"03 00 FF 00 00" // inner null should be escaped, but not outer
+			);
+			verify(
+				FdbTuple.Create(FdbTuple.Create(0x100, 0x10000, 0x1000000)),
+				"03 16 01 00 17 01 00 00 18 01 00 00 00 00"
+			);
+			verify(
+				FdbTuple.Create(default(string), FdbTuple.Empty, default(string), FdbTuple.Create(default(string)), default(string)),
+				"00 03 00 00 03 00 FF 00 00"
+			);
 
-			// subspace.Append(value, id).ToSlice()
-			key = FdbTuple.Create(42).Append(value, docId).ToSlice();
-			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
-			t = FdbTuple.Unpack(key);
-			Console.WriteLine(t);
-
-			// FdbTuple.Pack(..., value, id)
-			key = FdbTuple.Pack(42, value, docId);
-			Assert.That(key.ToHexaString(' '), Is.EqualTo("15 2A 03 16 07 DE 15 0B 15 06 04 02 44 6F 63 31 32 33 00"));
-			t = FdbTuple.Unpack(key);
-			Console.WriteLine(t);
-
-			t = FdbTuple.Create(1, FdbTuple.Create(2, 3), FdbTuple.Create(FdbTuple.Create(4, 5, 6)), 7);
-			Console.WriteLine(t);
-			key = t.ToSlice();
-			Console.WriteLine(key);
 		}
 
 		[Test]
@@ -1650,10 +1670,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Slice packed;
 
 			packed = FdbTuplePacker<Thing>.Serialize(new Thing { Foo = 123, Bar = "hello" });
-			Assert.That(packed.ToString(), Is.EqualTo("<03><15>{<02>hello<00><04>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<03><15>{<02>hello<00><00>"));
 
 			packed = FdbTuplePacker<Thing>.Serialize(new Thing());
-			Assert.That(packed.ToString(), Is.EqualTo("<03><14><00><04>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<03><14><00><FF><00>"));
 
 			packed = FdbTuplePacker<Thing>.Serialize(default(Thing));
 			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
@@ -1666,18 +1686,21 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Slice slice;
 			Thing thing;
 
-			slice = Slice.Unescape("<03><16><01><C8><02>world<00><04>");
+			slice = Slice.Unescape("<03><16><01><C8><02>world<00><00>");
 			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(456));
 			Assert.That(thing.Bar, Is.EqualTo("world"));
 
-			slice = Slice.Unescape("<03><14><00><04>");
+			slice = Slice.Unescape("<03><14><00><FF><00>");
 			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(0));
 			Assert.That(thing.Bar, Is.EqualTo(null));
 
+			slice = Slice.Unescape("<00>");
+			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
+			Assert.That(thing, Is.Null);
 		}
 
 		[Test]
@@ -1806,10 +1829,13 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 		private static void PerformWriterTest<T>(FdbTuplePackers.Encoder<T> action, T value, string expectedResult, string message = null)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			action(ref writer, value);
 
-			Assert.That(writer.ToSlice().ToHexaString(' '), Is.EqualTo(expectedResult), message != null ? "Value {0} ({1}) was not properly packed: {2}" : "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name), message);
+			Assert.That(
+				writer.Output.ToSlice().ToHexaString(' '),
+				Is.EqualTo(expectedResult),
+				message != null ? "Value {0} ({1}) was not properly packed: {2}" : "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name), message);
 		}
 
 		[Test]
@@ -1856,9 +1882,9 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			Action<long> test = (x) =>
 			{
-				var writer = SliceWriter.Empty;
+				var writer = new TupleWriter();
 				FdbTupleParser.WriteInt64(ref writer, x);
-				var res = new KeyValuePair<long, Slice>(x, writer.ToSlice());
+				var res = new KeyValuePair<long, Slice>(x, writer.Output.ToSlice());
 				list.Add(res);
 				Console.WriteLine("{0,20} : {0:x16} {1}", res.Key, res.Value.ToString());
 			};
@@ -1946,9 +1972,9 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			Action<ulong> test = (x) =>
 			{
-				var writer = SliceWriter.Empty;
+				var writer = new TupleWriter();
 				FdbTupleParser.WriteUInt64(ref writer, x);
-				var res = new KeyValuePair<ulong, Slice>(x, writer.ToSlice());
+				var res = new KeyValuePair<ulong, Slice>(x, writer.Output.ToSlice());
 				list.Add(res);
 #if DEBUG
 				Console.WriteLine("{0,20} : {0:x16} {1}", res.Key, res.Value.ToString());
@@ -2097,10 +2123,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 			for (int i = 1; i <= 65535; i++)
 			{
 				char c = (char)i;
-				var writer = SliceWriter.Empty;
+				var writer = new TupleWriter();
 				FdbTupleParser.WriteChar(ref writer, c);
 				string s = new string(c, 1);
-				Assert.That(writer.ToSlice().ToString(), Is.EqualTo("<02>" + Slice.Create(Encoding.UTF8.GetBytes(s)).ToString() + "<00>"), "{0} '{1}'", i, c);
+				Assert.That(writer.Output.ToSlice().ToString(), Is.EqualTo("<02>" + Slice.Create(Encoding.UTF8.GetBytes(s)).ToString() + "<00>"), "{0} '{1}'", i, c);
 			}
 		}
 

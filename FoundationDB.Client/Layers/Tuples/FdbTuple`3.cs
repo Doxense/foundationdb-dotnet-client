@@ -56,6 +56,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Third and last elemnt of the triplet</summary>
 		public readonly T3 Item3;
 
+		[DebuggerStepThrough]
 		public FdbTuple(T1 item1, T2 item2, T3 item3)
 		{
 			this.Item1 = item1;
@@ -99,7 +100,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);
 			FdbTuplePacker<T2>.Encoder(ref writer, this.Item2);

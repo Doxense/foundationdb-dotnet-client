@@ -227,7 +227,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			for (int i = 0; i < m_count; i++)
 			{
@@ -237,9 +237,9 @@ namespace FoundationDB.Layers.Tuples
 
 		public Slice ToSlice()
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			PackTo(ref writer);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()

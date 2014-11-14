@@ -35,6 +35,7 @@ namespace FoundationDB.Layers.Tuples
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
 	using System.Text;
@@ -83,7 +84,7 @@ namespace FoundationDB.Layers.Tuples
 				return tuple;
 			}
 
-			public void PackTo(ref SliceWriter writer)
+			public void PackTo(ref TupleWriter writer)
 			{
 				//NO-OP
 			}
@@ -157,24 +158,28 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Create a new 1-tuple, holding only one item</summary>
+		[DebuggerStepThrough]
 		public static FdbTuple<T1> Create<T1>(T1 item1)
 		{
 			return new FdbTuple<T1>(item1);
 		}
 
 		/// <summary>Create a new 2-tuple, holding two items</summary>
+		[DebuggerStepThrough]
 		public static FdbTuple<T1, T2> Create<T1, T2>(T1 item1, T2 item2)
 		{
 			return new FdbTuple<T1, T2>(item1, item2);
 		}
 
 		/// <summary>Create a new 3-tuple, holding three items</summary>
+		[DebuggerStepThrough]
 		public static FdbTuple<T1, T2, T3> Create<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			return new FdbTuple<T1, T2, T3>(item1, item2, item3);
 		}
 
 		/// <summary>Create a new 4-tuple, holding four items</summary>
+		[DebuggerStepThrough]
 		public static FdbTuple<T1, T2, T3, T4> Create<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return new FdbTuple<T1, T2, T3, T4>(item1, item2, item3, item4);
@@ -325,9 +330,15 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Packing...
 
+		//BUGBUG: there is a potential type resolution problem between FdbTuple.Pack(IFdbTuple) and FdbTuple.Pack<T>(T)
+		// ex: FdbTuple.Pack(FdbTuple.Create(1, 2)) will call FdbTuplePack<T>(T) with T == typeof(FdbTuple<int, int>) instead of expected FdbTuple.Pack(IFdbTuple)
+		// problem is that Pack<T>() will treat this as the embedded tuple ((1, 2),) instead of expected (1, 2)
+
+		//TODO: We *MUST* rename the various Pack<Ts>() to something else, to solve this issue!
+
 		/// <summary>Pack a tuple into a slice</summary>
 		/// <param name="tuple">Tuple that must be serialized into a binary slice</param>
-		public static Slice Pack(IFdbTuple tuple)
+		public static Slice Pack([NotNull] IFdbTuple tuple)
 		{
 			//note: this is redundant with tuple.ToSlice()
 			// => maybe we should remove this method?
@@ -340,47 +351,47 @@ namespace FoundationDB.Layers.Tuples
 		/// <remarks>This is the non-generic equivalent of FdbTuple.Pack&lt;object&gt;()</remarks>
 		public static Slice PackBoxed(object item)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			FdbTuplePackers.SerializeObjectTo(ref writer, item);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Pack a 1-tuple directly into a slice</summary>
 		public static Slice Pack<T1>(T1 item1)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Pack a 2-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2>(T1 item1, T2 item2)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
 			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Pack a 3-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
 			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
 			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Pack a 4-tuple directly into a slice</summary>
 		public static Slice Pack<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
 			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
 			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
 			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Pack a N-tuple directory into a slice</summary>
@@ -389,12 +400,12 @@ namespace FoundationDB.Layers.Tuples
 			if (items == null) throw new ArgumentNullException("items");
 			if (items.Length == 0) return Slice.Empty;
 
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			foreach(var item in items)
 			{
 				FdbTuplePackers.SerializeObjectTo(ref writer, item);
 			}
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Merge a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -413,19 +424,19 @@ namespace FoundationDB.Layers.Tuples
 			if (array != null) return PackRangeWithPrefix<T>(prefix, array);
 
 			var next = new List<int>();
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			var packer = FdbTuplePacker<T>.Encoder;
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var key in keys)
 			{
-				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				if (prefix.IsPresent) writer.Output.WriteBytes(prefix);
 				packer(ref writer, key);
-				next.Add(writer.Position);
+				next.Add(writer.Output.Position);
 			}
 
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return FdbKey.SplitIntoSegments(writer.Output.Buffer, 0, next);
 		}
 
 		/// <summary>Merge an array of keys with a same prefix, all sharing the same buffer</summary>
@@ -439,7 +450,7 @@ namespace FoundationDB.Layers.Tuples
 			if (keys == null) throw new ArgumentNullException("keys");
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var writer = new SliceWriter(keys.Length * (prefix.Count + 8));
+			var writer = new TupleWriter(keys.Length * (prefix.Count + 8));
 			var next = new List<int>(keys.Length);
 			var packer = FdbTuplePacker<T>.Encoder;
 
@@ -447,12 +458,12 @@ namespace FoundationDB.Layers.Tuples
 
 			foreach (var key in keys)
 			{
-				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				if (prefix.Count > 0) writer.Output.WriteBytes(prefix);
 				packer(ref writer, key);
-				next.Add(writer.Position);
+				next.Add(writer.Output.Position);
 			}
 
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return FdbKey.SplitIntoSegments(writer.Output.Buffer, 0, next);
 		}
 
 		/// <summary>Merge an array of elements, all sharing the same buffer</summary>
@@ -479,7 +490,7 @@ namespace FoundationDB.Layers.Tuples
 			if (selector == null) throw new ArgumentNullException("selector");
 
 			// pre-allocate by guessing that each key will take at least 8 bytes. Even if 8 is too small, we should have at most one or two buffer resize
-			var writer = new SliceWriter(elements.Length * (prefix.Count + 8));
+			var writer = new TupleWriter(elements.Length * (prefix.Count + 8));
 			var next = new List<int>(elements.Length);
 			var packer = FdbTuplePacker<TKey>.Encoder;
 
@@ -487,12 +498,12 @@ namespace FoundationDB.Layers.Tuples
 
 			foreach (var value in elements)
 			{
-				if (prefix.IsPresent) writer.WriteBytes(prefix);
+				if (prefix.Count > 0) writer.Output.WriteBytes(prefix);
 				packer(ref writer, selector(value));
-				next.Add(writer.Position);
+				next.Add(writer.Output.Position);
 			}
 
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return FdbKey.SplitIntoSegments(writer.Output.Buffer, 0, next);
 		}
 
 		/// <summary>Pack a sequence of N-tuples, all sharing the same buffer</summary>
@@ -520,18 +531,18 @@ namespace FoundationDB.Layers.Tuples
 			if (array != null) return PackRangeWithPrefix(prefix, array);
 
 			var next = new List<int>();
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach(var tuple in tuples)
 			{
-				writer.WriteBytes(prefix);
+				writer.Output.WriteBytes(prefix);
 				tuple.PackTo(ref writer);
-				next.Add(writer.Position);
+				next.Add(writer.Output.Position);
 			}
 
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return FdbKey.SplitIntoSegments(writer.Output.Buffer, 0, next);
 		}
 
 		/// <summary>Pack an array of N-tuples, all sharing the same buffer</summary>
@@ -555,19 +566,19 @@ namespace FoundationDB.Layers.Tuples
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
 			// pre-allocate by supposing that each tuple will take at least 16 bytes
-			var writer = new SliceWriter(tuples.Length * (16 + prefix.Count));
+			var writer = new TupleWriter(tuples.Length * (16 + prefix.Count));
 			var next = new List<int>(tuples.Length);
 
 			//TODO: use multiple buffers if item count is huge ?
 
 			foreach (var tuple in tuples)
 			{
-				writer.WriteBytes(prefix);
+				writer.Output.WriteBytes(prefix);
 				tuple.PackTo(ref writer);
-				next.Add(writer.Position);
+				next.Add(writer.Output.Position);
 			}
 
-			return FdbKey.SplitIntoSegments(writer.Buffer, 0, next);
+			return FdbKey.SplitIntoSegments(writer.Output.Buffer, 0, next);
 		}
 
 		/// <summary>Pack a sequence of keys with a same prefix, all sharing the same buffer</summary>
@@ -608,7 +619,7 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (packedKey.IsNullOrEmpty) return packedKey.HasValue ? FdbTuple.Empty : null;
 
-			return FdbTuplePackers.Unpack(packedKey);
+			return FdbTuplePackers.Unpack(packedKey, false);
 		}
 
 		/// <summary>Unpack a tuple from a serialized key, after removing the prefix</summary>
@@ -629,7 +640,7 @@ namespace FoundationDB.Layers.Tuples
 #endif
 
 			// unpack the key, minus the prefix
-			return FdbTuplePackers.Unpack(packedKey.Substring(prefix.Count));
+			return FdbTuplePackers.Unpack(packedKey.Substring(prefix.Count), false);
 		}
 
 		/// <summary>Unpack a tuple and only return its first element</summary>
@@ -737,9 +748,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="input">Reader positionned at the start of the next item to read</param>
 		/// <param name="value">If decoding succeedsd, receives the decoded value.</param>
 		/// <returns>True if the decoded succeeded (and <paramref name="value"/> receives the decoded value). False if the tuple has reached the end.</returns>
-		public static bool UnpackNext<T>(ref SliceReader input, out T value)
+		public static bool UnpackNext<T>(ref TupleReader input, out T value)
 		{
-			if (!input.HasMore)
+			if (!input.Input.HasMore)
 			{
 				value = default(T);
 				return false;
@@ -761,62 +772,62 @@ namespace FoundationDB.Layers.Tuples
 		{
 			if (tuple == null || tuple.Count == 0) return prefix;
 
-			var writer = SliceWriter.Empty;
-			writer.WriteBytes(prefix);
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
 			tuple.PackTo(ref writer);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
 		/// <remarks>This is the non-generic equivalent of <see cref="FdbTuple.Pack{T}"/></remarks>
 		public static Slice PackBoxedWithPrefix(Slice prefix, object value)
 		{
-			var writer = SliceWriter.Empty;
-			writer.WriteBytes(prefix);
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
 			FdbTuplePackers.SerializeObjectTo(ref writer, value);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 1-tuple</summary>
 		public static Slice PackWithPrefix<T>(Slice prefix, T value)
 		{
-			var writer = SliceWriter.Empty;
-			writer.WriteBytes(prefix);
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
 			FdbTuplePacker<T>.Encoder(ref writer, value);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 2-tuple</summary>
 		public static Slice PackWithPrefix<T1, T2>(Slice prefix, T1 value1, T2 value2)
 		{
-			var writer = SliceWriter.Empty;
-			writer.WriteBytes(prefix);
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
 			FdbTuplePacker<T1>.Encoder(ref writer, value1);
 			FdbTuplePacker<T2>.Encoder(ref writer, value2);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 3-tuple</summary>
 		public static Slice PackWithPrefix<T1, T2, T3>(Slice prefix, T1 value1, T2 value2, T3 value3)
 		{
-			var writer = SliceWriter.Empty;
-			writer.WriteBytes(prefix);
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
 			FdbTuplePacker<T1>.Encoder(ref writer, value1);
 			FdbTuplePacker<T2>.Encoder(ref writer, value2);
 			FdbTuplePacker<T3>.Encoder(ref writer, value3);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
 		public static Slice PackWithPrefix<T1, T2, T3, T4>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			var writer = SliceWriter.Empty;
-			writer.WriteBytes(prefix);
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
 			FdbTuplePacker<T1>.Encoder(ref writer, value1);
 			FdbTuplePacker<T2>.Encoder(ref writer, value2);
 			FdbTuplePacker<T3>.Encoder(ref writer, value3);
 			FdbTuplePacker<T4>.Encoder(ref writer, value4);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		#endregion

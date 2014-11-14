@@ -46,8 +46,6 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Nested tuple [DRAFT]</summary>
 		internal const byte TupleStart = 3;
-		/// <summary>End of a nested tuple [DRAFT]</summary>
-		internal const byte TupleEnd = 4;
 
 		internal const byte IntNeg8 = 12;
 		internal const byte IntNeg7 = 13;

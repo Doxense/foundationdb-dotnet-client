@@ -150,20 +150,20 @@ namespace FoundationDB.Layers.Tuples
 			// We want to allocate only one byte[] to store both keys, and map both Slice to each chunk
 			// So we will serialize the tuple two times in the same writer
 
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 
 			tuple.PackTo(ref writer);
-			writer.EnsureBytes(writer.Position + 2);
-			if (!includePrefix) writer.WriteByte(0);
-			int p0 = writer.Position;
+			writer.Output.EnsureBytes(writer.Output.Position + 2);
+			if (!includePrefix) writer.Output.WriteByte(0);
+			int p0 = writer.Output.Position;
 
 			tuple.PackTo(ref writer);
-			writer.WriteByte(0xFF);
-			int p1 = writer.Position;
+			writer.Output.WriteByte(0xFF);
+			int p1 = writer.Output.Position;
 
 			return new FdbKeyRange(
-				new Slice(writer.Buffer, 0, p0),
-				new Slice(writer.Buffer, p0, p1 - p0)
+				new Slice(writer.Output.Buffer, 0, p0),
+				new Slice(writer.Output.Buffer, p0, p1 - p0)
 			);
 		}
 

@@ -75,11 +75,11 @@ namespace FoundationDB.Layers.Tuples
 			get { return FdbTuple.Splice(this, fromIncluded, toExcluded); }
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			if (m_packed.IsPresent)
 			{
-				writer.WriteBytes(m_packed);
+				writer.Output.WriteBytes(m_packed);
 			}
 		}
 

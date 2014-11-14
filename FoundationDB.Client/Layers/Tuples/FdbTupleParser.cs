@@ -36,52 +36,71 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>Helper class that contains low-level encoders for the tuple binary format</summary>
 	public static class FdbTupleParser
 	{
-
 		#region Serialization...
 
 		/// <summary>Writes a null value at the end, and advance the cursor</summary>
-		public static void WriteNil(ref SliceWriter writer)
+		public static void WriteNil(ref TupleWriter writer)
 		{
-			writer.WriteByte(FdbTupleTypes.Nil);
+			if (writer.Depth == 0)
+			{ // at the top level, NILs are escaped as <00>
+				writer.Output.WriteByte(FdbTupleTypes.Nil);
+			}
+			else
+			{ // inside a tuple, NILs are escaped as <00><FF>
+				writer.Output.WriteByte2(FdbTupleTypes.Nil, 0xFF);
+			}
+		}
+
+		public static void WriteBool(ref TupleWriter writer, bool value)
+		{
+			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
+			if (value)
+			{ // true => 15 01
+				writer.Output.WriteByte2(FdbTupleTypes.IntPos1, 1);
+			}
+			else
+			{ // false => 14
+				writer.Output.WriteByte(FdbTupleTypes.IntZero);
+			}
 		}
 
 		/// <summary>Writes an UInt8 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Unsigned BYTE, 32 bits</param>
-		public static void WriteInt8(ref SliceWriter writer, byte value)
+		public static void WriteByte(ref TupleWriter writer, byte value)
 		{
 			if (value == 0)
 			{ // zero
-				writer.WriteByte(FdbTupleTypes.IntZero);
+				writer.Output.WriteByte(FdbTupleTypes.IntZero);
 			}
 			else
 			{ // 1..255: frequent for array index
-				writer.WriteByte2(FdbTupleTypes.IntPos1, value);
+				writer.Output.WriteByte2(FdbTupleTypes.IntPos1, value);
 			}
 		}
 
 		/// <summary>Writes an Int32 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
-		public static void WriteInt32(ref SliceWriter writer, int value)
+		public static void WriteInt32(ref TupleWriter writer, int value)
 		{
 			if (value <= 255)
 			{
 				if (value == 0)
 				{ // zero
-					writer.WriteByte(FdbTupleTypes.IntZero);
+					writer.Output.WriteByte(FdbTupleTypes.IntZero);
 					return;
 				}
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
-					writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
 					return;
 				}
 
 				if (value > -256)
 				{ // -255..-1
-					writer.WriteByte2(FdbTupleTypes.IntNeg1, (byte)(255 + value));
+					writer.Output.WriteByte2(FdbTupleTypes.IntNeg1, (byte)(255 + value));
 					return;
 				}
 			}
@@ -92,25 +111,25 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
-		public static void WriteInt64(ref SliceWriter writer, long value)
+		public static void WriteInt64(ref TupleWriter writer, long value)
 		{
 			if (value <= 255)
 			{
 				if (value == 0)
 				{ // zero
-					writer.WriteByte(FdbTupleTypes.IntZero);
+					writer.Output.WriteByte(FdbTupleTypes.IntZero);
 					return;
 				}
 
 				if (value > 0)
 				{ // 1..255: frequent for array index
-					writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
 					return;
 				}
 
 				if (value > -256)
 				{ // -255..-1
-					writer.WriteByte2(FdbTupleTypes.IntNeg1, (byte)(255 + value));
+					writer.Output.WriteByte2(FdbTupleTypes.IntNeg1, (byte)(255 + value));
 					return;
 				}
 			}
@@ -118,17 +137,17 @@ namespace FoundationDB.Layers.Tuples
 			WriteInt64Slow(ref writer, value);
 		}
 
-		private static void WriteInt64Slow(ref SliceWriter writer, long value)
+		private static void WriteInt64Slow(ref TupleWriter writer, long value)
 		{
 			// we are only called for values <= -256 or >= 256
 
 			// determine the number of bytes needed to encode the absolute value
 			int bytes = NumberOfBytes(value);
 
-			writer.EnsureBytes(bytes + 1);
+			writer.Output.EnsureBytes(bytes + 1);
 
-			var buffer = writer.Buffer;
-			int p = writer.Position;
+			var buffer = writer.Output.Buffer;
+			int p = writer.Output.Position;
 
 			ulong v;
 			if (value > 0)
@@ -159,23 +178,23 @@ namespace FoundationDB.Layers.Tuples
 				// last
 				buffer[p++] = (byte)v;
 			}
-			writer.Position = p;
+			writer.Output.Position = p;
 		}
 
 		/// <summary>Writes an UInt32 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed DWORD, 32 bits, High Endian</param>
-		public static void WriteUInt32(ref SliceWriter writer, uint value)
+		public static void WriteUInt32(ref TupleWriter writer, uint value)
 		{
 			if (value <= 255)
 			{
 				if (value == 0)
 				{ // 0
-					writer.WriteByte(FdbTupleTypes.IntZero);
+					writer.Output.WriteByte(FdbTupleTypes.IntZero);
 				}
 				else
 				{ // 1..255
-					writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
 				}
 			}
 			else
@@ -187,17 +206,17 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Writes an UInt64 at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Signed QWORD, 64 bits, High Endian</param>
-		public static void WriteUInt64(ref SliceWriter writer, ulong value)
+		public static void WriteUInt64(ref TupleWriter writer, ulong value)
 		{
 			if (value <= 255)
 			{
 				if (value == 0)
 				{ // 0
-					writer.WriteByte(FdbTupleTypes.IntZero);
+					writer.Output.WriteByte(FdbTupleTypes.IntZero);
 				}
 				else
 				{ // 1..255
-					writer.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
+					writer.Output.WriteByte2(FdbTupleTypes.IntPos1, (byte)value);
 				}
 			}
 			else
@@ -206,17 +225,17 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		private static void WriteUInt64Slow(ref SliceWriter writer, ulong value)
+		private static void WriteUInt64Slow(ref TupleWriter writer, ulong value)
 		{
 			// We are only called for values >= 256
 
 			// determine the number of bytes needed to encode the value
 			int bytes = NumberOfBytes(value);
 
-			writer.EnsureBytes(bytes + 1);
+			writer.Output.EnsureBytes(bytes + 1);
 
-			var buffer = writer.Buffer;
-			int p = writer.Position;
+			var buffer = writer.Output.Buffer;
+			int p = writer.Output.Position;
 
 			// simple case (ulong can only be positive)
 			buffer[p++] = (byte)(FdbTupleTypes.IntBase + bytes);
@@ -236,13 +255,13 @@ namespace FoundationDB.Layers.Tuples
 				buffer[p++] = (byte)value;
 			}
 
-			writer.Position = p;
+			writer.Output.Position = p;
 		}
 
 		/// <summary>Writes an Single at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">IEEE Floating point, 32 bits, High Endian</param>
-		public static void WriteSingle(ref SliceWriter writer, float value)
+		public static void WriteSingle(ref TupleWriter writer, float value)
 		{
 			// The double is converted to its Big-Endian IEEE binary representation
 			// - If the sign bit is set, flip all the bits
@@ -264,21 +283,21 @@ namespace FoundationDB.Layers.Tuples
 			{ // postive
 				bits |= 0x80000000U;
 			}
-			writer.EnsureBytes(5);
-			var buffer = writer.Buffer;
-			int p = writer.Position;
+			writer.Output.EnsureBytes(5);
+			var buffer = writer.Output.Buffer;
+			int p = writer.Output.Position;
 			buffer[p + 0] = FdbTupleTypes.Single;
 			buffer[p + 1] = (byte)(bits >> 24);
 			buffer[p + 2] = (byte)(bits >> 16);
 			buffer[p + 3] = (byte)(bits >> 8);
 			buffer[p + 4] = (byte)(bits);
-			writer.Position = p + 5;
+			writer.Output.Position = p + 5;
 		}
 
 		/// <summary>Writes an Double at the end, and advance the cursor</summary>
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">IEEE Floating point, 64 bits, High Endian</param>
-		public static void WriteDouble(ref SliceWriter writer, double value)
+		public static void WriteDouble(ref TupleWriter writer, double value)
 		{
 			// The double is converted to its Big-Endian IEEE binary representation
 			// - If the sign bit is set, flip all the bits
@@ -300,9 +319,9 @@ namespace FoundationDB.Layers.Tuples
 			{ // postive
 				bits |= 0x8000000000000000UL;
 			}
-			writer.EnsureBytes(9);
-			var buffer = writer.Buffer;
-			int p = writer.Position;
+			writer.Output.EnsureBytes(9);
+			var buffer = writer.Output.Buffer;
+			int p = writer.Output.Position;
 			buffer[p] = FdbTupleTypes.Double;
 			buffer[p + 1] = (byte)(bits >> 56);
 			buffer[p + 2] = (byte)(bits >> 48);
@@ -312,15 +331,15 @@ namespace FoundationDB.Layers.Tuples
 			buffer[p + 6] = (byte)(bits >> 16);
 			buffer[p + 7] = (byte)(bits >> 8);
 			buffer[p + 8] = (byte)(bits);
-			writer.Position = p + 9;
+			writer.Output.Position = p + 9;
 		}
 
 		/// <summary>Writes a binary string</summary>
-		public static void WriteBytes(ref SliceWriter writer, byte[] value)
+		public static void WriteBytes(ref TupleWriter writer, byte[] value)
 		{
 			if (value == null)
 			{
-				writer.WriteByte(FdbTupleTypes.Nil);
+				WriteNil(ref writer);
 			}
 			else
 			{
@@ -329,15 +348,15 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a string encoded in UTF-8</summary>
-		public static unsafe void WriteString(ref SliceWriter writer, string value)
+		public static unsafe void WriteString(ref TupleWriter writer, string value)
 		{
 			if (value == null)
 			{ // "00"
-				writer.WriteByte(FdbTupleTypes.Nil);
+				WriteNil(ref writer);
 			}
 			else if (value.Length == 0)
 			{ // "02 00"
-				writer.WriteByte2(FdbTupleTypes.Utf8, 0x00);
+				writer.Output.WriteByte2(FdbTupleTypes.Utf8, 0x00);
 			}
 			else
 			{
@@ -352,7 +371,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a char array encoded in UTF-8</summary>
-		internal static unsafe void WriteChars(ref SliceWriter writer, char[] value, int offset, int count)
+		internal static unsafe void WriteChars(ref TupleWriter writer, char[] value, int offset, int count)
 		{
 			Contract.Requires(offset >= 0 && count >= 0);
 
@@ -360,46 +379,48 @@ namespace FoundationDB.Layers.Tuples
 			{
 				if (value == null)
 				{ // "00"
-					writer.WriteByte(FdbTupleTypes.Nil);
+					WriteNil(ref writer);
 				}
 				else
 				{ // "02 00"
-					writer.WriteByte2(FdbTupleTypes.Utf8, 0x00);
+					writer.Output.WriteByte2(FdbTupleTypes.Utf8, 0x00);
 				}
 			}
 			else
 			{
 				fixed (char* chars = value)
 				{
-					if (TryWriteUnescapedUtf8String(ref writer, chars + offset, count)) return;
+					if (!TryWriteUnescapedUtf8String(ref writer, chars + offset, count))
+					{ // the string contains \0 chars, we need to do it the hard way
+						WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value, 0, count));
+					}
 				}
-				// the string contains \0 chars, we need to do it the hard way
-				WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value, 0, count));
 			}
 		}
 
-		private static unsafe void WriteUnescapedAsciiChars(ref SliceWriter writer, char* chars, int count)
+		private static unsafe void WriteUnescapedAsciiChars(ref TupleWriter writer, char* chars, int count)
 		{
 			Contract.Requires(chars != null && count >= 0);
 
 			// copy and convert an ASCII string directly into the destination buffer
 
-			writer.EnsureBytes(2 + count);
-			int pos = writer.Position;
+			writer.Output.EnsureBytes(2 + count);
+			int pos = writer.Output.Position;
 			char* end = chars + count;
-			fixed (byte* buffer = writer.Buffer)
+			fixed (byte* buffer = writer.Output.Buffer)
 			{
 				buffer[pos++] = FdbTupleTypes.Utf8;
+				//OPTIMIZE: copy 2 or 4 chars at once, unroll loop?
 				while(chars < end)
 				{
 					buffer[pos++] = (byte)(*chars++);
 				}
 				buffer[pos] = 0x00;
-				writer.Position = pos + 1;
+				writer.Output.Position = pos + 1;
 			}
 		}
 
-		private static unsafe bool TryWriteUnescapedUtf8String(ref SliceWriter writer, char* chars, int count)
+		private static unsafe bool TryWriteUnescapedUtf8String(ref TupleWriter writer, char* chars, int count)
 		{
 			Contract.Requires(chars != null && count >= 0);
 
@@ -456,8 +477,8 @@ namespace FoundationDB.Layers.Tuples
 			// We can not really predict the final size of the encoded string, but:
 			// * Western languages have a few chars that usually need 2 bytes. If we pre-allocate 50% more bytes, it should fit most of the time, without too much waste
 			// * Eastern langauges will have all chars encoded to 3 bytes. If we also pre-allocated 50% more, we should only need one resize of the buffer (150% x 2 = 300%), which is acceptable
-			writer.EnsureBytes(checked(2 + count + (count >> 1))); // preallocate 150% of the string + 2 bytes
-			writer.UnsafeWriteByte(FdbTupleTypes.Utf8);
+			writer.Output.EnsureBytes(checked(2 + count + (count >> 1))); // preallocate 150% of the string + 2 bytes
+			writer.Output.UnsafeWriteByte(FdbTupleTypes.Utf8);
 
 			var encoder = Encoding.UTF8.GetEncoder();
 			// note: encoder.Convert() tries to fill up the buffer as much as possible with complete chars, and will set 'done' to true when all chars have been converted.
@@ -466,7 +487,7 @@ namespace FoundationDB.Layers.Tuples
 				encoder.Convert(ptr, remaining, buf, bufLen, true, out charsUsed, out bytesUsed, out done);
 				if (bytesUsed > 0)
 				{
-					writer.WriteBytes(buf, bytesUsed);
+					writer.Output.WriteBytes(buf, bytesUsed);
 				}
 				remaining -= charsUsed;
 				ptr += charsUsed;
@@ -475,7 +496,7 @@ namespace FoundationDB.Layers.Tuples
 			Contract.Assert(remaining == 0 && ptr == end);
 
 			// close the string
-			writer.WriteByte(0x00);
+			writer.Output.WriteByte(0x00);
 
 			#endregion
 
@@ -483,47 +504,47 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a char encoded in UTF-8</summary>
-		public static void WriteChar(ref SliceWriter writer, char value)
+		public static void WriteChar(ref TupleWriter writer, char value)
 		{
 			if (value == 0)
 			{ // NUL => "00 0F"
 				// note: \0 is the only unicode character that will produce a zero byte when converted in UTF-8
-				writer.WriteByte4(FdbTupleTypes.Utf8, 0x00, 0xFF, 0x00);
+				writer.Output.WriteByte4(FdbTupleTypes.Utf8, 0x00, 0xFF, 0x00);
 			}
 			else if (value < 0x80)
 			{ // 0x00..0x7F => 0xxxxxxx
-				writer.WriteByte3(FdbTupleTypes.Utf8, (byte)value, 0x00);
+				writer.Output.WriteByte3(FdbTupleTypes.Utf8, (byte)value, 0x00);
 			}
 			else if (value <  0x800)
 			{ // 0x80..0x7FF => 110xxxxx 10xxxxxx => two bytes
-				writer.WriteByte4(FdbTupleTypes.Utf8, (byte)(0xC0 | (value >> 6)), (byte)(0x80 | (value & 0x3F)), 0x00);
+				writer.Output.WriteByte4(FdbTupleTypes.Utf8, (byte)(0xC0 | (value >> 6)), (byte)(0x80 | (value & 0x3F)), 0x00);
 			}
 			else
 			{ // 0x800..0xFFFF => 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 				// note: System.Char is 16 bits, and thus cannot represent UNICODE chars above 0xFFFF.
 				// => This means that a System.Char will never take more than 3 bytes in UTF-8 !
 				var tmp = Encoding.UTF8.GetBytes(new string(value, 1));
-				writer.EnsureBytes(tmp.Length + 2);
-				writer.UnsafeWriteByte(FdbTupleTypes.Utf8);
-				writer.UnsafeWriteBytes(tmp, 0, tmp.Length);
-				writer.UnsafeWriteByte(0x00);
+				writer.Output.EnsureBytes(tmp.Length + 2);
+				writer.Output.UnsafeWriteByte(FdbTupleTypes.Utf8);
+				writer.Output.UnsafeWriteBytes(tmp, 0, tmp.Length);
+				writer.Output.UnsafeWriteByte(0x00);
 			}
 		}
 
 		/// <summary>Writes a binary string</summary>
-		public static void WriteBytes(ref SliceWriter writer, byte[] value, int offset, int count)
+		public static void WriteBytes(ref TupleWriter writer, byte[] value, int offset, int count)
 		{
 			WriteNulEscapedBytes(ref writer, FdbTupleTypes.Bytes, value, offset, count);
 		}
 
 		/// <summary>Writes a binary string</summary>
-		public static void WriteBytes(ref SliceWriter writer, ArraySegment<byte> value)
+		public static void WriteBytes(ref TupleWriter writer, ArraySegment<byte> value)
 		{
 			WriteNulEscapedBytes(ref writer, FdbTupleTypes.Bytes, value.Array, value.Offset, value.Count);
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		internal static void WriteNulEscapedBytes(ref SliceWriter writer, byte type, byte[] value, int offset, int count)
+		internal static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, byte[] value, int offset, int count)
 		{
 			int n = count;
 
@@ -534,9 +555,9 @@ namespace FoundationDB.Layers.Tuples
 				if (value[i] == 0) ++n;
 			}
 
-			writer.EnsureBytes(n + 2);
-			var buffer = writer.Buffer;
-			int p = writer.Position;
+			writer.Output.EnsureBytes(n + 2);
+			var buffer = writer.Output.Buffer;
+			int p = writer.Output.Position;
 			buffer[p++] = type;
 			if (n > 0)
 			{
@@ -555,12 +576,12 @@ namespace FoundationDB.Layers.Tuples
 					}
 				}
 			}
-			buffer[p] = FdbTupleTypes.Nil;
-			writer.Position = p + 1;
+			buffer[p] = 0x00;
+			writer.Output.Position = p + 1;
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		private static void WriteNulEscapedBytes(ref SliceWriter writer, byte type, byte[] value)
+		private static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, byte[] value)
 		{
 			int n = value.Length;
 			// we need to know if there are any NUL chars (\0) that need escaping...
@@ -570,9 +591,9 @@ namespace FoundationDB.Layers.Tuples
 				if (b == 0) ++n;
 			}
 
-			writer.EnsureBytes(n + 2);
-			var buffer = writer.Buffer;
-			int p = writer.Position;
+			writer.Output.EnsureBytes(n + 2);
+			var buffer = writer.Output.Buffer;
+			int p = writer.Output.Position;
 			buffer[p++] = type;
 			if (n > 0)
 			{
@@ -590,48 +611,48 @@ namespace FoundationDB.Layers.Tuples
 					}
 				}
 			}
-			buffer[p++] = FdbTupleTypes.Nil;
-			writer.Position = p;
+			buffer[p++] = 0x00;
+			writer.Output.Position = p;
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 16-byte Microsoft GUID</summary>
-		public static void WriteGuid(ref SliceWriter writer, Guid value)
+		public static void WriteGuid(ref TupleWriter writer, Guid value)
 		{
-			writer.EnsureBytes(17);
-			writer.UnsafeWriteByte(FdbTupleTypes.Uuid128);
+			writer.Output.EnsureBytes(17);
+			writer.Output.UnsafeWriteByte(FdbTupleTypes.Uuid128);
 			unsafe
 			{
 				// UUIDs are stored using the RFC 4122 standard, so we need to swap some parts of the System.Guid
 
 				byte* ptr = stackalloc byte[16];
 				Uuid128.Write(value, ptr);
-				writer.UnsafeWriteBytes(ptr, 16);
+				writer.Output.UnsafeWriteBytes(ptr, 16);
 			}
 		}
 
 		/// <summary>Writes a RFC 4122 encoded 128-bit UUID</summary>
-		public static void WriteUuid128(ref SliceWriter writer, Uuid128 value)
+		public static void WriteUuid128(ref TupleWriter writer, Uuid128 value)
 		{
-			writer.EnsureBytes(17);
-			writer.UnsafeWriteByte(FdbTupleTypes.Uuid128);
+			writer.Output.EnsureBytes(17);
+			writer.Output.UnsafeWriteByte(FdbTupleTypes.Uuid128);
 			unsafe
 			{
 				byte* ptr = stackalloc byte[16];
 				value.WriteTo(ptr);
-				writer.UnsafeWriteBytes(ptr, 16);
+				writer.Output.UnsafeWriteBytes(ptr, 16);
 			}
 		}
 
 		/// <summary>Writes a 64-bit UUID</summary>
-		public static void WriteUuid64(ref SliceWriter writer, Uuid64 value)
+		public static void WriteUuid64(ref TupleWriter writer, Uuid64 value)
 		{
-			writer.EnsureBytes(9);
-			writer.UnsafeWriteByte(FdbTupleTypes.Uuid64);
+			writer.Output.EnsureBytes(9);
+			writer.Output.UnsafeWriteByte(FdbTupleTypes.Uuid64);
 			unsafe
 			{
 				byte* ptr = stackalloc byte[8];
 				value.WriteTo(ptr);
-				writer.UnsafeWriteBytes(ptr, 8);
+				writer.Output.UnsafeWriteBytes(ptr, 8);
 			}
 		}
 
@@ -750,7 +771,7 @@ namespace FoundationDB.Layers.Tuples
 			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.TupleStart);
 			if (slice.Count <= 2) return FdbTuple.Empty;
 
-			return FdbTuple.Unpack(slice.Substring(1, slice.Count - 2));
+			return FdbTuplePackers.Unpack(slice.Substring(1, slice.Count - 2), true);
 		}
 
 		internal static float ParseSingle(Slice slice)
@@ -856,9 +877,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Decode the next token from a packed tuple</summary>
 		/// <param name="reader">Parser from wich to read the next token</param>
 		/// <returns>Token decoded, or Slice.Nil if there was no more data in the buffer</returns>
-		public static Slice ParseNext(ref SliceReader reader)
+		public static Slice ParseNext(ref TupleReader reader)
 		{
-			int type = reader.PeekByte();
+			int type = reader.Input.PeekByte();
 			switch (type)
 			{
 				case -1:
@@ -867,19 +888,35 @@ namespace FoundationDB.Layers.Tuples
 				}
 
 				case FdbTupleTypes.Nil:
-				{ // <00> => null
-					reader.Skip(1);
-					return Slice.Empty;
+				{ // <00> / <00><FF> => null
+					if (reader.Depth > 0)
+					{ // must be <00><FF> inside an embedded tuple
+						if (reader.Input.PeekByteAt(1) == 0xFF)
+						{ // this is a Nil entry
+							reader.Input.Skip(2);
+							return Slice.Empty;
+						}
+						else
+						{ // this is the end of the embedded tuple
+							reader.Input.Skip(1);
+							return Slice.Nil;
+						}
+					}
+					else
+					{ // can be <00> outside an embedded tuple
+						reader.Input.Skip(1);
+						return Slice.Empty;
+					}
 				}
 
 				case FdbTupleTypes.Bytes:
 				{ // <01>(bytes)<00>
-					return reader.ReadByteString();
+					return reader.Input.ReadByteString();
 				}
 
 				case FdbTupleTypes.Utf8:
 				{ // <02>(utf8 bytes)<00>
-					return reader.ReadByteString();
+					return reader.Input.ReadByteString();
 				}
 
 				case FdbTupleTypes.TupleStart:
@@ -889,39 +926,30 @@ namespace FoundationDB.Layers.Tuples
 					// This means that we may need to scan multiple times the bytes, which may not be efficient if there are multiple embedded tuples inside each other
 					return ReadEmbeddedTupleBytes(ref reader);
 				}
-
-				case FdbTupleTypes.TupleEnd:
-				{ // End Of Tuple
-					// this should not happen in regular parsing (the <04> is eaten by ReadEmbeddedTupleBytes())
-					// but it could happen if someone is parsing a stream of tokens, and want to stops there.
-					reader.Skip(1);
-					return Slice.Nil;
-				}
-
 				case FdbTupleTypes.Single:
 				{ // <20>(4 bytes)
-					return reader.ReadBytes(5);
+					return reader.Input.ReadBytes(5);
 				}
 
 				case FdbTupleTypes.Double:
 				{ // <21>(8 bytes)
-					return reader.ReadBytes(9);
+					return reader.Input.ReadBytes(9);
 				}
 
 				case FdbTupleTypes.Uuid128:
 				{ // <30>(16 bytes)
-					return reader.ReadBytes(17);
+					return reader.Input.ReadBytes(17);
 				}
 
 				case FdbTupleTypes.Uuid64:
 				{ // <31>(8 bytes)
-					return reader.ReadBytes(9);
+					return reader.Input.ReadBytes(9);
 				}
 
 				case FdbTupleTypes.AliasDirectory:
 				case FdbTupleTypes.AliasSystem:
 				{ // <FE> or <FF>
-					return reader.ReadBytes(1);
+					return reader.Input.ReadBytes(1);
 				}
 			}
 
@@ -930,30 +958,38 @@ namespace FoundationDB.Layers.Tuples
 				int bytes = type - FdbTupleTypes.IntZero;
 				if (bytes < 0) bytes = -bytes;
 
-				return reader.ReadBytes(1 + bytes);
+				return reader.Input.ReadBytes(1 + bytes);
 			}
 
-			throw new FormatException(String.Format("Invalid tuple type byte {0} at index {1}/{2}", type, reader.Position, reader.Buffer.Count));
+			throw new FormatException(String.Format("Invalid tuple type byte {0} at index {1}/{2}", type, reader.Input.Position, reader.Input.Buffer.Count));
 		}
 
 		/// <summary>Read an embedded tuple, without parsing it</summary>
-		internal static Slice ReadEmbeddedTupleBytes(ref SliceReader reader)
+		internal static Slice ReadEmbeddedTupleBytes(ref TupleReader reader)
 		{
-			// The current embedded tuple starts here, and stops on a <04>, but itself can contain more embedded tuples, and could have data with a <04> in them (like integer 4, a byte array with 0x04 inside it, ...)
+			// The current embedded tuple starts here, and stops on a <00>, but itself can contain more embedded tuples, and could have a <00> bytes as part of regular items (like bytes, strings, that end with <00> or could contain a <00><FF> ...)
 			// This means that we have to parse the tuple recursively, discard the tokens, and note where the cursor ended. The parsing of the tuple itself will be processed later.
 
-			int start = reader.Position;
-			reader.Skip(1);
+			++reader.Depth;
+			int start = reader.Input.Position;
+			reader.Input.Skip(1);
 
-			while(reader.PeekByte() != FdbTupleTypes.TupleEnd)
+			while(reader.Input.HasMore)
 			{
 				var token = ParseNext(ref reader);
-				if (token.IsNullOrEmpty) throw new FormatException(String.Format("Truncated embedded tuple started at index {0}/{1}", start, reader.Buffer.Count));
+				// the token will be Nil for either the end of the stream, or the end of the tuple
+				// => since we already tested Input.HasMore, we know we are in the later case
+				if (token.IsNull)
+				{
+					--reader.Depth;
+					//note: ParseNext() has already eaten the <00>
+					int end = reader.Input.Position;
+					return reader.Input.Buffer.Substring(start, end - start);
+				}
+				// else: ignore this token, it will be processed later if the tuple is unpacked and accessed
 			}
 
-			reader.Skip(1);
-			int end = reader.Position;
-			return reader.Buffer.Substring(start, end - start);
+			throw new FormatException(String.Format("Truncated embedded tuple started at index {0}/{1}", start, reader.Input.Buffer.Count));
 		}
 
 		#endregion

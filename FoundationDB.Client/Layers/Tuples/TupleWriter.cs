@@ -29,66 +29,27 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
+	using System.Diagnostics;
 
-	/// <summary>Type codec that uses the Tuple Encoding format</summary>
-	/// <typeparam name="T">Type of the values encoded by this codec</typeparam>
-	public sealed class FdbTupleCodec<T> : FdbTypeCodec<T>, IValueEncoder<T>
+	[DebuggerDisplay("{Output.Position}/{Output.Buffer.Length} @ {Depth}")]
+	public struct TupleWriter
 	{
+		public SliceWriter Output;
+		public int Depth;
 
-		private static volatile FdbTupleCodec<T> s_defaultSerializer;
-
-		public static FdbTupleCodec<T> Default
+		public TupleWriter(SliceWriter buffer)
 		{
-			[NotNull]
-			get { return s_defaultSerializer ?? (s_defaultSerializer = new FdbTupleCodec<T>(default(T))); }
+			this.Output = buffer;
+			this.Depth = 0;
 		}
 
-		private readonly T m_missingValue;
-
-		public FdbTupleCodec(T missingValue)
+		public TupleWriter(int capacity)
 		{
-			m_missingValue = missingValue;
+			this.Output = new SliceWriter(capacity);
+			this.Depth = 0;
 		}
-
-		public override Slice EncodeOrdered(T value)
-		{
-			return FdbTuple.Pack<T>(value);
-		}
-
-		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
-		{
-			//HACKHACK: we lose the current depth!
-			var writer = new TupleWriter(output);
-			FdbTuplePacker<T>.Encoder(ref writer, value);
-			output = writer.Output;
-		}
-
-		public override T DecodeOrdered(Slice input)
-		{
-			return FdbTuple.UnpackSingle<T>(input);
-		}
-
-		public override T DecodeOrderedSelfTerm(ref SliceReader input)
-		{
-			//HACKHACK: we lose the current depth!
-			var reader = new TupleReader(input);
-			T value;
-			bool res = FdbTuple.UnpackNext<T>(ref reader, out value);
-			input = reader.Input;
-			return res ? value : m_missingValue;
-		}
-
-		public Slice EncodeValue(T value)
-		{
-			return EncodeUnordered(value);
-		}
-
-		public T DecodeValue(Slice encoded)
-		{
-			return DecodeUnordered(encoded);
-		}
+	
 	}
 
 }

@@ -52,6 +52,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Seconde element of the pair</summary>
 		public readonly T2 Item2;
 
+		[DebuggerStepThrough]
 		public FdbTuple(T1 item1, T2 item2)
 		{
 			this.Item1 = item1;
@@ -92,7 +93,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);
 			FdbTuplePacker<T2>.Encoder(ref writer, this.Item2);

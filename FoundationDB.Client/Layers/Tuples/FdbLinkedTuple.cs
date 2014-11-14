@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Pack this tuple into a buffer</summary>
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			this.Head.PackTo(ref writer);
 			FdbTuplePacker<T>.SerializeTo(ref writer, this.Tail);
@@ -75,9 +75,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Pack this tuple into a slice</summary>
 		public Slice ToSlice()
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			PackTo(ref writer);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()

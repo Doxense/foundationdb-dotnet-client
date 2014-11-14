@@ -49,6 +49,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>First and only item in the tuple</summary>
 		public readonly T1 Item1;
 
+		[DebuggerStepThrough]
 		public FdbTuple(T1 item1)
 		{
 			this.Item1 = item1;
@@ -80,7 +81,7 @@ namespace FoundationDB.Layers.Tuples
 			return FdbConverters.Convert<T1, R>(this.Item1);
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);
 		}

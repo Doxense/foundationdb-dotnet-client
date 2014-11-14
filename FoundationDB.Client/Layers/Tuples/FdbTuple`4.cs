@@ -60,6 +60,7 @@ namespace FoundationDB.Layers.Tuples
 		public readonly T4 Item4;
 
 		/// <summary>Create a tuple containing for items</summary>
+		[DebuggerStepThrough]
 		public FdbTuple(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			this.Item1 = item1;
@@ -108,7 +109,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);
 			FdbTuplePacker<T2>.Encoder(ref writer, this.Item2);

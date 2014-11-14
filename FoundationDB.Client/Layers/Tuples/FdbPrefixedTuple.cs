@@ -61,17 +61,17 @@ namespace FoundationDB.Layers.Tuples
 			get { return m_prefix; }
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
-			writer.WriteBytes(m_prefix);
+			writer.Output.WriteBytes(m_prefix);
 			m_items.PackTo(ref writer);
 		}
 
 		public Slice ToSlice()
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			PackTo(ref writer);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()

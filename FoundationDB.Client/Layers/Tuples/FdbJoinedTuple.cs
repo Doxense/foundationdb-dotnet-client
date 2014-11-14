@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Tuples
 			m_count = m_split + tail.Count;
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			this.Head.PackTo(ref writer);
 			this.Tail.PackTo(ref writer);
@@ -74,9 +74,9 @@ namespace FoundationDB.Layers.Tuples
 
 		public Slice ToSlice()
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			PackTo(ref writer);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()
