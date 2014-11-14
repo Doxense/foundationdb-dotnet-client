@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System.Linq;
 	using System.Collections.Generic;
 	using FoundationDB.Client.Utils;
+	using System.Diagnostics;
 
 
 	/// <summary>Provides of methods to encode and decodes keys using the Tuple Encoding format</summary>
@@ -53,24 +54,34 @@ namespace FoundationDB.Client
 
 		public IFdbSubspace Subspace
 		{
+			[DebuggerStepThrough]
 			[NotNull] //note: except for corner cases like default(FdbTupleSubspace) or unallocated value
 			get { return m_subspace; }
-		}
-
-		public Slice this[[NotNull] IFdbTuple tuple]
-		{
-			get { return Pack(tuple); }
-		}
-
-		public Slice this[[NotNull] ITupleFormattable item]
-		{
-			get { return Pack(item); }
 		}
 
 		/// <summary>Return a key that is composed of the subspace prefix, and the packed representation of a tuple.</summary>
 		/// <param name="tuple">Tuple to pack (can be null or empty)</param>
 		/// <returns>Key which starts with the subspace prefix, followed by the packed representation of <paramref name="tuple"/>. This key can be parsed back to an equivalent tuple by calling <see cref="Unpack(IFdbTuple)"/>.</returns>
 		/// <remarks>If <paramref name="tuple"/> is null or empty, then the prefix of the subspace is returned.</remarks>
+		public Slice this[[NotNull] IFdbTuple tuple]
+		{
+			[DebuggerStepThrough]
+			get { return Pack(tuple); }
+		}
+
+		public Slice this[[NotNull] ITupleFormattable item]
+		{
+			[DebuggerStepThrough]
+			get { return Pack(item); }
+		}
+
+		#region Pack: Tuple => Slice
+
+		/// <summary>Return a key that is composed of the subspace prefix, and the packed representation of a tuple.</summary>
+		/// <param name="tuple">Tuple to pack (can be null or empty)</param>
+		/// <returns>Key which starts with the subspace prefix, followed by the packed representation of <paramref name="tuple"/>. This key can be parsed back to an equivalent tuple by calling <see cref="Unpack(IFdbTuple)"/>.</returns>
+		/// <remarks>If <paramref name="tuple"/> is null or empty, then the prefix of the subspace is returned.</remarks>
+		[DebuggerStepThrough]
 		public Slice Pack([NotNull] IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
@@ -81,6 +92,7 @@ namespace FoundationDB.Client
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>tuple.Pack(new [] { "abc", [ ("Foo", 1), ("Foo", 2) ] }) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
+		[DebuggerStepThrough]
 		[NotNull]
 		public Slice[] Pack([NotNull] IEnumerable<IFdbTuple> tuples)
 		{
@@ -93,6 +105,7 @@ namespace FoundationDB.Client
 		/// <param name="tuples">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
+		[DebuggerStepThrough]
 		[NotNull]
 		public Slice[] Pack([NotNull] params IFdbTuple[] tuples)
 		{
@@ -103,6 +116,7 @@ namespace FoundationDB.Client
 		/// <param name="item">Tuple to pack (can be null or empty)</param>
 		/// <returns>Key which starts with the subspace prefix, followed by the packed representation of <paramref name="tuple"/>. This key can be parsed back to an equivalent tuple by calling <see cref="Unpack(IFdbTuple)"/>.</returns>
 		/// <remarks>If <paramref name="tuple"/> is null or empty, then the prefix of the subspace is returned.</remarks>
+		[DebuggerStepThrough]
 		public Slice Pack([NotNull] ITupleFormattable item)
 		{
 			if (item == null) throw new ArgumentNullException("item");
@@ -113,6 +127,7 @@ namespace FoundationDB.Client
 		/// <param name="items">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>Pack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
+		[DebuggerStepThrough]
 		[NotNull]
 		public Slice[] Pack([NotNull] IEnumerable<ITupleFormattable> items)
 		{
@@ -125,11 +140,16 @@ namespace FoundationDB.Client
 		/// <param name="items">Sequence of N-tuples to pack</param>
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>Pack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
+		[DebuggerStepThrough]
 		[NotNull]
 		public Slice[] Pack([NotNull] params ITupleFormattable[] items)
 		{
 			return Pack((IEnumerable<ITupleFormattable>)items);
 		}
+
+		#endregion
+
+		#region Unpack: Slice => Tuple
 
 		/// <summary>Unpack a key into a tuple, with the subspace prefix removed</summary>
 		/// <param name="key">Packed version of a key that should fit inside this subspace.</param>
@@ -175,6 +195,10 @@ namespace FoundationDB.Client
 			return Unpack((IEnumerable<Slice>)keys);
 		}
 
+		#endregion
+
+		#region ToRange: Tuple => Range
+
 		public FdbKeyRange ToRange([NotNull] IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
@@ -187,7 +211,9 @@ namespace FoundationDB.Client
 			return ToRange(item.ToTuple());
 		}
 
-		#region EncodeKey...
+		#endregion
+
+		#region EncodeKey: (T1, T2, ...) => Slice
 
 		/// <summary>Create a new key by appending a value to the current subspace</summary>
 		/// <typeparam name="T">Type of the value</typeparam>
@@ -275,7 +301,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region DecodeKey...
+		#region DecodeKey: Slice => (T1, T2, ...)
 
 		/// <summary>Unpack a key into a singleton tuple, and return the single element</summary>
 		/// <typeparam name="T">Expected type of the only element</typeparam>
@@ -403,7 +429,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		#region Append...
+		#region Append: Subspace => Tuple
 
 		/// <summary>Return an empty tuple that is attached to this subspace</summary>
 		/// <returns>Empty tuple that can be extended, and whose packed representation will always be prefixed by the subspace key</returns>
