@@ -167,7 +167,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public Slice ToSlice()
 		{
-			return FdbTuple.Pack(this.Item1, this.Item2, this.Item3, this.Item4);
+			return FdbTuple.EncodeKey(this.Item1, this.Item2, this.Item3, this.Item4);
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()

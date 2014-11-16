@@ -257,10 +257,10 @@ namespace FoundationDB.Client.Tests
 				var subspace = db.Partition.By("hello");
 				Assert.That(subspace.Key.ToString(), Is.EqualTo("<02>test<00><02>hello<00>"));
 
-				// keys inside the global space are invlaid
-				Assert.That(db.IsKeyValid(FdbTuple.Pack("test", 123)), Is.True);
+				// keys inside the global space are valid
+				Assert.That(db.IsKeyValid(FdbTuple.EncodeKey("test", 123)), Is.True);
 
-				// keys outside the global space are invlaid
+				// keys outside the global space are invalid
 				Assert.That(db.IsKeyValid(Slice.Create(new byte[] { 42 })), Is.False);
 			}
 
@@ -274,10 +274,10 @@ namespace FoundationDB.Client.Tests
 				var subspace = db.Partition.By("hello");
 				Assert.That(subspace.Key.ToString(), Is.EqualTo("*<FF><00>Z<02>hello<00>"));
 
-				// keys inside the global space are invlaid
+				// keys inside the global space are valid
 				Assert.That(db.IsKeyValid(Slice.Unescape("*<FF><00>Z123")), Is.True);
 
-				// keys outside the global space are invlaid
+				// keys outside the global space are invalid
 				Assert.That(db.IsKeyValid(Slice.Create(new byte[] { 123 })), Is.False);
 				Assert.That(db.IsKeyValid(Slice.Unescape("*<FF>")), Is.False);
 

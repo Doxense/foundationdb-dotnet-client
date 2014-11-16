@@ -62,7 +62,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				var rnd = new Random();
 				for (int i = 0; i < 1000; i++)
 				{
-					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, FdbTuple.Pack(rnd.Next())), this.Cancellation);
+					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, FdbTuple.EncodeKey(rnd.Next())), this.Cancellation);
 				}
 
 				await db.ReadAsync((tr) => PrintRankedSet(vector, tr), this.Cancellation);

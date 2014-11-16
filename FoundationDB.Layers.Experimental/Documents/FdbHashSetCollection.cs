@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Blobs
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
@@ -87,7 +88,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="field">Name of the field to read</param>
 		/// <returns>Value of the corresponding field, or Slice.Nil if it the hashset does not exist, or doesn't have a field with this name</returns>
-		public Task<Slice> GetValueAsync(IFdbReadOnlyTransaction trans, IFdbTuple id, string field)
+		public Task<Slice> GetValueAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IFdbTuple id, string field)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -100,7 +101,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="trans">Transaction that will be used for this request</param>
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <returns>Dictionary containing, for all fields, their associated values</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadOnlyTransaction trans, IFdbTuple id)
+		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IFdbTuple id)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
@@ -125,13 +126,13 @@ namespace FoundationDB.Layers.Blobs
 		/// <param name="id">Unique identifier of the hashset</param>
 		/// <param name="fields">List of the fields to read</param>
 		/// <returns>Dictionary containing the values of the selected fields, or Slice.Empty if that particular field does not exist.</returns>
-		public async Task<IDictionary<string, Slice>> GetAsync(IFdbReadOnlyTransaction trans, IFdbTuple id, string[] fields)
+		public async Task<IDictionary<string, Slice>> GetAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IFdbTuple id, [NotNull] params string[] fields)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 			if (fields == null) throw new ArgumentNullException("fields");
 
-			var keys = FdbTuple.PackRangeWithPrefix(GetKey(id), fields);
+			var keys = FdbTuple.EncodePrefixedKeys(GetKey(id), fields);
 
 			var values = await trans.GetValuesAsync(keys).ConfigureAwait(false);
 			Contract.Assert(values != null && values.Length == fields.Length);

@@ -117,7 +117,7 @@ namespace FoundationDB.Samples.Benchmarks
 								}
 								else
 								{
-									var foos = FdbTuple.PackRangeWithPrefix(foo, Enumerable.Range(1, this.Value).ToArray());
+									var foos = FdbTuple.EncodePrefixedKeys(foo, Enumerable.Range(1, this.Value).ToArray());
 									await db.ReadAsync(tr => tr.GetValuesAsync(foos), ct);
 								}
 								break;

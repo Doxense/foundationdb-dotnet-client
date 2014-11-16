@@ -502,7 +502,7 @@ namespace FoundationDB.Client.Tests
 					{
 						for (int i = 0; i < N; i++)
 						{
-							tr.Set(lists[k].Tuples.EncodeKey((i * K) + k), FdbTuple.Pack(k, i));
+							tr.Set(lists[k].Tuples.EncodeKey((i * K) + k), FdbTuple.EncodeKey(k, i));
 						}
 						await tr.CommitAsync();
 					}
@@ -527,8 +527,8 @@ namespace FoundationDB.Client.Tests
 
 					for(int i=0;i<K*N;i++)
 					{
-						Assert.That(location.ExtractKey(results[i].Key), Is.EqualTo(FdbTuple.Pack(i % K, i)));
-						Assert.That(results[i].Value, Is.EqualTo(FdbTuple.Pack(i % K, i / K)));
+						Assert.That(location.ExtractKey(results[i].Key), Is.EqualTo(FdbTuple.EncodeKey(i % K, i)));
+						Assert.That(results[i].Value, Is.EqualTo(FdbTuple.EncodeKey(i % K, i / K)));
 					}
 				}
 
@@ -570,7 +570,7 @@ namespace FoundationDB.Client.Tests
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Tuples.EncodeKey(series[k][i]);
-							var value = FdbTuple.Pack(k, i);
+							var value = FdbTuple.EncodeKey(k, i);
 							//Console.WriteLine("> " + key + " = " + value);
 							tr.Set(key, value);
 						}
@@ -642,7 +642,7 @@ namespace FoundationDB.Client.Tests
 						for (int i = 0; i < N; i++)
 						{
 							var key = lists[k].Tuples.EncodeKey(series[k][i]);
-							var value = FdbTuple.Pack(k, i);
+							var value = FdbTuple.EncodeKey(k, i);
 							//Console.WriteLine("> " + key + " = " + value);
 							tr.Set(key, value);
 						}

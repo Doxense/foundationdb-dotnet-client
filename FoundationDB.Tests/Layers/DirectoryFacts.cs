@@ -903,13 +903,13 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.Tuples.EncodeKeys<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
 
 				shouldFail(() => partition.Tuples.Unpack(barKey));
-				shouldFail(() => partition.Tuples.Unpack(new[] { barKey, barKey + FdbTuple.Pack(123) }));
+				shouldFail(() => partition.Tuples.Unpack(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
 				shouldFail(() => partition.Tuples.DecodeKey<int>(barKey));
 				shouldFail(() => partition.Tuples.DecodeKeys<int>(new[] { barKey, barKey }));
 				shouldFail(() => partition.Tuples.DecodeLast<int>(barKey));
-				shouldFail(() => partition.Tuples.DecodeKeysLast<int>(new[] { barKey, barKey + FdbTuple.Pack(123) }));
+				shouldFail(() => partition.Tuples.DecodeKeysLast<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
 				shouldFail(() => partition.Tuples.DecodeFirst<int>(barKey));
-				shouldFail(() => partition.Tuples.DecodeKeysFirst<int>(new[] { barKey, barKey + FdbTuple.Pack(123) }));
+				shouldFail(() => partition.Tuples.DecodeKeysFirst<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
 
 				shouldFail(() => partition.Tuples.ToTuple());
 

@@ -115,7 +115,7 @@ namespace FoundationDB.Client.Converters.Tests
 
 			// note: EncodeKey(...) is just a shortcurt for packing all items in a tuple, and EncodeComposite(..., count = 3)
 			var data = encoder.EncodeKey(x, y, z);
-			Assert.That(data, Is.EqualTo(FdbTuple.Pack(x, y, z)));
+			Assert.That(data, Is.EqualTo(FdbTuple.EncodeKey(x, y, z)));
 
 			var items = encoder.DecodeKey(data);
 			Assert.That(items.Item1, Is.EqualTo(x));
@@ -125,15 +125,15 @@ namespace FoundationDB.Client.Converters.Tests
 			// partial key encoding
 
 			data = encoder.EncodeComposite(items, 2);
-			Assert.That(data, Is.EqualTo(FdbTuple.Pack(x, y)));
-			items = encoder.DecodeComposite(FdbTuple.Pack(x, y), 2);
+			Assert.That(data, Is.EqualTo(FdbTuple.EncodeKey(x, y)));
+			items = encoder.DecodeComposite(FdbTuple.EncodeKey(x, y), 2);
 			Assert.That(items.Item1, Is.EqualTo(x));
 			Assert.That(items.Item2, Is.EqualTo(y));
 			Assert.That(items.Item3, Is.EqualTo(default(Guid)));
 
 			data = encoder.EncodeComposite(items, 1);
-			Assert.That(data, Is.EqualTo(FdbTuple.Pack(x)));
-			items = encoder.DecodeComposite(FdbTuple.Pack(x), 1);
+			Assert.That(data, Is.EqualTo(FdbTuple.EncodeKey(x)));
+			items = encoder.DecodeComposite(FdbTuple.EncodeKey(x), 1);
 			Assert.That(items.Item1, Is.EqualTo(x));
 			Assert.That(items.Item2, Is.EqualTo(default(long)));
 			Assert.That(items.Item3, Is.EqualTo(default(Guid)));

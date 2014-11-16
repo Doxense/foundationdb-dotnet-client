@@ -625,24 +625,24 @@ namespace FoundationDB.Client
 
 				public Slice EncodeKey(T key)
 				{
-					return FdbTuple.Pack<T>(key);
+					return FdbTuple.EncodeKey(key);
 				}
 
 				public T DecodeKey(Slice encoded)
 				{
 					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return FdbTuple.UnpackSingle<T>(encoded);
+					return FdbTuple.DecodeKey<T>(encoded);
 				}
 
 				public Slice EncodeValue(T key)
 				{
-					return FdbTuple.Pack<T>(key);
+					return FdbTuple.EncodeKey(key);
 				}
 
 				public T DecodeValue(Slice encoded)
 				{
 					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return FdbTuple.UnpackSingle<T>(encoded);
+					return FdbTuple.DecodeKey<T>(encoded);
 				}
 	
 			}
@@ -659,7 +659,7 @@ namespace FoundationDB.Client
 					switch (items)
 					{
 						case 2: return key.ToSlice();
-						case 1: return FdbTuple.Pack<T1>(key.Item1);
+						case 1: return FdbTuple.EncodeKey<T1>(key.Item1);
 						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be either 1 or 2");
 					}
 				}
@@ -691,8 +691,8 @@ namespace FoundationDB.Client
 					switch (items)
 					{
 						case 3: return key.ToSlice();
-						case 2: return FdbTuple.Pack<T1, T2>(key.Item1, key.Item2);
-						case 1: return FdbTuple.Pack<T1>(key.Item1);
+						case 2: return FdbTuple.EncodeKey<T1, T2>(key.Item1, key.Item2);
+						case 1: return FdbTuple.EncodeKey<T1>(key.Item1);
 						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 3");
 					}
 				}
@@ -725,9 +725,9 @@ namespace FoundationDB.Client
 					switch (items)
 					{
 						case 4: return key.ToSlice();
-						case 3: return FdbTuple.Pack(key.Item1, key.Item2, key.Item3);
-						case 2: return FdbTuple.Pack(key.Item1, key.Item2);
-						case 1: return FdbTuple.Pack(key.Item1);
+						case 3: return FdbTuple.EncodeKey(key.Item1, key.Item2, key.Item3);
+						case 2: return FdbTuple.EncodeKey(key.Item1, key.Item2);
+						case 1: return FdbTuple.EncodeKey(key.Item1);
 						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 4");
 					}
 				}
