@@ -185,6 +185,13 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbTuple<T1, T2, T3, T4>(item1, item2, item3, item4);
 		}
 
+		/// <summary>Create a new 5-tuple, holding five items</summary>
+		[DebuggerStepThrough]
+		public static FdbTuple<T1, T2, T3, T4, T5> Create<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		{
+			return new FdbTuple<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5);
+		}
+
 		/// <summary>Create a new N-tuple, from N items</summary>
 		/// <param name="items">Items to wrap in a tuple</param>
 		/// <remarks>If you already have an array of items, you should call <see cref="CreateRange(object[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
@@ -540,17 +547,57 @@ namespace FoundationDB.Layers.Tuples
 			return writer.Output.ToSlice();
 		}
 
-		/// <summary>Pack a N-tuple directory into a slice</summary>
-		public static Slice EncodeKey([NotNull] params object[] items)
+		/// <summary>Pack a 5-tuple directly into a slice</summary>
+		public static Slice EncodeKey<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			if (items == null) throw new ArgumentNullException("items");
-			if (items.Length == 0) return Slice.Empty;
-
 			var writer = new TupleWriter();
-			foreach(var item in items)
-			{
-				FdbTuplePackers.SerializeObjectTo(ref writer, item);
-			}
+			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
+			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
+			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
+			FdbTuplePacker<T5>.SerializeTo(ref writer, item5);
+			return writer.Output.ToSlice();
+		}
+
+		/// <summary>Pack a 6-tuple directly into a slice</summary>
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		{
+			var writer = new TupleWriter();
+			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
+			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
+			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
+			FdbTuplePacker<T5>.SerializeTo(ref writer, item5);
+			FdbTuplePacker<T6>.SerializeTo(ref writer, item6);
+			return writer.Output.ToSlice();
+		}
+
+		/// <summary>Pack a 6-tuple directly into a slice</summary>
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		{
+			var writer = new TupleWriter();
+			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
+			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
+			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
+			FdbTuplePacker<T5>.SerializeTo(ref writer, item5);
+			FdbTuplePacker<T6>.SerializeTo(ref writer, item6);
+			FdbTuplePacker<T7>.SerializeTo(ref writer, item7);
+			return writer.Output.ToSlice();
+		}
+
+		/// <summary>Pack a 6-tuple directly into a slice</summary>
+		public static Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		{
+			var writer = new TupleWriter();
+			FdbTuplePacker<T1>.SerializeTo(ref writer, item1);
+			FdbTuplePacker<T2>.SerializeTo(ref writer, item2);
+			FdbTuplePacker<T3>.SerializeTo(ref writer, item3);
+			FdbTuplePacker<T4>.SerializeTo(ref writer, item4);
+			FdbTuplePacker<T5>.SerializeTo(ref writer, item5);
+			FdbTuplePacker<T6>.SerializeTo(ref writer, item6);
+			FdbTuplePacker<T7>.SerializeTo(ref writer, item7);
+			FdbTuplePacker<T8>.SerializeTo(ref writer, item8);
 			return writer.Output.ToSlice();
 		}
 
@@ -894,17 +941,61 @@ namespace FoundationDB.Layers.Tuples
 			return writer.Output.ToSlice();
 		}
 
-		/// <summary>Efficiently concatenate a prefix with the packed representation of a 4-tuple</summary>
-		public static Slice EncodePrefixedKey(Slice prefix, [NotNull] params object[] values)
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 5-tuple</summary>
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5)
 		{
-			if (values == null) throw new ArgumentNullException("values");
-
 			var writer = new TupleWriter();
 			writer.Output.WriteBytes(prefix);
-			foreach(var value in values)
-			{
-				FdbTuplePackers.SerializeObjectTo(ref writer, value);
-			}
+			FdbTuplePacker<T1>.Encoder(ref writer, value1);
+			FdbTuplePacker<T2>.Encoder(ref writer, value2);
+			FdbTuplePacker<T3>.Encoder(ref writer, value3);
+			FdbTuplePacker<T4>.Encoder(ref writer, value4);
+			FdbTuplePacker<T5>.Encoder(ref writer, value5);
+			return writer.Output.ToSlice();
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 6-tuple</summary>
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6)
+		{
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
+			FdbTuplePacker<T1>.Encoder(ref writer, value1);
+			FdbTuplePacker<T2>.Encoder(ref writer, value2);
+			FdbTuplePacker<T3>.Encoder(ref writer, value3);
+			FdbTuplePacker<T4>.Encoder(ref writer, value4);
+			FdbTuplePacker<T5>.Encoder(ref writer, value5);
+			FdbTuplePacker<T6>.Encoder(ref writer, value6);
+			return writer.Output.ToSlice();
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 7-tuple</summary>
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7)
+		{
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
+			FdbTuplePacker<T1>.Encoder(ref writer, value1);
+			FdbTuplePacker<T2>.Encoder(ref writer, value2);
+			FdbTuplePacker<T3>.Encoder(ref writer, value3);
+			FdbTuplePacker<T4>.Encoder(ref writer, value4);
+			FdbTuplePacker<T5>.Encoder(ref writer, value5);
+			FdbTuplePacker<T6>.Encoder(ref writer, value6);
+			FdbTuplePacker<T7>.Encoder(ref writer, value7);
+			return writer.Output.ToSlice();
+		}
+
+		/// <summary>Efficiently concatenate a prefix with the packed representation of a 8-tuple</summary>
+		public static Slice EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 value1, T2 value2, T3 value3, T4 value4, T5 value5, T6 value6, T7 value7, T8 value8)
+		{
+			var writer = new TupleWriter();
+			writer.Output.WriteBytes(prefix);
+			FdbTuplePacker<T1>.Encoder(ref writer, value1);
+			FdbTuplePacker<T2>.Encoder(ref writer, value2);
+			FdbTuplePacker<T3>.Encoder(ref writer, value3);
+			FdbTuplePacker<T4>.Encoder(ref writer, value4);
+			FdbTuplePacker<T5>.Encoder(ref writer, value5);
+			FdbTuplePacker<T6>.Encoder(ref writer, value6);
+			FdbTuplePacker<T7>.Encoder(ref writer, value7);
+			FdbTuplePacker<T8>.Encoder(ref writer, value8);
 			return writer.Output.ToSlice();
 		}
 
@@ -1214,6 +1305,11 @@ namespace FoundationDB.Layers.Tuples
 		internal static int CombineHashCodes(int h1, int h2, int h3, int h4)
 		{
 			return CombineHashCodes(CombineHashCodes(h1, h2), CombineHashCodes(h3, h4));
+		}
+
+		internal static int CombineHashCodes(int h1, int h2, int h3, int h4, int h5)
+		{
+			return CombineHashCodes(CombineHashCodes(h1, h2, h3), CombineHashCodes(h4, h5));
 		}
 
 		internal static bool Equals(IFdbTuple left, object other, [NotNull] IEqualityComparer comparer)

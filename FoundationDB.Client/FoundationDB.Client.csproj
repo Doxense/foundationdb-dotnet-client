@@ -73,6 +73,7 @@
     <Compile Include="FdbIsolationLevel.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryPartition.cs" />
     <Compile Include="Layers\Directories\IFdbDirectory.cs" />
+    <Compile Include="Layers\Tuples\FdbTuple`5.cs" />
     <Compile Include="Layers\Tuples\TupleReader.cs" />
     <Compile Include="Layers\Tuples\TupleWriter.cs" />
     <Compile Include="Native\FdbNativeCluster.cs" />

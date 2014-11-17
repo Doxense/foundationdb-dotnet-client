@@ -254,7 +254,7 @@ namespace FoundationDB.Client
 			return FdbTuple.EncodePrefixedKey<T1, T2, T3>(m_subspace.Key, item1, item2, item3);
 		}
 
-		/// <summary>Create a new key by adding three items to the current subspace</summary>
+		/// <summary>Create a new key by adding four items to the current subspace</summary>
 		/// <typeparam name="T1">Type of the first item</typeparam>
 		/// <typeparam name="T2">Type of the second item</typeparam>
 		/// <typeparam name="T3">Type of the third item</typeparam>
@@ -271,16 +271,81 @@ namespace FoundationDB.Client
 			return FdbTuple.EncodePrefixedKey<T1, T2, T3, T4>(m_subspace.Key, item1, item2, item3, item4);
 		}
 
-		/// <summary>Create a new key by adding multiple items to the current subspace</summary>
-		/// <param name="items">Array of items to add</param>
-		/// <returns>Key that is equivalent to adding the packed tuple created from <paramref name="items"/> to the subspace's prefix</returns>
-		/// <example>{subspace}.EncodeKey(object[]) is much faster way to do {subspace}.Key + FdbTuple.Create(object[]).ToSlice()</example>
-		/// <remarks>The key produced can be decoded back into a tuple by calling <see cref="Unpack"/>.</remarks>
-		public Slice EncodeKey(params object[] items)
+		/// <summary>Create a new key by adding five items to the current subspace</summary>
+		/// <typeparam name="T1">Type of the first item</typeparam>
+		/// <typeparam name="T2">Type of the second item</typeparam>
+		/// <typeparam name="T3">Type of the third item</typeparam>
+		/// <typeparam name="T4">Type of the fourth item</typeparam>
+		/// <typeparam name="T5">Type of the fifth item</typeparam>
+		/// <param name="item1">Item that will be appended first</param>
+		/// <param name="item2">Item that will be appended second</param>
+		/// <param name="item3">Item that will be appended third</param>
+		/// <param name="item4">Item that will be appended fourth</param>
+		/// <param name="item4">Item that will be appended fifth</param>
+		/// <returns>Key that is equivalent to adding the packed tuple quad (<paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/>, <paramref name="item4"/>) to the subspace's prefix</returns>
+		/// <example>{subspace}.EncodeKey(w, x, y, z) is much faster way to do {subspace}.Key + FdbTuple.Create(w, x, y, z).ToSlice()</example>
+		/// <remarks>The key produced can be decoded back into a tuple by calling either <see cref="DecodeKey{T1, T2, T3, T4, T5}"/> or <see cref="Unpack"/></remarks>
+		public Slice EncodeKey<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
-			//note: this is bad practice, because it encourage people passing in object[] arrays,
-			// but there is not point in going all the way to 10 or more items.
-			return FdbTuple.EncodePrefixedKey(m_subspace.Key, items);
+			return FdbTuple.EncodePrefixedKey<T1, T2, T3, T4, T5>(m_subspace.Key, item1, item2, item3, item4, item5);
+		}
+
+		/// <summary>Create a new key by adding six items to the current subspace</summary>
+		/// <typeparam name="T1">Type of the first item</typeparam>
+		/// <typeparam name="T2">Type of the second item</typeparam>
+		/// <typeparam name="T3">Type of the third item</typeparam>
+		/// <typeparam name="T4">Type of the fourth item</typeparam>
+		/// <typeparam name="T5">Type of the fifth item</typeparam>
+		/// <param name="item1">Item that will be appended first</param>
+		/// <param name="item2">Item that will be appended second</param>
+		/// <param name="item3">Item that will be appended third</param>
+		/// <param name="item4">Item that will be appended fourth</param>
+		/// <param name="item4">Item that will be appended fifth</param>
+		/// <returns>Key that is equivalent to adding the packed tuple quad (<paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/>, <paramref name="item4"/>) to the subspace's prefix</returns>
+		/// <example>{subspace}.EncodeKey(w, x, y, z) is much faster way to do {subspace}.Key + FdbTuple.Create(w, x, y, z).ToSlice()</example>
+		/// <remarks>The key produced can be decoded back into a tuple by calling <see cref="Unpack"/></remarks>
+		public Slice EncodeKey<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		{
+			return FdbTuple.EncodePrefixedKey<T1, T2, T3, T4, T5, T6>(m_subspace.Key, item1, item2, item3, item4, item5, item6);
+		}
+
+		/// <summary>Create a new key by adding seven items to the current subspace</summary>
+		/// <typeparam name="T1">Type of the first item</typeparam>
+		/// <typeparam name="T2">Type of the second item</typeparam>
+		/// <typeparam name="T3">Type of the third item</typeparam>
+		/// <typeparam name="T4">Type of the fourth item</typeparam>
+		/// <typeparam name="T5">Type of the fifth item</typeparam>
+		/// <param name="item1">Item that will be appended first</param>
+		/// <param name="item2">Item that will be appended second</param>
+		/// <param name="item3">Item that will be appended third</param>
+		/// <param name="item4">Item that will be appended fourth</param>
+		/// <param name="item4">Item that will be appended fifth</param>
+		/// <returns>Key that is equivalent to adding the packed tuple quad (<paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/>, <paramref name="item4"/>) to the subspace's prefix</returns>
+		/// <example>{subspace}.EncodeKey(w, x, y, z) is much faster way to do {subspace}.Key + FdbTuple.Create(w, x, y, z).ToSlice()</example>
+		/// <remarks>The key produced can be decoded back into a tuple by calling <see cref="Unpack"/></remarks>
+		public Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		{
+			return FdbTuple.EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7>(m_subspace.Key, item1, item2, item3, item4, item5, item6, item7);
+		}
+
+
+		/// <summary>Create a new key by adding eight items to the current subspace</summary>
+		/// <typeparam name="T1">Type of the first item</typeparam>
+		/// <typeparam name="T2">Type of the second item</typeparam>
+		/// <typeparam name="T3">Type of the third item</typeparam>
+		/// <typeparam name="T4">Type of the fourth item</typeparam>
+		/// <typeparam name="T5">Type of the fifth item</typeparam>
+		/// <param name="item1">Item that will be appended first</param>
+		/// <param name="item2">Item that will be appended second</param>
+		/// <param name="item3">Item that will be appended third</param>
+		/// <param name="item4">Item that will be appended fourth</param>
+		/// <param name="item4">Item that will be appended fifth</param>
+		/// <returns>Key that is equivalent to adding the packed tuple quad (<paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/>, <paramref name="item4"/>) to the subspace's prefix</returns>
+		/// <example>{subspace}.EncodeKey(w, x, y, z) is much faster way to do {subspace}.Key + FdbTuple.Create(w, x, y, z).ToSlice()</example>
+		/// <remarks>The key produced can be decoded back into a tuple by calling <see cref="Unpack"/></remarks>
+		public Slice EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		{
+			return FdbTuple.EncodePrefixedKey<T1, T2, T3, T4, T5, T6, T7, T8>(m_subspace.Key, item1, item2, item3, item4, item5, item6, item7, item8);
 		}
 
 		/// <summary>Merge a sequence of keys with the subspace's prefix, all sharing the same buffer</summary>
@@ -366,6 +431,21 @@ namespace FoundationDB.Client
 				tuple.Get<T2>(1),
 				tuple.Get<T3>(2),
 				tuple.Get<T4>(3)
+			);
+		}
+
+		public FdbTuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice key)
+		{
+			var tuple = Unpack(key);
+			if (tuple == null) throw new FormatException("The specified key does not contain any items");
+			if (tuple.Count != 5) throw new FormatException("The specified key is not a tuple with 5 items");
+
+			return FdbTuple.Create<T1, T2, T3, T4, T5>(
+				tuple.Get<T1>(0),
+				tuple.Get<T2>(1),
+				tuple.Get<T3>(2),
+				tuple.Get<T4>(3),
+				tuple.Get<T5>(4)
 			);
 		}
 
@@ -493,29 +573,29 @@ namespace FoundationDB.Client
 		/// <summary>Create a new 2-tuple that is attached to this subspace</summary>
 		/// <typeparam name="T1">Type of the first value to append</typeparam>
 		/// <typeparam name="T2">Type of the second value to append</typeparam>
-		/// <param name="value1">First value that will be appended</param>
-		/// <param name="value2">Second value that will be appended</param>
-		/// <returns>Tuple of size 2 that contains <paramref name="value1"/> and <paramref name="value2"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
-		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2&gt;(value1, value2))'</remarks>
+		/// <param name="item1">First value that will be appended</param>
+		/// <param name="item2">Second value that will be appended</param>
+		/// <returns>Tuple of size 2 that contains <paramref name="item1"/> and <paramref name="item2"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
+		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2&gt;(item1, item2))'</remarks>
 		[NotNull]
-		public IFdbTuple Append<T1, T2>(T1 value1, T2 value2)
+		public IFdbTuple Append<T1, T2>(T1 item1, T2 item2)
 		{
-			return new FdbPrefixedTuple(m_subspace.Key, FdbTuple.Create<T1, T2>(value1, value2));
+			return new FdbPrefixedTuple(m_subspace.Key, FdbTuple.Create<T1, T2>(item1, item2));
 		}
 
 		/// <summary>Create a new 3-tuple that is attached to this subspace</summary>
 		/// <typeparam name="T1">Type of the first value to append</typeparam>
 		/// <typeparam name="T2">Type of the second value to append</typeparam>
 		/// <typeparam name="T3">Type of the third value to append</typeparam>
-		/// <param name="value1">First value that will be appended</param>
-		/// <param name="value2">Second value that will be appended</param>
-		/// <param name="value3">Third value that will be appended</param>
-		/// <returns>Tuple of size 3 that contains <paramref name="value1"/>, <paramref name="value2"/> and <paramref name="value3"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
-		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3&gt;(value1, value2, value3))'</remarks>
+		/// <param name="item1">First value that will be appended</param>
+		/// <param name="item2">Second value that will be appended</param>
+		/// <param name="item3">Third value that will be appended</param>
+		/// <returns>Tuple of size 3 that contains <paramref name="item1"/>, <paramref name="item2"/> and <paramref name="item3"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
+		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3&gt;(item1, item2, item3))'</remarks>
 		[NotNull]
-		public IFdbTuple Append<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		public IFdbTuple Append<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
-			return new FdbPrefixedTuple(m_subspace.Key, FdbTuple.Create<T1, T2, T3>(value1, value2, value3));
+			return new FdbPrefixedTuple(m_subspace.Key, FdbTuple.Create<T1, T2, T3>(item1, item2, item3));
 		}
 
 		/// <summary>Create a new 4-tuple that is attached to this subspace</summary>
@@ -523,16 +603,35 @@ namespace FoundationDB.Client
 		/// <typeparam name="T2">Type of the second value to append</typeparam>
 		/// <typeparam name="T3">Type of the third value to append</typeparam>
 		/// <typeparam name="T4">Type of the fourth value to append</typeparam>
-		/// <param name="value1">First value that will be appended</param>
-		/// <param name="value2">Second value that will be appended</param>
-		/// <param name="value3">Third value that will be appended</param>
-		/// <param name="value4">Fourth value that will be appended</param>
-		/// <returns>Tuple of size 4 that contains <paramref name="value1"/>, <paramref name="value2"/>, <paramref name="value3"/> and <paramref name="value4"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
-		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3, T4&gt;(value1, value2, value3, value4))'</remarks>
+		/// <param name="item1">First value that will be appended</param>
+		/// <param name="item2">Second value that will be appended</param>
+		/// <param name="item3">Third value that will be appended</param>
+		/// <param name="item4">Fourth value that will be appended</param>
+		/// <returns>Tuple of size 4 that contains <paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/> and <paramref name="item4"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
+		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3, T4&gt;(item1, item2, item3, item4))'</remarks>
 		[NotNull]
-		public IFdbTuple Append<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
+		public IFdbTuple Append<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
-			return new FdbPrefixedTuple(m_subspace.Key, FdbTuple.Create<T1, T2, T3, T4>(value1, value2, value3, value4));
+			return new FdbPrefixedTuple(m_subspace.Key, FdbTuple.Create<T1, T2, T3, T4>(item1, item2, item3, item4));
+		}
+
+		/// <summary>Create a new 5-tuple that is attached to this subspace</summary>
+		/// <typeparam name="T1">Type of the first value to append</typeparam>
+		/// <typeparam name="T2">Type of the second value to append</typeparam>
+		/// <typeparam name="T3">Type of the third value to append</typeparam>
+		/// <typeparam name="T4">Type of the fourth value to append</typeparam>
+		/// <typeparam name="T5">Type of the fifth value to append</typeparam>
+		/// <param name="item1">First value that will be appended</param>
+		/// <param name="item2">Second value that will be appended</param>
+		/// <param name="item3">Third value that will be appended</param>
+		/// <param name="item4">Fourth value that will be appended</param>
+		/// <param name="item5">Fifth value that will be appended</param>
+		/// <returns>Tuple of size 5 that contains <paramref name="item1"/>, <paramref name="item2"/>, <paramref name="item3"/>, <paramref name="item4"/> and <paramref name="item5"/>, and whose packed representation will always be prefixed by the subspace key.</returns>
+		/// <remarks>This is the equivalent of calling 'subspace.Create(FdbTuple.Create&lt;T1, T2, T3, T4, T5&gt;(item1, item2, item3, item4, item5))'</remarks>
+		[NotNull]
+		public IFdbTuple Append<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		{
+			return new FdbPrefixedTuple(m_subspace.Key, FdbTuple.Create<T1, T2, T3, T4, T5>(item1, item2, item3, item4, item5));
 		}
 
 		#endregion

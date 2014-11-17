@@ -39,6 +39,9 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>Tuple that can hold any number of untyped items</summary>
 	public sealed class FdbListTuple : IFdbTuple
 	{
+		// We could use a FdbListTuple<T> for tuples where all items are of type T, and FdbListTuple could derive from FdbListTuple<object>.
+		// => this could speed up a bit the use case of FdbTuple.FromArray<T> or FdbTuple.FromSequence<T>
+
 		/// <summary>List of the items in the tuple.</summary>
 		/// <remarks>It is supposed to be immutable!</remarks>
 		private readonly object[] m_items;
