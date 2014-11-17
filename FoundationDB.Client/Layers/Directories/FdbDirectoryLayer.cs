@@ -123,8 +123,8 @@ namespace FoundationDB.Layers.Directories
 			this.NodeSubspace = nodeSubspace;
 
 			// The root node is the one whose contents are the node subspace
-			this.RootNode = nodeSubspace.Partition.By(nodeSubspace.Key);
-			this.Allocator = new FdbHighContentionAllocator(this.RootNode.Partition.By(HcaKey));
+			this.RootNode = nodeSubspace.Partition.ByKey(nodeSubspace.Key);
+			this.Allocator = new FdbHighContentionAllocator(this.RootNode.Partition.ByKey(HcaKey));
 			if (location == null || location.Count == 0)
 			{
 				this.Location = FdbTuple.Empty;
@@ -876,7 +876,7 @@ namespace FoundationDB.Layers.Directories
 		private IFdbSubspace NodeWithPrefix(Slice prefix)
 		{
 			if (prefix.IsNullOrEmpty) return null;
-			return this.NodeSubspace.Partition.By(prefix);
+			return this.NodeSubspace.Partition.ByKey(prefix);
 		}
 
 		/// <summary>Returns a new Directory Subspace given its node subspace, path and layer id</summary>
@@ -937,7 +937,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			Contract.Requires(tr != null && node != null);
 
-			var sd = node.Partition.By(SUBDIRS);
+			var sd = node.Partition.ByKey(SUBDIRS);
 			return tr
 				.GetRange(sd.ToRange())
 				.Select(kvp => new KeyValuePair<string, IFdbSubspace>(

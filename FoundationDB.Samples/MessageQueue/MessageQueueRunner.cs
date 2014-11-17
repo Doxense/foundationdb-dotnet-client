@@ -141,11 +141,11 @@ namespace FoundationDB.Samples.Tutorials
 
 		public async Task RunStatus(IFdbDatabase db, CancellationToken ct)
 		{
-			var countersLocation = this.WorkerPool.Subspace.Partition.By(Slice.FromChar('C'));
-			var idleLocation = this.WorkerPool.Subspace.Partition.By(Slice.FromChar('I'));
-			var busyLocation = this.WorkerPool.Subspace.Partition.By(Slice.FromChar('B'));
-			var tasksLocation = this.WorkerPool.Subspace.Partition.By(Slice.FromChar('T'));
-			var unassignedLocation = this.WorkerPool.Subspace.Partition.By(Slice.FromChar('U'));
+			var countersLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('C'));
+			var idleLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('I'));
+			var busyLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('B'));
+			var tasksLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('T'));
+			var unassignedLocation = this.WorkerPool.Subspace.Partition.ByKey(Slice.FromChar('U'));
 
 			using(var tr = db.BeginTransaction(ct))
 			{

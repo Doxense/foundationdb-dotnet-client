@@ -109,7 +109,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
 		[NotNull]
-		public IFdbSubspace By<T>(T value)
+		public IFdbSubspace ByKey<T>(T value)
 		{
 			return this[FdbTuple.Create<T>(value)];
 		}
@@ -125,7 +125,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
 		[NotNull]
-		public IFdbSubspace By<T1, T2>(T1 value1, T2 value2)
+		public IFdbSubspace ByKey<T1, T2>(T1 value1, T2 value2)
 		{
 			return this[FdbTuple.Create<T1, T2>(value1, value2)];
 		}
@@ -142,7 +142,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
 		/// </example>
 		[NotNull]
-		public IFdbSubspace By<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		public IFdbSubspace ByKey<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
 			return this[FdbTuple.Create(value1, value2, value3)];
 		}
@@ -161,7 +161,7 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends", "Messages") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", "Messages", ])
 		/// </example>
 		[NotNull]
-		public IFdbSubspace By<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
+		public IFdbSubspace ByKey<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			return this[FdbTuple.Create(value1, value2, value3, value4)];
 		}

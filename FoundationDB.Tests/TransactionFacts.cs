@@ -109,7 +109,7 @@ namespace FoundationDB.Client.Tests
 					// any attempt to recast into a writeable transaction should fail!
 					var tr2 = (IFdbTransaction)tr;
 					Assert.That(tr2.IsReadOnly, Is.True, "Transaction should be marked as readonly");
-					var location = db.Partition.By("ReadOnly");
+					var location = db.Partition.ByKey("ReadOnly");
 					Assert.That(() => tr2.Set(location.Tuples.EncodeKey("Hello"), Slice.Empty), Throws.InvalidOperationException);
 					Assert.That(() => tr2.Clear(location.Tuples.EncodeKey("Hello")), Throws.InvalidOperationException);
 					Assert.That(() => tr2.ClearRange(location.Tuples.EncodeKey("ABC"), location.Tuples.EncodeKey("DEF")), Throws.InvalidOperationException);
@@ -223,7 +223,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
@@ -248,7 +248,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -288,7 +288,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -345,7 +345,7 @@ namespace FoundationDB.Client.Tests
 				long writeVersion;
 				long readVersion;
 
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 
 				// write a bunch of keys
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -390,7 +390,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("keys");
+				var location = db.Partition.ByKey("keys");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var minKey = location.Key + FdbKey.MinValue;
@@ -539,7 +539,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition.By("Batch");
+				var location = db.Partition.ByKey("Batch");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				int[] ids = new int[] { 8, 7, 2, 9, 5, 0, 3, 4, 6, 1 };
@@ -582,7 +582,7 @@ namespace FoundationDB.Client.Tests
 			using(var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition.By("keys");
+				var location = db.Partition.ByKey("keys");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var minKey = location.Key + FdbKey.MinValue;
@@ -722,7 +722,7 @@ namespace FoundationDB.Client.Tests
 
 			using(var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -854,7 +854,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -893,7 +893,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
@@ -925,7 +925,7 @@ namespace FoundationDB.Client.Tests
 			using(var db = await OpenTestPartitionAsync())
 			{
 
-				var loc = db.Partition.By("test");
+				var loc = db.Partition.ByKey("test");
 
 				await db.WriteAsync((tr) =>
 				{
@@ -999,7 +999,7 @@ namespace FoundationDB.Client.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var loc = db.Partition.By("test");
+				var loc = db.Partition.ByKey("test");
 
 				await db.WriteAsync((tr) =>
 				{
@@ -1162,7 +1162,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 				var key = location.Tuples.EncodeKey("A");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
@@ -1228,7 +1228,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var a = location.Tuples.EncodeKey("A");
@@ -1289,11 +1289,11 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var a = location.Tuples.EncodeKey("A");
-				var b = location.Partition.By("B");
+				var b = location.Partition.ByKey("B");
 
 				#region Default behaviour...
 
@@ -1364,7 +1364,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test");
+				var location = db.Partition.ByKey("test");
 
 				long commitedVersion;
 
@@ -1571,7 +1571,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("conflict");
+				var location = db.Partition.ByKey("conflict");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -1610,7 +1610,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("conflict");
+				var location = db.Partition.ByKey("conflict");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -1652,7 +1652,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("test", "bigbrother");
+				var location = db.Partition.ByKey("test", "bigbrother");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -1711,7 +1711,7 @@ namespace FoundationDB.Client.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = db.Partition.By("location_api");
+				var location = db.Partition.ByKey("location_api");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 

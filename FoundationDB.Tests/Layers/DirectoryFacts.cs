@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Directories
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By(Slice.FromString("hca"));
+				var location = db.Partition.ByKey(Slice.FromString("hca"));
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -110,7 +110,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -175,7 +175,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -248,7 +248,7 @@ namespace FoundationDB.Layers.Directories
 			{
 
 				// we will put everything under a custom namespace
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -296,7 +296,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -349,7 +349,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -388,7 +388,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -443,7 +443,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -503,7 +503,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -552,7 +552,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
@@ -599,7 +599,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
@@ -627,7 +627,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
@@ -683,7 +683,7 @@ namespace FoundationDB.Layers.Directories
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -731,7 +731,7 @@ namespace FoundationDB.Layers.Directories
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -772,7 +772,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -819,7 +819,7 @@ namespace FoundationDB.Layers.Directories
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition.By("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
@@ -868,10 +868,10 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.Keys.Extract(barKey, barKey + FdbKey.MinValue));
 
 				// Partition
-				shouldFail(() => partition.Partition.By(123));
-				shouldFail(() => partition.Partition.By(123, "hello"));
-				shouldFail(() => partition.Partition.By(123, "hello", false));
-				shouldFail(() => partition.Partition.By(123, "hello", false, "world"));
+				shouldFail(() => partition.Partition.ByKey(123));
+				shouldFail(() => partition.Partition.ByKey(123, "hello"));
+				shouldFail(() => partition.Partition.ByKey(123, "hello", false));
+				shouldFail(() => partition.Partition.ByKey(123, "hello", false, "world"));
 
 				// Keys
 

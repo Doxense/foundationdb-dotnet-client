@@ -43,8 +43,8 @@ namespace FoundationDB.Layers.Interning.Tests
 		{
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var stringSpace = db.Partition.By("Strings");
-				var dataSpace = db.Partition.By("Data");
+				var stringSpace = db.Partition.ByKey("Strings");
+				var dataSpace = db.Partition.ByKey("Data");
 
 				// clear all previous data
 				await DeleteSubspace(db, stringSpace);

@@ -699,8 +699,8 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			{
 				var location = db.GlobalSpace;
 
-				var map = new FdbMap<int, string>("Foos", db.GlobalSpace.Partition.By("Foos"), KeyValueEncoders.Values.StringEncoder);
-				var index = new FdbIndex<int, string>("Foos.ByColor", db.GlobalSpace.Partition.By("Foos", "Color"));
+				var map = new FdbMap<int, string>("Foos", db.GlobalSpace.Partition.ByKey("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var index = new FdbIndex<int, string>("Foos.ByColor", db.GlobalSpace.Partition.ByKey("Foos", "Color"));
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{

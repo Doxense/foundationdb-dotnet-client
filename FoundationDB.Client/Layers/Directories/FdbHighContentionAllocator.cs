@@ -46,8 +46,8 @@ namespace FoundationDB.Layers.Directories
 			if (subspace == null) throw new ArgumentException("subspace");
 
 			this.Subspace = subspace;
-			this.Counters = subspace.Partition.By(COUNTERS);
-			this.Recent = subspace.Partition.By(RECENT);
+			this.Counters = subspace.Partition.ByKey(COUNTERS);
+			this.Recent = subspace.Partition.ByKey(RECENT);
 		}
 
 		/// <summary>Location of the allocator</summary>

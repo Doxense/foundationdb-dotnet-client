@@ -128,9 +128,9 @@ namespace FoundationDB.Client.Tests
 				// put test values in a namespace
 				var location = await GetCleanDirectory(db, "Queries", "Range");
 
-				var a = location.Partition.By("a");
-				var b = location.Partition.By("b");
-				var c = location.Partition.By("c");
+				var a = location.Partition.ByKey("a");
+				var b = location.Partition.ByKey("b");
+				var c = location.Partition.ByKey("c");
 
 				// insert a bunch of keys under 'a', only one under 'b', and nothing under 'c'
 				await db.WriteAsync((tr) =>
@@ -286,7 +286,7 @@ namespace FoundationDB.Client.Tests
 				// put test values in a namespace
 				var location = await GetCleanDirectory(db, "Queries", "Range");
 
-				var a = location.Partition.By("a");
+				var a = location.Partition.ByKey("a");
 
 				// insert a bunch of keys under 'a'
 				await db.WriteAsync((tr) =>
@@ -488,7 +488,7 @@ namespace FoundationDB.Client.Tests
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				// create K lists
-				var lists = Enumerable.Range(0, K).Select(i => location.Partition.By(i)).ToArray();
+				var lists = Enumerable.Range(0, K).Select(i => location.Partition.ByKey(i)).ToArray();
 
 				// lists[0] contains all multiples of K ([0, 0], [K, 1], [2K, 2], ...)
 				// lists[1] contains all multiples of K, offset by 1 ([1, 0], [K+1, 1], [2K+1, 2], ...)
@@ -548,7 +548,7 @@ namespace FoundationDB.Client.Tests
 				var location = await GetCleanDirectory(db, "Queries", "Intersect");
 
 				// create K lists
-				var lists = Enumerable.Range(0, K).Select(i => location.Partition.By(i)).ToArray();
+				var lists = Enumerable.Range(0, K).Select(i => location.Partition.ByKey(i)).ToArray();
 
 				// lists[0] contains all multiples of 1
 				// lists[1] contains all multiples of 2
@@ -620,7 +620,7 @@ namespace FoundationDB.Client.Tests
 				var location = await GetCleanDirectory(db, "Queries", "Except");
 
 				// create K lists
-				var lists = Enumerable.Range(0, K).Select(i => location.Partition.By(i)).ToArray();
+				var lists = Enumerable.Range(0, K).Select(i => location.Partition.ByKey(i)).ToArray();
 
 				// lists[0] contains all multiples of 1
 				// lists[1] contains all multiples of 2

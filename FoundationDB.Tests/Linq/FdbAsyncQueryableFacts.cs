@@ -52,7 +52,7 @@ namespace FoundationDB.Linq.Tests
 			using(var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition.By("Linq");
+				var location = db.Partition.ByKey("Linq");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
@@ -91,11 +91,11 @@ namespace FoundationDB.Linq.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition.By("Linq");
+				var location = db.Partition.ByKey("Linq");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition.By("Foos", "ByColor"));
+				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition.ByKey("Foos", "ByColor"));
 
 				await db.WriteAsync((tr) =>
 				{
@@ -125,11 +125,11 @@ namespace FoundationDB.Linq.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition.By("Linq");
+				var location = db.Partition.ByKey("Linq");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition.By("Foos", "ByScore"));
+				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition.ByKey("Foos", "ByScore"));
 
 				await db.WriteAsync((tr) =>
 				{

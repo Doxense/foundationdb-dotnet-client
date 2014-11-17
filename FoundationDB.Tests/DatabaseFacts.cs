@@ -254,7 +254,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db.GlobalSpace, Is.Not.Null);
 				Assert.That(db.GlobalSpace.Key.ToString(), Is.EqualTo("<02>test<00>"));
 
-				var subspace = db.Partition.By("hello");
+				var subspace = db.Partition.ByKey("hello");
 				Assert.That(subspace.Key.ToString(), Is.EqualTo("<02>test<00><02>hello<00>"));
 
 				// keys inside the global space are valid
@@ -271,7 +271,7 @@ namespace FoundationDB.Client.Tests
 				Assert.That(db.GlobalSpace, Is.Not.Null);
 				Assert.That(db.GlobalSpace.Key.ToString(), Is.EqualTo("*<FF><00>Z"));
 
-				var subspace = db.Partition.By("hello");
+				var subspace = db.Partition.ByKey("hello");
 				Assert.That(subspace.Key.ToString(), Is.EqualTo("*<FF><00>Z<02>hello<00>"));
 
 				// keys inside the global space are valid

@@ -320,7 +320,7 @@ namespace FoundationDB.Tests.Sandbox
 			var rnd = new Random();
 			var tmp = new byte[size];
 
-			var subspace = db.Partition.By("Batch");
+			var subspace = db.Partition.ByKey("Batch");
 
 			var times = new List<TimeSpan>();
 			for (int k = 0; k <= 4; k++)
@@ -361,7 +361,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("Inserting " + N + " keys in " + k + " batches of " + n + " with " + size + "-bytes values...");
 
 			// store every key under ("Batch", i)
-			var subspace = db.Partition.By("Batch");
+			var subspace = db.Partition.ByKey("Batch");
 			// total estimated size of all transactions
 			long totalPayloadSize = 0;
 
@@ -429,7 +429,7 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// read a lot of small keys, one by one
 
-			var location = db.Partition.By("hello");
+			var location = db.Partition.ByKey("hello");
 
 			var sw = Stopwatch.StartNew();
 			IFdbTransaction trans = null;
@@ -464,7 +464,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			// read a lot of small keys, one by one
 
-			var location = db.Partition.By("hello");
+			var location = db.Partition.ByKey("hello");
 
 			var sw = Stopwatch.StartNew();
 			for (int k = 0; k < N; k += 1000)
@@ -489,7 +489,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine("Reading " + N + " keys (concurrent)");
 
-			var location = db.Partition.By("hello");
+			var location = db.Partition.ByKey("hello");
 
 			var keys = Enumerable.Range(0, N).Select(i => location.Tuples.EncodeKey(i)).ToArray();
 
@@ -517,7 +517,7 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// clear a lot of small keys, in a single transaction
 
-			var location = db.Partition.By(Slice.FromAscii("hello"));
+			var location = db.Partition.ByKey(Slice.FromAscii("hello"));
 
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
@@ -561,7 +561,7 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// change one byte in a large number of keys
 
-			var location = db.Partition.By("lists");
+			var location = db.Partition.ByKey("lists");
 
 			var rnd = new Random();
 			var keys = Enumerable.Range(0, N).Select(x => location.Tuples.EncodeKey(x)).ToArray();
@@ -616,7 +616,7 @@ namespace FoundationDB.Tests.Sandbox
 			var timings = instrumented ? new List<KeyValuePair<double, double>>() : null;
 
 			// put test values inside a namespace
-			var subspace = db.Partition.By("BulkInsert");
+			var subspace = db.Partition.ByKey("BulkInsert");
 
 			// cleanup everything
 			using (var tr = db.BeginTransaction(ct))
@@ -702,7 +702,7 @@ namespace FoundationDB.Tests.Sandbox
 		private static async Task BenchMergeSortAsync(IFdbDatabase db, int N, int K, int B, CancellationToken ct)
 		{
 			// create multiple lists
-			var location = db.Partition.By("MergeSort");
+			var location = db.Partition.ByKey("MergeSort");
 			await db.ClearRangeAsync(location, ct);
 
 			var sources = Enumerable.Range(0, K).Select(i => 'A' + i).ToArray();
@@ -714,7 +714,7 @@ namespace FoundationDB.Tests.Sandbox
 			{
 				using (var tr = db.BeginTransaction(ct))
 				{
-					var list = location.Partition.By(source);
+					var list = location.Partition.ByKey(source);
 					for (int i = 0; i < N; i++)
 					{
 						tr.Set(list.Tuples.EncodeKey(rnd.Next()), Slice.FromInt32(i));

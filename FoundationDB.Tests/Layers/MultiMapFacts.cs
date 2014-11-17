@@ -50,7 +50,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				var location = await GetCleanDirectory(db, "Collections", "MultiMaps");
 
-				var map = new FdbMultiMap<string, string>(location.Partition.By("Foos"), allowNegativeValues: false);
+				var map = new FdbMultiMap<string, string>(location.Partition.ByKey("Foos"), allowNegativeValues: false);
 
 				// read non existing value
 				using (var tr = db.BeginTransaction(this.Cancellation))

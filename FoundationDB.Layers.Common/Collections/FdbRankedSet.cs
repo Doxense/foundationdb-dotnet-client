@@ -78,7 +78,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRange(this.Subspace.Partition.By(MAX_LEVELS - 1).ToRange())
+				.GetRange(this.Subspace.Partition.ByKey(MAX_LEVELS - 1).ToRange())
 				.Select(kv => DecodeCount(kv.Value))
 				.SumAsync();
 		}
@@ -101,7 +101,7 @@ namespace FoundationDB.Layers.Collections
 				if ((keyHash & ((1 << (level * LEVEL_FAN_POW)) - 1)) != 0)
 				{
 					//Console.WriteLine("> [" + level + "] Incrementing previous key: " + FdbKey.Dump(prevKey));
-					trans.AtomicAdd(this.Subspace.Partition.By(level, prevKey), EncodeCount(1));
+					trans.AtomicAdd(this.Subspace.Partition.ByKey(level, prevKey), EncodeCount(1));
 				}
 				else
 				{
@@ -141,7 +141,7 @@ namespace FoundationDB.Layers.Collections
 			for (int level = 0; level < MAX_LEVELS; level++)
 			{
 				// This could be optimized with hash
-				var k = this.Subspace.Partition.By(level, key);
+				var k = this.Subspace.Partition.ByKey(level, key);
 				var c = await trans.GetAsync(k).ConfigureAwait(false);
 				if (c.HasValue) trans.Clear(k);
 				if (level == 0) continue;
@@ -169,7 +169,7 @@ namespace FoundationDB.Layers.Collections
 			var rankKey = Slice.Empty;
 			for(int level = MAX_LEVELS - 1; level >= 0; level--)
 			{
-				var lss = this.Subspace.Partition.By(level);
+				var lss = this.Subspace.Partition.ByKey(level);
 				long lastCount = 0;
 				var kcs = await trans.GetRange(
 					FdbKeySelector.FirstGreaterOrEqual(lss.Tuples.EncodeKey(rankKey)),
@@ -198,7 +198,7 @@ namespace FoundationDB.Layers.Collections
 			var key = Slice.Empty;
 			for (int level = MAX_LEVELS - 1; level >= 0; level--)
 			{
-				var lss = this.Subspace.Partition.By(level);
+				var lss = this.Subspace.Partition.ByKey(level);
 				var kcs = await trans.GetRange(lss.Tuples.EncodeKey(key), lss.ToRange().End).ToListAsync().ConfigureAwait(false);
 
 				if (kcs.Count == 0) break;

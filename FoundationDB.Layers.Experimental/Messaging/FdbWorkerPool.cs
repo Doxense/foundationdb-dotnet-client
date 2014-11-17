@@ -114,12 +114,12 @@ namespace FoundationDB.Layers.Messaging
 
 			this.Subspace = subspace;
 
-			this.TaskStore = subspace.Partition.By(Slice.FromChar('T'));
-			this.IdleRing = subspace.Partition.By(Slice.FromChar('I'));
-			this.BusyRing = subspace.Partition.By(Slice.FromChar('B'));
-			this.UnassignedTaskRing = subspace.Partition.By(Slice.FromChar('U'));
+			this.TaskStore = subspace.Partition.ByKey(Slice.FromChar('T'));
+			this.IdleRing = subspace.Partition.ByKey(Slice.FromChar('I'));
+			this.BusyRing = subspace.Partition.ByKey(Slice.FromChar('B'));
+			this.UnassignedTaskRing = subspace.Partition.ByKey(Slice.FromChar('U'));
 
-			this.Counters = new FdbCounterMap<int>(subspace.Partition.By(Slice.FromChar('C')));
+			this.Counters = new FdbCounterMap<int>(subspace.Partition.ByKey(Slice.FromChar('C')));
 		}
 
 		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, IFdbSubspace ring)
@@ -173,7 +173,7 @@ namespace FoundationDB.Layers.Messaging
 		{
 			tr.Annotate("Writing task {0}", taskId.ToAsciiOrHexaString());
 
-			var prefix = this.TaskStore.Partition.By(taskId);
+			var prefix = this.TaskStore.Partition.ByKey(taskId);
 
 			// store task body and timestamp
 			tr.Set(prefix.Key, taskBody);
@@ -319,7 +319,7 @@ namespace FoundationDB.Layers.Messaging
 							{ // get the task body
 
 								tr.Annotate("Fetching body for task {0}", msg.Id.ToAsciiOrHexaString());
-								var prefix = this.TaskStore.Partition.By(msg.Id);
+								var prefix = this.TaskStore.Partition.ByKey(msg.Id);
 								//TODO: replace this with a get_range ?
 								var data = await tr.GetValuesAsync(new [] {
 									prefix.ToFoundationDbKey(),

@@ -62,7 +62,7 @@ namespace FoundationDB.Samples.Benchmarks
 				values[i] = "initial_value_" + rnd.Next();
 			}
 
-			var location = this.Subspace.Partition.By(student);
+			var location = this.Subspace.Partition.ByKey(student);
 
 			for (int i = 0; i < 1/*this.N*/ && !ct.IsCancellationRequested; i++)
 			{
