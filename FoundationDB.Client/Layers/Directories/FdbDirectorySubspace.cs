@@ -106,7 +106,7 @@ namespace FoundationDB.Layers.Directories
 		/// <returns>Path relative to the path of the current partition</returns>
 		protected IFdbTuple ToRelativePath(IEnumerable<string> path)
 		{
-			return ToRelativePath(path == null ? null :  FdbTuple.CreateRange<string>(path));
+			return ToRelativePath(path == null ? null :  FdbTuple.FromEnumerable<string>(path));
 		}
 
 		/// <summary>Ensure that this directory was registered with the correct layer id</summary>

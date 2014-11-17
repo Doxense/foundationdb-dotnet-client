@@ -289,9 +289,9 @@ namespace FoundationDB.Layers.Directories
 			if (oldPath == null) throw new ArgumentNullException("oldPath");
 			if (newPath == null) throw new ArgumentNullException("newPath");
 
-			var oldLocation = FdbTuple.CreateRange(oldPath);
+			var oldLocation = FdbTuple.FromEnumerable(oldPath);
 			VerifyPath(oldLocation, "oldPath");
-			var newLocation = FdbTuple.CreateRange(newPath);
+			var newLocation = FdbTuple.FromEnumerable(newPath);
 			VerifyPath(newLocation, "newPath");
 
 			return MoveInternalAsync(trans, oldLocation, newLocation, throwOnError: true);
@@ -310,9 +310,9 @@ namespace FoundationDB.Layers.Directories
 			if (oldPath == null) throw new ArgumentNullException("oldPath");
 			if (newPath == null) throw new ArgumentNullException("newPath");
 
-			var oldLocation = FdbTuple.CreateRange(oldPath);
+			var oldLocation = FdbTuple.FromEnumerable(oldPath);
 			VerifyPath(oldLocation, "oldPath");
-			var newLocation = FdbTuple.CreateRange(newPath);
+			var newLocation = FdbTuple.FromEnumerable(newPath);
 			VerifyPath(newLocation, "newPath");
 
 			return MoveInternalAsync(trans, oldLocation, newLocation, throwOnError: false);
@@ -496,7 +496,7 @@ namespace FoundationDB.Layers.Directories
 					throw new ArgumentException("The path of a directory cannot contain null elements", argName ?? "path");
 				}
 			}
-			return FdbTuple.CreateRange<string>(pathCopy);
+			return FdbTuple.FromArray<string>(pathCopy);
 		}
 
 		internal static IFdbTuple ParsePath(string name, string argName = null)

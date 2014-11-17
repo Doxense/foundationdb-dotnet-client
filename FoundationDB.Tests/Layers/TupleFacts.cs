@@ -1495,12 +1495,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 			);
 
 			Assert.That(
-				FdbTuple.CreateRange(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }, 1, 2).ToSlice().ToString(),
+				FdbTuple.FromArray(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }, 1, 2).ToSlice().ToString(),
 				Is.EqualTo("<15>{<14>")
 			);
 
 			Assert.That(
-				FdbTuple.CreateRange(new List<object> { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }).ToSlice().ToString(),
+				FdbTuple.FromEnumerable(new List<object> { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }).ToSlice().ToString(),
 				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
 			);
 
@@ -2251,8 +2251,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Substring_Equality()
 		{
-			var x = FdbTuple.CreateRange<string>(new [] { "A", "C" });
-			var y = FdbTuple.CreateRange<string>(new[] { "A", "B", "C" });
+			var x = FdbTuple.FromArray<string>(new [] { "A", "C" });
+			var y = FdbTuple.FromArray<string>(new[] { "A", "B", "C" });
 
 			Assert.That(x.Substring(0, 1), Is.EqualTo(y.Substring(0, 1)));
 			Assert.That(x.Substring(1, 1), Is.EqualTo(y.Substring(2, 1)));

@@ -302,7 +302,7 @@ namespace FdbShell
 					var tokens = s.Trim().Split(new [] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
 					string cmd = tokens.Length > 0 ? tokens[0] : String.Empty;
 					string prm = tokens.Length > 1 ? tokens[1] : String.Empty;
-					var extras = tokens.Length > 2 ? FdbTuple.CreateRange<string>(tokens.Skip(2)) : FdbTuple.Empty;
+					var extras = tokens.Length > 2 ? FdbTuple.FromEnumerable<string>(tokens.Skip(2)) : FdbTuple.Empty;
 
 					var trimmedCommand = cmd.Trim().ToLowerInvariant();
 					switch (trimmedCommand)
