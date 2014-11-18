@@ -124,7 +124,7 @@ namespace FoundationDB.Layers.Messaging
 
 		private async Task<KeyValuePair<Slice, Slice>> FindRandomItem(IFdbTransaction tr, IFdbSubspace ring)
 		{
-			var range = ring.ToRange();
+			var range = ring.Tuples.ToRange();
 
 			// start from a random position around the ring
 			Slice key = ring.Tuples.EncodeKey(GetRandomId());
@@ -161,7 +161,7 @@ namespace FoundationDB.Layers.Messaging
 			// - an empty queue must correspond to an empty subspace
 
 			// get the current size of the queue
-			var range = queue.ToRange();
+			var range = queue.Tuples.ToRange();
 			var lastKey = await tr.Snapshot.GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
 			int count = lastKey < range.Begin ? 0 : queue.Tuples.DecodeFirst<int>(lastKey) + 1;
 
@@ -292,7 +292,7 @@ namespace FoundationDB.Layers.Messaging
 								tr.Annotate("Look for next queued item");
 								
 								// Find the next task on the queue
-								var item = await tr.GetRange(this.UnassignedTaskRing.ToRange()).FirstOrDefaultAsync().ConfigureAwait(false);
+								var item = await tr.GetRange(this.UnassignedTaskRing.Tuples.ToRange()).FirstOrDefaultAsync().ConfigureAwait(false);
 
 								if (item.Key != null)
 								{ // pop the Task from the queue

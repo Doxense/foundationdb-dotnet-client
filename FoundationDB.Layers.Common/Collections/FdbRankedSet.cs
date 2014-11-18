@@ -78,7 +78,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRange(this.Subspace.Partition.ByKey(MAX_LEVELS - 1).ToRange())
+				.GetRange(this.Subspace.Partition.ByKey(MAX_LEVELS - 1).Tuples.ToRange())
 				.Select(kv => DecodeCount(kv.Value))
 				.SumAsync();
 		}
@@ -199,7 +199,7 @@ namespace FoundationDB.Layers.Collections
 			for (int level = MAX_LEVELS - 1; level >= 0; level--)
 			{
 				var lss = this.Subspace.Partition.ByKey(level);
-				var kcs = await trans.GetRange(lss.Tuples.EncodeKey(key), lss.ToRange().End).ToListAsync().ConfigureAwait(false);
+				var kcs = await trans.GetRange(lss.Tuples.EncodeKey(key), lss.Tuples.ToRange().End).ToListAsync().ConfigureAwait(false);
 
 				if (kcs.Count == 0) break;
 
@@ -226,7 +226,7 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Clears the entire set.</summary>
 		public Task ClearAllAsync([NotNull] IFdbTransaction trans)
 		{
-			trans.ClearRange(this.Subspace.ToRange());
+			trans.ClearRange(this.Subspace.Tuples.ToRange());
 			return SetupLevelsAsync(trans);
 		}
 

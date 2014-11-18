@@ -80,17 +80,5 @@ namespace FoundationDB.Client
 			return subspace.Contains(key.ToFoundationDbKey());
 		}
 
-		public static FdbKeyRange ToRange<TKey>([NotNull] this IFdbSubspace subspace, [NotNull] TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return subspace.ToRange(key.ToFoundationDbKey());
-		}
-
-		public static FdbKeySelectorPair ToSelectorPair([NotNull] this IFdbSubspace subspace)
-		{
-			return FdbKeySelectorPair.Create(subspace.ToRange());
-		}
-
 	}
 }

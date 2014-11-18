@@ -172,7 +172,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			bool first = true;
 			var sb = new StringBuilder();
 
-			await tr.GetRange(vector.Subspace.ToRange()).ForEachAsync((kvp) =>
+			await tr.GetRange(vector.Subspace.Tuples.ToRange()).ForEachAsync((kvp) =>
 			{
 				if (!first) sb.Append(", "); else first = false;
 				sb.Append(vector.Subspace.Tuples.DecodeLast<long>(kvp.Key) + ":" + kvp.Value.ToAsciiOrHexaString());

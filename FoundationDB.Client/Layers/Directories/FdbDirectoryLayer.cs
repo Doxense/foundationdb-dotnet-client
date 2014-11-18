@@ -854,7 +854,7 @@ namespace FoundationDB.Layers.Directories
 
 			var kvp = await tr
 				.GetRange(
-					this.NodeSubspace.ToRange().Begin,
+					this.NodeSubspace.Tuples.ToRange().Begin,
 					this.NodeSubspace.Tuples.EncodeKey(key) + FdbKey.MinValue
 				)
 				.LastOrDefaultAsync()
@@ -939,7 +939,7 @@ namespace FoundationDB.Layers.Directories
 
 			var sd = node.Partition.ByKey(SUBDIRS);
 			return tr
-				.GetRange(sd.ToRange())
+				.GetRange(sd.Tuples.ToRange())
 				.Select(kvp => new KeyValuePair<string, IFdbSubspace>(
 					sd.Tuples.DecodeKey<string>(kvp.Key),
 					NodeWithPrefix(kvp.Value)
@@ -969,8 +969,10 @@ namespace FoundationDB.Layers.Directories
 			//note: we could use Task.WhenAll to remove the children, but there is a risk of task explosion if the subtree is very large...
 			await SubdirNamesAndNodes(tr, node).ForEachAsync((kvp) => RemoveRecursive(tr, kvp.Value)).ConfigureAwait(false);
 
-			tr.ClearRange(FdbKeyRange.StartsWith(ContentsOfNode(node, FdbTuple.Empty, Slice.Empty).Key));
-			tr.ClearRange(node.ToRange());
+			// remove ALL the contents
+			tr.ClearRange(ContentsOfNode(node, FdbTuple.Empty, Slice.Empty).Keys.ToRange());
+			// and all the metadata for this folder
+			tr.ClearRange(node.Tuples.ToRange());
 		}
 
 		private async Task<bool> IsPrefixFree(IFdbReadOnlyTransaction tr, Slice prefix)

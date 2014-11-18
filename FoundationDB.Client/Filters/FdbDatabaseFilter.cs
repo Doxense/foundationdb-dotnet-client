@@ -183,11 +183,6 @@ namespace FoundationDB.Filters
 			return m_database.ExtractKeys(keys, boundCheck);
 		}
 
-		public virtual FdbKeyRange ToRange(Slice key)
-		{
-			return m_database.ToRange(key);
-		}
-
 		#endregion
 
 		#region Transactionals...

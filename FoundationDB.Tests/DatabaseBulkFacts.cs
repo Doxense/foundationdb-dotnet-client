@@ -168,7 +168,7 @@ namespace FoundationDB.Client.Tests
 
 				var stored = await db.ReadAsync((tr) =>
 				{
-					return tr.GetRange(location.ToRange()).ToArrayAsync();
+					return tr.GetRange(location.Tuples.ToRange()).ToArrayAsync();
 				}, this.Cancellation);
 
 				Assert.That(stored.Length, Is.EqualTo(N), "DB contains less or more items than expected");
@@ -316,7 +316,7 @@ namespace FoundationDB.Client.Tests
 
 				var stored = await db.ReadAsync((tr) =>
 				{
-					return tr.GetRange(location.ToRange()).ToArrayAsync();
+					return tr.GetRange(location.Tuples.ToRange()).ToArrayAsync();
 				}, this.Cancellation);
 
 				Assert.That(stored.Length, Is.EqualTo(N), "DB contains less or more items than expected");
@@ -613,7 +613,7 @@ namespace FoundationDB.Client.Tests
 				{
 					double average = await Fdb.Bulk.ExportAsync(
 						db,
-						location.ToRange(),
+						location.Tuples.ToRange(),
 						async (xs, pos, ct) =>
 						{
 							Assert.That(xs, Is.Not.Null);

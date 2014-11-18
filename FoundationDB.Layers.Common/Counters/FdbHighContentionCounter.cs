@@ -105,8 +105,8 @@ namespace FoundationDB.Layers.Counters
 					bool right;
 					lock(this.Rng) { right = this.Rng.NextDouble() < 0.5; }
 					var query = right
-						? tr.Snapshot.GetRange(loc, this.Subspace.ToRange().End, limit: N, reverse: false)
-						: tr.Snapshot.GetRange(this.Subspace.ToRange().Begin, loc, limit: N, reverse: true);
+						? tr.Snapshot.GetRange(loc, this.Subspace.Tuples.ToRange().End, limit: N, reverse: false)
+						: tr.Snapshot.GetRange(this.Subspace.Tuples.ToRange().Begin, loc, limit: N, reverse: true);
 					var shards = await query.ToListAsync().ConfigureAwait(false);
 
 					if (shards.Count > 0)
@@ -176,7 +176,7 @@ namespace FoundationDB.Layers.Counters
 
 			long total = 0;
 			await trans
-				.GetRange(this.Subspace.ToRange())
+				.GetRange(this.Subspace.Tuples.ToRange())
 				.ForEachAsync((kvp) => { checked { total += this.Encoder.DecodeValue(kvp.Value); } })
 				.ConfigureAwait(false);
 

@@ -139,19 +139,22 @@ namespace FoundationDB.Client
 
 		public FdbKeyRange ToRange()
 		{
-			return m_subspace.ToRange();
+			return FdbKeyRange.StartsWith(m_subspace.Key);
 		}
 
-		public FdbKeyRange ToRange(Slice key)
+		/// <summary>Gets a key range respresenting all keys strictly within a sub-section of this Subspace.</summary>
+		/// <param name="suffix">Suffix added to the subspace prefix</param>
+		/// <rereturns>Key range that, when passed to ClearRange() or GetRange(), would clear or return all the keys contained by this subspace, excluding the subspace prefix itself.</rereturns>
+		public FdbKeyRange ToRange(Slice suffix)
 		{
-			return m_subspace.ToRange(key);
+			return FdbKeyRange.StartsWith(m_subspace.ConcatKey(suffix));
 		}
 
-		public FdbKeyRange ToRange<TKey>([NotNull] IFdbKey key)
+		public FdbKeyRange ToRange<TKey>([NotNull] TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
-			return m_subspace.ToRange(key.ToFoundationDbKey());
+			return FdbKeyRange.StartsWith(m_subspace.ConcatKey(key.ToFoundationDbKey()));
 		}
 
 	}

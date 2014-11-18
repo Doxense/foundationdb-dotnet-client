@@ -277,17 +277,6 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Gets a key range respresenting all keys strictly within a sub-section of this Subspace.</summary>
-		/// <param name="suffix">Suffix added to the subspace prefix</param>
-		/// <rereturns>Key range that, when passed to ClearRange() or GetRange(), would clear or return all the keys contained by this subspace, excluding the subspace prefix itself.</rereturns>
-		public virtual FdbKeyRange ToRange(Slice suffix = default(Slice))
-		{
-			if (suffix.IsPresent)
-				return FdbTuple.ToRange(GetKeyPrefix().Concat(suffix));
-			else
-				return FdbTuple.ToRange(GetKeyPrefix());
-		}
-
 		#endregion
 
 		#region IEquatable / IComparable...

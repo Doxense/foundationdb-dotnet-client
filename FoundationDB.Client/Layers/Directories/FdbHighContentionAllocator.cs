@@ -68,7 +68,7 @@ namespace FoundationDB.Layers.Directories
 			long start = 0, count = 0;
 			var kv = await trans
 				.Snapshot
-				.GetRange(this.Counters.ToRange())
+				.GetRange(this.Counters.Tuples.ToRange())
 				.LastOrDefaultAsync();
 
 			if (kv.Key.IsPresent)

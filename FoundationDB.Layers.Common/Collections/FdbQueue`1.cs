@@ -174,7 +174,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.QueueItem.ToRange(),
+				this.QueueItem.Tuples.ToRange(),
 				(kvs, offset, ct) =>
 				{
 					foreach(var kv in kvs)
@@ -199,7 +199,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.QueueItem.ToRange(),
+				this.QueueItem.Tuples.ToRange(),
 				async (kvs, offset, ct) =>
 				{
 					foreach (var kv in kvs)
@@ -223,7 +223,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.QueueItem.ToRange(),
+				this.QueueItem.Tuples.ToRange(),
 				(kvs, offset, ct) =>
 				{
 					handler(this.Encoder.DecodeRange(kvs), offset);
@@ -242,7 +242,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.QueueItem.ToRange(),
+				this.QueueItem.Tuples.ToRange(),
 				(kvs, offset, ct) => handler(this.Encoder.DecodeRange(kvs), offset),
 				cancellationToken
 			);
@@ -279,7 +279,7 @@ namespace FoundationDB.Layers.Collections
 
 		private async Task<long> GetNextIndexAsync([NotNull] IFdbReadOnlyTransaction tr, IFdbSubspace subspace)
 		{
-			var range = subspace.ToRange();
+			var range = subspace.Tuples.ToRange();
 
 			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
 
@@ -293,7 +293,7 @@ namespace FoundationDB.Layers.Collections
 
 		private Task<KeyValuePair<Slice, Slice>> GetFirstItemAsync([NotNull] IFdbReadOnlyTransaction tr)
 		{
-			var range = this.QueueItem.ToRange();
+			var range = this.QueueItem.Tuples.ToRange();
 			return tr.GetRange(range).FirstOrDefaultAsync();
 		}
 
@@ -332,13 +332,13 @@ namespace FoundationDB.Layers.Collections
 
 		private Task<List<KeyValuePair<Slice, Slice>>> GetWaitingPopsAsync([NotNull] IFdbReadOnlyTransaction tr, int numPops)
 		{
-			var range = this.ConflictedPop.ToRange();
+			var range = this.ConflictedPop.Tuples.ToRange();
 			return tr.GetRange(range, limit: numPops, reverse: false).ToListAsync();
 		}
 
 		private Task<List<KeyValuePair<Slice, Slice>>> GetItemsAsync([NotNull] IFdbReadOnlyTransaction tr, int numItems)
 		{
-			var range = this.QueueItem.ToRange();
+			var range = this.QueueItem.Tuples.ToRange();
 			return tr.GetRange(range, limit: numItems, reverse: false).ToListAsync();
 		}
 

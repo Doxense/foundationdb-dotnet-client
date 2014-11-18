@@ -146,7 +146,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRange(this.Location.ToRange(), options)
+				.GetRange(this.Location.Tuples.ToRange(), options)
 				.Select(this.DecodeItem);
 		}
 
@@ -202,7 +202,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.ClearRange(this.Location.ToRange());
+			trans.ClearRange(this.Location.Tuples.ToRange());
 		}
 
 		#region Export...
@@ -219,8 +219,8 @@ namespace FoundationDB.Layers.Collections
 			if (handler == null) throw new ArgumentNullException("handler");
 
 			return Fdb.Bulk.ExportAsync(
-				db, 
-				this.Location.ToRange(),
+				db,
+				this.Location.Tuples.ToRange(),
 				(batch, _, ct) =>
 				{
 					foreach (var item in batch)
@@ -246,7 +246,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Location.Tuples.ToRange(),
 				async (batch, _, ct) =>
 				{
 					foreach (var item in batch)
@@ -271,7 +271,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Location.Tuples.ToRange(),
 				(batch, _, ct) =>
 				{
 					if (batch.Length > 0)
@@ -297,7 +297,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Location.Tuples.ToRange(),
 				(batch, _, ct) => handler(DecodeItems(batch), ct),
 				cancellationToken
 			);
@@ -324,7 +324,7 @@ namespace FoundationDB.Layers.Collections
 
 			await Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Location.Tuples.ToRange(),
 				(batch, _, ct) =>
 				{
 					state = handler(state, DecodeItems(batch));
@@ -357,7 +357,7 @@ namespace FoundationDB.Layers.Collections
 
 			await Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.ToRange(),
+				this.Location.Tuples.ToRange(),
 				(batch, _, ct) =>
 				{
 					state = handler(state, DecodeItems(batch));

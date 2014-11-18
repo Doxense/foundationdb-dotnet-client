@@ -80,10 +80,6 @@ namespace FoundationDB.Client
 		[NotNull]
 		Slice[] ExtractKeys([NotNull] IEnumerable<Slice> keys, bool boundCheck = false);
 
-		/// <summary>Return a pair of keys that contain all the keys inside this subspace</summary>
-		FdbKeyRange ToRange(Slice suffix = default(Slice));
-		//REVIEW: this is not exactly true if ToRange() use the Tuple ToRange() wich adds <00> and <FF> to the prefix!
-
 	}
 
 }

@@ -199,10 +199,23 @@ namespace FoundationDB.Client
 
 		#region ToRange: Tuple => Range
 
+		public FdbKeyRange ToRange()
+		{
+			return FdbTuple.ToRange(m_subspace.Key);
+		}
+
+		/// <summary>Gets a key range respresenting all keys strictly within a sub-section of this Subspace.</summary>
+		/// <param name="suffix">Suffix added to the subspace prefix</param>
+		/// <rereturns>Key range that, when passed to ClearRange() or GetRange(), would clear or return all the keys contained by this subspace, excluding the subspace prefix itself.</rereturns>
+		public FdbKeyRange ToRange(Slice suffix)
+		{
+			return FdbTuple.ToRange(m_subspace.Key.Concat(suffix));
+		}
+
 		public FdbKeyRange ToRange([NotNull] IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
-			return m_subspace.ToRange(tuple.ToSlice());
+			return FdbTuple.ToRange(FdbTuple.Pack(m_subspace.Key, tuple));
 		}
 
 		public FdbKeyRange ToRange([NotNull] ITupleFormattable item)

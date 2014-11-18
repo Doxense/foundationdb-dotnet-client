@@ -1310,7 +1310,7 @@ namespace FoundationDB.Client.Tests
 				{
 					var data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"));
-					var res = await tr.GetRange(b.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+					var res = await tr.GetRange(b.Tuples.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 					Assert.That(res, Is.EqualTo(new [] { "PRINT \"HELLO\"", "GOTO 10" }));
 
 					tr.Set(a, Slice.FromString("aa"));
@@ -1318,7 +1318,7 @@ namespace FoundationDB.Client.Tests
 
 					data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("aa"), "The transaction own writes should be visible by default");
-					res = await tr.GetRange(b.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+					res = await tr.GetRange(b.Tuples.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 					Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "PRINT \"WORLD\"", "GOTO 10" }), "The transaction own writes should be visible by default");
 
 					//note: don't commit
@@ -1336,7 +1336,7 @@ namespace FoundationDB.Client.Tests
 
 					var data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"));
-					var res = await tr.GetRange(b.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+					var res = await tr.GetRange(b.Tuples.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 					Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "GOTO 10" }));
 
 					tr.Set(a, Slice.FromString("aa"));
@@ -1344,7 +1344,7 @@ namespace FoundationDB.Client.Tests
 
 					data = await tr.GetAsync(a);
 					Assert.That(data.ToUnicode(), Is.EqualTo("a"), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
-					res = await tr.GetRange(b.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
+					res = await tr.GetRange(b.Tuples.ToRange()).Select(kvp => kvp.Value.ToString()).ToArrayAsync();
 					Assert.That(res, Is.EqualTo(new[] { "PRINT \"HELLO\"", "GOTO 10" }), "The transaction own writes should not be seen with ReadYourWritesDisable option enabled");
 
 					//note: don't commit

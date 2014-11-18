@@ -143,12 +143,12 @@ using (var db = await Fdb.OpenAsync())
     {
         // do a range query on the list subspace, which should return all the pairs
         // in the subspace, one for each entry in the array.
-        // We exploit the fact that subspace.ToRange() usually does not include the
-        // subspace prefix itself, because we don't want our counter to be returned
+        // We exploit the fact that subspace.Tuples.ToRange() usually does not include
+		// the subspace prefix itself, because we don't want our counter to be returned
         // with the query itself.
         return trans
             // ask for all keys that are _inside_ our subspace
-            .GetRange(list.ToRange())
+            .GetRange(list.Tuples.ToRange())
             // transform the resultoing KeyValuePair<Slice, Slice> into something
             // nicer to use, like a typed KeyValuePair<int, string>
             .Select((kvp) => 

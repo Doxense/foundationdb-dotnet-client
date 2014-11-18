@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Collections
 			if (tr == null) throw new ArgumentNullException("tr");
 
 			return tr
-				.GetRange(this.Subspace.ToRange())
+				.GetRange(this.Subspace.Tuples.ToRange())
 				.Select((kvp) => this.Encoder.DecodeValue(kvp.Value))
 				.LastOrDefaultAsync();
 		}
@@ -128,7 +128,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
-			var keyRange = this.Subspace.ToRange();
+			var keyRange = this.Subspace.Tuples.ToRange();
 
 			// Read the last two entries so we can check if the second to last item
 			// is being represented sparsely. If so, we will be required to set it
@@ -202,7 +202,7 @@ namespace FoundationDB.Layers.Collections
 			if (index < 0) throw new IndexOutOfRangeException(String.Format("Index {0} must be positive", index));
 
 			var start = GetKeyAt(index);
-			var end = this.Subspace.ToRange().End;
+			var end = this.Subspace.Tuples.ToRange().End;
 
 			var output = await tr
 				.GetRange(start, end)
@@ -259,7 +259,7 @@ namespace FoundationDB.Layers.Collections
 
 			if (length < currentSize)
 			{
-				tr.ClearRange(GetKeyAt(length), this.Subspace.ToRange().End);
+				tr.ClearRange(GetKeyAt(length), this.Subspace.Tuples.ToRange().End);
 
 				// Check if the new end of the vector was being sparsely represented
 				if (await ComputeSizeAsync(tr).ConfigureAwait(false) < length)
@@ -287,7 +287,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			Contract.Requires(tr != null);
 
-			var keyRange = this.Subspace.ToRange();
+			var keyRange = this.Subspace.Tuples.ToRange();
 
 			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(keyRange.End)).ConfigureAwait(false);
 

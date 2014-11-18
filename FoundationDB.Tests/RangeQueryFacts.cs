@@ -147,7 +147,7 @@ namespace FoundationDB.Client.Tests
 				// A: more then one item
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(a.ToRange());
+					var query = tr.GetRange(a.Tuples.ToRange());
 
 					// should return the first one
 					res = await query.FirstOrDefaultAsync();
@@ -179,7 +179,7 @@ namespace FoundationDB.Client.Tests
 				// B: exactly one item
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(b.ToRange());
+					var query = tr.GetRange(b.Tuples.ToRange());
 
 					// should return the first one
 					res = await query.FirstOrDefaultAsync();
@@ -215,7 +215,7 @@ namespace FoundationDB.Client.Tests
 				// C: no items
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(c.ToRange());
+					var query = tr.GetRange(c.Tuples.ToRange());
 
 					// should return nothing
 					res = await query.FirstOrDefaultAsync();
@@ -245,7 +245,7 @@ namespace FoundationDB.Client.Tests
 				// A: with a size limit
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(a.ToRange()).Take(5);
+					var query = tr.GetRange(a.Tuples.ToRange()).Take(5);
 
 					// should return the fifth one
 					res = await query.LastOrDefaultAsync();
@@ -261,7 +261,7 @@ namespace FoundationDB.Client.Tests
 				// A: with an offset
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(a.ToRange()).Skip(5);
+					var query = tr.GetRange(a.Tuples.ToRange()).Skip(5);
 
 					// should return the fifth one
 					res = await query.FirstOrDefaultAsync();
@@ -304,7 +304,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(a.ToRange()).Take(5);
+					var query = tr.GetRange(a.Tuples.ToRange()).Take(5);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.EqualTo(5));
 
@@ -322,7 +322,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(a.ToRange()).Take(12);
+					var query = tr.GetRange(a.Tuples.ToRange()).Take(12);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.EqualTo(12));
 
@@ -340,7 +340,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(a.ToRange()).Take(0);
+					var query = tr.GetRange(a.Tuples.ToRange()).Take(0);
 					Assert.That(query, Is.Not.Null);
 					Assert.That(query.Limit, Is.EqualTo(0));
 
@@ -367,7 +367,7 @@ namespace FoundationDB.Client.Tests
 				// from the start
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(location.ToRange());
+					var query = tr.GetRange(location.Tuples.ToRange());
 
 					// |>>>>>>>>>>>>(50---------->99)|
 					var res = await query.Skip(50).ToListAsync();
@@ -394,7 +394,7 @@ namespace FoundationDB.Client.Tests
 				// from the end
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(location.ToRange());
+					var query = tr.GetRange(location.Tuples.ToRange());
 
 					// |(0 <--------- 49)<<<<<<<<<<<<<|
 					var res = await query.Reverse().Skip(50).ToListAsync();
@@ -421,7 +421,7 @@ namespace FoundationDB.Client.Tests
 				// from both sides
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
-					var query = tr.GetRange(location.ToRange());
+					var query = tr.GetRange(location.Tuples.ToRange());
 
 					// |>>>>>>>>>(25<------------74)<<<<<<<<|
 					var res = await query.Skip(25).Reverse().Skip(25).ToListAsync();
@@ -514,7 +514,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.MergeSort(
-						lists.Select(list => list.ToSelectorPair()),
+						lists.Select(list => FdbKeySelectorPair.Create(list.Tuples.ToRange())),
 						kvp => location.Tuples.DecodeLast<int>(kvp.Key)
 					);
 
@@ -587,7 +587,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.Intersect(
-						lists.Select(list => list.ToSelectorPair()),
+						lists.Select(list => FdbKeySelectorPair.Create(list.Tuples.ToRange())),
 						kvp => location.Tuples.DecodeLast<int>(kvp.Key)
 					);
 
@@ -659,7 +659,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.Except(
-						lists.Select(list => list.ToSelectorPair()),
+						lists.Select(list => FdbKeySelectorPair.Create(list.Tuples.ToRange())),
 						kvp => location.Tuples.DecodeLast<int>(kvp.Key)
 					);
 
@@ -714,7 +714,7 @@ namespace FoundationDB.Client.Tests
 				var results = await db.QueryAsync((tr) =>
 				{
 					var query = tr.Except(
-						new[] { locItems.ToRange(), locProcessed.ToRange() },
+						new[] { locItems.Tuples.ToRange(), locProcessed.Tuples.ToRange() },
 						(kv) => FdbTuple.Unpack(kv.Key).Substring(-2), // note: keys come from any of the two ranges, so we must only keep the last 2 elements of the tuple
 						FdbTupleComparisons.Composite<string, int>() // compares t[0] as a string, and t[1] as an int
 					);
@@ -737,11 +737,11 @@ namespace FoundationDB.Client.Tests
 				results = await db.QueryAsync((tr) =>
 				{
 					var items = tr
-						.GetRange(locItems.ToRange())
+						.GetRange(locItems.Tuples.ToRange())
 						.Select(kv => locItems.Tuples.Unpack(kv.Key));
 
 					var processed = tr
-						.GetRange(locProcessed.ToRange())
+						.GetRange(locProcessed.Tuples.ToRange())
 						.Select(kv => locProcessed.Tuples.Unpack(kv.Key));
 
 					// items and processed are lists of (string, int) tuples, we can compare them directly

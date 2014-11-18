@@ -59,11 +59,16 @@ namespace FoundationDB.Layers.Collections.Tests
 					await PrintRankedSet(vector, tr);
 				}, this.Cancellation);
 
+				Console.WriteLine();
 				var rnd = new Random();
-				for (int i = 0; i < 1000; i++)
+				var sw = Stopwatch.StartNew();
+				for (int i = 0; i < 100; i++)
 				{
+					Console.Write("\rInserting " + i);
 					await db.ReadWriteAsync((tr) => vector.InsertAsync(tr, FdbTuple.EncodeKey(rnd.Next())), this.Cancellation);
 				}
+				sw.Stop();
+				Console.WriteLine("\rDone in {0:N3} sec", sw.Elapsed.TotalSeconds);
 
 				await db.ReadAsync((tr) => PrintRankedSet(vector, tr), this.Cancellation);
 			}
@@ -75,7 +80,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			for (int l = 0; l < 6; l++)
 			{
 				sb.AppendFormat("Level {0}:\r\n", l);
-				await tr.GetRange(rs.Subspace.Partition.ByKey(l).ToRange()).ForEachAsync((kvp) =>
+				await tr.GetRange(rs.Subspace.Partition.ByKey(l).Tuples.ToRange()).ForEachAsync((kvp) =>
 				{
 					sb.AppendFormat("\t{0} = {1}\r\n", rs.Subspace.Tuples.Unpack(kvp.Key), kvp.Value.ToInt64());
 				});

@@ -889,6 +889,11 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => { var _ = partition.Keys[location.Key]; });
 				shouldFail(() => { var _ = partition.Keys[location]; });
 
+				shouldFail(() => partition.Keys.ToRange());
+				shouldFail(() => partition.Keys.ToRange(Slice.FromString("hello")));
+				shouldFail(() => partition.Keys.ToRange(FdbTuple.EncodeKey("hello")));
+				shouldFail(() => partition.Keys.ToRange(location));
+
  				// Tuples
 
 				shouldFail(() => partition.Tuples.EncodeKey(123));
@@ -920,15 +925,9 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.Tuples.Concat(FdbTuple.Create(123, "hello", false, "world")));
 				shouldFail(() => partition.Tuples.Append(new object[] { 123, "hello", false, "world" }));
 
-				// ToRange
-				shouldFail(() => partition.ToRange());
-				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				shouldFail(() => partition.ToRange(FdbTuple.Create("hello")));
-				shouldFail(() => partition.ToRange(location));
-
-				// ToSelectorPair
-				shouldFail(() => partition.ToSelectorPair());
-
+				shouldFail(() => partition.Tuples.ToRange());
+				shouldFail(() => partition.Tuples.ToRange(Slice.FromString("hello")));
+				shouldFail(() => partition.Tuples.ToRange(FdbTuple.Create("hello")));
 
 			}
 		}

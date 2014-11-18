@@ -578,13 +578,6 @@ namespace FoundationDB.Client
 			get { return m_globalSpace.Tuples; }
 		}
 
-		/// <summary>Returns a range that contains all the keys that are inside the database global subspace combined with the suffix <paramref name="key"/>, but not inside the System subspace.</summary>
-		/// <example>If the global space is empty, this will return the range [&lt;00&gt;, &lt;FF&gt;)</exampleremarks>
-		public FdbKeyRange ToRange(Slice key)
-		{
-			return m_globalSpace.ToRange(key);
-		}
-
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>
 		internal static bool IsSystemKey(ref Slice key)
 		{

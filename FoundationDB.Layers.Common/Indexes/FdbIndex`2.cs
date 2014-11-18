@@ -163,7 +163,7 @@ namespace FoundationDB.Layers.Indexing
 
 			var space = new FdbKeySelectorPair(
 				FdbKeySelector.FirstGreaterThan(prefix),
-				this.Location.ToSelectorPair().End
+				FdbKeySelector.FirstGreaterOrEqual(this.Location.Tuples.ToRange().End)
 			);
 
 			return trans
@@ -178,7 +178,7 @@ namespace FoundationDB.Layers.Indexing
 			if (orEqual) prefix = FdbKey.Increment(prefix);
 
 			var space = new FdbKeySelectorPair(
-				this.Location.ToSelectorPair().Begin,
+				FdbKeySelector.FirstGreaterOrEqual(this.Location.Tuples.ToRange().Begin),
 				FdbKeySelector.FirstGreaterThan(prefix)
 			);
 

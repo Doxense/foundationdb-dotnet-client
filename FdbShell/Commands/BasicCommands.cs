@@ -68,7 +68,7 @@ namespace FdbShell
 						{
 							if (!(subfolder is FdbDirectoryPartition))
 							{
-								long count = await Fdb.System.EstimateCountAsync(db, subfolder.ToRange(), ct);
+								long count = await Fdb.System.EstimateCountAsync(db, subfolder.Tuples.ToRange(), ct);
 								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(FdbSubspace.Copy(subfolder).Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, count);
 							}
 							else
@@ -115,7 +115,7 @@ namespace FdbShell
 			log.WriteLine("- Created under {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
 
 			// look if there is already stuff under there
-			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.ToRange()).FirstOrDefaultAsync(), cancellationToken: ct);
+			var stuff = await db.ReadAsync((tr) => tr.GetRange(folder.Tuples.ToRange()).FirstOrDefaultAsync(), cancellationToken: ct);
 			if (stuff.Key.IsPresent)
 			{
 				log.WriteLine("CAUTION: There is already some data under {0} !");
@@ -224,7 +224,7 @@ namespace FdbShell
 				log.Write("\r# Found {0:N0} keys...", state.Item1);
 			});
 
-			long count = await Fdb.System.EstimateCountAsync(db, copy.ToRange(), progress, ct);
+			long count = await Fdb.System.EstimateCountAsync(db, copy.Tuples.ToRange(), progress, ct);
 			log.WriteLine("\r# Found {0:N0} keys in {1}", count, String.Join("/", folder.Path));
 		}
 
@@ -245,7 +245,7 @@ namespace FdbShell
 				log.WriteLine("# Content of {0} [{1}]", FdbKey.Dump(folder.Key), folder.Key.ToHexaString(' '));
 				var keys = await db.QueryAsync((tr) =>
 					{
-						var query = tr.GetRange(folder.ToRange());
+						var query = tr.GetRange(folder.Tuples.ToRange());
 						return reverse
 							? query.Reverse().Take(count)
 							: query.Take(count + 1);
@@ -329,7 +329,7 @@ namespace FdbShell
 				return;
 			}
 
-			var span = folder.DirectoryLayer.ContentSubspace.ToRange();
+			var span = folder.DirectoryLayer.ContentSubspace.Tuples.ToRange();
 
 			// note: this may break in future versions of the DL! Maybe we need a custom API to get a flat list of all directories in a DL that span a specific range ?
 
