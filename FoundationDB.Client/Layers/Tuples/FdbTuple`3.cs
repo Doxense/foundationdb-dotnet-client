@@ -152,6 +152,21 @@ namespace FoundationDB.Layers.Tuples
 			array[offset + 2] = this.Item3;
 		}
 
+		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		public void With([NotNull] Action<T1, T2, T3> lambda)
+		{
+			lambda(this.Item1, this.Item2, this.Item3);
+		}
+
+		/// <summary>Execute a lambda Function with the content of this tuple</summary>
+		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
+		public R With<R>([NotNull] Func<T1, T2, T3, R> lambda)
+		{
+			return lambda(this.Item1, this.Item2, this.Item3);
+		}
+
 		public IEnumerator<object> GetEnumerator()
 		{
 			yield return this.Item1;

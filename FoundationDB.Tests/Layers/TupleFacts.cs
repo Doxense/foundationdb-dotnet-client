@@ -356,6 +356,308 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(z.Count, Is.EqualTo(4));
 		}
 
+		[Test]
+		public void Test_FdbTuple_With()
+		{
+			//note: important to always cast to (IFdbTuple) to be sure that we don't call specialized instance methods (tested elsewhere)
+			IFdbTuple t;
+
+			// Size 1
+
+			t = FdbTuple.Create(123);
+			t.With((int a) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+			});
+			Assert.That(t.With((int a) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 2
+
+			t = t.Append("abc");
+			t.With((int a, string b) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+			});
+			Assert.That(t.With((int a, string b) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 3
+
+			t = t.Append(3.14f);
+			t.With((int a, string b, float c) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+			});
+			Assert.That(t.With((int a, string b, float c) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 4
+
+			t = t.Append(true);
+			t.With((int a, string b, float c, bool d) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+			});
+			Assert.That(t.With((int a, string b, float c, bool d) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 5
+
+			t = t.Append('z');
+			t.With((int a, string b, float c, bool d, char e) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+			});
+			Assert.That(t.With((int a, string b, float c, bool d, char e) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 6
+
+			t = t.Append(Math.PI);
+			t.With((int a, string b, float c, bool d, char e, double f) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+			});
+			Assert.That(t.With((int a, string b, float c, bool d, char e, double f) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 7
+
+			t = t.Append(IPAddress.Loopback);
+			t.With((int a, string b, float c, bool d, char e, double f, IPAddress g) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				Assert.That(g, Is.EqualTo(IPAddress.Loopback));
+			});
+			Assert.That(t.With((int a, string b, float c, bool d, char e, double f, IPAddress g) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				Assert.That(g, Is.EqualTo(IPAddress.Loopback));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 8
+
+			t = t.Append(DateTime.MaxValue);
+			t.With((int a, string b, float c, bool d, char e, double f, IPAddress g, DateTime h) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				Assert.That(g, Is.EqualTo(IPAddress.Loopback));
+				Assert.That(h, Is.EqualTo(DateTime.MaxValue));
+			});
+			Assert.That(t.With((int a, string b, float c, bool d, char e, double f, IPAddress g, DateTime h) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				Assert.That(g, Is.EqualTo(IPAddress.Loopback));
+				Assert.That(h, Is.EqualTo(DateTime.MaxValue));
+				return 42;
+			}), Is.EqualTo(42));
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_With_Struct()
+		{
+			// calling With() on the structs is faster
+
+			FdbTuple<int> t1 = FdbTuple.Create(123);
+			t1.With((a) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+			});
+			Assert.That(t1.With((a) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				return 42;
+			}), Is.EqualTo(42));
+
+			FdbTuple<int, string> t2 = FdbTuple.Create(123, "abc");
+			t2.With((a, b) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+			});
+			Assert.That(t2.With((a, b) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				return 42;
+			}), Is.EqualTo(42));
+
+			FdbTuple<int, string, float> t3 = FdbTuple.Create(123, "abc", 3.14f);
+			t3.With((a, b, c) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+			});
+			Assert.That(t3.With((a, b, c) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				return 42;
+			}), Is.EqualTo(42));
+
+			FdbTuple<int, string, float, bool> t4 = FdbTuple.Create(123, "abc", 3.14f, true);
+			t4.With((a, b, c, d) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+			});
+			Assert.That(t4.With((a, b, c, d) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				return 42;
+			}), Is.EqualTo(42));
+
+			FdbTuple<int, string, float, bool, char> t5 = FdbTuple.Create(123, "abc", 3.14f, true, 'z');
+			t5.With((a, b, c, d, e) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+			});
+			Assert.That(t5.With((a, b, c, d, e) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				return 42;
+			}), Is.EqualTo(42));
+
+			//TODO: add more if we ever add struct tuples with 6 or more items
+		}
+
+		[Test]
+		public void Test_FdbTuple_Of_Size()
+		{
+			// OfSize(n) check the size and return the tuple if it passed
+			// VerifySize(n) only check the size
+			// Both should throw if tuple is null, or not the expected size
+
+			Action<IFdbTuple> verify = (t) =>
+			{
+				for (int i = 0; i <= 10; i++)
+				{
+					if (t.Count > i)
+					{
+						Assert.That(() => t.OfSize(i), Throws.InstanceOf<InvalidOperationException>());
+						Assert.That(t.OfSizeAtLeast(i), Is.SameAs(t));
+						Assert.That(() => t.OfSizeAtMost(i), Throws.InstanceOf<InvalidOperationException>());
+					}
+					else if (t.Count < i)
+					{
+						Assert.That(() => t.OfSize(i), Throws.InstanceOf<InvalidOperationException>());
+						Assert.That(() => t.OfSizeAtLeast(i), Throws.InstanceOf<InvalidOperationException>());
+						Assert.That(t.OfSizeAtMost(i), Is.SameAs(t));
+					}
+					else
+					{
+						Assert.That(t.OfSize(i), Is.SameAs(t));
+						Assert.That(t.OfSizeAtLeast(i), Is.SameAs(t));
+						Assert.That(t.OfSizeAtMost(i), Is.SameAs(t));
+					}
+				}
+			};
+
+			verify(FdbTuple.Empty);
+			verify(FdbTuple.Create(123));
+			verify(FdbTuple.Create(123, "abc"));
+			verify(FdbTuple.Create(123, "abc", 3.14f));
+			verify(FdbTuple.Create(123, "abc", 3.14f, true));
+			verify(FdbTuple.Create(123, "abc", 3.14f, true, 'z'));
+			verify(FdbTuple.FromArray(new[] { "hello", "world", "!" }));
+			verify(FdbTuple.FromEnumerable(Enumerable.Range(0, 10)));
+
+			verify(FdbTuple.Create(123, "abc", 3.14f, true, 'z')[0, 2]);
+			verify(FdbTuple.Create(123, "abc", 3.14f, true, 'z')[1, 4]);
+			verify(FdbTuple.FromEnumerable(Enumerable.Range(0, 50)).Substring(15, 6));
+
+			IFdbTuple none = null;
+			Assert.That(() => none.OfSize(0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => none.OfSizeAtLeast(0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => none.OfSizeAtMost(0), Throws.InstanceOf<ArgumentNullException>());
+		}
+
 		#endregion
 
 		#region Splicing...

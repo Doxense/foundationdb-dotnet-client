@@ -108,7 +108,7 @@ namespace FoundationDB.Client
 			{
 				return m_decoder(encoded);
 			}
-	
+
 		}
 
 		/// <summary>Wrapper for encoding and decoding a pair with lambda functions</summary>
@@ -644,7 +644,7 @@ namespace FoundationDB.Client
 					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
 					return FdbTuple.DecodeKey<T>(encoded);
 				}
-	
+
 			}
 
 			internal class TupleCompositeEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>
@@ -668,9 +668,8 @@ namespace FoundationDB.Client
 				{
 					if (items < 1 || items > 2) throw new ArgumentOutOfRangeException("items", items, "Item count must be either 1 or 2");
 
-					var t = FdbTuple.Unpack(encoded);
+					var t = FdbTuple.Unpack(encoded).OfSize(items);
 					Contract.Assert(t != null);
-					if (t.Count != items) throw new ArgumentException(String.Format("Was expected {0} items, but decoded tuple only has {1}", items, t.Count));
 
 					return FdbTuple.Create<T1, T2>(
 						t.Get<T1>(0),
@@ -701,9 +700,8 @@ namespace FoundationDB.Client
 				{
 					if (items < 1 || items > 3) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 3");
 
-					var t = FdbTuple.Unpack(encoded);
+					var t = FdbTuple.Unpack(encoded).OfSize(items);
 					Contract.Assert(t != null);
-					if (t.Count != items) throw new ArgumentException(String.Format("Was expected {0} items, but decoded tuple only has {1}", items, t.Count));
 
 					return FdbTuple.Create<T1, T2, T3>(
 						t.Get<T1>(0),
@@ -736,9 +734,7 @@ namespace FoundationDB.Client
 				{
 					if (items < 1 || items > 4) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 4");
 
-					var t = FdbTuple.Unpack(encoded);
-					Contract.Assert(t != null);
-					if (t.Count != items) throw new ArgumentException(String.Format("Was expected {0} items, but decoded tuple only has {1}", items, t.Count));
+					var t = FdbTuple.Unpack(encoded).OfSize(items);
 
 					return FdbTuple.Create<T1, T2, T3, T4>(
 						t.Get<T1>(0),
