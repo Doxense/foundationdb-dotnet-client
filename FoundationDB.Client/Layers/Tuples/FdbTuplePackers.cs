@@ -486,11 +486,9 @@ namespace FoundationDB.Layers.Tuples
 		{
 			Contract.Requires(tuple != null);
 
-			writer.Depth++;
-			writer.Output.WriteByte(FdbTupleTypes.TupleStart);
+			FdbTupleParser.BeginTuple(ref writer);
 			tuple.PackTo(ref writer);
-			writer.Output.WriteByte(0x00);
-			writer.Depth--;
+			FdbTupleParser.EndTuple(ref writer);
 		}
 
 		public static void SerializeFormattableTo(ref TupleWriter writer, ITupleFormattable formattable)
@@ -504,11 +502,9 @@ namespace FoundationDB.Layers.Tuples
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException(String.Format("Custom formatter {0}.ToTuple() cannot return null", formattable.GetType().Name));
 
-			writer.Depth++;
-			writer.Output.WriteByte(FdbTupleTypes.TupleStart);
+			FdbTupleParser.BeginTuple(ref writer);
 			tuple.PackTo(ref writer);
-			writer.Output.WriteByte(0x00);
-			writer.Depth--;
+			FdbTupleParser.EndTuple(ref writer);
 		}
 
 		public static void SerializeFdbKeyTo(ref TupleWriter writer, IFdbKey key)

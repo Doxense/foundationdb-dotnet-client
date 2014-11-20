@@ -656,6 +656,20 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		/// <summary>Mark the start of a new embedded tuple</summary>
+		public static void BeginTuple(ref TupleWriter writer)
+		{
+			writer.Depth++;
+			writer.Output.WriteByte(FdbTupleTypes.TupleStart);
+		}
+
+		/// <summary>Mark the end of an embedded tuple</summary>
+		public static void EndTuple(ref TupleWriter writer)
+		{
+			writer.Output.WriteByte(0x00);
+			writer.Depth--;
+		}
+
 		#endregion
 
 		#region Deserialization...
