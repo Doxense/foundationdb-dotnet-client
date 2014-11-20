@@ -296,15 +296,20 @@ namespace FoundationDB.Layers.Tuples
 			if (count < 0) throw new ArgumentOutOfRangeException("count", "Count cannot be less than zero");
 			if (offset + count > items.Length) throw new ArgumentOutOfRangeException("count", "Source array is too small");
 
-			if (count == 0) return FdbTuple.Empty;
-			if (count == 1) return FdbTuple.Create<T>(items[offset]);
-			if (count == 2) return FdbTuple.Create<T, T>(items[offset], items[offset + 1]);
-
-			// copy the items
-			var tmp = new object[count];
-			Array.Copy(items, offset, tmp, 0, count);
-			//TODO: we would probably benefit from having an FdbListTuple<T> here!
-			return new FdbListTuple(tmp, 0, count);
+			switch(count)
+			{
+				case 0: return FdbTuple.Empty;
+				case 1: return FdbTuple.Create<T>(items[offset]);
+				case 2: return FdbTuple.Create<T, T>(items[offset], items[offset + 1]);
+				case 3: return FdbTuple.Create<T, T, T>(items[offset], items[offset + 1], items[offset + 2]);
+				default:
+				{ // copy the items in a temp array
+					//TODO: we would probably benefit from having an FdbListTuple<T> here!
+					var tmp = new object[count];
+					Array.Copy(items, offset, tmp, 0, count);
+					return new FdbListTuple(tmp, 0, count);
+				}
+			}
 		}
 
 		/// <summary>Create a new tuple from a sequence of typed items</summary>
