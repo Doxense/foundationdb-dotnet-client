@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -142,11 +143,13 @@ namespace FoundationDB.Linq
 
 		#region Filter...
 
+		[NotNull]
 		internal static FdbWhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> predicate)
 		{
 			return new FdbWhereAsyncIterator<TResult>(source, predicate, null);
 		}
 
+		[NotNull]
 		internal static FdbWhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
 			return new FdbWhereAsyncIterator<TResult>(source, null, asyncPredicate);
@@ -156,6 +159,7 @@ namespace FoundationDB.Linq
 
 		#region Offset...
 
+		[NotNull]
 		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Offset<TResult>(IFdbAsyncEnumerable<TResult> source, int offset)
 		{
 			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: null, offset: offset);
@@ -165,11 +169,13 @@ namespace FoundationDB.Linq
 
 		#region Limit...
 
+		[NotNull]
 		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, int limit)
 		{
 			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: limit, offset: null);
 		}
 
+		[NotNull]
 		internal static FdbTakeWhileAsyncIterator<TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> condition)
 		{
 			return new FdbTakeWhileAsyncIterator<TResult>(source, condition);

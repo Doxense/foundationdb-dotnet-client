@@ -489,7 +489,7 @@ namespace FoundationDB.Client
 		{
 			return new Slice(
 				new byte[]
-				{ 
+				{
 					(byte)value,
 					(byte)(value >> 8)
 				},
@@ -517,7 +517,7 @@ namespace FoundationDB.Client
 		{
 			return new Slice(
 				new byte[]
-				{ 
+				{
 					(byte)value,
 					(byte)(value >> 8)
 				},
@@ -532,7 +532,7 @@ namespace FoundationDB.Client
 		{
 			return new Slice(
 				new byte[]
-				{ 
+				{
 					(byte)(value >> 8),
 					(byte)value
 				},
@@ -571,6 +571,7 @@ namespace FoundationDB.Client
 				}
 				if (value <= 65535)
 				{
+					//TODO: possible micro optimization is for values like 0x100, 0x201, 0x1413 or 0x4342, where we could use 2 consecutive bytes in the ByteSprite,
 					return new Slice(new byte[] { (byte)value, (byte)(value >> 8) }, 0, 2);
 				}
 			}
@@ -583,7 +584,7 @@ namespace FoundationDB.Client
 		{
 			return new Slice(
 				new byte[]
-				{ 
+				{
 					(byte)value,
 					(byte)(value >> 8),
 					(byte)(value >> 16),

@@ -148,15 +148,15 @@ namespace FoundationDB.Client
 
 			// Take(N).Skip(k) ?
 			if (limit.HasValue)
-			{	
+			{
 				// If k >= N, then the result will be empty
 				// If k < N, then we need to update the begin key, and limit accordingly
 				if (count >= limit.Value)
-				{ 
+				{
 					limit = 0; // hopefully this would be optimized an runtime?
 				}
 				else
-				{  
+				{
 					limit -= count;
 				}
 			}
