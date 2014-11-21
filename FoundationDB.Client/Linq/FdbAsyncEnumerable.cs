@@ -369,6 +369,24 @@ namespace FoundationDB.Linq
 
 		#endregion
 
+		#region Distinct...
+
+		public static IFdbAsyncEnumerable<TSource> Distinct<TSource>(this IFdbAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
+		{
+			if (source == null) throw new ArgumentNullException("count");
+			comparer = comparer ?? EqualityComparer<TSource>.Default;
+
+			return new FdbDistinctAsyncIterator<TSource>(source, comparer);
+		}
+
+		#endregion
+
+		// If you are bored, maybe consider adding:
+		// - DefaultIfEmpty<T>
+		// - Zip<T>
+		// - OrderBy<TElement> and OrderBy<TElement, TKey>
+		// - GroupBy<TKey, TElement>
+
 		#endregion
 
 		#region Leaving the Monad...
@@ -659,6 +677,60 @@ namespace FoundationDB.Linq
 			return found ? last : default(T);
 		}
 
+		/// <summary>Returns the element at a specific location of an async sequence, or an exception if there are not enough elements</summary>
+		public static async Task<T> ElementAtAsync<T>(this IFdbAsyncEnumerable<T> source, int index, CancellationToken ct = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (index < 0) throw new ArgumentOutOfRangeException("index");
+			ct.ThrowIfCancellationRequested();
+
+			var rq = source as FdbRangeQuery<T>;
+			if (rq != null) return await rq.Skip(index).SingleAsync();
+
+			int counter = index;
+			T item = default(T);
+			await Run<T>(
+				source,
+				FdbAsyncMode.All,
+				(x) =>
+				{
+					if (counter-- == 0) { item = x; return false; }
+					return true;
+				},
+				ct
+			).ConfigureAwait(false);
+
+			if (counter >= 0) throw new InvalidOperationException("The sequence was too small");
+			return item;
+		}
+
+		/// <summary>Returns the element at a specific location of an async sequence, or the default value for the type if it there are not enough elements</summary>
+		public static async Task<T> ElementAtOrDefaultAsync<T>(this IFdbAsyncEnumerable<T> source, int index, CancellationToken ct = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (index < 0) throw new ArgumentOutOfRangeException("index");
+			ct.ThrowIfCancellationRequested();
+
+			var rq = source as FdbRangeQuery<T>;
+			if (rq != null) return await rq.Skip(index).SingleAsync();
+
+			int counter = index;
+			T item = default(T);
+			await Run<T>(
+				source,
+				FdbAsyncMode.All,
+				(x) =>
+				{
+					if (counter-- == 0) { item = x; return false; }
+					return true;
+				},
+				ct
+			).ConfigureAwait(false);
+
+			if (counter >= 0) return default(T);
+			return item;
+		}
+
 		/// <summary>Returns the number of elements in an async sequence.</summary>
 		public static async Task<int> CountAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
@@ -721,6 +793,60 @@ namespace FoundationDB.Linq
 			long sum = 0;
 			await Run<long>(source, FdbAsyncMode.All, (x) => { if (predicate(x)) sum += x; }, ct).ConfigureAwait(false);
 			return sum;
+		}
+
+		/// <summary>Returns the smallest value in the specified async sequence</summary>
+		public static async Task<T> MinAsync<T>(this IFdbAsyncEnumerable<T> source, IComparer<T> comparer = null, CancellationToken ct = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			comparer = comparer ?? Comparer<T>.Default;
+
+			bool found = false;
+			T min = default(T);
+
+			await Run<T>(
+				source,
+				FdbAsyncMode.All,
+				(x) =>
+				{
+					if (!found || comparer.Compare(x, min) < 0)
+					{
+						min = x;
+						found = true;
+					}
+				},
+				ct
+			).ConfigureAwait(false);
+
+			if (!found) throw new InvalidOperationException("The sequence was empty");
+			return min;
+		}
+
+		/// <summary>Returns the largest value in the specified async sequence</summary>
+		public static async Task<T> MaxAsync<T>(this IFdbAsyncEnumerable<T> source, IComparer<T> comparer = null, CancellationToken ct = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			comparer = comparer ?? Comparer<T>.Default;
+
+			bool found = false;
+			T max = default(T);
+
+			await Run<T>(
+				source,
+				FdbAsyncMode.All,
+				(x) =>
+				{
+					if (!found || comparer.Compare(x, max) > 0)
+					{
+						max = x;
+						found = true;
+					}
+				},
+				ct
+			).ConfigureAwait(false);
+
+			if (!found) throw new InvalidOperationException("The sequence was empty");
+			return max;
 		}
 
 		/// <summary>Determines whether an async sequence contains any elements.</summary>

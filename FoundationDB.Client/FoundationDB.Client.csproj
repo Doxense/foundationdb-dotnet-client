@@ -73,6 +73,7 @@
     <Compile Include="FdbIsolationLevel.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryPartition.cs" />
     <Compile Include="Layers\Directories\IFdbDirectory.cs" />
+    <Compile Include="Linq\FdbDistinctAsyncIterator.cs" />
     <Compile Include="Native\FdbNativeCluster.cs" />
     <Compile Include="IFdbCluster.cs" />
     <Compile Include="FdbClusterFile.cs" />
