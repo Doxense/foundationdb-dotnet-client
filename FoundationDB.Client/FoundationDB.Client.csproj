@@ -76,6 +76,7 @@
     <Compile Include="Layers\Tuples\FdbTuple`5.cs" />
     <Compile Include="Layers\Tuples\TupleReader.cs" />
     <Compile Include="Layers\Tuples\TupleWriter.cs" />
+    <Compile Include="Linq\FdbDistinctAsyncIterator.cs" />
     <Compile Include="Native\FdbNativeCluster.cs" />
     <Compile Include="IFdbCluster.cs" />
     <Compile Include="FdbClusterFile.cs" />

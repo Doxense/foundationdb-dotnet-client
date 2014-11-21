@@ -328,6 +328,7 @@ namespace FoundationDB.Linq.Tests
 			var results = await query.ToListAsync();
 			Assert.That(results, Is.EqualTo(new int[] { 31, 33, 35, 37, 39, 41 }));
 		}
+
 		[Test]
 		public async Task Test_Can_SelectMany()
 		{
@@ -418,6 +419,83 @@ namespace FoundationDB.Linq.Tests
 			first = await source.LastOrDefaultAsync();
 			Assert.That(first, Is.EqualTo(0));
 
+		}
+
+		[Test]
+		public async Task Test_Can_Get_ElementAt()
+		{
+			var source = Enumerable.Range(42, 10).ToAsyncEnumerable();
+
+			Assert.That(() => source.ElementAtAsync(-1).GetAwaiter().GetResult(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+
+			int item = await source.ElementAtAsync(0);
+			Assert.That(item, Is.EqualTo(42));
+
+			item = await source.ElementAtAsync(5);
+			Assert.That(item, Is.EqualTo(47));
+
+			item = await source.ElementAtAsync(9);
+			Assert.That(item, Is.EqualTo(51));
+
+			Assert.That(() => source.ElementAtAsync(10).GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+
+			source = FdbAsyncEnumerable.Empty<int>();
+			Assert.That(() => source.ElementAtAsync(0).GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+		}
+
+		[Test]
+		public async Task Test_Can_Get_ElementAtOrDefault()
+		{
+			var source = Enumerable.Range(42, 10).ToAsyncEnumerable();
+
+			Assert.That(() => source.ElementAtOrDefaultAsync(-1).GetAwaiter().GetResult(), Throws.InstanceOf<ArgumentOutOfRangeException>());
+
+			int item = await source.ElementAtOrDefaultAsync(0);
+			Assert.That(item, Is.EqualTo(42));
+
+			item = await source.ElementAtOrDefaultAsync(5);
+			Assert.That(item, Is.EqualTo(47));
+
+			item = await source.ElementAtOrDefaultAsync(9);
+			Assert.That(item, Is.EqualTo(51));
+
+			item = await source.ElementAtOrDefaultAsync(10);
+			Assert.That(item, Is.EqualTo(0));
+
+			source = FdbAsyncEnumerable.Empty<int>();
+			item = await source.ElementAtOrDefaultAsync(0);
+			Assert.That(item, Is.EqualTo(0));
+			item = await source.ElementAtOrDefaultAsync(42);
+			Assert.That(item, Is.EqualTo(0));
+		}
+
+		[Test]
+		public async Task Test_Can_Distinct()
+		{
+			var items = new int[] { 1, 42, 7, 42, 9, 13, 7, 66 };
+			var source = items.ToAsyncEnumerable();
+
+			var distincts = await source.Distinct().ToListAsync();
+			Assert.That(distincts, Is.Not.Null.And.EqualTo(items.Distinct().ToList()));
+
+			var sequence = Enumerable.Range(0, 100).Select(x => (x * 1049) % 43);
+			source = sequence.ToAsyncEnumerable();
+			distincts = await source.Distinct().ToListAsync();
+			Assert.That(distincts, Is.Not.Null.And.EqualTo(sequence.Distinct().ToList()));
+		}
+
+		[Test]
+		public async Task Test_Can_Distinct_With_Comparer()
+		{
+			var items = new string[] { "World", "hello", "Hello", "world", "World!", "FileNotFound" };
+
+			var source = items.ToAsyncEnumerable();
+
+			var distincts = await source.Distinct(StringComparer.Ordinal).ToListAsync();
+			Assert.That(distincts, Is.Not.Null.And.EqualTo(items.Distinct(StringComparer.Ordinal).ToList()));
+
+			distincts = await source.Distinct(StringComparer.OrdinalIgnoreCase).ToListAsync();
+			Assert.That(distincts, Is.Not.Null.And.EqualTo(items.Distinct(StringComparer.OrdinalIgnoreCase).ToList()));
 		}
 
 		[Test]
@@ -533,6 +611,96 @@ namespace FoundationDB.Linq.Tests
 			var count = await source.CountAsync(x => x % 2 == 1);
 
 			Assert.That(count, Is.EqualTo(5));
+		}
+
+		[Test]
+		public async Task Test_Can_Min()
+		{
+			var rnd = new Random(1234);
+			var items = Enumerable.Range(0, 100).Select(_ => rnd.Next()).ToList();
+
+			var source = items.ToAsyncEnumerable();
+			int min = await source.MinAsync();
+			Assert.That(min, Is.EqualTo(items.Min()));
+
+			// if min is the first
+			items[0] = min - 1;
+			source = items.ToAsyncEnumerable();
+			min = await source.MinAsync();
+			Assert.That(min, Is.EqualTo(items.Min()));
+
+			// if min is the last
+			items[items.Count - 1] = min - 1;
+			source = items.ToAsyncEnumerable();
+			min = await source.MinAsync();
+			Assert.That(min, Is.EqualTo(items.Min()));
+
+			// empty should fail
+			source = FdbAsyncEnumerable.Empty<int>();
+			Assert.That(() => source.MinAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+		}
+
+		[Test]
+		public async Task Test_Can_Max()
+		{
+			var rnd = new Random(1234);
+			var items = Enumerable.Range(0, 100).Select(_ => rnd.Next()).ToList();
+
+			var source = items.ToAsyncEnumerable();
+			int max = await source.MaxAsync();
+			Assert.That(max, Is.EqualTo(items.Max()));
+
+			// if max is the first
+			items[0] = max + 1;
+			source = items.ToAsyncEnumerable();
+			max = await source.MaxAsync();
+			Assert.That(max, Is.EqualTo(items.Max()));
+
+			// if max is the last
+			items[items.Count - 1] = max + 1;
+			source = items.ToAsyncEnumerable();
+			max = await source.MaxAsync();
+			Assert.That(max, Is.EqualTo(items.Max()));
+
+			// empty should fail
+			source = FdbAsyncEnumerable.Empty<int>();
+			Assert.That(() => source.MaxAsync().GetAwaiter().GetResult(), Throws.InstanceOf<InvalidOperationException>());
+		}
+
+		[Test]
+		public async Task Test_Can_Sum_Signed()
+		{
+			var rnd = new Random(1234);
+			var items = Enumerable.Range(0, 100).Select(_ => (long)rnd.Next()).ToList();
+
+			var source = items.ToAsyncEnumerable();
+			long sum = await source.SumAsync();
+			long expected = 0;
+			foreach (var x in items) expected = checked(expected + x);
+			Assert.That(sum, Is.EqualTo(expected));
+
+			// empty should return 0
+			source = FdbAsyncEnumerable.Empty<long>();
+			sum = await source.SumAsync();
+			Assert.That(sum, Is.EqualTo(0));
+		}
+
+		[Test]
+		public async Task Test_Can_Sum_Unsigned()
+		{
+			var rnd = new Random(1234);
+			var items = Enumerable.Range(0, 100).Select(_ => (ulong)rnd.Next()).ToList();
+
+			var source = items.ToAsyncEnumerable();
+			ulong sum = await source.SumAsync();
+			ulong expected = 0;
+			foreach (var x in items) expected = checked(expected + x);
+			Assert.That(sum, Is.EqualTo(expected));
+
+			// empty should return 0
+			source = FdbAsyncEnumerable.Empty<ulong>();
+			sum = await source.SumAsync();
+			Assert.That(sum, Is.EqualTo(0));
 		}
 
 		[Test]
