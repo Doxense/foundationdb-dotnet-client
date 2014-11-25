@@ -37,28 +37,25 @@ namespace FoundationDB.Linq
 
 	/// <summary>Filters an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
-	internal sealed class FdbWhereAsyncIterator<TSource> : FdbAsyncFilter<TSource, TSource>
+	internal sealed class FdbWhereAsyncIterator<TSource> : FdbAsyncFilterIterator<TSource, TSource>
 	{
-		private readonly Func<TSource, bool> m_filter;
-		private readonly Func<TSource, CancellationToken, Task<bool>> m_asyncFilter;
+		private readonly AsyncFilterExpression<TSource> m_filter;
 
-		public FdbWhereAsyncIterator([NotNull] IFdbAsyncEnumerable<TSource> source, Func<TSource, bool> filter, Func<TSource, CancellationToken, Task<bool>> asyncFilter)
+		public FdbWhereAsyncIterator([NotNull] IFdbAsyncEnumerable<TSource> source, AsyncFilterExpression<TSource> filter)
 			: base(source)
 		{
-			Contract.Requires(filter != null ^ asyncFilter != null, "there can be only one kind of filter specified");
+			Contract.Requires(filter != null, "there can be only one kind of filter specified");
 
 			m_filter = filter;
-			m_asyncFilter = asyncFilter;
 		}
 
 		protected override FdbAsyncIterator<TSource> Clone()
 		{
-			return new FdbWhereAsyncIterator<TSource>(m_source, m_filter, m_asyncFilter);
+			return new FdbWhereAsyncIterator<TSource>(m_source, m_filter);
 		}
 
 		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
 		{
-
 			while (!cancellationToken.IsCancellationRequested)
 			{
 				if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
@@ -69,16 +66,16 @@ namespace FoundationDB.Linq
 				if (cancellationToken.IsCancellationRequested) break;
 
 				TSource current = m_iterator.Current;
-				if (m_filter != null)
+				if (!m_filter.Async)
 				{
-					if (!m_filter(current))
+					if (!m_filter.Invoke(current))
 					{
 						continue;
 					}
 				}
 				else
 				{
-					if (!await m_asyncFilter(current, cancellationToken).ConfigureAwait(false))
+					if (!await m_filter.InvokeAsync(current, cancellationToken).ConfigureAwait(false))
 					{
 						continue;
 					}
@@ -92,38 +89,18 @@ namespace FoundationDB.Linq
 
 		public override FdbAsyncIterator<TSource> Where(Func<TSource, bool> predicate)
 		{
-			if (m_asyncFilter != null)
-			{
-				return FdbAsyncEnumerable.Filter<TSource>(
-					m_source,
-					async (x, ct) => (await m_asyncFilter(x, ct).ConfigureAwait(false)) && predicate(x)
-				);
-			}
-			else
-			{
-				return FdbAsyncEnumerable.Filter<TSource>(
-					m_source,
-					(x) => m_filter(x) && predicate(x)
-				);
-			}
+			return FdbAsyncEnumerable.Filter<TSource>(
+				m_source,
+				m_filter.AndAlso(new AsyncFilterExpression<TSource>(predicate))
+			);
 		}
 
 		public override FdbAsyncIterator<TSource> Where(Func<TSource, CancellationToken, Task<bool>> asyncPredicate)
 		{
-			if (m_asyncFilter != null)
-			{
-				return FdbAsyncEnumerable.Filter<TSource>(
-					m_source,
-					async (x, ct) => (await m_asyncFilter(x, ct).ConfigureAwait(false)) && (await asyncPredicate(x, ct).ConfigureAwait(false))
-				);
-			}
-			else
-			{
-				return FdbAsyncEnumerable.Filter<TSource>(
-					m_source,
-					async (x, ct) => m_filter(x) && (await asyncPredicate(x, ct).ConfigureAwait(false))
-				);
-			}
+			return FdbAsyncEnumerable.Filter<TSource>(
+				m_source,
+				m_filter.AndAlso(new AsyncFilterExpression<TSource>(asyncPredicate))
+			);
 		}
 
 		public override FdbAsyncIterator<TNew> Select<TNew>(Func<TSource, TNew> selector)
@@ -131,9 +108,7 @@ namespace FoundationDB.Linq
 			return new FdbWhereSelectAsyncIterator<TSource, TNew>(
 				m_source,
 				m_filter,
-				m_asyncFilter,
-				transform: selector,
-				asyncTransform: null,
+				new AsyncTransformExpression<TSource, TNew>(selector),
 				limit: null,
 				offset: null
 			);
@@ -144,9 +119,7 @@ namespace FoundationDB.Linq
 			return new FdbWhereSelectAsyncIterator<TSource, TNew>(
 				m_source,
 				m_filter,
-				m_asyncFilter,
-				transform: null,
-				asyncTransform: asyncSelector,
+				new AsyncTransformExpression<TSource, TNew>(asyncSelector),
 				limit: null,
 				offset: null
 			);
@@ -159,9 +132,7 @@ namespace FoundationDB.Linq
 			return new FdbWhereSelectAsyncIterator<TSource, TSource>(
 				m_source,
 				m_filter,
-				m_asyncFilter,
-				transform: TaskHelpers.Cache<TSource>.Identity,
-				asyncTransform: null,
+				new AsyncTransformExpression<TSource, TSource>(TaskHelpers.Cache<TSource>.Identity),
 				limit: limit,
 				offset: null
 			);
@@ -173,17 +144,14 @@ namespace FoundationDB.Linq
 
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			var mode = m_mode;
-			if (mode == FdbAsyncMode.Head) mode = FdbAsyncMode.Iterator;
-
-			using (var iter = m_source.GetEnumerator(mode))
+			using (var iter = StartInner())
 			{
-				if (m_filter != null)
+				if (!m_filter.Async)
 				{
 					while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
 					{
 						var current = iter.Current;
-						if (m_filter(current))
+						if (m_filter.Invoke(current))
 						{
 							handler(current);
 						}
@@ -194,7 +162,7 @@ namespace FoundationDB.Linq
 					while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
 					{
 						var current = iter.Current;
-						if (await m_asyncFilter(current, ct).ConfigureAwait(false))
+						if (await m_filter.InvokeAsync(current, ct).ConfigureAwait(false))
 						{
 							handler(current);
 						}
@@ -202,8 +170,7 @@ namespace FoundationDB.Linq
 				}
 			}
 
-			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
-
+			ct.ThrowIfCancellationRequested();
 		}
 
 		public override async Task ExecuteAsync(Func<TSource, CancellationToken, Task> asyncHandler, CancellationToken ct)
@@ -212,17 +179,14 @@ namespace FoundationDB.Linq
 
 			if (ct.IsCancellationRequested) ct.ThrowIfCancellationRequested();
 
-			var mode = m_mode;
-			if (mode == FdbAsyncMode.Head) mode = FdbAsyncMode.Iterator;
-
-			using (var iter = m_source.GetEnumerator(mode))
+			using (var iter = StartInner())
 			{
-				if (m_filter != null)
+				if (!m_filter.Async)
 				{
 					while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
 					{
 						var current = iter.Current;
-						if (m_filter(current))
+						if (m_filter.Invoke(current))
 						{
 							await asyncHandler(current, ct).ConfigureAwait(false);
 						}
@@ -233,7 +197,7 @@ namespace FoundationDB.Linq
 					while (!ct.IsCancellationRequested && (await iter.MoveNext(ct).ConfigureAwait(false)))
 					{
 						var current = iter.Current;
-						if (await m_asyncFilter(current, ct).ConfigureAwait(false))
+						if (await m_filter.InvokeAsync(current, ct).ConfigureAwait(false))
 						{
 							await asyncHandler(current, ct).ConfigureAwait(false);
 						}

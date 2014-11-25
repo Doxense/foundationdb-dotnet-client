@@ -37,7 +37,7 @@ namespace FoundationDB.Linq
 
 	/// <summary>Filters duplicate items from an async sequence</summary>
 	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
-	internal sealed class FdbDistinctAsyncIterator<TSource> : FdbAsyncFilter<TSource, TSource>
+	internal sealed class FdbDistinctAsyncIterator<TSource> : FdbAsyncFilterIterator<TSource, TSource>
 	{
 
 		private readonly IEqualityComparer<TSource> m_comparer;

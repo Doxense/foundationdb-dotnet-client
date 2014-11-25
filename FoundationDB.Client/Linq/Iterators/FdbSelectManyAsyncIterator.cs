@@ -38,25 +38,23 @@ namespace FoundationDB.Linq
 	/// <summary>Iterates over an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	internal sealed class FdbSelectManyAsyncIterator<TSource, TResult> : FdbAsyncFilter<TSource, TResult>
+	internal sealed class FdbSelectManyAsyncIterator<TSource, TResult> : FdbAsyncFilterIterator<TSource, TResult>
 	{
-		private readonly Func<TSource, IEnumerable<TResult>> m_selector;
-		private readonly Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> m_asyncSelector;
+		private readonly AsyncTransformExpression<TSource, IEnumerable<TResult>> m_selector;
 		private IEnumerator<TResult> m_batch;
 
-		public FdbSelectManyAsyncIterator([NotNull] IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
+		public FdbSelectManyAsyncIterator([NotNull] IFdbAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
 			: base(source)
 		{
 			// Must have at least one, but not both
-			Contract.Requires(selector != null ^ asyncSelector != null);
+			Contract.Requires(selector != null);
 
 			m_selector = selector;
-			m_asyncSelector = asyncSelector;
 		}
 
 		protected override FdbAsyncIterator<TResult> Clone()
 		{
-			return new FdbSelectManyAsyncIterator<TSource, TResult>(m_source, m_selector, m_asyncSelector);
+			return new FdbSelectManyAsyncIterator<TSource, TResult>(m_source, m_selector);
 		}
 
 		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
@@ -78,13 +76,13 @@ namespace FoundationDB.Linq
 					if (cancellationToken.IsCancellationRequested) break;
 
 					IEnumerable<TResult> sequence;
-					if (m_selector != null)
+					if (!m_selector.Async)
 					{
-						sequence = m_selector(m_iterator.Current);
+						sequence = m_selector.Invoke(m_iterator.Current);
 					}
 					else
 					{
-						sequence = await m_asyncSelector(m_iterator.Current, cancellationToken).ConfigureAwait(false);
+						sequence = await m_selector.InvokeAsync(m_iterator.Current, cancellationToken).ConfigureAwait(false);
 					}
 					if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 
@@ -126,34 +124,29 @@ namespace FoundationDB.Linq
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TCollection">Type of the elements of the sequences produced from each <typeparamref name="TSource"/> elements</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	internal sealed class FdbSelectManyAsyncIterator<TSource, TCollection, TResult> : FdbAsyncFilter<TSource, TResult>
+	internal sealed class FdbSelectManyAsyncIterator<TSource, TCollection, TResult> : FdbAsyncFilterIterator<TSource, TResult>
 	{
-		private readonly Func<TSource, IEnumerable<TCollection>> m_collectionSelector;
-		private readonly Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> m_asyncCollectionSelector;
+		private readonly AsyncTransformExpression<TSource, IEnumerable<TCollection>> m_collectionSelector;
 		private readonly Func<TSource, TCollection, TResult> m_resultSelector;
 		private TSource m_sourceCurrent;
 		private IEnumerator<TCollection> m_batch;
 
 		public FdbSelectManyAsyncIterator(
 			[NotNull] IFdbAsyncEnumerable<TSource> source,
-			Func<TSource, IEnumerable<TCollection>> collectionSelector,
-			Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector,
+			AsyncTransformExpression<TSource, IEnumerable<TCollection>> collectionSelector,
 			[NotNull] Func<TSource, TCollection, TResult> resultSelector
 		)
 			: base(source)
 		{
-			// must have at least one but not both
-			Contract.Requires(collectionSelector != null ^ asyncCollectionSelector != null);
-			Contract.Requires(resultSelector != null);
+			Contract.Requires(collectionSelector != null && resultSelector != null);
 
 			m_collectionSelector = collectionSelector;
-			m_asyncCollectionSelector = asyncCollectionSelector;
 			m_resultSelector = resultSelector;
 		}
 
 		protected override FdbAsyncIterator<TResult> Clone()
 		{
-			return new FdbSelectManyAsyncIterator<TSource, TCollection, TResult>(m_source, m_collectionSelector, m_asyncCollectionSelector, m_resultSelector);
+			return new FdbSelectManyAsyncIterator<TSource, TCollection, TResult>(m_source, m_collectionSelector, m_resultSelector);
 		}
 
 		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
@@ -178,13 +171,13 @@ namespace FoundationDB.Linq
 
 					IEnumerable<TCollection> sequence;
 
-					if (m_collectionSelector != null)
+					if (!m_collectionSelector.Async)
 					{
-						sequence = m_collectionSelector(m_sourceCurrent);
+						sequence = m_collectionSelector.Invoke(m_sourceCurrent);
 					}
 					else
 					{
-						sequence = await m_asyncCollectionSelector(m_sourceCurrent, cancellationToken).ConfigureAwait(false);
+						sequence = await m_collectionSelector.InvokeAsync(m_sourceCurrent, cancellationToken).ConfigureAwait(false);
 					}
 					if (sequence == null) throw new InvalidOperationException("The inner sequence returned a null collection");
 

@@ -47,7 +47,10 @@ namespace FoundationDB.Linq
 		/// <param name="source">Source async sequence that will be wrapped</param>
 		/// <param name="factory">Factory method called when the outer sequence starts iterating. Must return an async enumerator</param>
 		/// <returns>New async sequence</returns>
-		internal static FdbAsyncSequence<TSource, TResult> Create<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<IFdbAsyncEnumerator<TSource>, IFdbAsyncEnumerator<TResult>> factory)
+		internal static FdbAsyncSequence<TSource, TResult> Create<TSource, TResult>(
+			IFdbAsyncEnumerable<TSource> source,
+			Func<IFdbAsyncEnumerator<TSource>,
+			IFdbAsyncEnumerator<TResult>> factory)
 		{
 			return new FdbAsyncSequence<TSource, TResult>(source, factory);
 		}
@@ -58,13 +61,18 @@ namespace FoundationDB.Linq
 		/// <param name="source">Source sequence that will be wrapped</param>
 		/// <param name="factory">Factory method called when the outer sequence starts iterating. Must return an async enumerator</param>
 		/// <returns>New async sequence</returns>
-		internal static EnumerableSequence<TSource, TResult> Create<TSource, TResult>(IEnumerable<TSource> source, Func<IEnumerator<TSource>, IFdbAsyncEnumerator<TResult>> factory)
+		internal static EnumerableSequence<TSource, TResult> Create<TSource, TResult>(
+			IEnumerable<TSource> source,
+			Func<IEnumerator<TSource>,
+			IFdbAsyncEnumerator<TResult>> factory)
 		{
 			return new EnumerableSequence<TSource, TResult>(source, factory);
 		}
 
 		/// <summary>Create a new async sequence from a factory method</summary>
-		public static IFdbAsyncEnumerable<TResult> Create<TResult>(Func<object, IFdbAsyncEnumerator<TResult>> factory, object state = null)
+		public static IFdbAsyncEnumerable<TResult> Create<TResult>(
+			Func<object, IFdbAsyncEnumerator<TResult>> factory,
+			object state = null)
 		{
 			return new AnonymousIterable<TResult>(factory, state);
 		}
@@ -94,89 +102,64 @@ namespace FoundationDB.Linq
 
 		#endregion
 
-		#region Flatten...
+		#region Helpers...
 
-		internal static FdbSelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TResult>> selector)
+		internal static FdbSelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(
+			IFdbAsyncEnumerable<TSource> source,
+			AsyncTransformExpression<TSource,
+			IEnumerable<TResult>> selector)
 		{
-			return new FdbSelectManyAsyncIterator<TSource, TResult>(source, selector, null);
+			return new FdbSelectManyAsyncIterator<TSource, TResult>(source, selector);
 		}
 
-		internal static FdbSelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
-		{
-			return new FdbSelectManyAsyncIterator<TSource, TResult>(source, null, asyncSelector);
-		}
-
-		internal static FdbSelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, IEnumerable<TCollection>> collectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		internal static FdbSelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(
+			IFdbAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource,
+			IEnumerable<TCollection>> collectionSelector,
+			Func<TSource, TCollection, TResult> resultSelector)
 		{
 			return new FdbSelectManyAsyncIterator<TSource, TCollection, TResult>(
 				source,
 				collectionSelector,
-				null,
 				resultSelector
 			);
 		}
 
-		internal static FdbSelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, Func<TSource, TCollection, TResult> resultSelector)
+		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(
+			IFdbAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, TResult> selector,
+			int? limit = null, int?
+			offset = null)
 		{
-			return new FdbSelectManyAsyncIterator<TSource, TCollection, TResult>(
-				source,
-				null,
-				asyncCollectionSelector,
-				resultSelector
-			);
-		}
-
-		#endregion
-
-		#region Map...
-
-		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, TResult> selector, int? limit = null, int? offset = null)
-		{
-			return new FdbWhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: selector, asyncTransform: null, limit: limit, offset: offset);
-		}
-		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(IFdbAsyncEnumerable<TSource> source, Func<TSource, CancellationToken, Task<TResult>> asyncSelector, int? limit = null, int? offset = null)
-		{
-			return new FdbWhereSelectAsyncIterator<TSource, TResult>(source, filter: null, asyncFilter: null, transform: null, asyncTransform: asyncSelector, limit: limit, offset: offset);
-		}
-
-		#endregion
-
-		#region Filter...
-
-		[NotNull]
-		internal static FdbWhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> predicate)
-		{
-			return new FdbWhereAsyncIterator<TResult>(source, predicate, null);
+			return new FdbWhereSelectAsyncIterator<TSource, TResult>(source, filter: null, transform: selector, limit: limit, offset: offset);
 		}
 
 		[NotNull]
-		internal static FdbWhereAsyncIterator<TResult> Filter<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
+		internal static FdbWhereAsyncIterator<TResult> Filter<TResult>(
+			[NotNull] IFdbAsyncEnumerable<TResult> source,
+			[NotNull] AsyncFilterExpression<TResult> filter)
 		{
-			return new FdbWhereAsyncIterator<TResult>(source, null, asyncPredicate);
-		}
-
-		#endregion
-
-		#region Offset...
-
-		[NotNull]
-		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Offset<TResult>(IFdbAsyncEnumerable<TResult> source, int offset)
-		{
-			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: null, offset: offset);
-		}
-
-		#endregion
-
-		#region Limit...
-
-		[NotNull]
-		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, int limit)
-		{
-			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, asyncFilter: null, transform: TaskHelpers.Cache<TResult>.Identity, asyncTransform: null, limit: limit, offset: null);
+			return new FdbWhereAsyncIterator<TResult>(source, filter);
 		}
 
 		[NotNull]
-		internal static FdbTakeWhileAsyncIterator<TResult> Limit<TResult>(IFdbAsyncEnumerable<TResult> source, Func<TResult, bool> condition)
+		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Offset<TResult>(
+			IFdbAsyncEnumerable<TResult> source,
+			int offset)
+		{
+			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, transform: new AsyncTransformExpression<TResult, TResult>(TaskHelpers.Cache<TResult>.Identity), limit: null, offset: offset);
+		}
+
+		[NotNull]
+		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(
+			IFdbAsyncEnumerable<TResult> source,
+			int limit)
+		{
+			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, transform: new AsyncTransformExpression<TResult, TResult>(TaskHelpers.Cache<TResult>.Identity), limit: limit, offset: null);
+		}
+
+		[NotNull]
+		internal static FdbTakeWhileAsyncIterator<TResult> Limit<TResult>(
+			IFdbAsyncEnumerable<TResult> source,
+			Func<TResult, bool> condition)
 		{
 			return new FdbTakeWhileAsyncIterator<TResult>(source, condition);
 		}
@@ -245,6 +228,47 @@ namespace FoundationDB.Linq
 				this.Index = 0;
 			}
 
+			private T[] MergeChunks()
+			{
+				var tmp = new T[this.Count];
+				int count = this.Count;
+				int index = 0;
+				for (int i = 0; i < this.Chunks.Length - 1; i++)
+				{
+					var chunk = this.Chunks[i];
+					Array.Copy(chunk, 0, tmp, index, chunk.Length);
+					index += chunk.Length;
+					count -= chunk.Length;
+				}
+				Array.Copy(this.Current, 0, tmp, index, count);
+				return tmp;
+			}
+
+			/// <summary>Return a buffer containing all of the items</summary>
+			/// <returns>Buffer that contains all the items, and may be larger than required</returns>
+			/// <remarks>This is equivalent to calling ToArray(), except that if the buffer is empty, or if it consists of a single page, then no new allocations will be performed.</remarks>
+			public T[] GetBuffer()
+			{
+				//note: this is called by internal operator like OrderBy
+				// In this case we want to reduce the copying as much as possible,
+				// and we can suppose that the buffer won't be exposed to the application
+
+				if (this.Count == 0)
+				{ // empty
+					return new T[0];
+				}
+				else if (this.Chunks.Length == 1)
+				{ // everything fits in a single chunk
+					return this.Current;
+				}
+				else
+				{ // we need to stitch all the buffers together
+					return MergeChunks();
+				}
+			}
+
+			/// <summary>Return the content of the buffer</summary>
+			/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
 			public T[] ToArray()
 			{
 				if (this.Count == 0)
@@ -252,26 +276,17 @@ namespace FoundationDB.Linq
 					return new T[0];
 				}
 				else if (this.Chunks.Length == 1 && this.Current.Length == this.Count)
-				{ // we are really lucky
+				{ // a single buffer page was used
 					return this.Current;
 				}
 				else
-				{ // concatenate all the small buffers into one big array
-					var tmp = new T[this.Count];
-					int count = this.Count;
-					int index = 0;
-					for (int i = 0; i < this.Chunks.Length - 1;i++)
-					{
-						var chunk = this.Chunks[i];
-						Array.Copy(chunk, 0, tmp, index, chunk.Length);
-						index += chunk.Length;
-						count -= chunk.Length;
-					}
-					Array.Copy(this.Current, 0, tmp, index, count);
-					return tmp;
+				{ // concatenate all the buffer pages into one big array
+					return MergeChunks();
 				}
 			}
 
+			/// <summary>Return the content of the buffer</summary>
+			/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
 			public List<T> ToList()
 			{
 				int count = this.Count;
@@ -307,6 +322,7 @@ namespace FoundationDB.Linq
 
 				return list;
 			}
+
 		}
 
 		/// <summary>Immediately execute an action on each element of an async sequence</summary>

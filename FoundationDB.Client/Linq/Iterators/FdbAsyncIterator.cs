@@ -141,7 +141,7 @@ namespace FoundationDB.Linq
 		{
 			if (predicate == null) throw new ArgumentNullException("predicate");
 
-			return FdbAsyncEnumerable.Filter<TResult>(this, predicate);
+			return FdbAsyncEnumerable.Filter<TResult>(this, new AsyncFilterExpression<TResult>(predicate));
 		}
 
 		[NotNull]
@@ -149,7 +149,7 @@ namespace FoundationDB.Linq
 		{
 			if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
 
-			return FdbAsyncEnumerable.Filter<TResult>(this, asyncPredicate);
+			return FdbAsyncEnumerable.Filter<TResult>(this, new AsyncFilterExpression<TResult>(asyncPredicate));
 		}
 
 		[NotNull]
@@ -157,7 +157,7 @@ namespace FoundationDB.Linq
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
 
-			return FdbAsyncEnumerable.Map<TResult, TNew>(this, selector);
+			return FdbAsyncEnumerable.Map<TResult, TNew>(this, new AsyncTransformExpression<TResult,TNew>(selector));
 		}
 
 		[NotNull]
@@ -165,7 +165,7 @@ namespace FoundationDB.Linq
 		{
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			return FdbAsyncEnumerable.Map<TResult, TNew>(this, asyncSelector);
+			return FdbAsyncEnumerable.Map<TResult, TNew>(this, new AsyncTransformExpression<TResult,TNew>(asyncSelector));
 		}
 
 		[NotNull]
@@ -173,7 +173,7 @@ namespace FoundationDB.Linq
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
 
-			return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, selector);
+			return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(selector));
 		}
 
 		[NotNull]
@@ -181,7 +181,7 @@ namespace FoundationDB.Linq
 		{
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, asyncSelector);
+			return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TNew>>(asyncSelector));
 		}
 
 		[NotNull]
@@ -190,7 +190,7 @@ namespace FoundationDB.Linq
 			if (collectionSelector == null) throw new ArgumentNullException("collectionSelector");
 			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
 
-			return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, collectionSelector, resultSelector);
+			return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(collectionSelector), resultSelector);
 		}
 
 		[NotNull]
@@ -199,7 +199,7 @@ namespace FoundationDB.Linq
 			if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
 			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
 
-			return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, asyncCollectionSelector, resultSelector);
+			return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, new AsyncTransformExpression<TResult,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
 		}
 
 		[NotNull]
@@ -220,6 +220,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Offset<TResult>(this, count);
 		}
 
+		/// <summary>Execute an action on the result of this async sequence</summary>
 		[NotNull]
 		public virtual Task ExecuteAsync([NotNull] Action<TResult> action, CancellationToken ct)
 		{
