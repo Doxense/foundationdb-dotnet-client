@@ -171,7 +171,7 @@ namespace FoundationDB.Client.Tests
 					{
 						var result = await db.ReadAsync((tr) =>
 						{
-							Console.WriteLine("Retry #" + tr.Context.Retries + " @ " + tr.Context.Duration.Elapsed);
+							Console.WriteLine("Retry #" + tr.Context.Retries + " @ " + tr.Context.ElapsedTotal);
 							return tr.GetRange(location.Tuples.ToRange()).ToListAsync();
 						}, this.Cancellation);
 

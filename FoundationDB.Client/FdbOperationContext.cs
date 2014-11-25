@@ -38,19 +38,22 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>
-	/// Represents the context of a retryable transactional function wich accept a read-only or read-write transaction.
+	/// Represents the context of a retryable transactional function which accepts a read-only or read-write transaction.
 	/// </summary>
 	[DebuggerDisplay("Retries={Retries}, Committed={Committed}, Elapsed={Duration.Elapsed}")]
 	public sealed class FdbOperationContext : IDisposable
 	{
+		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)
+
 		/// <summary>The database used by the operation</summary>
-		public IFdbDatabase Database { [NotNull] get; private set; }
+		public IFdbDatabase Database { [NotNull] get; private set; /*readonly*/ }
 
 		/// <summary>Result of the operation (or null)</summary>
 		public object Result { get; set; }
+		//REVIEW: should we force using a "SetResult()/TrySetResult()" method for this ?
 
 		/// <summary>Cancellation token associated with the operation</summary>
-		public CancellationToken Cancellation { get; internal set; }
+		public CancellationToken Cancellation { get; private set; /*readonly*/ }
 
 		/// <summary>If set to true, will abort and not commit the transaction. If false, will try to commit the transaction (and retry on failure)</summary>
 		public bool Abort { get; set; }
@@ -61,8 +64,19 @@ namespace FoundationDB.Client
 		/// <summary>Date at wich the operation was first started</summary>
 		public DateTime StartedUtc { get; private set; }
 
-		/// <summary>Time spent since the start of the first attempt</summary>
-		public Stopwatch Duration { [NotNull] get; private set; }
+		/// <summary>Stopwatch that is started at the creation of the transaction, and stopped when it commits or gets disposed</summary>
+		internal Stopwatch Clock { [NotNull] get; private set; /*readonly*/ }
+
+		/// <summary>Duration of all the previous attemps before the current one (starts at 0, and gets updated at each reset/retry)</summary>
+		internal TimeSpan BaseDuration { get; private set; }
+
+		/// <summary>Time elapsed since the start of the first attempt</summary>
+		public TimeSpan ElapsedTotal { get { return this.Clock.Elapsed; } }
+
+		/// <summary>Time elapsed since the start of the current attempt</summary>
+		/// <remarks>This value is reset to zero every time the transation fails and is retried.
+		/// Note that this may not represent the actual lifetime of the transaction with the database itself, which starts at the first read operation.</remarks>
+		public TimeSpan Elapsed { get { return this.Clock.Elapsed.Subtract(this.BaseDuration); } }
 
 		/// <summary>If true, the transaction has been committed successfully</summary>
 		public bool Committed { get; private set; }
@@ -71,22 +85,28 @@ namespace FoundationDB.Client
 		internal bool Shared { get { return (this.Mode & FdbTransactionMode.InsideRetryLoop) != 0; } }
 
 		/// <summary>Mode of the transaction</summary>
-		public FdbTransactionMode Mode { get; private set; }
+		public FdbTransactionMode Mode { get; private set; /*readonly*/ }
 
 		/// <summary>Internal source of cancellation, able to abort any pending IO operations attached to this transaction</summary>
-		internal CancellationTokenSource TokenSource { get; private set; }
+		internal CancellationTokenSource TokenSource { [CanBeNull] get; private set; /*readonly*/ }
 
+		/// <summary>Create a new retry loop operation context</summary>
+		/// <param name="db">Database that will be used by the retry loop</param>
+		/// <param name="mode">Operation mode of the retry loop</param>
+		/// <param name="cancellationToken">Optional cancellation token that will abort the retry loop if triggered.</param>
 		public FdbOperationContext([NotNull] IFdbDatabase db, FdbTransactionMode mode, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
 			this.Database = db;
 			this.Mode = mode;
-			this.Duration = new Stopwatch();
+			this.Clock = new Stopwatch();
+			// note: we don't start the clock yet, only when the context starts executing...
 
-			// by default, we hook ourselves on the db's CancellationToken
+			// by default, we hook ourselves to the db's CancellationToken, but we may need to also
+			// hook with a different, caller-provided, token and respond to cancellation from both sites.
 			var token = db.Cancellation;
-			if (cancellationToken.CanBeCanceled && cancellationToken != token)
+			if (cancellationToken.CanBeCanceled && !cancellationToken.Equals(token))
 			{
 				this.TokenSource = CancellationTokenSource.CreateLinkedTokenSource(token, cancellationToken);
 				token = this.TokenSource.Token;
@@ -94,6 +114,7 @@ namespace FoundationDB.Client
 			this.Cancellation = token;
 		}
 
+		/// <summary>Execute a retry loop on this context</summary>
 		internal static async Task ExecuteInternal([NotNull] IFdbDatabase db, [NotNull] FdbOperationContext context, [NotNull] Delegate handler, Delegate onDone)
 		{
 			Contract.Requires(db != null && context != null && handler != null);
@@ -103,10 +124,15 @@ namespace FoundationDB.Client
 
 			try
 			{
+				// make sure to reset everything (in case a context is reused multiple times)
 				context.Committed = false;
 				context.Retries = 0;
+				context.BaseDuration = TimeSpan.Zero;
 				context.StartedUtc = DateTime.UtcNow;
-				context.Duration.Start();
+				context.Clock.Start();
+				//note: we start the clock immediately, but the transaction's 5 seconde max lifetime is actually measured from the first read operation (Get, GetRange, GetReadVersion, etc...)
+				// => algorithms that monitor the elapsed duration to rate limit themselves may think that the trans is older than it really is...
+				// => we would need to plug into the transaction handler itself to be notified when exactly a read op starts...
 
 				using (var trans = db.BeginTransaction(context.Mode, CancellationToken.None, context))
 				{
@@ -172,6 +198,7 @@ namespace FoundationDB.Client
 						}
 						catch (FdbException x)
 						{
+							//TODO: will be able to await in catch block in C# 6 !
 							e = x;
 						}
 
@@ -182,9 +209,12 @@ namespace FoundationDB.Client
 							if (Logging.On && Logging.IsVerbose) Logging.Verbose(String.Format(CultureInfo.InvariantCulture, "fdb: transaction {0} can be safely retried", trans.Id));
 						}
 
-						if (context.Duration.Elapsed.TotalSeconds >= 1)
+						// update the base time for the next attempt
+						context.BaseDuration = context.ElapsedTotal;
+						if (context.BaseDuration.TotalSeconds >= 10)
 						{
-							if (Logging.On) Logging.Info(String.Format(CultureInfo.InvariantCulture, "fdb WARNING: long transaction ({0:N1} sec elapsed in transaction lambda function ({1} retries, {2})", context.Duration.Elapsed.TotalSeconds, context.Retries, context.Committed ? "committed" : "not yet committed"));
+							//REVIEW: this may not be a goot idea to spam the logs with long running transactions??
+							if (Logging.On) Logging.Info(String.Format(CultureInfo.InvariantCulture, "fdb WARNING: long transaction ({0:N1} sec elapsed in transaction lambda function ({1} retries, {2})", context.BaseDuration.TotalSeconds, context.Retries, context.Committed ? "committed" : "not yet committed"));
 						}
 
 						context.Retries++;
@@ -200,7 +230,7 @@ namespace FoundationDB.Client
 			}
 			finally
 			{
-				context.Duration.Stop();
+				context.Clock.Stop();
 				context.Dispose();
 			}
 		}
@@ -278,15 +308,14 @@ namespace FoundationDB.Client
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
 			cancellationToken.ThrowIfCancellationRequested();
 
-			R result = default(R);
 			Func<IFdbTransaction, Task> handler = async (tr) =>
 			{
-				result = await asyncHandler(tr).ConfigureAwait(false);
+				tr.Context.Result = await asyncHandler(tr).ConfigureAwait(false);
 			};
 
 			var context = new FdbOperationContext(db, FdbTransactionMode.Default | FdbTransactionMode.InsideRetryLoop, cancellationToken);
 			await ExecuteInternal(db, context, handler, onDone).ConfigureAwait(false);
-			return result;
+			return (R)context.Result;
 		}
 
 		#endregion
