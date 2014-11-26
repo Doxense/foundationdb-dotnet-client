@@ -40,7 +40,7 @@ namespace FoundationDB.Linq
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IFdbAsyncEnumerable{T}"/>.</summary>
 	public static partial class FdbAsyncEnumerable
 	{
-		// Welcome to the wonderful world of the Monads! 
+		// Welcome to the wonderful world of the Monads!
 
 		#region Entering the Monad...
 

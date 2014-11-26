@@ -136,6 +136,7 @@ namespace FoundationDB.Linq
 
 		#region LINQ...
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TResult> Where([NotNull] Func<TResult, bool> predicate)
 		{
 			if (predicate == null) throw new ArgumentNullException("predicate");
@@ -143,6 +144,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Filter<TResult>(this, predicate);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TResult> Where([NotNull] Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
 			if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
@@ -150,6 +152,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Filter<TResult>(this, asyncPredicate);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TNew> Select<TNew>([NotNull] Func<TResult, TNew> selector)
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
@@ -157,6 +160,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Map<TResult, TNew>(this, selector);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TNew> Select<TNew>([NotNull] Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
 		{
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
@@ -164,6 +168,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Map<TResult, TNew>(this, asyncSelector);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TNew> SelectMany<TNew>([NotNull] Func<TResult, IEnumerable<TNew>> selector)
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
@@ -171,6 +176,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, selector);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TNew> SelectMany<TNew>([NotNull] Func<TResult, CancellationToken, Task<IEnumerable<TNew>>> asyncSelector)
 		{
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
@@ -178,6 +184,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Flatten<TResult, TNew>(this, asyncSelector);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TNew> SelectMany<TCollection, TNew>([NotNull] Func<TResult, IEnumerable<TCollection>> collectionSelector, [NotNull] Func<TResult, TCollection, TNew> resultSelector)
 		{
 			if (collectionSelector == null) throw new ArgumentNullException("collectionSelector");
@@ -186,6 +193,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, collectionSelector, resultSelector);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TNew> SelectMany<TCollection, TNew>([NotNull] Func<TResult, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, [NotNull] Func<TResult, TCollection, TNew> resultSelector)
 		{
 			if (asyncCollectionSelector == null) throw new ArgumentNullException("asyncCollectionSelector");
@@ -194,26 +202,31 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Flatten<TResult, TCollection, TNew>(this, asyncCollectionSelector, resultSelector);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TResult> Take(int count)
 		{
 			return FdbAsyncEnumerable.Limit<TResult>(this, count);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TResult> TakeWhile([NotNull] Func<TResult, bool> condition)
 		{
 			return FdbAsyncEnumerable.Limit<TResult>(this, condition);
 		}
 
+		[NotNull]
 		public virtual FdbAsyncIterator<TResult> Skip(int count)
 		{
 			return FdbAsyncEnumerable.Offset<TResult>(this, count);
 		}
 
+		[NotNull]
 		public virtual Task ExecuteAsync([NotNull] Action<TResult> action, CancellationToken ct)
 		{
 			return FdbAsyncEnumerable.Run<TResult>(this, FdbAsyncMode.All, action, ct);
 		}
 
+		[NotNull]
 		public virtual Task ExecuteAsync([NotNull] Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
 		{
 			return FdbAsyncEnumerable.Run<TResult>(this, FdbAsyncMode.All, asyncAction, ct);
@@ -251,7 +264,7 @@ namespace FoundationDB.Linq
 		}
 
 		[ContractAnnotation("=> halt")]
-		protected bool Failed(Exception e)
+		protected bool Failed([NotNull] Exception e)
 		{
 			this.Dispose();
 			//return false;
@@ -260,7 +273,7 @@ namespace FoundationDB.Linq
 
 #if !NET_4_0
 		[ContractAnnotation("=> halt")]
-		protected bool Failed(ExceptionDispatchInfo e)
+		protected bool Failed([NotNull] ExceptionDispatchInfo e)
 		{
 			this.Dispose();
 			e.Throw();
