@@ -212,7 +212,7 @@ namespace FdbShell
 			var folder = (await TryOpenCurrentDirectoryAsync(path, db, ct)) as FdbDirectorySubspace;
 			if (folder == null)
 			{
-				log.WriteLine("# Directory {0} does not exist", path);
+				log.WriteLine("# Directory {0} does not exist", String.Join("/", path));
 				return;
 			}
 
