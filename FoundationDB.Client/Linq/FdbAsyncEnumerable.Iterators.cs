@@ -333,6 +333,39 @@ namespace FoundationDB.Linq
 			return count;
 		}
 
+		/// <summary>Immediately execute an action on each element of an async sequence, with the possibility of stopping before the end</summary>
+		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
+		/// <param name="source">Source async sequence</param>
+		/// <param name="mode">If different than default, can be used to optimise the way the source will produce the items</param>
+		/// <param name="action">Lambda called for each element as it arrives. If the return value is true, the next value will be processed. If the return value is false, the iterations will stop immediately.</param>
+		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
+		/// <returns>Number of items that have been processed successfully</returns>
+		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, FdbAsyncMode mode, Func<TSource, bool> action, CancellationToken ct)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (action == null) throw new ArgumentNullException("action");
+
+			ct.ThrowIfCancellationRequested();
+
+			//note: we should not use "ConfigureAwait(false)" here because we would like to execute the action in the original synchronization context if possible...
+
+			long count = 0;
+			using (var iterator = source.GetEnumerator(mode))
+			{
+				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
+
+				while (await iterator.MoveNext(ct))
+				{
+					if (!action(iterator.Current))
+					{
+						break;
+					}
+					++count;
+				}
+			}
+			return count;
+		}
+
 		/// <summary>Immediately execute an asunc action on each element of an async sequence</summary>
 		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 		/// <param name="source">Source async sequence</param>
