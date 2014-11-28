@@ -75,12 +75,12 @@ namespace FoundationDB.Client
 
 		public Task<Slice[]> GetValuesAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] T[] keys)
 		{
-			return trans.GetValuesAsync(EncodeKeyRange(keys));
+			return trans.GetValuesAsync(EncodeKeys(keys));
 		}
 
 		public Task<Slice[]> GetValuesAsync([NotNull] IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<T> keys)
 		{
-			return trans.GetValuesAsync(EncodeKeyRange(keys));
+			return trans.GetValuesAsync(EncodeKeys(keys));
 		}
 
 		#endregion
@@ -93,19 +93,19 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
-		public Slice[] EncodeKeyRange([NotNull] IEnumerable<T> keys)
+		public Slice[] EncodeKeys([NotNull] IEnumerable<T> keys)
 		{
 			return ConcatKeys(m_encoder.EncodeRange(keys));
 		}
 
 		[NotNull]
-		public Slice[] EncodeKeyRange([NotNull] params T[] keys)
+		public Slice[] EncodeKeys([NotNull] params T[] keys)
 		{
 			return ConcatKeys(m_encoder.EncodeRange(keys));
 		}
 
 		[NotNull]
-		public Slice[] EncodeKeyRange<TElement>([NotNull] TElement[] elements, Func<TElement, T> selector)
+		public Slice[] EncodeKeys<TElement>([NotNull] TElement[] elements, Func<TElement, T> selector)
 		{
 			return ConcatKeys(m_encoder.EncodeRange(elements, selector));
 		}
@@ -116,13 +116,13 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
-		public T[] DecodeKeyRange([NotNull] IEnumerable<Slice> encoded)
+		public T[] DecodeKeys([NotNull] IEnumerable<Slice> encoded)
 		{
 			return m_encoder.DecodeRange(ExtractKeys(encoded, boundCheck: true));
 		}
 
 		[NotNull]
-		public T[] DecodeKeyRange([NotNull] params Slice[] encoded)
+		public T[] DecodeKeys([NotNull] params Slice[] encoded)
 		{
 			return m_encoder.DecodeRange(ExtractKeys(encoded, boundCheck: true));
 		}
@@ -135,7 +135,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public FdbKeyRange[] ToRange([NotNull] T[] keys)
 		{
-			var packed = EncodeKeyRange(keys);
+			var packed = EncodeKeys(keys);
 
 			var ranges = new FdbKeyRange[keys.Length];
 			for (int i = 0; i < ranges.Length; i++)
@@ -147,7 +147,6 @@ namespace FoundationDB.Client
 
 		#endregion
 
-
 	}
-	
+
 }

@@ -184,7 +184,7 @@ namespace FoundationDB.Layers.Documents
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");
 
-			foreach (var key in this.Location.Partial.EncodeKeyRange(ids))
+			foreach (var key in this.Location.Partial.EncodeKeys(ids))
 			{
 				trans.ClearRange(FdbKeyRange.StartsWith(key));
 			}
