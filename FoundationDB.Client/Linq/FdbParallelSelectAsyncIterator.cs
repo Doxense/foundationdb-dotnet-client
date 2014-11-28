@@ -133,7 +133,11 @@ namespace FoundationDB.Linq
 					if (next.HasFailed)
 					{
 						LogDebug("[OnNextAsync] received failure");
-						return Failed(next.Error);
+						// we want to make sure that the exception callstack is as clean as possible,
+						// so we rely on Maybe<T>.ThrowIfFailed() to do the correct thing!
+						MarkAsFailed();
+						next.ThrowIfFailed();
+						return false;
 					}
 					else
 					{
