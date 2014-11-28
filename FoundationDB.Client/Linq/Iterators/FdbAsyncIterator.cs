@@ -126,9 +126,10 @@ namespace FoundationDB.Linq
 
 				return await OnNextAsync(ct).ConfigureAwait(false);
 			}
-			catch (Exception e)
+			catch (Exception)
 			{
-				return Failed(e);
+				MarkAsFailed();
+				throw;
 			}
 		}
 
@@ -264,26 +265,16 @@ namespace FoundationDB.Linq
 			return false;
 		}
 
-		[ContractAnnotation("=> halt")]
-		protected bool Failed([NotNull] Exception e)
+		/// <summary>Mark the current iterator as failed, and clean up the state</summary>
+		protected void MarkAsFailed()
 		{
+			//TODO: store the state "failed" somewhere?
 			this.Dispose();
-			//return false;
-			throw e;
 		}
-
-#if !NET_4_0
-		[ContractAnnotation("=> halt")]
-		protected bool Failed([NotNull] ExceptionDispatchInfo e)
-		{
-			this.Dispose();
-			e.Throw();
-			return false;
-		}
-#endif
 
 		protected bool Canceled(CancellationToken cancellationToken)
 		{
+			//TODO: store the state "canceled" somewhere?
 			this.Dispose();
 			cancellationToken.ThrowIfCancellationRequested();
 			return false;
