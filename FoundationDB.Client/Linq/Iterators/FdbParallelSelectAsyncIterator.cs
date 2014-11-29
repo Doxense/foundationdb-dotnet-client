@@ -136,7 +136,7 @@ namespace FoundationDB.Linq
 						// we want to make sure that the exception callstack is as clean as possible,
 						// so we rely on Maybe<T>.ThrowIfFailed() to do the correct thing!
 						MarkAsFailed();
-						next.ThrowIfFailed();
+						next.ThrowForNonSuccess();
 						return false;
 					}
 					else

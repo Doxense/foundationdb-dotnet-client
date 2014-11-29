@@ -108,6 +108,20 @@ namespace FoundationDB.Async
 			}
 		}
 
+#if NET_4_0
+		public override void OnError(Exception error)
+		{
+			lock (m_lock)
+			{
+				if (!m_done)
+				{
+					LogProducer("Error received: " + error.Message);
+					m_queue.Enqueue(Maybe.Error<T>(error));
+					WakeUpBlockedConsumer_NeedsLocking();
+				}
+			}
+		}
+#else
 		public override void OnError(ExceptionDispatchInfo error)
 		{
 			lock (m_lock)
@@ -120,6 +134,7 @@ namespace FoundationDB.Async
 				}
 			}
 		}
+#endif
 
 		private void Enqueue_NeedsLocking(Maybe<T> value)
 		{

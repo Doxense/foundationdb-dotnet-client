@@ -131,7 +131,7 @@ namespace FoundationDB.Async
 					{
 						m_state = STATE_FAILED;
 						LogPump("Stopping after this error");
-						current.ThrowIfFailed();
+						current.ThrowForNonSuccess();
 					}
 					else if (current.IsEmpty)
 					{
