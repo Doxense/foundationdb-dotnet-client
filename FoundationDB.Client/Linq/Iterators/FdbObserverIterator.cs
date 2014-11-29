@@ -28,54 +28,59 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Reads an async sequence of items until a condition becomes false</summary>
-	/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
-	internal sealed class FdbTakeWhileAsyncIterator<TSource> : FdbAsyncFilter<TSource, TSource>
-	{
-		private readonly Func<TSource, bool> m_condition;
-		//TODO: also accept a Func<TSource, CT, Task<bool>> ?
 
-		public FdbTakeWhileAsyncIterator([NotNull] IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, bool> condition)
+	/// <summary>Obsere the items of an async sequence</summary>
+	/// <typeparam name="TSource">Type of the observed elements</typeparam>
+	internal sealed class FdbObserverIterator<TSource> : FdbAsyncFilterIterator<TSource, TSource>
+	{
+
+		private readonly AsyncObserverExpression<TSource> m_observer;
+
+		public FdbObserverIterator(IFdbAsyncEnumerable<TSource> source, AsyncObserverExpression<TSource> observer)
 			: base(source)
 		{
-			Contract.Requires(condition != null);
-
-			m_condition = condition;
+			if (observer == null) throw new ArgumentNullException("observer");
+			m_observer = observer;
 		}
 
 		protected override FdbAsyncIterator<TSource> Clone()
 		{
-			return new FdbTakeWhileAsyncIterator<TSource>(m_source, m_condition);
+			return new FdbObserverIterator<TSource>(m_source, m_observer);
 		}
 
-		protected override async Task<bool> OnNextAsync(CancellationToken ct)
+		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
 		{
-			while (!ct.IsCancellationRequested)
+			while (!cancellationToken.IsCancellationRequested)
 			{
-				if (!await m_iterator.MoveNext(ct).ConfigureAwait(false))
+				if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 				{ // completed
 					return Completed();
 				}
 
-				if (ct.IsCancellationRequested) break;
+				if (cancellationToken.IsCancellationRequested) break;
 
 				TSource current = m_iterator.Current;
-				if (!m_condition(current))
-				{ // we need to stop
-					return Completed();
+				if (!m_observer.Async)
+				{
+					m_observer.Invoke(current);
+				}
+				else
+				{
+					await m_observer.InvokeAsync(current, cancellationToken).ConfigureAwait(false);
 				}
 
 				return Publish(current);
 			}
-			return Canceled(ct);
-		}
 
+			return Canceled(cancellationToken);
+		}
 	}
 
 }

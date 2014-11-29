@@ -42,7 +42,7 @@ namespace FoundationDB.Linq
 	/// <summary>[EXPERIMENTAL] Iterates over an async sequence of items, kick off an async task in parallel, and returning the results in order</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	internal sealed class FdbParallelSelectAsyncIterator<TSource, TResult> : FdbAsyncFilter<TSource, TResult>
+	internal sealed class FdbParallelSelectAsyncIterator<TSource, TResult> : FdbAsyncFilterIterator<TSource, TResult>
 	{
 		/// <summary>Default max concurrency when doing batch queries</summary>
 		/// <remarks>TODO: this is a placeholder value !</remarks>

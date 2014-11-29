@@ -32,70 +32,14 @@ namespace FoundationDB.Linq
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
+	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	internal abstract class FdbAsyncFilter<TSource, TResult> : FdbAsyncIterator<TResult>
+	public interface IFdbAsyncOrderedEnumerable<TSource> : IFdbAsyncEnumerable<TSource>
 	{
-		/// <summary>Source sequence (when in iterable mode)</summary>
-		protected IFdbAsyncEnumerable<TSource> m_source;
-
-		/// <summary>Active iterator on the source (when in iterator mode)</summary>
-		protected IFdbAsyncEnumerator<TSource> m_iterator;
-
-		protected FdbAsyncFilter([NotNull] IFdbAsyncEnumerable<TSource> source)
-		{
-			Contract.Requires(source != null);
-			m_source = source;
-		}
-
-		protected override Task<bool> OnFirstAsync(CancellationToken ct)
-		{
-			// on the first call to MoveNext, we have to hook up with the source iterator
-
-			IFdbAsyncEnumerator<TSource> iterator = null;
-			try
-			{
-				// filtering changes the number of items, so that means that, even if the underlying caller wants one item, we may need to read more.
-				// => change all "Head" requests into "Iterator" to prevent any wrong optimizations by the underlying source (ex: using a too small batch size)
-				var mode = m_mode;
-				if (mode == FdbAsyncMode.Head) mode = FdbAsyncMode.Iterator;
-
-				iterator = m_source.GetEnumerator(mode);
-				return iterator != null ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
-			}
-			catch (Exception)
-			{
-				// whatever happens, make sure that we released the iterator...
-				if (iterator != null)
-				{
-					iterator.Dispose();
-					iterator = null;
-				}
-				throw;
-			}
-			finally
-			{
-				m_iterator = iterator;
-			}
-		}
-
-		protected override void Cleanup()
-		{
-			try
-			{
-				var iterator = m_iterator;
-				if (iterator != null)
-				{
-					iterator.Dispose();
-				}
-			}
-			finally
-			{
-				m_iterator = null;
-			}
-		}
-
+		IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
+		IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
 	}
 
 }

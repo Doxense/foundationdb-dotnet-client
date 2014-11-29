@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
@@ -38,13 +39,10 @@ namespace FoundationDB.Linq
 	/// <summary>Iterates over an async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>
 	/// <typeparam name="TResult">Type of elements of the outer async sequence</typeparam>
-	internal sealed class FdbWhereSelectAsyncIterator<TSource, TResult> : FdbAsyncFilter<TSource, TResult>
+	internal sealed class FdbWhereSelectAsyncIterator<TSource, TResult> : FdbAsyncFilterIterator<TSource, TResult>
 	{
-		private readonly Func<TSource, bool> m_filter;
-		private readonly Func<TSource, CancellationToken, Task<bool>> m_asyncFilter;
-
-		private readonly Func<TSource, TResult> m_transform;
-		private readonly Func<TSource, CancellationToken, Task<TResult>> m_asyncTransform;
+		private readonly AsyncFilterExpression<TSource> m_filter;
+		private readonly AsyncTransformExpression<TSource, TResult> m_transform;
 
 		//note: both limit and offset are applied AFTER filtering!
 		private readonly int? m_limit;
@@ -55,31 +53,25 @@ namespace FoundationDB.Linq
 
 		public FdbWhereSelectAsyncIterator(
 			[NotNull] IFdbAsyncEnumerable<TSource> source,
-			Func<TSource, bool> filter,
-			Func<TSource, CancellationToken, Task<bool>> asyncFilter,
-			Func<TSource, TResult> transform,
-			Func<TSource, CancellationToken, Task<TResult>> asyncTransform,
+			AsyncFilterExpression<TSource> filter,
+			AsyncTransformExpression<TSource, TResult> transform,
 			int? limit,
 			int? offset
 		)
 			: base(source)
 		{
-			Contract.Requires(transform != null ^ asyncTransform != null); // at least one but not both
-			Contract.Requires(filter == null || asyncFilter == null); // can have none, but not both
-			Contract.Requires(limit == null || limit.Value >= 0);
-			Contract.Requires(offset == null || offset.Value >= 0);
+			Contract.Requires(transform != null); // must do at least something
+			Contract.Requires((limit ?? 0) >= 0 && (offset ?? 0) >= 0); // bounds cannot be negative
 
 			m_filter = filter;
-			m_asyncFilter = asyncFilter;
 			m_transform = transform;
-			m_asyncTransform = asyncTransform;
 			m_limit = limit;
 			m_offset = offset;
 		}
 
 		protected override FdbAsyncIterator<TResult> Clone()
 		{
-			return new FdbWhereSelectAsyncIterator<TSource, TResult>(m_source, m_filter, m_asyncFilter, m_transform, m_asyncTransform, m_limit, m_offset);
+			return new FdbWhereSelectAsyncIterator<TSource, TResult>(m_source, m_filter, m_transform, m_limit, m_offset);
 		}
 
 		protected override Task<bool> OnFirstAsync(CancellationToken ct)
@@ -109,11 +101,14 @@ namespace FoundationDB.Linq
 				TSource current = m_iterator.Current;
 				if (m_filter != null)
 				{
-					if (!m_filter(current)) continue;
-				}
-				else if (m_asyncFilter != null)
-				{
-					if (!await m_asyncFilter(current, cancellationToken).ConfigureAwait(false)) continue;
+					if (!m_filter.Async)
+					{
+						if (!m_filter.Invoke(current)) continue;
+					}
+					else
+					{
+						if (!await m_filter.InvokeAsync(current, cancellationToken).ConfigureAwait(false)) continue;
+					}
 				}
 
 				#endregion
@@ -136,13 +131,13 @@ namespace FoundationDB.Linq
 				#region Transforming...
 
 				TResult result;
-				if (m_transform != null)
+				if (!m_transform.Async)
 				{
-					result = m_transform(current);
+					result = m_transform.Invoke(current);
 				}
 				else
 				{
-					result = await m_asyncTransform(current, cancellationToken).ConfigureAwait(false);
+					result = await m_transform.InvokeAsync(current, cancellationToken).ConfigureAwait(false);
 				}
 
 				#endregion
@@ -155,7 +150,7 @@ namespace FoundationDB.Linq
 				}
 
 				return Publish(result);
-	
+
 				#endregion
 			}
 
@@ -166,84 +161,38 @@ namespace FoundationDB.Linq
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
 
-			if (m_transform != null)
-			{
-				return new FdbWhereSelectAsyncIterator<TSource, TNew>(
-					m_source,
-					m_filter,
-					m_asyncFilter,
-					(x) => selector(m_transform(x)),
-					null,
-					m_limit,
-					m_offset
-				);
-			}
-			else
-			{
-				return new FdbWhereSelectAsyncIterator<TSource, TNew>(
-					m_source,
-					m_filter,
-					m_asyncFilter,
-					null,
-					async (x, ct) => selector(await m_asyncTransform(x, ct).ConfigureAwait(false)),
-					m_limit,
-					m_offset
-				);
-			}
+			return new FdbWhereSelectAsyncIterator<TSource, TNew>(
+				m_source,
+				m_filter,
+				m_transform.Then(new AsyncTransformExpression<TResult, TNew>(selector)),
+				m_limit,
+				m_offset
+			);
 		}
 
 		public override FdbAsyncIterator<TNew> Select<TNew>(Func<TResult, CancellationToken, Task<TNew>> asyncSelector)
 		{
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			if (m_transform != null)
-			{
-				return new FdbWhereSelectAsyncIterator<TSource, TNew>(
-					m_source,
-					m_filter,
-					m_asyncFilter,
-					null,
-					(x, ct) => asyncSelector(m_transform(x), ct),
-					m_limit,
-					m_offset
-				);
-			}
-			else
-			{
-				return new FdbWhereSelectAsyncIterator<TSource, TNew>(
-					m_source,
-					m_filter,
-					m_asyncFilter,
-					null,
-					async (x, ct) => await asyncSelector(await m_asyncTransform(x, ct).ConfigureAwait(false), ct).ConfigureAwait(false),
-					m_limit,
-					m_offset
-				);
-			}
+			return new FdbWhereSelectAsyncIterator<TSource, TNew>(
+				m_source,
+				m_filter,
+				m_transform.Then(new AsyncTransformExpression<TResult, TNew>(asyncSelector)),
+				m_limit,
+				m_offset
+			);
 		}
 
 		public override FdbAsyncIterator<TNew> SelectMany<TNew>(Func<TResult, IEnumerable<TNew>> selector)
 		{
 			if (selector == null) throw new ArgumentNullException("selector");
 
-			if (m_filter == null && m_asyncFilter == null && m_limit == null && m_offset == null)
+			if (m_filter == null && m_limit == null && m_offset == null)
 			{
-				if (m_transform != null)
-				{
-					return new FdbSelectManyAsyncIterator<TSource, TNew>(
-						m_source,
-						selector: (x) => selector(m_transform(x)),
-						asyncSelector: null
-					);
-				}
-				else
-				{
-					return new FdbSelectManyAsyncIterator<TSource, TNew>(
-						m_source,
-						selector: null,
-						asyncSelector: async (x, ct) => selector(await m_asyncTransform(x, ct).ConfigureAwait(false))
-					);
-				}
+				return new FdbSelectManyAsyncIterator<TSource, TNew>(
+					m_source,
+					m_transform.Then(new AsyncTransformExpression<TResult, IEnumerable<TNew>>(selector))
+				);
 			}
 
 			// other cases are too complex :(
@@ -254,24 +203,12 @@ namespace FoundationDB.Linq
 		{
 			if (asyncSelector == null) throw new ArgumentNullException("asyncSelector");
 
-			if (m_filter == null && m_asyncFilter == null && m_limit == null && m_offset == null)
+			if (m_filter == null && m_limit == null && m_offset == null)
 			{
-				if (m_transform != null)
-				{
-					return new FdbSelectManyAsyncIterator<TSource, TNew>(
-						m_source,
-						selector: null,
-						asyncSelector: (x, ct) => asyncSelector(m_transform(x), ct)
-					);
-				}
-				else
-				{
-					return new FdbSelectManyAsyncIterator<TSource, TNew>(
-						m_source,
-						selector: null,
-						asyncSelector: async (x, ct) => await asyncSelector(await m_asyncTransform(x, ct).ConfigureAwait(false), ct).ConfigureAwait(false)
-					);
-				}
+				return new FdbSelectManyAsyncIterator<TSource, TNew>(
+					m_source,
+					m_transform.Then(new AsyncTransformExpression<TResult, IEnumerable<TNew>>(asyncSelector))
+				);
 			}
 
 			// other cases are too complex :(
@@ -291,9 +228,7 @@ namespace FoundationDB.Linq
 			return new FdbWhereSelectAsyncIterator<TSource, TResult>(
 				m_source,
 				m_filter,
-				m_asyncFilter,
 				m_transform,
-				m_asyncTransform,
 				limit,
 				m_offset
 			);
@@ -310,9 +245,7 @@ namespace FoundationDB.Linq
 			return new FdbWhereSelectAsyncIterator<TSource, TResult>(
 				m_source,
 				m_filter,
-				m_asyncFilter,
 				m_transform,
-				m_asyncTransform,
 				m_limit,
 				offset
 			);
@@ -324,19 +257,22 @@ namespace FoundationDB.Linq
 
 			// note: the only possible optimization here is if TSource == TResult, then we can combine both predicates
 			// remember: limit/offset are applied AFTER the filtering, so can only combine if they are null
-			if (m_asyncFilter == null && m_limit == null && (m_offset == null || m_offset.Value == 0) && typeof(TSource) == typeof(TResult))
+			// also, since transform is done after filtering, we can only optimize if transform is null (not allowed!) or the identity function
+			if (m_limit == null
+				&& (m_offset == null || m_offset.Value == 0)
+				&& typeof(TSource) == typeof(TResult) //BUGBUG: type comparison maybe should check derived classes also ?
+				&& m_transform.IsIdentity())
 			{
-				var func = (Func<TSource, bool>)(Delegate)predicate;
-				var filter = m_filter == null
-					? func
-					: (x) => m_filter(x) && func(x);
+				var filter = new AsyncFilterExpression<TSource>((Func<TSource, bool>)(Delegate)predicate);
+				if (m_filter != null) filter = m_filter.AndAlso(filter);
+
+				//BUGBUG: if the query already has a select, it should be evaluated BEFORE the new filter,
+				// but currently FdbWhereSelectAsyncIterator<> filters before transformations !
 
 				return new FdbWhereSelectAsyncIterator<TSource, TResult>(
 					m_source,
 					filter,
-					null,
 					m_transform,
-					m_asyncTransform,
 					m_limit,
 					m_offset
 				);
@@ -351,19 +287,19 @@ namespace FoundationDB.Linq
 			if (asyncPredicate == null) throw new ArgumentNullException("asyncPredicate");
 
 			// note: the only possible optimization here is if TSource == TResult, then we can combine both predicates
-			if (m_filter == null && m_limit == null && (m_offset == null || m_offset.Value == 0) && typeof(TSource) == typeof(TResult))
+			// remember: limit/offset are applied AFTER the filtering, so can only combine if they are null
+			if (m_limit == null && (m_offset == null || m_offset.Value == 0) && typeof(TSource) == typeof(TResult)) //BUGBUG: type comparison maybe should check derived classes also ?
 			{
-				var func = (Func<TSource, CancellationToken, Task<bool>>)(Delegate)asyncPredicate;
-				var asyncFilter = m_asyncFilter == null
-					? func
-					: async (x, ct) => await m_asyncFilter(x, ct) && await func(x, ct);
+				var asyncFilter = new AsyncFilterExpression<TSource>((Func<TSource, CancellationToken, Task<bool>>)(Delegate)asyncPredicate);
+				if (m_filter != null) asyncFilter = m_filter.AndAlso(asyncFilter);
+
+				//BUGBUG: if the query already has a select, it should be evaluated BEFORE the new filter,
+				// but currently FdbWhereSelectAsyncIterator<> filters before transformations !
 
 				return new FdbWhereSelectAsyncIterator<TSource, TResult>(
 					m_source,
-					null,
 					asyncFilter,
 					m_transform,
-					m_asyncTransform,
 					m_limit,
 					m_offset
 				);
@@ -373,6 +309,143 @@ namespace FoundationDB.Linq
 			return base.Where(asyncPredicate);
 		}
 
+		public override async Task ExecuteAsync(Action<TResult> action, CancellationToken ct)
+		{
+			if (action == null) throw new ArgumentNullException("action");
+
+			int? remaining = m_limit;
+			int? skipped = m_offset;
+
+			using (var iterator = StartInner())
+			{
+				while (remaining == null || remaining.Value > 0)
+				{
+					if (!await iterator.MoveNext(ct).ConfigureAwait(false))
+					{ // completed
+						break;
+					}
+
+					// Filter...
+
+					TSource current = iterator.Current;
+					if (m_filter != null)
+					{
+						if (!m_filter.Async)
+						{
+							if (!m_filter.Invoke(current)) continue;
+						}
+						else
+						{
+							if (!await m_filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
+						}
+					}
+
+					// Skip...
+
+					if (skipped != null)
+					{
+						if (skipped.Value > 0)
+						{ // skip this result
+							skipped = skipped.Value - 1;
+							continue;
+						}
+						// we can now start outputing results...
+						skipped = null;
+					}
+
+					// Transform...
+
+					TResult result;
+					if (!m_transform.Async)
+					{
+						result = m_transform.Invoke(current);
+					}
+					else
+					{
+						result = await m_transform.InvokeAsync(current, ct).ConfigureAwait(false);
+					}
+
+					// Publish...
+
+					if (remaining != null)
+					{ // decrement remaining quota
+						remaining = remaining.Value - 1;
+					}
+					action(result);
+				}
+
+				ct.ThrowIfCancellationRequested();
+			}
+		}
+
+		public override async Task ExecuteAsync(Func<TResult, CancellationToken, Task> asyncAction, CancellationToken ct)
+		{
+			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
+
+			int? remaining = m_limit;
+			int? skipped = m_offset;
+
+			using (var iterator = StartInner())
+			{
+				while (remaining == null || remaining.Value > 0)
+				{
+					if (!await iterator.MoveNext(ct).ConfigureAwait(false))
+					{ // completed
+						break;
+					}
+
+					// Filter...
+
+					TSource current = iterator.Current;
+					if (m_filter != null)
+					{
+						if (!m_filter.Async)
+						{
+							if (!m_filter.Invoke(current)) continue;
+						}
+						else
+						{
+							if (!await m_filter.InvokeAsync(current, ct).ConfigureAwait(false)) continue;
+						}
+					}
+
+					// Skip...
+
+					if (skipped != null)
+					{
+						if (skipped.Value > 0)
+						{ // skip this result
+							skipped = skipped.Value - 1;
+							continue;
+						}
+						// we can now start outputing results...
+						skipped = null;
+					}
+
+					// Transform...
+
+					TResult result;
+					if (!m_transform.Async)
+					{
+						result = m_transform.Invoke(current);
+					}
+					else
+					{
+						result = await m_transform.InvokeAsync(current, ct).ConfigureAwait(false);
+					}
+
+					// Publish...
+
+					if (remaining != null)
+					{ // decrement remaining quota
+						remaining = remaining.Value - 1;
+					}
+					await asyncAction(result, ct).ConfigureAwait(false);
+				}
+
+				ct.ThrowIfCancellationRequested();
+			}
+		}
 	}
 
 }

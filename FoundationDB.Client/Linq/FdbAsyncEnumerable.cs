@@ -127,7 +127,7 @@ namespace FoundationDB.Linq
 				return iterator.SelectMany<TResult>(selector);
 			}
 
-			return Flatten<TSource, TResult>(source, selector);
+			return Flatten<TSource, TResult>(source, new AsyncTransformExpression<TSource,IEnumerable<TResult>>(selector));
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IFdbAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
@@ -153,7 +153,7 @@ namespace FoundationDB.Linq
 				return iterator.SelectMany<TResult>(asyncSelector);
 			}
 
-			return Flatten<TSource, TResult>(source, asyncSelector);
+			return Flatten<TSource, TResult>(source, new AsyncTransformExpression<TSource,IEnumerable<TResult>>(asyncSelector));
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IFdbAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
@@ -170,7 +170,7 @@ namespace FoundationDB.Linq
 				return iterator.SelectMany<TCollection, TResult>(collectionSelector, resultSelector);
 			}
 
-			return Flatten<TSource, TCollection, TResult>(source, collectionSelector, resultSelector);
+			return Flatten<TSource, TCollection, TResult>(source, new AsyncTransformExpression<TSource,IEnumerable<TCollection>>(collectionSelector), resultSelector);
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IFdbAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
@@ -198,7 +198,7 @@ namespace FoundationDB.Linq
 				return iterator.SelectMany<TCollection, TResult>(asyncCollectionSelector, resultSelector);
 			}
 
-			return Flatten<TSource, TCollection, TResult>(source, asyncCollectionSelector, resultSelector);
+			return Flatten<TSource, TCollection, TResult>(source, new AsyncTransformExpression<TSource,IEnumerable<TCollection>>(asyncCollectionSelector), resultSelector);
 		}
 
 		#endregion
@@ -218,7 +218,7 @@ namespace FoundationDB.Linq
 				return iterator.Select<TResult>(selector);
 			}
 
-			return Map<TSource, TResult>(source, selector);
+			return Map<TSource, TResult>(source, new AsyncTransformExpression<TSource,TResult>(selector));
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
@@ -244,7 +244,7 @@ namespace FoundationDB.Linq
 				return iterator.Select<TResult>(asyncSelector);
 			}
 
-			return Map<TSource, TResult>(source, asyncSelector);
+			return Map<TSource, TResult>(source, new AsyncTransformExpression<TSource,TResult>(asyncSelector));
 		}
 
 		#endregion
@@ -264,7 +264,7 @@ namespace FoundationDB.Linq
 				return iterator.Where(predicate);
 			}
 
-			return Filter<TResult>(source, predicate);
+			return Filter<TResult>(source, new AsyncFilterExpression<TResult>(predicate));
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
@@ -290,7 +290,7 @@ namespace FoundationDB.Linq
 				return iterator.Where(asyncPredicate);
 			}
 
-			return Filter<TResult>(source, asyncPredicate);
+			return Filter<TResult>(source, new AsyncFilterExpression<TResult>(asyncPredicate));
 		}
 
 		#endregion
@@ -331,6 +331,22 @@ namespace FoundationDB.Linq
 			}
 
 			return FdbAsyncEnumerable.Limit<TSource>(source, condition);
+		}
+
+		public static IFdbAsyncEnumerable<TSource> TakeWhile<TSource>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, bool> condition, out QueryStatistics<bool> stopped)
+		{
+			var signal = new QueryStatistics<bool>(false);
+			stopped = signal;
+
+			// to trigger the signal, we just intercept the condition returning false (which only happen once!)
+			Func<TSource, bool> wrapped = (x) =>
+			{
+				if (condition(x)) return true;
+				signal.Update(true);
+				return false;
+			};
+
+			return TakeWhile(source, wrapped);
 		}
 
 		#endregion
@@ -402,8 +418,10 @@ namespace FoundationDB.Linq
 			{
 				return iterator.ExecuteAsync(action, ct);
 			}
-
-			return Run<T>(source, FdbAsyncMode.All, action, ct);
+			else
+			{
+				return Run<T>(source, FdbAsyncMode.All, action, ct);
+			}
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
@@ -411,7 +429,15 @@ namespace FoundationDB.Linq
 		{
 			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
 
-			return ForEachAsync<T>(source, TaskHelpers.WithCancellation(asyncAction), ct);
+			var iterator = source as FdbAsyncIterator<T>;
+			if (iterator != null)
+			{
+				return iterator.ExecuteAsync(TaskHelpers.WithCancellation(asyncAction), ct);
+			}
+			else
+			{
+				return ForEachAsync<T>(source, TaskHelpers.WithCancellation(asyncAction), ct);
+			}
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
@@ -425,105 +451,95 @@ namespace FoundationDB.Linq
 			{
 				return iterator.ExecuteAsync(asyncAction, ct);
 			}
-
-			return Run<T>(source, FdbAsyncMode.All, asyncAction, ct);
+			else
+			{
+				return Run<T>(source, FdbAsyncMode.All, asyncAction, ct);
+			}
 		}
 
 		/// <summary>Create a list from an async sequence.</summary>
-		public static async Task<List<T>> ToListAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static Task<List<T>> ToListAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
 			Contract.Requires(source != null);
 
-			var buffer = new Buffer<T>();
-
-			await ForEachAsync<T>(source, (x) => buffer.Add(x), ct).ConfigureAwait(false);
-
-			return buffer.ToList();
+			return AggregateAsync(
+				source,
+				new Buffer<T>(),
+				(buffer, x) => buffer.Add(x),
+				(buffer) => buffer.ToList(),
+				ct
+			);
 		}
 
 		/// <summary>Create an array from an async sequence.</summary>
-		public static async Task<T[]> ToArrayAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
+		public static Task<T[]> ToArrayAsync<T>(this IFdbAsyncEnumerable<T> source, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			Contract.Requires(source != null);
 
-			var buffer = new Buffer<T>();
-
-			await ForEachAsync<T>(source, (x) => buffer.Add(x), ct).ConfigureAwait(false);
-
-			return buffer.ToArray();
+			return AggregateAsync(
+				source,
+				new Buffer<T>(),
+				(buffer, x) => buffer.Add(x),
+				(buffer) => buffer.ToArray(),
+				cancellationToken
+			);
 		}
 
 		/// <summary>Create an array from an async sequence, knowing a rough estimation of the number of elements.</summary>
-		internal static async Task<T[]> ToArrayAsync<T>(this IFdbAsyncEnumerable<T> source, int estimatedSize, CancellationToken ct = default(CancellationToken))
+		internal static Task<T[]> ToArrayAsync<T>(this IFdbAsyncEnumerable<T> source, int estimatedSize, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			Contract.Requires(source != null && estimatedSize >= 0);
 
-			var list = new List<T>(estimatedSize);
-			await ForEachAsync<T>(source, (x) => list.Add(x), ct).ConfigureAwait(false);
-			return list.ToArray();
+			return AggregateAsync(
+				source,
+				new List<T>(estimatedSize),
+				(buffer, x) => buffer.Add(x),
+				(buffer) => buffer.ToArray(),
+				cancellationToken
+			);
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function and key comparer.</summary>
-		public static async Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (keySelector == null) throw new ArgumentNullException("keySelector");
 
-			cancellationToken.ThrowIfCancellationRequested();
-			var results = new Dictionary<TKey, TSource>(comparer ?? EqualityComparer<TKey>.Default);
-			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
-			{
-				Contract.Assert(iterator != null, "The sequence returned a null async iterator");
-
-				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-				{
-					results[keySelector(iterator.Current)] = iterator.Current;
-				}
-			}
-
-			return results;
+			return AggregateAsync(
+				source,
+				new Dictionary<TKey, TSource>(comparer ?? EqualityComparer<TKey>.Default),
+				(results, x) => { results[keySelector(x)] = x; },
+				cancellationToken
+			);
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function, a comparer, and an element selector function.</summary>
-		public static async Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, [NotNull] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, [NotNull] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (keySelector == null) throw new ArgumentNullException("keySelector");
 			if (elementSelector == null) throw new ArgumentNullException("elementSelector");
 
-			cancellationToken.ThrowIfCancellationRequested();
-			var results = new Dictionary<TKey, TElement>(comparer ?? EqualityComparer<TKey>.Default);
-			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
-			{
-				Contract.Assert(iterator != null, "The sequence returned a null async iterator");
-
-				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-				{
-					results[keySelector(iterator.Current)] = elementSelector(iterator.Current);
-				}
-			}
-
-			return results;
+			return AggregateAsync(
+				source,
+				new Dictionary<TKey, TElement>(comparer ?? EqualityComparer<TKey>.Default),
+				(results, x) => { results[keySelector(x)] = elementSelector(x); },
+				cancellationToken
+			);
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence of pairs of keys and values.</summary>
-		public static async Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> source, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>(this IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> source, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			cancellationToken.ThrowIfCancellationRequested();
 
-			var results = new Dictionary<TKey, TValue>(comparer ?? EqualityComparer<TKey>.Default);
-			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
-			{
-				Contract.Assert(iterator != null, "The sequence returned a null async iterator");
-
-				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-				{
-					results[iterator.Current.Key] = iterator.Current.Value;
-				}
-			}
-
-			return results;
+			return AggregateAsync(
+				source,
+				new Dictionary<TKey, TValue>(comparer ?? EqualityComparer<TKey>.Default),
+				(results, x) => { results[x.Key] = x.Value; },
+				cancellationToken
+			);
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
@@ -558,18 +574,20 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
 
-			cancellationToken.ThrowIfCancellationRequested();
-			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
-			{
-				Contract.Assert(iterator != null, "The sequence returned a null async iterator");
+			var accumulate = seed;
+			await ForEachAsync(source, (x) => { accumulate = aggregator(accumulate, x); }, cancellationToken).ConfigureAwait(false);
+			return accumulate;
+		}
 
-				var accumulate = seed;
-				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-				{
-					accumulate = aggregator(accumulate, iterator.Current);
-				}
-				return accumulate;
-			}
+		/// <summary>Applies an accumulator function over an async sequence.</summary>
+		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>(this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull] Action<TAccumulate, TSource> aggregator, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (aggregator == null) throw new ArgumentNullException("aggregator");
+
+			var accumulate = seed;
+			await ForEachAsync(source, (x) => { aggregator(accumulate, x); }, cancellationToken).ConfigureAwait(false);
+			return accumulate;
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
@@ -579,18 +597,20 @@ namespace FoundationDB.Linq
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
 			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
 
-			cancellationToken.ThrowIfCancellationRequested();
 			var accumulate = seed;
-			using (var iterator = source.GetEnumerator(FdbAsyncMode.All))
-			{
-				Contract.Assert(iterator != null, "The sequence returned a null async iterator");
+			await ForEachAsync(source, (x) => { accumulate = aggregator(accumulate, x); }, cancellationToken).ConfigureAwait(false);
+			return resultSelector(accumulate);
+		}
 
-				while (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-				{
-					accumulate = aggregator(accumulate, iterator.Current);
-				}
-			}
+		/// <summary>Applies an accumulator function over an async sequence.</summary>
+		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>(this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull] Action<TAccumulate, TSource> aggregator, [NotNull] Func<TAccumulate, TResult> resultSelector, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (aggregator == null) throw new ArgumentNullException("aggregator");
+			if (resultSelector == null) throw new ArgumentNullException("resultSelector");
 
+			var accumulate = seed;
+			await ForEachAsync(source, (x) => aggregator(accumulate, x), cancellationToken);
 			return resultSelector(accumulate);
 		}
 
@@ -656,7 +676,7 @@ namespace FoundationDB.Linq
 			bool found = false;
 			T last = default(T);
 
-			await Run<T>(source, FdbAsyncMode.All, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
+			await ForEachAsync<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
 
 			if (!found) throw new InvalidOperationException("The sequence was empty");
 			return last;
@@ -673,7 +693,9 @@ namespace FoundationDB.Linq
 
 			bool found = false;
 			T last = default(T);
-			await Run<T>(source, FdbAsyncMode.All, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
+
+			await ForEachAsync<T>(source, (x) => { found = true; last = x; }, ct).ConfigureAwait(false);
+
 			return found ? last : default(T);
 		}
 
@@ -716,6 +738,8 @@ namespace FoundationDB.Linq
 
 			int counter = index;
 			T item = default(T);
+
+			//TODO: use ExecuteAsync() if the source is an Iterator!
 			await Run<T>(
 				source,
 				FdbAsyncMode.All,
@@ -738,7 +762,9 @@ namespace FoundationDB.Linq
 			ct.ThrowIfCancellationRequested();
 
 			int count = 0;
-			await Run<T>(source, FdbAsyncMode.All, (_) => { ++count; }, ct).ConfigureAwait(false);
+
+			await ForEachAsync<T>(source, (_) => { ++count; }, ct).ConfigureAwait(false);
+
 			return count;
 		}
 
@@ -749,7 +775,9 @@ namespace FoundationDB.Linq
 			if (predicate == null) throw new ArgumentNullException("predicate");
 
 			int count = 0;
-			await Run<T>(source, FdbAsyncMode.All, (x) => {  if (predicate(x)) ++count; }, ct).ConfigureAwait(false);
+
+			await ForEachAsync<T>(source, (x) => { if (predicate(x)) ++count; }, ct).ConfigureAwait(false);
+
 			return count;
 		}
 
@@ -759,7 +787,9 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 
 			ulong sum = 0;
-			await Run<ulong>(source, FdbAsyncMode.All, (x) => { sum += x; }, ct).ConfigureAwait(false);
+
+			await ForEachAsync<ulong>(source, (x) => { sum += x; }, ct).ConfigureAwait(false);
+
 			return sum;
 		}
 
@@ -770,7 +800,9 @@ namespace FoundationDB.Linq
 			if (predicate == null) throw new ArgumentNullException("predicate");
 
 			ulong sum = 0;
-			await Run<ulong>(source, FdbAsyncMode.All, (x) => { if (predicate(x)) sum += x; }, ct).ConfigureAwait(false);
+
+			await ForEachAsync<ulong>(source, (x) => { if (predicate(x)) sum += x; }, ct).ConfigureAwait(false);
+
 			return sum;
 		}
 
@@ -780,7 +812,9 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 
 			long sum = 0;
-			await Run<long>(source, FdbAsyncMode.All, (x) => { sum += x; }, ct).ConfigureAwait(false);
+
+			await ForEachAsync<long>(source, (x) => { sum += x; }, ct).ConfigureAwait(false);
+
 			return sum;
 		}
 
@@ -791,7 +825,9 @@ namespace FoundationDB.Linq
 			if (predicate == null) throw new ArgumentNullException("predicate");
 
 			long sum = 0;
-			await Run<long>(source, FdbAsyncMode.All, (x) => { if (predicate(x)) sum += x; }, ct).ConfigureAwait(false);
+
+			await ForEachAsync<long>(source, (x) => { if (predicate(x)) sum += x; }, ct).ConfigureAwait(false);
+
 			return sum;
 		}
 
@@ -804,9 +840,8 @@ namespace FoundationDB.Linq
 			bool found = false;
 			T min = default(T);
 
-			await Run<T>(
+			await ForEachAsync<T>(
 				source,
-				FdbAsyncMode.All,
 				(x) =>
 				{
 					if (!found || comparer.Compare(x, min) < 0)
@@ -831,9 +866,8 @@ namespace FoundationDB.Linq
 			bool found = false;
 			T max = default(T);
 
-			await Run<T>(
+			await ForEachAsync<T>(
 				source,
-				FdbAsyncMode.All,
 				(x) =>
 				{
 					if (!found || comparer.Compare(x, max) > 0)
@@ -907,6 +941,136 @@ namespace FoundationDB.Linq
 				}
 			}
 			return true;
+		}
+
+		#endregion
+
+		#region Query Statistics...
+
+		//TODO: move this somewhere else?
+
+		public class QueryStatistics<TData>
+		{
+			public QueryStatistics()
+			{ }
+
+			public QueryStatistics(TData value)
+			{
+				this.Value = value;
+			}
+
+			public TData Value { get; protected set; }
+
+			public void Update(TData newValue)
+			{
+				this.Value = newValue;
+			}
+		}
+
+		public class KeyValueSize
+		{
+			/// <summary>Total number of pairs of keys and values that have flowed through this point</summary>
+			public long Count { get; private set; }
+
+			/// <summary>Total size of all keys and values combined</summary>
+			public long Size { get { return checked(this.KeySize + this.ValueSize); } }
+
+			/// <summary>Total size of all keys combined</summary>
+			public long KeySize { get; private set; }
+
+			/// <summary>Total size of all values combined</summary>
+			public long ValueSize { get; private set; }
+
+			public void Add(int keySize, int valueSize)
+			{
+				this.Count++;
+				this.KeySize = checked(keySize + this.KeySize);
+				this.ValueSize = checked(valueSize + this.ValueSize);
+			}
+		}
+
+		public class DataSize
+		{
+			/// <summary>Total number of items that have flowed through this point</summary>
+			public long Count { get; private set; }
+
+			/// <summary>Total size of all items that have flowed through this point</summary>
+			public long Size { get; private set; }
+
+			public void Add(int size)
+			{
+				this.Count++;
+				this.Size = checked(size + this.Size);
+			}
+		}
+
+		/// <summary>Measure the number of items that pass through this point of the query</summary>
+		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
+		public static IFdbAsyncEnumerable<TSource> WithCountStatistics<TSource>(this IFdbAsyncEnumerable<TSource> source, out QueryStatistics<int> counter)
+		{
+			var signal = new QueryStatistics<int>(0);
+			counter = signal;
+
+			// to count, we just increment the signal each type a value flows through here
+			Func<TSource, TSource> wrapped = (x) =>
+			{
+				signal.Update(checked(signal.Value + 1));
+				return x;
+			};
+
+			return Select(source, wrapped);
+		}
+
+		/// <summary>Measure the number and size of slices that pass through this point of the query</summary>
+		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics(this IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSize> statistics)
+		{
+			var data = new KeyValueSize();
+			statistics = new QueryStatistics<KeyValueSize>(data);
+
+			// to count, we just increment the signal each type a value flows through here
+			Func<KeyValuePair<Slice, Slice>, KeyValuePair<Slice, Slice>> wrapped = (kvp) =>
+			{
+				data.Add(kvp.Key.Count, kvp.Value.Count);
+				return kvp;
+			};
+
+			return Select(source, wrapped);
+		}
+
+		/// <summary>Measure the number and sizes of the keys and values that pass through this point of the query</summary>
+		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
+		public static IFdbAsyncEnumerable<Slice> WithSizeStatistics(this IFdbAsyncEnumerable<Slice> source, out QueryStatistics<DataSize> statistics)
+		{
+			var data = new DataSize();
+			statistics = new QueryStatistics<DataSize>(data);
+
+			// to count, we just increment the signal each type a value flows through here
+			Func<Slice, Slice> wrapped = (x) =>
+			{
+				data.Add(x.Count);
+				return x;
+			};
+
+			return Select(source, wrapped);
+		}
+
+		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
+		/// <remarks>The <paramref name="handler"/> is execute inline before passing the item down the line, and should not block</remarks>
+		public static IFdbAsyncEnumerable<TSource> Observe<TSource>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Action<TSource> handler)
+		{
+			if (handler == null) throw new ArgumentNullException("handler");
+
+			return new FdbObserverIterator<TSource>(source, new AsyncObserverExpression<TSource>(handler));
+		}
+
+		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
+		/// <remarks>The <paramref name="handler"/> is execute inline before passing the item down the line, and should not block</remarks>
+		public static IFdbAsyncEnumerable<TSource> Observe<TSource>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task> asyncHandler)
+		{
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
+
+			return new FdbObserverIterator<TSource>(source, new AsyncObserverExpression<TSource>(asyncHandler));
 		}
 
 		#endregion

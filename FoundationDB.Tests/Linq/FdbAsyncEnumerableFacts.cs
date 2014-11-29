@@ -1102,7 +1102,7 @@ namespace FoundationDB.Linq.Tests
 			// note: we will also create a third LINQ query using lambda expressions, just to be able to have a nicer ToString() in case of errors
 
 			int[] SourceOfInts = new int[] { 1, 7, 42, -456, 123, int.MaxValue, -1, 1023, 0, short.MinValue, 5, 13, -273, 2013, 4534, -999 };
-			
+
 			const int N = 1000;
 
 			var rnd = new Random(); // new Random(1234)
@@ -1282,10 +1282,44 @@ namespace FoundationDB.Linq.Tests
 				);
 
 			}
-			
 
 		}
 
+		[Test]
+		public async Task Test_Record_Items()
+		{
+
+			var items = Enumerable.Range(0, 10);
+			var source = items.ToAsyncEnumerable();
+
+			var before = new List<int>();
+			var after = new List<int>();
+
+			var a = source.Observe((x) => before.Add(x));
+			var b = a.Where((x) => x % 2 == 1);
+			var c = b.Observe((x) => after.Add(x));
+			var d = c.Select((x) => x + 1);
+
+			var query = source
+				.Observe((x) => before.Add(x))
+				.Where((x) => x % 2 == 1)
+				.Observe((x) => after.Add(x))
+				.Select((x) => x + 1);
+
+			Console.WriteLine("query: " + query);
+
+			var results = await query.ToListAsync();
+
+			Console.WriteLine("input : " + String.Join(", ", items));
+			Console.WriteLine("before: " + String.Join(", ", before));
+			Console.WriteLine("after : " + String.Join(", ", after));
+			Console.WriteLine("output: " + String.Join(", ", results));
+
+			Assert.That(before, Is.EqualTo(Enumerable.Range(0, 10).ToList()));
+			Assert.That(after, Is.EqualTo(Enumerable.Range(0, 10).Where(x => x % 2 == 1).ToList()));
+			Assert.That(results, Is.EqualTo(Enumerable.Range(1, 5).Select(x => x * 2).ToList()));
+
+		}
 	}
 
 }
