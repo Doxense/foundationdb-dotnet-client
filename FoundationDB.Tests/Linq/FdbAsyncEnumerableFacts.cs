@@ -887,7 +887,7 @@ namespace FoundationDB.Linq.Tests
 						else if (msg.HasValue)
 						{
 							Console.WriteLine("[consumer] Got error: " + msg.Error);
-							msg.ThrowIfFailed();
+							msg.ThrowForNonSuccess();
 							break;
 						}
 						else

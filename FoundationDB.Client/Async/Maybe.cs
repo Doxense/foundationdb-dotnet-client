@@ -47,10 +47,16 @@ namespace FoundationDB.Async
 		public readonly T Value;
 
 		/// <summary>If HasValue is false optinally holds an error that was captured</summary>
-		private readonly object m_errorContainer;
+		private readonly object m_errorContainer; // either an Exception, or an ExceptionDispatchInfo
 
 		internal Maybe(bool hasValue, T value, object errorContainer)
 		{
+#if NET_4_0
+			Contract.Requires(errorContainer == null || (errorContainer is Exception));
+#else
+			Contract.Requires(errorContainer == null || (errorContainer is Exception) || (errorContainer is ExceptionDispatchInfo));
+#endif
+
 			this.HasValue = hasValue;
 			this.Value = value;
 			m_errorContainer = errorContainer;
@@ -66,7 +72,7 @@ namespace FoundationDB.Async
 		/// <returns></returns>
 		public T GetValueOrDefault()
 		{
-			ThrowIfFailed();
+			ThrowForNonSuccess();
 			return this.Value;
 		}
 
@@ -81,16 +87,15 @@ namespace FoundationDB.Async
 		{
 			get
 			{
-				var exception = m_errorContainer as Exception;
-				if (exception != null) return exception;
-
+#if !NET_4_0
 				var edi = m_errorContainer as ExceptionDispatchInfo;
 				if (edi != null) return edi.SourceException;
-
-				return null;
+#endif
+				return m_errorContainer as Exception;
 			}
 		}
 
+#if !NET_4_0
 		/// <summary>Return the captured error context, or null if there wasn't any</summary>
 		public ExceptionDispatchInfo CapturedError
 		{
@@ -105,21 +110,21 @@ namespace FoundationDB.Async
 				return null;
 			}
 		}
+#endif
 
 		/// <summary>Rethrows any captured error, if there was one.</summary>
-		public void ThrowIfFailed()
+		public void ThrowForNonSuccess()
 		{
 			if (m_errorContainer != null)
 			{
 				var exception = m_errorContainer as Exception;
-				if (exception != null)
-				{
-					throw exception;
-				}
-				else
+#if !NET_4_0
+				if (exception == null)
 				{
 					((ExceptionDispatchInfo)m_errorContainer).Throw();
 				}
+#endif
+				throw exception;
 			}
 		}
 

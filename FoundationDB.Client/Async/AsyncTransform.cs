@@ -98,7 +98,11 @@ namespace FoundationDB.Async
 			}
 			catch(Exception e)
 			{
+#if NET_4_0
+				m_target.OnError(e);
+#else
 				m_target.OnError(ExceptionDispatchInfo.Capture(e));
+#endif
 				return TaskHelpers.FromException<object>(e);
 			}
 		}
@@ -112,6 +116,15 @@ namespace FoundationDB.Async
 			}
 		}
 
+#if NET_4_0
+		public void OnError(Exception e)
+		{
+			if (!m_done)
+			{
+				m_target.OnError(e);
+			}
+		}
+#else
 		public void OnError(ExceptionDispatchInfo e)
 		{
 			if (!m_done)
@@ -119,6 +132,7 @@ namespace FoundationDB.Async
 				m_target.OnError(e);
 			}
 		}
+#endif
 
 		#endregion
 

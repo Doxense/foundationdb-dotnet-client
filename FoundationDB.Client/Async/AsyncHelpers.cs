@@ -35,35 +35,49 @@ namespace FoundationDB.Async
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>
-	/// Helper methods for creating and manipulating async sequences.
-	/// </summary>
+	/// <summary>Helper methods for creating and manipulating async sequences.</summary>
 	public static class AsyncHelpers
 	{
 		internal static readonly Action NoOpCompletion = () => { };
+#if NET_4_0
+		internal static readonly Action<Exception> NoOpError = (e) => { };
+		internal static readonly Action<Exception> RethrowError = (e) => { throw e; };
+#else
 		internal static readonly Action<ExceptionDispatchInfo> NoOpError = (e) => { };
 		internal static readonly Action<ExceptionDispatchInfo> RethrowError = (e) => { e.Throw(); };
+#endif
 
 		#region Targets...
 
+		/// <summary>Create a new async target from a set of callbacks</summary>
 		public static IAsyncTarget<T> CreateTarget<T>(
 			Func<T, CancellationToken, Task> onNextAsync,
-			Action onCompleted,
-			Action<ExceptionDispatchInfo> onError
+			Action onCompleted = null,
+#if NET_4_0
+			Action<Exception> onError = null
+#else
+			Action<ExceptionDispatchInfo> onError = null
+#endif
 		)
 		{
 			return new AnonymousAsyncTarget<T>(onNextAsync, onCompleted, onError);
 		}
 
+		/// <summary>Create a new async target from a set of callbacks</summary>
 		public static IAsyncTarget<T> CreateTarget<T>(
 				Action<T, CancellationToken> onNext,
 				Action onCompleted = null,
+#if NET_4_0
+				Action<Exception> onError = null
+#else
 				Action<ExceptionDispatchInfo> onError = null
+#endif
 		)
 		{
 			return new AnonymousTarget<T>(onNext, onCompleted, onError);
 		}
 
+		/// <summary>Publish a new result on this async target, by correclty handling success, termination and failure</summary>
 		public static Task Publish<T>(this IAsyncTarget<T> target, Maybe<T> result, CancellationToken ct)
 		{
 			Contract.Requires(target != null);
@@ -76,7 +90,11 @@ namespace FoundationDB.Async
 			}
 			else if (result.HasFailed)
 			{
+#if NET_4_0
+				target.OnError(result.Error);
+#else
 				target.OnError(result.CapturedError);
+#endif
 				return TaskHelpers.CompletedTask;
 			}
 			else
@@ -86,6 +104,7 @@ namespace FoundationDB.Async
 			}
 		}
 
+		/// <summary>Wrapper class for use with async lambda callbacks</summary>
 		internal sealed class AnonymousAsyncTarget<T> : IAsyncTarget<T>
 		{
 
@@ -93,12 +112,20 @@ namespace FoundationDB.Async
 
 			private readonly Action m_onCompleted;
 
+#if NET_4_0
+			private readonly Action<Exception> m_onError;
+#else
 			private readonly Action<ExceptionDispatchInfo> m_onError;
+#endif
 
 			public AnonymousAsyncTarget(
 				Func<T, CancellationToken, Task> onNextAsync,
 				Action onCompleted,
+#if NET_4_0
+				Action<Exception> onError
+#else
 				Action<ExceptionDispatchInfo> onError
+#endif
 			)
 			{
 				m_onNextAsync = onNextAsync;
@@ -116,12 +143,17 @@ namespace FoundationDB.Async
 				m_onCompleted();
 			}
 
+#if NET_4_0
+			public void OnError(Exception error)
+#else
 			public void OnError(ExceptionDispatchInfo error)
+#endif
 			{
 				m_onError(error);
 			}
 		}
 
+		/// <summary>Wrapper class for use with non-async lambda callbacks</summary>
 		internal sealed class AnonymousTarget<T> : IAsyncTarget<T>
 		{
 
@@ -129,12 +161,20 @@ namespace FoundationDB.Async
 
 			private readonly Action m_onCompleted;
 
+#if NET_4_0
+			private readonly Action<Exception> m_onError;
+#else
 			private readonly Action<ExceptionDispatchInfo> m_onError;
+#endif
 
 			public AnonymousTarget(
 				Action<T, CancellationToken> onNext,
 				Action onCompleted,
+#if NET_4_0
+				Action<Exception> onError
+#else
 				Action<ExceptionDispatchInfo> onError
+#endif
 			)
 			{
 				if (onNext == null) throw new ArgumentNullException("onNext");
@@ -157,6 +197,15 @@ namespace FoundationDB.Async
 				}
 			}
 
+#if NET_4_0
+			public void OnError(Exception error)
+			{
+				if (m_onError != null)
+					m_onError(error);
+				else
+					throw error;
+			}
+#else
 			public void OnError(ExceptionDispatchInfo error)
 			{
 				if (m_onError != null)
@@ -164,6 +213,7 @@ namespace FoundationDB.Async
 				else
 					error.Throw();
 			}
+#endif
 		}
 
 		#endregion

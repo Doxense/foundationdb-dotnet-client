@@ -70,7 +70,11 @@ namespace FoundationDB.Async
 
 		public abstract void OnCompleted();
 
+#if NET_4_0
+		public abstract void OnError(Exception error);
+#else
 		public abstract void OnError(ExceptionDispatchInfo error);
+#endif
 
 		/// <summary>Delcare the producer as beeing blocked on a full queue</summary>
 		/// <param name="ct"></param>
