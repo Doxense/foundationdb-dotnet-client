@@ -226,7 +226,7 @@ namespace FoundationDB.Layers.Collections
 				this.QueueItem.Tuples.ToRange(),
 				(kvs, offset, ct) =>
 				{
-					handler(this.Encoder.DecodeRange(kvs), offset);
+					handler(this.Encoder.DecodeValues(kvs), offset);
 					return TaskHelpers.CompletedTask;
 				},
 				cancellationToken
@@ -243,7 +243,7 @@ namespace FoundationDB.Layers.Collections
 			return Fdb.Bulk.ExportAsync(
 				db,
 				this.QueueItem.Tuples.ToRange(),
-				(kvs, offset, ct) => handler(this.Encoder.DecodeRange(kvs), offset),
+				(kvs, offset, ct) => handler(this.Encoder.DecodeValues(kvs), offset),
 				cancellationToken
 			);
 		}

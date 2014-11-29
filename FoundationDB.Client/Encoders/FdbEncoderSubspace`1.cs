@@ -95,19 +95,19 @@ namespace FoundationDB.Client
 		[NotNull]
 		public Slice[] EncodeKeys([NotNull] IEnumerable<T> keys)
 		{
-			return ConcatKeys(m_encoder.EncodeRange(keys));
+			return ConcatKeys(m_encoder.EncodeKeys(keys));
 		}
 
 		[NotNull]
 		public Slice[] EncodeKeys([NotNull] params T[] keys)
 		{
-			return ConcatKeys(m_encoder.EncodeRange(keys));
+			return ConcatKeys(m_encoder.EncodeKeys(keys));
 		}
 
 		[NotNull]
 		public Slice[] EncodeKeys<TElement>([NotNull] TElement[] elements, Func<TElement, T> selector)
 		{
-			return ConcatKeys(m_encoder.EncodeRange(elements, selector));
+			return ConcatKeys(m_encoder.EncodeKeys(elements, selector));
 		}
 
 		public T DecodeKey(Slice encoded)
@@ -118,13 +118,13 @@ namespace FoundationDB.Client
 		[NotNull]
 		public T[] DecodeKeys([NotNull] IEnumerable<Slice> encoded)
 		{
-			return m_encoder.DecodeRange(ExtractKeys(encoded, boundCheck: true));
+			return m_encoder.DecodeKeys(ExtractKeys(encoded, boundCheck: true));
 		}
 
 		[NotNull]
 		public T[] DecodeKeys([NotNull] params Slice[] encoded)
 		{
-			return m_encoder.DecodeRange(ExtractKeys(encoded, boundCheck: true));
+			return m_encoder.DecodeKeys(ExtractKeys(encoded, boundCheck: true));
 		}
 
 		public virtual FdbKeyRange ToRange(T key)

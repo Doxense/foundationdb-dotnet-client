@@ -796,7 +796,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static Slice[] EncodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] T[] values)
+		public static Slice[] EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params T[] values)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (values == null) throw new ArgumentNullException("values");
@@ -811,7 +811,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static Slice[] EncodeRange<TKey, TElement>(this IKeyEncoder<TKey> encoder, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
+		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (elements == null) throw new ArgumentNullException("elements");
@@ -827,7 +827,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<Slice> EncodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] IEnumerable<T> values)
+		public static IEnumerable<Slice> EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (values == null) throw new ArgumentNullException("values");
@@ -837,7 +837,7 @@ namespace FoundationDB.Client
 			var array = values as T[];
 			if (array != null)
 			{ // optimized path for arrays
-				return EncodeRange<T>(encoder, array);
+				return EncodeKeys<T>(encoder, array);
 			}
 
 			var coll = values as ICollection<T>;
@@ -857,7 +857,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static T[] DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] Slice[] slices)
+		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params Slice[] slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -872,7 +872,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert the keys of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static T[] DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
+		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (items == null) throw new ArgumentNullException("items");
@@ -887,7 +887,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<T> DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
+		public static IEnumerable<T> DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -898,14 +898,14 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns a partial encoder that will only encode the first element</summary>
-		public static HeadEncoder<T1, T2> Head<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder)
+		public static HeadEncoder<T1, T2> Head<T1, T2>([NotNull] this ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			return new HeadEncoder<T1, T2>(encoder);
 		}
 
 		/// <summary>Returns a partial encoder that will only encode the first element</summary>
-		public static HeadEncoder<T1, T2, T3> Head<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public static HeadEncoder<T1, T2, T3> Head<T1, T2, T3>([NotNull] this ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
@@ -913,7 +913,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
-		public static PairEncoder<T1, T2, T3> Pair<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public static PairEncoder<T1, T2, T3> Pair<T1, T2, T3>([NotNull] this ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
@@ -926,7 +926,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static Slice[] EncodeRange<T>(this IValueEncoder<T> encoder, [NotNull] T[] values)
+		public static Slice[] EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params T[] values)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (values == null) throw new ArgumentNullException("values");
@@ -942,7 +942,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<Slice> EncodeRange<T>(this IValueEncoder<T> encoder, [NotNull] IEnumerable<T> values)
+		public static IEnumerable<Slice> EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (values == null) throw new ArgumentNullException("values");
@@ -952,7 +952,7 @@ namespace FoundationDB.Client
 			var array = values as T[];
 			if (array != null)
 			{ // optimized path for arrays
-				return EncodeRange<T>(encoder, array);
+				return EncodeValues<T>(encoder, array);
 			}
 
 			var coll = values as ICollection<T>;
@@ -971,7 +971,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static T[] DecodeRange<T>(this IValueEncoder<T> encoder, Slice[] slices)
+		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params Slice[] slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -987,7 +987,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert the values of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static T[] DecodeRange<T>(this IValueEncoder<T> encoder, KeyValuePair<Slice, Slice>[] items)
+		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (items == null) throw new ArgumentNullException("items");
@@ -1003,7 +1003,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<T> DecodeRange<T>(this IValueEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
+		public static IEnumerable<T> DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");

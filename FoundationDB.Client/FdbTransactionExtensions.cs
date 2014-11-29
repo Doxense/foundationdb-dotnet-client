@@ -858,7 +858,7 @@ namespace FoundationDB.Client
 		{
 			if (decoder == null) throw new ArgumentNullException("decoder");
 
-			return decoder.DecodeRange(await GetValuesAsync(trans, keys).ConfigureAwait(false));
+			return decoder.DecodeValues(await GetValuesAsync(trans, keys).ConfigureAwait(false));
 		}
 
 		/// <summary>
