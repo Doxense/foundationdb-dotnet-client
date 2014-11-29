@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
 	using System;
 
 	/// <summary>
@@ -85,6 +86,47 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Standard prefix of the System keys, or frequent suffix with key ranges</summary>
 		/// <remarks>This is not a part of the tuple encoding itself, but helps the tuple decoder pretty-print End keys from ranges, that would otherwise be unparsable.</remarks>
 		internal const byte AliasSystem = 255;
+
+		/// <summary>Return the type of a tuple segment, from its header</summary>
+		public static FdbTupleSegmentType DecodeSegmentType(ref Slice segment)
+		{
+			if (segment.Count == 0) return FdbTupleSegmentType.Nil;
+
+			int type = segment[0];
+			switch(type)
+			{
+				case Nil: return FdbTupleSegmentType.Nil;
+				case Bytes: return FdbTupleSegmentType.ByteString;
+				case Utf8: return FdbTupleSegmentType.UnicodeString;
+				case TupleStart: return FdbTupleSegmentType.Tuple;
+				case Single: return FdbTupleSegmentType.Single;
+				case Double: return FdbTupleSegmentType.Double;
+				case Uuid128: return FdbTupleSegmentType.Uuid128;
+				case Uuid64: return FdbTupleSegmentType.Uuid64;
+			}
+
+			if (type <= IntPos8 && type >= IntNeg8)
+			{
+				return FdbTupleSegmentType.Integer;
+			}
+
+			return FdbTupleSegmentType.Invalid;
+		}
+	}
+
+	/// <summary>Logical type of packed element of a tuple</summary>
+	public enum FdbTupleSegmentType
+	{
+		Invalid = -1,
+		Nil = 0,
+		ByteString = 1,
+		UnicodeString = 2,
+		Tuple = 3,
+		Integer = 20,
+		Single = 32,
+		Double = 33,
+		Uuid128 = 48,
+		Uuid64 = 49,
 	}
 
 }

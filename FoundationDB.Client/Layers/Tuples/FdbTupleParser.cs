@@ -674,7 +674,9 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Deserialization...
 
-		internal static long ParseInt64(int type, Slice slice)
+		/// <summary>Parse a tuple segment containing a signed 64-bit integer</summary>
+		/// <remarks>This method should only be used by custom decoders.</remarks>
+		public static long ParseInt64(int type, Slice slice)
 		{
 			int bytes = type - FdbTupleTypes.IntBase;
 			if (bytes == 0) return 0L;
@@ -749,9 +751,10 @@ namespace FoundationDB.Layers.Tuples
 			return new ArraySegment<byte>(tmp, 0, i);
 		}
 
-		internal static Slice ParseBytes(Slice slice)
+		/// <summary>Parse a tuple segment containing a byte array</summary>
+		public static Slice ParseBytes(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[slice.Count - 1] == 0);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[-1] == 0);
 			if (slice.Count <= 2) return Slice.Empty;
 
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
@@ -759,9 +762,10 @@ namespace FoundationDB.Layers.Tuples
 			return new Slice(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
-		internal static string ParseAscii(Slice slice)
+		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
+		public static string ParseAscii(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[slice.Count - 1] == 0);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[-1] == 0);
 
 			if (slice.Count <= 2) return String.Empty;
 
@@ -770,9 +774,10 @@ namespace FoundationDB.Layers.Tuples
 			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
-		internal static string ParseUnicode(Slice slice)
+		/// <summary>Parse a tuple segment containing a unicode string</summary>
+		public static string ParseUnicode(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Utf8);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Utf8 && slice[-1] == 0);
 
 			if (slice.Count <= 2) return String.Empty;
 			//TODO: check args
@@ -780,15 +785,17 @@ namespace FoundationDB.Layers.Tuples
 			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
-		internal static IFdbTuple ParseTuple(Slice slice)
+		/// <summary>Parse a tuple segment containing an embedded tuple</summary>
+		public static IFdbTuple ParseTuple(Slice slice)
 		{
-			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.TupleStart);
+			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.TupleStart && slice[-1] == 0);
 			if (slice.Count <= 2) return FdbTuple.Empty;
 
 			return FdbTuplePackers.Unpack(slice.Substring(1, slice.Count - 2), true);
 		}
 
-		internal static float ParseSingle(Slice slice)
+		/// <summary>Parse a tuple segment containing a single precision number (float32)</summary>
+		public static float ParseSingle(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Single);
 
@@ -817,7 +824,8 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
-		internal static double ParseDouble(Slice slice)
+		/// <summary>Parse a tuple segment containing a double precision number (float64)</summary>
+		public static double ParseDouble(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Double);
 
@@ -847,7 +855,8 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
-		internal static Guid ParseGuid(Slice slice)
+		/// <summary>Parse a tuple segment containing a 128-bit GUID</summary>
+		public static Guid ParseGuid(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Uuid128);
 
@@ -860,7 +869,8 @@ namespace FoundationDB.Layers.Tuples
 			return Uuid128.Convert(new Slice(slice.Array, slice.Offset + 1, 16));
 		}
 
-		internal static Uuid128 ParseUuid128(Slice slice)
+		/// <summary>Parse a tuple segment containing a 128-bit UUID</summary>
+		public static Uuid128 ParseUuid128(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Uuid128);
 
@@ -872,7 +882,8 @@ namespace FoundationDB.Layers.Tuples
 			return new Uuid128(new Slice(slice.Array, slice.Offset + 1, 16));
 		}
 
-		internal static Uuid64 ParseUuid64(Slice slice)
+		/// <summary>Parse a tuple segment containing a 64-bit UUID</summary>
+		public static Uuid64 ParseUuid64(Slice slice)
 		{
 			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Uuid64);
 
@@ -1004,6 +1015,33 @@ namespace FoundationDB.Layers.Tuples
 			}
 
 			throw new FormatException(String.Format("Truncated embedded tuple started at index {0}/{1}", start, reader.Input.Buffer.Count));
+		}
+
+		/// <summary>Skip a number of tokens</summary>
+		/// <param name="reader">Cursor in the packed tuple to decode</param>
+		/// <param name="count">Number of tokens to skip</param>
+		/// <returns>True if there was <paramref name="count"/> tokens, false if the reader was too small.</returns>
+		/// <remarks>Even if this method return true, you need to check that the reader has not reached the end before reading more token!</remarks>
+		public static bool Skip(ref TupleReader reader, int count)
+		{
+			while (count-- > 0)
+			{
+				if (!reader.Input.HasMore) return false;
+				var token = FdbTupleParser.ParseNext(ref reader);
+				if (token.IsNull) return false;
+			}
+			return true;
+		}
+
+		/// <summary>Visit the different tokens of a packed tuple</summary>
+		/// <param name="input">Reader positionned at the start of a packed tuple</param>
+		/// <param name="visitor">Lambda called for each segment of a tuple. Returns true to continue parsing, or false to stop</param>
+		/// <returns>Number of tokens that have been visited until either <paramref name="visitor"/> returned false, or <paramerf name="reader"> reached the end.</returns>
+		public static T VisitNext<T>(ref TupleReader reader, Func<Slice, FdbTupleSegmentType, T> visitor)
+		{
+			if (!reader.Input.HasMore) throw new InvalidOperationException("The reader has already reached the end");
+			var token = FdbTupleParser.ParseNext(ref reader);
+			return visitor(token, FdbTupleTypes.DecodeSegmentType(ref token));
 		}
 
 		#endregion
