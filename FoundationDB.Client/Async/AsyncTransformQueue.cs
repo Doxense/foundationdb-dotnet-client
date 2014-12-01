@@ -131,7 +131,11 @@ namespace FoundationDB.Async
 			}
 			catch (Exception e)
 			{
+#if NET_4_0
 				return Maybe.Error<TOutput>(e);
+#else
+				return Maybe.Error<TOutput>(ExceptionDispatchInfo.Capture(e));
+#endif
 			}
 		}
 
@@ -297,7 +301,11 @@ namespace FoundationDB.Async
 			}
 			catch(Exception e)
 			{
+#if NET_4_0
 				return Maybe.Error<TOutput>(e);
+#else
+				return Maybe.Error<TOutput>(ExceptionDispatchInfo.Capture(e));
+#endif
 			}
 			finally
 			{
