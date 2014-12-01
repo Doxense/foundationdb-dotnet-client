@@ -229,11 +229,13 @@ namespace FoundationDB.Async
 			return new Maybe<T>(false, default(T), e);
 		}
 
+#if !NET_4_0
 		/// <summary>Capture an exception into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<T> Error<T>(ExceptionDispatchInfo e)
 		{
 			return new Maybe<T>(false, default(T), e);
 		}
+#endif
 
 		/// <summary>Immediately apply a function to a value, and capture the result into a <see cref="Maybe{T}"/></summary>
 		public static Maybe<R> Apply<T, R>(T value, Func<T, R> lambda)
@@ -245,7 +247,11 @@ namespace FoundationDB.Async
 			}
 			catch (Exception e)
 			{
+#if NET_4_0
 				return Error<R>(e);
+#else
+				return Error<R>(ExceptionDispatchInfo.Capture(e));
+#endif
 			}
 		}
 
@@ -259,7 +265,11 @@ namespace FoundationDB.Async
 			}
 			catch (Exception e)
 			{
+#if NET_4_0
 				return Error<R>(e);
+#else
+				return Error<R>(ExceptionDispatchInfo.Capture(e));
+#endif
 			}
 		}
 
@@ -269,7 +279,11 @@ namespace FoundationDB.Async
 			Contract.Requires(lambda != null);
 			if (!value.HasValue)
 			{
-				if (value.HasFailed) return Error<R>(value.Error);
+				if (value.HasFailed)
+				{
+					// keep the original error untouched
+					return new Maybe<R>(false, default(R), value.ErrorContainer);
+				}
 				return Nothing<R>();
 			}
 			try
@@ -288,7 +302,11 @@ namespace FoundationDB.Async
 			Contract.Requires(lambda != null);
 			if (!value.HasValue)
 			{
-				if (value.HasFailed) return Error<R>(value.Error);
+				if (value.HasFailed)
+				{
+					// keep the original error untouched
+					return new Maybe<R>(false, default(R), value.ErrorContainer);
+				}
 				return Nothing<R>();
 			}
 			try
@@ -313,7 +331,7 @@ namespace FoundationDB.Async
 				}
 				case TaskStatus.Faulted:
 				{
-					// note: we want to have a nice stack, so we unwrap the aggregate exception
+					//TODO: pass the failed task itself as the error container? (we would keep the original callstack that way...)
 					var aggEx = task.Exception.Flatten();
 					if (aggEx.InnerExceptions.Count == 1)
 					{
@@ -344,7 +362,13 @@ namespace FoundationDB.Async
 				}
 				case TaskStatus.Faulted:
 				{
-					return Error<T>(task.Exception);
+					//TODO: pass the failed task itself as the error container? (we would keep the original callstack that way...)
+					var aggEx = task.Exception.Flatten();
+					if (aggEx.InnerExceptions.Count == 1)
+					{
+						return Maybe.Error<T>(aggEx.InnerException);
+					}
+					return Maybe.Error<T>(aggEx);
 				}
 				case TaskStatus.Canceled:
 				{
@@ -369,7 +393,13 @@ namespace FoundationDB.Async
 				}
 				case TaskStatus.Faulted:
 				{
-					return Task.FromResult(Error<T>(task.Exception));
+					//TODO: pass the failed task itself as the error container? (we would keep the original callstack that way...)
+					var aggEx = task.Exception.Flatten();
+					if (aggEx.InnerExceptions.Count == 1)
+					{
+						return Task.FromResult(Maybe.Error<T>(aggEx.InnerException));
+					}
+					return Task.FromResult(Maybe.Error<T>(aggEx));
 				}
 				case TaskStatus.Canceled:
 				{

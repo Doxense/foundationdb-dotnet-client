@@ -312,7 +312,11 @@ namespace FoundationDB.Async
 			catch(Exception e)
 			{
 				LogConsumer("Notified that task #" + task + " failed");
+#if NET_4_0
 				return Maybe.Error<T>(e);
+#else
+				return Maybe.Error<T>(ExceptionDispatchInfo.Capture(e));
+#endif
 			}
 		}
 
