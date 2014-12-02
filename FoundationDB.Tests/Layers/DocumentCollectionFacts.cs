@@ -88,13 +88,13 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store a document
 				var book1 = books[0];
-				await docs.InsertAsync(db, book1, this.Cancellation);
+				await db.WriteAsync((tr) => docs.Insert(tr, book1), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// retrieve the document
-				var copy = await docs.LoadAsync(db, book1.Id, this.Cancellation);
+				var copy = await db.ReadAsync((tr) =>docs.LoadAsync(tr, book1.Id), this.Cancellation);
 
 				Assert.That(copy, Is.Not.Null);
 				Assert.That(copy.Id, Is.EqualTo(book1.Id));
@@ -105,7 +105,7 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store another document
 				var book2 = books[1];
-				await docs.InsertAsync(db, book2, this.Cancellation);
+				await db.WriteAsync((tr) => docs.Insert(tr, book2), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
@@ -134,13 +134,13 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store a document
 				var book1 = books[0];
-				await docs.InsertAsync(db, book1, this.Cancellation);
+				await db.WriteAsync((tr) => docs.Insert(tr, book1), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				// retrieve the document
-				var copy = await docs.LoadAsync(db, 42, this.Cancellation);
+				var copy = await db.ReadAsync((tr) => docs.LoadAsync(tr, 42), this.Cancellation);
 
 				Assert.That(copy, Is.Not.Null);
 				Assert.That(copy.Id, Is.EqualTo(book1.Id));
@@ -151,7 +151,7 @@ namespace FoundationDB.Layers.Documents.Tests
 
 				// store another document
 				var book2 = books[1];
-				await docs.InsertAsync(db, book2, this.Cancellation);
+				await db.WriteAsync((tr) => docs.Insert(tr, book2), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
