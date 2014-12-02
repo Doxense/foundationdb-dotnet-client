@@ -91,6 +91,12 @@ namespace FoundationDB.Layers.Tuples
 		/// </example>
 		T Get<T>(int index);
 
+		/// <summary>Return the typed value of the last item in the tuple</summary>
+		/// <typeparam name="T">Expected type of the item</typeparam>
+		/// <returns>Value of the last item of this tuple, adapted into type <typeparamref name="T"/></returns>
+		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
+		T Last<T>();
+
 		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
 		/// <typeparam name="T">Type of the new value</typeparam>
 		/// <param name="value">Value that will be appended at the end</param>

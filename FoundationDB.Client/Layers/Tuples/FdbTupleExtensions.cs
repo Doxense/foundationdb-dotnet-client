@@ -98,15 +98,6 @@ namespace FoundationDB.Layers.Tuples
 			return tuple.Get<T>(0);
 		}
 
-		/// <summary>Returns the typed value of the last item in this tuple</summary>
-		/// <typeparam name="T">Expected type of the last item</typeparam>
-		/// <returns>Value of the last item, adapted into type <typeparamref name="T"/>.</returns>
-		public static T Last<T>([NotNull] this IFdbTuple tuple)
-		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
-			return tuple.Get<T>(-1);
-		}
-
 		/// <summary>Appends two values at the end of a tuple</summary>
 		[NotNull]
 		public static IFdbTuple Append<T1, T2>([NotNull] this IFdbTuple tuple, T1 value1, T2 value2)

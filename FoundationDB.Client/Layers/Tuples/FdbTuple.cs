@@ -72,6 +72,11 @@ namespace FoundationDB.Layers.Tuples
 				throw new InvalidOperationException("Tuple is empty");
 			}
 
+			R IFdbTuple.Last<R>()
+			{
+				throw new InvalidOperationException("Tuple is empty");
+			}
+
 			public IFdbTuple Append<T1>(T1 value)
 			{
 				return new FdbTuple<T1>(value);

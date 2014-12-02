@@ -93,6 +93,18 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
+		/// <summary>Return the value of the last item in the tuple</summary>
+		public T2 Last
+		{
+			get { return this.Item2; }
+		}
+
+		/// <summary>Return the typed value of the last item in the tuple</summary>
+		R IFdbTuple.Last<R>()
+		{
+			return FdbConverters.Convert<T2, R>(this.Item2);
+		}
+
 		public void PackTo(ref TupleWriter writer)
 		{
 			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);

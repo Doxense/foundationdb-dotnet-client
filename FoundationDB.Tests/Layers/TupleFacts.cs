@@ -186,32 +186,36 @@ namespace FoundationDB.Layers.Tuples.Tests
 			var t1 = FdbTuple.Create(1);
 			Assert.That(t1.First<int>(), Is.EqualTo(1));
 			Assert.That(t1.First<string>(), Is.EqualTo("1"));
-			Assert.That(t1.Last<int>(), Is.EqualTo(1));
-			Assert.That(t1.Last<string>(), Is.EqualTo("1"));
+			Assert.That(((IFdbTuple)t1).Last<int>(), Is.EqualTo(1));
+			Assert.That(((IFdbTuple)t1).Last<string>(), Is.EqualTo("1"));
 
 			var t2 = FdbTuple.Create(1, 2);
 			Assert.That(t2.First<int>(), Is.EqualTo(1));
 			Assert.That(t2.First<string>(), Is.EqualTo("1"));
-			Assert.That(t2.Last<int>(), Is.EqualTo(2));
-			Assert.That(t2.Last<string>(), Is.EqualTo("2"));
+			Assert.That(t2.Last, Is.EqualTo(2));
+			Assert.That(((IFdbTuple)t2).Last<int>(), Is.EqualTo(2));
+			Assert.That(((IFdbTuple)t2).Last<string>(), Is.EqualTo("2"));
 
 			var t3 = FdbTuple.Create(1, 2, 3);
 			Assert.That(t3.First<int>(), Is.EqualTo(1));
 			Assert.That(t3.First<string>(), Is.EqualTo("1"));
-			Assert.That(t3.Last<int>(), Is.EqualTo(3));
-			Assert.That(t3.Last<string>(), Is.EqualTo("3"));
+			Assert.That(t3.Last, Is.EqualTo(3));
+			Assert.That(((IFdbTuple)t3).Last<int>(), Is.EqualTo(3));
+			Assert.That(((IFdbTuple)t3).Last<string>(), Is.EqualTo("3"));
 
 			var t4 = FdbTuple.Create(1, 2, 3, 4);
 			Assert.That(t4.First<int>(), Is.EqualTo(1));
 			Assert.That(t4.First<string>(), Is.EqualTo("1"));
-			Assert.That(t4.Last<int>(), Is.EqualTo(4));
-			Assert.That(t4.Last<string>(), Is.EqualTo("4"));
+			Assert.That(t4.Last, Is.EqualTo(4));
+			Assert.That(((IFdbTuple)t4).Last<int>(), Is.EqualTo(4));
+			Assert.That(((IFdbTuple)t4).Last<string>(), Is.EqualTo("4"));
 
 			var t5 = FdbTuple.Create(1, 2, 3, 4, 5);
 			Assert.That(t5.First<int>(), Is.EqualTo(1));
 			Assert.That(t5.First<string>(), Is.EqualTo("1"));
-			Assert.That(t5.Last<int>(), Is.EqualTo(5));
-			Assert.That(t5.Last<string>(), Is.EqualTo("5"));
+			Assert.That(t5.Last, Is.EqualTo(5));
+			Assert.That(((IFdbTuple)t5).Last<int>(), Is.EqualTo(5));
+			Assert.That(((IFdbTuple)t5).Last<string>(), Is.EqualTo("5"));
 
 			var tn = FdbTuple.Create(1, 2, 3, 4, 5, 6);
 			Assert.That(tn.First<int>(), Is.EqualTo(1));

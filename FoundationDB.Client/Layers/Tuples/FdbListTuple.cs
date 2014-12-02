@@ -146,6 +146,12 @@ namespace FoundationDB.Layers.Tuples
 			return FdbConverters.ConvertBoxed<R>(this[index]);
 		}
 
+		public R Last<R>()
+		{
+			if (m_count == 0) throw new InvalidOperationException("Tuple is empty");
+			return FdbConverters.ConvertBoxed<R>(m_items[m_offset + m_count - 1]);
+		}
+
 		IFdbTuple IFdbTuple.Append<T>(T value)
 		{
 			return this.Append<T>(value);

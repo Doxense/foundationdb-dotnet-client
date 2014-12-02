@@ -99,6 +99,11 @@ namespace FoundationDB.Layers.Tuples
 			return m_items.Get<R>(index);
 		}
 
+		public R Last<R>()
+		{
+			return m_items.Last<R>();
+		}
+
 		IFdbTuple IFdbTuple.Append<R>(R value)
 		{
 			return this.Append<R>(value);
