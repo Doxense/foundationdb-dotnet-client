@@ -57,53 +57,67 @@ namespace FoundationDB.Layers.Collections.Tests
 				var queue = new FdbQueue<int>(location, highContention: false);
 
 				Console.WriteLine("Clear Queue");
-				await queue.ClearAsync(db, this.Cancellation);
+				await db.WriteAsync((tr) => queue.Clear(tr), this.Cancellation);
 
-				Console.WriteLine("Empty? " + await queue.EmptyAsync(db, this.Cancellation));
+				Console.WriteLine("Empty? " + await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation));
 
 				Console.WriteLine("Push 10, 8, 6");
-				await queue.PushAsync(db, 10, this.Cancellation);
-				await queue.PushAsync(db, 8, this.Cancellation);
-				await queue.PushAsync(db, 6, this.Cancellation);
+				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 10), this.Cancellation);
+				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 8), this.Cancellation);
+				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 6), this.Cancellation);
 
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				Console.WriteLine("Empty? " + await queue.EmptyAsync(db, this.Cancellation));
+				// Empty?
+				bool empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
+				Console.WriteLine("Empty? " + empty);
+				Assert.That(empty, Is.False);
 
-				Console.WriteLine("Pop item: " + await queue.PopAsync(db, this.Cancellation));
-				Console.WriteLine("Next item: " + await queue.PeekAsync(db, this.Cancellation));
+				Optional<int> item = await queue.PopAsync(db, this.Cancellation);
+				Console.WriteLine("Pop item: " + item);
+				Assert.That((int)item, Is.EqualTo(10));
+				item = await db.ReadWriteAsync((tr) => queue.PeekAsync(tr), this.Cancellation);
+				Console.WriteLine("Next item: " + item);
+				Assert.That((int)item, Is.EqualTo(8));
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				Console.WriteLine("Pop item: " + await queue.PopAsync(db, this.Cancellation));
+				item = await queue.PopAsync(db, this.Cancellation);
+				Console.WriteLine("Pop item: " + item);
+				Assert.That((int)item, Is.EqualTo(8));
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				Console.WriteLine("Pop item: " + await queue.PopAsync(db, this.Cancellation));
+				item = await queue.PopAsync(db, this.Cancellation);
+				Console.WriteLine("Pop item: " + item);
+				Assert.That((int)item, Is.EqualTo(6));
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-
-				Console.WriteLine("Empty? " + await queue.EmptyAsync(db, this.Cancellation));
+				empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
+				Console.WriteLine("Empty? " + empty);
+				Assert.That(empty, Is.True);
 
 				Console.WriteLine("Push 5");
-				await queue.PushAsync(db, 5, this.Cancellation);
+				await db.ReadWriteAsync((tr) => queue.PushAsync(tr, 5), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
 				Console.WriteLine("Clear Queue");
-				await queue.ClearAsync(db, this.Cancellation);
+				await db.WriteAsync((tr) => queue.Clear(tr), this.Cancellation);
 #if DEBUG
 				await DumpSubspace(db, location);
 #endif
 
-				Console.WriteLine("Empty? " + await queue.EmptyAsync(db, this.Cancellation));
+				empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
+				Console.WriteLine("Empty? " + empty);
+				Assert.That(empty, Is.True);
 			}
 		}
 
@@ -116,11 +130,11 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				var queue = new FdbQueue<int>(location, highContention: false);
 
-				await queue.ClearAsync(db, this.Cancellation);
+				await db.WriteAsync((tr) => queue.Clear(tr), this.Cancellation);
 
 				for (int i = 0; i < 10; i++)
 				{
-					await queue.PushAsync(db, i, this.Cancellation);
+					await db.ReadWriteAsync((tr) => queue.PushAsync(tr, i), this.Cancellation);
 				}
 
 				for (int i = 0; i < 10; i++)
@@ -130,7 +144,8 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(r.Value, Is.EqualTo(i));
 				}
 
-				Assert.That(await queue.EmptyAsync(db, this.Cancellation), Is.True);
+				bool empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), this.Cancellation);
+				Assert.That(empty, Is.True);
 			}
 
 		}
@@ -140,7 +155,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			Console.WriteLine("Starting {0} test with {1} threads and {2} iterations", desc, K, NUM);
 
 			var queue = new FdbQueue<string>(location, highContention);
-			await queue.ClearAsync(db, ct);
+			await db.WriteAsync((tr) => queue.Clear(tr), ct);
 
 			// use a CTS to ensure that everything will stop in case of problems...
 			using (var go = new CancellationTokenSource(TimeSpan.FromSeconds(30)))
@@ -165,7 +180,7 @@ namespace FoundationDB.Layers.Collections.Tests
 						for (int i = 0; i < NUM; i++)
 						{
 							var item = id.ToString() + "." + i.ToString();
-							await queue.PushAsync(db, item, tok).ConfigureAwait(false);
+							await db.ReadWriteAsync((tr) => queue.PushAsync(tr, item), tok).ConfigureAwait(false);
 
 							Interlocked.Increment(ref pushCount);
 							res.Add(item);
@@ -232,7 +247,8 @@ namespace FoundationDB.Layers.Collections.Tests
 				Assert.That(poppedItems, Is.EquivalentTo(pushedItems));
 
 				// the queue should be empty
-				Assert.That(await queue.EmptyAsync(db, ct), Is.True);
+				bool empty = await db.ReadAsync((tr) => queue.EmptyAsync(tr), ct);
+				Assert.That(empty, Is.True);
 			}
 		}
 

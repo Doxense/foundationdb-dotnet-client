@@ -101,9 +101,9 @@
     <Compile Include="Filters\Logging\FdbLoggedTransaction.cs" />
     <Compile Include="Filters\ReadOnlyTransactionFilter.cs" />
     <Compile Include="Filters\PrefixRewriterTransaction.cs" />
-    <Compile Include="IFdbReadOnlyTransactional.cs" />
+    <Compile Include="IFdbReadOnlyRetryable.cs" />
     <Compile Include="IFdbDatabase.cs" />
-    <Compile Include="IFdbTransactional.cs" />
+    <Compile Include="IFdbRetryable.cs" />
     <Compile Include="FdbFuture.cs" />
     <Compile Include="FdbFutureArray.cs" />
     <Compile Include="FdbWatch.cs" />
@@ -138,7 +138,7 @@
     <Compile Include="FdbClusterOption.cs" />
     <Compile Include="FdbNetworkOption.cs" />
     <Compile Include="FdbError.cs" />
-    <Compile Include="Layers\Directories\FdbDirectoryTransactionals.cs" />
+    <Compile Include="Layers\Directories\FdbDirectoryExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbTupleCodec`1.cs" />
     <Compile Include="Layers\Tuples\FdbTuple`4.cs" />
     <Compile Include="Subspaces\Fdb.Directory.cs" />

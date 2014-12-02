@@ -44,9 +44,10 @@ namespace FoundationDB.Client
 
 	/// <summary>FounrationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
-	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}")]
+	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}, Size={Size}")]
 	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadOnlyTransaction, IDisposable
 	{
+
 		#region Private Members...
 
 		internal const int STATE_INIT = 0;

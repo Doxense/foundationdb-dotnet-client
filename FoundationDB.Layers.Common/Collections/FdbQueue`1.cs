@@ -97,7 +97,7 @@ namespace FoundationDB.Layers.Collections
 		internal FdbSubspace QueueItem { get; private set; }
 
 		/// <summary>Remove all items from the queue.</summary>
-		public void ClearAsync([NotNull] IFdbTransaction trans)
+		public void Clear([NotNull] IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 

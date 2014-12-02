@@ -329,31 +329,6 @@ namespace FoundationDB.Layers.Interning
 
 		#endregion
 
-		#region Transactionals...
-
-		/// <summary>Look up string <paramref name="value"/> in the intern database and return its normalized representation. If value already exists, intern returns the existing representation.</summary>
-		/// <param name="db">Fdb database</param>
-		/// <param name="value">String to intern</param>
-		/// <returns>Normalized representation of the string</returns>
-		/// <remarks>The length of the string <paramref name="value"/> must not exceed the maximum FoundationDB value size</remarks>
-		public Task<Slice> InternAsync(IFdbTransactional db, string value, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			return db.ReadWriteAsync((tr) => this.InternAsync(tr, value), cancellationToken);
-		}
-
-		/// <summary>Return the long string associated with the normalized representation <paramref name="uid"/></summary>
-		/// <param name="db">Fdb database</param>
-		/// <param name="uid">Interned uid of the string</param>
-		/// <returns>Original value of the interned string, or an exception if it does it does not exist</returns>
-		public Task<string> LookupAsync(IFdbReadOnlyTransactional db, Slice uid, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			return db.ReadAsync((tr) => this.LookupAsync(tr, uid), cancellationToken);
-		}
-
-		#endregion
-
 		public void Dispose()
 		{
 			Dispose(true);

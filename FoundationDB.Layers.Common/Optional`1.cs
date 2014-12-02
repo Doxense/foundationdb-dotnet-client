@@ -253,6 +253,8 @@ namespace FoundationDB.Layers
 		// The main difference is that, 'null' is a legal value for reference types, which is distinct from "no value"
 		// i.e.: new Optional<string>(null).HasValue == true
 
+		//REVIEW: this looks very similar to Maybe<T>, except without the handling of errors. Maybe we could merge both?
+
 		private readonly bool m_hasValue;
 
 		private readonly T m_value;
@@ -301,12 +303,12 @@ namespace FoundationDB.Layers
 
 		public bool Equals(Optional<T> value)
 		{
-			return m_hasValue == value.m_hasValue && object.Equals(m_value, value.m_value);
+			return m_hasValue == value.m_hasValue && EqualityComparer<T>.Default.Equals(m_value, value.m_value);
 		}
 
 		public bool Equals(T value)
 		{
-			return m_hasValue && object.Equals(m_value, value);
+			return m_hasValue && EqualityComparer<T>.Default.Equals(m_value, value);
 		}
 
 		public override int GetHashCode()
@@ -318,8 +320,9 @@ namespace FoundationDB.Layers
 		/// <summary>Indicates whether the current <see cref="Optional{T}"/> object is equal to a specified object.</summary>
 		public override bool Equals(object obj)
 		{
-			if (!m_hasValue) return obj == null;
-			return object.Equals(m_value, obj);
+			if (obj is T) return Equals((T)obj);
+			if (obj is Optional<T>) return Equals((Optional<T>)obj);
+			return m_hasValue ? object.Equals(m_value, obj) : object.ReferenceEquals(obj, null);
 		}
 
 		public static bool operator ==(Optional<T> a, Optional<T> b)
@@ -363,7 +366,7 @@ namespace FoundationDB.Layers
 			// Needed to be able to write stuff like "if (optional != null)", the compiler will automatically lift "foo != null" to nullables if foo is a struct implements the '!=' operator
 			return !a.GetValueOrDefault().Equals(b.GetValueOrDefault());
 		}
-		
+
 		public static explicit operator T(Optional<T> value)
 		{
 			return value.Value;
