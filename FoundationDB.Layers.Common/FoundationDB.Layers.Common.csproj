@@ -52,21 +52,17 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
-    <Compile Include="Blobs\FdbBlobTransactionals.cs" />
     <Compile Include="Collections\FdbRankedSet.cs" />
     <Compile Include="Collections\FdbMultimap`2.cs" />
     <Compile Include="Optional`1.cs" />
-    <Compile Include="Collections\FdbVectorTransactionals.cs" />
     <Compile Include="Collections\FdbVector`1.cs" />
     <Compile Include="Counters\FdbCounterMap.cs" />
     <Compile Include="Counters\FdbHighContentionCounter.cs" />
     <Compile Include="Indexes\FdbIndex`2.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Collections\FdbQueue`1.cs" />
-    <Compile Include="Collections\FdbQueueTransactionals.cs" />
     <Compile Include="Interning\FdbStringIntern.cs" />
     <Compile Include="Blobs\FdbBlob.cs" />
-    <Compile Include="Collections\FdbMapTransactionals.cs" />
     <Compile Include="Collections\FdbMap`2.cs" />
   </ItemGroup>
   <ItemGroup>

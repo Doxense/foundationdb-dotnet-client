@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Clear the entire content of a subspace</summary>
-		public static Task ClearRangeAsync(this IFdbTransactional db, [NotNull] IFdbSubspace subspace, CancellationToken cancellationToken)
+		public static Task ClearRangeAsync(this IFdbRetryable db, [NotNull] IFdbSubspace subspace, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (subspace == null) throw new ArgumentNullException("subspace");

@@ -199,7 +199,7 @@ namespace FoundationDB.Layers.Messaging
 		/// <param name="taskBody"></param>
 		/// <param name="ct"></param>
 		/// <returns></returns>
-		public async Task ScheduleTaskAsync(IFdbTransactional db, Slice taskId, Slice taskBody, CancellationToken ct = default(CancellationToken))
+		public async Task ScheduleTaskAsync(IFdbRetryable db, Slice taskId, Slice taskBody, CancellationToken ct = default(CancellationToken))
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			var now = DateTime.UtcNow;

@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	using System.Threading;
 
 	/// <summary>Database connection context.</summary>
-	public interface IFdbDatabase : IFdbReadOnlyTransactional, IFdbTransactional, IFdbSubspace, IFdbKey, IDisposable
+	public interface IFdbDatabase : IFdbReadOnlyRetryable, IFdbRetryable, IFdbSubspace, IFdbKey, IDisposable
 	{
 		/// <summary>Name of the database</summary>
 		string Name { [NotNull] get; }

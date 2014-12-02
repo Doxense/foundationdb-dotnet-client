@@ -43,14 +43,14 @@ namespace FoundationDB.Layers.Collections
 
 		// Vector stores each of its values using its index as the key.
 		// The size of a vector is equal to the index of its last key + 1.
-		// 
+		//
 		// For indexes smaller than the vector's size that have no associated key
 		// in the database, the value will be the specified defaultValue.
-		// 
+		//
 		// If the last value in the vector has the default value, its key will
 		// always be set so that size can be determined.
-		// 
-		// By creating Vector with a Subspace, all kv pairs modified by the 
+		//
+		// By creating Vector with a Subspace, all kv pairs modified by the
 		// layer will have keys that start within that Subspace.
 
 		// Implementation note:
