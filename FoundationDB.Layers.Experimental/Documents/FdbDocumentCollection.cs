@@ -215,64 +215,6 @@ namespace FoundationDB.Layers.Documents
 			DeleteMultiple(trans, documents.Select(document => this.IdSelector(document)));
 		}
 
-		#region Transactional...
-
-		public async Task InsertAsync(IFdbTransactional db, TDocument document, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-
-			await db.WriteAsync((tr) => this.Insert(tr, document), cancellationToken);
-
-		}
-
-		public Task<TDocument> LoadAsync(IFdbReadOnlyTransactional db, TId id, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (id == null) throw new ArgumentNullException("id");
-
-			return db.ReadAsync((tr) => LoadAsync(tr, id), cancellationToken);
-		}
-
-		public Task<List<TDocument>> LoadMultipleAsync(IFdbReadOnlyTransactional db, IEnumerable<TId> ids, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (ids == null) throw new ArgumentNullException("ids");
-
-			//note: if the source is not already a collection, we have to assume that it is not safe to read it multiple times (it may be a LINQ query or an iterator)
-			var coll = ids as ICollection<TId> ?? ids.ToList();
-
-			return db.ReadAsync((tr) => LoadMultipleAsync(tr, coll), cancellationToken);
-		}
-
-		public Task DeleteAsync(IFdbTransactional db, TId id, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (id == null) throw new ArgumentNullException("id");
-
-			return db.WriteAsync((tr) => this.Delete(tr, id), cancellationToken);
-		}
-
-		public Task DeleteMultipleAsync(IFdbTransactional db, IEnumerable<TId> ids, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (ids == null) throw new ArgumentNullException("ids");
-
-			//note: if the source is not already a collection, we have to assume that it is not safe to read it multiple times (it may be a LINQ query or an iterator)
-			var coll = ids as ICollection<TId> ?? ids.ToList();
-
-			return db.WriteAsync((tr) => this.DeleteMultiple(tr, coll), cancellationToken);
-		}
-
-		public Task DeleteAsync(IFdbTransactional db, TDocument document, CancellationToken cancellationToken)
-		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (document == null) throw new ArgumentNullException("document");
-
-			return db.WriteAsync((tr) => this.Delete(tr, document), cancellationToken);
-		}
-
-		#endregion
-
 	}
 
 }
