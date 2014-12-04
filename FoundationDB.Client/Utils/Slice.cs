@@ -1074,7 +1074,7 @@ namespace FoundationDB.Client
 				// look for JSON objets or arrays
 				if ((buffer[p] == '{' && buffer[p + n - 1] == '}') || (buffer[p] == '[' && buffer[p + n - 1] == ']'))
 				{
-					return EscapeString(new StringBuilder(n + 16), buffer, p, n, Encoding.UTF8).Append('\'').ToString();
+					return EscapeString(new StringBuilder(n + 16), buffer, p, n, Encoding.UTF8).ToString();
 				}
 			}
 
