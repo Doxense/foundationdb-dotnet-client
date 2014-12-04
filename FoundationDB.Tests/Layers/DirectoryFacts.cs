@@ -142,6 +142,7 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				Assert.That(foo, Is.Not.Null);
+				Assert.That(foo.FullName, Is.EqualTo("Foo"));
 				Assert.That(foo.Path, Is.EqualTo(new[] { "Foo" }));
 				Assert.That(foo.Layer, Is.EqualTo(Slice.Empty));
 				Assert.That(foo.DirectoryLayer, Is.SameAs(directory));
@@ -155,6 +156,7 @@ namespace FoundationDB.Layers.Directories
 				await DumpSubspace(db, location);
 #endif
 				Assert.That(foo2, Is.Not.Null);
+				Assert.That(foo2.FullName, Is.EqualTo("Foo"));
 				Assert.That(foo2.Path, Is.EqualTo(new[] { "Foo" }));
 				Assert.That(foo2.Layer, Is.EqualTo(Slice.Empty));
 				Assert.That(foo2.DirectoryLayer, Is.SameAs(directory));
@@ -200,6 +202,7 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				Assert.That(foo, Is.Not.Null);
+				Assert.That(foo.FullName, Is.EqualTo("Foo"));
 				Assert.That(foo.Path, Is.EqualTo(new[] { "Foo" }));
 				Assert.That(foo.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
 				Assert.That(foo.DirectoryLayer, Is.SameAs(directory));
@@ -207,6 +210,7 @@ namespace FoundationDB.Layers.Directories
 				// second call should return the same subspace
 				var foo2 = await directory.OpenAsync(logged, new[] { "Foo" }, Slice.FromString("AcmeLayer"), this.Cancellation);
 				Assert.That(foo2, Is.Not.Null);
+				Assert.That(foo2.FullName, Is.EqualTo("Foo"));
 				Assert.That(foo2.Path, Is.EqualTo(new[] { "Foo" }));
 				Assert.That(foo2.Layer.ToUnicode(), Is.EqualTo("AcmeLayer"));
 				Assert.That(foo2.DirectoryLayer, Is.SameAs(directory));
@@ -273,7 +277,8 @@ namespace FoundationDB.Layers.Directories
 #endif
 
 				Assert.That(folder, Is.Not.Null);
-				Assert.That(folder.Path, Is.EqualTo(new [] { "Foo", "Bar", "Baz" }));
+				Assert.That(folder.FullName, Is.EqualTo("Foo/Bar/Baz"));
+				Assert.That(folder.Path, Is.EqualTo(new[] { "Foo", "Bar", "Baz" }));
 
 				// all the parent folders should also now exist
 				var foo = await directory.OpenAsync(logged, new[] { "Foo" }, this.Cancellation);
@@ -407,6 +412,7 @@ namespace FoundationDB.Layers.Directories
 				await DumpSubspace(db, location);
 #endif
 				Assert.That(original, Is.Not.Null);
+				Assert.That(original.FullName, Is.EqualTo("Foo"));
 				Assert.That(original.Path, Is.EqualTo(new[] { "Foo" }));
 
 				// rename/move it as ('Bar',)
@@ -415,7 +421,8 @@ namespace FoundationDB.Layers.Directories
 				await DumpSubspace(db, location);
 #endif
 				Assert.That(renamed, Is.Not.Null);
-				Assert.That(renamed.Path, Is.EqualTo(new [] { "Bar" }));
+				Assert.That(renamed.FullName, Is.EqualTo("Bar"));
+				Assert.That(renamed.Path, Is.EqualTo(new[] { "Bar" }));
 				Assert.That(renamed.Key, Is.EqualTo(original.Key));
 
 				// opening the old path should fail
@@ -424,6 +431,7 @@ namespace FoundationDB.Layers.Directories
 				// opening the new path should succeed
 				var folder = await directory.OpenAsync(logged, "Bar", this.Cancellation);
 				Assert.That(folder, Is.Not.Null);
+				Assert.That(folder.FullName, Is.EqualTo(renamed.FullName));
 				Assert.That(folder.Path, Is.EqualTo(renamed.Path));
 				Assert.That(folder.Key, Is.EqualTo(renamed.Key));
 
@@ -528,6 +536,7 @@ namespace FoundationDB.Layers.Directories
 #endif
 				Assert.That(folder2, Is.Not.Null);
 				Assert.That(folder2.Layer.ToUnicode(), Is.EqualTo("bar"));
+				Assert.That(folder2.FullName, Is.EqualTo("Test"));
 				Assert.That(folder2.Path, Is.EqualTo(FdbTuple.Create("Test")));
 				Assert.That(folder2.Key, Is.EqualTo(folder.Key));
 
@@ -564,7 +573,8 @@ namespace FoundationDB.Layers.Directories
 				Console.WriteLine(partition);
 				Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
 				Assert.That(partition.Layer, Is.EqualTo(Slice.FromAscii("partition")));
-				Assert.That(partition.Path, Is.EqualTo(new [] { "Foo" }), "Partition's path should be absolute");
+				Assert.That(partition.FullName, Is.EqualTo("Foo"));
+				Assert.That(partition.Path, Is.EqualTo(new[] { "Foo" }), "Partition's path should be absolute");
 				Assert.That(partition.DirectoryLayer, Is.Not.SameAs(directory), "Partitions should have their own DL");
 				Assert.That(partition.DirectoryLayer.ContentSubspace.Key, Is.EqualTo(partitionKey), "Partition's content should be under the partition's prefix");
 				Assert.That(partition.DirectoryLayer.NodeSubspace.Key, Is.EqualTo(partitionKey + FdbKey.Directory), "Partition's nodes should be under the partition's prefix");
@@ -579,7 +589,8 @@ namespace FoundationDB.Layers.Directories
 				var baz = await partition.CreateAsync(db, "Baz", this.Cancellation);
 				Console.WriteLine(baz);
 				Assert.That(baz, Is.InstanceOf<FdbDirectorySubspace>());
-				Assert.That(baz.Path, Is.EqualTo(new [] { "Foo", "Baz" }), "Path of directories under a partition should be absolute");
+				Assert.That(baz.FullName, Is.EqualTo("Foo/Baz"));
+				Assert.That(baz.Path, Is.EqualTo(new[] { "Foo", "Baz" }), "Path of directories under a partition should be absolute");
 				Assert.That(baz.Key, Is.Not.EqualTo(partitionKey), "{0} should be located under {1}", baz, partition);
 				Assert.That(baz.Key.StartsWith(partitionKey), Is.True, "{0} should be located under {1}", baz, partition);
 
@@ -589,6 +600,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(bar2, Is.InstanceOf<FdbDirectorySubspace>());
 				Assert.That(bar2, Is.Not.SameAs(bar));
 				Assert.That(bar2.Key, Is.EqualTo(bar.Key));
+				Assert.That(bar2.FullName, Is.EqualTo("Foo/BarBar"));
 				Assert.That(bar2.Path, Is.EqualTo(new[] { "Foo", "BarBar" }));
 				Assert.That(bar2.DirectoryLayer, Is.SameAs(bar.DirectoryLayer));
 			}
@@ -611,6 +623,7 @@ namespace FoundationDB.Layers.Directories
 				// create a 'Bar' under the 'Foo' partition
 				var bar = await foo.CreateAsync(db, "Bar", this.Cancellation);
 				Console.WriteLine(bar);
+				Assert.That(bar.FullName, Is.EqualTo("Foo/Bar"));
 				Assert.That(bar.Path, Is.EqualTo(new string[] { "Foo", "Bar" }));
 				Assert.That(bar.DirectoryLayer, Is.Not.SameAs(directory));
 				Assert.That(bar.DirectoryLayer, Is.SameAs(foo.DirectoryLayer));
@@ -639,15 +652,18 @@ namespace FoundationDB.Layers.Directories
 				// create a 'Inner' subpartition under the 'Outer' partition
 				var inner = await outer.CreateAsync(db, "Inner", Slice.FromString("partition"), this.Cancellation);
 				Console.WriteLine(inner);
+				Assert.That(inner.FullName, Is.EqualTo("Outer/Inner"));
 				Assert.That(inner.Path, Is.EqualTo(new string[] { "Outer", "Inner" }));
 				Assert.That(inner.DirectoryLayer, Is.Not.SameAs(directory));
 				Assert.That(inner.DirectoryLayer, Is.Not.SameAs(outer.DirectoryLayer));
 
 				// create folder /Outer/Foo
 				var foo = await outer.CreateAsync(db, "Foo", this.Cancellation);
+				Assert.That(foo.FullName, Is.EqualTo("Outer/Foo"));
 				Assert.That(foo.Path, Is.EqualTo(new string[] { "Outer", "Foo" }));
 				// create folder /Outer/Inner/Bar
 				var bar = await inner.CreateAsync(db, "Bar", this.Cancellation);
+				Assert.That(bar.FullName, Is.EqualTo("Outer/Inner/Bar"));
 				Assert.That(bar.Path, Is.EqualTo(new string[] { "Outer", "Inner", "Bar" }));
 
 				// Attempting to move 'Foo' inside the Inner partition should fail
@@ -661,12 +677,14 @@ namespace FoundationDB.Layers.Directories
 				// Moving 'Foo' inside the Outer partition itself should work
 				await directory.CreateAsync(db, new[] { "Outer", "SubFolder" }, this.Cancellation); // parent of destination folder must already exist when moving...
 				var foo2 = await directory.MoveAsync(db, new[] { "Outer", "Foo" }, new[] { "Outer", "SubFolder", "Foo" }, this.Cancellation);
-				Assert.That(foo2.Path, Is.EqualTo(new [] { "Outer", "SubFolder", "Foo" }));
+				Assert.That(foo2.FullName, Is.EqualTo("Outer/SubFolder/Foo"));
+				Assert.That(foo2.Path, Is.EqualTo(new[] { "Outer", "SubFolder", "Foo" }));
 				Assert.That(foo2.Key, Is.EqualTo(foo.Key));
 
 				// Moving 'Bar' inside the Inner partition itself should work
 				await directory.CreateAsync(db, new[] { "Outer", "Inner", "SubFolder" }, this.Cancellation); // parent of destination folder must already exist when moving...
 				var bar2 = await directory.MoveAsync(db, new[] { "Outer", "Inner", "Bar" }, new[] { "Outer", "Inner", "SubFolder", "Bar" }, this.Cancellation);
+				Assert.That(bar2.FullName, Is.EqualTo("Outer/Inner/SubFolder/Bar"));
 				Assert.That(bar2.Path, Is.EqualTo(new[] { "Outer", "Inner", "SubFolder", "Bar" }));
 				Assert.That(bar2.Key, Is.EqualTo(bar.Key));
 			}
@@ -692,6 +710,7 @@ namespace FoundationDB.Layers.Directories
 					// create foo
 					var foo = await directory.CreateOrOpenAsync(tr, "foo", Slice.FromString("partition"));
 					Assert.That(foo, Is.Not.Null);
+					Assert.That(foo.FullName, Is.EqualTo("foo"));
 					Assert.That(foo.Path, Is.EqualTo(new[] { "foo" }));
 					Assert.That(foo.Layer, Is.EqualTo(Slice.FromString("partition")));
 					Assert.That(foo, Is.InstanceOf<FdbDirectoryPartition>());
@@ -703,6 +722,7 @@ namespace FoundationDB.Layers.Directories
 					// rename to bar
 					var bar = await foo.MoveToAsync(tr, new[] { "bar" });
 					Assert.That(bar, Is.Not.Null);
+					Assert.That(bar.FullName, Is.EqualTo("bar"));
 					Assert.That(bar.Path, Is.EqualTo(new[] { "bar" }));
 					Assert.That(bar.Layer, Is.EqualTo(Slice.FromString("partition")));
 					Assert.That(bar, Is.InstanceOf<FdbDirectoryPartition>());
@@ -740,6 +760,7 @@ namespace FoundationDB.Layers.Directories
 					// create foo
 					var foo = await directory.CreateOrOpenAsync(tr, "foo", Slice.FromString("partition"));
 					Assert.That(foo, Is.Not.Null);
+					Assert.That(foo.FullName, Is.EqualTo("foo"));
 					Assert.That(foo.Path, Is.EqualTo(new[] { "foo" }));
 					Assert.That(foo.Layer, Is.EqualTo(Slice.FromString("partition")));
 					Assert.That(foo, Is.InstanceOf<FdbDirectoryPartition>());
@@ -810,7 +831,7 @@ namespace FoundationDB.Layers.Directories
 
 			}
 		}
-	
+
 		[Test]
 		public async Task Test_Directory_Partitions_Should_Disallow_Creation_Of_Direct_Keys()
 		{
@@ -931,6 +952,134 @@ namespace FoundationDB.Layers.Directories
 
 			}
 		}
+
+		[Test]
+		public async Task Test_Concurrent_Directory_Creation()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Partition.ByKey("DL");
+				await db.ClearRangeAsync(location, this.Cancellation);
+
+				var directory = FdbDirectoryLayer.Create(location);
+				Console.WriteLine(directory);
+
+				//to prevent any side effect from first time initialization of the directory layer, already create one dummy folder
+				await directory.CreateAsync(db, "Zero", this.Cancellation);
+
+				var logdb = db.Logged((tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+
+				var f = FdbDirectoryLayer.AnnotateTransactions;
+				try
+				{
+					FdbDirectoryLayer.AnnotateTransactions = true;
+
+					using (var tr1 = logdb.BeginTransaction(this.Cancellation))
+					using (var tr2 = logdb.BeginTransaction(this.Cancellation))
+					{
+
+						await Task.WhenAll(
+							tr1.GetReadVersionAsync(),
+							tr2.GetReadVersionAsync()
+						);
+
+						var first = await directory.CreateAsync(tr1, new[] { "First" }, Slice.Nil);
+						tr1.Set(first.Key, Slice.FromString("This belongs to the first directory"));
+
+						var second = await directory.CreateAsync(tr2, new[] { "Second" }, Slice.Nil);
+						tr2.Set(second.Key, Slice.FromString("This belongs to the second directory"));
+
+						Console.WriteLine("Committing T1...");
+						await tr1.CommitAsync();
+						Console.WriteLine("T1 committed");
+						tr1.Dispose(); // force T1 to be dumped immediately
+
+						Console.WriteLine("Committing T2...");
+						await tr2.CommitAsync();
+						Console.WriteLine("T2 committed");
+					}
+				}
+				finally
+				{
+					FdbDirectoryLayer.AnnotateTransactions = f;
+				}
+
+			}
+
+		}
+
+		[Test]
+		public async Task Test_Concurrent_Directory_Creation_With_Custom_Prefix()
+		{
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Partition.ByKey("DL");
+				await db.ClearRangeAsync(location, this.Cancellation);
+
+				// to keep the test db in a good shape, we will still use tuples for our custom prefix,
+				// but using strings so that they do not collide with the integers used by the normal allocator
+				// ie: regular prefix would be ("DL", 123) and our custom prefixes will be ("DL", "abc")
+
+				var directory = FdbDirectoryLayer.Create(location);
+				Console.WriteLine(directory);
+
+				//to prevent any side effect from first time initialization of the directory layer, already create one dummy folder
+				await directory.CreateAsync(db, "Zero", this.Cancellation);
+
+				var logdb = db.Logged((tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+
+				var f = FdbDirectoryLayer.AnnotateTransactions;
+				try
+				{
+					FdbDirectoryLayer.AnnotateTransactions = true;
+
+					using (var tr1 = logdb.BeginTransaction(this.Cancellation))
+					using (var tr2 = logdb.BeginTransaction(this.Cancellation))
+					{
+
+						await Task.WhenAll(
+							tr1.GetReadVersionAsync(),
+							tr2.GetReadVersionAsync()
+						);
+
+						var first = await directory.RegisterAsync(tr1, new[] { "First" }, Slice.Nil, location.Tuples.EncodeKey("abc"));
+						tr1.Set(first.Key, Slice.FromString("This belongs to the first directory"));
+
+						var second = await directory.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, location.Tuples.EncodeKey("def"));
+						tr2.Set(second.Key, Slice.FromString("This belongs to the second directory"));
+
+						Console.WriteLine("Committing T1...");
+						await tr1.CommitAsync();
+						Console.WriteLine("T1 committed");
+						tr1.Dispose(); // force T1 to be dumped immediately
+
+						Console.WriteLine("Committing T2...");
+						try
+						{
+							await tr2.CommitAsync();
+						}
+						catch(FdbException x)
+						{
+							if (x.Code == FdbError.NotCommitted)
+							{
+								// Current implementation of the DirectoryLayer conflicts with other transactions when checking if the custom key prefix has already been used in the DL
+								// cf: http://community.foundationdb.com/questions/4493/im-seeing-conflicts-when-creating-directory-subspa.html#answer-4497
+								Assert.Inconclusive("FIXME: Current implementation of DirectoryLayer creates read conflict when registering directories with custom key prefix");
+							}
+							throw;
+						}
+						Console.WriteLine("T2 committed");
+					}
+				}
+				finally
+				{
+					FdbDirectoryLayer.AnnotateTransactions = f;
+				}
+
+			}
+
+		}
+
 	}
 
 }

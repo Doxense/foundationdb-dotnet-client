@@ -41,7 +41,7 @@ namespace FoundationDB.Layers.Experimental.Indexing.Tests
 	using System.IO;
 
 	[TestFixture]
-	[Category("LongRunning")] // disabled for now (takes too much time!)
+	[Category("LongRunning")]
 	public class CompressedBitmapsFacts
 	{
 

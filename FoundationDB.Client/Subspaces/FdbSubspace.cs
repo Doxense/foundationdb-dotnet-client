@@ -115,7 +115,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Clone this subspace</summary>
 		/// <returns>New Subspace that uses the same prefix key</returns>
-		/// <remarks>Hint: Cloning a special Subspace like a <see cref="FdbDirectoryLayer"/>  or <see cref="FdbDirectoryPartition"/> will not keep all the "special abilities" of the parent.</remarks>
+		/// <remarks>Hint: Cloning a special Subspace like a <see cref="FoundationDB.Layers.Directories.FdbDirectoryLayer"/>  or <see cref="FoundationDB.Layers.Directories.FdbDirectoryPartition"/> will not keep all the "special abilities" of the parent.</remarks>
 		[NotNull]
 		public static FdbSubspace Copy([NotNull] IFdbSubspace subspace)
 		{
@@ -167,6 +167,7 @@ namespace FoundationDB.Client
 			get { return m_keys; }
 		}
 
+		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
 		public FdbSubspacePartition Partition
 		{
 			//note: not cached, because this is probably not be called frequently (except in the init path)
@@ -212,7 +213,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="key"/> is inside the bounds of the subspace</param>
 		/// <returns>Binary suffix of the key (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>
-		/// <remarks>This is the inverse operation of <see cref="FdbSubspace.Concat(Slice)"/></remarks>
+		/// <remarks>This is the inverse operation of <see cref="IFdbSubspace.ConcatKey(Slice)"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="key"/> is outside the current subspace.</exception>
 		public Slice ExtractKey(Slice key, bool boundCheck = false)
 		{
@@ -281,6 +282,7 @@ namespace FoundationDB.Client
 
 		#region IEquatable / IComparable...
 
+		/// <summary>Compare this subspace with another subspace</summary>
 		public int CompareTo(IFdbSubspace other)
 		{
 			if (other == null) return +1;
@@ -292,6 +294,7 @@ namespace FoundationDB.Client
 				return this.InternalKey.CompareTo(other.ToFoundationDbKey());
 		}
 
+		/// <summary>Test if both subspaces have the same prefix</summary>
 		public bool Equals(IFdbSubspace other)
 		{
 			if (other == null) return false;
@@ -303,11 +306,14 @@ namespace FoundationDB.Client
 				return this.InternalKey.Equals(other.ToFoundationDbKey());
 		}
 
+		/// <summary>Test if an object is a subspace with the same prefix</summary>
 		public override bool Equals(object obj)
 		{
 			return Equals(obj as FdbSubspace);
 		}
 
+		/// <summary>Compute a hashcode based on the prefix of this subspace</summary>
+		/// <returns></returns>
 		public override int GetHashCode()
 		{
 			return this.InternalKey.GetHashCode();
@@ -341,6 +347,8 @@ namespace FoundationDB.Client
 				return FdbKey.System;
 		}
 
+		/// <summary>Throw an exception for a key that is out of the bounds of this subspace</summary>
+		/// <param name="key"></param>
 		[ContractAnnotation("=> halt")]
 		protected void FailKeyOutOfBound(Slice key)
 		{
@@ -353,6 +361,9 @@ namespace FoundationDB.Client
 			throw new ArgumentException(msg, "key");
 		}
 
+		/// <summary>Return a user-friendly representation of a key from this subspace</summary>
+		/// <param name="key">Key that is contained in this subspace</param>
+		/// <returns>Printable version of this key, minus the subspace prefix</returns>
 		[NotNull]
 		public virtual string DumpKey(Slice key)
 		{
@@ -363,6 +374,7 @@ namespace FoundationDB.Client
 			return FdbKey.Dump(key.Substring(prefix.Count));
 		}
 
+		/// <summary>Printable representation of this subspace</summary>
 		public override string ToString()
 		{
 			return String.Format(CultureInfo.InvariantCulture, "Subspace({0})", this.InternalKey.ToString());
