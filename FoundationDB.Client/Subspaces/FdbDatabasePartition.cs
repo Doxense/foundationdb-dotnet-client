@@ -36,13 +36,14 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Database instance that manages the content of a KeySpace partition</summary>
+	/// <summary>View of a database that is bound to a specific Partition</summary>
 	[DebuggerDisplay("Database={Database.Name}, Contents={Directory.ContentsSubspace}, Nodes={Directory.NodeSubspace}")]
 	public sealed class FdbDatabasePartition : IFdbDirectory
 	{
 		private readonly IFdbDatabase m_database;
 		private readonly IFdbDirectory m_directory;
 
+		/// <summary>Wrap an existing database with a root directory</summary>
 		public FdbDatabasePartition(IFdbDatabase database, IFdbDirectory directory)
 		{
 			if (database == null) throw new ArgumentNullException("database");
@@ -59,30 +60,37 @@ namespace FoundationDB.Client
 			get { return m_directory; }
 		}
 
-		/// <summary>Wrapped Directory instance</summary>
+		/// <summary>Wrapped Database instance</summary>
 		public IFdbDatabase Database
 		{
 			[NotNull]
 			get { return m_database; }
 		}
 
+		/// <summary>Name of this <code>Partition</code>.</summary>
+		/// <remarks>This returns the last part of the path</remarks>
 		public string Name
 		{
 			get { return m_directory.Name; }
 		}
 
+		/// <summary>Formatted path of this <code>Partition</code></summary>
+		/// <remarks>This returns the formatted path, using '/' as the separator</remarks>
 		public string FullName
 		{
 			[NotNull]
 			get { return m_directory.FullName; }
 		}
 
+		/// <summary>Gets the path represented by this <code>Partition</code>.</summary>
+		/// <remarks>Returns an empty list for the root partition of the database, or a non empty list for a sub-partition</remarks>
 		public IReadOnlyList<string> Path
 		{
 			[NotNull]
 			get { return m_directory.Path; }
 		}
 
+		/// <summary>Get the DirectoryLayer that was used to create this partition.</summary>
 		public FdbDirectoryLayer DirectoryLayer
 		{
 			[NotNull]
@@ -91,6 +99,8 @@ namespace FoundationDB.Client
 
 		#region Layer...
 
+		/// <summary>Returns "partition" (ASCII)</summary>
+		/// <remarks>This should be equal to <see cref="FdbDirectoryPartition.LayerId"/></remarks>
 		public Slice Layer
 		{
 			get { return m_directory.Layer; }
@@ -100,7 +110,7 @@ namespace FoundationDB.Client
 		{
 			if (layer.IsPresent && layer != this.Layer)
 			{
-				throw new InvalidOperationException(String.Format("The directory {0} is a partition which is not compatible with layer {1}.", String.Join("/", this.Path), layer.ToAsciiOrHexaString()));
+				throw new InvalidOperationException(String.Format("The directory {0} is a partition which is not compatible with layer {1}.", this.FullName, layer.ToAsciiOrHexaString()));
 			}
 		}
 
@@ -113,21 +123,37 @@ namespace FoundationDB.Client
 
 		#region CreateOrOpen...
 
+		/// <summary>Opens a subdirectory with the given path.
+		/// If the subdirectory does not exist, it is created (creating intermediate subdirectories if necessary).
+		/// If layer is specified, it is checked against the layer of an existing subdirectory or set as the layer of a new subdirectory.
+		/// </summary>
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
+		/// <summary>Opens a subdirectory with the given path.
+		/// If the subdirectory does not exist, it is created (creating intermediate subdirectories if necessary).
+		/// If layer is specified, it is checked against the layer of an existing subdirectory or set as the layer of a new subdirectory.
+		/// </summary>
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] string name, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
+		/// <summary>Opens a subdirectory with the given path.
+		/// If the subdirectory does not exist, it is created (creating intermediate subdirectories if necessary).
+		/// If layer is specified, it is checked against the layer of an existing subdirectory or set as the layer of a new subdirectory.
+		/// </summary>
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
+		/// <summary>Opens a subdirectory with the given path.
+		/// If the subdirectory does not exist, it is created (creating intermediate subdirectories if necessary).
+		/// If layer is specified, it is checked against the layer of an existing subdirectory or set as the layer of a new subdirectory.
+		/// </summary>
 		public Task<FdbDirectorySubspace> CreateOrOpenAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadWriteAsync((tr) => m_directory.CreateOrOpenAsync(tr, path, layer), cancellationToken);
@@ -142,21 +168,41 @@ namespace FoundationDB.Client
 
 		#region Open...
 
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
 			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] string name, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
 		{
 			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory does not exist, or if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
 		public Task<FdbDirectorySubspace> OpenAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadAsync((tr) => m_directory.OpenAsync(tr, path, layer), cancellationToken);
@@ -171,21 +217,45 @@ namespace FoundationDB.Client
 
 		#region TryOpen...
 
+		/// <summary>Opens a subdirectory with the given <paramref name="name"/>.
+		/// An exception is thrown if the subdirectory if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="name">Name of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
+		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] string name, CancellationToken cancellationToken)
 		{
 			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
+		/// <summary>Opens a subdirectory with the given <paramref name="name"/>.
+		/// An exception is thrown if the subdirectory if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="name">Name of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
+		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] string name, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
+		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
 		{
 			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
+		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.
+		/// An exception is thrown if the subdirectory if a layer is specified and a different layer was specified when the subdirectory was created.
+		/// </summary>
+		/// <param name="path">Relative path of the subdirectory to open</param>
+		/// <param name="layer">Expected layer id for the subdirectory (optional)</param>
+		/// <returns>Returns the directory if it exists, or null if it was not found</returns>
 		public Task<FdbDirectorySubspace> TryOpenAsync([NotNull] IEnumerable<string> path, Slice layer, CancellationToken cancellationToken)
 		{
 			return m_database.ReadAsync((tr) => m_directory.TryOpenAsync(tr, path, layer), cancellationToken);
@@ -252,6 +322,33 @@ namespace FoundationDB.Client
 		Task<FdbDirectorySubspace> IFdbDirectory.TryCreateAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer)
 		{
 			return m_directory.TryCreateAsync(trans, path, layer);
+		}
+
+		#endregion
+
+		#region Register...
+
+		/// <summary>Registers an existing prefix as a directory with the given <paramref name="name"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
+		/// <param name="name">Name of the directory to create</param>
+		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
+		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
+		public Task<FdbDirectorySubspace> RegisterAsync([NotNull] string name, Slice layer, Slice prefix, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.RegisterAsync(tr, new[] { name }, layer, prefix), cancellationToken);
+		}
+
+		/// <summary>Registers an existing prefix as a directory with the given <paramref name="path"/> (creating parent directories if necessary). This method is only indented for advanced use cases.</summary>
+		/// <param name="path">Path of the directory to create</param>
+		/// <param name="layer">If <paramref name="layer"/> is specified, it is recorded with the directory and will be checked by future calls to open.</param>
+		/// <param name="prefix">The directory will be created with the given physical prefix; otherwise a prefix is allocated automatically.</param>
+		public Task<FdbDirectorySubspace> RegisterAsync([NotNull] IEnumerable<string> path, Slice layer, Slice prefix, CancellationToken cancellationToken)
+		{
+			return m_database.ReadWriteAsync((tr) => m_directory.RegisterAsync(tr, path, layer, prefix), cancellationToken);
+		}
+
+		Task<FdbDirectorySubspace> IFdbDirectory.RegisterAsync(IFdbTransaction trans, IEnumerable<string> path, Slice layer, Slice prefix)
+		{
+			return m_directory.RegisterAsync(trans, path, layer, prefix);
 		}
 
 		#endregion
@@ -418,7 +515,7 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
-	
+
 	}
 
 }

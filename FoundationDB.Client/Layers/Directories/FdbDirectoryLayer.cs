@@ -32,6 +32,7 @@ namespace FoundationDB.Layers.Directories
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using FoundationDB.Linq;
+	using FoundationDB.Filters.Logging;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -52,6 +53,13 @@ namespace FoundationDB.Layers.Directories
 		internal static readonly Slice LayerSuffix = Slice.FromAscii("layer");
 		internal static readonly Slice HcaKey = Slice.FromAscii("hca");
 		internal static readonly Slice VersionKey = Slice.FromAscii("version");
+
+		/// <summary>Use this flag to make the Directory Layer start annotating the transactions with a descriptions of all operations.</summary>
+		/// <remarks>
+		/// This is only usefull if you want to diagnose performance or read conflict issues.
+		/// This will only work with logged transactions, obtained by applying the Logging Filter on a database instance
+		/// </remarks>
+		public static bool AnnotateTransactions { get; set; }
 
 		/// <summary>Subspace where the content of each folder will be stored</summary>
 		public FdbSubspace ContentSubspace { get; private set; }
@@ -97,7 +105,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (layer.IsPresent)
 			{
-				throw new InvalidOperationException(String.Format("The directory layer {0} is not compatible with layer {1}.", String.Join("/", this.Path), layer.ToAsciiOrHexaString()));
+				throw new InvalidOperationException(String.Format("The directory layer {0} is not compatible with layer {1}.", this.FullName, layer.ToAsciiOrHexaString()));
 			}
 		}
 
@@ -603,12 +611,14 @@ namespace FoundationDB.Layers.Directories
 				prefix = this.ContentSubspace.Pack(id);
 
 				// ensure that there is no data already present under this prefix
+				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Ensure that there is no data already present under prefix {0}", prefix);
 				if (await trans.GetRange(FdbKeyRange.StartsWith(prefix)).AnyAsync().ConfigureAwait(false))
 				{
 					throw new InvalidOperationException(String.Format("The database has keys stored at the prefix chosen by the automatic prefix allocator: {0}", prefix.ToAsciiOrHexaString()));
 				}
 
 				// ensure that the prefix has not already been allocated
+				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Ensure that the prefix {0} has not already been allocated", prefix);
 				if (!(await IsPrefixFree(trans.Snapshot, prefix).ConfigureAwait(false)))
 				{
 					throw new InvalidOperationException("The directory layer has manually allocated prefixes that conflict with the automatic prefix allocator.");
@@ -616,6 +626,7 @@ namespace FoundationDB.Layers.Directories
 			}
 			else
 			{
+				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Ensure that the prefix {0} hasn't already been allocated", prefix);
 				// ensure that the prefix has not already been allocated
 				if (!(await IsPrefixFree(trans, prefix).ConfigureAwait(false)))
 				{
@@ -638,6 +649,7 @@ namespace FoundationDB.Layers.Directories
 
 			// initialize the metadata for this new directory
 			var node = NodeWithPrefix(prefix);
+			if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Registering the new prefix {0} into the folder sub-tree", prefix);
 			trans.Set(GetSubDirKey(parentNode, path.Get<string>(-1)), prefix);
 			SetLayer(trans, node, layer);
 
@@ -696,6 +708,7 @@ namespace FoundationDB.Layers.Directories
 				return null;
 			}
 
+			if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Register the prefix {0} to its new location in the folder sub-tree", oldNode.Subspace.Key);
 			trans.Set(GetSubDirKey(parentNode.Subspace, newPath.Get<string>(-1)), this.NodeSubspace.UnpackSingle<Slice>(oldNode.Subspace.Key));
 			await RemoveFromParent(trans, oldPath).ConfigureAwait(false);
 
@@ -860,7 +873,7 @@ namespace FoundationDB.Layers.Directories
 				.LastOrDefaultAsync()
 				.ConfigureAwait(false);
 
-			if (kvp.Key.HasValue) 
+			if (kvp.Key.HasValue)
 			{
 				var prevPrefix = this.NodeSubspace.UnpackFirst<Slice>(kvp.Key);
 				if (key.StartsWith(prevPrefix))
@@ -915,12 +928,14 @@ namespace FoundationDB.Layers.Directories
 			Slice layer = Slice.Nil;
 			while (i < path.Count)
 			{
+				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Looking for child {0} under node {1}...", path.Get<string>(i), n.Key);
 				n = NodeWithPrefix(await tr.GetAsync(GetSubDirKey(n, path.Get<string>(i))).ConfigureAwait(false));
 				if (n == null)
 				{
 					return new Node(null, path.Substring(0, i + 1), path, Slice.Empty);
 				}
 
+				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Reading Layer value for subfolder {0} found at {1}", path, n.Key);
 				layer = await tr.GetAsync(n.Pack(LayerSuffix)).ConfigureAwait(false);
 				if (layer == FdbDirectoryPartition.LayerId)
 				{ // stop when reaching a partition
@@ -955,6 +970,7 @@ namespace FoundationDB.Layers.Directories
 			var parent = await FindAsync(tr, path.Substring(0, path.Count - 1)).ConfigureAwait(false);
 			if (parent.Exists)
 			{
+				if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing path {0} from its parent folder at {1}", path, parent.Subspace.Key);
 				tr.Clear(GetSubDirKey(parent.Subspace, path.Get<string>(-1)));
 				return true;
 			}
@@ -969,7 +985,11 @@ namespace FoundationDB.Layers.Directories
 			//note: we could use Task.WhenAll to remove the children, but there is a risk of task explosion if the subtree is very large...
 			await SubdirNamesAndNodes(tr, node).ForEachAsync((kvp) => RemoveRecursive(tr, kvp.Value)).ConfigureAwait(false);
 
+			// remove ALL the contents
+			if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing all content located under {0}", node.Key);
 			tr.ClearRange(FdbKeyRange.StartsWith(ContentsOfNode(node, FdbTuple.Empty, Slice.Empty).Key));
+			// and all the metadata for this folder
+			if (FdbDirectoryLayer.AnnotateTransactions) tr.Annotate("Removing all metadata for folder under {0}", node.Key);
 			tr.ClearRange(node.ToRange());
 		}
 

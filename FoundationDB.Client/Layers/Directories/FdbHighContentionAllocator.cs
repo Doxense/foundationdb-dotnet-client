@@ -29,10 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Directories
 {
 	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
 	using System;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
 
+	/// <summary>Custom allocator that generates unique integer values with low probability of conflicts</summary>
 	[DebuggerDisplay("Subspace={Subspace}")]
 	public sealed class FdbHighContentionAllocator
 	{
@@ -41,6 +43,8 @@ namespace FoundationDB.Layers.Directories
 
 		private readonly Random m_rnd = new Random();
 
+		/// <summary>Create an allocator operating under a specific location</summary>
+		/// <param name="subspace"></param>
 		public FdbHighContentionAllocator(FdbSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentException("subspace");
@@ -53,8 +57,10 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Location of the allocator</summary>
 		public FdbSubspace Subspace { get; private set; }
 
+		/// <summary>Subspace used to store the allocation count for the current window</summary>
 		private FdbSubspace Counters { get; set; }
 
+		/// <summary>Subspace used to store the prefixes allocated in the current window</summary>
 		private FdbSubspace Recent { get; set; }
 
 		/// <summary>Returns a 64-bit integer that
@@ -81,8 +87,10 @@ namespace FoundationDB.Layers.Directories
 			int window = GetWindowSize(start);
 			if ((count + 1) * 2 >= window)
 			{ // advance the window
+				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Advance allocator window size to {0} starting at {1}", window, start + window);
 				trans.ClearRange(this.Counters.Key, this.Counters.Pack(start) + FdbKey.MinValue);
 				start += window;
+				count = 0;
 				trans.ClearRange(this.Recent.Key, this.Recent.Pack(start));
 			}
 
@@ -111,6 +119,7 @@ namespace FoundationDB.Layers.Directories
 
 					// mark as used
 					trans.Set(key, Slice.Empty);
+					if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Allocated prefix {0} from window [{1}..{2}] ({3} used)", candidate, start, start + window - 1, count + 1);
 					return candidate;
 				}
 
