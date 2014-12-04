@@ -36,20 +36,35 @@ namespace FoundationDB.Client
 	using System.Linq;
 	using System.Threading.Tasks;
 
+	/// <summary>Subspace that knows how to encode and decode its key</summary>
+	/// <typeparam name="T">Type of the key handled by this subspace</typeparam>
 	public class FdbEncoderSubspace<T> : FdbSubspace, IKeyEncoder<T>
 	{
-		protected readonly IFdbSubspace m_parent;
-		protected readonly IKeyEncoder<T> m_encoder;
+		/// <summary>Reference to the wrapped subspace</summary>
+		private readonly IFdbSubspace m_base;
 
+		/// <summary>Encoder used to handle keys</summary>
+		private readonly IKeyEncoder<T> m_encoder;
+
+		/// <summary>Wrap an existing subspace with a specific key encoder</summary>
+		/// <param name="subspace">Original subspace</param>
+		/// <param name="encoder">Key encoder</param>
 		public FdbEncoderSubspace([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
 			: base(subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
-			m_parent = subspace;
+			m_base = subspace;
 			m_encoder = encoder;
 		}
 
+		/// <summary>Untyped version of this subspace</summary>
+		public IFdbSubspace Base
+		{
+			get { return m_base; }
+		}
+
+		/// <summary>Encoder used by this subpsace to format keys</summary>
 		public IKeyEncoder<T> Encoder
 		{
 			[NotNull]
@@ -60,7 +75,16 @@ namespace FoundationDB.Client
 
 		public void Set([NotNull] IFdbTransaction trans, T key, Slice value)
 		{
+			if (trans == null) throw new ArgumentNullException("trans");
 			trans.Set(EncodeKey(key), value);
+		}
+
+		public void SetValues([NotNull] IFdbTransaction trans, [NotNull] IEnumerable<KeyValuePair<T, Slice>> items)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (items == null) throw new ArgumentNullException("items");
+			//TODO: find a way to mass convert all the keys using the same buffer?
+			trans.SetValues(items.Select(item => new KeyValuePair<Slice, Slice>(EncodeKey(item.Key), item.Value)));
 		}
 
 		public void Clear([NotNull] IFdbTransaction trans, T key)
@@ -102,6 +126,12 @@ namespace FoundationDB.Client
 		public Slice[] EncodeKeys([NotNull] params T[] keys)
 		{
 			return ConcatKeys(m_encoder.EncodeKeys(keys));
+		}
+
+		[NotNull]
+		public Slice[] EncodeKeys<TElement>([NotNull] IEnumerable<TElement> elements, Func<TElement, T> selector)
+		{
+			return ConcatKeys(m_encoder.EncodeKeys(elements, selector));
 		}
 
 		[NotNull]

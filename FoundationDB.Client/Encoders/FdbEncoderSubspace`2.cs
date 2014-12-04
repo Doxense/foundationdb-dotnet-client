@@ -31,23 +31,35 @@ namespace FoundationDB.Client
 	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
 	using System.Threading.Tasks;
 
+	/// <summary>Subspace that knows how to encode and decode its key</summary>
+	/// <typeparam name="T1">Type of the first item of the keys handled by this subspace</typeparam>
+	/// <typeparam name="T2">Type of the second item of the keys handled by this subspace</typeparam>
 	public class FdbEncoderSubspace<T1, T2> : FdbSubspace, ICompositeKeyEncoder<T1, T2>
 	{
-		protected readonly IFdbSubspace m_parent;
-		protected readonly ICompositeKeyEncoder<T1, T2> m_encoder;
-		protected volatile FdbEncoderSubspace<T1> m_head;
+		/// <summary>Reference to the wrapped subspace</summary>
+		private readonly IFdbSubspace m_base;
+
+		/// <summary>Encoder used to handle keys</summary>
+		private readonly ICompositeKeyEncoder<T1, T2> m_encoder;
+
+		/// <summary>Version of this subspace that encodes only the first key</summary>
+		private volatile FdbEncoderSubspace<T1> m_head;
 
 		public FdbEncoderSubspace([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 			: base(subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
-			m_parent = subspace;
+			m_base = subspace;
 			m_encoder = encoder;
+		}
+
+		/// <summary>Untyped version of this subspace</summary>
+		public IFdbSubspace Base
+		{
+			get { return m_base; }
 		}
 
 		/// <summary>Gets the key encoder</summary>
@@ -61,7 +73,7 @@ namespace FoundationDB.Client
 		public FdbEncoderSubspace<T1> Partial
 		{
 			[NotNull]
-			get { return m_head ?? (m_head = new FdbEncoderSubspace<T1>(m_parent, KeyValueEncoders.Head(m_encoder))); }
+			get { return m_head ?? (m_head = new FdbEncoderSubspace<T1>(m_base, KeyValueEncoders.Head(m_encoder))); }
 		}
 
 		#region Transaction Helpers...

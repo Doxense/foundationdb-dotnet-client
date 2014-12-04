@@ -811,6 +811,40 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
+		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] IEnumerable<TElement> elements, Func<TElement, TKey> selector)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (elements == null) throw new ArgumentNullException("elements");
+			if (selector == null) throw new ArgumentNullException("selector");
+
+			TElement[] arr;
+			ICollection<TElement> coll;
+
+			if ((arr = elements as TElement[]) != null)
+			{ // fast path for arrays
+				return EncodeKeys<TKey, TElement>(encoder, arr, selector);
+			}
+			else if ((coll = elements as ICollection<TElement>) != null)
+			{ // we can pre-allocate the result array
+				var slices = new Slice[coll.Count];
+				int p = 0;
+				foreach(var item in coll)
+				{
+					slices[p++] = encoder.EncodeKey(selector(item));
+				}
+				return slices;
+			}
+			else
+			{ // slow path
+				return elements
+					.Select((item) => encoder.EncodeKey(selector(item)))
+					.ToArray();
+			}
+
+		}
+
+		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		[NotNull]
 		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
