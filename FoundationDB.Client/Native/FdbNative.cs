@@ -239,11 +239,21 @@ namespace FoundationDB.Client.Native
 			// - If String.Empty, call win32 LoadLibrary("fdb_c.dll") and let the os find the file (using the standard OS behavior)
 			// - Else, combine the path with "fdb_c.dll" and call LoadLibrary with the resulting (relative or absolute) path
 
-			if (Fdb.Options.NativeLibPath != null)
+			var libraryPath = Fdb.Options.NativeLibPath;
+			if (libraryPath != null)
 			{
 				try
 				{
-					FdbCLib = UnmanagedLibrary.Load(Path.Combine(Fdb.Options.NativeLibPath, FDB_C_DLL));
+					if (libraryPath.Length == 0)
+					{ // CLR will handle the search
+						libraryPath = FDB_C_DLL;
+					}
+					else if (!libraryPath.EndsWith(".dll", StringComparison.OrdinalIgnoreCase))
+					{ // add the file name
+						libraryPath = Path.Combine(Fdb.Options.NativeLibPath, FDB_C_DLL);
+					}
+
+					FdbCLib = UnmanagedLibrary.Load(libraryPath);
 				}
 				catch (Exception e)
 				{

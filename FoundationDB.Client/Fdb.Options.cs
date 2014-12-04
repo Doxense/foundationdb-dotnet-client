@@ -42,6 +42,7 @@ namespace FoundationDB.Client
 			#region Native Library Preloading...
 
 			/// <summary>Custom path from where to load the native C API library. If null, let the CLR find the dll. If String.Empty let Win32's LoadLibrary find the correct dll, else use the specified path to load the library</summary>
+			//REVIEW: change this into a get-only, and force people to call SetNativeLibPath(..)?
 			public static string NativeLibPath = String.Empty;
 
 			/// <summary>Disable preloading of the native C API library. The CLR will handle the binding of the library.</summary>
@@ -59,12 +60,19 @@ namespace FoundationDB.Client
 			}
 
 			/// <summary>Preload the native C API library from a specifc path (relative of absolute) where the fdb_c.dll library is located</summary>
-			/// <example>SetNativeLibPath(@".\libs\x64") will attempt to load ".\libs\x64\fdb_c.dll"</example>
-			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>
+			/// <example>
+			/// Fdb.Options.SetNativeLibPath(@".\libs\x64") will attempt to load ".\libs\x64\fdb_c.dll"
+			/// Fdb.Options.SetNativeLibPath(@".\libs\x64\my_custom_fdb_c.dll") will attempt to load ".\libs\x64\my_custom_fdb_c.dll"
+			/// </example>
+			/// <remarks>
+			/// This *must* be called before the start of the network thread, otherwise it won't have any effects.
+			/// You can specify the path to a library with a custom file name by making sure that <paramref name="path"/> ends with ".dll". If not, then "fdb_c.dll" will be appended to the path.
+			/// </remarks>
 			public static void SetNativeLibPath(string path)
 			{
 				if (path == null) throw new ArgumentNullException("path");
 
+				//TODO: throw if native library has already been loaded
 				Fdb.Options.NativeLibPath = path;
 			}
 
