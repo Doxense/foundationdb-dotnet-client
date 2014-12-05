@@ -1110,7 +1110,7 @@ namespace FoundationDB.Layers.Tuples
 			if (item is int) return ((int)item).ToString(null, CultureInfo.InvariantCulture);
 			if (item is long) return ((long)item).ToString(null, CultureInfo.InvariantCulture);
 
-			if (item is char) return TokenSingleQuote + (char)item + TokenSingleQuote; /* 'X' */ 
+			if (item is char) return TokenSingleQuote + (char)item + TokenSingleQuote; /* 'X' */
 
 			if (item is Slice) return ((Slice)item).ToAsciiOrHexaString();
 			if (item is byte[]) return Slice.Create(item as byte[]).ToAsciiOrHexaString();
@@ -1120,6 +1120,10 @@ namespace FoundationDB.Layers.Tuples
 			// decimals need the "R" representation to have all the digits
 			if (item is double) return ((double)item).ToString("R", CultureInfo.InvariantCulture);
 			if (item is float) return ((float)item).ToString("R", CultureInfo.InvariantCulture);
+
+			if (item is Guid) return ((Guid)item).ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
+			if (item is Uuid128) return ((Uuid128)item).ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} */
+			if (item is Uuid64) return ((Uuid64)item).ToString("B", CultureInfo.InstalledUICulture); /* {xxxxxxxx-xxxxxxxx} */
 
 			var f = item as IFormattable;
 			if (f != null) return f.ToString(null, CultureInfo.InvariantCulture);

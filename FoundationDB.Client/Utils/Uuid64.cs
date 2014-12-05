@@ -258,7 +258,7 @@ namespace FoundationDB.Client
 			{
 				case "D":
 				case "d":
-				{ // Default format is "xxxxxxxx-xxxxxxxx" 
+				{ // Default format is "xxxxxxxx-xxxxxxxx"
 					return Encode16(m_value, separator: true, quotes: false);
 				}
 
@@ -272,7 +272,7 @@ namespace FoundationDB.Client
 				{ // base 62, padded with '0' up to 11 chars
 					return Encode62(m_value, padded: true);
 				}
-				
+
 				case "R":
 				case "r":
 				{ // Integer: "1234567890"
@@ -323,7 +323,7 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
-	
+
 		#region Base16 encoding...
 
 		private static char HexToChar(int a)
