@@ -101,19 +101,11 @@ namespace FoundationDB.Linq
 			}
 
 			[NotNull]
-			public IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> keyComparer = null)
+			public IFdbAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending)
 			{
 				if (keySelector == null) throw new ArgumentNullException("keySelector");
 
-				return new OrderedSequence<TSource, TKey>(this, keySelector, keyComparer, false, this);
-			}
-
-			[NotNull]
-			public IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> keyComparer = null)
-			{
-				if (keySelector == null) throw new ArgumentNullException("keySelector");
-
-				return new OrderedSequence<TSource, TKey>(this, keySelector, keyComparer, true, this);
+				return new OrderedSequence<TSource, TKey>(this, keySelector, comparer, descending, this);
 			}
 
 		}
@@ -242,7 +234,7 @@ namespace FoundationDB.Linq
 
 			public TSource Current
 			{
-				get { throw new NotImplementedException(); }
+				get { return m_current; }
 			}
 
 			public void Dispose()

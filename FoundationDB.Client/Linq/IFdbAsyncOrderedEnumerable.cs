@@ -38,8 +38,7 @@ namespace FoundationDB.Linq
 
 	public interface IFdbAsyncOrderedEnumerable<TSource> : IFdbAsyncEnumerable<TSource>
 	{
-		IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
-		IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
+		IFdbAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending);
 	}
 
 }

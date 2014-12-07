@@ -389,10 +389,48 @@ namespace FoundationDB.Linq
 
 		public static IFdbAsyncEnumerable<TSource> Distinct<TSource>(this IFdbAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
 		{
-			if (source == null) throw new ArgumentNullException("count");
+			if (source == null) throw new ArgumentNullException("source");
 			comparer = comparer ?? EqualityComparer<TSource>.Default;
 
 			return new FdbDistinctAsyncIterator<TSource>(source, comparer);
+		}
+
+		#endregion
+
+		#region OrderBy...
+
+		[NotNull]
+		public static IFdbAsyncOrderedEnumerable<TSource> OrderBy<TSource, TKey>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (keySelector == null) throw new ArgumentNullException("keySelector");
+			comparer = comparer ?? Comparer<TKey>.Default;
+
+			return new OrderedSequence<TSource, TKey>(source, keySelector, comparer, descending: false, parent: null);
+		}
+
+		[NotNull]
+		public static IFdbAsyncOrderedEnumerable<TSource> OrderByDescending<TSource, TKey>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (keySelector == null) throw new ArgumentNullException("keySelector");
+			comparer = comparer ?? Comparer<TKey>.Default;
+
+			return new OrderedSequence<TSource, TKey>(source, keySelector, comparer, descending: true, parent: null);
+		}
+
+		[NotNull]
+		public static IFdbAsyncOrderedEnumerable<TSource> ThenBy<TSource, TKey>([NotNull] this IFdbAsyncOrderedEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null)
+		{
+			if (source == null) throw new ArgumentNullException("keySelector");
+			return source.CreateOrderedEnumerable(keySelector, comparer, descending: false);
+		}
+
+		[NotNull]
+		public static IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TSource, TKey>([NotNull] this IFdbAsyncOrderedEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null)
+		{
+			if (source == null) throw new ArgumentNullException("keySelector");
+			return source.CreateOrderedEnumerable(keySelector, comparer, descending: true);
 		}
 
 		#endregion

@@ -704,6 +704,81 @@ namespace FoundationDB.Linq.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_OrderBy()
+		{
+			var rnd = new Random(1234);
+			var items = Enumerable.Range(0, 100).Select(_ => rnd.Next()).ToList();
+
+			var source = items.ToAsyncEnumerable();
+
+			var query = source.OrderBy((x) => x);
+			Assert.That(query, Is.Not.Null);
+			var res = await query.ToListAsync();
+			Assert.That(res, Is.Not.Null);
+			Assert.That(res, Is.EqualTo(items.OrderBy((x) => x).ToList()));
+
+			query = source.OrderByDescending((x) => x);
+			Assert.That(query, Is.Not.Null);
+			res = await query.ToListAsync();
+			Assert.That(res, Is.Not.Null);
+			Assert.That(res, Is.EqualTo(items.OrderByDescending((x) => x).ToList()));
+		}
+
+		[Test]
+		public async Task Test_Can_OrderBy_With_Custom_Comparer()
+		{
+			var items = new[] { "c", "B", "a", "D" };
+
+			var source = items.ToAsyncEnumerable();
+
+			// ordinal should put upper before lower
+			var query = source.OrderBy((x) => x, StringComparer.Ordinal);
+			Assert.That(query, Is.Not.Null);
+			var res = await query.ToListAsync();
+			Assert.That(res, Is.Not.Null);
+			Assert.That(res, Is.EqualTo(new [] { "B", "D", "a", "c" }));
+
+			// ordinal ingore case should mixe upper and lower
+			query = source.OrderBy((x) => x, StringComparer.OrdinalIgnoreCase);
+			Assert.That(query, Is.Not.Null);
+			res = await query.ToListAsync();
+			Assert.That(res, Is.Not.Null);
+			Assert.That(res, Is.EqualTo(new[] { "a", "B", "c", "D" }));
+		}
+
+		[Test]
+		public async Task Test_Can_ThenBy()
+		{
+			var rnd = new Random(1234);
+			var pairs = Enumerable.Range(0, 100).Select(_ => new KeyValuePair<int, int>(rnd.Next(10), rnd.Next())).ToList();
+			var source = pairs.ToAsyncEnumerable();
+
+			var query = source.OrderBy(kvp => kvp.Key).ThenBy(kvp => kvp.Value);
+			Assert.That(query, Is.Not.Null);
+			var res = await query.ToListAsync();
+			Assert.That(res, Is.Not.Null);
+			Assert.That(res, Is.EqualTo(pairs.OrderBy(kvp => kvp.Key).ThenBy(kvp => kvp.Value).ToList()));
+
+			query = source.OrderBy(kvp => kvp.Key).ThenByDescending(kvp => kvp.Value);
+			Assert.That(query, Is.Not.Null);
+			res = await query.ToListAsync();
+			Assert.That(res, Is.Not.Null);
+			Assert.That(res, Is.EqualTo(pairs.OrderBy(kvp => kvp.Key).ThenByDescending(kvp => kvp.Value).ToList()));
+
+			query = source.OrderByDescending(kvp => kvp.Key).ThenBy(kvp => kvp.Value);
+			Assert.That(query, Is.Not.Null);
+			res = await query.ToListAsync();
+			Assert.That(res, Is.Not.Null);
+			Assert.That(res, Is.EqualTo(pairs.OrderByDescending(kvp => kvp.Key).ThenBy(kvp => kvp.Value).ToList()));
+
+			query = source.OrderByDescending(kvp => kvp.Key).ThenByDescending(kvp => kvp.Value);
+			Assert.That(query, Is.Not.Null);
+			res = await query.ToListAsync();
+			Assert.That(res, Is.Not.Null);
+			Assert.That(res, Is.EqualTo(pairs.OrderByDescending(kvp => kvp.Key).ThenByDescending(kvp => kvp.Value).ToList()));
+		}
+
+		[Test]
 		public async Task Test_Can_Select_Anonymous_Types()
 		{
 			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();
@@ -727,7 +802,7 @@ namespace FoundationDB.Linq.Tests
 		{
 			// ensure that we can also use the "from ... select ... where" syntax
 
-			var results = await 
+			var results = await
 				(from x in Enumerable.Range(0, 10).ToAsyncEnumerable()
 				let t = new { Value = x, Square = x * x, Root = Math.Sqrt(x), Odd = x % 2 == 1 }
 				where t.Odd
