@@ -353,11 +353,11 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(1.0d, Math.PI, Math.E)), Is.EqualTo("(1, 3.1415926535897931, 2.7182818284590451)"), "Doubles should used dot and have full precision (17 digits)");
 			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(1.0f, (float)Math.PI, (float)Math.E)), Is.EqualTo("(1, 3.14159274, 2.71828175)"), "Singles should used dot and have full precision (10 digits)");
 			var guid = Guid.NewGuid();
-			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(guid)), Is.EqualTo(String.Format("({0},)", guid.ToString("D"))), "GUIDs should be displayed as a string literal, without quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(guid)), Is.EqualTo(String.Format("({0},)", guid.ToString("B"))), "GUIDs should be displayed as a string literal, surrounded by {...}, and without quotes");
 			var uuid128 = Uuid128.NewUuid();
-			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(uuid128)), Is.EqualTo(String.Format("({0},)", uuid128.ToString("D"))), "Uuid128s should be displayed as a string literal, without quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(uuid128)), Is.EqualTo(String.Format("({0},)", uuid128.ToString("B"))), "Uuid128s should be displayed as a string literal, surrounded by {...}, and without quotes");
 			var uuid64 = Uuid64.NewUuid();
-			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(uuid64)), Is.EqualTo(String.Format("({0},)", uuid64.ToString("D"))), "Uuid64s should be displayed as a string literal, without quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(uuid64)), Is.EqualTo(String.Format("({0},)", uuid64.ToString("B"))), "Uuid64s should be displayed as a string literal, surrounded by {...}, and without quotes");
 
 			// ranges should be decoded when possible
 			var key = FdbTuple.ToRange(FdbTuple.Create("hello"));
