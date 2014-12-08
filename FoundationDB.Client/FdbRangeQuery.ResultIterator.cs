@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Async iterator that fetches the results by batch, but return them one by one</summary>
-		[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInBatch={m_remainingInBatch}, ReadLastBatch={m_lastBatchRead}")]
+		[DebuggerDisplay("State={m_state}, Current={m_current}, RemainingInChunk={m_itemsRemainingInChunk}, OutOfChunks={m_outOfChunks}")]
 		private sealed class ResultIterator : FdbAsyncIterator<T>
 		{
 
@@ -55,7 +55,6 @@ namespace FoundationDB.Client
 
 			/// <summary>Lambda used to transform pairs of key/value into the expected result</summary>
 			private readonly Func<KeyValuePair<Slice, Slice>, T> m_resultTransform;
-
 
 			/// <summary>Iterator used to read chunks from the database</summary>
 			private IFdbAsyncEnumerator<KeyValuePair<Slice, Slice>[]> m_chunkIterator;
