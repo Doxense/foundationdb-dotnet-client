@@ -124,11 +124,16 @@ namespace FoundationDB.Client
 			{
 				Contract.Requires(m_itemsRemainingInChunk == 0 && m_currentOffsetInChunk == -1 && !m_outOfChunks);
 
+				var iterator = m_chunkIterator;
+
 				// start reading the next batch
-				if (await m_chunkIterator.MoveNext(cancellationToken).ConfigureAwait(false))
+				if (await iterator.MoveNext(cancellationToken).ConfigureAwait(false))
 				{ // we got a new chunk !
 
-					var chunk = m_chunkIterator.Current;
+					//note: Dispose() or Cleanup() maybe have been called concurrently!
+					ThrowInvalidState();
+
+					var chunk = iterator.Current;
 
 					//note: if the range is empty, we may have an empty chunk, that is equivalent to no chunk
 					if (chunk != null && chunk.Length > 0)

@@ -285,7 +285,7 @@ namespace FoundationDB.Linq
 			switch (Volatile.Read(ref m_state))
 			{
 				case STATE_SEQ:
-					throw new InvalidOperationException("The async iterator should have been initiliazed with a called to GetEnumerator()");
+					throw new InvalidOperationException("The async iterator should have been initiliazed with a call to GetEnumerator()");
 
 				case STATE_ITERATING:
 					break;
