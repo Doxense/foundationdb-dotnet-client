@@ -57,6 +57,9 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Id of the logged transaction</summary>
 		public int Id { get; private set; }
 
+		/// <summary>True if the transaction is Read Only</summary>
+		public bool IsReadOnly { get; private set; }
+
 		/// <summary>Number of operations performed by the transaction</summary>
 		public int Operations { get { return m_operations; } }
 
@@ -144,7 +147,8 @@ namespace FoundationDB.Filters.Logging
 			Contract.Requires(trans != null);
 
 			this.Id = trans.Id;
-			this.StartedUtc = DateTimeOffset.UtcNow;
+			this.IsReadOnly = trans.IsReadOnly;
+			this.StartedUtc = DateTimeOffset.UtcNow; //TODO: use a configurable clock?
 			this.StartTimestamp = GetTimestamp();
 		}
 
@@ -210,18 +214,46 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Generate an ASCII report with all the commands that were executed by the transaction</summary>
-		public string GetCommandsReport()
+		[NotNull]
+		public string GetCommandsReport(bool detailed = false)
 		{
 			var culture = CultureInfo.InvariantCulture;
 
 			var sb = new StringBuilder();
-			sb.AppendLine(String.Format(culture, "Transaction #{0} command log:", this.Id));
-			int reads = 0, writes = 0;
+
 			var cmds = this.Commands.ToArray();
+			sb.AppendFormat(culture, "Transaction #{0} ({3}, {1} operations, started {2}Z", this.Id, cmds.Length, this.StartedUtc.TimeOfDay, this.IsReadOnly ? "read-only" : "read/write");
+			if (this.StoppedUtc.HasValue)
+				sb.AppendFormat(culture, ", ended {0}Z)", this.StoppedUtc.Value.TimeOfDay);
+			else
+				sb.Append(", did not finish)");
+			sb.AppendLine();
+
+			int reads = 0, writes = 0;
 			for (int i = 0; i < cmds.Length; i++)
 			{
 				var cmd = cmds[i];
-				sb.AppendFormat(culture, "{0,3}/{1,3} : {2}", i + 1, cmds.Length, cmd);
+				if (detailed)
+				{
+					sb.AppendFormat(
+						culture,
+						"{0,3} - T+{1,7:##0.000} ({2,7:##,##0} µs) : {3}",
+						/* 0 */ cmd.Step,
+						/* 1 */ cmd.StartOffset.TotalMilliseconds,
+						/* 2 */ cmd.Duration.Ticks / 10.0,
+						/* 3 */ cmd.ToString()
+					);
+				}
+				else
+				{
+					sb.AppendFormat(
+						culture,
+						"{0,3} : {2}{1}",
+						/* 0 */ cmd.Step,
+						/* 1 */ cmd.ToString(),
+						/* 2 */ cmd.Error != null ? "[FAILED] " : ""
+					);
+				}
 				sb.AppendLine();
 				switch (cmd.Mode)
 				{
@@ -229,7 +261,10 @@ namespace FoundationDB.Filters.Logging
 					case FdbTransactionLog.Mode.Write: ++writes; break;
 				}
 			}
-			sb.AppendLine(String.Format(culture, "Stats: {0:N0} operations ({1:N0} reads, {2:N0} writes), {3:N0} bytes read, {4:N0} bytes committed", this.Operations, reads, writes, this.ReadSize, this.CommitSize));
+			if (this.Completed)
+			{
+				sb.AppendLine(String.Format(culture, "Stats: {0:N0} operations, {1:N0} reads ({3:N0} bytes), {2:N0} writes ({4:N0} bytes), {5:N2} ms", this.Operations, reads, writes, this.ReadSize, this.CommitSize, this.TotalDuration.TotalMilliseconds));
+			}
 			sb.AppendLine();
 			return sb.ToString();
 		}
@@ -246,7 +281,8 @@ namespace FoundationDB.Filters.Logging
 			double scale = 0.0005d;
 			int width;
 			bool flag = false;
-			while ((width = (int)(duration.TotalSeconds / scale)) > 80)
+			int maxWidth = showCommands ? 80 : 160;
+			while ((width = (int)(duration.TotalSeconds / scale)) > maxWidth)
 			{
 				if (flag) scale *= 5d; else scale *= 2d;
 				flag = !flag;
@@ -255,16 +291,33 @@ namespace FoundationDB.Filters.Logging
 			var cmds = this.Commands.ToArray();
 
 			// Header
-			sb.AppendFormat(culture, "Transaction #{0} ({1} operations, '#' = {2:N1} ms, started {3}Z", this.Id, cmds.Length, (scale * 1000d), this.StartedUtc.TimeOfDay);
+			sb.AppendFormat(culture, "Transaction #{0} ({4}, {1} operations, '#' = {2:N1} ms, started {3}Z", this.Id, cmds.Length, (scale * 1000d), this.StartedUtc.TimeOfDay, this.IsReadOnly ? "read-only" : "read/write");
 			if (this.StoppedUtc.HasValue)
-				sb.AppendFormat(culture, ", ended {0}Z)", this.StoppedUtc.Value.TimeOfDay); 
+				sb.AppendFormat(culture, ", ended {0}Z)", this.StoppedUtc.Value.TimeOfDay);
 			else
-				sb.AppendLine(", did not finish");
+				sb.Append(", did not finish");
 			sb.AppendLine();
 			if (cmds.Length > 0)
 			{
 				var bar = new string('─', width + 2);
 				sb.AppendLine(String.Format(culture, "┌  oper. ┬{0}┬──── start ──── end ── duration ──┬─ sent  recv ┐", bar));
+
+				// look for the timestamps of the first and last commands
+				var first = TimeSpan.Zero;
+				var last = duration;
+				for (int i = 0; i < cmds.Length;i++)
+				{
+					if (cmds[i].Op == Operation.Log) continue;
+					first = cmds[i].StartOffset;
+					break;
+				}
+				for(int i = cmds.Length - 1; i >= 0; i--)
+				{
+					if (cmds[i].Op == Operation.Log) continue;
+					if (cmds[i].EndOffset.HasValue) duration = cmds[i].EndOffset.Value;
+					break;
+				}
+				duration -= first;
 
 				int step = -1;
 				bool previousWasOnError = false;
@@ -279,7 +332,7 @@ namespace FoundationDB.Filters.Logging
 
 					long ticks = cmd.Duration.Ticks;
 					double r = 1.0d * ticks / duration.Ticks;
-					string w = GetFancyGraph(width, cmd.StartOffset.Ticks, ticks, duration.Ticks, charsToSkip);
+					string w = GetFancyGraph(width, (cmd.StartOffset - first).Ticks, ticks, duration.Ticks, charsToSkip);
 
 					if (ticks > 0)
 					{
@@ -293,7 +346,7 @@ namespace FoundationDB.Filters.Logging
 							/* 4 */ (cmd.EndOffset ?? TimeSpan.Zero).TotalMilliseconds,
 							/* 5 */ ticks / 10.0,
 							/* 6 */ cmd.Step == step ? ":" : " ",
-							/* 7 */ ticks >= 100000 ? "*" : ticks >= 10000 ? "°" : " ",
+							/* 7 */ ticks >= TimeSpan.TicksPerMillisecond * 10 ? '*' : ticks >= TimeSpan.TicksPerMillisecond ? '°' : ' ',
 							/* 8 */ cmd.ArgumentBytes,
 							/* 9 */ cmd.ResultBytes,
 							/* 10 */ cmd.Error != null ? "!" : " ",
@@ -309,7 +362,7 @@ namespace FoundationDB.Filters.Logging
 							/* 1 */ cmd.Step,
 							/* 2 */ cmd.Error != null ? "!" : " ",
 							/* 3 */ cmd.ShortName,
-							/* 4 */ ticks >= 100000 ? "*" : ticks >= 10000 ? "°" : " ",
+							/* 4 */ ticks >= TimeSpan.TicksPerMillisecond * 10 ? '*' : ticks >= TimeSpan.TicksPerMillisecond ? '°' : ' ',
 							/* 5 */ w,
 							/* 6 */ cmd.StartOffset.TotalMilliseconds,
 							/* 7 */ showCommands ? cmd.ToString() : String.Empty
@@ -345,12 +398,12 @@ namespace FoundationDB.Filters.Logging
 						flag = true;
 					}
 					if (!flag) sb.Append("Completed");
-					sb.AppendLine(String.Format(culture, " in {0:N3} ms and {1:N0} attempt(s)", duration.TotalMilliseconds, attempts));
+					sb.AppendLine(String.Format(culture, " in {0:N3} ms and {1:N0} attempt(s)", this.TotalDuration.TotalMilliseconds, attempts));
 				}
 			}
 			else
 			{ // empty transaction
-				sb.AppendLine(String.Format(culture, "> Completed after {0:N3} ms without performing any operation", duration.TotalMilliseconds));
+				sb.AppendLine(String.Format(culture, "> Completed after {0:N3} ms without performing any operation", this.TotalDuration.TotalMilliseconds));
 			}
 			return sb.ToString();
 		}
