@@ -33,28 +33,34 @@ namespace FoundationDB.Client
 	/// <summary>Defines a type of mutation applied to a key</summary>
 	public enum FdbMutationType
 	{
-		/// <summary>
-		/// Invalid
-		/// </summary>
+		/// <summary>Invalid</summary>
 		Invalid = 0,
 
-		/// <summary>
-		/// Performs an addition of little-endian integers. If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``. The integers to be added must be stored in a little-endian representation.  They can be signed in two's complement representation or unsigned. You can add to an integer at a known offset in the value by prepending the appropriate number of zero bytes to ``param`` and padding with zero bytes to match the length of the value. However, this offset technique requires that you know the addition will not cause the integer field within the value to overflow.
+		/// <summary>Performs an addition of little-endian integers.
+		/// If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.
+		/// If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
+		/// The integers to be added must be stored in a little-endian representation.
+		/// They can be signed in two's complement representation or unsigned.
+		/// You can add to an integer at a known offset in the value by prepending the appropriate number of zero bytes to ``param`` and padding with zero bytes to match the length of the value.
+		/// However, this offset technique requires that you know the addition will not cause the integer field within the value to overflow.
 		/// </summary>
 		Add = 2,
 
-		/// <summary>
-		/// Performs a bitwise ``and`` operation.  If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
+		/// <summary>Performs a bitwise ``and`` operation.
+		/// If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.
+		/// If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
 		/// </summary>
 		BitAnd = 6,
 
-		/// <summary>
-		/// Performs a bitwise ``or`` operation.  If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
+		/// <summary>Performs a bitwise ``or`` operation.
+		/// If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.
+		/// If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
 		/// </summary>
 		BitOr = 7,
 
-		/// <summary>
-		/// Performs a bitwise ``xor`` operation.  If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.  If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
+		/// <summary>Performs a bitwise ``xor`` operation.
+		/// If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.
+		/// If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
 		/// </summary>
 		BitXor = 8,
 
@@ -72,6 +78,20 @@ namespace FoundationDB.Client
 		/// <summary>Deprecated name of <see cref="BitAnd"/></summary>
 		[Obsolete("Use FdbMutationType.BitXor instead")]
 		Xor = 8,
+
+		/// <summary>Performs a little-endian comparison of byte strings.
+		/// If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.
+		/// If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
+		/// The larger of the two values is then stored in the database.
+		/// </summary>
+		Max = 12,
+
+		/// <summary>Performs a little-endian comparison of byte strings.
+		/// If the existing value in the database is not present or shorter than ``param``, it is first extended to the length of ``param`` with zero bytes.
+		/// If ``param`` is shorter than the existing value in the database, the existing value is truncated to match the length of ``param``.
+		/// The smaller of the two values is then stored in the database.
+		/// </summary>
+		Min = 13
 
 	}
 

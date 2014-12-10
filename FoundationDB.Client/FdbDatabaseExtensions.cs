@@ -457,6 +457,28 @@ namespace FoundationDB.Client
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitXor), cancellationToken);
 		}
 
+		/// <summary>Atomically update a value if it is larger than the value in the database, using a dedicated transaction.</summary>
+		/// <remarks>
+		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// </remarks>
+		public static Task AtomicMax(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Max), cancellationToken);
+		}
+
+		/// <summary>Atomically update a value if it is smaller than the value in the database, using a dedicated transaction.</summary>
+		/// <remarks>
+		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// </remarks>
+		public static Task AtomicMin(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		{
+			if (db == null) throw new ArgumentNullException("db");
+			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Min), cancellationToken);
+		}
+
 		#endregion
 
 		#region Watches...

@@ -93,7 +93,7 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 		}
-		
+
 		[Test]
 		public async Task Test_Creating_A_ReadOnly_Transaction_Throws_When_Writing()
 		{
@@ -102,7 +102,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.Not.Null);
-					
+
 					// reading should not fail
 					await tr.GetAsync(db.Pack("Hello"));
 
@@ -640,6 +640,8 @@ namespace FoundationDB.Client.Tests
 				case FdbMutationType.BitOr: expected = x | y; break;
 				case FdbMutationType.BitXor: expected = x ^ y; break;
 				case FdbMutationType.Add: expected = x + y; break;
+				case FdbMutationType.Max: expected = Math.Max(x, y); break;
+				case FdbMutationType.Min: expected = Math.Min(x, y); break;
 				default: Assert.Fail("Invalid operation type"); break;
 			}
 
@@ -706,6 +708,20 @@ namespace FoundationDB.Client.Tests
 				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.BitXor, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.BitXor, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitXor, 0x018055AA);
+
+				key = location.Pack("max");
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 1);
+				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Max, 0);
+				await PerformAtomicOperationAndCheck(db, key, 2, FdbMutationType.Max, 1);
+				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Max, 987654321);
+
+				key = location.Pack("min");
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 1);
+				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Min, 0);
+				await PerformAtomicOperationAndCheck(db, key, 2, FdbMutationType.Min, 1);
+				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Min, 987654321);
 
 				// calling with an invalid mutation type should fail
 				using (var tr = db.BeginTransaction(this.Cancellation))

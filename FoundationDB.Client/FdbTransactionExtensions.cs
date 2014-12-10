@@ -370,7 +370,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to add <paramref name="value"/> to the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
 		/// <param name="trans">Transaction instance</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value to add to existing value of key.</param>
@@ -396,7 +396,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise AND between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
 		/// <param name="trans">Transaction instance</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
@@ -423,7 +423,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise OR between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
 		/// <param name="trans">Transaction instance</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
@@ -450,7 +450,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise XOR between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
 		/// <param name="trans">Transaction instance</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
@@ -462,6 +462,56 @@ namespace FoundationDB.Client
 			if (key == null) throw new ArgumentNullException("key");
 
 			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.BitXor);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is larger than the value in the database.</summary>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Bit mask.</param>
+		public static void AtomicMax(this IFdbTransaction trans, Slice key, Slice value)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Atomic(key, value, FdbMutationType.Max);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is larger than the value in the database.</summary>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Bit mask.</param>
+		public static void AtomicMax<TKey>(this IFdbTransaction trans, TKey key, Slice value)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Atomic(key.ToFoundationDbKey(), value, FdbMutationType.Max);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is smaller than the value in the database.</summary>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Bit mask.</param>
+		public static void AtomicMin(this IFdbTransaction trans, Slice key, Slice value)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Atomic(key, value, FdbMutationType.Min);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is smaller than the value in the database.</summary>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Bit mask.</param>
+		public static void AtomicMin<TKey>(this IFdbTransaction trans, TKey key, Slice value)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Atomic(key.ToFoundationDbKey(), value, FdbMutationType.Min);
 		}
 
 		#endregion
