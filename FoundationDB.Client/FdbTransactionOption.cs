@@ -36,14 +36,12 @@ namespace FoundationDB.Client
 		/// <summary>None</summary>
 		None = 0,
 
-		/// <summary>
-		/// The transaction, if not self-conflicting, may be committed a second time after commit succeeds, in the event of a fault
+		/// <summary>The transaction, if not self-conflicting, may be committed a second time after commit succeeds, in the event of a fault
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		CausalWriteRisky = 10,
 
-		/// <summary>
-		/// The read version will be committed, and usually will be the latest committed, but might not be the latest committed in the event of a fault or partition
+		/// <summary>The read version will be committed, and usually will be the latest committed, but might not be the latest committed in the event of a fault or partition
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		CausalReadRisky = 20,
@@ -53,8 +51,10 @@ namespace FoundationDB.Client
 		/// </summary>
 		CausalReadDisable = 21,
 
-		/// <summary>
-		/// The next write performed on this transaction will not generate a write conflict range. As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction. Care needs to be taken when using this option on a transaction that is shared between multiple threads. When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.
+		/// <summary>The next write performed on this transaction will not generate a write conflict range.
+		/// As a result, other transactions which read the key(s) being modified by the next write will not conflict with this transaction.
+		/// Care needs to be taken when using this option on a transaction that is shared between multiple threads.
+		/// When setting this option, write conflict ranges will be disabled on the next write operation, regardless of what thread it is on.
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		NextWriteNoWriteConflictRange = 30,
@@ -64,14 +64,15 @@ namespace FoundationDB.Client
 		/// </summary>
 		CheckWritesEnable = 50,
 
-		/// <summary>
-		/// Reads performed by a transaction will not see any prior mutations that occurred in that transaction, instead seeing the value which was in the database at the transaction's read version. This option may provide a small performance benefit for the client, but also disables a number of client-side optimizations which are beneficial for transactions which tend to read and write the same keys within a single transaction. Also note that with this option invoked any outstanding reads will return errors when transaction commit is called (rather than the normal behavior of commit waiting for outstanding reads to complete).
+		/// <summary>Reads performed by a transaction will not see any prior mutations that occurred in that transaction, instead seeing the value which was in the database at the transaction's read version.
+		/// This option may provide a small performance benefit for the client, but also disables a number of client-side optimizations which are beneficial for transactions which tend to read and write the same keys within a single transaction.
+		/// Also note that with this option invoked any outstanding reads will return errors when transaction commit is called (rather than the normal behavior of commit waiting for outstanding reads to complete).
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		ReadYourWritesDisable = 51,
 
-		/// <summary>
-		/// Disables read-ahead caching for range reads. Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).
+		/// <summary>Disables read-ahead caching for range reads.
+		/// Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		ReadAheadDisable = 52,
@@ -91,29 +92,33 @@ namespace FoundationDB.Client
 		/// </summary>
 		DevNullIsWebScale = 130,
 
-		/// <summary>
-		/// Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one. Use is discouraged outside of low-level tools
+		/// <summary>Specifies that this transaction should be treated as highest priority and that lower priority transactions should block behind this one.
+		/// Use is discouraged outside of low-level tools
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		PrioritySystemImmediate = 200,
 
-		/// <summary>
-		/// Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first. Useful for doing batch work simultaneously with latency-sensitive work
+		/// <summary>Specifies that this transaction should be treated as low priority and that default priority transactions should be processed first.
+		/// Useful for doing batch work simultaneously with latency-sensitive work
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		PriorityBatch = 201,
 
-		/// <summary>
-		/// This is a write-only transaction which sets the initial configuration
+		/// <summary>This is a write-only transaction which sets the initial configuration.
+		/// This option is designed for use by database system tools only.
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		InitializeNewDatabase = 300,
 
-		/// <summary>
-		/// Allows this transaction to read and modify system keys (those that start with the byte 0xFF)
+		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)
 		/// Parameter: Option takes no parameter
 		/// </summary>
 		AccessSystemKeys = 301,
+
+		/// <summary>Allows this transaction to read system keys (those that start with the byte 0xFF)
+		/// Parameter: Option takes no parameter
+		/// </summary>
+		ReadSystemKeys = 301,
 
 		/// <summary>
 		/// Parameter: Option takes no parameter
@@ -121,16 +126,43 @@ namespace FoundationDB.Client
 		DebugDump = 400,
 
 		/// <summary>
-		/// Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.
-		/// Parameter: (Int) value in milliseconds of timeout
+		/// Parameter: (String) Optional transaction name
+		/// </summary>
+		DebugRetryLogging = 401,
+
+		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
+		/// Valid parameter values are [0, int.MaxValue].
+		/// If set to 0, will disable all timeouts.
+		/// All pending and any future uses of the transaction will throw an exception.
+		/// The transaction can be used again after it is reset.
+		/// Like all transaction options, a timeout must be reset after a call to onError. This behavior allows the user to make the timeout dynamic.
+		/// Parameter: (Int32) value in milliseconds of timeout
 		/// </summary>
 		Timeout = 500,
 
-		/// <summary>
-		/// Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code. Valid parameter values are ``[-1, INT_MAX]``. If set to -1, will disable the retry limit.
-		/// Parameter: (Int) number of times to retry
+		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code.
+		/// Valid parameter values are [-1, int.MaxValue]. If set to -1, will disable the retry limit.
+		/// Parameter: (Int32) number of times to retry
 		/// </summary>
 		RetryLimit = 501,
+
+		/// <summary>Set the maximum amount of backoff delay incurred in the call to onError if the error is retryable.
+		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
+		/// Like all transaction options, the maximum retry delay must be reset after a call to onError.
+		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
+		/// Parameter: (Int32) value in milliseconds of maximum delay
+		/// </summary>
+		MaxRetryDelay = 502,
+
+		/// <summary>Snapshot read operations will see the results of writes done in the same transaction.
+		/// Parameter: Option takes no parameter
+		/// </summary>
+		SnapshotReadYourWriteEnable = 600,
+
+		/// <summary>Snapshot read operations will not see the results of writes done in the same transaction.
+		/// Parameter: Option takes no parameter
+		/// </summary>
+		SnapshotReadYourWriteDisable = 601,
 	}
 
 }

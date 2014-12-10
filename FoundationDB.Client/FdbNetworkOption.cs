@@ -48,50 +48,60 @@ namespace FoundationDB.Client
 		/// </summary>
 		ClusterFile = 20, //TODO: should we remove this? We don't support older API versions ....
 
-		/// <summary>
-		/// Enables trace output to a file in a directory of the clients choosing
+		/// <summary>Enables trace output to a file in a directory of the clients choosing.
 		/// Parameter: (String) path to output directory (or NULL for current working directory)
 		/// </summary>
 		TraceEnable = 30,
 
-		/// <summary>
-		/// Set internal tuning or debugging knobs
+		/// <summary>Sets the maximum size in bytes of a single trace output file.
+		/// This value should be in the range ``[0, long.MaxValue]``.
+		/// If the value is set to 0, there is no limit on individual file size.
+		/// The default is a maximum size of 10,485,760 bytes.
+		/// Parameter: (Int64) max size of a single trace output file
+		/// </summary>
+		TraceRollSize = 31,
+
+		/// <summary>Sets the maximum size of a all the trace output files put together.
+		/// This value should be in the range ``[0, long.MaxValue]``.
+		/// If the value is set to 0, there is no limit on the total size of the files.
+		/// The default is a maximum size of 104,857,600 bytes.
+		/// If the default roll size is used, this means that a maximum of 10 trace files will be written at a time.
+		/// Parameter: (Int64) max total size of trace files
+		/// </summary>
+		TraceMaxLogsSize = 32,
+
+		/// <summary>Set internal tuning or debugging knobs
 		/// Parameter: (String) knob_name=knob_value
 		/// </summary>
 		Knob = 40,
 
-		/// <summary>
-		/// Set the TLS plugin to load. This option, if used, must be set before any other TLS options
+		/// <summary>Set the TLS plugin to load.
+		/// This option, if used, must be set before any other TLS options
 		/// Parameter: (String) file path or linker-resolved name
 		/// </summary>
 		TLSPlugin = 41,
 
-		/// <summary>
-		/// Set the certificate chain
+		/// <summary>Set the certificate chain
 		/// Parameter: (Bytes) certificates
 		/// </summary>
 		TLSCertBytes = 42,
 
-		/// <summary>
-		/// Set the file from which to load the certificate chain
+		/// <summary>Set the file from which to load the certificate chain
 		/// Parameter: (String) File path
 		/// </summary>
 		TLSCertPath = 43,
 
-		/// <summary>
-		/// Set the private key corresponding to your own certificate
+		/// <summary>Set the private key corresponding to your own certificate
 		/// Parameter: (Bytes) Key
 		/// </summary>
 		TLSKeyBytes = 45,
 
-		/// <summary>
-		/// Set the file from which to load the private key corresponding to your own certificate
+		/// <summary>Set the file from which to load the private key corresponding to your own certificate
 		/// Parameter: (String) File path
 		/// </summary>
 		TLSKeyPath = 46,
 
-		/// <summary>
-		/// Set the peer certificate field verification criteria
+		/// <summary>Set the peer certificate field verification criteria
 		/// Parameter: (Bytes) Verification pattern
 		/// </summary>
 		TLSVerifyPeers = 47,
