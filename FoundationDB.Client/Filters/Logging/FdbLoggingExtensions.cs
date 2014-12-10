@@ -36,8 +36,12 @@ namespace FoundationDB.Filters.Logging
 	public static class FdbLoggingExtensions
 	{
 
+		/// <summary>Apply the Logging Filter to this database instance</summary>
+		/// <param name="database">Original database instance</param>
+		/// <param name="handler">Handler that will be called everytime a transaction commits successfully, or gets disposed. The log of all operations performed by the transaction can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
+		/// <returns>Database filter, that will monitor all transactions initiated from it. Disposing this wrapper will NOT dispose the inner <paramref name="database"/> database.</returns>
 		[NotNull]
-		public static FdbLoggedDatabase Logged(this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler)
+		public static FdbLoggedDatabase Logged([NotNull] this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler)
 		{
 			if (handler == null) throw new ArgumentNullException("handler");
 
@@ -50,15 +54,19 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Strip the logging behaviour of this database. Use this for boilerplate or test code that would pollute the logs otherwise.</summary>
 		/// <param name="database">Database instance (that may or may not be logged)</param>
 		/// <returns>Either <paramref name="database"/> itself if it is not logged, or the inner database if it was.</returns>
-		public static IFdbDatabase WithoutLogging(this IFdbDatabase database)
+		[NotNull]
+		public static IFdbDatabase WithoutLogging([NotNull] this IFdbDatabase database)
 		{
+			if (database == null) throw new ArgumentNullException("database");
+
 			var logged = database as FdbLoggedDatabase;
 			if (logged != null) return logged.GetInnerDatabase();
 
 			return database;
 		}
 
-		internal static FdbLoggedTransaction GetLogger(IFdbReadOnlyTransaction trans)
+		[CanBeNull]
+		internal static FdbLoggedTransaction GetLogger([NotNull] IFdbReadOnlyTransaction trans)
 		{
 			//TODO: the logged transaction could also be wrapped in other filters.
 			// => we need a recursive "FindFilter<TFilter>" method that would unwrap the filter onion looking for a specific one...
@@ -67,7 +75,8 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
-		public static void Annotate(this IFdbReadOnlyTransaction trans, string message)
+		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
+		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string message)
 		{
 			var logged = GetLogger(trans);
 			if (logged != null)
@@ -77,32 +86,36 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
+		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
 		[StringFormatMethod("format")]
-		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0)
+		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0)
 		{
 			var logged = GetLogger(trans);
 			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
+		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
 		[StringFormatMethod("format")]
-		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0, object arg1)
+		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0, object arg1)
 		{
 			var logged = GetLogger(trans);
 			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
+		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
 		[StringFormatMethod("format")]
-		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, object arg0, object arg1, object arg2)
+		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, object arg0, object arg1, object arg2)
 		{
 			var logged = GetLogger(trans);
 			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, arg0, arg1, arg2)), countAsOperation: false);
 		}
 
 		/// <summary>Annotate a logged transaction</summary>
+		/// <remarks>This method only applies to transactions created from a <see cref="Logged"/> database instance. Calling this method on regular transaction is a no-op.</remarks>
 		[StringFormatMethod("format")]
-		public static void Annotate(this IFdbReadOnlyTransaction trans, string format, params object[] args)
+		public static void Annotate([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] string format, params object[] args)
 		{
 			var logged = GetLogger(trans);
 			if (logged != null) logged.Log.AddOperation(new FdbTransactionLog.LogCommand(String.Format(format, args)), countAsOperation: false);

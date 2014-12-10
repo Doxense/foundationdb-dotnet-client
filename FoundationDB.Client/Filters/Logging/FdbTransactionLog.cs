@@ -29,14 +29,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Filters.Logging
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
 	using System.Threading;
 
+	/// <summary>Container that logs all operations performed by a transaction</summary>
 	public sealed partial class FdbTransactionLog
 	{
 		private int m_step;
@@ -45,6 +47,8 @@ namespace FoundationDB.Filters.Logging
 		private int m_readSize;
 		private int m_writeSize;
 
+		/// <summary>Create an empty log for a newly created transaction</summary>
+		/// <param name="trans"></param>
 		public FdbTransactionLog(IFdbTransaction trans)
 		{
 			this.Commands = new ConcurrentQueue<Command>();
@@ -57,7 +61,7 @@ namespace FoundationDB.Filters.Logging
 		public int Operations { get { return m_operations; } }
 
 		/// <summary>List of all commands processed by the transaction</summary>
-		public ConcurrentQueue<Command> Commands { get; private set; }
+		public ConcurrentQueue<Command> Commands { [NotNull] get; private set; }
 
 		/// <summary>Timestamp of the start of transaction</summary>
 		public long StartTimestamp { get; private set; }
@@ -135,8 +139,10 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Marks the start of the transaction</summary>
 		/// <param name="trans"></param>
-		public void Start(IFdbTransaction trans)
+		public void Start([NotNull] IFdbTransaction trans)
 		{
+			Contract.Requires(trans != null);
+
 			this.Id = trans.Id;
 			this.StartedUtc = DateTimeOffset.UtcNow;
 			this.StartTimestamp = GetTimestamp();
@@ -144,19 +150,24 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Marks the end of the transaction</summary>
 		/// <param name="trans"></param>
-		public void Stop(IFdbTransaction trans)
+		public void Stop([NotNull] IFdbTransaction trans)
 		{
+			Contract.Requires(trans != null);
+
+			//TODO: verify that the trans is the same one that was passed to Start(..)?
 			if (!this.Completed)
 			{
 				this.Completed = true;
 				this.StopTimestamp = GetTimestamp();
-				this.StoppedUtc = DateTimeOffset.UtcNow;
+				this.StoppedUtc = DateTimeOffset.UtcNow; //TODO: use a configurable clock?
 			}
 		}
 
 		/// <summary>Adds a new already completed command to the log</summary>
-		public void AddOperation(Command cmd, bool countAsOperation = true)
+		public void AddOperation([NotNull] Command cmd, bool countAsOperation = true)
 		{
+			Contract.Requires(cmd != null);
+
 			var ts = GetTimeOffset();
 			int step = Volatile.Read(ref m_step);
 
@@ -169,8 +180,10 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Start tracking the execution of a new command</summary>
-		public void BeginOperation(Command cmd)
+		public void BeginOperation([NotNull] Command cmd)
 		{
+			Contract.Requires(cmd != null);
+
 			var ts = GetTimeOffset();
 			int step = Volatile.Read(ref m_step);
 
@@ -183,8 +196,10 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Mark the end of the execution of a command</summary>
-		public void EndOperation(Command cmd, Exception error = null)
+		public void EndOperation([NotNull] Command cmd, Exception error = null)
 		{
+			Contract.Requires(cmd != null);
+
 			var ts = GetTimeOffset();
 			var step = Interlocked.Increment(ref m_step);
 
@@ -220,6 +235,7 @@ namespace FoundationDB.Filters.Logging
 		}
 
 		/// <summary>Generate a full ASCII report with the detailed timeline of all the commands that were executed by the transaction</summary>
+		[NotNull]
 		public string GetTimingsReport(bool showCommands = false)
 		{
 			var culture = CultureInfo.InvariantCulture;
@@ -368,6 +384,7 @@ namespace FoundationDB.Filters.Logging
 			return new string(tmp);
 		}
 
+		/// <summary>List of all operation types supported by a transaction</summary>
 		public enum Operation
 		{
 			Invalid = 0,
@@ -394,13 +411,19 @@ namespace FoundationDB.Filters.Logging
 			Log,
 		}
 
+		/// <summary>Categories of operations supported by a transaction</summary>
 		public enum Mode
 		{
 			Invalid = 0,
+			/// <summary>Operation that reads keys and/or values from the database</summary>
 			Read,
+			/// <summary>Operation that writes or clears keys from the database</summary>
 			Write,
+			/// <summary>Operation that changes the state or behavior of the transaction</summary>
 			Meta,
+			/// <summary>Operation that watch changes performed in the database, outside of the transaction</summary>
 			Watch,
+			/// <summary>Comments, annotations, debug output attached to the transaction</summary>
 			Annotation
 		}
 

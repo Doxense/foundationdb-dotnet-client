@@ -42,7 +42,7 @@ namespace FoundationDB.Layers.Directories
 	public interface IFdbDirectory
 	{
 		/// <summary>Name of this <code>Directory</code>.</summary>
-		string Name { get; }
+		string Name { [NotNull] get; }
 
 		/// <summary>Formatted path of this <code>Directory</code></summary>
 		string FullName { [NotNull] get; }
