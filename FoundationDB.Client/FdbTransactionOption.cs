@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 		/// <summary>Allows this transaction to read system keys (those that start with the byte 0xFF)
 		/// Parameter: Option takes no parameter
 		/// </summary>
-		ReadSystemKeys = 301,
+		ReadSystemKeys = 302,
 
 		/// <summary>
 		/// Parameter: Option takes no parameter

@@ -228,7 +228,7 @@ namespace FoundationDB.Client.Tests
 
 				// in order to verify the value, we need to check ourselves by reading from the cluster config
 				Slice actual;
-				using(var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithAccessToSystemKeys())
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithReadAccessToSystemKeys())
 				{
 					actual = await tr.GetAsync(Slice.FromAscii("\xFF/conf/storage_engine"));
 				}

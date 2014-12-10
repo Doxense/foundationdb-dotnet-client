@@ -44,8 +44,17 @@ namespace FoundationDB.Client
 
 		#region Fluent Options...
 
+		/// <summary>Allows this transaction to read system keys (those that start with the byte 0xFF)</summary>
+		public static TTransaction WithReadAccessToSystemKeys<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(Fdb.ApiVersion >= 300 ? FdbTransactionOption.ReadSystemKeys : FdbTransactionOption.AccessSystemKeys);
+			//TODO: cache this into a local variable ?
+			return trans;
+		}
+
 		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
-		public static TTransaction WithAccessToSystemKeys<TTransaction>(this TTransaction trans)
+		public static TTransaction WithWriteAccessToSystemKeys<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.AccessSystemKeys);

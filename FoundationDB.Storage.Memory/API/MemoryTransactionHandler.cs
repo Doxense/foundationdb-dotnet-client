@@ -446,7 +446,7 @@ namespace FoundationDB.Storage.Memory.API
 				}
 
 				m_retryCount = 0;
-				this.AccessSystemKeys = false;
+				this.AccessSystemKeys = NO_ACCESS;
 				this.NextWriteNoWriteConflictRange = false;
 				this.ReadYourWritesDisable = false;
 			}
@@ -565,7 +565,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		private void CheckAccessToSystemKeys(Slice key, bool end = false)
 		{
-			if (!this.AccessSystemKeys && key[0] == 0xFF)
+			if (this.AccessSystemKeys == 0 && key[0] == 0xFF)
 			{ // access to system keys is not allowed
 				if (!end || key.Count > 1)
 				{
@@ -1157,7 +1157,10 @@ namespace FoundationDB.Storage.Memory.API
 		public int Timeout { get; internal set; }
 
 		/// <summary>The transaction has access to the system keyspace</summary>
-		public bool AccessSystemKeys { get; internal set; }
+		public int AccessSystemKeys { get; internal set; }
+		const int NO_ACCESS = 0;
+		const int READ_ACCESS = 1;
+		const int READ_WRITE_ACCESS = 2;
 
 		/// <summary>The next write will not cause a write conflict</summary>
 		public bool NextWriteNoWriteConflictRange { get; internal set; }
@@ -1187,7 +1190,12 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				case FdbTransactionOption.AccessSystemKeys:
 				{
-					this.AccessSystemKeys = data.IsNullOrEmpty || DecodeBooleanOption(data);
+					this.AccessSystemKeys = (data.IsNullOrEmpty || DecodeBooleanOption(data)) ? READ_WRITE_ACCESS : NO_ACCESS;
+					break;
+				}
+				case FdbTransactionOption.ReadSystemKeys:
+				{
+					this.AccessSystemKeys = (data.IsNullOrEmpty || DecodeBooleanOption(data)) ? READ_ACCESS : NO_ACCESS;
 					break;
 				}
 				case FdbTransactionOption.RetryLimit:

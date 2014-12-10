@@ -509,7 +509,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.System.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 
-					tr.WithAccessToSystemKeys();
+					tr.WithReadAccessToSystemKeys();
 
 					var firstSystemKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.
@@ -1436,7 +1436,7 @@ namespace FoundationDB.Client.Tests
 					);
 
 					// should succeed once system access has been requested
-					tr.WithAccessToSystemKeys();
+					tr.WithReadAccessToSystemKeys();
 
 					var keys = await tr.GetRange(Slice.FromAscii("\xFF"), Slice.FromAscii("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
 					Assert.That(keys, Is.Not.Null);
@@ -1787,7 +1787,7 @@ namespace FoundationDB.Client.Tests
 				//var cf = await db.GetCoordinatorsAsync();
 				//Console.WriteLine("Connected to " + cf.ToString());
 
-				using(var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithAccessToSystemKeys())
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithReadAccessToSystemKeys())
 				{
 					// dump nodes
 					Console.WriteLine("Server List:");
