@@ -475,22 +475,69 @@ namespace FoundationDB.Client
 
 		#region Atomic Ops...
 
-		/// <summary>
-		/// Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.
-		/// </summary>
+		/// <summary>Checks that this type of mutation is supported by the currently selected API level</summary>
+		/// <param name="mutation">Mutation type</param>
+		/// <param name="selectedApiVersion">Select API level (200, 300, ...)</param>
+		/// <exception cref="FdbException">An error with code <see cref="FdbError.InvalidMutationType"/> if the type of mutation is not supported by this API level.</exception>
+		private static void EnsureMutationTypeIsSupported(FdbMutationType mutation, int selectedApiVersion)
+		{
+			if (selectedApiVersion < 200)
+			{ // mutations were not available at this time
+
+				if (Fdb.GetMaxApiVersion() >= 200)
+				{ // but the installed client could support it
+					throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations are only supported starting from API level 200. You need to select API level 200 or more at the start of your process.");
+				}
+				else
+				{ // not supported by the local client
+					throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations are only supported starting from client version 2.x. You need to update the version of the client, and select API level 200 or more at the start of your process.");
+				}
+			}
+
+			if (mutation == FdbMutationType.Add || mutation == FdbMutationType.BitAnd || mutation == FdbMutationType.BitOr || mutation == FdbMutationType.BitXor )
+			{ // these mutations are available since v200
+				return;
+			}
+
+			if (mutation == FdbMutationType.Max || mutation == FdbMutationType.Min)
+			{ // these mutations are available since v300
+				if (selectedApiVersion < 300)
+				{
+					if (Fdb.GetMaxApiVersion() >= 300)
+					{
+						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from API level 300. You need to select API level 300 or more at the start of your process.");
+					}
+					else
+					{
+						throw new FdbException(FdbError.InvalidMutationType, "Atomic mutations Max and Min are only supported starting from client version 3.x. You need to update the version of the client, and select API level 300 or more at the start of your process..");
+					}
+				}
+				// ok!
+				return;
+			}
+
+			// this could be a new mutation type, or an invalid value.
+			throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued. If you are attempting to call a new mutation type, you will need to update the version of this assembly, and select the latest API level.");
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to perform the operation indicated by <paramref name="mutation"/> with operand <paramref name="param"/> to the value stored by the given key.</summary>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="param">Parameter with which the atomic operation will mutate the value associated with key_name.</param>
 		/// <param name="mutation">Type of mutation that should be performed on the key</param>
 		public void Atomic(Slice key, Slice param, FdbMutationType mutation)
 		{
+			//note: this method as many names in the various bindings:
+			// - C API   : fdb_transaction_atomic_op(...)
+			// - Java    : tr.Mutate(..)
+			// - Node.js : tr.add(..), tr.max(..), ...
+
 			EnsureCanWrite();
 
 			m_database.EnsureKeyIsValid(ref key);
 			m_database.EnsureValueIsValid(ref param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
-			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.BitAnd && mutation != FdbMutationType.BitOr && mutation != FdbMutationType.BitXor && mutation != FdbMutationType.Max && mutation != FdbMutationType.Min)
-				throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued");
+			EnsureMutationTypeIsSupported(mutation, Fdb.ApiVersion);
 
 #if DEBUG
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "AtomicCore", String.Format("Atomic {0} on '{1}' = {2}", mutation.ToString(), FdbKey.Dump(key), Slice.Dump(param)));
