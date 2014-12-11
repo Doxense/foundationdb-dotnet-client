@@ -95,17 +95,20 @@ namespace FdbShell
 
 		public static void Main(string[] args)
 		{
-#if true || DEBUG
-			if (Console.LargestWindowWidth > 0)
+			//TODO: move this to the main, and add a command line argument to on/off ?
+			if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
 			{
 				Console.WindowWidth = 160;
 				Console.WindowHeight = 60;
 			}
-#endif
+
 			// Initialize FDB
-			Fdb.Start();
+
+			//note: always use the latest version available
+			Fdb.UseApiVersion(Fdb.GetMaxSafeApiVersion());
 			try
 			{
+				Fdb.Start();
 				using (var go = new CancellationTokenSource())
 				{
 					MainAsync(args, go.Token).GetAwaiter().GetResult();
