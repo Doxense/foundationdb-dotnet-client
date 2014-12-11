@@ -43,7 +43,8 @@ namespace FoundationDB.Client.Native
 {
 	internal static unsafe class FdbNative
 	{
-		public const int FDB_API_VERSION = 200;
+		public const int FDB_API_MIN_VERSION = 200;
+		public const int FDB_API_MAX_VERSION = 300;
 
 #if MONO
 		/// <summary>Name of the C API dll used for P/Invoking</summary>
@@ -331,7 +332,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>fdb_select_api_impl</summary>
 		public static FdbError SelectApiVersion(int version)
 		{
-			return SelectApiVersionImpl(version, FDB_API_VERSION);
+			return SelectApiVersionImpl(version, FDB_API_MAX_VERSION);
 		}
 
 		/// <summary>fdb_get_max_api_version</summary>

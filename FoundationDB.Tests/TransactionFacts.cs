@@ -709,19 +709,32 @@ namespace FoundationDB.Client.Tests
 				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.BitXor, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitXor, 0x018055AA);
 
-				key = location.Tuples.EncodeKey("max");
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 0);
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 1);
-				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Max, 0);
-				await PerformAtomicOperationAndCheck(db, key, 2, FdbMutationType.Max, 1);
-				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Max, 987654321);
+				if (Fdb.ApiVersion >= 300)
+				{
+					key = location.Tuples.EncodeKey("max");
+					await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 0);
+					await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 1);
+					await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Max, 0);
+					await PerformAtomicOperationAndCheck(db, key, 2, FdbMutationType.Max, 1);
+					await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Max, 987654321);
 
-				key = location.Tuples.EncodeKey("min");
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 0);
-				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 1);
-				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Min, 0);
-				await PerformAtomicOperationAndCheck(db, key, 2, FdbMutationType.Min, 1);
-				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Min, 987654321);
+					key = location.Tuples.EncodeKey("min");
+					await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 0);
+					await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 1);
+					await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Min, 0);
+					await PerformAtomicOperationAndCheck(db, key, 2, FdbMutationType.Min, 1);
+					await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Min, 987654321);
+				}
+				else
+				{
+					// calling with an unsupported mutation type should fail
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						key = location.Pack("invalid");
+						Assert.That(() => tr.Atomic(key, Slice.FromFixed32(42), FdbMutationType.Max), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidMutationType));
+					}
+
+				}
 
 				// calling with an invalid mutation type should fail
 				using (var tr = db.BeginTransaction(this.Cancellation))
