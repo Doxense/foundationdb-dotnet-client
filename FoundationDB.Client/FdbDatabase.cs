@@ -83,8 +83,11 @@ namespace FoundationDB.Client
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
 
-		/// <summary>Default RetryLimit value for all transactions</summary>
+		/// <summary>Default Retry Limit value for all transactions</summary>
 		private int m_defaultRetryLimit;
+
+		/// <summary>Default Max Retry Delay valeu for all transactions</summary>
+		private int m_defaultMaxRetryDelay;
 
 		/// <summary>Instance of the DirectoryLayer used by this detabase (lazy initialized)</summary>
 		private FdbDatabasePartition m_directory;
@@ -232,6 +235,7 @@ namespace FoundationDB.Client
 				// set default options..
 				if (m_defaultTimeout != 0) trans.Timeout = m_defaultTimeout;
 				if (m_defaultRetryLimit != 0) trans.RetryLimit = m_defaultRetryLimit;
+				if (m_defaultMaxRetryDelay != 0) trans.MaxRetryDelay = m_defaultMaxRetryDelay;
 				// flag as ready
 				trans.State = FdbTransaction.STATE_READY;
 				return trans;
@@ -614,6 +618,18 @@ namespace FoundationDB.Client
 			{
 				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "RetryLimit value cannot be negative");
 				m_defaultRetryLimit = value;
+			}
+		}
+
+		/// <summary>Default Max Retry Delay value for all transactions created from this database instance.</summary>
+		/// <remarks>Only effective for future transactions</remarks>
+		public int DefaultMaxRetryDelay
+		{
+			get { return m_defaultMaxRetryDelay; }
+			set
+			{
+				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "MaxRetryDelay value cannot be negative");
+				m_defaultMaxRetryDelay = value;
 			}
 		}
 

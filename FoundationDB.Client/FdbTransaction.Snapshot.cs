@@ -242,6 +242,12 @@ namespace FoundationDB.Client
 				set { throw new NotSupportedException("The retry limit value cannot be changed via the Snapshot view of a transaction."); }
 			}
 
+			public int MaxRetryDelay
+			{
+				get { return m_parent.MaxRetryDelay; }
+				set { throw new NotSupportedException("The max retry delay value cannot be changed via the Snapshot view of a transaction."); }
+			}
+
 			void IDisposable.Dispose()
 			{
 				// NO-OP

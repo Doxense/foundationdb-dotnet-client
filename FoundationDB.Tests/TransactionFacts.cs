@@ -1454,12 +1454,15 @@ namespace FoundationDB.Client.Tests
 				{
 					Assert.That(tr.Timeout, Is.EqualTo(0), "Timeout (default)");
 					Assert.That(tr.RetryLimit, Is.EqualTo(0), "RetryLimit (default)");
+					Assert.That(tr.MaxRetryDelay, Is.EqualTo(0), "MaxRetryDelay (default)");
 
 					tr.Timeout = 1000; // 1 sec max
 					tr.RetryLimit = 5; // 5 retries max
+					tr.MaxRetryDelay = 500; // .5 sec max
 
 					Assert.That(tr.Timeout, Is.EqualTo(1000), "Timeout");
 					Assert.That(tr.RetryLimit, Is.EqualTo(5), "RetryLimit");
+					Assert.That(tr.MaxRetryDelay, Is.EqualTo(500), "MaxRetryDelay");
 				}
 			}
 		}
@@ -1471,12 +1474,15 @@ namespace FoundationDB.Client.Tests
 			{
 				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
 				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
+				Assert.That(db.DefaultMaxRetryDelay, Is.EqualTo(0), "db.DefaultMaxRetryDelay (default)");
 
 				db.DefaultTimeout = 500;
 				db.DefaultRetryLimit = 3;
+				db.DefaultMaxRetryDelay = 600;
 
 				Assert.That(db.DefaultTimeout, Is.EqualTo(500), "db.DefaultTimeout");
 				Assert.That(db.DefaultRetryLimit, Is.EqualTo(3), "db.DefaultRetryLimit");
+				Assert.That(db.DefaultMaxRetryDelay, Is.EqualTo(600), "db.DefaultMaxRetryDelay");
 
 				// transaction should be already configured with the default options
 
@@ -1484,20 +1490,24 @@ namespace FoundationDB.Client.Tests
 				{
 					Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
 					Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
+					Assert.That(tr.MaxRetryDelay, Is.EqualTo(600), "tr.MaxRetryDelay");
 
 					// changing the default on the db should only affect new transactions
 
 					db.DefaultTimeout = 600;
 					db.DefaultRetryLimit = 4;
+					db.DefaultMaxRetryDelay = 700;
 
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						Assert.That(tr2.Timeout, Is.EqualTo(600), "tr2.Timeout");
 						Assert.That(tr2.RetryLimit, Is.EqualTo(4), "tr2.RetryLimit");
+						Assert.That(tr2.MaxRetryDelay, Is.EqualTo(700), "tr2.MaxRetryDelay");
 
 						// original tr should not be affected
 						Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
 						Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
+						Assert.That(tr.MaxRetryDelay, Is.EqualTo(600), "tr.MaxRetryDelay");
 					}
 
 				}
