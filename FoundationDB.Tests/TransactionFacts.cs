@@ -730,10 +730,9 @@ namespace FoundationDB.Client.Tests
 					// calling with an unsupported mutation type should fail
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
-						key = location.Pack("invalid");
+						key = location.Tuples.EncodeKey("invalid");
 						Assert.That(() => tr.Atomic(key, Slice.FromFixed32(42), FdbMutationType.Max), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.InvalidMutationType));
 					}
-
 				}
 
 				// calling with an invalid mutation type should fail
