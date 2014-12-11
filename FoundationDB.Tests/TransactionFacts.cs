@@ -709,14 +709,14 @@ namespace FoundationDB.Client.Tests
 				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.BitXor, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitXor, 0x018055AA);
 
-				key = location.Pack("max");
+				key = location.Tuples.EncodeKey("max");
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 0);
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 1);
 				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Max, 0);
 				await PerformAtomicOperationAndCheck(db, key, 2, FdbMutationType.Max, 1);
 				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Max, 987654321);
 
-				key = location.Pack("min");
+				key = location.Tuples.EncodeKey("min");
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 0);
 				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 1);
 				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Min, 0);
