@@ -57,7 +57,15 @@ namespace FoundationDB.Client
 		internal const int MaxTransactionWriteSize = 10 * 1024 * 1024;
 
 		/// <summary>Minimum API version supported by this binding</summary>
-		internal const int MinimumApiVersion = 200; // v2.0.x
+		internal const int MinSafeApiVersion = FdbNative.FDB_API_MIN_VERSION;
+
+		/// <summary>Highest API version that this binding can support</summary>
+		/// <remarks>Ex: this binding has been tested against v3.x (300) but the installed client can be v4.x (400).</remarks>
+		internal const int MaxSafeApiVersion = FdbNative.FDB_API_MAX_VERSION;
+
+		/// <summary>Default API version that will be selected, if the application does not specify otherwise.</summary>
+		internal const int DefaultApiVersion = 200; // v2.0.x
+		//INVARIANT: MinSafeApiVersion <= DefaultApiVersion <= MaxSafeApiVersion
 
 		#endregion
 
@@ -67,7 +75,7 @@ namespace FoundationDB.Client
 		private static bool s_started; //REVIEW: replace with state flags (Starting, Started, Failed, ...)
 
 		/// <summary>Currently selected API version</summary>
-		private static int s_apiVersion = FdbNative.FDB_API_VERSION;
+		private static int s_apiVersion = DefaultApiVersion;
 
 		/// <summary>Event handler called when the AppDomain gets unloaded</summary>
 		private static EventHandler s_appDomainUnloadHandler;
@@ -77,27 +85,48 @@ namespace FoundationDB.Client
 
 		#endregion
 
-		/// <summary>Returns the minimum API version currently supported by this binding</summary>
+		/// <summary>Returns the minimum API version currently supported by this binding.</summary>
+		/// <remarks>Attempts to select an API version lower than this value will fail.</remarks>
 		public static int GetMinApiVersion()
 		{
-			return MinimumApiVersion;
+			return MinSafeApiVersion;
 		}
 
-		/// <summary>Returns the maximum API version currently supported by this binding</summary>
+		/// <summary>Returns the maximum API version currently supported by the installed client.</summary>
+		/// <remarks>The version of the installed client (fdb_c.dll) can be different higher (or lower) than the version supported by this binding (FoundationDB.Client.dll)!
+		/// If you want the highest possible version that is supported by both the binding and the client, you must call <see cref="GetMaxSafeApiVersion"/>.
+		/// Attempts to select an API version higher than this value will fail.
+		/// </remarks>
 		public static int GetMaxApiVersion()
 		{
 			return FdbNative.GetMaxApiVersion();
 		}
 
-		/// <summary>Returns the currently selected API version</summary>
+		/// <summary>Returns the maximum API version that is supported by both this binding and the installed client.</summary>
+		/// <returns>Value that can be safely passed to <see cref="UseApiVersion"/> or <see cref="Start(int)"/>, if you want to be on the bleeding edge.</returns>
+		/// <remarks>This value can be lower than the value returned by <see cref="GetMaxApiVersion"/> if the FoundationDB client installed on this machine is more recent that the version of this assembly.
+		/// Using this version may break your application if new features change the behavior of the client (ex: default mode for snapshot transactions between v2.x and v3.x).
+		/// </remarks>
+		public static int GetMaxSafeApiVersion()
+		{
+			return Math.Min(MaxSafeApiVersion, GetMaxSafeApiVersion());
+		}
+
+		/// <summary>Returns the currently selected API version.</summary>
 		/// <remarks>Unless explicitely selected by calling <see cref="UseApiVersion"/> before, the default API version level will be returned</remarks>
 		public static int ApiVersion
 		{
 			get { return s_apiVersion; }
 		}
 
-		/// <summary>Sets the desired API version of the binding</summary>
-		/// <remarks>The version can only be set before calling <see cref="Fdb.Start()"/> or any method that indirectly calls it.</remarks>
+		/// <summary>Sets the desired API version of the binding.
+		/// The selected version level may affect the availability and behavior or certain features.
+		/// </summary>
+		/// <remarks>
+		/// The version can only be set before calling <see cref="Fdb.Start()"/> or any method that indirectly calls it.
+		/// If you want to be on the bleeding edge, you can use <see cref="GetMaxSafeApiVersion"/> to get the maximum version supported by both this bindign and the FoundationDB client.
+		/// If you want to be conservative, you should target a specific version level, and only change to newer versions after making sure that all tests are passing!
+		/// </remarks>
 		/// <exception cref="InvalidOperationException">When attempting to change the API version after the binding has been started.</exception>
 		/// <exception cref="ArgumentException">When attempting to set a negative version, or a version that is either less or greater than the minimum and maximum supported versions.</exception>
 		public static void UseApiVersion(int value)
@@ -109,14 +138,14 @@ namespace FoundationDB.Client
 
 			if (value == 0)
 			{ // 0 means "use the default version"
-				s_apiVersion = FdbNative.FDB_API_VERSION;
+				s_apiVersion = DefaultApiVersion;
 			}
 			else
 			{
 				int min = GetMinApiVersion();
-				if (value < min) throw new ArgumentException(String.Format("The minimum API version supported by this binding is {0} and the default version is {1}.", min, FdbNative.FDB_API_VERSION));
+				if (value < min) throw new ArgumentException(String.Format("The minimum API version supported by this binding is {0} and the default version is {1}.", min, DefaultApiVersion));
 				int max = GetMaxApiVersion();
-				if (value > max) throw new ArgumentException(String.Format("The maximum API version supported by this binding is {0} and the default version is {1}.", max, FdbNative.FDB_API_VERSION));
+				if (value > max) throw new ArgumentException(String.Format("The maximum API version supported by this binding is {0} and the default version is {1}.", max, DefaultApiVersion));
 
 				s_apiVersion = value;
 			}
@@ -162,7 +191,7 @@ namespace FoundationDB.Client
 				case FdbError.TimedOut: return new TimeoutException("Operation timed out");
 				case FdbError.LargeAllocFailed: return new OutOfMemoryException("Large block allocation failed");
 				//TODO!
-				default: 
+				default:
 					return new FdbException(code, msg);
 			}
 		}
@@ -502,8 +531,15 @@ namespace FoundationDB.Client
 			if (!s_eventLoopStarted) Start();
 		}
 
-		/// <summary>Select the correct API version, and start the Network Thread</summary>
-		/// <remarks>If you need a specific API version level, it must be defined by calling <see cref="UseApiVersion"/> before calling this method, otherwise the default API version will be selected.</remarks>
+		/// <summary>Select the API version level to use in this process, and start the Network Thread</summary>
+		public static void Start(int apiVersion)
+		{
+			UseApiVersion(apiVersion);
+			Start();
+		}
+
+		/// <summary>Start the Network Thread, using the currently selected API version level</summary>
+		/// <remarks>If you need a specific API version level, it must be defined by either calling <see cref="UseApiVersion"/> before calling this method, or by using the <see cref="Start(int)"/> override. Otherwise, the default API version will be selected.</remarks>
 		public static void Start()
 		{
 			if (s_started) return;
@@ -513,7 +549,7 @@ namespace FoundationDB.Client
 			s_started = true;
 
 			int apiVersion = s_apiVersion;
-			if (apiVersion <= 0) apiVersion = FdbNative.FDB_API_VERSION;
+			if (apiVersion <= 0) apiVersion = DefaultApiVersion;
 
 			if (Logging.On) Logging.Info(typeof(Fdb), "Start", String.Format("Selecting fdb API version {0}", apiVersion));
 
@@ -541,7 +577,7 @@ namespace FoundationDB.Client
 				DieOnError(err);
 			}
 			s_apiVersion = apiVersion;
-			
+
 			if (!string.IsNullOrWhiteSpace(Fdb.Options.TracePath))
 			{
 				if (Logging.On) Logging.Verbose(typeof(Fdb), "Start", String.Format("Will trace client activity in '{0}'", Fdb.Options.TracePath));
@@ -594,7 +630,6 @@ namespace FoundationDB.Client
 			try { }
 			finally
 			{
-			
 				// register with the AppDomain to ensure that everyting is cleared when the process exists
 				s_appDomainUnloadHandler = (sender, args) =>
 				{
