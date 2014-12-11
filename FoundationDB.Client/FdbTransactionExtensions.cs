@@ -44,9 +44,18 @@ namespace FoundationDB.Client
 
 		#region Fluent Options...
 
-		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
-		public static TTransaction WithAccessToSystemKeys<TTransaction>(this TTransaction trans)
+		/// <summary>Allows this transaction to read system keys (those that start with the byte 0xFF)</summary>
+		public static TTransaction WithReadAccessToSystemKeys<TTransaction>(this TTransaction trans)
 			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(Fdb.ApiVersion >= 300 ? FdbTransactionOption.ReadSystemKeys : FdbTransactionOption.AccessSystemKeys);
+			//TODO: cache this into a local variable ?
+			return trans;
+		}
+
+		/// <summary>Allows this transaction to read and modify system keys (those that start with the byte 0xFF)</summary>
+		public static TTransaction WithWriteAccessToSystemKeys<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbTransaction
 		{
 			trans.SetOption(FdbTransactionOption.AccessSystemKeys);
 			//TODO: cache this into a local variable ?
@@ -79,9 +88,25 @@ namespace FoundationDB.Client
 			return trans;
 		}
 
+		/// <summary>Snapshot reads performed by a transaction will see the results of writes done in the same transaction.</summary>
+		public static TTransaction WithSnapshotReadYourWritesEnable<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.SnapshotReadYourWriteEnable);
+			return trans;
+		}
+
+		/// <summary>Reads performed by a transaction will not see the results of writes done in the same transaction.</summary>
+		public static TTransaction WithSnapshotReadYourWritesDisable<TTransaction>(this TTransaction trans)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.SetOption(FdbTransactionOption.SnapshotReadYourWriteDisable);
+			return trans;
+		}
+
 		/// <summary>Disables read-ahead caching for range reads. Under normal operation, a transaction will read extra rows from the database into cache if range reads are used to page through a series of data one row at a time (i.e. if a range read with a one row limit is followed by another one row range read starting immediately after the result of the first).</summary>
 		public static TTransaction WithReadAheadDisable<TTransaction>(this TTransaction trans)
-			where TTransaction : IFdbTransaction
+			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.SetOption(FdbTransactionOption.ReadAheadDisable);
 			return trans;
@@ -95,7 +120,12 @@ namespace FoundationDB.Client
 			return trans;
 		}
 
-		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
+		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
+		/// Valid parameter values are [TimeSpan.Zero, TimeSpan.MaxValue].
+		/// If set to 0, will disable all timeouts.
+		/// All pending and any future uses of the transaction will throw an exception.
+		/// The transaction can be used again after it is reset.
+		/// </summary>
 		/// <param name="timeout">Timeout (with millisecond precision), or TimeSpan.Zero for infinite timeout</param>
 		public static TTransaction WithTimeout<TTransaction>(this TTransaction trans, TimeSpan timeout)
 			where TTransaction : IFdbReadOnlyTransaction
@@ -103,7 +133,12 @@ namespace FoundationDB.Client
 			return WithTimeout<TTransaction>(trans, timeout == TimeSpan.Zero ? 0 : (int)Math.Ceiling(timeout.TotalMilliseconds));
 		}
 
-		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
+		/// <summary>Set a timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
+		/// Valid parameter values are [0, int.MaxValue].
+		/// If set to 0, will disable all timeouts.
+		/// All pending and any future uses of the transaction will throw an exception.
+		/// The transaction can be used again after it is reset.
+		/// </summary>
 		/// <param name="milliseconds">Timeout in millisecond, or 0 for infinite timeout</param>
 		public static TTransaction WithTimeout<TTransaction>(this TTransaction trans, int milliseconds)
 			where TTransaction : IFdbReadOnlyTransaction
@@ -112,12 +147,35 @@ namespace FoundationDB.Client
 			return trans;
 		}
 
-		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code. Valid parameter values are ``[-1, INT_MAX]``. If set to -1, will disable the retry limit.</summary>
+		/// <summary>Set a maximum number of retries after which additional calls to onError will throw the most recently seen error code.
+		/// Valid parameter values are [-1, int.MaxValue].
+		/// If set to -1, will disable the retry limit.</summary>
 		public static TTransaction WithRetryLimit<TTransaction>(this TTransaction trans, int retries)
 			where TTransaction : IFdbReadOnlyTransaction
 		{
 			trans.RetryLimit = retries;
 			return trans;
+		}
+
+		/// <summary>Set the maximum amount of backoff delay incurred in the call to onError if the error is retryable.
+		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
+		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
+		/// </summary>
+		public static TTransaction WithMaxRetryDelay<TTransaction>(this TTransaction trans, int milliseconds)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			trans.MaxRetryDelay = milliseconds;
+			return trans;
+		}
+
+		/// <summary>Set the maximum amount of backoff delay incurred in the call to onError if the error is retryable.
+		/// Defaults to 1000 ms. Valid parameter values are [TimeSpan.Zero, TimeSpan.MaxValue].
+		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
+		/// </summary>
+		public static TTransaction WithMaxRetryDelay<TTransaction>(this TTransaction trans, TimeSpan delay)
+			where TTransaction : IFdbReadOnlyTransaction
+		{
+			return WithMaxRetryDelay<TTransaction>(trans, delay == TimeSpan.Zero ? 0 : (int)Math.Ceiling(delay.TotalMilliseconds));
 		}
 
 		#endregion
@@ -370,7 +428,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to add <paramref name="value"/> to the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
 		/// <param name="trans">Transaction instance</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="value">Value to add to existing value of key.</param>
@@ -396,7 +454,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise AND between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
 		/// <param name="trans">Transaction instance</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
@@ -423,7 +481,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise OR between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
 		/// <param name="trans">Transaction instance</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
@@ -450,7 +508,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise XOR between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
 		/// <param name="trans">Transaction instance</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
 		/// <param name="mask">Bit mask.</param>
@@ -462,6 +520,56 @@ namespace FoundationDB.Client
 			if (key == null) throw new ArgumentNullException("key");
 
 			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.BitXor);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is larger than the value in the database.</summary>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Bit mask.</param>
+		public static void AtomicMax(this IFdbTransaction trans, Slice key, Slice value)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Atomic(key, value, FdbMutationType.Max);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is larger than the value in the database.</summary>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Bit mask.</param>
+		public static void AtomicMax<TKey>(this IFdbTransaction trans, TKey key, Slice value)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Atomic(key.ToFoundationDbKey(), value, FdbMutationType.Max);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is smaller than the value in the database.</summary>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Bit mask.</param>
+		public static void AtomicMin(this IFdbTransaction trans, Slice key, Slice value)
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+
+			trans.Atomic(key, value, FdbMutationType.Min);
+		}
+
+		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is smaller than the value in the database.</summary>
+		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
+		/// <param name="trans">Transaction instance</param>
+		/// <param name="key">Name of the key whose value is to be mutated.</param>
+		/// <param name="value">Bit mask.</param>
+		public static void AtomicMin<TKey>(this IFdbTransaction trans, TKey key, Slice value)
+			where TKey : IFdbKey
+		{
+			if (trans == null) throw new ArgumentNullException("trans");
+			if (key == null) throw new ArgumentNullException("key");
+
+			trans.Atomic(key.ToFoundationDbKey(), value, FdbMutationType.Min);
 		}
 
 		#endregion

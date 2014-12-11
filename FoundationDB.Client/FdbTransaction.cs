@@ -81,6 +81,9 @@ namespace FoundationDB.Client
 		/// <summary>Retry Limit of this transaction</summary>
 		private int m_retryLimit;
 
+		/// <summary>Max Retry Delay (in ms) of this transaction</summary>
+		private int m_maxRetryDelay;
+
 		/// <summary>Cancelletation source specific to this instance.</summary>
 		private readonly CancellationTokenSource m_cts;
 
@@ -163,7 +166,11 @@ namespace FoundationDB.Client
 
 		#region Properties...
 
-		/// <summary>Timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
+		/// <summary>Timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
+		/// Valid parameter values are [0, int.MaxValue].
+		/// If set to 0, will disable all timeouts.
+		/// All pending and any future uses of the transaction will throw an exception.
+		/// The transaction can be used again after it is reset.</summary>
 		public int Timeout
 		{
 			get { return m_timeout; }
@@ -175,15 +182,33 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Maximum number of retries after which additional calls to onError will throw the most recently seen error code. Valid parameter values are ``[-1, INT_MAX]``. If set to -1, will disable the retry limit.</summary>
+		/// <summary>Maximum number of retries after which additional calls to onError will throw the most recently seen error code.
+		/// Valid parameter values are [-1, int.MaxValue].
+		/// If set to -1, will disable the retry limit.
+		/// </summary>
 		public int RetryLimit
 		{
 			get { return m_retryLimit; }
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Retry count cannot be negative");
+				if (value < -1) throw new ArgumentOutOfRangeException("value", value, "Retry count cannot be negative");
 				SetOption(FdbTransactionOption.RetryLimit, value);
 				m_retryLimit = value;
+			}
+		}
+
+		/// <summary>Maximum amount of backoff delay incurred in the call to onError if the error is retryable.
+		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
+		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
+		/// </summary>
+		public int MaxRetryDelay
+		{
+			get { return m_maxRetryDelay; }
+			set
+			{
+				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Max retry delay cannot be negative");
+				SetOption(FdbTransactionOption.MaxRetryDelay, value);
+				m_maxRetryDelay = value;
 			}
 		}
 
@@ -464,7 +489,7 @@ namespace FoundationDB.Client
 			m_database.EnsureValueIsValid(ref param);
 
 			//The C API does not fail immediately if the mutation type is not valid, and only fails at commit time.
-			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.BitAnd && mutation != FdbMutationType.BitOr && mutation != FdbMutationType.BitXor)
+			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.BitAnd && mutation != FdbMutationType.BitOr && mutation != FdbMutationType.BitXor && mutation != FdbMutationType.Max && mutation != FdbMutationType.Min)
 				throw new FdbException(FdbError.InvalidMutationType, "An invalid mutation type was issued");
 
 #if DEBUG
@@ -603,7 +628,7 @@ namespace FoundationDB.Client
 		}
 
 		#endregion
-		
+
 		#region Watches...
 
 		/// <summary>
@@ -670,12 +695,17 @@ namespace FoundationDB.Client
 			// resetting the state of a transaction automatically clears the RetryLimit and Timeout settings
 			// => we need to set the again!
 
-			m_retryLimit = 0;
 			m_timeout = 0;
+			m_retryLimit = 0;
+			m_maxRetryDelay = 0;
 
 			if (m_database.DefaultRetryLimit > 0)
 			{
 				this.RetryLimit = m_database.DefaultRetryLimit;
+			}
+			if (m_database.DefaultMaxRetryDelay > 0)
+			{
+				this.MaxRetryDelay = m_database.DefaultMaxRetryDelay;
 			}
 			if (m_database.DefaultTimeout > 0)
 			{

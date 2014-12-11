@@ -160,11 +160,25 @@ namespace FoundationDB.Client
 		/// <param name="value">Value of the parameter</param>
 		void SetOption(FdbTransactionOption option, long value);
 
-		/// <summary>Timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled. Valid parameter values are ``[0, INT_MAX]``. If set to 0, will disable all timeouts. All pending and any future uses of the transaction will throw an exception. The transaction can be used again after it is reset.</summary>
+		/// <summary>Timeout in milliseconds which, when elapsed, will cause the transaction automatically to be cancelled.
+		/// Valid parameter values are ``[0, int.MaxValue]``.
+		/// If set to 0, will disable all timeouts.
+		/// All pending and any future uses of the transaction will throw an exception.
+		/// The transaction can be used again after it is reset.
+		/// </summary>
 		int Timeout { get; set; }
 
-		/// <summary>Maximum number of retries after which additional calls to onError will throw the most recently seen error code. Valid parameter values are ``[-1, INT_MAX]``. If set to -1, will disable the retry limit.</summary>
+		/// <summary>Maximum number of retries after which additional calls to onError will throw the most recently seen error code.
+		/// Valid parameter values are ``[-1, int.MaxValue]``.
+		/// If set to -1, will disable the retry limit.
+		/// </summary>
 		int RetryLimit { get; set; }
+
+		/// <summary>Maximum amount of backoff delay incurred in the call to onError if the error is retryable.
+		/// Defaults to 1000 ms. Valid parameter values are [0, int.MaxValue].
+		/// If the maximum retry delay is less than the current retry delay of the transaction, then the current retry delay will be clamped to the maximum retry delay.
+		/// </summary>
+		int MaxRetryDelay { get; set; }
 
 	}
 

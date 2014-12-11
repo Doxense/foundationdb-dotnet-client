@@ -316,6 +316,16 @@ namespace FoundationDB.Filters
 			}
 		}
 
+		public int DefaultMaxRetryDelay
+		{
+			get { return m_database.DefaultMaxRetryDelay; }
+			set
+			{
+				ThrowIfDisposed();
+				m_database.DefaultMaxRetryDelay = value;
+			}
+		}
+
 		#endregion
 
 		#region IDisposable Members...

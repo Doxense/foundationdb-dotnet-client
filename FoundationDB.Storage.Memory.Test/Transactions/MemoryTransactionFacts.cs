@@ -805,7 +805,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(Slice.FromAscii("\xFF\xFF"))), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Slice.FromAscii("\xFF\x00"))), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 
-					tr.WithAccessToSystemKeys();
+					tr.WithReadAccessToSystemKeys();
 
 					var firstSystemKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.

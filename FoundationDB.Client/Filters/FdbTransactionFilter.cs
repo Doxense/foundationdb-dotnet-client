@@ -299,6 +299,16 @@ namespace FoundationDB.Filters
 			}
 		}
 
+		public int MaxRetryDelay
+		{
+			get { return m_transaction.MaxRetryDelay; }
+			set
+			{
+				ThrowIfDisposed();
+				m_transaction.MaxRetryDelay = value;
+			}
+		}
+
 	}
 
 	public class FdbReadOnlyTransactionFilter : IFdbReadOnlyTransaction
@@ -432,6 +442,12 @@ namespace FoundationDB.Filters
 		{
 			get { return m_transaction.RetryLimit; }
 			set { m_transaction.RetryLimit = value; }
+		}
+
+		public virtual int MaxRetryDelay
+		{
+			get { return m_transaction.MaxRetryDelay; }
+			set { m_transaction.MaxRetryDelay = value; }
 		}
 
 		public void Dispose()

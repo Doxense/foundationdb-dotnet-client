@@ -91,8 +91,8 @@ namespace FoundationDB.Client
 
 				var coordinators = await db.ReadAsync((tr) =>
 				{
-					tr.SetOption(FdbTransactionOption.AccessSystemKeys);
-					tr.SetOption(FdbTransactionOption.PrioritySystemImmediate);
+					tr.WithReadAccessToSystemKeys();
+					tr.WithPrioritySystemImmediate();
 					//note: we ask for high priotity, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
 					return tr.GetAsync(Fdb.System.Coordinators);
@@ -115,8 +115,8 @@ namespace FoundationDB.Client
 
 				return db.ReadAsync<Slice>((tr) =>
 				{
-					tr.SetOption(FdbTransactionOption.AccessSystemKeys);
-					tr.SetOption(FdbTransactionOption.PrioritySystemImmediate);
+					tr.WithReadAccessToSystemKeys();
+					tr.WithPrioritySystemImmediate();
 					//note: we ask for high priotity, because this method maybe called by a monitoring system than has to run when the cluster is clogged up in requests
 
 					return tr.GetAsync(Fdb.System.ConfigKey(name));
@@ -275,7 +275,7 @@ namespace FoundationDB.Client
 				trans.Annotate("Get boundary keys in range {0}", FdbKeyRange.Create(begin, end));
 #endif
 
-				trans.WithAccessToSystemKeys();
+				trans.WithReadAccessToSystemKeys();
 
 				var results = new List<Slice>();
 				int iterations = 0;
@@ -317,7 +317,7 @@ namespace FoundationDB.Client
 							await trans.OnErrorAsync(error.Code).ConfigureAwait(false);
 						}
 						iterations = 0;
-						trans.WithAccessToSystemKeys();
+						trans.WithReadAccessToSystemKeys();
 					}
 				}
 

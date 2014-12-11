@@ -77,6 +77,8 @@ namespace FoundationDB.Client
 		/// <remarks>Only effective for future transactions</remarks>
 		int DefaultRetryLimit { get; set; }
 
+		int DefaultMaxRetryDelay { get; set; }
+
 		/// <summary>Start a new transaction on this database, with the specified mode</summary>
 		/// <param name="mode">Mode of the transaction (read-only, read-write, ....)</param>
 		/// <param name="cancellationToken">Optional cancellation token that can abort all pending async operations started by this transaction.</param>

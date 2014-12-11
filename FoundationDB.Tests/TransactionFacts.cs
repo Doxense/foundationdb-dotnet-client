@@ -93,7 +93,7 @@ namespace FoundationDB.Client.Tests
 				}
 			}
 		}
-		
+
 		[Test]
 		public async Task Test_Creating_A_ReadOnly_Transaction_Throws_When_Writing()
 		{
@@ -102,7 +102,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					Assert.That(tr, Is.Not.Null);
-					
+
 					// reading should not fail
 					await tr.GetAsync(db.Tuples.EncodeKey("Hello"));
 
@@ -509,7 +509,7 @@ namespace FoundationDB.Client.Tests
 					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.System.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 
-					tr.WithAccessToSystemKeys();
+					tr.WithReadAccessToSystemKeys();
 
 					var firstSystemKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.
@@ -640,6 +640,8 @@ namespace FoundationDB.Client.Tests
 				case FdbMutationType.BitOr: expected = x | y; break;
 				case FdbMutationType.BitXor: expected = x ^ y; break;
 				case FdbMutationType.Add: expected = x + y; break;
+				case FdbMutationType.Max: expected = Math.Max(x, y); break;
+				case FdbMutationType.Min: expected = Math.Min(x, y); break;
 				default: Assert.Fail("Invalid operation type"); break;
 			}
 
@@ -706,6 +708,20 @@ namespace FoundationDB.Client.Tests
 				await PerformAtomicOperationAndCheck(db, key, -1, FdbMutationType.BitXor, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x00FF00FF, FdbMutationType.BitXor, 0x018055AA);
 				await PerformAtomicOperationAndCheck(db, key, 0x0F0F0F0F, FdbMutationType.BitXor, 0x018055AA);
+
+				key = location.Pack("max");
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Max, 1);
+				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Max, 0);
+				await PerformAtomicOperationAndCheck(db, key, 2, FdbMutationType.Max, 1);
+				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Max, 987654321);
+
+				key = location.Pack("min");
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 0);
+				await PerformAtomicOperationAndCheck(db, key, 0, FdbMutationType.Min, 1);
+				await PerformAtomicOperationAndCheck(db, key, 1, FdbMutationType.Min, 0);
+				await PerformAtomicOperationAndCheck(db, key, 2, FdbMutationType.Min, 1);
+				await PerformAtomicOperationAndCheck(db, key, 123456789, FdbMutationType.Min, 987654321);
 
 				// calling with an invalid mutation type should fail
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -1420,7 +1436,7 @@ namespace FoundationDB.Client.Tests
 					);
 
 					// should succeed once system access has been requested
-					tr.WithAccessToSystemKeys();
+					tr.WithReadAccessToSystemKeys();
 
 					var keys = await tr.GetRange(Slice.FromAscii("\xFF"), Slice.FromAscii("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync();
 					Assert.That(keys, Is.Not.Null);
@@ -1438,12 +1454,15 @@ namespace FoundationDB.Client.Tests
 				{
 					Assert.That(tr.Timeout, Is.EqualTo(0), "Timeout (default)");
 					Assert.That(tr.RetryLimit, Is.EqualTo(0), "RetryLimit (default)");
+					Assert.That(tr.MaxRetryDelay, Is.EqualTo(0), "MaxRetryDelay (default)");
 
 					tr.Timeout = 1000; // 1 sec max
 					tr.RetryLimit = 5; // 5 retries max
+					tr.MaxRetryDelay = 500; // .5 sec max
 
 					Assert.That(tr.Timeout, Is.EqualTo(1000), "Timeout");
 					Assert.That(tr.RetryLimit, Is.EqualTo(5), "RetryLimit");
+					Assert.That(tr.MaxRetryDelay, Is.EqualTo(500), "MaxRetryDelay");
 				}
 			}
 		}
@@ -1455,12 +1474,15 @@ namespace FoundationDB.Client.Tests
 			{
 				Assert.That(db.DefaultTimeout, Is.EqualTo(0), "db.DefaultTimeout (default)");
 				Assert.That(db.DefaultRetryLimit, Is.EqualTo(0), "db.DefaultRetryLimit (default)");
+				Assert.That(db.DefaultMaxRetryDelay, Is.EqualTo(0), "db.DefaultMaxRetryDelay (default)");
 
 				db.DefaultTimeout = 500;
 				db.DefaultRetryLimit = 3;
+				db.DefaultMaxRetryDelay = 600;
 
 				Assert.That(db.DefaultTimeout, Is.EqualTo(500), "db.DefaultTimeout");
 				Assert.That(db.DefaultRetryLimit, Is.EqualTo(3), "db.DefaultRetryLimit");
+				Assert.That(db.DefaultMaxRetryDelay, Is.EqualTo(600), "db.DefaultMaxRetryDelay");
 
 				// transaction should be already configured with the default options
 
@@ -1468,20 +1490,24 @@ namespace FoundationDB.Client.Tests
 				{
 					Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
 					Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
+					Assert.That(tr.MaxRetryDelay, Is.EqualTo(600), "tr.MaxRetryDelay");
 
 					// changing the default on the db should only affect new transactions
 
 					db.DefaultTimeout = 600;
 					db.DefaultRetryLimit = 4;
+					db.DefaultMaxRetryDelay = 700;
 
 					using (var tr2 = db.BeginTransaction(this.Cancellation))
 					{
 						Assert.That(tr2.Timeout, Is.EqualTo(600), "tr2.Timeout");
 						Assert.That(tr2.RetryLimit, Is.EqualTo(4), "tr2.RetryLimit");
+						Assert.That(tr2.MaxRetryDelay, Is.EqualTo(700), "tr2.MaxRetryDelay");
 
 						// original tr should not be affected
 						Assert.That(tr.Timeout, Is.EqualTo(500), "tr.Timeout");
 						Assert.That(tr.RetryLimit, Is.EqualTo(3), "tr.RetryLimit");
+						Assert.That(tr.MaxRetryDelay, Is.EqualTo(600), "tr.MaxRetryDelay");
 					}
 
 				}
@@ -1771,7 +1797,7 @@ namespace FoundationDB.Client.Tests
 				//var cf = await db.GetCoordinatorsAsync();
 				//Log("Connected to {0}", cf.ToString());
 
-				using(var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithAccessToSystemKeys())
+				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation).WithReadAccessToSystemKeys())
 				{
 					// dump nodes
 					Log("Server List:");
