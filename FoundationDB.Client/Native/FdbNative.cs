@@ -332,7 +332,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>fdb_select_api_impl</summary>
 		public static FdbError SelectApiVersion(int version)
 		{
-			return SelectApiVersionImpl(version, FDB_API_MAX_VERSION);
+			return SelectApiVersionImpl(version, GetMaxApiVersion());
 		}
 
 		/// <summary>fdb_get_max_api_version</summary>
