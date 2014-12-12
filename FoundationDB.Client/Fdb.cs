@@ -109,7 +109,7 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public static int GetMaxSafeApiVersion()
 		{
-			return Math.Min(MaxSafeApiVersion, GetMaxSafeApiVersion());
+			return Math.Min(MaxSafeApiVersion, GetMaxApiVersion());
 		}
 
 		/// <summary>Returns the currently selected API version.</summary>
