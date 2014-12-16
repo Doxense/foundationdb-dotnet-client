@@ -248,7 +248,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Bulk_Batched_Insert_Items()
 		{
-			const int N = 20 * 1000;
+			const int N = 2000 * 1000;
 
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -271,7 +271,7 @@ namespace FoundationDB.Client.Tests
 				long called = 0;
 				var uniqueKeys = new HashSet<int>();
 				var batchCounts = new List<int>();
-				var trSizes = new List<int>();
+				var trSizes = new List<long>();
 				var sw = Stopwatch.StartNew();
 				long count = await Fdb.Bulk.InsertBatchedAsync(
 					db,
@@ -309,6 +309,7 @@ namespace FoundationDB.Client.Tests
 
 				Log("Batch counts: {0}", String.Join(", ", batchCounts));
 				Log("Batch sizes : {0}", String.Join(", ", trSizes));
+				Log("Total Size  : {0:N0}", trSizes.Sum());
 
 				// read everything back...
 
