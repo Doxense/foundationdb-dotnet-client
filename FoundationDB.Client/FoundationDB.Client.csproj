@@ -69,6 +69,7 @@
     <Compile Include="Encoders\FdbEncoderSubspace`2.cs" />
     <Compile Include="Encoders\IKeyValueEncoder.cs" />
     <Compile Include="Encoders\FdbEncoderSubspace`1.cs" />
+    <Compile Include="Fdb.Status.cs" />
     <Compile Include="FdbEndPoint.cs" />
     <Compile Include="FdbIsolationLevel.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryPartition.cs" />
@@ -202,6 +203,7 @@
     <Compile Include="Encoders\KeyValueEncoders.cs" />
     <Compile Include="TypeSystem\FdbTypeCodec`1.cs" />
     <Compile Include="Encoders\ISliceSerializable.cs" />
+    <Compile Include="Utils\TinyJsonParser.cs" />
     <Compile Include="Utils\SlicePairComparer.cs" />
     <Compile Include="Utils\SliceHelpers.cs" />
     <Compile Include="Utils\SliceComparer.cs" />
