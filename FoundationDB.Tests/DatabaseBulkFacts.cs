@@ -248,7 +248,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Bulk_Batched_Insert_Items()
 		{
-			const int N = 2000 * 1000;
+			const int N = 200 * 1000;
 
 			using (var db = await OpenTestPartitionAsync())
 			{
@@ -319,6 +319,8 @@ namespace FoundationDB.Client.Tests
 				{
 					return tr.GetRange(location.Tuples.ToRange()).ToArrayAsync();
 				}, this.Cancellation);
+
+				Log("Read {0:N0} keys", stored.Length);
 
 				Assert.That(stored.Length, Is.EqualTo(N), "DB contains less or more items than expected");
 				for (int i = 0; i < stored.Length; i++)
