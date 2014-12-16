@@ -245,6 +245,27 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
+		public async Task Test_Can_Get_System_Status()
+		{
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var status = await Fdb.Status.GetStatusAsync(db, this.Cancellation);
+				Assert.That(status, Is.Not.Null);
+
+				Assert.That(status.Client, Is.Not.Null);
+				Assert.That(status.Client.Messages, Is.Not.Null);
+
+				Assert.That(status.Cluster, Is.Not.Null);
+				Assert.That(status.Cluster.Messages, Is.Not.Null);
+				Assert.That(status.Cluster.Data, Is.Not.Null);
+				Assert.That(status.Cluster.Qos, Is.Not.Null);
+				Assert.That(status.Cluster.Workload, Is.Not.Null);
+			}
+
+		}
+
+		[Test]
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
