@@ -47,6 +47,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Common\VersionInfo.cs">
+      <Link>Properties\VersionInfo.cs</Link>
+    </Compile>
     <Compile Include="Commands\FdbCliCommands.cs" />
     <Compile Include="Commands\BasicCommands.cs" />
     <Compile Include="Mono.Options\Options.cs" />
