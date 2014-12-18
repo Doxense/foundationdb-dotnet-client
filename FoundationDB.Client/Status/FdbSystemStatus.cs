@@ -313,6 +313,7 @@ namespace FoundationDB.Client.Status
 		{ }
 
 		private Message[] m_messages;
+		private ClusterConfiguration m_configuration;
 		private DataMetrics m_dataMetrics;
 		private QosMetrics m_qos;
 		private WorkloadMetrics m_workload;
@@ -345,6 +346,11 @@ namespace FoundationDB.Client.Status
 		public Message RecoveryState
 		{
 			get { return Message.From(m_data, "recovery_state"); }
+		}
+
+		public ClusterConfiguration Configuration
+		{
+			get { return m_configuration ?? (m_configuration = new ClusterConfiguration(GetMap("configuration"))); }
 		}
 
 		public DataMetrics Data
@@ -421,6 +427,62 @@ namespace FoundationDB.Client.Status
 		public const string UnreachableMasterWorker = "unreachable_master_worker";
 		public const string UnreachableProcesses = "unreachable_processes";
 		public const string UnreadableConfiguration = "unreadable_configuration";
+	}
+
+	public sealed class ClusterConfiguration : MetricsBase
+	{
+		internal ClusterConfiguration(Dictionary<string, object> data)
+			: base(data)
+		{
+			this.CoordinatorsCount = (int)(GetInt64("coordinators_count") ?? 0);
+			this.StorageEngine = GetString("storage_engine") ?? String.Empty;
+			this.RedundancyFactor = GetString("redundancy", "factory") ?? String.Empty;
+		}
+
+		private string[] m_excludedServers;
+
+		public int CoordinatorsCount { get; private set; }
+
+		public string StorageEngine { get; private set; }
+
+		public string RedundancyFactor { get; private set; }
+
+		public IReadOnlyList<string> ExcludedServers
+		{
+			get
+			{
+				if (m_excludedServers == null)
+				{
+					var arr = GetArray("excluded_servers");
+					var res = new string[arr.Count];
+					for (int i = 0; i < res.Length; i++)
+					{
+						var obj = (Dictionary<string, object>)arr[i];
+						res[i] = TinyJsonParser.GetStringField(obj, "address");
+					}
+					m_excludedServers = res;
+				}
+				return m_excludedServers;
+			}
+		}
+	}
+
+	public sealed class LatencyMetrics : MetricsBase
+	{
+		internal LatencyMetrics(Dictionary<string, object> data)
+			: base(data)
+		{
+			//REVIEW: TimeSpans?
+			this.CommitSeconds = GetDouble("commit_seconds") ?? 0;
+			this.ReadSeconds = GetDouble("read_seconds") ?? 0;
+			this.TransactionStartSeconds = GetDouble("transaction_start_seconds") ?? 0;
+		}
+
+		public double CommitSeconds { get; private set; }
+
+		public double ReadSeconds { get; private set; }
+
+		public double TransactionStartSeconds { get; private set; }
 	}
 
 	/// <summary>Details about the volume of data stored in the cluster</summary>

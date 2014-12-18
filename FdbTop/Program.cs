@@ -140,6 +140,7 @@ namespace FdbTop
 			}
 			return max;
 		}
+
 		private static double GetMaxScale(double max)
 		{
 			return Math.Pow(10, Math.Ceiling(Math.Log10(max)));
@@ -155,6 +156,7 @@ namespace FdbTop
 
 			WriteAt(25, 1, "Total K/V: {0,10} MB", "");
 			WriteAt(25, 2, "Disk Used: {0,10} MB", "");
+			WriteAt(25, 3, "Shards: {0,5} x{0,6} MB", "");
 
 			WriteAt(52, 1, "Server Time : {0,19}", "");
 			WriteAt(52, 2, "Client Time : {0,19}", "");
@@ -174,6 +176,8 @@ namespace FdbTop
 
 			WriteAt(25 + 11, 1, "{0,10:N1}", MegaBytes(status.Cluster.Data.TotalKVUsedBytes));
 			WriteAt(25 + 11, 2, "{0,10:N1}", MegaBytes(status.Cluster.Data.TotalDiskUsedBytes));
+			WriteAt(25 + 8, 3, "{0,5:N0}", status.Cluster.Data.PartitionsCount);
+			WriteAt(25 + 15, 3, "{0,6:N1}", MegaBytes(status.Cluster.Data.AveragePartitionSizeBytes));
 
 			var serverTime = Epoch.AddSeconds(current.Timestamp);
 			var clientTime = Epoch.AddSeconds(status.Client.Timestamp);
@@ -355,7 +359,7 @@ namespace FdbTop
 
 		}
 
-		enum DisplayMode
+		public enum DisplayMode
 		{
 			Help = 0,
 			Metrics,
@@ -365,6 +369,7 @@ namespace FdbTop
 		private static async Task MainAsync(string[] args, CancellationToken cancel)
 		{
 			Console.CursorVisible = false;
+			Console.TreatControlCAsInput = true;
 			try
 			{
 				DateTime now = DateTime.MinValue;
@@ -394,41 +399,57 @@ namespace FdbTop
 							switch (k.Key)
 							{
 								case ConsoleKey.Escape:
-								case ConsoleKey.Q:
-								{
+								{ // [ESC]
 									exit = true;
 									break;
 								}
-								case ConsoleKey.S:
+
+								case ConsoleKey.C:
 								{
-									saveNext = true;
+									if (k.Modifiers.HasFlag(ConsoleModifiers.Control))
+									{ // CTRL-C
+										exit = true;
+									}
 									break;
 								}
 
 								case ConsoleKey.F:
-								{
+								{ // [F]ast (on/off)
 									if (speed == FAST) speed = SLOW; else speed = FAST;
 									break;
 								}
 
-								case ConsoleKey.T:
-								{
-									mode = DisplayMode.Topology;
-									updated = repaint = true;
-									break;
-								}
 								case ConsoleKey.M:
-								{
+								{ // [M]etrics
 									mode = DisplayMode.Metrics;
 									updated = repaint = true;
 									break;
 								}
 
+								case ConsoleKey.Q:
+								{ // [Q]uit
+									exit = true;
+									break;
+								}
+
 								case ConsoleKey.R:
-								{
+								{ // [R]eset
 									lap = now;
 									next = now;
 									History.Clear();
+									updated = repaint = true;
+									break;
+								}
+
+								case ConsoleKey.S:
+								{ // [S]napshot
+									saveNext = true;
+									break;
+								}
+
+								case ConsoleKey.T:
+								{ // [T]opology
+									mode = DisplayMode.Topology;
 									updated = repaint = true;
 									break;
 								}
