@@ -30,6 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Status;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Tuples;
@@ -80,6 +81,49 @@ namespace FoundationDB.Client
 
 			/// <summary>"\xFF/workers/(ip:port)/..." => datacenter + machine + mclass</summary>
 			public static readonly Slice WorkersPrefix = Slice.FromAscii("\xFF/workers/");
+
+			#region JSON Status
+
+			private static readonly Slice StatusJsonKey = Slice.FromAscii("\xFF\xFF/status/json");
+
+			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbReadOnlyTransaction trans)
+			{
+				if (trans == null) throw new ArgumentNullException("trans");
+
+				Slice data = await trans.GetAsync(StatusJsonKey).ConfigureAwait(false);
+
+				if (data.IsNullOrEmpty) return null;
+
+				string jsonText = data.ToUnicode();
+
+				var doc = TinyJsonParser.ParseObject(jsonText);
+				if (doc == null) return null;
+
+				long rv = 0;
+				if (doc.ContainsKey("cluster"))
+				{
+					rv = await trans.GetReadVersionAsync();
+				}
+
+				return new FdbSystemStatus(doc, rv, jsonText);
+			}
+
+			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
+			{
+				if (db == null) throw new ArgumentNullException("db");
+
+				// we should not retry the read to the status key!
+				using (var trans = db.BeginReadOnlyTransaction(ct))
+				{
+					trans.WithPrioritySystemImmediate();
+					//note: in v3.x, the status key does not need the access to system key option.
+
+					//TODO: set a custom timeout?
+					return await GetStatusAsync(trans);
+				}
+			}
+
+			#endregion
 
 			/// <summary>Returns an object describing the list of the current coordinators for the cluster</summary>
 			/// <param name="db">Database to use for the operation</param>

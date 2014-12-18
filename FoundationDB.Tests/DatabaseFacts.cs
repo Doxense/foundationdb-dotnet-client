@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Tests
 {
 	using FoundationDB.Client;
+	using FoundationDB.Client.Status;
 	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
@@ -250,7 +251,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var status = await Fdb.Status.GetStatusAsync(db, this.Cancellation);
+				var status = await Fdb.System.GetStatusAsync(db, this.Cancellation);
 				Assert.That(status, Is.Not.Null);
 
 				Assert.That(status.Client, Is.Not.Null);
