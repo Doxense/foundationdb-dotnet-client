@@ -88,7 +88,7 @@ namespace FdbBurner
 								? rnd.Next()
 								: pos + i;
 
-							tr.Set(folder.Pack(x, suffix), value);
+							tr.Set(folder.Tuples.EncodeKey(x, suffix), value);
 							Interlocked.Increment(ref Keys);
 						}
 						pos += N;
