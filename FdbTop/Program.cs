@@ -257,7 +257,7 @@ namespace FdbTop
 			finally
 			{
 				Console.CursorVisible = true;
-				Console.ForegroundColor = ConsoleColor.Gray;
+				Console.ResetColor();
 				Console.Clear();
 			}
 		}
@@ -374,7 +374,7 @@ namespace FdbTop
 		private const int TOP_COL0 = 1;
 		private const int TOP_COL1 = TOP_COL0 + 24;
 		private const int TOP_COL2 = TOP_COL1 + 26;
-		private const int TOP_COL3 = TOP_COL2 + 35;
+		private const int TOP_COL3 = TOP_COL2 + 36;
 		private const int TOP_COL4 = TOP_COL3 + 22;
 
 		private static void RepaintTopBar()
@@ -416,9 +416,9 @@ namespace FdbTop
 
 			var serverTime = Epoch.AddSeconds(current.Timestamp);
 			var clientTime = Epoch.AddSeconds(status.Client.Timestamp);
-			WriteAt(TOP_COL2 + 14, 1, "{0,19}", serverTime);
+			WriteAt(TOP_COL2 + 14, 1, "{0,19}", serverTime.ToString("u"));
 			if (Math.Abs((serverTime - clientTime).TotalSeconds) >= 20) Console.ForegroundColor = ConsoleColor.Red;
-			WriteAt(TOP_COL2 + 14, 2, "{0,19}", clientTime);
+			WriteAt(TOP_COL2 + 14, 2, "{0,19}", clientTime.ToString("u"));
 			Console.ForegroundColor = ConsoleColor.White;
 			WriteAt(TOP_COL2 + 14, 3, "{0:N0}", current.ReadVersion);
 
