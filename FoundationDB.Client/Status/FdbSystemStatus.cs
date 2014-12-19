@@ -315,6 +315,7 @@ namespace FoundationDB.Client.Status
 		private Message[] m_messages;
 		private ClusterConfiguration m_configuration;
 		private DataMetrics m_dataMetrics;
+		private LatencyMetrics m_latency;
 		private QosMetrics m_qos;
 		private WorkloadMetrics m_workload;
 		private Dictionary<string, ProcessStatus> m_processes;
@@ -356,6 +357,11 @@ namespace FoundationDB.Client.Status
 		public DataMetrics Data
 		{
 			get { return m_dataMetrics ?? (m_dataMetrics = new DataMetrics(GetMap("data"))); }
+		}
+
+		public LatencyMetrics Latency
+		{
+			get { return m_latency ?? (m_latency = new LatencyMetrics(GetMap("latency_probe"))); }
 		}
 
 		/// <summary>QoS metrics</summary>
@@ -436,7 +442,7 @@ namespace FoundationDB.Client.Status
 		{
 			this.CoordinatorsCount = (int)(GetInt64("coordinators_count") ?? 0);
 			this.StorageEngine = GetString("storage_engine") ?? String.Empty;
-			this.RedundancyFactor = GetString("redundancy", "factory") ?? String.Empty;
+			this.RedundancyFactor = GetString("redundancy", "factor") ?? String.Empty;
 		}
 
 		private string[] m_excludedServers;

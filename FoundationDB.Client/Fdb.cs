@@ -131,24 +131,22 @@ namespace FoundationDB.Client
 		/// <exception cref="ArgumentException">When attempting to set a negative version, or a version that is either less or greater than the minimum and maximum supported versions.</exception>
 		public static void UseApiVersion(int value)
 		{
-			if (s_started) throw new InvalidOperationException("You cannot change the API Version after Fdb.Start() has been called.");
 			if (value < 0) throw new ArgumentException("API version must be a positive integer.");
+			if (value == 0)
+			{ // 0 means "use the default version"
+				value = DefaultApiVersion;
+			}
+			if (s_apiVersion == value) return; //Alreay set to same version... skip it.
+			if (s_started) throw new InvalidOperationException(string.Format("You cannot set API version {0} because version {1} has already been selected", value, s_apiVersion));
 
 			//note: we don't actually select the version yet, only when Start() is called.
 
-			if (value == 0)
-			{ // 0 means "use the default version"
-				s_apiVersion = DefaultApiVersion;
-			}
-			else
-			{
-				int min = GetMinApiVersion();
-				if (value < min) throw new ArgumentException(String.Format("The minimum API version supported by this binding is {0} and the default version is {1}.", min, DefaultApiVersion));
-				int max = GetMaxApiVersion();
-				if (value > max) throw new ArgumentException(String.Format("The maximum API version supported by this binding is {0} and the default version is {1}.", max, DefaultApiVersion));
+			int min = GetMinApiVersion();
+			if (value < min) throw new ArgumentException(String.Format("The minimum API version supported by this binding is {0} and the default version is {1}.", min, DefaultApiVersion));
+			int max = GetMaxApiVersion();
+			if (value > max) throw new ArgumentException(String.Format("The maximum API version supported by this binding is {0} and the default version is {1}.", max, DefaultApiVersion));
 
-				s_apiVersion = value;
-			}
+			s_apiVersion = value;
 		}
 
 		/// <summary>Returns true if the error code represents a success</summary>
