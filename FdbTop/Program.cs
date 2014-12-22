@@ -539,7 +539,7 @@ namespace FdbTop
 				Console.Title = "fdbtop - Latency";
 				RepaintTopBar();
 
-				Console.ForegroundColor = ConsoleColor.DarkGreen;
+				Console.ForegroundColor = ConsoleColor.DarkCyan;
 				WriteAt(COL0, 5, "Elapsed");
 				WriteAt(COL1, 5, "  Commit (ms)");
 				WriteAt(COL2, 5, "    Read (ms)");
@@ -613,7 +613,7 @@ namespace FdbTop
 				Console.Title = "fdbtop - Transactions";
 				RepaintTopBar();
 
-				Console.ForegroundColor = ConsoleColor.DarkGreen;
+				Console.ForegroundColor = ConsoleColor.DarkCyan;
 				WriteAt(COL0, 5, "Elapsed");
 				WriteAt(COL1, 5, "Started (tps)");
 				WriteAt(COL2, 5, "Committed (tps)");
@@ -732,15 +732,16 @@ namespace FdbTop
 				Console.Title = "fdbtop - Processes";
 				RepaintTopBar();
 
-				Console.ForegroundColor = ConsoleColor.DarkGreen;
+				Console.ForegroundColor = ConsoleColor.DarkCyan;
 				WriteAt(COL0, 5, "Address (port)");
 				WriteAt(COL1, 5, "Network in / out (MB/s)");
 				WriteAt(COL3, 5, "CPU (%core)");
 				WriteAt(COL4, 5, "Memory Free / Total (GB)");
-				WriteAt(COL6, 5, "HDD (%used)");
+				WriteAt(COL6, 5, "HDD (%busy)");
 				WriteAt(COL7, 5, "Roles");
 
 #if DEBUG
+				Console.ForegroundColor = ConsoleColor.DarkGray;
 				WriteAt(COL0, 6, "0 - - - - - -");
 				WriteAt(COL1, 6, "1 - - - - - -");
 				WriteAt(COL2, 6, "2 - - - - - -");
@@ -779,13 +780,9 @@ namespace FdbTop
 					}
 				}
 
-				// each process measure the same hdd performance counter, but at different times,
-				// so the "overall" hdd usage per machine is probably the average of all the values
-				double totalDiskBusy = procs.Count > 0 ? procs.Sum(p => p.Disk.Busy) / procs.Count : 0;
-
 				Console.ForegroundColor = ConsoleColor.DarkGray;
 				WriteAt(1, y,
-					"{0,15} | {0,8} in {0,8} out | {0,6}% {0,15} | {0,5} / {0,5} GB {0,15} | {0,5}% {0,15} | {0,11} |",
+					"{0,15} | {0,8} in {0,8} out | {0,6}% {0,15} | {0,5} / {0,5} GB {0,15} | {0,22} | {0,11} |",
 					""
 				);
 
@@ -797,17 +794,17 @@ namespace FdbTop
 				WriteAt(COL3, y, "{0,6:N1}", machine.Cpu.LogicalCoreUtilization * 100);
 				WriteAt(COL4, y, "{0,5:N1}", GigaBytes(machine.Memory.CommittedBytes));
 				WriteAt(COL5, y, "{0,5:N1}", GigaBytes(machine.Memory.TotalBytes));
-				WriteAt(COL6, y, "{0,5:N1}", totalDiskBusy * 100);
+				//WriteAt(COL6, y, "{0,5:N1}", totalDiskBusy * 100);
 				WriteAt(COL7, y, "{0,11}", map);
 
 				Console.ForegroundColor = machine.Cpu.LogicalCoreUtilization >= 0.9 ? ConsoleColor.Red : ConsoleColor.Green;
-				WriteAt(COL3 + 8, y, "{0,-15}", new string('|', Bar(machine.Cpu.LogicalCoreUtilization, 1, BARSZ))); //REVIEW: we don't know the total number of cores!!!
+				WriteAt(COL3 + 8, y, "{0,-15}", new string('|', Bar(machine.Cpu.LogicalCoreUtilization, 1, BARSZ))); // 1 = all the (logical) cores
 
 				Console.ForegroundColor = machine.Memory.CommittedBytes >= 0.95 * machine.Memory.TotalBytes ? ConsoleColor.Red : ConsoleColor.Green;
 				WriteAt(COL5 + 9, y, "{0,-15}", new string('|', Bar(machine.Memory.CommittedBytes, machine.Memory.TotalBytes, BARSZ)));
 
-				Console.ForegroundColor = totalDiskBusy >= 0.95 ? ConsoleColor.Red : ConsoleColor.Green;
-				WriteAt(COL6 + 7, y, "{0,-15}", new string('|', Bar(totalDiskBusy, 1, BARSZ)));
+				//Console.ForegroundColor = totalDiskBusy >= 0.95 ? ConsoleColor.Red : ConsoleColor.Green;
+				//WriteAt(COL6 + 7, y, "{0,-15}", new string('|', Bar(totalDiskBusy, 1, BARSZ)));
 
 				++y;
 
@@ -839,17 +836,17 @@ namespace FdbTop
 					WriteAt(COL3, y, "{0,6:N1}", proc.Cpu.UsageCores * 100);
 					WriteAt(COL4, y, "{0,5:N1}", GigaBytes(proc.Memory.UsedBytes));
 					WriteAt(COL5, y, "{0,5:N1}", GigaBytes(proc.Memory.AvailableBytes));
-					WriteAt(COL6, y, "{0,5:N1}", proc.Disk.Busy * 100);
+					WriteAt(COL6, y, "{0,5:N1}", Math.Min(proc.Disk.Busy * 100, 100)); // 1 == 1 core, but a process can go a little bit higher
 					WriteAt(COL7, y, "{0,11}", map);
 
-					Console.ForegroundColor = proc.Cpu.UsageCores >= 0.9 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
-					WriteAt(COL3 + 8, y, "{0,-15}", new string('|', Bar(proc.Cpu.UsageCores, 1, BARSZ))); //REVIEW: we don't know the total number of cores!!!
+					Console.ForegroundColor = proc.Cpu.UsageCores >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
+					WriteAt(COL3 + 8, y, "{0,-15}", new string('|', Bar(proc.Cpu.UsageCores, 1, BARSZ)));
 
 					Console.ForegroundColor = proc.Memory.UsedBytes >= 0.95 * proc.Memory.AvailableBytes ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
 					WriteAt(COL5 + 9, y, "{0,-15}", new string('|', Bar(proc.Memory.UsedBytes, proc.Memory.AvailableBytes, BARSZ)));
 
-					//Console.ForegroundColor = proc.Disk.Busy >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
-					//WriteAt(COL6 + 7, y, "{0,-15}", new string('|', Bar(proc.Disk.Busy, 1, BARSZ)));
+					Console.ForegroundColor = proc.Disk.Busy >= 0.95 ? ConsoleColor.DarkRed : ConsoleColor.DarkGreen;
+					WriteAt(COL6 + 7, y, "{0,-15}", new string('|', Bar(proc.Disk.Busy, 1, BARSZ)));
 
 					++y;
 				}
