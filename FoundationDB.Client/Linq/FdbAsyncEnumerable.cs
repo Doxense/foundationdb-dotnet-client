@@ -383,6 +383,72 @@ namespace FoundationDB.Linq
 			return new FdbParallelSelectAsyncIterator<TSource, TResult>(source, asyncSelector, options ?? new FdbParallelQueryOptions());
 		}
 
+		/// <summary>Always prefetch the next item from the inner sequence.</summary>
+		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
+		/// <param name="source">Source sequence that has a high latency, and from which we want to prefetch a set number of items.</param>
+		/// <returns>Sequence that prefetch the next item, when outputing the current item.</returns>
+		/// <remarks>
+		/// This iterator can help smooth out the query pipeline when every call to the inner sequence has a somewhat high latency (ex: reading the next page of results from the database).
+		/// Avoid prefetching from a source that is already reading from a buffer of results.
+		/// </remarks>
+		public static IFdbAsyncEnumerable<TSource> Prefetch<TSource>(this IFdbAsyncEnumerable<TSource> source)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			return new FdbPrefetchingIterator<TSource>(source, 1);
+		}
+
+		/// <summary>Prefetch a certain number of items from the inner sequence, before outputing the results one by one.</summary>
+		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
+		/// <param name="source">Source sequence that has a high latency, and from which we want to prefetch a set number of items.</param>
+		/// <param name="prefetchCount">Maximum number of items to buffer from the source before they are consumed by the rest of the query.</param>
+		/// <returns>Sequence that returns items from a buffer of prefetched list.</returns>
+		/// <remarks>
+		/// This iterator can help smooth out the query pipeline when every call to the inner sequence has a somewhat high latency (ex: reading the next page of results from the database).
+		/// Avoid prefetching from a source that is already reading from a buffer of results.
+		/// </remarks>
+		public static IFdbAsyncEnumerable<TSource> Prefetch<TSource>(this IFdbAsyncEnumerable<TSource> source, int prefetchCount)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (prefetchCount <= 0) throw new ArgumentOutOfRangeException("prefetchCount", prefetchCount, "Prefetch count must be at least one.");
+
+			return new FdbPrefetchingIterator<TSource>(source, prefetchCount);
+		}
+
+		/// <summary>Buffers the items of a bursty sequence, into a sequence of variable-sized arrays made up of items that where produced in a very short timespan.</summary>
+		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
+		/// <param name="source">Source sequence, that produces bursts of items, produced from the same page of results, before reading the next page.</param>
+		/// <param name="maxWindowSize">Maximum number of items to return in a single window. If more items arrive at the same time, a new window will be opened with the rest of the items.</param>
+		/// <returns>Sequence of batches, where all the items of a single batch arrived at the same time. A batch is closed once the next call to MoveNext() on the inner sequence does not complete immediately. Batches can be smaller than <paramref name="maxWindowSize"/>.</returns>
+		/// <remarks>
+		/// This should only be called on bursty asynchronous sequences, and when you want to process items in batches, without incurring the cost of latency between two pages of results.
+		/// You should avoid using this operator on sequences where each call to MoveNext() is asynchronous, since it would only produce batchs with only a single item.
+		/// </remarks>
+		public static IFdbAsyncEnumerable<TSource[]> Window<TSource>(this IFdbAsyncEnumerable<TSource> source, int maxWindowSize)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (maxWindowSize <= 0) throw new ArgumentOutOfRangeException("maxWindowSize", maxWindowSize, "Window size must be at least one.");
+
+			return new FdbWindowIterator<TSource>(source, maxWindowSize);
+		}
+
+		/// <summary>Buffers the items of a source sequence, and outputs a sequence of fixed-sized arrays.</summary>
+		/// <typeparam name="TSource">Type of the items in the source sequence</typeparam>
+		/// <param name="source">Source sequence that will be cut into chunks containing at most <paramref name="batchSize"/> items.</param>
+		/// <param name="batchSize">Number of items per batch. The last batch may contain less items, but should never be empty.</param>
+		/// <returns>Sequence of arrays of size <paramref name="batchSize"/>, except the last batch which can have less items.</returns>
+		/// <remarks>
+		/// This operator does not care about the latency of each item, and will always try to fill each batch completely, before outputing a result.
+		/// If you are working on an inner sequence that is bursty in nature, where items arrives in waves, you should use <see cref="Window{TSource}"/> which attempts to minimize the latency by outputing incomplete batches if needed.
+		/// </remarks>
+		public static IFdbAsyncEnumerable<TSource[]> Batch<TSource>(this IFdbAsyncEnumerable<TSource> source, int batchSize)
+		{
+			if (source == null) throw new ArgumentNullException("source");
+			if (batchSize <= 0) throw new ArgumentOutOfRangeException("batchSize", batchSize, "Batch size must be at least one.");
+
+			return new FdbBatchingIterator<TSource>(source, batchSize);
+		}
+
 		#endregion
 
 		#region Distinct...
