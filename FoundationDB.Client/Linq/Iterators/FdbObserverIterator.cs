@@ -28,15 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-
-	/// <summary>Obsere the items of an async sequence</summary>
+	/// <summary>Observe the items of an async sequence</summary>
 	/// <typeparam name="TSource">Type of the observed elements</typeparam>
 	internal sealed class FdbObserverIterator<TSource> : FdbAsyncFilterIterator<TSource, TSource>
 	{
@@ -46,7 +43,7 @@ namespace FoundationDB.Linq
 		public FdbObserverIterator(IFdbAsyncEnumerable<TSource> source, AsyncObserverExpression<TSource> observer)
 			: base(source)
 		{
-			if (observer == null) throw new ArgumentNullException("observer");
+			Contract.Requires(observer != null);
 			m_observer = observer;
 		}
 
