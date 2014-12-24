@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
@@ -36,84 +36,52 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Iterator that prefetchs items from an inner sequence.</summary>
+	/// <summary>Prefetches items from the inner sequence, before outputing them down the line.</summary>
 	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>
-	internal class FdbPrefetchingIterator<TInput> : FdbAsyncIterator<TInput>
+	internal class FdbPrefetchingAsyncIterator<TInput> : FdbAsyncFilterIterator<TInput, TInput>
 	{
+		// This iterator can be used to already ask for the next few items, while they are being processed somewhere down the line of the query.
+		// This can be usefull, when combined with Batching or Windowing, to maximize the throughput of db queries that read pages of results at a time.
+
 		// ITERABLE
 
-		private IFdbAsyncEnumerable<TInput> m_source;		// source sequence
 		private int m_prefetchCount;						// max number of items to prefetch
 
 		// ITERATOR
 
-		private IFdbAsyncEnumerator<TInput> m_iterator;		// source.GetEnumerator()
 		private Queue<TInput> m_buffer;						// buffer storing the items in the current window
 		private Task<bool> m_nextTask;						// holds on to the last pending call to m_iterator.MoveNext() when our buffer is full
-		private bool m_innerHasCompleted;					// set to true once m_iterator.MoveNext() has returned false
 
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="prefetchCount">Maximum size of a batch to return down the line</param>
-		public FdbPrefetchingIterator(IFdbAsyncEnumerable<TInput> source, int prefetchCount)
+		public FdbPrefetchingAsyncIterator(IFdbAsyncEnumerable<TInput> source, int prefetchCount)
+			: base(source)
 		{
-			Contract.Requires(source != null && prefetchCount > 0);
-
-			m_source = source;
+			Contract.Requires(prefetchCount > 0);
 			m_prefetchCount = prefetchCount;
 		}
 
 		protected override FdbAsyncIterator<TInput> Clone()
 		{
-			return new FdbPrefetchingIterator<TInput>(m_source, m_prefetchCount);
+			return new FdbPrefetchingAsyncIterator<TInput>(m_source, m_prefetchCount);
 		}
 
-		protected override Task<bool> OnFirstAsync(CancellationToken ct)
+		protected override void OnStarted(IFdbAsyncEnumerator<TInput> iterator)
 		{
-			// open the inner iterator
-
-			IFdbAsyncEnumerator<TInput> iterator = null;
-			Queue<TInput> buffer = null;
-			try
-			{
-				iterator = m_source.GetEnumerator(m_mode);
-				if (iterator == null)
-				{
-					m_innerHasCompleted = true;
-					return TaskHelpers.FalseTask;
-				}
-
-				// pre-allocate the prefetching buffer
-				buffer = new Queue<TInput>(m_prefetchCount);
-				return TaskHelpers.TrueTask;
-			}
-			catch (Exception)
-			{
-				m_innerHasCompleted = true;
-				buffer = null;
-				if (iterator != null)
-				{
-					var tmp = iterator;
-					iterator = null;
-					tmp.Dispose();
-				}
-				throw;
-			}
-			finally
-			{
-				m_iterator = iterator;
-				m_buffer = buffer;
-			}
+			// pre-allocate the buffer with the number of slot we expect to use
+			m_buffer = new Queue<TInput>(m_prefetchCount);
 		}
 
 		protected override Task<bool> OnNextAsync(CancellationToken ct)
 		{
-			if (m_buffer.Count > 0)
+			var buffer = m_buffer;
+			if (buffer != null && buffer.Count > 0)
 			{
 				var nextTask = m_nextTask;
 				if (nextTask == null || !m_nextTask.IsCompleted)
 				{
-					var current = m_buffer.Dequeue();
+					var current = buffer.Dequeue();
 					return Publish(current) ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
 				}
 			}
@@ -125,12 +93,8 @@ namespace FoundationDB.Client
 		{
 			// read items from the source until the next call to Inner.MoveNext() is not already complete, or we have filled our prefetch buffer, then returns the first item in the buffer.
 
-			var t = m_nextTask;
-			if (t != null)
-			{ // we already have preloaded the next item...
-				m_nextTask = null;
-			}
-			else
+			var t = Interlocked.Exchange(ref m_nextTask, null);
+			if (t == null)
 			{ // read the next item from the inner iterator
 				if (m_innerHasCompleted) return Completed();
 				t = m_iterator.MoveNext(ct);
@@ -144,6 +108,7 @@ namespace FoundationDB.Client
 
 			while (hasMore && !ct.IsCancellationRequested)
 			{
+				if (m_buffer == null) m_buffer = new Queue<TInput>(m_prefetchCount);
 				m_buffer.Enqueue(m_iterator.Current);
 
 				t = m_iterator.MoveNext(ct);
@@ -161,8 +126,8 @@ namespace FoundationDB.Client
 
 			if (!hasMore)
 			{
-				m_innerHasCompleted = true;
-				if (m_buffer.Count == 0)
+				MarkInnerAsCompleted();
+				if (m_buffer == null || m_buffer.Count == 0)
 				{ // that was the last batch!
 					return Completed();
 				}
@@ -172,37 +137,13 @@ namespace FoundationDB.Client
 			return Publish(current);
 		}
 
-		protected override void Cleanup()
+		protected override void OnStopped()
 		{
-			try
-			{
-				var nextTask = m_nextTask;
-				if (nextTask != null)
-				{ // defuse the task, which should fail once we dispose the inner iterator below...
-					if (!nextTask.IsCompleted)
-					{
-						nextTask.ContinueWith((t) => { var x = t.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
-					}
-					else
-					{
-						var x = nextTask.Exception;
-					}
-				}
+			m_buffer = null;
 
-				var iterator = m_iterator;
-				if (iterator != null)
-				{
-					iterator.Dispose();
-				}
-
-			}
-			finally
-			{
-				m_innerHasCompleted = true;
-				m_iterator = null;
-				m_buffer = null;
-				m_nextTask = null;
-			}
+			// defuse the task, which should fail once we dispose the inner iterator below...
+			var nextTask = Interlocked.Exchange(ref m_nextTask, null);
+			if (nextTask != null) TaskHelpers.Observe(nextTask);
 		}
 
 	}

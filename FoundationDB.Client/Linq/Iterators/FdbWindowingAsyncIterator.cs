@@ -26,19 +26,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
-	using FoundationDB.Linq;
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
-	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Iterator that merges bursts of already-completed items from a source async sequence, into a sequence of batches.</summary>
+	/// <summary>Merges bursts of already-completed items from a source async sequence, into a sequence of batches.</summary>
 	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>
-	internal class FdbWindowIterator<TInput> : FdbAsyncIterator<TInput[]>
+	internal class FdbWindowingAsyncIterator<TInput> : FdbAsyncFilterIterator<TInput, TInput[]>
 	{
 		// Typical use cas: to merge back into arrays the result of readers that read one page at a time from the database, but return each item individually.
 		// This iterator will attempt to reconstruct full batches from sequences of items that where all produced at the same time, so that asynchronous operations
@@ -87,84 +86,46 @@ namespace FoundationDB.Client
 
 		// ITERABLE
 
-		private IFdbAsyncEnumerable<TInput> m_source;		// source sequence
 		private int m_maxWindowSize;							// maximum size of a buffer
 
 		// ITERATOR
 
-		private IFdbAsyncEnumerator<TInput> m_iterator;		// source.GetEnumerator()
 		private List<TInput> m_buffer;						// buffer storing the items in the current window
 		private Task<bool> m_nextTask;						// holds on to the last pending call to m_iterator.MoveNext() when our buffer is full
-		private bool m_innerHasCompleted;					// set to true once m_iterator.MoveNext() has returned false
 
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>
 		/// <param name="maxWindowSize">Maximum size of a batch to return down the line</param>
-		public FdbWindowIterator(IFdbAsyncEnumerable<TInput> source, int maxWindowSize)
+		public FdbWindowingAsyncIterator(IFdbAsyncEnumerable<TInput> source, int maxWindowSize)
+			: base(source)
 		{
-			if (source == null) throw new ArgumentNullException("source");
-			if (maxWindowSize <= 0) throw new ArgumentOutOfRangeException("windowSize", maxWindowSize, "Window size must be at least one.");
-
-			m_source = source;
+			Contract.Requires(maxWindowSize > 0);
 			m_maxWindowSize = maxWindowSize;
 		}
 
 		protected override FdbAsyncIterator<TInput[]> Clone()
 		{
-			return new FdbWindowIterator<TInput>(m_source, m_maxWindowSize);
+			return new FdbWindowingAsyncIterator<TInput>(m_source, m_maxWindowSize);
 		}
 
-		protected override Task<bool> OnFirstAsync(CancellationToken ct)
+		protected override void OnStarted(IFdbAsyncEnumerator<TInput> iterator)
 		{
-			// open the inner iterator
-
-			IFdbAsyncEnumerator<TInput> iterator = null;
-			List<TInput> buffer = null;
-			try
-			{
-				iterator = m_source.GetEnumerator(m_mode);
-				if (iterator == null)
-				{
-					m_innerHasCompleted = true;
-					return TaskHelpers.FalseTask;
-				}
-
-				// pre-allocate the inner buffer, if it is not too big
-				buffer = new List<TInput>(Math.Min(m_maxWindowSize, 1024));
-				return TaskHelpers.TrueTask;
-			}
-			catch (Exception)
-			{
-				m_innerHasCompleted = true;
-				buffer = null;
-				if (iterator != null)
-				{
-					var tmp = iterator;
-					iterator = null;
-					tmp.Dispose();
-				}
-				throw;
-			}
-			finally
-			{
-				m_iterator = iterator;
-				m_buffer = buffer;
-			}
+			// pre-allocate the inner buffer, if it is not too big
+			m_buffer = new List<TInput>(Math.Min(m_maxWindowSize, 1024));
 		}
 
 		protected override async Task<bool> OnNextAsync(CancellationToken ct)
 		{
 			// read items from the source until the next call to Inner.MoveNext() is not already complete, or we have filled our buffer
 
-			var t = m_nextTask;
-			if (t != null)
-			{ // we already have preloaded the next item...
-				m_nextTask = null;
-			}
-			else
+			var iterator = m_iterator;
+			var buffer = m_buffer;
+
+			var t = Interlocked.Exchange(ref m_nextTask, null);
+			if (t == null)
 			{ // read the next item from the inner iterator
 				if (m_innerHasCompleted) return Completed();
-				t = m_iterator.MoveNext(ct);
+				t = iterator.MoveNext(ct);
 			}
 
 			// always wait for the first item (so that we have at least something in the batch)
@@ -175,10 +136,10 @@ namespace FoundationDB.Client
 
 			while (hasMore && !ct.IsCancellationRequested)
 			{
-				m_buffer.Add(m_iterator.Current);
+				buffer.Add(iterator.Current);
 
-				t = m_iterator.MoveNext(ct);
-				if (m_buffer.Count >= m_maxWindowSize || !t.IsCompleted)
+				t = iterator.MoveNext(ct);
+				if (buffer.Count >= m_maxWindowSize || !t.IsCompleted)
 				{ // save it for next time
 
 					//TODO: add heuristics to check if the batch is large enough to stop there, or if we should eat the latency and wait for the next wave of items to arrive!
@@ -198,7 +159,7 @@ namespace FoundationDB.Client
 			{
 				//Console.WriteLine("## inner has finished");
 				m_innerHasCompleted = true;
-				if (m_buffer.Count == 0)
+				if (buffer.Count == 0)
 				{ // that was the last batch!
 					//Console.WriteLine("# we got nothing ! :(");
 					return Completed();
@@ -206,42 +167,18 @@ namespace FoundationDB.Client
 			}
 
 			//Console.WriteLine("# computing next batch of ...", m_inputBuffer.Count);
-			var items = m_buffer.ToArray();
-			m_buffer.Clear();
+			var items = buffer.ToArray();
+			buffer.Clear();
 			return Publish(items);
 		}
 
-		protected override void Cleanup()
+		protected override void OnStopped()
 		{
-			try
-			{
-				var nextTask = m_nextTask;
-				if (nextTask != null)
-				{ // defuse the task, which should fail once we dispose the inner iterator below...
-					if (!nextTask.IsCompleted)
-					{
-						nextTask.ContinueWith((t) => { var x = t.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
-					}
-					else
-					{
-						var x = nextTask.Exception;
-					}
-				}
+			m_buffer = null;
 
-				var iterator = m_iterator;
-				if (iterator != null)
-				{
-					iterator.Dispose();
-				}
-
-			}
-			finally
-			{
-				m_innerHasCompleted = true;
-				m_iterator = null;
-				m_buffer = null;
-				m_nextTask = null;
-			}
+			// defuse the task, which should fail once we dispose the inner iterator below...
+			var nextTask = Interlocked.Exchange(ref m_nextTask, null);
+			if (nextTask != null) TaskHelpers.Observe(nextTask);
 		}
 
 	}

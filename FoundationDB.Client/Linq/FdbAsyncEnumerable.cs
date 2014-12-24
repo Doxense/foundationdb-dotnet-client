@@ -395,7 +395,7 @@ namespace FoundationDB.Linq
 		{
 			if (source == null) throw new ArgumentNullException("source");
 
-			return new FdbPrefetchingIterator<TSource>(source, 1);
+			return new FdbPrefetchingAsyncIterator<TSource>(source, 1);
 		}
 
 		/// <summary>Prefetch a certain number of items from the inner sequence, before outputing the results one by one.</summary>
@@ -412,7 +412,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (prefetchCount <= 0) throw new ArgumentOutOfRangeException("prefetchCount", prefetchCount, "Prefetch count must be at least one.");
 
-			return new FdbPrefetchingIterator<TSource>(source, prefetchCount);
+			return new FdbPrefetchingAsyncIterator<TSource>(source, prefetchCount);
 		}
 
 		/// <summary>Buffers the items of a bursty sequence, into a sequence of variable-sized arrays made up of items that where produced in a very short timespan.</summary>
@@ -429,7 +429,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (maxWindowSize <= 0) throw new ArgumentOutOfRangeException("maxWindowSize", maxWindowSize, "Window size must be at least one.");
 
-			return new FdbWindowIterator<TSource>(source, maxWindowSize);
+			return new FdbWindowingAsyncIterator<TSource>(source, maxWindowSize);
 		}
 
 		/// <summary>Buffers the items of a source sequence, and outputs a sequence of fixed-sized arrays.</summary>
@@ -446,7 +446,7 @@ namespace FoundationDB.Linq
 			if (source == null) throw new ArgumentNullException("source");
 			if (batchSize <= 0) throw new ArgumentOutOfRangeException("batchSize", batchSize, "Batch size must be at least one.");
 
-			return new FdbBatchingIterator<TSource>(source, batchSize);
+			return new FdbBatchingAsyncIterator<TSource>(source, batchSize);
 		}
 
 		#endregion
@@ -1072,8 +1072,10 @@ namespace FoundationDB.Linq
 
 		/// <summary>Measure the number of items that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
-		public static IFdbAsyncEnumerable<TSource> WithCountStatistics<TSource>(this IFdbAsyncEnumerable<TSource> source, out QueryStatistics<int> counter)
+		public static IFdbAsyncEnumerable<TSource> WithCountStatistics<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, out QueryStatistics<int> counter)
 		{
+			if (source == null) throw new ArgumentNullException("source");
+
 			var signal = new QueryStatistics<int>(0);
 			counter = signal;
 
@@ -1089,8 +1091,10 @@ namespace FoundationDB.Linq
 
 		/// <summary>Measure the number and size of slices that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics(this IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSize> statistics)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics([NotNull] this IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSize> statistics)
 		{
+			if (source == null) throw new ArgumentNullException("source");
+
 			var data = new KeyValueSize();
 			statistics = new QueryStatistics<KeyValueSize>(data);
 
@@ -1106,8 +1110,10 @@ namespace FoundationDB.Linq
 
 		/// <summary>Measure the number and sizes of the keys and values that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
-		public static IFdbAsyncEnumerable<Slice> WithSizeStatistics(this IFdbAsyncEnumerable<Slice> source, out QueryStatistics<DataSize> statistics)
+		public static IFdbAsyncEnumerable<Slice> WithSizeStatistics([NotNull] this IFdbAsyncEnumerable<Slice> source, out QueryStatistics<DataSize> statistics)
 		{
+			if (source == null) throw new ArgumentNullException("source");
+
 			var data = new DataSize();
 			statistics = new QueryStatistics<DataSize>(data);
 
@@ -1123,8 +1129,9 @@ namespace FoundationDB.Linq
 
 		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
 		/// <remarks>The <paramref name="handler"/> is execute inline before passing the item down the line, and should not block</remarks>
-		public static IFdbAsyncEnumerable<TSource> Observe<TSource>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Action<TSource> handler)
+		public static IFdbAsyncEnumerable<TSource> Observe<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Action<TSource> handler)
 		{
+			if (source == null) throw new ArgumentNullException("source");
 			if (handler == null) throw new ArgumentNullException("handler");
 
 			return new FdbObserverIterator<TSource>(source, new AsyncObserverExpression<TSource>(handler));
@@ -1132,8 +1139,9 @@ namespace FoundationDB.Linq
 
 		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
 		/// <remarks>The <paramref name="handler"/> is execute inline before passing the item down the line, and should not block</remarks>
-		public static IFdbAsyncEnumerable<TSource> Observe<TSource>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task> asyncHandler)
+		public static IFdbAsyncEnumerable<TSource> Observe<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task> asyncHandler)
 		{
+			if (source == null) throw new ArgumentNullException("source");
 			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
 
 			return new FdbObserverIterator<TSource>(source, new AsyncObserverExpression<TSource>(asyncHandler));
