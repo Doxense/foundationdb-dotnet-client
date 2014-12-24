@@ -42,6 +42,7 @@ namespace FoundationDB.Linq
 
 		/// <summary>Active iterator on the source (when in iterator mode)</summary>
 		protected IFdbAsyncEnumerator<TSource> m_iterator;
+		protected bool m_innerHasCompleted;
 
 		protected FdbAsyncFilterIterator([NotNull] IFdbAsyncEnumerable<TSource> source)
 		{
@@ -60,6 +61,18 @@ namespace FoundationDB.Linq
 			return m_source.GetEnumerator(mode);
 		}
 
+		protected void MarkInnerAsCompleted()
+		{
+			m_innerHasCompleted = true;
+
+			// we don't need the inerator, so we can dispose of it immediately
+			var iterator = Interlocked.Exchange(ref m_iterator, null);
+			if (iterator != null)
+			{
+				iterator.Dispose();
+			}
+		}
+
 		protected override Task<bool> OnFirstAsync(CancellationToken ct)
 		{
 			// on the first call to MoveNext, we have to hook up with the source iterator
@@ -68,7 +81,9 @@ namespace FoundationDB.Linq
 			try
 			{
 				iterator = StartInner();
-				return iterator != null ? TaskHelpers.TrueTask : TaskHelpers.FalseTask;
+				if (iterator == null) return TaskHelpers.FalseTask;
+				OnStarted(iterator);
+				return TaskHelpers.TrueTask;
 			}
 			catch (Exception)
 			{
@@ -86,19 +101,25 @@ namespace FoundationDB.Linq
 			}
 		}
 
+		protected virtual void OnStarted(IFdbAsyncEnumerator<TSource> iterator)
+		{
+			//override this to add custom starting logic once we know that the inner iterator is ready
+		}
+
+		protected virtual void OnStopped()
+		{
+			// override this to add custom stopping logic once the iterator has completed (for whatever reason)
+		}
+
 		protected override void Cleanup()
 		{
 			try
 			{
-				var iterator = m_iterator;
-				if (iterator != null)
-				{
-					iterator.Dispose();
-				}
+				OnStopped();
 			}
 			finally
 			{
-				m_iterator = null;
+				MarkInnerAsCompleted();
 			}
 		}
 

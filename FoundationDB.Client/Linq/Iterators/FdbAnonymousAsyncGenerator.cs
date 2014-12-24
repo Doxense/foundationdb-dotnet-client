@@ -28,56 +28,64 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
+	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	/// <summary>Observe the items of an async sequence</summary>
-	/// <typeparam name="TSource">Type of the observed elements</typeparam>
-	internal sealed class FdbObserverIterator<TSource> : FdbAsyncFilterIterator<TSource, TSource>
+	/// <summary>Generate items asynchronously, using a user-provided lambda</summary>
+	/// <typeparam name="TOutput">Type of the items produced by this generator</typeparam>
+	internal class FdbAnonymousAsyncGenerator<TOutput> : FdbAsyncIterator<TOutput>
 	{
+		// use a custom lambda that returns Maybe<TOutput> results, asynchronously
+		// => as long as the result has a value, continue iterating
+		// => if the result does not have a value, stop iterating
+		// => if the lambda fails, or the result represents an error, throw the error down the chain and stop iterating
 
-		private readonly AsyncObserverExpression<TSource> m_observer;
+		// ITERABLE
 
-		public FdbObserverIterator(IFdbAsyncEnumerable<TSource> source, AsyncObserverExpression<TSource> observer)
-			: base(source)
+		private readonly Func<long, CancellationToken, Task<Maybe<TOutput>>> m_generator;
+
+		// ITERATOR
+
+		private long m_index;
+
+		public FdbAnonymousAsyncGenerator(Func<long, CancellationToken, Task<Maybe<TOutput>>> generator)
 		{
-			Contract.Requires(observer != null);
-			m_observer = observer;
+			Contract.Requires(generator != null);
+			m_generator = generator;
+			m_index = -1;
 		}
 
-		protected override FdbAsyncIterator<TSource> Clone()
+		protected override FdbAsyncIterator<TOutput> Clone()
 		{
-			return new FdbObserverIterator<TSource>(m_source, m_observer);
+			return new FdbAnonymousAsyncGenerator<TOutput>(m_generator);
 		}
 
-		protected override async Task<bool> OnNextAsync(CancellationToken cancellationToken)
+		protected override Task<bool> OnFirstAsync(CancellationToken ct)
 		{
-			while (!cancellationToken.IsCancellationRequested)
-			{
-				if (!await m_iterator.MoveNext(cancellationToken).ConfigureAwait(false))
-				{ // completed
-					return Completed();
-				}
+			m_index = 0;
+			return TaskHelpers.TrueTask;
+		}
 
-				if (cancellationToken.IsCancellationRequested) break;
+		protected override async Task<bool> OnNextAsync(CancellationToken ct)
+		{
+			ct.ThrowIfCancellationRequested();
+			if (m_index < 0) return false;
 
-				TSource current = m_iterator.Current;
-				if (!m_observer.Async)
-				{
-					m_observer.Invoke(current);
-				}
-				else
-				{
-					await m_observer.InvokeAsync(current, cancellationToken).ConfigureAwait(false);
-				}
+			long index = m_index;
+			var res = await m_generator(index, ct);
 
-				return Publish(current);
-			}
+			if (res.HasFailed) res.ThrowForNonSuccess();
+			if (res.IsEmpty) return Completed();
+			m_index = checked(index + 1);
+			return Publish(res.Value);
+		}
 
-			return Canceled(cancellationToken);
+		protected override void Cleanup()
+		{
+			m_index = -1;
 		}
 	}
-
 }

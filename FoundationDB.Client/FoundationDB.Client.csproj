@@ -69,6 +69,10 @@
     <Compile Include="Encoders\FdbEncoderSubspace`2.cs" />
     <Compile Include="Encoders\IKeyValueEncoder.cs" />
     <Compile Include="Encoders\FdbEncoderSubspace`1.cs" />
+    <Compile Include="Linq\Iterators\FdbAnonymousAsyncGenerator.cs" />
+    <Compile Include="Linq\Iterators\FdbBatchingAsyncIterator.cs" />
+    <Compile Include="Linq\Iterators\FdbPrefetchingAsyncIterator.cs" />
+    <Compile Include="Linq\Iterators\FdbWindowingAsyncIterator.cs" />
     <Compile Include="Status\FdbSystemStatus.cs" />
     <Compile Include="FdbEndPoint.cs" />
     <Compile Include="FdbIsolationLevel.cs" />

@@ -28,7 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
