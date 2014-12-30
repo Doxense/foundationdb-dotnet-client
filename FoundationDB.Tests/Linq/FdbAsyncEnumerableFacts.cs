@@ -166,6 +166,88 @@ namespace FoundationDB.Linq.Tests
 		}
 
 		[Test]
+		public async Task Test_Producer_Single()
+		{
+			// Func<T>
+
+			var singleton = FdbAsyncEnumerable.Single(() => 42);
+			Assert.That(singleton, Is.Not.Null);
+
+			using(var iterator = singleton.GetEnumerator())
+			{
+				var res = await iterator.MoveNext(this.Cancellation);
+				Assert.That(res, Is.True);
+				Assert.That(iterator.Current, Is.EqualTo(42));
+				res = await iterator.MoveNext(this.Cancellation);
+				Assert.That(res, Is.False);
+			}
+
+			var results = await singleton.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 42 }));
+
+			bool any = await singleton.AnyAsync();
+			Assert.That(any, Is.True);
+
+			bool none = await singleton.NoneAsync();
+			Assert.That(none, Is.False);
+
+			int count = await singleton.CountAsync();
+			Assert.That(count, Is.EqualTo(1));
+
+			// Func<Task<T>>
+
+			singleton = FdbAsyncEnumerable.Single(() => Task.Delay(50).ContinueWith(_ => 42));
+			Assert.That(singleton, Is.Not.Null);
+
+			using (var iterator = singleton.GetEnumerator())
+			{
+				var res = await iterator.MoveNext(this.Cancellation);
+				Assert.That(res, Is.True);
+				Assert.That(iterator.Current, Is.EqualTo(42));
+				res = await iterator.MoveNext(this.Cancellation);
+				Assert.That(res, Is.False);
+			}
+
+			results = await singleton.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 42 }));
+
+			any = await singleton.AnyAsync();
+			Assert.That(any, Is.True);
+
+			none = await singleton.NoneAsync();
+			Assert.That(none, Is.False);
+
+			count = await singleton.CountAsync();
+			Assert.That(count, Is.EqualTo(1));
+
+			// Func<CancellationToken, Task<T>>
+
+			singleton = FdbAsyncEnumerable.Single((ct) => Task.Delay(50, ct).ContinueWith(_ => 42));
+			Assert.That(singleton, Is.Not.Null);
+
+			using (var iterator = singleton.GetEnumerator())
+			{
+				var res = await iterator.MoveNext(this.Cancellation);
+				Assert.That(res, Is.True);
+				Assert.That(iterator.Current, Is.EqualTo(42));
+				res = await iterator.MoveNext(this.Cancellation);
+				Assert.That(res, Is.False);
+			}
+
+			results = await singleton.ToListAsync();
+			Assert.That(results, Is.EqualTo(new int[] { 42 }));
+
+			any = await singleton.AnyAsync();
+			Assert.That(any, Is.True);
+
+			none = await singleton.NoneAsync();
+			Assert.That(none, Is.False);
+
+			count = await singleton.CountAsync();
+			Assert.That(count, Is.EqualTo(1));
+		}
+
+		[Test]
 		public async Task Test_Can_Select_Sync()
 		{
 			var source = Enumerable.Range(0, 10).ToAsyncEnumerable();

@@ -72,5 +72,80 @@ namespace FoundationDB.Linq
 			}
 		}
 
+		private sealed class SingletonSequence<TElement> : IFdbAsyncEnumerable<TElement>, IFdbAsyncEnumerator<TElement>
+		{
+
+			private readonly Delegate m_lambda;
+			private TElement m_current;
+			private bool m_called;
+
+			private SingletonSequence(Delegate lambda)
+			{
+				Contract.Requires(lambda != null);
+				m_lambda = lambda;
+			}
+
+			public SingletonSequence(Func<TElement> lambda)
+				: this((Delegate)lambda)
+			{ }
+
+			public SingletonSequence(Func<Task<TElement>> lambda)
+				: this((Delegate)lambda)
+			{ }
+
+			public SingletonSequence(Func<CancellationToken, Task<TElement>> lambda)
+				: this((Delegate)lambda)
+			{ }
+
+			public IFdbAsyncEnumerator<TElement> GetEnumerator(FdbAsyncMode mode = FdbAsyncMode.Default)
+			{
+				return new SingletonSequence<TElement>(m_lambda);
+			}
+
+			IAsyncEnumerator<TElement> IAsyncEnumerable<TElement>.GetEnumerator()
+			{
+				return this.GetEnumerator();
+			}
+
+			async Task<bool> IAsyncEnumerator<TElement>.MoveNext(CancellationToken cancellationToken)
+			{
+				cancellationToken.ThrowIfCancellationRequested();
+				if (m_called) return false;
+
+				//note: avoid using local variables as much as possible!
+				m_called = true;
+				var lambda = m_lambda;
+				if (lambda is Func<TElement>)
+				{
+					m_current = ((Func<TElement>)lambda)();
+					return true;
+				}
+
+				if (lambda is Func<Task<TElement>>)
+				{
+					m_current = await ((Func<Task<TElement>>)lambda)().ConfigureAwait(false);
+					return true;
+				}
+
+				if (lambda is Func<CancellationToken, Task<TElement>>)
+				{
+					m_current = await ((Func<CancellationToken, Task<TElement>>)lambda)(cancellationToken).ConfigureAwait(false);
+					return true;
+				}
+
+				throw new InvalidOperationException("Unsupported delegate type");
+			}
+
+			TElement IAsyncEnumerator<TElement>.Current
+			{
+				get { return m_current; }
+			}
+
+			void IDisposable.Dispose()
+			{
+				m_called = true;
+				m_current = default(TElement);
+			}
+		}
 	}
 }
