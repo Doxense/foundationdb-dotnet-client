@@ -51,12 +51,42 @@ namespace FoundationDB.Linq
 			return EmptySequence<T>.Default;
 		}
 
-		/// <summary>Returns an async sequence that only holds one item</summary>
+		/// <summary>Returns an async sequence with a single element, which is a constant</summary>
 		[NotNull]
 		public static IFdbAsyncEnumerable<T> Singleton<T>(T value)
 		{
-			//TODO: implement an optimized singleton iterator ?
-			return new T[1] { value }.ToAsyncEnumerable();
+			//note: we can't call this method Single<T>(T), because then Single<T>(Func<T>) would be ambigous with Single<Func<T>>(T)
+			return new SingletonSequence<T>(() => value);
+		}
+
+		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
+		/// <param name="lambda">Lambda that will be called once per iteration, to produce the single element of this sequene</param>
+		/// <remarks>If the sequence is iterated multiple times, then <paramref name="lambda"/> will be called once for each iteration.</remarks>
+		[NotNull]
+		public static IFdbAsyncEnumerable<T> Single<T>(Func<T> lambda)
+		{
+			if (lambda == null) throw new ArgumentNullException("lambda");
+			return new SingletonSequence<T>(lambda);
+		}
+
+		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
+		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequene</param>
+		/// <remarks>If the sequence is iterated multiple times, then <paramref name="lambda"/> will be called once for each iteration.</remarks>
+		[NotNull]
+		public static IFdbAsyncEnumerable<T> Single<T>(Func<Task<T>> asyncLambda)
+		{
+			if (asyncLambda == null) throw new ArgumentNullException("asyncLambda");
+			return new SingletonSequence<T>(asyncLambda);
+		}
+
+		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
+		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequene</param>
+		/// <remarks>If the sequence is iterated multiple times, then <paramref name="lambda"/> will be called once for each iteration.</remarks>
+		[NotNull]
+		public static IFdbAsyncEnumerable<T> Single<T>(Func<CancellationToken, Task<T>> asyncLambda)
+		{
+			if (asyncLambda == null) throw new ArgumentNullException("asyncLambda");
+			return new SingletonSequence<T>(asyncLambda);
 		}
 
 		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
