@@ -95,7 +95,7 @@ namespace FoundationDB.Client
 						// Abort the future and simulate a Canceled task
 						SetFlag(FdbFuture.Flags.COMPLETED);
 						// note: we don't need to call fdb_future_cancel because fdb_future_destroy will take care of everything
-						m_handle.Dispose();
+						handle.Dispose();
 						// also, don't keep a reference on the callback because it won't be needed
 						m_resultSelector = null;
 						this.TrySetCanceled();
@@ -124,8 +124,6 @@ namespace FoundationDB.Client
 #endif
 					throw Fdb.MapToException(err);
 				}
-
-
 			}
 			catch
 			{
@@ -248,19 +246,21 @@ namespace FoundationDB.Client
 		protected override void CloseHandles()
 		{
 			var handle = m_handle;
-			if (handle != null && !handle.IsClosed) handle.Dispose();
+			if (handle != null) handle.Dispose();
 		}
 
 		protected override void CancelHandles()
 		{
 			var handle = m_handle;
-			if (handle != null && !handle.IsClosed) FdbNative.FutureCancel(handle);
+			//REVIEW: there is a possibility of a race condition with Dispoe() that could potentially call FutureDestroy(handle) at the same time (not verified)
+			if (handle != null && !handle.IsClosed && !handle.IsInvalid) FdbNative.FutureCancel(handle);
 		}
 
 		protected override void ReleaseMemory()
 		{
 			var handle = m_handle;
-			if (handle != null && !handle.IsClosed) FdbNative.FutureReleaseMemory(handle);
+			//REVIEW: there is a possibility of a race condition with Dispoe() that could potentially call FutureDestroy(handle) at the same time (not verified)
+			if (handle != null && !handle.IsClosed && !handle.IsInvalid) FdbNative.FutureReleaseMemory(handle);
 		}
 
 	}
