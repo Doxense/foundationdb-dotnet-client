@@ -183,7 +183,6 @@ namespace FoundationDB.Async
 		public void Dispose()
 		{
 			m_state = STATE_DISPOSED;
-			GC.SuppressFinalize(this);
 		}
 
 		#region Debugging...

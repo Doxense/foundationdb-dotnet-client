@@ -379,7 +379,7 @@ namespace FoundationDB.Client.Converters
 			{
 				if (typeof(R).IsAssignableFrom(typeof(T)))
 				{ // T is a subclass of R, so it should work fine
-					return (IFdbConverter<T, R>)SubClass<T, R>.Default;
+					return SubClass<T, R>.Default;
 				}
 
 				//TODO: ..?

@@ -241,7 +241,7 @@ namespace FoundationDB.Client
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to read several keys at once, use a version of <see cref="GetValuesAsync"/>.
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="ReadAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task<Slice> GetAsync(this IFdbReadOnlyRetryable db, Slice key, CancellationToken cancellationToken)
 		{
@@ -256,7 +256,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="ReadAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyRetryable db, [NotNull] Slice[] keys, CancellationToken cancellationToken)
 		{
@@ -268,7 +268,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="ReadAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<Slice> keys, CancellationToken cancellationToken)
 		{
@@ -280,7 +280,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="ReadAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task<Slice> GetKeyAsync(this IFdbReadOnlyRetryable db, FdbKeySelector keySelector, CancellationToken cancellationToken)
 		{
@@ -292,7 +292,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="ReadAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyRetryable db, [NotNull] FdbKeySelector[] keySelectors, CancellationToken cancellationToken)
 		{
@@ -305,7 +305,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="ReadAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<FdbKeySelector> keySelectors, CancellationToken cancellationToken)
 		{
@@ -318,7 +318,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="ReadAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyRetryable db, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration, CancellationToken cancellationToken)
 		{
@@ -330,7 +330,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task SetAsync(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
@@ -342,7 +342,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task SetValuesAsync(this IFdbRetryable db, KeyValuePair<Slice, Slice>[] keyValuePairs, CancellationToken cancellationToken)
 		{
@@ -360,7 +360,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task SetValuesAsync(this IFdbRetryable db, IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs, CancellationToken cancellationToken)
 		{
@@ -378,7 +378,7 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task ClearAsync(this IFdbRetryable db, Slice key, CancellationToken cancellationToken)
 		{
@@ -389,7 +389,7 @@ namespace FoundationDB.Client
 		/// <summary>Clear a single range in the database, using a dedicated transaction.</summary>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task ClearRangeAsync(this IFdbRetryable db, Slice beginKeyInclusive, Slice endKeyExclusive, CancellationToken cancellationToken)
 		{
@@ -400,7 +400,7 @@ namespace FoundationDB.Client
 		/// <summary>Clear a single range in the database, using a dedicated transaction.</summary>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task ClearRangeAsync(this IFdbRetryable db, FdbKeyRange range, CancellationToken cancellationToken)
 		{
@@ -416,7 +416,7 @@ namespace FoundationDB.Client
 		/// <returns></returns>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task AtomicAdd(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
@@ -427,7 +427,7 @@ namespace FoundationDB.Client
 		/// <summary>Atomically perform a bitwise AND to the value of a single key in the database, using a dedicated transaction.</summary>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task AtomicBitAnd(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
@@ -438,7 +438,7 @@ namespace FoundationDB.Client
 		/// <summary>Atomically perform a bitwise OR to the value of a single key in the database, using a dedicated transaction.</summary>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task AtomicBitOr(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
@@ -449,7 +449,7 @@ namespace FoundationDB.Client
 		/// <summary>Atomically perform a bitwise XOR to the value of a single key in the database, using a dedicated transaction.</summary>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task AtomicBitXor(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
@@ -460,7 +460,7 @@ namespace FoundationDB.Client
 		/// <summary>Atomically update a value if it is larger than the value in the database, using a dedicated transaction.</summary>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task AtomicMax(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
@@ -471,7 +471,7 @@ namespace FoundationDB.Client
 		/// <summary>Atomically update a value if it is smaller than the value in the database, using a dedicated transaction.</summary>
 		/// <remarks>
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
-		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="WriteAsync"/> or <see cref="ReadWriteAsync"/> overrides.
+		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		public static Task AtomicMin(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{

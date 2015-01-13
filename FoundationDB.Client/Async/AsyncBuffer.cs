@@ -148,6 +148,8 @@ namespace FoundationDB.Async
 
 		private async Task WaitForNextFreeSlotThenEnqueueAsync(T value, Task wait, CancellationToken ct)
 		{
+			ct.ThrowIfCancellationRequested();
+
 			await wait.ConfigureAwait(false);
 
 			LogProducer("Wake up because one slot got freed");

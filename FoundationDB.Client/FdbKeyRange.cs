@@ -153,7 +153,9 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode()
 		{
+			// ReSharper disable once NonReadonlyMemberInGetHashCode
 			int h1 = m_begin.GetHashCode();
+			// ReSharper disable once NonReadonlyMemberInGetHashCode
 			int h2 = m_end.GetHashCode();
 			return ((h1 << 5) + h1) ^ h2;
 		}

@@ -86,7 +86,7 @@ namespace FoundationDB.Linq
 				m_next = next;
 			}
 
-			internal override void ComputeKeys([NotNull] TSource[] items, int count)
+			internal override void ComputeKeys(TSource[] items, int count)
 			{
 				m_items = items;
 			}
@@ -127,7 +127,7 @@ namespace FoundationDB.Linq
 				m_next = next;
 			}
 
-			internal override void ComputeKeys([NotNull] TSource[] items, int count)
+			internal override void ComputeKeys(TSource[] items, int count)
 			{
 				var selector = m_keySelector;
 				var keys = new TKey[count];

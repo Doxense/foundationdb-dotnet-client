@@ -28,18 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	public interface IFdbAsyncOrderedEnumerable<TSource> : IFdbAsyncEnumerable<TSource>
 	{
-		IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
-		IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
+		[NotNull]
+		IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
+
+		[NotNull]
+		IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
 	}
 
 }
