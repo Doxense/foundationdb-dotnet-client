@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
 	[DebuggerDisplay("Name={m_name}, GlobalSpace={m_globalSpace}")]
-	public class FdbDatabase : IFdbDatabase, IFdbRetryable, IDisposable
+	public class FdbDatabase : IFdbDatabase, IFdbRetryable
 	{
 		#region Private Fields...
 

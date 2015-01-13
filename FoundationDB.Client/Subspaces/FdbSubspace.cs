@@ -33,7 +33,7 @@ namespace FoundationDB.Client
 	using System;
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
-	public class FdbSubspace : IFdbSubspace, IFdbKey, IEquatable<FdbSubspace>, IComparable<FdbSubspace>
+	public class FdbSubspace : IFdbSubspace, IEquatable<FdbSubspace>, IComparable<FdbSubspace>
 	{
 		/// <summary>Empty subspace, that does not add any prefix to the keys</summary>
 		public static readonly FdbSubspace Empty = new FdbSubspace(Slice.Empty);
