@@ -240,7 +240,7 @@ namespace FoundationDB.Linq
 
 			public TSource Current
 			{
-				get { throw new NotImplementedException(); }
+				get { return m_current; }
 			}
 
 			public void Dispose()
