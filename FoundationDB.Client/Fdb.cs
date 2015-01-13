@@ -35,7 +35,6 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
-	using System.IO;
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -213,10 +212,12 @@ namespace FoundationDB.Client
 				s_eventLoopStopRequested = false;
 				s_eventLoopRunning = false;
 
-				var thread = new Thread(EventLoop);
-				thread.Name = "FdbNetworkLoop";
-				thread.IsBackground = true;
-				thread.Priority = ThreadPriority.AboveNormal;
+				var thread = new Thread(EventLoop)
+				{
+					Name = "FdbNetworkLoop",
+					IsBackground = true,
+					Priority = ThreadPriority.AboveNormal
+				};
 				s_eventLoop = thread;
 				try
 				{

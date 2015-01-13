@@ -761,7 +761,7 @@ namespace FoundationDB.Layers.Tuples
 		#endregion
 
 		#region PackWithPrefix...
-		
+
 		//note: they are equivalent to the Pack<...>() methods, they only take a binary prefix
 
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a tuple</summary>

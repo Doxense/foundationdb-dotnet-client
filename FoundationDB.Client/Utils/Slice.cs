@@ -422,7 +422,7 @@ namespace FoundationDB.Client
 			bool skipEmpty = options.HasFlag(StringSplitOptions.RemoveEmptyEntries);
 			if (input.Count == 0)
 			{
-				return skipEmpty ? Slice.EmptySliceArray : new Slice[1] { Slice.Empty };
+				return skipEmpty ? Slice.EmptySliceArray : new [] { Slice.Empty };
 			}
 
 			while (input.Count > 0)
@@ -616,7 +616,7 @@ namespace FoundationDB.Client
 		{
 			return new Slice(
 				new byte[]
-				{ 
+				{
 					(byte)value,
 					(byte)(value >> 8),
 					(byte)(value >> 16),
@@ -633,7 +633,7 @@ namespace FoundationDB.Client
 		{
 			return new Slice(
 				new byte[]
-				{ 
+				{
 					(byte)(value >> 24),
 					(byte)(value >> 16),
 					(byte)(value >> 8),
@@ -678,7 +678,7 @@ namespace FoundationDB.Client
 		{
 			return new Slice(
 				new byte[]
-				{ 
+				{
 					(byte)value,
 					(byte)(value >> 8),
 					(byte)(value >> 16),
@@ -687,8 +687,8 @@ namespace FoundationDB.Client
 					(byte)(value >> 40),
 					(byte)(value >> 48),
 					(byte)(value >> 56)
-				}, 
-				0, 
+				},
+				0,
 				8
 			);
 		}
@@ -709,7 +709,7 @@ namespace FoundationDB.Client
 			{
 				return new Slice(
 					new byte[]
-					{ 
+					{
 						(byte)value,
 						(byte)(value >> 8),
 						(byte)(value >> 16),

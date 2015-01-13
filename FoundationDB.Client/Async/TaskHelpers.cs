@@ -384,18 +384,18 @@ namespace FoundationDB.Async
 		}
 
 		/// <summary>Ensure that a task will be observed by someone, in the event that it would fail</summary>
-		/// <remarks>This helps discard any unhandled task exceptions, for fire&forget tasks</remarks>
-		public static void Observe([NotNull] Task task)
+		/// <remarks>This helps discard any unhandled task exceptions, for fire&amp;forget tasks</remarks>
+		public static void Observe(Task task)
 		{
 			if (task != null)
 			{
 				if (!task.IsCompleted)
 				{
-					task.ContinueWith((t) => { var x = t.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
+					task.ContinueWith((t) => { var _ = t.Exception; }, TaskContinuationOptions.OnlyOnFaulted);
 				}
 				else
 				{
-					var x = task.Exception;
+					var _ = task.Exception;
 				}
 			}
 		}

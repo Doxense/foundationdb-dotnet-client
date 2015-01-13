@@ -41,7 +41,6 @@ namespace FoundationDB.Client.Native
 	{
 
 		public ClusterHandle()
-			: base()
 		{
 			Interlocked.Increment(ref DebugCounters.ClusterHandlesTotal);
 			Interlocked.Increment(ref DebugCounters.ClusterHandles);

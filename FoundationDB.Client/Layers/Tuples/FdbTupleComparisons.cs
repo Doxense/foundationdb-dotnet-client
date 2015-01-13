@@ -311,6 +311,7 @@ namespace FoundationDB.Layers.Tuples
 			/// <param name="offset">Offset in the tuples of the first element to compare (can be negative)</param>
 			/// <param name="comparer1">Comparer for the first element type</param>
 			/// <param name="comparer2">Comparer for the second element type</param>
+			/// <param name="comparer3">Comparer for the thrid element type</param>
 			public CompositeComparer(int offset, IComparer<T1> comparer1, IComparer<T2> comparer2, IComparer<T3> comparer3)
 			{
 				this.Offset = offset;

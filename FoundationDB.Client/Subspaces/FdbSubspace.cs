@@ -204,7 +204,7 @@ namespace FoundationDB.Client
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
 		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <returns>Binary suffix of the key (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>
-		/// <remarks>This is the inverse operation of <see cref="IFdbSubspace.ConcatKey(Slice)"/></remarks>
+		/// <remarks>This is the inverse operation of <see cref="P:FoundationDB.Client.IFdbSubspace.Item(Slice)"/></remarks>
 		public Slice Extract(Slice key)
 		{
 			if (key.IsNull) return Slice.Nil;

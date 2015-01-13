@@ -86,7 +86,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			WriteInt64Slow(ref writer, (long)value);
+			WriteInt64Slow(ref writer, value);
 		}
 
 		/// <summary>Writes an Int64 at the end, and advance the cursor</summary>
@@ -180,7 +180,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 			else
 			{ // >= 256
-				WriteUInt64Slow(ref writer, (ulong)value);
+				WriteUInt64Slow(ref writer, value);
 			}
 		}
 
