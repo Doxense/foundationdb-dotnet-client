@@ -308,6 +308,9 @@ namespace FoundationDB.Client
 		/// <summary>Entry point for the Network Thread</summary>
 		private static void EventLoop()
 		{
+			//TODO: we need to move the crash handling logic outside this method, so that an app can hook up an event and device what to do: crash or keep running (dangerous!).
+			// At least, the app would get the just to do some emergency shutdown logic before letting the process die....
+
 			try
 			{
 				s_eventLoopRunning = true;
@@ -327,11 +330,11 @@ namespace FoundationDB.Client
 					{ // this was NOT expected !
 						if (Logging.On) Logging.Error(typeof(Fdb), "EventLoop", String.Format("The fdb network thread returned with error code {0}: {1}", err, GetErrorMessage(err)));
 #if DEBUG
-						Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS CRASHED! PLEASE RESTART THE PROCESS!");
+						Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS FAILED!");
 						Console.Error.WriteLine("=> " + err);
 						// REVIEW: should we FailFast in release mode also?
 						// => this may be a bit suprising for most users when applications unexpectedly crash for for no apparent reason.
-						Environment.FailFast("FoundationDB network event loop failed with error " + err);
+						Environment.FailFast("The FoundationDB Network Event Loop failed with error " + err + " and was terminated.");
 #endif
 					}
 				}
@@ -339,11 +342,43 @@ namespace FoundationDB.Client
 			catch (Exception e)
 			{
 				if (e is ThreadAbortException)
-				{ // bye bye
+				{ // some other thread tried to Abort() us. This probably means that we should exit ASAP...
 					Thread.ResetAbort();
 					return;
 				}
-				//TODO: logging ?
+
+				//note: any error is this thread is BAD NEWS for the process, the the network thread usually cannot be restarted safely.
+
+				if (e is AccessViolationException)
+				{
+					// An access violation occured inside the native code. This good be caused by:
+					// - a bug in fdb_c.dll
+					// - a bug in our own marshalling code that calls into fdb_c.dll
+					// - some other random heap corruption that caused us to pass bogus data to fdb_c.dll
+					// - a random cosmic ray that flipped some bits in memory...
+					if (Debugger.IsAttached) Debugger.Break();
+
+					// This error is VERY BAD NEWS, and means that we CANNOT continue safely running fdb in this process
+					// The only reasonable option is to exit the process immediately !
+
+					Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS CRASHED!");
+					Console.Error.WriteLine("=> " + e.ToString());
+					Environment.FailFast("The FoundationDB Network Event Loop crashed with an Access Violation, and had to be terminated. You may try to create full memory dumps, as well as attach a debugger to this process (it will automatically break when this problem occurs).");
+					return;
+				}
+
+				if (Logging.On) Logging.Exception(typeof(Fdb), "EventLoop", e);
+
+#if DEBUG
+				// if we are running in DEBUG build, we want to get the attention of the developper on this.
+				// the best way is to make the test runner explode in mid-air with a scary looking message!
+
+				Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS CRASHED!");
+				Console.Error.WriteLine("=> " + e.ToString());
+				// REVIEW: should we FailFast in release mode also?
+				// => this may be a bit suprising for most users when applications unexpectedly crash for for no apparent reason.
+				Environment.FailFast("The FoundationDB Network Event Loop crashed and had to be terminated: " + e.Message);
+#endif
 			}
 			finally
 			{
