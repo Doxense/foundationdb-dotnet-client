@@ -32,7 +32,7 @@ namespace FoundationDB.Linq
 	using System;
 	using System.Collections.Generic;
 
-	public interface IFdbAsyncOrderedEnumerable<TSource> : IFdbAsyncEnumerable<TSource>
+	public interface IFdbAsyncOrderedEnumerable<out TSource> : IFdbAsyncEnumerable<TSource>
 	{
 		[NotNull]
 		IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
