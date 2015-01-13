@@ -140,7 +140,7 @@ namespace FoundationDB.Client
 					CloseHandles(handles);
 				}
 			}
-			GC.SuppressFinalize(this);
+			GC.KeepAlive(this);
 		}
 
 		#endregion
