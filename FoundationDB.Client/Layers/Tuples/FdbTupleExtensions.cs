@@ -260,6 +260,7 @@ namespace FoundationDB.Layers.Tuples
 			while (p < n)
 			{
 				yield return tuple[p, p + 1];
+				++p;
 			}
 		}
 
