@@ -314,7 +314,7 @@ namespace FoundationDB.Client.Utils
 			return new FormatException(String.Format(CultureInfo.InvariantCulture, "Invalid JSON Syntax: {0} at {1}", msg, m_cursor));
 		}
 
-		[NotNull][StringFormatMethod("msg")]
+		[NotNull, StringFormatMethod("msg")]
 		private FormatException SyntaxError(string msg, object arg0)
 		{
 			return new FormatException(String.Format(CultureInfo.InvariantCulture, "Invalid JSON Syntax: {0} at {1}", String.Format(CultureInfo.InvariantCulture, msg, arg0), m_cursor));

@@ -170,7 +170,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Returns a byte array filled with the contents of the buffer</summary>
 		/// <remarks>The buffer is copied in the byte array. And change to one will not impact the other</remarks>
-		[Pure][NotNull]
+		[Pure, NotNull]
 		public byte[] GetBytes()
 		{
 			Contract.Requires(this.Position >= 0);

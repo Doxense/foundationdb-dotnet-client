@@ -316,7 +316,7 @@ namespace FoundationDB.Client
 			return m_packed;
 		}
 
-		[Pure][NotNull]
+		[Pure, NotNull]
 		public byte[] ToByteArray()
 		{
 			// We must use Big Endian when serializing the UUID
