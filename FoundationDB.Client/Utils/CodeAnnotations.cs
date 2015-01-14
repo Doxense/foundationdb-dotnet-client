@@ -11,6 +11,8 @@ using System.Diagnostics;
 
 namespace JetBrains.Annotations
 {
+	//README: these should all be marked as 'internal', so as not to conflict with the same attributes that would exist in the parent application !
+
 	/// <summary>
 	/// Indicates that the value of the marked element could be <c>null</c> sometimes,
 	/// so the check for <c>null</c> is necessary before its usage
@@ -26,7 +28,7 @@ namespace JetBrains.Annotations
 	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
 	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class CanBeNullAttribute : Attribute { }
+	internal sealed class CanBeNullAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates that the value of the marked element could never be <c>null</c>
@@ -40,8 +42,7 @@ namespace JetBrains.Annotations
 	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
 	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class NotNullAttribute : Attribute { }
-
+	internal sealed class NotNullAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates that collection or enumerable value does not contain null elements
@@ -50,7 +51,7 @@ namespace JetBrains.Annotations
 	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
 	  AttributeTargets.Delegate | AttributeTargets.Field)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class ItemNotNullAttribute : Attribute { }
+	internal sealed class ItemNotNullAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates that collection or enumerable value can contain null elements
@@ -59,7 +60,7 @@ namespace JetBrains.Annotations
 	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
 	  AttributeTargets.Delegate | AttributeTargets.Field)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class ItemCanBeNullAttribute : Attribute { }
+	internal sealed class ItemCanBeNullAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates that the marked method builds string by format pattern and (optional) arguments.
@@ -76,7 +77,7 @@ namespace JetBrains.Annotations
 	[AttributeUsage(
 	  AttributeTargets.Constructor | AttributeTargets.Method | AttributeTargets.Delegate)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class StringFormatMethodAttribute : Attribute
+	internal sealed class StringFormatMethodAttribute : Attribute
 	{
 		/// <param name="formatParameterName">
 		/// Specifies which parameter of an annotated method should be treated as format-string
@@ -102,7 +103,7 @@ namespace JetBrains.Annotations
 	/// </code></example>
 	[AttributeUsage(AttributeTargets.Parameter)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class InvokerParameterNameAttribute : Attribute { }
+	internal sealed class InvokerParameterNameAttribute : Attribute { }
 
 	/// <summary>
 	/// Describes dependency between method input and output
@@ -149,7 +150,7 @@ namespace JetBrains.Annotations
 	/// </list></examples>
 	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class ContractAnnotationAttribute : Attribute
+	internal sealed class ContractAnnotationAttribute : Attribute
 	{
 		public ContractAnnotationAttribute([NotNull] string contract)
 			: this(contract, false) { }
@@ -186,7 +187,7 @@ namespace JetBrains.Annotations
 	[AttributeUsage(
 	  AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Struct)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class CannotApplyEqualityOperatorAttribute : Attribute { }
+	internal sealed class CannotApplyEqualityOperatorAttribute : Attribute { }
 
 	/// <summary>
 	/// When applied to a target attribute, specifies a requirement for any type marked
@@ -201,7 +202,7 @@ namespace JetBrains.Annotations
 	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]
 	[BaseTypeRequired(typeof(Attribute))]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class BaseTypeRequiredAttribute : Attribute
+	internal sealed class BaseTypeRequiredAttribute : Attribute
 	{
 		public BaseTypeRequiredAttribute([NotNull] Type baseType)
 		{
@@ -219,7 +220,7 @@ namespace JetBrains.Annotations
 	/// </summary>
 	[AttributeUsage(AttributeTargets.All)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class UsedImplicitlyAttribute : Attribute
+	internal sealed class UsedImplicitlyAttribute : Attribute
 	{
 		public UsedImplicitlyAttribute()
 			: this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default) { }
@@ -248,7 +249,7 @@ namespace JetBrains.Annotations
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Class | AttributeTargets.GenericParameter)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class MeansImplicitUseAttribute : Attribute
+	internal sealed class MeansImplicitUseAttribute : Attribute
 	{
 		public MeansImplicitUseAttribute()
 			: this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default) { }
@@ -273,7 +274,7 @@ namespace JetBrains.Annotations
 	}
 
 	[Flags]
-	public enum ImplicitUseKindFlags
+	internal enum ImplicitUseKindFlags
 	{
 		Default = Access | Assign | InstantiatedWithFixedConstructorSignature,
 		/// <summary>Only entity marked with attribute considered used</summary>
@@ -295,7 +296,7 @@ namespace JetBrains.Annotations
 	/// or <see cref="UsedImplicitlyAttribute"/>
 	/// </summary>
 	[Flags]
-	public enum ImplicitUseTargetFlags
+	internal enum ImplicitUseTargetFlags
 	{
 		Default = Itself,
 		Itself = 1,
@@ -311,7 +312,7 @@ namespace JetBrains.Annotations
 	/// </summary>
 	[MeansImplicitUse]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class PublicAPIAttribute : Attribute
+	internal sealed class PublicAPIAttribute : Attribute
 	{
 		public PublicAPIAttribute() { }
 		public PublicAPIAttribute([NotNull] string comment)
@@ -331,7 +332,7 @@ namespace JetBrains.Annotations
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Parameter)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class InstantHandleAttribute : Attribute { }
+	internal sealed class InstantHandleAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates that a method does not make any observable state changes.
@@ -346,14 +347,14 @@ namespace JetBrains.Annotations
 	/// </code></example>
 	[AttributeUsage(AttributeTargets.Method)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class PureAttribute : Attribute { }
+	internal sealed class PureAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates how method invocation affects content of the collection
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Method)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class CollectionAccessAttribute : Attribute
+	internal sealed class CollectionAccessAttribute : Attribute
 	{
 		public CollectionAccessAttribute(CollectionAccessType collectionAccessType)
 		{
@@ -364,7 +365,7 @@ namespace JetBrains.Annotations
 	}
 
 	[Flags]
-	public enum CollectionAccessType
+	internal enum CollectionAccessType
 	{
 		/// <summary>Method does not use or modify content of the collection</summary>
 		None = 0,
@@ -383,7 +384,7 @@ namespace JetBrains.Annotations
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Method)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class AssertionMethodAttribute : Attribute { }
+	internal sealed class AssertionMethodAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates the condition parameter of the assertion method. The method itself should be
@@ -392,7 +393,7 @@ namespace JetBrains.Annotations
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Parameter)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class AssertionConditionAttribute : Attribute
+	internal sealed class AssertionConditionAttribute : Attribute
 	{
 		public AssertionConditionAttribute(AssertionConditionType conditionType)
 		{
@@ -406,7 +407,7 @@ namespace JetBrains.Annotations
 	/// Specifies assertion type. If the assertion method argument satisfies the condition,
 	/// then the execution continues. Otherwise, execution is assumed to be halted
 	/// </summary>
-	public enum AssertionConditionType
+	internal enum AssertionConditionType
 	{
 		/// <summary>Marked parameter should be evaluated to true</summary>
 		IS_TRUE = 0,
@@ -425,21 +426,21 @@ namespace JetBrains.Annotations
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Method)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class LinqTunnelAttribute : Attribute { }
+	internal sealed class LinqTunnelAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates that IEnumerable, passed as parameter, is not enumerated.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Parameter)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class NoEnumerationAttribute : Attribute { }
+	internal sealed class NoEnumerationAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates that parameter is regular expression pattern.
 	/// </summary>
 	[AttributeUsage(AttributeTargets.Parameter)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class RegexPatternAttribute : Attribute { }
+	internal sealed class RegexPatternAttribute : Attribute { }
 
 	/// <summary>
 	/// Prevents the Member Reordering feature from tossing members of the marked class.
@@ -449,6 +450,6 @@ namespace JetBrains.Annotations
 	/// </remarks>
 	[AttributeUsage(AttributeTargets.All)]
 	[Conditional("JETBRAINS_ANNOTATIONS")]
-	public sealed class NoReorder : Attribute { }
+	internal sealed class NoReorder : Attribute { }
 
 }
