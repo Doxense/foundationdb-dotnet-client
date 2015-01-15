@@ -139,19 +139,17 @@ namespace FoundationDB.Client
 				{
 					if (!m_iterators[i].Active) continue;
 
-					var state = m_iterators[i];
-
-					if (!state.HasCurrent)
+					if (!m_iterators[i].HasCurrent)
 					{
-						if (!await state.Next.ConfigureAwait(false))
+						if (!await m_iterators[i].Next.ConfigureAwait(false))
 						{ // this one is done, remove it
-							state.Iterator.Dispose();
+							m_iterators[i].Iterator.Dispose();
 							m_iterators[i] = default(IteratorState);
 							continue;
 						}
 
-						state.Current = m_keySelector(m_iterators[i].Iterator.Current);
-						state.HasCurrent = true;
+						m_iterators[i].Current = m_keySelector(m_iterators[i].Iterator.Current);
+						m_iterators[i].HasCurrent = true;
 					}
 
 				}
