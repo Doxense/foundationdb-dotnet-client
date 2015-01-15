@@ -81,7 +81,7 @@ namespace FoundationDB.Client
 
 				// add this instance to the list of pending futures
 				var prm = RegisterCallback(this);
-	
+
 				foreach (var handle in handles)
 				{
 
@@ -106,9 +106,10 @@ namespace FoundationDB.Client
 
 				if (Volatile.Read(ref m_pending) == 0)
 				{ // all callbacks have already fired (or all handles were already completed)
-					UnregisterCallback(this); 
+					UnregisterCallback(this);
 					HandleCompletion(fromCallback: false);
 					m_resultSelector = null;
+					abortAllHandles = true;
 					SetFlag(FdbFuture.Flags.COMPLETED);
 				}
 				else  if (cancellationToken.CanBeCanceled)
@@ -138,9 +139,8 @@ namespace FoundationDB.Client
 				{
 					CloseHandles(handles);
 				}
-
 			}
-			GC.SuppressFinalize(this);
+			GC.KeepAlive(this);
 		}
 
 		#endregion
@@ -162,8 +162,9 @@ namespace FoundationDB.Client
 			{
 				foreach (var handle in handles)
 				{
-					if (handle != null && !handle.IsClosed)
+					if (handle != null && !handle.IsClosed && !handle.IsInvalid)
 					{
+						//REVIEW: there is a possibility of a race condition with Dispoe() that could potentially call FutureDestroy(handle) at the same time (not verified)
 						FdbNative.FutureReleaseMemory(handle);
 					}
 				}
@@ -176,8 +177,9 @@ namespace FoundationDB.Client
 			{
 				foreach (var handle in handles)
 				{
-					if (handle != null && !handle.IsClosed)
+					if (handle != null)
 					{
+						//note: Dispose() will be a no-op if already called
 						handle.Dispose();
 					}
 				}
@@ -190,8 +192,9 @@ namespace FoundationDB.Client
 			{
 				foreach (var handle in handles)
 				{
-					if (handle != null && !handle.IsClosed)
+					if (handle != null && !handle.IsClosed && !handle.IsInvalid)
 					{
+						//REVIEW: there is a possibility of a race condition with Dispoe() that could potentially call FutureDestroy(handle) at the same time (not verified)
 						FdbNative.FutureCancel(handle);
 					}
 				}

@@ -139,15 +139,16 @@ namespace FoundationDB.Layers.Tuples
 		/// <remarks>May throw at runtime if the type is not supported</remarks>
 		public static void SerializeObjectTo(ref TupleWriter writer, object value)
 		{
-			var type = value != null ? value.GetType() : null;
-			switch (Type.GetTypeCode(type))
+			if (value == null)
+			{ // null value
+				// includes all null references to ref types, as nullables where HasValue == false
+				FdbTupleParser.WriteNil(ref writer);
+				return;
+			}
+
+			switch (Type.GetTypeCode(value.GetType()))
 			{
 				case TypeCode.Empty:
-				{ // null value
-					// includes all null references to ref types, as nullables where HasValue == false
-					FdbTupleParser.WriteNil(ref writer);
-					return;
-				}
 				case TypeCode.Object:
 				{
 					byte[] bytes = value as byte[];
@@ -278,19 +279,19 @@ namespace FoundationDB.Layers.Tuples
 			{
 				SerializeTupleTo(ref writer, tuple);
 				return;
-			}		
+			}
 
 			var fmt = value as ITupleFormattable;
 			if (fmt != null)
 			{
 				tuple = fmt.ToTuple();
-				if (tuple == null) throw new InvalidOperationException(String.Format("An instance of type {0} returned a null Tuple while serialiazing", type.Name));
+				if (tuple == null) throw new InvalidOperationException(String.Format("An instance of type {0} returned a null Tuple while serialiazing", value.GetType().Name));
 				SerializeTupleTo(ref writer, tuple);
 				return;
 			}
 
 			// Not Supported ?
-			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0} into Tuple Encoding format", type.Name));
+			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0} into Tuple Encoding format", value.GetType().Name));
 		}
 
 		/// <summary>Writes a slice as a byte[] array</summary>

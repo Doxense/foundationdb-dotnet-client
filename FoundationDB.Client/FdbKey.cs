@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;
@@ -189,20 +190,16 @@ namespace FoundationDB.Client
 			private int m_cursor;
 			private int m_remaining;
 
-			private readonly int m_offset;
-			private readonly int m_count;
 			private readonly int m_workers;
 			private readonly int m_batchSize;
 
 			public BatchIterator(int offset, int count, int workers, int batchSize)
 			{
-				m_offset = offset;
-				m_count = count;
-				m_workers = workers;
-				m_batchSize = batchSize;
-
+				Contract.Requires(offset >= 0 && count >= 0 && workers >= 0 && batchSize >= 0);
 				m_cursor = offset;
 				m_remaining = count;
+				m_workers = workers;
+				m_batchSize = batchSize;
 			}
 
 			private KeyValuePair<int, int> GetChunk()

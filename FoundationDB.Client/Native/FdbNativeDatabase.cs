@@ -37,7 +37,7 @@ namespace FoundationDB.Client.Native
 
 	/// <summary>Wraps a native FDBDatabase* handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Closed={m_handle.IsClosed}")]
-	internal sealed class FdbNativeDatabase : IFdbDatabaseHandler, IDisposable
+	internal sealed class FdbNativeDatabase : IFdbDatabaseHandler
 	{
 		/// <summary>Handle that wraps the native FDB_DATABASE*</summary>
 		private readonly DatabaseHandle m_handle;

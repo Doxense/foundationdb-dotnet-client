@@ -92,7 +92,7 @@ namespace FoundationDB.Client
 
 		#region Parsing...
 
-		public static Uuid64 Parse(string s)
+		public static Uuid64 Parse([NotNull] string s)
 		{
 			if (s == null) throw new ArgumentNullException("s");
 			ulong value;
@@ -103,7 +103,7 @@ namespace FoundationDB.Client
 			return new Uuid64(value);
 		}
 
-		public static bool TryParse(string s, out Uuid64 result)
+		public static bool TryParse([NotNull] string s, out Uuid64 result)
 		{
 			if (s == null) throw new ArgumentNullException("s");
 			ulong value;
@@ -683,7 +683,7 @@ namespace FoundationDB.Client
 		public static readonly Uuid64RandomGenerator Default = new Uuid64RandomGenerator();
 
 		private readonly System.Security.Cryptography.RandomNumberGenerator m_rng;
-		private byte[] m_stratch = new byte[8];
+		private readonly byte[] m_scratch = new byte[8];
 
 		/// <summary>Create a new instance of a random UUID generator</summary>
 		public Uuid64RandomGenerator()
@@ -693,7 +693,7 @@ namespace FoundationDB.Client
 		/// <summary>Create a new instance of a random UUID generator, using a specific random number generator</summary>
 		public Uuid64RandomGenerator(System.Security.Cryptography.RandomNumberGenerator generator)
 		{
-			m_rng = generator ?? System.Security.Cryptography.RNGCryptoServiceProvider.Create();
+			m_rng = generator ?? System.Security.Cryptography.RandomNumberGenerator.Create();
 		}
 
 		/// <summary>Return a new random 64-bit UUID</summary>
@@ -707,8 +707,8 @@ namespace FoundationDB.Client
 			lock (m_rng)
 			{
 				// get 8 bytes of randomness (0 allowed)
-				m_rng.GetBytes(m_stratch);
-				return new Uuid64(m_stratch);
+				m_rng.GetBytes(m_scratch);
+				return new Uuid64(m_scratch);
 			}
 		}
 

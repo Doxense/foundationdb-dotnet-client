@@ -53,7 +53,7 @@ namespace FoundationDB.Linq
 
 			public OrderedSequence(IFdbAsyncEnumerable<TSource> source, IComparer<TSource> comparer, bool descending, OrderedSequence<TSource> parent)
 			{
-				Contract.Requires(source != null && comparer != null);
+				Contract.Requires(source != null);
 
 				m_source = source;
 				m_descending = descending;
@@ -78,7 +78,6 @@ namespace FoundationDB.Linq
 				return m_parent.GetEnumerableSorter(sorter);
 			}
 
-			[NotNull]
 			public IFdbAsyncEnumerator<TSource> GetEnumerator(FdbAsyncMode mode = FdbAsyncMode.Default)
 			{
 				var sorter = GetEnumerableSorter(null);
@@ -125,7 +124,6 @@ namespace FoundationDB.Linq
 				m_keyComparer = comparer ?? Comparer<TKey>.Default;
 			}
 
-			[NotNull]
 			internal override SequenceSorter<TSource> GetEnumerableSorter(SequenceSorter<TSource> next)
 			{
 				var sorter = new SequenceByKeySorter<TSource, TKey>(m_keySelector, m_keyComparer, m_descending, next);

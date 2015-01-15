@@ -221,13 +221,13 @@ namespace FoundationDB.Storage.Memory.IO
 			if (checked(offset + size) > m_size) throw new ArgumentException("Size is outside the bounds of the memory mapped file");
 		}
 
-		public unsafe UnamangedSliceReader CreateReader(ulong offset, ulong size)
+		public unsafe UnmanagedSliceReader CreateReader(ulong offset, ulong size)
 		{
 			EnsureReadable(offset, size);
 
 			byte* start = m_baseAddress + offset;
 
-			return UnamangedSliceReader.FromAddress(start, size);
+			return UnmanagedSliceReader.FromAddress(start, size);
 		}
 
 		#region IDisposable...

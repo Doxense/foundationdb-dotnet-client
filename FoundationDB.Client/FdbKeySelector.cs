@@ -111,6 +111,7 @@ namespace FoundationDB.Client
 
 		public override int GetHashCode()
 		{
+			// ReSharper disable once NonReadonlyMemberInGetHashCode
 			return m_key.GetHashCode() ^ this.Offset ^ (this.OrEqual ? 0 : -1);
 		}
 

@@ -1,7 +1,18 @@
 ﻿using System;
+using System.Diagnostics;
+
+#pragma warning disable 1591
+// ReSharper disable UnusedMember.Global
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable UnusedAutoPropertyAccessor.Global
+// ReSharper disable IntroduceOptionalParameters.Global
+// ReSharper disable MemberCanBeProtected.Global
+// ReSharper disable InconsistentNaming
 
 namespace JetBrains.Annotations
 {
+	//README: these should all be marked as 'internal', so as not to conflict with the same attributes that would exist in the parent application !
+
 	/// <summary>
 	/// Indicates that the value of the marked element could be <c>null</c> sometimes,
 	/// so the check for <c>null</c> is necessary before its usage
@@ -14,9 +25,9 @@ namespace JetBrains.Annotations
 	/// }
 	/// </code></example>
 	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter |
-	  AttributeTargets.Property | AttributeTargets.Delegate |
-	  AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
+	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
+	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class CanBeNullAttribute : Attribute { }
 
 	/// <summary>
@@ -28,10 +39,28 @@ namespace JetBrains.Annotations
 	/// }
 	/// </code></example>
 	[AttributeUsage(
-	  AttributeTargets.Method | AttributeTargets.Parameter |
-	  AttributeTargets.Property | AttributeTargets.Delegate |
-	  AttributeTargets.Field, AllowMultiple = false, Inherited = true)]
+	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
+	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class NotNullAttribute : Attribute { }
+
+	/// <summary>
+	/// Indicates that collection or enumerable value does not contain null elements
+	/// </summary>
+	[AttributeUsage(
+	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
+	  AttributeTargets.Delegate | AttributeTargets.Field)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class ItemNotNullAttribute : Attribute { }
+
+	/// <summary>
+	/// Indicates that collection or enumerable value can contain null elements
+	/// </summary>
+	[AttributeUsage(
+	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
+	  AttributeTargets.Delegate | AttributeTargets.Field)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class ItemCanBeNullAttribute : Attribute { }
 
 	/// <summary>
 	/// Indicates that the marked method builds string by format pattern and (optional) arguments.
@@ -46,8 +75,8 @@ namespace JetBrains.Annotations
 	/// }
 	/// </code></example>
 	[AttributeUsage(
-	  AttributeTargets.Constructor | AttributeTargets.Method,
-	  AllowMultiple = false, Inherited = true)]
+	  AttributeTargets.Constructor | AttributeTargets.Method | AttributeTargets.Delegate)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class StringFormatMethodAttribute : Attribute
 	{
 		/// <param name="formatParameterName">
@@ -72,7 +101,8 @@ namespace JetBrains.Annotations
 	///     throw new ArgumentNullException("par"); // Warning: Cannot resolve symbol
 	/// }
 	/// </code></example>
-	[AttributeUsage(AttributeTargets.Parameter, AllowMultiple = false, Inherited = true)]
+	[AttributeUsage(AttributeTargets.Parameter)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class InvokerParameterNameAttribute : Attribute { }
 
 	/// <summary>
@@ -108,16 +138,18 @@ namespace JetBrains.Annotations
 	/// public bool IsNullOrEmpty(string s) // string.IsNullOrEmpty()
 	/// </code></item>
 	/// <item><code>
-	/// // A method that returns null if the parameter is null, and not null if the parameter is not null
+	/// // A method that returns null if the parameter is null,
+	/// // and not null if the parameter is not null
 	/// [ContractAnnotation("null => null; notnull => notnull")]
-	/// public object Transform(object data) 
+	/// public object Transform(object data)
 	/// </code></item>
 	/// <item><code>
 	/// [ContractAnnotation("s:null=>false; =>true,result:notnull; =>false, result:null")]
 	/// public bool TryParse(string s, out Person result)
 	/// </code></item>
 	/// </list></examples>
-	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
+	[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class ContractAnnotationAttribute : Attribute
 	{
 		public ContractAnnotationAttribute([NotNull] string contract)
@@ -153,9 +185,143 @@ namespace JetBrains.Annotations
 	/// }
 	/// </code></example>
 	[AttributeUsage(
-	  AttributeTargets.Interface | AttributeTargets.Class |
-	  AttributeTargets.Struct, AllowMultiple = false, Inherited = true)]
+	  AttributeTargets.Interface | AttributeTargets.Class | AttributeTargets.Struct)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class CannotApplyEqualityOperatorAttribute : Attribute { }
+
+	/// <summary>
+	/// When applied to a target attribute, specifies a requirement for any type marked
+	/// with the target attribute to implement or inherit specific type or types.
+	/// </summary>
+	/// <example><code>
+	/// [BaseTypeRequired(typeof(IComponent)] // Specify requirement
+	/// public class ComponentAttribute : Attribute { }
+	/// [Component] // ComponentAttribute requires implementing IComponent interface
+	/// public class MyComponent : IComponent { }
+	/// </code></example>
+	[AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = true)]
+	[BaseTypeRequired(typeof(Attribute))]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class BaseTypeRequiredAttribute : Attribute
+	{
+		public BaseTypeRequiredAttribute([NotNull] Type baseType)
+		{
+			BaseType = baseType;
+		}
+
+		[NotNull]
+		public Type BaseType { get; private set; }
+	}
+
+	/// <summary>
+	/// Indicates that the marked symbol is used implicitly
+	/// (e.g. via reflection, in external library), so this symbol
+	/// will not be marked as unused (as well as by other usage inspections)
+	/// </summary>
+	[AttributeUsage(AttributeTargets.All)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class UsedImplicitlyAttribute : Attribute
+	{
+		public UsedImplicitlyAttribute()
+			: this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default) { }
+
+		public UsedImplicitlyAttribute(ImplicitUseKindFlags useKindFlags)
+			: this(useKindFlags, ImplicitUseTargetFlags.Default) { }
+
+		public UsedImplicitlyAttribute(ImplicitUseTargetFlags targetFlags)
+			: this(ImplicitUseKindFlags.Default, targetFlags) { }
+
+		public UsedImplicitlyAttribute(
+		  ImplicitUseKindFlags useKindFlags, ImplicitUseTargetFlags targetFlags)
+		{
+			UseKindFlags = useKindFlags;
+			TargetFlags = targetFlags;
+		}
+
+		public ImplicitUseKindFlags UseKindFlags { get; private set; }
+		public ImplicitUseTargetFlags TargetFlags { get; private set; }
+	}
+
+	/// <summary>
+	/// Should be used on attributes and causes ReSharper
+	/// to not mark symbols marked with such attributes as unused
+	/// (as well as by other usage inspections)
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Class | AttributeTargets.GenericParameter)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class MeansImplicitUseAttribute : Attribute
+	{
+		public MeansImplicitUseAttribute()
+			: this(ImplicitUseKindFlags.Default, ImplicitUseTargetFlags.Default) { }
+
+		public MeansImplicitUseAttribute(ImplicitUseKindFlags useKindFlags)
+			: this(useKindFlags, ImplicitUseTargetFlags.Default) { }
+
+		public MeansImplicitUseAttribute(ImplicitUseTargetFlags targetFlags)
+			: this(ImplicitUseKindFlags.Default, targetFlags) { }
+
+		public MeansImplicitUseAttribute(
+		  ImplicitUseKindFlags useKindFlags, ImplicitUseTargetFlags targetFlags)
+		{
+			UseKindFlags = useKindFlags;
+			TargetFlags = targetFlags;
+		}
+
+		[UsedImplicitly]
+		public ImplicitUseKindFlags UseKindFlags { get; private set; }
+		[UsedImplicitly]
+		public ImplicitUseTargetFlags TargetFlags { get; private set; }
+	}
+
+	[Flags]
+	internal enum ImplicitUseKindFlags
+	{
+		Default = Access | Assign | InstantiatedWithFixedConstructorSignature,
+		/// <summary>Only entity marked with attribute considered used</summary>
+		Access = 1,
+		/// <summary>Indicates implicit assignment to a member</summary>
+		Assign = 2,
+		/// <summary>
+		/// Indicates implicit instantiation of a type with fixed constructor signature.
+		/// That means any unused constructor parameters won't be reported as such.
+		/// </summary>
+		InstantiatedWithFixedConstructorSignature = 4,
+		/// <summary>Indicates implicit instantiation of a type</summary>
+		InstantiatedNoFixedConstructorSignature = 8,
+	}
+
+	/// <summary>
+	/// Specify what is considered used implicitly
+	/// when marked with <see cref="MeansImplicitUseAttribute"/>
+	/// or <see cref="UsedImplicitlyAttribute"/>
+	/// </summary>
+	[Flags]
+	internal enum ImplicitUseTargetFlags
+	{
+		Default = Itself,
+		Itself = 1,
+		/// <summary>Members of entity marked with attribute are considered used</summary>
+		Members = 2,
+		/// <summary>Entity marked with attribute and all its members considered used</summary>
+		WithMembers = Itself | Members
+	}
+
+	/// <summary>
+	/// This attribute is intended to mark publicly available API
+	/// which should not be removed and so is treated as used
+	/// </summary>
+	[MeansImplicitUse]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class PublicAPIAttribute : Attribute
+	{
+		public PublicAPIAttribute() { }
+		public PublicAPIAttribute([NotNull] string comment)
+		{
+			Comment = comment;
+		}
+
+		public string Comment { get; private set; }
+	}
 
 	/// <summary>
 	/// Tells code analysis engine if the parameter is completely handled
@@ -164,7 +330,8 @@ namespace JetBrains.Annotations
 	/// If the parameter is an enumerable, indicates that it is enumerated
 	/// while the method is executed
 	/// </summary>
-	[AttributeUsage(AttributeTargets.Parameter, Inherited = true)]
+	[AttributeUsage(AttributeTargets.Parameter)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class InstantHandleAttribute : Attribute { }
 
 	/// <summary>
@@ -178,7 +345,111 @@ namespace JetBrains.Annotations
 	///   Multiply(a, b); // Waring: Return value of pure method is not used
 	/// }
 	/// </code></example>
-	[AttributeUsage(AttributeTargets.Method, Inherited = true)]
+	[AttributeUsage(AttributeTargets.Method)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class PureAttribute : Attribute { }
+
+	/// <summary>
+	/// Indicates how method invocation affects content of the collection
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Method)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class CollectionAccessAttribute : Attribute
+	{
+		public CollectionAccessAttribute(CollectionAccessType collectionAccessType)
+		{
+			CollectionAccessType = collectionAccessType;
+		}
+
+		public CollectionAccessType CollectionAccessType { get; private set; }
+	}
+
+	[Flags]
+	internal enum CollectionAccessType
+	{
+		/// <summary>Method does not use or modify content of the collection</summary>
+		None = 0,
+		/// <summary>Method only reads content of the collection but does not modify it</summary>
+		Read = 1,
+		/// <summary>Method can change content of the collection but does not add new elements</summary>
+		ModifyExistingContent = 2,
+		/// <summary>Method can add new elements to the collection</summary>
+		UpdatedContent = ModifyExistingContent | 4
+	}
+
+	/// <summary>
+	/// Indicates that the marked method is assertion method, i.e. it halts control flow if
+	/// one of the conditions is satisfied. To set the condition, mark one of the parameters with
+	/// <see cref="AssertionConditionAttribute"/> attribute
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Method)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class AssertionMethodAttribute : Attribute { }
+
+	/// <summary>
+	/// Indicates the condition parameter of the assertion method. The method itself should be
+	/// marked by <see cref="AssertionMethodAttribute"/> attribute. The mandatory argument of
+	/// the attribute is the assertion type.
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Parameter)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class AssertionConditionAttribute : Attribute
+	{
+		public AssertionConditionAttribute(AssertionConditionType conditionType)
+		{
+			ConditionType = conditionType;
+		}
+
+		public AssertionConditionType ConditionType { get; private set; }
+	}
+
+	/// <summary>
+	/// Specifies assertion type. If the assertion method argument satisfies the condition,
+	/// then the execution continues. Otherwise, execution is assumed to be halted
+	/// </summary>
+	internal enum AssertionConditionType
+	{
+		/// <summary>Marked parameter should be evaluated to true</summary>
+		IS_TRUE = 0,
+		/// <summary>Marked parameter should be evaluated to false</summary>
+		IS_FALSE = 1,
+		/// <summary>Marked parameter should be evaluated to null value</summary>
+		IS_NULL = 2,
+		/// <summary>Marked parameter should be evaluated to not null value</summary>
+		IS_NOT_NULL = 3,
+	}
+
+	/// <summary>
+	/// Indicates that method is pure LINQ method, with postponed enumeration (like Enumerable.Select,
+	/// .Where). This annotation allows inference of [InstantHandle] annotation for parameters
+	/// of delegate type by analyzing LINQ method chains.
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Method)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class LinqTunnelAttribute : Attribute { }
+
+	/// <summary>
+	/// Indicates that IEnumerable, passed as parameter, is not enumerated.
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Parameter)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class NoEnumerationAttribute : Attribute { }
+
+	/// <summary>
+	/// Indicates that parameter is regular expression pattern.
+	/// </summary>
+	[AttributeUsage(AttributeTargets.Parameter)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class RegexPatternAttribute : Attribute { }
+
+	/// <summary>
+	/// Prevents the Member Reordering feature from tossing members of the marked class.
+	/// </summary>
+	/// <remarks>
+	/// The attribute must be mentioned in your member reordering patterns.
+	/// </remarks>
+	[AttributeUsage(AttributeTargets.All)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class NoReorder : Attribute { }
 
 }

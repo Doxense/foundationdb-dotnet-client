@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define TRACE_COUNTING
+#undef TRACE_COUNTING
 
 namespace FoundationDB.Client
 {
@@ -315,7 +315,7 @@ namespace FoundationDB.Client
 			{
 				Contract.Requires(trans != null && end >= begin);
 
-#if TRACE_COUTING
+#if TRACE_COUNTING
 				trans.Annotate("Get boundary keys in range {0}", FdbKeyRange.Create(begin, end));
 #endif
 
@@ -365,7 +365,7 @@ namespace FoundationDB.Client
 					}
 				}
 
-#if TRACE_COUTING
+#if TRACE_COUNTING
 				if (results.Count == 0)
 				{
 					trans.Annotate("There is no chunk boundary in range {0}", FdbKeyRange.Create(begin, end));
@@ -441,12 +441,12 @@ namespace FoundationDB.Client
 
 				using (var tr = db.BeginReadOnlyTransaction(cancellationToken))
 				{
-#if TRACE_COUTING
+#if TRACE_COUNTING
 					tr.Annotate("Estimating number of keys in range {0}", FdbKeyRange.Create(beginInclusive, endExclusive));
 #endif
 
 					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
-		
+
 					// start looking for the first key in the range
 					cursor = await tr.Snapshot.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(cursor)).ConfigureAwait(false);
 					if (cursor >= end)
@@ -455,7 +455,9 @@ namespace FoundationDB.Client
 					}
 
 					// we already have seen one key, so add it to the count
+#if TRACE_COUNTING
 					int iter = 1;
+#endif
 					long counter = 1;
 					// start with a medium-sized window
 					int windowSize = INIT_WINDOW_SIZE;
@@ -471,7 +473,9 @@ namespace FoundationDB.Client
 						try
 						{
 							next = await tr.Snapshot.GetKeyAsync(selector).ConfigureAwait(false);
+#if TRACE_COUNTING
 							++iter;
+#endif
 						}
 						catch (FdbException e)
 						{
@@ -507,7 +511,7 @@ namespace FoundationDB.Client
 
 							if (windowSize <= MIN_WINDOW_SIZE)
 							{ // The window is small enough to switch to reading for counting (will be faster than binary search)
-#if TRACE_COUTING
+#if TRACE_COUNTING
 								tr.Annotate("Switch to reading all items (window size = {0})", windowSize);
 #endif
 
@@ -523,7 +527,9 @@ namespace FoundationDB.Client
 
 								counter += n;
 								if (onProgress != null) onProgress.Report(FdbTuple.Create(counter, end));
+#if TRACE_COUNTING
 								++iter;
+#endif
 								break;
 							}
 
@@ -541,7 +547,7 @@ namespace FoundationDB.Client
 							windowSize = Math.Min(windowSize << 1, MAX_WINDOW_SIZE);
 						}
 					}
-#if TRACE_COUTING
+#if TRACE_COUNTING
 					tr.Annotate("Found {0} keys in {1} iterations", counter, iter);
 #endif
 					return counter;

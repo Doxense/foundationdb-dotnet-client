@@ -33,12 +33,11 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
-	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>FoundationDB Cluster</summary>
-	public class FdbCluster : IFdbCluster, IDisposable
+	public class FdbCluster : IFdbCluster
 	{
 
 		/// <summary>Underlying handler for this cluster (native, dummy, memory, ...)</summary>

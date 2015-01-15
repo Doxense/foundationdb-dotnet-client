@@ -751,7 +751,7 @@ namespace FoundationDB.Client.Native
 					for (int i = 0; i < count; i++)
 					{
 						//TODO: protect against negative values or values too big ?
-						Contract.Assert(kvp[i].KeyLength >= 0 && kvp[i].KeyLength >= 0);
+						Contract.Assert(kvp[i].KeyLength >= 0 && kvp[i].ValueLength >= 0);
 						total += kvp[i].KeyLength + kvp[i].ValueLength;
 					}
 

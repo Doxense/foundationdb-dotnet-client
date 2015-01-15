@@ -37,7 +37,7 @@ namespace FoundationDB.Client.Native
 	using System.Threading.Tasks;
 
 	/// <summary>Wraps a native FDBCluster* handle</summary>
-	internal sealed class FdbNativeCluster : IFdbClusterHandler, IDisposable
+	internal sealed class FdbNativeCluster : IFdbClusterHandler
 	{
 		private readonly ClusterHandle m_handle;
 
@@ -116,16 +116,7 @@ namespace FoundationDB.Client.Native
 
 		public void Dispose()
 		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		private void Dispose(bool disposing)
-		{
-			if (disposing)
-			{
-				if (m_handle != null) m_handle.Dispose();
-			}
+			if (m_handle != null) m_handle.Dispose();
 		}
 
 	}

@@ -145,7 +145,6 @@ namespace FoundationDB.Async
 				m_done = true;
 				m_target.OnCompleted();
 			}
-			GC.SuppressFinalize(this);
 		}
 
 		#endregion

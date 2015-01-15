@@ -44,7 +44,7 @@ namespace FoundationDB.Client.Native
 
 	/// <summary>Wraps a native FDB_TRANSACTION handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Size={m_payloadBytes}, Closed={m_handle.IsClosed}")]
-	internal class FdbNativeTransaction : IFdbTransactionHandler, IDisposable
+	internal class FdbNativeTransaction : IFdbTransactionHandler
 	{
 		private readonly FdbNativeDatabase m_database;
 		/// <summary>FDB_TRANSACTION* handle</summary>
@@ -87,6 +87,9 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Native FDB_TRANSACTION* handle</summary>
 		public TransactionHandle Handle { get { return m_handle; } }
+
+		/// <summary>Database handler that owns this transaction</summary>
+		public FdbNativeDatabase Database { get { return m_database; } }
 
 		/// <summary>Estimated size of the transaction payload (in bytes)</summary>
 		public int Size { get { return m_payloadBytes; } }

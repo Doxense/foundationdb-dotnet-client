@@ -213,7 +213,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>
 		/// <param name="boundCheck">If true, verify that <paramref name="key"/> is inside the bounds of the subspace</param>
 		/// <returns>Binary suffix of the key (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>
-		/// <remarks>This is the inverse operation of <see cref="IFdbSubspace.ConcatKey(Slice)"/></remarks>
+		/// <remarks>This is the inverse operation of <see cref="P:FoundationDB.Client.IFdbSubspace.Item(Slice)"/></remarks>
 		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="key"/> is outside the current subspace.</exception>
 		public Slice ExtractKey(Slice key, bool boundCheck = false)
 		{

@@ -95,6 +95,7 @@ namespace FoundationDB.Client.Utils
 						{
 							if (token != Token.Literal) throw SyntaxError("Expected field name in map, but found {0}", token);
 							string key = (string)m_current;
+							Contract.Assert(key != null);
 
 							if ((token = ReadToken()) != Token.Colon) throw SyntaxError("Expected ':' in map, but found {0}", token);
 
@@ -255,6 +256,7 @@ namespace FoundationDB.Client.Utils
 									else if (c >= 'a' && c <= 'f') x |= (c - 'a');
 									else throw SyntaxError("Invalid unicode escape character '{0}' in string literal", c);
 								}
+								sb.Append((char) x);
 								break;
 							}
 							default:
@@ -312,7 +314,7 @@ namespace FoundationDB.Client.Utils
 			return new FormatException(String.Format(CultureInfo.InvariantCulture, "Invalid JSON Syntax: {0} at {1}", msg, m_cursor));
 		}
 
-		[NotNull][StringFormatMethod("msg")]
+		[NotNull, StringFormatMethod("msg")]
 		private FormatException SyntaxError(string msg, object arg0)
 		{
 			return new FormatException(String.Format(CultureInfo.InvariantCulture, "Invalid JSON Syntax: {0} at {1}", String.Format(CultureInfo.InvariantCulture, msg, arg0), m_cursor));

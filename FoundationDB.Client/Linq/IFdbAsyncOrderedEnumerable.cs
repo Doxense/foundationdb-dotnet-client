@@ -36,9 +36,10 @@ namespace FoundationDB.Linq
 	using System.Threading;
 	using System.Threading.Tasks;
 
-	public interface IFdbAsyncOrderedEnumerable<TSource> : IFdbAsyncEnumerable<TSource>
+	public interface IFdbAsyncOrderedEnumerable<out TSource> : IFdbAsyncEnumerable<TSource>
 	{
-		IFdbAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending);
+		[NotNull]
+		IFdbAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending);
 	}
 
 }

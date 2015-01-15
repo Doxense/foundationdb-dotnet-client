@@ -41,7 +41,6 @@ namespace FoundationDB.Client.Native
 	{
 
 		public TransactionHandle()
-			: base()
 		{
 			Interlocked.Increment(ref DebugCounters.TransactionHandlesTotal);
 			Interlocked.Increment(ref DebugCounters.TransactionHandles);

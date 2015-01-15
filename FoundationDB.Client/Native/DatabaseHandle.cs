@@ -41,7 +41,6 @@ namespace FoundationDB.Client.Native
 	{
 
 		public DatabaseHandle()
-			: base()
 		{
 			Interlocked.Increment(ref DebugCounters.DatabaseHandlesTotal);
 			Interlocked.Increment(ref DebugCounters.DatabaseHandles);

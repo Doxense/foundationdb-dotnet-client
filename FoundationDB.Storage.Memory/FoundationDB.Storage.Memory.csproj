@@ -76,7 +76,7 @@
     <Compile Include="Collections\ColaStore`1.cs" />
     <Compile Include="Collections\ColaStore.cs" />
     <Compile Include="Collections\ColaOrderedSet.cs" />
-    <Compile Include="Utils\UnamangedSliceReader.cs" />
+    <Compile Include="Utils\UnmanagedSliceReader.cs" />
     <Compile Include="Utils\TaskHelpers.cs" />
     <Compile Include="Utils\UnmanagedHelpers.cs" />
     <Compile Include="Utils\UnmanagedSliceBuilderPool.cs" />

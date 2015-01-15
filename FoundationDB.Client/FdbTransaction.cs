@@ -45,7 +45,7 @@ namespace FoundationDB.Client
 	/// <summary>FounrationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
 	[DebuggerDisplay("Id={Id}, StillAlive={StillAlive}, Size={Size}")]
-	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadOnlyTransaction, IDisposable
+	public sealed partial class FdbTransaction : IFdbTransaction, IFdbReadOnlyTransaction
 	{
 
 		#region Private Members...
@@ -936,7 +936,6 @@ namespace FoundationDB.Client
 					m_cts.Dispose();
 				}
 			}
-			GC.SuppressFinalize(this);
 		}
 
 		#endregion

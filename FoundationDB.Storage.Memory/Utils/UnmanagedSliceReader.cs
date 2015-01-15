@@ -31,23 +31,21 @@ namespace FoundationDB.Storage.Memory.Utils
 	using System;
 	using System.Diagnostics.Contracts;
 
-
-
 	/// <summary>Helper class that holds the internal state used to parse tuples from slices</summary>
-	public unsafe class UnamangedSliceReader
+	public unsafe class UnmanagedSliceReader
 	{
 
 		/// <summary>Creates a reader on a byte array</summary>
-		public static UnamangedSliceReader FromSlice(USlice slice)
+		public static UnmanagedSliceReader FromSlice(USlice slice)
 		{
-			return new UnamangedSliceReader(slice.Data, slice.Count);
+			return new UnmanagedSliceReader(slice.Data, slice.Count);
 		}
 
 		/// <summary>Creates a reader on a segment of a byte array</summary>
-		public static UnamangedSliceReader FromAddress(byte* address, ulong count)
+		public static UnmanagedSliceReader FromAddress(byte* address, ulong count)
 		{
 			if (address == null && count != 0) throw new ArgumentException("Address cannot be null");
-			return new UnamangedSliceReader(address, count);
+			return new UnmanagedSliceReader(address, count);
 		}
 
 		/// <summary>Buffer containing the tuple being parsed</summary>
@@ -59,7 +57,7 @@ namespace FoundationDB.Storage.Memory.Utils
 		/// <summary>Memory address just after the end of the buffer</summary>
 		public readonly byte* End;
 
-		private UnamangedSliceReader(byte* address, ulong count)
+		private UnmanagedSliceReader(byte* address, ulong count)
 		{
 			Contract.Requires(address != null || count == 0);
 

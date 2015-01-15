@@ -322,6 +322,7 @@ namespace FoundationDB.Async
 		/// <summary>Convert a completed <see cref="Task{T}"/> into an equivalent <see cref="Maybe{T}"/></summary>
 		public static Maybe<T> FromTask<T>([NotNull] Task<T> task)
 		{
+			//REVIEW: should we return Maybe<T>.Empty if task == null ?
 			Contract.Requires(task != null);
 			switch (task.Status)
 			{
