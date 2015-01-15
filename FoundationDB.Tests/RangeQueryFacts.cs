@@ -480,7 +480,7 @@ namespace FoundationDB.Client.Tests
 			int K = 3;
 			int N = 100;
 
-			using(var db = await OpenTestPartitionAsync())
+			using (var db = await OpenTestPartitionAsync())
 			{
 				var location = await GetCleanDirectory(db, "Queries", "MergeSort");
 
@@ -516,7 +516,7 @@ namespace FoundationDB.Client.Tests
 					var merge = tr.MergeSort(
 						lists.Select(list => list.ToSelectorPair()),
 						kvp => location.UnpackLast<int>(kvp.Key)
-					);
+						);
 
 					Assert.That(merge, Is.Not.Null);
 					Assert.That(merge, Is.InstanceOf<FdbMergeSortIterator<KeyValuePair<Slice, Slice>, int, KeyValuePair<Slice, Slice>>>());
@@ -525,16 +525,13 @@ namespace FoundationDB.Client.Tests
 					Assert.That(results, Is.Not.Null);
 					Assert.That(results.Count, Is.EqualTo(K * N));
 
-					for(int i=0;i<K*N;i++)
+					for (int i = 0; i < K * N; i++)
 					{
 						Assert.That(location.Extract(results[i].Key), Is.EqualTo(FdbTuple.Pack(i % K, i)));
 						Assert.That(results[i].Value, Is.EqualTo(FdbTuple.Pack(i % K, i / K)));
 					}
 				}
-
-
 			}
-
 		}
 
 		[Test]
