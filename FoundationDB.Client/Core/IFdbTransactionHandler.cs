@@ -104,7 +104,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
 		/// <returns></returns>
-		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken cancellationToken);
+		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, [NotNull] FdbRangeOptions options, int iteration, bool snapshot, CancellationToken cancellationToken);
 
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>

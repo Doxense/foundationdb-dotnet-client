@@ -62,7 +62,7 @@ namespace FoundationDB.Linq
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
 		/// <param name="lambda">Lambda that will be called once per iteration, to produce the single element of this sequene</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="lambda"/> will be called once for each iteration.</remarks>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<T> Single<T>([NotNull] Func<T> lambda)
 		{
 			if (lambda == null) throw new ArgumentNullException("lambda");
@@ -72,7 +72,7 @@ namespace FoundationDB.Linq
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
 		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequene</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="asyncLambda"/> will be called once for each iteration.</remarks>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<T> Single<T>([NotNull] Func<Task<T>> asyncLambda)
 		{
 			if (asyncLambda == null) throw new ArgumentNullException("asyncLambda");
@@ -82,7 +82,7 @@ namespace FoundationDB.Linq
 		/// <summary>Returns an async sequence which will produce a single element, using the specified lambda</summary>
 		/// <param name="asyncLambda">Lambda that will be called once per iteration, to produce the single element of this sequene</param>
 		/// <remarks>If the sequence is iterated multiple times, then <paramref name="asyncLambda"/> will be called once for each iteration.</remarks>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<T> Single<T>([NotNull] Func<CancellationToken, Task<T>> asyncLambda)
 		{
 			if (asyncLambda == null) throw new ArgumentNullException("asyncLambda");
@@ -90,7 +90,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<R> ToAsyncEnumerable<T, R>([NotNull] this IEnumerable<T> source, [NotNull] Func<T, Task<R>> lambda)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -100,7 +100,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Apply an async lambda to a sequence of elements to transform it into an async sequence</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<T> ToAsyncEnumerable<T>([NotNull] this IEnumerable<T> source)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -109,7 +109,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Wraps an async lambda into an async sequence that will return the result of the lambda</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<T> FromTask<T>([NotNull] Func<Task<T>> asyncLambda)
 		{
 			//TODO: create a custom iterator for this ?
@@ -121,6 +121,7 @@ namespace FoundationDB.Linq
 		/// <param name="source">Source sequence</param>
 		/// <param name="batchSize">Maximum size of each batch</param>
 		/// <returns>Sequence of batches, whose size will always we <paramref name="batchSize"/>, except for the last batch that will only hold the remaning items. If the source is empty, an empty sequence is returned.</returns>
+		[NotNull, LinqTunnel]
 		public static IEnumerable<List<T>> Buffered<T>([NotNull] this IEnumerable<T> source, int batchSize)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -145,7 +146,7 @@ namespace FoundationDB.Linq
 		#region SelectMany...
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IFdbAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, IEnumerable<TResult>> selector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -161,7 +162,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IFdbAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, Task<IEnumerable<TResult>>> asyncSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -171,7 +172,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IFdbAsyncEnumerable{T}"/> and flattens the resulting sequences into one async sequence.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task<IEnumerable<TResult>>> asyncSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -187,7 +188,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IFdbAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, IEnumerable<TCollection>> collectionSelector, [NotNull] Func<TSource, TCollection, TResult> resultSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -204,7 +205,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IFdbAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, Task<IEnumerable<TCollection>>> asyncCollectionSelector, [NotNull] Func<TSource, TCollection, TResult> resultSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -215,7 +216,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence to an <see cref="IFdbAsyncEnumerable{T}"/> flattens the resulting sequences into one async sequence, and invokes a result selector function on each element therein.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> SelectMany<TSource, TCollection, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task<IEnumerable<TCollection>>> asyncCollectionSelector, [NotNull] Func<TSource, TCollection, TResult> resultSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -236,7 +237,7 @@ namespace FoundationDB.Linq
 		#region Select...
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> Select<TSource, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TResult> selector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -252,7 +253,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> Select<TSource, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, Task<TResult>> asyncSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -262,7 +263,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> Select<TSource, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task<TResult>> asyncSelector)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -282,7 +283,7 @@ namespace FoundationDB.Linq
 		#region Where...
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> Where<TResult>([NotNull] this IFdbAsyncEnumerable<TResult> source, [NotNull] Func<TResult, bool> predicate)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -298,7 +299,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<T> Where<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull] Func<T, Task<bool>> asyncPredicate)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -308,7 +309,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Filters an async sequence of values based on a predicate.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> Where<TResult>([NotNull] this IFdbAsyncEnumerable<TResult> source, [NotNull] Func<TResult, CancellationToken, Task<bool>> asyncPredicate)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -328,7 +329,7 @@ namespace FoundationDB.Linq
 		#region Take...
 
 		/// <summary>Returns a specified number of contiguous elements from the start of an async sequence.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> Take<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, int count)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -348,7 +349,7 @@ namespace FoundationDB.Linq
 		#region TakeWhile...
 
 		/// <summary>Returns elements from an async sequence as long as a specified condition is true, and then skips the remaining elements.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> TakeWhile<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, bool> condition)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -363,6 +364,7 @@ namespace FoundationDB.Linq
 			return FdbAsyncEnumerable.Limit<TSource>(source, condition);
 		}
 
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> TakeWhile<TSource>(this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, bool> condition, out QueryStatistics<bool> stopped)
 		{
 			var signal = new QueryStatistics<bool>(false);
@@ -384,7 +386,7 @@ namespace FoundationDB.Linq
 		#region Skip...
 
 		/// <summary>Skips the first elements of an async sequence.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> Skip<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, int count)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -404,7 +406,7 @@ namespace FoundationDB.Linq
 		#region SelectAsync
 
 		/// <summary>Projects each element of an async sequence into a new form.</summary>
-		[NotNull]
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TResult> SelectAsync<TSource, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task<TResult>> asyncSelector, FdbParallelQueryOptions options = null)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -421,6 +423,7 @@ namespace FoundationDB.Linq
 		/// This iterator can help smooth out the query pipeline when every call to the inner sequence has a somewhat high latency (ex: reading the next page of results from the database).
 		/// Avoid prefetching from a source that is already reading from a buffer of results.
 		/// </remarks>
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> Prefetch<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -437,6 +440,7 @@ namespace FoundationDB.Linq
 		/// This iterator can help smooth out the query pipeline when every call to the inner sequence has a somewhat high latency (ex: reading the next page of results from the database).
 		/// Avoid prefetching from a source that is already reading from a buffer of results.
 		/// </remarks>
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> Prefetch<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, int prefetchCount)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -454,6 +458,7 @@ namespace FoundationDB.Linq
 		/// This should only be called on bursty asynchronous sequences, and when you want to process items in batches, without incurring the cost of latency between two pages of results.
 		/// You should avoid using this operator on sequences where each call to MoveNext() is asynchronous, since it would only produce batchs with only a single item.
 		/// </remarks>
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource[]> Window<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, int maxWindowSize)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -471,6 +476,7 @@ namespace FoundationDB.Linq
 		/// This operator does not care about the latency of each item, and will always try to fill each batch completely, before outputing a result.
 		/// If you are working on an inner sequence that is bursty in nature, where items arrives in waves, you should use <see cref="Window{TSource}"/> which attempts to minimize the latency by outputing incomplete batches if needed.
 		/// </remarks>
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource[]> Batch<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, int batchSize)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -483,6 +489,7 @@ namespace FoundationDB.Linq
 
 		#region Distinct...
 
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> Distinct<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, IEqualityComparer<TSource> comparer = null)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -504,7 +511,7 @@ namespace FoundationDB.Linq
 		#region Leaving the Monad...
 
 		/// <summary>Execute an action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull] Action<T> action, CancellationToken ct = default(CancellationToken))
+		public static Task ForEachAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull, InstantHandle] Action<T> action, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (action == null) throw new ArgumentNullException("action");
@@ -521,7 +528,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull] Func<T, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static Task ForEachAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, Task> asyncAction, CancellationToken ct = default(CancellationToken))
 		{
 			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
 
@@ -537,7 +544,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Execute an async action for each element of an async sequence</summary>
-		public static Task ForEachAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull] Func<T, CancellationToken, Task> asyncAction, CancellationToken ct = default(CancellationToken))
+		public static Task ForEachAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, CancellationToken, Task> asyncAction, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (asyncAction == null) throw new ArgumentNullException("asyncAction");
@@ -596,7 +603,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function and key comparer.</summary>
-		public static Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull, InstantHandle] Func<TSource, TKey> keySelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (keySelector == null) throw new ArgumentNullException("keySelector");
@@ -610,7 +617,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function, a comparer, and an element selector function.</summary>
-		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TKey> keySelector, [NotNull] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
+		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull, InstantHandle] Func<TSource, TKey> keySelector, [NotNull, InstantHandle] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (keySelector == null) throw new ArgumentNullException("keySelector");
@@ -639,7 +646,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TSource> AggregateAsync<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, TSource, TSource> aggregator, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<TSource> AggregateAsync<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull, InstantHandle] Func<TSource, TSource, TSource> aggregator, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
@@ -665,7 +672,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>([NotNull] this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull] Func<TAccumulate, TSource, TAccumulate> aggregator, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>([NotNull] this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull, InstantHandle] Func<TAccumulate, TSource, TAccumulate> aggregator, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
@@ -676,7 +683,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>([NotNull] this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull] Action<TAccumulate, TSource> aggregator, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<TAccumulate> AggregateAsync<TSource, TAccumulate>([NotNull] this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull, InstantHandle] Action<TAccumulate, TSource> aggregator, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
@@ -687,7 +694,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull] Func<TAccumulate, TSource, TAccumulate> aggregator, [NotNull] Func<TAccumulate, TResult> resultSelector, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull, InstantHandle] Func<TAccumulate, TSource, TAccumulate> aggregator, [NotNull, InstantHandle] Func<TAccumulate, TResult> resultSelector, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
@@ -699,7 +706,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Applies an accumulator function over an async sequence.</summary>
-		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull] Action<TAccumulate, TSource> aggregator, [NotNull] Func<TAccumulate, TResult> resultSelector, CancellationToken cancellationToken = default(CancellationToken))
+		public static async Task<TResult> AggregateAsync<TSource, TAccumulate, TResult>([NotNull] this IFdbAsyncEnumerable<TSource> source, TAccumulate seed, [NotNull, InstantHandle] Action<TAccumulate, TSource> aggregator, [NotNull, InstantHandle] Func<TAccumulate, TResult> resultSelector, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (aggregator == null) throw new ArgumentNullException("aggregator");
@@ -865,7 +872,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Returns a number that represents how many elements in the specified async sequence satisfy a condition.</summary>
-		public static async Task<int> CountAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static async Task<int> CountAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (predicate == null) throw new ArgumentNullException("predicate");
@@ -890,7 +897,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static async Task<ulong> SumAsync([NotNull] this IFdbAsyncEnumerable<ulong> source, [NotNull] Func<ulong, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static async Task<ulong> SumAsync([NotNull] this IFdbAsyncEnumerable<ulong> source, [NotNull, InstantHandle] Func<ulong, bool> predicate, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (predicate == null) throw new ArgumentNullException("predicate");
@@ -915,7 +922,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Returns the sum of all elements in the specified async sequence that satisfy a condition.</summary>
-		public static async Task<long> SumAsync([NotNull] this IFdbAsyncEnumerable<long> source, [NotNull] Func<long, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static async Task<long> SumAsync([NotNull] this IFdbAsyncEnumerable<long> source, [NotNull, InstantHandle] Func<long, bool> predicate, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (predicate == null) throw new ArgumentNullException("predicate");
@@ -993,7 +1000,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Determines whether any element of an async sequence satisfies a condition.</summary>
-		public static async Task<bool> AnyAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static async Task<bool> AnyAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (predicate == null) throw new ArgumentNullException("predicate");
@@ -1023,7 +1030,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Determines whether none of the elements of an async sequence satisfies a condition.</summary>
-		public static async Task<bool> NoneAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
+		public static async Task<bool> NoneAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, [NotNull, InstantHandle] Func<T, bool> predicate, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (predicate == null) throw new ArgumentNullException("predicate");
@@ -1102,6 +1109,7 @@ namespace FoundationDB.Linq
 
 		/// <summary>Measure the number of items that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="counter"/> are only safe to read once the query has ended</remarks>
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> WithCountStatistics<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, out QueryStatistics<int> counter)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -1121,6 +1129,7 @@ namespace FoundationDB.Linq
 
 		/// <summary>Measure the number and size of slices that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="statistics"/> are only safe to read once the query has ended</remarks>
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> WithSizeStatistics([NotNull] this IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> source, out QueryStatistics<KeyValueSize> statistics)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -1140,6 +1149,7 @@ namespace FoundationDB.Linq
 
 		/// <summary>Measure the number and sizes of the keys and values that pass through this point of the query</summary>
 		/// <remarks>The values returned in <paramref name="statistics"/> are only safe to read once the query has ended</remarks>
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<Slice> WithSizeStatistics([NotNull] this IFdbAsyncEnumerable<Slice> source, out QueryStatistics<DataSize> statistics)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -1159,6 +1169,7 @@ namespace FoundationDB.Linq
 
 		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
 		/// <remarks>The <paramref name="handler"/> is execute inline before passing the item down the line, and should not block</remarks>
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> Observe<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Action<TSource> handler)
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -1169,6 +1180,7 @@ namespace FoundationDB.Linq
 
 		/// <summary>Execute an action on each item passing through the sequence, without modifying the original sequence</summary>
 		/// <remarks>The <paramref name="asyncHandler"/> is execute inline before passing the item down the line, and should not block</remarks>
+		[NotNull, LinqTunnel]
 		public static IFdbAsyncEnumerable<TSource> Observe<TSource>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull] Func<TSource, CancellationToken, Task> asyncHandler)
 		{
 			if (source == null) throw new ArgumentNullException("source");
