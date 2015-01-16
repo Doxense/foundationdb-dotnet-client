@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client.Converters;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
@@ -140,6 +141,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="offset">Offset of the item to compare (can be negative)</param>
 		/// <param name="comparer">Comparer for the item's type</param>
 		/// <returns>New comparer instance</returns>
+		[NotNull]
 		public static IComparer<IFdbTuple> Composite<T1>(int offset = 0, IComparer<T1> comparer = null)
 		{
 			return new CompositeComparer<T1>(offset, comparer);
@@ -152,6 +154,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="comparer1">Comparer for the first item's type</param>
 		/// <param name="comparer2">Comparer for the second item's type</param>
 		/// <returns>New comparer instance</returns>
+		[NotNull]
 		public static IComparer<IFdbTuple> Composite<T1, T2>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null)
 		{
 			return new CompositeComparer<T1, T2>(offset, comparer1, comparer2);
@@ -166,6 +169,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="comparer2">Comparer for the second item's type</param>
 		/// <param name="comparer3">Comparer for the third item's type</param>
 		/// <returns>New comparer instance</returns>
+		[NotNull]
 		public static IComparer<IFdbTuple> Composite<T1, T2, T3>(int offset = 0, IComparer<T1> comparer1 = null, IComparer<T2> comparer2 = null, IComparer<T3> comparer3 = null)
 		{
 			return new CompositeComparer<T1, T2, T3>(offset, comparer1, comparer2, comparer3);

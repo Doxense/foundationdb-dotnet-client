@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,9 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
+	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
@@ -85,6 +87,7 @@ namespace FoundationDB.Linq
 
 			public AnonymousIterable(Func<object, IFdbAsyncEnumerator<T>> factory, object state)
 			{
+				Contract.Requires(factory != null);
 				m_factory = factory;
 				m_state = state;
 			}
@@ -104,18 +107,19 @@ namespace FoundationDB.Linq
 
 		#region Helpers...
 
+		[NotNull]
 		internal static FdbSelectManyAsyncIterator<TSource, TResult> Flatten<TSource, TResult>(
-			IFdbAsyncEnumerable<TSource> source,
-			AsyncTransformExpression<TSource,
-			IEnumerable<TResult>> selector)
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
+			[NotNull] AsyncTransformExpression<TSource, IEnumerable<TResult>> selector)
 		{
 			return new FdbSelectManyAsyncIterator<TSource, TResult>(source, selector);
 		}
 
+		[NotNull]
 		internal static FdbSelectManyAsyncIterator<TSource, TCollection, TResult> Flatten<TSource, TCollection, TResult>(
-			IFdbAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource,
-			IEnumerable<TCollection>> collectionSelector,
-			Func<TSource, TCollection, TResult> resultSelector)
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
+			[NotNull] AsyncTransformExpression<TSource, IEnumerable<TCollection>> collectionSelector,
+			[NotNull] Func<TSource, TCollection, TResult> resultSelector)
 		{
 			return new FdbSelectManyAsyncIterator<TSource, TCollection, TResult>(
 				source,
@@ -124,8 +128,10 @@ namespace FoundationDB.Linq
 			);
 		}
 
+		[NotNull]
 		internal static FdbWhereSelectAsyncIterator<TSource, TResult> Map<TSource, TResult>(
-			IFdbAsyncEnumerable<TSource> source, AsyncTransformExpression<TSource, TResult> selector,
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
+			[NotNull] AsyncTransformExpression<TSource, TResult> selector,
 			int? limit = null, int?
 			offset = null)
 		{
@@ -142,7 +148,7 @@ namespace FoundationDB.Linq
 
 		[NotNull]
 		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Offset<TResult>(
-			IFdbAsyncEnumerable<TResult> source,
+            [NotNull] IFdbAsyncEnumerable<TResult> source,
 			int offset)
 		{
 			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, transform: new AsyncTransformExpression<TResult, TResult>(TaskHelpers.Cache<TResult>.Identity), limit: null, offset: offset);
@@ -150,7 +156,7 @@ namespace FoundationDB.Linq
 
 		[NotNull]
 		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Limit<TResult>(
-			IFdbAsyncEnumerable<TResult> source,
+			[NotNull] IFdbAsyncEnumerable<TResult> source,
 			int limit)
 		{
 			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, transform: new AsyncTransformExpression<TResult, TResult>(TaskHelpers.Cache<TResult>.Identity), limit: limit, offset: null);
@@ -158,8 +164,8 @@ namespace FoundationDB.Linq
 
 		[NotNull]
 		internal static FdbTakeWhileAsyncIterator<TResult> Limit<TResult>(
-			IFdbAsyncEnumerable<TResult> source,
-			Func<TResult, bool> condition)
+			[NotNull] IFdbAsyncEnumerable<TResult> source,
+			[NotNull] Func<TResult, bool> condition)
 		{
 			return new FdbTakeWhileAsyncIterator<TResult>(source, condition);
 		}
@@ -228,6 +234,7 @@ namespace FoundationDB.Linq
 				this.Index = 0;
 			}
 
+			[NotNull]
 			private T[] MergeChunks()
 			{
 				var tmp = new T[this.Count];
@@ -247,6 +254,7 @@ namespace FoundationDB.Linq
 			/// <summary>Return a buffer containing all of the items</summary>
 			/// <returns>Buffer that contains all the items, and may be larger than required</returns>
 			/// <remarks>This is equivalent to calling ToArray(), except that if the buffer is empty, or if it consists of a single page, then no new allocations will be performed.</remarks>
+			[NotNull]
 			public T[] GetBuffer()
 			{
 				//note: this is called by internal operator like OrderBy
@@ -269,6 +277,7 @@ namespace FoundationDB.Linq
 
 			/// <summary>Return the content of the buffer</summary>
 			/// <returns>Array of size <see cref="Count"/> containing all the items in this buffer</returns>
+			[NotNull]
 			public T[] ToArray()
 			{
 				if (this.Count == 0)
@@ -287,6 +296,7 @@ namespace FoundationDB.Linq
 
 			/// <summary>Return the content of the buffer</summary>
 			/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
+			[NotNull]
 			public List<T> ToList()
 			{
 				int count = this.Count;
@@ -332,7 +342,11 @@ namespace FoundationDB.Linq
 		/// <param name="action">Action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
-		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, FdbAsyncMode mode, Action<TSource> action, CancellationToken ct)
+		internal static async Task<long> Run<TSource>(
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
+			FdbAsyncMode mode,
+			[NotNull, InstantHandle] Action<TSource> action,
+			CancellationToken ct)
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (action == null) throw new ArgumentNullException("action");
@@ -362,7 +376,11 @@ namespace FoundationDB.Linq
 		/// <param name="action">Lambda called for each element as it arrives. If the return value is true, the next value will be processed. If the return value is false, the iterations will stop immediately.</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed successfully</returns>
-		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, FdbAsyncMode mode, Func<TSource, bool> action, CancellationToken ct)
+		internal static async Task<long> Run<TSource>(
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
+			FdbAsyncMode mode,
+			[NotNull] Func<TSource, bool> action,
+			CancellationToken ct)
 		{
 			if (source == null) throw new ArgumentNullException("source");
 			if (action == null) throw new ArgumentNullException("action");
@@ -388,14 +406,18 @@ namespace FoundationDB.Linq
 			return count;
 		}
 
-		/// <summary>Immediately execute an asunc action on each element of an async sequence</summary>
+		/// <summary>Immediately execute an async action on each element of an async sequence</summary>
 		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 		/// <param name="source">Source async sequence</param>
 		/// <param name="mode">Expected execution mode of the query</param>
 		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
-		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, FdbAsyncMode mode, Func<TSource, CancellationToken, Task> action, CancellationToken ct)
+		internal static async Task<long> Run<TSource>(
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
+			FdbAsyncMode mode,
+			[NotNull] Func<TSource, CancellationToken, Task> action,
+			CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -415,14 +437,18 @@ namespace FoundationDB.Linq
 			return count;
 		}
 
-		/// <summary>Immediately execute an asunc action on each element of an async sequence</summary>
+		/// <summary>Immediately execute an async action on each element of an async sequence</summary>
 		/// <typeparam name="TSource">Type of elements of the async sequence</typeparam>
 		/// <param name="source">Source async sequence</param>
 		/// <param name="mode">Expected execution mode of the query</param>
 		/// <param name="action">Asynchronous action to perform on each element as it arrives</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Number of items that have been processed</returns>
-		internal static async Task<long> Run<TSource>(IFdbAsyncEnumerable<TSource> source, FdbAsyncMode mode, Func<TSource, Task> action, CancellationToken ct)
+		internal static async Task<long> Run<TSource>(
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
+			FdbAsyncMode mode,
+			[NotNull] Func<TSource, Task> action,
+			CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -450,7 +476,11 @@ namespace FoundationDB.Linq
 		/// <param name="orDefault">When the sequence is empty: If true then returns the default value for the type. Otherwise, throws an exception</param>
 		/// <param name="ct">Cancellation token that can be used to cancel the operation</param>
 		/// <returns>Value of the first element of the <param ref="source"/> sequence, or the default value, or an exception (depending on <paramref name="single"/> and <paramref name="orDefault"/></returns>
-		internal static async Task<TSource> Head<TSource>(IFdbAsyncEnumerable<TSource> source, bool single, bool orDefault, CancellationToken ct)
+		internal static async Task<TSource> Head<TSource>(
+			[NotNull] IFdbAsyncEnumerable<TSource> source,
+			bool single,
+			bool orDefault,
+			CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 

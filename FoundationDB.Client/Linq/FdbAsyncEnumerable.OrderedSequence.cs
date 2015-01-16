@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -99,16 +99,14 @@ namespace FoundationDB.Linq
 				return GetEnumerator(FdbAsyncMode.All);
 			}
 
-			[NotNull]
-			public IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> keyComparer = null)
+			public IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> keyComparer = null)
 			{
 				if (keySelector == null) throw new ArgumentNullException("keySelector");
 
 				return new OrderedSequence<TSource, TKey>(this, keySelector, keyComparer, false, this);
 			}
 
-			[NotNull]
-			public IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> keyComparer = null)
+			public IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> keyComparer = null)
 			{
 				if (keySelector == null) throw new ArgumentNullException("keySelector");
 
@@ -128,6 +126,7 @@ namespace FoundationDB.Linq
 			public OrderedSequence(IFdbAsyncEnumerable<TSource> source, Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending, OrderedSequence<TSource> parent)
 				: base(source, descending, parent)
 			{
+				Contract.Requires(keySelector != null);
 				m_keySelector = keySelector;
 				m_keyComparer = comparer ?? Comparer<TKey>.Default;
 			}

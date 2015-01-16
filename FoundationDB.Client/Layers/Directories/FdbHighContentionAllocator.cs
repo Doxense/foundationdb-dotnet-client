@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Directories
 {
 	using FoundationDB.Client;
 	using FoundationDB.Filters.Logging;
+	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Threading.Tasks;
@@ -55,20 +56,20 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Location of the allocator</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public FdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Subspace used to store the allocation count for the current window</summary>
-		private FdbSubspace Counters { get; set; }
+		private FdbSubspace Counters { [NotNull] get; set; }
 
 		/// <summary>Subspace used to store the prefixes allocated in the current window</summary>
-		private FdbSubspace Recent { get; set; }
+		private FdbSubspace Recent { [NotNull] get; set; }
 
 		/// <summary>Returns a 64-bit integer that
 		/// 1) has never and will never be returned by another call to this
 		///    method on the same subspace
 		/// 2) is nearly as short as possible given the above
 		/// </summary>
-		public async Task<long> AllocateAsync(IFdbTransaction trans)
+		public async Task<long> AllocateAsync([NotNull] IFdbTransaction trans)
 		{
 			// find the current window size, by reading the last entry in the 'counters' subspace
 			long start = 0, count = 0;

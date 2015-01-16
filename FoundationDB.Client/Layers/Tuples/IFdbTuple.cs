@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Tuples
 		/// var tmp = new object[3];
 		/// ("Hello", "World", 123,).CopyTo(tmp, 0);
 		/// </example>
-		void CopyTo(object[] array, int offset);
+		void CopyTo([NotNull] object[] array, int offset);
 
 		/// <summary>Appends the packed bytes of this instance to the end of a buffer</summary>
 		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>

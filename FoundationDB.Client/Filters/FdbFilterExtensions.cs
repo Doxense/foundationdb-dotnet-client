@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,19 +26,19 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Filters
 {
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
-	using System.Collections.Generic;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	public static class FdbFilterExtensions
 	{
 		/// <summary>Return a read-only view of this transaction, that will only allow read operations.</summary>
 		/// <param name="trans">Transaction to secure</param>
 		/// <returns>The same transaction instance if it is already read-only, or a thin read-only wrapper around the transaction if it is writeable.</returns>
+		[NotNull]
 		public static IFdbReadOnlyTransaction AsReadOnly(this IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");

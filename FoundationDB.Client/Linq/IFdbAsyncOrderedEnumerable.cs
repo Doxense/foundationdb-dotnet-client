@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,10 +34,10 @@ namespace FoundationDB.Linq
 
 	public interface IFdbAsyncOrderedEnumerable<out TSource> : IFdbAsyncEnumerable<TSource>
 	{
-		[NotNull]
+		[NotNull, LinqTunnel]
 		IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
 
-		[NotNull]
+		[NotNull, LinqTunnel]
 		IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer = null);
 	}
 
