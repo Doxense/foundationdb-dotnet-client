@@ -1323,7 +1323,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys exported</returns>
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
-			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeyRange range, [NotNull] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
+			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeyRange range, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
 			{
 				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(range.Begin), FdbKeySelector.FirstGreaterOrEqual(range.End), handler, cancellationToken);
 			}
