@@ -216,7 +216,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Action<T, IFdbTransaction> handler, CancellationToken cancellationToken)
+			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull, InstantHandle] Action<T, IFdbTransaction> handler, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
@@ -242,7 +242,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Action<T, IFdbTransaction> handler, WriteOptions options, CancellationToken cancellationToken)
+			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull, InstantHandle] Action<T, IFdbTransaction> handler, WriteOptions options, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
@@ -267,7 +267,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Func<T, IFdbTransaction, Task> handler, CancellationToken cancellationToken)
+			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull, InstantHandle] Func<T, IFdbTransaction, Task> handler, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
@@ -293,7 +293,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Func<T, IFdbTransaction, Task> handler, WriteOptions options, CancellationToken cancellationToken)
+			public static Task<long> InsertAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull, InstantHandle] Func<T, IFdbTransaction, Task> handler, WriteOptions options, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
@@ -532,7 +532,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Action<T[], IFdbTransaction> handler, CancellationToken cancellationToken)
+			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull, InstantHandle] Action<T[], IFdbTransaction> handler, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
@@ -558,7 +558,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Action<T[], IFdbTransaction> handler, WriteOptions options, CancellationToken cancellationToken)
+			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull, InstantHandle] Action<T[], IFdbTransaction> handler, WriteOptions options, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
@@ -583,7 +583,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Func<T[], IFdbTransaction, Task> handler, CancellationToken cancellationToken)
+			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull, InstantHandle] Func<T[], IFdbTransaction, Task> handler, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
@@ -609,7 +609,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of items that have been inserted</returns>
 			/// <remarks>In case of a non-retryable error, some of the items may remain in the database. Other transactions running at the same time may observe only a fraction of the items until the operation completes.</remarks>
-			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull] Func<T[], IFdbTransaction, Task> handler, WriteOptions options, CancellationToken cancellationToken)
+			public static Task<long> InsertBatchedAsync<T>([NotNull] IFdbDatabase db, [NotNull] IEnumerable<T> source, [NotNull, InstantHandle] Func<T[], IFdbTransaction, Task> handler, WriteOptions options, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (source == null) throw new ArgumentNullException("source");
@@ -935,9 +935,9 @@ namespace FoundationDB.Client
 			public static Task ForEachAsync<TSource, TLocal>(
 				[NotNull] IFdbDatabase db,
 				[NotNull] IEnumerable<TSource> source,
-				[NotNull] Func<TLocal> localInit,
-				[NotNull] Func<TSource[], BatchOperationContext, TLocal, Task<TLocal>> body,
-				[NotNull] Action<TLocal> localFinally,
+				[NotNull, InstantHandle] Func<TLocal> localInit,
+				[NotNull, InstantHandle] Func<TSource[], BatchOperationContext, TLocal, Task<TLocal>> body,
+				[NotNull, InstantHandle] Action<TLocal> localFinally,
 				CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
@@ -963,9 +963,9 @@ namespace FoundationDB.Client
 			public static Task ForEachAsync<TSource, TLocal>(
 				[NotNull] IFdbDatabase db,
 				[NotNull] IEnumerable<TSource> source,
-				[NotNull] Func<TLocal> localInit,
-				[NotNull] Func<TSource[], BatchOperationContext, TLocal, TLocal> body,
-				[NotNull] Action<TLocal> localFinally,
+				[NotNull, InstantHandle] Func<TLocal> localInit,
+				[NotNull, InstantHandle] Func<TSource[], BatchOperationContext, TLocal, TLocal> body,
+				[NotNull, InstantHandle] Action<TLocal> localFinally,
 				CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
@@ -992,7 +992,7 @@ namespace FoundationDB.Client
 			public static Task ForEachAsync<TSource>(
 				[NotNull] IFdbDatabase db,
 				[NotNull] IEnumerable<TSource> source,
-				[NotNull] Func<TSource[], BatchOperationContext, Task> body,
+				[NotNull, InstantHandle] Func<TSource[], BatchOperationContext, Task> body,
 				CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
@@ -1013,7 +1013,7 @@ namespace FoundationDB.Client
 			public static Task ForEachAsync<TSource>(
 				[NotNull] IFdbDatabase db,
 				[NotNull] IEnumerable<TSource> source,
-				[NotNull] Action<TSource[], BatchOperationContext> body,
+				[NotNull, InstantHandle] Action<TSource[], BatchOperationContext> body,
 				CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
@@ -1044,8 +1044,8 @@ namespace FoundationDB.Client
 			public static Task<TAggregate> AggregateAsync<TSource, TAggregate>(
 				[NotNull] IFdbDatabase db,
 				[NotNull] IEnumerable<TSource> source,
-				[NotNull] Func<TAggregate> localInit,
-				[NotNull] Func<TSource[], BatchOperationContext, TAggregate, Task<TAggregate>> body,
+				[NotNull, InstantHandle] Func<TAggregate> localInit,
+				[NotNull, InstantHandle] Func<TSource[], BatchOperationContext, TAggregate, Task<TAggregate>> body,
 				CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
@@ -1071,9 +1071,9 @@ namespace FoundationDB.Client
 			public static Task<TResult> AggregateAsync<TSource, TAggregate, TResult>(
 				[NotNull] IFdbDatabase db,
 				[NotNull] IEnumerable<TSource> source,
-				[NotNull] Func<TAggregate> init,
-				[NotNull] Func<TSource[], BatchOperationContext, TAggregate, Task<TAggregate>> body,
-				[NotNull] Func<TAggregate, TResult> transform,
+				[NotNull, InstantHandle] Func<TAggregate> init,
+				[NotNull, InstantHandle] Func<TSource[], BatchOperationContext, TAggregate, Task<TAggregate>> body,
+				[NotNull, InstantHandle] Func<TAggregate, TResult> transform,
 				CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
@@ -1311,7 +1311,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys exported</returns>
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
-			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, [NotNull] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
+			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
 			{
 				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(beginInclusive), FdbKeySelector.FirstGreaterOrEqual(endExclusive), handler, cancellationToken);
 			}
@@ -1323,7 +1323,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys exported</returns>
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
-			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeyRange range, [NotNull] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
+			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeyRange range, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
 			{
 				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(range.Begin), FdbKeySelector.FirstGreaterOrEqual(range.End), handler, cancellationToken);
 			}
@@ -1336,7 +1336,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys exported</returns>
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
-			public static async Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeySelector begin, FdbKeySelector end, [NotNull] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
+			public static async Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeySelector begin, FdbKeySelector end, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (handler == null) throw new ArgumentNullException("handler");
