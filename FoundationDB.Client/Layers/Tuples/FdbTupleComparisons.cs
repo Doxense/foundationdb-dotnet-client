@@ -78,7 +78,7 @@ namespace FoundationDB.Layers.Tuples
 				if (t != null) return t.Equals(y, m_comparer);
 
 				t = y as IFdbTuple;
-				if (t != null) t.Equals(x, m_comparer);
+				if (t != null) return t.Equals(x, m_comparer);
 
 				return false;
 			}
