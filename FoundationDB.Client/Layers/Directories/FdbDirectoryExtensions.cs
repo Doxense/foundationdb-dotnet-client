@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,6 +50,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
@@ -62,6 +63,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, path, layer), cancellationToken);
 		}
 
@@ -74,6 +76,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
@@ -86,6 +89,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadWriteAsync((tr) => directory.CreateOrOpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
@@ -98,6 +102,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.CreateOrOpenAsync(trans, new[] { name }, layer);
 		}
 
@@ -152,6 +157,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
@@ -164,17 +170,19 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, path, layer), cancellationToken);
 		}
 
 		/// <summary>Creates a directory with the given <paramref name="name"/>.
 		/// An error is raised if the given directory already exists.
 		/// </summary>
-		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, string name, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> CreateAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbRetryable db, [NotNull] string name, CancellationToken cancellationToken)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, new [] { name }, Slice.Nil), cancellationToken);
 		}
 
@@ -187,6 +195,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadWriteAsync((tr) => directory.CreateAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
@@ -199,6 +208,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.CreateAsync(trans, new[] { name }, layer);
 		}
 
@@ -208,6 +218,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
@@ -219,6 +230,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadWriteAsync((tr) => directory.TryCreateAsync(tr, path, layer), cancellationToken);
 		}
 
@@ -250,6 +262,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.TryCreateAsync(trans, new[] { name }, layer);
 		}
 
@@ -265,6 +278,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadAsync((tr) => directory.OpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
@@ -276,6 +290,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadAsync((tr) => directory.OpenAsync(tr, path, layer), cancellationToken);
 		}
 
@@ -287,6 +302,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadAsync((tr) => directory.OpenAsync(tr, new[] { name }, Slice.Nil), cancellationToken);
 		}
 
@@ -298,6 +314,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadAsync((tr) => directory.OpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
@@ -309,6 +326,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.OpenAsync(trans, new[] { name }, layer);
 		}
 
@@ -318,6 +336,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, path, Slice.Nil), cancellationToken);
 		}
 
@@ -327,6 +346,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, path, layer), cancellationToken);
 		}
 
@@ -336,6 +356,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, new[] { name }, Slice.Nil), cancellationToken);
 		}
 
@@ -345,6 +366,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadAsync((tr) => directory.TryOpenAsync(tr, new[] { name }, layer), cancellationToken);
 		}
 
@@ -354,6 +376,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.TryOpenAsync(trans, new[] { name }, Slice.Nil);
 		}
 
@@ -363,6 +386,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.TryOpenAsync(trans, new[] { name }, layer);
 		}
 
@@ -380,6 +404,7 @@ namespace FoundationDB.Layers.Directories
 			if (db == null) throw new ArgumentNullException("db");
 			if (oldPath == null) throw new ArgumentNullException("oldPath");
 			if (newPath == null) throw new ArgumentNullException("newPath");
+
 			return db.ReadWriteAsync((tr) => directory.MoveAsync(tr, oldPath, newPath), cancellationToken);
 		}
 
@@ -392,6 +417,7 @@ namespace FoundationDB.Layers.Directories
 			if (db == null) throw new ArgumentNullException("db");
 			if (oldPath == null) throw new ArgumentNullException("oldPath");
 			if (newPath == null) throw new ArgumentNullException("newPath");
+
 			return db.ReadWriteAsync((tr) => directory.TryMoveAsync(tr, oldPath, newPath), cancellationToken);
 		}
 
@@ -408,6 +434,7 @@ namespace FoundationDB.Layers.Directories
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (db == null) throw new ArgumentNullException("db");
 			if (newPath == null) throw new ArgumentNullException("newPath");
+
 			return db.ReadWriteAsync((tr) => subspace.MoveToAsync(tr, newPath), cancellationToken);
 		}
 
@@ -419,6 +446,7 @@ namespace FoundationDB.Layers.Directories
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (db == null) throw new ArgumentNullException("db");
 			if (newPath == null) throw new ArgumentNullException("newPath");
+
 			return db.ReadWriteAsync((tr) => subspace.TryMoveToAsync(tr, newPath), cancellationToken);
 		}
 
@@ -433,6 +461,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
+
 			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr, path), cancellationToken);
 		}
 
@@ -454,6 +483,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
+
 			return db.ReadWriteAsync((tr) => directory.RemoveAsync(tr), cancellationToken);
 		}
 
@@ -465,6 +495,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.RemoveAsync(trans, new[] { name });
 		}
 
@@ -475,6 +506,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
+
 			return db.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, path), cancellationToken);
 		}
 
@@ -486,6 +518,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadWriteAsync((tr) => directory.TryRemoveAsync(tr, new [] { name }), cancellationToken);
 		}
 
@@ -497,6 +530,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.TryRemoveAsync(trans, new[] { name });
 		}
 
@@ -510,6 +544,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
+
 			return db.ReadAsync((tr) => directory.ExistsAsync(tr, path), cancellationToken);
 		}
 
@@ -520,6 +555,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadAsync((tr) => directory.ExistsAsync(tr, new[] { name }), cancellationToken);
 		}
 
@@ -530,6 +566,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.ExistsAsync(trans, new[] { name });
 		}
 
@@ -539,6 +576,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (db == null) throw new ArgumentNullException("db");
+
 			return db.ReadAsync((tr) => subspace.ExistsAsync(tr), cancellationToken);
 		}
 
@@ -552,6 +590,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (path == null) throw new ArgumentNullException("path");
+
 			return db.ReadAsync((tr) => directory.ListAsync(tr, path), cancellationToken);
 		}
 
@@ -590,11 +629,12 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Returns the list of subdirectories of directory at <paramref name="path"/>, if it exists</summary>
-		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
+		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, IEnumerable<string> path, CancellationToken cancellationToken)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (path == null) throw new ArgumentNullException("path"); //REVIEW: or not?
+
 			return db.ReadAsync((tr) => directory.TryListAsync(tr, path), cancellationToken);
 		}
 
@@ -604,6 +644,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return db.ReadAsync((tr) => directory.TryListAsync(tr, new [] { name }), cancellationToken);
 		}
 
@@ -613,6 +654,7 @@ namespace FoundationDB.Layers.Directories
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (name == null) throw new ArgumentNullException("name");
+
 			return directory.TryListAsync(trans, new[] { name });
 		}
 
@@ -621,6 +663,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (db == null) throw new ArgumentNullException("db");
+
 			return db.ReadAsync((tr) => subspace.ListAsync(tr), cancellationToken);
 		}
 
@@ -629,6 +672,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (db == null) throw new ArgumentNullException("db");
+
 			return db.ReadAsync((tr) => subspace.TryListAsync(tr), cancellationToken);
 		}
 
@@ -637,11 +681,12 @@ namespace FoundationDB.Layers.Directories
 		#region Metadata
 
 		/// <summary>Change the layer id of the directory at <param name="path"/></summary>
-		public static Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] this FdbDirectoryLayer directory, [NotNull] IFdbRetryable db, [NotNull] IEnumerable<string> path, Slice newLayer, CancellationToken cancellationToken)
+		public static Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] this FdbDirectoryLayer directory, [NotNull] IFdbRetryable db, IEnumerable<string> path, Slice newLayer, CancellationToken cancellationToken)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");
-			if (path == null) throw new ArgumentNullException("path");
+			if (path == null) throw new ArgumentNullException("path"); //REVIEW: or not?
+
 			return db.ReadWriteAsync((tr) => directory.ChangeLayerAsync(tr, path, newLayer), cancellationToken);
 		}
 
@@ -650,6 +695,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (db == null) throw new ArgumentNullException("db");
+
 			return db.ReadWriteAsync((tr) => subspace.ChangeLayerAsync(tr, newLayer), cancellationToken);
 		}
 

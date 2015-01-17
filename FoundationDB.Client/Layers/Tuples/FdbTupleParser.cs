@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Text;
 
@@ -463,7 +464,6 @@ namespace FoundationDB.Layers.Tuples
 			// We will tterate through the string, filling as much of the buffer as possible
 
 			bool done;
-			int charsUsed, bytesUsed;
 			int remaining = count;
 			ptr = chars;
 
@@ -484,6 +484,7 @@ namespace FoundationDB.Layers.Tuples
 			// note: encoder.Convert() tries to fill up the buffer as much as possible with complete chars, and will set 'done' to true when all chars have been converted.
 			do
 			{
+				int charsUsed, bytesUsed;
 				encoder.Convert(ptr, remaining, buf, bufLen, true, out charsUsed, out bytesUsed, out done);
 				if (bytesUsed > 0)
 				{
@@ -532,7 +533,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a binary string</summary>
-		public static void WriteBytes(ref TupleWriter writer, byte[] value, int offset, int count)
+		public static void WriteBytes(ref TupleWriter writer, [NotNull] byte[] value, int offset, int count)
 		{
 			WriteNulEscapedBytes(ref writer, FdbTupleTypes.Bytes, value, offset, count);
 		}
@@ -544,7 +545,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		internal static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, byte[] value, int offset, int count)
+		internal static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, [NotNull] byte[] value, int offset, int count)
 		{
 			int n = count;
 
@@ -581,7 +582,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a buffer with all instances of 0 escaped as '00 FF'</summary>
-		private static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, byte[] value)
+		private static void WriteNulEscapedBytes(ref TupleWriter writer, byte type, [NotNull] byte[] value)
 		{
 			int n = value.Length;
 			// we need to know if there are any NUL chars (\0) that need escaping...
@@ -701,7 +702,7 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
-		internal static ArraySegment<byte> UnescapeByteString(byte[] buffer, int offset, int count)
+		internal static ArraySegment<byte> UnescapeByteString([NotNull] byte[] buffer, int offset, int count)
 		{
 			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
 
@@ -721,7 +722,7 @@ namespace FoundationDB.Layers.Tuples
 			return new ArraySegment<byte>(buffer, offset, count);
 		}
 
-		internal static ArraySegment<byte> UnescapeByteStringSlow(byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
+		internal static ArraySegment<byte> UnescapeByteStringSlow([NotNull] byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
 		{
 			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
 

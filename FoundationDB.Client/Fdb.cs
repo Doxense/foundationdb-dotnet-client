@@ -364,7 +364,7 @@ namespace FoundationDB.Client
 
 					Console.Error.WriteLine("THE FDB NETWORK EVENT LOOP HAS CRASHED!");
 					Console.Error.WriteLine("=> " + e.ToString());
-					Environment.FailFast("The FoundationDB Network Event Loop crashed with an Access Violation, and had to be terminated. You may try to create full memory dumps, as well as attach a debugger to this process (it will automatically break when this problem occurs).");
+					Environment.FailFast("The FoundationDB Network Event Loop crashed with an Access Violation, and had to be terminated. You may try to create full memory dumps, as well as attach a debugger to this process (it will automatically break when this problem occurs).", e);
 					return;
 				}
 
@@ -378,7 +378,7 @@ namespace FoundationDB.Client
 				Console.Error.WriteLine("=> " + e.ToString());
 				// REVIEW: should we FailFast in release mode also?
 				// => this may be a bit suprising for most users when applications unexpectedly crash for for no apparent reason.
-				Environment.FailFast("The FoundationDB Network Event Loop crashed and had to be terminated: " + e.Message);
+				Environment.FailFast("The FoundationDB Network Event Loop crashed and had to be terminated: " + e.Message, e);
 #endif
 			}
 			finally

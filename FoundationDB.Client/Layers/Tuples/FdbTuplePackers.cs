@@ -49,6 +49,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
+		[ContractAnnotation("true => notnull")]
 		internal static Encoder<T> GetSerializer<T>(bool required)
 		{
 			var encoder = (Encoder<T>)GetSerializerFor(typeof(T));
@@ -59,7 +60,7 @@ namespace FoundationDB.Layers.Tuples
 			return encoder;
 		}
 
-		private static Delegate GetSerializerFor(Type type)
+		private static Delegate GetSerializerFor([NotNull] Type type)
 		{
 			if (type == null) throw new ArgumentNullException("type");
 

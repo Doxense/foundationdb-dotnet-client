@@ -44,8 +44,8 @@ namespace FoundationDB.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		[ContractAnnotation("halt <= condition: false")]
-		public static void Requires(bool condition, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
+		[AssertionMethod]
+		public static void Requires([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
 			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Precondition, null, _path, _line);
 		}
@@ -55,8 +55,8 @@ namespace FoundationDB.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		[ContractAnnotation("halt <= condition: false")]
-		public static void Requires(bool condition, string message, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
+		[AssertionMethod]
+		public static void Requires([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string message, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
 			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Precondition, message, _path, _line);
 		}
@@ -75,8 +75,8 @@ namespace FoundationDB.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		[ContractAnnotation("halt <= condition: false")]
-		public static void Assert(bool condition, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
+		[AssertionMethod]
+		public static void Assert([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
 			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Assert, null, _path, _line);
 		}
@@ -92,8 +92,8 @@ namespace FoundationDB.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		[ContractAnnotation("halt <= condition: false")]
-		public static void Assert(bool condition, string message, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
+		[AssertionMethod]
+		public static void Assert([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string message, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
 			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Assert, message, _path, _line);
 		}
@@ -112,8 +112,8 @@ namespace FoundationDB.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		[ContractAnnotation("halt <= condition: false")]
-		public static void Ensures(bool condition, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
+		[AssertionMethod]
+		public static void Ensures([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
 			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Postcondition, null, _path, _line);
 		}
@@ -129,8 +129,8 @@ namespace FoundationDB.Client.Utils
 #if !NET_4_0
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 #endif
-		[ContractAnnotation("halt <= condition: false")]
-		public static void Ensures(bool condition, string message, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
+		[AssertionMethod]
+		public static void Ensures([AssertionCondition(AssertionConditionType.IS_TRUE)] bool condition, string message, [CallerLineNumber] int _line = 0, [CallerFilePath] string _path = "")
 		{
 			if (!condition) RaiseContractFailure(SDC.ContractFailureKind.Postcondition, message, _path, _line);
 		}

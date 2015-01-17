@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,19 +40,21 @@ namespace FoundationDB.Layers.Tuples
 		#region IFdbTuple extensions...
 
 		/// <summary>Returns true if the tuple is either null or empty</summary>
+		[ContractAnnotation("null => true")]
 		public static bool IsNullOrEmpty(this IFdbTuple tuple)
 		{
 			return tuple == null || tuple.Count == 0;
 		}
 
 		/// <summary>Returns true if the tuple is not null, and contains only one item</summary>
+		[ContractAnnotation("null => false")]
 		public static bool IsSingleton(this IFdbTuple tuple)
 		{
 			return tuple != null && tuple.Count == 1;
 		}
 
 		/// <summary>Returns an array containing all the objects of a tuple</summary>
-		[NotNull]
+		[NotNull, ItemCanBeNull]
 		public static object[] ToArray([NotNull] this IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
@@ -162,7 +164,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple"></param>
 		/// <returns>Create a copy of the tuple that can be reused frequently to pack values</returns>
 		/// <remarks>If the tuple is already memoized, the current instance will be returned</remarks>
-		[CanBeNull]
+		[CanBeNull, ContractAnnotation("null => null")]
 		public static FdbMemoizedTuple Memoize(this IFdbTuple tuple)
 		{
 			if (tuple == null) return null;

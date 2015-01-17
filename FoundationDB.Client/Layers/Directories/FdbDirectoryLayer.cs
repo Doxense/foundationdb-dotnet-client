@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ namespace FoundationDB.Layers.Directories
 	using System.Linq;
 	using System.Threading.Tasks;
 	using JetBrains.Annotations;
+
 
 	/// <summary>Provides a FdbDirectoryLayer class for managing directories in FoundationDB.
 	/// Directories are a recommended approach for administering layers and applications. Directories work in conjunction with subspaces. Each layer or application should create or open at least one directory with which to manage its subspace(s).
@@ -176,6 +177,7 @@ namespace FoundationDB.Layers.Directories
 		public static FdbDirectoryLayer Create(IFdbSubspace subspace, IEnumerable<string> path = null)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
+
 			var location = path != null ? ParsePath(path) : FdbTuple.Empty;
 			return new FdbDirectoryLayer(subspace.Partition[FdbKey.Directory], subspace, location);
 		}
@@ -189,6 +191,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			if (nodeSubspace == null) throw new ArgumentNullException("nodeSubspace");
 			if (contentSubspace == null) throw new ArgumentNullException("contentSubspace");
+
 			var location = path != null ? ParsePath(path) : FdbTuple.Empty;
 			//TODO: check that nodeSubspace != contentSubspace?
 			return new FdbDirectoryLayer(nodeSubspace, contentSubspace, location);
@@ -562,7 +565,7 @@ namespace FoundationDB.Layers.Directories
 			return path.Substring(this.Location.Count);
 		}
 
-		internal async Task<FdbDirectorySubspace> CreateOrOpenInternalAsync(IFdbReadOnlyTransaction readTrans, IFdbTransaction trans, IFdbTuple path, Slice layer, Slice prefix, bool allowCreate, bool allowOpen, bool throwOnError)
+		internal async Task<FdbDirectorySubspace> CreateOrOpenInternalAsync(IFdbReadOnlyTransaction readTrans, IFdbTransaction trans, [NotNull] IFdbTuple path, Slice layer, Slice prefix, bool allowCreate, bool allowOpen, bool throwOnError)
 		{
 			Contract.Requires(readTrans != null || trans != null, "Need at least one transaction");
 			Contract.Requires(path != null, "Path must be specified");

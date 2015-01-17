@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
@@ -201,7 +200,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="items">Items to wrap in a tuple</param>
 		/// <remarks>If you already have an array of items, you should call <see cref="CreateRange(object[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
 		[NotNull]
-		public static IFdbTuple Create(params object[] items)
+		public static IFdbTuple Create([NotNull] params object[] items)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 
@@ -216,7 +215,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Create a new N-tuple that wraps an array of untyped items</summary>
 		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
 		[NotNull]
-		public static IFdbTuple Wrap(object[] items)
+		public static IFdbTuple Wrap([NotNull] object[] items)
 		{
 			//REVIEW: this is similar to Create(params object[]) and CreateRange(object[]) !!
 			//TODO: remove this?
@@ -226,7 +225,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
 		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
 		[NotNull]
-		public static IFdbTuple Wrap(object[] items, int offset, int count)
+		public static IFdbTuple Wrap([NotNull] object[] items, int offset, int count)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
@@ -285,7 +284,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="items">Array of items</param>
 		/// <returns>Tuple with the same size as <paramref name="items"/> and where all the items are of type <typeparamref name="T"/></returns>
 		[NotNull]
-		public static IFdbTuple FromArray<T>(T[] items)
+		public static IFdbTuple FromArray<T>([NotNull] T[] items)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 
@@ -294,7 +293,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Create a new tuple, from a section of an array of typed items</summary>
 		[NotNull]
-		public static IFdbTuple FromArray<T>(T[] items, int offset, int count)
+		public static IFdbTuple FromArray<T>([NotNull] T[] items, int offset, int count)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
@@ -319,7 +318,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Create a new tuple from a sequence of typed items</summary>
 		[NotNull]
-		public static IFdbTuple FromEnumerable<T>(IEnumerable<T> items)
+		public static IFdbTuple FromEnumerable<T>([NotNull] IEnumerable<T> items)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 
@@ -413,7 +412,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Array containing the buffer segment of each packed tuple</returns>
 		/// <example>BatchPack("abc", [ ("Foo", 1), ("Foo", 2) ]) => [ "abc\x02Foo\x00\x15\x01", "abc\x02Foo\x00\x15\x02" ] </example>
 		[NotNull]
-		public static Slice[] Pack(Slice prefix, params IFdbTuple[] tuples)
+		public static Slice[] Pack(Slice prefix, [NotNull] params IFdbTuple[] tuples)
 		{
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
@@ -770,6 +769,9 @@ namespace FoundationDB.Layers.Tuples
 		[CanBeNull]
 		public static IFdbTuple Unpack(Slice packedKey)
 		{
+			//REVIEW: the fact that Unpack(..) can return null (for Slice.Empty) creates a lot of "possible nullref" noise on FdbTuple.Unpack(someKey) when the key cannot possibly Slice.Nil (ex: GetKey, GetRange, ...)
+			// => either change it so that we return FdbTuple.Empty in both cases (Empty/Nil), OR throw and exception, OR have a different method UnpackOrDefault(...) if people really want to get null in some cases?
+
 			if (packedKey.IsNullOrEmpty) return packedKey.HasValue ? FdbTuple.Empty : null;
 
 			return FdbTuplePackers.Unpack(packedKey, false);
@@ -1110,7 +1112,7 @@ namespace FoundationDB.Layers.Tuples
 			if (item is int) return ((int)item).ToString(null, CultureInfo.InvariantCulture);
 			if (item is long) return ((long)item).ToString(null, CultureInfo.InvariantCulture);
 
-			if (item is char) return TokenSingleQuote + (char)item + TokenSingleQuote; /* 'X' */
+			if (item is char) return TokenSingleQuote + new string((char)item, 1) + TokenSingleQuote; /* 'X' */ 
 
 			if (item is Slice) return ((Slice)item).ToAsciiOrHexaString();
 			if (item is byte[]) return Slice.Create(item as byte[]).ToAsciiOrHexaString();
