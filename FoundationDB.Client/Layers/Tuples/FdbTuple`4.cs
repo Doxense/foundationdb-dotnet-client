@@ -30,7 +30,6 @@ namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;

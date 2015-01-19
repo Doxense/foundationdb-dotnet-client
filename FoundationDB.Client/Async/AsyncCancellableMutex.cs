@@ -73,7 +73,7 @@ namespace FoundationDB.Async
 
 			var weakRef = (WeakReference<AsyncCancelableMutex>)state;
 			AsyncCancelableMutex waiter;
-			if (weakRef.TryGetTarget(out waiter) && waiter != null)
+			if (weakRef.TryGetTarget(out waiter))
 			{ // still alive...
 				waiter.Abort(async: true);
 			}

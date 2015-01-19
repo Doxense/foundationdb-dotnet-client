@@ -307,9 +307,8 @@ namespace FoundationDB.Layers.Collections
 		/// <param name="db">Database used for the operation</param>
 		/// <param name="init">Handler that is called once before the first batch, to produce the initial state.</param>
 		/// <param name="handler">Handler called for each batch of items in the map. It is given the previous state, and should return the updated state. Calls to the handler are serialized, so it does not need to take locks. Any exception will abort the export and be thrown to the caller</param>
-		/// <param name="finish">Handler that is called one after the last batch, to produce the final result out of the last state.</param>
 		/// <param name="cancellationToken">Token used to cancel the operation.</param>
-		/// <returns>Task that completes once all the entries have been processed and return the result of calling <paramref name="finish"/> with the state return by the last call to <paramref name="handler"/> if there was at least one batch, or the result of <paramref name="init"/> if the map was empty.</returns>
+		/// <returns>Task that completes once all the entries have been processed and return the result of the last call to <paramref name="handler"/> if there was at least one batch, or the result of <paramref name="init"/> if the map was empty.</returns>
 		/// <remarks>This method does not guarantee that the export will be a complete and coherent snapshot of the map, except that all the items in a single batch are from the same snapshot. Any change made to the map while the export is running may be partially exported.</remarks>
 		public async Task<TResult> AggregateAsync<TResult>([NotNull] IFdbDatabase db, Func<TResult> init, [NotNull] Func<TResult, KeyValuePair<TKey, TValue>[], TResult> handler, CancellationToken cancellationToken)
 		{

@@ -1081,7 +1081,7 @@ namespace Mono.Options
 			if (ParseBool (argument, n, c))
 				return true;
 			// is it a bundled option?
-			if (ParseBundledValue (f, string.Concat (n + s + v), c))
+			if (ParseBundledValue (f, n + s + v, c))
 				return true;
 
 			return false;

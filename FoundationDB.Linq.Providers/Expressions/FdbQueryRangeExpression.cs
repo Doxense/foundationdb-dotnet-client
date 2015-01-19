@@ -53,13 +53,13 @@ namespace FoundationDB.Linq.Expressions
 		public FdbRangeOptions Options { get; private set; }
 
 		/// <summary>Visit this expression</summary>
-		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryRange(this);
 		}
 
 		/// <summary>Explains this range query</summary>
-		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("Range(").Enter()
 				.WriteLine("Start({0}),", this.Range.Begin.ToString())

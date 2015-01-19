@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
+	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 
@@ -60,7 +61,7 @@ namespace FoundationDB.Linq
 				try
 				{
 					inner = this.Source.GetEnumerator();
-					if (inner == null) throw new InvalidOperationException("The underlying sequence returned an empty enumerator");
+					Contract.Assert(inner != null, "The underlying sequence returned an empty enumerator");
 
 					var outer = this.Factory(inner);
 					if (outer == null) throw new InvalidOperationException("The async factory returned en empty enumerator");

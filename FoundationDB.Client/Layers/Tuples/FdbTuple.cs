@@ -922,7 +922,7 @@ namespace FoundationDB.Layers.Tuples
 			if (item is char) return TokenSingleQuote + new string((char)item, 1) + TokenSingleQuote; /* 'X' */ 
 
 			if (item is Slice) return ((Slice)item).ToAsciiOrHexaString();
-			if (item is byte[]) return Slice.Create(item as byte[]).ToAsciiOrHexaString();
+			if (item is byte[]) return Slice.Create((byte[]) item).ToAsciiOrHexaString();
 
 			if (item is FdbTupleAlias) return TokenOpenBracket + ((FdbTupleAlias)item).ToString() + TokenCloseBracket; /* {X} */
 

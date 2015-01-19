@@ -31,7 +31,6 @@ namespace FoundationDB.Filters.Logging
 	using FoundationDB.Client;
 	using System;
 	using System.Collections.Concurrent;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
@@ -102,8 +101,6 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Total number of attempts to commit this transaction</summary>
 		/// <remarks>This value is increment on each call to Commit()</remarks>
 		public int Attempts { get; internal set; }
-
-		private static readonly double R = 1.0d * TimeSpan.TicksPerMillisecond / Stopwatch.Frequency;
 
 		internal static long GetTimestamp()
 		{
@@ -262,7 +259,6 @@ namespace FoundationDB.Filters.Logging
 					}
 
 					long ticks = cmd.Duration.Ticks;
-					double r = 1.0d * ticks / duration.Ticks;
 					string w = GetFancyGraph(width, cmd.StartOffset.Ticks, ticks, duration.Ticks, charsToSkip);
 
 					if (ticks > 0)

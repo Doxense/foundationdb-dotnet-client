@@ -90,8 +90,8 @@ namespace FoundationDB.Client
 		/// <summary>Decode the content of this chunk into an array of typed key/value pairs</summary>
 		/// <typeparam name="TKey">Type of the keys</typeparam>
 		/// <typeparam name="TValue">Type of the values</typeparam>
-		/// <param name="keyEncoder">Lambda that can decode the keys of this chunk</param>
-		/// <param name="valueEncoder">Lambda that can decode the values of this chunk</param>
+		/// <param name="keyHandler">Lambda that can decode the keys of this chunk</param>
+		/// <param name="valueHandler">Lambda that can decode the values of this chunk</param>
 		/// <returns>Array of decoded key/value pairs, or an empty array if the chunk doesn't have any results</returns>
 		[NotNull]
 		public KeyValuePair<TKey, TValue>[] Decode<TKey, TValue>([NotNull] Func<Slice, TKey> keyHandler, [NotNull] Func<Slice, TValue> valueHandler)
@@ -172,7 +172,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode the content of this chunk into an array of typed keys</summary>
 		/// <typeparam name="T">Type of the keys</typeparam>
-		/// <param name="keyEncoder">Instance used to decode the keys of this chunk</param>
+		/// <param name="handler">Instance used to decode the keys of this chunk</param>
 		/// <returns>Array of decoded keys, or an empty array if the chunk doesn't have any results</returns>
 		[NotNull]
 		public T[] DecodeKeys<T>([NotNull] Func<Slice, T> handler)
@@ -241,7 +241,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Decode the content of this chunk into an array of typed values</summary>
 		/// <typeparam name="T">Type of the values</typeparam>
-		/// <param name="keyEncoder">Instance used to decode the values of this chunk</param>
+		/// <param name="valueEncoder">Instance used to decode the values of this chunk</param>
 		/// <returns>Array of decoded values, or an empty array if the chunk doesn't have any results</returns>
 		[NotNull]
 		public T[] DecodeValues<T>([NotNull] IValueEncoder<T> valueEncoder)

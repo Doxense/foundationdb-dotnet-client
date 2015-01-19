@@ -2,11 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Dynamic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace FoundationDB.Client.Utils
 {
@@ -21,12 +18,12 @@ namespace FoundationDB.Client.Utils
 
 		//TODO: clean this file!!!
 
-		private char[] m_buffer;
+		private readonly char[] m_buffer;
 		private int m_cursor;
-		private int m_end;
+		private readonly int m_end;
 
 		private object m_current;
-		private StringBuilder m_scratch = new StringBuilder();
+		private readonly StringBuilder m_scratch = new StringBuilder();
 
 		internal TinyJsonParser(char[] buffer, int offset, int count)
 		{

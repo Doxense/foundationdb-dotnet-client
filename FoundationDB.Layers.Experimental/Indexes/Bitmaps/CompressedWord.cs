@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <remarks>This value is 1 for literal words, and <see cref="FillCount"/> for filler words</remarks>
 		public int WordCount
 		{
-			get { return this.IsLiteral ? 1 : (int)this.FillCount; }
+			get { return this.IsLiteral ? 1 : this.FillCount; }
 		}
 
 		/// <summary>Value of a literal word</summary>
@@ -215,7 +215,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		public static uint MakeLiteral(uint value)
 		{
 			Contract.Requires(value <= ALL_ONES);
-			return WordAlignHybridEncoder.BIT_TYPE_LITERAL | (uint)(value & WordAlignHybridEncoder.LITERAL_MASK);
+			return WordAlignHybridEncoder.BIT_TYPE_LITERAL | (value & WordAlignHybridEncoder.LITERAL_MASK);
 		}
 
 		public static uint MakeFiller(bool set, int length)
@@ -269,7 +269,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			value = value - ((value >> 1) & 0x55555555);
 			value = (value & 0x33333333) + ((value >> 2) & 0x33333333);
 			value = ((value + (value >> 4) & 0xF0F0F0F) * 0x1010101) >> (32 - 8);
-			return (int)value;
+			return value;
 		}
 
 		#endregion

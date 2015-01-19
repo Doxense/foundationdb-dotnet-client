@@ -73,7 +73,7 @@ namespace FoundationDB.Layers.Interning
 
 			public override bool Equals(object obj)
 			{
-				return obj is Uid && Equals(obj as Uid);
+				return obj is Uid && Equals((Uid) obj);
 			}
 
 			public override int GetHashCode()

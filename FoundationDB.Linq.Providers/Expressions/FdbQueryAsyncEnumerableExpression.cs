@@ -60,19 +60,18 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Apply a custom visitor to this expression</summary>
-		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitAsyncEnumerable(this);
 		}
 
 		/// <summary>Write a human-readable explanation of this expression</summary>
-		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.Write("Source<{0}>({1})", this.ElementType.Name, this.Source.GetType().Name);
 		}
 
 		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
-		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<IFdbAsyncEnumerable<T>>>> CompileSingle()
 		{
 			return FdbExpressionHelpers.ToTask(CompileSequence());

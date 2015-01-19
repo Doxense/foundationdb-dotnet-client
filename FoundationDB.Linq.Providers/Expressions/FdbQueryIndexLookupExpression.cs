@@ -74,13 +74,13 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Apply a custom visitor to this expression</summary>
-		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryLookup(this);
 		}
 
 		/// <summary>Write a human-readable explanation of this expression</summary>
-		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Visit(this.Source);
 			builder.Writer.Write(".Lookup<{0}>(value {1} ", this.ElementType.Name, FdbExpressionHelpers.GetOperatorAlias(this.Operator));

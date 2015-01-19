@@ -358,7 +358,7 @@ namespace FoundationDB.Linq
 			long count = 0;
 			using (var iterator = source.GetEnumerator(mode))
 			{
-				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
+				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				while (await iterator.MoveNext(ct))
 				{
@@ -392,7 +392,7 @@ namespace FoundationDB.Linq
 			long count = 0;
 			using (var iterator = source.GetEnumerator(mode))
 			{
-				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
+				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				while (await iterator.MoveNext(ct))
 				{
@@ -426,7 +426,7 @@ namespace FoundationDB.Linq
 			long count = 0;
 			using (var iterator = source.GetEnumerator(mode))
 			{
-				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
+				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				while (await iterator.MoveNext(ct))
 				{
@@ -457,7 +457,7 @@ namespace FoundationDB.Linq
 			long count = 0;
 			using (var iterator = source.GetEnumerator(mode))
 			{
-				if (iterator == null) throw new InvalidOperationException("The underlying sequence returned a null async iterator");
+				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				while (await iterator.MoveNext(ct))
 				{
@@ -488,7 +488,7 @@ namespace FoundationDB.Linq
 
 			using (var iterator = source.GetEnumerator(FdbAsyncMode.Head))
 			{
-				if (iterator == null) throw new InvalidOperationException("The sequence returned a null async iterator");
+				Contract.Assert(iterator != null, "The underlying sequence returned a null async iterator");
 
 				if (await iterator.MoveNext(ct))
 				{

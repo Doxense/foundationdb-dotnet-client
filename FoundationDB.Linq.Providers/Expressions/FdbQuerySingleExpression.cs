@@ -74,20 +74,20 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Opeartion that is applied to <see cref="Sequence"/> and that returns a single result</summary>
-		public new Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> Lambda
+		public Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> Lambda
 		{
 			[NotNull] get;
 			private set;
 		}
 
 		/// <summary>Apply a custom visitor to this expression</summary>
-		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQuerySingle(this);
 		}
 
 		/// <summary>Write a human-readable explanation of this expression</summary>
-		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("{0}(", this.Name).Enter();
 			builder.Visit(this.Sequence);
@@ -95,7 +95,6 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Returns a new expression that will execute this query on a transaction and return a single result</summary>
-		[NotNull]
 		public override Expression<Func<IFdbReadOnlyTransaction, CancellationToken, Task<R>>> CompileSingle()
 		{
 			// We want to generate: (trans, ct) => ExecuteEnumerable(source, lambda, trans, ct);

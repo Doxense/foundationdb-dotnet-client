@@ -31,8 +31,6 @@ namespace FoundationDB.Client
 	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
 	using System.Threading.Tasks;
 
 	public class FdbEncoderSubspace<T1, T2> : FdbSubspace, ICompositeKeyEncoder<T1, T2>

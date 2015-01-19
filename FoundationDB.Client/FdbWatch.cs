@@ -28,15 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Linq;
 	using System.Runtime.CompilerServices;
-	using System.Text;
 	using System.Threading.Tasks;
 
 	/// <summary>Watch that triggers when the watched key is changed in the database</summary>
