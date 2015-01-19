@@ -296,6 +296,7 @@ namespace FoundationDB.Async
 		{
 			try
 			{
+				ct.ThrowIfCancellationRequested();
 				//TODO: use the cancellation token !
 				return await task.ConfigureAwait(false);
 			}
