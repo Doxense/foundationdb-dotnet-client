@@ -74,7 +74,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Opeartion that is applied to <see cref="Sequence"/> and that returns a single result</summary>
-		public Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> Lambda
+		public new Expression<Func<IFdbAsyncEnumerable<T>, CancellationToken, Task<R>>> Lambda
 		{
 			[NotNull] get;
 			private set;
