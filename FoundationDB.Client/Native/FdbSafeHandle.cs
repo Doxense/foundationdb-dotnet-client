@@ -80,6 +80,7 @@ namespace FoundationDB.Client.Native
 			return true;
 		}
 
+#if NOT_USED
 		[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
 		internal bool TrySetHandle(IntPtr handle)
 		{
@@ -89,15 +90,16 @@ namespace FoundationDB.Client.Native
 #endif
 			return handle != IntPtr.Zero;
 		}
+#endif
 
-		/// <summary>Retourne the value of the FDBFuture handle</summary>
+		/// <summary>Return the value of the FDBFuture handle, for logging purpose only</summary>
 		internal IntPtr Handle
 		{
 			[ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
 			get { return this.handle; }
 		}
 
-		/// <summary>Call the appropriate fdb_T_destroy(..)</summary>
+		/// <summary>Call the appropriate fdb_*_destroy(..)</summary>
 		/// <param name="handle">Handle on the FDBFuture</param>
 		protected abstract void Destroy(IntPtr handle);
 	}
