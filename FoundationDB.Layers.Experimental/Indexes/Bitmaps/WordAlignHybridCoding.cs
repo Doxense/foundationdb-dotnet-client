@@ -553,6 +553,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 							// continue with left until it's done
 							rn = DONE;
 							rw = 0;
+							continue;
 						}
 						rn = riter.Current.WordCount;
 						rw = riter.Current.WordValue;

@@ -81,7 +81,7 @@ namespace FoundationDB.Client
 			#region Trace Path...
 
 			/// <summary>Default path to the network thread tracing file</summary>
-			public static string TracePath = null;
+			public static string TracePath;
 
 			/// <summary>Sets the custom path where the logs will be stored</summary>
 			/// <remarks>This *must* be called before the start of the network thread, otherwise it won't have any effects.</remarks>

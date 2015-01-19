@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Utils
 {
 	using System;
-	using System.Threading;
 
 	/// <summary>Simple debug counters container that is used to troubleshoot alloc/free problems...</summary>
 	public static class DebugCounters

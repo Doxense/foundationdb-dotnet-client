@@ -30,9 +30,6 @@ namespace FoundationDB.Linq
 {
 	using FoundationDB.Async;
 	using System;
-	using System.Threading;
-	using System.Threading.Tasks;
-
 	public interface IFdbAsyncEnumerator<out T> : IAsyncEnumerator<T>
 	{
 		//TODO: add method specific to FDB here

@@ -252,14 +252,14 @@ namespace FoundationDB.Client
 		protected override void CancelHandles()
 		{
 			var handle = m_handle;
-			//REVIEW: there is a possibility of a race condition with Dispoe() that could potentially call FutureDestroy(handle) at the same time (not verified)
+			//REVIEW: there is a possibility of a race condition with Dispose() that could potentially call FutureDestroy(handle) at the same time (not verified)
 			if (handle != null && !handle.IsClosed && !handle.IsInvalid) FdbNative.FutureCancel(handle);
 		}
 
 		protected override void ReleaseMemory()
 		{
 			var handle = m_handle;
-			//REVIEW: there is a possibility of a race condition with Dispoe() that could potentially call FutureDestroy(handle) at the same time (not verified)
+			//REVIEW: there is a possibility of a race condition with Dispose() that could potentially call FutureDestroy(handle) at the same time (not verified)
 			if (handle != null && !handle.IsClosed && !handle.IsInvalid) FdbNative.FutureReleaseMemory(handle);
 		}
 

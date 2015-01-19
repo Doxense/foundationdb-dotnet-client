@@ -105,9 +105,7 @@ namespace FoundationDB.Layers
 		public static Nullable<T> ToNullable<T>(this Optional<T> value)
 			where T : struct
 		{
-			if(!value.HasValue)
-				return default(Nullable<T>);
-			return new Nullable<T>(value.Value);
+			return !value.HasValue ? default(Nullable<T>) : value.Value;
 		}
 
 		#endregion
@@ -141,7 +139,7 @@ namespace FoundationDB.Layers
 			var tmp = new Nullable<T>[values.Length];
 			for (int i = 0; i < values.Length; i++)
 			{
-				if (values[i].HasValue) tmp[i] = new Nullable<T>(values[i].Value);
+				if (values[i].HasValue) tmp[i] = values[i].Value;
 			}
 			return tmp;
 		}
@@ -186,7 +184,7 @@ namespace FoundationDB.Layers
 		{
 			if (source == null) throw new ArgumentNullException("source");
 
-			return source.Select(value => value.HasValue ? new Nullable<T>(value.Value) : default(Nullable<T>));
+			return source.Select(value => !value.HasValue ? default(Nullable<T>) : value.Value);
 		}
 
 		/// <summary>Transforms a squence of <see cref="Optional{T}"/> into a sequence of values</summary>
@@ -216,9 +214,9 @@ namespace FoundationDB.Layers
 			if (data == null) throw new ArgumentNullException("data");
 
 			var values = new Optional<T>[data.Length];
-			Slice item;
 			for (int i = 0; i < data.Length; i++)
 			{
+				Slice item;
 				if ((item = data[i]).HasValue)
 				{
 					values[i] = new Optional<T>(decoder.DecodeValue(item));

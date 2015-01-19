@@ -34,7 +34,6 @@ namespace FoundationDB.Client
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.Runtime.InteropServices;
 
 	[DebuggerDisplay("[{ToString()}]")]
 	[ImmutableObject(true), Serializable]
@@ -453,10 +452,9 @@ namespace FoundationDB.Client
 				// start from the last "digit"
 				char* pc = chars + (MAX_SIZE - 1);
 
-				ulong r;
 				while (pc >= chars)
 				{
-					r = value % 62L;
+					ulong r = value % 62L;
 					value /= 62L;
 					*pc-- = bc[(int)r];
 					if (!padded && value == 0)
@@ -472,7 +470,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		private static unsafe bool TryDecode62(char[] s, out ulong value)
+		private static bool TryDecode62(char[] s, out ulong value)
 		{
 			if (s == null || s.Length == 0 || s.Length > 11)
 			{ // fail: too small/too big

@@ -375,7 +375,7 @@ namespace FoundationDB.Async
 			}
 			else if (e is AggregateException)
 			{
-				tcs.TrySetException((e as AggregateException).Flatten().InnerExceptions);
+				tcs.TrySetException(((AggregateException) e).Flatten().InnerExceptions);
 			}
 			else
 			{

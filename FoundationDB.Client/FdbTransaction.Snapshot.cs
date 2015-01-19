@@ -31,7 +31,6 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
 

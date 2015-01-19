@@ -28,15 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Status
 {
-	using FoundationDB.Client.Status;
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.Threading;
-	using System.Threading.Tasks;
 
 	/// <summary>Snapshot of the state of a FoundationDB cluster</summary>
 	public sealed class FdbSystemStatus : MetricsBase

@@ -42,13 +42,13 @@ namespace FoundationDB.Linq
 
 		public AsyncObserverExpression(Action<TSource> handler)
 		{
-			if (handler == null) throw new ArgumentNullException("record");
+			if (handler == null) throw new ArgumentNullException("handler");
 			m_handler = handler;
 		}
 
 		public AsyncObserverExpression(Func<TSource, CancellationToken, Task> asyncHandler)
 		{
-			if (asyncHandler == null) throw new ArgumentNullException("asyncObserver");
+			if (asyncHandler == null) throw new ArgumentNullException("asyncHandler");
 			m_asyncHandler = asyncHandler;
 		}
 

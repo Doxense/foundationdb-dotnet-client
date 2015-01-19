@@ -73,7 +73,7 @@ namespace FdbShell
 							}
 							else
 							{
-								log.WriteLine("  {0,-12} {1,-12} {3,9:N0} {2}", FdbKey.Dump(FdbSubspace.Copy(subfolder).Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, "-");
+								log.WriteLine("  {0,-12} {1,-12} {3,9} {2}", FdbKey.Dump(FdbSubspace.Copy(subfolder).Key), subfolder.Layer.IsNullOrEmpty ? "-" : ("<" + subfolder.Layer.ToUnicode() + ">"), name, "-");
 							}
 						}
 						else

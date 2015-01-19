@@ -109,7 +109,7 @@ namespace FoundationDB.Linq
 			private readonly IComparer<TSource> m_comparer;
 			private readonly bool m_descending;
 
-			private SequenceSorter<TSource> m_next;
+			private readonly SequenceSorter<TSource> m_next;
 			private TSource[] m_items;
 
 			public SequenceByElementSorter(IComparer<TSource> comparer, bool descending, SequenceSorter<TSource> next)
@@ -149,7 +149,7 @@ namespace FoundationDB.Linq
 			private readonly IComparer<TKey> m_comparer;
 			private readonly bool m_descending;
 
-			private SequenceSorter<TSource> m_next;
+			private readonly SequenceSorter<TSource> m_next;
 			private TKey[] m_keys;
 
 			public SequenceByKeySorter(Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending, SequenceSorter<TSource> next)

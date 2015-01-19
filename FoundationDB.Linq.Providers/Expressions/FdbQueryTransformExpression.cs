@@ -64,13 +64,13 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Apply a custom visitor to this expression</summary>
-		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryTransform(this);
 		}
 
 		/// <summary>Write a human-readable explanation of this expression</summary>
-		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("Transform(").Enter();
 			builder.Visit(this.Source);

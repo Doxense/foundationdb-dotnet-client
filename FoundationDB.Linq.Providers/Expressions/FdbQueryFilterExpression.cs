@@ -68,7 +68,7 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Write a human-readable explanation of this expression</summary>
-		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
 		{
 			builder.Writer.WriteLine("Filter(").Enter();
 			builder.Visit(this.Source);

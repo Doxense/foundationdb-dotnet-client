@@ -32,7 +32,6 @@ namespace FoundationDB.Layers.Directories
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
 	using System.Threading.Tasks;
 
 	/// <summary>

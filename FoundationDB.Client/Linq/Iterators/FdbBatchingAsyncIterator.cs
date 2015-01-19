@@ -28,9 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
@@ -45,11 +43,13 @@ namespace FoundationDB.Linq
 
 		// ITERABLE
 
-		private int m_batchSize;							// size of the buffer
+		// size of the buffer
+		private readonly int m_batchSize;
 
 		// ITERATOR
 
-		private List<TInput> m_buffer;						// buffer storing the items in the current window
+		// buffer storing the items in the current window
+		private List<TInput> m_buffer;						
 
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>

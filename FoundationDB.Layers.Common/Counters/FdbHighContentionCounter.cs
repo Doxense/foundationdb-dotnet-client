@@ -29,7 +29,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Counters
 {
 	using FoundationDB.Client;
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;

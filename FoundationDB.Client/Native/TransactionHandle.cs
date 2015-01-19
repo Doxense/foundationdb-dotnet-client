@@ -30,7 +30,9 @@ namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Client.Utils;
 	using System;
+#if MONO
 	using System.Runtime.InteropServices;
+#endif
 	using System.Threading;
 
 	/// <summary>Wrapper on a FDBTransaction*</summary>

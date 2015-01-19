@@ -30,7 +30,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Async
 {
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;

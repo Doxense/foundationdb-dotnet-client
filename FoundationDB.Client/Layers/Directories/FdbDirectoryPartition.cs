@@ -31,8 +31,6 @@ namespace FoundationDB.Layers.Directories
 	using FoundationDB.Client;
 	using FoundationDB.Layers.Tuples;
 	using System;
-	using System.Diagnostics;
-
 	public class FdbDirectoryPartition : FdbDirectorySubspace
 	{
 

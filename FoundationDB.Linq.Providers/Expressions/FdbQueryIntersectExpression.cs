@@ -86,15 +86,15 @@ namespace FoundationDB.Linq.Expressions
 		}
 
 		/// <summary>Apply a custom visitor to this expression</summary>
-		public override Expression Accept([NotNull] FdbQueryExpressionVisitor visitor)
+		public override Expression Accept(FdbQueryExpressionVisitor visitor)
 		{
 			return visitor.VisitQueryMerge(this);
 		}
 
 		/// <summary>Write a human-readable explanation of this expression</summary>
-		public override void WriteTo([NotNull] FdbQueryExpressionStringBuilder builder)
+		public override void WriteTo(FdbQueryExpressionStringBuilder builder)
 		{
-			builder.Writer.WriteLine("{0}<{1}>(", this.MergeType.ToString(), this.ElementType.Name).Enter();
+			builder.Writer.WriteLine("{0}<{1}>(", this.MergeType, this.ElementType.Name).Enter();
 			for (int i = 0; i < this.Expressions.Length; i++)
 			{
 				builder.Visit(this.Expressions[i]);

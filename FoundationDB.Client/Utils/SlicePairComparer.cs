@@ -31,9 +31,6 @@ namespace FoundationDB.Client
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
-	using System.Runtime.ConstrainedExecution;
-	using System.Runtime.InteropServices;
-	using System.Security;
 
 	/// <summary>Performs optimized equality and comparison checks on key/value pairs of <see cref="Slice"/></summary>
 	public sealed class SlicePairComparer : IComparer<KeyValuePair<Slice, Slice>>, IEqualityComparer<KeyValuePair<Slice, Slice>>

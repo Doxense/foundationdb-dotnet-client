@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using System.Runtime.ExceptionServices;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using SystemIO = System.IO;
@@ -307,6 +308,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Entry point for the Network Thread</summary>
+		[HandleProcessCorruptedStateExceptions]
 		private static void EventLoop()
 		{
 			//TODO: we need to move the crash handling logic outside this method, so that an app can hook up an event and device what to do: crash or keep running (dangerous!).

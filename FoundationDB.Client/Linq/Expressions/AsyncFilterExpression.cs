@@ -95,7 +95,7 @@ namespace FoundationDB.Linq
 		public static AsyncFilterExpression<TSource> AndAlso([NotNull] AsyncFilterExpression<TSource> left, [NotNull] AsyncFilterExpression<TSource> right)
 		{
 			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("epxr");
+			if (right == null) throw new ArgumentNullException("right");
 
 			// combine two expressions into a logical AND expression.
 			// Note: if the first expression returns false, the second one will NOT be evaluated
@@ -119,12 +119,12 @@ namespace FoundationDB.Linq
 				var f = left.m_asyncFilter;
 				if (right.m_asyncFilter != null)
 				{ // so is the next one
-					var g = left.m_asyncFilter;
+					var g = right.m_asyncFilter;
 					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) && (await g(x, ct).ConfigureAwait(false)));
 				}
 				else
 				{
-					var g = left.m_filter;
+					var g = right.m_filter;
 					return new AsyncFilterExpression<TSource>(async (x, ct) => (await f(x, ct).ConfigureAwait(false)) && g(x));
 				}
 			}
@@ -134,7 +134,7 @@ namespace FoundationDB.Linq
 		public static AsyncFilterExpression<TSource> OrElse([NotNull] AsyncFilterExpression<TSource> left, [NotNull] AsyncFilterExpression<TSource> right)
 		{
 			if (left == null) throw new ArgumentNullException("left");
-			if (right == null) throw new ArgumentNullException("epxr");
+			if (right == null) throw new ArgumentNullException("right");
 
 			// combine two expressions into a logical OR expression.
 			// Note: if the first expression returns true, the second one will NOT be evaluated

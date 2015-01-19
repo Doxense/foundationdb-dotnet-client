@@ -110,8 +110,6 @@ namespace FoundationDB.Filters.Logging
 		/// <remarks>This value is increment on each call to Commit()</remarks>
 		public int Attempts { get; internal set; }
 
-		private static readonly double R = 1.0d * TimeSpan.TicksPerMillisecond / Stopwatch.Frequency;
-
 		internal static long GetTimestamp()
 		{
 			return Stopwatch.GetTimestamp();
@@ -331,7 +329,6 @@ namespace FoundationDB.Filters.Logging
 					}
 
 					long ticks = cmd.Duration.Ticks;
-					double r = 1.0d * ticks / duration.Ticks;
 					string w = GetFancyGraph(width, (cmd.StartOffset - first).Ticks, ticks, duration.Ticks, charsToSkip);
 
 					if (ticks > 0)

@@ -32,7 +32,6 @@ namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Status;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Filters.Logging;
 	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;

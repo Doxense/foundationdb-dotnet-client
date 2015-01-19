@@ -30,11 +30,9 @@ namespace FoundationDB.Layers.Blobs
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>

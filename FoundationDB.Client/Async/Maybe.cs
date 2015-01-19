@@ -122,6 +122,7 @@ namespace FoundationDB.Async
 				if (exception == null)
 				{
 					((ExceptionDispatchInfo)m_errorContainer).Throw();
+					return; // never reached, but helps with code analysis
 				}
 #endif
 				throw exception;
