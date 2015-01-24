@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using FoundationDB.Client.Native;
 	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
@@ -40,7 +41,7 @@ namespace FoundationDB.Client
 	{
 		//REVIEW: sould we change this to a class?
 
-		private readonly FdbFuture<Slice> m_future;
+		private readonly FdbFuture<Slice> m_future; //REVIEW: this is specific to the native handler, we should find a better abstraction for the generic case! (we need a Task-like object that can be cancelled/disposed)
 		private Slice m_key; //PERF: readonly slice
 		private Slice m_value;
 
