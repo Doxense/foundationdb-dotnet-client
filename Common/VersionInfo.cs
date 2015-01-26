@@ -1,5 +1,5 @@
 #region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -32,10 +32,10 @@ using System.Runtime.InteropServices;
 
 [assembly: AssemblyCompany("Doxense")]
 [assembly: AssemblyProduct("FoundationDB.Client")]
-[assembly: AssemblyCopyright("Copyright © Doxense SAS 2013-2014")]
+[assembly: AssemblyCopyright("Copyright © Doxense SAS 2013-2015")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
-[assembly: AssemblyVersion("0.9.8.0")] //note: Only change this when doing breaking API changes!
+[assembly: AssemblyVersion("0.9.9.0")] //note: Only change this when doing breaking API changes!
 [assembly: AssemblyFileVersion("0.9.8.0")] //note: change this to "x.y.revision.build_step" in a build step of your favorite C.I. build server
-[assembly: AssemblyInformationalVersion("0.9.8-pre")]  //note: this is the version seen by NuGet, add "-alpha"/"-beta"/"-rc1" at the end to create pre-release packages
+[assembly: AssemblyInformationalVersion("0.9.9-pre")]  //note: this is the version seen by NuGet, add "-alpha"/"-beta"/"-rc1" at the end to create pre-release packages
