@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,28 +35,28 @@ namespace FoundationDB.Client.Native
 #endif
 	using System.Threading;
 
-	/// <summary>Wrapper on a FDBDatabase*</summary>
+	/// <summary>Wrapper on a FDBFuture*</summary>
 #if MONO
 	[StructLayout(LayoutKind.Sequential)]
 #endif
-	internal sealed class DatabaseHandle : FdbSafeHandle
+	internal sealed class FutureHandle : FdbSafeHandle
 	{
 
-		public DatabaseHandle()
+		public FutureHandle()
 		{
-			Interlocked.Increment(ref DebugCounters.DatabaseHandlesTotal);
-			Interlocked.Increment(ref DebugCounters.DatabaseHandles);
+			Interlocked.Increment(ref DebugCounters.FutureHandlesTotal);
+			Interlocked.Increment(ref DebugCounters.FutureHandles);
 		}
 
 		protected override void Destroy(IntPtr handle)
 		{
-			FdbNative.DatabaseDestroy(handle);
-			Interlocked.Decrement(ref DebugCounters.DatabaseHandles);
+			FdbNative.FutureDestroy(handle);
+			Interlocked.Decrement(ref DebugCounters.FutureHandles);
 		}
 
 		public override string ToString()
 		{
-			return "DatabaseHandle[0x" + this.Handle.ToString("x") + "]";
+			return "FutureHandle[0x" + this.Handle.ToString("x") + "]";
 		}
 
 	}

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,28 +35,28 @@ namespace FoundationDB.Client.Native
 #endif
 	using System.Threading;
 
-	/// <summary>Wrapper on a FDBTransaction*</summary>
+	/// <summary>Wrapper on a FDBCluster*</summary>
 #if MONO
 	[StructLayout(LayoutKind.Sequential)]
 #endif
-	internal sealed class TransactionHandle : FdbSafeHandle
+	internal sealed class ClusterHandle : FdbSafeHandle
 	{
 
-		public TransactionHandle()
+		public ClusterHandle()
 		{
-			Interlocked.Increment(ref DebugCounters.TransactionHandlesTotal);
-			Interlocked.Increment(ref DebugCounters.TransactionHandles);
+			Interlocked.Increment(ref DebugCounters.ClusterHandlesTotal);
+			Interlocked.Increment(ref DebugCounters.ClusterHandles);
 		}
 
 		protected override void Destroy(IntPtr handle)
 		{
-			FdbNative.TransactionDestroy(handle);
-			Interlocked.Decrement(ref DebugCounters.TransactionHandles);
+			FdbNative.ClusterDestroy(handle);
+			Interlocked.Decrement(ref DebugCounters.ClusterHandles);
 		}
 
 		public override string ToString()
 		{
-			return "TransactionHandle[0x" + this.Handle.ToString("x") + "]";
+			return "ClusterHandle[0x" + this.Handle.ToString("x") + "]";
 		}
 
 	}

@@ -49,7 +49,8 @@ namespace FoundationDB.Client.Native
 
 			protected override void Destroy(IntPtr handle)
 			{
-				NativeMethods.FreeLibrary(handle);
+				//cf Issue #49: it is too dangerous to unload the library because callbacks could still fire from the native side
+				//DISABLED: NativeMethods.FreeLibrary(handle);
 			}
 		}
 #else
@@ -60,7 +61,9 @@ namespace FoundationDB.Client.Native
 
 			protected override bool ReleaseHandle()
 			{
-				return NativeMethods.FreeLibrary(handle);
+				//cf Issue #49: it is too dangerous to unload the library because callbacks could still fire from the native side
+				//DISABLED: return NativeMethods.FreeLibrary(handle);
+				return true;
 			}
 		}
 #endif

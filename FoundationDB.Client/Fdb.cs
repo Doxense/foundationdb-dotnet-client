@@ -455,7 +455,7 @@ namespace FoundationDB.Client
 			return await CreateClusterInternalAsync(clusterFile, cancellationToken).ConfigureAwait(false);
 		}
 
-		internal static Task<FdbCluster> CreateClusterInternalAsync(string clusterFile, CancellationToken cancellationToken)
+		internal static async Task<FdbCluster> CreateClusterInternalAsync(string clusterFile, CancellationToken cancellationToken)
 		{
 			EnsureIsStarted();
 
@@ -469,7 +469,8 @@ namespace FoundationDB.Client
 			//TODO: check the path ? (exists, readable, ...)
 
 			//TODO: have a way to configure the default IFdbClusterHander !
-			return FdbNativeCluster.CreateClusterAsync(clusterFile, cancellationToken);
+			var handler = await FdbNativeCluster.CreateClusterAsync(clusterFile, cancellationToken).ConfigureAwait(false);
+			return new FdbCluster(handler, clusterFile);
 		}
 
 		#endregion

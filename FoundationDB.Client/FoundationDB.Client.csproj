@@ -112,8 +112,8 @@
     <Compile Include="IFdbReadOnlyRetryable.cs" />
     <Compile Include="IFdbDatabase.cs" />
     <Compile Include="IFdbRetryable.cs" />
-    <Compile Include="FdbFuture.cs" />
-    <Compile Include="FdbFutureArray.cs" />
+    <Compile Include="Native\FdbFuture.cs" />
+    <Compile Include="Native\FdbFutureArray.cs" />
     <Compile Include="FdbWatch.cs" />
     <Compile Include="Fdb.System.cs" />
     <Compile Include="FdbConflictRangeType.cs" />
@@ -175,7 +175,7 @@
     <Compile Include="FdbTransaction.cs" />
     <Compile Include="FdbDatabase.cs" />
     <Compile Include="FdbCluster.cs" />
-    <Compile Include="FdbFutureSingle.cs" />
+    <Compile Include="Native\FdbFutureSingle.cs" />
     <Compile Include="Fdb.cs" />
     <Compile Include="Async\IAsyncEnumerator.cs" />
     <Compile Include="Async\IAsyncEnumerable.cs" />
@@ -228,12 +228,12 @@
     <Compile Include="Utils\SliceWriter.cs" />
     <Compile Include="Utils\Contract.cs" />
     <Compile Include="Native\FdbKeyValue.cs" />
-    <Compile Include="Native\TransactionHandle.cs" />
+    <Compile Include="Native\Handles\TransactionHandle.cs" />
     <Compile Include="Native\FdbNative.cs" />
-    <Compile Include="Native\ClusterHandle.cs" />
-    <Compile Include="Native\DatabaseHandle.cs" />
-    <Compile Include="Native\FutureHandle.cs" />
-    <Compile Include="Native\FdbSafeHandle.cs" />
+    <Compile Include="Native\Handles\ClusterHandle.cs" />
+    <Compile Include="Native\Handles\DatabaseHandle.cs" />
+    <Compile Include="Native\Handles\FutureHandle.cs" />
+    <Compile Include="Native\Handles\FdbSafeHandle.cs" />
     <Compile Include="Native\UnmanagedLibrary.cs" />
     <Compile Include="Converters\FdbConverters.cs" />
     <Compile Include="Converters\IFdbConverter.cs" />
