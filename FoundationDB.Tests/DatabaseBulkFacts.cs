@@ -248,7 +248,7 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async Task Test_Can_Bulk_Batched_Insert_Items()
 		{
-			const int N = 2000 * 1000;
+			const int N = 200 * 1000;
 
 			using (var db = await OpenTestPartitionAsync())
 			{
