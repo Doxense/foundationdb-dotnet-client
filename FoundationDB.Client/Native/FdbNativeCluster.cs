@@ -37,37 +37,59 @@ namespace FoundationDB.Client.Native
 	using System.Threading.Tasks;
 
 	/// <summary>Wraps a native FDBCluster* handle</summary>
-	internal sealed class FdbNativeCluster : IFdbClusterHandler
+	internal sealed class FdbNativeCluster : FdbFutureContext<ClusterHandle>, IFdbClusterHandler
 	{
-		private readonly ClusterHandle m_handle;
+		//private readonly ClusterHandle m_handle;
 
 		public FdbNativeCluster(ClusterHandle handle)
+			: base(handle)
 		{
-			Contract.Requires(handle != null);
-			m_handle = handle;
 		}
+
+		private static readonly GlobalNativeContext GlobalContext = new GlobalNativeContext();
+
+		private sealed class GlobalNativeContext : FdbFutureContext
+		{
+
+			public Task<IFdbClusterHandler> CreateClusterAsync(string clusterFile, CancellationToken ct)
+			{
+				IntPtr handle = IntPtr.Zero;
+				bool dead = true;
+				try
+				{
+					return RegisterFuture(
+						FdbNative.CreateCluster(clusterFile),
+						ref dead,
+						(h, state) =>
+						{
+							ClusterHandle cluster;
+							var err = FdbNative.FutureGetCluster(h, out cluster);
+							if (err != FdbError.Success)
+							{
+								cluster.Dispose();
+								throw Fdb.MapToException(err);
+							}
+							var handler = new FdbNativeCluster(cluster);
+							return (IFdbClusterHandler) handler;
+						},
+						null,
+						ct,
+						"CreateClusterAsync"
+					);
+				}
+				finally
+				{
+					if (handle != IntPtr.Zero && dead) FdbNative.FutureDestroy(handle);
+				}
+			}
+
+		}
+
 
 		public static Task<IFdbClusterHandler> CreateClusterAsync(string clusterFile, CancellationToken cancellationToken)
 		{
-			var future = FdbNative.CreateCluster(clusterFile);
-			return FdbFuture.CreateTaskFromHandle(future,
-				(h) =>
-				{
-					ClusterHandle cluster;
-					var err = FdbNative.FutureGetCluster(h, out cluster);
-					if (err != FdbError.Success)
-					{
-						cluster.Dispose();
-						throw Fdb.MapToException(err);
-					}
-					var handler = new FdbNativeCluster(cluster);
-					return (IFdbClusterHandler) handler;
-				},
-				cancellationToken
-			);
+			return GlobalContext.CreateClusterAsync(clusterFile, cancellationToken);
 		}
-
-		internal ClusterHandle Handle { get { return m_handle; } }
 
 		public bool IsInvalid { get { return m_handle.IsInvalid; } }
 
@@ -97,10 +119,10 @@ namespace FoundationDB.Client.Native
 		{
 			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<IFdbDatabaseHandler>(cancellationToken);
 
-			var future = FdbNative.ClusterCreateDatabase(m_handle, databaseName);
-			return FdbFuture.CreateTaskFromHandle(
-				future,
-				(h) =>
+			return StartNewFuture(
+				(handle, state) => FdbNative.ClusterCreateDatabase(handle, state),
+				databaseName,
+				(h, state) =>
 				{
 					DatabaseHandle database;
 					var err = FdbNative.FutureGetDatabase(h, out database);
@@ -109,16 +131,12 @@ namespace FoundationDB.Client.Native
 						database.Dispose();
 						throw Fdb.MapToException(err);
 					}
-					var handler = new FdbNativeDatabase(database);
+					var handler = new FdbNativeDatabase(database, (string)state);
                     return (IFdbDatabaseHandler) handler;
 				},
+				databaseName,
 				cancellationToken
 			);
-		}
-
-		public void Dispose()
-		{
-			if (m_handle != null) m_handle.Dispose();
 		}
 
 	}

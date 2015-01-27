@@ -73,6 +73,8 @@
     <Compile Include="Linq\Iterators\FdbBatchingAsyncIterator.cs" />
     <Compile Include="Linq\Iterators\FdbPrefetchingAsyncIterator.cs" />
     <Compile Include="Linq\Iterators\FdbWindowingAsyncIterator.cs" />
+    <Compile Include="Native\IFdbFuture.cs" />
+    <Compile Include="Native\FdbFutureContext.cs" />
     <Compile Include="Status\FdbSystemStatus.cs" />
     <Compile Include="FdbEndPoint.cs" />
     <Compile Include="FdbIsolationLevel.cs" />

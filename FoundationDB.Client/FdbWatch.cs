@@ -88,10 +88,13 @@ namespace FoundationDB.Client
 
 			if (m_future != null)
 			{
+#if REFACTORING_IN_PROGRESS
 				if (m_future.HasFlag(FdbFuture.Flags.DISPOSED))
 				{
 					throw new ObjectDisposedException("Cannot await a watch that has already been disposed");
 				}
+
+#endif
 				return m_future.Task.GetAwaiter();
 			}
 			throw new InvalidOperationException("Cannot await an empty watch");
@@ -111,7 +114,8 @@ namespace FoundationDB.Client
 		{
 			if (m_future != null)
 			{
-				m_future.Dispose();
+				//TODO: what should be do? (=> cancel the future?)
+				//m_future.Dispose();
 			}
 		}
 

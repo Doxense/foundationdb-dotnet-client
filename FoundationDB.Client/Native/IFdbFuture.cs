@@ -26,43 +26,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#if REFACTORED
+// enable this to help debug Futures
+#undef DEBUG_FUTURES
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Client.Utils;
 	using System;
-#if MONO
-	using System.Runtime.InteropServices;
-#endif
-	using System.Threading;
 
-	/// <summary>Wrapper on a FDBFuture*</summary>
-#if MONO
-	[StructLayout(LayoutKind.Sequential)]
-#endif
-	internal sealed class FutureHandle : FdbSafeHandle
+	internal interface IFdbFuture
 	{
+		/// <summary>Unique identifier of this future</summary>
+		IntPtr Cookie { get; }
 
-		public FutureHandle()
-		{
-			Interlocked.Increment(ref DebugCounters.FutureHandlesTotal);
-			Interlocked.Increment(ref DebugCounters.FutureHandles);
-		}
+		/// <summary>Label of the future (usually the name of the operation)</summary>
+		string Label { get; }
 
-		protected override void Destroy(IntPtr handle)
-		{
-			FdbNative.FutureDestroy(handle);
-			Interlocked.Decrement(ref DebugCounters.FutureHandles);
-		}
+		/// <summary>Test if this was the last pending handle for this future, or not</summary>
+		/// <param name="handle">Handle that completed</param>
+		/// <returns>True if this was the last handle and OnFired() can be called, or False if more handles need to fire first.</returns>
+		bool Visit(IntPtr handle);
 
-		public override string ToString()
-		{
-			return "FutureHandle[0x" + this.Handle.ToString("x") + "]";
-		}
-
+		/// <summary>Called when all handles tracked by this future have fired</summary>
+		void OnFired();
 	}
 
 }
-
-#endif

@@ -97,7 +97,7 @@ namespace FoundationDB.Client.Native
 			// Cluster
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
-			public static extern FutureHandle fdb_create_cluster([MarshalAs(UnmanagedType.LPStr)] string clusterFilePath);
+			public static extern IntPtr fdb_create_cluster([MarshalAs(UnmanagedType.LPStr)] string clusterFilePath);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_cluster_destroy(IntPtr cluster);
@@ -106,7 +106,7 @@ namespace FoundationDB.Client.Native
 			public static extern FdbError fdb_cluster_set_option(ClusterHandle cluster, FdbClusterOption option, byte* value, int valueLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi, BestFitMapping = false, ThrowOnUnmappableChar = true)]
-			public static extern FutureHandle fdb_cluster_create_database(ClusterHandle cluster, [MarshalAs(UnmanagedType.LPStr)] string dbName, int dbNameLength);
+			public static extern IntPtr fdb_cluster_create_database(ClusterHandle cluster, [MarshalAs(UnmanagedType.LPStr)] string dbName, int dbNameLength);
 
 			// Database
 
@@ -131,19 +131,19 @@ namespace FoundationDB.Client.Native
 			public static extern void fdb_transaction_set_read_version(TransactionHandle handle, long version);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FutureHandle fdb_transaction_get_read_version(TransactionHandle transaction);
+			public static extern IntPtr fdb_transaction_get_read_version(TransactionHandle transaction);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FutureHandle fdb_transaction_get(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
+			public static extern IntPtr fdb_transaction_get(TransactionHandle transaction, byte* keyName, int keyNameLength, bool snapshot);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FutureHandle fdb_transaction_get_addresses_for_key(TransactionHandle transaction, byte* keyName, int keyNameLength);
+			public static extern IntPtr fdb_transaction_get_addresses_for_key(TransactionHandle transaction, byte* keyName, int keyNameLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FutureHandle fdb_transaction_get_key(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
+			public static extern IntPtr fdb_transaction_get_key(TransactionHandle transaction, byte* keyName, int keyNameLength, bool orEqual, int offset, bool snapshot);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FutureHandle fdb_transaction_get_range(
+			public static extern IntPtr fdb_transaction_get_range(
 				TransactionHandle transaction,
 				byte* beginKeyName, int beginKeyNameLength, bool beginOrEqual, int beginOffset,
 				byte* endKeyName, int endKeyNameLength, bool endOrEqual, int endOffset,
@@ -167,16 +167,16 @@ namespace FoundationDB.Client.Native
 			public static extern void fdb_transaction_atomic_op(TransactionHandle transaction, byte* keyName, int keyNameLength, byte* param, int paramLength, FdbMutationType operationType);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FutureHandle fdb_transaction_commit(TransactionHandle transaction);
+			public static extern IntPtr fdb_transaction_commit(TransactionHandle transaction);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern FdbError fdb_transaction_get_committed_version(TransactionHandle transaction, out long version);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FutureHandle fdb_transaction_watch(TransactionHandle transaction, byte* keyName, int keyNameLength);
+			public static extern IntPtr fdb_transaction_watch(TransactionHandle transaction, byte* keyName, int keyNameLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FutureHandle fdb_transaction_on_error(TransactionHandle transaction, FdbError error);
+			public static extern IntPtr fdb_transaction_on_error(TransactionHandle transaction, FdbError error);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
 			public static extern void fdb_transaction_reset(TransactionHandle transaction);
@@ -193,43 +193,43 @@ namespace FoundationDB.Client.Native
 			public static extern void fdb_future_destroy(IntPtr future);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern void fdb_future_cancel(FutureHandle future);
+			public static extern void fdb_future_cancel(IntPtr future);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern void fdb_future_release_memory(FutureHandle future);
+			public static extern void fdb_future_release_memory(IntPtr future);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_block_until_ready(FutureHandle futureHandle);
+			public static extern FdbError fdb_future_block_until_ready(IntPtr futureHandle);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern bool fdb_future_is_ready(FutureHandle futureHandle);
+			public static extern bool fdb_future_is_ready(IntPtr futureHandle);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_error(FutureHandle futureHandle);
+			public static extern FdbError fdb_future_get_error(IntPtr futureHandle);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_set_callback(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter);
+			public static extern FdbError fdb_future_set_callback(IntPtr future, FdbFutureCallback callback, IntPtr callbackParameter);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_version(FutureHandle future, out long version);
+			public static extern FdbError fdb_future_get_version(IntPtr future, out long version);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_key(FutureHandle future, out byte* key, out int keyLength);
+			public static extern FdbError fdb_future_get_key(IntPtr future, out byte* key, out int keyLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_cluster(FutureHandle future, out ClusterHandle cluster);
+			public static extern FdbError fdb_future_get_cluster(IntPtr future, out ClusterHandle cluster);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_database(FutureHandle future, out DatabaseHandle database);
+			public static extern FdbError fdb_future_get_database(IntPtr future, out DatabaseHandle database);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_value(FutureHandle future, out bool present, out byte* value, out int valueLength);
+			public static extern FdbError fdb_future_get_value(IntPtr future, out bool present, out byte* value, out int valueLength);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_string_array(FutureHandle future, out byte** strings, out int count);
+			public static extern FdbError fdb_future_get_string_array(IntPtr future, out byte** strings, out int count);
 
 			[DllImport(FDB_C_DLL, CallingConvention = CallingConvention.Cdecl)]
-			public static extern FdbError fdb_future_get_keyvalue_array(FutureHandle future, out FdbKeyValue* kv, out int count, out bool more);
+			public static extern FdbError fdb_future_get_keyvalue_array(IntPtr future, out FdbKeyValue* kv, out int count, out bool more);
 
 		}
 
@@ -346,51 +346,52 @@ namespace FoundationDB.Client.Native
 
 		#region Futures...
 
-		public static bool FutureIsReady(FutureHandle futureHandle)
+		public static bool FutureIsReady(IntPtr futureHandle)
 		{
 			return NativeMethods.fdb_future_is_ready(futureHandle);
 		}
 
-		public static void FutureDestroy(IntPtr futureHandle)
+		public static void FutureDestroy(IntPtr futureHandle, [CallerMemberName] string caller = null)
 		{
+			Debug.WriteLine("Native.FutureDestroy(0x{0}) from {1}", (object)futureHandle.ToString("X"), caller);
 			if (futureHandle != IntPtr.Zero)
 			{
 				NativeMethods.fdb_future_destroy(futureHandle);
 			}
 		}
 
-		public static void FutureCancel(FutureHandle futureHandle)
+		public static void FutureCancel(IntPtr futureHandle)
 		{
 			NativeMethods.fdb_future_cancel(futureHandle);
 		}
 
-		public static void FutureReleaseMemory(FutureHandle futureHandle)
+		public static void FutureReleaseMemory(IntPtr futureHandle)
 		{
 			NativeMethods.fdb_future_release_memory(futureHandle);
 		}
 
-		public static FdbError FutureGetError(FutureHandle future)
+		public static FdbError FutureGetError(IntPtr future)
 		{
 			return NativeMethods.fdb_future_get_error(future);
 		}
 
-		public static FdbError FutureBlockUntilReady(FutureHandle future)
+		public static FdbError FutureBlockUntilReady(IntPtr future)
 		{
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("calling fdb_future_block_until_ready(0x" + future.Handle.ToString("x") + ")...");
+			Debug.WriteLine("calling fdb_future_block_until_ready(0x" + future.ToString("x") + ")...");
 #endif
 			var err = NativeMethods.fdb_future_block_until_ready(future);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_block_until_ready(0x" + future.Handle.ToString("x") + ") => err=" + err);
+			Debug.WriteLine("fdb_future_block_until_ready(0x" + future.ToString("x") + ") => err=" + err);
 #endif
 			return err;
 		}
 
-		public static FdbError FutureSetCallback(FutureHandle future, FdbFutureCallback callback, IntPtr callbackParameter)
+		public static FdbError FutureSetCallback(IntPtr future, FdbFutureCallback callback, IntPtr callbackParameter)
 		{
 			var err = NativeMethods.fdb_future_set_callback(future, callback, callbackParameter);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_set_callback(0x" + future.Handle.ToString("x") + ", 0x" + ptrCallback.ToString("x") + ") => err=" + err);
+			Debug.WriteLine("fdb_future_set_callback(0x" + future.ToString("x") + ", 0x" + callbackParameter.ToString("x") + ") => err=" + err);
 #endif
 			return err;
 		}
@@ -427,12 +428,12 @@ namespace FoundationDB.Client.Native
 
 		#region Clusters...
 
-		public static FutureHandle CreateCluster(string path)
+		public static IntPtr CreateCluster(string path)
 		{
 			var future = NativeMethods.fdb_create_cluster(path);
 			Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_create_cluster(" + path + ") => 0x" + future.Handle.ToString("x"));
+			Debug.WriteLine("fdb_create_cluster(" + path + ") => 0x" + future.ToString("x"));
 #endif
 
 			return future;
@@ -451,11 +452,11 @@ namespace FoundationDB.Client.Native
 			return NativeMethods.fdb_cluster_set_option(cluster, option, value, valueLength);
 		}
 
-		public static FdbError FutureGetCluster(FutureHandle future, out ClusterHandle cluster)
+		public static FdbError FutureGetCluster(IntPtr future, out ClusterHandle cluster)
 		{
 			var err = NativeMethods.fdb_future_get_cluster(future, out cluster);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_get_cluster(0x" + future.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + cluster.Handle.ToString("x"));
+			Debug.WriteLine("fdb_future_get_cluster(0x" + future.ToString("x") + ") => err=" + err + ", handle=0x" + cluster.Handle.ToString("x"));
 #endif
 			//TODO: check if err == Success ?
 			return err;
@@ -465,11 +466,11 @@ namespace FoundationDB.Client.Native
 
 		#region Databases...
 
-		public static FdbError FutureGetDatabase(FutureHandle future, out DatabaseHandle database)
+		public static FdbError FutureGetDatabase(IntPtr future, out DatabaseHandle database)
 		{
 			var err = NativeMethods.fdb_future_get_database(future, out database);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_get_database(0x" + future.Handle.ToString("x") + ") => err=" + err + ", handle=0x" + database.Handle.ToString("x"));
+			Debug.WriteLine("fdb_future_get_database(0x" + future.ToString("x") + ") => err=" + err + ", handle=0x" + database.Handle.ToString("x"));
 #endif
 			//TODO: check if err == Success ?
 			return err;
@@ -488,7 +489,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static FutureHandle ClusterCreateDatabase(ClusterHandle cluster, string name)
+		public static IntPtr ClusterCreateDatabase(ClusterHandle cluster, string name)
 		{
 			var future = NativeMethods.fdb_cluster_create_database(cluster, name, name == null ? 0 : name.Length);
 			Contract.Assert(future != null);
@@ -524,17 +525,17 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static FutureHandle TransactionCommit(TransactionHandle transaction)
+		public static IntPtr TransactionCommit(TransactionHandle transaction)
 		{
 			var future = NativeMethods.fdb_transaction_commit(transaction);
 			Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_transaction_commit(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+			Debug.WriteLine("fdb_transaction_commit(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.ToString("x"));
 #endif
 			return future;
 		}
 
-		public static FutureHandle TransactionWatch(TransactionHandle transaction, Slice key)
+		public static IntPtr TransactionWatch(TransactionHandle transaction, Slice key)
 		{
 			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "key");
 
@@ -543,18 +544,18 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_watch(transaction, ptrKey + key.Offset, key.Count);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				Debug.WriteLine("fdb_transaction_watch(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.Handle.ToString("x"));
+				Debug.WriteLine("fdb_transaction_watch(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.ToString("x"));
 #endif
 				return future;
 			}
 		}
 
-		public static FutureHandle TransactionOnError(TransactionHandle transaction, FdbError errorCode)
+		public static IntPtr TransactionOnError(TransactionHandle transaction, FdbError errorCode)
 		{
 			var future = NativeMethods.fdb_transaction_on_error(transaction, errorCode);
 			Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_transaction_on_error(0x" + transaction.Handle.ToString("x") + ", " + errorCode + ") => 0x" + future.Handle.ToString("x"));
+			Debug.WriteLine("fdb_transaction_on_error(0x" + transaction.Handle.ToString("x") + ", " + errorCode + ") => 0x" + future.ToString("x"));
 #endif
 			return future;
 		}
@@ -583,12 +584,12 @@ namespace FoundationDB.Client.Native
 			NativeMethods.fdb_transaction_set_read_version(transaction, version);
 		}
 
-		public static FutureHandle TransactionGetReadVersion(TransactionHandle transaction)
+		public static IntPtr TransactionGetReadVersion(TransactionHandle transaction)
 		{
 			var future = NativeMethods.fdb_transaction_get_read_version(transaction);
 			Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_transaction_get_read_version(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.Handle.ToString("x"));
+			Debug.WriteLine("fdb_transaction_get_read_version(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.ToString("x"));
 #endif
 			return future;
 		}
@@ -601,15 +602,15 @@ namespace FoundationDB.Client.Native
 			return NativeMethods.fdb_transaction_get_committed_version(transaction, out version);
 		}
 
-		public static FdbError FutureGetVersion(FutureHandle future, out long version)
+		public static FdbError FutureGetVersion(IntPtr future, out long version)
 		{
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_get_version(0x" + future.Handle.ToString("x") + ")");
+			Debug.WriteLine("fdb_future_get_version(0x" + future.ToString("x") + ")");
 #endif
 			return NativeMethods.fdb_future_get_version(future, out version);
 		}
 
-		public static FutureHandle TransactionGet(TransactionHandle transaction, Slice key, bool snapshot)
+		public static IntPtr TransactionGet(TransactionHandle transaction, Slice key, bool snapshot)
 		{
 			if (key.IsNull) throw new ArgumentException("Key cannot be null", "key");
 
@@ -621,13 +622,13 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_get(transaction, ptrKey + key.Offset, key.Count, snapshot);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', snapshot: " + snapshot + ") => 0x" + future.Handle.ToString("x"));
+				Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', snapshot: " + snapshot + ") => 0x" + future.ToString("x"));
 #endif
 				return future;
 			}
 		}
 
-		public static FutureHandle TransactionGetRange(TransactionHandle transaction, FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse)
+		public static IntPtr TransactionGetRange(TransactionHandle transaction, FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse)
 		{
 			fixed (byte* ptrBegin = begin.Key.Array)
 			fixed (byte* ptrEnd = end.Key.Array)
@@ -639,13 +640,13 @@ namespace FoundationDB.Client.Native
 					limit, targetBytes, mode, iteration, snapshot, reverse);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-					Debug.WriteLine("fdb_transaction_get_range(0x" + transaction.Handle.ToString("x") + ", begin: " + begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", end: " + end.PrettyPrint(FdbKey.PrettyPrintMode.End) + ", " + snapshot + ") => 0x" + future.Handle.ToString("x"));
+					Debug.WriteLine("fdb_transaction_get_range(0x" + transaction.Handle.ToString("x") + ", begin: " + begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", end: " + end.PrettyPrint(FdbKey.PrettyPrintMode.End) + ", " + snapshot + ") => 0x" + future.ToString("x"));
 #endif
 				return future;
 			}
 		}
 
-		public static FutureHandle TransactionGetKey(TransactionHandle transaction, FdbKeySelector selector, bool snapshot)
+		public static IntPtr TransactionGetKey(TransactionHandle transaction, FdbKeySelector selector, bool snapshot)
 		{
 			if (selector.Key.IsNull) throw new ArgumentException("Key cannot be null", "selector");
 
@@ -654,13 +655,13 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_get_key(transaction, ptrKey + selector.Key.Offset, selector.Key.Count, selector.OrEqual, selector.Offset, snapshot);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", " + selector.ToString() + ", " + snapshot + ") => 0x" + future.Handle.ToString("x"));
+				Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", " + selector.ToString() + ", " + snapshot + ") => 0x" + future.ToString("x"));
 #endif
 				return future;
 			}
 		}
 
-		public static FutureHandle TransactionGetAddressesForKey(TransactionHandle transaction, Slice key)
+		public static IntPtr TransactionGetAddressesForKey(TransactionHandle transaction, Slice key)
 		{
 			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty", "key");
 
@@ -669,19 +670,19 @@ namespace FoundationDB.Client.Native
 				var future = NativeMethods.fdb_transaction_get_addresses_for_key(transaction, ptrKey + key.Offset, key.Count);
 				Contract.Assert(future != null);
 #if DEBUG_NATIVE_CALLS
-				Debug.WriteLine("fdb_transaction_get_addresses_for_key(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.Handle.ToString("x"));
+				Debug.WriteLine("fdb_transaction_get_addresses_for_key(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.ToString("x"));
 #endif
 				return future;
 			}
 		}
 
-		public static FdbError FutureGetValue(FutureHandle future, out bool valuePresent, out Slice value)
+		public static FdbError FutureGetValue(IntPtr future, out bool valuePresent, out Slice value)
 		{
 			byte* ptr;
 			int valueLength;
 			var err = NativeMethods.fdb_future_get_value(future, out valuePresent, out ptr, out valueLength);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_get_value(0x" + future.Handle.ToString("x") + ") => err=" + err + ", present=" + valuePresent + ", valueLength=" + valueLength);
+			Debug.WriteLine("fdb_future_get_value(0x" + future.ToString("x") + ") => err=" + err + ", present=" + valuePresent + ", valueLength=" + valueLength);
 #endif
 			if (ptr != null && valueLength >= 0)
 			{
@@ -696,13 +697,13 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static FdbError FutureGetKey(FutureHandle future, out Slice key)
+		public static FdbError FutureGetKey(IntPtr future, out Slice key)
 		{
 			byte* ptr;
 			int keyLength;
 			var err = NativeMethods.fdb_future_get_key(future, out ptr, out keyLength);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_get_key(0x" + future.Handle.ToString("x") + ") => err=" + err + ", keyLength=" + keyLength);
+			Debug.WriteLine("fdb_future_get_key(0x" + future.ToString("x") + ") => err=" + err + ", keyLength=" + keyLength);
 #endif
 
 			// note: fdb_future_get_key is allowed to return NULL for the empty key (not to be confused with a key that has an empty value)
@@ -719,7 +720,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static FdbError FutureGetKeyValueArray(FutureHandle future, out KeyValuePair<Slice, Slice>[] result, out bool more)
+		public static FdbError FutureGetKeyValueArray(IntPtr future, out KeyValuePair<Slice, Slice>[] result, out bool more)
 		{
 			result = null;
 
@@ -728,7 +729,7 @@ namespace FoundationDB.Client.Native
 
 			var err = NativeMethods.fdb_future_get_keyvalue_array(future, out kvp, out count, out more);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
+			Debug.WriteLine("fdb_future_get_keyvalue_array(0x" + future.ToString("x") + ") => err=" + err + ", count=" + count + ", more=" + more);
 #endif
 
 			if (Fdb.Success(err))
@@ -789,7 +790,7 @@ namespace FoundationDB.Client.Native
 			return err;
 		}
 
-		public static FdbError FutureGetStringArray(FutureHandle future, out string[] result)
+		public static FdbError FutureGetStringArray(IntPtr future, out string[] result)
 		{
 			result = null;
 
@@ -798,7 +799,7 @@ namespace FoundationDB.Client.Native
 
 			var err = NativeMethods.fdb_future_get_string_array(future, out strings, out count);
 #if DEBUG_NATIVE_CALLS
-			Debug.WriteLine("fdb_future_get_string_array(0x" + future.Handle.ToString("x") + ") => err=" + err + ", count=" + count);
+			Debug.WriteLine("fdb_future_get_string_array(0x" + future.ToString("x") + ") => err=" + err + ", count=" + count);
 #endif
 
 			if (Fdb.Success(err))
