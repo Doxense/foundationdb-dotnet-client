@@ -29,13 +29,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to capture the stacktrace of the ctor, when troubleshooting leaked transaction handles
 #undef CAPTURE_STACKTRACES
 
-using System.IO.IsolatedStorage;
+using FoundationDB.Async;
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Client.Core;
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
@@ -89,7 +87,7 @@ namespace FoundationDB.Client.Native
 
 			Debug.WriteLine("FutureCallbackHandler(0x{0}, {1:X8} | {2:X8}) called", handle.ToString("X"), cookie.ToInt64() >> 32, cookie.ToInt64() & uint.MaxValue);
 
-			bool deferred = false;
+			bool keepAlive = false;
 			try
 			{
 
@@ -104,12 +102,12 @@ namespace FoundationDB.Client.Native
 				if (context != null)
 				{
 					Contract.Assert(context.m_contextId == contextId);
-					deferred = context.OnFired(handle, cookie);
+					keepAlive = context.OnFutureReady(handle, cookie);
 				}
 			}
 			finally
 			{
-				if (!deferred) FdbNative.FutureDestroy(handle);
+				if (!keepAlive) DestroyHandle(ref handle);
 			}
 		}
 
@@ -189,8 +187,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>A callback has fire for a future handled by this context</summary>
 		/// <param name="handle"></param>
 		/// <param name="cookie"></param>
-		/// <param name="deferred">If this flag is set to true, then the caller will NOT destroy the future.</param>
-		private bool OnFired(IntPtr handle, IntPtr cookie)
+		private bool OnFutureReady(IntPtr handle, IntPtr cookie)
 		{
 			IFdbFuture future;
 			lock (m_futures)
@@ -205,7 +202,7 @@ namespace FoundationDB.Client.Native
 					ThreadPool.UnsafeQueueUserWorkItem(
 						(state) =>
 						{
-							((IFdbFuture)state).OnFired();
+							((IFdbFuture)state).OnReady();
 							//TODO: if it fails, maybe we should remove it from m_futures?
 						},
 						future
@@ -237,21 +234,38 @@ namespace FoundationDB.Client.Native
 			string label
 		)
 		{
+			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<TResult>(ct);
+
 			FdbFutureSingle<TResult> future = null;
 			IntPtr cookie = IntPtr.Zero;
 			try
 			{
-				uint futureId = (uint)Interlocked.Increment(ref m_localCookieCounter);
+				uint futureId = (uint) Interlocked.Increment(ref m_localCookieCounter);
 				cookie = MakeCallbackCookie(m_contextId, futureId);
 
 				future = new FdbFutureSingle<TResult>(handle, selector, state, cookie, label);
 
 				if (FdbNative.FutureIsReady(handle))
 				{ // the result is already computed
-					Debug.WriteLine("Future.{0} 0x{1} already completed!", label, handle.ToString("X"));
+					Debug.WriteLine("FutureSingle.{0} 0x{1} already completed!", label, handle.ToString("X"));
+					cookie = IntPtr.Zero;
 					mustDispose = false;
-					future.OnFired();
+					future.OnReady();
 					return future.Task;
+				}
+
+				if (ct.CanBeCanceled)
+				{
+					if (ct.IsCancellationRequested)
+					{
+						future.TrySetCanceled();
+						cookie = IntPtr.Zero;
+						return future.Task;
+					}
+
+					// note that the cancellation handler can fire inline, but it will only mark the future as cancelled
+					// this means that we will still wait for the future callback to fire and set the task state in there.
+					future.m_ctr = RegisterForCancellation(future, ct);
 				}
 
 				lock (m_futures)
@@ -262,8 +276,9 @@ namespace FoundationDB.Client.Native
 
 				var err = FdbNative.FutureSetCallback(handle, GlobalCallback, cookie);
 				if (!Fdb.Success(err))
-				{
-					throw Fdb.MapToException(err);
+				{ // the callback will not fire, so we have to abort the future immediately
+					future.TrySetException(Fdb.MapToException(err));
+					return future.Task;
 				}
 				mustDispose = false;
 				return future.Task;
@@ -273,16 +288,19 @@ namespace FoundationDB.Client.Native
 				if (future != null)
 				{
 					future.TrySetException(e);
-					if (cookie != IntPtr.Zero)
-					{
-						lock (m_futures)
-						{
-							m_futures.Remove(cookie);
-						}
-					}
 					return future.Task;
 				}
 				throw;
+			}
+			finally
+			{
+				if (mustDispose && cookie != IntPtr.Zero)
+				{ // make sure that we never leak a failed future !
+					lock (m_futures)
+					{
+						m_futures.Remove(cookie);
+					}
+				}
 			}
 		}
 
@@ -303,11 +321,13 @@ namespace FoundationDB.Client.Native
 			string label
 		)
 		{
+			if (ct.IsCancellationRequested) return TaskHelpers.FromCancellation<TResult[]>(ct);
+
 			FdbFutureArray<TResult> future = null;
 			IntPtr cookie = IntPtr.Zero;
 			try
 			{
-				uint futureId = (uint)Interlocked.Increment(ref m_localCookieCounter);
+				uint futureId = (uint) Interlocked.Increment(ref m_localCookieCounter);
 				cookie = MakeCallbackCookie(m_contextId, futureId);
 
 				// make a copy because we may diverge from the caller if we partially fail to register the callbacks below
@@ -315,12 +335,39 @@ namespace FoundationDB.Client.Native
 				handles.CopyTo(tmp, 0);
 				future = new FdbFutureArray<TResult>(tmp, selector, state, cookie, label);
 
-				//TODO: we could check if all handles are already completed/failed?
+				// check the case where all futures are already ready (served from cache?)
+				bool ready = true;
+				foreach (var handle in tmp)
+				{
+					if (!FdbNative.FutureIsReady(handle))
+					{
+						ready = false;
+						break;
+					}
+				}
+				if (ready)
+				{
+					Debug.WriteLine("FutureArray.{0} [{1}] already completed!", label, tmp.Length);
+					cookie = IntPtr.Zero;
+					mustDispose = false;
+					future.OnReady();
+					return future.Task;
+				}
 
 				lock (m_futures)
 				{
 					//TODO: mark the future as "registered" (must unreg when it fires?)
 					m_futures[cookie] = future;
+				}
+
+				if (ct.CanBeCanceled)
+				{
+					future.m_ctr = RegisterForCancellation(future, ct);
+					if (future.Task.IsCompleted)
+					{ // cancellation ran inline
+						future.TrySetCanceled();
+						return future.Task;
+					}
 				}
 
 				for (int i = 0; i < handles.Length; i++)
@@ -354,19 +401,97 @@ namespace FoundationDB.Client.Native
 				if (future != null)
 				{
 					future.TrySetException(e);
-					if (cookie != IntPtr.Zero)
-					{
-						lock (m_futures)
-						{
-							m_futures.Remove(cookie);
-						}
-					}
 					return future.Task;
 				}
 				throw;
 			}
+			finally
+			{
+				if (mustDispose && cookie != IntPtr.Zero)
+				{ // make sure that we never leak a failed future !
+					lock (m_futures)
+					{
+						m_futures.Remove(cookie);
+					}
+				}
+
+			}
 		}
 
+		internal static CancellationTokenRegistration RegisterForCancellation(IFdbFuture future, CancellationToken cancellationToken)
+		{
+			//note: if the token is already cancelled, the callback handler will run inline and any exception would bubble up here
+			//=> this is not a problem because the ctor already has a try/catch that will clean up everything
+			return cancellationToken.Register(
+				(_state) => { CancellationHandler(_state); },
+				future,
+				false
+			);
+		}
+
+		private static void CancellationHandler(object state)
+		{
+			var future = (IFdbFuture)state;
+			Contract.Assert(state != null);
+#if DEBUG_FUTURES
+			Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancel(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+#endif
+			future.Cancel();
+		}
+
+		internal static void DestroyHandle(ref IntPtr handle)
+		{
+			if (handle != IntPtr.Zero)
+			{
+				FdbNative.FutureDestroy(handle);
+				handle = IntPtr.Zero;
+			}
+		}
+
+		internal static void DestroyHandles(ref IntPtr[] handles)
+		{
+			if (handles != null)
+			{
+				foreach (var handle in handles)
+				{
+					if (handle != IntPtr.Zero) FdbNative.FutureDestroy(handle);
+				}
+				handles = null;
+			}
+		}
+
+		internal const int CATEGORY_SUCCESS = 0;
+		internal const int CATEGORY_RETRYABLE = 1;
+		internal const int CATEGORY_CANCELLED = 2;
+		internal const int CATEGORY_FAILURE = 3;
+
+		internal static int ClassifyErrorSeverity(FdbError error)
+		{
+			switch (error)
+			{
+				case FdbError.Success:
+				{
+					return CATEGORY_SUCCESS;
+				}
+				case FdbError.PastVersion:
+				case FdbError.FutureVersion:
+				case FdbError.TimedOut:
+				case FdbError.TooManyWatches:
+				{
+					return CATEGORY_RETRYABLE;
+				}
+
+				case FdbError.OperationCancelled:
+				{
+					return CATEGORY_CANCELLED;
+				}
+
+				default:
+				{
+					return CATEGORY_FAILURE;
+				}
+			}
+		}
 	}
 
 	internal class FdbFutureContext<THandle> : FdbFutureContext
@@ -472,6 +597,7 @@ namespace FoundationDB.Client.Native
 				throw;
 			}
 		}
+
 	}
 
 }

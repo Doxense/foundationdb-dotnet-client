@@ -41,13 +41,16 @@ namespace FoundationDB.Client.Native
 		/// <summary>Label of the future (usually the name of the operation)</summary>
 		string Label { get; }
 
+		/// <summary>Cancel the future, if it hasen't completed yet</summary>
+		void Cancel();
+
 		/// <summary>Test if this was the last pending handle for this future, or not</summary>
 		/// <param name="handle">Handle that completed</param>
-		/// <returns>True if this was the last handle and OnFired() can be called, or False if more handles need to fire first.</returns>
+		/// <returns>True if this was the last handle and <see cref="OnReady"/> can be called, or False if more handles need to fire first.</returns>
 		bool Visit(IntPtr handle);
 
 		/// <summary>Called when all handles tracked by this future have fired</summary>
-		void OnFired();
+		void OnReady();
 	}
 
 }

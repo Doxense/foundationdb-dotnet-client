@@ -29,11 +29,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug Futures
 #undef DEBUG_FUTURES
 
+using System.Diagnostics.Contracts;
+
 namespace FoundationDB.Client.Native
 {
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Base class for all FDBFuture wrappers</summary>
@@ -44,11 +47,12 @@ namespace FoundationDB.Client.Native
 
 		#region Private Members...
 
-		///// <summary>Optionnal registration on the parent Cancellation Token</summary>
-		///// <remarks>Is only valid if FLAG_HAS_CTR is set</remarks>
-		//protected CancellationTokenRegistration m_ctr;
+		/// <summary>Optionnal registration on the parent Cancellation Token</summary>
+		/// <remarks>Is only valid if FLAG_HAS_CTR is set</remarks>
+		internal CancellationTokenRegistration m_ctr;
 
-		protected FdbFuture(IntPtr cookie, string label)
+		protected FdbFuture(IntPtr cookie, string label, object state)
+			: base(state)
 		{
 			this.Cookie = cookie;
 			this.Label = label;
@@ -62,45 +66,11 @@ namespace FoundationDB.Client.Native
 
 		#region Cancellation...
 
-#if REFACTORED
-
-		protected void RegisterForCancellation(CancellationToken cancellationToken)
-		{
-			//note: if the token is already cancelled, the callback handler will run inline and any exception would bubble up here
-			//=> this is not a problem because the ctor already has a try/catch that will clean up everything
-			m_ctr = cancellationToken.Register(
-				(_state) => { CancellationHandler(_state); },
-				this,
-				false
-			);
-		}
-
-		protected void UnregisterCancellationRegistration()
-		{
-			// unsubscribe from the parent cancellation token if there was one
-			m_ctr.Dispose();
-			m_ctr = default(CancellationTokenRegistration);
-		}
-
-		private static void CancellationHandler(object state)
-		{
-			var future = state as FdbFuture<T>;
-			if (future != null)
-			{
-#if DEBUG_FUTURES
-				Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancel(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
-#endif
-				future.Cancel();
-			}
-		}
-
-#endif
-
 		#endregion
 
 		public abstract bool Visit(IntPtr handle);
 
-		public abstract void OnFired();
+		public abstract void OnReady();
 
 		/// <summary>Return true if the future has completed (successfully or not)</summary>
 		public bool IsReady
@@ -117,30 +87,33 @@ namespace FoundationDB.Client.Native
 		/// <summary>Try to abort the task (if it is still running)</summary>
 		public void Cancel()
 		{
-			throw new NotImplementedException("FIXME: Future Cancellation!");
-#if REFACTORED
-			if (HasAnyFlags(FdbFuture.Flags.DISPOSED | FdbFuture.Flags.COMPLETED | FdbFuture.Flags.CANCELLED))
-			{
-				return;
-			}
+			if (this.Task.IsCanceled) return;
 
-			if (TrySetFlag(FdbFuture.Flags.CANCELLED))
+			OnCancel();
+		}
+
+		protected abstract void OnCancel();
+
+		protected void PublishResult(T result)
+		{
+			TrySetResult(result);
+		}
+
+		protected  void PublishError(Exception error, FdbError code)
+		{ 
+			if (error != null)
 			{
-				bool fromCallback = Fdb.IsNetworkThread;
-				try
-				{
-					if (!this.Task.IsCompleted)
-					{
-						CancelHandles();
-						SetCanceled(fromCallback);
-					}
-				}
-				finally
-				{
-					TryCleanup();
-				}
+				TrySetException(error);
 			}
-#endif
+			else if (FdbFutureContext.ClassifyErrorSeverity(code) == FdbFutureContext.CATEGORY_CANCELLED)
+			{
+				TrySetCanceled();
+			}
+			else
+			{
+				Contract.Assert(code != FdbError.Success);
+				TrySetException(Fdb.MapToException(code));
+			}
 		}
 
 	}

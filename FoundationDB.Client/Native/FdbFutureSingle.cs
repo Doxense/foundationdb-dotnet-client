@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #undef DEBUG_FUTURES
 
 using System.Diagnostics;
+using System.Security.Policy;
 
 namespace FoundationDB.Client.Native
 {
@@ -50,19 +51,16 @@ namespace FoundationDB.Client.Native
 		/// <summary>Lambda used to extract the result of this FDBFuture</summary>
 		private readonly Func<IntPtr, object, T> m_resultSelector;
 
-		private readonly object m_state;
-
 		#endregion
 
 		internal FdbFutureSingle(IntPtr handle, [NotNull] Func<IntPtr, object, T> selector, object state, IntPtr cookie, string label)
-			: base(cookie, label)
+			: base(cookie, label, state)
 		{
 			if (handle == IntPtr.Zero) throw new ArgumentException("Invalid future handle", "handle");
 			if (selector == null) throw new ArgumentNullException("selector");
 
 			m_handle = handle;
 			m_resultSelector = selector;
-			m_state = state;
 		}
 
 		public override bool Visit(IntPtr handle)
@@ -72,12 +70,9 @@ namespace FoundationDB.Client.Native
 		}
 
 		[HandleProcessCorruptedStateExceptions] // to be able to handle Access Violations and terminate the process
-		public override void OnFired()
+		public override void OnReady()
 		{
-			Debug.WriteLine("Future{0}<{1}>.OnFired(0x{2})", this.Label, typeof(T).Name, m_handle.ToString("X8"));
-
-			var handle = Interlocked.Exchange(ref m_handle, IntPtr.Zero);
-			if (handle == IntPtr.Zero) return; // already disposed?
+			IntPtr handle = IntPtr.Zero;
 
 			//README:
 			// - This callback will fire either from the ThreadPool (async ops) or inline form the ctor of the future (non-async ops, or ops that where served from some cache).
@@ -86,63 +81,72 @@ namespace FoundationDB.Client.Native
 
 			try
 			{
-				T result = default(T);
-				FdbError code;
-				Exception error = null;
-				try
-				{
-					if (this.Task.IsCompleted)
-					{ // task has already been handled by someone else
-						return;
-					}
+				handle = Interlocked.Exchange(ref m_handle, IntPtr.Zero);
+				if (handle == IntPtr.Zero) return; // already disposed?
 
-					code = FdbNative.FutureGetError(handle);
-					if (code == FdbError.Success)
+				Debug.WriteLine("FutureSingle.{0}<{1}>.OnReady(0x{2})", this.Label, typeof(T).Name, handle.ToString("X8"));
+
+				if (this.Task.IsCompleted)
+				{ // task has already been handled by someone else
+					return;
+				}
+
+				var result = default(T);
+				var error = default(Exception);
+
+				var code = FdbNative.FutureGetError(handle);
+				if (code == FdbError.Success)
+				{
+					try
 					{
-						try
-						{
-							result = m_resultSelector(handle, m_state);
-						}
-						catch (AccessViolationException e)
-						{ // trouble in paradise!
+						result = m_resultSelector(handle, this.Task.AsyncState);
+					}
+					catch (AccessViolationException e)
+					{ // trouble in paradise!
 
-							Debug.WriteLine("EPIC FAIL: " + e.ToString());
+						Debug.WriteLine("EPIC FAIL: " + e.ToString());
 
-							// => THIS IS VERY BAD! We have no choice but to terminate the process immediately, because any new call to any method to the binding may end up freezing the whole process (best case) or sending corrupted data to the cluster (worst case)
-							if (Debugger.IsAttached) Debugger.Break();
+						// => THIS IS VERY BAD! We have no choice but to terminate the process immediately, because any new call to any method to the binding may end up freezing the whole process (best case) or sending corrupted data to the cluster (worst case)
+						if (Debugger.IsAttached) Debugger.Break();
 
-							Environment.FailFast("FIXME: FDB done goofed!", e);
-						}
-						catch (Exception e)
-						{
-							Debug.WriteLine("FAIL: " + e.ToString());
-							code = FdbError.InternalError;
-							error = e;
-						}
+						Environment.FailFast("FIXME: FDB done goofed!", e);
+					}
+					catch (Exception e)
+					{
+						Debug.WriteLine("FAIL: " + e.ToString());
+						code = FdbError.InternalError;
+						error = e;
 					}
 				}
-				finally
-				{
-					FdbNative.FutureDestroy(handle);				
-				}
+
+				// since continuations may fire inline, make sure to release all the memory used by this handle first
+				FdbFutureContext.DestroyHandle(ref handle);
 
 				if (code == FdbError.Success)
 				{
-					TrySetResult(result);
-				}
-				else if (code == FdbError.OperationCancelled || code == FdbError.TransactionCancelled)
-				{
-					TrySetCanceled();
+					PublishResult(result);
 				}
 				else
 				{
-					TrySetException(error ?? Fdb.MapToException(code));
+					PublishError(error, code);
 				}
 			}
 			catch (Exception e)
 			{ // we must not blow up the TP or the parent, so make sure to propagate all exceptions to the task
 				TrySetException(e);
 			}
+			finally
+			{
+				if (handle != IntPtr.Zero) FdbFutureContext.DestroyHandle(ref handle);
+				GC.KeepAlive(this);
+			}
+		}
+
+		protected override void OnCancel()
+		{
+			IntPtr handle = Volatile.Read(ref m_handle);
+			//TODO: we probably need locking to prevent concurrent destroy and cancel calls
+			if (handle != IntPtr.Zero) FdbNative.FutureCancel(handle);
 		}
 
 	}

@@ -37,26 +37,36 @@ namespace FoundationDB.Client.Native
 	/// <typeparam name="T">Type of result</typeparam>
 	internal sealed class FdbFutureArray<T> : FdbFuture<T[]>
 	{
+		// This future encapsulate multiple FDBFuture* handles and use ref-counting to detect when all the handles have fired
+		// The ref-counting is handled by the network thread, and invokation of future.OnReady() is deferred to the ThreadPool once the counter reaches zero
+		// The result array is computed once all FDBFuture are ready, from the ThreadPool.
+		// If at least one of the FDBFuture fails, the Task fails, using the most "serious" error found (ie: Non-Retryable > Cancelled > Retryable)
 
 		#region Private Members...
 
+		/// <summary>Encapsulated handles</summary>
+		// May contains IntPtr.Zero handles if there was a problem when setting up the callbacks.
+		// Atomically set to null by the first thread that needs to destroy all the handles
+		[CanBeNull]
 		private IntPtr[] m_handles;
 
+		/// <summary>Number of handles that haven't fired yet</summary>
 		private int m_pending;
 
+		/// <summary>Lambda used to extract the result of one handle</summary>
+		// the first argument is the FDBFuture handle that must be ready and not failed
+		// the second argument is a state that is passed by the caller.
+		[NotNull]
 		private readonly Func<IntPtr, object, T> m_resultSelector;
-
-		private readonly object m_state;
 
 		#endregion
 
 		internal FdbFutureArray([NotNull] IntPtr[] handles, [NotNull] Func<IntPtr, object, T> selector, object state, IntPtr cookie, string label)
-			: base(cookie, label)
+			: base(cookie, label, state)
 		{
 			m_handles = handles;
 			m_pending = handles.Length;
 			m_resultSelector = selector;
-			m_state = state;
 		}
 
 		public override bool Visit(IntPtr handle)
@@ -64,128 +74,116 @@ namespace FoundationDB.Client.Native
 			return 0 == Interlocked.Decrement(ref m_pending);
 		}
 
-		private const int CATEGORY_SUCCESS = 0;
-		private const int CATEGORY_RETRYABLE = 1;
-		private const int CATEGORY_CANCELLED = 2;
-		private const int CATEGORY_FAILURE = 3;
-
-		private static int ClassifyErrorSeverity(FdbError error)
+		public override void OnReady()
 		{
-			switch (error)
-			{
-				case FdbError.Success:
-					return CATEGORY_SUCCESS;
-
-				case FdbError.PastVersion:
-				case FdbError.FutureVersion:
-				case FdbError.TimedOut:
-				case FdbError.TooManyWatches:
-					return CATEGORY_RETRYABLE;
-
-				case FdbError.OperationCancelled:
-				case FdbError.TransactionCancelled:
-					return CATEGORY_CANCELLED;
-
-				default:
-					return CATEGORY_FAILURE;
-			}
-		}
-
-		public override void OnFired()
-		{
-			var handles = Interlocked.Exchange(ref m_handles, null);
-			if (handles == null) return; // already disposed?
-
-			Debug.WriteLine("Future{0}<{1}[]>.OnFired({2})", this.Label, typeof (T).Name, handles.Length);
-
 			//README:
 			// - This callback will fire either from the ThreadPool (async ops) or inline form the ctor of the future (non-async ops, or ops that where served from some cache).
 			// - The method *MUST* dispose the future handle before returning, and *SHOULD* do so before signaling the task.
 			//   => This is because continuations may run inline, and start new futures from there, while we still have our original future handle opened.
 
+			IntPtr[] handles = null;
 			try
 			{
+				// make sure that nobody can destroy our handles while we are using them.
+				handles = Interlocked.Exchange(ref m_handles, null);
+				if (handles == null) return; // already disposed?
+
+				Debug.WriteLine("FutureArray.{0}<{1}[]>.OnReady([{2}])", this.Label, typeof(T).Name, handles.Length);
+
 				T[] results = new T[handles.Length];
 				FdbError code = FdbError.Success;
 				int severity = 0;
 				Exception error = null;
-				try
+
+				if (this.Task.IsCompleted)
+				{ // task has already been handled by someone else
+					return;
+				}
+
+				var state = this.Task.AsyncState;
+				for (int i = 0; i < results.Length; i++)
 				{
-					if (this.Task.IsCompleted)
-					{ // task has already been handled by someone else
-						return;
-					}
-
-					for (int i = 0; i < results.Length; i++)
+					var handle = handles[i];
+					var err = FdbNative.FutureGetError(handle);
+					if (err == FdbError.Success)
 					{
-						var handle = handles[i];
-						var err = FdbNative.FutureGetError(handle);
-						if (err == FdbError.Success)
-						{
-							if (code != FdbError.Success)
-							{ // there's been at least one error before, so there is no point in computing the result, it would be discarded anyway
-								continue;
-							}
-
-							try
-							{
-								results[i] = m_resultSelector(handle, m_state);
-							}
-							catch (AccessViolationException e)
-							{ // trouble in paradise!
-
-								Debug.WriteLine("EPIC FAIL: " + e.ToString());
-
-								// => THIS IS VERY BAD! We have no choice but to terminate the process immediately, because any new call to any method to the binding may end up freezing the whole process (best case) or sending corrupted data to the cluster (worst case)
-								if (Debugger.IsAttached) Debugger.Break();
-
-								Environment.FailFast("FIXME: FDB done goofed!", e);
-							}
-							catch (Exception e)
-							{
-								Debug.WriteLine("FAIL: " + e.ToString());
-								code = FdbError.InternalError;
-								error = e;
-								break;
-							}
+						if (code != FdbError.Success)
+						{ // there's been at least one error before, so there is no point in computing the result, it would be discarded anyway
+							continue;
 						}
-						else if (code != err)
+
+						try
 						{
-							int cur = ClassifyErrorSeverity(err);
-							if (cur > severity)
-							{ // error is more serious than before
-								severity = cur;
-								code = err;
-							}
+							results[i] = m_resultSelector(handle, state);
+						}
+						catch (AccessViolationException e)
+						{ // trouble in paradise!
+
+							Debug.WriteLine("EPIC FAIL: " + e.ToString());
+
+							// => THIS IS VERY BAD! We have no choice but to terminate the process immediately, because any new call to any method to the binding may end up freezing the whole process (best case) or sending corrupted data to the cluster (worst case)
+							if (Debugger.IsAttached) Debugger.Break();
+
+							Environment.FailFast("FIXME: FDB done goofed!", e);
+						}
+						catch (Exception e)
+						{
+							Debug.WriteLine("FAIL: " + e.ToString());
+							code = FdbError.InternalError;
+							error = e;
+							break;
+						}
+					}
+					else if (code != err)
+					{
+						int cur = FdbFutureContext.ClassifyErrorSeverity(err);
+						if (cur > severity)
+						{ // error is more serious than before
+							severity = cur;
+							code = err;
 						}
 					}
 				}
-				finally
-				{
-					foreach (var handle in handles)
-					{
-						if (handle != IntPtr.Zero) FdbNative.FutureDestroy(handle);
-					}
-				}
+
+				// since continuations may fire inline, make sure to release all the memory used by this handle first
+				FdbFutureContext.DestroyHandles(ref handles);
 
 				if (code == FdbError.Success)
 				{
-					TrySetResult(results);
-				}
-				else if (code == FdbError.OperationCancelled || code == FdbError.TransactionCancelled)
-				{
-					TrySetCanceled();
+					PublishResult(results);
 				}
 				else
 				{
-					TrySetException(error ?? Fdb.MapToException(code));
+					PublishError(error, code);
 				}
 			}
 			catch (Exception e)
 			{ // we must not blow up the TP or the parent, so make sure to propagate all exceptions to the task
 				TrySetException(e);
 			}
+			finally
+			{
+				if (handles != null) FdbFutureContext.DestroyHandles(ref handles);
+				GC.KeepAlive(this);
+			}
 		}
+
+		protected override void OnCancel()
+		{
+			var handles = Volatile.Read(ref m_handles);
+			//TODO: we probably need locking to prevent concurrent destroy and cancel calls
+			if (handles != null)
+			{
+				foreach (var handle in handles)
+				{
+					if (handle != IntPtr.Zero)
+					{
+						FdbNative.FutureCancel(handle);
+					}
+				}
+			}
+		}
+
 	}
 
 }
