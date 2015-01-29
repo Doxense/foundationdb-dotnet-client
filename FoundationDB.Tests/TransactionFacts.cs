@@ -1923,7 +1923,132 @@ namespace FoundationDB.Client.Tests
 
 			}
 		}
-	
+
+		[Test, Category("LongRunning")]
+		public async Task Test_BadPractice_Future_Fuzzer()
+		{
+			const int DURATION_SEC = 30;
+			const int R = 100;
+
+			using (var db = await OpenTestDatabaseAsync())
+			{
+				var location = db.Partition("Fuzzer");
+
+
+				var rnd = new Random();
+				int seed = rnd.Next();
+				Log("Using random seeed {0}", seed);
+				rnd = new Random(seed);
+
+				await db.WriteAsync((tr) =>
+				{
+					for (int i = 0; i < R; i++)
+					{
+						tr.Set(location.Pack(i), Slice.FromInt32(i));
+					}
+				}, this.Cancellation);
+
+				var start = DateTime.UtcNow;
+				Log("This test will run for {0} seconds", DURATION_SEC);
+
+				int time = 0;
+
+				List<IFdbTransaction> m_alive = new List<IFdbTransaction>();
+				while (DateTime.UtcNow - start < TimeSpan.FromSeconds(DURATION_SEC))
+				{
+					switch (rnd.Next(10))
+					{
+						case 0:
+						{ // start a new transaction
+							Console.Write('T');
+							var tr = db.BeginTransaction(FdbTransactionMode.Default, this.Cancellation);
+							m_alive.Add(tr);
+							break;
+						}
+						case 1:
+						{ // drop a random transaction
+							if (m_alive.Count == 0) continue;
+							Console.Write('L');
+							int p = rnd.Next(m_alive.Count);
+
+							m_alive.RemoveAt(p);
+							//no dispose
+							break;
+						}
+						case 2:
+						{ // dispose a random transaction
+							if (m_alive.Count == 0) continue;
+							Console.Write('D');
+							int p = rnd.Next(m_alive.Count);
+
+							var tr = m_alive[p];
+							tr.Dispose();
+							m_alive.RemoveAt(p);
+							break;
+						}
+						case 3:
+						{ // GC!
+							Console.Write('C');
+							var tr = db.BeginTransaction(FdbTransactionMode.ReadOnly, this.Cancellation);
+							m_alive.Add(tr);
+							await tr.GetReadVersionAsync();
+							break;
+						}
+
+						case 4:
+						case 5:
+						case 6:
+						{ // read a random value from a random transaction
+							Console.Write('G');
+							if (m_alive.Count == 0) break;
+							int p = rnd.Next(m_alive.Count);
+							var tr = m_alive[p];
+
+							int x = rnd.Next(R);
+							try
+							{
+								var res = await tr.GetAsync(location.Pack(x));
+							}
+							catch (FdbException)
+							{
+								Console.Write('!');
+							}
+							break;
+						}
+						case 7:
+						case 8:
+						case 9:
+						{ // read a random value, but drop the task
+							Console.Write('g');
+							if (m_alive.Count == 0) break;
+							int p = rnd.Next(m_alive.Count);
+							var tr = m_alive[p];
+
+							int x = rnd.Next(R);
+							var t = tr.GetAsync(location.Pack(x)).ContinueWith((_) => Console.Write('!'), TaskContinuationOptions.NotOnRanToCompletion);
+							// => t is not stored
+							break;
+						}
+
+					}
+					if ((time++) % 80 == 0)
+					{
+						Console.WriteLine();
+						Log("State: {0}", m_alive.Count);
+						Console.Write('C');
+						GC.Collect();
+						GC.WaitForPendingFinalizers();
+						GC.Collect();
+					}
+
+				}
+
+				GC.Collect();
+				GC.WaitForPendingFinalizers();
+				GC.Collect();
+			}
+
+		}
 	}
 
 }
