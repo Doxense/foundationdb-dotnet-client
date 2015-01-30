@@ -331,7 +331,7 @@ namespace FoundationDB.Client.Native
 		#region Callbacks...
 
 		/// <summary>List of all pending futures that have not yet completed</summary>
-		private static readonly ConcurrentDictionary<IntPtr, FdbFuture<T>> s_futures = new ConcurrentDictionary<IntPtr, FdbFuture<T>>();
+		private static readonly ConcurrentDictionary<long, FdbFuture<T>> s_futures = new ConcurrentDictionary<long, FdbFuture<T>>();
 
 		/// <summary>Internal counter to generated a unique parameter value for each futures</summary>
 		private static long s_futureCounter;
@@ -355,7 +355,7 @@ namespace FoundationDB.Client.Native
 #if DEBUG_FUTURES
 				Contract.Assert(!s_futures.ContainsKey(prm));
 #endif
-				s_futures[prm] = future;
+				s_futures[prm.ToInt64()] = future;
 				Interlocked.Increment(ref DebugCounters.CallbackHandlesTotal);
 				Interlocked.Increment(ref DebugCounters.CallbackHandles);
 			}
@@ -377,7 +377,7 @@ namespace FoundationDB.Client.Native
 				if (key != IntPtr.Zero)
 				{
 					FdbFuture<T> _;
-					if (s_futures.TryRemove(key, out _))
+					if (s_futures.TryRemove(key.ToInt64(), out _))
 					{
 						Interlocked.Decrement(ref DebugCounters.CallbackHandles);
 					}
@@ -388,7 +388,7 @@ namespace FoundationDB.Client.Native
 		internal static FdbFuture<T> GetFutureFromCallbackParameter(IntPtr parameter)
 		{
 			FdbFuture<T> future;
-			if (s_futures.TryGetValue(parameter, out future))
+			if (s_futures.TryGetValue(parameter.ToInt64(), out future))
 			{
 				if (future != null && Volatile.Read(ref future.m_key) == parameter)
 				{
