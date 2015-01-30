@@ -1931,8 +1931,7 @@ namespace FoundationDB.Client.Tests
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("Fuzzer");
-
+				var location = db.Partition.ByKey("Fuzzer");
 
 				var rnd = new Random();
 				int seed = rnd.Next();
@@ -1943,7 +1942,7 @@ namespace FoundationDB.Client.Tests
 				{
 					for (int i = 0; i < R; i++)
 					{
-						tr.Set(location.Pack(i), Slice.FromInt32(i));
+						tr.Set(location.Tuples.EncodeKey(i), Slice.FromInt32(i));
 					}
 				}, this.Cancellation);
 
@@ -2006,7 +2005,7 @@ namespace FoundationDB.Client.Tests
 							int x = rnd.Next(R);
 							try
 							{
-								var res = await tr.GetAsync(location.Pack(x));
+								var res = await tr.GetAsync(location.Tuples.EncodeKey(x));
 							}
 							catch (FdbException)
 							{
@@ -2024,7 +2023,7 @@ namespace FoundationDB.Client.Tests
 							var tr = m_alive[p];
 
 							int x = rnd.Next(R);
-							var t = tr.GetAsync(location.Pack(x)).ContinueWith((_) => Console.Write('!'), TaskContinuationOptions.NotOnRanToCompletion);
+							var t = tr.GetAsync(location.Tuples.EncodeKey(x)).ContinueWith((_) => Console.Write('!'), TaskContinuationOptions.NotOnRanToCompletion);
 							// => t is not stored
 							break;
 						}
