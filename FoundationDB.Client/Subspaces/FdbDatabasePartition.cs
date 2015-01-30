@@ -37,7 +37,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>View of a database that is bound to a specific Partition</summary>
-	[DebuggerDisplay("Database={Database.Name}, Contents={Directory.ContentsSubspace}, Nodes={Directory.NodeSubspace}")]
+	[DebuggerDisplay("Database={Database.Name}, Partition={Directory.FullName}, Prefix={Database.GlobalSpace}")]
 	public sealed class FdbDatabasePartition : IFdbDirectory
 	{
 		private readonly IFdbDatabase m_database;

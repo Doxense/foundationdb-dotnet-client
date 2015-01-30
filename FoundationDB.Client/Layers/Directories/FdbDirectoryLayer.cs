@@ -47,7 +47,7 @@ namespace FoundationDB.Layers.Directories
 	/// <see cref="FdbDirectoryLayer"/> exposes methods to create, open, move, remove, or list directories. Creating or opening a directory returns the corresponding subspace.
 	/// The <see cref="FdbDirectorySubspace"/> class represents subspaces that store the contents of a directory. An instance of <see cref="FdbDirectorySubspace"/> can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.
 	/// </summary>
-	[DebuggerDisplay("Nodes={this.NodeSubspace}, Contents={this.ContentsSubspace}")]
+	[DebuggerDisplay("FullName={FullName}, Contents={ContentSubspace}, Nodes={NodeSubspace}")]
 	public class FdbDirectoryLayer : IFdbDirectory
 	{
 		private const int SUBDIRS = 0;
