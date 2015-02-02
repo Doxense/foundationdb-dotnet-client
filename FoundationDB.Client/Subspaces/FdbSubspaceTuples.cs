@@ -153,40 +153,38 @@ namespace FoundationDB.Client
 
 		/// <summary>Unpack a key into a tuple, with the subspace prefix removed</summary>
 		/// <param name="key">Packed version of a key that should fit inside this subspace.</param>
-		/// <returns>Unpacked tuple that is relative to the current subspace, or null if the key is equal to Slice.Nil</returns>
+		/// <returns>Unpacked tuple that is relative to the current subspace, or the empty tuple if <paramref name="key"/> is equal to the prefix of this tuple.</returns>
 		/// <example>new Subspace([FE]).Unpack([FE 02 'H' 'e' 'l' 'l' 'o' 00 15 1]) => ("hello", 1,)</example>
 		/// <remarks>If <paramref name="key"/> is equal to the subspace prefix, then an empty tuple is returned.</remarks>
+		/// <exception cref="System.ArgumentNullException">If <paramref name="key"/> is <see cref="Slice.Nil"/></exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked tuple is not contained in this subspace</exception>
-		[CanBeNull] //REVIEW: [NotNull] !
+		[NotNull]
 		public IFdbTuple Unpack(Slice key)
 		{
-			// We special case 'Slice.Nil' because it is returned by GetAsync(..) when the key does not exist
-			// This is to simplifiy decoding logic where the caller could do "var foo = FdbTuple.Unpack(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
-			if (key.IsNull) return null; //REVIEW: throw! (see FdbTuple.Unpack)
-
+			if (key.IsNull) throw new ArgumentNullException("key");
 			return FdbTuple.Unpack(m_subspace.ExtractKey(key, boundCheck: true));
 		}
 
 		/// <summary>Unpack a key into a tuple, with the subspace prefix removed</summary>
 		/// <param name="key">Packed version of a key that should fit inside this subspace.</param>
-		/// <returns>Unpacked tuple that is relative to the current subspace, or null if the key is equal to Slice.Nil</returns>
-		/// <example>new Subspace([FE]).Unpack([FE 02 'H' 'e' 'l' 'l' 'o' 00 15 1]) => ("hello", 1,)</example>
+		/// <returns>Unpacked tuple that is relative to the current subspace, the empty tuple if <paramref name="key"/> is equal to <see cref="Slice.Empty"/>, or null if <paramref name="key"/> is equal to <see cref="Slice.Nil"/></returns>
+		/// <example>new Subspace([FE]).UnpackOrDefault([FE 02 'H' 'e' 'l' 'l' 'o' 00 15 1]) => ("hello", 1,)</example>
 		/// <remarks>If <paramref name="key"/> is equal to the subspace prefix, then an empty tuple is returned.</remarks>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked tuple is not contained in this subspace</exception>
-		[CanBeNull] //REVIEW: [NotNull] !
+		[CanBeNull]
 		public IFdbTuple UnpackOrDefault(Slice key)
 		{
-			// We special case 'Slice.Nil' because it is returned by GetAsync(..) when the key does not exist
-			// This is to simplifiy decoding logic where the caller could do "var foo = FdbTuple.Unpack(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
+			// We special case 'Slice.Nil' because it is returned by GetAsync(..) when the key does not exist.
+			// This simplifies the decoding logic where the caller could do "var foo = FdbTuple.UnpackOrDefault(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
 			if (key.IsNull) return null;
 
-			return FdbTuple.Unpack(m_subspace.ExtractKey(key, boundCheck: true));
+			return FdbTuple.UnpackOrDefault(m_subspace.ExtractKey(key, boundCheck: true));
 		}
 
 		/// <summary>Unpack an sequence of keys into tuples, with the subspace prefix removed</summary>
 		/// <param name="keys">Packed version of keys inside this subspace</param>
 		/// <returns>Unpacked tuples that are relative to the current subspace</returns>
-		[NotNull, ItemCanBeNull] //REVIEW: ItemNotNull!
+		[NotNull, ItemNotNull]
 		public IFdbTuple[] Unpack([NotNull] IEnumerable<Slice> keys)
 		{
 			// return an array with the keys minus the subspace's prefix
@@ -197,8 +195,8 @@ namespace FoundationDB.Client
 			var tuples = new IFdbTuple[extracted.Length];
 			for(int i = 0; i < extracted.Length; i++)
 			{
-				//REVIEW: throw is null!
-				if (extracted[i].HasValue) tuples[i] = new FdbPrefixedTuple(prefix, FdbTuple.Unpack(extracted[i]));
+				if (extracted[i].IsNull) throw new InvalidOperationException("The list of keys contains at least one element which is null.");
+				tuples[i] = new FdbPrefixedTuple(prefix, FdbTuple.Unpack(extracted[i]));
 			}
 			return tuples;
 		}
@@ -225,7 +223,7 @@ namespace FoundationDB.Client
 		/// <summary>Unpack an array of keys into tuples, with the subspace prefix removed</summary>
 		/// <param name="keys">Packed version of keys inside this subspace</param>
 		/// <returns>Unpacked tuples that are relative to the current subspace.</returns>
-		[NotNull, ItemCanBeNull] //REVIEW: ItemNotNull
+		[NotNull, ItemNotNull]
 		public IFdbTuple[] Unpack([NotNull] params Slice[] keys)
 		{
 			//note: this overload allows writing ".Unpack(foo, bar, baz)" instead of ".Unpack(new [] { foo, bar, baz })"
@@ -238,7 +236,7 @@ namespace FoundationDB.Client
 		[NotNull, ItemCanBeNull]
 		public IFdbTuple[] UnpackOrDefault([NotNull] params Slice[] keys)
 		{
-			//note: this overload allows writing ".Unpack(foo, bar, baz)" instead of ".UnpackOrDefault(new [] { foo, bar, baz })"
+			//note: this overload allows writing ".UnpackOrDefault(foo, bar, baz)" instead of ".UnpackOrDefault(new [] { foo, bar, baz })"
 			return UnpackOrDefault((IEnumerable<Slice>)keys);
 		}
 
@@ -447,19 +445,23 @@ namespace FoundationDB.Client
 		/// <summary>Unpack a key into a singleton tuple, and return the single element</summary>
 		/// <typeparam name="T">Expected type of the only element</typeparam>
 		/// <param name="key">Packed version of a key that should fit inside this subspace</param>
-		/// <returns>Converted value of the only element in the tuple. Throws an exception if the tuple is empty or contains more than one element</returns>
+		/// <returns>Tuple of size 1, with the converted value of the only element in the tuple. Throws an exception if the tuple is empty or contains more than one element</returns>
 		/// <example>new Subspace([FE]).UnpackSingle&lt;int&gt;([FE 02 'H' 'e' 'l' 'l' 'o' 00]) => (string) "Hello"</example>
 		public T DecodeKey<T>(Slice key)
 		{
 			return FdbTuple.DecodeKey<T>(m_subspace.ExtractKey(key, boundCheck: true));
 		}
 
-
+		/// <summary>Unpack a key into a pair of elements</summary>
+		/// <typeparam name="T1">Type of the first element</typeparam>
+		/// <typeparam name="T2">Type of the second element</typeparam>
+		/// <param name="key">Packed version of a key that should fit inside this subspace, and is composed of two elements.</param>
+		/// <returns>Tuple of size 2, with the converted values of the tuple. Throws an exception if the tuple is empty or contains more than two elements</returns>
 		public FdbTuple<T1, T2> DecodeKey<T1, T2>(Slice key)
 		{
+			if (key.IsNullOrEmpty) throw new FormatException("The specified key is empty");
 			var tuple = Unpack(key);
-			if (tuple == null) throw new FormatException("The specified key does not contain any items");
-			if (tuple.Count != 2) throw new FormatException("The specified key is not a tuple with 2 items");
+			if (tuple.Count != 2) throw new FormatException("The specified key is not a tuple with two items");
 
 			return FdbTuple.Create<T1, T2>(
 				tuple.Get<T1>(0),
@@ -467,11 +469,17 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Unpack a key into a triplet of elements</summary>
+		/// <typeparam name="T1">Type of the first element</typeparam>
+		/// <typeparam name="T2">Type of the second element</typeparam>
+		/// <typeparam name="T3">Type of the third element</typeparam>
+		/// <param name="key">Packed version of a key that should fit inside this subspace, and is composed of three elements.</param>
+		/// <returns>Tuple of size 3, with the converted values of the tuple. Throws an exception if the tuple is empty or contains more than three elements</returns>
 		public FdbTuple<T1, T2, T3> DecodeKey<T1, T2, T3>(Slice key)
 		{
+			if (key.IsNullOrEmpty) throw new FormatException("The specified key is empty");
 			var tuple = Unpack(key);
-			if (tuple == null) throw new FormatException("The specified key does not contain any items");
-			if (tuple.Count != 3) throw new FormatException("The specified key is not a tuple with 3 items");
+			if (tuple.Count != 3) throw new FormatException("The specified key is not a tuple with three items");
 
 			return FdbTuple.Create<T1, T2, T3>(
 				tuple.Get<T1>(0),
@@ -480,11 +488,18 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Unpack a key into a quartet of elements</summary>
+		/// <typeparam name="T1">Type of the first element</typeparam>
+		/// <typeparam name="T2">Type of the second element</typeparam>
+		/// <typeparam name="T3">Type of the third element</typeparam>
+		/// <typeparam name="T4">Type of the fourth element</typeparam>
+		/// <param name="key">Packed version of a key that should fit inside this subspace, and is composed of four elements.</param>
+		/// <returns>Tuple of size 3, with the converted values of the tuple. Throws an exception if the tuple is empty or contains more than four elements</returns>
 		public FdbTuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(Slice key)
 		{
+			if (key.IsNullOrEmpty) throw new FormatException("The specified key is empty");
 			var tuple = Unpack(key);
-			if (tuple == null) throw new FormatException("The specified key does not contain any items");
-			if (tuple.Count != 4) throw new FormatException("The specified key is not a tuple with 4 items");
+			if (tuple.Count != 4) throw new FormatException("The specified key is not a tuple with four items");
 
 			return FdbTuple.Create<T1, T2, T3, T4>(
 				tuple.Get<T1>(0),
@@ -494,11 +509,19 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Unpack a key into a quintet of elements</summary>
+		/// <typeparam name="T1">Type of the first element</typeparam>
+		/// <typeparam name="T2">Type of the second element</typeparam>
+		/// <typeparam name="T3">Type of the third element</typeparam>
+		/// <typeparam name="T4">Type of the fourth element</typeparam>
+		/// <typeparam name="T5">Type of the fifth element</typeparam>
+		/// <param name="key">Packed version of a key that should fit inside this subspace, and is composed of five elements.</param>
+		/// <returns>Tuple of size 3, with the converted values of the tuple. Throws an exception if the tuple is empty or contains more than five elements</returns>
 		public FdbTuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice key)
 		{
+			if (key.IsNullOrEmpty) throw new FormatException("The specified key is empty");
 			var tuple = Unpack(key);
-			if (tuple == null) throw new FormatException("The specified key does not contain any items");
-			if (tuple.Count != 5) throw new FormatException("The specified key is not a tuple with 5 items");
+			if (tuple.Count != 5) throw new FormatException("The specified key is not a tuple with five items");
 
 			return FdbTuple.Create<T1, T2, T3, T4, T5>(
 				tuple.Get<T1>(0),

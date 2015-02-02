@@ -177,17 +177,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Unpack a tuple from this slice</summary>
 		/// <param name="slice"></param>
 		/// <returns>Unpacked tuple if the slice contains data, FdbTuple.Empty if the slice is empty, or null if the slice is Slice.Nil</returns>
-		[CanBeNull] //REVIEW: => NotNull!
+		[NotNull]
 		public static IFdbTuple ToTuple(this Slice slice)
 		{
 			//note: this method is here to allow a fluent API with method chaining, like "something.ToFoundationDbKey().ToTuple().With((int x, int y) => .....)"
-
-			//REVIEW: same as FdbTuple.Unpack(): we need to throw if slice is Nil (caller should use ToTupleOrDefault() in this case
-			if (slice.IsNullOrEmpty)
-			{
-				return slice.HasValue ? FdbTuple.Empty : null;
-			}
-
 			return FdbTuple.Unpack(slice);
 		}
 

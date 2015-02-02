@@ -766,14 +766,12 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Unpack a tuple from a serialied key blob</summary>
 		/// <param name="packedKey">Binary key containing a previously packed tuple</param>
 		/// <returns>Unpacked tuple, or the empty tuple if the key is <see cref="Slice.Empty"/></returns>
-		/// <exception cref="System.ArgumentException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
-		[CanBeNull] //REVIEW: => NotNull!
+		/// <exception cref="System.ArgumentNullException">If <paramref name="packedKey"/> is equal to <see cref="Slice.Nil"/></exception>
+		[NotNull]
 		public static IFdbTuple Unpack(Slice packedKey)
 		{
-			//REVIEW: the fact that Unpack(..) can return null (for Slice.Empty) creates a lot of "possible nullref" noise on FdbTuple.Unpack(someKey) when the key cannot possibly Slice.Nil (ex: GetKey, GetRange, ...)
-			// => either change it so that we return FdbTuple.Empty in both cases (Empty/Nil), OR throw and exception, OR have a different method UnpackOrDefault(...) if people really want to get null in some cases?
-
-			if (packedKey.IsNullOrEmpty) return packedKey.HasValue ? FdbTuple.Empty : null;
+			if (packedKey.IsNull) throw new ArgumentNullException("packedKey");
+			if (packedKey.Count == 0) return FdbTuple.Empty;
 
 			return FdbTuplePackers.Unpack(packedKey, false);
 		}
