@@ -198,7 +198,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Create a new N-tuple, from N items</summary>
 		/// <param name="items">Items to wrap in a tuple</param>
-		/// <remarks>If you already have an array of items, you should call <see cref="CreateRange(object[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
+		/// <remarks>If you already have an array of items, you should call <see cref="FromArray{T}(T[])"/> instead. Mutating the array, would also mutate the tuple!</remarks>
 		[NotNull]
 		public static IFdbTuple Create([NotNull] params object[] items)
 		{
@@ -238,47 +238,6 @@ namespace FoundationDB.Layers.Tuples
 			// can mutate if passed a pre-allocated array: { var foo = new objec[123]; Create(foo); foo[42] = "bad"; }
 			return new FdbListTuple(items, offset, count);
 		}
-
-		///// <summary>Create a new N-tuple, from an array of untyped items</summary>
-		//[NotNull]
-		//public static IFdbTuple CreateRange(object[] items)
-		//{
-		//	//REVIEW: this is idential to Create(object[]) and Wrap(object[]) !!
-
-		//	if (items == null) throw new ArgumentNullException("items");
-
-		//	return CreateRange(items, 0, items.Length);
-		//}
-
-		///// <summary>Create a new N-tuple, from a section of an array of untyped items</summary>
-		//[NotNull]
-		//public static IFdbTuple CreateRange(object[] items, int offset, int count)
-		//{
-		//	//REVIEW: this is idential to Wrap(object[]) !!
-
-		//	if (items == null) throw new ArgumentNullException("items");
-		//	if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
-		//	if (count < 0) throw new ArgumentOutOfRangeException("count", "Count cannot be less than zero");
-		//	if (offset + count > items.Length) throw new ArgumentOutOfRangeException("count", "Source array is too small");
-
-		//	if (count == 0) return FdbTuple.Empty;
-
-		//	// copy the items
-		//	var tmp = new object[count];
-		//	Array.Copy(items, offset, tmp, 0, count);
-		//	return new FdbListTuple(tmp, 0, count);
-		//}
-
-		///// <summary>Create a new N-tuple from a sequence of items</summary>
-		//[NotNull]
-		//public static IFdbTuple CreateRange(IEnumerable<object> items)
-		//{
-		//	if (items == null) throw new ArgumentNullException("items");
-
-		//	// may already be a tuple (because it implements IE<obj>)
-		//	var tuple = items as IFdbTuple ?? new FdbListTuple(items);
-		//	return tuple;
-		//}
 
 		/// <summary>Create a new tuple, from an array of typed items</summary>
 		/// <param name="items">Array of items</param>
@@ -465,7 +424,7 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice[] Pack<TElement>(Slice prefix, [NotNull] TElement[] elements, Func<TElement, IFdbTuple> transform)
 		{
 			if (elements == null) throw new ArgumentNullException("elements");
-			if (transform == null) throw new ArgumentNullException("convert");
+			if (transform == null) throw new ArgumentNullException("transform");
 
 			var next = new List<int>(elements.Length);
 			var writer = new TupleWriter();
@@ -494,7 +453,7 @@ namespace FoundationDB.Layers.Tuples
 		public static Slice[] Pack<TElement>(Slice prefix, [NotNull] IEnumerable<TElement> elements, Func<TElement, IFdbTuple> transform)
 		{
 			if (elements == null) throw new ArgumentNullException("elements");
-			if (transform == null) throw new ArgumentNullException("convert");
+			if (transform == null) throw new ArgumentNullException("transform");
 
 			// use optimized version for arrays
 			var array = elements as TElement[];
@@ -787,27 +746,6 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuplePackers.Unpack(packedKey, false);
 		}
 
-		/// <summary>Unpack a tuple from a serialized key, after removing a required prefix</summary>
-		/// <param name="packedKey">Packed key</param>
-		/// <param name="prefix">Expected prefix of the key (that is not part of the tuple)</param>
-		/// <returns>Unpacked tuple (minus the prefix) or an exception if the key is outside the prefix</returns>
-		/// <exception cref="System.ArgumentNullException">If prefix is null</exception>
-		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked key is outside the specified prefix</exception>
-		[NotNull]
-		public static IFdbTuple Unpack(Slice packedKey, Slice prefix)
-		{
-			// ensure that the key starts with the prefix
-			if (!packedKey.StartsWith(prefix))
-#if DEBUG
-				throw new ArgumentOutOfRangeException("packedKey", String.Format("The specifed packed tuple does not start with the expected prefix '{0}'", prefix.ToString()));
-#else
-				throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
-#endif
-
-			// unpack the key, minus the prefix
-			return FdbTuplePackers.Unpack(packedKey.Substring(prefix.Count), false);
-		}
-
 		/// <summary>Unpack a tuple and only return its first element</summary>
 		/// <typeparam name="T">Type of the first value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should be entirely parsable as a tuple</param>
@@ -820,28 +758,6 @@ namespace FoundationDB.Layers.Tuples
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack tuple");
 
 			return FdbTuplePacker<T>.Deserialize(slice);
-		}
-
-		/// <summary>Unpack a tuple and only return its first element, after removing <paramref name="prefix"/> from the start of the buffer</summary>
-		/// <typeparam name="T">Type of the first value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice composed of <paramref name="prefix"/> followed by a packed tuple</param>
-		/// <param name="prefix">Expected prefix of the key (that is not part of the tuple)</param>
-		/// <returns>Decoded value of the first item in the tuple</returns>
-		public static T DecodePrefixedFirst<T>(Slice packedKey, Slice prefix)
-		{
-			// ensure that the key starts with the prefix
-			if (!packedKey.StartsWith(prefix))
-			{
-#if DEBUG
-				//REVIEW: for now only in debug mode, because leaking keys in exceptions mesasges may not be a good idea?
-				throw new ArgumentOutOfRangeException("packedKey", String.Format("The specifed packed tuple ({0}) does not start with the expected prefix ({1})", FdbKey.Dump(packedKey), FdbKey.Dump(prefix)));
-#else
-				throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
-#endif
-			}
-
-			// unpack the key, minus the prefix
-			return DecodeFirst<T>(packedKey.Substring(prefix.Count));
 		}
 
 		/// <summary>Unpack a tuple and only return its last element</summary>
@@ -858,28 +774,6 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuplePacker<T>.Deserialize(slice);
 		}
 
-		/// <summary>Unpack a tuple and only return its last element, after removing <paramref name="prefix"/> from the start of the buffer</summary>
-		/// <typeparam name="T">Type of the last value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice composed of <paramref name="prefix"/> followed by a packed tuple</param>
-		/// <param name="prefix">Expected prefix of the key (that is not part of the tuple)</param>
-		/// <returns>Decoded value of the last item in the tuple</returns>
-		public static T DecodePrefixedLast<T>(Slice packedKey, Slice prefix)
-		{
-			// ensure that the key starts with the prefix
-			if (!packedKey.StartsWith(prefix))
-			{
-#if DEBUG
-				//REVIEW: for now only in debug mode, because leaking keys in exceptions mesasges may not be a good idea?
-				throw new ArgumentOutOfRangeException("packedKey", String.Format("The specifed packed tuple ({0}) does not start with the expected prefix ({1})", FdbKey.Dump(packedKey), FdbKey.Dump(prefix)));
-#else
-				throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
-#endif
-			}
-
-			// unpack the key, minus the prefix
-			return DecodeLast<T>(packedKey.Substring(prefix.Count));
-		}
-
 		/// <summary>Unpack the value of a singletion tuple</summary>
 		/// <typeparam name="T">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
@@ -892,20 +786,6 @@ namespace FoundationDB.Layers.Tuples
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack singleton tuple");
 
 			return FdbTuplePacker<T>.Deserialize(slice);
-		}
-
-		/// <summary>Unpack the value of a singleton tuple, after removing <paramref name="prefix"/> from the start of the buffer</summary>
-		/// <typeparam name="T">Type of the single value in the decoded tuple</typeparam>
-		/// <param name="packedKey">Slice composed of <paramref name="prefix"/> followed by a packed singleton tuple</param>
-		/// <param name="prefix">Expected prefix of the key (that is not part of the tuple)</param>
-		/// <returns>Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</returns>
-		public static T DecodePrefixedKey<T>(Slice packedKey, Slice prefix)
-		{
-			// ensure that the key starts with the prefix
-			if (!packedKey.StartsWith(prefix)) throw new ArgumentOutOfRangeException("packedKey", "The specifed packed tuple does not start with the expected prefix");
-
-			// unpack the key, minus the prefix
-			return DecodeKey<T>(packedKey.Substring(prefix.Count));
 		}
 
 		/// <summary>Unpack the next item in the tuple, and advance the cursor</summary>
@@ -1156,7 +1036,7 @@ namespace FoundationDB.Layers.Tuples
 			if (items == null) return String.Empty;
 			Contract.Requires(offset >= 0 && count >= 0);
 
-			if (count == 0)
+			if (count <= 0)
 			{ // empty tuple: "()"
 				return TokenTupleEmpty;
 			}
@@ -1168,14 +1048,12 @@ namespace FoundationDB.Layers.Tuples
 			{ // singleton tuple : "(X,)"
 				return sb.Append(TokenTupleSingleClose).ToString();
 			}
-			else
+
+			while (--count > 0)
 			{
-				while (--count > 0)
-				{
-					sb.Append(TokenTupleSep /* ", " */).Append(Stringify(items[offset++]));
-				}
-				return sb.Append(TokenTupleClose /* ",)" */).ToString();
+				sb.Append(TokenTupleSep /* ", " */).Append(Stringify(items[offset++]));
 			}
+			return sb.Append(TokenTupleClose /* ",)" */).ToString();
 		}
 
 		/// <summary>Converts a sequence of object into a displaying string, for loggin/debugging purpose</summary>

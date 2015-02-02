@@ -345,7 +345,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 1</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
 		public static void With<T1>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1> lambda)
 		{
 			OfSize(tuple, 1);
@@ -353,7 +355,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 2</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
 		public static void With<T1, T2>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2> lambda)
 		{
 			OfSize(tuple, 2);
@@ -361,7 +365,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 3</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
 		public static void With<T1, T2, T3>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3> lambda)
 		{
 			OfSize(tuple, 3);
@@ -369,7 +375,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 4</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
 		public static void With<T1, T2, T3, T4>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4> lambda)
 		{
 			OfSize(tuple, 4);
@@ -377,7 +385,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 5</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
 		public static void With<T1, T2, T3, T4, T5>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5> lambda)
 		{
 			OfSize(tuple, 5);
@@ -385,7 +395,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 6</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
 		public static void With<T1, T2, T3, T4, T5, T6>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6> lambda)
 		{
 			OfSize(tuple, 6);
@@ -393,7 +405,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 7</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
 		public static void With<T1, T2, T3, T4, T5, T6, T7>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7> lambda)
 		{
 			OfSize(tuple, 7);
@@ -401,7 +415,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 8</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
 		public static void With<T1, T2, T3, T4, T5, T6, T7, T8>([NotNull] this IFdbTuple tuple, [NotNull] Action<T1, T2, T3, T4, T5, T6, T7, T8> lambda)
 		{
 			OfSize(tuple, 8);
@@ -409,72 +425,88 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 1</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
-		public static R With<T1, R>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, R> lambda)
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
+		public static TResult With<T1, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, TResult> lambda)
 		{
 			OfSize(tuple, 1);
 			return lambda(tuple.Get<T1>(0));
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
-		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <param name="tuple">Tuple of size 2</param>
+		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
-		public static R With<T1, T2, R>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, R> lambda)
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
+		public static TResult With<T1, T2, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, TResult> lambda)
 		{
 			OfSize(tuple, 2);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1));
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
+		/// <param name="tuple">Tuple of size 3</param>
 		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
-		public static R With<T1, T2, T3, R>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, R> lambda)
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
+		public static TResult With<T1, T2, T3, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, TResult> lambda)
 		{
 			OfSize(tuple, 3);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2));
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
-		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <param name="tuple">Tuple of size 4</param>
+		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
-		public static R With<T1, T2, T3, T4, R>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, R> lambda)
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
+		public static TResult With<T1, T2, T3, T4, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, TResult> lambda)
 		{
 			OfSize(tuple, 4);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3));
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
-		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <param name="tuple">Tuple of size 5</param>
+		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
-		public static R With<T1, T2, T3, T4, T5, R>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, R> lambda)
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
+		public static TResult With<T1, T2, T3, T4, T5, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, TResult> lambda)
 		{
 			OfSize(tuple, 5);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4));
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
-		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <param name="tuple">Tuple of size 6</param>
+		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
-		public static R With<T1, T2, T3, T4, T5, T6, R>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, R> lambda)
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
+		public static TResult With<T1, T2, T3, T4, T5, T6, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, TResult> lambda)
 		{
 			OfSize(tuple, 6);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5));
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
-		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <param name="tuple">Tuple of size 7</param>
+		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
-		public static R With<T1, T2, T3, T4, T5, T6, T7, R>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, R> lambda)
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
+		public static TResult With<T1, T2, T3, T4, T5, T6, T7, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, TResult> lambda)
 		{
 			OfSize(tuple, 7);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6));
 		}
 
 		/// <summary>Execute a lambda Function with the content of this tuple</summary>
-		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <param name="tuple">Tuple of size 8</param>
+		/// <param name="lambda">Function that will be passed the content of this tuple as parameters</param>
 		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
-		public static R With<T1, T2, T3, T4, T5, T6, T7, T8, R>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, T8, R> lambda)
+		/// <exception cref="InvalidOperationException">If <paramref name="tuple"/> has not the expected size</exception>
+		public static TResult With<T1, T2, T3, T4, T5, T6, T7, T8, TResult>([NotNull] this IFdbTuple tuple, [NotNull] Func<T1, T2, T3, T4, T5, T6, T7, T8, TResult> lambda)
 		{
 			OfSize(tuple, 8);
 			return lambda(tuple.Get<T1>(0), tuple.Get<T2>(1), tuple.Get<T3>(2), tuple.Get<T4>(3), tuple.Get<T5>(4), tuple.Get<T6>(5), tuple.Get<T7>(6), tuple.Get<T8>(7));
