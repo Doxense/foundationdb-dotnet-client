@@ -157,8 +157,24 @@ namespace FoundationDB.Client
 		/// <example>new Subspace([FE]).Unpack([FE 02 'H' 'e' 'l' 'l' 'o' 00 15 1]) => ("hello", 1,)</example>
 		/// <remarks>If <paramref name="key"/> is equal to the subspace prefix, then an empty tuple is returned.</remarks>
 		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked tuple is not contained in this subspace</exception>
-		[CanBeNull]
+		[CanBeNull] //REVIEW: [NotNull] !
 		public IFdbTuple Unpack(Slice key)
+		{
+			// We special case 'Slice.Nil' because it is returned by GetAsync(..) when the key does not exist
+			// This is to simplifiy decoding logic where the caller could do "var foo = FdbTuple.Unpack(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
+			if (key.IsNull) return null; //REVIEW: throw! (see FdbTuple.Unpack)
+
+			return FdbTuple.Unpack(m_subspace.ExtractKey(key, boundCheck: true));
+		}
+
+		/// <summary>Unpack a key into a tuple, with the subspace prefix removed</summary>
+		/// <param name="key">Packed version of a key that should fit inside this subspace.</param>
+		/// <returns>Unpacked tuple that is relative to the current subspace, or null if the key is equal to Slice.Nil</returns>
+		/// <example>new Subspace([FE]).Unpack([FE 02 'H' 'e' 'l' 'l' 'o' 00 15 1]) => ("hello", 1,)</example>
+		/// <remarks>If <paramref name="key"/> is equal to the subspace prefix, then an empty tuple is returned.</remarks>
+		/// <exception cref="System.ArgumentOutOfRangeException">If the unpacked tuple is not contained in this subspace</exception>
+		[CanBeNull] //REVIEW: [NotNull] !
+		public IFdbTuple UnpackOrDefault(Slice key)
 		{
 			// We special case 'Slice.Nil' because it is returned by GetAsync(..) when the key does not exist
 			// This is to simplifiy decoding logic where the caller could do "var foo = FdbTuple.Unpack(await tr.GetAsync(...))" and then only have to test "if (foo != null)"
@@ -170,7 +186,7 @@ namespace FoundationDB.Client
 		/// <summary>Unpack an sequence of keys into tuples, with the subspace prefix removed</summary>
 		/// <param name="keys">Packed version of keys inside this subspace</param>
 		/// <returns>Unpacked tuples that are relative to the current subspace</returns>
-		[NotNull]
+		[NotNull, ItemCanBeNull] //REVIEW: ItemNotNull!
 		public IFdbTuple[] Unpack([NotNull] IEnumerable<Slice> keys)
 		{
 			// return an array with the keys minus the subspace's prefix
@@ -181,18 +197,49 @@ namespace FoundationDB.Client
 			var tuples = new IFdbTuple[extracted.Length];
 			for(int i = 0; i < extracted.Length; i++)
 			{
+				//REVIEW: throw is null!
 				if (extracted[i].HasValue) tuples[i] = new FdbPrefixedTuple(prefix, FdbTuple.Unpack(extracted[i]));
+			}
+			return tuples;
+		}
+
+		/// <summary>Unpack an sequence of keys into tuples, with the subspace prefix removed</summary>
+		/// <param name="keys">Packed version of keys inside this subspace</param>
+		/// <returns>Unpacked tuples that are relative to the current subspace</returns>
+		[NotNull, ItemCanBeNull]
+		public IFdbTuple[] UnpackOrDefault([NotNull] IEnumerable<Slice> keys)
+		{
+			// return an array with the keys minus the subspace's prefix
+			var extracted = m_subspace.ExtractKeys(keys, boundCheck: true);
+
+			// unpack everything
+			var prefix = m_subspace.Key;
+			var tuples = new IFdbTuple[extracted.Length];
+			for (int i = 0; i < extracted.Length; i++)
+			{
+				if (extracted[i].HasValue) tuples[i] = new FdbPrefixedTuple(prefix, FdbTuple.UnpackOrDefault(extracted[i]));
 			}
 			return tuples;
 		}
 
 		/// <summary>Unpack an array of keys into tuples, with the subspace prefix removed</summary>
 		/// <param name="keys">Packed version of keys inside this subspace</param>
-		/// <returns>Unpacked tuples that are relative to the current subspace</returns>
-		[NotNull]
+		/// <returns>Unpacked tuples that are relative to the current subspace.</returns>
+		[NotNull, ItemCanBeNull] //REVIEW: ItemNotNull
 		public IFdbTuple[] Unpack([NotNull] params Slice[] keys)
 		{
+			//note: this overload allows writing ".Unpack(foo, bar, baz)" instead of ".Unpack(new [] { foo, bar, baz })"
 			return Unpack((IEnumerable<Slice>)keys);
+		}
+
+		/// <summary>Unpack an array of keys into tuples, with the subspace prefix removed</summary>
+		/// <param name="keys">Packed version of keys inside this subspace</param>
+		/// <returns>Unpacked tuples that are relative to the current subspace. If a key is equal to <see cref="Slice.Nil"/> then the corresponding tuple will be null</returns>
+		[NotNull, ItemCanBeNull]
+		public IFdbTuple[] UnpackOrDefault([NotNull] params Slice[] keys)
+		{
+			//note: this overload allows writing ".Unpack(foo, bar, baz)" instead of ".UnpackOrDefault(new [] { foo, bar, baz })"
+			return UnpackOrDefault((IEnumerable<Slice>)keys);
 		}
 
 		#endregion

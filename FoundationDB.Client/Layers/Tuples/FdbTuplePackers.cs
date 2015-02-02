@@ -522,6 +522,7 @@ namespace FoundationDB.Layers.Tuples
 
 		private static readonly Dictionary<Type, Delegate> s_sliceUnpackers = InitializeDefaultUnpackers();
 
+		[NotNull]
 		private static Dictionary<Type, Delegate> InitializeDefaultUnpackers()
 		{
 			var map = new Dictionary<Type, Delegate>();
@@ -554,6 +555,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
+		[NotNull]
 		internal static Func<Slice, T> GetDeserializer<T>(bool required)
 		{
 			Type type = typeof(T);
@@ -588,7 +590,7 @@ namespace FoundationDB.Layers.Tuples
 			return slice.IsNullOrEmpty || slice[0] == FdbTupleTypes.Nil;
 		}
 
-		private static Delegate MakeNullableDeserializer(Type nullableType, Type type, Delegate decoder)
+		private static Delegate MakeNullableDeserializer([NotNull] Type nullableType, [NotNull] Type type, [NotNull] Delegate decoder)
 		{
 			Contract.Requires(nullableType != null && type != null && decoder != null);
 			// We have a Decoder of T, but we have to transform it into a Decoder for Nullable<T>, which returns null if the slice is "nil", or falls back to the underlying decoder if the slice contains something
@@ -610,6 +612,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <returns>Decoded element, in the type that is the best fit.</returns>
 		/// <remarks>You should avoid working with untyped values as much as possible! Blindly casting the returned object may be problematic because this method may need to return very large intergers as Int64 or even UInt64.</remarks>
+		[CanBeNull]
 		public static object DeserializeBoxed(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
@@ -667,7 +670,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <param name="factory">Lambda that will be called to construct a new instance of values of type <typeparamref name="T"/></param>
 		/// <returns>Decoded value of type <typeparamref name="T"/></returns>
-		public static T DeserializeFormattable<T>(Slice slice, Func<T> factory)
+		public static T DeserializeFormattable<T>(Slice slice, [NotNull] Func<T> factory)
 			where T : ITupleFormattable
 		{
 			var tuple = FdbTupleParser.ParseTuple(slice);
@@ -708,12 +711,14 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Deserialize a tuple segment into a byte array</summary>
+		[CanBeNull] //REVIEW: because of Slice.GetBytes()
 		public static byte[] DeserializeBytes(Slice slice)
 		{
 			return DeserializeSlice(slice).GetBytes();
 		}
 
 		/// <summary>Deserialize a tuple segment into a tuple</summary>
+		[CanBeNull]
 		public static IFdbTuple DeserializeTuple(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
@@ -960,7 +965,7 @@ namespace FoundationDB.Layers.Tuples
 				{ // Number of days since Epoch
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
 					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
-					long ticks = UNIX_EPOCH_TICKS + (long)(FdbTupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);			
+					long ticks = UNIX_EPOCH_TICKS + (long)(FdbTupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
 			}
@@ -1012,6 +1017,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Deserialize a tuple segment into a Unicode string</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
+		[CanBeNull]
 		public static string DeserializeString(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
@@ -1148,6 +1154,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Deserialize a tuple segment into Guid</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
+		[CanBeNull]
 		public static System.Net.IPAddress DeserializeIPAddress(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
