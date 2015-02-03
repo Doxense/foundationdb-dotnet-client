@@ -1960,7 +1960,7 @@ namespace FoundationDB.Client
 		/// <remarks>This method is optmized to reduce the amount of memory allocated</remarks>
 		public static Slice[] ConcatRange(Slice prefix, IEnumerable<Slice> slices)
 		{
-			if (slices == null) throw new ArgumentNullException("suffixes");
+			if (slices == null) throw new ArgumentNullException("slices");
 
 			if (prefix.IsNullOrEmpty)
 			{ // nothing to do, but we still need to copy the array

@@ -1035,9 +1035,9 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Visit the different tokens of a packed tuple</summary>
-		/// <param name="input">Reader positionned at the start of a packed tuple</param>
+		/// <param name="reader">Reader positionned at the start of a packed tuple</param>
 		/// <param name="visitor">Lambda called for each segment of a tuple. Returns true to continue parsing, or false to stop</param>
-		/// <returns>Number of tokens that have been visited until either <paramref name="visitor"/> returned false, or <paramerf name="reader"> reached the end.</returns>
+		/// <returns>Number of tokens that have been visited until either <paramref name="visitor"/> returned false, or <paramref name="reader"/> reached the end.</returns>
 		public static T VisitNext<T>(ref TupleReader reader, Func<Slice, FdbTupleSegmentType, T> visitor)
 		{
 			if (!reader.Input.HasMore) throw new InvalidOperationException("The reader has already reached the end");
