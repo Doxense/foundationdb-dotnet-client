@@ -149,7 +149,7 @@ namespace FoundationDB.Samples.Tutorials
 
 			using(var tr = db.BeginTransaction(ct))
 			{
-				var counters = await tr.Snapshot.GetRange(countersLocation.Tuples.ToRange()).Select(kvp => new KeyValuePair<string, long>(countersLocation.Tuples.DecodeLast<string>(kvp.Key), kvp.Value.ToInt64())).ToListAsync().ConfigureAwait(false);
+				var counters = await tr.Snapshot.GetRange(countersLocation.Keys.ToRange()).Select(kvp => new KeyValuePair<string, long>(countersLocation.Keys.DecodeLast<string>(kvp.Key), kvp.Value.ToInt64())).ToListAsync().ConfigureAwait(false);
 
 				Console.WriteLine("Status at " + DateTimeOffset.Now.ToString("O"));
 				foreach(var counter in counters)
@@ -159,24 +159,24 @@ namespace FoundationDB.Samples.Tutorials
 
 				Console.WriteLine("Dump:");
 				Console.WriteLine("> Idle");
-				await tr.Snapshot.GetRange(idleLocation.Tuples.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(idleLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Idle." + idleLocation.Tuples.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine("- Idle." + idleLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
 				});
 				Console.WriteLine("> Busy");
-				await tr.Snapshot.GetRange(busyLocation.Tuples.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(busyLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Busy." + busyLocation.Tuples.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine("- Busy." + busyLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
 				});
 				Console.WriteLine("> Unassigned");
-				await tr.Snapshot.GetRange(unassignedLocation.Tuples.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(unassignedLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Unassigned." + unassignedLocation.Tuples.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine("- Unassigned." + unassignedLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
 				});
 				Console.WriteLine("> Tasks");
-				await tr.Snapshot.GetRange(tasksLocation.Tuples.ToRange()).ForEachAsync((kvp) =>
+				await tr.Snapshot.GetRange(tasksLocation.Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					Console.WriteLine("- Tasks." + tasksLocation.Tuples.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
+					Console.WriteLine("- Tasks." + tasksLocation.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
 				});
 				Console.WriteLine("<");
 			}

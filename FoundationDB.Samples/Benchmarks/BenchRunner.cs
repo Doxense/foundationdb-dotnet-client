@@ -46,7 +46,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 		public BenchMode Mode { get; private set; }
 
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbDynamicSubspace Subspace { get; private set; }
 
 		public RobustHistogram Histo { get; private set; }
 
@@ -86,7 +86,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 			var duration = Stopwatch.StartNew();
 
-			var foo = this.Subspace.Tuples.EncodeKey("foo");
+			var foo = this.Subspace.Keys.Encode("foo");
 			var bar = Slice.FromString("bar");
 			var barf = Slice.FromString("barf");
 

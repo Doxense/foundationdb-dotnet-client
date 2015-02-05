@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -80,9 +80,9 @@ namespace FoundationDB.Layers.Collections.Tests
 			for (int l = 0; l < 6; l++)
 			{
 				sb.AppendFormat("Level {0}:\r\n", l);
-				await tr.GetRange(rs.Subspace.Partition.ByKey(l).Tuples.ToRange()).ForEachAsync((kvp) =>
+				await tr.GetRange(rs.Subspace.Partition.ByKey(l).Keys.ToRange()).ForEachAsync((kvp) =>
 				{
-					sb.AppendFormat("\t{0} = {1}\r\n", rs.Subspace.Tuples.Unpack(kvp.Key), kvp.Value.ToInt64());
+					sb.AppendFormat("\t{0} = {1}\r\n", rs.Subspace.Keys.Unpack(kvp.Key), kvp.Value.ToInt64());
 				});
 			}
 			Console.WriteLine(sb.ToString());

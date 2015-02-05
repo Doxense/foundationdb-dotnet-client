@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -58,8 +58,8 @@ namespace FoundationDB.Linq.Tests
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Tuples.EncodeKey("Hello"), Slice.FromString("World!"));
-					tr.Set(location.Tuples.EncodeKey("Narf"), Slice.FromString("Zort"));
+					tr.Set(location.Keys.Encode("Hello"), Slice.FromString("World!"));
+					tr.Set(location.Keys.Encode("Narf"), Slice.FromString("Zort"));
 				}, this.Cancellation);
 
 				var range = db.Query().RangeStartsWith(location.Key);

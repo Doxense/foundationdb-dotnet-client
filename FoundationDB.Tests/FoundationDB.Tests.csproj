@@ -96,7 +96,7 @@
     <Compile Include="Uuid128Facts.cs" />
     <Compile Include="Utils\SliceFacts.cs" />
     <Compile Include="DatabaseBulkFacts.cs" />
-    <Compile Include="Layers\SubspaceFacts.cs" />
+    <Compile Include="SubspaceFacts.cs" />
     <Compile Include="Layers\DirectoryFacts.cs" />
     <Compile Include="Layers\DocumentCollectionFacts.cs" />
     <Compile Include="Layers\IndexingFacts.cs" />

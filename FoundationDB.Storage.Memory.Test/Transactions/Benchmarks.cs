@@ -62,7 +62,7 @@ namespace FoundationDB.Storage.Memory.API.Tests
 			//WARMUP
 			using (var db = MemoryDatabase.CreateNew("FOO"))
 			{
-				await db.WriteAsync((tr) => tr.Set(db.Tuples.EncodeKey("hello"), Slice.FromString("world")), this.Cancellation);
+				await db.WriteAsync((tr) => tr.Set(db.Keys.Encode("hello"), Slice.FromString("world")), this.Cancellation);
 				Slice.Random(rnd, KEYSIZE);
 				Slice.Random(rnd, VALUESIZE);
 			}

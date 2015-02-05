@@ -40,11 +40,11 @@ namespace FoundationDB.Layers.Directories
 	/// <summary>A Directory Subspace represents the contents of a directory, but it also remembers the path with which it was opened and offers convenience methods to operate on the directory at that path.</summary>
 	/// <remarks>An instance of DirectorySubspace can be used for all the usual subspace operations. It can also be used to operate on the directory with which it was opened.</remarks>
 	[DebuggerDisplay("Path={this.FullName}, Prefix={InternalKey}, Layer={Layer}")]
-	public class FdbDirectorySubspace : FdbSubspace, IFdbDirectory
+	public class FdbDirectorySubspace : FdbDynamicSubspace, IFdbDirectory
 	{
 
-		internal FdbDirectorySubspace(IFdbTuple location, IFdbTuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer, Slice layer)
-			: base(prefix)
+		internal FdbDirectorySubspace(IFdbTuple location, IFdbTuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer, Slice layer, IFdbTypeSystem protocol)
+			: base(prefix, protocol)
 		{
 			Contract.Requires(location != null && relativeLocation != null && prefix != null && directoryLayer != null);
 			if (layer.IsNull) layer = Slice.Empty;
@@ -151,7 +151,7 @@ namespace FoundationDB.Layers.Directories
 			// set the layer to the new value
 			await this.DirectoryLayer.ChangeLayerInternalAsync(trans, this.RelativeLocation, newLayer).ConfigureAwait(false);
 			// and return the new version of the subspace
-			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, this.InternalKey, this.DirectoryLayer, newLayer);
+			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, this.InternalKey, this.DirectoryLayer, newLayer, TypeSystem.Default);
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.

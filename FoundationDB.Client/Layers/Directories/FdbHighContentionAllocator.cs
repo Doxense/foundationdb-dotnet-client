@@ -46,7 +46,7 @@ namespace FoundationDB.Layers.Directories
 
 		/// <summary>Create an allocator operating under a specific location</summary>
 		/// <param name="subspace"></param>
-		public FdbHighContentionAllocator(IFdbSubspace subspace)
+		public FdbHighContentionAllocator(IFdbDynamicSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentException("subspace");
 
@@ -56,13 +56,13 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Location of the allocator</summary>
-		public IFdbSubspace Subspace { [NotNull] get; private set; }
+		public IFdbDynamicSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Subspace used to store the allocation count for the current window</summary>
-		private IFdbSubspace Counters { [NotNull] get; set; }
+		private IFdbDynamicSubspace Counters { [NotNull] get; set; }
 
 		/// <summary>Subspace used to store the prefixes allocated in the current window</summary>
-		private IFdbSubspace Recent { [NotNull] get; set; }
+		private IFdbDynamicSubspace Recent { [NotNull] get; set; }
 
 		/// <summary>Returns a 64-bit integer that
 		/// 1) has never and will never be returned by another call to this
@@ -77,12 +77,12 @@ namespace FoundationDB.Layers.Directories
 			long start = 0, count = 0;
 			var kv = await trans
 				.Snapshot
-				.GetRange(this.Counters.Tuples.ToRange())
+				.GetRange(this.Counters.Keys.ToRange())
 				.LastOrDefaultAsync();
 
 			if (kv.Key.IsPresent)
 			{
-				start = this.Counters.Tuples.DecodeKey<long>(kv.Key);
+				start = this.Counters.Keys.Decode<long>(kv.Key);
 				count = kv.Value.ToInt64();
 			}
 
@@ -91,14 +91,14 @@ namespace FoundationDB.Layers.Directories
 			if ((count + 1) * 2 >= window)
 			{ // advance the window
 				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Advance allocator window size to {0} starting at {1}", window, start + window);
-				trans.ClearRange(this.Counters.Key, this.Counters.Tuples.EncodeKey(start) + FdbKey.MinValue);
+				trans.ClearRange(this.Counters.Key, this.Counters.Keys.Encode(start) + FdbKey.MinValue);
 				start += window;
 				count = 0;
-				trans.ClearRange(this.Recent.Key, this.Recent.Tuples.EncodeKey(start));
+				trans.ClearRange(this.Recent.Key, this.Recent.Keys.Encode(start));
 			}
 
 			// Increment the allocation count for the current window
-			trans.AtomicAdd(this.Counters.Tuples.EncodeKey(start), Slice.FromFixed64(1));
+			trans.AtomicAdd(this.Counters.Keys.Encode(start), Slice.FromFixed64(1));
 
 			// As of the snapshot being read from, the window is less than half
             // full, so this should be expected to take 2 tries.  Under high
@@ -114,7 +114,7 @@ namespace FoundationDB.Layers.Directories
 				}
 
 				// test if the key is used
-				var key = this.Recent.Tuples.EncodeKey(candidate);
+				var key = this.Recent.Keys.Encode(candidate);
 				var value = await trans.GetAsync(key).ConfigureAwait(false);
 
 				if (value.IsNull)

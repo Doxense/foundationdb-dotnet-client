@@ -37,7 +37,8 @@ namespace FoundationDB.Client
 
 
 	/// <summary>Provides of methods to encode and decodes keys using the Tuple Encoding format</summary>
-	public struct FdbSubspaceTuples
+	[Obsolete("REMOVE ME!")]
+	public struct FdbSubspaceTuples_OLD
 	{
 
 		/// <summary>Ref to the parent subspace</summary>
@@ -45,7 +46,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Wraps an existing subspace</summary>
 		/// <param name="subspace"></param>
-		public FdbSubspaceTuples(IFdbSubspace subspace)
+		public FdbSubspaceTuples_OLD(IFdbSubspace subspace)
 		{
 			Contract.Requires(subspace != null);
 			m_subspace = subspace;

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -25,6 +25,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
+
+using FoundationDB.Filters.Logging;
 
 namespace FoundationDB.Client
 {
@@ -77,9 +79,9 @@ namespace FoundationDB.Client
 
 		/// <summary>Global namespace used to prefix ALL keys and subspaces accessible by this database instance (default is empty)</summary>
 		/// <remarks>This is readonly and is set when creating the database instance</remarks>
-		private IFdbSubspace m_globalSpace;
+		private IFdbDynamicSubspace m_globalSpace;
 		/// <summary>Copy of the namespace, that is exposed to the outside.</summary>
-		private IFdbSubspace m_globalSpaceCopy;
+		private IFdbDynamicSubspace m_globalSpaceCopy;
 
 		/// <summary>Default Timeout value for all transactions</summary>
 		private int m_defaultTimeout;
@@ -459,14 +461,14 @@ namespace FoundationDB.Client
 			lock (this)//TODO: don't use this for locking
 			{
 				m_readOnly = readOnly;
-				m_globalSpace = FdbSubspace.Copy(subspace);
-				m_globalSpaceCopy = FdbSubspace.Copy(subspace); // keep another copy
+				m_globalSpace = FdbSubspace.CopyDynamic(subspace, TypeSystem.Tuples);
+				m_globalSpaceCopy = FdbSubspace.CopyDynamic(subspace, TypeSystem.Tuples); // keep another copy
 				m_directory = directory == null ? null : new FdbDatabasePartition(this, directory);
 			}
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public IFdbSubspace GlobalSpace
+		public IFdbDynamicSubspace GlobalSpace
 		{
 			//REVIEW: rename to just "Subspace" ?
 			[NotNull]
@@ -543,9 +545,19 @@ namespace FoundationDB.Client
 			return m_globalSpace.ConcatKey(key);
 		}
 
+		Slice IFdbSubspace.ConcatKey<TKey>(TKey key)
+		{
+			return m_globalSpace.ConcatKey<TKey>(key);
+		}
+
 		Slice[] IFdbSubspace.ConcatKeys(IEnumerable<Slice> keys)
 		{
 			return m_globalSpace.ConcatKeys(keys);
+		}
+
+		Slice[] IFdbSubspace.ConcatKeys<TKey>(IEnumerable<TKey> keys)
+		{
+			return m_globalSpace.ConcatKeys<TKey>(keys);
 		}
 
 		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
@@ -560,26 +572,61 @@ namespace FoundationDB.Client
 			return m_globalSpace.ExtractKeys(keys, boundCheck);
 		}
 
+		SliceWriter IFdbSubspace.GetWriter(int capacity)
+		{
+			return m_globalSpace.GetWriter(capacity);
+		}
+
 		Slice IFdbSubspace.Key
 		{
 			get { return m_globalSpace.Key; }
 		}
 
-		public FdbSubspacePartition Partition
+		IFdbSubspace IFdbSubspace.this[Slice suffix]
+		{
+			get
+			{
+				return m_globalSpace[suffix];
+			}
+		}
+
+		IFdbSubspace IFdbSubspace.this[IFdbKey key]
+		{
+			get
+			{
+				return m_globalSpace[key];
+			}
+		}
+
+		FdbKeyRange IFdbSubspace.ToRange()
+		{
+			return m_globalSpace.ToRange();
+		}
+
+		FdbKeyRange IFdbSubspace.ToRange(Slice suffix)
+		{
+			return m_globalSpace.ToRange(suffix);
+		}
+
+		FdbKeyRange IFdbSubspace.ToRange<TKey>(TKey key)
+		{
+			return m_globalSpace.ToRange(key);
+		}
+
+		public FdbDynamicSubspacePartition Partition
 		{
 			//REVIEW: should we hide this on the main db?
 			get { return m_globalSpace.Partition; }
 		}
 
-		public FdbSubspaceKeys Keys
+		IFdbTypeSystem IFdbDynamicSubspace.Protocol
 		{
-			get { return m_globalSpace.Keys; }
+			get { return m_globalSpace.Protocol; }
 		}
 
-		public FdbSubspaceTuples Tuples
+		public FdbDynamicSubspaceKeys Keys
 		{
-			//REVIEW: should we hide this on the main db?
-			get { return m_globalSpace.Tuples; }
+			get { return m_globalSpace.Keys; }
 		}
 
 		/// <summary>Returns true if the key is inside the system key space (starts with '\xFF')</summary>

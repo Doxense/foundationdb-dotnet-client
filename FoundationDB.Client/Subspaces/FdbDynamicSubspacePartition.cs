@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,42 +31,53 @@ namespace FoundationDB.Client
 	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;
-	using System.Linq;
-	using System.Collections.Generic;
 
-	public struct FdbSubspacePartition
+	public struct FdbDynamicSubspacePartition
 	{
-		private readonly IFdbSubspace m_subspace;
+		[NotNull]
+		public readonly IFdbDynamicSubspace Subspace;
 
-		public FdbSubspacePartition(IFdbSubspace subspace)
+		[NotNull]
+		public readonly IFdbTypeSystem Protocol;
+
+		public FdbDynamicSubspacePartition([NotNull] IFdbDynamicSubspace subspace, [NotNull] IFdbTypeSystem protocol)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			m_subspace = subspace;
+			if (protocol == null) throw new ArgumentNullException("protocol");
+			this.Subspace = subspace;
+			this.Protocol = protocol;
 		}
 
-		public IFdbSubspace Subspace
+		/// <summary>Returns the same view but using a different Type System</summary>
+		/// <param name="protocol">Type System that will code keys in this new view</param>
+		/// <returns>Review that will partition this subspace using a different Type System</returns>
+		/// <remarks>
+		/// This should only be used for one-off usages where creating a new subspace just to encode one key would be overkill.
+		/// If you are calling this in a loop, consider creating a new subspace using that protocol.
+		/// </remarks>
+		public FdbDynamicSubspacePartition Using([NotNull] IFdbTypeSystem protocol)
 		{
-			get { return m_subspace; }
+			return new FdbDynamicSubspacePartition(this.Subspace, protocol);
 		}
 
 		/// <summary>Create a new subspace by appdending a suffix to the current subspace</summary>
 		/// <param name="suffix">Suffix of the new subspace</param>
 		/// <returns>New subspace with prefix equal to the current subspace's prefix, followed by <paramref name="suffix"/></returns>
-		public IFdbSubspace this[Slice suffix]
+		public IFdbDynamicSubspace this[Slice suffix]
 		{
 			[NotNull]
 			get
 			{
 				if (suffix.IsNull) throw new ArgumentException("Partition suffix cannot be null", "suffix");
 				//TODO: find a way to limit the number of copies of the key?
-				return new FdbSubspace(m_subspace.ConcatKey(suffix));
+				return new FdbDynamicSubspace(this.Subspace.ConcatKey(suffix), false, this.Protocol);
 			}
 		}
 
 		/// <summary>Create a new subspace by adding a <paramref name="key"/> to the current subspace's prefix</summary>
 		/// <param name="key">Key that will be appended to the current prefix</param>
 		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and the packed representation of <paramref name="key"/></returns>
-		public IFdbSubspace this[IFdbKey key]
+		public IFdbDynamicSubspace this[IFdbKey key]
 		{
 			[ContractAnnotation("null => halt; notnull => notnull")]
 			get
@@ -77,18 +88,18 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public IFdbSubspace this[IFdbTuple tuple]
+		public IFdbDynamicSubspace this[IFdbTuple tuple]
 		{
 			[ContractAnnotation("null => halt; notnull => notnull")]
 			get
 			{
 				if (tuple == null) throw new ArgumentNullException("tuple");
 				//TODO: find a way to limit the number of copies of the packed tuple?
-				return new FdbSubspace(m_subspace.Tuples.Pack(tuple));
+				return new FdbDynamicSubspace(this.Subspace.Keys.Pack(tuple), false, this.Protocol);
 			}
 		}
 
-		public IFdbSubspace this[ITupleFormattable item]
+		public IFdbDynamicSubspace this[ITupleFormattable item]
 		{
 			[ContractAnnotation("null => halt; notnull => notnull")]
 			get
@@ -109,9 +120,9 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
 		[NotNull]
-		public IFdbSubspace ByKey<T>(T value)
+		public IFdbDynamicSubspace ByKey<T>(T value)
 		{
-			return this[FdbTuple.Create<T>(value)];
+			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T>(value), false, this.Protocol);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -125,9 +136,9 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
 		[NotNull]
-		public IFdbSubspace ByKey<T1, T2>(T1 value1, T2 value2)
+		public IFdbDynamicSubspace ByKey<T1, T2>(T1 value1, T2 value2)
 		{
-			return this[FdbTuple.Create<T1, T2>(value1, value2)];
+			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2>(value1, value2), false, this.Protocol);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -142,9 +153,9 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
 		/// </example>
 		[NotNull]
-		public IFdbSubspace ByKey<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
+		public IFdbDynamicSubspace ByKey<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
-			return this[FdbTuple.Create(value1, value2, value3)];
+			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2, T3>(value1, value2, value3), false, this.Protocol);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -161,9 +172,9 @@ namespace FoundationDB.Client
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends", "Messages") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", "Messages", ])
 		/// </example>
 		[NotNull]
-		public IFdbSubspace ByKey<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
+		public IFdbDynamicSubspace ByKey<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			return this[FdbTuple.Create(value1, value2, value3, value4)];
+			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), false, this.Protocol);
 		}
 
 	}

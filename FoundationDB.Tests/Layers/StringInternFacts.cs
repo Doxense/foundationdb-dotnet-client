@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -55,11 +55,11 @@ namespace FoundationDB.Layers.Interning.Tests
 				// insert a bunch of strings
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					tr.Set(dataSpace.Tuples.EncodeKey("a"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Tuples.EncodeKey("b"), await stringTable.InternAsync(tr, "dog"));
-					tr.Set(dataSpace.Tuples.EncodeKey("c"), await stringTable.InternAsync(tr, "testing 123456789"));
-					tr.Set(dataSpace.Tuples.EncodeKey("d"), await stringTable.InternAsync(tr, "cat"));
-					tr.Set(dataSpace.Tuples.EncodeKey("e"), await stringTable.InternAsync(tr, "cat"));
+					tr.Set(dataSpace.Keys.Encode("a"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Keys.Encode("b"), await stringTable.InternAsync(tr, "dog"));
+					tr.Set(dataSpace.Keys.Encode("c"), await stringTable.InternAsync(tr, "testing 123456789"));
+					tr.Set(dataSpace.Keys.Encode("d"), await stringTable.InternAsync(tr, "cat"));
+					tr.Set(dataSpace.Keys.Encode("e"), await stringTable.InternAsync(tr, "cat"));
 
 					await tr.CommitAsync();
 				}
@@ -72,11 +72,11 @@ namespace FoundationDB.Layers.Interning.Tests
 				// check the contents of the data
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var uid_a = await tr.GetAsync(dataSpace.Tuples.EncodeKey("a"));
-					var uid_b = await tr.GetAsync(dataSpace.Tuples.EncodeKey("b"));
-					var uid_c = await tr.GetAsync(dataSpace.Tuples.EncodeKey("c"));
-					var uid_d = await tr.GetAsync(dataSpace.Tuples.EncodeKey("d"));
-					var uid_e = await tr.GetAsync(dataSpace.Tuples.EncodeKey("e"));
+					var uid_a = await tr.GetAsync(dataSpace.Keys.Encode("a"));
+					var uid_b = await tr.GetAsync(dataSpace.Keys.Encode("b"));
+					var uid_c = await tr.GetAsync(dataSpace.Keys.Encode("c"));
+					var uid_d = await tr.GetAsync(dataSpace.Keys.Encode("d"));
+					var uid_e = await tr.GetAsync(dataSpace.Keys.Encode("e"));
 
 					// a, b, d should be different
 					Assert.That(uid_b, Is.Not.EqualTo(uid_a));

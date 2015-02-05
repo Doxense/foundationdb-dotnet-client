@@ -34,11 +34,12 @@ namespace FoundationDB.Client
 	using System.Linq;
 	using System.Collections.Generic;
 
-	public struct FdbSubspaceKeys
+	[Obsolete("REMOVE ME!")]
+	public struct FdbSubspaceKeys_OLD
 	{
 		private readonly IFdbSubspace m_subspace;
 
-		public FdbSubspaceKeys(IFdbSubspace subspace)
+		public FdbSubspaceKeys_OLD(IFdbSubspace subspace)
 		{
 			Contract.Requires(subspace != null);
 			m_subspace = subspace;

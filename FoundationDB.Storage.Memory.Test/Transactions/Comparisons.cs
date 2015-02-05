@@ -24,11 +24,11 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 		private Task Scenario2(IFdbTransaction tr)
 		{
-			var location = FdbSubspace.Create(Slice.FromAscii("TEST"));
+			var location = FdbSubspace.CreateDynamic(Slice.FromAscii("TEST"));
 			tr.ClearRange(FdbKeyRange.StartsWith(location.Key));
 			for (int i = 0; i < 10; i++)
 			{
-				tr.Set(location.Tuples.EncodeKey(i), Slice.FromString("value of " + i));
+				tr.Set(location.Keys.Encode(i), Slice.FromString("value of " + i));
 			}
 			return Task.FromResult<object>(null);
 		}
@@ -59,26 +59,26 @@ namespace FoundationDB.Storage.Memory.API.Tests
 
 		private async Task Scenario5(IFdbTransaction tr)
 		{
-			var location = FdbSubspace.Create(Slice.FromAscii("TEST"));
+			var location = FdbSubspace.CreateDynamic(Slice.FromAscii("TEST"));
 
 			//tr.Set(location.Pack(42), Slice.FromString("42"));
 			//tr.Set(location.Pack(50), Slice.FromString("50"));
 			//tr.Set(location.Pack(60), Slice.FromString("60"));
 
-			var x = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(location.Tuples.EncodeKey(49)));
+			var x = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(location.Keys.Encode(49)));
 			Console.WriteLine(x);
 
-			tr.Set(location.Tuples.EncodeKey("FOO"), Slice.FromString("BAR"));
+			tr.Set(location.Keys.Encode("FOO"), Slice.FromString("BAR"));
 
 		}
 
 		private async Task Scenario6(IFdbTransaction tr)
 		{
-			var location = FdbSubspace.Create(Slice.FromAscii("TEST"));
+			var location = FdbSubspace.CreateDynamic(Slice.FromAscii("TEST"));
 
-			tr.AtomicAdd(location.Tuples.EncodeKey("ATOMIC"), Slice.FromFixed32(0x55555555));
+			tr.AtomicAdd(location.Keys.Encode("ATOMIC"), Slice.FromFixed32(0x55555555));
 
-			var x = await tr.GetAsync(location.Tuples.EncodeKey("ATOMIC"));
+			var x = await tr.GetAsync(location.Keys.Encode("ATOMIC"));
 			Console.WriteLine(x.ToInt32().ToString("x"));
 		}
 

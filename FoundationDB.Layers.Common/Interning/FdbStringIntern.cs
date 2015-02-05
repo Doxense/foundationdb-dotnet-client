@@ -95,22 +95,22 @@ namespace FoundationDB.Layers.Interning
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Subspace = subspace;
+			this.Subspace = subspace.Using(TypeSystem.Tuples);
 
 		}
 
-		public IFdbSubspace Subspace { get; private set; }
+		public IFdbDynamicSubspace Subspace { get; private set; }
 
 		#region Private Helpers...
 
 		protected virtual Slice UidKey(Slice uid)
 		{
-			return this.Subspace.Tuples.EncodeKey(Uid2StringKey, uid);
+			return this.Subspace.Keys.Encode(Uid2StringKey, uid);
 		}
 
 		protected virtual Slice StringKey(string value)
 		{
-			return this.Subspace.Tuples.EncodeKey(String2UidKey, value);
+			return this.Subspace.Keys.Encode(String2UidKey, value);
 		}
 
 		/// <summary>Evict a random value from the cache</summary>

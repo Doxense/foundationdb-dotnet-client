@@ -34,21 +34,21 @@ namespace FoundationDB.Samples.Tutorials
 
 		public string[] ClassNames { get; private set; }
 
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbDynamicSubspace Subspace { get; private set; }
 
 		protected Slice ClassKey(string c)
 		{
-			return this.Subspace.Tuples.EncodeKey("class", c);
+			return this.Subspace.Keys.Encode("class", c);
 		}
 
 		protected Slice AttendsKey(string s, string c)
 		{
-			return this.Subspace.Tuples.EncodeKey("attends", s, c);
+			return this.Subspace.Keys.Encode("attends", s, c);
 		}
 
 		protected FdbKeyRange AttendsKeys(string s)
 		{
-			return this.Subspace.Tuples.ToRange(FdbTuple.Create("attends", s));
+			return this.Subspace.Keys.ToRange(FdbTuple.Create("attends", s));
 		}
 
 		/// <summary>
@@ -78,9 +78,9 @@ namespace FoundationDB.Samples.Tutorials
 		/// </summary>
 		public Task<List<string>> AvailableClasses(IFdbReadOnlyTransaction tr)
 		{
-			return tr.GetRange(this.Subspace.Tuples.ToRange(FdbTuple.Create("class")))
+			return tr.GetRange(this.Subspace.Keys.ToRange(FdbTuple.Create("class")))
 				.Where(kvp => { int _; return Int32.TryParse(kvp.Value.ToAscii(), out _); }) // (step 3)
-				.Select(kvp => this.Subspace.Tuples.DecodeKey<string>(kvp.Key))
+				.Select(kvp => this.Subspace.Keys.Decode<string>(kvp.Key))
 				.ToListAsync();
 		}
 

@@ -193,7 +193,7 @@ namespace FoundationDB.Layers.Directories
 				Assert.That(directory.ContentSubspace, Is.Not.Null);
 				Assert.That(directory.ContentSubspace, Is.EqualTo(location));
 				Assert.That(directory.NodeSubspace, Is.Not.Null);
-				Assert.That(directory.NodeSubspace.Key, Is.EqualTo(location.Keys[Slice.FromByte(254)]));
+				Assert.That(directory.NodeSubspace.Key, Is.EqualTo(location.Key + Slice.FromByte(254)));
 
 				// first call should create a new subspace (with a random prefix)
 				var foo = await directory.CreateOrOpenAsync(logged, new[] { "Foo" }, Slice.FromString("AcmeLayer"), this.Cancellation);
@@ -885,8 +885,6 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.ExtractKey(barKey, boundCheck: false));
 				shouldFail(() => partition.ExtractKey(barKey, boundCheck: true));
 				shouldFail(() => partition.ExtractKeys(new[] { barKey, barKey + FdbKey.MinValue }));
-				shouldFail(() => partition.Keys.Extract(barKey));
-				shouldFail(() => partition.Keys.Extract(barKey, barKey + FdbKey.MinValue));
 
 				// Partition
 				shouldFail(() => partition.Partition.ByKey(123));
@@ -900,55 +898,52 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.ConcatKey(location.Key));
 				shouldFail(() => partition.ConcatKeys(new[] { Slice.FromString("hello"), Slice.FromString("world"), Slice.FromString("!") }));
 
-				shouldFail(() => partition.Keys.Concat(Slice.FromString("hello")));
-				shouldFail(() => partition.Keys.Concat(location.Key));
-				shouldFail(() => partition.Keys.Concat(location));
-				shouldFail(() => partition.Keys.Concat(new[] { Slice.FromString("hello"), Slice.FromString("world"), Slice.FromString("!") }));
-				shouldFail(() => partition.Keys.Concat(new[] { location, location }));
+				shouldFail(() => { var _ = partition[Slice.FromString("hello")]; });
+				shouldFail(() => { var _ = partition[location.Key]; });
+				shouldFail(() => { var _ = partition[location]; });
 
-				shouldFail(() => { var _ = partition.Keys[Slice.FromString("hello")]; });
-				shouldFail(() => { var _ = partition.Keys[location.Key]; });
-				shouldFail(() => { var _ = partition.Keys[location]; });
-
-				shouldFail(() => partition.Keys.ToRange());
-				shouldFail(() => partition.Keys.ToRange(Slice.FromString("hello")));
-				shouldFail(() => partition.Keys.ToRange(FdbTuple.EncodeKey("hello")));
-				shouldFail(() => partition.Keys.ToRange(location));
+				shouldFail(() => partition.ToRange());
+				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
+				shouldFail(() => partition.ToRange(FdbTuple.EncodeKey("hello")));
+				shouldFail(() => partition.ToRange(location));
 
  				// Tuples
 
-				shouldFail(() => partition.Tuples.EncodeKey(123));
-				shouldFail(() => partition.Tuples.EncodeKey(123, "hello"));
-				shouldFail(() => partition.Tuples.EncodeKey(123, "hello", false));
-				shouldFail(() => partition.Tuples.EncodeKey(123, "hello", false, "world"));
-				shouldFail(() => partition.Tuples.EncodeKey<object>(123));
+				shouldFail(() => partition.Keys.Encode(123));
+				shouldFail(() => partition.Keys.Encode(123, "hello"));
+				shouldFail(() => partition.Keys.Encode(123, "hello", false));
+				shouldFail(() => partition.Keys.Encode(123, "hello", false, "world"));
+				shouldFail(() => partition.Keys.Encode<object>(123));
 
-				shouldFail(() => partition.Tuples.EncodeKeys<int>(new[] { 123, 456, 789 }));
-				shouldFail(() => partition.Tuples.EncodeKeys<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
-				shouldFail(() => partition.Tuples.EncodeKeys<object>(new object[] { 123, "hello", true }));
-				shouldFail(() => partition.Tuples.EncodeKeys<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
+				shouldFail(() => partition.Keys.Encode<int>(new[] { 123, 456, 789 }));
+				shouldFail(() => partition.Keys.Encode<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
+				shouldFail(() => partition.Keys.Encode<object>(new object[] { 123, "hello", true }));
+				shouldFail(() => partition.Keys.Encode<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
 
-				shouldFail(() => partition.Tuples.Unpack(barKey));
-				shouldFail(() => partition.Tuples.Unpack(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
-				shouldFail(() => partition.Tuples.DecodeKey<int>(barKey));
-				shouldFail(() => partition.Tuples.DecodeKeys<int>(new[] { barKey, barKey }));
-				shouldFail(() => partition.Tuples.DecodeLast<int>(barKey));
-				shouldFail(() => partition.Tuples.DecodeKeysLast<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
-				shouldFail(() => partition.Tuples.DecodeFirst<int>(barKey));
-				shouldFail(() => partition.Tuples.DecodeKeysFirst<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.Unpack(barKey));
+				shouldFail(() => partition.Keys.Unpack(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.Decode<int>(barKey));
+				shouldFail(() => partition.Keys.Decode<int>(new[] { barKey, barKey }));
+				shouldFail(() => partition.Keys.DecodeLast<int>(barKey));
+				shouldFail(() => partition.Keys.DecodeLast<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.DecodeFirst<int>(barKey));
+				shouldFail(() => partition.Keys.DecodeFirst<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
 
-				shouldFail(() => partition.Tuples.ToTuple());
+				//FIXME: need to re-enable this code!
+#if REFACTORING_IN_PROGRESS
+				shouldFail(() => partition.Keys.ToTuple());
 
-				shouldFail(() => partition.Tuples.Append(123));
-				shouldFail(() => partition.Tuples.Append(123, "hello"));
-				shouldFail(() => partition.Tuples.Append(123, "hello", false));
-				shouldFail(() => partition.Tuples.Append(123, "hello", false, "world"));
-				shouldFail(() => partition.Tuples.Concat(FdbTuple.Create(123, "hello", false, "world")));
-				shouldFail(() => partition.Tuples.Append(new object[] { 123, "hello", false, "world" }));
+				shouldFail(() => partition.Keys.Append(123));
+				shouldFail(() => partition.Keys.Append(123, "hello"));
+				shouldFail(() => partition.Keys.Append(123, "hello", false));
+				shouldFail(() => partition.Keys.Append(123, "hello", false, "world"));
+				shouldFail(() => partition.Keys.Concat(FdbTuple.Create(123, "hello", false, "world")));
+				shouldFail(() => partition.Keys.Append(new object[] { 123, "hello", false, "world" }));
+#endif
 
-				shouldFail(() => partition.Tuples.ToRange());
-				shouldFail(() => partition.Tuples.ToRange(Slice.FromString("hello")));
-				shouldFail(() => partition.Tuples.ToRange(FdbTuple.Create("hello")));
+				shouldFail(() => partition.Keys.ToRange());
+				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
+				shouldFail(() => partition.Keys.ToRange(FdbTuple.Create("hello")));
 
 			}
 		}
@@ -1042,10 +1037,10 @@ namespace FoundationDB.Layers.Directories
 							tr2.GetReadVersionAsync()
 						);
 
-						var first = await directory.RegisterAsync(tr1, new[] { "First" }, Slice.Nil, location.Tuples.EncodeKey("abc"));
+						var first = await directory.RegisterAsync(tr1, new[] { "First" }, Slice.Nil, location.Keys.Encode("abc"));
 						tr1.Set(first.Key, Slice.FromString("This belongs to the first directory"));
 
-						var second = await directory.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, location.Tuples.EncodeKey("def"));
+						var second = await directory.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, location.Keys.Encode("def"));
 						tr2.Set(second.Key, Slice.FromString("This belongs to the second directory"));
 
 						Console.WriteLine("Committing T1...");

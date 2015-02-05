@@ -102,7 +102,7 @@ namespace FdbBurner
 								? rnd.Next()
 								: pos + i;
 
-							tr.Set(folder.Tuples.EncodeKey(x, Suffix), Value);
+							tr.Set(folder.Keys.Encode(x, Suffix), Value);
 							Interlocked.Increment(ref Keys);
 						}
 						pos += N;

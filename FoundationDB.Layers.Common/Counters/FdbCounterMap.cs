@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -41,19 +41,19 @@ namespace FoundationDB.Layers.Counters
 		private static readonly Slice MinusOne = Slice.FromFixed64(-1);
 
 		/// <summary>Create a new counter map.</summary>
-		public FdbCounterMap(IFdbSubspace subspace)
+		public FdbCounterMap([NotNull] IFdbSubspace subspace)
 			: this(subspace, KeyValueEncoders.Tuples.Key<TKey>())
 		{ }
 
 		/// <summary>Create a new counter map, using a specific key encoder.</summary>
-		public FdbCounterMap(IFdbSubspace subspace, IKeyEncoder<TKey> keyEncoder)
+		public FdbCounterMap([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (keyEncoder == null) throw new ArgumentNullException("keyEncoder");
 
 			this.Subspace = subspace;
 			this.KeyEncoder = keyEncoder;
-			this.Location = new FdbEncoderSubspace<TKey>(subspace, keyEncoder);
+			this.Location = subspace.UsingEncoder(keyEncoder);
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this counter list</summary>
@@ -62,7 +62,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Encoder for the keys of the counter map</summary>
 		public IKeyEncoder<TKey> KeyEncoder { [NotNull] get; private set; }
 
-		internal FdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
+		internal IFdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
 
 		/// <summary>Add a value to a counter in one atomic operation</summary>
 		/// <param name="transaction"></param>
@@ -76,7 +76,7 @@ namespace FoundationDB.Layers.Counters
 
 			//REVIEW: we could no-op if value == 0 but this may change conflict behaviour for other transactions...
 			Slice param = value == 1 ? PlusOne : value == -1 ? MinusOne : Slice.FromFixed64(value);
-			transaction.AtomicAdd(this.Location.EncodeKey(counterKey), param);
+			transaction.AtomicAdd(this.Location.Keys.Encode(counterKey), param);
 		}
 
 		/// <summary>Subtract a value from a counter in one atomic operation</summary>
@@ -116,7 +116,7 @@ namespace FoundationDB.Layers.Counters
 			if (transaction == null) throw new ArgumentNullException("transaction");
 			if (counterKey == null) throw new ArgumentNullException("counterKey");
 
-			var data = await transaction.GetAsync(this.Location.EncodeKey(counterKey)).ConfigureAwait(false);
+			var data = await transaction.GetAsync(this.Location.Keys.Encode(counterKey)).ConfigureAwait(false);
 			if (data.IsNullOrEmpty) return default(long?);
 			return data.ToInt64();
 		}
@@ -131,7 +131,7 @@ namespace FoundationDB.Layers.Counters
 			if (transaction == null) throw new ArgumentNullException("transaction");
 			if (counterKey == null) throw new ArgumentNullException("counterKey");
 
-			var key = this.Location.EncodeKey(counterKey);
+			var key = this.Location.Keys.Encode(counterKey);
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
 
 			if (!res.IsNullOrEmpty) value += res.ToInt64();
@@ -165,7 +165,7 @@ namespace FoundationDB.Layers.Counters
 			if (transaction == null) throw new ArgumentNullException("transaction");
 			if (counterKey == null) throw new ArgumentNullException("counterKey");
 
-			var key = this.Location.EncodeKey(counterKey);
+			var key = this.Location.Keys.Encode(counterKey);
 			var res = await transaction.GetAsync(key).ConfigureAwait(false);
 
 			long previous = res.IsNullOrEmpty ? 0 : res.ToInt64();

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -66,22 +66,22 @@ namespace FoundationDB.Layers.Collections
 		/// <summary>Create a new sparse Vector</summary>
 		/// <param name="subspace">Subspace where the vector will be stored</param>
 		/// <param name="defaultValue">Default value for sparse entries</param>
-		public FdbVector([NotNull] FdbSubspace subspace, T defaultValue)
+		public FdbVector([NotNull] IFdbSubspace subspace, T defaultValue)
 			: this(subspace, defaultValue, KeyValueEncoders.Tuples.Value<T>())
 		{ }
-		public FdbVector([NotNull] FdbSubspace subspace, T defaultValue, [NotNull] IValueEncoder<T> encoder)
+		public FdbVector([NotNull] IFdbSubspace subspace, T defaultValue, [NotNull] IValueEncoder<T> encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
-			this.Subspace = subspace;
+			this.Subspace = subspace.Using(TypeSystem.Tuples);
 			this.DefaultValue = defaultValue;
 			this.Encoder = encoder;
 		}
 
 
 		/// <summary>Subspace used as a prefix for all items in this vector</summary>
-		public FdbSubspace Subspace { [NotNull] get; private set; }
+		public IFdbDynamicSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Default value for sparse entries</summary>
 		public T DefaultValue { get; private set; }
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Collections
 			if (tr == null) throw new ArgumentNullException("tr");
 
 			return tr
-				.GetRange(this.Subspace.Tuples.ToRange())
+				.GetRange(this.Subspace.Keys.ToRange())
 				.Select((kvp) => this.Encoder.DecodeValue(kvp.Value))
 				.LastOrDefaultAsync();
 		}
@@ -128,7 +128,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (tr == null) throw new ArgumentNullException("tr");
 
-			var keyRange = this.Subspace.Tuples.ToRange();
+			var keyRange = this.Subspace.Keys.ToRange();
 
 			// Read the last two entries so we can check if the second to last item
 			// is being represented sparsely. If so, we will be required to set it
@@ -142,7 +142,7 @@ namespace FoundationDB.Layers.Collections
 			if (lastTwo.Count == 0) return default(Optional<T>);
 
 			//note: keys are reversed so indices[0] = last, indices[1] = second to last
-			var indices = lastTwo.Select(kvp => this.Subspace.Tuples.DecodeFirst<long>(kvp.Key)).ToList();
+			var indices = lastTwo.Select(kvp => this.Subspace.Keys.DecodeFirst<long>(kvp.Key)).ToList();
 
 			if (indices[0] == 0)
 			{ // Vector has size one
@@ -202,7 +202,7 @@ namespace FoundationDB.Layers.Collections
 			if (index < 0) throw new IndexOutOfRangeException(String.Format("Index {0} must be positive", index));
 
 			var start = GetKeyAt(index);
-			var end = this.Subspace.Tuples.ToRange().End;
+			var end = this.Subspace.Keys.ToRange().End;
 
 			var output = await tr
 				.GetRange(start, end)
@@ -259,7 +259,7 @@ namespace FoundationDB.Layers.Collections
 
 			if (length < currentSize)
 			{
-				tr.ClearRange(GetKeyAt(length), this.Subspace.Tuples.ToRange().End);
+				tr.ClearRange(GetKeyAt(length), this.Subspace.Keys.ToRange().End);
 
 				// Check if the new end of the vector was being sparsely represented
 				if (await ComputeSizeAsync(tr).ConfigureAwait(false) < length)
@@ -287,7 +287,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			Contract.Requires(tr != null);
 
-			var keyRange = this.Subspace.Tuples.ToRange();
+			var keyRange = this.Subspace.Keys.ToRange();
 
 			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(keyRange.End)).ConfigureAwait(false);
 
@@ -296,12 +296,12 @@ namespace FoundationDB.Layers.Collections
 				return 0;
 			}
 
-			return this.Subspace.Tuples.DecodeFirst<long>(lastKey) + 1;
+			return this.Subspace.Keys.DecodeFirst<long>(lastKey) + 1;
 		}
 
 		private Slice GetKeyAt(long index)
 		{
-			return this.Subspace.Tuples.EncodeKey(index);
+			return this.Subspace.Keys.Encode(index);
 		}
 
 		#endregion

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,17 +29,42 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
-	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Extensions methods to add FdbSubspace overrides to various types</summary>
 	public static class FdbSubspaceExtensions
 	{
+
+		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
+		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="protocol">If non-null, uses this specific instance of the TypeSystem. If null, uses the default instance for this particular TypeSystem</param>
+		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		public static IFdbDynamicSubspace Using([NotNull] this IFdbSubspace subspace, [NotNull] IFdbTypeSystem protocol)
+		{
+			return FdbSubspace.CopyDynamic(subspace, protocol);
+		}
+
+		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
+		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="encoder">Custom key encoder</param>
+		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		public static IFdbEncoderSubspace<T> UsingEncoder<T>([NotNull] this IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
+		{
+			return FdbSubspace.CopyEncoder<T>(subspace, encoder);
+		}
+
+		/// <summary>Return a version of this subspace, which uses a different type system to produces the keys and values</summary>
+		/// <param name="subspace">Instance of a generic subspace</param>
+		/// <param name="encoder">Custom key encoder</param>
+		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		public static IFdbEncoderSubspace<T1, T2> UsingEncoder<T1, T2>([NotNull] this IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
+		{
+			return FdbSubspace.CopyEncoder<T1, T2>(subspace, encoder);
+		}
 
 		/// <summary>Clear the entire content of a subspace</summary>
 		public static void ClearRange(this IFdbTransaction trans, [NotNull] IFdbSubspace subspace)
@@ -70,6 +95,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Tests whether the specified <paramref name="key"/> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="key"/>.</summary>
+		/// <param name="subspace"/>
 		/// <param name="key">The key to be tested</param>
 		/// <exception cref="System.ArgumentNullException">If <paramref name="key"/> is null</exception>
 		public static bool Contains<TKey>([NotNull] this IFdbSubspace subspace, [NotNull] TKey key)

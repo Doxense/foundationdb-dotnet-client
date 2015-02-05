@@ -72,7 +72,7 @@ namespace FoundationDB.Client
 
 				// By convention, all named databases will be under the "/Databases" folder
 				FdbDatabase db = null;
-				FdbSubspace rootSpace = FdbSubspace.Empty;
+				var rootSpace = FdbSubspace.Empty;
 				try
 				{
 					db = await Fdb.OpenInternalAsync(clusterFile, dbName, rootSpace, readOnly: false, cancellationToken: cancellationToken).ConfigureAwait(false);

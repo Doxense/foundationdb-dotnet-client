@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,7 @@ namespace FoundationDB.Layers.Collections
 
 			this.Name = name;
 			this.Subspace = subspace;
-			this.Location = new FdbEncoderSubspace<TKey>(subspace, keyEncoder);
+			this.Location = subspace.UsingEncoder(keyEncoder);
 			this.ValueEncoder = valueEncoder;
 		}
 
@@ -70,7 +70,7 @@ namespace FoundationDB.Layers.Collections
 		public IFdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Subspace used to encoded the keys for the items</summary>
-		protected FdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
+		protected IFdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		public IValueEncoder<TValue> ValueEncoder { [NotNull] get; private set; }
@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			var data = await trans.GetAsync(this.Location.EncodeKey(id)).ConfigureAwait(false);
+			var data = await trans.GetAsync(this.Location.Keys.Encode(id)).ConfigureAwait(false);
 
 			if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
 			return this.ValueEncoder.DecodeValue(data);
@@ -105,7 +105,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			var data = await trans.GetAsync(this.Location.EncodeKey(id)).ConfigureAwait(false);
+			var data = await trans.GetAsync(this.Location.Keys.Encode(id)).ConfigureAwait(false);
 
 			if (data.IsNull) return default(Optional<TValue>);
 			return this.ValueEncoder.DecodeValue(data);
@@ -121,7 +121,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Set(this.Location.EncodeKey(id), this.ValueEncoder.EncodeValue(value));
+			trans.Set(this.Location.Keys.Encode(id), this.ValueEncoder.EncodeValue(value));
 		}
 
 		/// <summary>Remove a single entry from the map</summary>
@@ -133,7 +133,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Clear(this.Location.EncodeKey(id));
+			trans.Clear(this.Location.Keys.Encode(id));
 		}
 
 		/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
@@ -146,7 +146,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			return trans
-				.GetRange(this.Location.Tuples.ToRange(), options)
+				.GetRange(this.Location.ToRange(), options)
 				.Select(this.DecodeItem);
 		}
 
@@ -159,7 +159,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");
 
-			var results = await trans.GetValuesAsync(this.Location.EncodeKeys(ids)).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(this.Location.Keys.Encode(ids)).ConfigureAwait(false);
 
 			return Optional.DecodeRange(this.ValueEncoder, results);
 		}
@@ -171,7 +171,7 @@ namespace FoundationDB.Layers.Collections
 		private KeyValuePair<TKey, TValue> DecodeItem(KeyValuePair<Slice, Slice> item)
 		{
 			return new KeyValuePair<TKey, TValue>(
-				this.Location.DecodeKey(item.Key),
+				this.Location.Keys.Decode(item.Key),
 				this.ValueEncoder.DecodeValue(item.Value)
 			);
 		}
@@ -181,14 +181,14 @@ namespace FoundationDB.Layers.Collections
 		{
 			Contract.Requires(batch != null);
 
-			var keyEncoder = this.Location;
+			var keyEncoder = this.Location.Keys;
 			var valueEncoder = this.ValueEncoder;
 
 			var items = new KeyValuePair<TKey, TValue>[batch.Length];
 			for (int i = 0; i < batch.Length; i++)
 			{
 				items[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.DecodeKey(batch[i].Key),
+					keyEncoder.Decode(batch[i].Key),
 					valueEncoder.DecodeValue(batch[i].Value)
 				);
 			}
@@ -202,7 +202,7 @@ namespace FoundationDB.Layers.Collections
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.ClearRange(this.Location.Tuples.ToRange());
+			trans.ClearRange(this.Location.ToRange());
 		}
 
 		#region Export...
@@ -220,7 +220,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.Tuples.ToRange(),
+				this.Location.ToRange(),
 				(batch, _, ct) =>
 				{
 					foreach (var item in batch)
@@ -246,7 +246,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.Tuples.ToRange(),
+				this.Location.ToRange(),
 				async (batch, _, ct) =>
 				{
 					foreach (var item in batch)
@@ -271,7 +271,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.Tuples.ToRange(),
+				this.Location.ToRange(),
 				(batch, _, ct) =>
 				{
 					if (batch.Length > 0)
@@ -297,7 +297,7 @@ namespace FoundationDB.Layers.Collections
 
 			return Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.Tuples.ToRange(),
+				this.Location.ToRange(),
 				(batch, _, ct) => handler(DecodeItems(batch), ct),
 				cancellationToken
 			);
@@ -323,7 +323,7 @@ namespace FoundationDB.Layers.Collections
 
 			await Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.Tuples.ToRange(),
+				this.Location.ToRange(),
 				(batch, _, ct) =>
 				{
 					state = handler(state, DecodeItems(batch));
@@ -356,7 +356,7 @@ namespace FoundationDB.Layers.Collections
 
 			await Fdb.Bulk.ExportAsync(
 				db,
-				this.Location.Tuples.ToRange(),
+				this.Location.ToRange(),
 				(batch, _, ct) =>
 				{
 					state = handler(state, DecodeItems(batch));

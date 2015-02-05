@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -88,7 +88,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var value = await tr.GetAsync(location.Tuples.EncodeKey("Foos", "hello"));
+					var value = await tr.GetAsync(location.Keys.Encode("Foos", "hello"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToString(), Is.EqualTo(secret));
 				}
@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(value.HasValue, Is.False);
 					
 					// also check directly
-					var data = await tr.GetAsync(location.Tuples.EncodeKey("Foos", "hello"));
+					var data = await tr.GetAsync(location.Keys.Encode("Foos", "hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}
 

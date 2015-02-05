@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -108,7 +108,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public virtual IFdbSubspace GlobalSpace
+		public virtual IFdbDynamicSubspace GlobalSpace
 		{
 			[NotNull]
 			get { return m_database.GlobalSpace; }
@@ -138,19 +138,39 @@ namespace FoundationDB.Filters
 			get { return this.GlobalSpace.Key; }
 		}
 
-		public virtual FdbSubspacePartition Partition
+		FdbKeyRange IFdbSubspace.ToRange()
+		{
+			return this.GlobalSpace.ToRange();
+		}
+
+		FdbKeyRange IFdbSubspace.ToRange(Slice suffix)
+		{
+			return this.GlobalSpace.ToRange(suffix);
+		}
+
+		FdbKeyRange IFdbSubspace.ToRange<TKey>(TKey key)
+		{
+			return this.GlobalSpace.ToRange(key);
+		}
+
+		IFdbSubspace IFdbSubspace.this[Slice suffix]
+		{
+			get { return this.GlobalSpace[suffix]; }
+		}
+
+		IFdbSubspace IFdbSubspace.this[IFdbKey key]
+		{
+			get { return this.GlobalSpace[key]; }
+		}
+
+		public virtual FdbDynamicSubspacePartition Partition
 		{
 			get { return m_database.Partition; }
 		}
 
-		public virtual FdbSubspaceKeys Keys
+		public virtual FdbDynamicSubspaceKeys Keys
 		{
 			get { return m_database.Keys; }
-		}
-
-		public virtual FdbSubspaceTuples Tuples
-		{
-			get { return m_database.Tuples; }
 		}
 
 		public virtual bool Contains(Slice key)
@@ -168,12 +188,24 @@ namespace FoundationDB.Filters
 			return m_database.ConcatKey(key);
 		}
 
+		public virtual Slice ConcatKey<TKey>(TKey key)
+			where TKey : IFdbKey
+		{
+			return m_database.ConcatKey<TKey>(key);
+		}
+
 		public virtual Slice[] ConcatKeys(IEnumerable<Slice> keys)
 		{
 			return m_database.ConcatKeys(keys);
 		}
 
-		public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
+		public virtual Slice[] ConcatKeys<TKey>(IEnumerable<TKey> keys)
+			where TKey : IFdbKey
+		{
+			return m_database.ConcatKeys<TKey>(keys);
+		}
+
+        public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
 		{
 			return m_database.ExtractKey(key, boundCheck);
 		}
@@ -181,6 +213,16 @@ namespace FoundationDB.Filters
 		public virtual Slice[] ExtractKeys(IEnumerable<Slice> keys, bool boundCheck = false)
 		{
 			return m_database.ExtractKeys(keys, boundCheck);
+		}
+
+		public virtual SliceWriter GetWriter(int capacity = 0)
+		{
+			return m_database.GetWriter(capacity);
+		}
+
+		public virtual IFdbTypeSystem Protocol
+		{
+			get { return m_database.Protocol; }
 		}
 
 		#endregion

@@ -26,6 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using System.ComponentModel;
+using System.Runtime.CompilerServices;
+
 namespace FoundationDB.Client
 {
 	using System;

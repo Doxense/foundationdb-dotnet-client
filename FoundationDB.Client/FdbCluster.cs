@@ -111,7 +111,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>Any attempt to use a key outside the specified subspace will throw an exception</remarks>
-		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool readOnly, CancellationToken cancellationToken)
+		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IFdbSubspace subspace, bool readOnly, CancellationToken cancellationToken)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			return await OpenDatabaseInternalAsync(databaseName, subspace, readOnly: readOnly, ownsCluster: false, cancellationToken: cancellationToken).ConfigureAwait(false);

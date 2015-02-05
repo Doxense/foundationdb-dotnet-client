@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,19 +40,20 @@ namespace FoundationDB.Client
 		/// <summary>Returns the prefix of this subspace</summary>
 		Slice Key { get; }
 
-		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
-		FdbSubspaceKeys Keys { get; }
+		/// <summary>Return a key range that contains all the keys in this subspace</summary>
+		FdbKeyRange ToRange();
+		FdbKeyRange ToRange(Slice suffix);
+		FdbKeyRange ToRange<TKey>([NotNull] TKey key) where TKey : IFdbKey;
 
-		/// <summary>Helper that can be used to partition this subspace into smaller subspaces</summary>
-		FdbSubspacePartition Partition { get; }
+		/// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
+		/// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
+		IFdbSubspace this[Slice suffix] { [NotNull] get; }
 
-		/// <summary>Return a view of all the possible tuple-based keys of this subspace</summary>
-		FdbSubspaceTuples Tuples { get; }
-
-		///// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
-		///// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
-		///// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="suffix"/></returns>
-		//IFdbSubspace this[Slice suffix] { [NotNull] get; }
+		/// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
+		/// <param name="key">Item that can serialize itself into a binary suffix, that will be appended to the current subspace's prefix</param>
+		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and <paramref name="key"/></returns>
+		IFdbSubspace this[[NotNull] IFdbKey key] { [NotNull] get; }
 
 		/// <summary>Test if a key is inside the range of keys logically contained by this subspace</summary>
 		/// <param name="key">Key to test</param>
@@ -68,17 +69,35 @@ namespace FoundationDB.Client
 
 		Slice ConcatKey(Slice suffix);
 
+		Slice ConcatKey<TKey>([NotNull] TKey key) where TKey : IFdbKey;
+
 		[NotNull]
 		Slice[] ConcatKeys([NotNull] IEnumerable<Slice> suffixes);
 
-		/// <summary>Remove the subspace prefix from a binary key, or throw if the key does not belong to this subspace</summary>
-		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix.</param>
-		/// <returns>Binary suffix of the key (or Slice.Empty is the key is exactly equal to the subspace prefix). If the key is equal to Slice.Nil, then it will be returned unmodified. If the key is outside of the subspace, the method throws.</returns>
-		/// <exception cref="System.ArgumentException">If key is outside the current subspace.</exception>
+		[NotNull]
+		Slice[] ConcatKeys<TKey>([NotNull, ItemNotNull] IEnumerable<TKey> suffixes) where TKey : IFdbKey;
+
+		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
+		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>
+		/// <param name="boundCheck">If true, verify that <paramref name="key"/> is inside the bounds of the subspace</param>
+		/// <returns>Binary suffix of the key (or Slice.Empty if the key is exactly equal to the subspace prefix). If the key is outside of the subspace, returns Slice.Nil</returns>
+		/// <remarks>This is the inverse operation of <see cref="ConcatKey(Slice)"/></remarks>
+		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and <paramref name="key"/> is outside the current subspace.</exception>
 		Slice ExtractKey(Slice key, bool boundCheck = false);
 
+		/// <summary>Remove the subspace prefix from a batch of binary keys, and only return the tail, or Slice.Nil if a key does not fit inside the namespace</summary>
+		/// <param name="keys">Sequence of complete keys that contains the current subspace prefix, and a binary suffix</param>
+		/// <param name="boundCheck">If true, verify that each key in <paramref name="keys"/> is inside the bounds of the subspace</param>
+		/// <returns>Array of only the binary suffix of the keys, Slice.Empty for a key that is exactly equal to the subspace prefix, or Slice.Nil for a key that is outside of the subspace</returns>
+		/// <exception cref="System.ArgumentException">If <paramref name="boundCheck"/> is true and at least one key in <paramref name="keys"/> is outside the current subspace.</exception>
 		[NotNull]
 		Slice[] ExtractKeys([NotNull] IEnumerable<Slice> keys, bool boundCheck = false);
+
+		/// <summary>Return a new slice buffer, initialized with the subspace prefix, that can be used for custom key serialization</summary>
+		/// <param name="capacity">If non-zero, the expected buffer capacity. The size of the subspace prefix will be added to this value.</param>
+		/// <returns>Instance of a SliceWriter with the prefix of this subspace already copied.</returns>
+		SliceWriter GetWriter(int capacity = 0);
+
 
 	}
 

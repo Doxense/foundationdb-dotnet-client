@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -172,10 +172,10 @@ namespace FoundationDB.Layers.Collections.Tests
 			bool first = true;
 			var sb = new StringBuilder();
 
-			await tr.GetRange(vector.Subspace.Tuples.ToRange()).ForEachAsync((kvp) =>
+			await tr.GetRange(vector.Subspace.Keys.ToRange()).ForEachAsync((kvp) =>
 			{
 				if (!first) sb.Append(", "); else first = false;
-				sb.Append(vector.Subspace.Tuples.DecodeLast<long>(kvp.Key) + ":" + kvp.Value.ToAsciiOrHexaString());
+				sb.Append(vector.Subspace.Keys.DecodeLast<long>(kvp.Key) + ":" + kvp.Value.ToAsciiOrHexaString());
 			});
 
 			Console.WriteLine("> Vector: (" + sb.ToString() + ")");

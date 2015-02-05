@@ -354,6 +354,12 @@ namespace FoundationDB.Layers.Tuples
 
 		// With prefix
 
+		public static void Pack(ref TupleWriter writer, [CanBeNull] IFdbTuple tuple)
+		{
+			if (tuple == null || tuple.Count == 0) return;
+			tuple.PackTo(ref writer);
+		}
+
 		/// <summary>Efficiently concatenate a prefix with the packed representation of a tuple</summary>
 		public static Slice Pack(Slice prefix, [CanBeNull] IFdbTuple tuple)
 		{
@@ -786,6 +792,104 @@ namespace FoundationDB.Layers.Tuples
 			if (slice.IsNull) throw new InvalidOperationException("Failed to unpack singleton tuple");
 
 			return FdbTuplePacker<T>.Deserialize(slice);
+		}
+
+		/// <summary>Unpack a key containing two elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with two elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
+		public static FdbTuple<T1, T2> DecodeKey<T1, T2>(Slice packedKey)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			var reader = new TupleReader(packedKey);
+
+			T1 item1;
+			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
+
+			T2 item2;
+			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
+
+			if (reader.Input.HasMore) throw new FormatException("The key contains more than two items");
+
+			return Create(item1, item2);
+		}
+
+		/// <summary>Unpack a key containing three elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with three elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
+		public static FdbTuple<T1, T2, T3> DecodeKey<T1, T2, T3>(Slice packedKey)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			var reader = new TupleReader(packedKey);
+
+			T1 item1;
+			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
+
+			T2 item2;
+			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
+
+			T3 item3;
+			if (!DecodeNext(ref reader, out item3)) throw new FormatException("Failed to decode third item");
+
+			if (reader.Input.HasMore) throw new FormatException("The key contains more than three items");
+
+			return Create(item1, item2, item3);
+		}
+
+		/// <summary>Unpack a key containing four elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with four elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
+		public static FdbTuple<T1, T2, T3, T4> DecodeKey<T1, T2, T3, T4>(Slice packedKey)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			var reader = new TupleReader(packedKey);
+
+			T1 item1;
+			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
+
+			T2 item2;
+			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
+
+			T3 item3;
+			if (!DecodeNext(ref reader, out item3)) throw new FormatException("Failed to decode third item");
+
+			T4 item4;
+			if (!DecodeNext(ref reader, out item4)) throw new FormatException("Failed to decode fourth item");
+
+			if (reader.Input.HasMore) throw new FormatException("The key contains more than four items");
+
+			return Create(item1, item2, item3, item4);
+		}
+
+		/// <summary>Unpack a key containing five elements</summary>
+		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with five elements</param>
+		/// <returns>Decoded value of the elements int the tuple. Throws an exception if the tuple is empty of has more than elements.</returns>
+		public static FdbTuple<T1, T2, T3, T4, T5> DecodeKey<T1, T2, T3, T4, T5>(Slice packedKey)
+		{
+			if (packedKey.IsNullOrEmpty) throw new InvalidOperationException("Cannot unpack an empty tuple");
+
+			var reader = new TupleReader(packedKey);
+
+			T1 item1;
+			if (!DecodeNext(ref reader, out item1)) throw new FormatException("Failed to decode first item");
+
+			T2 item2;
+			if (!DecodeNext(ref reader, out item2)) throw new FormatException("Failed to decode second item");
+
+			T3 item3;
+			if (!DecodeNext(ref reader, out item3)) throw new FormatException("Failed to decode third item");
+
+			T4 item4;
+			if (!DecodeNext(ref reader, out item4)) throw new FormatException("Failed to decode fourth item");
+
+			T5 item5;
+			if (!DecodeNext(ref reader, out item5)) throw new FormatException("Failed to decode fiftyh item");
+
+			if (reader.Input.HasMore) throw new FormatException("The key contains more than four items");
+
+			return Create(item1, item2, item3, item4, item5);
 		}
 
 		/// <summary>Unpack the next item in the tuple, and advance the cursor</summary>
