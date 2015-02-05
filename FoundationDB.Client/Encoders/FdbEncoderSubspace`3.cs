@@ -36,7 +36,7 @@ namespace FoundationDB.Client
 	/// <summary>Subspace that knows how to encode and decode its key</summary>
 	/// <typeparam name="T1">Type of the first item of the keys handled by this subspace</typeparam>
 	/// <typeparam name="T2">Type of the second item of the keys handled by this subspace</typeparam>
-	/// <typeparam name="T2">Type of the thrid item of the keys handled by this subspace</typeparam>
+	/// <typeparam name="T3">Type of the thrid item of the keys handled by this subspace</typeparam>
 	public class FdbEncoderSubspace<T1, T2, T3> : FdbSubspace, ICompositeKeyEncoder<T1, T2, T3>
 	{
 		/// <summary>Reference to the wrapped subspace</summary>
