@@ -154,7 +154,7 @@ namespace FoundationDB.Client.Native
 		protected void SetFlag(int flag)
 		{
 			var flags = m_flags;
-			Thread.MemoryBarrier();
+			Interlocked.MemoryBarrier();
 			m_flags = flags | flag;
 		}
 
