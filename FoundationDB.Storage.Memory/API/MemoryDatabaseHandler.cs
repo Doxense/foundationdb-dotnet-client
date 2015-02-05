@@ -429,7 +429,7 @@ namespace FoundationDB.Storage.Memory.API
 									prev->Parent = value;
 
 									// make sure no thread seees an inconsitent view of the key
-									Thread.MemoryBarrier();
+									Interlocked.MemoryBarrier();
 								}
 								else
 								{ // add this key to the data store
@@ -445,7 +445,7 @@ namespace FoundationDB.Storage.Memory.API
 									Interlocked.Add(ref m_estimatedSize, key->Size);
 
 									// make sure no thread seees an inconsitent view of the key
-									Thread.MemoryBarrier();
+									Interlocked.MemoryBarrier();
 
 									if (pendingInserts != null)
 									{
