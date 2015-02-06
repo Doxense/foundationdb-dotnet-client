@@ -68,7 +68,9 @@ namespace FoundationDB.Async
 		{
 			get
 			{
+#if !CORE_CLR
 				Debugger.NotifyOfCrossThreadDependency();
+#endif
 				lock (m_lock)
 				{
 					return m_queue.Count;
@@ -87,7 +89,9 @@ namespace FoundationDB.Async
 		{
 			get
 			{
+#if !CORE_CLR
 				Debugger.NotifyOfCrossThreadDependency();
+#endif
 				lock (m_lock)
 				{
 					return m_blockedConsumer != null && m_blockedConsumer.Task.IsCompleted;
@@ -100,7 +104,9 @@ namespace FoundationDB.Async
 		{
 			get
 			{
+#if !CORE_CLR
 				Debugger.NotifyOfCrossThreadDependency();
+#endif
 				lock (m_lock)
 				{
 					return m_blockedProducer != null && m_blockedProducer.Task.IsCompleted;
