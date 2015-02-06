@@ -218,10 +218,12 @@ namespace FoundationDB.Client
 		/// <summary>Wrapper for a composite encoder that will only output the first key</summary>
 		public struct HeadEncoder<T1, T2> : IKeyEncoder<T1>
 		{
+			[NotNull]
 			public readonly ICompositeKeyEncoder<T1, T2> Encoder;
 
-			public HeadEncoder(ICompositeKeyEncoder<T1, T2> encoder)
+			public HeadEncoder([NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 			{
+				Contract.Requires(encoder != null);
 				this.Encoder = encoder;
 			}
 
@@ -239,10 +241,12 @@ namespace FoundationDB.Client
 		/// <summary>Wrapper for a composite encoder that will only output the first key</summary>
 		public struct HeadEncoder<T1, T2, T3> : IKeyEncoder<T1>
 		{
+			[NotNull]
 			public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
 
-			public HeadEncoder(ICompositeKeyEncoder<T1, T2, T3> encoder)
+			public HeadEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 			{
+				Contract.Requires(encoder != null);
 				this.Encoder = encoder;
 			}
 
@@ -257,13 +261,38 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Wrapper for a composite encoder that will only output the first key</summary>
+		public struct HeadEncoder<T1, T2, T3, T4> : IKeyEncoder<T1>
+		{
+			[NotNull]
+			public readonly ICompositeKeyEncoder<T1, T2, T3, T4> Encoder;
+
+			public HeadEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+			{
+				Contract.Requires(encoder != null);
+				this.Encoder = encoder;
+			}
+
+			public Slice EncodeKey(T1 value)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3, T4>(value, default(T2), default(T3), default(T4)), 1);
+			}
+
+			public T1 DecodeKey(Slice encoded)
+			{
+				return this.Encoder.DecodeComposite(encoded, 1).Item1;
+			}
+		}
+
 		/// <summary>Wrapper for a composite encoder that will only output the first and second keys</summary>
 		public struct PairEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2>
 		{
+			[NotNull]
 			public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
 
-			public PairEncoder(ICompositeKeyEncoder<T1, T2, T3> encoder)
+			public PairEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 			{
+				Contract.Requires(encoder != null);
 				this.Encoder = encoder;
 			}
 
@@ -292,9 +321,54 @@ namespace FoundationDB.Client
 			{
 				return DecodeComposite(encoded, 2);
 			}
+
 			public HeadEncoder<T1, T2, T3> Head()
 			{
 				return new HeadEncoder<T1, T2, T3>(this.Encoder);
+			}
+		}
+
+		/// <summary>Wrapper for a composite encoder that will only output the first and second keys</summary>
+		public struct PairEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2>
+		{
+			[NotNull]
+			public readonly ICompositeKeyEncoder<T1, T2, T3, T4> Encoder;
+
+			public PairEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+			{
+				Contract.Requires(encoder != null);
+				this.Encoder = encoder;
+			}
+
+			public Slice EncodeKey(T1 value1, T2 value2)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3, T4>(value1, value2, default(T3), default(T4)), 2);
+			}
+
+			public Slice EncodeComposite(FdbTuple<T1, T2> key, int items)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3, T4>(key.Item1, key.Item2, default(T3), default(T4)), items);
+			}
+
+			public FdbTuple<T1, T2> DecodeComposite(Slice encoded, int items)
+			{
+				var t = this.Encoder.DecodeComposite(encoded, items);
+				return new FdbTuple<T1, T2>(t.Item1, t.Item2);
+			}
+
+			public Slice EncodeKey(FdbTuple<T1, T2> value)
+			{
+				return EncodeComposite(value, 2);
+			}
+
+			public FdbTuple<T1, T2> DecodeKey(Slice encoded)
+			{
+				return DecodeComposite(encoded, 2);
+			}
+
+			public HeadEncoder<T1, T2, T3, T4> Head()
+			{
+				return new HeadEncoder<T1, T2, T3, T4>(this.Encoder);
 			}
 		}
 
@@ -765,6 +839,12 @@ namespace FoundationDB.Client
 				return TupleCompositeEncoder<T1, T2, T3>.Default;
 			}
 
+			[NotNull]
+			public static ICompositeKeyEncoder<T1, T2, T3, T4> CompositeKey<T1, T2, T3, T4>()
+			{
+				return TupleCompositeEncoder<T1, T2, T3, T4>.Default;
+			}
+
 			#endregion
 
 			#region Values...
@@ -946,12 +1026,28 @@ namespace FoundationDB.Client
 			return new HeadEncoder<T1, T2, T3>(encoder);
 		}
 
+		/// <summary>Returns a partial encoder that will only encode the first element</summary>
+		public static HeadEncoder<T1, T2, T3, T4> Head<T1, T2, T3, T4>([NotNull] this ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+
+			return new HeadEncoder<T1, T2, T3, T4>(encoder);
+		}
+
 		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
 		public static PairEncoder<T1, T2, T3> Pair<T1, T2, T3>([NotNull] this ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
 			return new PairEncoder<T1, T2, T3>(encoder);
+		}
+
+		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
+		public static PairEncoder<T1, T2, T3, T4> Pair<T1, T2, T3, T4>([NotNull] this ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+
+			return new PairEncoder<T1, T2, T3, T4>(encoder);
 		}
 
 		#endregion

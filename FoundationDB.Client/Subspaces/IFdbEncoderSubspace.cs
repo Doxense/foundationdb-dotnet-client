@@ -76,4 +76,22 @@ namespace FoundationDB.Client
 		IFdbEncoderSubspace<T1, T2> Partial {[NotNull] get; }
 	}
 
+	public interface IFdbEncoderSubspace<T1, T2, T3, T4> : IFdbSubspace
+	{
+
+		ICompositeKeyEncoder<T1, T2, T3, T4> Encoder {[NotNull] get; }
+
+		/// <summary>Return a view of all the possible keys of this subspace</summary>
+		FdbEncoderSubspaceKeys<T1, T2, T3, T4> Keys { get; }
+
+		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
+		FdbEncoderSubspacePartition<T1, T2, T3, T4> Partition { get; }
+
+		IFdbEncoderSubspace<T1> Head {[NotNull] get; }
+
+		IFdbEncoderSubspace<T1, T2> Partial {[NotNull] get; }
+
+		//TODO: how to name <T1, T2, T3> ?
+	}
+
 }

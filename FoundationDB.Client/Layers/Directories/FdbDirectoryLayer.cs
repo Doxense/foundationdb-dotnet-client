@@ -929,7 +929,7 @@ namespace FoundationDB.Layers.Directories
 			}
 			else
 			{
-				return new FdbDirectorySubspace(path, relativePath, prefix, this, layer, TypeSystem.Default);
+				return new FdbDirectorySubspace(path, relativePath, prefix, this, layer, TypeSystem.Default.GetDynamicEncoder());
 			}
 		}
 

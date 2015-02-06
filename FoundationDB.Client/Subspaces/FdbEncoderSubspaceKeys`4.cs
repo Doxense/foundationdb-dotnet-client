@@ -27,55 +27,60 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Diagnostics.Contracts;
+using FoundationDB.Layers.Tuples;
 using JetBrains.Annotations;
 
 namespace FoundationDB.Client
 {
-	public struct FdbEncoderSubspacePartition<T>
+	public struct FdbEncoderSubspaceKeys<T1, T2, T3, T4>
 	{
-		public readonly IFdbSubspace Subspace;
-		public readonly IKeyEncoder<T> Encoder;
 
-		public FdbEncoderSubspacePartition([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
+		[NotNull]
+		public readonly IFdbSubspace Subspace;
+
+		[NotNull]
+		public readonly ICompositeKeyEncoder<T1, T2, T3, T4> Encoder;
+
+		public FdbEncoderSubspaceKeys([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
+			Contract.Requires(subspace != null && encoder != null);
 			this.Subspace = subspace;
 			this.Encoder = encoder;
 		}
 
-		public IFdbSubspace this[T value]
+		public Slice this[T1 value1, T2 value2, T3 value3, T4 value4]
 		{
-			[NotNull]
-			get { return ByKey(value); }
+			get { return Encode(value1, value2, value3, value4); }
+		}
+
+		public Slice Encode(T1 value1, T2 value2, T3 value3, T4 value4)
+		{
+			return this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3, value4));
 		}
 
 		[NotNull]
-		public IFdbSubspace ByKey(T value)
+		public Slice[] Encode<TSource>([NotNull] IEnumerable<TSource> values, [NotNull] Func<TSource, T1> selector1, [NotNull] Func<TSource, T2> selector2, [NotNull] Func<TSource, T3> selector3, [NotNull] Func<TSource, T4> selector4)
 		{
-			return this.Subspace[this.Encoder.EncodeKey(value)];
+			if (values == null) throw new ArgumentNullException("values");
+			return Batched<TSource, ICompositeKeyEncoder<T1, T2, T3, T4>>.Convert(
+				this.Subspace.GetWriter(),
+				values,
+				(ref SliceWriter writer, TSource value, ICompositeKeyEncoder<T1, T2, T3, T4> encoder) => writer.WriteBytes(encoder.EncodeKey(selector1(value), selector2(value), selector3(value), selector4(value))),
+				this.Encoder
+			);
 		}
 
-		[NotNull]
-		public IFdbDynamicSubspace ByKey(T value, [NotNull] IFdbKeyEncoding encoding)
+		public FdbTuple<T1, T2, T3, T4> Decode(Slice packed)
 		{
-			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
+			return this.Encoder.DecodeKey(this.Subspace.ExtractKey(packed));
 		}
 
-		[NotNull]
-		public IFdbDynamicSubspace ByKey(T value, [NotNull] IDynamicKeyEncoder encoder)
+		public FdbKeyRange ToRange(T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
-		}
-
-		[NotNull]
-		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IFdbKeyEncoding encoding)
-		{
-			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
-		}
-
-		[NotNull]
-		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IKeyEncoder<TNext> encoder)
-		{
-			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
+			//REVIEW: which semantic for ToRange() should we use?
+			return FdbTuple.ToRange(Encode(value1, value2, value3, value4));
 		}
 
 	}

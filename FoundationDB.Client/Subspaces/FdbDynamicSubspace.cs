@@ -34,38 +34,38 @@ namespace FoundationDB.Client
 {
 	public class FdbDynamicSubspace : FdbSubspace, IFdbDynamicSubspace
 	{
-		/// <summary>Protocol used to encode keys</summary>
-		private readonly IFdbTypeSystem m_protocol;
+		/// <summary>Encoder for the keys of this subspace</summary>
+		private readonly IDynamicKeyEncoder m_encoder;
 
 		/// <summary>Create a new subspace from a binary prefix</summary>
 		/// <param name="rawPrefix">Prefix of the new subspace</param>
 		/// <param name="copy">If true, take a copy of the prefix</param>
-		/// <param name="protocol">Type System used to encode keys in this subspace (optional, will use Tuple Encoding by default)</param>
-		internal FdbDynamicSubspace(Slice rawPrefix, bool copy, IFdbTypeSystem protocol)
+		/// <param name="encoder">Type System used to encode keys in this subspace (optional, will use Tuple Encoding by default)</param>
+		internal FdbDynamicSubspace(Slice rawPrefix, bool copy, IDynamicKeyEncoder encoder)
 			:  base (rawPrefix, copy)
 		{
-			m_protocol = protocol ?? TypeSystem.Default;
+			this.m_encoder = encoder ?? TypeSystem.Default.GetDynamicEncoder();
 		}
 
-		public FdbDynamicSubspace(Slice rawPrefix, IFdbTypeSystem protocol)
-			: this(rawPrefix, true, protocol)
+		public FdbDynamicSubspace(Slice rawPrefix, IDynamicKeyEncoder encoder)
+			: this(rawPrefix, true, encoder)
 		{ }
 
 		protected override IFdbSubspace CreateChildren(Slice suffix)
 		{
-			return new FdbDynamicSubspace(ConcatKey(suffix), m_protocol);
+			return new FdbDynamicSubspace(ConcatKey(suffix), m_encoder);
 		}
 
-		public IFdbTypeSystem Protocol
+		public IDynamicKeyEncoder Encoder
 		{
-			get { return m_protocol; }
+			get { return m_encoder; }
 		}
 
 		/// <summary>Return a view of all the possible binary keys of this subspace</summary>
 		public FdbDynamicSubspaceKeys Keys
 		{
 			[DebuggerStepThrough]
-			get { return new FdbDynamicSubspaceKeys(this, m_protocol); }
+			get { return new FdbDynamicSubspaceKeys(this, m_encoder); }
 		}
 
 		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>
@@ -73,7 +73,7 @@ namespace FoundationDB.Client
 		{
 			//note: not cached, because this is probably not be called frequently (except in the init path)
 			[DebuggerStepThrough]
-			get { return new FdbDynamicSubspacePartition(this, m_protocol); }
+			get { return new FdbDynamicSubspacePartition(this, m_encoder); }
 		}
 
 	}

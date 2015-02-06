@@ -40,9 +40,17 @@ namespace FoundationDB.Client
 		/// <summary>Returns the prefix of this subspace</summary>
 		Slice Key { get; }
 
-		/// <summary>Return a key range that contains all the keys in this subspace</summary>
+		/// <summary>Return a key range that contains all the keys in this subspace, including the prefix itself</summary>
+		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
 		FdbKeyRange ToRange();
+
+		/// <summary>Return a key range that contains all the keys under a suffix in this subspace</summary>
+		/// <param name="suffix">Binary suffix that will be appended to the current prefix, before computing the range</param>
+		/// <returns>Return the range: (this.Key + suffix) &lt;= x &lt;= Increment(this.Key + suffix)</returns>
 		FdbKeyRange ToRange(Slice suffix);
+
+		/// <summary>Return a key range that contains all the keys under a serializable key in this subspace</summary>
+		/// <returns>Return the range: (this.Key + key.ToFoundationDbKey()) &lt;= x &lt;= Increment(this.Key + key.ToFoundationDbKey())</returns>
 		FdbKeyRange ToRange<TKey>([NotNull] TKey key) where TKey : IFdbKey;
 
 		/// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
@@ -67,15 +75,27 @@ namespace FoundationDB.Client
 		/// <returns>The <paramref name="key"/> unchanged if it is contained in the namespace, Slice.Empty if it was before the subspace, or FdbKey.MaxValue if it was after.</returns>
 		Slice BoundCheck(Slice key, bool allowSystemKeys);
 
+		/// <summary>Return the key that is composed of the subspace's prefix and a binary suffix</summary>
+		/// <param name="suffix">Binary suffix that will be appended to the current prefix</param>
+		/// <returns>Full binary key</returns>
 		Slice ConcatKey(Slice suffix);
 
+		/// <summary>Return the key that is composed of the subspace's prefix and a serializable key</summary>
+		/// <param name="key">Item that can serialize itself into a binary suffix, that will be appended to the current prefix</param>
+		/// <returns>Full binary key</returns>
 		Slice ConcatKey<TKey>([NotNull] TKey key) where TKey : IFdbKey;
 
+		/// <summary>Concatenate a batch of keys under this subspace</summary>
+		/// <param name="suffixes">List of suffixes to process</param>
+		/// <returns>Array of <see cref="Slice"/> which is equivalent to calling <see cref="ConcatKey(Slice)"/> on each entry in <paramref name="suffixes"/></returns>
 		[NotNull]
 		Slice[] ConcatKeys([NotNull] IEnumerable<Slice> suffixes);
 
+		/// <summary>Concatenate a batch of serializable keys under this subspace</summary>
+		/// <param name="keys">List of serializable keys to process</param>
+		/// <returns>Array of <see cref="Slice"/> which is equivalent to calling <see cref="ConcatKey{TKey}(TKey)"/> on each entry in <paramref name="keys"/></returns>
 		[NotNull]
-		Slice[] ConcatKeys<TKey>([NotNull, ItemNotNull] IEnumerable<TKey> suffixes) where TKey : IFdbKey;
+		Slice[] ConcatKeys<TKey>([NotNull, ItemNotNull] IEnumerable<TKey> keys) where TKey : IFdbKey;
 
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
 		/// <param name="key">Complete key that contains the current subspace prefix, and a binary suffix</param>

@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using FoundationDB.Layers.Tuples;
 using JetBrains.Annotations;
 
@@ -36,11 +37,15 @@ namespace FoundationDB.Client
 	public struct FdbEncoderSubspaceKeys<T>
 	{
 
+		[NotNull]
 		public readonly IFdbSubspace Subspace;
+
+		[NotNull]
 		public readonly IKeyEncoder<T> Encoder;
 
 		public FdbEncoderSubspaceKeys([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
 		{
+			Contract.Requires(subspace != null && encoder != null);
 			this.Subspace = subspace;
 			this.Encoder = encoder;
 		}

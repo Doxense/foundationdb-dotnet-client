@@ -38,26 +38,40 @@ namespace FoundationDB.Client
 		public readonly IFdbDynamicSubspace Subspace;
 
 		[NotNull]
-		public readonly IFdbTypeSystem Protocol;
+		public readonly IDynamicKeyEncoder Encoder;
 
-		public FdbDynamicSubspacePartition([NotNull] IFdbDynamicSubspace subspace, [NotNull] IFdbTypeSystem protocol)
+		public FdbDynamicSubspacePartition([NotNull] IFdbDynamicSubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (protocol == null) throw new ArgumentNullException("protocol");
+			if (encoder == null) throw new ArgumentNullException("encoder");
 			this.Subspace = subspace;
-			this.Protocol = protocol;
+			this.Encoder = encoder;
 		}
 
 		/// <summary>Returns the same view but using a different Type System</summary>
-		/// <param name="protocol">Type System that will code keys in this new view</param>
+		/// <param name="encoding">Type System that will code keys in this new view</param>
 		/// <returns>Review that will partition this subspace using a different Type System</returns>
 		/// <remarks>
 		/// This should only be used for one-off usages where creating a new subspace just to encode one key would be overkill.
-		/// If you are calling this in a loop, consider creating a new subspace using that protocol.
+		/// If you are calling this in a loop, consider creating a new subspace using that encoding.
 		/// </remarks>
-		public FdbDynamicSubspacePartition Using([NotNull] IFdbTypeSystem protocol)
+		public FdbDynamicSubspacePartition Using([NotNull] IFdbKeyEncoding encoding)
 		{
-			return new FdbDynamicSubspacePartition(this.Subspace, protocol);
+			if (encoding == null) throw new ArgumentNullException("encoding");
+			var encoder = encoding.GetDynamicEncoder();
+			return UsingEncoder(encoder);
+		}
+
+		/// <summary>Returns the same view but using a different Type System</summary>
+		/// <param name="encoder">Type System that will code keys in this new view</param>
+		/// <returns>Review that will partition this subspace using a different Type System</returns>
+		/// <remarks>
+		/// This should only be used for one-off usages where creating a new subspace just to encode one key would be overkill.
+		/// If you are calling this in a loop, consider creating a new subspace using that encoder.
+		/// </remarks>
+		public FdbDynamicSubspacePartition UsingEncoder([NotNull] IDynamicKeyEncoder encoder)
+		{
+			return new FdbDynamicSubspacePartition(this.Subspace, encoder);
 		}
 
 		/// <summary>Create a new subspace by appdending a suffix to the current subspace</summary>
@@ -70,7 +84,7 @@ namespace FoundationDB.Client
 			{
 				if (suffix.IsNull) throw new ArgumentException("Partition suffix cannot be null", "suffix");
 				//TODO: find a way to limit the number of copies of the key?
-				return new FdbDynamicSubspace(this.Subspace.ConcatKey(suffix), false, this.Protocol);
+				return new FdbDynamicSubspace(this.Subspace.ConcatKey(suffix), false, this.Encoder);
 			}
 		}
 
@@ -95,7 +109,7 @@ namespace FoundationDB.Client
 			{
 				if (tuple == null) throw new ArgumentNullException("tuple");
 				//TODO: find a way to limit the number of copies of the packed tuple?
-				return new FdbDynamicSubspace(this.Subspace.Keys.Pack(tuple), false, this.Protocol);
+				return new FdbDynamicSubspace(this.Subspace.Keys.Pack(tuple), false, this.Encoder);
 			}
 		}
 
@@ -122,7 +136,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public IFdbDynamicSubspace ByKey<T>(T value)
 		{
-			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T>(value), false, this.Protocol);
+			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T>(value), false, this.Encoder);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -138,7 +152,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public IFdbDynamicSubspace ByKey<T1, T2>(T1 value1, T2 value2)
 		{
-			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2>(value1, value2), false, this.Protocol);
+			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2>(value1, value2), false, this.Encoder);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -155,7 +169,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public IFdbDynamicSubspace ByKey<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
-			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2, T3>(value1, value2, value3), false, this.Protocol);
+			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2, T3>(value1, value2, value3), false, this.Encoder);
 		}
 
 		/// <summary>Partition this subspace into a child subspace</summary>
@@ -174,7 +188,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public IFdbDynamicSubspace ByKey<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), false, this.Protocol);
+			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), false, this.Encoder);
 		}
 
 	}

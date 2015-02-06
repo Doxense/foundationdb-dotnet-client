@@ -220,9 +220,9 @@ namespace FoundationDB.Filters
 			return m_database.GetWriter(capacity);
 		}
 
-		public virtual IFdbTypeSystem Protocol
+		public virtual IDynamicKeyEncoder Encoder
 		{
-			get { return m_database.Protocol; }
+			get { return m_database.Encoder; }
 		}
 
 		#endregion

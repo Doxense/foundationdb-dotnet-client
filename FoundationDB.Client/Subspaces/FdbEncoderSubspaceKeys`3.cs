@@ -55,7 +55,7 @@ namespace FoundationDB.Client
 			return this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3));
 		}
 
-		public Slice[] Encode<TSource>([NotNull] IEnumerable<TSource> values, Func<TSource, T1> selector1, Func<TSource, T2> selector2, Func<TSource, T3> selector3)
+		public Slice[] Encode<TSource>([NotNull] IEnumerable<TSource> values, [NotNull] Func<TSource, T1> selector1, [NotNull] Func<TSource, T2> selector2, [NotNull] Func<TSource, T3> selector3)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 			return Batched<TSource, ICompositeKeyEncoder<T1, T2, T3>>.Convert(

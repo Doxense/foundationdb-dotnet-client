@@ -1,4 +1,4 @@
-﻿#region BSD Licence
+#region BSD Licence
 /* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
@@ -26,18 +26,31 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using System;
+using FoundationDB.Layers.Tuples;
+
 namespace FoundationDB.Client
 {
-	using System;
-
-	/// <summary>Allows an object to control the way it is packed or unpacked</summary>
-	public interface ISliceSerializable
+	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3, T4>>
 	{
-		/// <summary>Return the packed representation of this instance</summary>
-		Slice ToSlice();
-
-		/// <summary>Load a packed representation into a newly created instance</summary>
-		void FromSlice(Slice slice);
+		Slice EncodeKey(T1 value1, T2 value2, T3 value3, T4 value4);
 	}
 
+	public interface ICompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3>>
+	{
+		Slice EncodeKey(T1 value1, T2 value2, T3 value3);
+	}
+
+	public interface ICompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<FdbTuple<T1, T2>>
+	{
+		Slice EncodeKey(T1 value1, T2 value2);
+	}
+
+	public interface ICompositeKeyEncoder<TTuple> : IKeyEncoder<TTuple>
+		where TTuple : IFdbTuple
+	{
+		Slice EncodeComposite(TTuple key, int items);
+
+		TTuple DecodeComposite(Slice encoded, int items);
+	}
 }

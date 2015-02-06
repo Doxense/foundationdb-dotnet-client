@@ -619,9 +619,9 @@ namespace FoundationDB.Client
 			get { return m_globalSpace.Partition; }
 		}
 
-		IFdbTypeSystem IFdbDynamicSubspace.Protocol
+		IDynamicKeyEncoder IFdbDynamicSubspace.Encoder
 		{
-			get { return m_globalSpace.Protocol; }
+			get { return m_globalSpace.Encoder; }
 		}
 
 		public FdbDynamicSubspaceKeys Keys

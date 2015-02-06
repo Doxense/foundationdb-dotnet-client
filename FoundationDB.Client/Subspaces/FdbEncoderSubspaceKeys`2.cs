@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using FoundationDB.Layers.Tuples;
 using JetBrains.Annotations;
 
@@ -36,11 +37,15 @@ namespace FoundationDB.Client
 	public struct FdbEncoderSubspaceKeys<T1, T2>
 	{
 
+		[NotNull]
 		public readonly IFdbSubspace Subspace;
+
+		[NotNull]
 		public readonly ICompositeKeyEncoder<T1, T2> Encoder;
 
 		public FdbEncoderSubspaceKeys([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 		{
+			Contract.Requires(subspace != null && encoder != null);
 			this.Subspace = subspace;
 			this.Encoder = encoder;
 		}
@@ -55,7 +60,7 @@ namespace FoundationDB.Client
 			return this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2));
 		}
 
-		public Slice[] Encode<TSource>([NotNull] IEnumerable<TSource> values, Func<TSource, T1> selector1, Func<TSource, T2> selector2)
+		public Slice[] Encode<TSource>([NotNull] IEnumerable<TSource> values, [NotNull] Func<TSource, T1> selector1, [NotNull] Func<TSource, T2> selector2)
 		{
 			if (values == null) throw new ArgumentNullException("values");
 			return Batched<TSource, ICompositeKeyEncoder<T1, T2>>.Convert(

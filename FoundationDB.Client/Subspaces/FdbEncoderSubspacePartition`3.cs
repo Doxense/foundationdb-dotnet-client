@@ -27,39 +27,60 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 using System;
+using System.Diagnostics.Contracts;
 using JetBrains.Annotations;
 
 namespace FoundationDB.Client
 {
 	public struct FdbEncoderSubspacePartition<T1, T2, T3>
 	{
+		[NotNull]
 		public readonly IFdbSubspace Subspace;
+
+		[NotNull]
 		public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
 
 		public FdbEncoderSubspacePartition([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
+			Contract.Requires(subspace != null && encoder != null);
 			this.Subspace = subspace;
 			this.Encoder = encoder;
 		}
 
 		public IFdbSubspace this[T1 value1, T2 value2, T3 value3]
 		{
+			[NotNull]
 			get { return ByKey(value1, value2, value3); }
 		}
 
+		[NotNull]
 		public IFdbSubspace ByKey(T1 value1, T2 value2, T3 value3)
 		{
 			return this.Subspace[this.Encoder.EncodeKey(value1, value2, value3)];
 		}
 
-		public IFdbDynamicSubspace ByKey(T1 value1, T2 value2, T3 value3, IFdbTypeSystem protocol)
+		[NotNull]
+		public IFdbDynamicSubspace ByKey(T1 value1, T2 value2, T3 value3, IFdbKeyEncoding encoding)
 		{
-			return new FdbDynamicSubspace(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), protocol);
+			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), encoding);
 		}
 
+		[NotNull]
+		public IFdbDynamicSubspace ByKey(T1 value1, T2 value2, T3 value3, IDynamicKeyEncoder encoder)
+		{
+			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), encoder);
+		}
+
+		[NotNull]
+		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T1 value1, T2 value2, T3 value3, IFdbKeyEncoding encoding)
+		{
+			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), encoding);
+		}
+
+		[NotNull]
 		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T1 value1, T2 value2, T3 value3, IKeyEncoder<TNext> encoder)
 		{
-			return new FdbEncoderSubspace<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), encoder);
+			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3)), encoder);
 		}
 
 	}

@@ -43,8 +43,8 @@ namespace FoundationDB.Layers.Directories
 	public class FdbDirectorySubspace : FdbDynamicSubspace, IFdbDirectory
 	{
 
-		internal FdbDirectorySubspace(IFdbTuple location, IFdbTuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer, Slice layer, IFdbTypeSystem protocol)
-			: base(prefix, protocol)
+		internal FdbDirectorySubspace(IFdbTuple location, IFdbTuple relativeLocation, Slice prefix, FdbDirectoryLayer directoryLayer, Slice layer, IDynamicKeyEncoder encoder)
+			: base(prefix, encoder)
 		{
 			Contract.Requires(location != null && relativeLocation != null && prefix != null && directoryLayer != null);
 			if (layer.IsNull) layer = Slice.Empty;
@@ -151,7 +151,7 @@ namespace FoundationDB.Layers.Directories
 			// set the layer to the new value
 			await this.DirectoryLayer.ChangeLayerInternalAsync(trans, this.RelativeLocation, newLayer).ConfigureAwait(false);
 			// and return the new version of the subspace
-			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, this.InternalKey, this.DirectoryLayer, newLayer, TypeSystem.Default);
+			return new FdbDirectorySubspace(this.Location, this.RelativeLocation, this.InternalKey, this.DirectoryLayer, newLayer, TypeSystem.Default.GetDynamicEncoder());
 		}
 
 		/// <summary>Opens a subdirectory with the given <paramref name="path"/>.

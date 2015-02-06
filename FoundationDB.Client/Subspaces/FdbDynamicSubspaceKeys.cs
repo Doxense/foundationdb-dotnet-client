@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 	internal static class Batched<TValue, TState>
 	{
 
-		public delegate void Handler(ref SliceWriter writer, TValue item, TState protocol);
+		public delegate void Handler(ref SliceWriter writer, TValue item, TState state);
 
 		[NotNull]
 		public static Slice[] Convert(SliceWriter writer, [NotNull, ItemNotNull] IEnumerable<TValue> values, Handler handler, TState state)
@@ -100,28 +100,28 @@ namespace FoundationDB.Client
 		public readonly IFdbSubspace Subspace;
 
 		[NotNull]
-		public readonly IFdbTypeSystem Protocol;
+		public readonly IDynamicKeyEncoder Encoder;
 
-		public FdbDynamicSubspaceKeys([NotNull] IFdbSubspace subspace, [NotNull] IFdbTypeSystem protocol)
+		public FdbDynamicSubspaceKeys([NotNull] IFdbSubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
 		{
-			Contract.Requires(subspace != null && protocol != null);
+			Contract.Requires(subspace != null && encoder != null);
 			this.Subspace = subspace;
-			this.Protocol = protocol;
+			this.Encoder = encoder;
 		}
 
 		public FdbKeyRange ToRange()
 		{
-			return this.Protocol.ToRange(this.Subspace.Key);
+			return this.Encoder.ToRange(this.Subspace.Key);
 		}
 
 		public FdbKeyRange ToRange([NotNull] IFdbTuple tuple)
 		{
-			return this.Protocol.ToRange(Pack(tuple));
+			return this.Encoder.ToRange(Pack(tuple));
 		}
 
 		public FdbKeyRange ToRange([NotNull] ITupleFormattable tuple)
 		{
-			return this.Protocol.ToRange(Pack(tuple));
+			return this.Encoder.ToRange(Pack(tuple));
 		}
 
 		public Slice this[[NotNull] IFdbTuple tuple]
@@ -139,7 +139,7 @@ namespace FoundationDB.Client
 			if (tuple == null) throw new ArgumentNullException("tuple");
 
 			var writer = this.Subspace.GetWriter();
-			this.Protocol.PackKey(ref writer, tuple);
+			this.Encoder.PackKey(ref writer, tuple);
 			return writer.ToSlice();
 		}
 
@@ -153,106 +153,106 @@ namespace FoundationDB.Client
 		{
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
-			return Batched<IFdbTuple, IFdbTypeSystem>.Convert(
+			return Batched<IFdbTuple, IDynamicKeyEncoder>.Convert(
 				this.Subspace.GetWriter(),
 				tuples,
-				(ref SliceWriter writer, IFdbTuple tuple, IFdbTypeSystem protocol) => protocol.PackKey(ref writer, tuple),
-				this.Protocol
+				(ref SliceWriter writer, IFdbTuple tuple, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, tuple),
+				this.Encoder
 			);
 		}
 
 		public Slice Encode<T>(T item1)
 		{
 			var writer = this.Subspace.GetWriter();
-			this.Protocol.EncodeKey(ref writer, item1);
+			this.Encoder.EncodeKey(ref writer, item1);
 			return writer.ToSlice();
 		}
 
 		public Slice[] Encode<T>(IEnumerable<T> items)
 		{
-			return Batched<T, IFdbTypeSystem>.Convert(
+			return Batched<T, IDynamicKeyEncoder>.Convert(
 				this.Subspace.GetWriter(),
 				items,
-				(ref SliceWriter writer, T item, IFdbTypeSystem protocol) => protocol.EncodeKey<T>(ref writer, item),
-				this.Protocol
+				(ref SliceWriter writer, T item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, item),
+				this.Encoder
             );
 		}
 
 		public Slice[] Encode<TSource, T>(IEnumerable<TSource> items, Func<TSource, T> selector)
 		{
-			return Batched<TSource, IFdbTypeSystem>.Convert(
+			return Batched<TSource, IDynamicKeyEncoder>.Convert(
 				this.Subspace.GetWriter(),
 				items,
-				(ref SliceWriter writer, TSource item, IFdbTypeSystem protocol) => protocol.EncodeKey<T>(ref writer, selector(item)),
-				this.Protocol
+				(ref SliceWriter writer, TSource item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, selector(item)),
+				this.Encoder
 			);
 		}
 
 		public Slice Encode<T1, T2>(T1 item1, T2 item2)
 		{
 			var writer = this.Subspace.GetWriter();
-			this.Protocol.EncodeKey(ref writer, item1, item2);
+			this.Encoder.EncodeKey(ref writer, item1, item2);
 			return writer.ToSlice();
 		}
 
 		public Slice[] Encode<TItem, T1, T2>(IEnumerable<TItem> items, Func<TItem, T1> selector1, Func<TItem, T2> selector2)
 		{
-			return Batched<TItem, IFdbTypeSystem>.Convert(
+			return Batched<TItem, IDynamicKeyEncoder>.Convert(
 				this.Subspace.GetWriter(),
 				items,
-				(ref SliceWriter writer, TItem item, IFdbTypeSystem protocol) => protocol.EncodeKey<T1, T2>(ref writer, selector1(item), selector2(item)),
-				this.Protocol
+				(ref SliceWriter writer, TItem item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T1, T2>(ref writer, selector1(item), selector2(item)),
+				this.Encoder
 			);
 		}
 
 		public Slice Encode<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			var writer = this.Subspace.GetWriter();
-			this.Protocol.EncodeKey(ref writer, item1, item2, item3);
+			this.Encoder.EncodeKey(ref writer, item1, item2, item3);
 			return writer.ToSlice();
 		}
 
 		public Slice Encode<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var writer = this.Subspace.GetWriter();
-			this.Protocol.EncodeKey(ref writer, item1, item2, item3, item4);
+			this.Encoder.EncodeKey(ref writer, item1, item2, item3, item4);
 			return writer.ToSlice();
 		}
 
 		public Slice Encode<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			var writer = this.Subspace.GetWriter();
-			this.Protocol.EncodeKey(ref writer, item1, item2, item3, item4, item5);
+			this.Encoder.EncodeKey(ref writer, item1, item2, item3, item4, item5);
 			return writer.ToSlice();
 		}
 
 		public Slice Encode<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			var writer = this.Subspace.GetWriter();
-			this.Protocol.EncodeKey(ref writer, item1, item2, item3, item4, item5, item6);
+			this.Encoder.EncodeKey(ref writer, item1, item2, item3, item4, item5, item6);
 			return writer.ToSlice();
 		}
 
 		public Slice Encode<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			var writer = this.Subspace.GetWriter();
-			this.Protocol.EncodeKey(ref writer, item1, item2, item3, item4, item5, item6, item7);
+			this.Encoder.EncodeKey(ref writer, item1, item2, item3, item4, item5, item6, item7);
 			return writer.ToSlice();
 		}
 
 		public Slice Encode<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			var writer = this.Subspace.GetWriter();
-			this.Protocol.EncodeKey(ref writer, item1, item2, item3, item4, item5, item6, item7, item8);
+			this.Encoder.EncodeKey(ref writer, item1, item2, item3, item4, item5, item6, item7, item8);
 			return writer.ToSlice();
 		}
 
 		public IFdbTuple Unpack(Slice packed)
 		{
-			return this.Protocol.UnpackKey(this.Subspace.ExtractKey(packed));
+			return this.Encoder.UnpackKey(this.Subspace.ExtractKey(packed));
 		}
 
-		private static T[] BatchDecode<T>(IEnumerable<Slice> packed, IFdbSubspace subspace, IFdbTypeSystem protocol, Func<Slice, IFdbTypeSystem, T> decode)
+		private static T[] BatchDecode<T>(IEnumerable<Slice> packed, IFdbSubspace subspace, IDynamicKeyEncoder encoder, Func<Slice, IDynamicKeyEncoder, T> decode)
 		{
 			var coll = packed as ICollection<Slice>;
 			if (coll != null)
@@ -261,7 +261,7 @@ namespace FoundationDB.Client
 				int p = 0;
 				foreach (var data in packed)
 				{
-					res[p++] = decode(subspace.ExtractKey(data), protocol);
+					res[p++] = decode(subspace.ExtractKey(data), encoder);
 				}
 				Contract.Assert(p == res.Length);
 				return res;
@@ -271,7 +271,7 @@ namespace FoundationDB.Client
 				var res = new List<T>();
 				foreach (var data in packed)
 				{
-					res.Add(decode(subspace.ExtractKey(data), protocol));
+					res.Add(decode(subspace.ExtractKey(data), encoder));
 				}
 				return res.ToArray();
 			}
@@ -279,75 +279,75 @@ namespace FoundationDB.Client
 
 		public IFdbTuple[] Unpack(IEnumerable<Slice> packed)
 		{
-			return BatchDecode(packed, this.Subspace, this.Protocol, (data, protocol) => protocol.UnpackKey(data));
+			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.UnpackKey(data));
 		}
 
 		public T1 Decode<T1>(Slice packed)
 		{
-			return this.Protocol.DecodeKey<T1>(this.Subspace.ExtractKey(packed));
+			return this.Encoder.DecodeKey<T1>(this.Subspace.ExtractKey(packed));
 		}
 
 		public IEnumerable<T1> Decode<T1>(IEnumerable<Slice> packed)
 		{
-			return BatchDecode(packed, this.Subspace, this.Protocol, (data, protocol) => protocol.DecodeKey<T1>(data));
+			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1>(data));
 		}
 
 		public FdbTuple<T1, T2> Decode<T1, T2>(Slice packed)
 		{
-			return this.Protocol.DecodeKey<T1, T2>(this.Subspace.ExtractKey(packed));
+			return this.Encoder.DecodeKey<T1, T2>(this.Subspace.ExtractKey(packed));
 		}
 
 		public IEnumerable<FdbTuple<T1, T2>> Decode<T1, T2>(IEnumerable<Slice> packed)
 		{
-			return BatchDecode(packed, this.Subspace, this.Protocol, (data, protocol) => protocol.DecodeKey<T1, T2>(data));
+			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1, T2>(data));
 		}
 
 		public FdbTuple<T1, T2, T3> Decode<T1, T2, T3>(Slice packed)
 		{
-			return this.Protocol.DecodeKey<T1, T2, T3>(this.Subspace.ExtractKey(packed));
+			return this.Encoder.DecodeKey<T1, T2, T3>(this.Subspace.ExtractKey(packed));
 		}
 
 		public IEnumerable<FdbTuple<T1, T2, T3>> Decode<T1, T2, T3>(IEnumerable<Slice> packed)
 		{
-			return BatchDecode(packed, this.Subspace, this.Protocol, (data, protocol) => protocol.DecodeKey<T1, T2, T3>(data));
+			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1, T2, T3>(data));
 		}
 
 		public FdbTuple<T1, T2, T3, T4> Decode<T1, T2, T3, T4>(Slice packed)
 		{
-			return this.Protocol.DecodeKey<T1, T2, T3, T4>(this.Subspace.ExtractKey(packed));
+			return this.Encoder.DecodeKey<T1, T2, T3, T4>(this.Subspace.ExtractKey(packed));
 		}
 
 		public IEnumerable<FdbTuple<T1, T2, T3, T4>> Decode<T1, T2, T3, T4>(IEnumerable<Slice> packed)
 		{
-			return BatchDecode(packed, this.Subspace, this.Protocol, (data, protocol) => protocol.DecodeKey<T1, T2, T3, T4>(data));
+			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1, T2, T3, T4>(data));
 		}
 
 		public FdbTuple<T1, T2, T3, T4, T5> Decode<T1, T2, T3, T4, T5>(Slice packed)
 		{
-			return this.Protocol.DecodeKey<T1, T2, T3, T4, T5>(this.Subspace.ExtractKey(packed));
+			return this.Encoder.DecodeKey<T1, T2, T3, T4, T5>(this.Subspace.ExtractKey(packed));
 		}
 
 		public IEnumerable<FdbTuple<T1, T2, T3, T4, T5>> Decode<T1, T2, T3, T4, T5>(IEnumerable<Slice> packed)
 		{
-			return BatchDecode(packed, this.Subspace, this.Protocol, (data, protocol) => protocol.DecodeKey<T1, T2, T3, T4, T5>(data));
+			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1, T2, T3, T4, T5>(data));
 		}
 
 		public T DecodeFirst<T>(Slice packed)
 		{
-			return this.Protocol.DecodeKeyFirst<T>(this.Subspace.ExtractKey(packed));
+			return this.Encoder.DecodeKeyFirst<T>(this.Subspace.ExtractKey(packed));
 		}
 		public IEnumerable<T> DecodeFirst<T>(IEnumerable<Slice> packed)
 		{
-			return BatchDecode(packed, this.Subspace, this.Protocol, (data, protocol) => protocol.DecodeKeyFirst<T>(data));
+			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKeyFirst<T>(data));
 		}
 
 		public T DecodeLast<T>(Slice packed)
 		{
-			return this.Protocol.DecodeKeyLast<T>(this.Subspace.ExtractKey(packed));
+			return this.Encoder.DecodeKeyLast<T>(this.Subspace.ExtractKey(packed));
 		}
 		public IEnumerable<T> DecodeLast<T>(Slice[] packed)
 		{
-			return BatchDecode(packed, this.Subspace, this.Protocol, (data, protocol) => protocol.DecodeKeyLast<T>(data));
+			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKeyLast<T>(data));
 		}
 
 		#region Append: Subspace => Tuple

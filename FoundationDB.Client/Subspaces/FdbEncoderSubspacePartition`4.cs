@@ -28,54 +28,59 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 using System;
 using JetBrains.Annotations;
+using FoundationDB.Client.Utils;
 
 namespace FoundationDB.Client
 {
-	public struct FdbEncoderSubspacePartition<T>
+	public struct FdbEncoderSubspacePartition<T1, T2, T3, T4>
 	{
+		[NotNull]
 		public readonly IFdbSubspace Subspace;
-		public readonly IKeyEncoder<T> Encoder;
 
-		public FdbEncoderSubspacePartition([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
+		[NotNull]
+		public readonly ICompositeKeyEncoder<T1, T2, T3, T4> Encoder;
+
+		public FdbEncoderSubspacePartition([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
+			Contract.Requires(subspace != null && encoder != null);
 			this.Subspace = subspace;
 			this.Encoder = encoder;
 		}
 
-		public IFdbSubspace this[T value]
+		public IFdbSubspace this[T1 value1, T2 value2, T3 value3, T4 value4]
 		{
 			[NotNull]
-			get { return ByKey(value); }
+			get { return ByKey(value1, value2, value3, value4); }
 		}
 
 		[NotNull]
-		public IFdbSubspace ByKey(T value)
+		public IFdbSubspace ByKey(T1 value1, T2 value2, T3 value3, T4 value4)
 		{
-			return this.Subspace[this.Encoder.EncodeKey(value)];
+			return this.Subspace[this.Encoder.EncodeKey(value1, value2, value3, value4)];
 		}
 
 		[NotNull]
-		public IFdbDynamicSubspace ByKey(T value, [NotNull] IFdbKeyEncoding encoding)
+		public IFdbDynamicSubspace ByKey(T1 value1, T2 value2, T3 value3, T4 value4, [NotNull] IFdbKeyEncoding encoding)
 		{
-			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
+			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3, value4)), encoding);
 		}
 
 		[NotNull]
-		public IFdbDynamicSubspace ByKey(T value, [NotNull] IDynamicKeyEncoder encoder)
+		public IFdbDynamicSubspace ByKey(T1 value1, T2 value2, T3 value3, T4 value4, [NotNull] IDynamicKeyEncoder encoder)
 		{
-			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
+			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3, value4)), encoder);
 		}
 
 		[NotNull]
-		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IFdbKeyEncoding encoding)
+		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T1 value1, T2 value2, T3 value3, T4 value4, [NotNull] IFdbKeyEncoding encoding)
 		{
-			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
+			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3, value4)), encoding);
 		}
 
 		[NotNull]
-		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IKeyEncoder<TNext> encoder)
+		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T1 value1, T2 value2, T3 value3, T4 value4, [NotNull] IKeyEncoder<TNext> encoder)
 		{
-			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
+			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2, value3, value4)), encoder);
 		}
 
 	}

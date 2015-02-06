@@ -1,4 +1,4 @@
-#region BSD Licence
+﻿#region BSD Licence
 /* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
@@ -26,57 +26,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
-	public struct FdbEncoderSubspacePartition<T>
+	using System;
+
+	public interface IKeyEncoder<T1>
 	{
-		public readonly IFdbSubspace Subspace;
-		public readonly IKeyEncoder<T> Encoder;
+		/// <summary>Encode a single value</summary>
+		Slice EncodeKey(T1 value);
 
-		public FdbEncoderSubspacePartition([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
-		{
-			this.Subspace = subspace;
-			this.Encoder = encoder;
-		}
-
-		public IFdbSubspace this[T value]
-		{
-			[NotNull]
-			get { return ByKey(value); }
-		}
-
-		[NotNull]
-		public IFdbSubspace ByKey(T value)
-		{
-			return this.Subspace[this.Encoder.EncodeKey(value)];
-		}
-
-		[NotNull]
-		public IFdbDynamicSubspace ByKey(T value, [NotNull] IFdbKeyEncoding encoding)
-		{
-			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
-		}
-
-		[NotNull]
-		public IFdbDynamicSubspace ByKey(T value, [NotNull] IDynamicKeyEncoder encoder)
-		{
-			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
-		}
-
-		[NotNull]
-		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IFdbKeyEncoding encoding)
-		{
-			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
-		}
-
-		[NotNull]
-		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IKeyEncoder<TNext> encoder)
-		{
-			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
-		}
-
+		/// <summary>Decode a single value</summary>
+		T1 DecodeKey(Slice encoded);
 	}
 }

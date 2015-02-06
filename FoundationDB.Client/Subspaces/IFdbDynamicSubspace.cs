@@ -35,10 +35,10 @@ namespace FoundationDB.Client
 	public interface IFdbDynamicSubspace : IFdbSubspace
 	{
 
-		/// <summary>Type system used to encode and decode keys in this subspace</summary>
-		IFdbTypeSystem Protocol {[NotNull] get; }
+		/// <summary>Encoding used to convert keys of this subspace into Slice</summary>
+		IDynamicKeyEncoder Encoder {[NotNull] get; }
 
-		/// <summary>Return a view of all the possible keys of this subspace</summary>
+		/// <summary>Returns a view of the keys of this subspace</summary>
 		FdbDynamicSubspaceKeys Keys { get; }
 
 		/// <summary>Returns an helper object that knows how to create sub-partitions of this subspace</summary>

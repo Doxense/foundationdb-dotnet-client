@@ -26,57 +26,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
-	public struct FdbEncoderSubspacePartition<T>
+	using System;
+	using JetBrains.Annotations;
+
+	/// <summary>Class that know how to encode and decode values of a fixed type</summary>
+	/// <typeparam name="T">Type of the values</typeparam>
+	public interface IValueEncoder<T>
 	{
-		public readonly IFdbSubspace Subspace;
-		public readonly IKeyEncoder<T> Encoder;
+		/// <summary>Encode a single value into a compact binary representation</summary>
+		Slice EncodeValue(T value);
 
-		public FdbEncoderSubspacePartition([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
-		{
-			this.Subspace = subspace;
-			this.Encoder = encoder;
-		}
-
-		public IFdbSubspace this[T value]
-		{
-			[NotNull]
-			get { return ByKey(value); }
-		}
-
-		[NotNull]
-		public IFdbSubspace ByKey(T value)
-		{
-			return this.Subspace[this.Encoder.EncodeKey(value)];
-		}
-
-		[NotNull]
-		public IFdbDynamicSubspace ByKey(T value, [NotNull] IFdbKeyEncoding encoding)
-		{
-			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
-		}
-
-		[NotNull]
-		public IFdbDynamicSubspace ByKey(T value, [NotNull] IDynamicKeyEncoder encoder)
-		{
-			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
-		}
-
-		[NotNull]
-		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IFdbKeyEncoding encoding)
-		{
-			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
-		}
-
-		[NotNull]
-		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IKeyEncoder<TNext> encoder)
-		{
-			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
-		}
-
+		/// <summary>Decode a single value from a compact binary representation</summary>
+		/// <param name="encoded">Packed value</param>
+		[CanBeNull]
+		T DecodeValue(Slice encoded);
 	}
+
 }

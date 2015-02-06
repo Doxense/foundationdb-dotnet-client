@@ -1,4 +1,4 @@
-﻿#region BSD Licence
+#region BSD Licence
 /* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
@@ -26,54 +26,37 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+
+namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Layers.Tuples;
 	using System;
+	using FoundationDB.Client;
 
-	public interface IValueEncoder<T>
+	public sealed class TupleKeyEncoding : IFdbKeyEncoding
 	{
-		/// <summary>Encode a single value</summary>
-		Slice EncodeValue(T value);
+		public IDynamicKeyEncoder GetDynamicEncoder()
+		{
+			return TupleKeyEncoder.Instance;
+		}
 
-		/// <summary>Decode a single value</summary>
-		/// <param name="encoded"></param>
-		/// <returns></returns>
-		T DecodeValue(Slice encoded);
+		public IKeyEncoder<T1> GetEncoder<T1>()
+		{
+			return KeyValueEncoders.Tuples.Key<T1>();
+		}
+
+		public ICompositeKeyEncoder<T1, T2> GetEncoder<T1, T2>()
+		{
+			return KeyValueEncoders.Tuples.CompositeKey<T1, T2>();
+		}
+
+		public ICompositeKeyEncoder<T1, T2, T3> GetEncoder<T1, T2, T3>()
+		{
+			return KeyValueEncoders.Tuples.CompositeKey<T1, T2, T3>();
+		}
+
+		public ICompositeKeyEncoder<T1, T2, T3, T4> GetEncoder<T1, T2, T3, T4>()
+		{
+			return KeyValueEncoders.Tuples.CompositeKey<T1, T2, T3, T4>();
+		}
 	}
-
-	public interface IKeyEncoder<T1>
-	{
-		/// <summary>Encode a single value</summary>
-		Slice EncodeKey(T1 value);
-
-		/// <summary>Decode a single value</summary>
-		/// <param name="encoded"></param>
-		/// <returns></returns>
-		T1 DecodeKey(Slice encoded);
-	}
-
-	public interface ICompositeKeyEncoder<TTuple> : IKeyEncoder<TTuple>
-			where TTuple : IFdbTuple
-	{
-		Slice EncodeComposite(TTuple key, int items);
-
-		TTuple DecodeComposite(Slice encoded, int items);
-	}
-
-	public interface ICompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<FdbTuple<T1, T2>>
-	{
-		Slice EncodeKey(T1 value1, T2 value2);
-	}
-
-	public interface ICompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3>>
-	{
-		Slice EncodeKey(T1 value1, T2 value2, T3 value3);
-	}
-
-	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3, T4>>
-	{
-		Slice EncodeKey(T1 value1, T2 value2, T3 value3, T4 value4);
-	}
-
 }

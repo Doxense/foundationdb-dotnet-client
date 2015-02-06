@@ -90,7 +90,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static IFdbSubspace Create(Slice slice)
 		{
-			return new FdbDynamicSubspace(slice, TypeSystem.Default);
+			return new FdbDynamicSubspace(slice, TypeSystem.Default.GetDynamicEncoder());
 		}
 
 		public static IFdbSubspace Create<TKey>([NotNull] TKey key)
@@ -102,29 +102,59 @@ namespace FoundationDB.Client
 
 		/// <summary>Create a new Subspace using a binary key as the prefix</summary>
 		/// <param name="slice">Prefix of the new subspace</param>
-		/// <param name="protocol">Type System used to encode the keys of this subspace</param>
+		/// <param name="encoding">Type System used to encode the keys of this subspace</param>
 		/// <returns>New subspace that will use a copy of <paramref name="slice"/> as its prefix</returns>
 		[NotNull]
-		public static IFdbDynamicSubspace CreateDynamic(Slice slice, IFdbTypeSystem protocol = null)
+		public static IFdbDynamicSubspace CreateDynamic(Slice slice, IFdbKeyEncoding encoding = null)
 		{
-			return new FdbDynamicSubspace(slice, protocol);
+			var encoder = (encoding ?? TypeSystem.Default).GetDynamicEncoder();
+			return new FdbDynamicSubspace(slice, encoder);
 		}
 
-		public static IFdbDynamicSubspace CreateDynamic<TKey>([NotNull] TKey key, IFdbTypeSystem protocol = null)
+		/// <summary>Create a new Subspace using a binary key as the prefix</summary>
+		/// <param name="slice">Prefix of the new subspace</param>
+		/// <param name="encoder">Type System used to encode the keys of this subspace</param>
+		/// <returns>New subspace that will use a copy of <paramref name="slice"/> as its prefix</returns>
+		[NotNull]
+		public static IFdbDynamicSubspace CreateDynamic(Slice slice, [NotNull] IDynamicKeyEncoder encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			return new FdbDynamicSubspace(slice, encoder);
+		}
+
+		public static IFdbDynamicSubspace CreateDynamic<TKey>([NotNull] TKey key, IFdbKeyEncoding encoding = null)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
-			return new FdbDynamicSubspace(key.ToFoundationDbKey(), protocol);
+			var encoder = (encoding ?? TypeSystem.Default).GetDynamicEncoder();
+			return new FdbDynamicSubspace(key.ToFoundationDbKey(), encoder);
+		}
+
+		public static IFdbDynamicSubspace CreateDynamic<TKey>([NotNull] TKey key, IDynamicKeyEncoder encoder)
+			where TKey : IFdbKey
+		{
+			if (key == null) throw new ArgumentNullException("key");
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			return new FdbDynamicSubspace(key.ToFoundationDbKey(), encoder);
 		}
 
 		/// <summary>Create a new Subspace using a tuples as the prefix</summary>
 		/// <param name="tuple">Tuple that represents the prefix of the new subspace</param>
+		/// <param name="encoding">Optional type encoding used by this subspace.</param>
 		/// <returns>New subspace instance that will use the packed representation of <paramref name="tuple"/> as its prefix</returns>
 		[NotNull]
-		public static IFdbDynamicSubspace CreateDynamic([NotNull] IFdbTuple tuple)
+		public static IFdbDynamicSubspace CreateDynamic([NotNull] IFdbTuple tuple, IFdbKeyEncoding encoding = null)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
-			return new FdbDynamicSubspace(tuple.ToSlice(), true, TypeSystem.Tuples);
+			var encoder = (encoding ?? TypeSystem.Default).GetDynamicEncoder();
+            return new FdbDynamicSubspace(tuple.ToSlice(), true,  encoder);
+		}
+
+		[NotNull]
+		public static IFdbEncoderSubspace<T> CreateEncoder<T>(Slice slice, IFdbKeyEncoding encoding = null)
+		{
+			var encoder = (encoding ?? TypeSystem.Default).GetEncoder<T>();
+			return new FdbEncoderSubspace<T>(slice, encoder);
 		}
 
 		[NotNull]
@@ -135,6 +165,13 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
+		public static IFdbEncoderSubspace<T1, T2> CreateEncoder<T1, T2>(Slice slice, IFdbKeyEncoding encoding = null)
+		{
+			var encoder = (encoding ?? TypeSystem.Default).GetEncoder<T1, T2>();
+			return new FdbEncoderSubspace<T1, T2>(slice, encoder);
+		}
+
+		[NotNull]
 		public static IFdbEncoderSubspace<T1, T2> CreateEncoder<T1, T2>(Slice slice, ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
@@ -142,10 +179,31 @@ namespace FoundationDB.Client
 		}
 
 		[NotNull]
+		public static IFdbEncoderSubspace<T1, T2, T3> CreateEncoder<T1, T2, T3>(Slice slice, IFdbKeyEncoding encoding = null)
+		{
+			var encoder = (encoding ?? TypeSystem.Default).GetEncoder<T1, T2, T3>();
+			return new FdbEncoderSubspace<T1, T2, T3>(slice, encoder);
+		}
+
+		[NotNull]
 		public static IFdbEncoderSubspace<T1, T2, T3> CreateEncoder<T1, T2, T3>(Slice slice, ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			return new FdbEncoderSubspace<T1, T2, T3>(slice, encoder);
+		}
+
+		[NotNull]
+		public static IFdbEncoderSubspace<T1, T2, T3, T4> CreateEncoder<T1, T2, T3, T4>(Slice slice, IFdbKeyEncoding encoding = null)
+		{
+			var encoder = (encoding ?? TypeSystem.Default).GetEncoder<T1, T2, T3, T4>();
+			return new FdbEncoderSubspace<T1, T2, T3, T4>(slice, encoder);
+		}
+
+		[NotNull]
+		public static IFdbEncoderSubspace<T1, T2, T3, T4> CreateEncoder<T1, T2, T3, T4>(Slice slice, ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			return new FdbEncoderSubspace<T1, T2, T3, T4>(slice, encoder);
 		}
 
 		/// <summary>Clone this subspace</summary>
@@ -157,7 +215,7 @@ namespace FoundationDB.Client
 			var dyn = subspace as FdbDynamicSubspace;
 			if (dyn != null)
 			{
-				return new FdbDynamicSubspace(dyn.InternalKey, true, dyn.Protocol);
+				return new FdbDynamicSubspace(dyn.InternalKey, true, dyn.Encoder);
 			}
 
 			var sub = subspace as FdbSubspace;
@@ -173,10 +231,28 @@ namespace FoundationDB.Client
 		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
 		/// <returns>New Subspace that uses the same prefix key, and the provided Type System</returns>
 		[NotNull]
-		public static IFdbDynamicSubspace CopyDynamic([NotNull] IFdbSubspace subspace, [NotNull] IFdbTypeSystem protocol)
+		public static IFdbDynamicSubspace CopyDynamic([NotNull] IFdbSubspace subspace, IFdbKeyEncoding encoding = null)
 		{
-			if (protocol == null) throw new ArgumentNullException("protocol"); ;
-			return new FdbDynamicSubspace(subspace.Key, true, protocol);
+			var encoder = (encoding ?? TypeSystem.Default).GetDynamicEncoder();
+			return new FdbDynamicSubspace(subspace.Key, true, encoder);
+		}
+
+		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
+		/// <returns>New Subspace that uses the same prefix key, and the provided Type System</returns>
+		[NotNull]
+		public static IFdbDynamicSubspace CopyDynamic([NotNull] IFdbSubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			return new FdbDynamicSubspace(subspace.Key, true, encoder);
+		}
+
+		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
+		/// <returns>New Subspace that uses the same prefix key, and the provided Type System</returns>
+		[NotNull]
+		public static IFdbEncoderSubspace<T> CopyEncoder<T>([NotNull] IFdbSubspace subspace, IFdbKeyEncoding encoding = null)
+		{
+			var encoder = (encoding ?? TypeSystem.Default).GetEncoder<T>();
+			return new FdbEncoderSubspace<T>(subspace.Key, true, encoder);
 		}
 
 		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
@@ -191,10 +267,55 @@ namespace FoundationDB.Client
 		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
 		/// <returns>New Subspace that uses the same prefix key, and the provided Type System</returns>
 		[NotNull]
+		public static IFdbEncoderSubspace<T1, T2> CopyEncoder<T1, T2>([NotNull] IFdbSubspace subspace, IFdbKeyEncoding encoding = null)
+		{
+			var encoder = (encoding ?? TypeSystem.Default).GetEncoder<T1, T2>();
+			return new FdbEncoderSubspace<T1, T2>(subspace.Key, true, encoder);
+		}
+
+		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
+		/// <returns>New Subspace that uses the same prefix key, and the provided Type System</returns>
+		[NotNull]
 		public static IFdbEncoderSubspace<T1, T2> CopyEncoder<T1, T2>([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			return new FdbEncoderSubspace<T1, T2>(subspace.Key, true, encoder);
+		}
+
+		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
+		/// <returns>New Subspace that uses the same prefix key, and the provided Type System</returns>
+		[NotNull]
+		public static IFdbEncoderSubspace<T1, T2, T3> CopyEncoder<T1, T2, T3>([NotNull] IFdbSubspace subspace, IFdbKeyEncoding encoding = null)
+		{
+			var encoder = (encoding ?? TypeSystem.Default).GetEncoder<T1, T2, T3>();
+			return new FdbEncoderSubspace<T1, T2, T3>(subspace.Key, true, encoder);
+		}
+
+		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
+		/// <returns>New Subspace that uses the same prefix key, and the provided Type System</returns>
+		[NotNull]
+		public static IFdbEncoderSubspace<T1, T2, T3> CopyEncoder<T1, T2, T3>([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			return new FdbEncoderSubspace<T1, T2, T3>(subspace.Key, true, encoder);
+		}
+
+		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
+		/// <returns>New Subspace that uses the same prefix key, and the provided Type System</returns>
+		[NotNull]
+		public static IFdbEncoderSubspace<T1, T2, T3, T4> CopyEncoder<T1, T2, T3, T4>([NotNull] IFdbSubspace subspace, IFdbKeyEncoding encoding = null)
+		{
+			var encoder = (encoding ?? TypeSystem.Default).GetEncoder<T1, T2, T3, T4>();
+			return new FdbEncoderSubspace<T1, T2, T3, T4>(subspace.Key, true, encoder);
+		}
+
+		/// <summary>Create a copy of a subspace, using a specific Type System</summary>
+		/// <returns>New Subspace that uses the same prefix key, and the provided Type System</returns>
+		[NotNull]
+		public static IFdbEncoderSubspace<T1, T2, T3, T4> CopyEncoder<T1, T2, T3, T4>([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			return new FdbEncoderSubspace<T1, T2, T3, T4>(subspace.Key, true, encoder);
 		}
 
 		#endregion

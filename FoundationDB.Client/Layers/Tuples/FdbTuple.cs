@@ -1073,6 +1073,22 @@ namespace FoundationDB.Layers.Tuples
 			);
 		}
 
+		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
+		/// <example>FdbTuple.ToRange(Slice.FromInt32(42), FdbTuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
+		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
+		public static FdbKeyRange ToRange(Slice prefix, [NotNull] IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+
+			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
+			var packed = prefix + tuple.ToSlice();
+
+			return new FdbKeyRange(
+				packed + FdbKey.MinValue,
+				packed + FdbKey.MaxValue
+			);
+		}
+
 		private const string TokenNull = "null";
 		private const string TokenDoubleQuote = "\"";
 		private const string TokenSingleQuote = "'";

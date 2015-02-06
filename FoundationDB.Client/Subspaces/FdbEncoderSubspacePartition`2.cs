@@ -33,7 +33,10 @@ namespace FoundationDB.Client
 {
 	public struct FdbEncoderSubspacePartition<T1, T2>
 	{
+		[NotNull]
 		public readonly IFdbSubspace Subspace;
+
+		[NotNull]
 		public readonly ICompositeKeyEncoder<T1, T2> Encoder;
 
 		public FdbEncoderSubspacePartition([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
@@ -44,22 +47,39 @@ namespace FoundationDB.Client
 
 		public IFdbSubspace this[T1 value1, T2 value2]
 		{
-			get { return ByKey(value1, value2); }
+			[NotNull]
+			get
+			{ return ByKey(value1, value2); }
 		}
 
+		[NotNull]
 		public IFdbSubspace ByKey(T1 value1, T2 value2)
 		{
 			return this.Subspace[this.Encoder.EncodeKey(value1, value2)];
 		}
 
-		public IFdbDynamicSubspace ByKey(T1 value1, T2 value2, IFdbTypeSystem protocol)
+		[NotNull]
+		public IFdbDynamicSubspace ByKey(T1 value1, T2 value2, IFdbKeyEncoding encoding)
 		{
-			return new FdbDynamicSubspace(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2)), protocol);
+			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2)), encoding);
 		}
 
+		[NotNull]
+		public IFdbDynamicSubspace ByKey(T1 value1, T2 value2, IDynamicKeyEncoder encoder)
+		{
+			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2)), encoder);
+		}
+
+		[NotNull]
+		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T1 value1, T2 value2, IFdbKeyEncoding encoding)
+		{
+			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2)), encoding);
+		}
+
+		[NotNull]
 		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T1 value1, T2 value2, IKeyEncoder<TNext> encoder)
 		{
-			return new FdbEncoderSubspace<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2)), encoder);
+			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value1, value2)), encoder);
 		}
 
 	}
