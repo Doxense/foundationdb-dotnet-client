@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -150,79 +150,195 @@ namespace FoundationDB.Client.Converters
 		/// <summary>Register all the default converters</summary>
 		private static void RegisterDefaultConverters()
 		{
+			//TODO: there is too much generic type combinations! need to refactor this ...
+
 			RegisterUnsafe<bool, Slice>((value) => Slice.FromByte(value ? (byte)1 : default(byte)));
 			RegisterUnsafe<bool, byte[]>((value) => Slice.FromByte(value ? (byte)1 : default(byte)).GetBytes());
+			RegisterUnsafe<bool, string>((value) => value ? "true" : "false");
+			RegisterUnsafe<bool, sbyte>((value) => value ? (sbyte)1 : default(sbyte));
+			RegisterUnsafe<bool, byte>((value) => value ? (byte)1 : default(byte));
+			RegisterUnsafe<bool, short>((value) => value ? (short)1 : default(short));
+			RegisterUnsafe<bool, ushort>((value) => value ? (ushort)1 : default(ushort));
 			RegisterUnsafe<bool, int>((value) => value ? 1 : default(int));
 			RegisterUnsafe<bool, uint>((value) => value ? 1U : default(uint));
 			RegisterUnsafe<bool, long>((value) => value ? 1L : default(long));
 			RegisterUnsafe<bool, ulong>((value) => value ? 1UL : default(ulong));
-			RegisterUnsafe<bool, string>((value) => value ? "true" : "false");
 			RegisterUnsafe<bool, double>((value) => value ? 0.0d : 1.0d);
 			RegisterUnsafe<bool, float>((value) => value ? 0.0f : 1.0f);
 
 			RegisterUnsafe<int, Slice>((value) => Slice.FromInt32(value));
 			RegisterUnsafe<int, byte[]>((value) => Slice.FromInt32(value).GetBytes());
-			RegisterUnsafe<int, string>((value) => value.ToString(CultureInfo.InvariantCulture));
-			RegisterUnsafe<int, uint>((value) => (uint)value);
-			RegisterUnsafe<int, long>((value) => (long)value);
-			RegisterUnsafe<int, ulong>((value) => (ulong)value);
+			RegisterUnsafe<int, string>((value) => value.ToString(CultureInfo.InvariantCulture)); //TODO: string table!
 			RegisterUnsafe<int, bool>((value) => value != 0);
+			RegisterUnsafe<int, sbyte>((value) => checked((sbyte)value));
+			RegisterUnsafe<int, byte>((value) => checked((byte)value));
+			RegisterUnsafe<int, short>((value) => checked((short)value));
+			RegisterUnsafe<int, ushort>((value) => checked((ushort)value));
+			RegisterUnsafe<int, uint>((value) => (uint)value);
+			RegisterUnsafe<int, long>((value) => value);
+			RegisterUnsafe<int, ulong>((value) => (ulong)value);
+			RegisterUnsafe<int, double>((value) => value);
+			RegisterUnsafe<int, float>((value) => checked((float)value));
 			RegisterUnsafe<int, FdbTupleAlias>((value) => (FdbTupleAlias)value);
-			RegisterUnsafe<int, double>((value) => (double)value);
-			RegisterUnsafe<int, float>((value) => { checked { return (float)value; } });
 
 			RegisterUnsafe<uint, Slice>((value) => Slice.FromUInt64(value));
 			RegisterUnsafe<uint, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
-			RegisterUnsafe<uint, string>((value) => value.ToString(CultureInfo.InvariantCulture));
-			RegisterUnsafe<uint, int>((value) => (int)value);
-			RegisterUnsafe<uint, long>((value) => (long)value);
-			RegisterUnsafe<uint, ulong>((value) => (ulong)value);
+			RegisterUnsafe<uint, string>((value) => value.ToString(CultureInfo.InvariantCulture)); //TODO: string table!
 			RegisterUnsafe<uint, bool>((value) => value != 0);
-			RegisterUnsafe<uint, double>((value) => (double)value);
-			RegisterUnsafe<uint, float>((value) => { checked { return (float)value; } });
+			RegisterUnsafe<uint, sbyte>((value) => checked((sbyte)value));
+			RegisterUnsafe<uint, byte>((value) => checked((byte)value));
+			RegisterUnsafe<uint, short>((value) => checked((short)value));
+			RegisterUnsafe<uint, ushort>((value) => checked((ushort)value));
+			RegisterUnsafe<uint, int>((value) => (int)value);
+			RegisterUnsafe<uint, long>((value) => value);
+			RegisterUnsafe<uint, ulong>((value) => value);
+			RegisterUnsafe<uint, double>((value) => value);
+			RegisterUnsafe<uint, float>((value) => checked((float)value));
 
 			RegisterUnsafe<long, Slice>((value) => Slice.FromInt64(value));
 			RegisterUnsafe<long, byte[]>((value) => Slice.FromInt64(value).GetBytes());
-			RegisterUnsafe<long, string>((value) => value.ToString(CultureInfo.InvariantCulture));
-			RegisterUnsafe<long, short>((value) => { checked { return (short)value; } });
-			RegisterUnsafe<long, int>((value) => { checked { return (int)value; } });
+			RegisterUnsafe<long, string>((value) => value.ToString(CultureInfo.InvariantCulture)); //TODO: string table!
+			RegisterUnsafe<long, bool>((value) => value != 0);
+			RegisterUnsafe<long, sbyte>((value) => checked((sbyte)value));
+			RegisterUnsafe<long, byte>((value) => checked((byte)value));
+			RegisterUnsafe<long, short>((value) => checked((short)value));
+			RegisterUnsafe<long, ushort>((value) => checked((ushort)value));
+			RegisterUnsafe<long, int>((value) => checked((int)value));
 			RegisterUnsafe<long, uint>((value) => (uint)value);
 			RegisterUnsafe<long, ulong>((value) => (ulong)value);
-			RegisterUnsafe<long, bool>((value) => value != 0);
+			RegisterUnsafe<long, double>((value) => checked((double)value));
+			RegisterUnsafe<long, float>((value) => checked((float)value));
 			RegisterUnsafe<long, TimeSpan>((value) => TimeSpan.FromTicks(value));
-			RegisterUnsafe<long, double>((value) => { checked { return (double)value; } });
-			RegisterUnsafe<long, float>((value) => { checked { return (float)value; } });
 			RegisterUnsafe<long, Uuid64>((value) => new Uuid64(value));
 			RegisterUnsafe<long, System.Net.IPAddress>((value) => new System.Net.IPAddress(value));
 
 			RegisterUnsafe<ulong, Slice>((value) => Slice.FromUInt64(value));
 			RegisterUnsafe<ulong, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
-			RegisterUnsafe<ulong, string>((value) => value.ToString(CultureInfo.InvariantCulture));
-			RegisterUnsafe<ulong, int>((value) => { checked { return (int)value; } });
-			RegisterUnsafe<ulong, uint>((value) => { checked { return (uint)value; } });
-			RegisterUnsafe<ulong, long>((value) => { checked { return (long)value; } });
+			RegisterUnsafe<ulong, string>((value) => value.ToString(CultureInfo.InvariantCulture));	//TODO: string table!
 			RegisterUnsafe<ulong, bool>((value) => value != 0);
-			RegisterUnsafe<ulong, double>((value) => { checked { return (double)value; } });
-			RegisterUnsafe<ulong, float>((value) => { checked { return (float)value; } });
+			RegisterUnsafe<ulong, sbyte>((value) => checked((sbyte)value));
+			RegisterUnsafe<ulong, byte>((value) => checked((byte)value));
+			RegisterUnsafe<ulong, short>((value) => checked((short)value));
+			RegisterUnsafe<ulong, ushort>((value) => checked((ushort)value));
+			RegisterUnsafe<ulong, int>((value) => checked((int)value));
+			RegisterUnsafe<ulong, uint>((value) => checked((uint)value));
+			RegisterUnsafe<ulong, long>((value) => checked((long)value));
+			RegisterUnsafe<ulong, double>((value) => checked((double)value));
+			RegisterUnsafe<ulong, float>((value) => checked((float)value));
 			RegisterUnsafe<ulong, Uuid64>((value) => new Uuid64(value));
+			RegisterUnsafe<ulong, TimeSpan>((value) => TimeSpan.FromTicks(checked((long)value)));
+
+			RegisterUnsafe<short, Slice>((value) => Slice.FromInt32(value));
+			RegisterUnsafe<short, byte[]>((value) => Slice.FromInt32(value).GetBytes());
+			RegisterUnsafe<short, string>((value) => value.ToString(CultureInfo.InvariantCulture));	//TODO: string table!
+			RegisterUnsafe<short, bool>((value) => value != 0);
+			RegisterUnsafe<short, sbyte>((value) => checked((sbyte)value));
+			RegisterUnsafe<short, byte>((value) => checked((byte)value));
+			RegisterUnsafe<short, ushort>((value) => checked((ushort)value));
+			RegisterUnsafe<short, int>((value) => value);
+			RegisterUnsafe<short, uint>((value) => checked((uint)value));
+			RegisterUnsafe<short, long>((value) => value);
+			RegisterUnsafe<short, ulong>((value) => checked ((ulong)value));
+			RegisterUnsafe<short, double>((value) => value);
+			RegisterUnsafe<short, float>((value) => value);
+			RegisterUnsafe<short, FdbTupleAlias>((value) => (FdbTupleAlias)value);
+
+			RegisterUnsafe<ushort, Slice>((value) => Slice.FromUInt64(value));
+			RegisterUnsafe<ushort, byte[]>((value) => Slice.FromUInt64(value).GetBytes());
+			RegisterUnsafe<ushort, string>((value) => value.ToString(CultureInfo.InvariantCulture)); //TODO: string table!
+			RegisterUnsafe<ushort, bool>((value) => value != 0);
+			RegisterUnsafe<ushort, byte>((value) => checked((byte)value));
+			RegisterUnsafe<ushort, sbyte>((value) => checked((sbyte)value));
+			RegisterUnsafe<ushort, short>((value) => checked((short)value));
+			RegisterUnsafe<ushort, int>((value) => value);
+			RegisterUnsafe<ushort, uint>((value) => value);
+			RegisterUnsafe<ushort, long>((value) => value);
+			RegisterUnsafe<ushort, ulong>((value) => value);
+			RegisterUnsafe<ushort, double>((value) => value);
+			RegisterUnsafe<ushort, float>((value) => value);
+
+			RegisterUnsafe<byte, Slice>((value) => Slice.FromInt32(value));
+			RegisterUnsafe<byte, byte[]>((value) => Slice.FromInt32(value).GetBytes());
+			RegisterUnsafe<byte, string>((value) => value.ToString(CultureInfo.InvariantCulture)); //TODO: string table!
+			RegisterUnsafe<byte, bool>((value) => value != 0);
+			RegisterUnsafe<byte, sbyte>((value) => checked((sbyte)value));
+			RegisterUnsafe<byte, short>((value) => value);
+			RegisterUnsafe<byte, ushort>((value) => value);
+			RegisterUnsafe<byte, int>((value) => value);
+			RegisterUnsafe<byte, uint>((value) => value);
+			RegisterUnsafe<byte, long>((value) => value);
+			RegisterUnsafe<byte, ulong>((value) => value);
+			RegisterUnsafe<byte, double>((value) => value);
+			RegisterUnsafe<byte, float>((value) => value);
+			RegisterUnsafe<byte, FdbTupleAlias>((value) => (FdbTupleAlias)value);
+
+			RegisterUnsafe<sbyte, Slice>((value) => Slice.FromInt64(value));
+			RegisterUnsafe<sbyte, byte[]>((value) => Slice.FromInt64(value).GetBytes());
+			RegisterUnsafe<sbyte, string>((value) => value.ToString(CultureInfo.InvariantCulture));	//TODO: string table!
+			RegisterUnsafe<sbyte, bool>((value) => value != 0);
+			RegisterUnsafe<sbyte, byte>((value) => checked((byte)value));
+			RegisterUnsafe<sbyte, short>((value) => value);
+			RegisterUnsafe<sbyte, ushort>((value) => checked((ushort)value));
+			RegisterUnsafe<sbyte, int>((value) => value);
+			RegisterUnsafe<sbyte, uint>((value) => checked((uint)value));
+			RegisterUnsafe<sbyte, long>((value) => value);
+			RegisterUnsafe<sbyte, ulong>((value) => checked((ulong)value));
+			RegisterUnsafe<sbyte, double>((value) => value);
+			RegisterUnsafe<sbyte, float>((value) => value);
+
+			RegisterUnsafe<float, Slice>((value) => Slice.FromSingle(value));
+			RegisterUnsafe<float, byte[]>((value) => Slice.FromSingle(value).GetBytes());
+			RegisterUnsafe<float, string>((value) => value.ToString("R", CultureInfo.InvariantCulture));
+			RegisterUnsafe<float, bool>((value) => !(value == 0f || float.IsNaN(value)));
+			RegisterUnsafe<float, sbyte>((value) => checked((sbyte)value));
+			RegisterUnsafe<float, byte>((value) => checked((byte)value));
+			RegisterUnsafe<float, short>((value) => checked((short)value));
+			RegisterUnsafe<float, ushort>((value) => checked((ushort)value));
+			RegisterUnsafe<float, int>((value) => checked((int)value));
+			RegisterUnsafe<float, uint>((value) => (uint)value);
+			RegisterUnsafe<float, long>((value) => checked((long)value));
+			RegisterUnsafe<float, ulong>((value) => (ulong)value);
+			RegisterUnsafe<float, double>((value) => value);
+
+			RegisterUnsafe<double, Slice>((value) => Slice.FromDouble(value));
+			RegisterUnsafe<double, byte[]>((value) => Slice.FromDouble(value).GetBytes());
+			RegisterUnsafe<double, string>((value) => value.ToString("R", CultureInfo.InvariantCulture));
+			RegisterUnsafe<double, bool>((value) => !(value == 0d || double.IsNaN(value)));
+			RegisterUnsafe<double, sbyte>((value) => checked((sbyte)value));
+			RegisterUnsafe<double, byte>((value) => checked((byte)value));
+			RegisterUnsafe<double, short>((value) => checked((short)value));
+			RegisterUnsafe<double, ushort>((value) => checked((ushort)value));
+			RegisterUnsafe<double, int>((value) => checked((int)value));
+			RegisterUnsafe<double, uint>((value) => (uint)value);
+			RegisterUnsafe<double, long>((value) => checked((long)value));
+			RegisterUnsafe<double, ulong>((value) => (ulong)value);
+			RegisterUnsafe<double, float>((value) => checked((float)value));
 
 			RegisterUnsafe<string, Slice>((value) => Slice.FromString(value));
 			RegisterUnsafe<string, byte[]>((value) => Slice.FromString(value).GetBytes());
+			RegisterUnsafe<string, bool>((value) => !string.IsNullOrEmpty(value));
+			RegisterUnsafe<string, sbyte>((value) => string.IsNullOrEmpty(value) ? default(sbyte) : SByte.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, byte>((value) => string.IsNullOrEmpty(value) ? default(byte) : Byte.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, short>((value) => string.IsNullOrEmpty(value) ? default(short) : Int16.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, ushort>((value) => string.IsNullOrEmpty(value) ? default(ushort) : UInt16.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string, int>((value) => string.IsNullOrEmpty(value) ? default(int) : Int32.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string, uint>((value) => string.IsNullOrEmpty(value) ? default(uint) : UInt32.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string, long>((value) => string.IsNullOrEmpty(value) ? default(long) : Int64.Parse(value, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string, ulong>((value) => string.IsNullOrEmpty(value) ? default(ulong) : UInt64.Parse(value, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, float>((value) => string.IsNullOrEmpty(value) ? default(float) : Single.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
+			RegisterUnsafe<string, double>((value) => string.IsNullOrEmpty(value) ? default(double) : Double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string, Guid>((value) => string.IsNullOrEmpty(value) ? default(Guid) : Guid.Parse(value));
 			RegisterUnsafe<string, Uuid128>((value) => string.IsNullOrEmpty(value) ? default(Uuid128) : Uuid128.Parse(value));
 			RegisterUnsafe<string, Uuid64>((value) => string.IsNullOrEmpty(value) ? default(Uuid64) : Uuid64.Parse(value));
-			RegisterUnsafe<string, bool>((value) => !string.IsNullOrEmpty(value));
-			RegisterUnsafe<string, float>((value) => string.IsNullOrEmpty(value) ? default(float) : Single.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
-			RegisterUnsafe<string, double>((value) => string.IsNullOrEmpty(value) ? default(double) : Double.Parse(value, NumberStyles.Float, CultureInfo.InvariantCulture));
 			RegisterUnsafe<string, System.Net.IPAddress>((value) => string.IsNullOrEmpty(value) ? default(System.Net.IPAddress) : System.Net.IPAddress.Parse(value));
 
 			RegisterUnsafe<byte[], Slice>((value) => Slice.Create(value));
 			RegisterUnsafe<byte[], string>((value) => value == null ? default(string) : value.Length == 0 ? String.Empty : System.Convert.ToBase64String(value));
 			RegisterUnsafe<byte[], bool>((value) => value != null && value.Length > 0);
+			RegisterUnsafe<byte[], sbyte>((value) => value == null ? default(sbyte) : Slice.Create(value).ToSByte());
+			RegisterUnsafe<byte[], byte>((value) => value == null ? default(byte) : Slice.Create(value).ToByte());
+			RegisterUnsafe<byte[], short>((value) => value == null ? default(short) : Slice.Create(value).ToInt16());
+			RegisterUnsafe<byte[], ushort>((value) => value == null ? default(ushort) : Slice.Create(value).ToUInt16());
 			RegisterUnsafe<byte[], int>((value) => value == null ? 0 : Slice.Create(value).ToInt32());
 			RegisterUnsafe<byte[], uint>((value) => value == null ? 0U : Slice.Create(value).ToUInt32());
 			RegisterUnsafe<byte[], long>((value) => value == null ? 0L : Slice.Create(value).ToInt64());
@@ -257,6 +373,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<TimeSpan, Slice>((value) => Slice.FromInt64(value.Ticks));
 			RegisterUnsafe<TimeSpan, byte[]>((value) => Slice.FromInt64(value.Ticks).GetBytes());
 			RegisterUnsafe<TimeSpan, long>((value) => value.Ticks);
+			RegisterUnsafe<TimeSpan, ulong>((value) => checked((ulong)value.Ticks));
 			RegisterUnsafe<TimeSpan, double>((value) => value.TotalSeconds);
 			RegisterUnsafe<TimeSpan, bool>((value) => value == TimeSpan.Zero);
 
@@ -264,6 +381,7 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<System.Net.IPAddress, byte[]>((value) => value != null ? value.GetAddressBytes() : null);
 			RegisterUnsafe<System.Net.IPAddress, string>((value) => value != null ? value.ToString() : null);
 
+			RegisterUnsafe<FdbTupleAlias, byte>((value) => (byte)value);
 			RegisterUnsafe<FdbTupleAlias, int>((value) => (int)value);
 			RegisterUnsafe<FdbTupleAlias, Slice>((value) => Slice.FromByte((byte)value));
 
@@ -271,6 +389,10 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<Slice, byte[]>((value) => value.GetBytes());
 			RegisterUnsafe<Slice, string>((value) => value.ToUnicode());
 			RegisterUnsafe<Slice, bool>((value) => value.ToBool());
+			RegisterUnsafe<Slice, sbyte>((value) => value.ToSByte());
+			RegisterUnsafe<Slice, byte>((value) => value.ToByte());
+			RegisterUnsafe<Slice, short>((value) => value.ToInt16());
+			RegisterUnsafe<Slice, ushort>((value) => value.ToUInt16());
 			RegisterUnsafe<Slice, int>((value) => value.ToInt32());
 			RegisterUnsafe<Slice, uint>((value) => value.ToUInt32());
 			RegisterUnsafe<Slice, long>((value) => value.ToInt64());
@@ -284,8 +406,8 @@ namespace FoundationDB.Client.Converters
 		}
 
 		/// <summary>Helper method to throw an exception when we don't know how to convert from <paramref name="source"/> to <paramref name="destination"/></summary>
-		/// <param name="source"></param>
-		/// <param name="destination"></param>
+		/// <param name="source">Type of the source object</param>
+		/// <param name="destination">Target type of the conversion</param>
 		[ContractAnnotation("=> halt")]
 		private static void FailCannotConvert(Type source, Type destination)
 		{
@@ -368,6 +490,7 @@ namespace FoundationDB.Client.Converters
 		[NotNull]
 		public static IFdbConverter<T, R> GetConverter<T, R>()
 		{
+
 			if (typeof(T) == typeof(R))
 			{ // R == T : identity function
 				return (IFdbConverter<T, R>)Identity<T>.Default;
@@ -419,14 +542,16 @@ namespace FoundationDB.Client.Converters
 			if (value == null) return default(R);
 			var type = value.GetType();
 
+			var targetType = typeof (R);
+
 			// cast !
-			if (type == typeof(R)) return (R)value;
+			if (targetType.IsAssignableFrom(type)) return (R)value;
 
 			IFdbConverter converter;
-			if (!Converters.TryGetValue(new ComparisonHelper.TypePair(type, typeof(R)), out converter))
+			if (!Converters.TryGetValue(new ComparisonHelper.TypePair(type, targetType), out converter))
 			{
 				// maybe it is a nullable type ?
-				var nullableType = Nullable.GetUnderlyingType(typeof(R));
+				var nullableType = Nullable.GetUnderlyingType(targetType);
 				if (nullableType != null)
 				{ // we already nullchecked value above, so we just have to convert it to the underlying type...
 
@@ -440,7 +565,7 @@ namespace FoundationDB.Client.Converters
 					}
 				}
 
-				FailCannotConvert(type, typeof(R));
+				FailCannotConvert(type, targetType);
 			}
 
 			return (R)converter.ConvertBoxed(value);

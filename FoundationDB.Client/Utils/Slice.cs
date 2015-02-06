@@ -1120,6 +1120,18 @@ namespace FoundationDB.Client
 			return this.Array[this.Offset];
 		}
 
+		/// <summary>Converts a slice into a signed byte (-128..+127)</summary>
+		/// <returns>Value of the first and only byte of the slice, or 0 if the slice is null or empty.</returns>
+		/// <exception cref="System.FormatException">If the slice has more than one byte</exception>
+		[Pure]
+		public sbyte ToSByte()
+		{
+			if (this.Count == 0) return 0;
+			if (this.Count > 1) throw new FormatException("Cannot convert slice into an SByte because it is larger than 1 byte");
+			SliceHelpers.EnsureSliceIsValid(ref this);
+			return (sbyte)this.Array[this.Offset];
+		}
+
 		/// <summary>Converts a slice into a boolean.</summary>
 		/// <returns>False if the slice is empty, or is equal to the byte 0; otherwise, true.</returns>
 		[Pure]
