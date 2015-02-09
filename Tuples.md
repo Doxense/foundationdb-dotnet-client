@@ -1,11 +1,11 @@
-# Tuples are made of stuff and things...*
+Tuples are made of stuff and things...*
+==
 *: _Working Title_
 
 _"A tuple is an ordered list of elements."_ - [Wikipedia](http://en.wikipedia.org/wiki/Tuple)
 
 <pre>
-//TODO: insert a diagram of a tuple
-         1       2                      3
+         0       1                      2
     +---------+-----+--------------------------------------+
 t = | "Hello" | 123 | 773166b7-de74-4fcc-845c-84080cc89533 |
     +---------+-----+--------------------------------------+
@@ -13,9 +13,11 @@ t = | "Hello" | 123 | 773166b7-de74-4fcc-845c-84080cc89533 |
 
 This is a tuple of size 3, which contains 3 elements in a specific order: the first element, the second element and then - you guessed it - the third element.
 
-The difference with a regular struct, is that the elements do not have names (only a position). The difference with an array, is that all the elements can have a different types.
+The difference with a regular struct, is that the elements do not have names, only positions: `t[0]`, `t[1]`, ..., `t[i]` with `0 <= i < N`, like an array.
 
-There are various ways to represent a tuple in text, and one of them is as a vector:
+The difference with an array, is that all the elements can have a different types.
+
+There are various ways to represent a tuple in plain text, and one of them is as a vector:
 
 <pre>("Hello", 123, {773166b7-de74-4fcc-845c-84080cc89533})</pre>
 
@@ -29,7 +31,7 @@ And of course you can have an empty tuple, of size 0:
 
 ### The Dark Ages
 
-The absolute minimum implementation of a tuple is a `object[]` array, but this would not be very efficient nor user friendly, especially when you need to encode and decode keys composed of multiple elements with different types. You will probably use a lot of value types (int, Guid, bool, ...) that would need to be boxed, and you will also need to blindly casts items back into their expected type. Now was the 3rd element of this tuple an `int` or a `long`? If you guessed wrong, you will get an `InvalidCastException` at runtime. Uhoh :(
+The absolute minimum implementation of a tuple is an `object[]` array. But this would not be very efficient nor user friendly, especially when you need to encode and decode keys composed of multiple elements with different types. You will probably use a lot of value types (int, Guid, bool, ...) that would need to be boxed, and you will also need to blindly casts items back into their expected type. Now was the 3rd element of this tuple an `int` or a `long`? If you guessed wrong, you will get an `InvalidCastException` at runtime. Uhoh :(
 
 <pre>
 // in application A that encoded a key...
@@ -42,10 +44,10 @@ var items = SomeLibrary.Decode(key);
 var a = (string)items[0];
 var b = (long)items[1]; // FAIL: it's actually an int !
 var c = (Guid)items[2];
-var d = (int)items[3]; // FAIL: there is 4th item !
+var d = (int)items[3]; // FAIL: there is no 4th item !
 </pre>
 
-The .NET Framework comes with a set of `Tuple<...>` classes, which gives you the ability to specify the types as well as the number of elements. This gives you type safety and a better intellisense experience.
+The .NET Framework comes with a set of `Tuple<...>` classes, which gives you the ability to specify the types as well as the number of elements. You get type safety and a better intellisense experience.
 
 <pre>
 // in application A that encoded a key...
@@ -60,11 +62,11 @@ int b = items.Item2;
 Guid c = items.Item3;
 </pre>
 
-This is much better, but unfortunately, the BCL's Tuple<..> classes are relatively barebone and don't offer much in term of fire power. You can't really combine them or split them. They still require you to know that the 2nd element was an `int`, and not a `long` or `uint`.
+This is much better, but unfortunately, the BCL's Tuple classes are relatively barebone and don't offer much in term of feature, if at all. You can't really combine them or split them. They still require you to know that the 2nd element was an `int`, and not a `long` or `uint`.
 
 And quite frankly, if you have used other languages where tuples are first-class citizens (Python, for example), they seem rather bleak.
     
-That's way we need a better API, in order to help us be productive in the day to day handling of keys.
+That's why we need a better API, in order to help us be more productive.
 
 ## IFdbTuple
 
@@ -73,6 +75,8 @@ The `IFdbTuple` interface, defined in `FoundationDB.Layers.Tuples` (TODO: update
 This interface has the bare minimum API, thats must be implemented by each variant, and is in turn used by a set of extension methods that add more generic behavior that does NOT need to be replicated in all the variants.
 
 There is also a static class, called `FdbTuple`, which holds a bunch of methods to create and handle all the different variants of tuples.
+
+_note: the interface is not called `ITuple` because 1) there is already an `ITuple` interface in the BCL (even though it is internal), and 2) we wouldn't be able to call our static helper class `Tuple` since it would collide with the BCL._
 
 ### Types of tuples
 
@@ -101,7 +105,7 @@ The actual type of the tuple will be `FdbTuple<string, int, Guid>` which is a st
 We can also create a tuple by adding something to an existing tuples, even starting with the Empty tuple:
 
 <pre>
-var t = FdbTuple.Empty.Append("Hello").Append(123).Append(Guid.NextGuid());
+var t = FdbTuple.Empty.Append("Hello").Append(123).Append(Guid.NewGuid());
 </pre>
 
 The good news here is that _t_ is still a struct of type `FdbTuple<string, int, Guid>` and we did not produce any allocations: the Empty tuple is a singleton, and all the intermediate Append() returned structs of type `FdbTuple<string>` and `FdbTuple<string, int>`. There is of course a limit to the number of elements that can be added, before we have to switch to an array-based tuple variant.
@@ -118,6 +122,16 @@ When all the elements or a tuple are of the same type, you can use specialized v
 <pre>
 var xs = new [] { "Bonjour", "le", "Monde!" };
 var t = FdbTuple.FromArray<string>(xs);
+</pre>
+
+If you were already using the BCL's Tuple, you can easily convert from one to the other, via a set of implicit and explicit cast operators:
+
+<pre>
+var bcl = Tuple.Create("Hello", 123, Guid.NewGuid());
+FdbTuple<string, int, Guid> t = bcl; // implicit cast
+
+var t = FdbTuple.Create("Hello", 123, Guid.NewGuid());
+Tuple<string, int, Guid> bcl = (Tuple<string, int, Guid>) t; // explicit cast
 </pre>
 
 And for the more adventurous, you can of course create a tuple by copying the elements of an object[] array.
@@ -216,13 +230,136 @@ var t3 = FdbTuple.Create("hello", FdbTuple.Empty, "world");
 // t3 = ("hello", (), "world");
 </pre>
 
-_note: The easy mistake is to call t1.Append(t2) instead of t1.Concat(t2), which will add t2 as a single element at the end of t1, instead of adding t2's elements ad the end of t1._
+_note: The easy mistake is to call `t1.Append(t2)` instead of `t1.Concat(t2)`, which will add t2 as a single element at the end of t1, instead of adding t2's elements ad the end of t1._
 
-### TODO
+This can be usefull when you want to model a fixed-size key: `(product_id, location_id, order_id)` where location_id is a hierarchical key with a variable size, but still keep a fixed size of 3:
 
-- `t.Append<T>(value)`: returns a new tuple which will have all elements of _t_, plus one extra item.
-- `t.Concat(u)`: returns a new tuple which will have all the elements of _t_ followed by all the elements of _u_.
-- `t[i, j]`: returns a new tuples with all the elements of t if their index _p_ is between _i_ (included) and _j_ (excluded), so `i <= p < j`.
-- `t.Substring(i, n)`: returns a new tuples with all the element of t, starting at index _i_ and taking only _n_ elements.
-- `t[i]`: returns the value of the _ith_ element, as an `object`. This method should not be used because it is dangerous (the runtime type of the value can change depending on the circumstances).
+<pre>
+var productId = "B00CS8QSSK";
+var locationId = new [] { "Europe", "France", "Lille" };
+var orderId = Guid.NewGuid();
+
+var t = FdbTuple.Create(productId, FdbTuple.FromArray(locationId), orderId);
+// t.Count => 3
+// t[0] => "B00CS8QSSK"
+// t[1] => ("Europe", "France", "Lille")
+// t[2] => {773166b7-de74-4fcc-845c-84080cc89533}
+</pre>
+
+You code that want to parse the key can always read `t[2]` to get the order_id, without caring about the actuel size of the location_id.
+
+### Combining tuples
+
+The most common case is to simply add a value to a tuple via the `t.Append<T>(T value)` method. For example you have a base tuple (cached value), and you want to add a document ID.
+
+<pre>
+var location = FdbTuple.Create("MyAwesomeApp", "Documents");
+
+var documentId = Guid.NewGuid();
+var t = location.Append(document);
+// t => ("MyAwesomeApp", "Documents", {773166b7-de74-4fcc-845c-84080cc89533});
+</pre>
+
+Don't forget that if you Append a tuple, it will be added as a nested tuple!
+
+If you actually want to merge the elements of two tuples, when you can use the `t1.Concat(t2)` method, which return a new tuple with the elements of both t1 and t2.
+
+<pre>
+var location = FdbTuple.Create("MyAwesomeApp", "OrdersByProduct");
+
+var productId = "B00CS8QSSK";
+var orderId = Guid.NewGuid();
+var t1 = FdbTuple.Create(productId, orderId)
+// t1 => ("B00CS8QSSK", {773166b7-de74-4fcc-845c-84080cc89533})
+
+var t2 = location.Concat(t1);
+// t2 => ("MyAwesomeApp", "OrdersByProduct", "B00CS8QSSK", {773166b7-de74-4fcc-845c-84080cc89533});
+</pre>
+
+### Splitting tuples
+
+You can also split tuples into smaller chunks.
+
+First, you can return a subset of a tuple via on of the `t.Substring(...)` methods, or the `t[from, to]` indexer.
+    
+The `Substring()` method works exactly the same way as for regulard strings.
+
+<pre>
+var t = FdbTuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+var u = t.Substring(0, 3); // => (1, 2, 3)
+var v = t.Substring(5, 2); // => (6, 7)
+var w = t.Substring(7); // => (8, 9, 10)
+
+// also works with negative indexing!
+var w = v.Substring(-3); // => (8, 9, 10)
+</pre>
+
+The `t[from, to]` indexer gets some getting used to. If actual returns all the elements in the tuple with position `from <= p < to`, which means that the `to` is excluded.
+
+<pre>
+var t = FdbTuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+var u = t[0, 3]; // => (1, 2, 3)
+var v = t[5, 7]; // => (6, 7)
+// rember that 'to' is excluded!
+var w = t[7, -1]; // => (8, 9)
+// to fix that, you can use 'null' ("up to the end")
+var w = t[7, null]; // => (8, 9, 10)
+
+// also works with negative indexing!
+var w = v[-3, null]; // => (8, 9, 10)
+</pre>
+
+If you are tired of writing `t.Substring(0, 3)` all the time, you can also use `t.Truncate(3)` which does the same thing.
+
+<pre>
+var t = FdbTuple.Create(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+var u = t.Truncate(3);
+// u => (1, 2, 3);
+var v = t.Truncate(-3);
+// v => (8, 9, 10);
+</pre>
+
+### More advanced stuff
+
+When decoding keys using tuple, you wil often find yourself extracting a fixed number of arguments into local variables, and then constructing an instance of a Model class from your application.
+
+<pre>
+public MyFooBar DecodeFoobar(IFdbTuple tuple)
+{
+    var x = tuple.Get<string>(0);
+    var y = tuple.Get<int>(1);
+    var z = tuple.Get<Guid>(2);
+    return new MyFooBar(x, y, z);
+}
+</pre>
+
+The keen eye will see the problems with this method:
+
+- no null check on tuple.
+- what if tuple.Count is 5 ?
+- what if tuple.Count is only 2 ?
+- you probably copy/pasted `var x = tuple.Get<...>(0)` two more times, and forgot to change the index to 1 and 2! _(even Notch does it!)_
+
+One solution is to use the set of `t.As<T1, ..., TN>()` helper methods to convert a tuple of type `IFdbTuple` into a more friendly `FdbTuple<T1, ..., TN>` introducing tape safety and intellisence.
+
+<pre>
+public MyFooBar DecodeFoobar(IFdbTuple tuple)
+{
+    var t = tuple.As<string, int, Guid>();
+    // this throws if tuple is null, or not of size 3
+    return new MyFooBar(t.Item1, t.Item2, t.Item3);
+}
+</pre>
+
+That's better, but you can still swap two arguments by mistake, if they have the same type.
+
+To combat this, you can use on of the `t.With<T1, ..., TN>(Action<T1, ..., TN>)` or `t.With<T1, ..., TN, TResult>(Func<T1, ..., TN, TResult>)` which can give names to the elements.
+
+<pre>
+public MyFooBar DecodeFoobar(IFdbTuple tuple)
+{
+    return tuple.With((Guid productId, Guid categoryId, Guid orderId) => new MyFooBar(productId, categoriyId, orderId));
+    // all three elements are GUID, but adding name help you catch argument inversion errors
+}
+</pre>
 
