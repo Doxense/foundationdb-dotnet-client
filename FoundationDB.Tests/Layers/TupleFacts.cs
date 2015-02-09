@@ -754,6 +754,69 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(() => none.OfSizeAtMost(0), Throws.InstanceOf<ArgumentNullException>());
 		}
 
+		[Test]
+		public void Test_Cast_To_BCL_Tuples()
+		{
+			// implicit: Tuple => FdbTuple 
+			// explicit: FdbTuple => Tuple
+
+			var t1 = FdbTuple.Create("Hello");
+			var b1 = (Tuple<string>) t1; // explicit
+			Assert.That(b1, Is.Not.Null);
+			Assert.That(b1.Item1, Is.EqualTo("Hello"));
+			FdbTuple<string> r1 = t1; // implicit
+			Assert.That(r1.Item1, Is.EqualTo("Hello"));
+
+			var t2 = FdbTuple.Create("Hello", 123);
+			var b2 = (Tuple<string, int>)t2;	// explicit
+			Assert.That(b2, Is.Not.Null);
+			Assert.That(b2.Item1, Is.EqualTo("Hello"));
+			Assert.That(b2.Item2, Is.EqualTo(123));
+			FdbTuple<string, int> r2 = t2; // implicit
+			Assert.That(r2.Item1, Is.EqualTo("Hello"));
+			Assert.That(r2.Item2, Is.EqualTo(123));
+
+			var t3 = FdbTuple.Create("Hello", 123, false);
+			var b3 = (Tuple<string, int, bool>)t3;	// explicit
+			Assert.That(b3, Is.Not.Null);
+			Assert.That(b3.Item1, Is.EqualTo("Hello"));
+			Assert.That(b3.Item2, Is.EqualTo(123));
+			Assert.That(b3.Item3, Is.EqualTo(false));
+			FdbTuple<string, int, bool> r3 = t3; // implicit
+			Assert.That(r3.Item1, Is.EqualTo("Hello"));
+			Assert.That(r3.Item2, Is.EqualTo(123));
+			Assert.That(r3.Item3, Is.EqualTo(false));
+
+			var t4 = FdbTuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5));
+			var b4 = (Tuple<string, int, bool, TimeSpan>)t4;	// explicit
+			Assert.That(b4, Is.Not.Null);
+			Assert.That(b4.Item1, Is.EqualTo("Hello"));
+			Assert.That(b4.Item2, Is.EqualTo(123));
+			Assert.That(b4.Item3, Is.EqualTo(false));
+			Assert.That(b4.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+			FdbTuple<string, int, bool, TimeSpan> r4 = t4; // implicit
+			Assert.That(r4.Item1, Is.EqualTo("Hello"));
+			Assert.That(r4.Item2, Is.EqualTo(123));
+			Assert.That(r4.Item3, Is.EqualTo(false));
+			Assert.That(r4.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+
+			var t5 = FdbTuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
+			var b5 = (Tuple<string, int, bool, TimeSpan, string>)t5;	// explicit
+			Assert.That(b5, Is.Not.Null);
+			Assert.That(b5.Item1, Is.EqualTo("Hello"));
+			Assert.That(b5.Item2, Is.EqualTo(123));
+			Assert.That(b5.Item3, Is.EqualTo(false));
+			Assert.That(b5.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+			Assert.That(b5.Item5, Is.EqualTo("World"));
+			FdbTuple<string, int, bool, TimeSpan, string> r5 = t5; // implicit
+			Assert.That(r5.Item1, Is.EqualTo("Hello"));
+			Assert.That(r5.Item2, Is.EqualTo(123));
+			Assert.That(r5.Item3, Is.EqualTo(false));
+			Assert.That(r5.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+			Assert.That(r5.Item5, Is.EqualTo("World"));
+
+		}
+
 		#endregion
 
 		#region Splicing...

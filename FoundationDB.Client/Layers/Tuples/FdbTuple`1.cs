@@ -202,6 +202,17 @@ namespace FoundationDB.Layers.Tuples
 			return comparer.GetHashCode(this.Item1);
 		}
 
+		public static implicit operator FdbTuple<T1>(Tuple<T1> t)
+		{
+			if (t == null) throw new ArgumentNullException("t");
+			return new FdbTuple<T1>(t.Item1);
+		}
+
+		public static explicit operator Tuple<T1>(FdbTuple<T1> t)
+		{
+			return new Tuple<T1>(t.Item1);
+		}
+
 	}
 
 }

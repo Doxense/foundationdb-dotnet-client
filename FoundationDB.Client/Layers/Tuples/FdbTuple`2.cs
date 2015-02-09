@@ -232,6 +232,17 @@ namespace FoundationDB.Layers.Tuples
 			);
 		}
 
+		public static implicit operator FdbTuple<T1, T2>(Tuple<T1, T2> t)
+		{
+			if (t == null) throw new ArgumentNullException("t");
+			return new FdbTuple<T1, T2>(t.Item1, t.Item2);
+		}
+
+		public static explicit operator Tuple<T1, T2>(FdbTuple<T1, T2> t)
+		{
+			return new Tuple<T1, T2>(t.Item1, t.Item2);
+		}
+
 	}
 
 }
