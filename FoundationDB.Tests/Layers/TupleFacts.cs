@@ -755,6 +755,44 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_FdbTuple_Truncate()
+		{
+			var t = FdbTuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
+
+			var head = t.Truncate(1);
+			Assert.That(head, Is.Not.Null);
+			Assert.That(head.Count, Is.EqualTo(1));
+			Assert.That(head[0], Is.EqualTo("Hello"));
+
+			head = t.Truncate(2);
+			Assert.That(head, Is.Not.Null);
+			Assert.That(head.Count, Is.EqualTo(2));
+			Assert.That(head[0], Is.EqualTo("Hello"));
+			Assert.That(head[1], Is.EqualTo(123));
+
+			head = t.Truncate(5);
+			Assert.That(head, Is.EqualTo(t));
+
+			var tail = t.Truncate(-1);
+			Assert.That(tail, Is.Not.Null);
+			Assert.That(tail.Count, Is.EqualTo(1));
+			Assert.That(tail[0], Is.EqualTo("World"));
+
+			tail = t.Truncate(-2);
+			Assert.That(tail, Is.Not.Null);
+			Assert.That(tail.Count, Is.EqualTo(2));
+			Assert.That(tail[0], Is.EqualTo(TimeSpan.FromSeconds(5)));
+			Assert.That(tail[1], Is.EqualTo("World"));
+
+			tail = t.Truncate(-5);
+			Assert.That(tail, Is.EqualTo(t));
+
+			Assert.That(t.Truncate(0), Is.EqualTo(FdbTuple.Empty));
+			Assert.That(() => t.Truncate(6), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => t.Truncate(-6), Throws.InstanceOf<InvalidOperationException>());
+		}
+
+		[Test]
 		public void Test_FdbTuple_As()
 		{
 			// IFdbTuple.As<...>() adds types to an untyped IFdbTuple

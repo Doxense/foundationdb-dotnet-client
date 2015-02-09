@@ -228,6 +228,29 @@ namespace FoundationDB.Layers.Tuples
 			return tuple[offset, offset + count];
 		}
 
+		/// <summary>Returns a tuple with only the first (or last) items of this tuple</summary>
+		/// <param name="tuple">Tuple to truncate</param>
+		/// <param name="count">Number of items to keep. If positive, items will be taken from the start of the tuple. If negative, items will be taken from the end of the tuple</param>
+		/// <returns>New tuple of size |<paramref name="count"/>|.</returns>
+		/// <example>
+		/// (a, b, c).Truncate(2) => (a, b)
+		/// (a, b, c).Truncate(-2) => (b, c)
+		/// </example>
+		public static IFdbTuple Truncate([NotNull] this IFdbTuple tuple, int count)
+		{
+			tuple.OfSizeAtLeast(Math.Abs(count));
+
+			if (count < 0)
+			{
+				int offset = tuple.Count + count;
+				return Substring(tuple, offset, -count);
+			}
+			else
+			{
+				return Substring(tuple, 0, count);
+			}
+		}
+
 		/// <summary>Test if the start of current tuple is equal to another tuple</summary>
 		/// <param name="left">Larger tuple</param>
 		/// <param name="right">Smaller tuple</param>
