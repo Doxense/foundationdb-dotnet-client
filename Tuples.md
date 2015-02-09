@@ -51,12 +51,12 @@ The .NET Framework comes with a set of `Tuple<...>` classes, which gives you the
 
 <pre>
 // in application A that encoded a key...
-Tuple<string, int, Guid> items = Tuple.Create("Hello", 123, Guid.NewGuid());
+Tuple&lt;string, int, Guid> items = Tuple.Create("Hello", 123, Guid.NewGuid());
 // a single allocation for the Tuple instance
 var key = SomeLibrary.Encode(items);
 
 // in a different application B that decodes the same key
-Tuple<string, int, Guid> items = SomeLibrary.Decode<string, int, Guid>(key);
+Tuple&lt;string, int, Guid> items = SomeLibrary.Decode&lt;string, int, Guid>(key);
 string a = items.Item1;
 int b = items.Item2;
 Guid c = items.Item3;
@@ -84,13 +84,13 @@ Tuples need to adapt to different use case: some tuples should have a fixed size
 
 That's why there is multiple variants of tuples, all implementing the `IFdbTuple` interface:
 
-- FdbTuple<T1>, FdbTuple<T1, T2> (up to T5 right now) are the equivalent of the BCL's Tuple<T1, ...> except that they are implemented as a struct. They are efficient when used as a temporary step to create bigger tuples, or when you have control of the actual type (in LINQ queries, inside your own private methods, ...). They are also ideal if you want type safety and nice intellisense support, since the types are known at compile time.
-- FdbListTuple wraps an array of object[] and exposes a subset of this array. Getting a substring of this cheap since it does not have to copy the items.
-- FdbJoinedTuple is a wrapper that glues together two tuples (of any type).
-- FdbLinkedTuple is a special case of an FdbJoinedTupel, where we are only adding one value to an existing tuple.
-- FdbSlicedTuple is a wrapper around a half-parsed binary representation of a tuple, and which will only decode items if they are accessed. In cases where you are only interested in part of a key, you won't waste CPU cycles decoding the other items.
-- FdbMemoizedTuple will cache its binary representation, which is usefull when you have a common tuple prefix which is used everytime to construct other tuples.
-- FdbPrefixedTuple is some sort of hybrid tuples whose binary representation always have a constant binary prefix, which may or may not be a valid binary tuple representation itself (need to use tuples with prefixes generated from a different encoding).
+- `FdbTuple<T1>`, `FdbTuple<T1, T2>` (up to T5 right now) are the equivalent of the BCL's `Tuple<T1, ...>` except that they are implemented as a struct. They are efficient when used as a temporary step to create bigger tuples, or when you have control of the actual type (in LINQ queries, inside your own private methods, ...). They are also ideal if you want type safety and nice intellisense support, since the types are known at compile time.
+- `FdbListTuple` wraps an array of object[] and exposes a subset of this array. Getting a substring of this cheap since it does not have to copy the items.
+- `FdbJoinedTuple` is a wrapper that glues together two tuples (of any type).
+- `dbLinkedTuple` is a special case of an FdbJoinedTupel, where we are only adding one value to an existing tuple.
+- `FdbSlicedTuple` is a wrapper around a half-parsed binary representation of a tuple, and which will only decode items if they are accessed. In cases where you are only interested in part of a key, you won't waste CPU cycles decoding the other items.
+- `FdbMemoizedTuple` will cache its binary representation, which is usefull when you have a common tuple prefix which is used everytime to construct other tuples.
+- `FdbPrefixedTuple` is some sort of hybrid tuples whose binary representation always have a constant binary prefix, which may or may not be a valid binary tuple representation itself (need to use tuples with prefixes generated from a different encoding).
 
 ### Creating a tuple
 
@@ -113,7 +113,7 @@ The good news here is that _t_ is still a struct of type `FdbTuple<string, int, 
 If we have a variable-size list of items, we can also create a tuple from it:
 
 <pre>
-IEnumerable<MyFoo> xs = ....;
+IEnumerable&lt;MyFoo> xs = ....;
 // xs is a sequence of MyFoo objects, with an Id property (of type Guid)
 var t = FdbTuple.FromSequence(xs.Select(x => x.Id));
 </pre>
@@ -121,17 +121,17 @@ var t = FdbTuple.FromSequence(xs.Select(x => x.Id));
 When all the elements or a tuple are of the same type, you can use specialized versions:
 <pre>
 var xs = new [] { "Bonjour", "le", "Monde!" };
-var t = FdbTuple.FromArray<string>(xs);
+var t = FdbTuple.FromArray&lt;string>(xs);
 </pre>
 
 If you were already using the BCL's Tuple, you can easily convert from one to the other, via a set of implicit and explicit cast operators:
 
 <pre>
 var bcl = Tuple.Create("Hello", 123, Guid.NewGuid());
-FdbTuple<string, int, Guid> t = bcl; // implicit cast
+FdbTuple&lt;string, int, Guid> t = bcl; // implicit cast
 
 var t = FdbTuple.Create("Hello", 123, Guid.NewGuid());
-Tuple<string, int, Guid> bcl = (Tuple<string, int, Guid>) t; // explicit cast
+Tuple&lt;string, int, Guid> bcl = (Tuple&lt;string, int, Guid>) t; // explicit cast
 </pre>
 
 And for the more adventurous, you can of course create a tuple by copying the elements of an object[] array.
@@ -166,24 +166,24 @@ To help you verify that a tuple has the correct size before accessing its elemen
 - `t.OfSize(3)` checks that `t` is not null, and that `t.Count` is equal to 3, and then returns the tuple itself, so you can write: `t.OfSize(3).DoSomethingWichExceptsThreeElements()`
 - `t.OfSizeAtLeast(3)` (and `t.OfSizeAtMost(3)`) work the same, except they check that `t.Count >= 3` (or `t.Count <= 3`)
 
-Of course, if you have one of the FdbTuple<T1, ...> struct, you can skip this step, since the size if known at compile time.
+Of course, if you have one of the `FdbTuple<T1, ...>` struct, you can skip this step, since the size if known at compile time.
 
 To read the content of a tuple, you can simply call `t.Get<T>(index)`, where `index` is the offset _in the tuple_ of the element, and `T` is the type into which the value will be converted.
 
 <pre>
 var t = FdbTuple.Create("hello", 123, Guid.NewGuid());
-var x = t.Get<string>(0); // => "hello"
-var y = t.Get<int>(1); // => 123
-var z = t.Get<Guid>(2); // => guid
+var x = t.Get&lt;string>(0); // => "hello"
+var y = t.Get&lt;int>(1); // => 123
+var z = t.Get&lt;Guid>(2); // => guid
 </pre>
 
 If `index` is negative, then it is relative to the end of the tuple, where -1 is the last element, -2 is the next-to-last element, and -N is the first element.
 
 <pre>
 var t = FdbTuple.Create("hello", 123, Guid.NewGuid());
-var x = t.Get<string>(-3); // => "hello"
-var y = t.Get<int>(-2); // => 123
-var z = t.Get<Guid>(-1); // => guid
+var x = t.Get&lt;string>(-3); // => "hello"
+var y = t.Get&lt;int>(-2); // => 123
+var z = t.Get&lt;Guid>(-1); // => guid
 </pre>
 
 ### Pretty Printing
@@ -205,15 +205,6 @@ Console.WriteLine("t3 = {0}", t3);
 </pre>
 
 There is a special case for tuples of size 1, which have a trailing comma - `(123,)` instead of `(123)` - so that they can be distinguished from a normal expression in parenthesis.
-
-### Combining tuples
-
-Since tuples are immutable, there are no methods to modify the value of an element. You'd do that by creating a new tuple, with a combination of Substring, Append or Concat.
-
-You can, though, modify tuples by returning a new tuple, with or without copying the items (depending on the tuple variant being used).
-
-- Append, Concat
-- Substring, [..,..]
 
 ### Tuples all the way down
 
@@ -249,6 +240,10 @@ var t = FdbTuple.Create(productId, FdbTuple.FromArray(locationId), orderId);
 You code that want to parse the key can always read `t[2]` to get the order_id, without caring about the actuel size of the location_id.
 
 ### Combining tuples
+
+Since tuples are immutable, there are no methods to modify the value of an element. You'd do that by creating a new tuple, with a combination of Substring, Append or Concat.
+
+You can, though, modify tuples by returning a new tuple, with or without copying the items (depending on the tuple variant being used).
 
 The most common case is to simply add a value to a tuple via the `t.Append<T>(T value)` method. For example you have a base tuple (cached value), and you want to add a document ID.
 
@@ -326,9 +321,9 @@ When decoding keys using tuple, you wil often find yourself extracting a fixed n
 <pre>
 public MyFooBar DecodeFoobar(IFdbTuple tuple)
 {
-    var x = tuple.Get<string>(0);
-    var y = tuple.Get<int>(1);
-    var z = tuple.Get<Guid>(2);
+    var x = tuple.Get&lt;string>(0);
+    var y = tuple.Get&lt;int>(1);
+    var z = tuple.Get&lt;Guid>(2);
     return new MyFooBar(x, y, z);
 }
 </pre>
@@ -345,7 +340,7 @@ One solution is to use the set of `t.As<T1, ..., TN>()` helper methods to conver
 <pre>
 public MyFooBar DecodeFoobar(IFdbTuple tuple)
 {
-    var t = tuple.As<string, int, Guid>();
+    var t = tuple.As&lt;string, int, Guid>();
     // this throws if tuple is null, or not of size 3
     return new MyFooBar(t.Item1, t.Item2, t.Item3);
 }
