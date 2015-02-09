@@ -757,7 +757,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Truncate()
 		{
-			var t = FdbTuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
+			IFdbTuple t = FdbTuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
 
 			var head = t.Truncate(1);
 			Assert.That(head, Is.Not.Null);
@@ -790,6 +790,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t.Truncate(0), Is.EqualTo(FdbTuple.Empty));
 			Assert.That(() => t.Truncate(6), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => t.Truncate(-6), Throws.InstanceOf<InvalidOperationException>());
+
+			Assert.That(() => FdbTuple.Empty.Truncate(1), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.Create("Hello", "World").Truncate(3), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.Create("Hello", "World").Truncate(-3), Throws.InstanceOf<InvalidOperationException>());
 		}
 
 		[Test]
