@@ -120,6 +120,98 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
+		public void Test_FdbTuple_Wrap()
+		{
+			// FdbTuple.Wrap(...) does not copy the items of the array
+
+			var arr = new object[] { "Hello", 123, false, TimeSpan.FromSeconds(5) };
+
+			var t = FdbTuple.Wrap(arr);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(4));
+			Assert.That(t[0], Is.EqualTo("Hello"));
+			Assert.That(t[1], Is.EqualTo(123));
+			Assert.That(t[2], Is.EqualTo(false));
+			Assert.That(t[3], Is.EqualTo(TimeSpan.FromSeconds(5)));
+
+			t = FdbTuple.Wrap(arr, 1, 2);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo(123));
+			Assert.That(t[1], Is.EqualTo(false));
+
+			// changing the underyling array should change the tuple
+			// DON'T DO THIS IN ACTUAL CODE!!!
+
+			arr[1] = 456;
+			arr[2] = true;
+			Log("t = {0}", t);
+
+			Assert.That(t[0], Is.EqualTo(456));
+			Assert.That(t[1], Is.EqualTo(true));
+		}
+
+		[Test]
+		public void Test_FdbTuple_FromObjects()
+		{
+			// FdbTuple.FromObjects(...) does a copy of the items of the array
+
+			var arr = new object[] { "Hello", 123, false, TimeSpan.FromSeconds(5) };
+
+			var t = FdbTuple.FromObjects(arr);
+			Log("t = {0}", t);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(4));
+			Assert.That(t[0], Is.EqualTo("Hello"));
+			Assert.That(t[1], Is.EqualTo(123));
+			Assert.That(t[2], Is.EqualTo(false));
+			Assert.That(t[3], Is.EqualTo(TimeSpan.FromSeconds(5)));
+
+			t = FdbTuple.FromObjects(arr, 1, 2);
+			Log("t = {0}", t);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo(123));
+			Assert.That(t[1], Is.EqualTo(false));
+
+			// changing the underyling array should NOT change the tuple
+
+			arr[1] = 456;
+			arr[2] = true;
+			Log("t = {0}", t);
+
+			Assert.That(t[0], Is.EqualTo(123));
+			Assert.That(t[1], Is.EqualTo(false));
+		}
+
+		[Test]
+		public void Test_FdbTuple_FromArray()
+		{
+			var items = new string[] { "Bonjour", "le", "Monde" };
+
+			var t = FdbTuple.FromArray(items);
+			Log("t = {0}", t);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(3));
+			Assert.That(t[0], Is.EqualTo("Bonjour"));
+			Assert.That(t[1], Is.EqualTo("le"));
+			Assert.That(t[2], Is.EqualTo("Monde"));
+
+			t = FdbTuple.FromArray(items, 1, 2);
+			Log("t = {0}", t);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo("le"));
+			Assert.That(t[1], Is.EqualTo("Monde"));
+
+			// changing the underlying array should NOT change the tuple
+			items[1] = "ze";
+			Log("t = {0}", t);
+
+			Assert.That(t[0], Is.EqualTo("le"));
+		}
+
+		[Test]
 		public void Test_FdbTuple_Negative_Indexing()
 		{
 			var t1 = FdbTuple.Create("hello world");

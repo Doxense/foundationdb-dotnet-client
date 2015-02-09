@@ -217,15 +217,39 @@ namespace FoundationDB.Layers.Tuples
 		[NotNull]
 		public static IFdbTuple Wrap([NotNull] object[] items)
 		{
-			//REVIEW: this is similar to Create(params object[]) and CreateRange(object[]) !!
-			//TODO: remove this?
-			return Create(items);
+			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
+			if (items == null) throw new ArgumentException("items");
+			return FromObjects(items, 0, items.Length, copy: false);
 		}
 
 		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
 		/// <remarks>If the original array is mutated, the tuple will reflect the changes!</remarks>
 		[NotNull]
 		public static IFdbTuple Wrap([NotNull] object[] items, int offset, int count)
+		{
+			return FromObjects(items, offset, count, copy: false);
+		}
+
+		/// <summary>Create a new N-tuple by copying the content of an array of untyped items</summary>
+		[NotNull]
+		public static IFdbTuple FromObjects([NotNull] object[] items)
+		{
+			//note: this method only exists to differentiate between Create(object[]) and Create<object[]>()
+			if (items == null) throw new ArgumentException("items");
+			return FromObjects(items, 0, items.Length, copy: true);
+		}
+
+		/// <summary>Create a new N-tuple by copying a section of an array of untyped items</summary>
+		[NotNull]
+		public static IFdbTuple FromObjects([NotNull] object[] items, int offset, int count)
+		{
+			return FromObjects(items, offset, count, copy: true);
+		}
+
+		/// <summary>Create a new N-tuple that wraps a section of an array of untyped items</summary>
+		/// <remarks>If <paramref name="copy"/> is true, and the original array is mutated, the tuple will reflect the changes!</remarks>
+		[NotNull]
+		public static IFdbTuple FromObjects([NotNull] object[] items, int offset, int count, bool copy)
 		{
 			if (items == null) throw new ArgumentNullException("items");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
@@ -234,9 +258,17 @@ namespace FoundationDB.Layers.Tuples
 
 			if (count == 0) return FdbTuple.Empty;
 
-			// review: should be create a copy ?
-			// can mutate if passed a pre-allocated array: { var foo = new objec[123]; Create(foo); foo[42] = "bad"; }
-			return new FdbListTuple(items, offset, count);
+			if (copy)
+			{
+				var tmp = new object[count];
+				Array.Copy(items, offset, tmp, 0, count);
+				return new FdbListTuple(tmp, 0, count);
+			}
+			else
+			{
+				// can mutate if passed a pre-allocated array: { var foo = new objec[123]; Create(foo); foo[42] = "bad"; }
+				return new FdbListTuple(items, offset, count);
+			}
 		}
 
 		/// <summary>Create a new tuple, from an array of typed items</summary>
@@ -265,6 +297,7 @@ namespace FoundationDB.Layers.Tuples
 				case 1: return FdbTuple.Create<T>(items[offset]);
 				case 2: return FdbTuple.Create<T, T>(items[offset], items[offset + 1]);
 				case 3: return FdbTuple.Create<T, T, T>(items[offset], items[offset + 1], items[offset + 2]);
+				case 4: return FdbTuple.Create<T, T, T, T>(items[offset], items[offset + 1], items[offset + 2], items[offset + 3]);
 				default:
 				{ // copy the items in a temp array
 					//TODO: we would probably benefit from having an FdbListTuple<T> here!
