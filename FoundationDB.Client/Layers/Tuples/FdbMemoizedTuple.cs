@@ -75,11 +75,11 @@ namespace FoundationDB.Layers.Tuples
 			get { return FdbTuple.Splice(this, fromIncluded, toExcluded); }
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			if (m_packed.IsPresent)
 			{
-				writer.WriteBytes(m_packed);
+				writer.Output.WriteBytes(m_packed);
 			}
 		}
 
@@ -128,6 +128,11 @@ namespace FoundationDB.Layers.Tuples
 		public FdbLinkedTuple<T> Append<T>(T value)
 		{
 			return new FdbLinkedTuple<T>(this, value);
+		}
+
+		public IFdbTuple Concat(IFdbTuple tuple)
+		{
+			return FdbTuple.Concat(this, tuple);
 		}
 
 		public void CopyTo(object[] array, int offset)

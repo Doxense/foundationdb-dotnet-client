@@ -135,7 +135,7 @@ namespace FoundationDB.Client
 			for (int i = 0; i < chunk.Length; i++)
 			{
 				results[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.DecodeKey(subspace.ExtractAndCheck(chunk[i].Key)),
+					keyEncoder.DecodeKey(subspace.ExtractKey(chunk[i].Key, boundCheck: true)),
 					valueEncoder.DecodeValue(chunk[i].Value)
 				);
 			}
@@ -200,7 +200,7 @@ namespace FoundationDB.Client
 			var results = new T[this.Count];
 			for(int i = 0; i< results.Length;i++)
 			{
-				results[i] = keyEncoder.DecodeKey(subspace.ExtractAndCheck(this.Chunk[i].Key));
+				results[i] = keyEncoder.DecodeKey(subspace.ExtractKey(this.Chunk[i].Key, boundCheck: true));
 			}
 			return results;
 		}

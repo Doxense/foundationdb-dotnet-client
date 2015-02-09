@@ -27,7 +27,7 @@ namespace FoundationDB.Samples.Benchmarks
 		public int N { get; private set; }
 		public TimeSpan Delay { get; private set; }
 
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbDynamicSubspace Subspace { get; private set; }
 
 		/// <summary>
 		/// Setup the initial state of the database
@@ -43,8 +43,8 @@ namespace FoundationDB.Samples.Benchmarks
 			// insert all the classes
 			await db.WriteAsync((tr) =>
 			{
-				tr.Set(this.Subspace.Concat(FdbKey.MinValue), Slice.FromString("BEGIN"));
-				tr.Set(this.Subspace.Concat(FdbKey.MaxValue), Slice.FromString("END"));
+				tr.Set(this.Subspace.Key + FdbKey.MinValue, Slice.FromString("BEGIN"));
+				tr.Set(this.Subspace.Key + FdbKey.MaxValue, Slice.FromString("END"));
 			}, ct);
 		}
 
@@ -62,7 +62,7 @@ namespace FoundationDB.Samples.Benchmarks
 				values[i] = "initial_value_" + rnd.Next();
 			}
 
-			var prefix = this.Subspace.Partition(student);
+			var location = this.Subspace.Partition.ByKey(student);
 
 			for (int i = 0; i < 1/*this.N*/ && !ct.IsCancellationRequested; i++)
 			{
@@ -81,7 +81,7 @@ namespace FoundationDB.Samples.Benchmarks
 					if (tr.Context.Retries > 0) Console.Write("!");
 					for (int j = 0; j < values.Length; j++)
 					{
-						tr.Set(prefix.Pack(j, now), Slice.FromString(values[j] + new string('A', 100)));
+						tr.Set(location.Keys.Encode(j, now), Slice.FromString(values[j] + new string('A', 100)));
 					}
 				}, ct);
 				Console.Write(".");

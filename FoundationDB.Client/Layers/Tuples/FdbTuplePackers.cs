@@ -44,7 +44,7 @@ namespace FoundationDB.Layers.Tuples
 
 		#region Serializers...
 
-		public delegate void Encoder<in T>(ref SliceWriter writer, T value);
+		public delegate void Encoder<in T>(ref TupleWriter writer, T value);
 
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
@@ -69,7 +69,7 @@ namespace FoundationDB.Layers.Tuples
 				return new Encoder<object>(FdbTuplePackers.SerializeObjectTo);
 			}
 
-			var typeArgs = new[] { typeof(SliceWriter).MakeByRefType(), type };
+			var typeArgs = new[] { typeof(TupleWriter).MakeByRefType(), type };
 			var method = typeof(FdbTuplePackers).GetMethod("SerializeTo", BindingFlags.Static | BindingFlags.Public, null, typeArgs, null);
 			if (method != null)
 			{ // we have a direct serializer
@@ -125,7 +125,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Nullable value to serialize</param>
 		/// <remarks>Uses the underlying type's serializer if the value is not null</remarks>
-		public static void SerializeNullableTo<T>(ref SliceWriter writer, T? value)
+		public static void SerializeNullableTo<T>(ref TupleWriter writer, T? value)
 			where T : struct
 		{
 			if (value == null)
@@ -138,7 +138,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="writer">Target buffer</param>
 		/// <param name="value">Untyped value whose type will be inspected at runtime</param>
 		/// <remarks>May throw at runtime if the type is not supported</remarks>
-		public static void SerializeObjectTo(ref SliceWriter writer, object value)
+		public static void SerializeObjectTo(ref TupleWriter writer, object value)
 		{
 			if (value == null)
 			{ // null value
@@ -275,20 +275,28 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
+			var tuple = value as IFdbTuple;
+			if (tuple != null)
+			{
+				SerializeTupleTo(ref writer, tuple);
+				return;
+			}
+
 			var fmt = value as ITupleFormattable;
 			if (fmt != null)
 			{
-				var tuple = fmt.ToTuple();
-				tuple.PackTo(ref writer);
+				tuple = fmt.ToTuple();
+				if (tuple == null) throw new InvalidOperationException(String.Format("An instance of type {0} returned a null Tuple while serialiazing", value.GetType().Name));
+				SerializeTupleTo(ref writer, tuple);
 				return;
 			}
 
 			// Not Supported ?
-			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0}", value.GetType().Name));
+			throw new NotSupportedException(String.Format("Doesn't know how to serialize objects of type {0} into Tuple Encoding format", value.GetType().Name));
 		}
 
 		/// <summary>Writes a slice as a byte[] array</summary>
-		public static void SerializeTo(ref SliceWriter writer, Slice value)
+		public static void SerializeTo(ref TupleWriter writer, Slice value)
 		{
 			if (value.IsNull)
 			{
@@ -305,142 +313,111 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a byte[] array</summary>
-		public static void SerializeTo(ref SliceWriter writer, byte[] value)
+		public static void SerializeTo(ref TupleWriter writer, byte[] value)
 		{
 			FdbTupleParser.WriteBytes(ref writer, value);
 		}
 
 		/// <summary>Writes an array segment as a byte[] array</summary>
-		public static void SerializeTo(ref SliceWriter writer, ArraySegment<byte> value)
+		public static void SerializeTo(ref TupleWriter writer, ArraySegment<byte> value)
 		{
 			SerializeTo(ref writer, Slice.Create(value));
 		}
 
 		/// <summary>Writes a char as Unicode string</summary>
-		public static void SerializeTo(ref SliceWriter writer, char value)
+		public static void SerializeTo(ref TupleWriter writer, char value)
 		{
 			FdbTupleParser.WriteChar(ref writer, value);
 		}
 
 		/// <summary>Writes a boolean as an integer</summary>
 		/// <remarks>Uses 0 for false, and -1 for true</remarks>
-		public static void SerializeTo(ref SliceWriter writer, bool value)
+		public static void SerializeTo(ref TupleWriter writer, bool value)
 		{
-			// To be compatible with other bindings, we will encode False as the number 0, and True as the number 1
-
-			if (value)
-			{ // true => 15 01
-				writer.WriteByte2(FdbTupleTypes.IntPos1, 1);
-			}
-			else
-			{ // false => 14
-				writer.WriteByte(FdbTupleTypes.IntZero);
-			}
+			FdbTupleParser.WriteBool(ref writer, value);
 		}
 
 		/// <summary>Writes a boolean as an integer or null</summary>
-		public static void SerializeTo(ref SliceWriter writer, bool? value)
+		public static void SerializeTo(ref TupleWriter writer, bool? value)
 		{
 			if (value == null)
 			{ // null => 00
 				FdbTupleParser.WriteNil(ref writer);
 			}
-			else if (value.Value)
-			{ // true => 15 01
-				writer.WriteByte2(FdbTupleTypes.IntPos1, 1);
-			}
 			else
-			{ // false => 14
-				writer.WriteByte(FdbTupleTypes.IntZero);
+			{
+				FdbTupleParser.WriteBool(ref writer, value.Value);
 			}
 		}
 
 		/// <summary>Writes a signed byte as an integer</summary>
-		public static void SerializeTo(ref SliceWriter writer, sbyte value)
+		public static void SerializeTo(ref TupleWriter writer, sbyte value)
 		{
 			FdbTupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned byte as an integer</summary>
-		public static void SerializeTo(ref SliceWriter writer, byte value)
+		public static void SerializeTo(ref TupleWriter writer, byte value)
 		{
-			if (value == 0)
-			{ // 0
-				writer.WriteByte(FdbTupleTypes.IntZero);
-			}
-			else
-			{ // 1..255
-				writer.WriteByte2(FdbTupleTypes.IntPos1, value);
-			}
+			FdbTupleParser.WriteByte(ref writer, value);
 		}
 
 		/// <summary>Writes a signed word as an integer</summary>
-		public static void SerializeTo(ref SliceWriter writer, short value)
+		public static void SerializeTo(ref TupleWriter writer, short value)
 		{
 			FdbTupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned word as an integer</summary>
-		public static void SerializeTo(ref SliceWriter writer, ushort value)
+		public static void SerializeTo(ref TupleWriter writer, ushort value)
 		{
 			FdbTupleParser.WriteUInt32(ref writer, value);
 		}
 
 		/// <summary>Writes a signed int as an integer</summary>
-		public static void SerializeTo(ref SliceWriter writer, int value)
+		public static void SerializeTo(ref TupleWriter writer, int value)
 		{
 			FdbTupleParser.WriteInt32(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned int as an integer</summary>
-		public static void SerializeTo(ref SliceWriter writer, uint value)
+		public static void SerializeTo(ref TupleWriter writer, uint value)
 		{
 			FdbTupleParser.WriteUInt32(ref writer, value);
 		}
 
 		/// <summary>Writes a signed long as an integer</summary>
-		public static void SerializeTo(ref SliceWriter writer, long value)
+		public static void SerializeTo(ref TupleWriter writer, long value)
 		{
 			FdbTupleParser.WriteInt64(ref writer, value);
 		}
 
 		/// <summary>Writes an unsigned long as an integer</summary>
-		public static void SerializeTo(ref SliceWriter writer, ulong value)
+		public static void SerializeTo(ref TupleWriter writer, ulong value)
 		{
 			FdbTupleParser.WriteUInt64(ref writer, value);
 		}
 
 		/// <summary>Writes a 32-bit IEEE floating point number</summary>
-		public static void SerializeTo(ref SliceWriter writer, float value)
+		public static void SerializeTo(ref TupleWriter writer, float value)
 		{
 			FdbTupleParser.WriteSingle(ref writer, value);
 		}
 
 		/// <summary>Writes a 64-bit IEEE floating point number</summary>
-		public static void SerializeTo(ref SliceWriter writer, double value)
+		public static void SerializeTo(ref TupleWriter writer, double value)
 		{
 			FdbTupleParser.WriteDouble(ref writer, value);
 		}
 
 		/// <summary>Writes a string as an Unicode string</summary>
-		public static void SerializeTo(ref SliceWriter writer, string value)
+		public static void SerializeTo(ref TupleWriter writer, string value)
 		{
-			if (value == null)
-			{ // <00>
-				writer.WriteByte(FdbTupleTypes.Nil);
-			}
-			else if (value.Length == 0)
-			{ // <02><00>
-				writer.WriteByte2(FdbTupleTypes.Utf8, 0x00);
-			}
-			else
-			{ // <02>...utf8...<00>
-				FdbTupleParser.WriteString(ref writer, value);
-			}
+			FdbTupleParser.WriteString(ref writer, value);
 		}
 
 		/// <summary>Writes a DateTime converted to the number of days since the Unix Epoch and stored as a 64-bit decimal</summary>
-		public static void SerializeTo(ref SliceWriter writer, DateTime value)
+		public static void SerializeTo(ref TupleWriter writer, DateTime value)
 		{
 			// The problem of serializing DateTime: TimeZone? Precision?
 			// - Since we are going to lose the TimeZone infos anyway, we can just store everything in UTC and let the caller deal with it
@@ -460,7 +437,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a TimeSpan converted to to a number seconds encoded as a 64-bit decimal</summary>
-		public static void SerializeTo(ref SliceWriter writer, TimeSpan value)
+		public static void SerializeTo(ref TupleWriter writer, TimeSpan value)
 		{
 			// We have the same precision problem with storing DateTimes:
 			// - Storing the number of ticks keeps the exact value, but is Windows-centric
@@ -474,7 +451,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a Guid as a 128-bit UUID</summary>
-		public static void SerializeTo(ref SliceWriter writer, Guid value)
+		public static void SerializeTo(ref TupleWriter writer, Guid value)
 		{
 			//REVIEW: should we consider serializing Guid.Empty as <14> (integer 0) ? or maybe <01><00> (empty bytestring) ?
 			// => could spare ~16 bytes per key in indexes on GUID properties that are frequently missing or empty (== default(Guid))
@@ -482,52 +459,61 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Writes a Uuid as a 128-bit UUID</summary>
-		public static void SerializeTo(ref SliceWriter writer, Uuid128 value)
+		public static void SerializeTo(ref TupleWriter writer, Uuid128 value)
 		{
 			FdbTupleParser.WriteUuid128(ref writer, value);
 		}
 
 		/// <summary>Writes a Uuid as a 64-bit UUID</summary>
-		public static void SerializeTo(ref SliceWriter writer, Uuid64 value)
+		public static void SerializeTo(ref TupleWriter writer, Uuid64 value)
 		{
 			FdbTupleParser.WriteUuid64(ref writer, value);
 		}
 
 		/// <summary>Writes an IPaddress as a 32-bit (IPv4) or 128-bit (IPv6) byte array</summary>
-		public static void SerializeTo(ref SliceWriter writer, System.Net.IPAddress value)
+		public static void SerializeTo(ref TupleWriter writer, System.Net.IPAddress value)
 		{
 			FdbTupleParser.WriteBytes(ref writer, value != null ? value.GetAddressBytes() : null);
 		}
 
-		public static void SerializeTo(ref SliceWriter writer, FdbTupleAlias value)
+		public static void SerializeTo(ref TupleWriter writer, FdbTupleAlias value)
 		{
 			Contract.Requires(Enum.IsDefined(typeof(FdbTupleAlias), value));
 
-			writer.WriteByte((byte)value);
+			writer.Output.WriteByte((byte)value);
 		}
 
-		public static void SerializeTupleTo<TTuple>(ref SliceWriter writer, TTuple tuple)
+		public static void SerializeTupleTo<TTuple>(ref TupleWriter writer, TTuple tuple)
 			where TTuple : IFdbTuple
 		{
 			Contract.Requires(tuple != null);
 
+			FdbTupleParser.BeginTuple(ref writer);
 			tuple.PackTo(ref writer);
+			FdbTupleParser.EndTuple(ref writer);
 		}
 
-		public static void SerializeFormattableTo(ref SliceWriter writer, ITupleFormattable formattable)
+		public static void SerializeFormattableTo(ref TupleWriter writer, ITupleFormattable formattable)
 		{
-			Contract.Requires(formattable != null);
+			if (formattable == null)
+			{
+				FdbTupleParser.WriteNil(ref writer);
+				return;
+			}
 
 			var tuple = formattable.ToTuple();
 			if (tuple == null) throw new InvalidOperationException(String.Format("Custom formatter {0}.ToTuple() cannot return null", formattable.GetType().Name));
+
+			FdbTupleParser.BeginTuple(ref writer);
 			tuple.PackTo(ref writer);
+			FdbTupleParser.EndTuple(ref writer);
 		}
 
-		public static void SerializeFdbKeyTo(ref SliceWriter writer, IFdbKey key)
+		public static void SerializeFdbKeyTo(ref TupleWriter writer, IFdbKey key)
 		{
 			Contract.Requires(key != null);
 			var slice = key.ToFoundationDbKey();
-			writer.WriteBytes(slice);
+			FdbTupleParser.WriteBytes(ref writer, slice);
 		}
 
 		#endregion
@@ -536,6 +522,7 @@ namespace FoundationDB.Layers.Tuples
 
 		private static readonly Dictionary<Type, Delegate> s_sliceUnpackers = InitializeDefaultUnpackers();
 
+		[NotNull]
 		private static Dictionary<Type, Delegate> InitializeDefaultUnpackers()
 		{
 			var map = new Dictionary<Type, Delegate>();
@@ -568,6 +555,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Returns a lambda that will be able to serialize values of type <typeparamref name="T"/></summary>
 		/// <typeparam name="T">Type of values to serialize</typeparam>
 		/// <returns>Reusable action that knows how to serialize values of type <typeparamref name="T"/> into binary buffers, or an exception if the type is not supported</returns>
+		[NotNull]
 		internal static Func<Slice, T> GetDeserializer<T>(bool required)
 		{
 			Type type = typeof(T);
@@ -602,7 +590,7 @@ namespace FoundationDB.Layers.Tuples
 			return slice.IsNullOrEmpty || slice[0] == FdbTupleTypes.Nil;
 		}
 
-		private static Delegate MakeNullableDeserializer(Type nullableType, Type type, Delegate decoder)
+		private static Delegate MakeNullableDeserializer([NotNull] Type nullableType, [NotNull] Type type, [NotNull] Delegate decoder)
 		{
 			Contract.Requires(nullableType != null && type != null && decoder != null);
 			// We have a Decoder of T, but we have to transform it into a Decoder for Nullable<T>, which returns null if the slice is "nil", or falls back to the underlying decoder if the slice contains something
@@ -624,6 +612,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <returns>Decoded element, in the type that is the best fit.</returns>
 		/// <remarks>You should avoid working with untyped values as much as possible! Blindly casting the returned object may be problematic because this method may need to return very large intergers as Int64 or even UInt64.</remarks>
+		[CanBeNull]
 		public static object DeserializeBoxed(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
@@ -638,6 +627,7 @@ namespace FoundationDB.Layers.Tuples
 					case FdbTupleTypes.Nil: return null;
 					case FdbTupleTypes.Bytes: return FdbTupleParser.ParseBytes(slice);
 					case FdbTupleTypes.Utf8: return FdbTupleParser.ParseUnicode(slice);
+					case FdbTupleTypes.TupleStart: return FdbTupleParser.ParseTuple(slice);
 				}
 			}
 			else
@@ -653,7 +643,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice with unknown type code {0}", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment with unknown type code {0}", type));
 		}
 
 		/// <summary>Deserialize a slice into a type that implements ITupleFormattable</summary>
@@ -664,7 +654,12 @@ namespace FoundationDB.Layers.Tuples
 		public static T DeserializeFormattable<T>(Slice slice)
 			where T : ITupleFormattable, new()
 		{
-			var tuple = FdbTuple.Unpack(slice);
+			if (FdbTuplePackers.IsNilSegment(slice))
+			{
+				return default(T);
+			}
+
+			var tuple = FdbTupleParser.ParseTuple(slice);
 			var value = new T();
 			value.FromTuple(tuple);
 			return value;
@@ -675,10 +670,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="slice">Slice that contains a single packed element</param>
 		/// <param name="factory">Lambda that will be called to construct a new instance of values of type <typeparamref name="T"/></param>
 		/// <returns>Decoded value of type <typeparamref name="T"/></returns>
-		public static T DeserializeFormattable<T>(Slice slice, Func<T> factory)
+		public static T DeserializeFormattable<T>(Slice slice, [NotNull] Func<T> factory)
 			where T : ITupleFormattable
 		{
-			var tuple = FdbTuple.Unpack(slice);
+			var tuple = FdbTupleParser.ParseTuple(slice);
 			var value = factory();
 			value.FromTuple(tuple);
 			return value;
@@ -712,13 +707,40 @@ namespace FoundationDB.Layers.Tuples
 				return Slice.FromUInt64(DeserializeUInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a Slice", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Slice", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into a byte array</summary>
+		[CanBeNull] //REVIEW: because of Slice.GetBytes()
 		public static byte[] DeserializeBytes(Slice slice)
 		{
 			return DeserializeSlice(slice).GetBytes();
+		}
+
+		/// <summary>Deserialize a tuple segment into a tuple</summary>
+		[CanBeNull]
+		public static IFdbTuple DeserializeTuple(Slice slice)
+		{
+			if (slice.IsNullOrEmpty) return null;
+
+			byte type = slice[0];
+			switch(type)
+			{
+				case FdbTupleTypes.Nil:
+				{
+					return null;
+				}
+				case FdbTupleTypes.Bytes:
+				{
+					return FdbTuple.Unpack(FdbTupleParser.ParseBytes(slice));
+				}
+				case FdbTupleTypes.TupleStart:
+				{
+					return FdbTupleParser.ParseTuple(slice);
+				}
+			}
+
+			throw new FormatException("Cannot convert tuple segment into a Tuple");
 		}
 
 		/// <summary>Deserialize a tuple segment into a Boolean</summary>
@@ -760,7 +782,7 @@ namespace FoundationDB.Layers.Tuples
 
 			//TODO: should we handle weird cases like strings "True" and "False"?
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a boolean", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a boolean", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into an Int16</summary>
@@ -803,7 +825,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException("Cannot convert slice into a signed integer");
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a signed integer", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into an UInt32</summary>
@@ -847,7 +869,7 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into an unsigned integer", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into an unsigned integer", type));
 		}
 
 		public static float DeserializeSingle(Slice slice)
@@ -880,7 +902,7 @@ namespace FoundationDB.Layers.Tuples
 				return checked((float)DeserializeInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a Single", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Single", type));
 		}
 
 		public static double DeserializeDouble(Slice slice)
@@ -913,7 +935,7 @@ namespace FoundationDB.Layers.Tuples
 				return checked((double)DeserializeInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a Double", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a Double", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into a DateTime (UTC)</summary>
@@ -943,7 +965,7 @@ namespace FoundationDB.Layers.Tuples
 				{ // Number of days since Epoch
 					const long UNIX_EPOCH_TICKS = 621355968000000000L;
 					//note: we can't user TimeSpan.FromDays(...) because it rounds to the nearest millisecond!
-					long ticks = UNIX_EPOCH_TICKS + (long)(FdbTupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);			
+					long ticks = UNIX_EPOCH_TICKS + (long)(FdbTupleParser.ParseDouble(slice) * TimeSpan.TicksPerDay);
 					return new DateTime(ticks, DateTimeKind.Utc);
 				}
 			}
@@ -954,7 +976,7 @@ namespace FoundationDB.Layers.Tuples
 				return new DateTime(DeserializeInt64(slice), DateTimeKind.Utc);
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a DateTime", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a DateTime", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into a TimeSpan</summary>
@@ -990,11 +1012,12 @@ namespace FoundationDB.Layers.Tuples
 				return new TimeSpan(DeserializeInt64(slice));
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a TimeSpan", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a TimeSpan", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into a Unicode string</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
+		[CanBeNull]
 		public static string DeserializeString(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
@@ -1037,7 +1060,7 @@ namespace FoundationDB.Layers.Tuples
 				return FdbTupleParser.ParseInt64(type, slice).ToString(CultureInfo.InvariantCulture);
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a String", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a String", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into Guid</summary>
@@ -1065,7 +1088,7 @@ namespace FoundationDB.Layers.Tuples
 				//REVIEW: should we allow converting a Uuid64 into a Guid? This looks more like a bug than an expected behavior...
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into a System.Guid", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into a System.Guid", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into 128-bit UUID</summary>
@@ -1093,7 +1116,7 @@ namespace FoundationDB.Layers.Tuples
 				//REVIEW: should we allow converting a Uuid64 into a Uuid128? This looks more like a bug than an expected behavior...
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into an Uuid128", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into an Uuid128", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into 64-bit UUID</summary>
@@ -1126,11 +1149,12 @@ namespace FoundationDB.Layers.Tuples
 			}
 			// we don't support negative numbers!
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into an Uuid64", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into an Uuid64", type));
 		}
 
 		/// <summary>Deserialize a tuple segment into Guid</summary>
 		/// <param name="slice">Slice that contains a single packed element</param>
+		[CanBeNull]
 		public static System.Net.IPAddress DeserializeIPAddress(Slice slice)
 		{
 			if (slice.IsNullOrEmpty) return null;
@@ -1160,12 +1184,12 @@ namespace FoundationDB.Layers.Tuples
 				return new System.Net.IPAddress(value);
 			}
 
-			throw new FormatException(String.Format("Cannot convert slice of type 0x{0:X} into System.Net.IPAddress", type));
+			throw new FormatException(String.Format("Cannot convert tuple segment of type 0x{0:X} into System.Net.IPAddress", type));
 		}
 
 		public static FdbTupleAlias DeserializeAlias(Slice slice)
 		{
-			if (slice.Count != 1) throw new FormatException("Cannot convert slice into this type");
+			if (slice.Count != 1) throw new FormatException("Cannot convert tuple segment into this type");
 			return (FdbTupleAlias)slice[0];
 		}
 
@@ -1173,16 +1197,17 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="buffer">Slice that contains the packed representation of a tuple with zero or more elements</param>
 		/// <returns>Decoded tuple</returns>
 		[NotNull]
-		internal static FdbSlicedTuple Unpack(Slice buffer)
+		internal static FdbSlicedTuple Unpack(Slice buffer, bool embedded)
 		{
-			var slicer = new SliceReader(buffer);
+			var reader = new TupleReader(buffer);
+			if (embedded) reader.Depth = 1;
 
 			// most tuples will probably fit within (prefix, sub-prefix, id, key) so pre-allocating with 4 should be ok...
 			var items = new Slice[4];
 
 			Slice item;
 			int p = 0;
-			while ((item = FdbTupleParser.ParseNext(ref slicer)).HasValue)
+			while ((item = FdbTupleParser.ParseNext(ref reader)).HasValue)
 			{
 				if (p >= items.Length)
 				{
@@ -1192,7 +1217,7 @@ namespace FoundationDB.Layers.Tuples
 				items[p++] = item;
 			}
 
-			if (slicer.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
+			if (reader.Input.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
 			return new FdbSlicedTuple(p == 0 ? Slice.EmptySliceArray : items, 0, p);
 		}
 
@@ -1201,10 +1226,10 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Decoded slice of the single element in the singleton tuple</returns>
 		public static Slice UnpackSingle(Slice buffer)
 		{
-			var slicer = new SliceReader(buffer);
+			var slicer = new TupleReader(buffer);
 
 			var current = FdbTupleParser.ParseNext(ref slicer);
-			if (slicer.HasMore) throw new FormatException("Parsing of singleton tuple failed before reaching the end of the key");
+			if (slicer.Input.HasMore) throw new FormatException("Parsing of singleton tuple failed before reaching the end of the key");
 
 			return current;
 		}
@@ -1214,7 +1239,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Raw slice corresponding to the first element of the tuple</returns>
 		public static Slice UnpackFirst(Slice buffer)
 		{
-			var slicer = new SliceReader(buffer);
+			var slicer = new TupleReader(buffer);
 
 			return FdbTupleParser.ParseNext(ref slicer);
 		}
@@ -1224,7 +1249,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Raw slice corresponding to the last element of the tuple</returns>
 		public static Slice UnpackLast(Slice buffer)
 		{
-			var slicer = new SliceReader(buffer);
+			var slicer = new TupleReader(buffer);
 
 			Slice item = Slice.Nil;
 
@@ -1234,7 +1259,7 @@ namespace FoundationDB.Layers.Tuples
 				item = current;
 			}
 
-			if (slicer.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
+			if (slicer.Input.HasMore) throw new FormatException("Parsing of tuple failed failed before reaching the end of the key");
 			return item;
 		}
 

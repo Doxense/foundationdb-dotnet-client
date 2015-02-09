@@ -48,7 +48,7 @@ namespace FoundationDB.Layers.Tuples
 #if !NET_4_0
 		[System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]
 #endif
-		public static void SerializeTo(ref SliceWriter writer, T value)
+		public static void SerializeTo(ref TupleWriter writer, T value)
 		{
 			Encoder(ref writer, value);
 		}
@@ -58,9 +58,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <returns>Slice that contains the binary representation of <paramref name="value"/></returns>
 		public static Slice Serialize(T value)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			Encoder(ref writer, value);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		/// <summary>Deserialize a tuple segment into a value of type <typeparamref name="T"/></summary>

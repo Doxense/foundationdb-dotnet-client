@@ -47,37 +47,38 @@ namespace FoundationDB.Filters.Logging.Tests
 
 			using (var db = await OpenTestPartitionAsync())
 			{
-				var location = await GetCleanDirectory(db, "Logging");
+				// get a tuple view of the directory
+				var location = (await GetCleanDirectory(db, "Logging")).Keys;
 
 				// note: ensure that all methods are JITed
 				await db.ReadWriteAsync(async (tr) =>
 				{
 					await tr.GetReadVersionAsync();
-					tr.Set(location.Pack("Warmup", 0), Slice.FromInt32(1));
-					tr.Clear(location.Pack("Warmup", 1));
-					await tr.GetAsync(location.Pack("Warmup", 2));
-					await tr.GetRange(FdbKeyRange.StartsWith(location.Pack("Warmup", 3))).ToListAsync();
-					tr.ClearRange(location.Pack("Warmup", 4), location.Pack("Warmup", 5));
+					tr.Set(location.Encode("Warmup", 0), Slice.FromInt32(1));
+					tr.Clear(location.Encode("Warmup", 1));
+					await tr.GetAsync(location.Encode("Warmup", 2));
+					await tr.GetRange(FdbKeyRange.StartsWith(location.Encode("Warmup", 3))).ToListAsync();
+					tr.ClearRange(location.Encode("Warmup", 4), location.Encode("Warmup", 5));
 				}, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
 				{
 					var rnd = new Random();
-					tr.Set(location.Pack("One"), Slice.FromString("111111"));
-					tr.Set(location.Pack("Two"), Slice.FromString("222222"));
+					tr.Set(location.Encode("One"), Slice.FromString("111111"));
+					tr.Set(location.Encode("Two"), Slice.FromString("222222"));
 					for (int j = 0; j < 4; j++)
 					{
 						for (int i = 0; i < 100; i++)
 						{
-							tr.Set(location.Pack("Range", j, rnd.Next(1000)), Slice.Empty);
+							tr.Set(location.Encode("Range", j, rnd.Next(1000)), Slice.Empty);
 						}
 					}
 					for (int j = 0; j < N; j++)
 					{
-						tr.Set(location.Pack("X", j), Slice.FromInt32(j));
-						tr.Set(location.Pack("Y", j), Slice.FromInt32(j));
-						tr.Set(location.Pack("Z", j), Slice.FromInt32(j));
-						tr.Set(location.Pack("W", j), Slice.FromInt32(j));
+						tr.Set(location.Encode("X", j), Slice.FromInt32(j));
+						tr.Set(location.Encode("Y", j), Slice.FromInt32(j));
+						tr.Set(location.Encode("Z", j), Slice.FromInt32(j));
+						tr.Set(location.Encode("W", j), Slice.FromInt32(j));
 					}
 				}, this.Cancellation);
 
@@ -109,10 +110,10 @@ namespace FoundationDB.Filters.Logging.Tests
 
 						long ver = await tr.GetReadVersionAsync().ConfigureAwait(false);
 
-						await tr.GetAsync(location.Pack("One")).ConfigureAwait(false);
-						await tr.GetAsync(location.Pack("NotFound")).ConfigureAwait(false);
+						await tr.GetAsync(location.Encode("One")).ConfigureAwait(false);
+						await tr.GetAsync(location.Encode("NotFound")).ConfigureAwait(false);
 
-						tr.Set(location.Pack("Write"), Slice.FromString("abcdef" + k.ToString()));
+						tr.Set(location.Encode("Write"), Slice.FromString("abcdef" + k.ToString()));
 
 						//tr.Annotate("BEFORE");
 						//await Task.Delay(TimeSpan.FromMilliseconds(10));
@@ -125,33 +126,33 @@ namespace FoundationDB.Filters.Logging.Tests
 						//await tr.GetRangeAsync(FdbKeySelector.LastLessOrEqual(location.Pack("A")), FdbKeySelector.FirstGreaterThan(location.Pack("Z"))).ConfigureAwait(false);
 
 						await Task.WhenAll(
-							tr.GetRange(FdbKeyRange.StartsWith(location.Pack("Range", 0))).ToListAsync(),
-							tr.GetRange(location.Pack("Range", 1, 0), location.Pack("Range", 1, 200)).ToListAsync(),
-							tr.GetRange(location.Pack("Range", 2, 400), location.Pack("Range", 2, 600)).ToListAsync(),
-							tr.GetRange(location.Pack("Range", 3, 800), location.Pack("Range", 3, 1000)).ToListAsync()
+							tr.GetRange(FdbKeyRange.StartsWith(location.Encode("Range", 0))).ToListAsync(),
+							tr.GetRange(location.Encode("Range", 1, 0), location.Encode("Range", 1, 200)).ToListAsync(),
+							tr.GetRange(location.Encode("Range", 2, 400), location.Encode("Range", 2, 600)).ToListAsync(),
+							tr.GetRange(location.Encode("Range", 3, 800), location.Encode("Range", 3, 1000)).ToListAsync()
 						).ConfigureAwait(false);
 
-						await tr.GetAsync(location.Pack("Two")).ConfigureAwait(false);
+						await tr.GetAsync(location.Encode("Two")).ConfigureAwait(false);
 
-						await tr.GetValuesAsync(Enumerable.Range(0, N).Select(x => location.Pack("X", x))).ConfigureAwait(false);
+						await tr.GetValuesAsync(Enumerable.Range(0, N).Select(x => location.Encode("X", x))).ConfigureAwait(false);
 
 						for (int i = 0; i < N; i++)
 						{
-							await tr.GetAsync(location.Pack("Z", i)).ConfigureAwait(false);
+							await tr.GetAsync(location.Encode("Z", i)).ConfigureAwait(false);
 						}
 
-						await Task.WhenAll(Enumerable.Range(0, N / 2).Select(x => tr.GetAsync(location.Pack("Y", x)))).ConfigureAwait(false);
-						await Task.WhenAll(Enumerable.Range(N / 2, N / 2).Select(x => tr.GetAsync(location.Pack("Y", x)))).ConfigureAwait(false);
+						await Task.WhenAll(Enumerable.Range(0, N / 2).Select(x => tr.GetAsync(location.Encode("Y", x)))).ConfigureAwait(false);
+						await Task.WhenAll(Enumerable.Range(N / 2, N / 2).Select(x => tr.GetAsync(location.Encode("Y", x)))).ConfigureAwait(false);
 
 						await Task.WhenAll(
-							tr.GetAsync(location.Pack("W", 1)),
-							tr.GetAsync(location.Pack("W", 2)),
-							tr.GetAsync(location.Pack("W", 3))
+							tr.GetAsync(location.Encode("W", 1)),
+							tr.GetAsync(location.Encode("W", 2)),
+							tr.GetAsync(location.Encode("W", 3))
 						).ConfigureAwait(false);
 
-						tr.Set(location.Pack("Write2"), Slice.FromString("ghijkl" + k.ToString()));
-						tr.Clear(location.Pack("Clear", "0"));
-						tr.ClearRange(location.Pack("Clear", "A"), location.Pack("Clear", "Z"));
+						tr.Set(location.Encode("Write2"), Slice.FromString("ghijkl" + k.ToString()));
+						tr.Clear(location.Encode("Clear", "0"));
+						tr.ClearRange(location.Encode("Clear", "A"), location.Encode("Clear", "Z"));
 
 						if (tr.Context.Retries == 0)
 						{

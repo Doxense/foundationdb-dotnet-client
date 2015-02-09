@@ -38,31 +38,31 @@ namespace FoundationDB.Filters
 	{
 		// We will add a prefix to all keys sent to the db, and remove it on the way back
 
-		private readonly FdbSubspace m_prefix;
+		private readonly IFdbSubspace m_prefix;
 
-		public PrefixRewriterTransaction(FdbSubspace prefix, IFdbTransaction trans, bool ownsTransaction)
+		public PrefixRewriterTransaction(IFdbSubspace prefix, IFdbTransaction trans, bool ownsTransaction)
 			: base(trans, false, ownsTransaction)
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 			m_prefix = prefix;
 		}
 
-		public FdbSubspace Prefix { get { return m_prefix; } }
+		public IFdbSubspace Prefix { get { return m_prefix; } }
 
 		private Slice Encode(Slice key)
 		{
-			return m_prefix.Concat(key);
+			return m_prefix.ConcatKey(key);
 		}
 
 		private Slice[] Encode(Slice[] keys)
 		{
-			return m_prefix.ConcatRange(keys);
+			return m_prefix.ConcatKeys(keys);
 		}
 
 		private FdbKeySelector Encode(FdbKeySelector selector)
 		{
 			return new FdbKeySelector(
-				m_prefix.Concat(selector.Key),
+				m_prefix.ConcatKey(selector.Key),
 				selector.OrEqual,
 				selector.Offset
 			);
@@ -75,7 +75,7 @@ namespace FoundationDB.Filters
 			{
 				keys[i] = selectors[i].Key;
 			}
-			keys = m_prefix.ConcatRange(keys);
+			keys = m_prefix.ConcatKeys(keys);
 
 			var res = new FdbKeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
@@ -91,7 +91,7 @@ namespace FoundationDB.Filters
 
 		private Slice Decode(Slice key)
 		{
-			return m_prefix.Extract(key);
+			return m_prefix.ExtractKey(key);
 		}
 
 		private Slice[] Decode(Slice[] keys)
@@ -99,7 +99,7 @@ namespace FoundationDB.Filters
 			var res = new Slice[keys.Length];
 			for (int i = 0; i < keys.Length;i++)
 			{
-				res[i] = m_prefix.Extract(keys[i]);
+				res[i] = m_prefix.ExtractKey(keys[i]);
 			}
 			return res;
 		}

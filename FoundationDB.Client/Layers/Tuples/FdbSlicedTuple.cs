@@ -61,12 +61,12 @@ namespace FoundationDB.Layers.Tuples
 			m_count = count;
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			var slices = m_slices;
 			for (int n = m_count, p = m_offset; n > 0; n--)
 			{
-				writer.WriteBytes(slices[p++]);
+				writer.Output.WriteBytes(slices[p++]);
 			}
 		}
 
@@ -74,9 +74,9 @@ namespace FoundationDB.Layers.Tuples
 		{
 			// merge all the slices making up this segment
 			//TODO: should we get the sum of all slices to pre-allocated the buffer ?
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			PackTo(ref writer);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()
@@ -124,9 +124,14 @@ namespace FoundationDB.Layers.Tuples
 			return m_slices[m_offset + FdbTuple.MapIndex(index, m_count)];
 		}
 
-		public IFdbTuple Append<T>(T value)
+		IFdbTuple IFdbTuple.Append<T>(T value)
 		{
-			throw new NotImplementedException();
+			throw new NotSupportedException();
+		}
+
+		IFdbTuple IFdbTuple.Concat(IFdbTuple tuple)
+		{
+			throw new NotSupportedException();
 		}
 
 		public void CopyTo(object[] array, int offset)

@@ -194,36 +194,7 @@ namespace FoundationDB.Client
 		/// </example>
 		public static Slice Extract(this IFdbDatabase db, Slice keyAbsolute)
 		{
-			return db.GlobalSpace.Extract(keyAbsolute);
-		}
-
-		#endregion
-
-		#region Unpack...
-
-		/// <summary>Unpack a key using the current namespace of the database</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		[CanBeNull]
-		public static IFdbTuple Unpack(this IFdbDatabase db, Slice key)
-		{
-			return db.GlobalSpace.Unpack(key);
-		}
-
-		/// <summary>Unpack a key using the current namespace of the database</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		public static T UnpackLast<T>(this IFdbDatabase db, Slice key)
-		{
-			return db.GlobalSpace.UnpackLast<T>(key);
-		}
-
-		/// <summary>Unpack a key using the current namespace of the database</summary>
-		/// <param name="db">Database instance</param>
-		/// <param name="key">Key that should fit inside the current namespace of the database</param>
-		public static T UnpackSingle<T>(this IFdbDatabase db, Slice key)
-		{
-			return db.GlobalSpace.UnpackSingle<T>(key);
+			return db.GlobalSpace.ExtractKey(keyAbsolute);
 		}
 
 		#endregion

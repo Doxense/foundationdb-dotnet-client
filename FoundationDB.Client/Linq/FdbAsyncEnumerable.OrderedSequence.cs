@@ -99,18 +99,12 @@ namespace FoundationDB.Linq
 				return GetEnumerator(FdbAsyncMode.All);
 			}
 
-			public IFdbAsyncOrderedEnumerable<TSource> ThenBy<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> keyComparer = null)
+			[NotNull]
+			public IFdbAsyncOrderedEnumerable<TSource> CreateOrderedEnumerable<TKey>([NotNull] Func<TSource, TKey> keySelector, IComparer<TKey> comparer, bool descending)
 			{
 				if (keySelector == null) throw new ArgumentNullException("keySelector");
 
-				return new OrderedSequence<TSource, TKey>(this, keySelector, keyComparer, false, this);
-			}
-
-			public IFdbAsyncOrderedEnumerable<TSource> ThenByDescending<TKey>(Func<TSource, TKey> keySelector, IComparer<TKey> keyComparer = null)
-			{
-				if (keySelector == null) throw new ArgumentNullException("keySelector");
-
-				return new OrderedSequence<TSource, TKey>(this, keySelector, keyComparer, true, this);
+				return new OrderedSequence<TSource, TKey>(this, keySelector, comparer, descending, this);
 			}
 
 		}

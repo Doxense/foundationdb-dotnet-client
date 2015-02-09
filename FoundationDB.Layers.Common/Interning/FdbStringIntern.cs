@@ -91,26 +91,26 @@ namespace FoundationDB.Layers.Interning
 		private readonly RandomNumberGenerator m_prng = RandomNumberGenerator.Create();
 		private readonly ReaderWriterLockSlim m_lock = new ReaderWriterLockSlim();
 
-		public FdbStringIntern(FdbSubspace subspace)
+		public FdbStringIntern(IFdbSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Subspace = subspace;
+			this.Subspace = subspace.Using(TypeSystem.Tuples);
 
 		}
 
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbDynamicSubspace Subspace { get; private set; }
 
 		#region Private Helpers...
 
 		protected virtual Slice UidKey(Slice uid)
 		{
-			return this.Subspace.Pack(Uid2StringKey, uid);
+			return this.Subspace.Keys.Encode(Uid2StringKey, uid);
 		}
 
 		protected virtual Slice StringKey(string value)
 		{
-			return this.Subspace.Pack(String2UidKey, value);
+			return this.Subspace.Keys.Encode(String2UidKey, value);
 		}
 
 		/// <summary>Evict a random value from the cache</summary>

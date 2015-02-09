@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -52,14 +52,14 @@ namespace FoundationDB.Linq.Tests
 			using(var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("Linq");
+				var location = db.Partition.ByKey("Linq");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				await db.WriteAsync((tr) =>
 				{
-					tr.Set(location.Pack("Hello"), Slice.FromString("World!"));
-					tr.Set(location.Pack("Narf"), Slice.FromString("Zort"));
+					tr.Set(location.Keys.Encode("Hello"), Slice.FromString("World!"));
+					tr.Set(location.Keys.Encode("Narf"), Slice.FromString("Zort"));
 				}, this.Cancellation);
 
 				var range = db.Query().RangeStartsWith(location.Key);
@@ -91,11 +91,11 @@ namespace FoundationDB.Linq.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("Linq");
+				var location = db.Partition.ByKey("Linq");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition("Foos", "ByColor"));
+				var index = new FdbIndex<long, string>("Foos.ByColor", location.Partition.ByKey("Foos", "ByColor"));
 
 				await db.WriteAsync((tr) =>
 				{
@@ -125,11 +125,11 @@ namespace FoundationDB.Linq.Tests
 			using (var db = await OpenTestPartitionAsync())
 			{
 
-				var location = db.Partition("Linq");
+				var location = db.Partition.ByKey("Linq");
 
 				await db.ClearRangeAsync(location, this.Cancellation);
 
-				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition("Foos", "ByScore"));
+				var index = new FdbIndex<string, int>("Bars.ByScore", location.Partition.ByKey("Foos", "ByScore"));
 
 				await db.WriteAsync((tr) =>
 				{

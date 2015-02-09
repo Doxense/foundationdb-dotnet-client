@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,11 +43,11 @@ namespace FoundationDB.Layers.Collections
 	public class FdbMap<TKey, TValue>
 	{
 
-		public FdbMap([NotNull] string name, [NotNull] FdbSubspace subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] string name, [NotNull] IFdbSubspace subspace, [NotNull] IValueEncoder<TValue> valueEncoder)
 			: this(name, subspace, KeyValueEncoders.Tuples.Key<TKey>(), valueEncoder)
 		{ }
 
-		public FdbMap([NotNull] string name, [NotNull] FdbSubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
+		public FdbMap([NotNull] string name, [NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<TKey> keyEncoder, [NotNull] IValueEncoder<TValue> valueEncoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -56,7 +56,7 @@ namespace FoundationDB.Layers.Collections
 
 			this.Name = name;
 			this.Subspace = subspace;
-			this.Location = new FdbEncoderSubspace<TKey>(subspace, keyEncoder);
+			this.Location = subspace.UsingEncoder(keyEncoder);
 			this.ValueEncoder = valueEncoder;
 		}
 
@@ -67,10 +67,10 @@ namespace FoundationDB.Layers.Collections
 		public string Name { [NotNull] get; private set; }
 
 		/// <summary>Subspace used as a prefix for all items in this map</summary>
-		public FdbSubspace Subspace { [NotNull] get; private set; }
+		public IFdbSubspace Subspace { [NotNull] get; private set; }
 
 		/// <summary>Subspace used to encoded the keys for the items</summary>
-		protected FdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
+		protected IFdbEncoderSubspace<TKey> Location { [NotNull] get; private set; }
 
 		/// <summary>Class that can serialize/deserialize values into/from slices</summary>
 		public IValueEncoder<TValue> ValueEncoder { [NotNull] get; private set; }
@@ -90,7 +90,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			var data = await trans.GetAsync(this.Location.EncodeKey(id)).ConfigureAwait(false);
+			var data = await trans.GetAsync(this.Location.Keys.Encode(id)).ConfigureAwait(false);
 
 			if (data.IsNull) throw new KeyNotFoundException("The given id was not present in the map.");
 			return this.ValueEncoder.DecodeValue(data);
@@ -105,7 +105,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			var data = await trans.GetAsync(this.Location.EncodeKey(id)).ConfigureAwait(false);
+			var data = await trans.GetAsync(this.Location.Keys.Encode(id)).ConfigureAwait(false);
 
 			if (data.IsNull) return default(Optional<TValue>);
 			return this.ValueEncoder.DecodeValue(data);
@@ -121,7 +121,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Set(this.Location.EncodeKey(id), this.ValueEncoder.EncodeValue(value));
+			trans.Set(this.Location.Keys.Encode(id), this.ValueEncoder.EncodeValue(value));
 		}
 
 		/// <summary>Remove a single entry from the map</summary>
@@ -133,7 +133,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (id == null) throw new ArgumentNullException("id");
 
-			trans.Clear(this.Location.EncodeKey(id));
+			trans.Clear(this.Location.Keys.Encode(id));
 		}
 
 		/// <summary>Create a query that will attempt to read all the entries in the map within a single transaction.</summary>
@@ -159,7 +159,7 @@ namespace FoundationDB.Layers.Collections
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (ids == null) throw new ArgumentNullException("ids");
 
-			var results = await trans.GetValuesAsync(this.Location.EncodeKeyRange(ids)).ConfigureAwait(false);
+			var results = await trans.GetValuesAsync(this.Location.Keys.Encode(ids)).ConfigureAwait(false);
 
 			return Optional.DecodeRange(this.ValueEncoder, results);
 		}
@@ -171,7 +171,7 @@ namespace FoundationDB.Layers.Collections
 		private KeyValuePair<TKey, TValue> DecodeItem(KeyValuePair<Slice, Slice> item)
 		{
 			return new KeyValuePair<TKey, TValue>(
-				this.Location.DecodeKey(item.Key),
+				this.Location.Keys.Decode(item.Key),
 				this.ValueEncoder.DecodeValue(item.Value)
 			);
 		}
@@ -181,14 +181,14 @@ namespace FoundationDB.Layers.Collections
 		{
 			Contract.Requires(batch != null);
 
-			var keyEncoder = this.Location;
+			var keyEncoder = this.Location.Keys;
 			var valueEncoder = this.ValueEncoder;
 
 			var items = new KeyValuePair<TKey, TValue>[batch.Length];
 			for (int i = 0; i < batch.Length; i++)
 			{
 				items[i] = new KeyValuePair<TKey, TValue>(
-					keyEncoder.DecodeKey(batch[i].Key),
+					keyEncoder.Decode(batch[i].Key),
 					valueEncoder.DecodeValue(batch[i].Value)
 				);
 			}

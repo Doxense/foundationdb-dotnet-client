@@ -97,13 +97,20 @@ namespace FoundationDB.Layers.Tuples
 		/// <remarks>Equivalent of tuple.Get&lt;T&gt;(-1)</remarks>
 		T Last<T>();
 
-		/// <summary>Create a new Tuple by appending a new value at the end the this tuple</summary>
+		/// <summary>Create a new Tuple by appending a single new value at the end of this tuple</summary>
 		/// <typeparam name="T">Type of the new value</typeparam>
 		/// <param name="value">Value that will be appended at the end</param>
 		/// <returns>New tuple with the new value</returns>
 		/// <example>("Hello,").Append("World") => ("Hello", "World",)</example>
+		/// <remarks>If <typeparamref name="T"/> is an <see cref="IFdbTuple"/>, then it will be appended as a single element. If you need to append the *items* of a tuple, you must call <see cref="IFdbTuple.Concat"/></remarks>
 		[NotNull]
 		IFdbTuple Append<T>(T value);
+
+		/// <summary>Create a new Tuple by appending the items of another tuple at the end of this tuple</summary>
+		/// <param name="tuple">Tuple whose items must be appended at the end of the current tuple</param>
+		/// <returns>New tuple with the new values, or the same instance if <paramref name="tuple"/> is empty.</returns>
+		[NotNull]
+		IFdbTuple Concat([NotNull] IFdbTuple tuple);
 
 		/// <summary>Copy all items of the tuple into an array at a specific location</summary>
 		/// <param name="array">Destination array (must be big enough to contains all the items)</param>
@@ -116,7 +123,7 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Appends the packed bytes of this instance to the end of a buffer</summary>
 		/// <param name="writer">Buffer that will received the packed bytes of this instance</param>
-		void PackTo(ref SliceWriter writer);
+		void PackTo(ref TupleWriter writer);
 
 		/// <summary>Pack this instance into a Slice</summary>
 		/// <example>

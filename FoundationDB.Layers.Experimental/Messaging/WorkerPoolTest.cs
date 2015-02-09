@@ -1,7 +1,6 @@
 ﻿using FoundationDB.Async;
 using FoundationDB.Client;
 using FoundationDB.Filters.Logging;
-using FoundationDB.Layers.Tuples;
 using System;
 using System.Diagnostics;
 using System.Linq;
@@ -59,7 +58,7 @@ namespace FoundationDB.Layers.Messaging
 			}
 		}
 
-		private async Task RunAsync(IFdbDatabase db, FdbSubspace location, CancellationToken ct, Action done, int N, int K, int W)
+		private async Task RunAsync(IFdbDatabase db, IFdbDynamicSubspace location, CancellationToken ct, Action done, int N, int K, int W)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 
@@ -142,7 +141,7 @@ namespace FoundationDB.Layers.Messaging
 							.GetRange(FdbKeyRange.StartsWith(location.Key))
 							.ForEachAsync((kvp) =>
 							{
-								Console.WriteLine(" - " + FdbTuple.Unpack(location.Extract(kvp.Key)) + " = " + kvp.Value.ToAsciiOrHexaString());
+								Console.WriteLine(" - " + location.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());
 							}).ConfigureAwait(false);
 					}
 					Console.WriteLine("</dump>");
