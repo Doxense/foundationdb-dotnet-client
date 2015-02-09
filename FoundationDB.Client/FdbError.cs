@@ -117,7 +117,7 @@ namespace FoundationDB.Client
 		/// <summary>An operation was issued while a commit was outstanding</summary>
 		UsedDuringCommit = 2017,
 		/// <summary>An invalid atomic mutation type was issued</summary>
-		InvalidMutationType = 2048,
+		InvalidMutationType = 2018,
 		/// <summary>Incompatible protocol version</summary>
 		IncompatibleProtocolVersion = 2100,
 		/// <summary>Transaction too large</summary>
