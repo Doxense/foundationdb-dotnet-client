@@ -30,6 +30,7 @@ $tf*/
 nuget/
 packages/
 *.ide/
+.vs/
 
 fdb_c.dll
 
