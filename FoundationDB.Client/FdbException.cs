@@ -53,6 +53,7 @@ namespace FoundationDB.Client
 			this.Code = errorCode;
 		}
 
+#if !CORE_CLR
 		private FdbException(SerializationInfo info, StreamingContext context)
 			: base(info, context)
 		{
@@ -65,6 +66,7 @@ namespace FoundationDB.Client
 			base.GetObjectData(info, context);
 			info.AddValue("Code", (int)this.Code);
 		}
+#endif
 
 		/// <summary>Gets the code for this error.</summary>
 		public FdbError Code { get; private set; }

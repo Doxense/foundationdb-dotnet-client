@@ -668,14 +668,11 @@ namespace Mono.Options
 			this.option = optionName;
 		}
 
+#if !CORE_CLR
 		protected OptionException (SerializationInfo info, StreamingContext context)
 			: base (info, context)
 		{
 			this.option = info.GetString ("OptionName");
-		}
-
-		public string OptionName {
-			get {return this.option;}
 		}
 
 		[SecurityPermission (SecurityAction.LinkDemand, SerializationFormatter = true)]
@@ -684,6 +681,12 @@ namespace Mono.Options
 			base.GetObjectData (info, context);
 			info.AddValue ("OptionName", option);
 		}
+#endif
+
+		public string OptionName {
+			get {return this.option;}
+		}
+
 	}
 
 	public delegate void OptionAction<TKey, TValue> (TKey key, TValue value);

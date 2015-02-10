@@ -537,12 +537,13 @@ namespace FoundationDB.Client.Converters
 		/// <param name="value">Boxed value</param>
 		/// <returns>Converted value, or an exception if there are no known convertions. The value null is converted into default(<typeparamref name="R"/>) by convention</returns>
 		/// <exception cref="System.InvalidOperationException">No valid converter for these types was found</exception>
+		[CanBeNull]
 		public static R ConvertBoxed<R>(object value)
 		{
 			if (value == null) return default(R);
 			var type = value.GetType();
 
-			var targetType = typeof (R);
+			var targetType = typeof(R);
 
 			// cast !
 			if (targetType.IsAssignableFrom(type)) return (R)value;
@@ -573,7 +574,7 @@ namespace FoundationDB.Client.Converters
 
 		/// <summary>Converts all the elements of a sequence</summary>
 		/// <returns>New sequence with all the converted elements</returns>
-		public static IEnumerable<R> ConvertAll<T, R>(this IFdbConverter<T, R> converter, [NotNull] IEnumerable<T> items)
+		public static IEnumerable<R> ConvertAll<T, R>([NotNull] this IFdbConverter<T, R> converter, [NotNull] IEnumerable<T> items)
 		{
 			if (converter == null) throw new ArgumentNullException("converter");
 			if (items == null) throw new ArgumentNullException("items");
@@ -587,18 +588,27 @@ namespace FoundationDB.Client.Converters
 		/// <summary>Converts all the elements of a list</summary>
 		/// <returns>New list with all the converted elements</returns>
 		[NotNull]
-		public static List<R> ConvertAll<T, R>(this IFdbConverter<T, R> converter, [NotNull] List<T> items)
+		public static List<R> ConvertAll<T, R>([NotNull] this IFdbConverter<T, R> converter, [NotNull] List<T> items)
 		{
 			if (converter == null) throw new ArgumentNullException("converter");
 			if (items == null) throw new ArgumentNullException("items");
 
+#if CORE_CLR
+			var list = new List<R>(items.Count);
+			foreach (var item in items)
+			{
+				list.Add(converter.Convert(item));
+			}
+			return list;
+#else
 			return items.ConvertAll<R>(converter.Convert);
+#endif
 		}
 
 		/// <summary>Converts all the elements of an array</summary>
 		/// <returns>New array with all the converted elements</returns>
 		[NotNull]
-		public static R[] ConvertAll<T, R>(this IFdbConverter<T, R> converter, [NotNull] T[] items)
+		public static R[] ConvertAll<T, R>([NotNull] this IFdbConverter<T, R> converter, [NotNull] T[] items)
 		{
 			if (converter == null) throw new ArgumentNullException("converter");
 			if (items == null) throw new ArgumentNullException("items");

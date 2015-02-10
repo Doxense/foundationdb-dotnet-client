@@ -772,7 +772,7 @@ namespace FoundationDB.Layers.Tuples
 
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
 
-			return Encoding.Default.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			return Slice.DefaultEncoding.GetString(decoded.Array, decoded.Offset, decoded.Count);
 		}
 
 		/// <summary>Parse a tuple segment containing a unicode string</summary>

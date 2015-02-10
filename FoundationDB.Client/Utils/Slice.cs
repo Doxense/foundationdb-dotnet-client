@@ -830,12 +830,19 @@ namespace FoundationDB.Client
 			return value.ToSlice();
 		}
 
+		internal static readonly Encoding DefaultEncoding =
+#if CORE_CLR
+			Encoding.GetEncoding(0);
+#else
+			Encoding.Default;
+#endif
+
 		/// <summary>Dangerously create a slice containing string converted to ASCII. All non-ASCII characters may be corrupted or converted to '?'</summary>
 		/// <remarks>WARNING: if you put a string that contains non-ASCII chars, it will be silently corrupted! This should only be used to store keywords or 'safe' strings.
 		/// Note: depending on your default codepage, chars from 128 to 255 may be preserved, but only if they are decoded using the same codepage at the other end !</remarks>
 		public static Slice FromAscii(string text)
 		{
-			return text == null ? Slice.Nil : text.Length == 0 ? Slice.Empty : Slice.Create(Encoding.Default.GetBytes(text));
+			return text == null ? Slice.Nil : text.Length == 0 ? Slice.Empty : Slice.Create(DefaultEncoding.GetBytes(text));
 		}
 
 		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/></summary>
@@ -964,7 +971,7 @@ namespace FoundationDB.Client
 		{
 			if (this.Count == 0) return this.HasValue ? String.Empty : default(string);
 			SliceHelpers.EnsureSliceIsValid(ref this);
-			return Encoding.Default.GetString(this.Array, this.Offset, this.Count);
+			return Slice.DefaultEncoding.GetString(this.Array, this.Offset, this.Count);
 		}
 
 		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
