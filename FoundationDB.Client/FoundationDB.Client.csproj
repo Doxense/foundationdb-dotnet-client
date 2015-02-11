@@ -73,8 +73,8 @@
     <Compile Include="Linq\Iterators\FdbBatchingAsyncIterator.cs" />
     <Compile Include="Linq\Iterators\FdbPrefetchingAsyncIterator.cs" />
     <Compile Include="Linq\Iterators\FdbWindowingAsyncIterator.cs" />
-    <Compile Include="Native\IFdbFuture.cs" />
-    <Compile Include="Native\FdbFutureContext.cs" />
+    <Compile Include="Native\Futures\IFdbFuture.cs" />
+    <Compile Include="Native\Futures\FdbFutureContext.cs" />
     <Compile Include="Status\FdbSystemStatus.cs" />
     <Compile Include="FdbEndPoint.cs" />
     <Compile Include="FdbIsolationLevel.cs" />
@@ -111,8 +111,8 @@
     <Compile Include="IFdbReadOnlyRetryable.cs" />
     <Compile Include="IFdbDatabase.cs" />
     <Compile Include="IFdbRetryable.cs" />
-    <Compile Include="Native\FdbFuture.cs" />
-    <Compile Include="Native\FdbFutureArray.cs" />
+    <Compile Include="Native\Futures\FdbFuture.cs" />
+    <Compile Include="Native\Futures\FdbFutureArray.cs" />
     <Compile Include="FdbWatch.cs" />
     <Compile Include="Fdb.System.cs" />
     <Compile Include="FdbConflictRangeType.cs" />
@@ -171,7 +171,7 @@
     <Compile Include="FdbTransaction.cs" />
     <Compile Include="FdbDatabase.cs" />
     <Compile Include="FdbCluster.cs" />
-    <Compile Include="Native\FdbFutureSingle.cs" />
+    <Compile Include="Native\Futures\FdbFutureSingle.cs" />
     <Compile Include="Fdb.cs" />
     <Compile Include="Async\IAsyncEnumerator.cs" />
     <Compile Include="Async\IAsyncEnumerable.cs" />
