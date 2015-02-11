@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -304,11 +304,11 @@ namespace FoundationDB.Client.Native
 			if (nullTerminated)
 			{ // NULL terminated ANSI string
 				result = new byte[value.Length + 1];
-				Encoding.Default.GetBytes(value, 0, value.Length, result, 0);
+				Slice.DefaultEncoding.GetBytes(value, 0, value.Length, result, 0);
 			}
 			else
 			{
-				result = Encoding.Default.GetBytes(value);
+				result = Slice.DefaultEncoding.GetBytes(value);
 			}
 			return new Slice(result, 0, result.Length);
 		}
