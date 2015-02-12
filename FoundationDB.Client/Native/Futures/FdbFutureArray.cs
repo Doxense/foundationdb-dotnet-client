@@ -88,7 +88,9 @@ namespace FoundationDB.Client.Native
 				handles = Interlocked.Exchange(ref m_handles, null);
 				if (handles == null) return; // already disposed?
 
+#if DEBUG_FUTURES
 				Debug.WriteLine("FutureArray.{0}<{1}[]>.OnReady([{2}])", this.Label, typeof(T).Name, handles.Length);
+#endif
 
 				T[] results = new T[handles.Length];
 				FdbError code = FdbError.Success;
@@ -119,7 +121,9 @@ namespace FoundationDB.Client.Native
 						catch (AccessViolationException e)
 						{ // trouble in paradise!
 
+#if DEBUG_FUTURES
 							Debug.WriteLine("EPIC FAIL: " + e.ToString());
+#endif
 
 							// => THIS IS VERY BAD! We have no choice but to terminate the process immediately, because any new call to any method to the binding may end up freezing the whole process (best case) or sending corrupted data to the cluster (worst case)
 							if (Debugger.IsAttached) Debugger.Break();
@@ -128,7 +132,9 @@ namespace FoundationDB.Client.Native
 						}
 						catch (Exception e)
 						{
+#if DEBUG_FUTURES
 							Debug.WriteLine("FAIL: " + e.ToString());
+#endif
 							code = FdbError.InternalError;
 							error = e;
 							break;

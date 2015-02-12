@@ -353,7 +353,9 @@ namespace FoundationDB.Client.Native
 
 		public static void FutureDestroy(IntPtr futureHandle, [CallerMemberName] string caller = null)
 		{
+#if DEBUG_FUTURES
 			Debug.WriteLine("Native.FutureDestroy(0x{0}) from {1}", (object)futureHandle.ToString("X"), caller);
+#endif
 			if (futureHandle != IntPtr.Zero)
 			{
 				NativeMethods.fdb_future_destroy(futureHandle);

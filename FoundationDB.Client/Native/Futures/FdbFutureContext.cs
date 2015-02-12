@@ -247,7 +247,9 @@ namespace FoundationDB.Client.Native
 
 				if (FdbNative.FutureIsReady(handle))
 				{ // the result is already computed
+#if DEBUG_FUTURES
 					Debug.WriteLine("FutureSingle.{0} 0x{1} already completed!", label, handle.ToString("X"));
+#endif
 					cookie = IntPtr.Zero;
 					mustDispose = false;
 					future.OnReady();
@@ -434,7 +436,7 @@ namespace FoundationDB.Client.Native
 			var future = (IFdbFuture)state;
 			Contract.Assert(state != null);
 #if DEBUG_FUTURES
-			Debug.WriteLine("Future<" + typeof(T).Name + ">.Cancel(0x" + future.m_handle.Handle.ToString("x") + ") was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
+			Debug.WriteLine("CancellationHandler for " + future + " was called on thread #" + Thread.CurrentThread.ManagedThreadId.ToString());
 #endif
 			future.Cancel();
 		}

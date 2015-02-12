@@ -26,16 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef DEBUG_FUTURES
-
-using System.Diagnostics;
-using System.Security.Policy;
 
 namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
+	using System.Diagnostics;
 	using System.Runtime.ExceptionServices;
 	using System.Threading;
 
@@ -65,7 +62,10 @@ namespace FoundationDB.Client.Native
 
 		public override bool Visit(IntPtr handle)
 		{
-			Contract.Requires(handle == m_handle);
+#if DEBUG_FUTURES
+			Debug.WriteLine("FutureSingle.{0}<{1}>.Visit(0x{2})", this.Label, typeof(T).Name, handle.ToString("X8"));
+#endif
+			Contract.Requires(handle == m_handle, this.Label);
 			return true;
 		}
 
@@ -84,7 +84,9 @@ namespace FoundationDB.Client.Native
 				handle = Interlocked.Exchange(ref m_handle, IntPtr.Zero);
 				if (handle == IntPtr.Zero) return; // already disposed?
 
+#if DEBUG_FUTURES
 				Debug.WriteLine("FutureSingle.{0}<{1}>.OnReady(0x{2})", this.Label, typeof(T).Name, handle.ToString("X8"));
+#endif
 
 				if (this.Task.IsCompleted)
 				{ // task has already been handled by someone else
@@ -104,7 +106,9 @@ namespace FoundationDB.Client.Native
 					catch (AccessViolationException e)
 					{ // trouble in paradise!
 
+#if DEBUG_FUTURES
 						Debug.WriteLine("EPIC FAIL: " + e.ToString());
+#endif
 
 						// => THIS IS VERY BAD! We have no choice but to terminate the process immediately, because any new call to any method to the binding may end up freezing the whole process (best case) or sending corrupted data to the cluster (worst case)
 						if (Debugger.IsAttached) Debugger.Break();
@@ -113,7 +117,9 @@ namespace FoundationDB.Client.Native
 					}
 					catch (Exception e)
 					{
+#if DEBUG_FUTURES
 						Debug.WriteLine("FAIL: " + e.ToString());
+#endif
 						code = FdbError.InternalError;
 						error = e;
 					}
