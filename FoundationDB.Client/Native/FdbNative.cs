@@ -431,7 +431,7 @@ namespace FoundationDB.Client.Native
 		public static IntPtr CreateCluster(string path)
 		{
 			var future = NativeMethods.fdb_create_cluster(path);
-			Contract.Assert(future != null);
+			Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_create_cluster(" + path + ") => 0x" + future.ToString("x"));
 #endif
@@ -492,7 +492,7 @@ namespace FoundationDB.Client.Native
 		public static IntPtr ClusterCreateDatabase(ClusterHandle cluster, string name)
 		{
 			var future = NativeMethods.fdb_cluster_create_database(cluster, name, name == null ? 0 : name.Length);
-			Contract.Assert(future != null);
+			Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_cluster_create_database(0x" + cluster.Handle.ToString("x") + ", name: '" + name + "') => 0x" + cluster.Handle.ToString("x"));
 #endif
@@ -528,7 +528,7 @@ namespace FoundationDB.Client.Native
 		public static IntPtr TransactionCommit(TransactionHandle transaction)
 		{
 			var future = NativeMethods.fdb_transaction_commit(transaction);
-			Contract.Assert(future != null);
+			Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_transaction_commit(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.ToString("x"));
 #endif
@@ -542,7 +542,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* ptrKey = key.Array)
 			{
 				var future = NativeMethods.fdb_transaction_watch(transaction, ptrKey + key.Offset, key.Count);
-				Contract.Assert(future != null);
+				Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_watch(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.ToString("x"));
 #endif
@@ -553,7 +553,7 @@ namespace FoundationDB.Client.Native
 		public static IntPtr TransactionOnError(TransactionHandle transaction, FdbError errorCode)
 		{
 			var future = NativeMethods.fdb_transaction_on_error(transaction, errorCode);
-			Contract.Assert(future != null);
+			Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_transaction_on_error(0x" + transaction.Handle.ToString("x") + ", " + errorCode + ") => 0x" + future.ToString("x"));
 #endif
@@ -587,7 +587,7 @@ namespace FoundationDB.Client.Native
 		public static IntPtr TransactionGetReadVersion(TransactionHandle transaction)
 		{
 			var future = NativeMethods.fdb_transaction_get_read_version(transaction);
-			Contract.Assert(future != null);
+			Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 			Debug.WriteLine("fdb_transaction_get_read_version(0x" + transaction.Handle.ToString("x") + ") => 0x" + future.ToString("x"));
 #endif
@@ -620,7 +620,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* ptrKey = key.Array)
 			{
 				var future = NativeMethods.fdb_transaction_get(transaction, ptrKey + key.Offset, key.Count, snapshot);
-				Contract.Assert(future != null);
+				Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "', snapshot: " + snapshot + ") => 0x" + future.ToString("x"));
 #endif
@@ -638,7 +638,7 @@ namespace FoundationDB.Client.Native
 					ptrBegin + begin.Key.Offset, begin.Key.Count, begin.OrEqual, begin.Offset,
 					ptrEnd + end.Key.Offset, end.Key.Count, end.OrEqual, end.Offset,
 					limit, targetBytes, mode, iteration, snapshot, reverse);
-				Contract.Assert(future != null);
+				Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 					Debug.WriteLine("fdb_transaction_get_range(0x" + transaction.Handle.ToString("x") + ", begin: " + begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + ", end: " + end.PrettyPrint(FdbKey.PrettyPrintMode.End) + ", " + snapshot + ") => 0x" + future.ToString("x"));
 #endif
@@ -653,7 +653,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* ptrKey = selector.Key.Array)
 			{
 				var future = NativeMethods.fdb_transaction_get_key(transaction, ptrKey + selector.Key.Offset, selector.Key.Count, selector.OrEqual, selector.Offset, snapshot);
-				Contract.Assert(future != null);
+				Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get_key(0x" + transaction.Handle.ToString("x") + ", " + selector.ToString() + ", " + snapshot + ") => 0x" + future.ToString("x"));
 #endif
@@ -668,7 +668,7 @@ namespace FoundationDB.Client.Native
 			fixed (byte* ptrKey = key.Array)
 			{
 				var future = NativeMethods.fdb_transaction_get_addresses_for_key(transaction, ptrKey + key.Offset, key.Count);
-				Contract.Assert(future != null);
+				Contract.Assert(future != IntPtr.Zero);
 #if DEBUG_NATIVE_CALLS
 				Debug.WriteLine("fdb_transaction_get_addresses_for_key(0x" + transaction.Handle.ToString("x") + ", key: '" + FdbKey.Dump(key) + "') => 0x" + future.ToString("x"));
 #endif
