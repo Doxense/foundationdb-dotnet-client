@@ -142,24 +142,24 @@ namespace FoundationDB.Client.Tests
 
 		// These methods are just there to help with the problem of culture-aware string formatting
 
-		protected void Log(string text)
+		protected static void Log(string text)
 		{
 			Console.WriteLine(text);
 		}
 
-		protected void Log(string format, object arg0)
+		protected static void Log(string format, object arg0)
 		{
-			Console.WriteLine(String.Format(CultureInfo.InvariantCulture, format, arg0));
+			Log(String.Format(CultureInfo.InvariantCulture, format, arg0));
 		}
 
-		protected void Log(string format, object arg0, object arg1)
+		protected static void Log(string format, object arg0, object arg1)
 		{
-			Console.WriteLine(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
+			Log(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
 		}
 
-		protected void Log(string format, params object[] args)
+		protected static void Log(string format, params object[] args)
 		{
-			Console.WriteLine(String.Format(CultureInfo.InvariantCulture, format, args));
+			Log(String.Format(CultureInfo.InvariantCulture, format, args));
 		}
 
 		#endregion

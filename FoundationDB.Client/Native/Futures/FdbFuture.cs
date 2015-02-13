@@ -99,7 +99,7 @@ namespace FoundationDB.Client.Native
 			TrySetResult(result);
 		}
 
-		protected  void PublishError(Exception error, FdbError code)
+		protected void PublishError(Exception error, FdbError code)
 		{ 
 			if (error != null)
 			{

@@ -109,7 +109,7 @@ namespace FoundationDB.Client.Native
 
 		public Task<long> GetReadVersionAsync(CancellationToken cancellationToken)
 		{
-			return StartNewFuture(
+			return RunAsync(
 				(handle, state) => FdbNative.TransactionGetReadVersion(handle),
 				default(object),
 				(future, state) =>
@@ -151,7 +151,7 @@ namespace FoundationDB.Client.Native
 
 		public Task<Slice> GetAsync(Slice key, bool snapshot, CancellationToken cancellationToken)
 		{
-			return StartNewFuture(
+			return RunAsync(
 				(handle, state) => FdbNative.TransactionGet(handle, state.Item1, state.Item2),
 				FdbTuple.Create(key, snapshot),
 				(future, state) => GetValueResultBytes(future),
@@ -166,7 +166,7 @@ namespace FoundationDB.Client.Native
 
 			if (keys.Length == 0) return Task.FromResult(Slice.EmptySliceArray);
 
-			return StartNewFutures(
+			return RunAsync(
 				keys.Length,
 				(handle, state, futures) =>
 				{
@@ -209,7 +209,7 @@ namespace FoundationDB.Client.Native
 
 			bool reversed = options.Reverse ?? false;
 
-			return StartNewFuture(
+			return RunAsync(
 				(handle, _) => FdbNative.TransactionGetRange(handle, begin, end, options.Limit ?? 0, options.TargetBytes ?? 0, options.Mode ?? FdbStreamingMode.Iterator, iteration, snapshot, reversed),
 				default(object), //TODO: pass options & co?
 				(future, state) =>
@@ -239,7 +239,7 @@ namespace FoundationDB.Client.Native
 
 		public Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot, CancellationToken cancellationToken)
 		{
-			return StartNewFuture(
+			return RunAsync(
 				(handle, state) => FdbNative.TransactionGetKey(handle, state.Item1, state.Item2),
 				FdbTuple.Create(selector, snapshot),
 				(future, state) => GetKeyResult(future),
@@ -254,7 +254,7 @@ namespace FoundationDB.Client.Native
 
 			if (selectors.Length == 0) return Task.FromResult(Slice.EmptySliceArray);
 
-			return StartNewFutures(
+			return RunAsync(
 				selectors.Length,
 				(handle, state, futures) =>
 				{
@@ -331,7 +331,7 @@ namespace FoundationDB.Client.Native
 
 		public Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken cancellationToken)
 		{
-			return StartNewFuture(
+			return RunAsync(
 				(handle, state) => FdbNative.TransactionGetAddressesForKey(handle, state),
 				key,
 				(future, state) => GetStringArrayResult(future),
@@ -346,13 +346,12 @@ namespace FoundationDB.Client.Native
 
 		public FdbWatch Watch(Slice key, CancellationToken cancellationToken)
 		{
+			// a Watch will outlive the transaction, so we can attach it to the current FutureContext (which will be disposed once the transaction goes away)
+			// => we will store at them to the GlobalContext
+
+			
+
 			throw new NotImplementedException("FIXME: Future refactoring in progress! I owe you a beer (*) if I ever forget to remove this before committing! (*: if you come get it in person!)");
-			//var future = FdbNative.TransactionWatch(m_handle, key);
-			//return new FdbWatch(
-			//	FdbFuture.FromHandle<Slice>(future, (h) => key, cancellationToken),
-			//	key,
-			//	Slice.Nil
-			//);
 		}
 
 		#endregion
@@ -379,7 +378,7 @@ namespace FoundationDB.Client.Native
 		/// <remarks>As with other client/server databases, in some failure scenarios a client may be unable to determine whether a transaction succeeded. In these cases, CommitAsync() will throw CommitUnknownResult error. The OnErrorAsync() function treats this error as retryable, so retry loops that don’t check for CommitUnknownResult could execute the transaction twice. In these cases, you must consider the idempotence of the transaction.</remarks>
 		public Task CommitAsync(CancellationToken cancellationToken)
 		{
-			return StartNewFuture(
+			return RunAsync(
 				(handle, state) => FdbNative.TransactionCommit(handle),
 				default(object),
 				(future, state) => state,
@@ -390,7 +389,7 @@ namespace FoundationDB.Client.Native
 
 		public Task OnErrorAsync(FdbError code, CancellationToken cancellationToken)
 		{
-			return StartNewFuture(
+			return RunAsync(
 				(handle, state) => FdbNative.TransactionOnError(handle, state),
 				code,
 				(h, state) =>

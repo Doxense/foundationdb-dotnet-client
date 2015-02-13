@@ -90,6 +90,9 @@ namespace FoundationDB.Client
 		/// <summary>CancellationToken that should be used for all async operations executing inside this transaction</summary>
 		private CancellationToken m_cancellation; //PERF: readonly struct
 
+		/// <summary>Used to cancel the transaction if the parent CTS fires</summary>
+		private CancellationTokenRegistration m_ctr;
+
 		#endregion
 
 		#region Constructors...
@@ -108,6 +111,15 @@ namespace FoundationDB.Client
 
 			m_readOnly = (mode & FdbTransactionMode.ReadOnly) != 0;
 			m_handler = handler;
+
+			if (m_cancellation.IsCancellationRequested)
+			{ // already dead?
+				Cancel(explicitly: false);
+			}
+			else
+			{
+				m_ctr = m_cancellation.Register(CancellationHandler, this);
+			}
 		}
 
 		#endregion
@@ -263,7 +275,7 @@ namespace FoundationDB.Client
 			// can be called after the transaction has been committed
 			EnsureCanRetry();
 
-			return m_handler.GetReadVersionAsync(m_cancellation);
+			return m_handler.GetReadVersionAsync(CancellationToken.None);
 		}
 
 		/// <summary>Retrieves the database version number at which a given transaction was committed.</summary>
@@ -310,7 +322,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAsync", String.Format("Getting value for '{0}'", key.ToString()));
 #endif
 
-			return m_handler.GetAsync(key, snapshot: false, cancellationToken: m_cancellation);
+			return m_handler.GetAsync(key, snapshot: false, cancellationToken: CancellationToken.None);
 		}
 
 		#endregion
@@ -333,7 +345,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetValuesAsync", String.Format("Getting batch of {0} values ...", keys.Length));
 #endif
 
-			return m_handler.GetValuesAsync(keys, snapshot: false, cancellationToken: m_cancellation);
+			return m_handler.GetValuesAsync(keys, snapshot: false, cancellationToken: CancellationToken.None);
 		}
 
 		#endregion
@@ -363,7 +375,7 @@ namespace FoundationDB.Client
 			// The iteration value is only needed when in iterator mode, but then it should start from 1
 			if (iteration == 0) iteration = 1;
 
-			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, cancellationToken: m_cancellation);
+			return m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: false, cancellationToken: CancellationToken.None);
 		}
 
 		#endregion
@@ -416,7 +428,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeyAsync", String.Format("Getting key '{0}'", selector.ToString()));
 #endif
 
-			var key = await m_handler.GetKeyAsync(selector, snapshot: false, cancellationToken: m_cancellation).ConfigureAwait(false);
+			var key = await m_handler.GetKeyAsync(selector, snapshot: false, cancellationToken: CancellationToken.None).ConfigureAwait(false);
 
 			// don't forget to truncate keys that would fall outside of the database's globalspace !
 			return m_database.BoundCheck(key);
@@ -444,7 +456,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetKeysAsync", String.Format("Getting batch of {0} keys ...", selectors.Length));
 #endif
 
-			return m_handler.GetKeysAsync(selectors, snapshot: false, cancellationToken: m_cancellation);
+			return m_handler.GetKeysAsync(selectors, snapshot: false, cancellationToken: CancellationToken.None);
 		}
 
 		#endregion
@@ -634,7 +646,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetAddressesForKeyAsync", String.Format("Getting addresses for key '{0}'", FdbKey.Dump(key)));
 #endif
 
-			return m_handler.GetAddressesForKeyAsync(key, cancellationToken: m_cancellation);
+			return m_handler.GetAddressesForKeyAsync(key, CancellationToken.None);
 		}
 
 		#endregion
@@ -657,7 +669,7 @@ namespace FoundationDB.Client
 			//TODO: need a STATE_COMMITTING ?
 			try
 			{
-				await m_handler.CommitAsync(m_cancellation).ConfigureAwait(false);
+				await m_handler.CommitAsync(CancellationToken.None).ConfigureAwait(false);
 
 				if (Interlocked.CompareExchange(ref m_state, STATE_COMMITTED, STATE_READY) == STATE_READY)
 				{
@@ -724,7 +736,7 @@ namespace FoundationDB.Client
 		{
 			EnsureCanRetry();
 
-			await m_handler.OnErrorAsync(code, cancellationToken: m_cancellation).ConfigureAwait(false);
+			await m_handler.OnErrorAsync(code, CancellationToken.None).ConfigureAwait(false);
 
 			// If fdb_transaction_on_error succeeds, that means that the transaction has been reset and is usable again
 			var state = this.State;
@@ -778,18 +790,46 @@ namespace FoundationDB.Client
 		/// <summary>Rollback this transaction, and dispose it. It should not be used after that.</summary>
 		public void Cancel()
 		{
+			Cancel(explicitly: true);
+		}
+
+		private void Cancel(bool explicitly)
+		{
 			var state = Interlocked.CompareExchange(ref m_state, STATE_CANCELED, STATE_READY);
 			if (state != STATE_READY)
 			{
-				switch(state)
+				if (explicitly)
 				{
-					case STATE_CANCELED: return; // already the case !
-
-					case STATE_COMMITTED: throw new InvalidOperationException("Cannot cancel transaction that has already been committed");
-					case STATE_FAILED: throw new InvalidOperationException("Cannot cancel transaction because it is in a failed state");
-					case STATE_DISPOSED: throw new ObjectDisposedException("FdbTransaction", "Cannot cancel transaction because it already has been disposed");
-					default: throw new InvalidOperationException(String.Format("Cannot cancel transaction because it is in unknown state {0}", state));
+					switch (state)
+					{
+						case STATE_CANCELED:
+						{
+							return; // already the case!
+						}
+						case STATE_COMMITTED:
+						{
+							throw new InvalidOperationException("Cannot cancel transaction that has already been committed");
+						}
+						case STATE_FAILED:
+						{
+							throw new InvalidOperationException("Cannot cancel transaction because it is in a failed state");
+						}
+						case STATE_DISPOSED:
+						{
+							throw new ObjectDisposedException("FdbTransaction", "Cannot cancel transaction because it already has been disposed");
+						}
+						default:
+						{
+							throw new InvalidOperationException(String.Format("Cannot cancel transaction because it is in unknown state {0}", state));
+						}
+					}
 				}
+
+				if (state == STATE_CANCELED || state == STATE_DISPOSED)
+				{ // it's too late
+					return;
+				}
+
 			}
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Cancel", "Canceling transaction...");
@@ -797,6 +837,16 @@ namespace FoundationDB.Client
 			m_handler.Cancel();
 
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Cancel", "Transaction has been canceled");
+		}
+
+		private static readonly Action<object> CancellationHandler = CancellationCallback;
+
+		/// <summary>Handler called when the cancellation source of the transaction fires</summary>
+		private static void CancellationCallback(object state)
+		{
+			Contract.Requires(state != null);
+			var trans = (FdbTransaction) state;
+			trans.Cancel(explicitly: false);
 		}
 
 		#endregion
@@ -916,6 +966,7 @@ namespace FoundationDB.Client
 			{
 				try
 				{
+					m_ctr.Dispose();
 					this.Database.UnregisterTransaction(this);
 					m_cts.SafeCancelAndDispose();
 

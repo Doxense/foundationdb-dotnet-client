@@ -38,6 +38,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.ExceptionServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using FoundationDB.Client.Core;
 
 namespace FoundationDB.Client.Native
 {
@@ -889,6 +892,129 @@ namespace FoundationDB.Client.Native
 
 		#endregion
 
+		#region Global Future Context...
+
+		internal static readonly GlobalNativeContext GlobalContext = new GlobalNativeContext();
+
+		internal sealed class GlobalNativeContext : FdbFutureContext
+		{
+
+			public Task<IFdbClusterHandler> CreateClusterAsync(string clusterFile, CancellationToken ct)
+			{
+				return RunAsync(
+					(arg) => FdbNative.CreateCluster((string)arg),
+					clusterFile,
+					(h, _) =>
+					{
+						ClusterHandle cluster;
+						var err = FdbNative.FutureGetCluster(h, out cluster);
+						if (err != FdbError.Success)
+						{
+							cluster.Dispose();
+							throw Fdb.MapToException(err);
+						}
+						var handler = new FdbNativeCluster(cluster);
+						return (IFdbClusterHandler)handler;
+					},
+					null, //unused
+					ct
+				);
+			}
+
+			public void WatchKeyAsync(ref FdbWatch watch, TransactionHandle handle, Slice key, CancellationToken ct)
+			{
+				throw new NotImplementedException();
+#if false
+				IntPtr h = IntPtr.Zero;
+				bool mustDispose = true;
+				try
+				{
+					IntPtr cookie = IntPtr.Zero; //TODO!!
+				
+					RuntimeHelpers.PrepareConstrainedRegions();
+					try
+					{ }
+					finally
+					{
+						h = FdbNative.TransactionWatch(handle, key);
+					}
+					Contract.Assert(h != IntPtr.Zero);
+					if (h == IntPtr.Zero) throw new InvalidOperationException("FIXME: failed to create a watch handle");//TODO: message?
+
+					var f = new FdbWatchFuture(key, cookie, "WatchKeyAsync", null);
+					watch = new FdbWatch(f, key, Slice.Nil);
+
+					if (FdbNative.FutureIsReady(h))
+					{
+						f.OnReady();
+						mustDispose = false;
+						return;
+					}
+				}
+				finally
+				{
+					if (mustDispose && h != IntPtr.Zero)
+					{
+						FdbNative.FutureDestroy(h);
+					}
+				}
+#endif
+			}
+
+			internal sealed class FdbWatchFuture : FdbFuture<Slice>
+			{
+				private IntPtr m_handle;
+
+				private readonly object m_lock = new object();
+
+				public FdbWatchFuture(Slice key, IntPtr cookie, string label, object state)
+					: base(cookie, label, state)
+				{
+					this.Key = key;
+				}
+
+				public Slice Key { get; private set; }
+
+				public override bool Visit(IntPtr handle)
+				{
+					Contract.Assert(handle == m_handle || m_handle == IntPtr.Zero);
+					return true;
+				}
+
+				protected override void OnCancel()
+				{
+					throw new NotImplementedException();
+				}
+
+				public override void OnReady()
+				{
+					IntPtr handle = IntPtr.Zero;
+					try
+					{
+						handle = Interlocked.Exchange(ref m_handle, IntPtr.Zero);
+						if (handle == IntPtr.Zero) return;
+
+						var err = FdbNative.FutureGetError(m_handle);
+
+						if (err == FdbError.Success)
+						{
+							PublishResult(this.Key);
+						}
+						else
+						{
+							PublishError(null, err);
+						}
+					}
+					finally
+					{
+						if (handle != IntPtr.Zero) FdbNative.FutureDestroy(handle);
+					}
+				}
+			}
+
+		}
+
+#endregion
 	}
 
 }
