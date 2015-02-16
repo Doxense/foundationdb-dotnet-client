@@ -296,6 +296,11 @@ namespace FoundationDB.Client.Native
 				if (future.Visit(handle))
 				{ // future is ready to process all the results
 
+					lock (m_futures)
+					{
+						m_futures.Remove(futureId);
+					}
+
 					if (fromNetworkThread)
 					{
 						ThreadPool.UnsafeQueueUserWorkItem((state) => ((IFdbFuture)state).OnReady(), future);
@@ -371,24 +376,27 @@ namespace FoundationDB.Client.Native
 
 				lock (m_futures)
 				{
-					//TODO: marke the future as "registered" (must unreg when it fires?)
 					m_futures[futureId] = future;
-				}
 
-				var err = FdbNative.FutureSetCallback(handle, GlobalCallback, cookie);
-				if (!Fdb.Success(err))
-				{ // the callback will not fire, so we have to abort the future immediately
-					future.TrySetException(Fdb.MapToException(err));
-					return future.Task;
+					// note: if the future just got ready, the callback will fire inline (as of v3.0)
+					// => if this happens, the callback defer the execution to the ThreadPool and returns immediately
+					var err = FdbNative.FutureSetCallback(handle, GlobalCallback, cookie);
+					if (!Fdb.Success(err))
+					{ // the callback will not fire, so we have to abort the future immediately
+						future.PublishError(null, err);
+					}
+					else
+					{
+						mustDispose = false;
+					}
 				}
-				mustDispose = false;
 				return future.Task;
 			}
 			catch (Exception e)
 			{
 				if (future != null)
 				{
-					future.TrySetException(e);
+					future.PublishError(e, FdbError.UnknownError);
 					return future.Task;
 				}
 				throw;
@@ -449,17 +457,13 @@ namespace FoundationDB.Client.Native
 				}
 				if (ready)
 				{
+#if DEBUG_FUTURES
 					Debug.WriteLine("FutureArray.{0} [{1}] already completed!", label, tmp.Length);
+#endif
 					cookie = IntPtr.Zero;
 					mustDispose = false;
 					future.OnReady();
 					return future.Task;
-				}
-
-				lock (m_futures)
-				{
-					//TODO: mark the future as "registered" (must unreg when it fires?)
-					m_futures[futureId] = future;
 				}
 
 				if (ct.CanBeCanceled)
@@ -472,20 +476,24 @@ namespace FoundationDB.Client.Native
 					}
 				}
 
-				for (int i = 0; i < handles.Length; i++)
+				lock (m_futures)
 				{
-					var err = FdbNative.FutureSetCallback(handles[i], GlobalCallback, cookie);
-					if (Fdb.Success(err))
+					m_futures[futureId] = future;
+
+					// since the callbacks can fire inline, we have to make sure that we finish setting everything up under the lock
+					for (int i = 0; i < handles.Length; i++)
 					{
-						handles[i] = IntPtr.Zero;
-					}
-					else
-					{
-						// mute this future
+						FdbError err = FdbNative.FutureSetCallback(handles[i], GlobalCallback, cookie);
+						if (Fdb.Success(err))
+						{
+							handles[i] = IntPtr.Zero;
+							continue;
+						}
+
+						// we have to cleanup everything, and mute this future
 						lock (m_futures)
 						{
 							m_futures.Remove(futureId);
-							//TODO: mark the future as "unregistered"
 							for (int j = i + 1; j < handles.Length; j++)
 							{
 								tmp[j] = IntPtr.Zero;
@@ -502,7 +510,7 @@ namespace FoundationDB.Client.Native
 			{
 				if (future != null)
 				{
-					future.TrySetException(e);
+					future.PublishError(e, FdbError.UnknownError);
 					return future.Task;
 				}
 				throw;

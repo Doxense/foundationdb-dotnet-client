@@ -94,12 +94,12 @@ namespace FoundationDB.Client.Native
 
 		protected abstract void OnCancel();
 
-		protected void PublishResult(T result)
+		internal void PublishResult(T result)
 		{
 			TrySetResult(result);
 		}
 
-		protected void PublishError(Exception error, FdbError code)
+		internal void PublishError(Exception error, FdbError code)
 		{ 
 			if (error != null)
 			{
