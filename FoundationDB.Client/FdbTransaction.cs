@@ -118,7 +118,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{
-				m_ctr = m_cancellation.Register(CancellationHandler, this);
+				m_ctr = m_cancellation.RegisterWithoutEC(CancellationHandler, this);
 			}
 		}
 

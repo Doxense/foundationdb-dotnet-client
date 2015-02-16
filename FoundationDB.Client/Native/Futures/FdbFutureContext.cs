@@ -567,10 +567,9 @@ namespace FoundationDB.Client.Native
 		{
 			//note: if the token is already cancelled, the callback handler will run inline and any exception would bubble up here
 			//=> this is not a problem because the ctor already has a try/catch that will clean up everything
-			return cancellationToken.Register(
+			return cancellationToken.RegisterWithoutEC(
 				(_state) => { CancellationHandler(_state); },
-				future,
-				false
+				future
 			);
 		}
 
