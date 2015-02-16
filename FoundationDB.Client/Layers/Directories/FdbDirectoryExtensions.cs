@@ -35,9 +35,9 @@ namespace FoundationDB.Layers.Directories
 	using System.Threading;
 	using System.Threading.Tasks;
 
+	/// <summary>Helper methods related to the Directory Layer</summary>
 	public static class FdbDirectoryExtensions
 	{
-		// this helper class contain extension methods to help deal with IFdbDatabase vs IFdbTransaction
 
 		#region CreateOrOpen...
 
@@ -449,7 +449,7 @@ namespace FoundationDB.Layers.Directories
 
 			return db.ReadWriteAsync((tr) => subspace.TryMoveToAsync(tr, newPath), cancellationToken);
 		}
-	
+
 		#endregion
 
 		#region Remove / TryRemove...
@@ -639,7 +639,7 @@ namespace FoundationDB.Layers.Directories
 		}
 
 		/// <summary>Returns the list of subdirectories of the sub-directory with the given <paramref name="name"/>, if it exists</summary>
-		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, string name, CancellationToken cancellationToken)
+		public static Task<List<string>> TryListAsync([NotNull] this IFdbDirectory directory, [NotNull] IFdbReadOnlyRetryable db, [NotNull] string name, CancellationToken cancellationToken)
 		{
 			if (directory == null) throw new ArgumentNullException("directory");
 			if (db == null) throw new ArgumentNullException("db");

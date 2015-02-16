@@ -83,7 +83,7 @@ namespace FoundationDB.Async
 		{
 			if (ct.CanBeCanceled)
 			{
-				m_ctr = ct.Register(s_cancellationCallback, new WeakReference<AsyncCancelableMutex>(this), useSynchronizationContext: false);
+				m_ctr = ct.RegisterWithoutEC(s_cancellationCallback, new WeakReference<AsyncCancelableMutex>(this));
 			}
 			GC.SuppressFinalize(this);
 		}
@@ -130,12 +130,12 @@ namespace FoundationDB.Async
 
 		private static void SetDefered(AsyncCancelableMutex mutex)
 		{
-			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetResult(null), mutex);
+			ThreadPool.UnsafeQueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetResult(null), mutex);
 		}
 
 		private static void CancelDefered(AsyncCancelableMutex mutex)
 		{
-			ThreadPool.QueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetCanceled(), mutex);
+			ThreadPool.UnsafeQueueUserWorkItem((state) => ((AsyncCancelableMutex)state).TrySetCanceled(), mutex);
 		}
 
 	}

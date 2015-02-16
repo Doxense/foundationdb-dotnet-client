@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+#if REFACTORED
+
 namespace FoundationDB.Client.Native
 {
 	using FoundationDB.Client.Utils;
@@ -62,3 +64,5 @@ namespace FoundationDB.Client.Native
 	}
 
 }
+
+#endif

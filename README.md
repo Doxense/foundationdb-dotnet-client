@@ -26,22 +26,44 @@ using (var db = await Fdb.OpenAsync())
 {
     // we will use a "Test" directory to isolate our test data
     var location = await db.Directory.CreateOrOpenAsync("Test", token);
+	// this location will remember the allocated prefix, and
+	// automatically add it as a prefix to all our keys
     
     // we need a transaction to be able to make changes to the db
     // note: production code should use "db.WriteAsync(..., token)" instead
     using (var trans = db.BeginTransaction(token))
     {
-        // ("Test", "Hello", ) = "World"
-        trans.Set(location.Pack("Hello"), Slice.FromString("World"));
+	    // For our convenience, we will use the Tuple Encoding format for our keys,
+		// which is accessible via the "location.Tuples" helper. We could have used
+		// any other encoding for the keys. Tuples are simple to use and have some
+		// intereseting ordering properties that make it easy to work with.
+		// => All our keys will be encoded as the packed tuple ({Test}, "foo"),
+		//    making them very nice and compact. We could also use integers or GUIDs
+		//    for the keys themselves.
+	
+        // Set "Hello" key to "World"
+        trans.Set(			
+			location.Tuples.EncodeKey("Hello"),
+			Slice.FromString("World") // UTF-8 encoded string
+		);
 
-        // ("Test", "Count", ) = 42
-        trans.Set(location.Pack("Count"), Slice.FromInt32(42));
+        // Set "Count" key to 42
+        trans.Set(
+			location.Tuples.EncodeKey("Count"),
+			Slice.FromInt32(42) // 1 byte
+		);
         
-        // Atomically add 123 to ("Test", "Total")
-        trans.AtomicAdd(location.Pack("Total"), Slice.FromFixed32(123));
+        // Atomically add 123 to "Total"
+        trans.AtomicAdd(
+			location.Tuples.EncodeKey("Total"),
+			Slice.FromFixed32(123) // 4 bytes, Little Endian
+		);
 
-        // Set bits 3, 9 and 30 in the bitmap stored at ("Test", "Bitmap")
-        trans.AtomicOr(location.Pack("Bitmap"), Slice.FromFixed32((1 << 3) | (1 << 9) | (1 << 30)));
+        // Set bits 3, 9 and 30 in the bit map stored in the key "Bitmap"
+        trans.AtomicOr(
+			location.Tuples.EncodeKey("Bitmap"),
+			Slice.FromFixed32((1 << 3) | (1 << 9) | (1 << 30)) // 4 bytes, Little Endian
+		);
         
         // commit the changes to the db
         await trans.CommitAsync();
@@ -54,16 +76,16 @@ using (var db = await Fdb.OpenAsync())
     using (var trans = db.BeginReadOnlyTransaction(token))
     {  
         // Read ("Test", "Hello", ) as a string
-        Slice value = await trans.GetAsync(location.Pack("Hello"));
+        Slice value = await trans.GetAsync(location.Tuples.EncodeKey("Hello"));
         Console.WriteLine(value.ToUnicode()); // -> World
     
         // Read ("Test", "Count", ) as an int
-        value = await trans.GetAsync(location.Pack("Count"));
+        value = await trans.GetAsync(location.Tuples.EncodeKey("Count"));
         Console.WriteLine(value.ToInt32()); // -> 42
     
         // missing keys give a result of Slice.Nil, which is the equivalent
         // of "key not found". 
-        value = await trans.GetAsync(location.Pack("NotFound"));
+        value = await trans.GetAsync(location.Tuples.EncodeKey("NotFound"));
         Console.WriteLine(value.HasValue); // -> false
         Console.WriteLine(value == Slice.Nil); // -> true
         // note: there is also Slice.Empty that is returned for existing keys
@@ -86,9 +108,9 @@ using (var db = await Fdb.OpenAsync())
 	await db.WriteAsync((trans) =>
 	{
         // add some data to the list with the format: (..., index) = value
-        trans.Set(list.Pack(0), Slice.FromString("AAA"));
-        trans.Set(list.Pack(1), Slice.FromString("BBB"));
-        trans.Set(list.Pack(2), Slice.FromString("CCC"));
+        trans.Set(list.Tuples.EncodeKey(0), Slice.FromString("AAA"));
+        trans.Set(list.Tuples.EncodeKey(1), Slice.FromString("BBB"));
+        trans.Set(list.Tuples.EncodeKey(2), Slice.FromString("CCC"));
         // The actual keys will be a concatenation of the prefix of 'list',
         // and a packed tuple containing the index. Since we are using the
         // Directory Layer, this should still be fairly small (between 4
@@ -123,18 +145,18 @@ using (var db = await Fdb.OpenAsync())
     {
         // do a range query on the list subspace, which should return all the pairs
         // in the subspace, one for each entry in the array.
-        // We exploit the fact that subspace.ToRange() usually does not include the
-        // subspace prefix itself, because we don't want our counter to be returned
+        // We exploit the fact that subspace.Tuples.ToRange() usually does not include
+		// the subspace prefix itself, because we don't want our counter to be returned
         // with the query itself.
         return trans
             // ask for all keys that are _inside_ our subspace
-            .GetRange(list.ToRange())
+            .GetRange(list.Tuples.ToRange())
             // transform the resultoing KeyValuePair<Slice, Slice> into something
             // nicer to use, like a typed KeyValuePair<int, string>
             .Select((kvp) => 
                 new KeyValuePair<int, string>(
                     // unpack the tuple and returns the last item as an int
-                    list.UnpackLast<int>(kvp.Key),
+                    list.Tuples.DecodeLast<int>(kvp.Key),
                     // convert the value into an unicode string
                     kvp.Value.ToUnicode() 
                 ))

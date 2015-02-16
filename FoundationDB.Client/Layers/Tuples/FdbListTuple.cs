@@ -39,6 +39,9 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>Tuple that can hold any number of untyped items</summary>
 	public sealed class FdbListTuple : IFdbTuple
 	{
+		// We could use a FdbListTuple<T> for tuples where all items are of type T, and FdbListTuple could derive from FdbListTuple<object>.
+		// => this could speed up a bit the use case of FdbTuple.FromArray<T> or FdbTuple.FromSequence<T>
+
 		/// <summary>List of the items in the tuple.</summary>
 		/// <remarks>It is supposed to be immutable!</remarks>
 		private readonly object[] m_items;
@@ -66,6 +69,45 @@ namespace FoundationDB.Layers.Tuples
 			m_items = items;
 			m_offset = offset;
 			m_count = count;
+		}
+
+		/// <summary>Create a new list tuple by merging the items of two tuples together</summary>
+		/// <param name="left"></param>
+		/// <param name="right"></param>
+		internal FdbListTuple(IFdbTuple a, IFdbTuple b)
+		{
+			if (a == null) throw new ArgumentNullException("a");
+			if (b == null) throw new ArgumentNullException("b");
+
+			int nA = a.Count;
+			int nB = b.Count;
+
+			m_offset = 0;
+			m_count = nA + nB;
+			m_items = new object[m_count];
+
+			if (nA > 0) a.CopyTo(m_items, 0);
+			if (nB > 0) b.CopyTo(m_items, nA);
+		}
+
+		/// <summary>Create a new list tuple by merging the items of three tuples together</summary>
+		internal FdbListTuple(IFdbTuple a, IFdbTuple b, IFdbTuple c)
+		{
+			if (a == null) throw new ArgumentNullException("a");
+			if (b == null) throw new ArgumentNullException("b");
+			if (c == null) throw new ArgumentNullException("c");
+
+			int nA = a.Count;
+			int nB = b.Count;
+			int nC = c.Count;
+
+			m_offset = 0;
+			m_count = nA + nB + nC;
+			m_items = new object[m_count];
+
+			if (nA > 0) a.CopyTo(m_items, 0);
+			if (nB > 0) b.CopyTo(m_items, nA);
+			if (nC > 0) c.CopyTo(m_items, nA + nB);
 		}
 
 		public int Count
@@ -162,6 +204,11 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbListTuple(list, 0, list.Length);
 		}
 
+		IFdbTuple IFdbTuple.Concat(IFdbTuple tuple)
+		{
+			return this.Concat(tuple);
+		}
+
 		public void CopyTo(object[] array, int offset)
 		{
 			Array.Copy(m_items, m_offset, array, offset, m_count);
@@ -189,7 +236,7 @@ namespace FoundationDB.Layers.Tuples
 			}
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			for (int i = 0; i < m_count; i++)
 			{
@@ -199,9 +246,9 @@ namespace FoundationDB.Layers.Tuples
 
 		public Slice ToSlice()
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			PackTo(ref writer);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()

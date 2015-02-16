@@ -1,5 +1,5 @@
-﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+#region BSD Licence
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,57 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using System;
+using JetBrains.Annotations;
+
 namespace FoundationDB.Client
 {
-	using FoundationDB.Layers.Tuples;
-	using System;
-
-	public interface IValueEncoder<T>
+	public struct FdbEncoderSubspacePartition<T>
 	{
-		/// <summary>Encode a single value</summary>
-		Slice EncodeValue(T value);
+		public readonly IFdbSubspace Subspace;
+		public readonly IKeyEncoder<T> Encoder;
 
-		/// <summary>Decode a single value</summary>
-		/// <param name="encoded"></param>
-		/// <returns></returns>
-		T DecodeValue(Slice encoded);
+		public FdbEncoderSubspacePartition([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
+		{
+			this.Subspace = subspace;
+			this.Encoder = encoder;
+		}
+
+		public IFdbSubspace this[T value]
+		{
+			[NotNull]
+			get { return ByKey(value); }
+		}
+
+		[NotNull]
+		public IFdbSubspace ByKey(T value)
+		{
+			return this.Subspace[this.Encoder.EncodeKey(value)];
+		}
+
+		[NotNull]
+		public IFdbDynamicSubspace ByKey(T value, [NotNull] IFdbKeyEncoding encoding)
+		{
+			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
+		}
+
+		[NotNull]
+		public IFdbDynamicSubspace ByKey(T value, [NotNull] IDynamicKeyEncoder encoder)
+		{
+			return FdbSubspace.CreateDynamic(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
+		}
+
+		[NotNull]
+		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IFdbKeyEncoding encoding)
+		{
+			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoding);
+		}
+
+		[NotNull]
+		public IFdbEncoderSubspace<TNext> ByKey<TNext>(T value, [NotNull] IKeyEncoder<TNext> encoder)
+		{
+			return FdbSubspace.CreateEncoder<TNext>(this.Subspace.ConcatKey(this.Encoder.EncodeKey(value)), encoder);
+		}
+
 	}
-
-	public interface IKeyEncoder<T1>
-	{
-		/// <summary>Encode a single value</summary>
-		Slice EncodeKey(T1 value);
-
-		/// <summary>Decode a single value</summary>
-		/// <param name="encoded"></param>
-		/// <returns></returns>
-		T1 DecodeKey(Slice encoded);
-	}
-
-	public interface ICompositeKeyEncoder<TTuple> : IKeyEncoder<TTuple>
-			where TTuple : IFdbTuple
-	{
-		Slice EncodeComposite(TTuple key, int items);
-
-		TTuple DecodeComposite(Slice encoded, int items);
-	}
-
-	public interface ICompositeKeyEncoder<T1, T2> : ICompositeKeyEncoder<FdbTuple<T1, T2>>
-	{
-		Slice EncodeKey(T1 value1, T2 value2);
-	}
-
-	public interface ICompositeKeyEncoder<T1, T2, T3> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3>>
-	{
-		Slice EncodeKey(T1 value1, T2 value2, T3 value3);
-	}
-
-	public interface ICompositeKeyEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<FdbTuple<T1, T2, T3, T4>>
-	{
-		Slice EncodeKey(T1 value1, T2 value2, T3 value3, T4 value4);
-	}
-
 }

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<string, string>("Foos", location.Partition.ByKey("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				string secret = "world:" + Guid.NewGuid().ToString();
 
@@ -88,7 +88,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var value = await tr.GetAsync(location.Pack("Foos", "hello"));
+					var value = await tr.GetAsync(location.Keys.Encode("Foos", "hello"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToString(), Is.EqualTo(secret));
 				}
@@ -113,7 +113,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(value.HasValue, Is.False);
 					
 					// also check directly
-					var data = await tr.GetAsync(location.Pack("Foos", "hello"));
+					var data = await tr.GetAsync(location.Keys.Encode("Foos", "hello"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}
 
@@ -128,7 +128,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<string, string>("Foos", location.Partition("Foos"), KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<string, string>("Foos", location.Partition.ByKey("Foos"), KeyValueEncoders.Values.StringEncoder);
 
 				// write a bunch of keys
 				await db.WriteAsync((tr) =>
@@ -168,7 +168,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			// Encode IPEndPoint as the (IP, Port,) encoded with the Tuple codec
 			// note: there is a much simpler way or creating composite keys, this is just a quick and dirty test!
 			var keyEncoder = KeyValueEncoders.Bind<IPEndPoint>(
-				(ipe) => ipe == null ? Slice.Empty : FdbTuple.Pack(ipe.Address, ipe.Port),
+				(ipe) => ipe == null ? Slice.Empty : FdbTuple.EncodeKey(ipe.Address, ipe.Port),
 				(packed) =>
 				{
 					if (packed.IsNullOrEmpty) return default(IPEndPoint);
@@ -188,7 +188,7 @@ namespace FoundationDB.Layers.Collections.Tests
 			{
 				var location = await GetCleanDirectory(db, "Collections", "Maps");
 
-				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
+				var map = new FdbMap<IPEndPoint, string>("Firewall", location.Partition.ByKey("Hosts"), keyEncoder, KeyValueEncoders.Values.StringEncoder);
 
 				// import all the rules
 				await db.WriteAsync((tr) =>

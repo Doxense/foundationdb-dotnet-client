@@ -30,7 +30,7 @@ namespace FoundationDB.Storage.Memory.API
 			return CreateNew(name, FdbSubspace.Empty, false);
 		}
 
-		public static MemoryDatabase CreateNew(string name, FdbSubspace globalSpace, bool readOnly)
+		public static MemoryDatabase CreateNew(string name, IFdbSubspace globalSpace, bool readOnly)
 		{
 			globalSpace = globalSpace ?? FdbSubspace.Empty;
 			var uid = Guid.NewGuid();
@@ -84,7 +84,7 @@ namespace FoundationDB.Storage.Memory.API
 
 		private readonly MemoryDatabaseHandler m_handler;
 
-		private MemoryDatabase(IFdbCluster cluster, MemoryDatabaseHandler handler, string name, FdbSubspace globalSpace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
+		private MemoryDatabase(IFdbCluster cluster, MemoryDatabaseHandler handler, string name, IFdbSubspace globalSpace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 			: base(cluster, handler, name, globalSpace, directory, readOnly, ownsCluster)
 		{
 			m_handler = handler;

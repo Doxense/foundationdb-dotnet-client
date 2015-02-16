@@ -31,6 +31,7 @@ namespace FoundationDB.Filters
 	using FoundationDB.Client;
 	using System;
 
+	/// <summary>Filter that forces a read/write transaction to be read-only</summary>
 	public sealed class ReadOnlyTransactionFilter : FdbTransactionFilter
 	{
 		public ReadOnlyTransactionFilter(IFdbTransaction trans, bool ownsTransaction)

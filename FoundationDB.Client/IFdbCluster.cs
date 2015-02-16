@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 		/// <param name="readOnly">If true, the database will only allow read operations.</param>
 		/// <param name="cancellationToken">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
-		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, FdbSubspace subspace, bool readOnly, CancellationToken cancellationToken);
+		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IFdbSubspace subspace, bool readOnly, CancellationToken cancellationToken);
 		//REVIEW: we should return an IFdbDatabase instead !
 	}
 

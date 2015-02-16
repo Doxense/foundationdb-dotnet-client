@@ -81,6 +81,7 @@ namespace FoundationDB.Storage.Memory.Tests
 		/// <summary>Cancellation token usable by any test</summary>
 		protected CancellationToken Cancellation
 		{
+			[DebuggerStepThrough]
 			get
 			{
 				if (m_cts == null) SetupCancellation();
@@ -99,6 +100,42 @@ namespace FoundationDB.Storage.Memory.Tests
 				}
 			}
 		}
+
+		#region Logging...
+
+		// These methods are just there to help with the problem of culture-aware string formatting
+
+		[DebuggerStepThrough]
+		protected static void Log()
+		{
+			Console.WriteLine();
+		}
+
+		[DebuggerStepThrough]
+		protected static void Log(string text)
+		{
+			Console.WriteLine(text);
+		}
+
+		[DebuggerStepThrough]
+		protected static void Log(string format, object arg0)
+		{
+			Console.WriteLine(String.Format(CultureInfo.InvariantCulture, format, arg0));
+		}
+
+		[DebuggerStepThrough]
+		protected static void Log(string format, object arg0, object arg1)
+		{
+			Console.WriteLine(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
+		}
+
+		[DebuggerStepThrough]
+		protected static void Log(string format, params object[] args)
+		{
+			Console.WriteLine(String.Format(CultureInfo.InvariantCulture, format, args));
+		}
+
+		#endregion
 
 	}
 }

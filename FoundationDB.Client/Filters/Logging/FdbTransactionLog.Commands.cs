@@ -401,6 +401,14 @@ namespace FoundationDB.Filters.Logging
 				return String.Concat(FdbKey.Dump(this.Key), " ", this.Mutation.ToString(), " ", this.Param.ToAsciiOrHexaString());
 			}
 
+			public override string ToString()
+			{
+				var arg = this.GetArguments();
+				var sb = new StringBuilder();
+				if (this.Snapshot) sb.Append("Snapshot.");
+				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(FdbKey.Dump(this.Key)).Append(", <").Append(this.Param.ToHexaString(' ')).Append('>');
+				return sb.ToString();
+			}
 		}
 
 		public sealed class AddConflictRangeCommand : Command

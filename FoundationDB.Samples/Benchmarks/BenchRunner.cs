@@ -46,7 +46,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 		public BenchMode Mode { get; private set; }
 
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbDynamicSubspace Subspace { get; private set; }
 
 		public RobustHistogram Histo { get; private set; }
 
@@ -86,7 +86,7 @@ namespace FoundationDB.Samples.Benchmarks
 
 			var duration = Stopwatch.StartNew();
 
-			var foo = this.Subspace.Pack("foo");
+			var foo = this.Subspace.Keys.Encode("foo");
 			var bar = Slice.FromString("bar");
 			var barf = Slice.FromString("barf");
 
@@ -117,7 +117,7 @@ namespace FoundationDB.Samples.Benchmarks
 								}
 								else
 								{
-									var foos = FdbTuple.PackRange(foo, Enumerable.Range(1, this.Value).ToArray());
+									var foos = FdbTuple.EncodePrefixedKeys(foo, Enumerable.Range(1, this.Value).ToArray());
 									await db.ReadAsync(tr => tr.GetValuesAsync(foos), ct);
 								}
 								break;

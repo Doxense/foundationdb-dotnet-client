@@ -94,6 +94,14 @@ namespace FoundationDB.Client
 			return p < m_buffer.Count ? m_buffer[p] : -1;
 		}
 
+		/// <summary>Return the value of the byte at a specified offset from the current position, or -1 if this is after the end, or before the start</summary>
+		[Pure]
+		public int PeekByteAt(int offset)
+		{
+			int p = this.Position + offset;
+			return p < m_buffer.Count && p >= 0 ? m_buffer[p] : -1;
+		}
+
 		/// <summary>Skip the next <paramref name="count"/> bytes of the buffer</summary>
 		public void Skip(int count)
 		{

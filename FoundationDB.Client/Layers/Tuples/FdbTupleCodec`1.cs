@@ -54,27 +54,30 @@ namespace FoundationDB.Layers.Tuples
 
 		public override Slice EncodeOrdered(T value)
 		{
-			return FdbTuple.Pack<T>(value);
+			return FdbTuple.EncodeKey<T>(value);
 		}
 
 		public override void EncodeOrderedSelfTerm(ref SliceWriter output, T value)
 		{
-			FdbTuplePacker<T>.Encoder(ref output, value);
+			//HACKHACK: we lose the current depth!
+			var writer = new TupleWriter(output);
+			FdbTuplePacker<T>.Encoder(ref writer, value);
+			output = writer.Output;
 		}
 
 		public override T DecodeOrdered(Slice input)
 		{
-			return FdbTuple.UnpackSingle<T>(input);
+			return FdbTuple.DecodeKey<T>(input);
 		}
 
 		public override T DecodeOrderedSelfTerm(ref SliceReader input)
 		{
+			//HACKHACK: we lose the current depth!
+			var reader = new TupleReader(input);
 			T value;
-			if (!FdbTuple.UnpackNext<T>(ref input, out value))
-			{
-				return m_missingValue;
-			}
-			return value;
+			bool res = FdbTuple.DecodeNext<T>(ref reader, out value);
+			input = reader.Input;
+			return res ? value : m_missingValue;
 		}
 
 		public Slice EncodeValue(T value)

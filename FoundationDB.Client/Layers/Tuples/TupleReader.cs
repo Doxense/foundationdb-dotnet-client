@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,18 +26,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-namespace FoundationDB.Client
+namespace FoundationDB.Layers.Tuples
 {
+	using FoundationDB.Client;
 	using System;
+	using System.Diagnostics;
 
-	/// <summary>Allows an object to control the way it is packed or unpacked</summary>
-	public interface ISliceSerializable
+	[DebuggerDisplay("{Input.Position}/{Input.Buffer.Count} @ {Depth}")]
+	public struct TupleReader
 	{
-		/// <summary>Return the packed representation of this instance</summary>
-		Slice ToSlice();
+		public SliceReader Input;
+		public int Depth;
 
-		/// <summary>Load a packed representation into a newly created instance</summary>
-		void FromSlice(Slice slice);
+		public TupleReader(Slice buffer)
+		{
+			this.Input = new SliceReader(buffer);
+			this.Depth = 0;
+		}
+
+		public TupleReader(SliceReader input)
+		{
+			this.Input = input;
+			this.Depth = 0;
+		}
 	}
 
 }

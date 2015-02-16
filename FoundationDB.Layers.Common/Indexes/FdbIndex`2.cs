@@ -44,11 +44,11 @@ namespace FoundationDB.Layers.Indexing
 	public class FdbIndex<TId, TValue>
 	{
 
-		public FdbIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
+		public FdbIndex([NotNull] string name, [NotNull] IFdbSubspace subspace, IEqualityComparer<TValue> valueComparer = null, bool indexNullValues = false)
 			: this(name, subspace, valueComparer, indexNullValues, KeyValueEncoders.Tuples.CompositeKey<TValue, TId>())
 		{ }
 
-		public FdbIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] ICompositeKeyEncoder<TValue, TId> encoder)
+		public FdbIndex([NotNull] string name, [NotNull] IFdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] ICompositeKeyEncoder<TValue, TId> encoder)
 		{
 			if (name == null) throw new ArgumentNullException("name");
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -58,14 +58,14 @@ namespace FoundationDB.Layers.Indexing
 			this.Subspace = subspace;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
-			this.Location = new FdbEncoderSubspace<TValue,TId>(subspace, encoder);
+			this.Location = subspace.UsingEncoder(encoder);
 		}
 
 		public string Name { [NotNull] get; private set; }
 
-		public FdbSubspace Subspace { [NotNull] get; private set; }
+		public IFdbSubspace Subspace { [NotNull] get; private set; }
 
-		protected FdbEncoderSubspace<TValue, TId> Location { [NotNull] get; private set; }
+		protected IFdbEncoderSubspace<TValue, TId> Location { [NotNull] get; private set; }
 
 		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; private set; }
 
@@ -82,7 +82,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (this.IndexNullValues || value != null)
 			{
-				trans.Set(this.Location.EncodeKey(value, id), Slice.Empty);
+				trans.Set(this.Location.Keys.Encode(value, id), Slice.Empty);
 				return true;
 			}
 			return false;
@@ -102,13 +102,13 @@ namespace FoundationDB.Layers.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					this.Location.Clear(trans, FdbTuple.Create(previousValue, id));
+					trans.Clear(this.Location.Keys.Encode(previousValue, id));
 				}
 
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					this.Location.Set(trans, FdbTuple.Create(newValue, id), Slice.Empty);
+					trans.Set(this.Location.Keys.Encode(newValue, id), Slice.Empty);
 				}
 
 				// cannot be both null, so we did at least something)
@@ -125,7 +125,7 @@ namespace FoundationDB.Layers.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			this.Location.Clear(trans, FdbTuple.Create(value, id));
+			trans.Clear(this.Location.Keys.Encode(value, id));
 		}
 
 		/// <summary>Returns a list of ids matching a specific value</summary>
@@ -148,48 +148,48 @@ namespace FoundationDB.Layers.Indexing
 		[NotNull]
 		public FdbRangeQuery<TId> Lookup(IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var prefix = this.Location.Partial.EncodeKey(value);
+			var prefix = this.Location.Partial.Keys.Encode(value);
 
 			return trans
 				.GetRange(FdbKeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Location.DecodeKey(kvp.Key).Item2);
+				.Select((kvp) => this.Location.Keys.Decode(kvp.Key).Item2);
 		}
 
 		[NotNull]
 		public FdbRangeQuery<TId> LookupGreaterThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var prefix = this.Location.Partial.EncodeKey(value);
+			var prefix = this.Location.Partial.Keys.Encode(value);
 			if (!orEqual) prefix = FdbKey.Increment(prefix);
 
 			var space = new FdbKeySelectorPair(
 				FdbKeySelector.FirstGreaterThan(prefix),
-				this.Location.ToSelectorPair().End
+				FdbKeySelector.FirstGreaterOrEqual(this.Location.ToRange().End)
 			);
 
 			return trans
 				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Location.DecodeKey(kvp.Key).Item2);
+				.Select((kvp) => this.Location.Keys.Decode(kvp.Key).Item2);
 		}
 
 		[NotNull]
 		public FdbRangeQuery<TId> LookupLessThan([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool orEqual, bool reverse = false)
 		{
-			var prefix = this.Location.Partial.EncodeKey(value);
+			var prefix = this.Location.Partial.Keys.Encode(value);
 			if (orEqual) prefix = FdbKey.Increment(prefix);
 
 			var space = new FdbKeySelectorPair(
-				this.Location.ToSelectorPair().Begin,
+				FdbKeySelector.FirstGreaterOrEqual(this.Location.ToRange().Begin),
 				FdbKeySelector.FirstGreaterThan(prefix)
 			);
 
 			return trans
 				.GetRange(space, new FdbRangeOptions { Reverse = reverse })
-				.Select((kvp) => this.Location.DecodeKey(kvp.Key).Item2);
+				.Select((kvp) => this.Location.Keys.Decode(kvp.Key).Item2);
 		}
 
 		public override string ToString()
 		{
-			return String.Format(CultureInfo.InvariantCulture, "Index['{0}']", this.Name);
+			return "Index[" + this.Name + "]";
 		}
 
 	}

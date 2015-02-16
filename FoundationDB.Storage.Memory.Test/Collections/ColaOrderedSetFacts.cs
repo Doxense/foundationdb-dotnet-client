@@ -180,7 +180,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			Console.WriteLine("Inserting (" + N + " items)");
 			for (int i = 0; i < N; i++)
 			{
-				cola.Add(FdbTuple.Pack(i << 1));
+				cola.Add(FdbTuple.EncodeKey(i << 1));
 			}
 
 			Console.WriteLine("> " + cmp.Count + " cmps (" + ((double)cmp.Count / N) + " / insert)");
@@ -191,7 +191,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			int n = 0;
 			for (int i = 0; i < (N << 1); i++)
 			{
-				if (cola.Contains(FdbTuple.Pack(i))) ++n;
+				if (cola.Contains(FdbTuple.EncodeKey(i))) ++n;
 			}
 			Assert.That(n, Is.EqualTo(N));
 			Console.WriteLine("> " + cmp.Count + " cmps (" + ((double)cmp.Count / (N << 1)) + " / lookup)");
@@ -203,7 +203,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			Console.WriteLine("Tail scan (" + tail + " lookups)");
 			for (int i = 0; i < tail; i++)
 			{
-				if (cola.Contains(FdbTuple.Pack(offset + i))) ++n;
+				if (cola.Contains(FdbTuple.EncodeKey(offset + i))) ++n;
 			}
 			Console.WriteLine("> " + cmp.Count + " cmps (" + ((double)cmp.Count / tail) + " / lookup)");
 
@@ -212,7 +212,7 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			int p = 0;
 			foreach(var x in cola)
 			{
-				Assert.That(FdbTuple.UnpackSingle<int>(x), Is.EqualTo(p << 1));
+				Assert.That(FdbTuple.DecodeKey<int>(x), Is.EqualTo(p << 1));
 				++p;
 			}
 			Assert.That(p, Is.EqualTo(N));

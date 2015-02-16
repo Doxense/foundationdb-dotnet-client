@@ -180,7 +180,7 @@ namespace FoundationDB.Tests.Sandbox
 					Console.WriteLine("> Connected!");
 
 					Console.WriteLine("Opening database 'DB'...");
-					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, new FdbSubspace(FdbTuple.Create(SUBSPACE)), false, ct))
+					using (var db = await cluster.OpenDatabaseAsync(DB_NAME, FdbSubspace.Create(FdbTuple.Create(SUBSPACE)), false, ct))
 					{
 						Console.WriteLine("> Connected to db '{0}'", db.Name);
 
@@ -266,8 +266,8 @@ namespace FoundationDB.Tests.Sandbox
 				// Writes some data in to the database
 				using (var tr = db.BeginTransaction(ct))
 				{
-					tr.Set(FdbTuple.Pack("Test", 123), Slice.FromString("Hello World!"));
-					tr.Set(FdbTuple.Pack("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
+					tr.Set(FdbTuple.EncodeKey("Test", 123), Slice.FromString("Hello World!"));
+					tr.Set(FdbTuple.EncodeKey("Test", 456), Slice.FromInt64(DateTime.UtcNow.Ticks));
 				}
 
 			}
@@ -289,19 +289,19 @@ namespace FoundationDB.Tests.Sandbox
 				Console.WriteLine("> Read Version = " + readVersion);
 
 				Console.WriteLine("Getting 'hello'...");
-				var result = await trans.GetAsync(location.Pack("hello"));
+				var result = await trans.GetAsync(location.Keys.Encode("hello"));
 				if (result.IsNull)
 					Console.WriteLine("> hello NOT FOUND");
 				else
 					Console.WriteLine("> hello = " + result.ToString());
 
 				Console.WriteLine("Setting 'Foo' = 'Bar'");
-				trans.Set(location.Pack("Foo"), Slice.FromString("Bar"));
+				trans.Set(location.Keys.Encode("Foo"), Slice.FromString("Bar"));
 
 				Console.WriteLine("Setting 'TopSecret' = rnd(512)");
 				var data = new byte[512];
 				new Random(1234).NextBytes(data);
-				trans.Set(location.Pack("TopSecret"), Slice.Create(data));
+				trans.Set(location.Keys.Encode("TopSecret"), Slice.Create(data));
 
 				Console.WriteLine("Committing transaction...");
 				await trans.CommitAsync();
@@ -320,7 +320,7 @@ namespace FoundationDB.Tests.Sandbox
 			var rnd = new Random();
 			var tmp = new byte[size];
 
-			var subspace = db.Partition("Batch");
+			var subspace = db.Partition.ByKey("Batch");
 
 			var times = new List<TimeSpan>();
 			for (int k = 0; k <= 4; k++)
@@ -335,7 +335,7 @@ namespace FoundationDB.Tests.Sandbox
 						tmp[1] = (byte)(i >> 8);
 						// (Batch, 1) = [......]
 						// (Batch, 2) = [......]
-						trans.Set(subspace.Pack(k * N + i), Slice.Create(tmp));
+						trans.Set(subspace.Keys.Encode(k * N + i), Slice.Create(tmp));
 					}
 					await trans.CommitAsync();
 				}
@@ -361,7 +361,7 @@ namespace FoundationDB.Tests.Sandbox
 			Console.WriteLine("Inserting " + N + " keys in " + k + " batches of " + n + " with " + size + "-bytes values...");
 
 			// store every key under ("Batch", i)
-			var subspace = db.Partition("Batch");
+			var subspace = db.Partition.ByKey("Batch");
 			// total estimated size of all transactions
 			long totalPayloadSize = 0;
 
@@ -395,7 +395,7 @@ namespace FoundationDB.Tests.Sandbox
 							tmp[1] = (byte)(i >> 8);
 
 							// ("Batch", batch_index, i) = [..random..]
-							trans.Set(subspace.Pack(i), Slice.Create(tmp));
+							trans.Set(subspace.Keys.Encode(i), Slice.Create(tmp));
 						}
 						x.Stop();
 						Console.WriteLine("> [" + offset + "] packaged " + n + " keys (" + trans.Size.ToString("N0", CultureInfo.InvariantCulture) + " bytes) in " + FormatTimeMilli(x.Elapsed.TotalMilliseconds));
@@ -429,7 +429,7 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// read a lot of small keys, one by one
 
-			var location = db.Partition("hello");
+			var location = db.Partition.ByKey("hello");
 
 			var sw = Stopwatch.StartNew();
 			IFdbTransaction trans = null;
@@ -438,7 +438,7 @@ namespace FoundationDB.Tests.Sandbox
 				for (int i = 0; i < N; i++)
 				{
 					if (trans == null) trans = db.BeginTransaction(ct);
-					trans.Set(location.Pack(i), Slice.FromInt32(i));
+					trans.Set(location.Keys.Encode(i), Slice.FromInt32(i));
 					if (trans.Size > 100 * 1024)
 					{
 						await trans.CommitAsync();
@@ -464,7 +464,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			// read a lot of small keys, one by one
 
-			var location = db.Partition("hello");
+			var location = db.Partition.ByKey("hello");
 
 			var sw = Stopwatch.StartNew();
 			for (int k = 0; k < N; k += 1000)
@@ -473,7 +473,7 @@ namespace FoundationDB.Tests.Sandbox
 				{
 					for (int i = k; i < N && i < k + 1000; i++)
 					{
-						var result = await trans.GetAsync(location.Pack(i));
+						var result = await trans.GetAsync(location.Keys.Encode(i));
 					}
 				}
 				Console.Write(".");
@@ -489,9 +489,9 @@ namespace FoundationDB.Tests.Sandbox
 
 			Console.WriteLine("Reading " + N + " keys (concurrent)");
 
-			var location = db.Partition("hello");
+			var location = db.Partition.ByKey("hello");
 
-			var keys = Enumerable.Range(0, N).Select(i => location.Pack(i)).ToArray();
+			var keys = Enumerable.Range(0, N).Select(i => location.Keys.Encode(i)).ToArray();
 
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
@@ -517,14 +517,14 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// clear a lot of small keys, in a single transaction
 
-			var location = db.Partition(Slice.FromAscii("hello"));
+			var location = db.Partition.ByKey(Slice.FromAscii("hello"));
 
 			var sw = Stopwatch.StartNew();
 			using (var trans = db.BeginTransaction(ct))
 			{
 				for (int i = 0; i < N; i++)
 				{
-					trans.Clear(location.Pack(i));
+					trans.Clear(location.Keys.Encode(i));
 				}
 
 				await trans.CommitAsync();
@@ -541,7 +541,7 @@ namespace FoundationDB.Tests.Sandbox
 
 			var list = new byte[N];
 			var update = Stopwatch.StartNew();
-			var key = db.GlobalSpace.Pack("list");
+			var key = db.GlobalSpace.Keys.Encode("list");
 			for (int i = 0; i < N; i++)
 			{
 				list[i] = (byte)i;
@@ -561,10 +561,10 @@ namespace FoundationDB.Tests.Sandbox
 		{
 			// change one byte in a large number of keys
 
-			var location = db.Partition("lists");
+			var location = db.Partition.ByKey("lists");
 
 			var rnd = new Random();
-			var keys = Enumerable.Range(0, N).Select(x => location.Pack(x)).ToArray();
+			var keys = Enumerable.Range(0, N).Select(x => location.Keys.Encode(x)).ToArray();
 
 			Console.WriteLine("> creating " + N + " half filled keys");
 			var segment = new byte[60];
@@ -616,7 +616,7 @@ namespace FoundationDB.Tests.Sandbox
 			var timings = instrumented ? new List<KeyValuePair<double, double>>() : null;
 
 			// put test values inside a namespace
-			var subspace = db.Partition("BulkInsert");
+			var subspace = db.Partition.ByKey("BulkInsert");
 
 			// cleanup everything
 			using (var tr = db.BeginTransaction(ct))
@@ -646,7 +646,7 @@ namespace FoundationDB.Tests.Sandbox
 							int z = 0;
 							foreach (int i in Enumerable.Range(chunk.Key, chunk.Value))
 							{
-								tr.Set(subspace.Pack(i), Slice.Create(new byte[256]));
+								tr.Set(subspace.Keys.Encode(i), Slice.Create(new byte[256]));
 								z++;
 							}
 
@@ -702,7 +702,7 @@ namespace FoundationDB.Tests.Sandbox
 		private static async Task BenchMergeSortAsync(IFdbDatabase db, int N, int K, int B, CancellationToken ct)
 		{
 			// create multiple lists
-			var location = db.Partition("MergeSort");
+			var location = db.Partition.ByKey("MergeSort");
 			await db.ClearRangeAsync(location, ct);
 
 			var sources = Enumerable.Range(0, K).Select(i => 'A' + i).ToArray();
@@ -714,10 +714,10 @@ namespace FoundationDB.Tests.Sandbox
 			{
 				using (var tr = db.BeginTransaction(ct))
 				{
-					var list = location.Partition(source);
+					var list = location.Partition.ByKey(source);
 					for (int i = 0; i < N; i++)
 					{
-						tr.Set(list.Pack(rnd.Next()), Slice.FromInt32(i));
+						tr.Set(list.Keys.Encode(rnd.Next()), Slice.FromInt32(i));
 					}
 					await tr.CommitAsync();
 				}
@@ -730,11 +730,11 @@ namespace FoundationDB.Tests.Sandbox
 			{
 				var mergesort = tr
 					.MergeSort(
-						sources.Select(source => FdbKeySelectorPair.StartsWith(location.Pack(source))),
-						(kvp) => location.UnpackLast<int>(kvp.Key)
+						sources.Select(source => FdbKeySelectorPair.StartsWith(location.Keys.Encode(source))),
+						(kvp) => location.Keys.DecodeLast<int>(kvp.Key)
 					)
 					.Take(B)
-					.Select(kvp => location.Unpack(kvp.Key));
+					.Select(kvp => location.Keys.Unpack(kvp.Key));
 
 				Console.Write("> MergeSort with limit " + B + "... ");
 				var sw = Stopwatch.StartNew();
