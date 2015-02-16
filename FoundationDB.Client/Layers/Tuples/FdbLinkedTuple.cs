@@ -31,6 +31,7 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -65,7 +66,7 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Pack this tuple into a buffer</summary>
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			this.Head.PackTo(ref writer);
 			FdbTuplePacker<T>.SerializeTo(ref writer, this.Tail);
@@ -74,9 +75,9 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Pack this tuple into a slice</summary>
 		public Slice ToSlice()
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			PackTo(ref writer);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()
@@ -122,12 +123,19 @@ namespace FoundationDB.Layers.Tuples
 			return this.Append<R>(value);
 		}
 
+		[NotNull]
 		public FdbLinkedTuple<R> Append<R>(R value)
 		{
 			return new FdbLinkedTuple<R>(this, value);
 		}
 
-		public void CopyTo(object[] array, int offset)
+		[NotNull]
+		public IFdbTuple Concat([NotNull] IFdbTuple tuple)
+		{
+			return FdbTuple.Concat(this, tuple);
+		}
+
+		public void CopyTo([NotNull] object[] array, int offset)
 		{
 			this.Head.CopyTo(array, offset);
 			array[offset + this.Depth] = this.Tail;

@@ -33,6 +33,7 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>Simple key formatter that maps a value into a singleton tuple, and back</summary>
 	internal sealed class FdbGenericTupleFormatter<T> : ITupleFormatter<T>
 	{
+
 		public IFdbTuple ToTuple(T key)
 		{
 			return FdbTuple.Create(key);
@@ -40,10 +41,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public T FromTuple(IFdbTuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
-			if (tuple.Count != 1) throw new ArgumentException("Tuple must have only one item", "tuple");
-
-			return tuple.Get<T>(0);
+			return tuple.OfSize(1).Get<T>(0);
 		}
 	}
 

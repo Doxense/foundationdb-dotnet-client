@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
+	using FoundationDB.Client.Tests;
 	using FoundationDB.Client.Utils;
 	using NUnit.Framework;
 	using System;
@@ -40,7 +41,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 	using System.Text;
 
 	[TestFixture]
-	public class TupleFacts
+	public class TupleFacts : FdbTest
 	{
 
 		#region General Use...
@@ -90,6 +91,24 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t4[2], Is.EqualTo(false));
 			Assert.That(t4[3], Is.EqualTo(1234L));
 
+			var t5 = FdbTuple.Create("hello world", 123, false, 1234L, -1234);
+			Assert.That(t5.Count, Is.EqualTo(5));
+			Assert.That(t5.Item1, Is.EqualTo("hello world"));
+			Assert.That(t5.Item2, Is.EqualTo(123));
+			Assert.That(t5.Item3, Is.EqualTo(false));
+			Assert.That(t5.Item4, Is.EqualTo(1234L));
+			Assert.That(t5.Item5, Is.EqualTo(-1234));
+			Assert.That(t5.Get<string>(0), Is.EqualTo("hello world"));
+			Assert.That(t5.Get<int>(1), Is.EqualTo(123));
+			Assert.That(t5.Get<bool>(2), Is.EqualTo(false));
+			Assert.That(t5.Get<long>(3), Is.EqualTo(1234L));
+			Assert.That(t5.Get<int>(4), Is.EqualTo(-1234));
+			Assert.That(t5[0], Is.EqualTo("hello world"));
+			Assert.That(t5[1], Is.EqualTo(123));
+			Assert.That(t5[2], Is.EqualTo(false));
+			Assert.That(t5[3], Is.EqualTo(1234L));
+			Assert.That(t5[4], Is.EqualTo(-1234));
+
 			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, 1234L, -1234, "six" });
 			Assert.That(tn.Count, Is.EqualTo(6));
 			Assert.That(tn.Get<string>(0), Is.EqualTo("hello world"));
@@ -98,6 +117,98 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(tn.Get<int>(3), Is.EqualTo(1234));
 			Assert.That(tn.Get<long>(4), Is.EqualTo(-1234));
 			Assert.That(tn.Get<string>(5), Is.EqualTo("six"));
+		}
+
+		[Test]
+		public void Test_FdbTuple_Wrap()
+		{
+			// FdbTuple.Wrap(...) does not copy the items of the array
+
+			var arr = new object[] { "Hello", 123, false, TimeSpan.FromSeconds(5) };
+
+			var t = FdbTuple.Wrap(arr);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(4));
+			Assert.That(t[0], Is.EqualTo("Hello"));
+			Assert.That(t[1], Is.EqualTo(123));
+			Assert.That(t[2], Is.EqualTo(false));
+			Assert.That(t[3], Is.EqualTo(TimeSpan.FromSeconds(5)));
+
+			t = FdbTuple.Wrap(arr, 1, 2);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo(123));
+			Assert.That(t[1], Is.EqualTo(false));
+
+			// changing the underyling array should change the tuple
+			// DON'T DO THIS IN ACTUAL CODE!!!
+
+			arr[1] = 456;
+			arr[2] = true;
+			Log("t = {0}", t);
+
+			Assert.That(t[0], Is.EqualTo(456));
+			Assert.That(t[1], Is.EqualTo(true));
+		}
+
+		[Test]
+		public void Test_FdbTuple_FromObjects()
+		{
+			// FdbTuple.FromObjects(...) does a copy of the items of the array
+
+			var arr = new object[] { "Hello", 123, false, TimeSpan.FromSeconds(5) };
+
+			var t = FdbTuple.FromObjects(arr);
+			Log("t = {0}", t);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(4));
+			Assert.That(t[0], Is.EqualTo("Hello"));
+			Assert.That(t[1], Is.EqualTo(123));
+			Assert.That(t[2], Is.EqualTo(false));
+			Assert.That(t[3], Is.EqualTo(TimeSpan.FromSeconds(5)));
+
+			t = FdbTuple.FromObjects(arr, 1, 2);
+			Log("t = {0}", t);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo(123));
+			Assert.That(t[1], Is.EqualTo(false));
+
+			// changing the underyling array should NOT change the tuple
+
+			arr[1] = 456;
+			arr[2] = true;
+			Log("t = {0}", t);
+
+			Assert.That(t[0], Is.EqualTo(123));
+			Assert.That(t[1], Is.EqualTo(false));
+		}
+
+		[Test]
+		public void Test_FdbTuple_FromArray()
+		{
+			var items = new string[] { "Bonjour", "le", "Monde" };
+
+			var t = FdbTuple.FromArray(items);
+			Log("t = {0}", t);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(3));
+			Assert.That(t[0], Is.EqualTo("Bonjour"));
+			Assert.That(t[1], Is.EqualTo("le"));
+			Assert.That(t[2], Is.EqualTo("Monde"));
+
+			t = FdbTuple.FromArray(items, 1, 2);
+			Log("t = {0}", t);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo("le"));
+			Assert.That(t[1], Is.EqualTo("Monde"));
+
+			// changing the underlying array should NOT change the tuple
+			items[1] = "ze";
+			Log("t = {0}", t);
+
+			Assert.That(t[0], Is.EqualTo("le"));
 		}
 
 		[Test]
@@ -131,6 +242,18 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(t4[-3], Is.EqualTo(123));
 			Assert.That(t4[-4], Is.EqualTo("hello world"));
 
+			var t5 = FdbTuple.Create("hello world", 123, false, 1234L, -1234);
+			Assert.That(t5.Get<long>(-1), Is.EqualTo(-1234));
+			Assert.That(t5.Get<long>(-2), Is.EqualTo(1234L));
+			Assert.That(t5.Get<bool>(-3), Is.EqualTo(false));
+			Assert.That(t5.Get<int>(-4), Is.EqualTo(123));
+			Assert.That(t5.Get<String>(-5), Is.EqualTo("hello world"));
+			Assert.That(t5[-1], Is.EqualTo(-1234));
+			Assert.That(t5[-2], Is.EqualTo(1234L));
+			Assert.That(t5[-3], Is.EqualTo(false));
+			Assert.That(t5[-4], Is.EqualTo(123));
+			Assert.That(t5[-5], Is.EqualTo("hello world"));
+
 			var tn = FdbTuple.Create(new object[] { "hello world", 123, false, 1234, -1234, "six" });
 			Assert.That(tn.Get<string>(-1), Is.EqualTo("six"));
 			Assert.That(tn.Get<int>(-2), Is.EqualTo(-1234));
@@ -147,59 +270,114 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_FdbTuple_Last()
+		public void Test_FdbTuple_First_And_Last()
 		{
+			// tuple.First<T>() should be equivalent to tuple.Get<T>(0)
 			// tuple.Last<T>() should be equivalent to tuple.Get<T>(-1)
 
 			var t1 = FdbTuple.Create(1);
-			Assert.That(t1.Last<int>(), Is.EqualTo(1));
-			Assert.That(t1.Last<string>(), Is.EqualTo("1"));
+			Assert.That(t1.First<int>(), Is.EqualTo(1));
+			Assert.That(t1.First<string>(), Is.EqualTo("1"));
+			Assert.That(((IFdbTuple)t1).Last<int>(), Is.EqualTo(1));
+			Assert.That(((IFdbTuple)t1).Last<string>(), Is.EqualTo("1"));
 
 			var t2 = FdbTuple.Create(1, 2);
-			Assert.That(t2.Last<int>(), Is.EqualTo(2));
-			Assert.That(t2.Last<string>(), Is.EqualTo("2"));
+			Assert.That(t2.First<int>(), Is.EqualTo(1));
+			Assert.That(t2.First<string>(), Is.EqualTo("1"));
+			Assert.That(t2.Last, Is.EqualTo(2));
+			Assert.That(((IFdbTuple)t2).Last<int>(), Is.EqualTo(2));
+			Assert.That(((IFdbTuple)t2).Last<string>(), Is.EqualTo("2"));
 
 			var t3 = FdbTuple.Create(1, 2, 3);
-			Assert.That(t3.Last<int>(), Is.EqualTo(3));
-			Assert.That(t3.Last<string>(), Is.EqualTo("3"));
+			Assert.That(t3.First<int>(), Is.EqualTo(1));
+			Assert.That(t3.First<string>(), Is.EqualTo("1"));
+			Assert.That(t3.Last, Is.EqualTo(3));
+			Assert.That(((IFdbTuple)t3).Last<int>(), Is.EqualTo(3));
+			Assert.That(((IFdbTuple)t3).Last<string>(), Is.EqualTo("3"));
 
 			var t4 = FdbTuple.Create(1, 2, 3, 4);
-			Assert.That(t4.Last<int>(), Is.EqualTo(4));
-			Assert.That(t4.Last<string>(), Is.EqualTo("4"));
+			Assert.That(t4.First<int>(), Is.EqualTo(1));
+			Assert.That(t4.First<string>(), Is.EqualTo("1"));
+			Assert.That(t4.Last, Is.EqualTo(4));
+			Assert.That(((IFdbTuple)t4).Last<int>(), Is.EqualTo(4));
+			Assert.That(((IFdbTuple)t4).Last<string>(), Is.EqualTo("4"));
+
+			var t5 = FdbTuple.Create(1, 2, 3, 4, 5);
+			Assert.That(t5.First<int>(), Is.EqualTo(1));
+			Assert.That(t5.First<string>(), Is.EqualTo("1"));
+			Assert.That(t5.Last, Is.EqualTo(5));
+			Assert.That(((IFdbTuple)t5).Last<int>(), Is.EqualTo(5));
+			Assert.That(((IFdbTuple)t5).Last<string>(), Is.EqualTo("5"));
 
 			var tn = FdbTuple.Create(1, 2, 3, 4, 5, 6);
+			Assert.That(tn.First<int>(), Is.EqualTo(1));
+			Assert.That(tn.First<string>(), Is.EqualTo("1"));
 			Assert.That(tn.Last<int>(), Is.EqualTo(6));
 			Assert.That(tn.Last<string>(), Is.EqualTo("6"));
 
+			Assert.That(() => FdbTuple.Empty.First<string>(), Throws.InstanceOf<InvalidOperationException>());
 			Assert.That(() => FdbTuple.Empty.Last<string>(), Throws.InstanceOf<InvalidOperationException>());
-
 		}
 
 		[Test]
-		public void Test_FdbTuple_UnpackLast()
+		public void Test_FdbTuple_Unpack_First_And_Last()
 		{
 			// should only work with tuples having at least one element
 
 			Slice packed;
 
-			packed = FdbTuple.Pack(1);
-			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(1));
-			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("1"));
+			packed = FdbTuple.EncodeKey(1);
+			Assert.That(FdbTuple.DecodeFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(FdbTuple.DecodeLast<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeLast<string>(packed), Is.EqualTo("1"));
 
-			packed = FdbTuple.Pack(1, 2);
-			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(2));
-			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("2"));
+			packed = FdbTuple.EncodeKey(1, 2);
+			Assert.That(FdbTuple.DecodeFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(FdbTuple.DecodeLast<int>(packed), Is.EqualTo(2));
+			Assert.That(FdbTuple.DecodeLast<string>(packed), Is.EqualTo("2"));
 
-			packed = FdbTuple.Pack(1, 2, 3);
-			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(3));
-			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("3"));
+			packed = FdbTuple.EncodeKey(1, 2, 3);
+			Assert.That(FdbTuple.DecodeFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(FdbTuple.DecodeLast<int>(packed), Is.EqualTo(3));
+			Assert.That(FdbTuple.DecodeLast<string>(packed), Is.EqualTo("3"));
 
-			packed = FdbTuple.Pack(1, 2, 3, 4);
-			Assert.That(FdbTuple.UnpackLast<int>(packed), Is.EqualTo(4));
-			Assert.That(FdbTuple.UnpackLast<string>(packed), Is.EqualTo("4"));
+			packed = FdbTuple.EncodeKey(1, 2, 3, 4);
+			Assert.That(FdbTuple.DecodeFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(FdbTuple.DecodeLast<int>(packed), Is.EqualTo(4));
+			Assert.That(FdbTuple.DecodeLast<string>(packed), Is.EqualTo("4"));
 
-			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
-			Assert.That(() => FdbTuple.UnpackLast<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+			packed = FdbTuple.EncodeKey(1, 2, 3, 4, 5);
+			Assert.That(FdbTuple.DecodeFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(FdbTuple.DecodeLast<int>(packed), Is.EqualTo(5));
+			Assert.That(FdbTuple.DecodeLast<string>(packed), Is.EqualTo("5"));
+
+			packed = FdbTuple.EncodeKey(1, 2, 3, 4, 5, 6);
+			Assert.That(FdbTuple.DecodeFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(FdbTuple.DecodeLast<int>(packed), Is.EqualTo(6));
+			Assert.That(FdbTuple.DecodeLast<string>(packed), Is.EqualTo("6"));
+
+			packed = FdbTuple.EncodeKey(1, 2, 3, 4, 5, 6, 7);
+			Assert.That(FdbTuple.DecodeFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(FdbTuple.DecodeLast<int>(packed), Is.EqualTo(7));
+			Assert.That(FdbTuple.DecodeLast<string>(packed), Is.EqualTo("7"));
+
+			packed = FdbTuple.EncodeKey(1, 2, 3, 4, 5, 6, 7, 8);
+			Assert.That(FdbTuple.DecodeFirst<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeFirst<string>(packed), Is.EqualTo("1"));
+			Assert.That(FdbTuple.DecodeLast<int>(packed), Is.EqualTo(8));
+			Assert.That(FdbTuple.DecodeLast<string>(packed), Is.EqualTo("8"));
+
+			Assert.That(() => FdbTuple.DecodeFirst<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.DecodeFirst<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.DecodeLast<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.DecodeLast<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
 
 		}
 
@@ -210,18 +388,512 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			Slice packed;
 
-			packed = FdbTuple.Pack(1);
-			Assert.That(FdbTuple.UnpackSingle<int>(packed), Is.EqualTo(1));
-			Assert.That(FdbTuple.UnpackSingle<string>(packed), Is.EqualTo("1"));
+			packed = FdbTuple.EncodeKey(1);
+			Assert.That(FdbTuple.DecodeKey<int>(packed), Is.EqualTo(1));
+			Assert.That(FdbTuple.DecodeKey<string>(packed), Is.EqualTo("1"));
 
-			packed = FdbTuple.Pack("Hello\0World");
-			Assert.That(FdbTuple.UnpackSingle<string>(packed), Is.EqualTo("Hello\0World"));
+			packed = FdbTuple.EncodeKey("Hello\0World");
+			Assert.That(FdbTuple.DecodeKey<string>(packed), Is.EqualTo("Hello\0World"));
 
-			Assert.That(() => FdbTuple.UnpackSingle<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
-			Assert.That(() => FdbTuple.UnpackSingle<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
-			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2)), Throws.InstanceOf<FormatException>());
-			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2, 3)), Throws.InstanceOf<FormatException>());
-			Assert.That(() => FdbTuple.UnpackSingle<int>(FdbTuple.Pack(1, 2, 3, 4)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => FdbTuple.DecodeKey<string>(Slice.Nil), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.DecodeKey<string>(Slice.Empty), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.DecodeKey<int>(FdbTuple.EncodeKey(1, 2)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => FdbTuple.DecodeKey<int>(FdbTuple.EncodeKey(1, 2, 3)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => FdbTuple.DecodeKey<int>(FdbTuple.EncodeKey(1, 2, 3, 4)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => FdbTuple.DecodeKey<int>(FdbTuple.EncodeKey(1, 2, 3, 4, 5)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => FdbTuple.DecodeKey<int>(FdbTuple.EncodeKey(1, 2, 3, 4, 5, 6)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => FdbTuple.DecodeKey<int>(FdbTuple.EncodeKey(1, 2, 3, 4, 5, 6, 7)), Throws.InstanceOf<FormatException>());
+			Assert.That(() => FdbTuple.DecodeKey<int>(FdbTuple.EncodeKey(1, 2, 3, 4, 5, 6, 7, 8)), Throws.InstanceOf<FormatException>());
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_Embedded_Tuples()
+		{
+			// (A,B).Append((C,D)) should return (A,B,(C,D)) (length 3) and not (A,B,C,D) (length 4)
+
+			FdbTuple<string, string> x = FdbTuple.Create("A", "B");
+			FdbTuple<string, string> y = FdbTuple.Create("C", "D");
+
+			// using the instance method that returns a FdbTuple<T1, T2, T3>
+			IFdbTuple z = x.Append(y);
+			Log(z);
+			Assert.That(z, Is.Not.Null);
+			Assert.That(z.Count, Is.EqualTo(3));
+			Assert.That(z[0], Is.EqualTo("A"));
+			Assert.That(z[1], Is.EqualTo("B"));
+			Assert.That(z[2], Is.EqualTo(y));
+			var t = z.Get<IFdbTuple>(2);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo("C"));
+			Assert.That(t[1], Is.EqualTo("D"));
+
+			// casted down to the interface IFdbTuple
+			z = ((IFdbTuple)x).Append((IFdbTuple)y);
+			Log(z);
+			Assert.That(z, Is.Not.Null);
+			Assert.That(z.Count, Is.EqualTo(3));
+			Assert.That(z[0], Is.EqualTo("A"));
+			Assert.That(z[1], Is.EqualTo("B"));
+			Assert.That(z[2], Is.EqualTo(y));
+			t = z.Get<IFdbTuple>(2);
+			Assert.That(t, Is.Not.Null);
+			Assert.That(t.Count, Is.EqualTo(2));
+			Assert.That(t[0], Is.EqualTo("C"));
+			Assert.That(t[1], Is.EqualTo("D"));
+
+			// composite index key "(prefix, value, id)"
+			IFdbTuple subspace = FdbTuple.Create(123, 42);
+			IFdbTuple value = FdbTuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
+			string id = "Doc123";
+			z = subspace.Append(value, id);
+			Log(z);
+			Assert.That(z.Count, Is.EqualTo(4));
+		}
+
+		[Test]
+		public void Test_FdbTuple_With()
+		{
+			//note: important to always cast to (IFdbTuple) to be sure that we don't call specialized instance methods (tested elsewhere)
+			IFdbTuple t;
+
+			// Size 1
+
+			t = FdbTuple.Create(123);
+			t.With((int a) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+			});
+			Assert.That(t.With((int a) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 2
+
+			t = t.Append("abc");
+			t.With((int a, string b) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+			});
+			Assert.That(t.With((int a, string b) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 3
+
+			t = t.Append(3.14f);
+			t.With((int a, string b, float c) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+			});
+			Assert.That(t.With((int a, string b, float c) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 4
+
+			t = t.Append(true);
+			t.With((int a, string b, float c, bool d) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+			});
+			Assert.That(t.With((int a, string b, float c, bool d) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 5
+
+			t = t.Append('z');
+			t.With((int a, string b, float c, bool d, char e) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+			});
+			Assert.That(t.With((int a, string b, float c, bool d, char e) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 6
+
+			t = t.Append(Math.PI);
+			t.With((int a, string b, float c, bool d, char e, double f) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+			});
+			Assert.That(t.With((int a, string b, float c, bool d, char e, double f) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 7
+
+			t = t.Append(IPAddress.Loopback);
+			t.With((int a, string b, float c, bool d, char e, double f, IPAddress g) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				Assert.That(g, Is.EqualTo(IPAddress.Loopback));
+			});
+			Assert.That(t.With((int a, string b, float c, bool d, char e, double f, IPAddress g) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				Assert.That(g, Is.EqualTo(IPAddress.Loopback));
+				return 42;
+			}), Is.EqualTo(42));
+
+			// Size 8
+
+			t = t.Append(DateTime.MaxValue);
+			t.With((int a, string b, float c, bool d, char e, double f, IPAddress g, DateTime h) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				Assert.That(g, Is.EqualTo(IPAddress.Loopback));
+				Assert.That(h, Is.EqualTo(DateTime.MaxValue));
+			});
+			Assert.That(t.With((int a, string b, float c, bool d, char e, double f, IPAddress g, DateTime h) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				Assert.That(f, Is.EqualTo(Math.PI));
+				Assert.That(g, Is.EqualTo(IPAddress.Loopback));
+				Assert.That(h, Is.EqualTo(DateTime.MaxValue));
+				return 42;
+			}), Is.EqualTo(42));
+
+		}
+
+		[Test]
+		public void Test_FdbTuple_With_Struct()
+		{
+			// calling With() on the structs is faster
+
+			FdbTuple<int> t1 = FdbTuple.Create(123);
+			t1.With((a) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+			});
+			Assert.That(t1.With((a) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				return 42;
+			}), Is.EqualTo(42));
+
+			FdbTuple<int, string> t2 = FdbTuple.Create(123, "abc");
+			t2.With((a, b) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+			});
+			Assert.That(t2.With((a, b) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				return 42;
+			}), Is.EqualTo(42));
+
+			FdbTuple<int, string, float> t3 = FdbTuple.Create(123, "abc", 3.14f);
+			t3.With((a, b, c) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+			});
+			Assert.That(t3.With((a, b, c) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				return 42;
+			}), Is.EqualTo(42));
+
+			FdbTuple<int, string, float, bool> t4 = FdbTuple.Create(123, "abc", 3.14f, true);
+			t4.With((a, b, c, d) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+			});
+			Assert.That(t4.With((a, b, c, d) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				return 42;
+			}), Is.EqualTo(42));
+
+			FdbTuple<int, string, float, bool, char> t5 = FdbTuple.Create(123, "abc", 3.14f, true, 'z');
+			t5.With((a, b, c, d, e) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+			});
+			Assert.That(t5.With((a, b, c, d, e) =>
+			{
+				Assert.That(a, Is.EqualTo(123));
+				Assert.That(b, Is.EqualTo("abc"));
+				Assert.That(c, Is.EqualTo(3.14f));
+				Assert.That(d, Is.True);
+				Assert.That(e, Is.EqualTo('z'));
+				return 42;
+			}), Is.EqualTo(42));
+
+			//TODO: add more if we ever add struct tuples with 6 or more items
+		}
+
+		[Test]
+		public void Test_FdbTuple_Of_Size()
+		{
+			// OfSize(n) check the size and return the tuple if it passed
+			// VerifySize(n) only check the size
+			// Both should throw if tuple is null, or not the expected size
+
+			Action<IFdbTuple> verify = (t) =>
+			{
+				for (int i = 0; i <= 10; i++)
+				{
+					if (t.Count > i)
+					{
+						Assert.That(() => t.OfSize(i), Throws.InstanceOf<InvalidOperationException>());
+						Assert.That(t.OfSizeAtLeast(i), Is.SameAs(t));
+						Assert.That(() => t.OfSizeAtMost(i), Throws.InstanceOf<InvalidOperationException>());
+					}
+					else if (t.Count < i)
+					{
+						Assert.That(() => t.OfSize(i), Throws.InstanceOf<InvalidOperationException>());
+						Assert.That(() => t.OfSizeAtLeast(i), Throws.InstanceOf<InvalidOperationException>());
+						Assert.That(t.OfSizeAtMost(i), Is.SameAs(t));
+					}
+					else
+					{
+						Assert.That(t.OfSize(i), Is.SameAs(t));
+						Assert.That(t.OfSizeAtLeast(i), Is.SameAs(t));
+						Assert.That(t.OfSizeAtMost(i), Is.SameAs(t));
+					}
+				}
+			};
+
+			verify(FdbTuple.Empty);
+			verify(FdbTuple.Create(123));
+			verify(FdbTuple.Create(123, "abc"));
+			verify(FdbTuple.Create(123, "abc", 3.14f));
+			verify(FdbTuple.Create(123, "abc", 3.14f, true));
+			verify(FdbTuple.Create(123, "abc", 3.14f, true, 'z'));
+			verify(FdbTuple.FromArray(new[] { "hello", "world", "!" }));
+			verify(FdbTuple.FromEnumerable(Enumerable.Range(0, 10)));
+
+			verify(FdbTuple.Create(123, "abc", 3.14f, true, 'z')[0, 2]);
+			verify(FdbTuple.Create(123, "abc", 3.14f, true, 'z')[1, 4]);
+			verify(FdbTuple.FromEnumerable(Enumerable.Range(0, 50)).Substring(15, 6));
+
+			IFdbTuple none = null;
+			Assert.That(() => none.OfSize(0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => none.OfSizeAtLeast(0), Throws.InstanceOf<ArgumentNullException>());
+			Assert.That(() => none.OfSizeAtMost(0), Throws.InstanceOf<ArgumentNullException>());
+		}
+
+		[Test]
+		public void Test_FdbTuple_Truncate()
+		{
+			IFdbTuple t = FdbTuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
+
+			var head = t.Truncate(1);
+			Assert.That(head, Is.Not.Null);
+			Assert.That(head.Count, Is.EqualTo(1));
+			Assert.That(head[0], Is.EqualTo("Hello"));
+
+			head = t.Truncate(2);
+			Assert.That(head, Is.Not.Null);
+			Assert.That(head.Count, Is.EqualTo(2));
+			Assert.That(head[0], Is.EqualTo("Hello"));
+			Assert.That(head[1], Is.EqualTo(123));
+
+			head = t.Truncate(5);
+			Assert.That(head, Is.EqualTo(t));
+
+			var tail = t.Truncate(-1);
+			Assert.That(tail, Is.Not.Null);
+			Assert.That(tail.Count, Is.EqualTo(1));
+			Assert.That(tail[0], Is.EqualTo("World"));
+
+			tail = t.Truncate(-2);
+			Assert.That(tail, Is.Not.Null);
+			Assert.That(tail.Count, Is.EqualTo(2));
+			Assert.That(tail[0], Is.EqualTo(TimeSpan.FromSeconds(5)));
+			Assert.That(tail[1], Is.EqualTo("World"));
+
+			tail = t.Truncate(-5);
+			Assert.That(tail, Is.EqualTo(t));
+
+			Assert.That(t.Truncate(0), Is.EqualTo(FdbTuple.Empty));
+			Assert.That(() => t.Truncate(6), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => t.Truncate(-6), Throws.InstanceOf<InvalidOperationException>());
+
+			Assert.That(() => FdbTuple.Empty.Truncate(1), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.Create("Hello", "World").Truncate(3), Throws.InstanceOf<InvalidOperationException>());
+			Assert.That(() => FdbTuple.Create("Hello", "World").Truncate(-3), Throws.InstanceOf<InvalidOperationException>());
+		}
+
+		[Test]
+		public void Test_FdbTuple_As()
+		{
+			// IFdbTuple.As<...>() adds types to an untyped IFdbTuple
+			IFdbTuple t;
+
+			t = FdbTuple.Create("Hello");
+            var t1 = t.As<string>();
+			Assert.That(t1.Item1, Is.EqualTo("Hello"));
+
+			t = FdbTuple.Create("Hello", 123);
+            var t2 = t.As<string, int>();
+			Assert.That(t2.Item1, Is.EqualTo("Hello"));
+			Assert.That(t2.Item2, Is.EqualTo(123));
+
+			t = FdbTuple.Create("Hello", 123, false);
+            var t3 = t.As<string, int, bool>();
+			Assert.That(t3.Item1, Is.EqualTo("Hello"));
+			Assert.That(t3.Item2, Is.EqualTo(123));
+			Assert.That(t3.Item3, Is.EqualTo(false));
+
+			var t4 = FdbTuple
+				.Create("Hello", 123, false, TimeSpan.FromSeconds(5))
+				.As<string, int, bool, TimeSpan>();
+			Assert.That(t4.Item1, Is.EqualTo("Hello"));
+			Assert.That(t4.Item2, Is.EqualTo(123));
+			Assert.That(t4.Item3, Is.EqualTo(false));
+			Assert.That(t4.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+
+			t = FdbTuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
+			var t5 = t.As<string, int, bool, TimeSpan, string>();
+			Assert.That(t5.Item1, Is.EqualTo("Hello"));
+			Assert.That(t5.Item2, Is.EqualTo(123));
+			Assert.That(t5.Item3, Is.EqualTo(false));
+			Assert.That(t5.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+			Assert.That(t5.Item5, Is.EqualTo("World"));
+		}
+
+		[Test]
+		public void Test_Cast_To_BCL_Tuples()
+		{
+			// implicit: Tuple => FdbTuple 
+			// explicit: FdbTuple => Tuple
+
+			var t1 = FdbTuple.Create("Hello");
+			var b1 = (Tuple<string>) t1; // explicit
+			Assert.That(b1, Is.Not.Null);
+			Assert.That(b1.Item1, Is.EqualTo("Hello"));
+			FdbTuple<string> r1 = t1; // implicit
+			Assert.That(r1.Item1, Is.EqualTo("Hello"));
+
+			var t2 = FdbTuple.Create("Hello", 123);
+			var b2 = (Tuple<string, int>)t2;	// explicit
+			Assert.That(b2, Is.Not.Null);
+			Assert.That(b2.Item1, Is.EqualTo("Hello"));
+			Assert.That(b2.Item2, Is.EqualTo(123));
+			FdbTuple<string, int> r2 = t2; // implicit
+			Assert.That(r2.Item1, Is.EqualTo("Hello"));
+			Assert.That(r2.Item2, Is.EqualTo(123));
+
+			var t3 = FdbTuple.Create("Hello", 123, false);
+			var b3 = (Tuple<string, int, bool>)t3;	// explicit
+			Assert.That(b3, Is.Not.Null);
+			Assert.That(b3.Item1, Is.EqualTo("Hello"));
+			Assert.That(b3.Item2, Is.EqualTo(123));
+			Assert.That(b3.Item3, Is.EqualTo(false));
+			FdbTuple<string, int, bool> r3 = t3; // implicit
+			Assert.That(r3.Item1, Is.EqualTo("Hello"));
+			Assert.That(r3.Item2, Is.EqualTo(123));
+			Assert.That(r3.Item3, Is.EqualTo(false));
+
+			var t4 = FdbTuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5));
+			var b4 = (Tuple<string, int, bool, TimeSpan>)t4;	// explicit
+			Assert.That(b4, Is.Not.Null);
+			Assert.That(b4.Item1, Is.EqualTo("Hello"));
+			Assert.That(b4.Item2, Is.EqualTo(123));
+			Assert.That(b4.Item3, Is.EqualTo(false));
+			Assert.That(b4.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+			FdbTuple<string, int, bool, TimeSpan> r4 = t4; // implicit
+			Assert.That(r4.Item1, Is.EqualTo("Hello"));
+			Assert.That(r4.Item2, Is.EqualTo(123));
+			Assert.That(r4.Item3, Is.EqualTo(false));
+			Assert.That(r4.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+
+			var t5 = FdbTuple.Create("Hello", 123, false, TimeSpan.FromSeconds(5), "World");
+			var b5 = (Tuple<string, int, bool, TimeSpan, string>)t5;	// explicit
+			Assert.That(b5, Is.Not.Null);
+			Assert.That(b5.Item1, Is.EqualTo("Hello"));
+			Assert.That(b5.Item2, Is.EqualTo(123));
+			Assert.That(b5.Item3, Is.EqualTo(false));
+			Assert.That(b5.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+			Assert.That(b5.Item5, Is.EqualTo("World"));
+			FdbTuple<string, int, bool, TimeSpan, string> r5 = t5; // implicit
+			Assert.That(r5.Item1, Is.EqualTo("Hello"));
+			Assert.That(r5.Item2, Is.EqualTo(123));
+			Assert.That(r5.Item3, Is.EqualTo(false));
+			Assert.That(r5.Item4, Is.EqualTo(TimeSpan.FromSeconds(5)));
+			Assert.That(r5.Item5, Is.EqualTo("World"));
 
 		}
 
@@ -480,15 +1152,15 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			Slice packed;
 
-			packed = FdbTuple.Pack(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 });
+			packed = FdbTuple.EncodeKey(new byte[] { 0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xF0 });
 			Assert.That(packed.ToString(), Is.EqualTo("<01><12>4Vx<9A><BC><DE><F0><00>"));
-			packed = FdbTuple.Pack(new byte[] { 0x00, 0x42 });
+			packed = FdbTuple.EncodeKey(new byte[] { 0x00, 0x42 });
 			Assert.That(packed.ToString(), Is.EqualTo("<01><00><FF>B<00>"));
-			packed = FdbTuple.Pack(new byte[] { 0x42, 0x00 });
+			packed = FdbTuple.EncodeKey(new byte[] { 0x42, 0x00 });
 			Assert.That(packed.ToString(), Is.EqualTo("<01>B<00><FF><00>"));
-			packed = FdbTuple.Pack(new byte[] { 0x42, 0x00, 0x42 });
+			packed = FdbTuple.EncodeKey(new byte[] { 0x42, 0x00, 0x42 });
 			Assert.That(packed.ToString(), Is.EqualTo("<01>B<00><FF>B<00>"));
-			packed = FdbTuple.Pack(new byte[] { 0x42, 0x00, 0x00, 0x42 });
+			packed = FdbTuple.EncodeKey(new byte[] { 0x42, 0x00, 0x00, 0x42 });
 			Assert.That(packed.ToString(), Is.EqualTo("<01>B<00><FF><00><FF>B<00>"));
 		}
 
@@ -981,25 +1653,25 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Deserialize_Singles()
 		{
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 80 00 00 00")), Is.EqualTo(0f), "0f");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 C2 28 00 00")), Is.EqualTo(42f), "42f");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 3D D7 FF FF")), Is.EqualTo(-42f), "-42f");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 80 00 00 00")), Is.EqualTo(0f), "0f");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 C2 28 00 00")), Is.EqualTo(42f), "42f");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 3D D7 FF FF")), Is.EqualTo(-42f), "-42f");
 
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 BF B5 04 F3")), Is.EqualTo((float)Math.Sqrt(2)), "Sqrt(2)");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 BF B5 04 F3")), Is.EqualTo((float)Math.Sqrt(2)), "Sqrt(2)");
 
 			// well known values
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.MinValue");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 FF 7F FF FF")), Is.EqualTo(float.MaxValue), "float.MaxValue");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 7F FF FF FF")), Is.EqualTo(-0f), "-0f");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 7F FF FF")), Is.EqualTo(float.NegativeInfinity), "float.NegativeInfinity");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 FF 80 00 00")), Is.EqualTo(float.PositiveInfinity), "float.PositiveInfinity");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.Epsilon");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 80 00 00 01")), Is.EqualTo(float.Epsilon), "+float.Epsilon");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 7F FF FF FE")), Is.EqualTo(-float.Epsilon), "-float.Epsilon");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.MinValue");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 FF 7F FF FF")), Is.EqualTo(float.MaxValue), "float.MaxValue");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 7F FF FF FF")), Is.EqualTo(-0f), "-0f");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 00 7F FF FF")), Is.EqualTo(float.NegativeInfinity), "float.NegativeInfinity");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 FF 80 00 00")), Is.EqualTo(float.PositiveInfinity), "float.PositiveInfinity");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 00 80 00 00")), Is.EqualTo(float.MinValue), "float.Epsilon");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 80 00 00 01")), Is.EqualTo(float.Epsilon), "+float.Epsilon");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 7F FF FF FE")), Is.EqualTo(-float.Epsilon), "-float.Epsilon");
 
 			// all possible variants of NaN should end up equal and normalized to float.NaN
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
-			Assert.That(FdbTuple.UnpackSingle<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
+			Assert.That(FdbTuple.DecodeKey<float>(Slice.FromHexa("20 00 3F FF FF")), Is.EqualTo(float.NaN), "float.NaN");
 		}
 
 		[Test]
@@ -1041,7 +1713,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// roundtripping vectors of doubles
 			var tuple = FdbTuple.Create(Math.PI, Math.E, Math.Log(1), Math.Log(2));
-			Assert.That(FdbTuple.Unpack(FdbTuple.Pack(Math.PI, Math.E, Math.Log(1), Math.Log(2))), Is.EqualTo(tuple));
+			Assert.That(FdbTuple.Unpack(FdbTuple.EncodeKey(Math.PI, Math.E, Math.Log(1), Math.Log(2))), Is.EqualTo(tuple));
 			Assert.That(FdbTuple.Unpack(FdbTuple.Create(Math.PI, Math.E, Math.Log(1), Math.Log(2)).ToSlice()), Is.EqualTo(tuple));
 			Assert.That(FdbTuple.Unpack(FdbTuple.Empty.Append(Math.PI).Append(Math.E).Append(Math.Log(1)).Append(Math.Log(2)).ToSlice()), Is.EqualTo(tuple));
 		}
@@ -1049,24 +1721,24 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Deserialize_Doubles()
 		{
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 00")), Is.EqualTo(0d), "0d");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 C0 45 00 00 00 00 00 00")), Is.EqualTo(42d), "42d");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 3F BA FF FF FF FF FF FF")), Is.EqualTo(-42d), "-42d");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 00")), Is.EqualTo(0d), "0d");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 C0 45 00 00 00 00 00 00")), Is.EqualTo(42d), "42d");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 3F BA FF FF FF FF FF FF")), Is.EqualTo(-42d), "-42d");
 
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 C0 09 21 FB 54 44 2D 18")), Is.EqualTo(Math.PI), "Math.PI");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 C0 05 BF 0A 8B 14 57 69")), Is.EqualTo(Math.E), "Math.E");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 C0 09 21 FB 54 44 2D 18")), Is.EqualTo(Math.PI), "Math.PI");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 C0 05 BF 0A 8B 14 57 69")), Is.EqualTo(Math.E), "Math.E");
 
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 00 10 00 00 00 00 00 00")), Is.EqualTo(double.MinValue), "double.MinValue");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 FF EF FF FF FF FF FF FF")), Is.EqualTo(double.MaxValue), "double.MaxValue");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FF")), Is.EqualTo(-0d), "-0d");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 00 0F FF FF FF FF FF FF")), Is.EqualTo(double.NegativeInfinity), "double.NegativeInfinity");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 FF F0 00 00 00 00 00 00")), Is.EqualTo(double.PositiveInfinity), "double.PositiveInfinity");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 01")), Is.EqualTo(double.Epsilon), "+double.Epsilon");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FE")), Is.EqualTo(-double.Epsilon), "-double.Epsilon");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 00 10 00 00 00 00 00 00")), Is.EqualTo(double.MinValue), "double.MinValue");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 FF EF FF FF FF FF FF FF")), Is.EqualTo(double.MaxValue), "double.MaxValue");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FF")), Is.EqualTo(-0d), "-0d");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 00 0F FF FF FF FF FF FF")), Is.EqualTo(double.NegativeInfinity), "double.NegativeInfinity");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 FF F0 00 00 00 00 00 00")), Is.EqualTo(double.PositiveInfinity), "double.PositiveInfinity");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 80 00 00 00 00 00 00 01")), Is.EqualTo(double.Epsilon), "+double.Epsilon");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 7F FF FF FF FF FF FF FE")), Is.EqualTo(-double.Epsilon), "-double.Epsilon");
 
 			// all possible variants of NaN should end up equal and normalized to double.NaN
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF FF")), Is.EqualTo(double.NaN), "double.NaN");
-			Assert.That(FdbTuple.UnpackSingle<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF 84")), Is.EqualTo(double.NaN), "double.NaN");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF FF")), Is.EqualTo(double.NaN), "double.NaN");
+			Assert.That(FdbTuple.DecodeKey<double>(Slice.FromHexa("21 00 07 FF FF FF FF FF 84")), Is.EqualTo(double.NaN), "double.NaN");
 		}
 
 		[Test]
@@ -1077,17 +1749,17 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Slice packed;
 
 			// bool
-			packed = FdbTuple.Pack(false);
+			packed = FdbTuple.EncodeKey(false);
 			Assert.That(packed.ToString(), Is.EqualTo("<14>"));
-			packed = FdbTuple.Pack(true);
+			packed = FdbTuple.EncodeKey(true);
 			Assert.That(packed.ToString(), Is.EqualTo("<15><01>"));
 
 			// bool?
-			packed = FdbTuple.Pack(default(bool?));
+			packed = FdbTuple.EncodeKey(default(bool?));
 			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
-			packed = FdbTuple.Pack((bool?)false);
+			packed = FdbTuple.EncodeKey((bool?)false);
 			Assert.That(packed.ToString(), Is.EqualTo("<14>"));
-			packed = FdbTuple.Pack((bool?)true);
+			packed = FdbTuple.EncodeKey((bool?)true);
 			Assert.That(packed.ToString(), Is.EqualTo("<15><01>"));
 
 			// tuple containing bools
@@ -1103,25 +1775,25 @@ namespace FoundationDB.Layers.Tuples.Tests
 			// Null, 0, and empty byte[]/strings are equivalent to False. All others are equivalent to True
 
 			// Falsy...
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<00>")), Is.EqualTo(false), "Null => False");
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<14>")), Is.EqualTo(false), "0 => False");
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<01><00>")), Is.EqualTo(false), "byte[0] => False");
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<02><00>")), Is.EqualTo(false), "String.Empty => False");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<00>")), Is.EqualTo(false), "Null => False");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<14>")), Is.EqualTo(false), "0 => False");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<01><00>")), Is.EqualTo(false), "byte[0] => False");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<02><00>")), Is.EqualTo(false), "String.Empty => False");
 
 			// Truthy
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<15><01>")), Is.EqualTo(true), "1 => True");
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<13><FE>")), Is.EqualTo(true), "-1 => True");
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<01>Hello<00>")), Is.EqualTo(true), "'Hello' => True");
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<02>Hello<00>")), Is.EqualTo(true), "\"Hello\" => True");
-			Assert.That(FdbTuple.UnpackSingle<bool>(FdbTuple.Pack(123456789)), Is.EqualTo(true), "random int => True");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<15><01>")), Is.EqualTo(true), "1 => True");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<13><FE>")), Is.EqualTo(true), "-1 => True");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<01>Hello<00>")), Is.EqualTo(true), "'Hello' => True");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<02>Hello<00>")), Is.EqualTo(true), "\"Hello\" => True");
+			Assert.That(FdbTuple.DecodeKey<bool>(FdbTuple.EncodeKey(123456789)), Is.EqualTo(true), "random int => True");
 
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<02>True<00>")), Is.EqualTo(true), "\"True\" => True");
-			Assert.That(FdbTuple.UnpackSingle<bool>(Slice.Unescape("<02>False<00>")), Is.EqualTo(true), "\"False\" => True ***");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<02>True<00>")), Is.EqualTo(true), "\"True\" => True");
+			Assert.That(FdbTuple.DecodeKey<bool>(Slice.Unescape("<02>False<00>")), Is.EqualTo(true), "\"False\" => True ***");
 			// note: even though it would be tempting to convert the string "false" to False, it is not a standard behavior accross all bindings
 
 			// When decoded to object, though, they should return 0 and 1
-			Assert.That(FdbTuplePackers.DeserializeBoxed(FdbTuple.Pack(false)), Is.EqualTo(0));
-			Assert.That(FdbTuplePackers.DeserializeBoxed(FdbTuple.Pack(true)), Is.EqualTo(1));
+			Assert.That(FdbTuplePackers.DeserializeBoxed(FdbTuple.EncodeKey(false)), Is.EqualTo(0));
+			Assert.That(FdbTuplePackers.DeserializeBoxed(FdbTuple.EncodeKey(true)), Is.EqualTo(1));
 		}
 
 		[Test]
@@ -1151,16 +1823,16 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Deserialize_IPAddress()
 		{
-			Assert.That(FdbTuple.UnpackSingle<IPAddress>(Slice.Unescape("<01><7F><00><FF><00><FF><01><00>")), Is.EqualTo(IPAddress.Parse("127.0.0.1")));
-			Assert.That(FdbTuple.UnpackSingle<IPAddress>(Slice.Unescape("<01><00><FF><00><FF><00><FF><00><FF><00>")), Is.EqualTo(IPAddress.Parse("0.0.0.0")));
-			Assert.That(FdbTuple.UnpackSingle<IPAddress>(Slice.Unescape("<01><01><02><03><04><00>")), Is.EqualTo(IPAddress.Parse("1.2.3.4")));
+			Assert.That(FdbTuple.DecodeKey<IPAddress>(Slice.Unescape("<01><7F><00><FF><00><FF><01><00>")), Is.EqualTo(IPAddress.Parse("127.0.0.1")));
+			Assert.That(FdbTuple.DecodeKey<IPAddress>(Slice.Unescape("<01><00><FF><00><FF><00><FF><00><FF><00>")), Is.EqualTo(IPAddress.Parse("0.0.0.0")));
+			Assert.That(FdbTuple.DecodeKey<IPAddress>(Slice.Unescape("<01><01><02><03><04><00>")), Is.EqualTo(IPAddress.Parse("1.2.3.4")));
 
-			Assert.That(FdbTuple.UnpackSingle<IPAddress>(FdbTuple.Pack("127.0.0.1")), Is.EqualTo(IPAddress.Loopback));
+			Assert.That(FdbTuple.DecodeKey<IPAddress>(FdbTuple.EncodeKey("127.0.0.1")), Is.EqualTo(IPAddress.Loopback));
 
 			var ip = IPAddress.Parse("192.168.0.1");
-			Assert.That(FdbTuple.UnpackSingle<IPAddress>(FdbTuple.Pack(ip.ToString())), Is.EqualTo(ip));
-			Assert.That(FdbTuple.UnpackSingle<IPAddress>(FdbTuple.Pack(ip.GetAddressBytes())), Is.EqualTo(ip));
-			Assert.That(FdbTuple.UnpackSingle<IPAddress>(FdbTuple.Pack(ip.Address)), Is.EqualTo(ip));
+			Assert.That(FdbTuple.DecodeKey<IPAddress>(FdbTuple.EncodeKey(ip.ToString())), Is.EqualTo(ip));
+			Assert.That(FdbTuple.DecodeKey<IPAddress>(FdbTuple.EncodeKey(ip.GetAddressBytes())), Is.EqualTo(ip));
+			Assert.That(FdbTuple.DecodeKey<IPAddress>(FdbTuple.EncodeKey(ip.Address)), Is.EqualTo(ip));
 		}
 
 		[Test]
@@ -1170,43 +1842,43 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			// serialize
 
-			Assert.That(FdbTuple.Pack<int?>(0), Is.EqualTo(Slice.Unescape("<14>")));
-			Assert.That(FdbTuple.Pack<int?>(123), Is.EqualTo(Slice.Unescape("<15>{")));
-			Assert.That(FdbTuple.Pack<int?>(null), Is.EqualTo(Slice.Unescape("<00>")));
+			Assert.That(FdbTuple.EncodeKey<int?>(0), Is.EqualTo(Slice.Unescape("<14>")));
+			Assert.That(FdbTuple.EncodeKey<int?>(123), Is.EqualTo(Slice.Unescape("<15>{")));
+			Assert.That(FdbTuple.EncodeKey<int?>(null), Is.EqualTo(Slice.Unescape("<00>")));
 
-			Assert.That(FdbTuple.Pack<long?>(0L), Is.EqualTo(Slice.Unescape("<14>")));
-			Assert.That(FdbTuple.Pack<long?>(123L), Is.EqualTo(Slice.Unescape("<15>{")));
-			Assert.That(FdbTuple.Pack<long?>(null), Is.EqualTo(Slice.Unescape("<00>")));
+			Assert.That(FdbTuple.EncodeKey<long?>(0L), Is.EqualTo(Slice.Unescape("<14>")));
+			Assert.That(FdbTuple.EncodeKey<long?>(123L), Is.EqualTo(Slice.Unescape("<15>{")));
+			Assert.That(FdbTuple.EncodeKey<long?>(null), Is.EqualTo(Slice.Unescape("<00>")));
 
-			Assert.That(FdbTuple.Pack<bool?>(true), Is.EqualTo(Slice.Unescape("<15><01>")));
-			Assert.That(FdbTuple.Pack<bool?>(false), Is.EqualTo(Slice.Unescape("<14>")));
-			Assert.That(FdbTuple.Pack<bool?>(null), Is.EqualTo(Slice.Unescape("<00>")), "Maybe it was File Not Found?");
+			Assert.That(FdbTuple.EncodeKey<bool?>(true), Is.EqualTo(Slice.Unescape("<15><01>")));
+			Assert.That(FdbTuple.EncodeKey<bool?>(false), Is.EqualTo(Slice.Unescape("<14>")));
+			Assert.That(FdbTuple.EncodeKey<bool?>(null), Is.EqualTo(Slice.Unescape("<00>")), "Maybe it was File Not Found?");
 
-			Assert.That(FdbTuple.Pack<Guid?>(Guid.Empty), Is.EqualTo(Slice.Unescape("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>")));
-			Assert.That(FdbTuple.Pack<Guid?>(null), Is.EqualTo(Slice.Unescape("<00>")));
+			Assert.That(FdbTuple.EncodeKey<Guid?>(Guid.Empty), Is.EqualTo(Slice.Unescape("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>")));
+			Assert.That(FdbTuple.EncodeKey<Guid?>(null), Is.EqualTo(Slice.Unescape("<00>")));
 
-			Assert.That(FdbTuple.Pack<TimeSpan?>(TimeSpan.Zero), Is.EqualTo(Slice.Unescape("!<80><00><00><00><00><00><00><00>")));
-			Assert.That(FdbTuple.Pack<TimeSpan?>(null), Is.EqualTo(Slice.Unescape("<00>")));
+			Assert.That(FdbTuple.EncodeKey<TimeSpan?>(TimeSpan.Zero), Is.EqualTo(Slice.Unescape("!<80><00><00><00><00><00><00><00>")));
+			Assert.That(FdbTuple.EncodeKey<TimeSpan?>(null), Is.EqualTo(Slice.Unescape("<00>")));
 
 			// deserialize
 
-			Assert.That(FdbTuple.UnpackSingle<int?>(Slice.Unescape("<14>")), Is.EqualTo(0));
-			Assert.That(FdbTuple.UnpackSingle<int?>(Slice.Unescape("<15>{")), Is.EqualTo(123));
-			Assert.That(FdbTuple.UnpackSingle<int?>(Slice.Unescape("<00>")), Is.Null);
+			Assert.That(FdbTuple.DecodeKey<int?>(Slice.Unescape("<14>")), Is.EqualTo(0));
+			Assert.That(FdbTuple.DecodeKey<int?>(Slice.Unescape("<15>{")), Is.EqualTo(123));
+			Assert.That(FdbTuple.DecodeKey<int?>(Slice.Unescape("<00>")), Is.Null);
 
-			Assert.That(FdbTuple.UnpackSingle<int?>(Slice.Unescape("<14>")), Is.EqualTo(0L));
-			Assert.That(FdbTuple.UnpackSingle<long?>(Slice.Unescape("<15>{")), Is.EqualTo(123L));
-			Assert.That(FdbTuple.UnpackSingle<long?>(Slice.Unescape("<00>")), Is.Null);
+			Assert.That(FdbTuple.DecodeKey<int?>(Slice.Unescape("<14>")), Is.EqualTo(0L));
+			Assert.That(FdbTuple.DecodeKey<long?>(Slice.Unescape("<15>{")), Is.EqualTo(123L));
+			Assert.That(FdbTuple.DecodeKey<long?>(Slice.Unescape("<00>")), Is.Null);
 
-			Assert.That(FdbTuple.UnpackSingle<bool?>(Slice.Unescape("<15><01>")), Is.True);
-			Assert.That(FdbTuple.UnpackSingle<bool?>(Slice.Unescape("<14>")), Is.False);
-			Assert.That(FdbTuple.UnpackSingle<bool?>(Slice.Unescape("<00>")), Is.Null);
+			Assert.That(FdbTuple.DecodeKey<bool?>(Slice.Unescape("<15><01>")), Is.True);
+			Assert.That(FdbTuple.DecodeKey<bool?>(Slice.Unescape("<14>")), Is.False);
+			Assert.That(FdbTuple.DecodeKey<bool?>(Slice.Unescape("<00>")), Is.Null);
 
-			Assert.That(FdbTuple.UnpackSingle<Guid?>(Slice.Unescape("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>")), Is.EqualTo(Guid.Empty));
-			Assert.That(FdbTuple.UnpackSingle<Guid?>(Slice.Unescape("<00>")), Is.Null);
+			Assert.That(FdbTuple.DecodeKey<Guid?>(Slice.Unescape("0<00><00><00><00><00><00><00><00><00><00><00><00><00><00><00><00>")), Is.EqualTo(Guid.Empty));
+			Assert.That(FdbTuple.DecodeKey<Guid?>(Slice.Unescape("<00>")), Is.Null);
 
-			Assert.That(FdbTuple.UnpackSingle<TimeSpan?>(Slice.Unescape("<14>")), Is.EqualTo(TimeSpan.Zero));
-			Assert.That(FdbTuple.UnpackSingle<TimeSpan?>(Slice.Unescape("<00>")), Is.Null);
+			Assert.That(FdbTuple.DecodeKey<TimeSpan?>(Slice.Unescape("<14>")), Is.EqualTo(TimeSpan.Zero));
+			Assert.That(FdbTuple.DecodeKey<TimeSpan?>(Slice.Unescape("<00>")), Is.Null);
 
 		}
 
@@ -1214,17 +1886,17 @@ namespace FoundationDB.Layers.Tuples.Tests
 		public void Test_FdbTuple_Serialize_Alias()
 		{
 			Assert.That(
-				FdbTuple.Pack(FdbTupleAlias.System).ToString(),
+				FdbTuple.EncodeKey(FdbTupleAlias.System).ToString(),
 				Is.EqualTo("<FF>")
 			);
 
 			Assert.That(
-				FdbTuple.Pack(FdbTupleAlias.Directory).ToString(),
+				FdbTuple.EncodeKey(FdbTupleAlias.Directory).ToString(),
 				Is.EqualTo("<FE>")
 			);
 
 			Assert.That(
-				FdbTuple.Pack(FdbTupleAlias.Zero).ToString(),
+				FdbTuple.EncodeKey(FdbTupleAlias.Zero).ToString(),
 				Is.EqualTo("<00>")
 			);
 
@@ -1242,6 +1914,72 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(FdbTuplePackers.DeserializeBoxed(slice), Is.EqualTo(FdbTupleAlias.Directory));
 
 			//note: FdbTupleAlias.Start is <00> and will be deserialized as null
+		}
+
+		[Test]
+		public void Test_FdbTuple_Serialize_Embedded_Tuples()
+		{
+			Action<IFdbTuple, string> verify = (t, expected) =>
+			{
+				var key = t.ToSlice();
+				Assert.That(key.ToHexaString(' '), Is.EqualTo(expected));
+				Assert.That(FdbTuple.Pack(t), Is.EqualTo(key));
+				var t2 = FdbTuple.Unpack(key);
+				Assert.That(t2, Is.Not.Null);
+				Assert.That(t2.Count, Is.EqualTo(t.Count), "{0}", t2);
+				Assert.That(t2, Is.EqualTo(t));
+			};
+
+			// Index composite key
+			IFdbTuple value = FdbTuple.Create(2014, 11, 6); // Indexing a date value (Y, M, D)
+			string docId = "Doc123";
+			// key would be "(..., value, id)"
+
+			verify(
+				FdbTuple.Create(42, value, docId),
+				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+			);
+			verify(
+				FdbTuple.Create(new object[] { 42, value, docId }),
+				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+			);
+			verify(
+				FdbTuple.Create(42).Append(value).Append(docId),
+				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+			);
+			verify(
+				FdbTuple.Create(42).Append(value, docId),
+				"15 2A 03 16 07 DE 15 0B 15 06 00 02 44 6F 63 31 32 33 00"
+			);
+
+			// multiple depth
+			verify(
+				FdbTuple.Create(1, FdbTuple.Create(2, 3), FdbTuple.Create(FdbTuple.Create(4, 5, 6)), 7),
+				"15 01 03 15 02 15 03 00 03 03 15 04 15 05 15 06 00 00 15 07"
+			);
+
+			// corner cases
+			verify(
+				FdbTuple.Create(FdbTuple.Empty),
+				"03 00" // empty tumple should have header and footer
+			);
+			verify(
+				FdbTuple.Create(FdbTuple.Empty, default(string)),
+				"03 00 00" // outer null should not be escaped
+			);
+			verify(
+				FdbTuple.Create(FdbTuple.Create(default(string)), default(string)),
+				"03 00 FF 00 00" // inner null should be escaped, but not outer
+			);
+			verify(
+				FdbTuple.Create(FdbTuple.Create(0x100, 0x10000, 0x1000000)),
+				"03 16 01 00 17 01 00 00 18 01 00 00 00 00"
+			);
+			verify(
+				FdbTuple.Create(default(string), FdbTuple.Empty, default(string), FdbTuple.Create(default(string)), default(string)),
+				"00 03 00 00 03 00 FF 00 00"
+			);
+
 		}
 
 		[Test]
@@ -1298,47 +2036,47 @@ namespace FoundationDB.Layers.Tuples.Tests
 			);
 
 			Assert.That(
-				FdbTuple.CreateRange(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }, 1, 2).ToSlice().ToString(),
+				FdbTuple.FromArray(new object[] { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }, 1, 2).ToSlice().ToString(),
 				Is.EqualTo("<15>{<14>")
 			);
 
 			Assert.That(
-				FdbTuple.CreateRange(new List<object> { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }).ToSlice().ToString(),
+				FdbTuple.FromEnumerable(new List<object> { "hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 } }).ToSlice().ToString(),
 				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
 			);
 
 		}
 
 		[Test]
-		public void Test_FdbTuple_Pack()
+		public void Test_FdbTuple_EncodeKey()
 		{
 			Assert.That(
-				FdbTuple.Pack("hello world").ToString(),
+				FdbTuple.EncodeKey("hello world").ToString(),
 				Is.EqualTo("<02>hello world<00>")
 			);
 
 			Assert.That(
-				FdbTuple.Pack("hello", "world").ToString(),
+				FdbTuple.EncodeKey("hello", "world").ToString(),
 				Is.EqualTo("<02>hello<00><02>world<00>")
 			);
 
 			Assert.That(
-				FdbTuple.Pack("hello world", 123).ToString(),
+				FdbTuple.EncodeKey("hello world", 123).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{")
 			);
 
 			Assert.That(
-				FdbTuple.Pack("hello world", 1234, -1234).ToString(),
+				FdbTuple.EncodeKey("hello world", 1234, -1234).ToString(),
 				Is.EqualTo("<02>hello world<00><16><04><D2><12><FB>-")
 			);
 
 			Assert.That(
-				FdbTuple.Pack("hello world", 123, false).ToString(),
+				FdbTuple.EncodeKey("hello world", 123, false).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{<14>")
 			);
 
 			Assert.That(
-				FdbTuple.Pack("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }).ToString(),
+				FdbTuple.EncodeKey("hello world", 123, false, new byte[] { 123, 1, 66, 0, 42 }).ToString(),
 				Is.EqualTo("<02>hello world<00><15>{<14><01>{<01>B<00><FF>*<00>")
 			);
 		}
@@ -1348,26 +2086,26 @@ namespace FoundationDB.Layers.Tuples.Tests
 		{
 
 			var packed = FdbTuple.Create("hello world").ToSlice();
-			Console.WriteLine(packed);
+			Log(packed);
 
 			var tuple = FdbTuple.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
-			Console.WriteLine(tuple);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(1));
 			Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
 
 			packed = FdbTuple.Create("hello world", 123).ToSlice();
-			Console.WriteLine(packed);
+			Log(packed);
 
 			tuple = FdbTuple.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
-			Console.WriteLine(tuple);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(2));
 			Assert.That(tuple.Get<string>(0), Is.EqualTo("hello world"));
 			Assert.That(tuple.Get<int>(1), Is.EqualTo(123));
 
 			packed = FdbTuple.Create(1, 256, 257, 65536, int.MaxValue, long.MaxValue).ToSlice();
-			Console.WriteLine(packed);
+			Log(packed);
 
 			tuple = FdbTuple.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
@@ -1380,12 +2118,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Assert.That(tuple.Get<long>(5), Is.EqualTo(long.MaxValue));
 
 			packed = FdbTuple.Create(-1, -256, -257, -65536, int.MinValue, long.MinValue).ToSlice();
-			Console.WriteLine(packed);
+			Log(packed);
 
 			tuple = FdbTuple.Unpack(packed);
 			Assert.That(tuple, Is.Not.Null);
 			Assert.That(tuple, Is.InstanceOf<FdbSlicedTuple>());
-			Console.WriteLine(tuple);
+			Log(tuple);
 			Assert.That(tuple.Count, Is.EqualTo(6));
 			Assert.That(tuple.Get<int>(0), Is.EqualTo(-1));
 			Assert.That(tuple.Get<int>(1), Is.EqualTo(-256));
@@ -1426,62 +2164,32 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_FdbTuple_PackBoxed()
+		public void Test_FdbTuple_EncodeKey_Boxed()
 		{
 			Slice slice;
 
-			slice = FdbTuple.PackBoxed(default(object));
+			slice = FdbTuple.EncodeKey<object>(default(object));
 			Assert.That(slice.ToString(), Is.EqualTo("<00>"));
 
-			slice = FdbTuple.PackBoxed((object)1);
+			slice = FdbTuple.EncodeKey<object>(1);
 			Assert.That(slice.ToString(), Is.EqualTo("<15><01>"));
 
-			slice = FdbTuple.PackBoxed((object)1L);
+			slice = FdbTuple.EncodeKey<object>(1L);
 			Assert.That(slice.ToString(), Is.EqualTo("<15><01>"));
 
-			slice = FdbTuple.PackBoxed((object)1U);
+			slice = FdbTuple.EncodeKey<object>(1U);
 			Assert.That(slice.ToString(), Is.EqualTo("<15><01>"));
 
-			slice = FdbTuple.PackBoxed((object)1UL);
+			slice = FdbTuple.EncodeKey<object>(1UL);
 			Assert.That(slice.ToString(), Is.EqualTo("<15><01>"));
 
-			slice = FdbTuple.PackBoxed((object)false);
+			slice = FdbTuple.EncodeKey<object>(false);
 			Assert.That(slice.ToString(), Is.EqualTo("<14>"));
 
-			slice = FdbTuple.PackBoxed((object)new byte[] { 4, 5, 6 });
+			slice = FdbTuple.EncodeKey<object>(new byte[] { 4, 5, 6 });
 			Assert.That(slice.ToString(), Is.EqualTo("<01><04><05><06><00>"));
 
-			slice = FdbTuple.PackBoxed((object)"hello");
-			Assert.That(slice.ToString(), Is.EqualTo("<02>hello<00>"));
-		}
-
-		[Test]
-		public void Test_FdbTuple_Pack_Boxed_Values()
-		{
-			Slice slice;
-
-			slice = FdbTuple.Pack<object>(default(object));
-			Assert.That(slice.ToString(), Is.EqualTo("<00>"));
-
-			slice = FdbTuple.Pack<object>(1);
-			Assert.That(slice.ToString(), Is.EqualTo("<15><01>"));
-
-			slice = FdbTuple.Pack<object>(1L);
-			Assert.That(slice.ToString(), Is.EqualTo("<15><01>"));
-
-			slice = FdbTuple.Pack<object>(1U);
-			Assert.That(slice.ToString(), Is.EqualTo("<15><01>"));
-
-			slice = FdbTuple.Pack<object>(1UL);
-			Assert.That(slice.ToString(), Is.EqualTo("<15><01>"));
-
-			slice = FdbTuple.Pack<object>(false);
-			Assert.That(slice.ToString(), Is.EqualTo("<14>"));
-
-			slice = FdbTuple.Pack<object>(new byte[] { 4, 5, 6 });
-			Assert.That(slice.ToString(), Is.EqualTo("<01><04><05><06><00>"));
-
-			slice = FdbTuple.Pack<object>("hello");
+			slice = FdbTuple.EncodeKey<object>("hello");
 			Assert.That(slice.ToString(), Is.EqualTo("<02>hello<00>"));
 		}
 
@@ -1520,7 +2228,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 				}
 			}
 			sw.Stop();
-			Console.WriteLine("Checked " + N.ToString("N0") + " tuples in " + sw.ElapsedMilliseconds + " ms");
+			Log("Checked {0:N0} tuples in {1:N1} ms", N, sw.ElapsedMilliseconds);
 
 		}
 
@@ -1532,10 +2240,14 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Slice packed;
 
 			packed = FdbTuplePacker<Thing>.Serialize(new Thing { Foo = 123, Bar = "hello" });
-			Assert.That(packed.ToString(), Is.EqualTo("<15>{<02>hello<00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<03><15>{<02>hello<00><00>"));
 
 			packed = FdbTuplePacker<Thing>.Serialize(new Thing());
-			Assert.That(packed.ToString(), Is.EqualTo("<14><00>"));
+			Assert.That(packed.ToString(), Is.EqualTo("<03><14><00><FF><00>"));
+
+			packed = FdbTuplePacker<Thing>.Serialize(default(Thing));
+			Assert.That(packed.ToString(), Is.EqualTo("<00>"));
+
 		}
 
 		[Test]
@@ -1544,18 +2256,21 @@ namespace FoundationDB.Layers.Tuples.Tests
 			Slice slice;
 			Thing thing;
 
-			slice = Slice.Unescape("<16><01><C8><02>world<00>");
+			slice = Slice.Unescape("<03><16><01><C8><02>world<00><00>");
 			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(456));
 			Assert.That(thing.Bar, Is.EqualTo("world"));
 
-			slice = Slice.Unescape("<14><00>");
+			slice = Slice.Unescape("<03><14><00><FF><00>");
 			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
 			Assert.That(thing, Is.Not.Null);
 			Assert.That(thing.Foo, Is.EqualTo(0));
 			Assert.That(thing.Bar, Is.EqualTo(null));
 
+			slice = Slice.Unescape("<00>");
+			thing = FdbTuplePackers.DeserializeFormattable<Thing>(slice);
+			Assert.That(thing, Is.Null);
 		}
 
 		[Test]
@@ -1570,26 +2285,26 @@ namespace FoundationDB.Layers.Tuples.Tests
 			};
 
 			// array version
-			slices = FdbTuple.PackRange(tuples);
+			slices = FdbTuple.Pack(tuples);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(tuples.Length));
 			Assert.That(slices, Is.EqualTo(tuples.Select(t => t.ToSlice()).ToArray()));
 
 			// IEnumerable version that is passed an array
-			slices = FdbTuple.PackRange((IEnumerable<IFdbTuple>)tuples);
+			slices = FdbTuple.Pack((IEnumerable<IFdbTuple>)tuples);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(tuples.Length));
 			Assert.That(slices, Is.EqualTo(tuples.Select(t => t.ToSlice()).ToArray()));
 
 			// IEnumerable version but with a "real" enumerable 
-			slices = FdbTuple.PackRange(tuples.Select(t => t));
+			slices = FdbTuple.Pack(tuples.Select(t => t));
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(tuples.Length));
 			Assert.That(slices, Is.EqualTo(tuples.Select(t => t.ToSlice()).ToArray()));
 		}
 
 		[Test]
-		public void Test_FdbTuple_PackRange_Of_T()
+		public void Test_FdbTuple_EncodeKeys_Of_T()
 		{
 			Slice[] slices;
 
@@ -1599,19 +2314,19 @@ namespace FoundationDB.Layers.Tuples.Tests
 			int[] items = new int[] { 1, 2, 3, 123, -1, int.MaxValue };
 
 			// array version
-			slices = FdbTuple.PackRange<int>(tuple, items);
+			slices = FdbTuple.EncodePrefixedKeys<int>(tuple, items);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
 
 			// IEnumerable version that is passed an array
-			slices = FdbTuple.PackRange<int>(tuple, (IEnumerable<int>)items);
+			slices = FdbTuple.EncodePrefixedKeys<int>(tuple, (IEnumerable<int>)items);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
 
 			// IEnumerable version but with a "real" enumerable 
-			slices = FdbTuple.PackRange<int>(tuple, items.Select(t => t));
+			slices = FdbTuple.EncodePrefixedKeys<int>(tuple, items.Select(t => t));
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
@@ -1622,13 +2337,13 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			string[] words = new string[] { "hello", "world", "très bien", "断トツ", "abc\0def", null, String.Empty };
 
-			var merged = FdbTuple.PackRange(Slice.FromByte(42), words);
+			var merged = FdbTuple.EncodePrefixedKeys(Slice.FromByte(42), words);
 			Assert.That(merged, Is.Not.Null);
 			Assert.That(merged.Length, Is.EqualTo(words.Length));
 
 			for (int i = 0; i < words.Length; i++)
 			{
-				var expected = Slice.FromByte(42) + FdbTuple.Pack(words[i]);
+				var expected = Slice.FromByte(42) + FdbTuple.EncodeKey(words[i]);
 				Assert.That(merged[i], Is.EqualTo(expected));
 
 				Assert.That(merged[i].Array, Is.SameAs(merged[0].Array), "All slices should be stored in the same buffer");
@@ -1636,33 +2351,33 @@ namespace FoundationDB.Layers.Tuples.Tests
 			}
 
 			// corner cases
-			Assert.That(() => FdbTuple.PackRange<int>(Slice.Empty, default(int[])), Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
-			Assert.That(() => FdbTuple.PackRange<int>(Slice.Empty, default(IEnumerable<int>)), Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
+			Assert.That(() => FdbTuple.EncodePrefixedKeys<int>(Slice.Empty, default(int[])), Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
+			Assert.That(() => FdbTuple.EncodePrefixedKeys<int>(Slice.Empty, default(IEnumerable<int>)), Throws.InstanceOf<ArgumentNullException>().With.Property("ParamName").EqualTo("keys"));
 
 			#endregion
 		}
 
 		[Test]
-		public void Test_FdbTuple_PackBoxedRange()
+		public void Test_FdbTuple_EncodeKeys_Boxed()
 		{
 			Slice[] slices;
 			var tuple = FdbTuple.Create("hello");
 			object[] items = new object[] { "world", 123, false, Guid.NewGuid(), long.MinValue };
 
 			// array version
-			slices = FdbTuple.PackBoxedRange(tuple, items);
+			slices = FdbTuple.EncodePrefixedKeys<object>(tuple, items);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
 
 			// IEnumerable version that is passed an array
-			slices = FdbTuple.PackBoxedRange(tuple, (IEnumerable<object>)items);
+			slices = FdbTuple.EncodePrefixedKeys<object>(tuple, (IEnumerable<object>)items);
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
 
 			// IEnumerable version but with a "real" enumerable 
-			slices = FdbTuple.PackBoxedRange(tuple, items.Select(t => t));
+			slices = FdbTuple.EncodePrefixedKeys<object>(tuple, items.Select(t => t));
 			Assert.That(slices, Is.Not.Null);
 			Assert.That(slices.Length, Is.EqualTo(items.Length));
 			Assert.That(slices, Is.EqualTo(items.Select(x => tuple.Append(x).ToSlice()).ToArray()));
@@ -1684,10 +2399,13 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 		private static void PerformWriterTest<T>(FdbTuplePackers.Encoder<T> action, T value, string expectedResult, string message = null)
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			action(ref writer, value);
 
-			Assert.That(writer.ToSlice().ToHexaString(' '), Is.EqualTo(expectedResult), message != null ? "Value {0} ({1}) was not properly packed: {2}" : "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name), message);
+			Assert.That(
+				writer.Output.ToSlice().ToHexaString(' '),
+				Is.EqualTo(expectedResult),
+				message != null ? "Value {0} ({1}) was not properly packed: {2}" : "Value {0} ({1}) was not properly packed", value == null ? "<null>" : value is string ? Clean(value as string) : value.ToString(), (value == null ? "null" : value.GetType().Name), message);
 		}
 
 		[Test]
@@ -1734,11 +2452,11 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			Action<long> test = (x) =>
 			{
-				var writer = SliceWriter.Empty;
+				var writer = new TupleWriter();
 				FdbTupleParser.WriteInt64(ref writer, x);
-				var res = new KeyValuePair<long, Slice>(x, writer.ToSlice());
+				var res = new KeyValuePair<long, Slice>(x, writer.Output.ToSlice());
 				list.Add(res);
-				Console.WriteLine("{0,20} : {0:x16} {1}", res.Key, res.Value.ToString());
+				Log("{0,20} : {0:x16} {1}", res.Key, res.Value.ToString());
 			};
 
 			// We can't test 2^64 values, be we are interested at what happens around powers of two (were size can change)
@@ -1824,12 +2542,12 @@ namespace FoundationDB.Layers.Tuples.Tests
 
 			Action<ulong> test = (x) =>
 			{
-				var writer = SliceWriter.Empty;
+				var writer = new TupleWriter();
 				FdbTupleParser.WriteUInt64(ref writer, x);
-				var res = new KeyValuePair<ulong, Slice>(x, writer.ToSlice());
+				var res = new KeyValuePair<ulong, Slice>(x, writer.Output.ToSlice());
 				list.Add(res);
 #if DEBUG
-				Console.WriteLine("{0,20} : {0:x16} {1}", res.Key, res.Value.ToString());
+				Log("{0,20} : {0:x16} {1}", res.Key, res.Value);
 #endif
 			};
 
@@ -1975,10 +2693,10 @@ namespace FoundationDB.Layers.Tuples.Tests
 			for (int i = 1; i <= 65535; i++)
 			{
 				char c = (char)i;
-				var writer = SliceWriter.Empty;
+				var writer = new TupleWriter();
 				FdbTupleParser.WriteChar(ref writer, c);
 				string s = new string(c, 1);
-				Assert.That(writer.ToSlice().ToString(), Is.EqualTo("<02>" + Slice.Create(Encoding.UTF8.GetBytes(s)).ToString() + "<00>"), "{0} '{1}'", i, c);
+				Assert.That(writer.Output.ToSlice().ToString(), Is.EqualTo("<02>" + Slice.Create(Encoding.UTF8.GetBytes(s)).ToString() + "<00>"), "{0} '{1}'", i, c);
 			}
 		}
 
@@ -2074,8 +2792,8 @@ namespace FoundationDB.Layers.Tuples.Tests
 		[Test]
 		public void Test_FdbTuple_Substring_Equality()
 		{
-			var x = FdbTuple.CreateRange<string>(new [] { "A", "C" });
-			var y = FdbTuple.CreateRange<string>(new[] { "A", "B", "C" });
+			var x = FdbTuple.FromArray<string>(new [] { "A", "C" });
+			var y = FdbTuple.FromArray<string>(new[] { "A", "B", "C" });
 
 			Assert.That(x.Substring(0, 1), Is.EqualTo(y.Substring(0, 1)));
 			Assert.That(x.Substring(1, 1), Is.EqualTo(y.Substring(2, 1)));
@@ -2200,7 +2918,7 @@ namespace FoundationDB.Layers.Tuples.Tests
 			string FUNKY_STRING = "hello\x00world";
 			string UNICODE_STRING = "héllø 世界";
 
-			Console.Write("Creating " + N.ToString("N0") + " random tuples");
+			Console.Write("Creating {0:N0} random tuples", N);
 			var tuples = new List<IFdbTuple>(N);
 			var rnd = new Random(777);
 			var guids = Enumerable.Range(0, 10).Select(_ => Guid.NewGuid()).ToArray();
@@ -2239,60 +2957,60 @@ namespace FoundationDB.Layers.Tuples.Tests
 				tuples.Add(tuple);
 			}
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
-			Console.WriteLine(" > " + tuples.Sum(x => x.Count).ToString("N0") + " items");
-			Console.WriteLine(" > "  + tuples[42]);
-			Console.WriteLine();
+			Log(" done in {0:N3} sec", sw.Elapsed.TotalSeconds);
+			Log(" > {0:N0} items", tuples.Sum(x => x.Count));
+			Log(" > {0}", tuples[42]);
+			Log();
 
 			Console.Write("Packing tuples...");
 			sw.Restart();
-			var slices = FdbTuple.PackRange(tuples);
+			var slices = FdbTuple.Pack(tuples);
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
-			Console.WriteLine(" > " + (N / sw.Elapsed.TotalSeconds).ToString("N0") + " tps");
-			Console.WriteLine(" > " + slices.Sum(x => x.Count).ToString("N0") + " bytes");
-			Console.WriteLine(" > " + slices[42]);
-			Console.WriteLine();
+			Log(" done in {0:N3} sec", sw.Elapsed.TotalSeconds);
+			Log(" > {0:N0} tps", N / sw.Elapsed.TotalSeconds);
+			Log(" > {0:N0} bytes", slices.Sum(x => x.Count));
+			Log(" > {0}", slices[42]);
+			Log();
 
 			Console.Write("Unpacking tuples...");
 			sw.Restart();
 			var unpacked = slices.Select(slice => FdbTuple.Unpack(slice)).ToList();
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
-			Console.WriteLine(" > " + (N / sw.Elapsed.TotalSeconds).ToString("N0") + " tps");
-			Console.WriteLine(" > " + unpacked[42]);
-			Console.WriteLine();
+			Log(" done in {0:N3} sec", sw.Elapsed.TotalSeconds);
+			Log(" > {0:N0} tps", N / sw.Elapsed.TotalSeconds);
+			Log(" > {0}", unpacked[42]);
+			Log();
 
 			Console.Write("Comparing ...");
 			sw.Restart();
 			tuples.Zip(unpacked, (x, y) => x.Equals(y)).All(b => b);
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
-			Console.WriteLine();
+			Log(" done in {0:N3} sec", sw.Elapsed.TotalSeconds);
+			Log();
 
 			Console.Write("Tuples.ToString ...");
 			sw.Restart();
 			var strings = tuples.Select(x => x.ToString()).ToList();
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
-			Console.WriteLine(" > " + strings.Sum(x => x.Length).ToString("N0") + " chars");
-			Console.WriteLine(" > " + strings[42]);
-			Console.WriteLine();
+			Log(" done in {0:N3} sec", sw.Elapsed.TotalSeconds);
+			Log(" > {0:N0} chars", strings.Sum(x => x.Length));
+			Log(" > {0}", strings[42]);
+			Log();
 
 			Console.Write("Unpacked.ToString ...");
 			sw.Restart();
 			strings = unpacked.Select(x => x.ToString()).ToList();
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
-			Console.WriteLine(" > " + strings.Sum(x => x.Length).ToString("N0") + " chars");
-			Console.WriteLine(" > " + strings[42]);
-			Console.WriteLine();
+			Log(" done in {0:N3} sec", sw.Elapsed.TotalSeconds);
+			Log(" > {0:N0} chars", strings.Sum(x => x.Length));
+			Log(" > {0}", strings[42]);
+			Log();
 
 			Console.Write("Memoizing ...");
 			sw.Restart();
 			var memoized = tuples.Select(x => x.Memoize()).ToList();
 			sw.Stop();
-			Console.WriteLine(" done in " + sw.Elapsed.TotalSeconds + " sec");
+			Log(" done in {0:N3} sec", sw.Elapsed.TotalSeconds);
 		}
 
 		#endregion

@@ -65,10 +65,17 @@
     <Compile Include="Converters\SimilarValueComparer.cs" />
     <Compile Include="Core\IFdbClusterHandler.cs" />
     <Compile Include="Core\IFdbDatabaseHandler.cs" />
-    <Compile Include="Encoders\FdbEncoderSubspace`3.cs" />
-    <Compile Include="Encoders\FdbEncoderSubspace`2.cs" />
-    <Compile Include="Encoders\IKeyValueEncoder.cs" />
-    <Compile Include="Encoders\FdbEncoderSubspace`1.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspaceKeys`4.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspaceKeys`3.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspaceKeys`2.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspacePartition`4.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspacePartition`3.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspacePartition`2.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspace`4.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspace`3.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspace`2.cs" />
+    <Compile Include="TypeSystem\ICompositeKeyEncoder.cs" />
+    <Compile Include="TypeSystem\IKeyValueEncoder.cs" />
     <Compile Include="Linq\Iterators\FdbAnonymousAsyncGenerator.cs" />
     <Compile Include="Linq\Iterators\FdbBatchingAsyncIterator.cs" />
     <Compile Include="Linq\Iterators\FdbPrefetchingAsyncIterator.cs" />
@@ -80,6 +87,9 @@
     <Compile Include="FdbIsolationLevel.cs" />
     <Compile Include="Layers\Directories\FdbDirectoryPartition.cs" />
     <Compile Include="Layers\Directories\IFdbDirectory.cs" />
+    <Compile Include="Layers\Tuples\FdbTuple`5.cs" />
+    <Compile Include="Layers\Tuples\TupleReader.cs" />
+    <Compile Include="Layers\Tuples\TupleWriter.cs" />
     <Compile Include="Linq\FdbAsyncEnumerable.OrderedSequence.cs" />
     <Compile Include="Linq\FdbAsyncEnumerable.Sorters.cs" />
     <Compile Include="Linq\IFdbAsyncOrderedEnumerable.cs" />
@@ -161,6 +171,12 @@
     <Compile Include="Layers\Tuples\Formatters\ITupleFormattable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleComparisons.cs" />
     <Compile Include="Layers\Tuples\FdbJoinedTuple.cs" />
+    <Compile Include="Subspaces\FdbDynamicSubspace.cs" />
+    <Compile Include="Subspaces\FdbDynamicSubspacePartition.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspaceKeys`1.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspacePartition`1.cs" />
+    <Compile Include="Subspaces\FdbEncoderSubspace`1.cs" />
+    <Compile Include="Subspaces\IFdbEncoderSubspace.cs" />
     <Compile Include="Subspaces\IFdbSubspace.cs" />
     <Compile Include="Subspaces\FdbSubspaceExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbLinkedTuple.cs" />
@@ -202,13 +218,21 @@
     <Compile Include="Linq\IFdbAsyncEnumerator.cs" />
     <Compile Include="Linq\IFdbAsyncEnumerable.cs" />
     <Compile Include="Layers\Tuples\FdbTupleParser.cs" />
+    <Compile Include="Subspaces\FdbDynamicSubspaceKeys.cs" />
+    <Compile Include="Subspaces\IFdbDynamicSubspace.cs" />
+    <Compile Include="TypeSystem\IDynamicKeyEncoder.cs" />
+    <Compile Include="TypeSystem\IValueEncoder.cs" />
+    <Compile Include="TypeSystem\IFdbKeyEncoding.cs" />
     <Compile Include="TypeSystem\IUnorderedTypeCodec.cs" />
     <Compile Include="TypeSystem\IOrderedTypeCodec.cs" />
+    <Compile Include="TypeSystem\Encoders\DynamicKeyEncoderBase.cs" />
+    <Compile Include="Layers\Tuples\TypeSystem\TupleKeyEncoding.cs" />
+    <Compile Include="Layers\Tuples\TypeSystem\TupleKeyEncoder.cs" />
+    <Compile Include="TypeSystem\TypeSystem.cs" />
     <Compile Include="Utils\CodeAnnotations.cs" />
     <Compile Include="Utils\DebugCounters.cs" />
-    <Compile Include="Encoders\KeyValueEncoders.cs" />
+    <Compile Include="TypeSystem\Encoders\KeyValueEncoders.cs" />
     <Compile Include="TypeSystem\FdbTypeCodec`1.cs" />
-    <Compile Include="Encoders\ISliceSerializable.cs" />
     <Compile Include="Utils\TinyJsonParser.cs" />
     <Compile Include="Utils\SlicePairComparer.cs" />
     <Compile Include="Utils\SliceHelpers.cs" />
@@ -246,6 +270,9 @@
     <Compile Include="Layers\Tuples\FdbTupleExtensions.cs" />
     <Compile Include="Layers\Tuples\FdbTuplePacker.cs" />
     <Compile Include="Async\TaskHelpers.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Encoders\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

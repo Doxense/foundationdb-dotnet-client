@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,16 +29,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
-	using System.IO;
 	using System.Linq;
-	using System.Text;
 	using System.Threading.Tasks;
 
 	/// <summary>Simple index that maps values of type <typeparamref name="TValue"/> into lists of ids of type <typeparamref name="TId"/></summary>
@@ -62,14 +58,14 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			this.Subspace = subspace;
 			this.ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 			this.IndexNullValues = indexNullValues;
-			this.Location = new FdbEncoderSubspace<TValue>(subspace, encoder);
+			this.Location = subspace.UsingEncoder(encoder);
 		}
 
 		public string Name { [NotNull] get; private set; }
 
 		public FdbSubspace Subspace { [NotNull] get; private set; }
 
-		protected FdbEncoderSubspace<TValue> Location { [NotNull] get; private set; }
+		protected IFdbEncoderSubspace<TValue> Location { [NotNull] get; private set; }
 
 		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; private set; }
 
@@ -88,7 +84,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 			if (this.IndexNullValues || value != null)
 			{
-				var key = this.Location.EncodeKey(value);
+				var key = this.Location.Keys.Encode(value);
 				var data = await trans.GetAsync(key).ConfigureAwait(false);
 				var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
 
@@ -118,7 +114,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				// remove previous value
 				if (this.IndexNullValues || previousValue != null)
 				{
-					var key = this.Location.EncodeKey(previousValue);
+					var key = this.Location.Keys.Encode(previousValue);
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					if (data.HasValue)
 					{
@@ -131,7 +127,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 				// add new value
 				if (this.IndexNullValues || newValue != null)
 				{
-					var key = this.Location.EncodeKey(newValue);
+					var key = this.Location.Keys.Encode(newValue);
 					var data = await trans.GetAsync(key).ConfigureAwait(false);
 					var builder = data.HasValue ? new CompressedBitmapBuilder(data) : CompressedBitmapBuilder.Empty;
 					builder.Set((int)id); //BUGBUG: 64 bit id!
@@ -152,7 +148,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			var key = this.Location.EncodeKey(value);
+			var key = this.Location.Keys.Encode(value);
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.HasValue)
 			{
@@ -171,7 +167,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>List of document ids matching this value for this particular index (can be empty if no document matches)</returns>
 		public async Task<IEnumerable<long>> LookupAsync([NotNull] IFdbReadOnlyTransaction trans, TValue value, bool reverse = false)
 		{
-			var key = this.Location.EncodeKey(value);
+			var key = this.Location.Keys.Encode(value);
 			var data = await trans.GetAsync(key).ConfigureAwait(false);
 			if (data.IsNull) return null;
 			if (data.IsEmpty) return Enumerable.Empty<long>();

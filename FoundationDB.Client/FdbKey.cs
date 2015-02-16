@@ -94,6 +94,8 @@ namespace FoundationDB.Client
 			if (prefix == null) throw new ArgumentNullException("prefix");
 			if (keys == null) throw new ArgumentNullException("keys");
 
+			//REVIEW: merge this code with Slice.ConcatRange!
+
 			// we can pre-allocate exactly the buffer by computing the total size of all keys
 			int size = keys.Sum(key => key.Count) + keys.Length * prefix.Count;
 			var writer = new SliceWriter(size);
@@ -120,6 +122,8 @@ namespace FoundationDB.Client
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
 			if (keys == null) throw new ArgumentNullException("keys");
+
+			//REVIEW: merge this code with Slice.ConcatRange!
 
 			// use optimized version for arrays
 			var array = keys as Slice[];

@@ -62,9 +62,44 @@ namespace FoundationDB.Linq
 
 			private void QuickSort([NotNull] int[] map, int left, int right)
 			{
-				throw new NotImplementedException();
-			}
+				do
+				{
+					int i = left;
+					int j = right;
+					int x = map[i + ((j - i) >> 1)];
+					do
+					{
+						while (i < map.Length && CompareKeys(x, map[i]) > 0)
+						{
+							i++;
+						}
+						while (j >= 0 && CompareKeys(x, map[j]) < 0)
+						{
+							j--;
+						}
+						if (i > j) break;
+						if (i < j)
+						{
+							int temp = map[i];
+							map[i] = map[j];
+							map[j] = temp;
+						}
+						i++;
+						j--;
+					} while (i <= j);
 
+					if (j - left <= right - i)
+					{
+						if (left < j) QuickSort(map, left, j);
+						left = i;
+					}
+					else
+					{
+						if (i < right) QuickSort(map, i, right);
+						right = j;
+					}
+				} while (left < right);
+			}
 		}
 
 		/// <summary>Helper class for sorting a sequence of <typeparamref name="TSource"/></summary>
@@ -136,10 +171,16 @@ namespace FoundationDB.Linq
 					keys[i] = selector(items[i]);
 				}
 				m_keys = keys;
+				if (m_next != null)
+				{
+					m_next.ComputeKeys(items, count);
+				}
 			}
 
 			internal override int CompareKeys(int index1, int index2)
 			{
+				Contract.Requires(m_keys != null);
+				Contract.Requires(m_comparer != null);
 				var keys = m_keys;
 				int c = m_comparer.Compare(keys[index1], keys[index2]);
 				if (c == 0)

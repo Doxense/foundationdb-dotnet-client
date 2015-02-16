@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Tuples
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
@@ -47,6 +48,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>First and only item in the tuple</summary>
 		public readonly T1 Item1;
 
+		[DebuggerStepThrough]
 		public FdbTuple(T1 item1)
 		{
 			this.Item1 = item1;
@@ -68,18 +70,23 @@ namespace FoundationDB.Layers.Tuples
 			get { return FdbTuple.Splice(this, fromIncluded, toExcluded); }
 		}
 
+		/// <summary>Return the typed value of an item of the tuple, given its position</summary>
+		/// <typeparam name="R">Expected type of the item</typeparam>
+		/// <param name="index">Position of the item (if negative, means relative from the end)</param>
+		/// <returns>Value of the item at position <paramref name="index"/>, adapted into type <typeparamref name="R"/>.</returns>
 		public R Get<R>(int index)
 		{
 			if (index > 0 || index < -1) FdbTuple.FailIndexOutOfRange(index, 1);
 			return FdbConverters.Convert<T1, R>(this.Item1);
 		}
 
-		public R Last<R>()
+		/// <summary>Return the typed value of the last item in the tuple</summary>
+		R IFdbTuple.Last<R>()
 		{
 			return FdbConverters.Convert<T1, R>(this.Item1);
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
 			FdbTuplePacker<T1>.Encoder(ref writer, this.Item1);
 		}
@@ -89,14 +96,44 @@ namespace FoundationDB.Layers.Tuples
 			return new FdbTuple<T1, T2>(this.Item1, value);
 		}
 
+		/// <summary>Appends a tuple as a single new item at the end of the current tuple.</summary>
+		/// <param name="value">Tuple that will be added as an embedded item</param>
+		/// <returns>New tuple with one extra item</returns>
+		/// <remarks>If you want to append the *items*  of <paramref name="value"/>, and not the tuple itself, please call <see cref="Concat"/>!</remarks>
+		[NotNull]
 		public FdbTuple<T1, T2> Append<T2>(T2 value)
 		{
 			return new FdbTuple<T1, T2>(this.Item1, value);
 		}
 
-		public void CopyTo(object[] array, int offset)
+		/// <summary>Appends the items of a tuple at the end of the current tuple.</summary>
+		/// <param name="tuple">Tuple whose items are to be appended at the end</param>
+		/// <returns>New tuple composed of the current tuple's items, followed by <paramref name="tuple"/>'s items</returns>
+		[NotNull]
+		public IFdbTuple Concat([NotNull] IFdbTuple tuple)
+		{
+			return FdbTuple.Concat(this, tuple);
+		}
+
+		/// <summary>Copy the item of this singleton into an array at the specified offset</summary>
+		public void CopyTo([NotNull] object[] array, int offset)
 		{
 			array[offset] = this.Item1;
+		}
+
+		/// <summary>Execute a lambda Action with the content of this tuple</summary>
+		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		public void With([NotNull] Action<T1> lambda)
+		{
+			lambda(this.Item1);
+		}
+
+		/// <summary>Execute a lambda Function with the content of this tuple</summary>
+		/// <param name="lambda">Action that will be passed the content of this tuple as parameters</param>
+		/// <returns>Result of calling <paramref name="lambda"/> with the items of this tuple</returns>
+		public R With<R>([NotNull] Func<T1, R> lambda)
+		{
+			return lambda(this.Item1);
 		}
 
 		public IEnumerator<object> GetEnumerator()
@@ -111,7 +148,7 @@ namespace FoundationDB.Layers.Tuples
 
 		public Slice ToSlice()
 		{
-			return FdbTuple.Pack(this.Item1);
+			return FdbTuple.EncodeKey(this.Item1);
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()
@@ -163,6 +200,17 @@ namespace FoundationDB.Layers.Tuples
 		int IStructuralEquatable.GetHashCode(IEqualityComparer comparer)
 		{
 			return comparer.GetHashCode(this.Item1);
+		}
+
+		public static implicit operator FdbTuple<T1>(Tuple<T1> t)
+		{
+			if (t == null) throw new ArgumentNullException("t");
+			return new FdbTuple<T1>(t.Item1);
+		}
+
+		public static explicit operator Tuple<T1>(FdbTuple<T1> t)
+		{
+			return new Tuple<T1>(t.Item1);
 		}
 
 	}

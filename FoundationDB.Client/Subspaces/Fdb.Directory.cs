@@ -72,7 +72,7 @@ namespace FoundationDB.Client
 
 				// By convention, all named databases will be under the "/Databases" folder
 				FdbDatabase db = null;
-				FdbSubspace rootSpace = FdbSubspace.Empty;
+				var rootSpace = FdbSubspace.Empty;
 				try
 				{
 					db = (FdbDatabase) (await Fdb.OpenInternalAsync(clusterFile, dbName, rootSpace, readOnly: false, cancellationToken: cancellationToken).ConfigureAwait(false));
@@ -84,7 +84,7 @@ namespace FoundationDB.Client
 					if (Logging.On) Logging.Verbose(typeof(Fdb.Directory), "OpenNamedPartitionAsync", String.Format("Found named partition '{0}' at prefix {1}", descriptor.FullName, descriptor));
 
 					// we have to chroot the database to the new prefix, and create a new DirectoryLayer with a new '/'
-					rootSpace = descriptor.Copy(); //note: create a copy of the key
+					rootSpace = FdbSubspace.Copy(descriptor); //note: create a copy of the key
 					//TODO: find a nicer way to do that!
 					db.ChangeRoot(rootSpace, FdbDirectoryLayer.Create(rootSpace, partitionPath), readOnly);
 

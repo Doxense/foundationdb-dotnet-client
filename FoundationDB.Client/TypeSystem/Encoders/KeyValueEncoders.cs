@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -108,7 +108,7 @@ namespace FoundationDB.Client
 			{
 				return m_decoder(encoded);
 			}
-	
+
 		}
 
 		/// <summary>Wrapper for encoding and decoding a pair with lambda functions</summary>
@@ -218,10 +218,12 @@ namespace FoundationDB.Client
 		/// <summary>Wrapper for a composite encoder that will only output the first key</summary>
 		public struct HeadEncoder<T1, T2> : IKeyEncoder<T1>
 		{
+			[NotNull]
 			public readonly ICompositeKeyEncoder<T1, T2> Encoder;
 
-			public HeadEncoder(ICompositeKeyEncoder<T1, T2> encoder)
+			public HeadEncoder([NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 			{
+				Contract.Requires(encoder != null);
 				this.Encoder = encoder;
 			}
 
@@ -239,10 +241,12 @@ namespace FoundationDB.Client
 		/// <summary>Wrapper for a composite encoder that will only output the first key</summary>
 		public struct HeadEncoder<T1, T2, T3> : IKeyEncoder<T1>
 		{
+			[NotNull]
 			public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
 
-			public HeadEncoder(ICompositeKeyEncoder<T1, T2, T3> encoder)
+			public HeadEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 			{
+				Contract.Requires(encoder != null);
 				this.Encoder = encoder;
 			}
 
@@ -257,13 +261,38 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Wrapper for a composite encoder that will only output the first key</summary>
+		public struct HeadEncoder<T1, T2, T3, T4> : IKeyEncoder<T1>
+		{
+			[NotNull]
+			public readonly ICompositeKeyEncoder<T1, T2, T3, T4> Encoder;
+
+			public HeadEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+			{
+				Contract.Requires(encoder != null);
+				this.Encoder = encoder;
+			}
+
+			public Slice EncodeKey(T1 value)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3, T4>(value, default(T2), default(T3), default(T4)), 1);
+			}
+
+			public T1 DecodeKey(Slice encoded)
+			{
+				return this.Encoder.DecodeComposite(encoded, 1).Item1;
+			}
+		}
+
 		/// <summary>Wrapper for a composite encoder that will only output the first and second keys</summary>
 		public struct PairEncoder<T1, T2, T3> : ICompositeKeyEncoder<T1, T2>
 		{
+			[NotNull]
 			public readonly ICompositeKeyEncoder<T1, T2, T3> Encoder;
 
-			public PairEncoder(ICompositeKeyEncoder<T1, T2, T3> encoder)
+			public PairEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 			{
+				Contract.Requires(encoder != null);
 				this.Encoder = encoder;
 			}
 
@@ -292,9 +321,54 @@ namespace FoundationDB.Client
 			{
 				return DecodeComposite(encoded, 2);
 			}
+
 			public HeadEncoder<T1, T2, T3> Head()
 			{
 				return new HeadEncoder<T1, T2, T3>(this.Encoder);
+			}
+		}
+
+		/// <summary>Wrapper for a composite encoder that will only output the first and second keys</summary>
+		public struct PairEncoder<T1, T2, T3, T4> : ICompositeKeyEncoder<T1, T2>
+		{
+			[NotNull]
+			public readonly ICompositeKeyEncoder<T1, T2, T3, T4> Encoder;
+
+			public PairEncoder([NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+			{
+				Contract.Requires(encoder != null);
+				this.Encoder = encoder;
+			}
+
+			public Slice EncodeKey(T1 value1, T2 value2)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3, T4>(value1, value2, default(T3), default(T4)), 2);
+			}
+
+			public Slice EncodeComposite(FdbTuple<T1, T2> key, int items)
+			{
+				return this.Encoder.EncodeComposite(new FdbTuple<T1, T2, T3, T4>(key.Item1, key.Item2, default(T3), default(T4)), items);
+			}
+
+			public FdbTuple<T1, T2> DecodeComposite(Slice encoded, int items)
+			{
+				var t = this.Encoder.DecodeComposite(encoded, items);
+				return new FdbTuple<T1, T2>(t.Item1, t.Item2);
+			}
+
+			public Slice EncodeKey(FdbTuple<T1, T2> value)
+			{
+				return EncodeComposite(value, 2);
+			}
+
+			public FdbTuple<T1, T2> DecodeKey(Slice encoded)
+			{
+				return DecodeComposite(encoded, 2);
+			}
+
+			public HeadEncoder<T1, T2, T3, T4> Head()
+			{
+				return new HeadEncoder<T1, T2, T3, T4>(this.Encoder);
 			}
 		}
 
@@ -625,26 +699,26 @@ namespace FoundationDB.Client
 
 				public Slice EncodeKey(T key)
 				{
-					return FdbTuple.Pack<T>(key);
+					return FdbTuple.EncodeKey(key);
 				}
 
 				public T DecodeKey(Slice encoded)
 				{
 					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return FdbTuple.UnpackSingle<T>(encoded);
+					return FdbTuple.DecodeKey<T>(encoded);
 				}
 
 				public Slice EncodeValue(T key)
 				{
-					return FdbTuple.Pack<T>(key);
+					return FdbTuple.EncodeKey(key);
 				}
 
 				public T DecodeValue(Slice encoded)
 				{
 					if (encoded.IsNullOrEmpty) return default(T); //BUGBUG
-					return FdbTuple.UnpackSingle<T>(encoded);
+					return FdbTuple.DecodeKey<T>(encoded);
 				}
-	
+
 			}
 
 			internal class TupleCompositeEncoder<T1, T2> : CompositeKeyEncoder<T1, T2>
@@ -659,7 +733,7 @@ namespace FoundationDB.Client
 					switch (items)
 					{
 						case 2: return key.ToSlice();
-						case 1: return FdbTuple.Pack<T1>(key.Item1);
+						case 1: return FdbTuple.EncodeKey<T1>(key.Item1);
 						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be either 1 or 2");
 					}
 				}
@@ -668,9 +742,8 @@ namespace FoundationDB.Client
 				{
 					if (items < 1 || items > 2) throw new ArgumentOutOfRangeException("items", items, "Item count must be either 1 or 2");
 
-					var t = FdbTuple.Unpack(encoded);
+					var t = FdbTuple.Unpack(encoded).OfSize(items);
 					Contract.Assert(t != null);
-					if (t.Count != items) throw new ArgumentException(String.Format("Was expected {0} items, but decoded tuple only has {1}", items, t.Count));
 
 					return FdbTuple.Create<T1, T2>(
 						t.Get<T1>(0),
@@ -691,8 +764,8 @@ namespace FoundationDB.Client
 					switch (items)
 					{
 						case 3: return key.ToSlice();
-						case 2: return FdbTuple.Pack<T1, T2>(key.Item1, key.Item2);
-						case 1: return FdbTuple.Pack<T1>(key.Item1);
+						case 2: return FdbTuple.EncodeKey<T1, T2>(key.Item1, key.Item2);
+						case 1: return FdbTuple.EncodeKey<T1>(key.Item1);
 						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 3");
 					}
 				}
@@ -701,9 +774,8 @@ namespace FoundationDB.Client
 				{
 					if (items < 1 || items > 3) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 3");
 
-					var t = FdbTuple.Unpack(encoded);
+					var t = FdbTuple.Unpack(encoded).OfSize(items);
 					Contract.Assert(t != null);
-					if (t.Count != items) throw new ArgumentException(String.Format("Was expected {0} items, but decoded tuple only has {1}", items, t.Count));
 
 					return FdbTuple.Create<T1, T2, T3>(
 						t.Get<T1>(0),
@@ -725,9 +797,9 @@ namespace FoundationDB.Client
 					switch (items)
 					{
 						case 4: return key.ToSlice();
-						case 3: return FdbTuple.Pack(key.Item1, key.Item2, key.Item3);
-						case 2: return FdbTuple.Pack(key.Item1, key.Item2);
-						case 1: return FdbTuple.Pack(key.Item1);
+						case 3: return FdbTuple.EncodeKey(key.Item1, key.Item2, key.Item3);
+						case 2: return FdbTuple.EncodeKey(key.Item1, key.Item2);
+						case 1: return FdbTuple.EncodeKey(key.Item1);
 						default: throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 4");
 					}
 				}
@@ -736,9 +808,7 @@ namespace FoundationDB.Client
 				{
 					if (items < 1 || items > 4) throw new ArgumentOutOfRangeException("items", items, "Item count must be between 1 and 4");
 
-					var t = FdbTuple.Unpack(encoded);
-					Contract.Assert(t != null);
-					if (t.Count != items) throw new ArgumentException(String.Format("Was expected {0} items, but decoded tuple only has {1}", items, t.Count));
+					var t = FdbTuple.Unpack(encoded).OfSize(items);
 
 					return FdbTuple.Create<T1, T2, T3, T4>(
 						t.Get<T1>(0),
@@ -767,6 +837,12 @@ namespace FoundationDB.Client
 			public static ICompositeKeyEncoder<T1, T2, T3> CompositeKey<T1, T2, T3>()
 			{
 				return TupleCompositeEncoder<T1, T2, T3>.Default;
+			}
+
+			[NotNull]
+			public static ICompositeKeyEncoder<T1, T2, T3, T4> CompositeKey<T1, T2, T3, T4>()
+			{
+				return TupleCompositeEncoder<T1, T2, T3, T4>.Default;
 			}
 
 			#endregion
@@ -800,7 +876,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static Slice[] EncodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] T[] values)
+		public static Slice[] EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params T[] values)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (values == null) throw new ArgumentNullException("values");
@@ -815,7 +891,41 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static Slice[] EncodeRange<TKey, TElement>(this IKeyEncoder<TKey> encoder, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
+		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] IEnumerable<TElement> elements, Func<TElement, TKey> selector)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+			if (elements == null) throw new ArgumentNullException("elements");
+			if (selector == null) throw new ArgumentNullException("selector");
+
+			TElement[] arr;
+			ICollection<TElement> coll;
+
+			if ((arr = elements as TElement[]) != null)
+			{ // fast path for arrays
+				return EncodeKeys<TKey, TElement>(encoder, arr, selector);
+			}
+			else if ((coll = elements as ICollection<TElement>) != null)
+			{ // we can pre-allocate the result array
+				var slices = new Slice[coll.Count];
+				int p = 0;
+				foreach(var item in coll)
+				{
+					slices[p++] = encoder.EncodeKey(selector(item));
+				}
+				return slices;
+			}
+			else
+			{ // slow path
+				return elements
+					.Select((item) => encoder.EncodeKey(selector(item)))
+					.ToArray();
+			}
+
+		}
+
+		/// <summary>Convert an array of <typeparamref name="TElement"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
+		[NotNull]
+		public static Slice[] EncodeKeys<TKey, TElement>([NotNull] this IKeyEncoder<TKey> encoder, [NotNull] TElement[] elements, Func<TElement, TKey> selector)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (elements == null) throw new ArgumentNullException("elements");
@@ -831,7 +941,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<Slice> EncodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] IEnumerable<T> values)
+		public static IEnumerable<Slice> EncodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (values == null) throw new ArgumentNullException("values");
@@ -841,7 +951,7 @@ namespace FoundationDB.Client
 			var array = values as T[];
 			if (array != null)
 			{ // optimized path for arrays
-				return EncodeRange<T>(encoder, array);
+				return EncodeKeys<T>(encoder, array);
 			}
 
 			var coll = values as ICollection<T>;
@@ -861,7 +971,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static T[] DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] Slice[] slices)
+		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] params Slice[] slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -876,7 +986,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert the keys of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static T[] DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
+		public static T[] DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (items == null) throw new ArgumentNullException("items");
@@ -891,7 +1001,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<T> DecodeRange<T>(this IKeyEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
+		public static IEnumerable<T> DecodeKeys<T>([NotNull] this IKeyEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -902,26 +1012,42 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Returns a partial encoder that will only encode the first element</summary>
-		public static HeadEncoder<T1, T2> Head<T1, T2>(this ICompositeKeyEncoder<T1, T2> encoder)
+		public static HeadEncoder<T1, T2> Head<T1, T2>([NotNull] this ICompositeKeyEncoder<T1, T2> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			return new HeadEncoder<T1, T2>(encoder);
 		}
 
 		/// <summary>Returns a partial encoder that will only encode the first element</summary>
-		public static HeadEncoder<T1, T2, T3> Head<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public static HeadEncoder<T1, T2, T3> Head<T1, T2, T3>([NotNull] this ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
 			return new HeadEncoder<T1, T2, T3>(encoder);
 		}
 
+		/// <summary>Returns a partial encoder that will only encode the first element</summary>
+		public static HeadEncoder<T1, T2, T3, T4> Head<T1, T2, T3, T4>([NotNull] this ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+
+			return new HeadEncoder<T1, T2, T3, T4>(encoder);
+		}
+
 		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
-		public static PairEncoder<T1, T2, T3> Pair<T1, T2, T3>(this ICompositeKeyEncoder<T1, T2, T3> encoder)
+		public static PairEncoder<T1, T2, T3> Pair<T1, T2, T3>([NotNull] this ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
 			return new PairEncoder<T1, T2, T3>(encoder);
+		}
+
+		/// <summary>Returns a partial encoder that will only encode the first and second elements</summary>
+		public static PairEncoder<T1, T2, T3, T4> Pair<T1, T2, T3, T4>([NotNull] this ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
+		{
+			if (encoder == null) throw new ArgumentNullException("encoder");
+
+			return new PairEncoder<T1, T2, T3, T4>(encoder);
 		}
 
 		#endregion
@@ -930,7 +1056,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of <typeparamref name="T"/>s into an array of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static Slice[] EncodeRange<T>(this IValueEncoder<T> encoder, [NotNull] T[] values)
+		public static Slice[] EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params T[] values)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (values == null) throw new ArgumentNullException("values");
@@ -946,7 +1072,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of <typeparamref name="T"/>s into a sequence of slices, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<Slice> EncodeRange<T>(this IValueEncoder<T> encoder, [NotNull] IEnumerable<T> values)
+		public static IEnumerable<Slice> EncodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<T> values)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (values == null) throw new ArgumentNullException("values");
@@ -956,7 +1082,7 @@ namespace FoundationDB.Client
 			var array = values as T[];
 			if (array != null)
 			{ // optimized path for arrays
-				return EncodeRange<T>(encoder, array);
+				return EncodeValues<T>(encoder, array);
 			}
 
 			var coll = values as ICollection<T>;
@@ -975,7 +1101,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert an array of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static T[] DecodeRange<T>(this IValueEncoder<T> encoder, Slice[] slices)
+		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] params Slice[] slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");
@@ -991,7 +1117,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Convert the values of an array of key value pairs of slices back into an array of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static T[] DecodeRange<T>(this IValueEncoder<T> encoder, KeyValuePair<Slice, Slice>[] items)
+		public static T[] DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] KeyValuePair<Slice, Slice>[] items)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (items == null) throw new ArgumentNullException("items");
@@ -1007,7 +1133,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Transform a sequence of slices back into a sequence of <typeparamref name="T"/>s, using a serializer (or the default serializer if none is provided)</summary>
 		[NotNull]
-		public static IEnumerable<T> DecodeRange<T>(this IValueEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
+		public static IEnumerable<T> DecodeValues<T>([NotNull] this IValueEncoder<T> encoder, [NotNull] IEnumerable<Slice> slices)
 		{
 			if (encoder == null) throw new ArgumentNullException("encoder");
 			if (slices == null) throw new ArgumentNullException("slices");

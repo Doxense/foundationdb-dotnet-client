@@ -82,12 +82,14 @@ namespace FoundationDB.Client.Tests
 		/// <summary>Time elapsed since the start of the current test</summary>
 		protected TimeSpan TestElapsed
 		{
+			[DebuggerStepThrough]
 			get { return m_timer.Elapsed; }
 		}
 
 		/// <summary>Cancellation token usable by any test</summary>
 		protected CancellationToken Cancellation
 		{
+			[DebuggerStepThrough]
 			get
 			{
 				if (m_cts == null) SetupCancellation();
@@ -108,28 +110,33 @@ namespace FoundationDB.Client.Tests
 		}
 
 		/// <summary>Connect to the local test database</summary>
+		[DebuggerStepThrough]
 		protected Task<IFdbDatabase> OpenTestDatabaseAsync()
 		{
 			return TestHelpers.OpenTestDatabaseAsync(this.Cancellation);
 		}
 
 		/// <summary>Connect to the local test database</summary>
+		[DebuggerStepThrough]
 		protected Task<IFdbDatabase> OpenTestPartitionAsync()
 		{
 			return TestHelpers.OpenTestPartitionAsync(this.Cancellation);
 		}
 
+		[DebuggerStepThrough]
 		protected Task<FdbDirectorySubspace> GetCleanDirectory(IFdbDatabase db, params string[] path)
 		{
 			return TestHelpers.GetCleanDirectory(db, path, this.Cancellation);
 		}
 
-		protected Task DumpSubspace(IFdbDatabase db, FdbSubspace subspace)
+		[DebuggerStepThrough]
+		protected Task DumpSubspace(IFdbDatabase db, IFdbSubspace subspace)
 		{
 			return TestHelpers.DumpSubspace(db, subspace, this.Cancellation);
 		}
 
-		protected async Task DeleteSubspace(IFdbDatabase db, FdbSubspace subspace)
+		[DebuggerStepThrough]
+		protected async Task DeleteSubspace(IFdbDatabase db, IFdbSubspace subspace)
 		{
 			using (var tr = db.BeginTransaction(this.Cancellation))
 			{
@@ -142,21 +149,44 @@ namespace FoundationDB.Client.Tests
 
 		// These methods are just there to help with the problem of culture-aware string formatting
 
+		[DebuggerStepThrough]
 		protected static void Log(string text)
 		{
 			Console.WriteLine(text);
 		}
 
+		[DebuggerStepThrough]
+		protected static void Log()
+		{
+			Log(String.Empty);
+		}
+
+		[DebuggerStepThrough]
+		protected static void Log(object item)
+		{
+			if (item == null)
+			{
+				Log("null");
+			}
+			else
+			{
+				Log(String.Format(CultureInfo.InvariantCulture, "[{0}] {1}", item.GetType().Name, item));
+			}
+		}
+
+		[DebuggerStepThrough]
 		protected static void Log(string format, object arg0)
 		{
 			Log(String.Format(CultureInfo.InvariantCulture, format, arg0));
 		}
 
+		[DebuggerStepThrough]
 		protected static void Log(string format, object arg0, object arg1)
 		{
 			Log(String.Format(CultureInfo.InvariantCulture, format, arg0, arg1));
 		}
 
+		[DebuggerStepThrough]
 		protected static void Log(string format, params object[] args)
 		{
 			Log(String.Format(CultureInfo.InvariantCulture, format, args));

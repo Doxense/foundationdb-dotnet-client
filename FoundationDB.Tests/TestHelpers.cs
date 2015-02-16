@@ -82,10 +82,10 @@ namespace FoundationDB.Client.Tests
 			return subspace;
 		}
 
-		public static async Task DumpSubspace([NotNull] IFdbDatabase db, [NotNull] FdbSubspace subspace, CancellationToken ct)
+		public static async Task DumpSubspace([NotNull] IFdbDatabase db, [NotNull] IFdbSubspace subspace, CancellationToken ct)
 		{
 			Assert.That(db, Is.Not.Null);
-			Assert.That(db.GlobalSpace.Contains(subspace.Key), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
+			Assert.That(db.GlobalSpace.Contains(subspace.ToFoundationDbKey()), Is.True, "Using a location outside of the test database partition!!! This is probably a bug in the test...");
 
 			// do not log
 			db = db.WithoutLogging();
@@ -96,17 +96,17 @@ namespace FoundationDB.Client.Tests
 			}
 		}
 
-		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] FdbSubspace subspace)
+		public static async Task DumpSubspace([NotNull] IFdbReadOnlyTransaction tr, [NotNull] IFdbSubspace subspace)
 		{
 			Assert.That(tr, Is.Not.Null);
 
 			Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
 			int count = 0;
 			await tr
-				.GetRange(FdbKeyRange.StartsWith(subspace.Key))
+				.GetRange(FdbKeyRange.StartsWith(subspace.ToFoundationDbKey()))
 				.ForEachAsync((kvp) =>
 				{
-					var key = subspace.Extract(kvp.Key);
+					var key = subspace.ExtractKey(kvp.Key, boundCheck: true);
 					++count;
 					string keyDump = null;
 					try
