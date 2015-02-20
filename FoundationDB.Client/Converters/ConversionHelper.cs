@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client.Converters
 {
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
@@ -117,7 +118,7 @@ namespace FoundationDB.Client.Converters
 		/// <param name="value">Object to adapt</param>
 		/// <param name="type">Type of the object to adapt</param>
 		/// <returns>Double equivalent of the object</returns>
-		internal static double? TryAdaptToDecimal(object value, Type type)
+		internal static double? TryAdaptToDecimal(object value, [NotNull] Type type)
 		{
 			if (value != null)
 			{
@@ -141,7 +142,7 @@ namespace FoundationDB.Client.Converters
 		/// <param name="value">Object to adapt</param>
 		/// <param name="type">Type of the object to adapt</param>
 		/// <returns>Int64 equivalent of the object</returns>
-		internal static long? TryAdaptToInteger(object value, Type type)
+		internal static long? TryAdaptToInteger(object value, [NotNull] Type type)
 		{
 			if (value != null)
 			{
@@ -161,7 +162,8 @@ namespace FoundationDB.Client.Converters
 			return null;
 		}
 
-		private static Func<object, object, bool> CreateTypeComparator(Type t1, Type t2)
+		[NotNull]
+		private static Func<object, object, bool> CreateTypeComparator([NotNull] Type t1, [NotNull] Type t2)
 		{
 			Contract.Requires(t1 != null && t2 != null);
 
@@ -276,7 +278,7 @@ namespace FoundationDB.Client.Converters
 
 		/// <summary>Returns true if the specified type is considered to be a "number"</summary>
 		/// <returns>True for integers (8, 16, 32 or 64 bits, signed or unsigned) and their Nullable versions. Bytes and Chars are not considered to be numbers because they a custom serialized</returns>
-		private static bool IsNumericType(Type t)
+		private static bool IsNumericType([NotNull] Type t)
 		{
 			// Return true for valuetypes that are considered numbers.
 			// Notes:
