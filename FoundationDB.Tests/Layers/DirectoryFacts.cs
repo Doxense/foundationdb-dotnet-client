@@ -915,19 +915,19 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.Keys.Encode(123, "hello", false, "world"));
 				shouldFail(() => partition.Keys.Encode<object>(123));
 
-				shouldFail(() => partition.Keys.Encode<int>(new[] { 123, 456, 789 }));
-				shouldFail(() => partition.Keys.Encode<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
-				shouldFail(() => partition.Keys.Encode<object>(new object[] { 123, "hello", true }));
-				shouldFail(() => partition.Keys.Encode<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
+				shouldFail(() => partition.Keys.EncodeMany<int>(new[] { 123, 456, 789 }));
+				shouldFail(() => partition.Keys.EncodeMany<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
+				shouldFail(() => partition.Keys.EncodeMany<object>(new object[] { 123, "hello", true }));
+				shouldFail(() => partition.Keys.EncodeMany<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
 
 				shouldFail(() => partition.Keys.Unpack(barKey));
-				shouldFail(() => partition.Keys.Unpack(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.UnpackMany(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
 				shouldFail(() => partition.Keys.Decode<int>(barKey));
-				shouldFail(() => partition.Keys.Decode<int>(new[] { barKey, barKey }));
+				shouldFail(() => partition.Keys.DecodeMany<int>(new[] { barKey, barKey }));
 				shouldFail(() => partition.Keys.DecodeLast<int>(barKey));
-				shouldFail(() => partition.Keys.DecodeLast<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.DecodeLastMany<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
 				shouldFail(() => partition.Keys.DecodeFirst<int>(barKey));
-				shouldFail(() => partition.Keys.DecodeFirst<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.DecodeFirstMany<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
 
 				//FIXME: need to re-enable this code!
 #if REFACTORING_IN_PROGRESS

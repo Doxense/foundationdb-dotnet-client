@@ -96,9 +96,11 @@ namespace FoundationDB.Client
 	{
 		//NOTE: everytime an IFdbTuple is used here, it is as a container (vector of objects), and NOT as the Tuple Encoding scheme ! (separate concept)
 
+		/// <summary>Parent subspace</summary>
 		[NotNull]
 		public readonly IFdbSubspace Subspace;
 
+		/// <summary>Encoder used to format keys in this subspace</summary>
 		[NotNull]
 		public readonly IDynamicKeyEncoder Encoder;
 
@@ -109,31 +111,44 @@ namespace FoundationDB.Client
 			this.Encoder = encoder;
 		}
 
+		/// <summary>Return a key range that encompass all the keys inside this subspace, according to the current key encoder</summary>
 		public FdbKeyRange ToRange()
 		{
 			return this.Encoder.ToRange(this.Subspace.Key);
 		}
 
+		/// <summary>Return a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		/// <param name="tuple">Tuple used as a prefix for the range</param>
 		public FdbKeyRange ToRange([NotNull] IFdbTuple tuple)
 		{
 			return this.Encoder.ToRange(Pack(tuple));
 		}
 
-		public FdbKeyRange ToRange([NotNull] ITupleFormattable tuple)
+		/// <summary>Return a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
+		/// <param name="item">Convertible item used as a prefix for the range</param>
+		public FdbKeyRange ToRange([NotNull] ITupleFormattable item)
 		{
-			return this.Encoder.ToRange(Pack(tuple));
+			return this.Encoder.ToRange(Pack(item));
 		}
 
+		/// <summary>Convert a tuple into a key of this subspace</summary>
+		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
+		/// <remarks>This is a shortcut for <see cref="Pack(IFdbTuple)"/></remarks>
 		public Slice this[[NotNull] IFdbTuple tuple]
 		{
 			get { return Pack(tuple); }
 		}
 
+		/// <summary>Convert an item into a key of this subspace</summary>
+		/// <param name="item">Convertible item that will be packed and appended to the subspace prefix</param>
+		/// <remarks>This is a shortcut for <see cref="Pack(ITupleFormattable)"/></remarks>
 		public Slice this[[NotNull] ITupleFormattable item]
 		{
 			get { return Pack(item); }
 		}
 
+		/// <summary>Convert a tuple into a key of this subspace</summary>
+		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
 		public Slice Pack([NotNull] IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
@@ -143,13 +158,9 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
-		public Slice Pack([NotNull] ITupleFormattable item)
-		{
-			if (item == null) throw new ArgumentNullException("item");
-			return Pack(item.ToTuple());
-		}
-
-		public Slice[] Pack([NotNull, ItemNotNull] IEnumerable<IFdbTuple> tuples)
+		/// <summary>Convert a batch of tuples into keys of this subspace, in an optimized way.</summary>
+		/// <param name="tuples">Sequence of tuple that will be packed and appended to the subspace prefix</param>
+		public Slice[] PackMany([NotNull, ItemNotNull] IEnumerable<IFdbTuple> tuples)
 		{
 			if (tuples == null) throw new ArgumentNullException("tuples");
 
@@ -161,6 +172,30 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Convert an item into a key of this subspace</summary>
+		/// <param name="item">Convertible item that will be packed and appended to the subspace prefix</param>
+		public Slice Pack([NotNull] ITupleFormattable item)
+		{
+			if (item == null) throw new ArgumentNullException("item");
+
+			return Pack(item.ToTuple());
+		}
+
+		/// <summary>Convert a batch of items into keys of this subspace, in an optimized way.</summary>
+		/// <param name="items">Sequence of convertible items that will be packed and appended to the subspace prefix</param>
+		public Slice[] PackMany([NotNull, ItemNotNull] IEnumerable<ITupleFormattable> items)
+		{
+			if (items == null) throw new ArgumentNullException("items");
+
+			return Batched<IFdbTuple, IDynamicKeyEncoder>.Convert(
+				this.Subspace.GetWriter(),
+				items.Select(item => item.ToTuple()),
+				(ref SliceWriter writer, IFdbTuple tuple, IDynamicKeyEncoder encoder) => encoder.PackKey(ref writer, tuple),
+				this.Encoder
+			);
+		}
+
+		/// <summary>Encode a key which is composed of a single element</summary>
 		public Slice Encode<T>(T item1)
 		{
 			var writer = this.Subspace.GetWriter();
@@ -168,7 +203,8 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
-		public Slice[] Encode<T>(IEnumerable<T> items)
+		/// <summary>Encode a batch of keys, each one composed of a single element</summary>
+		public Slice[] EncodeMany<T>(IEnumerable<T> items)
 		{
 			return Batched<T, IDynamicKeyEncoder>.Convert(
 				this.Subspace.GetWriter(),
@@ -178,7 +214,8 @@ namespace FoundationDB.Client
             );
 		}
 
-		public Slice[] Encode<TSource, T>(IEnumerable<TSource> items, Func<TSource, T> selector)
+		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each elements</summary>
+		public Slice[] EncodeMany<TSource, T>(IEnumerable<TSource> items, Func<TSource, T> selector)
 		{
 			return Batched<TSource, IDynamicKeyEncoder>.Convert(
 				this.Subspace.GetWriter(),
@@ -188,6 +225,7 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Encode a key which is composed of a two elements</summary>
 		public Slice Encode<T1, T2>(T1 item1, T2 item2)
 		{
 			var writer = this.Subspace.GetWriter();
@@ -195,7 +233,8 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
-		public Slice[] Encode<TItem, T1, T2>(IEnumerable<TItem> items, Func<TItem, T1> selector1, Func<TItem, T2> selector2)
+		/// <summary>Encode a batch of keys, each one composed of two values extracted from each elements</summary>
+		public Slice[] EncodeMany<TItem, T1, T2>(IEnumerable<TItem> items, Func<TItem, T1> selector1, Func<TItem, T2> selector2)
 		{
 			return Batched<TItem, IDynamicKeyEncoder>.Convert(
 				this.Subspace.GetWriter(),
@@ -205,6 +244,7 @@ namespace FoundationDB.Client
 			);
 		}
 
+		/// <summary>Encode a key which is composed of three elements</summary>
 		public Slice Encode<T1, T2, T3>(T1 item1, T2 item2, T3 item3)
 		{
 			var writer = this.Subspace.GetWriter();
@@ -212,6 +252,18 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
+		/// <summary>Encode a batch of keys, each one composed of three values extracted from each elements</summary>
+		public Slice[] EncodeMany<TItem, T1, T2, T3>(IEnumerable<TItem> items, Func<TItem, T1> selector1, Func<TItem, T2> selector2, Func<TItem, T3> selector3)
+		{
+			return Batched<TItem, IDynamicKeyEncoder>.Convert(
+				this.Subspace.GetWriter(),
+				items,
+				(ref SliceWriter writer, TItem item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T1, T2, T3>(ref writer, selector1(item), selector2(item), selector3(item)),
+				this.Encoder
+			);
+		}
+
+		/// <summary>Encode a key which is composed of four elements</summary>
 		public Slice Encode<T1, T2, T3, T4>(T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			var writer = this.Subspace.GetWriter();
@@ -219,6 +271,18 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
+		/// <summary>Encode a batch of keys, each one composed of four values extracted from each elements</summary>
+		public Slice[] EncodeMany<TItem, T1, T2, T3, T4>(IEnumerable<TItem> items, Func<TItem, T1> selector1, Func<TItem, T2> selector2, Func<TItem, T3> selector3, Func<TItem, T4> selector4)
+		{
+			return Batched<TItem, IDynamicKeyEncoder>.Convert(
+				this.Subspace.GetWriter(),
+				items,
+				(ref SliceWriter writer, TItem item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T1, T2, T3, T4>(ref writer, selector1(item), selector2(item), selector3(item), selector4(item)),
+				this.Encoder
+			);
+		}
+
+		/// <summary>Encode a key which is composed of five elements</summary>
 		public Slice Encode<T1, T2, T3, T4, T5>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			var writer = this.Subspace.GetWriter();
@@ -226,6 +290,18 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
+		/// <summary>Encode a batch of keys, each one composed of five values extracted from each elements</summary>
+		public Slice[] EncodeMany<TItem, T1, T2, T3, T4, T5>(IEnumerable<TItem> items, Func<TItem, T1> selector1, Func<TItem, T2> selector2, Func<TItem, T3> selector3, Func<TItem, T4> selector4, Func<TItem, T5> selector5)
+		{
+			return Batched<TItem, IDynamicKeyEncoder>.Convert(
+				this.Subspace.GetWriter(),
+				items,
+				(ref SliceWriter writer, TItem item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T1, T2, T3, T4, T5>(ref writer, selector1(item), selector2(item), selector3(item), selector4(item), selector5(item)),
+				this.Encoder
+			);
+		}
+
+		/// <summary>Encode a key which is composed of six elements</summary>
 		public Slice Encode<T1, T2, T3, T4, T5, T6>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			var writer = this.Subspace.GetWriter();
@@ -233,6 +309,18 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
+		/// <summary>Encode a batch of keys, each one composed of six values extracted from each elements</summary>
+		public Slice[] EncodeMany<TItem, T1, T2, T3, T4, T5, T6>(IEnumerable<TItem> items, Func<TItem, T1> selector1, Func<TItem, T2> selector2, Func<TItem, T3> selector3, Func<TItem, T4> selector4, Func<TItem, T5> selector5, Func<TItem, T6> selector6)
+		{
+			return Batched<TItem, IDynamicKeyEncoder>.Convert(
+				this.Subspace.GetWriter(),
+				items,
+				(ref SliceWriter writer, TItem item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T1, T2, T3, T4, T5, T6>(ref writer, selector1(item), selector2(item), selector3(item), selector4(item), selector5(item), selector6(item)),
+				this.Encoder
+			);
+		}
+
+		/// <summary>Encode a key which is composed of seven elements</summary>
 		public Slice Encode<T1, T2, T3, T4, T5, T6, T7>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			var writer = this.Subspace.GetWriter();
@@ -240,6 +328,18 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
+		/// <summary>Encode a batch of keys, each one composed of seven values extracted from each elements</summary>
+		public Slice[] EncodeMany<TItem, T1, T2, T3, T4, T5, T6, T7>(IEnumerable<TItem> items, Func<TItem, T1> selector1, Func<TItem, T2> selector2, Func<TItem, T3> selector3, Func<TItem, T4> selector4, Func<TItem, T5> selector5, Func<TItem, T6> selector6, Func<TItem, T7> selector7)
+		{
+			return Batched<TItem, IDynamicKeyEncoder>.Convert(
+				this.Subspace.GetWriter(),
+				items,
+				(ref SliceWriter writer, TItem item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T1, T2, T3, T4, T5, T6, T7>(ref writer, selector1(item), selector2(item), selector3(item), selector4(item), selector5(item), selector6(item), selector7(item)),
+				this.Encoder
+			);
+		}
+
+		/// <summary>Encode a key which is composed of eight elements</summary>
 		public Slice Encode<T1, T2, T3, T4, T5, T6, T7, T8>(T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			var writer = this.Subspace.GetWriter();
@@ -247,6 +347,20 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
+		/// <summary>Encode a batch of keys, each one composed of eight values extracted from each elements</summary>
+		public Slice[] EncodeMany<TItem, T1, T2, T3, T4, T5, T6, T7, T8>(IEnumerable<TItem> items, Func<TItem, T1> selector1, Func<TItem, T2> selector2, Func<TItem, T3> selector3, Func<TItem, T4> selector4, Func<TItem, T5> selector5, Func<TItem, T6> selector6, Func<TItem, T7> selector7, Func<TItem, T8> selector8)
+		{
+			return Batched<TItem, IDynamicKeyEncoder>.Convert(
+				this.Subspace.GetWriter(),
+				items,
+				(ref SliceWriter writer, TItem item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T1, T2, T3, T4, T5, T6, T7, T8>(ref writer, selector1(item), selector2(item), selector3(item), selector4(item), selector5(item), selector6(item), selector7(item), selector8(item)),
+				this.Encoder
+			);
+		}
+
+		/// <summary>Unpack a key of this subspace, back into a tuple</summary>
+		/// <param name="packed">Key that was produced by a previous call to <see cref="Pack(IFdbTuple)"/></param>
+		/// <returns>Original tuple</returns>
 		public IFdbTuple Unpack(Slice packed)
 		{
 			return this.Encoder.UnpackKey(this.Subspace.ExtractKey(packed));
@@ -277,75 +391,98 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public IFdbTuple[] Unpack(IEnumerable<Slice> packed)
+		/// <summary>Unpack a batch of keys of this subspace, back into an array of tuples</summary>
+		/// <param name="packed">Sequence of keys that were produced by a previous call to <see cref="Pack(IFdbTuple)"/> or <see cref="PackMany(IEnumerable{IFdbTuple})"/></param>
+		/// <returns>Array containing the original tuples</returns>
+		public IFdbTuple[] UnpackMany(IEnumerable<Slice> packed)
 		{
 			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.UnpackKey(data));
 		}
 
+		/// <summary>Decode a key of this subspace, composed of a single element</summary>
 		public T1 Decode<T1>(Slice packed)
 		{
 			return this.Encoder.DecodeKey<T1>(this.Subspace.ExtractKey(packed));
 		}
 
-		public IEnumerable<T1> Decode<T1>(IEnumerable<Slice> packed)
+		/// <summary>Decode a batch of keys of this subspace, each one composed of a single element</summary>
+		public IEnumerable<T1> DecodeMany<T1>(IEnumerable<Slice> packed)
 		{
 			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1>(data));
 		}
 
+		/// <summary>Decode a key of this subspace, composed of exactly two elements</summary>
 		public FdbTuple<T1, T2> Decode<T1, T2>(Slice packed)
 		{
 			return this.Encoder.DecodeKey<T1, T2>(this.Subspace.ExtractKey(packed));
 		}
 
-		public IEnumerable<FdbTuple<T1, T2>> Decode<T1, T2>(IEnumerable<Slice> packed)
+		/// <summary>Decode a batch of keys of this subspace, each one composed of exactly two elements</summary>
+		public IEnumerable<FdbTuple<T1, T2>> DecodeMany<T1, T2>(IEnumerable<Slice> packed)
 		{
 			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1, T2>(data));
 		}
 
+		/// <summary>Decode a key of this subspace, composed of exactly three elements</summary>
 		public FdbTuple<T1, T2, T3> Decode<T1, T2, T3>(Slice packed)
 		{
 			return this.Encoder.DecodeKey<T1, T2, T3>(this.Subspace.ExtractKey(packed));
 		}
 
-		public IEnumerable<FdbTuple<T1, T2, T3>> Decode<T1, T2, T3>(IEnumerable<Slice> packed)
+		/// <summary>Decode a batch of keys of this subspace, each one composed of exactly three elements</summary>
+		public IEnumerable<FdbTuple<T1, T2, T3>> DecodeMany<T1, T2, T3>(IEnumerable<Slice> packed)
 		{
 			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1, T2, T3>(data));
 		}
 
+		/// <summary>Decode a key of this subspace, composed of exactly four elements</summary>
 		public FdbTuple<T1, T2, T3, T4> Decode<T1, T2, T3, T4>(Slice packed)
 		{
 			return this.Encoder.DecodeKey<T1, T2, T3, T4>(this.Subspace.ExtractKey(packed));
 		}
 
-		public IEnumerable<FdbTuple<T1, T2, T3, T4>> Decode<T1, T2, T3, T4>(IEnumerable<Slice> packed)
+		/// <summary>Decode a batch of keys of this subspace, each one composed of exactly four elements</summary>
+		public IEnumerable<FdbTuple<T1, T2, T3, T4>> DecodeMany<T1, T2, T3, T4>(IEnumerable<Slice> packed)
 		{
 			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1, T2, T3, T4>(data));
 		}
 
+		/// <summary>Decode a key of this subspace, composed of exactly five elements</summary>
 		public FdbTuple<T1, T2, T3, T4, T5> Decode<T1, T2, T3, T4, T5>(Slice packed)
 		{
 			return this.Encoder.DecodeKey<T1, T2, T3, T4, T5>(this.Subspace.ExtractKey(packed));
 		}
 
-		public IEnumerable<FdbTuple<T1, T2, T3, T4, T5>> Decode<T1, T2, T3, T4, T5>(IEnumerable<Slice> packed)
+		/// <summary>Decode a batch of keys of this subspace, each one composed of exactly five elements</summary>
+		public IEnumerable<FdbTuple<T1, T2, T3, T4, T5>> DecodeMany<T1, T2, T3, T4, T5>(IEnumerable<Slice> packed)
 		{
 			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKey<T1, T2, T3, T4, T5>(data));
 		}
 
+		/// <summary>Decode a key of this subspace, and return only the first element without decoding the rest the key.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
 		public T DecodeFirst<T>(Slice packed)
 		{
 			return this.Encoder.DecodeKeyFirst<T>(this.Subspace.ExtractKey(packed));
 		}
-		public IEnumerable<T> DecodeFirst<T>(IEnumerable<Slice> packed)
+
+		/// <summary>Decode a batch of keys of this subspace, and for each one, return only the first element without decoding the rest of the key.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the first element.</remarks>
+		public IEnumerable<T> DecodeFirstMany<T>(IEnumerable<Slice> packed)
 		{
 			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKeyFirst<T>(data));
 		}
 
+		/// <summary>Decode a key of this subspace, and return only the last element without decoding the rest.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
 		public T DecodeLast<T>(Slice packed)
 		{
 			return this.Encoder.DecodeKeyLast<T>(this.Subspace.ExtractKey(packed));
 		}
-		public IEnumerable<T> DecodeLast<T>(Slice[] packed)
+
+		/// <summary>Decode a batch of keys of this subspace, and for each one, return only the last element without decoding the rest of the key.</summary>
+		/// <remarks>This method is faster than unpacking the complete key and reading only the last element.</remarks>
+		public IEnumerable<T> DecodeLastMany<T>(Slice[] packed)
 		{
 			return BatchDecode(packed, this.Subspace, this.Encoder, (data, encoder) => encoder.DecodeKeyLast<T>(data));
 		}
