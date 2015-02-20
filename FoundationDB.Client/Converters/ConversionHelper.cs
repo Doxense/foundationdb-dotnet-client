@@ -303,7 +303,7 @@ namespace FoundationDB.Client.Converters
 				{
 					// Could be a Nullable<T>
 					var nullableType = Nullable.GetUnderlyingType(t);
-					return t != null && IsNumericType(nullableType);
+					return nullableType != null && IsNumericType(nullableType);
 				}
 				default:
 				{
