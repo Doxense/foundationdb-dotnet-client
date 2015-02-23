@@ -50,10 +50,13 @@ namespace FoundationDB.Client
 		/// </remarks>
 		public int Compare(Slice x, Slice y)
 		{
+			SliceHelpers.EnsureSliceIsValid(ref x);
+			SliceHelpers.EnsureSliceIsValid(ref y);
+
 			//REVIEW: cmp(Nil, Empty) returns 0 but Nil != Empty ?
 			if (x.Count == 0) return y.Count == 0 ? 0 : -1;
 			if (y.Count == 0) return +1;
-			return SliceHelpers.CompareBytes(x.Array, x.Offset, x.Count, y.Array, y.Offset, y.Count);
+			return SliceHelpers.CompareBytesUnsafe(x.Array, x.Offset, x.Count, y.Array, y.Offset, y.Count);
 		}
 
 		/// <summary>Checks if two slices are equal.</summary>

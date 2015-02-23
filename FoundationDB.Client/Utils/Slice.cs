@@ -191,7 +191,7 @@ namespace FoundationDB.Client
 			if (count == 0) return Slice.Empty;
 
 			var res = new byte[count];
-			SliceHelpers.SetBytes(res, 0, count, value);
+			if (value != 0) SliceHelpers.SetBytes(res, 0, count, value);
 			return new Slice(res, 0, res.Length);
 		}
 
@@ -1696,7 +1696,7 @@ namespace FoundationDB.Client
 
 			if (this.Count > 0)
 			{
-				SliceHelpers.CopyBytes(buffer, cursor, this.Array, this.Offset, this.Count);
+				SliceHelpers.CopyBytesUnsafe(buffer, cursor, this.Array, this.Offset, this.Count);
 				cursor += this.Count;
 			}
 		}

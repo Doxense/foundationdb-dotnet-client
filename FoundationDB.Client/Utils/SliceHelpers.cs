@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#define USE_NATIVE_MEMORY_OPERATORS
+//#define MEASURE
 
 namespace FoundationDB.Client
 {
@@ -34,15 +34,20 @@ namespace FoundationDB.Client
 	using JetBrains.Annotations;
 	using System;
 	using System.Runtime.CompilerServices;
-	using System.Runtime.ConstrainedExecution;
 	using System.Runtime.InteropServices;
 	using System.Security;
 
 	internal static class SliceHelpers
 	{
 
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
 		public static void EnsureSliceIsValid(ref Slice slice)
 		{
+			// this method is used everywhere, and is consistently the top 1 method by callcount when using a profiler,
+			// so we must make sure that it gets inline whenever possible.
+
 			if (slice.Count == 0 && slice.Offset >= 0) return;
 			if (slice.Count < 0 || slice.Offset < 0 || slice.Array == null || slice.Offset + slice.Count > slice.Array.Length)
 			{
@@ -53,7 +58,7 @@ namespace FoundationDB.Client
 		/// <summary>Reject an invalid slice by throw an error with the appropriate diagnostic message.</summary>
 		/// <param name="slice">Slice that is being naugthy</param>
 		[ContractAnnotation("=> halt")]
-		public static void ThrowMalformedSlice(Slice slice)
+		private static void ThrowMalformedSlice(Slice slice)
 		{
 #if DEBUG
 			// If you break here, that means that a slice is invalid (negative count, offset, ...), which may be a sign of memory corruption!
@@ -72,6 +77,9 @@ namespace FoundationDB.Client
 			throw new FormatException("The specified slice is invalid.");
 		}
 
+#if !NET_4_0
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+#endif
 		public static void EnsureBufferIsValid(byte[] array, int offset, int count)
 		{
 			if (count == 0 && offset >= 0) return;
@@ -83,7 +91,7 @@ namespace FoundationDB.Client
 
 		/// <summary>Reject an invalid slice by throw an error with the appropriate diagnostic message.</summary>
 		[ContractAnnotation("=> halt")]
-		public static void ThrowMalformedBuffer(byte[] array, int offset, int count)
+		private static void ThrowMalformedBuffer(byte[] array, int offset, int count)
 		{
 			if (offset < 0) throw new ArgumentException("The specified segment has a negative offset, which is not legal. This may be a side effect of memory corruption.", "offset");
 			if (count < 0) throw new ArgumentException("The specified segment has a negative size, which is not legal. This may be a side effect of memory corruption.", "count");
@@ -176,6 +184,11 @@ namespace FoundationDB.Client
 			// </HACKHACK>
 		}
 
+#if MEASURE
+		public static int[] CompareHistogram = new int[65536];
+		public static double[] CompareDurations = new double[65536];
+#endif
+
 		/// <summary>Compare two byte segments for equality</summary>
 		/// <param name="left">Left buffer</param>
 		/// <param name="leftOffset">Start offset in left buffer</param>
@@ -202,64 +215,25 @@ namespace FoundationDB.Client
 		public static bool SameBytesUnsafe([NotNull] byte[] left, int leftOffset, [NotNull] byte[] right, int rightOffset, int count)
 		{
 			Contract.Requires(left != null && leftOffset >= 0 && right != null && rightOffset >= 0 && count >= 0);
-
-			// for very small keys, the cost of pinning and marshalling may be too high
-			if (count <= 8)
+#if MEASURE
+			int n = count;
+			if (n < SliceHelpers.CompareHistogram.Length) ++SliceHelpers.CompareHistogram[n];
+			var sw = System.Diagnostics.Stopwatch.StartNew();
+#endif
+			int c;
+			unsafe
 			{
-				while (count-- > 0)
+				fixed (byte* pLeft = &left[leftOffset])
+				fixed (byte* pRight = &right[rightOffset])
 				{
-					if (left[leftOffset++] != right[rightOffset++]) return false;
-				}
-				return true;
-			}
-
-			if (object.ReferenceEquals(left, right))
-			{ // In cases where the keys are backed by the same buffer, we don't need to pin the same buffer twice
-
-				if (leftOffset == rightOffset)
-				{ // same segment in the same buffer
-					return true;
-				}
-
-				unsafe
-				{
-					fixed (byte* ptr = left)
-					{
-						return 0 == CompareMemoryUnsafe(ptr + leftOffset, ptr + rightOffset, count);
-					}
+					c = NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
 				}
 			}
-			else
-			{
-				unsafe
-				{
-					fixed (byte* pLeft = left)
-					fixed (byte* pRight = right)
-					{
-						return 0 == CompareMemoryUnsafe(pLeft + leftOffset, pRight + rightOffset, count);
-					}
-				}
-			}
-		}
-
-		/// <summary>Compare two byte segments lexicographically</summary>
-		/// <param name="left">Left buffer</param>
-		/// <param name="leftOffset">Start offset in left buffer</param>
-		/// <param name="leftCount">Number of bytes in left buffer</param>
-		/// <param name="right">Right buffer</param>
-		/// <param name="rightOffset">Start offset in right buffer</param>
-		/// <param name="rightCount">Number of bytes in right buffer</param>
-		/// <returns>Returns zero if segments are identical (same bytes), a negative value if left is lexicographically less than right, or a positive value if left is lexicographically greater than right</returns>
-		/// <remarks>The comparison algorithm respect the following:
-		/// * "A" &lt; "B"
-		/// * "A" &lt; "AA"
-		/// * "AA" &lt; "B"</remarks>
-		public static int CompareBytes(byte[] left, int leftOffset, int leftCount, byte[] right, int rightOffset, int rightCount)
-		{
-			SliceHelpers.EnsureBufferIsValid(left, leftOffset, leftCount);
-			SliceHelpers.EnsureBufferIsValid(right, rightOffset, rightCount);
-
-			return CompareBytesUnsafe(left, leftOffset, leftCount, right, rightOffset, rightCount);
+#if MEASURE
+			sw.Stop();
+			if (n < SliceHelpers.CompareDurations.Length) SliceHelpers.CompareDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
+#endif
+			return c == 0;
 		}
 
 		/// <summary>Compare two byte segments lexicographically, without validating the arguments</summary>
@@ -278,51 +252,32 @@ namespace FoundationDB.Client
 		{
 			Contract.Requires(left != null && right != null && leftOffset >= 0 && leftCount >= 0 && rightOffset >= 0 && rightCount >= 0);
 
-			if (object.ReferenceEquals(left, right))
-			{ // In cases where the keys are backed by the same buffer, we don't need to pin the same buffer twice
-
-				if (leftCount == rightCount && leftOffset == rightOffset)
-				{ // same segment in the same buffer
-					return 0;
-				}
-
-				unsafe
-				{
-					fixed (byte* ptr = left)
-					{
-						int n = CompareMemoryUnsafe(ptr + leftOffset, ptr + rightOffset, Math.Min(leftCount, rightCount));
-						return n != 0 ? n : leftCount - rightCount;
-					}
-				}
-			}
-			else
+			int count = Math.Min(leftCount, rightCount);
+#if MEASURE
+			int n = count;
+			if (n < SliceHelpers.CompareHistogram.Length) ++SliceHelpers.CompareHistogram[n];
+			var sw = System.Diagnostics.Stopwatch.StartNew();
+#endif
+			int c;
+			unsafe
 			{
-				unsafe
+				fixed (byte* pLeft = &left[leftOffset])
+				fixed (byte* pRight = &right[rightOffset])
 				{
-					fixed (byte* pLeft = left)
-					fixed (byte* pRight = right)
-					{
-						int n = CompareMemoryUnsafe(pLeft + leftOffset, pRight + rightOffset, Math.Min(leftCount, rightCount));
-						return n != 0 ? n : leftCount - rightCount;
-					}
+					c = NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
 				}
 			}
+#if MEASURE
+			sw.Stop();
+			if (n < SliceHelpers.CompareDurations.Length) SliceHelpers.CompareDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
+#endif
+			return c != 0 ? c : leftCount - rightCount;
 		}
 
-		/// <summary>Copy the content of a byte segment into another. CAUTION: The arguments are NOT in the same order as Buffer.BlockCopy() or Array.Copy() !</summary>
-		/// <param name="dst">Destination buffer</param>
-		/// <param name="dstOffset">Offset in destination buffer</param>
-		/// <param name="src">Source buffer</param>
-		/// <param name="srcOffset">Offset in source buffer</param>
-		/// <param name="count">Number of bytes to copy</param>
-		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		public static void CopyBytes(byte[] dst, int dstOffset, byte[] src, int srcOffset, int count)
-		{
-			SliceHelpers.EnsureBufferIsValid(dst, dstOffset, count);
-			SliceHelpers.EnsureBufferIsValid(src, srcOffset, count);
-
-			CopyBytesUnsafe(dst, dstOffset, src, srcOffset, count);
-		}
+#if MEASURE
+		public static int[] CopyHistogram = new int[65536];
+		public static double[] CopyDurations = new double[65536];
+#endif
 
 		/// <summary>Copy the content of a byte segment into another, without validating the arguments. CAUTION: The arguments are NOT in the same order as Buffer.BlockCopy() or Array.Copy() !</summary>
 		/// <param name="dst">Destination buffer</param>
@@ -331,40 +286,26 @@ namespace FoundationDB.Client
 		/// <param name="srcOffset">Offset in source buffer</param>
 		/// <param name="count">Number of bytes to copy</param>
 		/// <remarks>CAUTION: THE ARGUMENTS ARE REVERSED! They are in the same order as memcpy() and memmove(), with destination first, and source second!</remarks>
-		public static void CopyBytesUnsafe([NotNull] byte[] dst, int dstOffset, [NotNull] byte[] src, int srcOffset, int count)
+		public static unsafe void CopyBytesUnsafe([NotNull] byte[] dst, int dstOffset, [NotNull] byte[] src, int srcOffset, int count)
 		{
 			Contract.Requires(dst != null && src != null && dstOffset >= 0 && srcOffset >= 0 && count >= 0);
 
-			if (count <= 8)
-			{ // for very small keys, the cost of pinning and marshalling may be to high
+#if MEASURE
+			int n = count;
+			if (n < SliceHelpers.CopyHistogram.Length) ++SliceHelpers.CopyHistogram[n];
+			var sw = System.Diagnostics.Stopwatch.StartNew();
+#endif
 
-				while (count-- > 0)
-				{
-					dst[dstOffset++] = src[srcOffset++];
-				}
-			}
-			else if (object.ReferenceEquals(dst, src))
-			{ // In cases where the keys are backed by the same buffer, we don't need to pin the same buffer twice
-
-				unsafe
-				{
-					fixed (byte* ptr = dst)
-					{
-						MoveMemoryUnsafe(ptr + dstOffset, ptr + srcOffset, count);
-					}
-				}
-			}
-			else
+			fixed (byte* pDst = &dst[dstOffset])
+			fixed (byte* pSrc = &src[srcOffset])
 			{
-				unsafe
-				{
-					fixed (byte* pDst = dst)
-					fixed (byte* pSrc = src)
-					{
-						MoveMemoryUnsafe(pDst + dstOffset, pSrc + srcOffset, count);
-					}
-				}
+				NativeMethods.memmove(pDst, pSrc, new IntPtr(count));
 			}
+
+#if MEASURE
+			sw.Stop();
+			if (n < SliceHelpers.CopyDurations.Length) SliceHelpers.CopyDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
+#endif
 		}
 
 		/// <summary>Copy the content of a native byte segment into a managed segment, without validating the arguments.</summary>
@@ -377,27 +318,21 @@ namespace FoundationDB.Client
 		{
 			Contract.Requires(dst != null && src != null && dstOffset >= 0 && count >= 0);
 
-			if (count <= 8)
-			{
-				while (count-- > 0)
-				{
-					dst[dstOffset++] = *src++;
-				}
-			}
-			else
-			{
-				fixed (byte* ptr = dst)
-				{
-					MoveMemoryUnsafe(ptr + dstOffset, src, count);
-				}
-			}
-		}
+#if MEASURE
+			int n = count;
+			if (n < SliceHelpers.CopyHistogram.Length) ++SliceHelpers.CopyHistogram[n];
+			var sw = System.Diagnostics.Stopwatch.StartNew();
+#endif
 
-		/// <summary>Fill the content of a managed buffer with the same byte repeated</summary>
-		public static void SetBytes(byte[] bytes, byte value)
-		{
-			if (bytes == null) throw new ArgumentNullException("bytes");
-			SetBytes(bytes, 0, bytes.Length, value);
+			fixed (byte* pDst = &dst[dstOffset])
+			{
+				NativeMethods.memmove(pDst, src, new IntPtr(count));
+			}
+
+#if MEASURE
+			sw.Stop();
+			if (n < SliceHelpers.CopyDurations.Length) SliceHelpers.CopyDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
+#endif
 		}
 
 		/// <summary>Fill the content of a managed segment with the same byte repeated</summary>
@@ -405,22 +340,11 @@ namespace FoundationDB.Client
 		{
 			SliceHelpers.EnsureBufferIsValid(bytes, offset, count);
 
-			if (count <= 8)
-			{ // for very small keys, the cost of pinning and marshalling may be to high
-
-				while (count-- > 0)
-				{
-					bytes[offset++] = value;
-				}
-			}
-			else
+			unsafe
 			{
-				unsafe
+				fixed (byte* ptr = &bytes[offset])
 				{
-					fixed (byte* ptr = bytes)
-					{
-						SetMemoryUnsafe(ptr + offset, value, count);
-					}
+					NativeMethods.memset(ptr, value, new IntPtr(count));
 				}
 			}
 		}
@@ -431,273 +355,11 @@ namespace FoundationDB.Client
 			if (bytes == null) throw new ArgumentNullException("bytes");
 			if (count < 0) throw new ArgumentException("Count cannot be a negative number.", "count");
 
-			if (count <= 8)
-			{ // for very small keys, the cost of pinning and marshalling may be to high
-
-				while (count-- > 0)
-				{
-					*bytes++ = value;
-				}
-			}
-			else
-			{
-				SetMemoryUnsafe(bytes, value, count);
-			}
+			NativeMethods.memset(bytes, value, new IntPtr(count));
 		}
-
-		/// <summary>Dangerously copy native memory from one location to another</summary>
-		/// <param name="dest">Where to copy the bytes</param>
-		/// <param name="src">Where to read the bytes</param>
-		/// <param name="count">Number of bytes to copy</param>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-#if USE_NATIVE_MEMORY_OPERATORS && !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		private static unsafe void MoveMemoryUnsafe(byte* dest, byte* src, int count)
-		{
-			Contract.Requires(dest != null && src != null && count >= 0);
-
-#if USE_NATIVE_MEMORY_OPERATORS
-			NativeMethods.memmove(dest, src, new IntPtr(count));
-#else
-			if (count >= 16)
-			{
-				do
-				{
-					*((int*)(dest + 0)) = *((int*)(src + 0));
-					*((int*)(dest + 4)) = *((int*)(src + 4));
-					*((int*)(dest + 8)) = *((int*)(src + 8));
-					*((int*)(dest + 12)) = *((int*)(src + 12));
-					dest += 16;
-					src += 16;
-				}
-				while ((count -= 16) >= 16);
-			}
-			if (count > 0)
-			{
-				if ((count & 8) != 0)
-				{
-					*((int*)(dest + 0)) = *((int*)(src + 0));
-					*((int*)(dest + 4)) = *((int*)(src + 4));
-					dest += 8;
-					src += 8;
-				}
-				if ((count & 4) != 0)
-				{
-					*((int*)dest) = *((int*)src);
-					dest += 4;
-					src += 4;
-				}
-				if ((count & 2) != 0)
-				{
-					*((short*)dest) = *((short*)src);
-					dest += 2;
-					src += 2;
-				}
-				if ((count & 1) != 0)
-				{
-					*dest = *src;
-				}
-			}
-#endif
-		}
-
-		/// <summary>Dangerously fill native memory with a specific byte</summary>
-		/// <param name="dest">Where to fill the bytes</param>
-		/// <param name="c">Byte to set</param>
-		/// <param name="count">Number of bytes to set</param>
-		/// <remarks>If <paramref name="c"/>==0, you should call <see cref="ClearMemoryUnsafe"/></remarks>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-#if USE_NATIVE_MEMORY_OPERATORS && !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		private static unsafe void SetMemoryUnsafe(byte* dest, byte c, int count)
-		{
-			Contract.Requires(dest != null && count >= 0);
-
-#if USE_NATIVE_MEMORY_OPERATORS
-			NativeMethods.memset(dest, c, new IntPtr(count));
-#else
-			int fill32 = c;
-			fill32 = fill32 << 8 | c;
-			fill32 = fill32 << 8 | c;
-			fill32 = fill32 << 8 | c;
-
-			if (count >= 16)
-			{
-				do
-				{
-					*((int*)(dest + 0)) = fill32;
-					*((int*)(dest + 4)) = fill32;
-					*((int*)(dest + 8)) = fill32;
-					*((int*)(dest + 12)) = fill32;
-					dest += 16;
-				}
-				while ((count -= 16) >= 16);
-			}
-			if (count > 0)
-			{
-				if ((count & 8) != 0)
-				{
-					*((int*)(dest + 0)) = fill32;
-					*((int*)(dest + 4)) = fill32;
-					dest += 8;
-				}
-				if ((count & 4) != 0)
-				{
-					*((int*)dest) = fill32;
-					dest += 4;
-				}
-				if ((count & 2) != 0)
-				{
-					*((short*)dest) = (short)fill32;
-					dest += 2;
-				}
-				if ((count & 1) != 0)
-				{
-					*dest = c;
-				}
-			}
-#endif
-		}
-
-		/// <summary>Dangerously clear native memory</summary>
-		/// <param name="dest">Where to clear the bytes</param>
-		/// <param name="count">Number of bytes to clear</param>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-#if USE_NATIVE_MEMORY_OPERATORS && !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		private static unsafe void ClearMemoryUnsafe(byte* dest, int count)
-		{
-			Contract.Requires(dest != null && count >= 0);
-
-#if USE_NATIVE_MEMORY_OPERATORS
-			NativeMethods.memset(dest, 0, new IntPtr(count));
-#else
-			if (count >= 16)
-			{
-				do
-				{
-					*((ulong*)(dest + 0)) = 0UL;
-					*((ulong*)(dest + 8)) = 0UL;
-					dest += 16;
-				}
-				while ((count -= 16) >= 16);
-			}
-			if (count > 0)
-			{
-				if ((count & 8) != 0)
-				{
-					*((ulong*)(dest)) = 0UL;
-					dest += 8;
-				}
-				if ((count & 4) != 0)
-				{
-					*((int*)dest) = 0;
-					dest += 4;
-				}
-				if ((count & 2) != 0)
-				{
-					*((short*)dest) = 0;
-					dest += 2;
-				}
-				if ((count & 1) != 0)
-				{
-					*dest = 0;
-				}
-			}
-#endif
-		}
-
-		/// <summary>Returns the offset of the first difference found between two buffers of the same size</summary>
-		/// <param name="left">Pointer to the first byte of the left buffer</param>
-		/// <param name="right">Pointer to the first byte of the right buffer</param>
-		/// <param name="count">Number of bytes to compare in both buffers</param>
-		/// <returns>Offset (from the first byte) of the first difference encountered, or -1 if both buffers are identical.</returns>
-		[SecurityCritical, ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-#if USE_NATIVE_MEMORY_OPERATORS && !NET_4_0
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-#endif
-		private static unsafe int CompareMemoryUnsafe(byte* left, byte* right, int count)
-		{
-			Contract.Requires(left != null && right != null && count >= 0);
-
-#if USE_NATIVE_MEMORY_OPERATORS
-			return NativeMethods.memcmp(left, right, new IntPtr(count));
-#else
-
-			// We want to scan in chunks of 8 bytes, until we find a difference (or there's less than 8 bytes remaining).
-			// If we find a difference that way, we backtrack and then scan byte per byte to locate the location of the mismatch.
-			// for the last 1 to 7 bytes, we just do a regular check
-
-			// XOR Comparison: We XOR two 8-bytes chunks together.
-			// - If all bytes are identical, the XOR result will be 0.
-			// - If at least one bit is difference, the XOR result will be non-zero, and the first different will be in the first non-zero byte.
-
-			// Identical data:
-			//	left : "11 22 33 44 55 66 77 88" => 0x8877665544332211
-			//	right: "11 22 33 44 55 66 77 88" => 0x8877665544332211
-			//	left XOR right => 0x8877665544332211 ^ 0x8877665544332211 = 0
-
-			// Different data:
-			//	left : "11 22 33 44 55 66 77 88" => 0x8877665544332211
-			//	right: "11 22 33 44 55 AA BB CC" => 0xCCBBAA5544332211
-			//	left XOR right =0x8877665544332211 ^ 0xCCBBAA5544332211 = 0x44CCCC0000000000
-			//  the first non-zero byte is at offset 5 (big-endian) with the value of 0xCC
-
-			byte* start = left;
-
-			//TODO: align the start of the 8-byte scan to an 8-byte aligne memory address ?
-
-			// compares using 8-bytes chunks
-			while (count >= 8)
-			{
-				ulong k = *((ulong*)left) ^ *((ulong*)right);
-
-				if (k != 0)
-				{ // there is difference in these 8 bytes, iterate until we find it
-					int p = 0;
-					while ((k & 0xFF) == 0)
-					{
-						++p;
-						k >>= 8;
-					}
-					return left[p] - right[p];
-				}
-				left += 8;
-				right += 8;
-				count -= 8;
-			}
-
-			// if more than 4 bytes remain, check 32 bits at a time
-			if (count >= 4)
-			{
-				if (*((uint*)left) != *((uint*)right))
-				{
-					goto compare_tail;
-				}
-				left += 4;
-				right += 4;
-				count -= 4;
-			}
-
-			// from here, there is at mos 3 bytes remaining
-
-		compare_tail:
-			while (count-- > 0)
-			{
-				int n = *(left++) - *(right++);
-				if (n != 0) return n;
-			}
-			return 0;
-#endif
-		}
-
-#if USE_NATIVE_MEMORY_OPERATORS
 
 		[SuppressUnmanagedCodeSecurity]
-		internal static unsafe class NativeMethods
+		private static unsafe class NativeMethods
 		{
 
 			/// <summary>Compare characters in two buffers.</summary>
@@ -726,8 +388,6 @@ namespace FoundationDB.Client
 			public static extern byte* memset(byte* dest, int c, IntPtr count);
 
 		}
-
-#endif
 
 	}
 

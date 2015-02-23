@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+//#define MEASURE
+
 namespace FoundationDB.Client.Tests
 {
 	using FoundationDB.Client;
@@ -40,6 +42,25 @@ namespace FoundationDB.Client.Tests
 	[TestFixture]
 	public class SliceFacts : FdbTest
 	{
+
+#if MEASURE
+		[TestFixtureTearDown]
+		public void DumpStats()
+		{
+			Log("# MemCopy:");
+			for (int i = 0; i < SliceHelpers.CopyHistogram.Length; i++)
+			{
+				if (SliceHelpers.CopyHistogram[i] == 0) continue;
+				Log("# {0} : {1:N0} ({2:N1} ns, {3:N3} ns/byte)", i, SliceHelpers.CopyHistogram[i], SliceHelpers.CopyDurations[i] / SliceHelpers.CopyHistogram[i], SliceHelpers.CopyDurations[i] / (SliceHelpers.CopyHistogram[i] * i));
+			}
+			Log("# MemCompare:");
+			for (int i = 0; i < SliceHelpers.CompareHistogram.Length; i++)
+			{
+				if (SliceHelpers.CompareHistogram[i] == 0) continue;
+				Log("# {0} : {1:N0} ({2:N1} ns, {3:N3} ns/byte)", i, SliceHelpers.CompareHistogram[i], SliceHelpers.CompareDurations[i] / SliceHelpers.CompareHistogram[i], SliceHelpers.CompareDurations[i] / (SliceHelpers.CompareHistogram[i] * i));
+			}
+		}
+#endif
 
 		[Test]
 		public void Test_Slice_Nil()
