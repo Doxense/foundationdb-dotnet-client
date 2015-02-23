@@ -220,28 +220,25 @@ namespace FoundationDB.Client
 			int n = count;
 			if (n < SliceHelpers.CompareHistogram.Length) ++SliceHelpers.CompareHistogram[n];
 			var sw = System.Diagnostics.Stopwatch.StartNew();
+			try {
 #endif
-			int c;
-			if (count > 0)
+			if (count == 0) return true;
+			unsafe
 			{
-				unsafe
+				fixed (byte* pLeft = &left[leftOffset])
+				fixed (byte* pRight = &right[rightOffset])
 				{
-					fixed (byte* pLeft = &left[leftOffset])
-					fixed (byte* pRight = &right[rightOffset])
-					{
-						c = NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
-					}
+					return 0 == NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
 				}
 			}
-			else
-			{
-				c = 0;
-			}
 #if MEASURE
-			sw.Stop();
-			if (n < SliceHelpers.CompareDurations.Length) SliceHelpers.CompareDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
+			}
+			finally
+			{
+				sw.Stop();
+				if (n < SliceHelpers.CompareDurations.Length) SliceHelpers.CompareDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
+			}
 #endif
-			return c == 0;
 		}
 
 		/// <summary>Compare two byte segments lexicographically, without validating the arguments</summary>
@@ -265,28 +262,29 @@ namespace FoundationDB.Client
 			int n = count;
 			if (n < SliceHelpers.CompareHistogram.Length) ++SliceHelpers.CompareHistogram[n];
 			var sw = System.Diagnostics.Stopwatch.StartNew();
+			try {
 #endif
-			int c;
-			if (count == 0)
-			{
-				c = 0;
-			}
-			else
+			if (count > 0)
 			{
 				unsafe
 				{
 					fixed (byte* pLeft = &left[leftOffset])
 					fixed (byte* pRight = &right[rightOffset])
 					{
-						c = NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
+						int c = NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
+						if (c != 0) return c;
 					}
 				}
 			}
+			return leftCount - rightCount;
 #if MEASURE
-			sw.Stop();
-			if (n < SliceHelpers.CompareDurations.Length) SliceHelpers.CompareDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
+			}
+			finally
+			{
+				sw.Stop();
+				if (n < SliceHelpers.CompareDurations.Length) SliceHelpers.CompareDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
+			}
 #endif
-			return c != 0 ? c : leftCount - rightCount;
 		}
 
 #if MEASURE
@@ -339,7 +337,6 @@ namespace FoundationDB.Client
 			if (n < SliceHelpers.CopyHistogram.Length) ++SliceHelpers.CopyHistogram[n];
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 #endif
-
 			if (count > 0)
 			{
 				fixed (byte* pDst = &dst[dstOffset])
