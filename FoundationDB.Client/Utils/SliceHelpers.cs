@@ -215,19 +215,27 @@ namespace FoundationDB.Client
 		public static bool SameBytesUnsafe([NotNull] byte[] left, int leftOffset, [NotNull] byte[] right, int rightOffset, int count)
 		{
 			Contract.Requires(left != null && leftOffset >= 0 && right != null && rightOffset >= 0 && count >= 0);
+
 #if MEASURE
 			int n = count;
 			if (n < SliceHelpers.CompareHistogram.Length) ++SliceHelpers.CompareHistogram[n];
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 #endif
 			int c;
-			unsafe
+			if (count > 0)
 			{
-				fixed (byte* pLeft = &left[leftOffset])
-				fixed (byte* pRight = &right[rightOffset])
+				unsafe
 				{
-					c = NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
+					fixed (byte* pLeft = &left[leftOffset])
+					fixed (byte* pRight = &right[rightOffset])
+					{
+						c = NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
+					}
 				}
+			}
+			else
+			{
+				c = 0;
 			}
 #if MEASURE
 			sw.Stop();
@@ -259,12 +267,19 @@ namespace FoundationDB.Client
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 #endif
 			int c;
-			unsafe
+			if (count == 0)
 			{
-				fixed (byte* pLeft = &left[leftOffset])
-				fixed (byte* pRight = &right[rightOffset])
+				c = 0;
+			}
+			else
+			{
+				unsafe
 				{
-					c = NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
+					fixed (byte* pLeft = &left[leftOffset])
+					fixed (byte* pRight = &right[rightOffset])
+					{
+						c = NativeMethods.memcmp(pLeft, pRight, new IntPtr(count));
+					}
 				}
 			}
 #if MEASURE
@@ -295,13 +310,14 @@ namespace FoundationDB.Client
 			if (n < SliceHelpers.CopyHistogram.Length) ++SliceHelpers.CopyHistogram[n];
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 #endif
-
-			fixed (byte* pDst = &dst[dstOffset])
-			fixed (byte* pSrc = &src[srcOffset])
+			if (count > 0)
 			{
-				NativeMethods.memmove(pDst, pSrc, new IntPtr(count));
+				fixed (byte* pDst = &dst[dstOffset])
+				fixed (byte* pSrc = &src[srcOffset])
+				{
+					NativeMethods.memmove(pDst, pSrc, new IntPtr(count));
+				}
 			}
-
 #if MEASURE
 			sw.Stop();
 			if (n < SliceHelpers.CopyDurations.Length) SliceHelpers.CopyDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
@@ -324,11 +340,13 @@ namespace FoundationDB.Client
 			var sw = System.Diagnostics.Stopwatch.StartNew();
 #endif
 
-			fixed (byte* pDst = &dst[dstOffset])
+			if (count > 0)
 			{
-				NativeMethods.memmove(pDst, src, new IntPtr(count));
+				fixed (byte* pDst = &dst[dstOffset])
+				{
+					NativeMethods.memmove(pDst, src, new IntPtr(count));
+				}
 			}
-
 #if MEASURE
 			sw.Stop();
 			if (n < SliceHelpers.CopyDurations.Length) SliceHelpers.CopyDurations[n] += (sw.Elapsed.TotalMilliseconds * 1E6);
@@ -340,11 +358,14 @@ namespace FoundationDB.Client
 		{
 			SliceHelpers.EnsureBufferIsValid(bytes, offset, count);
 
-			unsafe
+			if (count > 0)
 			{
-				fixed (byte* ptr = &bytes[offset])
+				unsafe
 				{
-					NativeMethods.memset(ptr, value, new IntPtr(count));
+					fixed (byte* ptr = &bytes[offset])
+					{
+						NativeMethods.memset(ptr, value, new IntPtr(count));
+					}
 				}
 			}
 		}
