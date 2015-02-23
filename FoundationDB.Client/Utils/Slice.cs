@@ -830,14 +830,15 @@ namespace FoundationDB.Client
 			return value.ToSlice();
 		}
 
-		internal static readonly Encoding DefaultEncoding =
 #if CORE_CLR
-			Encoding.GetEncoding(0);
+		internal static readonly Encoding DefaultEncoding = Encoding.GetEncoding(0);
 #else
-			Encoding.Default;
+		internal static readonly Encoding DefaultEncoding = Encoding.Default;
 #endif
 
-		/// <summary>Dangerously create a slice containing string converted to ASCII. All non-ASCII characters may be corrupted or converted to '?'</summary>
+		internal static readonly Encoding Utf8Encoding = new UTF8Encoding(false);
+
+		/// <summary>Dangerously create a slice containing string converted to ASCII, using the system default codepage. All non-ASCII characters may be corrupted or converted to '?'</summary>
 		/// <remarks>WARNING: if you put a string that contains non-ASCII chars, it will be silently corrupted! This should only be used to store keywords or 'safe' strings.
 		/// Note: depending on your default codepage, chars from 128 to 255 may be preserved, but only if they are decoded using the same codepage at the other end !</remarks>
 		public static Slice FromAscii(string text)
@@ -848,11 +849,11 @@ namespace FoundationDB.Client
 		/// <summary>Create a slice containing the UTF-8 bytes of the string <paramref name="value"/></summary>
 		public static Slice FromString(string value)
 		{
-			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Encoding.UTF8.GetBytes(value));
+			return value == null ? Slice.Nil : value.Length == 0 ? Slice.Empty : Slice.Create(Utf8Encoding.GetBytes(value));
 		}
 
 		/// <summary>Create a slice that holds the UTF-8 encoded representation of <paramref name="value"/></summary>
-		/// <param name="value"></param>
+		/// <param name="value">Unicode character</param>
 		/// <returns>The returned slice is only guaranteed to hold 1 byte for ASCII chars (0..127). For non-ASCII chars, the size can be from 1 to 6 bytes.
 		/// If you need to use ASCII chars, you should use Slice.FromByte() instead</returns>
 		public static Slice FromChar(char value)
@@ -864,7 +865,7 @@ namespace FoundationDB.Client
 
 			// note: Encoding.UTF8.GetMaxByteCount(1) returns 6, but allocate 8 to stay aligned
 			var tmp = new byte[8];
-			int n = Encoding.UTF8.GetBytes(new char[] { value }, 0, 1, tmp, 0);
+			int n = Slice.Utf8Encoding.GetBytes(new char[] { value }, 0, 1, tmp, 0);
 			return n == 1 ? FromByte(tmp[0]) : new Slice(tmp, 0, n);
 		}
 
@@ -969,9 +970,17 @@ namespace FoundationDB.Client
 		[Pure, CanBeNull]
 		public string ToAscii()
 		{
-			if (this.Count == 0) return this.HasValue ? String.Empty : default(string);
 			SliceHelpers.EnsureSliceIsValid(ref this);
-			return Slice.DefaultEncoding.GetString(this.Array, this.Offset, this.Count);
+
+			if (this.Count == 0) return this.HasValue ? String.Empty : default(string);
+			unsafe
+			{
+				fixed (byte* ptr = this.Array)
+				{
+					return new string((sbyte*)ptr, this.Offset, this.Count);
+				}
+			}
+			//return Slice.DefaultEncoding.GetString(this.Array, this.Offset, this.Count);
 		}
 
 		/// <summary>Stringify a slice containing an UTF-8 encoded string</summary>
@@ -979,9 +988,17 @@ namespace FoundationDB.Client
 		[Pure, CanBeNull]
 		public string ToUnicode()
 		{
-			if (this.Count == 0) return this.HasValue ? String.Empty : default(string);
 			SliceHelpers.EnsureSliceIsValid(ref this);
-			return Encoding.UTF8.GetString(this.Array, this.Offset, this.Count);
+
+			if (this.Count == 0) return this.HasValue ? String.Empty : default(string);
+			unsafe
+			{
+				fixed (byte* ptr = this.Array)
+				{
+					return new string((sbyte*)ptr, this.Offset, this.Count, Utf8Encoding);
+				}
+			}
+			//return Slice.Utf8Encoding.GetString(this.Array, this.Offset, this.Count);
 		}
 
 		/// <summary>Converts a slice using Base64 encoding</summary>
@@ -1073,7 +1090,7 @@ namespace FoundationDB.Client
 			// look for UTF-8 BOM
 			if (n >= 3 && buffer[p] == 0xEF && buffer[p + 1] == 0xBB && buffer[p + 2] == 0xBF)
 			{ // this is supposed to be an UTF-8 string
-				return EscapeString(new StringBuilder(n).Append('\''), buffer, p + 3, n - 3, Encoding.UTF8).Append('\'').ToString();
+				return EscapeString(new StringBuilder(n).Append('\''), buffer, p + 3, n - 3, Slice.Utf8Encoding).Append('\'').ToString();
 			}
 
 			if (n >= 2)
@@ -1081,7 +1098,7 @@ namespace FoundationDB.Client
 				// look for JSON objets or arrays
 				if ((buffer[p] == '{' && buffer[p + n - 1] == '}') || (buffer[p] == '[' && buffer[p + n - 1] == ']'))
 				{
-					return EscapeString(new StringBuilder(n + 16), buffer, p, n, Encoding.UTF8).ToString();
+					return EscapeString(new StringBuilder(n + 16), buffer, p, n, Slice.Utf8Encoding).ToString();
 				}
 			}
 
@@ -1111,7 +1128,7 @@ namespace FoundationDB.Client
 			}
 			else
 			{ // some escaping required
-				return EscapeString(new StringBuilder(n + 2).Append('\''), buffer, this.Offset, this.Count, Encoding.UTF8).Append('\'').ToString();
+				return EscapeString(new StringBuilder(n + 2).Append('\''), buffer, this.Offset, this.Count, Slice.Utf8Encoding).Append('\'').ToString();
 			}
 		}
 

@@ -365,7 +365,7 @@ namespace FoundationDB.Layers.Tuples
 				{
 					if (!TryWriteUnescapedUtf8String(ref writer, chars, value.Length))
 					{ // the string contains \0 chars, we need to do it the hard way
-						WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value));
+						WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Slice.Utf8Encoding.GetBytes(value));
 					}
 				}
 			}
@@ -393,7 +393,7 @@ namespace FoundationDB.Layers.Tuples
 				{
 					if (!TryWriteUnescapedUtf8String(ref writer, chars + offset, count))
 					{ // the string contains \0 chars, we need to do it the hard way
-						WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Encoding.UTF8.GetBytes(value, 0, count));
+						WriteNulEscapedBytes(ref writer, FdbTupleTypes.Utf8, Slice.Utf8Encoding.GetBytes(value, 0, count));
 					}
 				}
 			}
@@ -471,7 +471,7 @@ namespace FoundationDB.Layers.Tuples
 			// > For small strings, we will allocated exactly string.Length * 3 bytes, and will be done in one chunk
 			// > For larger strings, we will call encoder.Convert(...) until it says it is done.
 			const int CHUNK_SIZE = 1024;
-			int bufLen = Encoding.UTF8.GetMaxByteCount(Math.Min(count, CHUNK_SIZE));
+			int bufLen = Slice.Utf8Encoding.GetMaxByteCount(Math.Min(count, CHUNK_SIZE));
 			byte* buf = stackalloc byte[bufLen];
 
 			// We can not really predict the final size of the encoded string, but:
@@ -480,7 +480,7 @@ namespace FoundationDB.Layers.Tuples
 			writer.Output.EnsureBytes(checked(2 + count + (count >> 1))); // preallocate 150% of the string + 2 bytes
 			writer.Output.UnsafeWriteByte(FdbTupleTypes.Utf8);
 
-			var encoder = Encoding.UTF8.GetEncoder();
+			var encoder = Slice.Utf8Encoding.GetEncoder();
 			// note: encoder.Convert() tries to fill up the buffer as much as possible with complete chars, and will set 'done' to true when all chars have been converted.
 			do
 			{
@@ -524,7 +524,7 @@ namespace FoundationDB.Layers.Tuples
 			{ // 0x800..0xFFFF => 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
 				// note: System.Char is 16 bits, and thus cannot represent UNICODE chars above 0xFFFF.
 				// => This means that a System.Char will never take more than 3 bytes in UTF-8 !
-				var tmp = Encoding.UTF8.GetBytes(new string(value, 1));
+				var tmp = Slice.Utf8Encoding.GetBytes(new string(value, 1));
 				writer.Output.EnsureBytes(tmp.Length + 2);
 				writer.Output.UnsafeWriteByte(FdbTupleTypes.Utf8);
 				writer.Output.UnsafeWriteBytes(tmp, 0, tmp.Length);
@@ -702,7 +702,7 @@ namespace FoundationDB.Layers.Tuples
 			return value;
 		}
 
-		internal static ArraySegment<byte> UnescapeByteString([NotNull] byte[] buffer, int offset, int count)
+		internal static Slice UnescapeByteString([NotNull] byte[] buffer, int offset, int count)
 		{
 			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
 
@@ -719,10 +719,10 @@ namespace FoundationDB.Layers.Tuples
 				++p;
 			}
 			// buffer is clean, we can return it as-is
-			return new ArraySegment<byte>(buffer, offset, count);
+			return new Slice(buffer, offset, count);
 		}
 
-		internal static ArraySegment<byte> UnescapeByteStringSlow([NotNull] byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
+		internal static Slice UnescapeByteStringSlow([NotNull] byte[] buffer, int offset, int count, int offsetOfFirstZero = 0)
 		{
 			Contract.Requires(buffer != null && offset >= 0 && count >= 0);
 
@@ -749,7 +749,7 @@ namespace FoundationDB.Layers.Tuples
 				tmp[i++] = b;
 			}
 
-			return new ArraySegment<byte>(tmp, 0, i);
+			return new Slice(tmp, 0, i);
 		}
 
 		/// <summary>Parse a tuple segment containing a byte array</summary>
@@ -758,9 +758,7 @@ namespace FoundationDB.Layers.Tuples
 			Contract.Requires(slice.HasValue && slice[0] == FdbTupleTypes.Bytes && slice[-1] == 0);
 			if (slice.Count <= 2) return Slice.Empty;
 
-			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-
-			return new Slice(decoded.Array, decoded.Offset, decoded.Count);
+			return UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
 		}
 
 		/// <summary>Parse a tuple segment containing an ASCII string stored as a byte array</summary>
@@ -771,8 +769,7 @@ namespace FoundationDB.Layers.Tuples
 			if (slice.Count <= 2) return String.Empty;
 
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-
-			return Slice.DefaultEncoding.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			return decoded.ToAscii();
 		}
 
 		/// <summary>Parse a tuple segment containing a unicode string</summary>
@@ -783,7 +780,7 @@ namespace FoundationDB.Layers.Tuples
 			if (slice.Count <= 2) return String.Empty;
 			//TODO: check args
 			var decoded = UnescapeByteString(slice.Array, slice.Offset + 1, slice.Count - 2);
-			return Encoding.UTF8.GetString(decoded.Array, decoded.Offset, decoded.Count);
+			return decoded.ToUnicode();
 		}
 
 		/// <summary>Parse a tuple segment containing an embedded tuple</summary>

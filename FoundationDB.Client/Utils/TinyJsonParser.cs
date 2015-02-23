@@ -321,7 +321,7 @@ namespace FoundationDB.Client.Utils
 		public static Dictionary<string, object> ParseObject(Slice data)
 		{
 			if (data.Count == 0) return null;
-			char[] chars = Encoding.UTF8.GetChars(data.Array, data.Offset, data.Count);
+			char[] chars = Slice.Utf8Encoding.GetChars(data.Array, data.Offset, data.Count);
 			return ParseObject(chars, 0, chars.Length);
 		}
 
@@ -356,7 +356,7 @@ namespace FoundationDB.Client.Utils
 		public static List<object> ParseArray(Slice data)
 		{
 			if (data.Count == 0) return null;
-			char[] chars = Encoding.UTF8.GetChars(data.Array, data.Offset, data.Count);
+			char[] chars = Slice.Utf8Encoding.GetChars(data.Array, data.Offset, data.Count);
 			var parser = new TinyJsonParser(chars, 0, chars.Length);
 			var token = parser.ReadToken();
 			if (token == Token.Eof) return null;
