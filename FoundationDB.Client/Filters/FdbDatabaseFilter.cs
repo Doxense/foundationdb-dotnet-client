@@ -60,7 +60,7 @@ namespace FoundationDB.Filters
 
 		#region Constructors...
 
-		protected FdbDatabaseFilter(IFdbDatabase database, bool forceReadOnly, bool ownsDatabase)
+		protected FdbDatabaseFilter([NotNull] IFdbDatabase database, bool forceReadOnly, bool ownsDatabase)
 		{
 			if (database == null) throw new ArgumentNullException("database");
 
@@ -296,7 +296,14 @@ namespace FoundationDB.Filters
 
 		protected void ThrowIfDisposed()
 		{
-			if (m_disposed) throw new ObjectDisposedException(this.GetType().Name);
+			// this should be inlined by the caller
+			if (m_disposed) ThrowFilterAlreadyDisposed(this);
+		}
+
+		[ContractAnnotation("=> halt")]
+		private static void ThrowFilterAlreadyDisposed([NotNull] FdbDatabaseFilter filter)
+		{
+			throw new ObjectDisposedException(filter.GetType().Name);
 		}
 
 		public void Dispose()

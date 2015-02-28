@@ -31,9 +31,12 @@ namespace FoundationDB.Filters.Logging
 	using FoundationDB.Async;
 	using FoundationDB.Client;
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
+	using System.Threading.Tasks;
+	using Layers.Directories;
 
 	public partial class FdbTransactionLog
 	{
@@ -76,6 +79,10 @@ namespace FoundationDB.Filters.Logging
 			/// <summary>Id of the thread that started the command</summary>
 			public int ThreadId { get; internal set; }
 
+			/// <summary>StackTrace of the method that started this operation</summary>
+			/// <remarks>Only if the <see cref="FdbLoggingOptions.RecordOperationStackTrace"/> option is set</remarks>
+			public StackTrace CallSite { get; internal set; }
+
 			/// <summary>Total duration of the command, or TimeSpan.Zero if the command is not yet completed</summary>
 			public TimeSpan Duration
 			{
@@ -88,13 +95,13 @@ namespace FoundationDB.Filters.Logging
 			}
 
 			/// <summary>Returns a formatted representation of the arguments, for logging purpose</summary>
-			public virtual string GetArguments()
+			public virtual string GetArguments(KeyResolver resolver)
 			{
 				return String.Empty;
 			}
 
 			/// <summary>Returns a formatted representation of the results, for logging purpose</summary>
-			public virtual string GetResult()
+			public virtual string GetResult(KeyResolver resolver)
 			{
 				if (this.Error != null)
 				{
@@ -185,16 +192,31 @@ namespace FoundationDB.Filters.Logging
 				}
 			}
 
-			public override string ToString()
+			public override sealed string ToString()
 			{
-				var arg = this.GetArguments();
-				var res = this.GetResult();
-				var sb = new StringBuilder();
+				return ToString(null);
+			}
+
+			public virtual string ToString(KeyResolver resolver)
+			{
+				resolver = resolver ?? KeyResolver.Default;
+				var arg = this.GetArguments(resolver);
+				var res = this.GetResult(resolver);
+				var sb = new StringBuilder(255);
 				if (this.Snapshot) sb.Append("Snapshot.");
 				sb.Append(this.Op.ToString());
 				if (!string.IsNullOrEmpty(arg)) sb.Append(' ').Append(arg);
 				if (!string.IsNullOrEmpty(res)) sb.Append(" => ").Append(res);
 				return sb.ToString();
+			}
+
+			protected virtual string ResolveKey(Slice key, Func<Slice, string> resolver)
+			{
+				if (resolver == null)
+				{
+					return FdbKey.Dump(key);
+				}
+				return resolver(key);
 			}
 
 		}
@@ -207,9 +229,9 @@ namespace FoundationDB.Filters.Logging
 			/// <summary>Optional result of the operation</summary>
 			public Maybe<TResult> Result { get; internal set; }
 
-			public override string GetResult()
+			public override string GetResult(KeyResolver resolver)
 			{
-				if (this.Error != null) return base.GetResult();
+				if (this.Error != null) return base.GetResult(resolver);
 
 				if (this.Result.HasFailed) return "<error>";
 				if (!this.Result.HasValue) return "<n/a>";
@@ -223,6 +245,128 @@ namespace FoundationDB.Filters.Logging
 			protected virtual string Dump(TResult value)
 			{
 				return value.ToString();
+			}
+		}
+
+		public class KeyResolver
+		{
+
+			public static readonly KeyResolver Default = new KeyResolver();
+
+			public virtual string Resolve(Slice key)
+			{
+				return FdbKey.PrettyPrint(key, FdbKey.PrettyPrintMode.Single);
+			}
+
+			public virtual string ResolveBegin(Slice key)
+			{
+				return FdbKey.PrettyPrint(key, FdbKey.PrettyPrintMode.Begin);
+			}
+
+			public virtual string ResolveEnd(Slice key)
+			{
+				return FdbKey.PrettyPrint(key, FdbKey.PrettyPrintMode.End);
+			}
+
+		}
+
+		/// <summary>Key resolver which replace key prefixes by the name of their enclosing directory subspace</summary>
+		public class DirectoryKeyResolver : KeyResolver
+		{
+
+			public readonly Slice[] Prefixes;
+			public readonly string[] Paths;
+
+			public DirectoryKeyResolver(Dictionary<Slice, string> knownSubspaces)
+			{
+				var prefixes = new Slice[knownSubspaces.Count];
+				var paths = new string[knownSubspaces.Count];
+				int p = 0;
+				foreach (var kv in knownSubspaces)
+				{
+					prefixes[p] = kv.Key;
+					paths[p] = kv.Value;
+					p++;
+				}
+
+				Array.Sort(prefixes, paths, SliceComparer.Default);
+				this.Prefixes = prefixes;
+				this.Paths = paths;
+			}
+
+			/// <summary>Create a key resolver using the content of a DirectoryLayer as the map</summary>
+			/// <returns>Resolver that replace each directory prefix by its name</returns>
+			public static async Task<DirectoryKeyResolver> BuildFromDirectoryLayer(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
+			{
+				var location = directory.NodeSubspace;
+
+				//HACKHACK: for now, we will simply poke inside the node subspace of the directory layer, which is brittle (if the structure changes in future versions!)
+				// Entries that correspond to subfolders have the form: NodeSubspace.Pack( (parent_prefix, 0, "child_name") ) = child_prefix
+				var keys = await tr.GetRange(location.ToRange()).ToListAsync();
+
+				var map = new Dictionary<Slice, string>(SliceComparer.Default);
+
+				foreach (var entry in keys)
+				{
+					var t = location.Unpack(entry.Key);
+					// look for a tuple of size 3 with 0 as the second element...
+					if (t.Count != 3 || t.Get<int>(1) != 0) continue;
+
+					//Slice parent = t.Get<Slice>(0); //TODO: use this to construct the full materialized path of this directory? (would need more than one pass)
+					string name = t.Get<string>(2);
+
+					map[entry.Value] = name;
+				}
+
+				return new DirectoryKeyResolver(map);
+			}
+
+			private bool TryLookup(Slice key, out Slice prefix, out string path)
+			{
+				prefix = default(Slice);
+				path = null;
+
+				if (key.IsNullOrEmpty) return false;
+
+				int p = Array.BinarySearch(this.Prefixes, key, SliceComparer.Default);
+				if (p >= 0)
+				{ // direct match!
+					prefix = this.Prefixes[p];
+					path = this.Paths[p];
+					return true;
+				}
+
+				p = ~p;
+				if (p > 0)
+				{
+					// check if the previous prefix matches
+					p = p - 1;
+					if (key.StartsWith(this.Prefixes[p]))
+					{
+						prefix = this.Prefixes[p];
+						path = this.Paths[p];
+						return true;
+					}
+				}
+
+				return false;
+			}
+
+			public override string Resolve(Slice key)
+			{
+				Slice prefix;
+				string path;
+				if (!TryLookup(key, out prefix, out path))
+				{
+					return base.Resolve(key);
+				}
+
+				var s = base.Resolve(key.Substring(prefix.Count));
+				if (s != null && s.Length >= 3 && s[0] == '(' && s[s.Length - 1] == ')')
+				{ // that was a tuple
+					return String.Concat("([", path, "], ", s.Substring(1));
+				}
+				return String.Concat("[", path, "]:", s);
 			}
 		}
 
@@ -240,7 +384,7 @@ namespace FoundationDB.Filters.Logging
 				this.Message = message;
 			}
 
-			public override string ToString()
+			public override string ToString(KeyResolver resolver)
 			{
 				return "// " + this.Message;
 			}
@@ -276,7 +420,7 @@ namespace FoundationDB.Filters.Logging
 				this.StringValue = value;
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
 				if (this.IntValue.HasValue)
 				{
@@ -314,9 +458,9 @@ namespace FoundationDB.Filters.Logging
 				get { return this.Key.Count + this.Value.Count; }
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(FdbKey.Dump(this.Key), " = ", this.Value.ToAsciiOrHexaString());
+				return String.Concat(resolver.Resolve(this.Key), " = ", this.Value.ToAsciiOrHexaString());
 			}
 
 		}
@@ -338,9 +482,9 @@ namespace FoundationDB.Filters.Logging
 				get { return this.Key.Count; }
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
-				return FdbKey.Dump(this.Key);
+				return resolver.Resolve(this.Key);
 			}
 
 		}
@@ -366,9 +510,9 @@ namespace FoundationDB.Filters.Logging
 				get { return this.Begin.Count + this.End.Count; }
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin), " <= k < ", FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End));
+				return String.Concat(resolver.ResolveBegin(this.Begin), " <= k < ", resolver.ResolveEnd(this.End));
 			}
 
 		}
@@ -396,11 +540,19 @@ namespace FoundationDB.Filters.Logging
 				get { return this.Key.Count + this.Param.Count; }
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(FdbKey.Dump(this.Key), " ", this.Mutation.ToString(), " ", this.Param.ToAsciiOrHexaString());
+				return String.Concat(resolver.Resolve(this.Key), " ", this.Mutation.ToString(), " ", this.Param.ToAsciiOrHexaString());
 			}
 
+			public override string ToString(KeyResolver resolver)
+			{
+				var arg = this.GetArguments(resolver);
+				var sb = new StringBuilder();
+				if (this.Snapshot) sb.Append("Snapshot.");
+				sb.Append("Atomic_").Append(this.Mutation.ToString()).Append(' ').Append(resolver.Resolve(this.Key)).Append(", <").Append(this.Param.ToHexaString(' ')).Append('>');
+				return sb.ToString();
+			}
 		}
 
 		public sealed class AddConflictRangeCommand : Command
@@ -426,9 +578,9 @@ namespace FoundationDB.Filters.Logging
 				get { return this.Begin.Count + this.End.Count; }
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
-				return String.Concat(this.Type.ToString(), "! ", FdbKey.PrettyPrint(this.Begin, FdbKey.PrettyPrintMode.Begin), " <= k < ", FdbKey.PrettyPrint(this.End, FdbKey.PrettyPrintMode.End));
+				return String.Concat(this.Type.ToString(), "! ", resolver.ResolveBegin(this.Begin), " <= k < ", resolver.ResolveEnd(this.End));
 			}
 
 		}
@@ -455,19 +607,19 @@ namespace FoundationDB.Filters.Logging
 				get { return !this.Result.HasValue ? default(int?) : this.Result.Value.Count; }
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
-				return FdbKey.Dump(this.Key);
+				return resolver.Resolve(this.Key);
 			}
 
-			public override string GetResult()
+			public override string GetResult(KeyResolver resolver)
 			{
 				if (this.Result.HasValue)
 				{
 					if (this.Result.Value.IsNull) return "not_found";
 					if (this.Result.Value.IsEmpty) return "''";
 				}
-				return base.GetResult();
+				return base.GetResult(resolver);
 			}
 
 			protected override string Dump(Slice value)
@@ -499,8 +651,9 @@ namespace FoundationDB.Filters.Logging
 				get { return !this.Result.HasValue ? default(int?) : this.Result.Value.Count; }
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
+				//TODO: use resolver!
 				return this.Selector.ToString();
 			}
 
@@ -540,17 +693,17 @@ namespace FoundationDB.Filters.Logging
 				}
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
 				string s = String.Concat("[", this.Keys.Length.ToString(), "] {");
-				if (this.Keys.Length > 0) s += FdbKey.Dump(this.Keys[0]);
-				if (this.Keys.Length > 1) s += " ... " + FdbKey.Dump(this.Keys[this.Keys.Length - 1]);
+				if (this.Keys.Length > 0) s += resolver.Resolve(this.Keys[0]);
+				if (this.Keys.Length > 1) s += " ... " + resolver.Resolve(this.Keys[this.Keys.Length - 1]);
 				return s + " }";
 			}
 
-			public override string GetResult()
+			public override string GetResult(KeyResolver resolver)
 			{
-				if (!this.Result.HasValue) return base.GetResult();
+				if (!this.Result.HasValue) return base.GetResult(resolver);
 				var res = this.Result.Value;
 				string s = String.Concat("[", res.Length.ToString(), "] {");
 				if (res.Length > 0) s += res[0].ToAsciiOrHexaString();
@@ -595,9 +748,10 @@ namespace FoundationDB.Filters.Logging
 				}
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
 				string s = String.Concat("[", this.Selectors.Length.ToString(), "] {");
+				//TODO: use resolver!
 				if (this.Selectors.Length > 0) s += this.Selectors[0].ToString();
 				if (this.Selectors.Length > 1) s += " ... " + this.Selectors[this.Selectors.Length - 1].ToString();
 				return s + " }";
@@ -646,8 +800,9 @@ namespace FoundationDB.Filters.Logging
 				}
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
+				//TODO: use resolver!
 				string s = this.Begin.PrettyPrint(FdbKey.PrettyPrintMode.Begin) + " <= k < " + this.End.PrettyPrint(FdbKey.PrettyPrintMode.End);
 				if (this.Iteration > 1) s += ", #" + this.Iteration.ToString();
 				if (this.Options != null)
@@ -659,7 +814,7 @@ namespace FoundationDB.Filters.Logging
 				return s;
 			}
 
-			public override string GetResult()
+			public override string GetResult(KeyResolver resolver)
 			{
 				if (this.Result.HasValue)
 				{
@@ -667,7 +822,7 @@ namespace FoundationDB.Filters.Logging
 					if (this.Result.Value.HasMore) s += ", has_more";
 					return s;
 				}
-				return base.GetResult();
+				return base.GetResult(resolver);
 			}
 
 		}
@@ -707,7 +862,7 @@ namespace FoundationDB.Filters.Logging
 				this.Code = code;
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
 				return String.Format(CultureInfo.InvariantCulture, "{0} ({1})", this.Code, (int)this.Code);
 			}
@@ -732,9 +887,9 @@ namespace FoundationDB.Filters.Logging
 				get { return this.Key.Count; }
 			}
 
-			public override string GetArguments()
+			public override string GetArguments(KeyResolver resolver)
 			{
-				return FdbKey.Dump(this.Key);
+				return resolver.Resolve(this.Key);
 			}
 
 		}

@@ -37,14 +37,15 @@ namespace FoundationDB.Filters.Logging
 	{
 
 		[NotNull]
-		public static FdbLoggedDatabase Logged(this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler)
+		public static FdbLoggedDatabase Logged([NotNull] this IFdbDatabase database, [NotNull] Action<FdbLoggedTransaction> handler, FdbLoggingOptions options = FdbLoggingOptions.Default)
 		{
+			if (database == null) throw new ArgumentNullException("database");
 			if (handler == null) throw new ArgumentNullException("handler");
 
 			// prevent multiple logging
 			database = WithoutLogging(database);
 
-			return new FdbLoggedDatabase(database, false, false, handler);
+			return new FdbLoggedDatabase(database, false, false, handler, options);
 		}
 
 		/// <summary>Strip the logging behaviour of this database. Use this for boilerplate or test code that would pollute the logs otherwise.</summary>

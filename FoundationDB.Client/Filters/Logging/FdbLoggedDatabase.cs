@@ -39,10 +39,13 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Handler called everytime a transaction is successfully committed</summary>
 		public Action<FdbLoggedTransaction> OnCommitted { get; private set; }
 
-		public FdbLoggedDatabase(IFdbDatabase database, bool forceReadOnly, bool ownsDatabase, Action<FdbLoggedTransaction> onCommitted)
+		public FdbLoggingOptions LoggingOptions { get; private set; }
+
+		public FdbLoggedDatabase(IFdbDatabase database, bool forceReadOnly, bool ownsDatabase, Action<FdbLoggedTransaction> onCommitted, FdbLoggingOptions defaultOptions = FdbLoggingOptions.Default)
 			: base(database, forceReadOnly, ownsDatabase)
 		{
 			this.OnCommitted = onCommitted;
+			this.LoggingOptions = defaultOptions;
 		}
 
 		public override IFdbTransaction BeginTransaction(FdbTransactionMode mode, CancellationToken cancellationToken = default(CancellationToken), FdbOperationContext context = null)
@@ -50,7 +53,8 @@ namespace FoundationDB.Filters.Logging
 			return new FdbLoggedTransaction(
 				base.BeginTransaction(mode, cancellationToken, context),
 				true,
-				this.OnCommitted
+				this.OnCommitted,
+				this.LoggingOptions
 			);
 		}
 	}
