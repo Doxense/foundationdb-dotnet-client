@@ -1037,7 +1037,8 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
-		private static StringBuilder EscapeString(StringBuilder sb, byte[] buffer, int offset, int count, Encoding encoding)
+		[NotNull]
+		private static StringBuilder EscapeString(StringBuilder sb, [NotNull] byte[] buffer, int offset, int count, [NotNull] Encoding encoding)
 		{
 			if (sb == null) sb = new StringBuilder(count + 16);
 			foreach(var c in encoding.GetChars(buffer, offset, count))
@@ -2465,6 +2466,7 @@ namespace FoundationDB.Client
 
 		#endregion
 
+		[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 		private sealed class DebugView
 		{
 			private readonly Slice m_slice;
@@ -2476,7 +2478,23 @@ namespace FoundationDB.Client
 
 			public byte[] Data
 			{
-				get { return m_slice.GetBytes(); }
+				get
+				{
+					if (m_slice.Count == 0) return m_slice.Array == null ? null : EmptyArray;
+					if (m_slice.Offset == 0 && m_slice.Count == m_slice.Array.Length) return m_slice.Array;
+					var tmp = new byte[m_slice.Count];
+					System.Array.Copy(m_slice.Array, m_slice.Offset, tmp, 0, m_slice.Count);
+					return tmp;
+				}
+			}
+
+			public string Text
+			{
+				get
+				{
+					if (m_slice.Count == 0) return m_slice.Array == null ? null : String.Empty;
+					return m_slice.ToAsciiOrHexaString();
+				}
 			}
 
 			public int Count

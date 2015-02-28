@@ -7,9 +7,9 @@ RestorePackages()
 
 // Properties
 let version = "0.9.9-pre" //TODO: find a way to extract this from somewhere convenient
-let buildDir = "./build/output/"
-let nugetPath = ".nuget/nuget.exe"
-let nugetOutDir = buildDir + "_packages/"
+let buildDir = FileUtils.pwd() @@ "build" @@ "output"
+let nugetPath = FileUtils.pwd() @@ ".nuget" @@ "nuget.exe"
+let nugetOutDir = buildDir @@ "_packages"
 
 let BuildProperties =
     [
@@ -17,7 +17,7 @@ let BuildProperties =
         "AllowUnsafeBlocks", "true"
     ]
 
-Target "Clean" (fun _ -> 
+Target "Clean" (fun _ ->
     CleanDir buildDir
 )
 // Default target
@@ -34,7 +34,7 @@ let buildProject mode =
 
     //Compile each csproj and output it separately in build/output/PROJECTNAME
     !! "**/*.csproj"
-    |> Seq.map(fun f -> (f, buildDir + directoryInfo(f).Name.Replace(".csproj", "")))
+    |> Seq.map(fun f -> (f, buildDir @@ directoryInfo(f).Name.Replace(".csproj", "")))
     |> Seq.iter(fun (f,d) -> MSBuild d "Build" (BuildProperties @ [ "Configuration", mode ]) (seq { yield f }) |> ignore)
 
 Target "BuildAppRelease" (fun _ ->
@@ -49,10 +49,10 @@ Target "BuildAppDebug" (fun _ ->
 
 Target "Test" (fun _ ->
     traceHeader "RUNNING UNIT TESTS"
-    let testDir = buildDir + "tests/"
+    let testDir = buildDir @@ "tests"
     CreateDir testDir
     ActivateFinalTarget "CloseTestRunner"
-    !!(buildDir + "**/*Test*.dll")
+    !! (buildDir @@ "**" @@ "*Test*.dll")
     //++(buildDir + "**/*Test*.exe")
     |> NUnit(
         fun p -> { p with DisableShadowCopy = true
@@ -63,7 +63,7 @@ Target "Test" (fun _ ->
                           TimeOut = System.TimeSpan.FromMinutes 10.0
                           ExcludeCategory = "LongRunning,LocalCluster" }))
 
-FinalTarget "CloseTestRunner" (fun _ ->  
+FinalTarget "CloseTestRunner" (fun _ ->
     ProcessHelper.killProcess "nunit-agent.exe"
 )
 
@@ -79,14 +79,14 @@ let replaceVersionInNuspec nuspecFileName version =
 
 Target "BuildNuget" (fun _ ->
     trace "Building Nuget Packages"
-    let projects = [ "FoundationDb.Client"; "FoundationDb.Layers.Common" ]   
+    let projects = [ "FoundationDb.Client"; "FoundationDb.Layers.Common" ]
     CreateDir nugetOutDir
     projects
     |> List.iter (
         fun name ->
-            let nuspec = sprintf @"build\%s.nuspec" name
+            let nuspec = "build" @@ (sprintf "%s.nuspec" name)
             replaceVersionInNuspec nuspec version
-            let binariesDir = sprintf "%s/%s/" buildDir name
+            let binariesDir = buildDir @@ name
             NuGetPack (
                 fun p ->
                     { p with WorkingDir = binariesDir
@@ -94,7 +94,7 @@ Target "BuildNuget" (fun _ ->
                              ToolPath = nugetPath
                              Version = version}) nuspec
 
-            let targetLoc = (buildDir + (sprintf "%s/%s.%s.nupkg" name name version))
+            let targetLoc = (buildDir @@ name @@ (sprintf "%s.%s.nupkg" name version))
             trace targetLoc
 
         (*MoveFile nugetOutDir (buildDir + (sprintf "%s/%s/.%s.nupkg" name name version))*)
@@ -109,4 +109,3 @@ Target "Default" (fun _ -> trace "Starting build")
 
 // start build
 RunTargetOrDefault "Build"
-

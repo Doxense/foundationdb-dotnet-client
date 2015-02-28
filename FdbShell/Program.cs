@@ -43,13 +43,6 @@ namespace FdbShell
 			return stream;
 		}
 
-		private static IFdbDatabase GetLoggedDatabase(IFdbDatabase db, StreamWriter stream, bool autoFlush = false)
-		{
-			if (stream == null) return db;
-
-			return new FdbLoggedDatabase(db, false, false, (tr) => { stream.WriteLine(tr.Log.GetTimingsReport(true)); if (autoFlush) stream.Flush(); });
-		}
-
 		public static async Task RunAsyncCommand(Func<IFdbDatabase, TextWriter, CancellationToken, Task> command, CancellationToken cancel)
 		{
 			TextWriter log = null;

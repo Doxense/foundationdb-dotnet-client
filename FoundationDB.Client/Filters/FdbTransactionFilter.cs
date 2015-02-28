@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -33,6 +33,7 @@ namespace FoundationDB.Filters
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using JetBrains.Annotations;
 
 	/// <summary>Base class for simple transaction filters</summary>
 	public abstract class FdbTransactionFilter : IFdbTransaction
@@ -50,7 +51,7 @@ namespace FoundationDB.Filters
 		/// <param name="trans">Underlying transaction that will be exposed as read-only</param>
 		/// <param name="forceReadOnly">If true, force the transaction to be read-only. If false, use the read-only mode of the underlying transaction</param>
 		/// <param name="ownsTransaction">If true, the underlying transaction will also be disposed when this instance is disposed</param>
-		protected FdbTransactionFilter(IFdbTransaction trans, bool forceReadOnly, bool ownsTransaction)
+		protected FdbTransactionFilter([NotNull] IFdbTransaction trans, bool forceReadOnly, bool ownsTransaction)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -61,7 +62,14 @@ namespace FoundationDB.Filters
 
 		protected void ThrowIfDisposed()
 		{
-			if (m_disposed) throw new ObjectDisposedException(this.GetType().Name);
+			// this should be inlined by the caller
+			if (m_disposed) ThrowFilterAlreadyDisposed(this);
+		}
+
+		[ContractAnnotation("=> halt")]
+		private static void ThrowFilterAlreadyDisposed([NotNull] FdbTransactionFilter filter)
+		{
+			throw new ObjectDisposedException(filter.GetType().Name);
 		}
 
 		public void Dispose()

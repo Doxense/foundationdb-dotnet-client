@@ -39,15 +39,18 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Handler called everytime a transaction is successfully committed</summary>
 		public Action<FdbLoggedTransaction> OnCommitted { get; private set; }
 
+		public FdbLoggingOptions LoggingOptions { get; private set; }
+
 		/// <summary>Wrap a database with a filter that will log the activity of all transactions</summary>
 		/// <param name="database">Wrapped database</param>
 		/// <param name="forceReadOnly">If true, deny all write operations.</param>
 		/// <param name="ownsDatabase">If true, also dispose the wrapped database if this instance is disposed.</param>
 		/// <param name="onCommitted">Handler that will be called when a transaction is either committed succesfully, or disposed. The log can be accessed via the <see cref="FdbLoggedTransaction.Log"/> property.</param>
-		public FdbLoggedDatabase(IFdbDatabase database, bool forceReadOnly, bool ownsDatabase, Action<FdbLoggedTransaction> onCommitted)
+		public FdbLoggedDatabase(IFdbDatabase database, bool forceReadOnly, bool ownsDatabase, Action<FdbLoggedTransaction> onCommitted, FdbLoggingOptions defaultOptions = FdbLoggingOptions.Default)
 			: base(database, forceReadOnly, ownsDatabase)
 		{
 			this.OnCommitted = onCommitted;
+			this.LoggingOptions = defaultOptions;
 		}
 
 		/// <summary>Create a new logged transaction</summary>
@@ -56,7 +59,8 @@ namespace FoundationDB.Filters.Logging
 			return new FdbLoggedTransaction(
 				base.BeginTransaction(mode, cancellationToken, context),
 				true,
-				this.OnCommitted
+				this.OnCommitted,
+				this.LoggingOptions
 			);
 		}
 	}

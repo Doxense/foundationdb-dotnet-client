@@ -846,6 +846,7 @@ namespace FoundationDB.Client
 			throw new OutOfMemoryException("Buffer cannot be resized, because it would exceed the maximum allowed size");
 		}
 
+		[UsedImplicitly(ImplicitUseTargetFlags.WithMembers)]
 		private sealed class DebugView
 		{
 			private readonly SliceWriter m_writer;
@@ -860,7 +861,9 @@ namespace FoundationDB.Client
 				get
 				{
 					if (m_writer.Buffer.Length == m_writer.Position) return m_writer.Buffer;
-					return m_writer.GetBytes();
+					var tmp = new byte[m_writer.Position];
+					System.Array.Copy(m_writer.Buffer, tmp, tmp.Length);
+					return tmp;
 				}
 			}
 
