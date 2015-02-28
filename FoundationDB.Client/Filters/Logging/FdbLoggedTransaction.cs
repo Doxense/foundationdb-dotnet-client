@@ -30,9 +30,28 @@ namespace FoundationDB.Filters.Logging
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using System.Threading;
 	using System.Threading.Tasks;
+
+	[Flags]
+	public enum FdbLoggingOptions
+	{
+		/// <summary>Default logging options</summary>
+		Default = 0,
+		
+		/// <summary>Capture the stacktrace of the caller method that created the transaction</summary>
+		RecordCreationStackTrace = 0x100,
+
+		/// <summary>Capture the stacktrace of the caller method for each operation</summary>
+		RecordOperationStackTrace = 0x200,
+
+		/// <summary>Capture all the stacktraces.</summary>
+		/// <remarks>This is a shortcurt for <see cref="RecordCreationStackTrace"/> | <see cref="RecordOperationStackTrace"/></remarks>
+		WithStackTraces = RecordCreationStackTrace | RecordOperationStackTrace,
+	}
 
 	/// <summary>Transaction filter that logs and measure all operations performed on the underlying transaction</summary>
 	public sealed class FdbLoggedTransaction : FdbTransactionFilter
@@ -40,16 +59,16 @@ namespace FoundationDB.Filters.Logging
 		private Snapshotted m_snapshotted;
 
 		/// <summary>Log of all operations performed on this transaction</summary>
-		public FdbTransactionLog Log { get; private set; }
+		public FdbTransactionLog Log {[NotNull] get; private set; }
 
 		/// <summary>Handler that will be called when this transaction commits successfully</summary>
 		public Action<FdbLoggedTransaction> Committed { get; private set; }
 
 		/// <summary>Wrap an existing transaction and log all operations performed</summary>
-		public FdbLoggedTransaction(IFdbTransaction trans, bool ownsTransaction, Action<FdbLoggedTransaction> onCommitted)
+		public FdbLoggedTransaction(IFdbTransaction trans, bool ownsTransaction, Action<FdbLoggedTransaction> onCommitted, FdbLoggingOptions options)
 			: base(trans, false, ownsTransaction)
 		{
-			this.Log = new FdbTransactionLog(this);
+			this.Log = new FdbTransactionLog(options);
 			this.Committed = onCommitted;
 			this.Log.Start(this);
 		}
@@ -101,7 +120,7 @@ namespace FoundationDB.Filters.Logging
 
 		private Slice[] Grab(Slice[] slices)
 		{
-			if (slices == null || slices.Length == 0) return slices;
+			if (slices == null || slices.Length == 0) return null;
 
 			lock (m_lock)
 			{
@@ -132,6 +151,8 @@ namespace FoundationDB.Filters.Logging
 
 		private FdbKeySelector[] Grab(FdbKeySelector[] selectors)
 		{
+			if (selectors == null || selectors.Length == 0) return null;
+
 			var res = new FdbKeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
 			{
@@ -163,7 +184,7 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private void Execute<TCommand>(TCommand cmd, Action<IFdbTransaction, TCommand> action)
+		private void Execute<TCommand>([NotNull] TCommand cmd, [NotNull] Action<IFdbTransaction, TCommand> action)
 			where TCommand : FdbTransactionLog.Command
 		{
 			ThrowIfDisposed();
@@ -184,7 +205,7 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private async Task ExecuteAsync<TCommand>(TCommand cmd, Func<IFdbTransaction, TCommand, Task> lambda)
+		private async Task ExecuteAsync<TCommand>([NotNull] TCommand cmd, [NotNull] Func<IFdbTransaction, TCommand, Task> lambda)
 			where TCommand : FdbTransactionLog.Command
 		{
 			ThrowIfDisposed();
@@ -205,16 +226,16 @@ namespace FoundationDB.Filters.Logging
 			}
 		}
 
-		private async Task<R> ExecuteAsync<TCommand, R>(TCommand cmd, Func<IFdbTransaction, TCommand, Task<R>> lambda)
-			where TCommand : FdbTransactionLog.Command<R>
+		private async Task<TResult> ExecuteAsync<TCommand, TResult>([NotNull] TCommand cmd, [NotNull] Func<IFdbTransaction, TCommand, Task<TResult>> lambda)
+			where TCommand : FdbTransactionLog.Command<TResult>
 		{
 			ThrowIfDisposed();
 			Exception error = null;
 			this.Log.BeginOperation(cmd);
 			try
 			{
-				R result = await lambda(m_transaction, cmd).ConfigureAwait(false);
-				cmd.Result = Maybe.Return<R>(result);
+				TResult result = await lambda(m_transaction, cmd).ConfigureAwait(false);
+				cmd.Result = Maybe.Return<TResult>(result);
 				return result;
 			}
 			catch (Exception e)
@@ -223,7 +244,7 @@ namespace FoundationDB.Filters.Logging
 #if NET_4_0
 				cmd.Result = Maybe.Error<R>(e);
 #else
-				cmd.Result = Maybe.Error<R>(System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e));
+				cmd.Result = Maybe.Error<TResult>(System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e));
 #endif
 				throw;
 			}
@@ -241,7 +262,7 @@ namespace FoundationDB.Filters.Logging
 		{
 			Execute(
 				new FdbTransactionLog.CancelCommand(),
-				(_tr, _cmd) => _tr.Cancel()
+				(tr, cmd) => tr.Cancel()
 			);
 		}
 
@@ -249,14 +270,15 @@ namespace FoundationDB.Filters.Logging
 		{
 			Execute(
 				new FdbTransactionLog.ResetCommand(),
-				(_tr, _cmd) => _tr.Reset()
+				(tr, cmd) => tr.Reset()
 			);
 		}
 
-		public override FdbWatch Watch(Slice key, System.Threading.CancellationToken cancellationToken)
+		public override FdbWatch Watch(Slice key, CancellationToken cancellationToken)
 		{
-			this.Log.AddOperation(new FdbTransactionLog.WatchCommand(key));
-			return base.Watch(key, cancellationToken);
+			var cmd = new FdbTransactionLog.WatchCommand(Grab(key));
+            this.Log.AddOperation(cmd);
+			return m_transaction.Watch(cmd.Key, cancellationToken);
 		}
 
 		#endregion
@@ -335,7 +357,7 @@ namespace FoundationDB.Filters.Logging
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetReadVersionCommand(),
-				(_tr, _cmd) => _tr.GetReadVersionAsync()
+				(tr, cmd) => tr.GetReadVersionAsync()
 			);
 		}
 
@@ -343,7 +365,7 @@ namespace FoundationDB.Filters.Logging
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetCommand(Grab(key)),
-				(_tr, _cmd) => _tr.GetAsync(_cmd.Key)
+				(tr, cmd) => tr.GetAsync(key)
 			);
 		}
 
@@ -351,7 +373,7 @@ namespace FoundationDB.Filters.Logging
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetKeyCommand(Grab(selector)),
-				(_tr, _cmd) => _tr.GetKeyAsync(_cmd.Selector)
+				(tr, cmd) => tr.GetKeyAsync(selector)
 			);
 		}
 
@@ -359,7 +381,7 @@ namespace FoundationDB.Filters.Logging
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetValuesCommand(Grab(keys)),
-				(_tr, _cmd) => _tr.GetValuesAsync(_cmd.Keys)
+				(tr, cmd) => tr.GetValuesAsync(keys)
 			);
 		}
 
@@ -367,7 +389,7 @@ namespace FoundationDB.Filters.Logging
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetKeysCommand(Grab(selectors)),
-				(_tr, _cmd) => _tr.GetKeysAsync(_cmd.Selectors)
+				(tr, cmd) => tr.GetKeysAsync(selectors)
 			);
 		}
 
@@ -375,14 +397,17 @@ namespace FoundationDB.Filters.Logging
 		{
 			return ExecuteAsync(
 				new FdbTransactionLog.GetRangeCommand(Grab(beginInclusive), Grab(endExclusive), options, iteration),
-				(_tr, _cmd) => _tr.GetRangeAsync(_cmd.Begin, _cmd.End, _cmd.Options, _cmd.Iteration)
+				(tr, cmd) => tr.GetRangeAsync(beginInclusive, endExclusive, options, iteration)
 			);
 		}
 
 		public override FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			ThrowIfDisposed();
+
 			var query = m_transaction.GetRange(beginInclusive, endExclusive, options);
+			// this method does not execute immediately, so we don't need to record any operation here, only when GetRangeAsync() is called (by ToListAsync() or any other LINQ operator)
+			// we must override the transaction used by the query, so that we are notified when this happens
 			return query.UseTransaction(this);
 		}
 
@@ -402,13 +427,13 @@ namespace FoundationDB.Filters.Logging
 		{
 			private readonly FdbLoggedTransaction m_parent;
 
-			public Snapshotted(FdbLoggedTransaction parent, IFdbReadOnlyTransaction snapshot)
+			public Snapshotted([NotNull] FdbLoggedTransaction parent, [NotNull] IFdbReadOnlyTransaction snapshot)
 				: base(snapshot)
 			{
 				m_parent = parent;
 			}
 
-			private async Task<R> ExecuteAsync<TCommand, R>(TCommand cmd, Func<IFdbReadOnlyTransaction, TCommand, Task<R>> lambda)
+			private async Task<R> ExecuteAsync<TCommand, R>([NotNull] TCommand cmd, [NotNull] Func<IFdbReadOnlyTransaction, TCommand, Task<R>> lambda)
 				where TCommand : FdbTransactionLog.Command<R>
 			{
 				m_parent.ThrowIfDisposed();
@@ -441,7 +466,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetReadVersionCommand(),
-					(_tr, _cmd) => _tr.GetReadVersionAsync()
+					(tr, cmd) => tr.GetReadVersionAsync()
 				);
 			}
 
@@ -449,7 +474,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetCommand(m_parent.Grab(key)),
-					(_tr, _cmd) => _tr.GetAsync(_cmd.Key)
+					(tr, cmd) => tr.GetAsync(cmd.Key)
 				);
 			}
 
@@ -457,7 +482,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetKeyCommand(m_parent.Grab(selector)),
-					(_tr, _cmd) => _tr.GetKeyAsync(_cmd.Selector)
+					(tr, cmd) => tr.GetKeyAsync(cmd.Selector)
 				);
 			}
 
@@ -465,7 +490,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetValuesCommand(m_parent.Grab(keys)),
-					(_tr, _cmd) => _tr.GetValuesAsync(_cmd.Keys)
+					(tr, cmd) => tr.GetValuesAsync(cmd.Keys)
 				);
 			}
 
@@ -473,7 +498,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetKeysCommand(m_parent.Grab(selectors)),
-					(_tr, _cmd) => _tr.GetKeysAsync(_cmd.Selectors)
+					(tr, cmd) => tr.GetKeysAsync(cmd.Selectors)
 				);
 			}
 
@@ -481,7 +506,7 @@ namespace FoundationDB.Filters.Logging
 			{
 				return ExecuteAsync(
 					new FdbTransactionLog.GetRangeCommand(m_parent.Grab(beginInclusive), m_parent.Grab(endExclusive), options, iteration),
-					(_tr, _cmd) => _tr.GetRangeAsync(_cmd.Begin, _cmd.End, _cmd.Options, _cmd.Iteration)
+					(tr, cmd) => tr.GetRangeAsync(cmd.Begin, cmd.End, cmd.Options, cmd.Iteration)
 				);
 			}
 
@@ -501,21 +526,21 @@ namespace FoundationDB.Filters.Logging
 		{
 			ThrowIfDisposed();
 			this.Log.AddOperation(new FdbTransactionLog.SetOptionCommand(option), countAsOperation: false);
-			base.SetOption(option);
+			m_transaction.SetOption(option);
 		}
 
 		public override void SetOption(FdbTransactionOption option, long value)
 		{
 			ThrowIfDisposed();
 			this.Log.AddOperation(new FdbTransactionLog.SetOptionCommand(option, value), countAsOperation: false);
-			base.SetOption(option, value);
+			m_transaction.SetOption(option, value);
 		}
 
 		public override void SetOption(FdbTransactionOption option, string value)
 		{
 			ThrowIfDisposed();
 			this.Log.AddOperation(new FdbTransactionLog.SetOptionCommand(option, value), countAsOperation: false);
-			base.SetOption(option, value);
+			m_transaction.SetOption(option, value);
 		}
 
 		#endregion

@@ -35,6 +35,7 @@ namespace FoundationDB.Filters.Logging
 	using System.Collections.Concurrent;
 	using System.Diagnostics;
 	using System.Globalization;
+	using System.Reflection;
 	using System.Text;
 	using System.Threading;
 
@@ -48,17 +49,50 @@ namespace FoundationDB.Filters.Logging
 		private int m_writeSize;
 
 		/// <summary>Create an empty log for a newly created transaction</summary>
-		/// <param name="trans"></param>
-		public FdbTransactionLog(IFdbTransaction trans)
+		public FdbTransactionLog(FdbLoggingOptions options)
 		{
+			this.Options = options;
 			this.Commands = new ConcurrentQueue<Command>();
+
+			if (this.ShoudCaptureTransactionStackTrace)
+			{
+				this.CallSite = CaptureStackTrace(2);
+			}
 		}
 
 		/// <summary>Id of the logged transaction</summary>
 		public int Id { get; private set; }
 
+		/// <summary>Logging options for this log</summary>
+		public FdbLoggingOptions Options { get; private set; }
+
 		/// <summary>True if the transaction is Read Only</summary>
 		public bool IsReadOnly { get; private set; }
+
+		/// <summary>StackTrace of the method that created this transaction</summary>
+		/// <remarks>Only if the <see cref="FdbLoggingOptions.RecordCreationStackTrace"/> option is set</remarks>
+		public StackTrace CallSite { get; private set; }
+
+		internal StackTrace CaptureStackTrace(int numStackFramesToSkip)
+		{
+#if DEBUG
+			const bool NEED_FILE_INFO = true;
+#else
+			const bool NEED_FILE_INFO = false;
+#endif
+			return new StackTrace(1 + numStackFramesToSkip, NEED_FILE_INFO);
+		}
+
+		/// <summary>Checks if we need to record the stacktrace of the creation of the transaction</summary>
+		internal bool ShoudCaptureTransactionStackTrace
+		{
+			get { return (this.Options & FdbLoggingOptions.RecordCreationStackTrace) != 0; }
+		}
+
+		internal bool ShouldCaptureOperationStackTrace
+		{
+			get { return (this.Options & FdbLoggingOptions.RecordOperationStackTrace) != 0; }
+		}
 
 		/// <summary>Number of operations performed by the transaction</summary>
 		public int Operations { get { return m_operations; } }
@@ -177,6 +211,7 @@ namespace FoundationDB.Filters.Logging
 			cmd.Step = step;
 			cmd.EndOffset = cmd.StartOffset;
 			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
+			if (this.ShouldCaptureOperationStackTrace) cmd.CallSite = CaptureStackTrace(1);
 			if (countAsOperation) Interlocked.Increment(ref m_operations);
 			this.Commands.Enqueue(cmd);
 		}
@@ -192,6 +227,7 @@ namespace FoundationDB.Filters.Logging
 			cmd.StartOffset = ts;
 			cmd.Step = step;
 			cmd.ThreadId = Thread.CurrentThread.ManagedThreadId;
+			if (this.ShouldCaptureOperationStackTrace) cmd.CallSite = CaptureStackTrace(2);
 			if (cmd.ArgumentBytes.HasValue) Interlocked.Add(ref m_writeSize, cmd.ArgumentBytes.Value);
 			Interlocked.Increment(ref m_operations);
 			this.Commands.Enqueue(cmd);
@@ -269,7 +305,7 @@ namespace FoundationDB.Filters.Logging
 
 		/// <summary>Generate a full ASCII report with the detailed timeline of all the commands that were executed by the transaction</summary>
 		[NotNull]
-		public string GetTimingsReport(bool showCommands = false)
+		public string GetTimingsReport(bool showCommands = false, KeyResolver keyResolver = null)
 		{
 			var culture = CultureInfo.InvariantCulture;
 
@@ -347,7 +383,7 @@ namespace FoundationDB.Filters.Logging
 							/* 8 */ cmd.ArgumentBytes,
 							/* 9 */ cmd.ResultBytes,
 							/* 10 */ cmd.Error != null ? "!" : " ",
-							/* 11 */ showCommands ? cmd.ToString() : String.Empty
+							/* 11 */ showCommands ? cmd.ToString(keyResolver) : String.Empty
 						);
 					}
 					else
@@ -362,9 +398,23 @@ namespace FoundationDB.Filters.Logging
 							/* 4 */ ticks >= TimeSpan.TicksPerMillisecond * 10 ? '*' : ticks >= TimeSpan.TicksPerMillisecond ? '°' : ' ',
 							/* 5 */ w,
 							/* 6 */ cmd.StartOffset.TotalMilliseconds,
-							/* 7 */ showCommands ? cmd.ToString() : String.Empty
+							/* 7 */ showCommands ? cmd.ToString(keyResolver) : String.Empty
 						);
 					}
+
+					if (showCommands && cmd.CallSite != null)
+					{
+						var f = GetFirstInterestingStackFrame(cmd.CallSite);
+						if (f != null)
+						{
+							var m = f.GetMethod();
+							string name = GetUserFriendlyMethodName(m);
+							sb.Append(" // ").Append(name);
+							string fn = f.GetFileName();
+							if (fn != null) sb.AppendFormat(culture, " at {0}:{1}", fn, f.GetFileLineNumber());
+						}
+					}
+
 					sb.AppendLine();
 
 					previousWasOnError = cmd.Op == Operation.OnError;
@@ -403,6 +453,51 @@ namespace FoundationDB.Filters.Logging
 				sb.AppendLine(String.Format(culture, "> Completed after {0:N3} ms without performing any operation", this.TotalDuration.TotalMilliseconds));
 			}
 			return sb.ToString();
+		}
+
+		private static StackFrame GetFirstInterestingStackFrame(StackTrace st)
+		{
+			if (st == null) return null;
+			var self = typeof (Fdb).Module;
+			for (int k = 0; k < st.FrameCount; k++)
+			{
+				var f = st.GetFrame(k);
+				var m = f.GetMethod();
+				if (m == null) continue;
+
+				var t = m.DeclaringType;
+				if (t == null) continue;
+
+				// discard any method in this assembly
+				if (t.Module == self) continue;
+				// discard any NETFX method (async state machines, threadpool, ...)
+				if (t.Namespace.StartsWith("System.", StringComparison.Ordinal)) continue;
+				// discard any compiler generated state machine
+				return f;
+			}
+			return null;
+		}
+
+		private static string GetUserFriendlyMethodName([NotNull] MethodBase m)
+		{
+			Contract.Requires(m != null);
+			var t = m.DeclaringType;
+			Contract.Assert(t != null);
+
+			if (m.Name == "MoveNext")
+			{ // compiler generated state machine?
+
+				// look for "OriginalType.<MethodName>d__123.MoveNext()", and replace it with "OriginalType.MethodName()"
+				int p;
+				if (t.Name.StartsWith("<", StringComparison.Ordinal)
+				    && (p = t.Name.IndexOf('>')) > 0
+					&& t.DeclaringType != null)
+				{
+					return t.DeclaringType.Name + "." + t.Name.Substring(1, p - 1) + "()";
+				}
+			}
+
+			return t.Name + "." + m.Name + "()";
 		}
 
 		private static char GetFancyChar(int pos, int count, double start, double end, bool skip)
@@ -464,6 +559,7 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Categories of operations supported by a transaction</summary>
 		public enum Mode
 		{
+			/// <summary>Invalid mode</summary>
 			Invalid = 0,
 			/// <summary>Operation that reads keys and/or values from the database</summary>
 			Read,

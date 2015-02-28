@@ -20,8 +20,8 @@
     </dependencies>
   </metadata>
   <files>
-    <file src="output\FoundationDB.Layers.Common\FoundationDB.Layers.Common.dll" target="lib\net-45" />
-    <file src="output\FoundationDB.Layers.Common\FoundationDB.Layers.Common.XML" target="lib\net-45" />
-    <file src="output\FoundationDB.Layers.Common\FoundationDB.Layers.Common.pdb" target="lib\net-45" />
+    <file src="FoundationDB.Layers.Common.dll" target="lib\net-45" />
+    <file src="FoundationDB.Layers.Common.XML" target="lib\net-45" />
+    <file src="FoundationDB.Layers.Common.pdb" target="lib\net-45" />
   </files>
 </package>
