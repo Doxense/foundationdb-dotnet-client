@@ -14,7 +14,8 @@ namespace FoundationDB.Storage.Memory.IO
 	using System.Diagnostics.Contracts;
 	using System.Threading;
 	using System.Threading.Tasks;
-
+        using System.Runtime.InteropServices;
+        
 	internal class SnapshotWriter
 	{
 		private readonly Win32SnapshotFile m_file;
@@ -161,15 +162,48 @@ namespace FoundationDB.Storage.Memory.IO
 			{
 				unsafe
 				{
-					//REVIEW: need a better way to read raw values,
-					// maybe the DB handler could give us a Func<...> ?
-					// or maybe a Stream or Iterator view over the segment's data ?
+#if MONO
+					var valuePointer =new IntPtr((void*) MemoryDatabaseHandler.ResolveValueAtVersion(segment[i], m_sequence));
+
+					if (valuePointer == IntPtr.Zero)
+						continue;
+
+					Value value = new Value();
+					Marshal.PtrToStructure(valuePointer, value);
+
+					var keyPointer = new IntPtr((void*)segment[i]);
+
+					Key key = new Key();
+					Marshal.PtrToStructure(keyPointer, key);
+
+					Contract.Assert(key.Size <= MemoryDatabaseHandler.MAX_KEY_SIZE);
+
+					// Key Size
+					uint size = key.Size;
+					m_writer.WriteVarint32(size);
+					m_writer.WriteBytesUnsafe(&(key.Data), (int)size);
+
+					// Value
+					m_writer.WriteVarint64(value.Sequence); // sequence
+					size = value.Size;
+					if (size == 0)
+					{ // empty key
+						m_writer.WriteByte(0);
+					}
+					else
+					{
+						m_writer.WriteVarint32(size); // value size
+						m_writer.WriteBytesUnsafe(&(value.Data), (int)size); // value data
+					}
+#else
+
 					Value* value = MemoryDatabaseHandler.ResolveValueAtVersion(segment[i], m_sequence);
 					if (value == null)
 					{
 						continue;
 					}
 					Key* key = (Key*)segment[i]; //.ToPointer();
+
 					Contract.Assert(key != null && key->Size <= MemoryDatabaseHandler.MAX_KEY_SIZE);
 
 					// Key Size
@@ -190,7 +224,7 @@ namespace FoundationDB.Storage.Memory.IO
 						m_writer.WriteVarint32(size); // value size
 						m_writer.WriteBytesUnsafe(&(value->Data), (int)size); // value data
 					}
-
+#endif
 				}
 
 				if (m_writer.Position >= SnapshotFormat.FLUSH_SIZE)
