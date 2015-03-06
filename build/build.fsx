@@ -63,7 +63,6 @@ Target "Test" (fun _ ->
     CreateDir testDir
     ActivateFinalTarget "CloseTestRunner"
     !! (buildDir @@ "**" @@ "*Test*.dll")
-    //++(buildDir + "**/*Test*.exe")
     |> NUnit(
         fun p -> { p with DisableShadowCopy = true
                           OutputFile = "TestResults.xml"
@@ -89,7 +88,7 @@ let replaceVersionInNuspec nuspecFileName version =
 
 Target "BuildNuget" (fun _ ->
     trace "Building Nuget Packages"
-    let projects = [ "FoundationDb.Client"; "FoundationDb.Layers.Common" ]
+    let projects = [ "FoundationDB.Client"; "FoundationDB.Layers.Common" ]
     CreateDir nugetOutDir
     projects
     |> List.iter (
@@ -97,6 +96,11 @@ Target "BuildNuget" (fun _ ->
             let nuspec = projectRoot() @@ "build" @@ (sprintf "%s.nuspec" name)
             replaceVersionInNuspec nuspec version
             let binariesDir = buildDir @@ name
+
+            // Copy XML doc to binaries dir, works by default on windows but not on Mono.
+            let xmlDocFile = projectRoot() @@ name @@ "bin" @@ "Release" @@ (sprintf "%s.XML") name
+            FileUtils.cp xmlDocFile binariesDir
+
             NuGetPack (
                 fun p ->
                     { p with WorkingDir = binariesDir
