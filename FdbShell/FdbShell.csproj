@@ -66,9 +66,9 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <Import Project="..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets" Condition="Exists('..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets')" />
+  <Import Project="..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets" Condition="Exists('..\packages\ILRepack.MSBuild.Task.1.0.9\build\ILRepack.MSBuild.Task.targets') AND '$(OS)' == 'Windows_NT'" />
   <!-- ILRepack -->
-  <Target Name="AfterBuild" Condition="'$(Configuration)' == 'Release'">
+  <Target Name="AfterBuild" Condition="('$(Configuration)' == 'Release') AND '$(OS)' == 'Windows_NT' ">
     <ItemGroup>
       <InputAssemblies Include="$(OutputPath)\$(AssemblyName).exe" />
       <InputAssemblies Include="$(OutputPath)\FoundationDB.Client.dll" />
