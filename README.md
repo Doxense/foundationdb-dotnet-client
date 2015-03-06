@@ -13,6 +13,15 @@ The core C#/.NET binding API (FoundationDB.Client namespace) is relatively stabl
 
 [![Build status](https://ci.appveyor.com/api/projects/status/83u4pd2ckevdtb57?svg=true)](https://ci.appveyor.com/project/KrzysFR/foundationdb-dotnet-client)
 
+__Notice: read this first!__
+
+
+> __There is an incoming API change that may break a few things, regarding the use of Subspaces and Tuples__. The new API is currently in the `refac_tuples` branch, and will be merge soon in `master` for the 0.9 release. If you are just starting, you should probably use the new branch. If you already have existing code, there will be a document explaining the changes and how to fix your source code. __See [#42](https://github.com/Doxense/foundationdb-dotnet-client/pull/42) for more details.__
+    
+> __There is another incoming change, regarding the way FDB's Futures are implemented under the hood, which should fix some random crash issues under heavy load__. Some of the problems have already been fixed in master, but the new branch `future_ng` is a complete rework, in collaboration with the folks at FoundationDB. __See [#54](https://github.com/Doxense/foundationdb-dotnet-client/pull/54) for more details__
+    
+> Both these branches are already used in production. Once everything is merged and tested, we will be ready for 1.0.
+
 How to use
 ----------
 
