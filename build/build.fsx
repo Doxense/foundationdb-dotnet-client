@@ -3,12 +3,16 @@
 
 open Fake
 
-RestorePackages()
+let projectRoot () =
+    if FileUtils.pwd().EndsWith("build") then
+        FileUtils.pwd() @@ ".."
+    else
+        FileUtils.pwd()
 
 // Properties
 let version = "0.9.9-pre" //TODO: find a way to extract this from somewhere convenient
-let buildDir = FileUtils.pwd() @@ "build" @@ "output"
-let nugetPath = FileUtils.pwd() @@ ".nuget" @@ "nuget.exe"
+let buildDir = projectRoot() @@ "build" @@ "output"
+let nugetPath = projectRoot() @@ ".nuget" @@ "NuGet.exe"
 let nugetOutDir = buildDir @@ "_packages"
 
 let BuildProperties =
@@ -20,12 +24,18 @@ let BuildProperties =
 Target "Clean" (fun _ ->
     CleanDir buildDir
 )
+
+Target "PackageRestore" (fun _ ->
+    !! "./**/packages.config"
+    |> Seq.iter (RestorePackage (fun p -> {p with ToolPath = nugetPath; OutputPath = projectRoot() @@ "packages"}))
+)
+
 // Default target
 Target "Build" (fun _ -> traceHeader "STARTING BUILD")
 
 let buildProject mode =
     let binDirs =
-        !! "**/bin/**"
+        !! (projectRoot() @@ "**" @@ "bin" @@ "**")
         |> Seq.map DirectoryName
         |> Seq.distinct
         |> Seq.filter (fun f -> (f.EndsWith("Debug") || f.EndsWith("Release")) && not (f.Contains "CodeGeneration"))
@@ -33,7 +43,7 @@ let buildProject mode =
     CleanDirs binDirs
 
     //Compile each csproj and output it separately in build/output/PROJECTNAME
-    !! "**/*.csproj"
+    !! (projectRoot() @@ "**" @@ "*.csproj")
     |> Seq.map(fun f -> (f, buildDir @@ directoryInfo(f).Name.Replace(".csproj", "")))
     |> Seq.iter(fun (f,d) -> MSBuild d "Build" (BuildProperties @ [ "Configuration", mode ]) (seq { yield f }) |> ignore)
 
@@ -53,7 +63,6 @@ Target "Test" (fun _ ->
     CreateDir testDir
     ActivateFinalTarget "CloseTestRunner"
     !! (buildDir @@ "**" @@ "*Test*.dll")
-    //++(buildDir + "**/*Test*.exe")
     |> NUnit(
         fun p -> { p with DisableShadowCopy = true
                           OutputFile = "TestResults.xml"
@@ -79,14 +88,19 @@ let replaceVersionInNuspec nuspecFileName version =
 
 Target "BuildNuget" (fun _ ->
     trace "Building Nuget Packages"
-    let projects = [ "FoundationDb.Client"; "FoundationDb.Layers.Common" ]
+    let projects = [ "FoundationDB.Client"; "FoundationDB.Layers.Common" ]
     CreateDir nugetOutDir
     projects
     |> List.iter (
         fun name ->
-            let nuspec = "build" @@ (sprintf "%s.nuspec" name)
+            let nuspec = projectRoot() @@ "build" @@ (sprintf "%s.nuspec" name)
             replaceVersionInNuspec nuspec version
             let binariesDir = buildDir @@ name
+
+            // Copy XML doc to binaries dir, works by default on windows but not on Mono.
+            let xmlDocFile = projectRoot() @@ name @@ "bin" @@ "Release" @@ (sprintf "%s.XML") name
+            FileUtils.cp xmlDocFile binariesDir
+
             NuGetPack (
                 fun p ->
                     { p with WorkingDir = binariesDir
@@ -104,8 +118,8 @@ Target "BuildNuget" (fun _ ->
 Target "Default" (fun _ -> trace "Starting build")
 
 // Dependencies
-"Clean" ==> "BuildAppDebug" ==> "Test" ==> "Build"
-"Clean" ==> "BuildAppRelease" ==> "BuildNuget" ==> "Release"
+"Clean" ==> "PackageRestore" ==> "BuildAppDebug" ==> "Test" ==> "Build"
+"Clean" ==> "PackageRestore" ==> "BuildAppRelease" ==> "BuildNuget" ==> "Release"
 
 // start build
 RunTargetOrDefault "Build"

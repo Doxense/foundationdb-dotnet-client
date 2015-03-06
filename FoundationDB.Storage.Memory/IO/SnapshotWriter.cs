@@ -133,7 +133,11 @@ namespace FoundationDB.Storage.Memory.IO
 			return TaskHelpers.CompletedTask;
 		}
 
+#if __MonoCS__
+		public Task WriteLevelAsync(int level, IntPtr[] segment, CancellationToken ct)
+#else
 		public async Task WriteLevelAsync(int level, IntPtr[] segment, CancellationToken ct)
+#endif
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -230,7 +234,11 @@ namespace FoundationDB.Storage.Memory.IO
 				if (m_writer.Position >= SnapshotFormat.FLUSH_SIZE)
 				{
 					//Console.WriteLine("> partial flush (" + writer.Position + ")");
+#if __MonoCS__
+					int written = m_file.WriteCompletePagesAsync(m_writer.Buffer, m_writer.Position, ct).ConfigureAwait(false).GetAwaiter().GetResult();
+#else
 					int written = await m_file.WriteCompletePagesAsync(m_writer.Buffer, m_writer.Position, ct).ConfigureAwait(false);
+#endif
 					if (written > 0) m_writer.Flush(written);
 				}
 			}
@@ -246,6 +254,10 @@ namespace FoundationDB.Storage.Memory.IO
 
 			// optional padding to fill the rest of the page
 			PadPageIfNeeded(SnapshotFormat.PAGE_SIZE, (byte)(0xFC - level));
+
+#if __MonoCS__
+            return TaskHelpers.CompletedTask;
+#endif
 		}
 
 		public Task WriteJumpTableAsync(CancellationToken ct)
