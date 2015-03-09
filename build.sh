@@ -3,18 +3,18 @@ NGD=./.nuget
 NGP=$NGD/NuGet.exe
 echo "Updating SSL certificates..."
 mozroots --import --machine --sync
-echo -n "\nChecking for nuget... "
+echo -n "Checking for nuget... "
 if [ ! -f $NGP ]; then
 if [ ! -d $NGD ]; then
 mkdir $NGD
 fi
-echo -n "\nDownloading Nuget... "
+echo -n "Downloading Nuget... "
 wget -O $NGP http://nuget.org/nuget.exe
 echo "done"
 else
 echo "found"
 fi
-echo "\nUpdating packages..."
+echo -n "Updating packages..."
 mono ./.nuget/NuGet.exe restore
 echo "done"
 if [ ! -x $NGP ]; then

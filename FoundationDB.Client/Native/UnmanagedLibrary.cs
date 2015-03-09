@@ -1,4 +1,4 @@
-﻿#region BSD Licence
+#region BSD Licence
 /* Copyright (c) 2013-2014, Doxense SAS
 All rights reserved.
 
@@ -42,7 +42,7 @@ namespace FoundationDB.Client.Native
 
 		// See http://msdn.microsoft.com/msdnmag/issues/05/10/Reliability/ for more about safe handles.
 
-#if MONO
+#if __MonoCS__
 		[SuppressUnmanagedCodeSecurity]
 		public sealed class SafeLibraryHandle : FdbSafeHandle
 		{
@@ -72,7 +72,7 @@ namespace FoundationDB.Client.Native
 		[SuppressUnmanagedCodeSecurity]
 		private static class NativeMethods
 		{
-#if MONO
+#if __MonoCS__
 			const string KERNEL = "dl";
 
 			[DllImport(KERNEL)]
