@@ -1,4 +1,4 @@
-﻿#region BSD Licence
+#region BSD Licence
 /* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
@@ -39,7 +39,7 @@ namespace FoundationDB.Client.Native
 	// For Windows, we can use a CriticalHandle which will give us a bit more performance (no reference counting)
 
 	/// <summary>Base class for all wrappers on FDBxxxx* opaque pointers</summary>
-#if MONO
+#if __MonoCS__
 	[StructLayout(LayoutKind.Sequential)]
 	internal abstract class FdbSafeHandle : SafeHandle
 #else
@@ -47,7 +47,7 @@ namespace FoundationDB.Client.Native
 #endif
 	{
 		protected FdbSafeHandle()
-#if MONO
+#if __MonoCS__
 			: base(IntPtr.Zero, true)
 #else
 			: base(IntPtr.Zero)

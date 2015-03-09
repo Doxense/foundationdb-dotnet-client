@@ -223,7 +223,7 @@ If you get `System.UnauthorizedAccessException: Access to the path './build/outp
 
 ### Mono
 
-When building for Mono/Linux, you will need to define the symbol `MONO` when running msbuild or any custom build. This version will look for `libfdb_c.so` instead of `fdb_c.dll`.
+When building for Mono/Linux this version will look for `libfdb_c.so` instead of `fdb_c.dll`.
 
 More details on running FoundationDB on Linux can be found here: https://foundationdb.com/key-value-store/documentation/getting-started-linux.html
 
