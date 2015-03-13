@@ -1,4 +1,4 @@
-﻿#region BSD Licence
+#region BSD Licence
 /* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
@@ -49,7 +49,7 @@ namespace FoundationDB.Client.Native
 		public const int FDB_API_MIN_VERSION = 200;
 		public const int FDB_API_MAX_VERSION = 300;
 
-#if MONO
+#if __MonoCS__
 		/// <summary>Name of the C API dll used for P/Invoking</summary>
 		private const string FDB_C_DLL = "libfdb_c.so";
 #else
