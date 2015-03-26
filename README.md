@@ -5,7 +5,7 @@ __Important Notice__
 
 > As you may or may not know, the FoundationDB K/V Store engine is no longer available for download, following the acquisition of FoundationDB LLC by Apple. This means that, even though the .NET binding itself is open source, it is not usable without access to a license for the underlying database engine. Given these circumstances, this means that this project is no longer under active development, and will now transition into a maintenance state.
 
-> If you are actively using the .NET FoundationDB Binding in your application, and are in a situation where you have an existing infrastructure to support, please know that this repository will stay up as long as is needed, and there are currently no plans to close it down. If you want to be safe, please feel free to clone or fork it! We will try to help you fix any bug of issues, as is humanely possible. Since the license of the .NET Binding is open source (3-clause BSD), we encourage you to fork it and use it in anyway you think is necessary to help you transition to something else. In any case, we urge you to contact people at FoundationDB to help you on that (according to the message on the Community Forum, you should get in touch with info@foundationdb.com)
+> If you are actively using the .NET FoundationDB Binding in your application, and are in a situation where you have an existing infrastructure to support, please know that this repository will stay up as long as is needed, and there are currently no plans to close it down. If you want to be safe, please feel free to clone or fork it! We will try to help you fix any bug or issues, as is humanely possible. Since the license of the .NET Binding is open source (3-clause BSD), we encourage you to fork it and use it in anyway you think is necessary to help you transition to something else. In any case, we urge you to contact people at FoundationDB to help you on that (according to the message on the Community Forum, you should get in touch with info@foundationdb.com)
 
 > If you were looking for a new database solution for a new project, you'll have to keep looking. Good luck, because FoundationDB was probably the best in its class.
 
@@ -42,7 +42,7 @@ What attributes should I look for, if I want something similar?
 I have a bug, can you help us?
 > Please open an Issue and if this is at the .NET binding level, we will try to help you if we can!
 
-Are there some intersting bits in this project worth looking at?
+Are there some interesting bits in this project worth looking at?
 > Yes! Please take a look at the Tuple, Slice and FdbAsyncEnumerable classes! This was a fun project to make C# work well with an API mostly designed with dynamic languages (like Python or node.js) in mind. There is also the Memory Stoage project which was an attempt to have an in-memory version of the K/V store (for unit tests or embedded scenarios).
 
 __End of Important Notice__
