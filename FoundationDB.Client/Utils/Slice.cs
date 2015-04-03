@@ -1973,6 +1973,67 @@ namespace FoundationDB.Client
 			return writer.ToSlice();
 		}
 
+		/// <summary>Adds a prefix to a list of slices</summary>
+		/// <param name="prefix">Prefix to add to all the slices</param>
+		/// <param name="slices">List of slices to process</param>
+		/// <returns>Array of slice that all start with <paramref name="prefix"/> and followed by the corresponding entry in <paramref name="slices"/></returns>
+		/// <remarks>This method is optmized to reduce the amount of memory allocated</remarks>
+		public static Slice[] ConcatRange(Slice prefix, IEnumerable<Slice> slices)
+		{
+			if (slices == null) throw new ArgumentNullException("slices");
+
+			if (prefix.IsNullOrEmpty)
+			{ // nothing to do, but we still need to copy the array
+				return slices.ToArray();
+			}
+
+			Slice[] res;
+			Slice[] arr;
+			ICollection<Slice> coll;
+
+			if ((arr = slices as Slice[]) != null)
+			{	// fast-path for arrays (most frequent with range reads)
+
+				// we wil use a SliceBuffer to store all the keys produced in as few byte[] arrays as needed
+
+				// precompute the exact size needed
+				int totalSize = prefix.Count * arr.Length;
+				for (int i = 0; i < arr.Length; i++) totalSize += arr[i].Count;
+				var buf = new SliceBuffer(Math.Min(totalSize, 64 * 1024));
+
+				res = new Slice[arr.Length];
+				for (int i = 0; i < arr.Length; i++)
+				{
+					res[i] = buf.Intern(prefix, arr[i],	aligned: false);
+				}
+			}
+			else if ((coll = slices as ICollection<Slice>) != null)
+			{  // collection (size known)
+
+				//TODO: also use a SliceBuffer since we could precompute the total size...
+
+				res = new Slice[coll.Count];
+				int p = 0;
+				foreach (var suffix in coll)
+				{
+					res[p++] = prefix.Concat(suffix);
+				}
+			}
+			else
+			{  // streaming sequence (size unknown)
+
+				//note: we can only scan the list once, so would be no way to get a sensible value for the buffer's page size
+				var list = new List<Slice>();
+				foreach (var suffix in slices)
+				{
+					list.Add(prefix.Concat(suffix));
+				}
+				res = list.ToArray();
+			}
+
+			return res;
+		}
+
 		/// <summary>Implicitly converts a Slice into an ArraySegment&lt;byte&gt;</summary>
 		public static implicit operator ArraySegment<byte>(Slice value)
 		{

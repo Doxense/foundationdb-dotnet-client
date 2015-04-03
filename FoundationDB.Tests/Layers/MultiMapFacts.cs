@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ namespace FoundationDB.Layers.Collections.Tests
 
 				var location = await GetCleanDirectory(db, "Collections", "MultiMaps");
 
-				var map = new FdbMultiMap<string, string>(location.Partition("Foos"), allowNegativeValues: false);
+				var map = new FdbMultiMap<string, string>(location.Partition.ByKey("Foos"), allowNegativeValues: false);
 
 				// read non existing value
 				using (var tr = db.BeginTransaction(this.Cancellation))
@@ -89,7 +89,7 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var value = await tr.GetAsync(map.Subspace.Pack("hello", "world"));
+					var value = await tr.GetAsync(map.Subspace[FdbTuple.Create("hello", "world")]);
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToInt64(), Is.EqualTo(1));
 				}
@@ -112,7 +112,7 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(count, Is.Null);
 
 					// also check directly
-					var data = await tr.GetAsync(map.Subspace.Pack("hello", "world"));
+					var data = await tr.GetAsync(map.Subspace[FdbTuple.Create("hello", "world")]);
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}
 

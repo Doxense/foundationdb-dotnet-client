@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,7 @@ namespace FoundationDB.Filters
 	using FoundationDB.Client;
 	using JetBrains.Annotations;
 	using System;
+	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -93,7 +94,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Cluster of the database</summary>
-		public IFdbCluster Cluster
+		public virtual IFdbCluster Cluster
 		{
 			//REVIEW: do we need a Cluster Filter ?
 			[NotNull]
@@ -107,7 +108,7 @@ namespace FoundationDB.Filters
 		}
 
 		/// <summary>Returns the global namespace used by this database instance</summary>
-		public FdbSubspace GlobalSpace
+		public virtual IFdbDynamicSubspace GlobalSpace
 		{
 			[NotNull]
 			get { return m_database.GlobalSpace; }
@@ -132,19 +133,96 @@ namespace FoundationDB.Filters
 			get { return m_readOnly; }
 		}
 
-		public virtual IFdbSubspace this[Slice suffix]
+		Slice IFdbSubspace.Key
 		{
-			get { return m_database[suffix]; }
+			get { return this.GlobalSpace.Key; }
 		}
 
-		public virtual IFdbSubspace this[IFdbKey key]
+		FdbKeyRange IFdbSubspace.ToRange()
 		{
-			get { return m_database[key]; }
+			return this.GlobalSpace.ToRange();
+		}
+
+		FdbKeyRange IFdbSubspace.ToRange(Slice suffix)
+		{
+			return this.GlobalSpace.ToRange(suffix);
+		}
+
+		FdbKeyRange IFdbSubspace.ToRange<TKey>(TKey key)
+		{
+			return this.GlobalSpace.ToRange(key);
+		}
+
+		IFdbSubspace IFdbSubspace.this[Slice suffix]
+		{
+			get { return this.GlobalSpace[suffix]; }
+		}
+
+		IFdbSubspace IFdbSubspace.this[IFdbKey key]
+		{
+			get { return this.GlobalSpace[key]; }
+		}
+
+		public virtual FdbDynamicSubspacePartition Partition
+		{
+			get { return m_database.Partition; }
+		}
+
+		public virtual FdbDynamicSubspaceKeys Keys
+		{
+			get { return m_database.Keys; }
 		}
 
 		public virtual bool Contains(Slice key)
 		{
 			return m_database.Contains(key);
+		}
+
+		public virtual Slice BoundCheck(Slice key, bool allowSystemKeys)
+		{
+			return m_database.BoundCheck(key, allowSystemKeys);
+		}
+
+		public virtual Slice ConcatKey(Slice key)
+		{
+			return m_database.ConcatKey(key);
+		}
+
+		public virtual Slice ConcatKey<TKey>(TKey key)
+			where TKey : IFdbKey
+		{
+			return m_database.ConcatKey<TKey>(key);
+		}
+
+		public virtual Slice[] ConcatKeys(IEnumerable<Slice> keys)
+		{
+			return m_database.ConcatKeys(keys);
+		}
+
+		public virtual Slice[] ConcatKeys<TKey>(IEnumerable<TKey> keys)
+			where TKey : IFdbKey
+		{
+			return m_database.ConcatKeys<TKey>(keys);
+		}
+
+        public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
+		{
+			return m_database.ExtractKey(key, boundCheck);
+		}
+
+		public virtual Slice[] ExtractKeys(IEnumerable<Slice> keys, bool boundCheck = false)
+		{
+			return m_database.ExtractKeys(keys, boundCheck);
+		}
+
+		public virtual SliceWriter GetWriter(int capacity = 0)
+		{
+			return m_database.GetWriter(capacity);
+		}
+
+		public virtual IDynamicKeyEncoder Encoder
+		{
+			get { return m_database.Encoder; }
 		}
 
 		#endregion

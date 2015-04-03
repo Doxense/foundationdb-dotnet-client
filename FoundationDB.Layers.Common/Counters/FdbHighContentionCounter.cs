@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Layers.Counters
 {
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
@@ -53,7 +54,7 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Create a new High Contention counter.</summary>
 		/// <param name="db">Database used by this layer</param>
 		/// <param name="subspace">Subspace to be used for storing the counter</param>
-		public FdbHighContentionCounter(IFdbDatabase db, FdbSubspace subspace)
+		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IFdbSubspace subspace)
 			: this(db, subspace, KeyValueEncoders.Tuples.Value<long>())
 		{ }
 
@@ -61,25 +62,25 @@ namespace FoundationDB.Layers.Counters
 		/// <param name="db">Database used by this layer</param>
 		/// <param name="subspace">Subspace to be used for storing the counter</param>
 		/// <param name="encoder">Encoder for the counter values</param>
-		public FdbHighContentionCounter(IFdbDatabase db, FdbSubspace subspace, IValueEncoder<long> encoder)
+		public FdbHighContentionCounter([NotNull] IFdbDatabase db, [NotNull] IFdbSubspace subspace, [NotNull] IValueEncoder<long> encoder)
 		{
 			if (db == null) throw new ArgumentNullException("db");
 			if (subspace == null) throw new ArgumentNullException("subspace");
 			if (encoder == null) throw new ArgumentNullException("encoder");
 
 			this.Database = db;
-			this.Subspace = subspace;
+			this.Subspace = subspace.Using(TypeSystem.Tuples);
 			this.Encoder = encoder;
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbDynamicSubspace Subspace {[NotNull] get; private set; }
 
 		/// <summary>Database instance that is used to perform background coalescing of the counter</summary>
-		public IFdbDatabase Database { get; private set; }
+		public IFdbDatabase Database {[NotNull] get; private set; }
 
 		/// <summary>Encoder for the integer values of the counter</summary>
-		public IValueEncoder<long> Encoder { get; private set; }
+		public IValueEncoder<long> Encoder {[NotNull] get; private set; }
 
 		/// <summary>Generate a new random slice</summary>
 		protected virtual Slice RandomId()
@@ -99,13 +100,13 @@ namespace FoundationDB.Layers.Counters
 				try
 				{
 					// read N writes from a random place in ID space
-					var loc = this.Subspace.Pack(RandomId());
+					var loc = this.Subspace.Keys.Encode(RandomId());
 
 					bool right;
 					lock(this.Rng) { right = this.Rng.NextDouble() < 0.5; }
 					var query = right
-						? tr.Snapshot.GetRange(loc, this.Subspace.ToRange().End, limit: N, reverse: false)
-						: tr.Snapshot.GetRange(this.Subspace.ToRange().Begin, loc, limit: N, reverse: true);
+						? tr.Snapshot.GetRange(loc, this.Subspace.Keys.ToRange().End, limit: N, reverse: false)
+						: tr.Snapshot.GetRange(this.Subspace.Keys.ToRange().Begin, loc, limit: N, reverse: true);
 					var shards = await query.ToListAsync().ConfigureAwait(false);
 
 					if (shards.Count > 0)
@@ -118,7 +119,7 @@ namespace FoundationDB.Layers.Counters
 							tr.Clear(shard.Key);
 						}
 
-						tr.Set(this.Subspace.Pack(RandomId()), this.Encoder.EncodeValue(total));
+						tr.Set(this.Subspace.Keys.Encode(RandomId()), this.Encoder.EncodeValue(total));
 
 						// note: contrary to the python impl, we will await the commit, and rely on the caller to not wait to the Coalesce task itself to complete.
 						// That way, the transaction will live as long as the task, and we ensure that it gets disposed at some time
@@ -169,13 +170,13 @@ namespace FoundationDB.Layers.Counters
 		/// <summary>Get the value of the counter.
 		/// Not recommended for use with read/write transactions when the counter is being frequently updated (conflicts will be very likely).
 		/// </summary>
-		public async Task<long> GetTransactional(IFdbReadOnlyTransaction trans)
+		public async Task<long> GetTransactional([NotNull] IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
 			long total = 0;
 			await trans
-				.GetRange(this.Subspace.ToRange())
+				.GetRange(this.Subspace.Keys.ToRange())
 				.ForEachAsync((kvp) => { checked { total += this.Encoder.DecodeValue(kvp.Value); } })
 				.ConfigureAwait(false);
 
@@ -183,7 +184,7 @@ namespace FoundationDB.Layers.Counters
 		}
 
 		/// <summary>Get the value of the counter with snapshot isolation (no transaction conflicts).</summary>
-		public Task<long> GetSnapshot(IFdbReadOnlyTransaction trans)
+		public Task<long> GetSnapshot([NotNull] IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -191,11 +192,11 @@ namespace FoundationDB.Layers.Counters
 		}
 
 		/// <summary>Add the value x to the counter.</summary>
-		public void Add(IFdbTransaction trans, long x)
+		public void Add([NotNull] IFdbTransaction trans, long x)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
-			trans.Set(this.Subspace.Pack(RandomId()), this.Encoder.EncodeValue(x));
+			trans.Set(this.Subspace.Keys.Encode(RandomId()), this.Encoder.EncodeValue(x));
 
 			// decide if we must coalesce
 			//note: Random() is not thread-safe so we must lock
@@ -209,7 +210,7 @@ namespace FoundationDB.Layers.Counters
 		}
 
 		/// <summary>Set the counter to value x.</summary>
-		public async Task SetTotal(IFdbTransaction trans, long x)
+		public async Task SetTotal([NotNull] IFdbTransaction trans, long x)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 

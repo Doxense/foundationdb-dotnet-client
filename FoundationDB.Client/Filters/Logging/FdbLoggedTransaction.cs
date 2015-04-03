@@ -64,6 +64,7 @@ namespace FoundationDB.Filters.Logging
 		/// <summary>Handler that will be called when this transaction commits successfully</summary>
 		public Action<FdbLoggedTransaction> Committed { get; private set; }
 
+		/// <summary>Wrap an existing transaction and log all operations performed</summary>
 		public FdbLoggedTransaction(IFdbTransaction trans, bool ownsTransaction, Action<FdbLoggedTransaction> onCommitted, FdbLoggingOptions options)
 			: base(trans, false, ownsTransaction)
 		{

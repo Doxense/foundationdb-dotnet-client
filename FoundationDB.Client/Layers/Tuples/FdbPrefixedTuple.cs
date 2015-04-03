@@ -31,6 +31,8 @@ namespace FoundationDB.Layers.Tuples
 	using FoundationDB.Client;
 	using FoundationDB.Client.Converters;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
+	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -59,17 +61,17 @@ namespace FoundationDB.Layers.Tuples
 			get { return m_prefix; }
 		}
 
-		public void PackTo(ref SliceWriter writer)
+		public void PackTo(ref TupleWriter writer)
 		{
-			writer.WriteBytes(m_prefix);
+			writer.Output.WriteBytes(m_prefix);
 			m_items.PackTo(ref writer);
 		}
 
 		public Slice ToSlice()
 		{
-			var writer = SliceWriter.Empty;
+			var writer = new TupleWriter();
 			PackTo(ref writer);
-			return writer.ToSlice();
+			return writer.Output.ToSlice();
 		}
 
 		Slice IFdbKey.ToFoundationDbKey()
@@ -107,12 +109,27 @@ namespace FoundationDB.Layers.Tuples
 			return this.Append<R>(value);
 		}
 
+		IFdbTuple IFdbTuple.Concat(IFdbTuple tuple)
+		{
+			return this.Concat(tuple);
+		}
+
+		[NotNull]
 		public FdbPrefixedTuple Append<R>(R value)
 		{
 			return new FdbPrefixedTuple(m_prefix, m_items.Append<R>(value));
 		}
 
-		public void CopyTo(object[] array, int offset)
+		[NotNull]
+		public FdbPrefixedTuple Concat([NotNull] IFdbTuple tuple)
+		{
+			if (tuple == null) throw new ArgumentNullException("tuple");
+			if (tuple.Count == 0) return this;
+
+			return new FdbPrefixedTuple(m_prefix, m_items.Concat(tuple));
+		}
+
+		public void CopyTo([NotNull] object[] array, int offset)
 		{
 			m_items.CopyTo(array, offset);
 		}

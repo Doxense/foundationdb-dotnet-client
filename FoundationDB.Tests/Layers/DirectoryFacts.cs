@@ -51,7 +51,7 @@ namespace FoundationDB.Layers.Directories
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition(Slice.FromString("hca"));
+				var location = db.Partition.ByKey(Slice.FromString("hca"));
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -110,7 +110,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -177,7 +177,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -191,7 +191,7 @@ namespace FoundationDB.Layers.Directories
 				var directory = FdbDirectoryLayer.Create(location);
 
 				Assert.That(directory.ContentSubspace, Is.Not.Null);
-				Assert.That(directory.ContentSubspace.Key, Is.EqualTo(location.Key));
+				Assert.That(directory.ContentSubspace, Is.EqualTo(location));
 				Assert.That(directory.NodeSubspace, Is.Not.Null);
 				Assert.That(directory.NodeSubspace.Key, Is.EqualTo(location.Key + Slice.FromByte(254)));
 
@@ -252,7 +252,7 @@ namespace FoundationDB.Layers.Directories
 			{
 
 				// we will put everything under a custom namespace
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -301,7 +301,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -354,7 +354,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -393,7 +393,7 @@ namespace FoundationDB.Layers.Directories
 			using (var db = await OpenTestDatabaseAsync())
 			{
 				// we will put everything under a custom namespace
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 #if ENABLE_LOGGING
@@ -451,7 +451,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -511,7 +511,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -561,7 +561,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
@@ -569,7 +569,7 @@ namespace FoundationDB.Layers.Directories
 
 				var partition = await directory.CreateAsync(db, "Foo", Slice.FromAscii("partition"), this.Cancellation);
 				// we can't get the partition key directory (because it's a root directory) so we need to cheat a little bit
-				var partitionKey = partition.Copy().Key;
+				var partitionKey = FdbSubspace.Copy(partition).Key;
 				Console.WriteLine(partition);
 				Assert.That(partition, Is.InstanceOf<FdbDirectoryPartition>());
 				Assert.That(partition.Layer, Is.EqualTo(Slice.FromAscii("partition")));
@@ -611,7 +611,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
@@ -640,7 +640,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
@@ -701,7 +701,7 @@ namespace FoundationDB.Layers.Directories
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -729,7 +729,7 @@ namespace FoundationDB.Layers.Directories
 
 					// should have kept the same prefix
 					//note: we need to cheat to get the key of the partition
-					Assert.That(bar.Copy().Key, Is.EqualTo(foo.Copy().Key));
+					Assert.That(FdbSubspace.Copy(bar).Key, Is.EqualTo(FdbSubspace.Copy(foo).Key));
 
 					// verify list again
 					folders = await directory.ListAsync(tr);
@@ -751,7 +751,7 @@ namespace FoundationDB.Layers.Directories
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -793,7 +793,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 				var directory = FdbDirectoryLayer.Create(location);
 
@@ -840,7 +840,7 @@ namespace FoundationDB.Layers.Directories
 
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
@@ -864,7 +864,7 @@ namespace FoundationDB.Layers.Directories
 				// === PASS ===
 				// these methods are allowed to succeed on directory partitions, because we need them for the rest to work
 
-				shouldPass(() => { var _ = partition.Copy().Key; }); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
+				shouldPass(() => { var _ = FdbSubspace.Copy(partition).Key; }); // EXCEPTION: we need this to work, because that's the only way that the unit tests above can see the partition key!
 				shouldPass(() => partition.ToString()); // EXCEPTION: this should never fail!
 				shouldPass(() => partition.DumpKey(barKey)); // EXCEPTION: this should always work, because this can be used for debugging and logging...
 				shouldPass(() => partition.BoundCheck(barKey, true)); // EXCEPTION: needs to work because it is used by GetRange() and GetKey()
@@ -882,66 +882,68 @@ namespace FoundationDB.Layers.Directories
 				shouldFail(() => partition.Contains(barKey));
 
 				// Extract / ExtractAndCheck / BoundCheck
-				shouldFail(() => partition.Extract(barKey));
-				shouldFail(() => partition.Extract(new[] { barKey, barKey + FdbKey.MinValue }));
-				shouldFail(() => partition.ExtractAndCheck(barKey));
-				//TODO: add missing overrides ?
+				shouldFail(() => partition.ExtractKey(barKey, boundCheck: false));
+				shouldFail(() => partition.ExtractKey(barKey, boundCheck: true));
+				shouldFail(() => partition.ExtractKeys(new[] { barKey, barKey + FdbKey.MinValue }));
 
 				// Partition
-				shouldFail(() => partition.Partition(123));
-				shouldFail(() => partition.Partition(123, "hello"));
-				shouldFail(() => partition.Partition(123, "hello", false));
-				shouldFail(() => partition.Partition(123, "hello", false, "world"));
+				shouldFail(() => partition.Partition.ByKey(123));
+				shouldFail(() => partition.Partition.ByKey(123, "hello"));
+				shouldFail(() => partition.Partition.ByKey(123, "hello", false));
+				shouldFail(() => partition.Partition.ByKey(123, "hello", false, "world"));
 
-				// Concat
-				shouldFail(() => partition.Concat(Slice.FromString("hello")));
-				shouldFail(() => partition.Concat(location));
+				// Keys
 
-				// ConcatRange
-				shouldFail(() => partition.ConcatRange(new[] { Slice.FromString("hello"), Slice.FromString("world"), Slice.FromString("!") }));
-				shouldFail(() => partition.ConcatRange(new[] { location, location }));
+				shouldFail(() => partition.ConcatKey(Slice.FromString("hello")));
+				shouldFail(() => partition.ConcatKey(location.Key));
+				shouldFail(() => partition.ConcatKeys(new[] { Slice.FromString("hello"), Slice.FromString("world"), Slice.FromString("!") }));
 
-				// ToTuple
-				shouldFail(() => partition.ToTuple());
+				shouldFail(() => { var _ = partition[Slice.FromString("hello")]; });
+				shouldFail(() => { var _ = partition[location.Key]; });
+				shouldFail(() => { var _ = partition[location]; });
 
-				// Append
-				shouldFail(() => partition.Append(123));
-				shouldFail(() => partition.Append(123, "hello"));
-				shouldFail(() => partition.Append(123, "hello", false));
-				shouldFail(() => partition.Append(123, "hello", false, "world"));
-				shouldFail(() => partition.Append(FdbTuple.Create(123, "hello", false, "world")));
-				shouldFail(() => partition.AppendBoxed(new object[] { 123, "hello", false, "world" }));
-
-				// Pack
-				shouldFail(() => partition.Pack(123));
-				shouldFail(() => partition.Pack(123, "hello"));
-				shouldFail(() => partition.Pack(123, "hello", false));
-				shouldFail(() => partition.Pack(123, "hello", false, "world"));
-				shouldFail(() => partition.PackBoxed(123));
-
-				// PackRange
-				shouldFail(() => partition.PackRange<int>(new[] { 123, 456, 789 }));
-				shouldFail(() => partition.PackRange<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
-				shouldFail(() => partition.PackBoxedRange(new object[] { 123, "hello", true }));
-				shouldFail(() => partition.PackBoxedRange((IEnumerable<object>)new object[] { 123, "hello", true }));
-
-				// Unpack
-				shouldFail(() => partition.Unpack(barKey));
-				shouldFail(() => partition.Unpack(new[] { barKey, barKey + FdbTuple.Pack(123) }));
-				shouldFail(() => partition.UnpackLast<int>(barKey));
-				shouldFail(() => partition.UnpackLast<int>(new[] { barKey, barKey + FdbTuple.Pack(123) }));
-				shouldFail(() => partition.UnpackSingle<int>(barKey));
-				shouldFail(() => partition.UnpackSingle<int>(new[] { barKey, barKey }));
-
-				// ToRange
 				shouldFail(() => partition.ToRange());
 				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
-				shouldFail(() => partition.ToRange(FdbTuple.Create("hello")));
+				shouldFail(() => partition.ToRange(FdbTuple.EncodeKey("hello")));
 				shouldFail(() => partition.ToRange(location));
 
-				// ToSelectorPair
-				shouldFail(() => partition.ToSelectorPair());
+ 				// Tuples
 
+				shouldFail(() => partition.Keys.Encode(123));
+				shouldFail(() => partition.Keys.Encode(123, "hello"));
+				shouldFail(() => partition.Keys.Encode(123, "hello", false));
+				shouldFail(() => partition.Keys.Encode(123, "hello", false, "world"));
+				shouldFail(() => partition.Keys.Encode<object>(123));
+
+				shouldFail(() => partition.Keys.EncodeMany<int>(new[] { 123, 456, 789 }));
+				shouldFail(() => partition.Keys.EncodeMany<int>((IEnumerable<int>)new[] { 123, 456, 789 }));
+				shouldFail(() => partition.Keys.EncodeMany<object>(new object[] { 123, "hello", true }));
+				shouldFail(() => partition.Keys.EncodeMany<object>((IEnumerable<object>)new object[] { 123, "hello", true }));
+
+				shouldFail(() => partition.Keys.Unpack(barKey));
+				shouldFail(() => partition.Keys.UnpackMany(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.Decode<int>(barKey));
+				shouldFail(() => partition.Keys.DecodeMany<int>(new[] { barKey, barKey }));
+				shouldFail(() => partition.Keys.DecodeLast<int>(barKey));
+				shouldFail(() => partition.Keys.DecodeLastMany<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+				shouldFail(() => partition.Keys.DecodeFirst<int>(barKey));
+				shouldFail(() => partition.Keys.DecodeFirstMany<int>(new[] { barKey, barKey + FdbTuple.EncodeKey(123) }));
+
+				//FIXME: need to re-enable this code!
+#if REFACTORING_IN_PROGRESS
+				shouldFail(() => partition.Keys.ToTuple());
+
+				shouldFail(() => partition.Keys.Append(123));
+				shouldFail(() => partition.Keys.Append(123, "hello"));
+				shouldFail(() => partition.Keys.Append(123, "hello", false));
+				shouldFail(() => partition.Keys.Append(123, "hello", false, "world"));
+				shouldFail(() => partition.Keys.Concat(FdbTuple.Create(123, "hello", false, "world")));
+				shouldFail(() => partition.Keys.Append(new object[] { 123, "hello", false, "world" }));
+#endif
+
+				shouldFail(() => partition.Keys.ToRange());
+				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
+				shouldFail(() => partition.Keys.ToRange(FdbTuple.Create("hello")));
 
 			}
 		}
@@ -951,7 +953,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				var directory = FdbDirectoryLayer.Create(location);
@@ -1006,7 +1008,7 @@ namespace FoundationDB.Layers.Directories
 		{
 			using (var db = await OpenTestDatabaseAsync())
 			{
-				var location = db.Partition("DL");
+				var location = db.Partition.ByKey("DL");
 				await db.ClearRangeAsync(location, this.Cancellation);
 
 				// to keep the test db in a good shape, we will still use tuples for our custom prefix,
@@ -1035,10 +1037,10 @@ namespace FoundationDB.Layers.Directories
 							tr2.GetReadVersionAsync()
 						);
 
-						var first = await directory.RegisterAsync(tr1, new[] { "First" }, Slice.Nil, location.Pack("abc"));
+						var first = await directory.RegisterAsync(tr1, new[] { "First" }, Slice.Nil, location.Keys.Encode("abc"));
 						tr1.Set(first.Key, Slice.FromString("This belongs to the first directory"));
 
-						var second = await directory.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, location.Pack("def"));
+						var second = await directory.RegisterAsync(tr2, new[] { "Second" }, Slice.Nil, location.Keys.Encode("def"));
 						tr2.Set(second.Key, Slice.FromString("This belongs to the second directory"));
 
 						Console.WriteLine("Committing T1...");

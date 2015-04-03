@@ -255,7 +255,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(range.Test(Slice.FromAscii("Z\x00"), endIncluded: true), Is.EqualTo(AFTER));
 			Assert.That(range.Test(Slice.FromAscii("\xFF"), endIncluded: true), Is.EqualTo(AFTER));
 
-			range = FdbKeyRange.Create(FdbTuple.Pack("A"), FdbTuple.Pack("Z"));
+			range = FdbKeyRange.Create(FdbTuple.EncodeKey("A"), FdbTuple.EncodeKey("Z"));
 			Assert.That(range.Test(FdbTuple.Create("@")), Is.EqualTo((BEFORE)));
 			Assert.That(range.Test(FdbTuple.Create("A")), Is.EqualTo((INSIDE)));
 			Assert.That(range.Test(FdbTuple.Create("Z")), Is.EqualTo((AFTER)));
@@ -344,20 +344,20 @@ namespace FoundationDB.Client.Tests
 
 			// tuples should be decoded properly
 
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(123)), Is.EqualTo("(123,)"), "Singleton tuples should end with a ','");
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(Slice.FromAscii("hello"))), Is.EqualTo("('hello',)"), "ASCII strings should use single quotes");
-			Assert.That(FdbKey.Dump(FdbTuple.Pack("héllø")), Is.EqualTo("(\"héllø\",)"), "Unicode strings should use double quotes"); 
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(Slice.Create(new byte[] { 1, 2, 3 }))), Is.EqualTo("(<01 02 03>,)"));
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(123, 456)), Is.EqualTo("(123, 456)"), "Elements should be separated with a space, and not end up with ','");
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(true, false, default(object))), Is.EqualTo("(1, 0, null)"), "Booleans should be displayed as numbers, and null should be in lowercase"); //note: even though it's tempting to using Python's "Nil", it's not very ".NETty"
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(1.0d, Math.PI, Math.E)), Is.EqualTo("(1, 3.1415926535897931, 2.7182818284590451)"), "Doubles should used dot and have full precision (17 digits)");
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(1.0f, (float)Math.PI, (float)Math.E)), Is.EqualTo("(1, 3.14159274, 2.71828175)"), "Singles should used dot and have full precision (10 digits)");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(123)), Is.EqualTo("(123,)"), "Singleton tuples should end with a ','");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(Slice.FromAscii("hello"))), Is.EqualTo("('hello',)"), "ASCII strings should use single quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey("héllø")), Is.EqualTo("(\"héllø\",)"), "Unicode strings should use double quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(Slice.Create(new byte[] { 1, 2, 3 }))), Is.EqualTo("(<01 02 03>,)"));
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(123, 456)), Is.EqualTo("(123, 456)"), "Elements should be separated with a space, and not end up with ','");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(true, false, default(object))), Is.EqualTo("(1, 0, null)"), "Booleans should be displayed as numbers, and null should be in lowercase"); //note: even though it's tempting to using Python's "Nil", it's not very ".NETty"
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(1.0d, Math.PI, Math.E)), Is.EqualTo("(1, 3.1415926535897931, 2.7182818284590451)"), "Doubles should used dot and have full precision (17 digits)");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(1.0f, (float)Math.PI, (float)Math.E)), Is.EqualTo("(1, 3.14159274, 2.71828175)"), "Singles should used dot and have full precision (10 digits)");
 			var guid = Guid.NewGuid();
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(guid)), Is.EqualTo(String.Format("({0},)", guid.ToString("D"))), "GUIDs should be displayed as a string literal, without quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(guid)), Is.EqualTo(String.Format("({0},)", guid.ToString("B"))), "GUIDs should be displayed as a string literal, surrounded by {...}, and without quotes");
 			var uuid128 = Uuid128.NewUuid();
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(uuid128)), Is.EqualTo(String.Format("({0},)", uuid128.ToString("D"))), "Uuid128s should be displayed as a string literal, without quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(uuid128)), Is.EqualTo(String.Format("({0},)", uuid128.ToString("B"))), "Uuid128s should be displayed as a string literal, surrounded by {...}, and without quotes");
 			var uuid64 = Uuid64.NewUuid();
-			Assert.That(FdbKey.Dump(FdbTuple.Pack(uuid64)), Is.EqualTo(String.Format("({0},)", uuid64.ToString("D"))), "Uuid64s should be displayed as a string literal, without quotes");
+			Assert.That(FdbKey.Dump(FdbTuple.EncodeKey(uuid64)), Is.EqualTo(String.Format("({0},)", uuid64.ToString("B"))), "Uuid64s should be displayed as a string literal, surrounded by {...}, and without quotes");
 
 			// ranges should be decoded when possible
 			var key = FdbTuple.ToRange(FdbTuple.Create("hello"));
@@ -365,12 +365,12 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",).<00>"));
 			Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",).<FF>"));
 
-			key = FdbKeyRange.StartsWith(FdbTuple.Pack("hello"));
+			key = FdbKeyRange.StartsWith(FdbTuple.EncodeKey("hello"));
 			// "<02>hello<00>" .. "<02>hello<01>"
 			Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",)"));
 			Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",) + 1"));
 
-			var t = FdbTuple.Pack(123);
+			var t = FdbTuple.EncodeKey(123);
 			Assert.That(FdbKey.PrettyPrint(t, FdbKey.PrettyPrintMode.Single), Is.EqualTo("(123,)"));
 			Assert.That(FdbKey.PrettyPrint(FdbTuple.ToRange(t).Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(123,).<00>"));
 			Assert.That(FdbKey.PrettyPrint(FdbTuple.ToRange(t).End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(123,).<FF>"));

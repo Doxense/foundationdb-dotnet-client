@@ -49,6 +49,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FdbTop", "FdbTop\FdbTop.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FdbBurner", "FdbBurner\FdbBurner.csproj", "{60049BA1-A95F-4127-BAC5-74AF023D3082}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Documents", "Documents", "{1B6BEB71-8C92-4B06-9715-9DAF49907BA1}"
+	ProjectSection(SolutionItems) = preProject
+		Tuples.md = Tuples.md
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{49DAFCA7-401C-4274-A559-4685E832DAF3}"
 	ProjectSection(SolutionItems) = preProject
 		.nuget\NuGet.Config = .nuget\NuGet.Config

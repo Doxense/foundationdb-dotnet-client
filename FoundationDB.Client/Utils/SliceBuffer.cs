@@ -42,7 +42,7 @@ namespace FoundationDB.Client.Utils
 	public sealed class SliceBuffer
 	{
 		private const int DefaultPageSize = 256;
-		private const int MaxPageSize = 64 * 1024; // 64KB (small enough to no go into the LOH)
+		private const int MaxPageSize = 64 * 1024; // 64KB (small enough to not go into the LOH)
 
 		/// <summary>Default initial size of pages (doubled every time until it reached the max page size)</summary>
 		private int m_pageSize;

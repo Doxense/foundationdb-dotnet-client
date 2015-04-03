@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,7 @@ namespace FoundationDB.Layers.Blobs
 {
 	using FoundationDB.Client;
 	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
@@ -51,15 +52,15 @@ namespace FoundationDB.Layers.Blobs
 		/// Only keys within the subspace will be used by the object. 
 		/// Other clients of the database should refrain from modifying the subspace.</summary>
 		/// <param name="subspace">Subspace to be used for storing the blob data and metadata</param>
-		public FdbBlob(FdbSubspace subspace)
+		public FdbBlob([NotNull] IFdbSubspace subspace)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
 
-			this.Subspace = subspace;
+			this.Subspace = subspace.Using(TypeSystem.Tuples);
 		}
 
 		/// <summary>Subspace used as a prefix for all items in this table</summary>
-		public FdbSubspace Subspace { get; private set; }
+		public IFdbDynamicSubspace Subspace {[NotNull] get; private set; }
 
 		/// <summary>Returns the key for data chunk at the specified offset</summary>
 		/// <param name="offset"></param>
@@ -67,24 +68,24 @@ namespace FoundationDB.Layers.Blobs
 		protected virtual Slice DataKey(long offset)
 		{
 			//note: python code uses "%16d" % offset, which pads the value with spaces.. Not sure why ?
-			return this.Subspace.Pack(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
+			return this.Subspace.Keys.Encode(DataSuffix, offset.ToString("D16", CultureInfo.InvariantCulture));
 		}
 
 		protected virtual long DataKeyOffset(Slice key)
 		{
-			long offset = Int64.Parse(this.Subspace.UnpackLast<string>(key), CultureInfo.InvariantCulture);
+			long offset = Int64.Parse(this.Subspace.Keys.DecodeLast<string>(key), CultureInfo.InvariantCulture);
 			if (offset < 0) throw new InvalidOperationException("Chunk offset value cannot be less than zero");
 			return offset;
 		}
 
 		protected virtual Slice SizeKey()
 		{
-			return this.Subspace.Pack(SizeSuffix);
+			return this.Subspace.Keys.Encode(SizeSuffix);
 		}
 
 		protected virtual Slice AttributeKey(string name)
 		{
-			return this.Subspace.Pack(AttributesSuffix, name);
+			return this.Subspace.Keys.Encode(AttributesSuffix, name);
 		}
 
 		#region Internal Helpers...
@@ -103,7 +104,7 @@ namespace FoundationDB.Layers.Blobs
 			}
 		}
 
-		private async Task<Chunk> GetChunkAtAsync(IFdbTransaction trans, long offset)
+		private async Task<Chunk> GetChunkAtAsync([NotNull] IFdbTransaction trans, long offset)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
@@ -130,7 +131,7 @@ namespace FoundationDB.Layers.Blobs
 			return new Chunk(chunkKey, chunkData, chunkOffset);
 		}
 
-		private async Task MakeSplitPointAsync(IFdbTransaction trans, long offset)
+		private async Task MakeSplitPointAsync([NotNull] IFdbTransaction trans, long offset)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
@@ -144,14 +145,14 @@ namespace FoundationDB.Layers.Blobs
 			trans.Set(DataKey(offset), chunk.Data.Substring(splitPoint));
 		}
 
-		private async Task MakeSparseAsync(IFdbTransaction trans, long start, long end)
+		private async Task MakeSparseAsync([NotNull] IFdbTransaction trans, long start, long end)
 		{
 			await MakeSplitPointAsync(trans, start).ConfigureAwait(false);
 			await MakeSplitPointAsync(trans, end).ConfigureAwait(false);
 			trans.ClearRange(DataKey(start), DataKey(end));
 		}
 
-		private async Task<bool> TryRemoteSplitPointAsync(IFdbTransaction trans, long offset)
+		private async Task<bool> TryRemoteSplitPointAsync([NotNull] IFdbTransaction trans, long offset)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
@@ -169,7 +170,7 @@ namespace FoundationDB.Layers.Blobs
 			return true;
 		}
 
-		private void WriteToSparse(IFdbTransaction trans, long offset, Slice data)
+		private void WriteToSparse([NotNull] IFdbTransaction trans, long offset, Slice data)
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
@@ -184,7 +185,7 @@ namespace FoundationDB.Layers.Blobs
 			}
 		}
 
-		private void SetSize(IFdbTransaction trans, long size)
+		private void SetSize([NotNull] IFdbTransaction trans, long size)
 		{
 			Contract.Requires(trans != null && size >= 0);
 
@@ -197,7 +198,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Delete all key-value pairs associated with the blob.
 		/// </summary>
-		public void Delete(IFdbTransaction trans)
+		public void Delete([NotNull] IFdbTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -208,7 +209,7 @@ namespace FoundationDB.Layers.Blobs
 		/// Get the size (in bytes) of the blob.
 		/// </summary>
 		/// <returns>Return null if the blob does not exists, 0 if is empty, or the size in bytes</returns>
-		public async Task<long?> GetSizeAsync(IFdbReadOnlyTransaction trans)
+		public async Task<long?> GetSizeAsync([NotNull] IFdbReadOnlyTransaction trans)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -225,7 +226,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Read from the blob, starting at <paramref name="offset"/>, retrieving up to <paramref name="n"/> bytes (fewer then n bytes are returned when the end of the blob is reached).
 		/// </summary>
-		public async Task<Slice> ReadAsync(IFdbReadOnlyTransaction trans, long offset, int n)
+		public async Task<Slice> ReadAsync([NotNull] IFdbReadOnlyTransaction trans, long offset, int n)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentNullException("offset", "Offset cannot be less than zero");
@@ -278,7 +279,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Write <paramref name="data"/> to the blob, starting at <param name="offset"/> and overwriting any existing data at that location. The length of the blob is increased if necessary.
 		/// </summary>
-		public async Task WriteAsync(IFdbTransaction trans, long offset, Slice data)
+		public async Task WriteAsync([NotNull] IFdbTransaction trans, long offset, Slice data)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (offset < 0) throw new ArgumentOutOfRangeException("offset", "Offset cannot be less than zero");
@@ -304,7 +305,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Append the contents of <paramref name="data"/> onto the end of the blob.
 		/// </summary>
-		public async Task AppendAsync(IFdbTransaction trans, Slice data)
+		public async Task AppendAsync([NotNull] IFdbTransaction trans, Slice data)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 
@@ -319,7 +320,7 @@ namespace FoundationDB.Layers.Blobs
 		/// <summary>
 		/// Change the blob length to <paramref name="newLength"/>, erasing any data when shrinking, and filling new bytes with 0 when growing.
 		/// </summary>
-		public async Task TruncateAsync(IFdbTransaction trans, long newLength)
+		public async Task TruncateAsync([NotNull] IFdbTransaction trans, long newLength)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");
 			if (newLength < 0) throw new ArgumentOutOfRangeException("newLength", "Length cannot be less than zero");
