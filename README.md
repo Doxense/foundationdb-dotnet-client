@@ -51,14 +51,6 @@ This code is licensed under the 3-clause BSD Licence.
 
 [![Build status](https://ci.appveyor.com/api/projects/status/83u4pd2ckevdtb57?svg=true)](https://ci.appveyor.com/project/KrzysFR/foundationdb-dotnet-client)
 
-> __There is an incoming API change that may break a few things, regarding the use of Subspaces and Tuples__. The new API is currently in the `refac_tuples` branch, and will be merge soon in `master` for the 0.9 release. If you are just starting, you should probably use the new branch. If you already have existing code, there will be a document explaining the changes and how to fix your source code. __See [#42](https://github.com/Doxense/foundationdb-dotnet-client/pull/42) for more details.__
-    
-> __There is another incoming change, regarding the way FDB's Futures are implemented under the hood, which should fix some random crash issues under heavy load__. Some of the problems have already been fixed in master, but the new branch `future_ng` is a complete rework, in collaboration with the folks at FoundationDB. __See [#54](https://github.com/Doxense/foundationdb-dotnet-client/pull/54) for more details__
-
-> Both these branches are already used in production. Once everything is merged and tested, we will be ready for 1.0.
-
-> The default API level selected on start is still 200 by default, but this will probably change to 300 by default for 1.0. If you are not doing it already, you should make sure to use `Fdb.UseApiVersion(200)` (or 300) if you want to lock your application to a specific level and be safe against future changes.
-
 How to use
 ----------
 
@@ -80,7 +72,7 @@ using (var db = await Fdb.OpenAsync())
     using (var trans = db.BeginTransaction(token))
     {
 	    // For our convenience, we will use the Tuple Encoding format for our keys,
-		// which is accessible via the "location.Tuples" helper. We could have used
+		// which is accessible via the "location.Keys" helper. We could have used
 		// any other encoding for the keys. Tuples are simple to use and have some
 		// intereseting ordering properties that make it easy to work with.
 		// => All our keys will be encoded as the packed tuple ({Test}, "foo"),
@@ -89,25 +81,25 @@ using (var db = await Fdb.OpenAsync())
 	
         // Set "Hello" key to "World"
         trans.Set(			
-			location.Tuples.EncodeKey("Hello"),
+			location.Keys.Encode("Hello"),
 			Slice.FromString("World") // UTF-8 encoded string
 		);
 
         // Set "Count" key to 42
         trans.Set(
-			location.Tuples.EncodeKey("Count"),
+			location.Keys.Encode("Count"),
 			Slice.FromInt32(42) // 1 byte
 		);
         
         // Atomically add 123 to "Total"
         trans.AtomicAdd(
-			location.Tuples.EncodeKey("Total"),
+			location.Keys.Encode("Total"),
 			Slice.FromFixed32(123) // 4 bytes, Little Endian
 		);
 
         // Set bits 3, 9 and 30 in the bit map stored in the key "Bitmap"
         trans.AtomicOr(
-			location.Tuples.EncodeKey("Bitmap"),
+			location.Keys.Encode("Bitmap"),
 			Slice.FromFixed32((1 << 3) | (1 << 9) | (1 << 30)) // 4 bytes, Little Endian
 		);
         
@@ -122,16 +114,16 @@ using (var db = await Fdb.OpenAsync())
     using (var trans = db.BeginReadOnlyTransaction(token))
     {  
         // Read ("Test", "Hello", ) as a string
-        Slice value = await trans.GetAsync(location.Tuples.EncodeKey("Hello"));
+        Slice value = await trans.GetAsync(location.Keys.Encode("Hello"));
         Console.WriteLine(value.ToUnicode()); // -> World
     
         // Read ("Test", "Count", ) as an int
-        value = await trans.GetAsync(location.Tuples.EncodeKey("Count"));
+        value = await trans.GetAsync(location.Keys.Encode("Count"));
         Console.WriteLine(value.ToInt32()); // -> 42
     
         // missing keys give a result of Slice.Nil, which is the equivalent
         // of "key not found". 
-        value = await trans.GetAsync(location.Tuples.EncodeKey("NotFound"));
+        value = await trans.GetAsync(location.Keys.Encode("NotFound"));
         Console.WriteLine(value.HasValue); // -> false
         Console.WriteLine(value == Slice.Nil); // -> true
         // note: there is also Slice.Empty that is returned for existing keys
@@ -154,9 +146,9 @@ using (var db = await Fdb.OpenAsync())
 	await db.WriteAsync((trans) =>
 	{
         // add some data to the list with the format: (..., index) = value
-        trans.Set(list.Tuples.EncodeKey(0), Slice.FromString("AAA"));
-        trans.Set(list.Tuples.EncodeKey(1), Slice.FromString("BBB"));
-        trans.Set(list.Tuples.EncodeKey(2), Slice.FromString("CCC"));
+        trans.Set(list.Keys.Encode(0), Slice.FromString("AAA"));
+        trans.Set(list.Keys.Encode(1), Slice.FromString("BBB"));
+        trans.Set(list.Keys.Encode(2), Slice.FromString("CCC"));
         // The actual keys will be a concatenation of the prefix of 'list',
         // and a packed tuple containing the index. Since we are using the
         // Directory Layer, this should still be fairly small (between 4
@@ -196,13 +188,13 @@ using (var db = await Fdb.OpenAsync())
         // with the query itself.
         return trans
             // ask for all keys that are _inside_ our subspace
-            .GetRange(list.Tuples.ToRange())
+            .GetRange(list.Keys.ToRange())
             // transform the resultoing KeyValuePair<Slice, Slice> into something
             // nicer to use, like a typed KeyValuePair<int, string>
             .Select((kvp) => 
                 new KeyValuePair<int, string>(
                     // unpack the tuple and returns the last item as an int
-                    list.Tuples.DecodeLast<int>(kvp.Key),
+                    list.Keys.DecodeLast<int>(kvp.Key),
                     // convert the value into an unicode string
                     kvp.Value.ToUnicode() 
                 ))
