@@ -547,6 +547,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override string ToString(KeyResolver resolver)
 			{
+				resolver = resolver ?? KeyResolver.Default;
 				var arg = this.GetArguments(resolver);
 				var sb = new StringBuilder();
 				if (this.Snapshot) sb.Append("Snapshot.");
