@@ -1404,7 +1404,7 @@ namespace FoundationDB.Layers.Tuples
 				{
 					if (!ys.MoveNext()) return false;
 
-					return comparer.Equals(xs.Current, ys.Current);
+					if (!comparer.Equals(xs.Current, ys.Current)) return false;
 				}
 
 				return !ys.MoveNext();
