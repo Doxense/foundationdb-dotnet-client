@@ -438,6 +438,8 @@ namespace FoundationDB.Storage.Memory.Core
 							// = [==========)..       = [============)..
 
 							cursor.Set(entry);
+							//we keep the reference to cursor to be able to modify it later
+							entry = cursor;
 							inserted = true;
 							//TODO: need to propagate !
 						}
@@ -560,6 +562,8 @@ namespace FoundationDB.Storage.Memory.Core
 								if (!inserted)
 								{ // use that slot to insert ourselves
 									cursor.Set(entry);
+									//get the reference to be able to eventually merge it afterwards
+									entry = cursor;
 									inserted = true;
 								}
 								else
