@@ -462,7 +462,7 @@ namespace FoundationDB.Storage.Memory.Core
 								//---------------[
 								else
 								{
-									toRemove = new List<Entry>();
+									if(toRemove == null) toRemove = new List<Entry>();
 									toRemove.Add(cursor);
 									if (c2 == 0) break;
 								}
