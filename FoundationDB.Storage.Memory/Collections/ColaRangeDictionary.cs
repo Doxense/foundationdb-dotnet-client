@@ -220,6 +220,13 @@ namespace FoundationDB.Storage.Memory.Core
 			CheckInvariants();
 		}
 
+		/// <summary>
+		/// Removes everything between begin and end then translates everything
+		/// </summary>
+		/// <param name="begin">begin key</param>
+		/// <param name="end">end key</param>
+		/// <param name="offset">offset to apply</param>
+		/// <param name="applyOffset">func to apply offset to a key</param>
 		public void Remove(TKey begin, TKey end, TKey offset, Func<TKey, TKey, TKey> applyOffset)
 		{
 			if (m_keyComparer.Compare(begin, end) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
@@ -481,7 +488,7 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 		}
 
-		public void TranslateAfter(Entry lastOk, TKey offset, Func<TKey, TKey, TKey> applyKeyOffset)
+		private void TranslateAfter(Entry lastOk, TKey offset, Func<TKey, TKey, TKey> applyKeyOffset)
 		{
 			var iterator = m_items.GetIterator();
 			//null il faut tout décaller
