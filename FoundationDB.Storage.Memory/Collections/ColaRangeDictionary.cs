@@ -5,6 +5,8 @@
 // enables consitency checks after each operation to the set
 #undef ENFORCE_INVARIANTS
 
+using FoundationDB.Layers.Tuples;
+
 namespace FoundationDB.Storage.Memory.Core
 {
 	using System;
@@ -216,6 +218,306 @@ namespace FoundationDB.Storage.Memory.Core
 			m_bounds.End = default(TKey);
 
 			CheckInvariants();
+		}
+
+		public void Remove(TKey begin, TKey end, TKey offset, Func<TKey, TKey, TKey> applyOffset)
+		{
+			if (m_keyComparer.Compare(begin, end) >= 0) throw new InvalidOperationException("End key must be greater than the Begin key.");
+
+			try
+			{
+				var entry = new Entry(begin, end, default(TValue));
+				var iterator = m_items.GetIterator();
+				var comparer = m_keyComparer;
+				if (!iterator.Seek(entry, true))
+				{
+					//on ne trouve pas l'item exacte, on prends le premier.
+					iterator.SeekFirst();
+				}
+				var cursor = iterator.Current;
+				var c1 = comparer.Compare(begin, cursor.Begin);
+				var c2 = comparer.Compare(end, cursor.End);
+				List<Entry> toRemove = null;
+				//begin < cursor.Begin
+				if (c1 < 0)
+				{
+					var c3 = comparer.Compare(end, cursor.Begin);
+					//end <= cursor.Begin
+					//         [++++++++++
+					// ------[
+					//ou
+					//       [++++++
+					// ------[
+					if (c3 <= 0)
+					{
+						TranslateAfter(null, offset, applyOffset);
+						return;
+					}
+					//end < cursor.End
+					//     [+++++++++++[
+					//-----------[
+					if (c2 < 0)
+					{
+						cursor.Begin = applyOffset(end, offset);
+						cursor.End = applyOffset(cursor.End, offset);
+						TranslateAfter(cursor, offset, applyOffset);
+						return;
+					}
+					//end == cursor.End
+					//     [+++++++++[
+					//---------------[
+					if (c2 == 0)
+					{
+						m_items.RemoveItem(cursor);
+						TranslateAfter(cursor, offset, applyOffset);
+						return;
+					}
+					//end > cursor.End
+					//      [+++++++++[
+					//-------------------...
+					if (c2 > 0)
+					{
+						toRemove = new List<Entry>();
+						toRemove.Add(cursor);
+						while (iterator.Next())
+						{
+							cursor = iterator.Current;
+							c2 = comparer.Compare(end, cursor.End);
+							c3 = comparer.Compare(end, cursor.Begin);
+							//end <= cursor.Begin
+							//       [+++++
+							// ----[
+							//ou
+							//       [+++++
+							// ------[
+							if (c3 <= 0)
+							{
+								//on set cursor pour que la translation soit faite correctement
+								cursor = entry;
+								break;
+							}
+							//end > cursor.Begin
+							if (c3 > 0)
+							{
+								//end < cursor.End
+								//     [+++++++++++
+								// ----------[
+								if (c2 < 0)
+								{
+									cursor.Begin = begin;
+									cursor.End = applyOffset(cursor.End, offset);
+									break;
+								}
+								// end >= cursor.End
+								//      [+++++++++[
+								// ---------------[
+								//ou
+								//      [+++++++[
+								// ----------------...
+								if (c2 >= 0)
+								{
+									toRemove.Add(cursor);
+									if (c2 == 0) break;
+								}
+							}
+						}
+						m_items.RemoveItems(toRemove);
+						TranslateAfter(cursor, offset, applyOffset);
+						return;
+					}
+				}
+				//begin == cursor.Begin
+				else if (c1 == 0)
+				{
+					//end < cursor.End
+					// [+++++++++[
+					// [-----[
+					if (c2 < 0)
+					{
+						cursor.Begin = begin;
+						cursor.End = applyOffset(cursor.End, offset);
+						TranslateAfter(cursor, offset, applyOffset);
+						return;
+					}
+					//end == cursor.End
+					// [++++++++[
+					// [--------[
+					else if (c2 == 0)
+					{
+						toRemove = new List<Entry>();
+						toRemove.Add(cursor);
+					}
+					// end > cursor.End
+					// [+++++++[
+					// [-----------....
+					else
+					{
+						toRemove = new List<Entry>();
+						toRemove.Add(cursor);
+						while (iterator.Next())
+						{
+							cursor = iterator.Current;
+							var c3 = comparer.Compare(end, cursor.Begin);
+							c2 = comparer.Compare(end, cursor.End);
+							//end < cursor.Begin
+							//                [++++++++[
+							//---------[
+							//ou
+							//         [+++++++[
+							//---------[
+							if (c3 <= 0)
+							{
+								break;
+							}
+							else
+							{
+								//end < cursor.End
+								// [++++++++++++[
+								//-----[
+								if (c2 < 0)
+								{
+									cursor.Begin = begin;
+									cursor.End = applyOffset(cursor.End, offset);
+									break;
+								}
+								//end >= cursor.End
+								// [+++++++++[
+								//---------------...
+								//ou
+								// [+++++++++[
+								//-----------[
+								if (c2 >= 0)
+								{
+									toRemove.Add(cursor);
+									if (c2 == 0) break;
+								}
+							}
+						}
+					}
+					m_items.RemoveItems(toRemove);
+					TranslateAfter(cursor, offset, applyOffset);
+					return;
+				}
+				//begin > cursor.Begin
+				else
+				{
+					//end < cursor.End
+					//   [++++++++++++[
+					//      [----[
+					// = [++[[++++[
+					if (c2 < 0)
+					{
+						var oldEnd = cursor.End;
+						cursor.End = begin;
+						TranslateAfter(cursor, offset, applyOffset);
+						m_items.Insert(new Entry(begin, applyOffset(oldEnd, offset), cursor.Value));
+						return;
+					}
+					//end == cursor.End
+					// [+++++++++++++[
+					//       [-------[
+					if (c2 == 0)
+					{
+						cursor.End = begin;
+						TranslateAfter(cursor, offset, applyOffset);
+						return;
+					}
+					//end > cursor.End
+					// [+++++++++++++[
+					//       [-------------
+					else
+					{
+						cursor.End = begin;
+						while (iterator.Next())
+						{
+							cursor = iterator.Current;
+							var c3 = comparer.Compare(end, cursor.Begin);
+							c2 = comparer.Compare(end, cursor.End);
+							//end <= cursor.Begin
+							//      [++++++++++++[
+							// --[
+							//ou
+							//      [++++++++++++[
+							// -----[
+							if (c3 <= 0)
+							{
+								break;
+							}
+							else
+							{
+								//end < cursor.End
+								//     [+++++++++++++[
+								// ------------[
+								if (c2 < 0)
+								{
+									cursor.Begin = begin;
+									cursor.End = applyOffset(cursor.End, offset);
+									break;
+								}
+								//end >= cursor.End
+								//   [+++++++++++[
+								//--------------------...
+								//ou
+								//   [+++++++++++[
+								//---------------[
+								else
+								{
+									toRemove = new List<Entry>();
+									toRemove.Add(cursor);
+									if (c2 == 0) break;
+								}
+							}
+						}
+
+						if (toRemove != null) m_items.RemoveItems(toRemove);
+						TranslateAfter(cursor, offset, applyOffset);
+						return;
+					}
+				}
+			}
+			finally
+			{
+				CheckInvariants();
+			}
+		}
+
+		public void TranslateAfter(Entry lastOk, TKey offset, Func<TKey, TKey, TKey> applyKeyOffset)
+		{
+			var iterator = m_items.GetIterator();
+			//null il faut tout décaller
+			if (lastOk == null)
+			{
+				if (!iterator.SeekFirst()) return;
+			}
+			else
+			{
+				if (!iterator.Seek(lastOk, true))
+				{
+					//l'element passé en parametre à été supprimé
+					//on cherche l'élément suivant
+					//si tout à été supprimé on sort.
+					if (!iterator.SeekFirst()) return;
+					var c = m_keyComparer.Compare(lastOk.End, iterator.Current.Begin);
+					while (c > 0 && iterator.Next())
+					{
+						c = m_keyComparer.Compare(lastOk.End, iterator.Current.Begin);
+					}
+				}
+				//on veut décaller les suivants de celui passé en parametre
+				else iterator.Next();
+			}
+			do
+			{
+				var cursor = iterator.Current;
+				//dans le cas ou tout à été supprimé après le lastOK l'iterator est déjà au bout quand on arrive ici...
+				if (cursor == null) break;
+				cursor.Begin = applyKeyOffset(cursor.Begin, offset);
+				cursor.End = applyKeyOffset(cursor.End, offset);
+			}
+			while (iterator.Next());
+			//on décalle les bounds correctement
+			if (iterator.SeekFirst()) m_bounds.Begin = iterator.Current.Begin;
+			if (iterator.SeekLast()) m_bounds.End = iterator.Current.End;
 		}
 
 		public void Mark(TKey begin, TKey end, TValue value)
