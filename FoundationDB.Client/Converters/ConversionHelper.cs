@@ -40,7 +40,7 @@ namespace FoundationDB.Client.Converters
 	{
 
 		/// <summary>Pair of types that can be used as a key in a dictionary</summary>
-		internal struct TypePair
+		internal struct TypePair : IEquatable<TypePair>
 		{
 			public readonly Type Left;
 			public readonly Type Right;
@@ -54,8 +54,13 @@ namespace FoundationDB.Client.Converters
 			public override bool Equals(object obj)
 			{
 				if (obj == null) return false;
-				TypePair other = (TypePair)obj;
-				return this.Left == other.Left && this.Right == other.Right;
+				return Equals((TypePair)obj);
+			}
+
+			public bool Equals(TypePair other)
+			{
+				return this.Left == other.Left
+					&& this.Right == other.Right;
 			}
 
 			public override int GetHashCode()
@@ -89,7 +94,7 @@ namespace FoundationDB.Client.Converters
 
 		/// <summary>Cache of all the comparison lambda for a pair of types</summary>
 		/// <remarks>Contains lambda that can compare two objects (of different types) for "similarity"</remarks>
-		private static readonly ConcurrentDictionary<TypePair, Func<object, object, bool>> EqualityComparers = new ConcurrentDictionary<TypePair, Func<object, object, bool>>(ComparisonHelper.TypePairComparer.Default);
+		private static readonly ConcurrentDictionary<TypePair, Func<object, object, bool>> EqualityComparers = new ConcurrentDictionary<TypePair, Func<object, object, bool>>(TypePairComparer.Default);
 
 		/// <summary>Tries to convert an object into an equivalent string representation (for equality comparison)</summary>
 		/// <param name="value">Object to adapt</param>
@@ -117,49 +122,52 @@ namespace FoundationDB.Client.Converters
 		/// <summary>Tries to convert an object into an equivalent double representation (for equality comparison)</summary>
 		/// <param name="value">Object to adapt</param>
 		/// <param name="type">Type of the object to adapt</param>
-		/// <returns>Double equivalent of the object</returns>
-		internal static double? TryAdaptToDecimal(object value, [NotNull] Type type)
+		/// <param name="result">Double equivalent of the object</param>
+		/// <returns>True if <paramref name="value"/> is compatible with a decimal. False if the type is not compatible</returns>
+		internal static bool TryAdaptToDecimal(object value, [NotNull] Type type, out double result)
 		{
 			if (value != null)
 			{
 				switch (Type.GetTypeCode(type))
 				{
-					case TypeCode.Int16: return (short)value;
-					case TypeCode.UInt16: return (ushort)value;
-					case TypeCode.Int32: return (int)value;
-					case TypeCode.UInt32: return (uint)value;
-					case TypeCode.Int64: return (long)value;
-					case TypeCode.UInt64: return (ulong)value;
-					case TypeCode.Single: return (float)value;
-					case TypeCode.Double: return (double)value;
+					case TypeCode.Int16: { result = (short)value; return true; }
+					case TypeCode.UInt16: { result = (ushort)value; return true; }
+					case TypeCode.Int32: { result = (int)value; return true; }
+					case TypeCode.UInt32: { result = (uint)value; return true; }
+					case TypeCode.Int64: { result = (long)value; return true; }
+					case TypeCode.UInt64: { result = (ulong)value; return true; }
+					case TypeCode.Single: { result = (float)value; return true; }
+					case TypeCode.Double: { result = (double)value; return true; }
 					//TODO: string?
 				}
 			}
-			return null;
+			result = 0;
+			return false;
 		}
 
 		/// <summary>Tries to convert an object into an equivalent Int64 representation (for equality comparison)</summary>
 		/// <param name="value">Object to adapt</param>
 		/// <param name="type">Type of the object to adapt</param>
-		/// <returns>Int64 equivalent of the object</returns>
-		internal static long? TryAdaptToInteger(object value, [NotNull] Type type)
+		/// <param name="result">Int64 equivalent of the object</param>
+		/// <returns>True if <paramref name="value"/> is compatible with a decimal. False if the type is not compatible</returns>
+		internal static bool TryAdaptToInteger(object value, [NotNull] Type type, out long result)
 		{
 			if (value != null)
 			{
 				switch (Type.GetTypeCode(type))
 				{
-					case TypeCode.Int16: return (short)value;
-					case TypeCode.UInt16: return (ushort)value;
-					case TypeCode.Int32: return (int)value;
-					case TypeCode.UInt32: return (uint)value;
-					case TypeCode.Int64: return (long)value;
-					case TypeCode.UInt64: return (long?)(ulong)value;
-					case TypeCode.Single: return (long?)(float)value;
-					case TypeCode.Double: return (long?)(double)value;
-					//TODO: string?
+					case TypeCode.Int16: { result = (short)value; return true; }
+					case TypeCode.UInt16: { result = (ushort)value; return true; }
+					case TypeCode.Int32: { result = (int)value; return true; }
+					case TypeCode.UInt32: { result = (uint)value; return true; }
+					case TypeCode.Int64: { result = (long)value; return true; }
+					case TypeCode.UInt64: { result = (long)(ulong)value; return true; }
+					case TypeCode.Single: { result = (long)(float)value; return true; }
+					case TypeCode.Double: { result = (long)(double)value; return true; }
 				}
 			}
-			return null;
+			result = 0;
+			return false;
 		}
 
 		[NotNull]
@@ -210,12 +218,21 @@ namespace FoundationDB.Client.Converters
 			{
 				if (IsDecimalType(t1) || IsDecimalType(t2))
 				{
-					return (x, y) => x == null ? y == null : y != null && TryAdaptToDecimal(x, t1) == TryAdaptToDecimal(y, t2);
+					return (x, y) =>
+					{
+						double d1, d2;
+						return x == null ? y == null : y != null && TryAdaptToDecimal(x, t1, out d1) && TryAdaptToDecimal(y, t2, out d2) && d1 == d2;
+					};
 				}
-
-				//TODO: handle UInt64 with values > long.MaxValue that will overflow to negative values when casted down to Int64
-
-				return (x, y) => x == null ? y == null : y != null && TryAdaptToInteger(x, t1) == TryAdaptToInteger(y, t2);
+				else
+				{
+					//TODO: handle UInt64 with values > long.MaxValue that will overflow to negative values when casted down to Int64
+					return (x, y) =>
+					{
+						long l1, l2;
+						return x == null ? y == null : y != null && TryAdaptToInteger(x, t1, out l1) && TryAdaptToInteger(y, t2, out l2) && l1 == l2;
+					};
+				}
 			}
 
 			//TODO: some other way to compare ?
@@ -317,6 +334,7 @@ namespace FoundationDB.Client.Converters
 		private static bool IsDecimalType(Type t)
 		{
 			return t == typeof(double) || t == typeof(float);
+			//TODO: System.Decimal?
 		}
 	}
 
