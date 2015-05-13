@@ -224,8 +224,10 @@ namespace FoundationDB.Storage.Memory.Core
 		[Conditional("DEBUG")]
 		public void Debug_Dump()
 		{
+#if DEBUG
 			Trace.WriteLine("Dumping ColaOrderedSet<" + typeof(T).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
 			m_items.Debug_Dump();
+#endif
 		}
 
 		[StructLayout(LayoutKind.Sequential)]

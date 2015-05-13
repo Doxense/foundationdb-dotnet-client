@@ -603,6 +603,7 @@ namespace FoundationDB.Storage.Memory.API
 		[Conditional("FULLDEBUG")]
 		private unsafe static void DumpKey(string label, IntPtr userKey)
 		{
+#if FULLDEBUG
 			var sb = new StringBuilder("(*) " + (label ?? "key") + " = ");
 			if (userKey == IntPtr.Zero)
 			{
@@ -636,6 +637,7 @@ namespace FoundationDB.Storage.Memory.API
 				}
 			}
 			Trace.WriteLine(sb.ToString());
+#endif
 		}
 
 		private unsafe bool TryGetValueAtVersion(USlice lookupKey, ulong sequence, out USlice result)
@@ -1436,10 +1438,12 @@ namespace FoundationDB.Storage.Memory.API
 
 		}
 
-		[Conditional("FULL_DEBUG")]
+		[Conditional("FULLDEBUG")]
 		private static void Log(string msg)
 		{
+#if FULLDEBUG
 			Trace.WriteLine("MemoryDatabaseHandler[#" + Thread.CurrentThread.ManagedThreadId + "]: " + msg);
+#endif
 		}
 
 		private const int STATE_IDLE = 0;
@@ -1683,6 +1687,7 @@ namespace FoundationDB.Storage.Memory.API
 		[Conditional("DEBUG")]
 		public void Debug_Dump(bool detailed = false)
 		{
+#if DEBUG
 			Debug.WriteLine("Dumping content of Database");
 			m_dataLock.EnterReadLock();
 			try
@@ -1713,6 +1718,7 @@ namespace FoundationDB.Storage.Memory.API
 			{
 				m_dataLock.ExitReadLock();
 			}
+#endif
 		}
 
 	}

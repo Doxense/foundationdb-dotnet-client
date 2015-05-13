@@ -873,6 +873,7 @@ namespace FoundationDB.Storage.Memory.Core
 			[Conditional("FULLDEBUG")]
 			private void Debug_Dump(string label = null)
 			{
+#if FULLDEBUG
 				Trace.WriteLine("* Cursor State: " + label); 
 				for (int i = m_min; i < m_cursors.Length; i++)
 				{
@@ -886,6 +887,7 @@ namespace FoundationDB.Storage.Memory.Core
 					Trace.WriteLine("  - L" + i + ": " + p + " [" + (1 << i) + "] = " + (p < 0 ? "<BEFORE>" : (p >= (1 << i)) ? "<AFTER>" : ("" + m_levels[i][p])));
 				}
 				Trace.WriteLine(" > Current at " + m_currentLevel + " : " + m_current);
+#endif
 			}
 
 			/// <summary>Set the cursor just before the first key in the store</summary>

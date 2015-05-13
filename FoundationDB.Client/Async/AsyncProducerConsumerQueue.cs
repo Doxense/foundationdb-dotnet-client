@@ -145,13 +145,17 @@ namespace FoundationDB.Async
 		[Conditional("FULL_DEBUG")]
 		protected void LogProducer(string msg, [CallerMemberName] string caller = null)
 		{
+#if FULL_DEBUG
 			Console.WriteLine("@@@ [producer#{0}] {1} [{2}]", Thread.CurrentThread.ManagedThreadId, msg, caller);
+#endif
 		}
 
 		[Conditional("FULL_DEBUG")]
 		protected void LogConsumer(string msg, [CallerMemberName] string caller = null)
 		{
+#if FULL_DEBUG
 			Console.WriteLine("@@@ [consumer#{0}] {1} [{2}]", Thread.CurrentThread.ManagedThreadId, msg, caller);
+#endif
 		}
 
 		#endregion

@@ -189,7 +189,9 @@ namespace FoundationDB.Async
 		[Conditional("FULL_DEBUG")]
 		private static void LogPump(string msg)
 		{
+#if FULL_DEBUG
 			Console.WriteLine("[pump#{0}] {1}", Thread.CurrentThread.ManagedThreadId, msg);
+#endif
 		}
 
 		#endregion

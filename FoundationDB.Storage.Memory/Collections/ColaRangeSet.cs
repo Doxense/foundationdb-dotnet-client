@@ -328,8 +328,10 @@ namespace FoundationDB.Storage.Memory.Core
 		//TODO: remove or set to internal !
 		public void Debug_Dump()
 		{
+#if DEBUG
 			Console.WriteLine("Dumping ColaRangeSet<" + typeof(TKey).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
 			m_items.Debug_Dump();
+#endif
 		}
 
 		public override string ToString()

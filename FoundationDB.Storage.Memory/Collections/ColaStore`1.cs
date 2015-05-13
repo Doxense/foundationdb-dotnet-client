@@ -143,6 +143,7 @@ namespace FoundationDB.Storage.Memory.Core
 		[Conditional("ENFORCE_INVARIANTS")]
 		private void CheckInvariants()
 		{
+#if ENFORCE_INVARIANTS
 			Contract.Assert(m_count >= 0, "Count cannot be less than zero");
 			Contract.Assert(m_levels != null, "Storage array should not be null");
 			Contract.Assert(m_levels.Length > 0, "Storage array should always at least contain one level");
@@ -183,9 +184,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 				if (i < m_spares.Length)
 				{
-#if ENFORCE_INVARIANTS
 					Contract.Assert(!m_spareUsed[i], "A spare level wasn't returned after being used!");
-#endif
 					var spare = m_spares[i];
 					if (spare == null) continue;
 					// All spare segments SHOULD be filled with default(T)
@@ -200,6 +199,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 				}
 			}
+#endif
 		}
 
 		#endregion
@@ -1093,6 +1093,7 @@ namespace FoundationDB.Storage.Memory.Core
 		[Conditional("DEBUG")]
 		public void Debug_Dump(Func<T, string> dump = null)
 		{
+#if DEBUG
 			Trace.WriteLine("> " + m_levels.Length + " levels:");
 			for(int i = 0; i < m_levels.Length; i++)
 			{
@@ -1108,6 +1109,7 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 #endif
 			Trace.WriteLine("> " + m_count + " items");
+#endif
 		}
 
 	}

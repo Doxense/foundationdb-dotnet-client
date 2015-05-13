@@ -124,6 +124,7 @@ namespace FoundationDB.Storage.Memory.Core
 		[Conditional("ENFORCE_INVARIANTS")]
 		private void CheckInvariants()
 		{
+#if ENFORCE_INVARIANTS
 			Contract.Assert(m_bounds != null);
 			Debug.WriteLine("INVARIANTS:" + this.ToString() + " <> " + m_bounds.ToString());
 
@@ -160,7 +161,7 @@ namespace FoundationDB.Storage.Memory.Core
 				Contract.Assert(EqualityComparer<TKey>.Default.Equals(m_bounds.Begin, first.Begin), String.Format("Min bound {0} does not match with {1}", m_bounds.Begin, first.Begin));
 				Contract.Assert(EqualityComparer<TKey>.Default.Equals(m_bounds.End, previous.End), String.Format("Max bound {0} does not match with {1}", m_bounds.End, previous.End));
 			}
-
+#endif
 		}
 
 		public int Count { get { return m_items.Count; } }
@@ -663,8 +664,10 @@ namespace FoundationDB.Storage.Memory.Core
 		//TODO: remove or set to internal !
 		public void Debug_Dump()
 		{
+#if DEBUG
 			Debug.WriteLine("Dumping ColaRangeDictionary<" + typeof(TKey).Name + "> filled at " + (100.0d * this.Count / this.Capacity).ToString("N2") + "%");
 			m_items.Debug_Dump();
+#endif
 		}
 
 		public override string ToString()

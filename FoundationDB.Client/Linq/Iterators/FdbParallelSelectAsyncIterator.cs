@@ -179,7 +179,9 @@ namespace FoundationDB.Linq
 		[Conditional("FULL_DEBUG")]
 		private static void LogDebug(string msg)
 		{
+#if FULL_DEBUG
 			Console.WriteLine("[SelectAsync] " + msg);
+#endif
 		}
 
 	}

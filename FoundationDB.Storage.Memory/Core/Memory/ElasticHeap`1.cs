@@ -136,6 +136,7 @@ namespace FoundationDB.Storage.Memory.Core
 		[Conditional("DEBUG")]
 		public void Debug_Dump(bool detailed)
 		{
+#if DEBUG
 			Debug.WriteLine("# Dumping {0} heap ({1:N0} pages in {2:N0} buckets)", this.GetType().Name, m_buckets.Sum(b => (long)b.Pages.Count), m_buckets.Length);
 			//TODO: needs locking but should only be called from unit tests anyway...
 			ulong entries = 0;
@@ -163,6 +164,7 @@ namespace FoundationDB.Storage.Memory.Core
 				}
 			}
 			Debug.WriteLine("# Found a total of {0:N0} entries using {1:N0} bytes out of {2:N0} bytes allocated", entries, used, allocated);
+#endif
 		}
 	}
 

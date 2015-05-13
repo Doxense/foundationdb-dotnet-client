@@ -79,7 +79,9 @@ namespace FoundationDB.Linq
 		[Conditional("FULL_DEBUG")]
 		private static void LogDebug(string msg)
 		{
+#if FULL_DEBUG
 			Console.WriteLine("[pump] " + msg);
+#endif
 		}
 
 		/// <summary>Run the pump until the inner iterator is done, an error occurs, or the cancellation token is fired</summary>
