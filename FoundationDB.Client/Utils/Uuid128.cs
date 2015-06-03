@@ -48,7 +48,7 @@ namespace FoundationDB.Client
 		//    Significant Byte first (known as network byte order).  Note that the
 		//    field names, particularly for multiplexed fields, follow historical
 		//    practice.
-      
+
 		//    0                   1                   2                   3
 		//    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 		//    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -136,6 +136,8 @@ namespace FoundationDB.Client
 		}
 
 		public static readonly Uuid128 Empty = default(Uuid128);
+
+		public static readonly Uuid128 MaxValue = new Uuid128(uint.MaxValue, ushort.MaxValue, ushort.MaxValue, 255, 255, 255, 255, 255, 255, 255, 255);
 
 		public static Uuid128 NewUuid()
 		{
