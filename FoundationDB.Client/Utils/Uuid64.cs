@@ -256,9 +256,12 @@ namespace FoundationDB.Client
 			switch(format)
 			{
 				case "D":
+				{ // Default format is "xxxxxxxx-xxxxxxxx"
+					return Encode16(m_value, separator: true, quotes: false, upper: true);
+				}
 				case "d":
 				{ // Default format is "xxxxxxxx-xxxxxxxx"
-					return Encode16(m_value, separator: true, quotes: false);
+					return Encode16(m_value, separator: true, quotes: false, upper: false);
 				}
 
 				case "C":
@@ -278,16 +281,24 @@ namespace FoundationDB.Client
 					return m_value.ToString(null, formatProvider ?? CultureInfo.InvariantCulture);
 				}
 
-				case "X":
-				case "x":
+				case "X": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
+				case "N":
+				{ // "XXXXXXXXXXXXXXXX"
+					return Encode16(m_value, separator: false, quotes: false, upper: true);
+				}
+				case "x": //TODO: Guid.ToString("X") returns "{0x.....,0x.....,...}"
+				case "n":
 				{ // "xxxxxxxxxxxxxxxx"
-					return Encode16(m_value, separator: false, quotes: false);
+					return Encode16(m_value, separator: false, quotes: false, upper: false);
 				}
 
 				case "B":
+				{ // "{xxxxxxxx-xxxxxxxx}"
+					return Encode16(m_value, separator: true, quotes: true, upper: true);
+				}
 				case "b":
 				{ // "{xxxxxxxx-xxxxxxxx}"
-					return Encode16(m_value, separator: true, quotes: true);
+					return Encode16(m_value, separator: true, quotes: true, upper: false);
 				}
 			}
 			throw new FormatException("Invalid Uuid64 format specification.");
@@ -325,57 +336,83 @@ namespace FoundationDB.Client
 
 		#region Base16 encoding...
 
-		private static char HexToChar(int a)
+		private static char HexToLowerChar(int a)
 		{
 			a &= 0xF;
 			return a > 9 ? (char)(a - 10 + 'a') : (char)(a + '0');
 		}
 
-		private static unsafe char* HexsToChars(char* ptr, int a)
+		private static unsafe char* HexsToLowerChars(char* ptr, int a)
 		{
 			Contract.Requires(ptr != null);
-			ptr[0] = HexToChar(a >> 28);
-			ptr[1] = HexToChar(a >> 24);
-			ptr[2] = HexToChar(a >> 20);
-			ptr[3] = HexToChar(a >> 16);
-			ptr[4] = HexToChar(a >> 12);
-			ptr[5] = HexToChar(a >> 8);
-			ptr[6] = HexToChar(a >> 4);
-			ptr[7] = HexToChar(a);
+			ptr[0] = HexToLowerChar(a >> 28);
+			ptr[1] = HexToLowerChar(a >> 24);
+			ptr[2] = HexToLowerChar(a >> 20);
+			ptr[3] = HexToLowerChar(a >> 16);
+			ptr[4] = HexToLowerChar(a >> 12);
+			ptr[5] = HexToLowerChar(a >> 8);
+			ptr[6] = HexToLowerChar(a >> 4);
+			ptr[7] = HexToLowerChar(a);
 			return ptr + 8;
 		}
 
-		private unsafe static string Encode16(ulong value, bool separator, bool quotes)
+		private static char HexToUpperChar(int a)
+		{
+			a &= 0xF;
+			return a > 9 ? (char)(a - 10 + 'A') : (char)(a + '0');
+		}
+
+		private static unsafe char* HexsToUpperChars(char* ptr, int a)
+		{
+			Contract.Requires(ptr != null);
+			ptr[0] = HexToUpperChar(a >> 28);
+			ptr[1] = HexToUpperChar(a >> 24);
+			ptr[2] = HexToUpperChar(a >> 20);
+			ptr[3] = HexToUpperChar(a >> 16);
+			ptr[4] = HexToUpperChar(a >> 12);
+			ptr[5] = HexToUpperChar(a >> 8);
+			ptr[6] = HexToUpperChar(a >> 4);
+			ptr[7] = HexToUpperChar(a);
+			return ptr + 8;
+		}
+
+		private unsafe static string Encode16(ulong value, bool separator, bool quotes, bool upper)
 		{
 			int size = 16 + (separator ? 1 : 0) + (quotes ? 2 : 0);
 			char* buffer = stackalloc char[24]; // max 19 mais on arrondi a 24
 
 			char* ptr = buffer;
 			if (quotes) *ptr++ = '{';
-			ptr = HexsToChars(ptr, (int)(value >> 32));
+			ptr = upper 		
+				? HexsToUpperChars(ptr, (int)(value >> 32))
+				: HexsToLowerChars(ptr, (int)(value >> 32));
 			if (separator) *ptr++ = '-';
-			ptr = HexsToChars(ptr, (int)(value & 0xFFFFFFFF));
+			ptr = upper
+				? HexsToUpperChars(ptr, (int)(value & 0xFFFFFFFF))
+				: HexsToLowerChars(ptr, (int)(value & 0xFFFFFFFF));
 			if (quotes) *ptr++ = '}';
 
 			Contract.Assert(ptr == buffer + size);
 			return new string(buffer, 0, size);
 		}
 
+		private const int INVALID_CHAR = -1;
+
 		private static int CharToHex(char c)
 		{
 			if (c <= '9')
 			{
-				return c >= '0' ? (c - 48) : -1;
+				return c >= '0' ? (c - 48) : INVALID_CHAR;
 			}
 			if (c <= 'F')
 			{
-				return c >= 'A' ? (c - 55) : -1;
+				return c >= 'A' ? (c - 55) : INVALID_CHAR;
 			}
 			if (c <= 'f')
 			{
-				return c >= 'a' ? (c - 87) : -1;
+				return c >= 'a' ? (c - 87) : INVALID_CHAR;
 			}
-			return -1;
+			return INVALID_CHAR;
 		}
 
 		private static bool TryCharsToHexs(char[] chars, int offset, out uint result)
@@ -384,7 +421,7 @@ namespace FoundationDB.Client
 			for (int i = 0; i < 8; i++)
 			{
 				int a = CharToHex(chars[offset++]);
-				if (a == -1)
+				if (a == INVALID_CHAR)
 				{
 					result = 0;
 					return false;

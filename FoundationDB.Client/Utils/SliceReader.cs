@@ -62,6 +62,18 @@ namespace FoundationDB.Client
 			this.Position = 0;
 		}
 
+		public SliceReader(byte[] buffer)
+		{
+			m_buffer = new Slice(buffer, 0, buffer.Length);
+			this.Position = 0;
+		}
+
+		public SliceReader(byte[] buffer, int offset, int count)
+		{
+			m_buffer = new Slice(buffer, offset, count);
+			this.Position = 0;
+		}
+
 		/// <summary>Returns true if there are more bytes to parse</summary>
 		public bool HasMore { get { return this.Position < m_buffer.Count; } }
 
@@ -256,6 +268,15 @@ namespace FoundationDB.Client
 			return ReadBytes((int)size);
 		}
 
+		public Uuid128 ReadUuid128()
+		{
+			return ReadBytes(16).ToUuid128();
+		}
+
+		public Uuid64 ReadUuid64()
+		{
+			return ReadBytes(8).ToUuid64();
+		}
 	}
 
 }
