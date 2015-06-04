@@ -85,6 +85,8 @@ namespace FoundationDB.Client
 		public static FdbKeyRange StartsWith(Slice prefix)
 		{
 			if (prefix.IsNull) throw Fdb.Errors.KeyCannotBeNull("prefix");
+			if (prefix.Count == 0) return new FdbKeyRange(Slice.Empty, FdbKey.MaxValue);
+
 
 			// prefix => [ prefix, prefix + 1 )
 			return new FdbKeyRange(
