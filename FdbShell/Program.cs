@@ -89,10 +89,17 @@ namespace FdbShell
 		public static void Main(string[] args)
 		{
 			//TODO: move this to the main, and add a command line argument to on/off ?
-			if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
+			try
 			{
-				Console.WindowWidth = 160;
-				Console.WindowHeight = 60;
+				if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
+				{
+					Console.WindowWidth = 160;
+					Console.WindowHeight = 60;
+				}
+			}
+			catch (Exception e)
+			{
+				// this sometimes fail on small screen sizes
 			}
 
 			// Initialize FDB
