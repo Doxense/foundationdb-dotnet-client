@@ -599,6 +599,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Create a list from an async sequence.</summary>
+		[ItemNotNull]
 		public static Task<List<T>> ToListAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -613,6 +614,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Create an array from an async sequence.</summary>
+		[ItemNotNull]
 		public static Task<T[]> ToArrayAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -627,6 +629,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Create an array from an async sequence, knowing a rough estimation of the number of elements.</summary>
+		[ItemNotNull]
 		internal static Task<T[]> ToArrayAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, int estimatedSize, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			Contract.Requires(source != null && estimatedSize >= 0);
@@ -641,6 +644,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function and key comparer.</summary>
+		[ItemNotNull]
 		public static Task<Dictionary<TKey, TSource>> ToDictionaryAsync<TSource, TKey>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull, InstantHandle] Func<TSource, TKey> keySelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -655,6 +659,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence according to a specified key selector function, a comparer, and an element selector function.</summary>
+		[ItemNotNull]
 		public static Task<Dictionary<TKey, TElement>> ToDictionaryAsync<TSource, TKey, TElement>([NotNull] this IFdbAsyncEnumerable<TSource> source, [NotNull, InstantHandle] Func<TSource, TKey> keySelector, [NotNull, InstantHandle] Func<TSource, TElement> elementSelector, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");
@@ -670,6 +675,7 @@ namespace FoundationDB.Linq
 		}
 
 		/// <summary>Creates a Dictionary from an async sequence of pairs of keys and values.</summary>
+		[ItemNotNull]
 		public static Task<Dictionary<TKey, TValue>> ToDictionaryAsync<TKey, TValue>([NotNull] this IFdbAsyncEnumerable<KeyValuePair<TKey, TValue>> source, IEqualityComparer<TKey> comparer = null, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			if (source == null) throw new ArgumentNullException("source");

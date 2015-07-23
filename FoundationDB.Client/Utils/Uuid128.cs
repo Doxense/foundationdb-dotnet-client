@@ -35,7 +35,7 @@ namespace FoundationDB.Client
 
 	/// <summary>RFC 4122 compliant 128-bit UUID</summary>
 	/// <remarks>You should use this type if you are primarily exchanged UUIDs with non-.NET platforms, that use the RFC 4122 byte ordering (big endian). The type System.Guid uses the Microsoft encoding (little endian) and is not compatible.</remarks>
-	[ImmutableObject(true), StructLayout(LayoutKind.Explicit), Serializable]
+	[ImmutableObject(true), PublicAPI, StructLayout(LayoutKind.Explicit), Serializable]
 	public struct Uuid128 : IFormattable, IComparable, IEquatable<Uuid128>, IComparable<Uuid128>, IEquatable<Guid>
 	{
 		// This is just a wrapper struct on System.Guid that makes sure that ToByteArray() and Parse(byte[]) and new(byte[]) will parse according to RFC 4122 (http://www.ietf.org/rfc/rfc4122.txt)

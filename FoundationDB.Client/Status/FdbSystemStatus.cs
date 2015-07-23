@@ -36,6 +36,7 @@ namespace FoundationDB.Client.Status
 	using System.Globalization;
 
 	/// <summary>Snapshot of the state of a FoundationDB cluster</summary>
+	[PublicAPI]
 	public sealed class FdbSystemStatus : MetricsBase
 	{
 		private readonly ClientStatus m_client;

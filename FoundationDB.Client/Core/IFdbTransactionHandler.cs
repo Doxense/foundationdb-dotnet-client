@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace FoundationDB.Client.Core
 	using System.Threading.Tasks;
 
 	/// <summary>Basic API for FoundationDB transactions</summary>
+	[PublicAPI]
 	public interface IFdbTransactionHandler : IDisposable
 	{
 		/// <summary>Returns the estimated payload size of the transaction (including keys and values)</summary>
@@ -80,6 +81,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
+		[ItemNotNull]
 		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys, bool snapshot, CancellationToken cancellationToken);
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
@@ -94,6 +96,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
+		[ItemNotNull]
 		Task<Slice[]> GetKeysAsync([NotNull] FdbKeySelector[] selectors, bool snapshot, CancellationToken cancellationToken);
 
 		/// <summary>Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode) which have a key lexicographically greater than or equal to the key resolved by the begin key selector and lexicographically less than the key resolved by the end key selector.</summary>
@@ -110,6 +113,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
+		[ItemNotNull]
 		Task<string[]> GetAddressesForKeyAsync(Slice key, CancellationToken cancellationToken);
 
 		/// <summary>Modify the database snapshot represented by transaction to change the given key to have the given value. If the given key was not previously present in the database it is inserted.

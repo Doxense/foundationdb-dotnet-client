@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>Transaction that allows read operations</summary>
+	[PublicAPI]
 	public interface IFdbReadOnlyTransaction : IDisposable
 	{
 
@@ -76,6 +77,7 @@ namespace FoundationDB.Client
 		/// <summary>Reads several values from the database snapshot represented by the current transaction</summary>
 		/// <param name="keys">Keys to be looked up in the database</param>
 		/// <returns>Task that will return an array of values, or an exception. Each item in the array will contain the value of the key at the same index in <paramref name="keys"/>, or Slice.Nil if that key does not exist.</returns>
+		[ItemNotNull]
 		Task<Slice[]> GetValuesAsync([NotNull] Slice[] keys);
 
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by the current transaction.</summary>
@@ -86,6 +88,7 @@ namespace FoundationDB.Client
 		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selectors">Key selectors to resolve</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
+		[ItemNotNull]
 		Task<Slice[]> GetKeysAsync([NotNull] FdbKeySelector[] selectors);
 
 		/// <summary>
@@ -112,6 +115,7 @@ namespace FoundationDB.Client
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>
 		/// <returns>Task that will return an array of strings, or an exception</returns>
+		[ItemNotNull]
 		Task<string[]> GetAddressesForKeyAsync(Slice key);
 
 		/// <summary>Returns this transaction snapshot read version.</summary>

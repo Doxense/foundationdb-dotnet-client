@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -43,6 +43,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Helper class for reading from the reserved System subspace</summary>
+		[PublicAPI]
 		public static class System
 		{
 			//REVIEW: what happens if someone mutates (by mitake or not) the underlying buffer of the defaults keys ?
@@ -85,6 +86,7 @@ namespace FoundationDB.Client
 
 			private static readonly Slice StatusJsonKey = Slice.FromAscii("\xFF\xFF/status/json");
 
+			[ItemCanBeNull]
 			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbReadOnlyTransaction trans)
 			{
 				if (trans == null) throw new ArgumentNullException("trans");
@@ -107,6 +109,7 @@ namespace FoundationDB.Client
 				return new FdbSystemStatus(doc, rv, jsonText);
 			}
 
+			[ItemCanBeNull]
 			public static async Task<FdbSystemStatus> GetStatusAsync([NotNull] IFdbDatabase db, CancellationToken ct)
 			{
 				if (db == null) throw new ArgumentNullException("db");
@@ -128,6 +131,7 @@ namespace FoundationDB.Client
 			/// <param name="db">Database to use for the operation</param>
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <remarks>Since the list of coordinators may change at anytime, the results may already be obsolete once this method completes!</remarks>
+			[ItemNotNull]
 			public static async Task<FdbClusterFile> GetCoordinatorsAsync([NotNull] IFdbDatabase db, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
@@ -200,6 +204,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Returns either "memory" or "ssd"</returns>
 			/// <remarks>Will return a string starting with "unknown" if the storage engine mode is not recognized</remarks>
+			[ItemNotNull]
 			public static async Task<string> GetStorageEngineModeAsync([NotNull] IFdbDatabase db, CancellationToken cancellationToken)
 			{
 				// The '\xFF/conf/storage_engine' keys has value "0" (ASCII) for ssd engine, and "1" (ASCII) for memory engine
@@ -226,6 +231,7 @@ namespace FoundationDB.Client
 			/// <param name="endExclusive">End key (exclusive) of the range to inspect</param>
 			/// <returns>List of keys that mark the start of a new chunk</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Transaction object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
+			[ItemNotNull]
 			public static async Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbReadOnlyTransaction trans, Slice beginInclusive, Slice endExclusive)
 			{
 				if (trans == null) throw new ArgumentNullException("trans");
@@ -250,6 +256,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>List of keys that mark the start of a new chunk</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned boundaries are an estimate and may not represent the exact boundary locations at any database version.</remarks>
+			[ItemNotNull]
 			public static Task<List<Slice>> GetBoundaryKeysAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
@@ -265,6 +272,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
+			[ItemNotNull]
 			public static Task<List<FdbKeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
@@ -278,6 +286,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
+			[ItemNotNull]
 			public static async Task<List<FdbKeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
@@ -310,6 +319,7 @@ namespace FoundationDB.Client
 				return chunks;
 			}
 
+			[ItemNotNull]
 			private static async Task<List<Slice>> GetBoundaryKeysInternalAsync([NotNull] IFdbReadOnlyTransaction trans, Slice begin, Slice end)
 			{
 				Contract.Requires(trans != null && end >= begin);

@@ -40,6 +40,7 @@ namespace FoundationDB.Layers.Tuples
 	using System.Text;
 
 	/// <summary>Factory class for Tuples</summary>
+	[PublicAPI]
 	public static class FdbTuple
 	{
 		/// <summary>Empty tuple</summary>
@@ -47,7 +48,7 @@ namespace FoundationDB.Layers.Tuples
 		public static readonly IFdbTuple Empty = new EmptyTuple();
 
 		/// <summary>Empty tuple (singleton that is used as a base for other tuples)</summary>
-		internal sealed class EmptyTuple : IFdbTuple
+		private sealed class EmptyTuple : IFdbTuple
 		{
 
 			public int Count

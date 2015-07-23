@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>Cluster connection context.</summary>
+	[PublicAPI]
 	public interface IFdbCluster : IDisposable
 	{
 		/// <summary>Path to the cluster file used by this connection, or null if the default cluster file is being used</summary>
@@ -59,8 +60,8 @@ namespace FoundationDB.Client
 		/// <param name="readOnly">If true, the database will only allow read operations.</param>
 		/// <param name="cancellationToken">Cancellation Token (optionnal) for the connect operation</param>
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
+		[ItemNotNull]
 		Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IFdbSubspace subspace, bool readOnly, CancellationToken cancellationToken);
-		//REVIEW: we should return an IFdbDatabase instead !
 	}
 
 }

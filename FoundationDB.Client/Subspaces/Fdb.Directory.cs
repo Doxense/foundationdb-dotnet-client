@@ -44,12 +44,14 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Static helper class to open named partitions</summary>
+		[PublicAPI]
 		public static class Directory
 		{
 			/// <summary>Open a named partition of the default cluster</summary>
 			/// <param name="path">Path of the named partition to open</param>
 			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
+			[ItemNotNull]
 			public static Task<IFdbDatabase> OpenNamedPartitionAsync([NotNull] IEnumerable<string> path, CancellationToken cancellationToken)
 			{
 				return OpenNamedPartitionAsync(clusterFile: null, dbName: null, path: path, readOnly: false, cancellationToken: cancellationToken);
@@ -62,6 +64,7 @@ namespace FoundationDB.Client
 			/// <param name="readOnly">If true, the database instance will only allow read operations</param>
 			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Returns a new database instance that will only be able to read and write inside the specified partition. If the partition does not exist, it will be automatically created</returns>
+			[ItemNotNull]
 			public static async Task<IFdbDatabase> OpenNamedPartitionAsync(string clusterFile, string dbName, [NotNull] IEnumerable<string> path, bool readOnly, CancellationToken cancellationToken)
 			{
 				if (path == null) throw new ArgumentNullException("path");
@@ -105,6 +108,7 @@ namespace FoundationDB.Client
 			/// <param name="parent">Parent directory</param>
 			/// <param name="cancellationToken">Token used to cancel this operation</param>
 			/// <returns>Dictionary of all the sub directories of the <paramref name="parent"/> directory.</returns>
+			[ItemNotNull]
 			public static async Task<Dictionary<string, FdbDirectorySubspace>> BrowseAsync([NotNull] IFdbDatabase db, [NotNull] IFdbDirectory parent, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");

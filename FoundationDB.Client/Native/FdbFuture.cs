@@ -108,6 +108,7 @@ namespace FoundationDB.Client.Native
 		/// <param name="cancellationToken">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return all the results of the continuation lambdas, or an exception</returns>
 		/// <remarks>If at least one future fails, the whole task will fail.</remarks>
+		[ItemNotNull]
 		public static Task<T[]> CreateTaskFromHandleArray<T>([NotNull] FutureHandle[] handles, [NotNull] Func<FutureHandle, T> continuation, CancellationToken cancellationToken)
 		{
 			// Special case, because FdbFutureArray<T> does not support empty arrays

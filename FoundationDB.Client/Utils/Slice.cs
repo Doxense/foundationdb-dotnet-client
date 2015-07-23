@@ -43,7 +43,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>Delimits a section of a byte array</summary>
-	[ImmutableObject(true), DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(Slice.DebugView))]
+	[ImmutableObject(true), PublicAPI, DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(Slice.DebugView))]
 	public struct Slice : IEquatable<Slice>, IEquatable<ArraySegment<byte>>, IEquatable<byte[]>, IComparable<Slice>
 	{
 		#region Static Members...

@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -111,6 +111,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>Any attempt to use a key outside the specified subspace will throw an exception</remarks>
+		[ItemNotNull]
 		public async Task<IFdbDatabase> OpenDatabaseAsync(string databaseName, IFdbSubspace subspace, bool readOnly, CancellationToken cancellationToken)
 		{
 			if (subspace == null) throw new ArgumentNullException("subspace");
@@ -127,6 +128,7 @@ namespace FoundationDB.Client
 		/// <exception cref="System.InvalidOperationException">If <paramref name="databaseName"/> is anything other than 'DB'</exception>
 		/// <exception cref="System.OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>As of Beta2, the only supported database name is 'DB'</remarks>
+		[ItemNotNull]
 		internal async Task<FdbDatabase> OpenDatabaseInternalAsync(string databaseName, IFdbSubspace subspace, bool readOnly, bool ownsCluster, CancellationToken cancellationToken)
 		{
 			ThrowIfDisposed();

@@ -32,7 +32,7 @@ namespace FoundationDB.Client
 	using System;
 	using System.Collections.Generic;
 
-
+	[PublicAPI]
 	public interface IFdbSubspace : IFdbKey
 	{
 		// This interface helps solve some type resolution ambiguities at compile time between types that all implement IFdbKey but have different semantics for partitionning and concatenation

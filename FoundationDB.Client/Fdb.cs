@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -42,6 +42,7 @@ namespace FoundationDB.Client
 	using SystemIO = System.IO;
 
 	/// <summary>FoundationDB binding</summary>
+	[PublicAPI]
 	public static partial class Fdb
 	{
 
@@ -441,6 +442,7 @@ namespace FoundationDB.Client
 		/// <summary>Opens a connection to an existing FoundationDB cluster using the default cluster file</summary>
 		/// <param name="cancellationToken">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
+		[ItemNotNull]
 		public static Task<IFdbCluster> CreateClusterAsync(CancellationToken cancellationToken)
 		{
 			return CreateClusterAsync(null, cancellationToken);
@@ -450,12 +452,14 @@ namespace FoundationDB.Client
 		/// <param name="clusterFile">Path to the 'fdb.cluster' file to use, or null for the default cluster file</param>
 		/// <param name="cancellationToken">Token used to abort the operation</param>
 		/// <returns>Task that will return an FdbCluster, or an exception</returns>
+		[ItemNotNull]
 		public static async Task<IFdbCluster> CreateClusterAsync(string clusterFile, CancellationToken cancellationToken)
 		{
 			return await CreateClusterInternalAsync(clusterFile, cancellationToken).ConfigureAwait(false);
 		}
 
-		internal static async Task<FdbCluster> CreateClusterInternalAsync(string clusterFile, CancellationToken cancellationToken)
+		[ItemNotNull]
+		private static async Task<FdbCluster> CreateClusterInternalAsync(string clusterFile, CancellationToken cancellationToken)
 		{
 			EnsureIsStarted();
 
@@ -482,6 +486,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
+		[ItemNotNull]
 		public static Task<IFdbDatabase> OpenAsync(CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return OpenAsync(clusterFile: null, dbName: null, globalSpace: FdbSubspace.Empty, cancellationToken: cancellationToken);
@@ -493,6 +498,7 @@ namespace FoundationDB.Client
 		/// <returns>Task that will return an FdbDatabase, or an exception</returns>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
+		[ItemNotNull]
 		public static Task<IFdbDatabase> OpenAsync(IFdbSubspace globalSpace, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return OpenAsync(clusterFile: null, dbName: null, globalSpace: globalSpace, cancellationToken: cancellationToken);
@@ -507,6 +513,7 @@ namespace FoundationDB.Client
 		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than "DB"</exception>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
+		[ItemNotNull]
 		public static Task<IFdbDatabase> OpenAsync(string clusterFile, string dbName, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return OpenAsync(clusterFile, dbName, FdbSubspace.Empty, readOnly: false, cancellationToken: cancellationToken);
@@ -523,12 +530,14 @@ namespace FoundationDB.Client
 		/// <exception cref="InvalidOperationException">If <paramref name="dbName"/> is anything other than 'DB'</exception>
 		/// <exception cref="OperationCanceledException">If the token <paramref name="cancellationToken"/> is cancelled</exception>
 		/// <remarks>Since connections are not pooled, so this method can be costly and should NOT be called every time you need to read or write from the database. Instead, you should open a database instance at the start of your process, and use it a singleton.</remarks>
+		[ItemNotNull]
 		public static async Task<IFdbDatabase> OpenAsync(string clusterFile, string dbName, IFdbSubspace globalSpace, bool readOnly = false, CancellationToken cancellationToken = default(CancellationToken))
 		{
 			return await OpenInternalAsync(clusterFile, dbName, globalSpace, readOnly, cancellationToken);
 		}
 
 		/// <summary>Create a new database handler instance using the specificied cluster file, database name, global subspace and read only settings</summary>
+		[ItemNotNull]
 		internal static async Task<FdbDatabase> OpenInternalAsync(string clusterFile, string dbName, IFdbSubspace globalSpace, bool readOnly, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();

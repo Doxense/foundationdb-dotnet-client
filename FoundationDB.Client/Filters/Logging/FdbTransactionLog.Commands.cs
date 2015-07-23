@@ -30,13 +30,14 @@ namespace FoundationDB.Filters.Logging
 {
 	using FoundationDB.Async;
 	using FoundationDB.Client;
+	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Text;
 	using System.Threading.Tasks;
-	using Layers.Directories;
+	using FoundationDB.Layers.Directories;
 
 	public partial class FdbTransactionLog
 	{
@@ -296,6 +297,7 @@ namespace FoundationDB.Filters.Logging
 
 			/// <summary>Create a key resolver using the content of a DirectoryLayer as the map</summary>
 			/// <returns>Resolver that replace each directory prefix by its name</returns>
+			[ItemNotNull]
 			public static async Task<DirectoryKeyResolver> BuildFromDirectoryLayer(IFdbReadOnlyTransaction tr, FdbDirectoryLayer directory)
 			{
 				var location = directory.NodeSubspace.Keys;

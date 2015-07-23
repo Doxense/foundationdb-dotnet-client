@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>Transactional context that can execute, inside a retry loop, idempotent actions using read-only transactions.</summary>
+	[PublicAPI]
 	public interface IFdbReadOnlyRetryable
 	{
 		#region Important Note: Differences with Python's @transactional and Java's TransactionContext

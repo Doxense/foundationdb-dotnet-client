@@ -32,6 +32,7 @@ using JetBrains.Annotations;
 namespace FoundationDB.Client
 {
 
+	[PublicAPI]
 	public interface IFdbEncoderSubspace<T> : IFdbSubspace
 	{
 

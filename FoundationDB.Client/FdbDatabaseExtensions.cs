@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -229,6 +229,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
+		[ItemNotNull]
 		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyRetryable db, [NotNull] Slice[] keys, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
@@ -241,6 +242,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
+		[ItemNotNull]
 		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<Slice> keys, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
@@ -265,6 +267,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
+		[ItemNotNull]
 		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyRetryable db, [NotNull] FdbKeySelector[] keySelectors, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");
@@ -278,6 +281,7 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
+		[ItemNotNull]
 		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<FdbKeySelector> keySelectors, CancellationToken cancellationToken)
 		{
 			if (db == null) throw new ArgumentNullException("db");

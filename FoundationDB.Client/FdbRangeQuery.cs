@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -278,12 +278,14 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a list of all the elements of the range results</summary>
+		[ItemNotNull]
 		public Task<List<T>> ToListAsync()
 		{
 			return FdbAsyncEnumerable.ToListAsync(this, this.Transaction.Cancellation);
 		}
 
 		/// <summary>Return an array with all the elements of the range results</summary>
+		[ItemNotNull]
 		public Task<T[]> ToArrayAsync()
 		{
 			return FdbAsyncEnumerable.ToArrayAsync(this, this.Transaction.Cancellation);

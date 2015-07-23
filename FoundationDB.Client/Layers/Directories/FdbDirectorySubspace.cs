@@ -128,6 +128,7 @@ namespace FoundationDB.Layers.Directories
 		/// <summary>Change the layer id of this directory</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="newLayer">New layer id of this directory</param>
+		[ItemNotNull]
 		public async Task<FdbDirectorySubspace> ChangeLayerAsync([NotNull] IFdbTransaction trans, Slice newLayer)
 		{
 			if (trans == null) throw new ArgumentNullException("trans");

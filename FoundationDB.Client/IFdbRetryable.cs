@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -34,6 +34,7 @@ namespace FoundationDB.Client
 	using System.Threading.Tasks;
 
 	/// <summary>Transactional context that can execute, inside a retry loop, idempotent actions using read and/or write transactions.</summary>
+	[PublicAPI]
 	public interface IFdbRetryable : IFdbReadOnlyRetryable
 	{
 		// note: see IFdbReadOnlyRetryable for comments about the differences between the .NET binding and other binding regarding the design of Transactionals

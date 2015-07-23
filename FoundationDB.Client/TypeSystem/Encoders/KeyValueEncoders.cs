@@ -36,6 +36,7 @@ namespace FoundationDB.Client
 	using System.Linq;
 
 	/// <summary>Helper class for all key/value encoders</summary>
+	[PublicAPI]
 	public static class KeyValueEncoders
 	{
 		/// <summary>Identity function for binary slices</summary>

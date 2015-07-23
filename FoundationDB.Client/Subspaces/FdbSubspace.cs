@@ -37,6 +37,7 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
+	[PublicAPI]
 	public class FdbSubspace : IFdbSubspace, IFdbKey, IEquatable<IFdbSubspace>, IComparable<IFdbSubspace>
 	{
 		/// <summary>Empty subspace, that does not add any prefix to the keys</summary>

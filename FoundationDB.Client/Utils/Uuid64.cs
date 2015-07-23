@@ -36,7 +36,7 @@ namespace FoundationDB.Client
 	using System.Globalization;
 
 	[DebuggerDisplay("[{ToString()}]")]
-	[ImmutableObject(true), Serializable]
+	[ImmutableObject(true), PublicAPI, Serializable]
 	public struct Uuid64 : IFormattable, IEquatable<Uuid64>, IComparable<Uuid64>
 	{
 		public static readonly Uuid64 Empty = default(Uuid64);

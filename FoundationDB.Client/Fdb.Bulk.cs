@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013-2014, Doxense SAS
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,7 @@ namespace FoundationDB.Client
 	public static partial class Fdb
 	{
 		/// <summary>Helper class for bulk operations</summary>
+		[PublicAPI]
 		public static class Bulk
 		{
 

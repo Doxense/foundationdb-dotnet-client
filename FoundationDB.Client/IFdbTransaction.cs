@@ -1,5 +1,5 @@
 ﻿#region BSD Licence
-/* Copyright (c) 2013, Doxense SARL
+/* Copyright (c) 2013-2015, Doxense SAS
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -28,11 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using JetBrains.Annotations;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
 
 	/// <summary>Transaction that allows read and write operations</summary>
+	[PublicAPI]
 	public interface IFdbTransaction : IFdbReadOnlyTransaction
 	{
 		/// <summary>Returns true if this transaction instance only allow read operations</summary>
