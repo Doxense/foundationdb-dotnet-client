@@ -72,7 +72,7 @@ namespace FoundationDB.Client
 		/// <summary>Run an idempotent transactional block that returns a value, inside a read-write transaction, which can be executed more than once if any retryable error occurs.</summary>
 		/// <param name="asyncHandler">Idempotent asynchronous lambda function that will be retried until the transaction commits, or a non-recoverable error occurs. The returned value of the last call will be the result of the operation.</param>
 		/// <param name="cancellationToken">Token used to cancel the operation</param>
-		/// <returns>Result of the lambda function if the transaction committed sucessfully.</returns>
+		/// <returns>Result of the lambda function if the transaction committed successfully.</returns>
 		/// <remarks>
 		/// You do not need to commit the transaction inside the handler, it will be done automatically.
 		/// Since the handler can run more than once, and that there is no guarantee that the transaction commits once it returns, you MAY NOT mutate any global state (counters, cache, global dictionary) inside this lambda!

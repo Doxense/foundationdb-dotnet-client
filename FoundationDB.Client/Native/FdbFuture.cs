@@ -93,7 +93,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>Wrap a FDBFuture* pointer into a <see cref="Task{T}"/></summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
 		/// <param name="handle">FDBFuture* pointer</param>
-		/// <param name="continuation">Lambda that will be called once the future completes sucessfully, to extract the result from the future handle.</param>
+		/// <param name="continuation">Lambda that will be called once the future completes successfully, to extract the result from the future handle.</param>
 		/// <param name="cancellationToken">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return the result of the continuation lambda, or an exception</returns>
 		public static Task<T> CreateTaskFromHandle<T>([NotNull] FutureHandle handle, [NotNull] Func<FutureHandle, T> continuation, CancellationToken cancellationToken)
@@ -104,7 +104,7 @@ namespace FoundationDB.Client.Native
 		/// <summary>Wrap multiple <see cref="FdbFuture{T}"/> handles into a single <see cref="Task{TResult}"/> that returns an array of T</summary>
 		/// <typeparam name="T">Type of the result of the task</typeparam>
 		/// <param name="handles">Array of FDBFuture* pointers</param>
-		/// <param name="continuation">Lambda that will be called once for each future that completes sucessfully, to extract the result from the future handle.</param>
+		/// <param name="continuation">Lambda that will be called once for each future that completes successfully, to extract the result from the future handle.</param>
 		/// <param name="cancellationToken">Optional cancellation token that can be used to cancel the future</param>
 		/// <returns>Task that will either return all the results of the continuation lambdas, or an exception</returns>
 		/// <remarks>If at least one future fails, the whole task will fail.</remarks>
