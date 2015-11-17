@@ -502,7 +502,7 @@ namespace FoundationDB.Storage.Memory.API
 						commands[0] = command;
 						return;
 					}
-					// overwrite 
+					// overwrite
 					m_writes.SetItem(command.Key, new[] { command });
 					return;
 				}
@@ -861,7 +861,7 @@ namespace FoundationDB.Storage.Memory.API
 		{
 			// check
 			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty");
-			if (value.IsNull) throw new ArgumentNullException("Value cannot be null");
+			if (value.IsNull) throw new ArgumentNullException(nameof(value), "Value cannot be null");
 			CheckAccessToSystemKeys(key);
 
 
@@ -887,13 +887,13 @@ namespace FoundationDB.Storage.Memory.API
 		{
 			// check
 			if (key.IsNullOrEmpty) throw new ArgumentException("Key cannot be null or empty");
-			if (param.IsNull) throw new ArgumentNullException("Parameter cannot be null");
+			if (param.IsNull) throw new ArgumentNullException(nameof(param), "Parameter cannot be null");
 			CheckAccessToSystemKeys(key);
 
 			if (mutation != FdbMutationType.Add && mutation != FdbMutationType.BitAnd && mutation != FdbMutationType.BitOr && mutation != FdbMutationType.BitXor && mutation != FdbMutationType.Max && mutation != FdbMutationType.Min)
 			{
 				//TODO: throw an FdbException instead?
-				throw new ArgumentException("Invalid mutation type", "mutation");
+				throw new ArgumentException("Invalid mutation type", nameof(mutation));
 			}
 
 			FdbKeyRange range;
@@ -964,7 +964,7 @@ namespace FoundationDB.Storage.Memory.API
 			// check
 			if (beginKeyInclusive.IsNullOrEmpty) throw new ArgumentException("Begin key cannot be null or empty");
 			if (endKeyExclusive.IsNullOrEmpty) throw new ArgumentException("End key cannot be null or empty");
-			if (type != FdbConflictRangeType.Read && type != FdbConflictRangeType.Write) throw new ArgumentOutOfRangeException("type", "Invalid range conflict type");
+			if (type != FdbConflictRangeType.Read && type != FdbConflictRangeType.Write) throw new ArgumentOutOfRangeException(nameof(type), "Invalid range conflict type");
 
 			CheckAccessToSystemKeys(beginKeyInclusive);
 			CheckAccessToSystemKeys(endKeyExclusive, end: true);

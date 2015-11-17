@@ -63,12 +63,12 @@ namespace FoundationDB.Storage.Memory.Utils
 
 		private static void ThrowIndexOutsideTheSlice()
 		{
-			throw new ArgumentOutOfRangeException("Start index must be inside the slice", "startIndex");
+			throw new ArgumentOutOfRangeException("startIndex", "Start index must be inside the slice");
 		}
 
 		private static void ThrowSliceTooSmall()
 		{
-			throw new ArgumentOutOfRangeException("Slice is too small", "count");
+			throw new ArgumentOutOfRangeException("count", "Slice is too small");
 		}
 
 		public IntPtr GetPointer()
@@ -169,7 +169,7 @@ namespace FoundationDB.Storage.Memory.Utils
 		{
 			if (ptr == null) ThrowNullReference();
 			throw new IndexOutOfRangeException();
-		
+
 		}
 
 		private sealed class USliceDebugView

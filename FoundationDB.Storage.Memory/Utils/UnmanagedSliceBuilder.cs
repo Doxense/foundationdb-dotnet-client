@@ -12,7 +12,7 @@ namespace FoundationDB.Storage.Memory.Utils
 
 	/// <summary>Unmanaged slice builder backed by a pinned managed buffer</summary>
 	/// <remarks>This class is not thread-safe.</remarks>
-	[DebuggerDisplay("Count={m_count}, Capacity={m_capacity}"), DebuggerTypeProxy(typeof(UnmanagedSliceBuilder.DebugView))]
+	[DebuggerDisplay("Count={m_count}, Capacity={m_buffer.Length}"), DebuggerTypeProxy(typeof(UnmanagedSliceBuilder.DebugView))]
 	public unsafe sealed class UnmanagedSliceBuilder : IDisposable
 	{
 		private static readonly byte[] s_empty = new byte[0];
@@ -76,7 +76,7 @@ namespace FoundationDB.Storage.Memory.Utils
 
 		public UnmanagedSliceBuilder(byte* data, uint size)
 		{
-			if (data == null && size != 0) throw new ArgumentNullException("data");
+			if (data == null && size != 0) throw new ArgumentNullException(nameof(data));
 			if (size == 0)
 			{
 				m_buffer = s_empty;
@@ -169,7 +169,7 @@ namespace FoundationDB.Storage.Memory.Utils
 					uint newsize = (uint)m_buffer.Length;
 					newsize = UnmanagedHelpers.NextPowerOfTwo(Math.Max(required, newsize << 1));
 					if (newsize > int.MaxValue)
-					{ // cannot alloc more than 2GB in managed code! 
+					{ // cannot alloc more than 2GB in managed code!
 						newsize = int.MaxValue;
 						if (newsize < required) throw new OutOfMemoryException("Cannot grow slice builder above 2GB");
 					}

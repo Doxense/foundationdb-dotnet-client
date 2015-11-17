@@ -40,7 +40,7 @@ namespace FoundationDB.Client
 	/// <summary>
 	/// Represents the context of a retryable transactional function which accepts a read-only or read-write transaction.
 	/// </summary>
-	[DebuggerDisplay("Retries={Retries}, Committed={Committed}, Elapsed={Duration.Elapsed}")]
+	[DebuggerDisplay("Retries={Retries}, Committed={Committed}, Elapsed={Elapsed}")]
 	public sealed class FdbOperationContext : IDisposable
 	{
 		//REVIEW: maybe we should find a way to reduce the size of this class? (it's already almost at 100 bytes !)

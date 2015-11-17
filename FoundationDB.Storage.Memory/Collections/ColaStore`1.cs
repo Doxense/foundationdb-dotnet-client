@@ -25,9 +25,9 @@ namespace FoundationDB.Storage.Memory.Core
 		// Based on http://supertech.csail.mit.edu/papers/sbtree.pdf (COLA)
 
 		/*
-			The cache-oblivious lookahead array (COLA) is similar to the binomial list structure [9] of Bentley and Saxe. It consists of ⌈log2 N⌉ arrays, 
+			The cache-oblivious lookahead array (COLA) is similar to the binomial list structure [9] of Bentley and Saxe. It consists of ⌈log2 N⌉ arrays,
 			or levels, each of which is either completely full or completely empty. The kth array is of size 2^k and the arrays are stored contiguously in memory.
-		
+
 			The COLA maintains the following invariants:
 			1. The kth array contains items if and only if the kth least signiﬁcant bit of the binary representation of N is a 1.
 			2. Each array contains its items in ascending order by key
@@ -102,8 +102,8 @@ namespace FoundationDB.Storage.Memory.Core
 		/// <param name="comparer">Comparer used to order the elements</param>
 		public ColaStore(int capacity, IComparer<T> comparer)
 		{
-			if (capacity < 0) throw new ArgumentOutOfRangeException("capacity", "Capacity cannot be less than zero.");
-			if (comparer == null) throw new ArgumentNullException("comparer");
+			if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity), "Capacity cannot be less than zero.");
+			if (comparer == null) throw new ArgumentNullException(nameof(comparer));
 			Contract.EndContractBlock();
 
 			int levels;
@@ -120,7 +120,7 @@ namespace FoundationDB.Storage.Memory.Core
 				levels = ColaStore.HighestBit(capacity) + 1;
 			}
 			// allocating more than 31 levels would mean having an array of length 2^31, which is not possible
-			if (levels >= 31) throw new ArgumentOutOfRangeException("capacity", "Cannot allocate more than 30 levels");
+			if (levels >= 31) throw new ArgumentOutOfRangeException(nameof(capacity), "Cannot allocate more than 30 levels");
 
 			// pre-allocate the segments and spares at the same time, so that they are always at the same memory location
 			var segments = new T[levels][];
@@ -544,7 +544,7 @@ namespace FoundationDB.Storage.Memory.Core
 		/// </remarks>
 		public void InsertItems(List<T> values, bool ordered = false)
 		{
-			if (values == null) throw new ArgumentNullException("values");
+			if (values == null) throw new ArgumentNullException(nameof(values));
 
 			int count = values.Count;
 			T[] segment, spare;
@@ -752,7 +752,7 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public int RemoveItems(IEnumerable<T> items)
 		{
-			if (items == null) throw new ArgumentNullException("items");
+			if (items == null) throw new ArgumentNullException(nameof(items));
 
 			T _;
 			int count = 0;
@@ -774,12 +774,12 @@ namespace FoundationDB.Storage.Memory.Core
 
 		public void CopyTo(T[] array, int arrayIndex, int count)
 		{
-			if (array == null) throw new ArgumentNullException("array");
-			if (arrayIndex < 0) throw new ArgumentOutOfRangeException("Index cannot be less than zero.");
-			if (count < 0) throw new ArgumentOutOfRangeException("Count cannot be less than zero.");
+			if (array == null) throw new ArgumentNullException(nameof(array));
+			if (arrayIndex < 0) throw new ArgumentOutOfRangeException(nameof(arrayIndex), "Index cannot be less than zero.");
+			if (count < 0) throw new ArgumentOutOfRangeException(nameof(count), "Count cannot be less than zero.");
 			if (arrayIndex > array.Length || count > (array.Length - arrayIndex)) throw new ArgumentException("Destination array is too small");
 			Contract.EndContractBlock();
-			
+
 			int p = arrayIndex;
 			count = Math.Min(count, m_count);
 			foreach (var item in ColaStore.IterateOrdered(count, m_levels, m_comparer, false))
@@ -847,7 +847,7 @@ namespace FoundationDB.Storage.Memory.Core
 			}
 #endif
 
-			// only clear spares that are kept alive		
+			// only clear spares that are kept alive
 			if (level < m_spares.Length)
 			{
 #if ENFORCE_INVARIANTS
@@ -987,7 +987,7 @@ namespace FoundationDB.Storage.Memory.Core
 			if (level >= m_levels.Length)
 			{
 				Grow(level);
-			}		
+			}
 		}
 
 		#endregion
