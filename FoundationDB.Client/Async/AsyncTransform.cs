@@ -108,11 +108,7 @@ namespace FoundationDB.Async
 
 		public void OnCompleted()
 		{
-			if (!m_done)
-			{
-				m_done = true;
-				m_target.OnCompleted();
-			}
+			Dispose();
 		}
 
 #if NET_4_0
