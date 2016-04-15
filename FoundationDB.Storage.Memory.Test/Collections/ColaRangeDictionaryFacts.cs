@@ -328,6 +328,225 @@ namespace FoundationDB.Storage.Memory.Core.Test
 			Console.WriteLine("Bounds = " + cola.Bounds);
 		}
 
+		[Test]
+		public void Test_Can_Remove()
+		{
+			var dico = GetFilledRange();
+			//on supprime tout
+			dico.Remove(0, 100, -100, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(0));
+
+			dico = GetFilledRange();
+			//on ampute le premier range
+			dico.Remove(0, 12, -12, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(5));
+			int i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 0, 3, true);
+				else if (i == 1) CompareEntries(entry, 8, 38, false);
+				else if (i == 2) CompareEntries(entry, 39, 50, true);
+				else if (i == 3) CompareEntries(entry, 51, 53, true);
+				else if (i == 4) CompareEntries(entry, 56, 63, false);
+				i++;
+			}
+
+			//on supprime un truc a cheval sur plusieurs ranges
+			dico = GetFilledRange();
+			dico.Remove(12, 55, -43, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(4));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 10, 12, true);
+				if (i == 1) CompareEntries(entry, 12, 19, true);
+				else if (i == 2) CompareEntries(entry, 20, 22, true);
+				else if (i == 3) CompareEntries(entry, 25, 32, false);
+				i++;
+			}
+
+			//on supprime avant le début
+			dico = GetFilledRange();
+			dico.Remove(0, 8, -8, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(5));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 2, 7, true);
+				else if (i == 1) CompareEntries(entry, 12, 42, false);
+				else if (i == 2) CompareEntries(entry, 43, 54, true);
+				else if (i == 3) CompareEntries(entry, 55, 57, true);
+				else if (i == 4) CompareEntries(entry, 60, 67, false);
+				i++;
+			}
+
+			//on supprimme exactement 2 ranges
+			dico = GetFilledRange();
+			dico.Remove(20, 62, -42, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(3));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 10, 15, true);
+				else if (i == 1) CompareEntries(entry, 21, 23, true);
+				else if (i == 2) CompareEntries(entry, 26, 33, false);
+				i++;
+			}
+
+			//on supprime de maniere a ce que ca termine sur la fin d'un range
+			dico = GetFilledRange();
+			dico.Remove(0, 50, -50, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(3));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 1, 12, true);
+				else if (i == 1) CompareEntries(entry, 13, 15, true);
+				else if (i == 2) CompareEntries(entry, 18, 25, false);
+				i++;
+			}
+
+			//on supprimme jusqu'a la fin du premier
+			dico = GetFilledRange();
+			dico.Remove(0, 15, -15, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(4));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 5, 35, false);
+				else if (i == 1) CompareEntries(entry, 36, 47, true);
+				else if (i == 2) CompareEntries(entry, 48, 50, true);
+				else if (i == 3) CompareEntries(entry, 53, 60, false);
+				i++;
+			}
+
+			//on supprime jusqu'au milieu du 3e
+			dico = GetFilledRange();
+			dico.Remove(0, 60, -60, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(3));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 0, 2, true);
+				else if (i == 1) CompareEntries(entry, 3, 5, true);
+				else if (i == 2) CompareEntries(entry, 8, 15, false);
+				i++;
+			}
+
+			//on supprime jusqu'au debut du 3e
+			dico = GetFilledRange();
+			dico.Remove(0, 51, -51, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(3));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 0, 11, true);
+				else if (i == 1) CompareEntries(entry, 12, 14, true);
+				else if (i == 2) CompareEntries(entry, 17, 24, false);
+				i++;
+			}
+
+			//on supprime le début du 2e
+			dico = GetFilledRange();
+			dico.Remove(20, 30, -10, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(5));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 10, 15, true);
+				else if (i == 1) CompareEntries(entry, 20, 40, false);
+				else if (i == 2) CompareEntries(entry, 41, 52, true);
+				else if (i == 3) CompareEntries(entry, 53, 55, true);
+				else if (i == 4) CompareEntries(entry, 58, 65, false);
+				i++;
+			}
+
+			//on supprime le 2e
+			dico = GetFilledRange();
+			dico.Remove(20, 50, -30, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(4));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 10, 15, true);
+				else if (i == 1) CompareEntries(entry, 21, 32, true);
+				else if (i == 2) CompareEntries(entry, 33, 35, true);
+				else if (i == 3) CompareEntries(entry, 38, 45, false);
+				i++;
+			}
+
+			//on supprime le 1er et un bout du 2e
+			dico = GetFilledRange();
+			dico.Remove(10, 30, -20, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(4));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 10, 30, false);
+				else if (i == 1) CompareEntries(entry, 31, 42, true);
+				else if (i == 2) CompareEntries(entry, 43, 45, true);
+				else if (i == 3) CompareEntries(entry, 48, 55, false);
+				i++;
+			}
+
+			//on supprime un morceau du second
+			dico = GetFilledRange();
+			dico.Remove(30, 40, -10, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(6));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 10, 15, true);
+				else if (i == 1) CompareEntries(entry, 20, 30, false);
+				else if (i == 2) CompareEntries(entry, 30, 40, false);
+				else if (i == 3) CompareEntries(entry, 41, 52, true);
+				else if (i == 4) CompareEntries(entry, 53, 55, true);
+				else if (i == 5) CompareEntries(entry, 58, 65, false);
+				i++;
+			}
+
+			//on supprime la fin du second
+			dico = GetFilledRange();
+			dico.Remove(30, 50, -20, (x, y) => x + y);
+			Assert.That(dico.Count, Is.EqualTo(5));
+			i = 0;
+			foreach (var entry in dico)
+			{
+				if (i == 0) CompareEntries(entry, 10, 15, true);
+				else if (i == 1) CompareEntries(entry, 20, 30, false);
+				else if (i == 2) CompareEntries(entry, 31, 42, true);
+				else if (i == 3) CompareEntries(entry, 43, 45, true);
+				else if (i == 4) CompareEntries(entry, 48, 55, false);
+				i++;
+			}
+		}
+
+		public void CompareEntries<TKey, TValue>(ColaRangeDictionary<int, bool>.Entry entry, TKey begin, TKey end, TValue value)
+		{
+			Assert.That(entry.Begin, Is.EqualTo(begin));
+			Assert.That(entry.End, Is.EqualTo(end));
+			Assert.That(entry.Value, Is.EqualTo(value));
+		}
+
+		public ColaRangeDictionary<int, bool> GetFilledRange()
+		{
+			//returns a colaRange prefilled with this :
+			// {10-15, true}
+			// {20-50, false}
+			// {51,62, true}
+			// {63,65, true}
+			// {68,75, false}
+
+			var cola = new ColaRangeDictionary<int, bool>();
+			cola.Mark(10, 15, true);
+			cola.Mark(20, 50, false);
+			cola.Mark(51, 62, true);
+			cola.Mark(63, 65, true);
+			cola.Mark(68, 75, false);
+
+			return cola;
+		}
+
 		enum RangeColor
 		{
 			Black,
