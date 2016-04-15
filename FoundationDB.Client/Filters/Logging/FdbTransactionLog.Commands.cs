@@ -172,6 +172,7 @@ namespace FoundationDB.Filters.Logging
 					{
 						case Operation.Commit: return "Co";
 						case Operation.Reset: return "Rz";
+						case Operation.Cancel: return "Cn";
 						case Operation.OnError: return "Er";
 						case Operation.GetReadVersion: return "rv";
 						case Operation.SetOption: return "op";
@@ -184,6 +185,7 @@ namespace FoundationDB.Filters.Logging
 						case Operation.Set: return "s ";
 						case Operation.Clear: return "c ";
 						case Operation.ClearRange: return "cr";
+						case Operation.AddConflictRange: return "rc";
 						case Operation.Atomic: return "a ";
 
 						case Operation.Log: return "//";
