@@ -20,11 +20,22 @@ namespace FdbTop
 		{
 			//TODO: move this to the main, and add a command line argument to on/off ?
 
-			if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
+			try
 			{
-				Console.WindowWidth = 160;
-				Console.WindowHeight = 60;
+				if (Console.LargestWindowWidth > 0 && Console.LargestWindowHeight > 0)
+				{
+					Console.WindowWidth = 160;
+					Console.WindowHeight = 60;
+				}
 			}
+			catch
+			{
+				Console.Error.WriteLine("This tool requires cannot run in a console smaller than 160 characters.");
+				Console.Error.WriteLine("Either increase the screen resolution, or reduce the font size of your console.");
+				Environment.ExitCode = -1;
+				return;
+			}
+
 			string title = Console.Title;
 			try
 			{
