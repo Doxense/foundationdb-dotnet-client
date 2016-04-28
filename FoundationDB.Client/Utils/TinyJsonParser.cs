@@ -240,6 +240,7 @@ namespace FoundationDB.Client.Utils
 							case 't': sb.Append('\t'); break;
 							case 'f': sb.Append('\f'); break;
 							case 'b': sb.Append('\b'); break;
+							case '"': sb.Append('"'); break;
 							case 'u':
 							{
 								if (cursor + 4 >= end) throw SyntaxError("Truncated unicode escape sequence in string literal");
