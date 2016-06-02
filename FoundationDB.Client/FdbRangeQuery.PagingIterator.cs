@@ -66,7 +66,10 @@ namespace FoundationDB.Client
 			private FdbKeySelector End { get; set; }
 
 			/// <summary>If non null, contains the remaining allowed number of rows</summary>
-			private int? Remaining { get; set; }
+			private int? RemainingCount { get; set; }
+
+			/// <summary>If non null, contains the remaining allowed number of bytes</summary>
+			private int? RemainingSize { get; set; }
 
 			/// <summary>Iteration number of current page (in iterator mode)</summary>
 			private int Iteration { get; set; }
@@ -105,11 +108,12 @@ namespace FoundationDB.Client
 
 			protected override async Task<bool> OnFirstAsync(CancellationToken cancellationToken)
 			{
-				this.Remaining = this.Query.Limit;
+				this.RemainingCount = this.Query.Limit;
+				this.RemainingSize = this.Query.TargetBytes;
 				this.Begin = this.Query.Begin;
 				this.End = this.Query.End;
 
-				if (this.Remaining == 0)
+				if (this.RemainingCount == 0)
 				{
 					// we can safely optimize this case by not doing any query, because it should not have any impact on conflict resolutions.
 					// => The result of 'query.Take(0)' will not change even if someone adds/remove to the range
@@ -172,8 +176,8 @@ namespace FoundationDB.Client
 
 				var options = new FdbRangeOptions
 				{
-					Limit = this.Remaining,
-					TargetBytes = this.Query.TargetBytes,
+					Limit = this.RemainingCount,
+					TargetBytes = this.RemainingSize,
 					Mode = this.Query.Mode,
 					Reverse = this.Query.Reversed
 				};
@@ -188,7 +192,7 @@ namespace FoundationDB.Client
 						break;
 					}
 					case FdbAsyncMode.All:
-					{ 
+					{
 						// we are in a ToList or ForEach, we want to read everything in as few chunks as possible
 						options.Mode = FdbStreamingMode.WantAll;
 						break;
@@ -216,9 +220,11 @@ namespace FoundationDB.Client
 						this.RowCount += result.Count;
 						this.HasMore = result.HasMore;
 						// subtract number of row from the remaining allowed
-						if (this.Remaining.HasValue) this.Remaining = this.Remaining.Value - result.Count;
+						if (this.RemainingCount.HasValue) this.RemainingCount = this.RemainingCount.Value - result.Count;
+						// subtract size of rows from the remaining allowed
+						if (this.RemainingSize.HasValue) this.RemainingSize = this.RemainingSize.Value - result.GetSize();
 
-						this.AtEnd = !result.HasMore || (this.Remaining.HasValue && this.Remaining.Value <= 0);
+						this.AtEnd = !result.HasMore || (this.RemainingCount.HasValue && this.RemainingCount.Value <= 0) || (this.RemainingSize.HasValue && this.RemainingSize.Value <= 0);
 
 						if (!this.AtEnd)
 						{ // update begin..end so that next call will continue from where we left...
@@ -255,7 +261,8 @@ namespace FoundationDB.Client
 				this.Chunk = null;
 				this.AtEnd = true;
 				this.HasMore = false;
-				this.Remaining = null;
+				this.RemainingCount = null;
+				this.RemainingSize = null;
 				this.Iteration = -1;
 				this.PendingReadTask = null;
 			}

@@ -87,6 +87,21 @@ namespace FoundationDB.Client
 			}
 		}
 
+		/// <summary>Returns the total size of all keys and values in the chunk</summary>
+		public int GetSize()
+		{
+			long sum = 0;
+			var chunk = this.Chunk;
+			if (chunk != null)
+			{
+				for (int i = 0; i < chunk.Length; i++)
+				{
+					sum += chunk[i].Key.Count + chunk[i].Value.Count;
+				}
+			}
+			return checked((int) sum);
+		}
+
 		/// <summary>Decode the content of this chunk into an array of typed key/value pairs</summary>
 		/// <typeparam name="TKey">Type of the keys</typeparam>
 		/// <typeparam name="TValue">Type of the values</typeparam>
@@ -255,7 +270,7 @@ namespace FoundationDB.Client
 			}
 			return results;
 		}
-	
+
 	}
 
 }
