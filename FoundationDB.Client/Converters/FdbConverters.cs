@@ -163,8 +163,8 @@ namespace FoundationDB.Client.Converters
 			RegisterUnsafe<bool, uint>((value) => value ? 1U : default(uint));
 			RegisterUnsafe<bool, long>((value) => value ? 1L : default(long));
 			RegisterUnsafe<bool, ulong>((value) => value ? 1UL : default(ulong));
-			RegisterUnsafe<bool, double>((value) => value ? 0.0d : 1.0d);
-			RegisterUnsafe<bool, float>((value) => value ? 0.0f : 1.0f);
+			RegisterUnsafe<bool, double>((value) => value ? 1.0d : default(double));
+			RegisterUnsafe<bool, float>((value) => value ? 1.0f : default(float));
 
 			RegisterUnsafe<int, Slice>((value) => Slice.FromInt32(value));
 			RegisterUnsafe<int, byte[]>((value) => Slice.FromInt32(value).GetBytes());
