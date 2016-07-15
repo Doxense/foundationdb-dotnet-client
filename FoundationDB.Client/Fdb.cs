@@ -615,7 +615,7 @@ namespace FoundationDB.Client
 					case FdbError.ApiVersionAlreadySet:
 					{ // Temporary hack to allow multiple debugging using the cached host process in VS
 						Console.WriteLine("REUSING EXISTING PROCESS! IF THINGS BREAK IN WEIRD WAYS, PLEASE RESTART THE PROCESS!");
-						err = FdbError.Success;
+						err = FdbError.OperationFailed;
 						break;
 					}
 #endif
