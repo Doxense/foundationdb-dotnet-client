@@ -814,7 +814,7 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuplePacker<T>.Deserialize(slice);
 		}
 
-		/// <summary>Unpack the value of a singletion tuple</summary>
+		/// <summary>Unpack the value of a singleton tuple</summary>
 		/// <typeparam name="T">Type of the single value in the decoded tuple</typeparam>
 		/// <param name="packedKey">Slice that should contain the packed representation of a tuple with a single element</param>
 		/// <returns>Decoded value of the only item in the tuple. Throws an exception if the tuple is empty of has more than one element.</returns>
