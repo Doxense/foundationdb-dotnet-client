@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 //enable this to enable verbose traces when doing paging
-#undef DEBUG_RANGE_ITERATOR
+//#define DEBUG_RANGE_ITERATOR
 
 namespace FoundationDB.Client
 {

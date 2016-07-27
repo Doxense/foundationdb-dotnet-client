@@ -870,11 +870,11 @@ namespace FoundationDB.Storage.Memory.Core
 				m_cursors = ColaStore.CreateCursors(m_count, out m_min);
 			}
 
-			[Conditional("FULLDEBUG")]
+			[Conditional("FULL_DEBUG")]
 			private void Debug_Dump(string label = null)
 			{
-#if FULLDEBUG
-				Trace.WriteLine("* Cursor State: " + label); 
+#if FULL_DEBUG
+				Trace.WriteLine("* Cursor State: " + label);
 				for (int i = m_min; i < m_cursors.Length; i++)
 				{
 					if (ColaStore.IsFree(i, m_count))

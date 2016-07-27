@@ -2,7 +2,7 @@
 // See License.MD for license information
 #endregion
 
-#undef INSTRUMENT
+//#define INSTRUMENT
 
 namespace FoundationDB.Storage.Memory.Core
 {

@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // enable this to capture the stacktrace of the ctor, when troubleshooting leaked database handles
-#undef CAPTURE_STACKTRACES
+//#define CAPTURE_STACKTRACES
 
 namespace FoundationDB.Client.Native
 {

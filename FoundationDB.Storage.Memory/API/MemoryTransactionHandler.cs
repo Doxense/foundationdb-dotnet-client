@@ -2,8 +2,8 @@
 // See License.MD for license information
 #endregion
 
-#undef DUMP_TRANSACTION_STATE
-#undef FULLDEBUG
+//#define DUMP_TRANSACTION_STATE
+//#define FULL_DEBUG
 
 namespace FoundationDB.Storage.Memory.API
 {
@@ -1258,10 +1258,10 @@ namespace FoundationDB.Storage.Memory.API
 			GC.SuppressFinalize(this);
 		}
 
-		[Conditional("FULLDEBUG")]
+		[Conditional("FULL_DEBUG")]
 		private static void Log(string msg)
 		{
-#if FULLDEBUG
+#if FULL_DEBUG
 			Trace.WriteLine("MemoryTransactionHandler[#" + Thread.CurrentThread.ManagedThreadId + "]: " + msg);
 #endif
 		}

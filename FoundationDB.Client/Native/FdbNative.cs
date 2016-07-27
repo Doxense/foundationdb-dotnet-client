@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // enable this to help debug native calls to fdbc.dll
-#undef DEBUG_NATIVE_CALLS
+//#define DEBUG_NATIVE_CALLS
 
 using FoundationDB.Client.Utils;
 using System;

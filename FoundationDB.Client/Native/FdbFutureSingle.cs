@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef DEBUG_FUTURES
+//#define DEBUG_FUTURES
 
 namespace FoundationDB.Client.Native
 {

@@ -3,7 +3,7 @@
 #endregion
 
 // enables consitency checks after each operation to the set
-#undef ENFORCE_INVARIANTS
+//#define ENFORCE_INVARIANTS
 
 using FoundationDB.Layers.Tuples;
 

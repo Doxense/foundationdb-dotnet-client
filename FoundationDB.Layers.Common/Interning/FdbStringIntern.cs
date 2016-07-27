@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef DEBUG_STRING_INTERNING
+//#define DEBUG_STRING_INTERNING
 
 namespace FoundationDB.Layers.Interning
 {

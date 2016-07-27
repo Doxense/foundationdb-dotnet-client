@@ -27,7 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endregion
 
 // enable this to help debug Transactions
-#undef DEBUG_TRANSACTIONS
+//#define DEBUG_TRANSACTIONS
 
 namespace FoundationDB.Client
 {

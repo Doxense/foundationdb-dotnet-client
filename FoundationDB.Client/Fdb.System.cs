@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef TRACE_COUNTING
+//#define TRACE_COUNTING
 
 namespace FoundationDB.Client
 {

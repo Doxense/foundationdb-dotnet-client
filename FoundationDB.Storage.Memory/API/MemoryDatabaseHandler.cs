@@ -2,7 +2,7 @@
 // See License.MD for license information
 #endregion
 
-#undef FULLDEBUG
+//#define FULL_DEBUG
 
 namespace FoundationDB.Storage.Memory.API
 {
@@ -600,10 +600,10 @@ namespace FoundationDB.Storage.Memory.API
 			}
 		}
 
-		[Conditional("FULLDEBUG")]
+		[Conditional("FULL_DEBUG")]
 		private unsafe static void DumpKey(string label, IntPtr userKey)
 		{
-#if FULLDEBUG
+#if FULL_DEBUG
 			var sb = new StringBuilder("(*) " + (label ?? "key") + " = ");
 			if (userKey == IntPtr.Zero)
 			{
@@ -1438,10 +1438,10 @@ namespace FoundationDB.Storage.Memory.API
 
 		}
 
-		[Conditional("FULLDEBUG")]
+		[Conditional("FULL_DEBUG")]
 		private static void Log(string msg)
 		{
-#if FULLDEBUG
+#if FULL_DEBUG
 			Trace.WriteLine("MemoryDatabaseHandler[#" + Thread.CurrentThread.ManagedThreadId + "]: " + msg);
 #endif
 		}

@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef DEBUG_HANDLES
+//#define DEBUG_HANDLES
 
 namespace FoundationDB.Client.Native
 {

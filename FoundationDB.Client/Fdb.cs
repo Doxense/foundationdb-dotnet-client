@@ -26,7 +26,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-#undef DEBUG_THREADS
+//#define DEBUG_THREADS
 
 namespace FoundationDB.Client
 {
