@@ -598,6 +598,21 @@ namespace FoundationDB.Linq
 			}
 		}
 
+		/// <summary>Create an Hashset from an async sequence.</summary>
+		[ItemNotNull]
+		public static Task<HashSet<T>> ToHashsetAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, IEqualityComparer<T> comparer = null, CancellationToken ct = default(CancellationToken))
+		{
+			if (source == null) throw new ArgumentNullException("source");
+
+			return AggregateAsync(
+				source,
+				new Buffer<T>(),
+				(buffer, x) => buffer.Add(x),
+				(buffer) => buffer.ToHashSet(comparer),
+				ct
+			);
+		}
+
 		/// <summary>Create a list from an async sequence.</summary>
 		[ItemNotNull]
 		public static Task<List<T>> ToListAsync<T>([NotNull] this IFdbAsyncEnumerable<T> source, CancellationToken ct = default(CancellationToken))

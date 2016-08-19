@@ -35,6 +35,7 @@ namespace FoundationDB.Linq
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using System.Linq;
 	using System.Threading;
 	using System.Threading.Tasks;
 
@@ -148,7 +149,7 @@ namespace FoundationDB.Linq
 
 		[NotNull]
 		internal static FdbWhereSelectAsyncIterator<TResult, TResult> Offset<TResult>(
-            [NotNull] IFdbAsyncEnumerable<TResult> source,
+			[NotNull] IFdbAsyncEnumerable<TResult> source,
 			int offset)
 		{
 			return new FdbWhereSelectAsyncIterator<TResult, TResult>(source, filter: null, transform: new AsyncTransformExpression<TResult, TResult>(TaskHelpers.Cache<TResult>.Identity), limit: null, offset: offset);
@@ -184,7 +185,7 @@ namespace FoundationDB.Linq
 
 			/// <summary>Default intial capacity, if not specified</summary>
 			const int DefaultCapacity = 16;
-			//REVIEW: should we use a power of 2 or of 10 for initial capacity? 
+			//REVIEW: should we use a power of 2 or of 10 for initial capacity?
 			// Since humans prefer the decimal system, it is more likely that query limit count be set to something like 10, 50, 100 or 1000
 			// but most "human friendly" limits are close to the next power of 2, like 10 ~= 16, 50 ~= 64, 100 ~= 128, 500 ~= 512, 1000 ~= 1024, so we don't waste that much space...
 
@@ -306,33 +307,71 @@ namespace FoundationDB.Linq
 				}
 
 				var list = new List<T>(count);
-				if (count > 0)
+				var chunks = this.Chunks;
+				for (int i = 0; i < chunks.Length - 1; i++)
 				{
-					var chunks = this.Chunks;
-					for (int i = 0; i < chunks.Length - 1; i++)
-					{
-						list.AddRange(chunks[i]);
-						count -= chunks[i].Length;
-					}
+					list.AddRange(chunks[i]);
+					count -= chunks[i].Length;
+				}
 
-					var current = this.Current;
-					if (count == current.Length)
-					{ // the last chunk fits perfectly
-						list.AddRange(current);
-					}
-					else
-					{ // there is no List<T>.AddRange(buffer, offset, count), and copying in a tmp buffer would waste the memory we tried to save with the buffer
-						// also, for most of the small queries, like FirstOrDefault()/SingleOrDefault(), count will be 1 (or very small) so calling Add(T) will still be optimum
-						for (int i = 0; i < count; i++)
-						{
-							list.Add(current[i]);
-						}
+				var current = this.Current;
+				if (count == current.Length)
+				{ // the last chunk fits perfectly
+					list.AddRange(current);
+				}
+				else
+				{ // there is no List<T>.AddRange(buffer, offset, count), and copying in a tmp buffer would waste the memory we tried to save with the buffer
+				  // also, for most of the small queries, like FirstOrDefault()/SingleOrDefault(), count will be 1 (or very small) so calling Add(T) will still be optimum
+					for (int i = 0; i < count; i++)
+					{
+						list.Add(current[i]);
 					}
 				}
 
 				return list;
 			}
 
+			/// <summary>Return the content of the buffer</summary>
+			/// <returns>List of size <see cref="Count"/> containing all the items in this buffer</returns>
+			[NotNull]
+			public HashSet<T> ToHashSet(IEqualityComparer<T> comparer = null)
+			{
+				int count = this.Count;
+				var hashset = new HashSet<T>(comparer);
+				if (count == 0)
+				{
+					return hashset;
+				}
+
+				var chunks = this.Chunks;
+
+				for (int i = 0; i < chunks.Length - 1; i++)
+				{
+					foreach (var item in chunks[i])
+					{
+						hashset.Add(item);
+					}
+					count -= chunks[i].Length;
+				}
+
+				var current = this.Current;
+				if (count == current.Length)
+				{ // the last chunk fits perfectly
+					foreach (var item in current)
+					{
+						hashset.Add(item);
+					}
+				}
+				else
+				{ // there is no List<T>.AddRange(buffer, offset, count), and copying in a tmp buffer would waste the memory we tried to save with the buffer
+				  // also, for most of the small queries, like FirstOrDefault()/SingleOrDefault(), count will be 1 (or very small) so calling Add(T) will still be optimum
+					for (int i = 0; i < count; i++)
+					{
+						hashset.Add(current[i]);
+					}
+				}
+				return hashset;
+			}
 		}
 
 		/// <summary>Immediately execute an action on each element of an async sequence</summary>
