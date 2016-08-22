@@ -614,8 +614,8 @@ namespace FoundationDB.Client
 #if DEBUG
 					case FdbError.ApiVersionAlreadySet:
 					{ // Temporary hack to allow multiple debugging using the cached host process in VS
-						Console.WriteLine("REUSING EXISTING PROCESS! IF THINGS BREAK IN WEIRD WAYS, PLEASE RESTART THE PROCESS!");
-						err = FdbError.OperationFailed;
+						Console.Error.WriteLine("FATAL: CANNOT REUSE EXISTING PROCESS! FoundationDB client cannot be restarted once stopped. Current process will be terminated.");
+						Environment.FailFast("FATAL: CANNOT REUSE EXISTING PROCESS! FoundationDB client cannot be restarted once stopped. Current process will be terminated.");
 						break;
 					}
 #endif
