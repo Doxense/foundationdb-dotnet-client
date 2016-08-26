@@ -26,9 +26,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+// ReSharper disable ConsiderUsingConfigureAwait
 namespace FoundationDB.Client.Tests
 {
-	using FoundationDB.Layers.Tuples;
 	using NUnit.Framework;
 	using System;
 	using System.Collections.Generic;
@@ -43,6 +43,7 @@ namespace FoundationDB.Client.Tests
 	{
 
 		[Test]
+
 		public async Task Test_Can_Create_And_Dispose_Transactions()
 		{
 			using (var db = await OpenTestDatabaseAsync())
@@ -1443,7 +1444,7 @@ namespace FoundationDB.Client.Tests
 
 					await TestHelpers.AssertThrowsFdbErrorAsync(
 						() => tr.GetRange(Slice.FromAscii("\xFF"), Slice.FromAscii("\xFF\xFF"), new FdbRangeOptions { Limit = 10 }).ToListAsync(),
-						FdbError.KeyOutsideLegalRange, 
+						FdbError.KeyOutsideLegalRange,
 						"Should not have access to system keys by default"
 					);
 
@@ -1843,7 +1844,7 @@ namespace FoundationDB.Client.Tests
 					string[] ids = null;
 					foreach (var key in shards)
 					{
-						// - the first 12 bytes are some sort of header: 
+						// - the first 12 bytes are some sort of header:
 						//		- bytes 0-5 usually are 01 00 01 10 A2 00
 						//		- bytes 6-7 contains 0x0FDB which is the product's signature
 						//		- bytes 8-9 contains the version (02 00 for "2.0"?)
@@ -1859,7 +1860,7 @@ namespace FoundationDB.Client.Tests
 							distinctNodes.Add(ids[i]);
 						}
 						replicationFactor = Math.Max(replicationFactor, ids.Length);
-					
+
 						// the node id seems to be at offset 12
 
 						//Console.WriteLine("- " + key.Value.Substring(0, 12).ToAsciiOrHexaString() + " : " + String.Join(", ", ids) + " = " + key.Key);
@@ -1901,7 +1902,7 @@ namespace FoundationDB.Client.Tests
 					tr.Set(b, Slice.FromString("BAZ"));
 					tr.Set(c, Slice.FromString("BAT"));
 					tr.ClearRange(a, c);
-					
+
 					//tr.ClearRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z")));
 					//tr.Set(location.Concat(Slice.FromString("C")), Slice.Empty);
 
@@ -2047,6 +2048,723 @@ namespace FoundationDB.Client.Tests
 			}
 
 		}
+
+		[Test]
+		public async void Test_Case_1()
+		{
+			using (var db = await Fdb.OpenAsync(this.Cancellation))
+			{
+				{
+					var tr = db.BeginTransaction(this.Cancellation);
+					tr.Set(Slice.FromString("AAA"), Slice.FromString("111"));
+					tr.Set(Slice.FromString("BBB"), Slice.FromString("222"));
+					tr.Set(Slice.FromString("CCC"), Slice.FromString("333"));
+					tr.Set(Slice.FromString("DDD"), Slice.FromString("444"));
+					tr.Set(Slice.FromString("EEE"), Slice.FromString("555"));
+					await tr.CommitAsync();
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_2()
+		{
+			using (var db = await Fdb.OpenAsync(this.Cancellation))
+			{
+				{
+					var tr = db.BeginTransaction(this.Cancellation);
+					tr.ClearRange(Slice.FromString("AAA"), Slice.FromString("ZZZ"));
+					tr.Set(Slice.FromString("AAA"), Slice.FromString("111"));
+					tr.Set(Slice.FromString("BBB"), Slice.FromString("222"));
+					tr.Set(Slice.FromString("CCC"), Slice.FromString("333"));
+					tr.Set(Slice.FromString("DDD"), Slice.FromString("444"));
+					tr.Set(Slice.FromString("EEE"), Slice.FromString("555"));
+					await tr.CommitAsync();
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_3()
+		{
+			using (var db = await Fdb.OpenAsync(this.Cancellation))
+			{
+				{
+					var tr = db.BeginTransaction(this.Cancellation);
+					tr.ClearRange(Slice.FromString("AAA"), Slice.FromString("BBB"));
+					tr.ClearRange(Slice.FromString("BBB"), Slice.FromString("CCC"));
+					tr.ClearRange(Slice.FromString("CCC"), Slice.FromString("DDD"));
+					// should be merged into a single AAA..DDD
+					await tr.CommitAsync();
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_4()
+		{
+			Fdb.Start(300);
+			using (var db = await Fdb.OpenAsync(this.Cancellation))
+			{
+				{
+					var tr = db.BeginTransaction(this.Cancellation);
+					//initial setup:
+					// A: none
+					// B: 0
+					// C: 255
+					// D: none
+					// E: none
+					tr.Set(Slice.FromString("BBB"), Slice.FromFixed32(0));
+					tr.Set(Slice.FromString("CCC"), Slice.FromFixed32(255));
+
+					// add 1 to everybody
+					tr.AtomicAdd(Slice.FromString("AAA"), Slice.FromFixed32(1));
+					tr.AtomicAdd(Slice.FromString("BBB"), Slice.FromFixed32(1));
+					tr.AtomicAdd(Slice.FromString("CCC"), Slice.FromFixed32(1));
+					tr.AtomicAdd(Slice.FromString("DDD"), Slice.FromFixed32(1));
+					tr.AtomicAdd(Slice.FromString("EEE"), Slice.FromFixed32(1));
+
+					// overwrite DDD with a fixed value
+					tr.Set(Slice.FromString("DDD"), Slice.FromFixed32(5));
+					// double add on EEE
+					tr.AtomicAdd(Slice.FromString("EEE"), Slice.FromFixed32(1));
+
+					await tr.CommitAsync();
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_5()
+		{
+			Fdb.Start(300);
+			using (var db = await Fdb.OpenAsync(this.Cancellation))
+			{
+				{
+					var tr = db.BeginTransaction(this.Cancellation);
+					tr.Set(Slice.FromString("AAA"), Slice.FromString("111"));
+					tr.AtomicAdd(Slice.FromString("BBB"), Slice.FromString("222"));
+					tr.AtomicAnd(Slice.FromString("CCC"), Slice.FromString("333"));
+					tr.AtomicOr(Slice.FromString("DDD"), Slice.FromString("444"));
+					tr.AtomicXor(Slice.FromString("EEE"), Slice.FromString("555"));
+					tr.AtomicMax(Slice.FromString("FFF"), Slice.FromString("666"));
+					tr.AtomicMin(Slice.FromString("GGG"), Slice.FromString("777"));
+					await tr.CommitAsync();
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_6()
+		{
+			Fdb.Start(300);
+			using (var db = await Fdb.OpenAsync(this.Cancellation))
+			{
+				{
+					var tr = db.BeginTransaction(this.Cancellation);
+
+					tr.AtomicMax(Slice.FromString("MAXMAX1"), Slice.FromString("EEE"));
+					tr.AtomicMax(Slice.FromString("MAXMAX1"), Slice.FromString("FFF"));
+
+					tr.AtomicMax(Slice.FromString("MAXMAX2"), Slice.FromString("FFF"));
+					tr.AtomicMax(Slice.FromString("MAXMAX2"), Slice.FromString("EEE"));
+
+					tr.AtomicMin(Slice.FromString("MINMIN1"), Slice.FromString("111"));
+					tr.AtomicMin(Slice.FromString("MINMIN1"), Slice.FromString("222"));
+
+					tr.AtomicMin(Slice.FromString("MINMIN2"), Slice.FromString("222"));
+					tr.AtomicMin(Slice.FromString("MINMIN2"), Slice.FromString("111"));
+
+					await tr.CommitAsync();
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_6b()
+		{
+			Fdb.Start(300);
+			using (var db = await Fdb.OpenAsync(this.Cancellation))
+			{
+				Slice init = Slice.Repeat(0xCC, 9);
+				Slice mask = Slice.Repeat(0xAA, 9);
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					tr.Set(Slice.FromString("AAA"), init);
+					tr.Set(Slice.FromString("BBB"), init);
+					tr.Set(Slice.FromString("CCC"), init);
+					tr.Set(Slice.FromString("DDD"), init);
+					tr.Set(Slice.FromString("EEE"), init);
+					tr.Set(Slice.FromString("FFF"), init);
+					tr.Set(Slice.FromString("GGG"), init);
+
+					await tr.CommitAsync();
+				}
+
+
+				using (var tr = db.BeginTransaction(this.Cancellation))
+				{
+					tr.Set(Slice.FromString("AAA"), mask);
+					tr.AtomicAdd(Slice.FromString("BBB"), mask);
+					tr.AtomicAnd(Slice.FromString("CCC"), mask);
+					tr.AtomicOr(Slice.FromString("DDD"), mask);
+					tr.AtomicXor(Slice.FromString("EEE"), mask);
+					tr.AtomicMin(Slice.FromString("FFF"), mask);
+					tr.AtomicMax(Slice.FromString("GGG"), mask);
+
+					await tr.CommitAsync();
+				}
+
+				await DumpSubspace(db, db.GlobalSpace);
+
+			}
+		}
+
+		[Test]
+		public async void Test_Case_7()
+		{
+
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+
+						var vX = Slice.FromFixedU32BE(0x55555555); // X
+						var vY = Slice.FromFixedU32BE(0x66666666); // Y
+						var vL1 = Slice.FromFixedU32BE(0x11111111); // Low
+						var vL2 = Slice.FromFixedU32BE(0x22222222); // Low
+						var vH2 = Slice.FromFixedU32BE(0xFFFFFFFF); // Hi
+						var vH1 = Slice.FromFixedU32BE(0xEEEEEEEE); // Hi
+						var vA = Slice.FromFixedU32BE(0xAAAAAAAA); // 10101010
+						var vC = Slice.FromFixedU32BE(0xCCCCCCCC); // 11001100
+
+						var cmds = new[]
+						{
+							new { Op = "SET", Left = vX, Right = vY },
+							new { Op = "ADD", Left = vX, Right = vY },
+							new { Op = "AND", Left = vA, Right = vC },
+							new { Op = "OR", Left = vA, Right = vC },
+							new { Op = "XOR", Left = vA, Right = vC },
+							new { Op = "MIN", Left = vL1, Right = vL2 },
+							new { Op = "MAX", Left = vH1, Right = vH2 },
+						};
+
+						Action<IFdbTransaction, string, Slice, Slice> apply = (t, op, k, v) =>
+						{
+							switch (op)
+							{
+								case "SET":
+									t.Set(k, v);
+									break;
+								case "ADD":
+									t.AtomicAdd(k, v);
+									break;
+								case "AND":
+									t.AtomicAnd(k, v);
+									break;
+								case "OR":
+									t.AtomicOr(k, v);
+									break;
+								case "XOR":
+									t.AtomicXor(k, v);
+									break;
+								case "MIN":
+									t.AtomicMin(k, v);
+									break;
+								case "MAX":
+									t.AtomicMax(k, v);
+									break;
+								default:
+									Assert.Fail();
+									break;
+							}
+						};
+
+						for (int i = 0; i < cmds.Length; i++)
+						{
+							for (int j = 0; j < cmds.Length; j++)
+							{
+								Slice key = Slice.FromString(cmds[i].Op + "_" + cmds[j].Op);
+								Log("{0};{1} = {2}", i, j, key);
+								apply(tr, cmds[i].Op, key, cmds[i].Left);
+								apply(tr, cmds[j].Op, key, cmds[j].Right);
+							}
+						}
+
+						await tr.CommitAsync();
+					}
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_8()
+		{
+
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+
+#if false // RUNONCE
+
+					await db.WriteAsync((tr) =>
+					{
+						tr.ClearRange(Slice.FromString("K0000"), Slice.FromString("K9999\x00"));
+						for (int i = 0; i < 1000; i++)
+						{
+							tr.Set(Slice.FromString("K" + i.ToString("D4")), Slice.FromFixedU32BE((uint)i));
+						}
+					}, this.Cancellation);
+#endif
+
+
+					for (int i = 0; i < 100; i++)
+					{
+						using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+						{
+							var res = await tr.GetAsync(Slice.FromString("K" + i.ToString("D4")));
+							Console.WriteLine(res);
+						}
+					}
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_9()
+		{
+
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+
+					// clear everything
+					await db.WriteAsync((tr) => tr.ClearRange(Slice.FromString("K0000"), Slice.FromString("K9999Z")), this.Cancellation);
+
+					await db.WriteAsync(tr => tr.Set(Slice.FromString("K0123"), Slice.FromString("V0123")), this.Cancellation);
+					await db.WriteAsync(tr => tr.Set(Slice.FromString("K0789"), Slice.FromString("V0789")), this.Cancellation);
+
+					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+					{
+						await tr.GetValuesAsync(new[] {
+							Slice.FromString("K0123"),
+							Slice.FromString("K0234"),
+							Slice.FromString("K0456"),
+							Slice.FromString("K0567"),
+							Slice.FromString("K0789")
+						});
+					}
+
+					// once more with feelings
+					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+					{
+						await tr.GetValuesAsync(new[] {
+							Slice.FromString("K0123"),
+							Slice.FromString("K0234"),
+							Slice.FromString("K0456"),
+							Slice.FromString("K0567"),
+							Slice.FromString("K0789")
+						});
+					}
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_10()
+		{
+
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+
+					// clear everything and write some values
+					await db.WriteAsync((tr) =>
+					{
+						tr.ClearRange(Slice.FromString("K0000"), Slice.FromString("K9999Z"));
+						for (int i = 0; i < 100; i++)
+						{
+							tr.Set(Slice.FromString("K" + i.ToString("D4")), Slice.FromString("V" + i.ToString("D4")));
+						}
+					}, this.Cancellation);
+
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						tr.ClearRange(Slice.FromString("K0010"), Slice.FromString("K0020"));
+						tr.ClearRange(Slice.FromString("K0050"), Slice.FromString("K0060"));
+
+						var chunk = await tr.GetRangeAsync(
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0000")),
+							FdbKeySelector.LastLessOrEqual(Slice.FromString("K9999")),
+							new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Reverse = true }
+						);
+
+						//no commit
+					}
+
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_11()
+		{
+
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+
+					// clear everything and write some values
+					await db.WriteAsync((tr) =>
+					{
+						tr.ClearRange(Slice.FromString("K0000"), Slice.FromString("K9999Z"));
+						for (int i = 0; i < 100; i++)
+						{
+							tr.Set(Slice.FromString("K" + i.ToString("D4")), Slice.FromString("V" + i.ToString("D4")));
+						}
+					}, this.Cancellation);
+
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						tr.ClearRange(Slice.FromString("K0010"), Slice.FromString("K0020"));
+						tr.ClearRange(Slice.FromString("K0050"), Slice.FromString("K0060"));
+						tr.Set(Slice.FromString("K0021"), Slice.Empty);
+						tr.Set(Slice.FromString("K0042"), Slice.Empty);
+
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0005")));
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0010")));
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0015")));
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0022")));
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0049")));
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0050")));
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0055")));
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0061")));
+
+						//no commit
+					}
+
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						//tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0000"))); // equal=false, offset=1
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(Slice.FromString("K0011")));    // equal=true, offset=1
+						await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(Slice.FromString("K0022")));	 // equal=true, offset=0
+						await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Slice.FromString("K0033")));		 // equal=false, offset=0
+
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0040")) + 1000); // equal=false, offset=7 ?
+						await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Slice.FromString("K0050")) + 1000); // equal=false, offset=6 ?
+					}
+
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_12()
+		{
+
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						await tr.GetAsync(Slice.FromString("KGET"));
+						tr.AddReadConflictRange(Slice.FromString("KRC0"), Slice.FromString("KRC0"));
+						tr.AddWriteConflictRange(Slice.FromString("KWRITECONFLICT0"), Slice.FromString("KWRITECONFLICT1"));
+						tr.Set(Slice.FromString("KWRITE"), Slice.Empty);
+						await tr.CommitAsync();
+					}
+
+					// once more with feelings
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
+						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("KGETKEY")));
+					}
+
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						tr.AddReadConflictRange(Slice.FromString("KRC0"), Slice.FromString("KRC1"));
+						tr.Set(Slice.FromString("KWRITE"), Slice.Empty);
+						await tr.CommitAsync();
+					}
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_13()
+		{
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+
+					// clear everything and write some values
+					await db.WriteAsync((tr) =>
+					{
+						tr.ClearRange(Slice.FromString("K0000"), Slice.FromString("K~~~~"));
+						tr.Set(Slice.FromString("K000"), Slice.FromString("BEGIN"));
+						for (int i = 0; i < 5; i++)
+						{
+							tr.Set(Slice.FromString("K" + i + "A"), Slice.FromString("V111"));
+							tr.Set(Slice.FromString("K" + i + "B"), Slice.FromString("V222"));
+							tr.Set(Slice.FromString("K" + i + "C"), Slice.FromString("V333"));
+							tr.Set(Slice.FromString("K" + i + "D"), Slice.FromString("V444"));
+							tr.Set(Slice.FromString("K" + i + "E"), Slice.FromString("V555"));
+							tr.Set(Slice.FromString("K" + i + "F"), Slice.FromString("V666"));
+							tr.Set(Slice.FromString("K" + i + "G"), Slice.FromString("V777"));
+							tr.Set(Slice.FromString("K" + i + "H"), Slice.FromString("V888"));
+						}
+						tr.Set(Slice.FromString("K~~~"), Slice.FromString("END"));
+					}, this.Cancellation);
+
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						tr.Set(Slice.FromString("KZZZ"), Slice.FromString("V999"));
+
+						var r = await tr.GetRangeAsync(
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0B")),
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0G"))
+						);
+
+						await tr.CommitAsync();
+					}
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_14()
+		{
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+
+					// clear everything and write some values
+					await db.WriteAsync((tr) =>
+					{
+						tr.ClearRange(Slice.FromString("K0000"), Slice.FromString("K~~~~"));
+						tr.SetValues(Enumerable.Range(0, 100).Select(i => new KeyValuePair<Slice, Slice>(Slice.FromString("K" + i.ToString("D4")), Slice.FromString("V" + i.ToString("D4")))));
+						tr.Set(Slice.FromString("K~~~"), Slice.FromString("END"));
+					}, this.Cancellation);
+
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						tr.ClearRange(Slice.FromString("K0042"), Slice.FromString("K0069"));
+
+						var r = await tr.GetRangeAsync(
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0040")),
+							FdbKeySelector.FirstGreaterOrEqual(Slice.FromString("K0080")),
+							new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
+						);
+						// T 1
+						// => GETRANGE( (< 'KAAA<00>' +1) .. (< LAST +1)
+						Log($"Count={r.Count}, HasMore={r.HasMore}");
+						foreach (var kvp in r.Chunk)
+						{
+							Log($"{kvp.Key} = {kvp.Value}");
+						}
+					}
+
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_15()
+		{
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+
+					// clear everything and write some values
+					await db.WriteAsync((tr) =>
+					{
+						tr.ClearRange(Slice.FromString("K0000"), Slice.FromString("K~~~~"));
+						tr.Set(Slice.FromString("KAAA"), Slice.FromString("V111"));
+						tr.Set(Slice.FromString("KBBB"), Slice.FromString("V222"));
+						tr.Set(Slice.FromString("KCCC"), Slice.FromString("V333"));
+						tr.Set(Slice.FromString("K~~~"), Slice.FromString("END"));
+					}, this.Cancellation);
+
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						// set a key, then read it, and check if it could conflict on it (it should not!)
+						tr.Set(Slice.FromString("KBBB"), Slice.FromString("V222b"));
+						await tr.GetAsync(Slice.FromString("KBBB"));
+
+						// read a key, then set it, and check if it could conflict on it (it should!)
+						await tr.GetAsync(Slice.FromString("KCCC"));
+						tr.Set(Slice.FromString("KCCC"), Slice.FromString("V333b"));
+
+						await tr.CommitAsync();
+					}
+
+				}
+			}
+		}
+
+		[Test]
+		public async void Test_Case_16()
+		{
+			Fdb.Start(300);
+
+			Slice aaa = Slice.FromString("KAAA");
+			Slice bbb = Slice.FromString("KBBB");
+			Slice ccc = Slice.FromString("KCCC");
+			Slice hugeValue = Slice.FromString("BIGVALUE_" + new string('Z', 100));
+
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
+				{
+
+					//using (var tr = db.BeginTransaction(this.Cancellation))
+					//{
+					//	tr.ClearRange(Slice.FromString("K"), Slice.FromString("KZZZZZZZZZ"));
+					//	await tr.CommitAsync();
+					//}
+					//return;
+
+					// set the key
+					using (var tr = db.BeginTransaction(this.Cancellation))
+					{
+						tr.Set(aaa, Slice.FromString("VALUE_AAA"));
+						await tr.CommitAsync();
+					}
+					// set the key
+					using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
+					{
+						await tr.GetAsync(aaa);
+					}
+
+					await Task.Delay(500);
+
+					// first: concurrent trans, set only, no conflict
+					using (var tr1 = db.BeginTransaction(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						await Task.WhenAll(tr1.GetReadVersionAsync(), tr2.GetReadVersionAsync());
+
+						tr1.Set(bbb, Slice.FromString("VALUE_BBB_111"));
+						tr2.Set(ccc, Slice.FromString("VALUE_CCC_111"));
+						var task1 = tr1.CommitAsync();
+						var task2 = tr2.CommitAsync();
+
+						await Task.WhenAll(task1, task2);
+					}
+
+					await Task.Delay(500);
+
+					// first: concurrent trans, read + set, no conflict
+					using (var tr1 = db.BeginTransaction(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						await Task.WhenAll(tr1.GetAsync(aaa), tr2.GetAsync(aaa));
+
+						tr1.Set(bbb, Slice.FromString("VALUE_BBB_222"));
+						tr2.Set(ccc, Slice.FromString("VALUE_CCC_222"));
+						var task1 = tr1.CommitAsync();
+						var task2 = tr2.CommitAsync();
+
+						await Task.WhenAll(task1, task2);
+					}
+
+					await Task.Delay(500);
+
+					// first: concurrent trans, read + set, conflict
+					using (var tr1 = db.BeginTransaction(this.Cancellation))
+					using (var tr2 = db.BeginTransaction(this.Cancellation))
+					{
+						await Task.WhenAll(tr1.GetAsync(ccc), tr2.GetAsync(bbb));
+						tr1.Set(bbb, Slice.FromString("VALUE_BBB_333"));
+						tr2.Set(ccc, Slice.FromString("VALUE_CCC_333"));
+						var task1 = tr1.CommitAsync();
+						var task2 = tr2.CommitAsync();
+
+						try
+						{
+							await Task.WhenAll(task1, task2);
+						}
+						catch (Exception e)
+						{
+							Log(e.Message);
+						}
+					}
+
+					Log("DONE!!!");
+				}
+			}
+		}
+
+
+		[Test]
+		public async void Test_Case_17()
+		{
+			Fdb.Start(300);
+			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
+			{
+
+				//THIS TEST MUST BE PERFORMED WITH THE CLUSTER DOWN! (net stop fdbmonitor)
+
+				// measured latencies:
+				// "past_version": ALWAYS ~10 ms
+				// "future_version": ALWAYS ~10 ms
+				// "not_committed": start with 5, 10, 15, etc... but after 4 or 5, then transition into a random number between 0 and 1 sec
+
+				using (var tr = zedb.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					await tr.OnErrorAsync(FdbError.PastVersion).ConfigureAwait(false);
+					await tr.OnErrorAsync(FdbError.NotCommitted).ConfigureAwait(false);
+				}
+
+
+				using (var tr = zedb.BeginReadOnlyTransaction(this.Cancellation))
+				{
+					for (int i = 0; i < 20; i++)
+					{
+						//tr.Timeout = 500;
+						//try
+						//{
+						//	await tr.GetAsync(Slice.FromAscii("SomeRandomKey"));
+						//	Assert.Fail("The database must be offline !");
+						//}
+						//catch(FdbException e)
+						{
+							var code = i > 1 && i < 10 ? FdbError.PastVersion : FdbError.CommitUnknownResult;
+							var sw = Stopwatch.StartNew();
+							await tr.OnErrorAsync(code).ConfigureAwait(false);
+							sw.Stop();
+							Log($"{sw.Elapsed.TotalMilliseconds:N3}");
+						}
+					}
+				}
+
+
+			}
+		}
+
 	}
 
 }
