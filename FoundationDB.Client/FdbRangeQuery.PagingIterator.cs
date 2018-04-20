@@ -61,10 +61,10 @@ namespace FoundationDB.Client
 			#region Iterator Properties...
 
 			/// <summary>Key selector describing the beginning of the current range (when paging)</summary>
-			private FdbKeySelector Begin { get; set; }
+			private KeySelector Begin { get; set; }
 
 			/// <summary>Key selector describing the end of the current range (when paging)</summary>
-			private FdbKeySelector End { get; set; }
+			private KeySelector End { get; set; }
 
 			/// <summary>If non null, contains the remaining allowed number of rows</summary>
 			private int? RemainingCount { get; set; }
@@ -135,8 +135,8 @@ namespace FoundationDB.Client
 					if (min >= max) return false;	// range is empty
 
 					// rewrite the initial selectors with the bounded keys
-					this.Begin = FdbKeySelector.FirstGreaterOrEqual(min);
-					this.End = FdbKeySelector.FirstGreaterOrEqual(max);
+					this.Begin = KeySelector.FirstGreaterOrEqual(min);
+					this.End = KeySelector.FirstGreaterOrEqual(max);
 				}
 				return true;
 			}
@@ -232,11 +232,11 @@ namespace FoundationDB.Client
 							var lastKey = result.Last.Key;
 							if (this.Query.Reversed)
 							{
-								this.End = FdbKeySelector.FirstGreaterOrEqual(lastKey);
+								this.End = KeySelector.FirstGreaterOrEqual(lastKey);
 							}
 							else
 							{
-								this.Begin = FdbKeySelector.FirstGreaterThan(lastKey);
+								this.Begin = KeySelector.FirstGreaterThan(lastKey);
 							}
 						}
 #if DEBUG_RANGE_PAGING

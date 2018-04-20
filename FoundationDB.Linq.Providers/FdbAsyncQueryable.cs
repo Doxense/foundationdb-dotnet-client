@@ -69,7 +69,7 @@ namespace FoundationDB.Linq
 		/// <param name="query">Source database query</param>
 		/// <param name="range">Pair of key selectors</param>
 		/// <returns>Query that will return the keys from the specified <paramref name="range"/></returns>
-		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> Range(this IFdbDatabaseQueryable query, FdbKeySelectorPair range)
+		public static IFdbAsyncSequenceQueryable<KeyValuePair<Slice, Slice>> Range(this IFdbDatabaseQueryable query, KeySelectorPair range)
 		{
 			if (query == null) throw new ArgumentNullException("query");
 

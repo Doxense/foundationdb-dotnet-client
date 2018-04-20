@@ -162,7 +162,7 @@ namespace FoundationDB.Layers.Messaging
 
 			// get the current size of the queue
 			var range = queue.Keys.ToRange();
-			var lastKey = await tr.Snapshot.GetKeyAsync(FdbKeySelector.LastLessThan(range.End)).ConfigureAwait(false);
+			var lastKey = await tr.Snapshot.GetKeyAsync(KeySelector.LastLessThan(range.End)).ConfigureAwait(false);
 			int count = lastKey < range.Begin ? 0 : queue.Keys.DecodeFirst<int>(lastKey) + 1;
 
 			// set the value
@@ -188,7 +188,7 @@ namespace FoundationDB.Layers.Messaging
 			tr.Annotate("Deleting task {0}", taskId.ToAsciiOrHexaString());
 
 			// clear all metadata about the task
-			tr.ClearRange(FdbKeyRange.StartsWith(this.TaskStore.Keys.Encode(taskId)));
+			tr.ClearRange(KeyRange.StartsWith(this.TaskStore.Keys.Encode(taskId)));
 			// decrement pending number of tasks
 			this.Counters.Decrement(tr, COUNTER_PENDING_TASKS);
 		}

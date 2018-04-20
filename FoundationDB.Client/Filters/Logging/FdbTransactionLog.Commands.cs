@@ -637,11 +637,11 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetKeyCommand : Command<Slice>
 		{
 			/// <summary>Selector to a key in the database</summary>
-			public FdbKeySelector Selector { get; private set; }
+			public KeySelector Selector { get; private set; }
 
 			public override Operation Op { get { return Operation.GetKey; } }
 
-			public GetKeyCommand(FdbKeySelector selector)
+			public GetKeyCommand(KeySelector selector)
 			{
 				this.Selector = selector;
 			}
@@ -722,11 +722,11 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetKeysCommand : Command<Slice[]>
 		{
 			/// <summary>List of selectors looked up in the database</summary>
-			public FdbKeySelector[] Selectors { get; private set; }
+			public KeySelector[] Selectors { get; private set; }
 
 			public override Operation Op { get { return Operation.GetKeys; } }
 
-			public GetKeysCommand(FdbKeySelector[] selectors)
+			public GetKeysCommand(KeySelector[] selectors)
 			{
 				this.Selectors = selectors;
 			}
@@ -767,9 +767,9 @@ namespace FoundationDB.Filters.Logging
 		public sealed class GetRangeCommand : Command<FdbRangeChunk>
 		{
 			/// <summary>Selector to the start of the range</summary>
-			public FdbKeySelector Begin { get; private set; }
+			public KeySelector Begin { get; private set; }
 			/// <summary>Selector to the end of the range</summary>
-			public FdbKeySelector End { get; private set; }
+			public KeySelector End { get; private set; }
 			/// <summary>Options of the range read</summary>
 			public FdbRangeOptions Options { get; private set; }
 			/// <summary>Iteration number</summary>
@@ -777,7 +777,7 @@ namespace FoundationDB.Filters.Logging
 
 			public override Operation Op { get { return Operation.GetRange; } }
 
-			public GetRangeCommand(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, int iteration)
+			public GetRangeCommand(KeySelector begin, KeySelector end, FdbRangeOptions options, int iteration)
 			{
 				this.Begin = begin;
 				this.End = end;

@@ -150,25 +150,25 @@ namespace FoundationDB.Filters
 			return m_transaction.GetValuesAsync(keys);
 		}
 
-		public virtual Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		public virtual Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetKeyAsync(selector);
 		}
 
-		public virtual Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+		public virtual Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetKeysAsync(selectors);
 		}
 
-		public virtual Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
 		}
 
-		public virtual FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		public virtual FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			ThrowIfDisposed();
 			return m_transaction.GetRange(beginInclusive, endExclusive, options);
@@ -375,22 +375,22 @@ namespace FoundationDB.Filters
 			return m_transaction.GetValuesAsync(keys);
 		}
 
-		public virtual Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		public virtual Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			return m_transaction.GetKeyAsync(selector);
 		}
 
-		public virtual Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+		public virtual Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			return m_transaction.GetKeysAsync(selectors);
 		}
 
-		public virtual Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public virtual Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			return m_transaction.GetRangeAsync(beginInclusive, endExclusive, options, iteration);
 		}
 
-		public virtual FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endInclusive, FdbRangeOptions options = null)
+		public virtual FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endInclusive, FdbRangeOptions options = null)
 		{
 			return m_transaction.GetRange(beginInclusive, endInclusive, options);
 		}

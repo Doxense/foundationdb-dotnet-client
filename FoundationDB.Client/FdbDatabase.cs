@@ -597,17 +597,17 @@ namespace FoundationDB.Client
 			}
 		}
 
-		FdbKeyRange IFdbSubspace.ToRange()
+		KeyRange IFdbSubspace.ToRange()
 		{
 			return m_globalSpace.ToRange();
 		}
 
-		FdbKeyRange IFdbSubspace.ToRange(Slice suffix)
+		KeyRange IFdbSubspace.ToRange(Slice suffix)
 		{
 			return m_globalSpace.ToRange(suffix);
 		}
 
-		FdbKeyRange IFdbSubspace.ToRange<TKey>(TKey key)
+		KeyRange IFdbSubspace.ToRange<TKey>(TKey key)
 		{
 			return m_globalSpace.ToRange(key);
 		}

@@ -65,16 +65,16 @@ namespace FoundationDB.Linq.Expressions
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
 		[NotNull]
-		public static FdbQueryRangeExpression Range(FdbKeySelectorPair range, FdbRangeOptions options = null)
+		public static FdbQueryRangeExpression Range(KeySelectorPair range, FdbRangeOptions options = null)
 		{
 			return new FdbQueryRangeExpression(range, options);
 		}
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
 		[NotNull]
-		public static FdbQueryRangeExpression Range(FdbKeySelector start, FdbKeySelector stop, FdbRangeOptions options = null)
+		public static FdbQueryRangeExpression Range(KeySelector start, KeySelector stop, FdbRangeOptions options = null)
 		{
-			return Range(new FdbKeySelectorPair(start, stop), options);
+			return Range(new KeySelectorPair(start, stop), options);
 		}
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>
@@ -82,7 +82,7 @@ namespace FoundationDB.Linq.Expressions
 		public static FdbQueryRangeExpression RangeStartsWith(Slice prefix, FdbRangeOptions options = null)
 		{
 			// starts_with('A') means ['A', B')
-			return Range(FdbKeySelectorPair.StartsWith(prefix), options);
+			return Range(KeySelectorPair.StartsWith(prefix), options);
 		}
 
 		/// <summary>Execute a Range read from the database, and return all the keys and values</summary>

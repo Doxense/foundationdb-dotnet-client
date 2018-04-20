@@ -44,7 +44,7 @@ namespace FoundationDB.Layers.Tuples
 			get { return TypeSystem.Tuples; }
 		}
 
-		public FdbKeyRange ToRange(Slice prefix)
+		public KeyRange ToRange(Slice prefix)
 		{
 			return FdbTuple.ToRange(prefix);
 		}
@@ -180,47 +180,47 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.DecodeKey<T1, T2, T3, T4, T5>(packed);
 		}
 
-		public FdbKeyRange ToRange(Slice prefix, IFdbTuple items)
+		public KeyRange ToRange(Slice prefix, IFdbTuple items)
 		{
 			return FdbTuple.ToRange(prefix, items);
 		}
 
-		public FdbKeyRange ToKeyRange<T1>(Slice prefix, T1 item1)
+		public KeyRange ToKeyRange<T1>(Slice prefix, T1 item1)
 		{
 			return FdbTuple.ToRange(prefix, FdbTuple.Create(item1));
 		}
 
-		public FdbKeyRange ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
+		public KeyRange ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
 		{
 			return FdbTuple.ToRange(prefix, FdbTuple.Create(item1, item2));
 		}
 
-		public FdbKeyRange ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
+		public KeyRange ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
 		{
 			return FdbTuple.ToRange(prefix, FdbTuple.Create(item1, item3, item3));
 		}
 
-		public FdbKeyRange ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
+		public KeyRange ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return FdbTuple.ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4));
 		}
 
-		public FdbKeyRange ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public KeyRange ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			return FdbTuple.ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4, item5));
 		}
 
-		public FdbKeyRange ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		public KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return FdbTuple.ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4, item5, item6));
 		}
 
-		public FdbKeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		public KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			return FdbTuple.ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4, item5, item6, item7));
 		}
 
-		public FdbKeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		public KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			return FdbTuple.ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4, item5, item6, item7, item8));
 		}

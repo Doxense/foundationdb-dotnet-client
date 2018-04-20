@@ -394,8 +394,8 @@ namespace FoundationDB.Client.Tests
 						tr.ClearRange(subspace.Keys.Encode("K0050"), subspace.Keys.Encode("K0060"));
 
 						var chunk = await tr.GetRangeAsync(
-										FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0000")),
-										FdbKeySelector.LastLessOrEqual(subspace.Keys.Encode("K9999")),
+										KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0000")),
+										KeySelector.LastLessOrEqual(subspace.Keys.Encode("K9999")),
 										new FdbRangeOptions { Mode = FdbStreamingMode.WantAll, Reverse = true }
 									);
 
@@ -432,14 +432,14 @@ namespace FoundationDB.Client.Tests
 						tr.Set(subspace.Keys.Encode("K0021"), Slice.Empty);
 						tr.Set(subspace.Keys.Encode("K0042"), Slice.Empty);
 
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0005")));
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0010")));
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0015")));
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0022")));
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0049")));
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0050")));
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0055")));
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0061")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0005")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0010")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0015")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0022")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0049")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0050")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0055")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0061")));
 
 						//no commit
 					}
@@ -447,13 +447,13 @@ namespace FoundationDB.Client.Tests
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						//tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0000"))); // equal=false, offset=1
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(subspace.Keys.Encode("K0011")));    // equal=true, offset=1
-						await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(subspace.Keys.Encode("K0022")));	 // equal=true, offset=0
-						await tr.GetKeyAsync(FdbKeySelector.LastLessThan(subspace.Keys.Encode("K0033")));		 // equal=false, offset=0
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0000"))); // equal=false, offset=1
+						await tr.GetKeyAsync(KeySelector.FirstGreaterThan(subspace.Keys.Encode("K0011")));    // equal=true, offset=1
+						await tr.GetKeyAsync(KeySelector.LastLessOrEqual(subspace.Keys.Encode("K0022")));	 // equal=true, offset=0
+						await tr.GetKeyAsync(KeySelector.LastLessThan(subspace.Keys.Encode("K0033")));		 // equal=false, offset=0
 
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0040")) + 1000); // equal=false, offset=7 ?
-						await tr.GetKeyAsync(FdbKeySelector.LastLessThan(subspace.Keys.Encode("K0050")) + 1000); // equal=false, offset=6 ?
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0040")) + 1000); // equal=false, offset=7 ?
+						await tr.GetKeyAsync(KeySelector.LastLessThan(subspace.Keys.Encode("K0050")) + 1000); // equal=false, offset=6 ?
 					}
 
 				}
@@ -482,7 +482,7 @@ namespace FoundationDB.Client.Tests
 					using (var tr = db.BeginTransaction(this.Cancellation))
 					{
 						tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
-						await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("KGETKEY")));
+						await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("KGETKEY")));
 					}
 
 					using (var tr = db.BeginTransaction(this.Cancellation))
@@ -528,8 +528,8 @@ namespace FoundationDB.Client.Tests
 						tr.Set(subspace.Keys.Encode("KZZZ"), Slice.FromString("V999"));
 
 						var r = await tr.GetRangeAsync(
-									FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0B")),
-									FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0G"))
+									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0B")),
+									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0G"))
 								);
 
 						await tr.CommitAsync();
@@ -560,8 +560,8 @@ namespace FoundationDB.Client.Tests
 						tr.ClearRange(subspace.Keys.Encode("K0042"), Slice.FromString("K0069"));
 
 						var r = await tr.GetRangeAsync(
-									FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0040")),
-									FdbKeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0080")),
+									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0040")),
+									KeySelector.FirstGreaterOrEqual(subspace.Keys.Encode("K0080")),
 									new FdbRangeOptions { Mode = FdbStreamingMode.WantAll }
 								);
 						// T 1

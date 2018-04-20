@@ -34,25 +34,25 @@ namespace FoundationDB.Client
 	using Doxense.Diagnostics.Contracts;
 
 	[DebuggerDisplay("Mode={m_mode}")]
-	public sealed class FdbKeyRangeComparer : IComparer<FdbKeyRange>, IEqualityComparer<FdbKeyRange>
+	public sealed class KeyRangeComparer : IComparer<KeyRange>, IEqualityComparer<KeyRange>
 	{
 		private const int BOTH = 0;
 		private const int BEGIN = 1;
 		private const int END = 2;
 
-		public static readonly FdbKeyRangeComparer Default = new FdbKeyRangeComparer(BOTH);
-		public static readonly FdbKeyRangeComparer Begin = new FdbKeyRangeComparer(BEGIN);
-		public static readonly FdbKeyRangeComparer End = new FdbKeyRangeComparer(END);
+		public static readonly KeyRangeComparer Default = new KeyRangeComparer(BOTH);
+		public static readonly KeyRangeComparer Begin = new KeyRangeComparer(BEGIN);
+		public static readonly KeyRangeComparer End = new KeyRangeComparer(END);
 
 		private readonly int m_mode;
 
-		private FdbKeyRangeComparer(int mode)
+		private KeyRangeComparer(int mode)
 		{
 			Contract.Requires(mode >= BOTH && mode <= END);
 			m_mode = mode;
 		}
 
-		public int Compare(FdbKeyRange x, FdbKeyRange y)
+		public int Compare(KeyRange x, KeyRange y)
 		{
 			switch (m_mode)
 			{
@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public bool Equals(FdbKeyRange x, FdbKeyRange y)
+		public bool Equals(KeyRange x, KeyRange y)
 		{
 			switch(m_mode)
 			{
@@ -72,7 +72,7 @@ namespace FoundationDB.Client
 			}
 		}
 
-		public int GetHashCode(FdbKeyRange obj)
+		public int GetHashCode(KeyRange obj)
 		{
 			switch(m_mode)
 			{

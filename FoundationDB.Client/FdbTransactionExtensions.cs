@@ -578,19 +578,19 @@ namespace FoundationDB.Client
 
 		#region GetRange...
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, int limit, bool reverse = false)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeySelector beginInclusive, KeySelector endExclusive, int limit, bool reverse = false)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
 			return trans.GetRange(beginInclusive, endExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, FdbKeyRange range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null)
 		{
-			return FdbTransactionExtensions.GetRange(trans, FdbKeySelectorPair.Create(range), options);
+			return FdbTransactionExtensions.GetRange(trans, KeySelectorPair.Create(range), options);
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, FdbKeyRange range, int limit, bool reverse = false)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, int limit, bool reverse = false)
 		{
 			return FdbTransactionExtensions.GetRange(trans, range, new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
@@ -603,8 +603,8 @@ namespace FoundationDB.Client
 			if (endKeyExclusive.IsNullOrEmpty) endKeyExclusive = FdbKey.MaxValue;
 
 			return trans.GetRange(
-				FdbKeySelector.FirstGreaterOrEqual(beginKeyInclusive),
-				FdbKeySelector.FirstGreaterOrEqual(endKeyExclusive),
+				KeySelector.FirstGreaterOrEqual(beginKeyInclusive),
+				KeySelector.FirstGreaterOrEqual(endKeyExclusive),
 				options
 			);
 		}
@@ -639,7 +639,7 @@ namespace FoundationDB.Client
 		/// <param name="range">Pair of key selectors defining the beginning and the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, FdbKeySelectorPair range, FdbRangeOptions options = null)
+		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -656,7 +656,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, FdbKeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeySelectorPair range, FdbRangeOptions options = null, int iteration = 0)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -673,11 +673,11 @@ namespace FoundationDB.Client
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, FdbKeyRange range, FdbRangeOptions options = null, int iteration = 0)
+		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyTransaction trans, KeyRange range, FdbRangeOptions options = null, int iteration = 0)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
-			var sp = FdbKeySelectorPair.Create(range);
+			var sp = KeySelectorPair.Create(range);
 			return trans.GetRangeAsync(sp.Begin, sp.End, options, iteration);
 		}
 
@@ -696,7 +696,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(trans, nameof(trans));
 
-			var range = FdbKeySelectorPair.Create(beginInclusive, endExclusive);
+			var range = KeySelectorPair.Create(beginInclusive, endExclusive);
 			return trans.GetRangeAsync(range.Begin, range.End, options, iteration);
 		}
 
@@ -723,7 +723,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">Pair of keys defining the range to clear.</param>
-		public static void ClearRange([NotNull] this IFdbTransaction trans, FdbKeyRange range)
+		public static void ClearRange([NotNull] this IFdbTransaction trans, KeyRange range)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -740,7 +740,7 @@ namespace FoundationDB.Client
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="range">Range of the keys specifying the conflict range. The end key is excluded</param>
 		/// <param name="type">One of the FDBConflictRangeType values indicating what type of conflict range is being set.</param>
-		public static void AddConflictRange([NotNull] this IFdbTransaction trans, FdbKeyRange range, FdbConflictRangeType type)
+		public static void AddConflictRange([NotNull] this IFdbTransaction trans, KeyRange range, FdbConflictRangeType type)
 		{
 			Contract.NotNull(trans, nameof(trans));
 
@@ -751,7 +751,7 @@ namespace FoundationDB.Client
 		/// <summary>
 		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
 		/// </summary>
-		public static void AddReadConflictRange([NotNull] this IFdbTransaction trans, FdbKeyRange range)
+		public static void AddReadConflictRange([NotNull] this IFdbTransaction trans, KeyRange range)
 		{
 			AddConflictRange(trans, range, FdbConflictRangeType.Read);
 		}
@@ -784,7 +784,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public static void AddReadConflictKey([NotNull] this IFdbTransaction trans, Slice key)
 		{
-			AddConflictRange(trans, FdbKeyRange.FromKey(key), FdbConflictRangeType.Read);
+			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Read);
 		}
 
 		/// <summary>
@@ -794,13 +794,13 @@ namespace FoundationDB.Client
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
-			AddConflictRange(trans, FdbKeyRange.FromKey(key.ToFoundationDbKey()), FdbConflictRangeType.Read);
+			AddConflictRange(trans, KeyRange.FromKey(key.ToFoundationDbKey()), FdbConflictRangeType.Read);
 		}
 
 		/// <summary>
 		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
 		/// </summary>
-		public static void AddWriteConflictRange([NotNull] this IFdbTransaction trans, FdbKeyRange range)
+		public static void AddWriteConflictRange([NotNull] this IFdbTransaction trans, KeyRange range)
 		{
 			AddConflictRange(trans, range, FdbConflictRangeType.Write);
 		}
@@ -833,7 +833,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		public static void AddWriteConflictKey([NotNull] this IFdbTransaction trans, Slice key)
 		{
-			AddConflictRange(trans, FdbKeyRange.FromKey(key), FdbConflictRangeType.Write);
+			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Write);
 		}
 
 		/// <summary>
@@ -843,7 +843,7 @@ namespace FoundationDB.Client
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
-			AddConflictRange(trans, FdbKeyRange.FromKey(key.ToFoundationDbKey()), FdbConflictRangeType.Write);
+			AddConflictRange(trans, KeyRange.FromKey(key.ToFoundationDbKey()), FdbConflictRangeType.Write);
 		}
 
 		#endregion
@@ -1018,12 +1018,12 @@ namespace FoundationDB.Client
 		/// <param name="selectors">Sequence of key selectors to resolve</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
 		[ItemNotNull]
-		public static Task<Slice[]> GetKeysAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<FdbKeySelector> selectors)
+		public static Task<Slice[]> GetKeysAsync([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelector> selectors)
 		{
 			Contract.NotNull(trans, nameof(trans));
 			Contract.NotNull(selectors, nameof(selectors));
 
-			var array = selectors as FdbKeySelector[] ?? selectors.ToArray();
+			var array = selectors as KeySelector[] ?? selectors.ToArray();
 
 			return trans.GetKeysAsync(array);
 		}

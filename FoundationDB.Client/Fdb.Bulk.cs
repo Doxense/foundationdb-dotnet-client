@@ -1314,7 +1314,7 @@ namespace FoundationDB.Client
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
 			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
 			{
-				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(beginInclusive), FdbKeySelector.FirstGreaterOrEqual(endExclusive), handler, cancellationToken);
+				return ExportAsync(db, KeySelector.FirstGreaterOrEqual(beginInclusive), KeySelector.FirstGreaterOrEqual(endExclusive), handler, cancellationToken);
 			}
 
 			/// <summary>Export the content of a potentially large range of keys defined by a pair of begin and end keys.</summary>
@@ -1324,9 +1324,9 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys exported</returns>
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
-			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeyRange range, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
+			public static Task<long> ExportAsync([NotNull] IFdbDatabase db, KeyRange range, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
 			{
-				return ExportAsync(db, FdbKeySelector.FirstGreaterOrEqual(range.Begin), FdbKeySelector.FirstGreaterOrEqual(range.End), handler, cancellationToken);
+				return ExportAsync(db, KeySelector.FirstGreaterOrEqual(range.Begin), KeySelector.FirstGreaterOrEqual(range.End), handler, cancellationToken);
 			}
 
 			/// <summary>Export the content of a potentially large range of keys defined by a pair of selectors.</summary>
@@ -1337,7 +1337,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys exported</returns>
 			/// <remarks>This method cannot guarantee that all data will be read from the same snapshot of the database, which means that writes committed while the export is running may be seen partially. Only the items inside a single batch are guaranteed to be from the same snapshot of the database.</remarks>
-			public static async Task<long> ExportAsync([NotNull] IFdbDatabase db, FdbKeySelector begin, FdbKeySelector end, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
+			public static async Task<long> ExportAsync([NotNull] IFdbDatabase db, KeySelector begin, KeySelector end, [NotNull, InstantHandle] Func<KeyValuePair<Slice, Slice>[], long, CancellationToken, Task> handler, CancellationToken cancellationToken)
 			{
 				if (db == null) throw new ArgumentNullException("db");
 				if (handler == null) throw new ArgumentNullException("handler");
@@ -1391,7 +1391,7 @@ namespace FoundationDB.Client
 					while (page.HasMore)
 					{
 						// prefetch the next one (don't wait for the task yet)
-						var next = FetchNextBatchAsync(tr, FdbKeySelector.FirstGreaterThan(page.Last.Key), end, options, reset);
+						var next = FetchNextBatchAsync(tr, KeySelector.FirstGreaterThan(page.Last.Key), end, options, reset);
 
 						// process the current one
 						if (page.Count > 0)
@@ -1428,7 +1428,7 @@ namespace FoundationDB.Client
 			/// <param name="options">Range read options</param>
 			/// <param name="onReset">Action (optional) that can reconfigure a transaction whenever it gets reset inside the retry loop.</param>
 			/// <returns>Task that will return the next batch</returns>
-			private static async Task<FdbRangeChunk> FetchNextBatchAsync(IFdbReadOnlyTransaction tr, FdbKeySelector begin, FdbKeySelector end, [NotNull] FdbRangeOptions options, Action<IFdbReadOnlyTransaction> onReset = null)
+			private static async Task<FdbRangeChunk> FetchNextBatchAsync(IFdbReadOnlyTransaction tr, KeySelector begin, KeySelector end, [NotNull] FdbRangeOptions options, Action<IFdbReadOnlyTransaction> onReset = null)
 			{
 				Contract.Requires(tr != null && options != null);
 

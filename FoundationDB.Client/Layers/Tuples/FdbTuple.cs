@@ -1079,14 +1079,14 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="prefix">Subspace binary prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all possible tuples starting with the specified prefix.</returns>
 		/// <remarks>FdbTuple.ToRange(Slice.FromAscii("abc")) returns the range [ 'abc\x00', 'abc\xFF' )</remarks>
-		public static FdbKeyRange ToRange(Slice prefix)
+		public static KeyRange ToRange(Slice prefix)
 		{
 			if (prefix.IsNull) throw new ArgumentNullException("prefix");
 
 			//note: there is no guarantee that prefix is a valid packed tuple (could be any exotic binary prefix)
 
 			// prefix => [ prefix."\0", prefix."\xFF" )
-			return new FdbKeyRange(
+			return new KeyRange(
 				prefix + FdbKey.MinValue,
 				prefix + FdbKey.MaxValue
 			);
@@ -1094,14 +1094,14 @@ namespace FoundationDB.Layers.Tuples
 
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		/// <example>FdbTuple.ToRange(FdbTuple.Create("a", "b")) includes all tuples ("a", "b", ...), but not the tuple ("a", "b") itself.</example>
-		public static FdbKeyRange ToRange([NotNull] IFdbTuple tuple)
+		public static KeyRange ToRange([NotNull] IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 
 			// tuple => [ packed."\0", packed."\xFF" )
 			var packed = tuple.ToSlice();
 
-			return new FdbKeyRange(
+			return new KeyRange(
 				packed + FdbKey.MinValue,
 				packed + FdbKey.MaxValue
 			);
@@ -1110,14 +1110,14 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Create a range that selects all the tuples of greater length than the specified <paramref name="tuple"/>, and that start with the specified elements: packed(tuple)+'\x00' &lt;= k &lt; packed(tuple)+'\xFF'</summary>
 		/// <example>FdbTuple.ToRange(Slice.FromInt32(42), FdbTuple.Create("a", "b")) includes all tuples \x2A.("a", "b", ...), but not the tuple \x2A.("a", "b") itself.</example>
 		/// <remarks>If <paramref name="prefix"/> is the packed representation of a tuple, then unpacking the resulting key will produce a valid tuple. If not, then the resulting key will need to be truncated first before unpacking.</remarks>
-		public static FdbKeyRange ToRange(Slice prefix, [NotNull] IFdbTuple tuple)
+		public static KeyRange ToRange(Slice prefix, [NotNull] IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 
 			// tuple => [ prefix.packed."\0", prefix.packed."\xFF" )
 			var packed = prefix + tuple.ToSlice();
 
-			return new FdbKeyRange(
+			return new KeyRange(
 				packed + FdbKey.MinValue,
 				packed + FdbKey.MaxValue
 			);

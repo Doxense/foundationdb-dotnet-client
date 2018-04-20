@@ -57,7 +57,7 @@ namespace FoundationDB.Filters.Logging.Tests
 					tr.Set(location.Encode("Warmup", 0), Slice.FromInt32(1));
 					tr.Clear(location.Encode("Warmup", 1));
 					await tr.GetAsync(location.Encode("Warmup", 2));
-					await tr.GetRange(FdbKeyRange.StartsWith(location.Encode("Warmup", 3))).ToListAsync();
+					await tr.GetRange(KeyRange.StartsWith(location.Encode("Warmup", 3))).ToListAsync();
 					tr.ClearRange(location.Encode("Warmup", 4), location.Encode("Warmup", 5));
 				}, this.Cancellation);
 
@@ -123,10 +123,10 @@ namespace FoundationDB.Filters.Logging.Tests
 
 						tr.Annotate("This is a comment");
 
-						//await tr.GetRangeAsync(FdbKeySelector.LastLessOrEqual(location.Pack("A")), FdbKeySelector.FirstGreaterThan(location.Pack("Z"))).ConfigureAwait(false);
+						//await tr.GetRangeAsync(KeySelector.LastLessOrEqual(location.Pack("A")), KeySelector.FirstGreaterThan(location.Pack("Z"))).ConfigureAwait(false);
 
 						await Task.WhenAll(
-							tr.GetRange(FdbKeyRange.StartsWith(location.Encode("Range", 0))).ToListAsync(),
+							tr.GetRange(KeyRange.StartsWith(location.Encode("Range", 0))).ToListAsync(),
 							tr.GetRange(location.Encode("Range", 1, 0), location.Encode("Range", 1, 200)).ToListAsync(),
 							tr.GetRange(location.Encode("Range", 2, 400), location.Encode("Range", 2, 600)).ToListAsync(),
 							tr.GetRange(location.Encode("Range", 3, 800), location.Encode("Range", 3, 1000)).ToListAsync()

@@ -416,44 +416,44 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					FdbKeySelector sel;
+					KeySelector sel;
 
 					// >= 0
-					sel = FdbKeySelector.FirstGreaterOrEqual(location.Keys.Encode(0));
+					sel = KeySelector.FirstGreaterOrEqual(location.Keys.Encode(0));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Keys.Encode(0)), "fGE(0) should return 0");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(minKey), "fGE(0)-1 should return minKey");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(1)), "fGE(0)+1 should return 1");
 
 					// > 0
-					sel = FdbKeySelector.FirstGreaterThan(location.Keys.Encode(0));
+					sel = KeySelector.FirstGreaterThan(location.Keys.Encode(0));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Keys.Encode(1)), "fGT(0) should return 1");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(0)), "fGT(0)-1 should return 0");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(2)), "fGT(0)+1 should return 2");
 
 					// <= 10
-					sel = FdbKeySelector.LastLessOrEqual(location.Keys.Encode(10));
+					sel = KeySelector.LastLessOrEqual(location.Keys.Encode(10));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Keys.Encode(10)), "lLE(10) should return 10");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(9)), "lLE(10)-1 should return 9");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(11)), "lLE(10)+1 should return 11");
 
 					// < 10
-					sel = FdbKeySelector.LastLessThan(location.Keys.Encode(10));
+					sel = KeySelector.LastLessThan(location.Keys.Encode(10));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(location.Keys.Encode(9)), "lLT(10) should return 9");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(8)), "lLT(10)-1 should return 8");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(10)), "lLT(10)+1 should return 10");
 
 					// < 0
-					sel = FdbKeySelector.LastLessThan(location.Keys.Encode(0));
+					sel = KeySelector.LastLessThan(location.Keys.Encode(0));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(minKey), "lLT(0) should return minKey");
 					Assert.That(await tr.GetKeyAsync(sel + 1), Is.EqualTo(location.Keys.Encode(0)), "lLT(0)+1 should return 0");
 
 					// >= 20
-					sel = FdbKeySelector.FirstGreaterOrEqual(location.Keys.Encode(20));
+					sel = KeySelector.FirstGreaterOrEqual(location.Keys.Encode(20));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(maxKey), "fGE(20) should return maxKey");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(19)), "fGE(20)-1 should return 19");
 
 					// > 19
-					sel = FdbKeySelector.FirstGreaterThan(location.Keys.Encode(19));
+					sel = KeySelector.FirstGreaterThan(location.Keys.Encode(19));
 					Assert.That(await tr.GetKeyAsync(sel), Is.EqualTo(maxKey), "fGT(19) should return maxKey");
 					Assert.That(await tr.GetKeyAsync(sel - 1), Is.EqualTo(location.Keys.Encode(19)), "fGT(19)-1 should return 19");
 				}
@@ -488,45 +488,45 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginReadOnlyTransaction(this.Cancellation))
 				{
 					// before <00>
-					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MinValue));
+					key = await tr.GetKeyAsync(KeySelector.LastLessThan(FdbKey.MinValue));
 					Assert.That(key, Is.EqualTo(Slice.Empty), "lLT(<00>) => ''");
 
 					// before the first key in the db
-					var minKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(FdbKey.MinValue));
+					var minKey = await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(FdbKey.MinValue));
 					Assert.That(minKey, Is.Not.Null);
-					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(minKey));
+					key = await tr.GetKeyAsync(KeySelector.LastLessThan(minKey));
 					Assert.That(key, Is.EqualTo(Slice.Empty), "lLT(min_key) => ''");
 
 					// after the last key in the db
 
-					var maxKey = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(FdbKey.MaxValue));
+					var maxKey = await tr.GetKeyAsync(KeySelector.LastLessThan(FdbKey.MaxValue));
 					Assert.That(maxKey, Is.Not.Null);
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(maxKey));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(maxKey));
 					Assert.That(key, Is.EqualTo(FdbKey.MaxValue), "fGT(maxKey) => <FF>");
 
 					// after <FF>
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					Assert.That(key, Is.EqualTo(FdbKey.MaxValue), "fGT(<FF>) => <FF>");
-					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
-					Assert.That(async () => await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.System.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
+					Assert.That(async () => await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue + FdbKey.MaxValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
+					Assert.That(async () => await tr.GetKeyAsync(KeySelector.LastLessThan(Fdb.System.MinValue)), Throws.InstanceOf<FdbException>().With.Property("Code").EqualTo(FdbError.KeyOutsideLegalRange));
 
 					tr.WithReadAccessToSystemKeys();
 
-					var firstSystemKey = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(FdbKey.MaxValue));
+					var firstSystemKey = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(FdbKey.MaxValue));
 					// usually the first key in the system space is <FF>/backupDataFormat, but that may change in the future version.
 					Assert.That(firstSystemKey, Is.Not.Null);
 					Assert.That(firstSystemKey, Is.GreaterThan(FdbKey.MaxValue), "key should be between <FF> and <FF><FF>");
 					Assert.That(firstSystemKey, Is.LessThan(Fdb.System.MaxValue), "key should be between <FF> and <FF><FF>");
 
 					// with access to system keys, the maximum possible key becomes <FF><FF>
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(Fdb.System.MaxValue));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterOrEqual(Fdb.System.MaxValue));
 					Assert.That(key, Is.EqualTo(Fdb.System.MaxValue), "fGE(<FF><FF>) => <FF><FF> (with access to system keys)");
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(Fdb.System.MaxValue));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(Fdb.System.MaxValue));
 					Assert.That(key, Is.EqualTo(Fdb.System.MaxValue), "fGT(<FF><FF>) => <FF><FF> (with access to system keys)");
 
-					key = await tr.GetKeyAsync(FdbKeySelector.LastLessThan(Fdb.System.MinValue));
+					key = await tr.GetKeyAsync(KeySelector.LastLessThan(Fdb.System.MinValue));
 					Assert.That(key, Is.EqualTo(maxKey), "lLT(<FF><00>) => max_key (with access to system keys)");
-					key = await tr.GetKeyAsync(FdbKeySelector.FirstGreaterThan(maxKey));
+					key = await tr.GetKeyAsync(KeySelector.FirstGreaterThan(maxKey));
 					Assert.That(key, Is.EqualTo(firstSystemKey), "fGT(max_key) => first_system_key (with access to system keys)");
 
 				}
@@ -608,7 +608,7 @@ namespace FoundationDB.Client.Tests
 
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var selectors = Enumerable.Range(0, N).Select((i) => FdbKeySelector.FirstGreaterOrEqual(location.Keys.Encode(i))).ToArray();
+					var selectors = Enumerable.Range(0, N).Select((i) => KeySelector.FirstGreaterOrEqual(location.Keys.Encode(i))).ToArray();
 
 					// GetKeysAsync([])
 					var results = await tr.GetKeysAsync(selectors);
@@ -620,7 +620,7 @@ namespace FoundationDB.Client.Tests
 					}
 
 					// GetKeysAsync(cast to enumerable)
-					var results2 = await tr.GetKeysAsync((IEnumerable<FdbKeySelector>)selectors);
+					var results2 = await tr.GetKeysAsync((IEnumerable<KeySelector>)selectors);
 					Assert.That(results2, Is.EqualTo(results));
 
 					// GetKeysAsync(real enumerable)
@@ -1041,7 +1041,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{0} => 50
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 0)));
+					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 0)));
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 50)));
 
 					// 42 < 50 => conflict !!!
@@ -1068,7 +1068,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{0} => 50
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 0)));
+					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 0)));
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 50)));
 
 					// 77 > 50 => no conflict
@@ -1097,7 +1097,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGE{50} + 1 => 100
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 50)) + 1);
+					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterOrEqual(loc.Keys.Encode("foo", 50)) + 1);
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 100)));
 
 					// 77 between 50 and 100 => conflict !!!
@@ -1126,7 +1126,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// fGT{50} => 100
-					var key = await tr1.GetKeyAsync(FdbKeySelector.FirstGreaterThan(loc.Keys.Encode("foo", 50)));
+					var key = await tr1.GetKeyAsync(KeySelector.FirstGreaterThan(loc.Keys.Encode("foo", 50)));
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 100)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
@@ -1155,7 +1155,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr1 = db.BeginTransaction(this.Cancellation))
 				{
 					// lLT{100} => 50
-					var key = await tr1.GetKeyAsync(FdbKeySelector.LastLessThan(loc.Keys.Encode("foo", 100)));
+					var key = await tr1.GetKeyAsync(KeySelector.LastLessThan(loc.Keys.Encode("foo", 100)));
 					Assert.That(key, Is.EqualTo(loc.Keys.Encode("foo", 50)));
 
 					// another transaction changes the VALUE of 50 and 100 (but does not change the fact that they exist nor add keys in between)
@@ -1912,10 +1912,10 @@ namespace FoundationDB.Client.Tests
 					//tr.AddReadConflictKey(location.Concat(Slice.FromString("READ_CONFLICT")));
 					//tr.AddWriteConflictKey(location.Concat(Slice.FromString("WRITE_CONFLICT")));
 
-					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("D")), location.Concat(Slice.FromString("E"))));
-					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("C")), location.Concat(Slice.FromString("G"))));
-					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("B")), location.Concat(Slice.FromString("F"))));
-					//tr.AddReadConflictRange(new FdbKeyRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z"))));
+					//tr.AddReadConflictRange(new KeyRange(location.Concat(Slice.FromString("D")), location.Concat(Slice.FromString("E"))));
+					//tr.AddReadConflictRange(new KeyRange(location.Concat(Slice.FromString("C")), location.Concat(Slice.FromString("G"))));
+					//tr.AddReadConflictRange(new KeyRange(location.Concat(Slice.FromString("B")), location.Concat(Slice.FromString("F"))));
+					//tr.AddReadConflictRange(new KeyRange(location.Concat(Slice.FromString("A")), location.Concat(Slice.FromString("Z"))));
 
 
 					await tr.CommitAsync();

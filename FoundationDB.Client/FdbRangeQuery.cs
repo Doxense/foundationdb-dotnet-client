@@ -44,7 +44,7 @@ namespace FoundationDB.Client
 	{
 
 		/// <summary>Construct a query with a set of initial settings</summary>
-		internal FdbRangeQuery([NotNull] IFdbReadOnlyTransaction transaction, FdbKeySelector begin, FdbKeySelector end, [NotNull] Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, FdbRangeOptions options)
+		internal FdbRangeQuery([NotNull] IFdbReadOnlyTransaction transaction, KeySelector begin, KeySelector end, [NotNull] Func<KeyValuePair<Slice, Slice>, T> transform, bool snapshot, FdbRangeOptions options)
 		{
 			Contract.Requires(transaction != null && transform != null);
 
@@ -54,7 +54,7 @@ namespace FoundationDB.Client
 			this.Transform = transform;
 			this.Snapshot = snapshot;
 			this.Options = options ?? new FdbRangeOptions();
-			this.OriginalRange = FdbKeySelectorPair.Create(begin, end);
+			this.OriginalRange = KeySelectorPair.Create(begin, end);
 		}
 
 		/// <summary>Copy constructor</summary>
@@ -74,20 +74,20 @@ namespace FoundationDB.Client
 		#region Public Properties...
 
 		/// <summary>Key selector describing the beginning of the range that will be queried</summary>
-		public FdbKeySelector Begin { get; private set; }
+		public KeySelector Begin { get; private set; }
 
 		/// <summary>Key selector describing the end of the range that will be queried</summary>
-		public FdbKeySelector End { get; private set; }
+		public KeySelector End { get; private set; }
 
 		/// <summary>Key selector pair describing the beginning and end of the range that will be queried</summary>
-		public FdbKeySelectorPair Range { get { return new FdbKeySelectorPair(this.Begin, this.End); } }
+		public KeySelectorPair Range { get { return new KeySelectorPair(this.Begin, this.End); } }
 
 		/// <summary>Stores all the settings for this range query</summary>
 		internal FdbRangeOptions Options { get; }
 
 		/// <summary>Original key selector pair describing the bounds of the parent range. All the results returned by the query will be bounded by this original range.</summary>
 		/// <remarks>May differ from <see cref="Range"/> when combining certain operators.</remarks>
-		internal FdbKeySelectorPair OriginalRange { get; }
+		internal KeySelectorPair OriginalRange { get; }
 
 		/// <summary>Limit in number of rows to return</summary>
 		public int? Limit { get { return this.Options.Limit; } }
@@ -217,9 +217,9 @@ namespace FoundationDB.Client
 		/// <param name="bytes"></param>
 		/// <returns>A new query object that will use the specified target bytes size when executed</returns>
 		[NotNull]
-		public FdbRangeQuery<T> WithTargetBytes(int bytes)
+		public FdbRangeQuery<T> WithTargetBytes([Positive] int bytes)
 		{
-			if (bytes < 0) throw new ArgumentOutOfRangeException("bytes", "Value cannot be less than zero");
+			Contract.Positive(bytes, nameof(bytes));
 
 			return new FdbRangeQuery<T>(
 				this,

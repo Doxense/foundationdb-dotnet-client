@@ -353,21 +353,21 @@ namespace FoundationDB.Client
 			return new FdbSubspace(ConcatKey(suffix));
 		}
 
-		public FdbKeyRange ToRange()
+		public KeyRange ToRange()
 		{
 			return ToRange(Slice.Empty);
 		}
 
-		public virtual FdbKeyRange ToRange(Slice suffix)
+		public virtual KeyRange ToRange(Slice suffix)
 		{
-			return FdbKeyRange.StartsWith(ConcatKey(suffix));
+			return KeyRange.StartsWith(ConcatKey(suffix));
 		}
 
-		public virtual FdbKeyRange ToRange<TKey>(TKey key)
+		public virtual KeyRange ToRange<TKey>(TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
-			return FdbKeyRange.StartsWith(ConcatKey(key.ToFoundationDbKey()));
+			return KeyRange.StartsWith(ConcatKey(key.ToFoundationDbKey()));
 		}
 
 		public IFdbSubspace this[Slice suffix]

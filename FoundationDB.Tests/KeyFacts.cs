@@ -200,44 +200,44 @@ namespace FoundationDB.Client.Tests
 		}
 	
 		[Test]
-		public void Test_FdbKeyRange_Contains()
+		public void Test_KeyRange_Contains()
 		{
-			FdbKeyRange range;
+			KeyRange range;
 
 			// ["", "")
-			range = FdbKeyRange.Empty;
+			range = KeyRange.Empty;
 			Assert.That(range.Contains(Slice.Empty), Is.False);
 			Assert.That(range.Contains(Slice.FromAscii("\x00")), Is.False);
 			Assert.That(range.Contains(Slice.FromAscii("hello")), Is.False);
 			Assert.That(range.Contains(Slice.FromAscii("\xFF")), Is.False);
 
 			// ["", "\xFF" )
-			range = FdbKeyRange.Create(Slice.Empty, Slice.FromAscii("\xFF"));
+			range = KeyRange.Create(Slice.Empty, Slice.FromAscii("\xFF"));
 			Assert.That(range.Contains(Slice.Empty), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("\x00")), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("hello")), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("\xFF")), Is.False);
 
 			// ["\x00", "\xFF" )
-			range = FdbKeyRange.Create(Slice.FromAscii("\x00"), Slice.FromAscii("\xFF"));
+			range = KeyRange.Create(Slice.FromAscii("\x00"), Slice.FromAscii("\xFF"));
 			Assert.That(range.Contains(Slice.Empty), Is.False);
 			Assert.That(range.Contains(Slice.FromAscii("\x00")), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("hello")), Is.True);
 			Assert.That(range.Contains(Slice.FromAscii("\xFF")), Is.False);
 
 			// corner cases
-			Assert.That(FdbKeyRange.Create(Slice.FromAscii("A"), Slice.FromAscii("A")).Contains(Slice.FromAscii("A")), Is.False, "Equal bounds");
+			Assert.That(KeyRange.Create(Slice.FromAscii("A"), Slice.FromAscii("A")).Contains(Slice.FromAscii("A")), Is.False, "Equal bounds");
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_Test()
+		public void Test_KeyRange_Test()
 		{
 			const int BEFORE = -1, INSIDE = 0, AFTER = +1;
 
-			FdbKeyRange range;
+			KeyRange range;
 
 			// range: [ "A", "Z" )
-			range = FdbKeyRange.Create(Slice.FromAscii("A"), Slice.FromAscii("Z"));
+			range = KeyRange.Create(Slice.FromAscii("A"), Slice.FromAscii("Z"));
 
 			// Excluding the end: < "Z"
 			Assert.That(range.Test(Slice.FromAscii("\x00"), endIncluded: false), Is.EqualTo(BEFORE));
@@ -255,7 +255,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(range.Test(Slice.FromAscii("Z\x00"), endIncluded: true), Is.EqualTo(AFTER));
 			Assert.That(range.Test(Slice.FromAscii("\xFF"), endIncluded: true), Is.EqualTo(AFTER));
 
-			range = FdbKeyRange.Create(FdbTuple.EncodeKey("A"), FdbTuple.EncodeKey("Z"));
+			range = KeyRange.Create(FdbTuple.EncodeKey("A"), FdbTuple.EncodeKey("Z"));
 			Assert.That(range.Test(FdbTuple.Create("@")), Is.EqualTo((BEFORE)));
 			Assert.That(range.Test(FdbTuple.Create("A")), Is.EqualTo((INSIDE)));
 			Assert.That(range.Test(FdbTuple.Create("Z")), Is.EqualTo((AFTER)));
@@ -263,66 +263,66 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_StartsWith()
+		public void Test_KeyRange_StartsWith()
 		{
-			FdbKeyRange range;
+			KeyRange range;
 
 			// "abc" => [ "abc", "abd" )
-			range = FdbKeyRange.StartsWith(Slice.FromAscii("abc"));
+			range = KeyRange.StartsWith(Slice.FromAscii("abc"));
 			Assert.That(range.Begin, Is.EqualTo(Slice.FromAscii("abc")));
 			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("abd")));
 
 			// "" => ArgumentException
-			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.Empty), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => KeyRange.PrefixedBy(Slice.Empty), Throws.InstanceOf<ArgumentException>());
 
 			// "\xFF" => ArgumentException
-			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.FromAscii("\xFF")), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => KeyRange.PrefixedBy(Slice.FromAscii("\xFF")), Throws.InstanceOf<ArgumentException>());
 
 			// null => ArgumentException
-			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.Nil), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => KeyRange.PrefixedBy(Slice.Nil), Throws.InstanceOf<ArgumentException>());
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_PrefixedBy()
+		public void Test_KeyRange_PrefixedBy()
 		{
-			FdbKeyRange range;
+			KeyRange range;
 
 			// "abc" => [ "abc\x00", "abd" )
-			range = FdbKeyRange.PrefixedBy(Slice.FromAscii("abc"));
+			range = KeyRange.PrefixedBy(Slice.FromAscii("abc"));
 			Assert.That(range.Begin, Is.EqualTo(Slice.FromAscii("abc\x00")));
 			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("abd")));
 
 			// "" => ArgumentException
-			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.Empty), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => KeyRange.PrefixedBy(Slice.Empty), Throws.InstanceOf<ArgumentException>());
 
 			// "\xFF" => ArgumentException
-			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.FromAscii("\xFF")), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => KeyRange.PrefixedBy(Slice.FromAscii("\xFF")), Throws.InstanceOf<ArgumentException>());
 
 			// null => ArgumentException
-			Assert.That(() => FdbKeyRange.PrefixedBy(Slice.Nil), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => KeyRange.PrefixedBy(Slice.Nil), Throws.InstanceOf<ArgumentException>());
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_FromKey()
+		public void Test_KeyRange_FromKey()
 		{
-			FdbKeyRange range;
+			KeyRange range;
 
 			// "" => [ "", "\x00" )
-			range = FdbKeyRange.FromKey(Slice.Empty);
+			range = KeyRange.FromKey(Slice.Empty);
 			Assert.That(range.Begin, Is.EqualTo(Slice.Empty));
 			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("\x00")));
 
 			// "abc" => [ "abc", "abc\x00" )
-			range = FdbKeyRange.FromKey(Slice.FromAscii("abc"));
+			range = KeyRange.FromKey(Slice.FromAscii("abc"));
 			Assert.That(range.Begin, Is.EqualTo(Slice.FromAscii("abc")));
 			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("abc\x00")));
 
 			// "\xFF" => [ "\xFF", "\xFF\x00" )
-			range = FdbKeyRange.FromKey(Slice.FromAscii("\xFF"));
+			range = KeyRange.FromKey(Slice.FromAscii("\xFF"));
 			Assert.That(range.Begin, Is.EqualTo(Slice.FromAscii("\xFF")));
 			Assert.That(range.End, Is.EqualTo(Slice.FromAscii("\xFF\x00")));
 
-			Assert.That(() => FdbKeyRange.FromKey(Slice.Nil), Throws.InstanceOf<ArgumentException>());
+			Assert.That(() => KeyRange.FromKey(Slice.Nil), Throws.InstanceOf<ArgumentException>());
 		}
 
 		[Test]
@@ -365,7 +365,7 @@ namespace FoundationDB.Client.Tests
 			Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",).<00>"));
 			Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",).<FF>"));
 
-			key = FdbKeyRange.StartsWith(FdbTuple.EncodeKey("hello"));
+			key = KeyRange.StartsWith(FdbTuple.EncodeKey("hello"));
 			// "<02>hello<00>" .. "<02>hello<01>"
 			Assert.That(FdbKey.PrettyPrint(key.Begin, FdbKey.PrettyPrintMode.Begin), Is.EqualTo("(\"hello\",)"));
 			Assert.That(FdbKey.PrettyPrint(key.End, FdbKey.PrettyPrintMode.End), Is.EqualTo("(\"hello\",) + 1"));
@@ -378,9 +378,9 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_Intersects()
+		public void Test_KeyRange_Intersects()
 		{
-			Func<byte, byte, FdbKeyRange> range = (x, y) => FdbKeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
+			Func<byte, byte, KeyRange> range = (x, y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
 
 			#region Not Intersecting...
 
@@ -438,9 +438,9 @@ namespace FoundationDB.Client.Tests
 		}
 
 		[Test]
-		public void Test_FdbKeyRange_Disjoint()
+		public void Test_KeyRange_Disjoint()
 		{
-			Func<byte, byte, FdbKeyRange> range = (x, y) => FdbKeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
+			Func<byte, byte, KeyRange> range = (x, y) => KeyRange.Create(Slice.FromByte(x), Slice.FromByte(y));
 
 			#region Disjoint...
 

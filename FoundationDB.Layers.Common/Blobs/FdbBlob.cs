@@ -108,7 +108,7 @@ namespace FoundationDB.Layers.Blobs
 		{
 			Contract.Requires(trans != null && offset >= 0);
 
-			var chunkKey = await trans.GetKeyAsync(FdbKeySelector.LastLessOrEqual(DataKey(offset))).ConfigureAwait(false);
+			var chunkKey = await trans.GetKeyAsync(KeySelector.LastLessOrEqual(DataKey(offset))).ConfigureAwait(false);
 			if (chunkKey.IsNull)
 			{ // nothing before (sparse)
 				return default(Chunk);
@@ -242,8 +242,8 @@ namespace FoundationDB.Layers.Blobs
 
 			await trans
 				.GetRange(
-					FdbKeySelector.LastLessOrEqual(DataKey(offset)),
-					FdbKeySelector.FirstGreaterOrEqual(DataKey(offset + n))
+					KeySelector.LastLessOrEqual(DataKey(offset)),
+					KeySelector.FirstGreaterOrEqual(DataKey(offset + n))
 				)
 				.ForEachAsync((chunk) =>
 				{

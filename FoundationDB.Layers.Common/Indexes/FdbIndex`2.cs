@@ -151,7 +151,7 @@ namespace FoundationDB.Layers.Indexing
 			var prefix = this.Location.Partial.Keys.Encode(value);
 
 			return trans
-				.GetRange(FdbKeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
+				.GetRange(KeyRange.StartsWith(prefix), new FdbRangeOptions { Reverse = reverse })
 				.Select((kvp) => this.Location.Keys.Decode(kvp.Key).Item2);
 		}
 
@@ -161,9 +161,9 @@ namespace FoundationDB.Layers.Indexing
 			var prefix = this.Location.Partial.Keys.Encode(value);
 			if (!orEqual) prefix = FdbKey.Increment(prefix);
 
-			var space = new FdbKeySelectorPair(
-				FdbKeySelector.FirstGreaterThan(prefix),
-				FdbKeySelector.FirstGreaterOrEqual(this.Location.ToRange().End)
+			var space = new KeySelectorPair(
+				KeySelector.FirstGreaterThan(prefix),
+				KeySelector.FirstGreaterOrEqual(this.Location.ToRange().End)
 			);
 
 			return trans
@@ -177,9 +177,9 @@ namespace FoundationDB.Layers.Indexing
 			var prefix = this.Location.Partial.Keys.Encode(value);
 			if (orEqual) prefix = FdbKey.Increment(prefix);
 
-			var space = new FdbKeySelectorPair(
-				FdbKeySelector.FirstGreaterOrEqual(this.Location.ToRange().Begin),
-				FdbKeySelector.FirstGreaterThan(prefix)
+			var space = new KeySelectorPair(
+				KeySelector.FirstGreaterOrEqual(this.Location.ToRange().Begin),
+				KeySelector.FirstGreaterThan(prefix)
 			);
 
 			return trans

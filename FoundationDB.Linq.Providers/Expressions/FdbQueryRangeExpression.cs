@@ -40,14 +40,14 @@ namespace FoundationDB.Linq.Expressions
 	public class FdbQueryRangeExpression : FdbQuerySequenceExpression<KeyValuePair<Slice, Slice>>
 	{
 
-		internal FdbQueryRangeExpression(FdbKeySelectorPair range, FdbRangeOptions options)
+		internal FdbQueryRangeExpression(KeySelectorPair range, FdbRangeOptions options)
 		{
 			this.Range = range;
 			this.Options = options;
 		}
 
 		/// <summary>Returns the pair of key selectors for this range query</summary>
-		public FdbKeySelectorPair Range { get; private set; }
+		public KeySelectorPair Range { get; private set; }
 
 		/// <summary>Returns the options for this range query</summary>
 		public FdbRangeOptions Options { get; private set; }
@@ -73,10 +73,10 @@ namespace FoundationDB.Linq.Expressions
 		{
 			var prmTrans = Expression.Parameter(typeof(IFdbReadOnlyTransaction), "trans");
 
-			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbReadOnlyTransaction, FdbKeySelectorPair, FdbRangeOptions, FdbRangeQuery<KeyValuePair<Slice, Slice>>>>(
+			var body = FdbExpressionHelpers.RewriteCall<Func<IFdbReadOnlyTransaction, KeySelectorPair, FdbRangeOptions, FdbRangeQuery<KeyValuePair<Slice, Slice>>>>(
 				(trans, range, options) => trans.GetRange(range, options),
 				prmTrans,
-				Expression.Constant(this.Range, typeof(FdbKeySelectorPair)),
+				Expression.Constant(this.Range, typeof(KeySelectorPair)),
 				Expression.Constant(this.Options, typeof(FdbRangeOptions))
 			);
 

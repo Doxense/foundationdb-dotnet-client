@@ -138,7 +138,7 @@ namespace FoundationDB.Layers.Messaging
 					using (var tr = db.BeginTransaction(ct))
 					{
 						await tr.Snapshot
-							.GetRange(FdbKeyRange.StartsWith(location.Key))
+							.GetRange(KeyRange.StartsWith(location.Key))
 							.ForEachAsync((kvp) =>
 							{
 								Console.WriteLine(" - " + location.Keys.Unpack(kvp.Key) + " = " + kvp.Value.ToAsciiOrHexaString());

@@ -107,7 +107,7 @@ namespace FoundationDB.Layers.Blobs
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
 
 			await trans
-				.GetRange(FdbKeyRange.StartsWith(prefix))
+				.GetRange(KeyRange.StartsWith(prefix))
 				.ForEachAsync((kvp) =>
 				{
 					string field = this.Subspace.Keys.DecodeLast<string>(kvp.Key);
@@ -193,7 +193,7 @@ namespace FoundationDB.Layers.Blobs
 			if (id == null) throw new ArgumentNullException("id");
 
 			// remove all fields of the hash
-			trans.ClearRange(FdbKeyRange.StartsWith(GetKey(id)));
+			trans.ClearRange(KeyRange.StartsWith(GetKey(id)));
 		}
 
 		/// <summary>Remove one or more fields of an hashset</summary>
@@ -233,7 +233,7 @@ namespace FoundationDB.Layers.Blobs
 			var results = new Dictionary<string, Slice>(StringComparer.OrdinalIgnoreCase);
 
 			return trans
-				.GetRange(FdbKeyRange.StartsWith(prefix))
+				.GetRange(KeyRange.StartsWith(prefix))
 				.Select((kvp) => ParseFieldKey(FdbTuple.Unpack(kvp.Key)))
 				.ToListAsync(cancellationToken);
 		}

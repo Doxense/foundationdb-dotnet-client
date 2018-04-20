@@ -76,7 +76,7 @@ namespace FoundationDB.Client
 			return this.Encoder.DecodeKey(this.Subspace.ExtractKey(packed));
 		}
 
-		public FdbKeyRange ToRange(T value)
+		public KeyRange ToRange(T value)
 		{
 			//REVIEW: which semantic for ToRange() should we use?
 			return FdbTuple.ToRange(Encode(value));

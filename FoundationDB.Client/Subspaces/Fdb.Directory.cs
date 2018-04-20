@@ -28,10 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Linq;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
@@ -39,6 +35,10 @@ namespace FoundationDB.Client
 	using System.Threading;
 	using System.Threading.Tasks;
 	using SystemIO = System.IO;
+	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Directories;
+	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{

@@ -34,13 +34,13 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]
-	public struct FdbKeyRange : IEquatable<FdbKeyRange>, IComparable<FdbKeyRange>
+	public struct KeyRange : IEquatable<KeyRange>, IComparable<KeyRange>
 	{
 		/// <summary>Returns an empty pair of keys</summary>
-		public static FdbKeyRange Empty { get { return default(FdbKeyRange); } }
+		public static KeyRange Empty { get { return default(KeyRange); } }
 
 		/// <summary>Returns a range that contains all the keys in the database</summary>
-		public static FdbKeyRange All { get { return new FdbKeyRange(FdbKey.MinValue, FdbKey.MaxValue); } }
+		public static KeyRange All { get { return new KeyRange(FdbKey.MinValue, FdbKey.MaxValue); } }
 
 		/// <summary>Start of the range</summary>
 		public Slice Begin { get { return m_begin; } }
@@ -55,7 +55,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="begin">Start of range (usually included)</param>
 		/// <param name="end">End of range (usually excluded)</param>
-		public FdbKeyRange(Slice begin, Slice end)
+		public KeyRange(Slice begin, Slice end)
 		{
 			m_begin = begin;
 			m_end = end;
@@ -63,7 +63,7 @@ namespace FoundationDB.Client
 			Contract.Ensures(m_begin <= m_end, "The range is inverted");
 		}
 
-		public FdbKeyRange(IFdbKey begin, IFdbKey end)
+		public KeyRange(IFdbKey begin, IFdbKey end)
 		{
 			if (begin == null) throw new ArgumentNullException("begin");
 			if (end == null) throw new ArgumentNullException("end");
@@ -74,28 +74,28 @@ namespace FoundationDB.Client
 			Contract.Ensures(m_begin <= m_end, "The range is inverted");
 		}
 
-		public static FdbKeyRange Create(Slice a, Slice b)
+		public static KeyRange Create(Slice a, Slice b)
 		{
-			return new FdbKeyRange(a, b);
+			return new KeyRange(a, b);
 		}
 
 		/// <summary>Create a range that will return all keys starting with <paramref name="prefix"/>: ('prefix' &lt;= k &lt; strinc('prefix'))</summary>
 		/// <param name="prefix"></param>
 		/// <returns></returns>
-		public static FdbKeyRange StartsWith(Slice prefix)
+		public static KeyRange StartsWith(Slice prefix)
 		{
 			if (prefix.IsNull) throw Fdb.Errors.KeyCannotBeNull("prefix");
-			if (prefix.Count == 0) return new FdbKeyRange(Slice.Empty, FdbKey.MaxValue);
+			if (prefix.Count == 0) return new KeyRange(Slice.Empty, FdbKey.MaxValue);
 
 
 			// prefix => [ prefix, prefix + 1 )
-			return new FdbKeyRange(
+			return new KeyRange(
 				prefix,
 				FdbKey.Increment(prefix)
 			);
 		}
 
-		public static FdbKeyRange StartsWith<TKey>(TKey prefix)
+		public static KeyRange StartsWith<TKey>(TKey prefix)
 			where TKey : IFdbKey
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
@@ -105,18 +105,18 @@ namespace FoundationDB.Client
 		/// <summary>Create a range that selects all keys starting with <paramref name="prefix"/>, but not the prefix itself: ('prefix\x00' &lt;= k &lt; string('prefix')</summary>
 		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>
-		public static FdbKeyRange PrefixedBy(Slice prefix)
+		public static KeyRange PrefixedBy(Slice prefix)
 		{
 			if (prefix.IsNull) throw Fdb.Errors.KeyCannotBeNull("prefix");
 
 			// prefix => [ prefix."\0", prefix + 1)
-			return new FdbKeyRange(
+			return new KeyRange(
 				prefix + FdbKey.MinValue,
 				FdbKey.Increment(prefix)
 			);
 		}
 
-		public static FdbKeyRange PrefixedBy<TKey>(TKey prefix)
+		public static KeyRange PrefixedBy<TKey>(TKey prefix)
 			where TKey : IFdbKey
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");
@@ -126,22 +126,22 @@ namespace FoundationDB.Client
 		/// <summary>Create a range that will only return <paramref name="key"/> itself ('key' &lt;= k &lt; 'key\x00')</summary>
 		/// <param name="key">Key that will be returned by the range</param>
 		/// <returns>Range that only return the specified key.</returns>
-		public static FdbKeyRange FromKey(Slice key)
+		public static KeyRange FromKey(Slice key)
 		{
 			if (key.IsNull) throw Fdb.Errors.KeyCannotBeNull();
 
 			if (key.Count == 0)
 			{ // "" => [ "", "\x00" )
-				return new FdbKeyRange(Slice.Empty, FdbKey.MinValue);
+				return new KeyRange(Slice.Empty, FdbKey.MinValue);
 			}
 			// key => [ key, key + '\0' )
-			return new FdbKeyRange(
+			return new KeyRange(
 				key,
 				key + FdbKey.MinValue
 			);
 		}
 
-		public static FdbKeyRange FromKey<TKey>(TKey key)
+		public static KeyRange FromKey<TKey>(TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -150,7 +150,7 @@ namespace FoundationDB.Client
 
 		public override bool Equals(object obj)
 		{
-			return (obj is FdbKeyRange) && Equals((FdbKeyRange)obj);
+			return (obj is KeyRange) && Equals((KeyRange)obj);
 		}
 
 		public override int GetHashCode()
@@ -162,22 +162,22 @@ namespace FoundationDB.Client
 			return ((h1 << 5) + h1) ^ h2;
 		}
 
-		public bool Equals(FdbKeyRange other)
+		public bool Equals(KeyRange other)
 		{
 			return m_begin.Equals(other.m_begin) && m_end.Equals(other.m_end);
 		}
 
-		public static bool operator ==(FdbKeyRange left, FdbKeyRange right)
+		public static bool operator ==(KeyRange left, KeyRange right)
 		{
 			return left.m_begin.Equals(right.m_begin) && left.m_end.Equals(right.m_end);
 		}
 
-		public static bool operator !=(FdbKeyRange left, FdbKeyRange right)
+		public static bool operator !=(KeyRange left, KeyRange right)
 		{
 			return !left.m_begin.Equals(right.m_begin) || !left.m_end.Equals(right.m_end);
 		}
 
-		public int CompareTo(FdbKeyRange other)
+		public int CompareTo(KeyRange other)
 		{
 			int c = m_begin.CompareTo(other.m_begin);
 			if (c == 0) c = m_end.CompareTo(other.m_end);
@@ -188,18 +188,18 @@ namespace FoundationDB.Client
 		/// <param name="other">Range to merge with the current range</param>
 		/// <returns>New range where the Begin key is the smallest bound and the End key is the largest bound of both ranges.</returns>
 		/// <remarks>If both range are disjoint, then the resulting range will also contain the keys in between.</remarks>
-		public FdbKeyRange Merge(FdbKeyRange other)
+		public KeyRange Merge(KeyRange other)
 		{
 			Slice begin = m_begin.CompareTo(other.m_begin) <= 0 ? m_begin : other.m_begin;
 			Slice end = m_end.CompareTo(other.m_end) >= 0 ? m_end : other.m_end;
-			return new FdbKeyRange(begin, end);
+			return new KeyRange(begin, end);
 		}
 
 		/// <summary>Checks whether the current and the specified range are intersecting (i.e: there exists at at least one key that belongs to both ranges)</summary>
 		/// <param name="other">Range that is being checked for interection</param>
 		/// <returns>True if the other range intersects the current range.</returns>
 		/// <remarks>Note that ranges [0, 1) and [1, 2) do not intersect, since the end is exclusive by default</remarks>
-		public bool Intersects(FdbKeyRange other)
+		public bool Intersects(KeyRange other)
 		{
 			int c = m_begin.CompareTo(other.m_begin);
 			if (c == 0)
@@ -220,7 +220,7 @@ namespace FoundationDB.Client
 		/// <param name="other"></param>
 		/// <returns></returns>
 		/// <remarks>Note that ranges [0, 1) and [1, 2) are not disjoint because, even though they do not intersect, they are both contiguous.</remarks>
-		public bool Disjoint(FdbKeyRange other)
+		public bool Disjoint(KeyRange other)
 		{
 			int c = m_begin.CompareTo(other.m_begin);
 			if (c == 0)

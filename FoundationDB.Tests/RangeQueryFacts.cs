@@ -514,7 +514,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.MergeSort(
-						lists.Select(list => FdbKeySelectorPair.Create(list.Keys.ToRange())),
+						lists.Select(list => KeySelectorPair.Create(list.Keys.ToRange())),
 						kvp => location.Keys.DecodeLast<int>(kvp.Key)
 						);
 
@@ -584,7 +584,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.Intersect(
-						lists.Select(list => FdbKeySelectorPair.Create(list.Keys.ToRange())),
+						lists.Select(list => KeySelectorPair.Create(list.Keys.ToRange())),
 						kvp => location.Keys.DecodeLast<int>(kvp.Key)
 					);
 
@@ -656,7 +656,7 @@ namespace FoundationDB.Client.Tests
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
 					var merge = tr.Except(
-						lists.Select(list => FdbKeySelectorPair.Create(list.Keys.ToRange())),
+						lists.Select(list => KeySelectorPair.Create(list.Keys.ToRange())),
 						kvp => location.Keys.DecodeLast<int>(kvp.Key)
 					);
 

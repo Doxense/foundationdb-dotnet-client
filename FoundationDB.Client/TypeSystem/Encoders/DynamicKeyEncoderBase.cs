@@ -8,9 +8,9 @@ namespace FoundationDB.Client
 
 		public abstract IFdbKeyEncoding Encoding { get; }
 
-		public virtual FdbKeyRange ToRange(Slice prefix)
+		public virtual KeyRange ToRange(Slice prefix)
 		{
-			return FdbKeyRange.StartsWith(prefix);
+			return KeyRange.StartsWith(prefix);
 		}
 
 		public abstract void PackKey(ref SliceWriter writer, IFdbTuple items);
@@ -92,49 +92,49 @@ namespace FoundationDB.Client
 			return UnpackKey(packed).With((T1 a, T2 b, T3 c, T4 d, T5 e) => FdbTuple.Create(a, b, c, d, e));
 		}
 
-		public virtual FdbKeyRange ToRange(Slice prefix, IFdbTuple items)
+		public virtual KeyRange ToRange(Slice prefix, IFdbTuple items)
 		{
 			var writer = new SliceWriter(prefix, 16);
 			PackKey(ref writer, items);
 			return ToRange(writer.ToSlice());
 		}
 
-		public virtual FdbKeyRange ToKeyRange<T1>(Slice prefix, T1 item1)
+		public virtual KeyRange ToKeyRange<T1>(Slice prefix, T1 item1)
 		{
 			return ToRange(prefix, FdbTuple.Create(item1));
 		}
 
-		public virtual FdbKeyRange ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
+		public virtual KeyRange ToKeyRange<T1, T2>(Slice prefix, T1 item1, T2 item2)
 		{
 			return ToRange(prefix, FdbTuple.Create(item1, item2));
 		}
 
-		public virtual FdbKeyRange ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
+		public virtual KeyRange ToKeyRange<T1, T2, T3>(Slice prefix, T1 item1, T2 item2, T3 item3)
 		{
 			return ToRange(prefix, FdbTuple.Create(item1, item3, item3));
 		}
 
-		public virtual FdbKeyRange ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
+		public virtual KeyRange ToKeyRange<T1, T2, T3, T4>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4)
 		{
 			return ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4));
 		}
 
-		public virtual FdbKeyRange ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
+		public virtual KeyRange ToKeyRange<T1, T2, T3, T4, T5>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5)
 		{
 			return ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4, item5));
 		}
 
-		public virtual FdbKeyRange ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
+		public virtual KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6)
 		{
 			return ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4, item5, item6));
 		}
 
-		public virtual FdbKeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
+		public virtual KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7)
 		{
 			return ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4, item5, item6, item7));
 		}
 
-		public virtual FdbKeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
+		public virtual KeyRange ToKeyRange<T1, T2, T3, T4, T5, T6, T7, T8>(Slice prefix, T1 item1, T2 item2, T3 item3, T4 item4, T5 item5, T6 item6, T7 item7, T8 item8)
 		{
 			return ToRange(prefix, FdbTuple.Create(item1, item3, item3, item4, item5, item6, item7, item8));
 		}

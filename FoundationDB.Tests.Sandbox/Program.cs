@@ -730,7 +730,7 @@ namespace FoundationDB.Tests.Sandbox
 			{
 				var mergesort = tr
 					.MergeSort(
-						sources.Select(source => FdbKeySelectorPair.StartsWith(location.Keys.Encode(source))),
+						sources.Select(source => KeySelectorPair.StartsWith(location.Keys.Encode(source))),
 						(kvp) => location.Keys.DecodeLast<int>(kvp.Key)
 					)
 					.Take(B)

@@ -42,7 +42,7 @@ namespace FoundationDB.Client
 		#region MergeSort (x OR y)
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> MergeSort<TKey>([NotNull] this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans, nameof(trans));
@@ -60,7 +60,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> MergeSort<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> MergeSort<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans, nameof(trans));
@@ -79,7 +79,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Union<TKey, TResult>(IEnumerable<IFdbAsyncEnumerable<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Union<TKey, TResult>([NotNull] IEnumerable<IFdbAsyncEnumerable<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(sources, nameof(sources));
 			Contract.NotNull(keySelector, nameof(keySelector));
@@ -93,7 +93,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Union<TResult>(IEnumerable<IFdbAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Union<TResult>([NotNull] IEnumerable<IFdbAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
 		{
 			Contract.NotNull(sources, nameof(sources));
 			return new FdbMergeSortIterator<TResult, TResult, TResult>(
@@ -110,7 +110,7 @@ namespace FoundationDB.Client
 		#region Intersect (x AND y)
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Intersect<TKey>([NotNull] this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans, nameof(trans));
@@ -128,7 +128,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 
@@ -143,7 +143,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(this IFdbAsyncEnumerable<TResult> first, IFdbAsyncEnumerable<TResult> second, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] this IFdbAsyncEnumerable<TResult> first, IFdbAsyncEnumerable<TResult> second, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(first, nameof(first));
 			Contract.NotNull(second, nameof(second));
@@ -157,7 +157,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Intersect<TResult>(this IFdbAsyncEnumerable<TResult> first, IFdbAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
+		public static IFdbAsyncEnumerable<TResult> Intersect<TResult>([NotNull] this IFdbAsyncEnumerable<TResult> first, IFdbAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
 		{
 			Contract.NotNull(first, nameof(first));
 			Contract.NotNull(second, nameof(second));
@@ -171,7 +171,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>(IEnumerable<IFdbAsyncEnumerable<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Intersect<TKey, TResult>([NotNull] IEnumerable<IFdbAsyncEnumerable<TResult>> sources, Func<TResult, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(sources, nameof(sources));
 			Contract.NotNull(keySelector, nameof(keySelector));
@@ -185,7 +185,7 @@ namespace FoundationDB.Client
 		}
 
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Intersect<TResult>(IEnumerable<IFdbAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Intersect<TResult>([NotNull] IEnumerable<IFdbAsyncEnumerable<TResult>> sources, IComparer<TResult> keyComparer = null)
 		{
 			Contract.NotNull(sources, nameof(sources));
 			return new FdbIntersectIterator<TResult, TResult, TResult>(
@@ -209,7 +209,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>(this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>([NotNull] this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 			Contract.NotNull(trans, nameof(trans));
@@ -234,10 +234,10 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>([NotNull] this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeyRange> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<KeyValuePair<Slice, Slice>> Except<TKey>([NotNull] this IFdbReadOnlyTransaction trans, IEnumerable<KeyRange> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(ranges, nameof(ranges));
-			return Except<TKey>(trans, ranges.Select(r => FdbKeySelectorPair.Create(r)), keySelector, keyComparer);
+			return Except<TKey>(trans, ranges.Select(r => KeySelectorPair.Create(r)), keySelector, keyComparer);
 		}
 
 		/// <summary>Return the keys that are in the first range, but not in the others</summary>
@@ -250,7 +250,7 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, IEnumerable<FdbKeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, IEnumerable<KeySelectorPair> ranges, Func<KeyValuePair<Slice, Slice>, TKey> keySelector, Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			//TODO: Range options ?
 
@@ -274,10 +274,10 @@ namespace FoundationDB.Client
 		/// <param name="keyComparer">Instance used to compare the keys returned by <paramref name="keySelector"/></param>
 		/// <returns>Async query that returns only the results that are in the first range, and not in any other range.</returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<FdbKeyRange> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
+		public static IFdbAsyncEnumerable<TResult> Except<TKey, TResult>([NotNull] this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<KeyRange> ranges, [NotNull] Func<KeyValuePair<Slice, Slice>, TKey> keySelector, [NotNull] Func<KeyValuePair<Slice, Slice>, TResult> resultSelector, IComparer<TKey> keyComparer = null)
 		{
 			Contract.NotNull(ranges, nameof(ranges));
-			return Except<TKey, TResult>(trans, ranges.Select(r => FdbKeySelectorPair.Create(r)), keySelector, resultSelector, keyComparer);
+			return Except<TKey, TResult>(trans, ranges.Select(r => KeySelectorPair.Create(r)), keySelector, resultSelector, keyComparer);
 		}
 
 		/// <summary>Sequence the return only the elements of <paramref name="first"/> that are not in <paramref name="second"/>, using a custom key comparison</summary>
@@ -310,7 +310,7 @@ namespace FoundationDB.Client
 		/// <param name="comparer">Instance used to compare elements</param>
 		/// <returns>Async query that returns only the elements that are in <paramref name="first"/>, and not in <paramref name="second"/></returns>
 		[Pure, NotNull, LinqTunnel]
-		public static IFdbAsyncEnumerable<TResult> Except<TResult>(this IFdbAsyncEnumerable<TResult> first, IFdbAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
+		public static IFdbAsyncEnumerable<TResult> Except<TResult>([NotNull] this IFdbAsyncEnumerable<TResult> first, [NotNull] IFdbAsyncEnumerable<TResult> second, IComparer<TResult> comparer = null)
 		{
 			Contract.NotNull(first, nameof(first));
 			Contract.NotNull(second, nameof(second));

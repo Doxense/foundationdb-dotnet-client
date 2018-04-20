@@ -35,10 +35,10 @@ namespace FoundationDB.Client
 
 	/// <summary>Defines a selector for a key in the database</summary>
 	[DebuggerDisplay("{ToString()}")]
-	public struct FdbKeySelector : IEquatable<FdbKeySelector>
+	public struct KeySelector : IEquatable<KeySelector>
 	{
 		/// <summary>Empty key selector</summary>
-		public static readonly FdbKeySelector None = default(FdbKeySelector);
+		public static readonly KeySelector None = default(KeySelector);
 
 		/// <summary>Key of the selector</summary>
 		public Slice Key { get { return m_key; } }
@@ -51,7 +51,7 @@ namespace FoundationDB.Client
 		public readonly int Offset;
 
 		/// <summary>Creates a new selector</summary>
-		public FdbKeySelector(Slice key, bool orEqual, int offset)
+		public KeySelector(Slice key, bool orEqual, int offset)
 		{
 			m_key = key;
 			this.OrEqual = orEqual;
@@ -59,7 +59,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Creates a new selector</summary>
-		public FdbKeySelector(IFdbKey key, bool orEqual, int offset)
+		public KeySelector(IFdbKey key, bool orEqual, int offset)
 		{
 			if (key == null) throw new ArgumentNullException("key");
 			m_key = key.ToFoundationDbKey();
@@ -93,20 +93,20 @@ namespace FoundationDB.Client
 			return sb.ToString();
 		}
 
-		/// <summary>Converts the value of the current <see cref="FdbKeySelector"/> object into its equivalent string representation</summary>
+		/// <summary>Converts the value of the current <see cref="KeySelector"/> object into its equivalent string representation</summary>
 		public override string ToString()
 		{
 			return PrettyPrint(FdbKey.PrettyPrintMode.Single);
 		}
 
-		public bool Equals(FdbKeySelector other)
+		public bool Equals(KeySelector other)
 		{
 			return this.Offset == other.Offset && this.OrEqual == other.OrEqual && m_key.Equals(other.m_key);
 		}
 
 		public override bool Equals(object obj)
 		{
-			return obj is FdbKeySelector && Equals((FdbKeySelector)obj);
+			return obj is KeySelector && Equals((KeySelector)obj);
 		}
 
 		public override int GetHashCode()
@@ -116,35 +116,35 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
-		public static FdbKeySelector LastLessThan(Slice key)
+		public static KeySelector LastLessThan(Slice key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_THAN(k, l) k, l, 0, 0
-			return new FdbKeySelector(key, false, 0);
+			return new KeySelector(key, false, 0);
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
-		public static FdbKeySelector LastLessOrEqual(Slice key)
+		public static KeySelector LastLessOrEqual(Slice key)
 		{
 			// #define FDB_KEYSEL_LAST_LESS_OR_EQUAL(k, l) k, l, 1, 0
-			return new FdbKeySelector(key, true, 0);
+			return new KeySelector(key, true, 0);
 		}
 
 		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
-		public static FdbKeySelector FirstGreaterThan(Slice key)
+		public static KeySelector FirstGreaterThan(Slice key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_THAN(k, l) k, l, 1, 1
-			return new FdbKeySelector(key, true, 1);
+			return new KeySelector(key, true, 1);
 		}
 
 		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
-		public static FdbKeySelector FirstGreaterOrEqual(Slice key)
+		public static KeySelector FirstGreaterOrEqual(Slice key)
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
-			return new FdbKeySelector(key, false, 1);
+			return new KeySelector(key, false, 1);
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
-		public static FdbKeySelector LastLessThan<TKey>(TKey key)
+		public static KeySelector LastLessThan<TKey>(TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -152,7 +152,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
-		public static FdbKeySelector LastLessOrEqual<TKey>(TKey key)
+		public static KeySelector LastLessOrEqual<TKey>(TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -160,7 +160,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
-		public static FdbKeySelector FirstGreaterThan<TKey>(TKey key)
+		public static KeySelector FirstGreaterThan<TKey>(TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -168,7 +168,7 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
-		public static FdbKeySelector FirstGreaterOrEqual<TKey>(TKey key)
+		public static KeySelector FirstGreaterOrEqual<TKey>(TKey key)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -179,26 +179,26 @@ namespace FoundationDB.Client
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <param name="offset">ex: 7</param>
 		/// <returns>fGE('abc')+7</returns>
-		public static FdbKeySelector operator +(FdbKeySelector selector, int offset)
+		public static KeySelector operator +(KeySelector selector, int offset)
 		{
-			return new FdbKeySelector(selector.m_key, selector.OrEqual, selector.Offset + offset);
+			return new KeySelector(selector.m_key, selector.OrEqual, selector.Offset + offset);
 		}
 
 		/// <summary>Substract a value to the selector's offset</summary>
 		/// <param name="selector">ex: fGE('abc')</param>
 		/// <param name="offset">ex: 7</param>
 		/// <returns>fGE('abc')-7</returns>
-		public static FdbKeySelector operator -(FdbKeySelector selector, int offset)
+		public static KeySelector operator -(KeySelector selector, int offset)
 		{
-			return new FdbKeySelector(selector.m_key, selector.OrEqual, selector.Offset - offset);
+			return new KeySelector(selector.m_key, selector.OrEqual, selector.Offset - offset);
 		}
 
-		public static bool operator ==(FdbKeySelector left, FdbKeySelector right)
+		public static bool operator ==(KeySelector left, KeySelector right)
 		{
 			return left.Equals(right);
 		}
 
-		public static bool operator !=(FdbKeySelector left, FdbKeySelector right)
+		public static bool operator !=(KeySelector left, KeySelector right)
 		{
 			return !left.Equals(right);
 		}

@@ -169,8 +169,8 @@ namespace FoundationDB.Layers.Collections
 				var lss = this.Subspace.Partition.ByKey(level);
 				long lastCount = 0;
 				var kcs = await trans.GetRange(
-					FdbKeySelector.FirstGreaterOrEqual(lss.Keys.Encode(rankKey)),
-					FdbKeySelector.FirstGreaterThan(lss.Keys.Encode(key))
+					KeySelector.FirstGreaterOrEqual(lss.Keys.Encode(rankKey)),
+					KeySelector.FirstGreaterThan(lss.Keys.Encode(key))
 				).ToListAsync().ConfigureAwait(false);
 				foreach (var kc in kcs)
 				{
@@ -278,12 +278,12 @@ namespace FoundationDB.Layers.Collections
 			var k = this.Subspace.Keys.Encode(level, key);
 			//Console.WriteLine(k);
 			//Console.WriteLine("GetPreviousNode(" + level + ", " + key + ")");
-			//Console.WriteLine(FdbKeySelector.LastLessThan(k) + " <= x < " + FdbKeySelector.FirstGreaterOrEqual(k));
+			//Console.WriteLine(KeySelector.LastLessThan(k) + " <= x < " + KeySelector.FirstGreaterOrEqual(k));
 			var kv = await trans
 				.Snapshot
 				.GetRange(
-					FdbKeySelector.LastLessThan(k),
-					FdbKeySelector.FirstGreaterOrEqual(k)
+					KeySelector.LastLessThan(k),
+					KeySelector.FirstGreaterOrEqual(k)
 				)
 				.FirstAsync()
 				.ConfigureAwait(false);

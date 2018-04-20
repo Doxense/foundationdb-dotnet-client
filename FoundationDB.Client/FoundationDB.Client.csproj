@@ -101,7 +101,7 @@
     <Compile Include="FdbClusterFile.cs" />
     <Compile Include="Native\FdbNativeDatabase.cs" />
     <Compile Include="FdbDatabaseExtensions.cs" />
-    <Compile Include="FdbKeyRangeComparer.cs" />
+    <Compile Include="KeyRangeComparer.cs" />
     <Compile Include="Core\IFdbTransactionHandler.cs" />
     <Compile Include="Native\FdbNativeTransaction.cs" />
     <Compile Include="IFdbKey.cs" />
@@ -137,7 +137,7 @@
     <Compile Include="FdbExceptIterator.cs" />
     <Compile Include="FdbQueryMergeIterator.cs" />
     <Compile Include="FdbIntersectIterator.cs" />
-    <Compile Include="FdbKeySelectorPair.cs" />
+    <Compile Include="KeySelectorPair.cs" />
     <Compile Include="FdbMergeSortIterator.cs" />
     <Compile Include="Fdb.Errors.cs" />
     <Compile Include="Fdb.Options.cs" />
@@ -145,7 +145,7 @@
     <Compile Include="FdbRangeQuery.PagingIterator.cs" />
     <Compile Include="FdbException.cs" />
     <Compile Include="FdbRangeQuery.cs" />
-    <Compile Include="FdbKeyRange.cs" />
+    <Compile Include="KeyRange.cs" />
     <Compile Include="FdbKey.cs" />
     <Compile Include="FdbTransactionOption.cs" />
     <Compile Include="FdbDatabaseOption.cs" />
@@ -181,7 +181,7 @@
     <Compile Include="Layers\Tuples\IFdbTuple.cs" />
     <Compile Include="Subspaces\FdbSubspace.cs" />
     <Compile Include="Layers\Tuples\FdbTuple.cs" />
-    <Compile Include="FdbKeySelector.cs" />
+    <Compile Include="KeySelector.cs" />
     <Compile Include="FdbTransaction.cs" />
     <Compile Include="FdbDatabase.cs" />
     <Compile Include="FdbCluster.cs" />

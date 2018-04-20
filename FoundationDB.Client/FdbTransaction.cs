@@ -351,7 +351,7 @@ namespace FoundationDB.Client
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, StreamingMode, Reverse, ...)</param>
 		/// <param name="iteration">If streaming mode is FdbStreamingMode.Iterator, this parameter should start at 1 and be incremented by 1 for each successive call while reading this range. In all other cases it is ignored.</param>
 		/// <returns></returns>
-		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			EnsureCanRead();
 
@@ -371,7 +371,7 @@ namespace FoundationDB.Client
 
 		#region GetRange...
 
-		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, bool snapshot)
+		internal FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeCore(KeySelector begin, KeySelector end, FdbRangeOptions options, bool snapshot)
 		{
 			this.Database.EnsureKeyIsValid(begin.Key);
 			this.Database.EnsureKeyIsValid(end.Key, endExclusive: true);
@@ -393,7 +393,7 @@ namespace FoundationDB.Client
 		/// <param name="endExclusive">key selector defining the end of the range</param>
 		/// <param name="options">Optionnal query options (Limit, TargetBytes, Mode, Reverse, ...)</param>
 		/// <returns>Range query that, once executed, will return all the key-value pairs matching the providing selector pair</returns>
-		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			EnsureCanRead();
 
@@ -407,7 +407,7 @@ namespace FoundationDB.Client
 		/// <summary>Resolves a key selector against the keys in the database snapshot represented by transaction.</summary>
 		/// <param name="selector">Key selector to resolve</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
-		public async Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		public async Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			EnsureCanRead();
 
@@ -432,7 +432,7 @@ namespace FoundationDB.Client
 		/// </summary>
 		/// <param name="selectors">Key selectors to resolve</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
-		public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+		public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			EnsureCanRead();
 

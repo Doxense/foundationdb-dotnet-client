@@ -274,7 +274,7 @@ namespace FoundationDB.Client
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
 			[ItemNotNull]
-			public static Task<List<FdbKeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
+			public static Task<List<KeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, KeyRange range, CancellationToken cancellationToken)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 				return GetChunksAsync(db, range.Begin, range.End, cancellationToken);
@@ -288,7 +288,7 @@ namespace FoundationDB.Client
 			/// <returns>List of one or more chunks that constitutes the range, where each chunk represents a contiguous range stored on a single server. If the list contains a single range, that means that the range is small enough to fit inside a single chunk.</returns>
 			/// <remarks>This method is not transactional. It will return an answer no older than the Database object it is passed, but the returned ranges are an estimate and may not represent the exact boundary locations at any database version.</remarks>
 			[ItemNotNull]
-			public static async Task<List<FdbKeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
+			public static async Task<List<KeyRange>> GetChunksAsync([NotNull] IFdbDatabase db, Slice beginInclusive, Slice endExclusive, CancellationToken cancellationToken)
 			{
 				//REVIEW: maybe rename this to SplitIntoChunksAsync or SplitIntoShardsAsync or GetFragmentsAsync ?
 
@@ -298,24 +298,24 @@ namespace FoundationDB.Client
 				var boundaries = await GetBoundaryKeysAsync(db, beginInclusive, endExclusive, cancellationToken).ConfigureAwait(false);
 
 				int count = boundaries.Count;
-				var chunks = new List<FdbKeyRange>(count + 2);
+				var chunks = new List<KeyRange>(count + 2);
 
 				if (count == 0)
 				{ // the range does not cross any boundary, and is contained in just one chunk
-					chunks.Add(new FdbKeyRange(beginInclusive, endExclusive));
+					chunks.Add(new KeyRange(beginInclusive, endExclusive));
 					return chunks;
 				}
 
 				var k = boundaries[0];
-				if (k != beginInclusive) chunks.Add(new FdbKeyRange(beginInclusive, k));
+				if (k != beginInclusive) chunks.Add(new KeyRange(beginInclusive, k));
 
 				for (int i = 1; i < boundaries.Count; i++)
 				{
-					chunks.Add(new FdbKeyRange(k, boundaries[i]));
+					chunks.Add(new KeyRange(k, boundaries[i]));
 					k = boundaries[i];
 				}
 
-				if (k != endExclusive) chunks.Add(new FdbKeyRange(k, endExclusive));
+				if (k != endExclusive) chunks.Add(new KeyRange(k, endExclusive));
 
 				return chunks;
 			}
@@ -326,7 +326,7 @@ namespace FoundationDB.Client
 				Contract.Requires(trans != null && end >= begin);
 
 #if TRACE_COUNTING
-				trans.Annotate("Get boundary keys in range {0}", FdbKeyRange.Create(begin, end));
+				trans.Annotate("Get boundary keys in range {0}", KeyRange.Create(begin, end));
 #endif
 
 				trans.WithReadAccessToSystemKeys();
@@ -378,7 +378,7 @@ namespace FoundationDB.Client
 #if TRACE_COUNTING
 				if (results.Count == 0)
 				{
-					trans.Annotate("There is no chunk boundary in range {0}", FdbKeyRange.Create(begin, end));
+					trans.Annotate("There is no chunk boundary in range {0}", KeyRange.Create(begin, end));
 				}
 				else
 				{
@@ -395,7 +395,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
+			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, CancellationToken cancellationToken)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, null, cancellationToken);
 				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
@@ -408,7 +408,7 @@ namespace FoundationDB.Client
 			/// <param name="cancellationToken">Token used to cancel the operation</param>
 			/// <returns>Number of keys k such that range.Begin &lt;= k &gt; range.End</returns>
 			/// <remarks>If the range contains a large of number keys, the operation may need more than one transaction to complete, meaning that the number will not be transactionally accurate.</remarks>
-			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, FdbKeyRange range, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
+			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, KeyRange range, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, onProgress, cancellationToken);
 				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
@@ -454,13 +454,13 @@ namespace FoundationDB.Client
 				using (var tr = db.BeginReadOnlyTransaction(cancellationToken))
 				{
 #if TRACE_COUNTING
-					tr.Annotate("Estimating number of keys in range {0}", FdbKeyRange.Create(beginInclusive, endExclusive));
+					tr.Annotate("Estimating number of keys in range {0}", KeyRange.Create(beginInclusive, endExclusive));
 #endif
 
 					tr.SetOption(FdbTransactionOption.ReadYourWritesDisable);
 
 					// start looking for the first key in the range
-					cursor = await tr.Snapshot.GetKeyAsync(FdbKeySelector.FirstGreaterOrEqual(cursor)).ConfigureAwait(false);
+					cursor = await tr.Snapshot.GetKeyAsync(KeySelector.FirstGreaterOrEqual(cursor)).ConfigureAwait(false);
 					if (cursor >= end)
 					{ // the range is empty !
 						return 0;
@@ -479,7 +479,7 @@ namespace FoundationDB.Client
 					{
 						Contract.Assert(windowSize > 0);
 
-						var selector = FdbKeySelector.FirstGreaterOrEqual(cursor) + windowSize;
+						var selector = KeySelector.FirstGreaterOrEqual(cursor) + windowSize;
 						Slice next = Slice.Nil;
 						FdbException error = null;
 						try
@@ -530,8 +530,8 @@ namespace FoundationDB.Client
 								// Count the keys by reading them. Also, we know that there can not be more than windowSize - 1 remaining
 								int n = await tr.Snapshot
 									.GetRange(
-										FdbKeySelector.FirstGreaterThan(cursor), // cursor has already been counted once
-										FdbKeySelector.FirstGreaterOrEqual(end),
+										KeySelector.FirstGreaterThan(cursor), // cursor has already been counted once
+										KeySelector.FirstGreaterOrEqual(end),
 										new FdbRangeOptions() { Limit = windowSize - 1 }
 									)
 									.CountAsync()

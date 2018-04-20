@@ -68,7 +68,7 @@ namespace FoundationDB.Layers.Documents
 			var key = this.Location.Partial.Keys.Encode(id);
 
 			return trans
-				.GetRange(FdbKeyRange.StartsWith(key)) //TODO: options ?
+				.GetRange(KeyRange.StartsWith(key)) //TODO: options ?
 				.Select(kvp => kvp.Value)
 				.ToListAsync();
 		}
@@ -109,7 +109,7 @@ namespace FoundationDB.Layers.Documents
 			var key = this.Location.Partial.Keys.Encode(id);
 
 			// clear previous value
-			trans.ClearRange(FdbKeyRange.StartsWith(key));
+			trans.ClearRange(KeyRange.StartsWith(key));
 
 			int remaining = packed.Count;
 			if (remaining <= this.ChunkSize)
@@ -172,7 +172,7 @@ namespace FoundationDB.Layers.Documents
 			if (id == null) throw new ArgumentNullException("id");
 
 			var key = this.Location.Partial.Keys.Encode(id);
-			trans.ClearRange(FdbKeyRange.StartsWith(key));
+			trans.ClearRange(KeyRange.StartsWith(key));
 		}
 
 
@@ -186,7 +186,7 @@ namespace FoundationDB.Layers.Documents
 
 			foreach (var key in this.Location.Partial.Keys.Encode(ids))
 			{
-				trans.ClearRange(FdbKeyRange.StartsWith(key));
+				trans.ClearRange(KeyRange.StartsWith(key));
 			}
 		}
 

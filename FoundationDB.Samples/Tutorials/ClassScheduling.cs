@@ -46,7 +46,7 @@ namespace FoundationDB.Samples.Tutorials
 			return this.Subspace.Keys.Encode("attends", s, c);
 		}
 
-		protected FdbKeyRange AttendsKeys(string s)
+		protected KeyRange AttendsKeys(string s)
 		{
 			return this.Subspace.Keys.ToRange(FdbTuple.Create("attends", s));
 		}

@@ -228,7 +228,7 @@ namespace FoundationDB.Client.Native
 
 		/// <summary>Asynchronously fetch a new page of results</summary>
 		/// <returns>True if Chunk contains a new page of results. False if all results have been read.</returns>
-		public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector begin, FdbKeySelector end, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken cancellationToken)
+		public Task<FdbRangeChunk> GetRangeAsync(KeySelector begin, KeySelector end, FdbRangeOptions options, int iteration, bool snapshot, CancellationToken cancellationToken)
 		{
 			Contract.Requires(options != null);
 
@@ -262,7 +262,7 @@ namespace FoundationDB.Client.Native
 			return result;
 		}
 
-		public Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot, CancellationToken cancellationToken)
+		public Task<Slice> GetKeyAsync(KeySelector selector, bool snapshot, CancellationToken cancellationToken)
 		{
 			var future = FdbNative.TransactionGetKey(m_handle, selector, snapshot);
 			return FdbFuture.CreateTaskFromHandle(
@@ -272,7 +272,7 @@ namespace FoundationDB.Client.Native
 			);
 		}
 
-		public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors, bool snapshot, CancellationToken cancellationToken)
+		public Task<Slice[]> GetKeysAsync(KeySelector[] selectors, bool snapshot, CancellationToken cancellationToken)
 		{
 			Contract.Requires(selectors != null);
 

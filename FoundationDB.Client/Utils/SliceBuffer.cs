@@ -105,10 +105,10 @@ namespace FoundationDB.Client.Utils
 		/// <summary>Copy a pair of keys into the buffer, and return a new identical pair</summary>
 		/// <param name="range">Key range</param>
 		/// <returns>Equivalent pair of keys, that are backed by the buffer.</returns>
-		public FdbKeyRange InternRange(FdbKeyRange range)
+		public KeyRange InternRange(KeyRange range)
 		{
 			//TODO: if end is prefixed by begin, we could merge both keys (frequent when dealing with ranges on tuples that add \xFF
-			return new FdbKeyRange(
+			return new KeyRange(
 				Intern(range.Begin, aligned: true),
 				Intern(range.End, aligned: true)
 			);
@@ -118,10 +118,10 @@ namespace FoundationDB.Client.Utils
 		/// <param name="begin">Begin key of the range</param>
 		/// <param name="end">End key of the range</param>
 		/// <returns>Equivalent pair of keys, that are backed by the buffer.</returns>
-		public FdbKeyRange InternRange(Slice begin, Slice end)
+		public KeyRange InternRange(Slice begin, Slice end)
 		{
 			//TODO: if end is prefixed by begin, we could merge both keys (frequent when dealing with ranges on tuples that add \xFF
-			return new FdbKeyRange(
+			return new KeyRange(
 				Intern(begin, aligned: true), 
 				Intern(end, aligned: true)
 			);
@@ -130,12 +130,12 @@ namespace FoundationDB.Client.Utils
 		/// <summary>Copy a key into the buffer, and return a new range containing only that key</summary>
 		/// <param name="key">Key to copy to the buffer</param>
 		/// <returns>Range equivalent to [key, key + '\0') that is backed by the buffer.</returns>
-		public FdbKeyRange InternRangeFromKey(Slice key)
+		public KeyRange InternRangeFromKey(Slice key)
 		{
 			// Since the end key only adds \0 to the begin key, we can reuse the same bytes by making both overlap
 			var tmp = Intern(key, FdbKey.MinValue, aligned: true);
 
-			return new FdbKeyRange(
+			return new KeyRange(
 				tmp.Substring(0, key.Count),
 				tmp
 			);
@@ -144,9 +144,9 @@ namespace FoundationDB.Client.Utils
 		/// <summary>Copy a key selector into the buffer, and return a new identical selector</summary>
 		/// <param name="selector">Key selector to copy to the buffer</param>
 		/// <returns>Equivalent key selector that is backed by the buffer.</returns>
-		public FdbKeySelector InternSelector(FdbKeySelector selector)
+		public KeySelector InternSelector(KeySelector selector)
 		{
-			return new FdbKeySelector(
+			return new KeySelector(
 				Intern(selector.Key, aligned: true),
 				selector.OrEqual,
 				selector.Offset
@@ -156,14 +156,14 @@ namespace FoundationDB.Client.Utils
 		/// <summary>Copy a pair of key selectors into the buffer, and return a new identical pair</summary>
 		/// <param name="pair">Pair of key selectors to copy to the buffer</param>
 		/// <returns>Equivalent pair of key selectors that is backed by the buffer.</returns>
-		public FdbKeySelectorPair InternSelectorPair(FdbKeySelectorPair pair)
+		public KeySelectorPair InternSelectorPair(KeySelectorPair pair)
 		{
 			var begin = Intern(pair.Begin.Key, default(Slice), aligned: true);
 			var end = Intern(pair.End.Key, default(Slice), aligned: true);
 
-			return new FdbKeySelectorPair(
-				new FdbKeySelector(begin, pair.Begin.OrEqual, pair.Begin.Offset),
-				new FdbKeySelector(end, pair.End.OrEqual, pair.End.Offset)
+			return new KeySelectorPair(
+				new KeySelector(begin, pair.Begin.OrEqual, pair.Begin.Offset),
+				new KeySelector(end, pair.End.OrEqual, pair.End.Offset)
 			);
 		}
 

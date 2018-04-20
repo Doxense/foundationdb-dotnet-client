@@ -624,7 +624,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static FutureHandle TransactionGetRange(TransactionHandle transaction, FdbKeySelector begin, FdbKeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse)
+		public static FutureHandle TransactionGetRange(TransactionHandle transaction, KeySelector begin, KeySelector end, int limit, int targetBytes, FdbStreamingMode mode, int iteration, bool snapshot, bool reverse)
 		{
 			fixed (byte* ptrBegin = begin.Key.Array)
 			fixed (byte* ptrEnd = end.Key.Array)
@@ -642,7 +642,7 @@ namespace FoundationDB.Client.Native
 			}
 		}
 
-		public static FutureHandle TransactionGetKey(TransactionHandle transaction, FdbKeySelector selector, bool snapshot)
+		public static FutureHandle TransactionGetKey(TransactionHandle transaction, KeySelector selector, bool snapshot)
 		{
 			if (selector.Key.IsNull) throw new ArgumentException("Key cannot be null", "selector");
 

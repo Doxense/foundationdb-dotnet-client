@@ -89,7 +89,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return the key matching the selector, or an exception</returns>
-		Task<Slice> GetKeyAsync(FdbKeySelector selector, bool snapshot, CancellationToken cancellationToken);
+		Task<Slice> GetKeyAsync(KeySelector selector, bool snapshot, CancellationToken cancellationToken);
 
 		/// <summary>Resolves several key selectors against the keys in the database snapshot represented by the current transaction.</summary>
 		/// <param name="selectors">Key selectors to resolve</param>
@@ -97,7 +97,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
 		/// <returns>Task that will return an array of keys matching the selectors, or an exception</returns>
 		[ItemNotNull]
-		Task<Slice[]> GetKeysAsync([NotNull] FdbKeySelector[] selectors, bool snapshot, CancellationToken cancellationToken);
+		Task<Slice[]> GetKeysAsync([NotNull] KeySelector[] selectors, bool snapshot, CancellationToken cancellationToken);
 
 		/// <summary>Reads all key-value pairs in the database snapshot represented by transaction (potentially limited by Limit, TargetBytes, or Mode) which have a key lexicographically greater than or equal to the key resolved by the begin key selector and lexicographically less than the key resolved by the end key selector.</summary>
 		/// <param name="beginInclusive">key selector defining the beginning of the range</param>
@@ -107,7 +107,7 @@ namespace FoundationDB.Client.Core
 		/// <param name="snapshot">Set to true for snapshot reads</param>
 		/// <param name="cancellationToken">Token used to cancel the operation from the outside</param>
 		/// <returns></returns>
-		Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, [NotNull] FdbRangeOptions options, int iteration, bool snapshot, CancellationToken cancellationToken);
+		Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, [NotNull] FdbRangeOptions options, int iteration, bool snapshot, CancellationToken cancellationToken);
 
 		/// <summary>Returns a list of public network addresses as strings, one for each of the storage servers responsible for storing <paramref name="key"/> and its associated value</summary>
 		/// <param name="key">Name of the key whose location is to be queried.</param>

@@ -103,7 +103,7 @@ namespace FoundationDB.Client.Tests
 			Console.WriteLine("Dumping content of subspace " + subspace.ToString() + " :");
 			int count = 0;
 			await tr
-				.GetRange(FdbKeyRange.StartsWith(subspace.ToFoundationDbKey()))
+				.GetRange(KeyRange.StartsWith(subspace.ToFoundationDbKey()))
 				.ForEachAsync((kvp) =>
 				{
 					var key = subspace.ExtractKey(kvp.Key, boundCheck: true);

@@ -127,7 +127,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <summary>Creates a key range containing all children of this tuple, from tuple.pack()+'\0' to tuple.pack()+'\xFF'</summary>
 		/// <param name="tuple">Tuple that is the suffix of all keys</param>
 		/// <returns>Range of all keys suffixed by the tuple. The tuple itself will not be included</returns>
-		public static FdbKeyRange ToRange([NotNull] this IFdbTuple tuple)
+		public static KeyRange ToRange([NotNull] this IFdbTuple tuple)
 		{
 			return ToRange(tuple, false);
 		}
@@ -136,7 +136,7 @@ namespace FoundationDB.Layers.Tuples
 		/// <param name="tuple">Tuple that is the prefix of all keys</param>
 		/// <param name="includePrefix">If true, the tuple key itself is included, if false only the children keys are included</param>
 		/// <returns>Range of all keys suffixed by the tuple. The tuple itself will be included if <paramref name="includePrefix"/> is true</returns>
-		public static FdbKeyRange ToRange([NotNull] this IFdbTuple tuple, bool includePrefix)
+		public static KeyRange ToRange([NotNull] this IFdbTuple tuple, bool includePrefix)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 
@@ -154,7 +154,7 @@ namespace FoundationDB.Layers.Tuples
 			writer.Output.WriteByte(0xFF);
 			int p1 = writer.Output.Position;
 
-			return new FdbKeyRange(
+			return new KeyRange(
 				new Slice(writer.Output.Buffer, 0, p0),
 				new Slice(writer.Output.Buffer, p0, p1 - p0)
 			);
@@ -303,11 +303,11 @@ namespace FoundationDB.Layers.Tuples
 		}
 
 		/// <summary>Returns a Key Selector pair that defines the range of all items contained under this tuple</summary>
-		public static FdbKeySelectorPair ToSelectorPair([NotNull] this IFdbTuple tuple)
+		public static KeySelectorPair ToSelectorPair([NotNull] this IFdbTuple tuple)
 		{
 			if (tuple == null) throw new ArgumentNullException("tuple");
 
-			return FdbKeySelectorPair.StartsWith(tuple.ToSlice());
+			return KeySelectorPair.StartsWith(tuple.ToSlice());
 		}
 
 		/// <summary>Verify that this tuple has the expected size</summary>

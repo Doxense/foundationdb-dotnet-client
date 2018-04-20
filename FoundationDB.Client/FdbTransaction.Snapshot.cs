@@ -137,7 +137,7 @@ namespace FoundationDB.Client
 				return m_parent.m_handler.GetValuesAsync(keys, snapshot: true, cancellationToken: m_parent.m_cancellation);
 			}
 
-			public async Task<Slice> GetKeyAsync(FdbKeySelector selector)
+			public async Task<Slice> GetKeyAsync(KeySelector selector)
 			{
 				EnsureCanRead();
 
@@ -154,7 +154,7 @@ namespace FoundationDB.Client
 
 			}
 
-			public Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+			public Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 			{
 				EnsureCanRead();
 
@@ -170,7 +170,7 @@ namespace FoundationDB.Client
 				return m_parent.m_handler.GetKeysAsync(selectors, snapshot: true, cancellationToken: m_parent.m_cancellation);
 			}
 
-			public Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration)
+			public Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options, int iteration)
 			{
 				EnsureCanRead();
 
@@ -186,7 +186,7 @@ namespace FoundationDB.Client
 				return m_parent.m_handler.GetRangeAsync(beginInclusive, endExclusive, options, iteration, snapshot: true, cancellationToken: m_parent.m_cancellation);
 			}
 
-			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options)
+			public FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options)
 			{
 				EnsureCanRead();
 

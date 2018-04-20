@@ -33,77 +33,77 @@ namespace FoundationDB.Client
 
 	/// <summary>Represents of pair of key selectors that range 'GetKey(Begin) &lt;= key &lt; GetKey(End)'</summary>
 	[DebuggerDisplay("[ToString()]")]
-	public struct FdbKeySelectorPair
+	public struct KeySelectorPair
 	{
 		/// <summary>Start of the range</summary>
-		public FdbKeySelector Begin { get { return m_begin; } }
-		private FdbKeySelector m_begin; //PERF: readonly struct
+		public KeySelector Begin { get { return m_begin; } }
+		private KeySelector m_begin; //PERF: readonly struct
 
 		/// <summary>End of the range</summary>
-		public FdbKeySelector End { get { return m_end; } }
-		private FdbKeySelector m_end; //PERF: readonly struct
+		public KeySelector End { get { return m_end; } }
+		private KeySelector m_end; //PERF: readonly struct
 
 		/// <summary>Create a new pair of key selectors</summary>
 		/// <param name="beginInclusive">Selector for key from which to start iterating</param>
 		/// <param name="endExclusive">Selector for key where to stop iterating</param>
-		public FdbKeySelectorPair(FdbKeySelector beginInclusive, FdbKeySelector endExclusive)
+		public KeySelectorPair(KeySelector beginInclusive, KeySelector endExclusive)
 		{
 			m_begin = beginInclusive;
 			m_end = endExclusive;
 		}
 
 		/// <summary>Factory method for a pair of key selectors</summary>
-		public static FdbKeySelectorPair Create(FdbKeySelector beginInclusive, FdbKeySelector endExclusive)
+		public static KeySelectorPair Create(KeySelector beginInclusive, KeySelector endExclusive)
 		{
-			return new FdbKeySelectorPair(
+			return new KeySelectorPair(
 				beginInclusive, 
 				endExclusive
 			);
 		}
 
 		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
-		public static FdbKeySelectorPair Create(Slice begin, Slice end)
+		public static KeySelectorPair Create(Slice begin, Slice end)
 		{
-			return new FdbKeySelectorPair(
-				FdbKeySelector.FirstGreaterOrEqual(begin),
-				FdbKeySelector.FirstGreaterOrEqual(end)
+			return new KeySelectorPair(
+				KeySelector.FirstGreaterOrEqual(begin),
+				KeySelector.FirstGreaterOrEqual(end)
 			);
 		}
 
 		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
-		public static FdbKeySelectorPair Create<TKey>(TKey begin, TKey end)
+		public static KeySelectorPair Create<TKey>(TKey begin, TKey end)
 			where TKey : IFdbKey
 		{
 			if (begin == null) throw new ArgumentNullException("begin");
 			if (end == null) throw new ArgumentNullException("end");
-			return new FdbKeySelectorPair(
-				FdbKeySelector.FirstGreaterOrEqual(begin.ToFoundationDbKey()),
-				FdbKeySelector.FirstGreaterOrEqual(end.ToFoundationDbKey())
+			return new KeySelectorPair(
+				KeySelector.FirstGreaterOrEqual(begin.ToFoundationDbKey()),
+				KeySelector.FirstGreaterOrEqual(end.ToFoundationDbKey())
 			);
 		}
 
 		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
-		public static FdbKeySelectorPair Create(FdbKeyRange range)
+		public static KeySelectorPair Create(KeyRange range)
 		{
-			return new FdbKeySelectorPair(
-				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
-				FdbKeySelector.FirstGreaterOrEqual(range.End)
+			return new KeySelectorPair(
+				KeySelector.FirstGreaterOrEqual(range.Begin),
+				KeySelector.FirstGreaterOrEqual(range.End)
 			);
 		}
 
 		/// <summary>Create a new pair of key selectors that will select all the keys that start with the specified prefix</summary>
-		public static FdbKeySelectorPair StartsWith(Slice prefix)
+		public static KeySelectorPair StartsWith(Slice prefix)
 		{
-			var range = FdbKeyRange.StartsWith(prefix);
+			var range = KeyRange.StartsWith(prefix);
 
-			return new FdbKeySelectorPair(
-				FdbKeySelector.FirstGreaterOrEqual(range.Begin),
-				FdbKeySelector.FirstGreaterOrEqual(range.End)
+			return new KeySelectorPair(
+				KeySelector.FirstGreaterOrEqual(range.Begin),
+				KeySelector.FirstGreaterOrEqual(range.End)
 			);
 		}
 
 		/// <summary>Create a new pair of key selectors that will select all the keys that start with the specified prefix</summary>
-		public static FdbKeySelectorPair StartsWith<TKey>(TKey prefix)
+		public static KeySelectorPair StartsWith<TKey>(TKey prefix)
 			where TKey : IFdbKey
 		{
 			if (prefix == null) throw new ArgumentNullException("prefix");

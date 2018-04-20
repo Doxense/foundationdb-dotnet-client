@@ -642,7 +642,7 @@ namespace FoundationDB.Layers.Directories
 
 				// ensure that there is no data already present under this prefix
 				if (FdbDirectoryLayer.AnnotateTransactions) trans.Annotate("Ensure that there is no data already present under prefix {0}", prefix);
-				if (await trans.GetRange(FdbKeyRange.StartsWith(prefix)).AnyAsync().ConfigureAwait(false))
+				if (await trans.GetRange(KeyRange.StartsWith(prefix)).AnyAsync().ConfigureAwait(false))
 				{
 					throw new InvalidOperationException(String.Format("The database has keys stored at the prefix chosen by the automatic prefix allocator: {0}", prefix.ToAsciiOrHexaString()));
 				}

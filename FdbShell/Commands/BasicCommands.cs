@@ -400,15 +400,15 @@ namespace FdbShell
 				var bounds = await db.ReadAsync(async (tr) =>
 				{
 					var kvs = await Task.WhenAll(
-						tr.GetRange(FdbKeyRange.StartsWith(key)).FirstOrDefaultAsync(),
-						tr.GetRange(FdbKeyRange.StartsWith(key)).LastOrDefaultAsync()
+						tr.GetRange(KeyRange.StartsWith(key)).FirstOrDefaultAsync(),
+						tr.GetRange(KeyRange.StartsWith(key)).LastOrDefaultAsync()
 					);
 					return new { Min = kvs[0].Key, Max = kvs[1].Key };
 				}, ct);
 
 				if (bounds.Min.HasValue)
 				{ // folder is not empty
-					shards = await Fdb.System.GetChunksAsync(db, FdbKeyRange.StartsWith(key), ct);
+					shards = await Fdb.System.GetChunksAsync(db, KeyRange.StartsWith(key), ct);
 					//TODO: we still need to check if the first and last shard really intersect the subspace
 
 					// we need to check if the shards actually contain data
@@ -460,7 +460,7 @@ namespace FdbShell
 
 			var servers = await db.QueryAsync(tr => tr
 				.WithReadAccessToSystemKeys()
-				.GetRange(FdbKeyRange.StartsWith(Fdb.System.ServerList))
+				.GetRange(KeyRange.StartsWith(Fdb.System.ServerList))
 				.Select(kvp => new
 				{
 					// Offsets		Size	Type	Name		Description
@@ -554,7 +554,7 @@ namespace FdbShell
 			var folder = (await TryOpenCurrentDirectoryAsync(path, db, ct)) as FdbDirectorySubspace;
 			if (folder != null)
 			{
-				var r = FdbKeyRange.StartsWith(FdbSubspace.Copy(folder).Key);
+				var r = KeyRange.StartsWith(FdbSubspace.Copy(folder).Key);
 				Console.WriteLine("Searching for shards that intersect with /{0} ...", String.Join("/", path));
 				ranges = await Fdb.System.GetChunksAsync(db, r, ct);
 				Console.WriteLine("Found {0} ranges intersecting {1}:", ranges.Count, r);
@@ -586,16 +586,16 @@ namespace FdbShell
 			}
 
 			var folder = await TryOpenCurrentDirectoryAsync(path, db, ct);
-			FdbKeyRange span;
+			KeyRange span;
 			if (folder is FdbDirectorySubspace)
 			{
-				span = FdbKeyRange.StartsWith(FdbSubspace.Copy(folder as FdbDirectorySubspace).Key);
+				span = KeyRange.StartsWith(FdbSubspace.Copy(folder as FdbDirectorySubspace).Key);
 				log.WriteLine("Reading list of shards for /{0} under {1} ...", String.Join("/", path), FdbKey.Dump(span.Begin));
 			}
 			else
 			{
 				log.WriteLine("Reading list of shards for the whole cluster ...");
-				span = FdbKeyRange.All;
+				span = KeyRange.All;
 			}
 
 			// dump keyServers
@@ -603,7 +603,7 @@ namespace FdbShell
 			log.WriteLine("> Found {0:N0} shard(s)", ranges.Count);
 
 			// take a sample
-			var samples = new List<FdbKeyRange>();
+			var samples = new List<KeyRange>();
 
 			if (ranges.Count <= 32)
 			{ // small enough to scan it all
@@ -620,7 +620,7 @@ namespace FdbShell
 					if (sz < 32) sz = Math.Max(sz, Math.Min(32, ranges.Count));
 				}
 
-				var population = new List<FdbKeyRange>(ranges);
+				var population = new List<KeyRange>(ranges);
 				for (int i = 0; i < sz; i++)
 				{
 					int p = rnd.Next(population.Count);
@@ -667,8 +667,8 @@ namespace FdbShell
 							long count = 0;
 
 							int iter = 0;
-							var beginSelector = FdbKeySelector.FirstGreaterOrEqual(range.Begin);
-							var endSelector = FdbKeySelector.FirstGreaterOrEqual(range.End);
+							var beginSelector = KeySelector.FirstGreaterOrEqual(range.Begin);
+							var endSelector = KeySelector.FirstGreaterOrEqual(range.End);
 							while (true)
 							{
 								FdbRangeChunk data = default(FdbRangeChunk);
@@ -707,7 +707,7 @@ namespace FdbShell
 
 								if (!data.HasMore) break;
 
-								beginSelector = FdbKeySelector.FirstGreaterThan(data.Last.Key);
+								beginSelector = KeySelector.FirstGreaterThan(data.Last.Key);
 								++iter;
 							}
 

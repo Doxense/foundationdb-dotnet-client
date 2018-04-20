@@ -29,9 +29,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace FoundationDB.Client
 {
 	using System;
-	using Doxense.Diagnostics.Contracts;
 	using System.Collections.Generic;
 	using System.Linq;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Client.Utils;
 	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
@@ -109,21 +109,21 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Return a key range that encompass all the keys inside this subspace, according to the current key encoder</summary>
-		public FdbKeyRange ToRange()
+		public KeyRange ToRange()
 		{
 			return this.Encoder.ToRange(this.Subspace.Key);
 		}
 
 		/// <summary>Return a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
 		/// <param name="tuple">Tuple used as a prefix for the range</param>
-		public FdbKeyRange ToRange([NotNull] IFdbTuple tuple)
+		public KeyRange ToRange([NotNull] IFdbTuple tuple)
 		{
 			return this.Encoder.ToRange(Pack(tuple));
 		}
 
 		/// <summary>Return a key range that encompass all the keys inside a partition of this subspace, according to the current key encoder</summary>
 		/// <param name="item">Convertible item used as a prefix for the range</param>
-		public FdbKeyRange ToRange([NotNull] ITupleFormattable item)
+		public KeyRange ToRange([NotNull] ITupleFormattable item)
 		{
 			return this.Encoder.ToRange(Pack(item));
 		}

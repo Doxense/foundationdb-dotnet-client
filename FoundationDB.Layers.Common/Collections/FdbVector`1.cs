@@ -289,7 +289,7 @@ namespace FoundationDB.Layers.Collections
 
 			var keyRange = this.Subspace.Keys.ToRange();
 
-			var lastKey = await tr.GetKeyAsync(FdbKeySelector.LastLessOrEqual(keyRange.End)).ConfigureAwait(false);
+			var lastKey = await tr.GetKeyAsync(KeySelector.LastLessOrEqual(keyRange.End)).ConfigureAwait(false);
 
 			if (lastKey < keyRange.Begin)
 			{

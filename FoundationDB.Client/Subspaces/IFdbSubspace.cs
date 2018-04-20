@@ -43,18 +43,18 @@ namespace FoundationDB.Client
 		/// <summary>Return a key range that contains all the keys in this subspace, including the prefix itself</summary>
 		/// <returns>Return the range: Key &lt;= x &lt;= Increment(Key)</returns>
 		[Pure]
-		FdbKeyRange ToRange();
+		KeyRange ToRange();
 
 		/// <summary>Return a key range that contains all the keys under a suffix in this subspace</summary>
 		/// <param name="suffix">Binary suffix that will be appended to the current prefix, before computing the range</param>
 		/// <returns>Return the range: (this.Key + suffix) &lt;= x &lt;= Increment(this.Key + suffix)</returns>
 		[Pure]
-		FdbKeyRange ToRange(Slice suffix);
+		KeyRange ToRange(Slice suffix);
 
 		/// <summary>Return a key range that contains all the keys under a serializable key in this subspace</summary>
 		/// <returns>Return the range: (this.Key + key.ToFoundationDbKey()) &lt;= x &lt;= Increment(this.Key + key.ToFoundationDbKey())</returns>
 		[Pure]
-		FdbKeyRange ToRange<TKey>([NotNull] TKey key) where TKey : IFdbKey;
+		KeyRange ToRange<TKey>([NotNull] TKey key) where TKey : IFdbKey;
 
 		/// <summary>Create a new subspace by adding a suffix to the key of the current subspace.</summary>
 		/// <param name="suffix">Binary suffix that will be appended to the current prefix</param>

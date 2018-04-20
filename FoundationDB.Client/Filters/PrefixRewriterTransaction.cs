@@ -59,16 +59,16 @@ namespace FoundationDB.Filters
 			return m_prefix.ConcatKeys(keys);
 		}
 
-		private FdbKeySelector Encode(FdbKeySelector selector)
+		private KeySelector Encode(KeySelector selector)
 		{
-			return new FdbKeySelector(
+			return new KeySelector(
 				m_prefix.ConcatKey(selector.Key),
 				selector.OrEqual,
 				selector.Offset
 			);
 		}
 
-		private FdbKeySelector[] Encode(FdbKeySelector[] selectors)
+		private KeySelector[] Encode(KeySelector[] selectors)
 		{
 			var keys = new Slice[selectors.Length];
 			for (int i = 0; i < selectors.Length;i++)
@@ -77,10 +77,10 @@ namespace FoundationDB.Filters
 			}
 			keys = m_prefix.ConcatKeys(keys);
 
-			var res = new FdbKeySelector[selectors.Length];
+			var res = new KeySelector[selectors.Length];
 			for (int i = 0; i < selectors.Length; i++)
 			{
-				res[i] = new FdbKeySelector(
+				res[i] = new KeySelector(
 					keys[i],
 					selectors[i].OrEqual,
 					selectors[i].Offset
@@ -114,12 +114,12 @@ namespace FoundationDB.Filters
 			return base.GetValuesAsync(Encode(keys));
 		}
 
-		public override async Task<Slice> GetKeyAsync(FdbKeySelector selector)
+		public override async Task<Slice> GetKeyAsync(KeySelector selector)
 		{
 			return Decode(await base.GetKeyAsync(Encode(selector)).ConfigureAwait(false));
 		}
 
-		public override async Task<Slice[]> GetKeysAsync(FdbKeySelector[] selectors)
+		public override async Task<Slice[]> GetKeysAsync(KeySelector[] selectors)
 		{
 			return Decode(await base.GetKeysAsync(Encode(selectors)).ConfigureAwait(false));
 		}
@@ -129,12 +129,12 @@ namespace FoundationDB.Filters
 			return base.GetAddressesForKeyAsync(Encode(key));
 		}
 
-		public override FdbRangeQuery<System.Collections.Generic.KeyValuePair<Slice, Slice>> GetRange(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null)
+		public override FdbRangeQuery<System.Collections.Generic.KeyValuePair<Slice, Slice>> GetRange(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null)
 		{
 			throw new NotImplementedException();
 		}
 
-		public override Task<FdbRangeChunk> GetRangeAsync(FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
+		public override Task<FdbRangeChunk> GetRangeAsync(KeySelector beginInclusive, KeySelector endExclusive, FdbRangeOptions options = null, int iteration = 0)
 		{
 			throw new NotImplementedException();
 		}
