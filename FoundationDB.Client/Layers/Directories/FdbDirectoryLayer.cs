@@ -28,18 +28,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Directories
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
-	using FoundationDB.Filters.Logging;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
 	using System.Threading.Tasks;
 	using JetBrains.Annotations;
-
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
+	using FoundationDB.Filters.Logging;
 
 	/// <summary>Provides a FdbDirectoryLayer class for managing directories in FoundationDB.
 	/// Directories are a recommended approach for administering layers and applications. Directories work in conjunction with subspaces. Each layer or application should create or open at least one directory with which to manage its subspace(s).
@@ -64,19 +63,19 @@ namespace FoundationDB.Layers.Directories
 		public static bool AnnotateTransactions { get; set; }
 
 		/// <summary>Subspace where the content of each folder will be stored</summary>
-		public IFdbDynamicSubspace ContentSubspace { [NotNull] get; private set; }
+		public IFdbDynamicSubspace ContentSubspace { [NotNull] get; }
 
 		/// <summary>Subspace where all the metadata nodes for each folder will be stored</summary>
-		public IFdbDynamicSubspace NodeSubspace { [NotNull] get; private set; }
+		public IFdbDynamicSubspace NodeSubspace { [NotNull] get; }
 
 		/// <summary>Root node of the directory</summary>
-		internal IFdbDynamicSubspace RootNode { [NotNull] get; private set; }
+		internal IFdbDynamicSubspace RootNode { [NotNull] get; }
 
 		/// <summary>Allocated used to generated prefix for new content</summary>
-		internal FdbHighContentionAllocator Allocator { [NotNull] get; private set; }
+		internal FdbHighContentionAllocator Allocator { [NotNull] get; }
 
 		/// <summary>Gets the path for the root node of this <code>FdbDirectoryLayer</code>.</summary>
-		internal IFdbTuple Location { [NotNull] get; private set; }
+		internal IFdbTuple Location { [NotNull] get; }
 
 		/// <summary>Name of root directory of this layer</summary>
 		/// <remarks>Returns String.Empty for the root Directory Layer, or the name of the partition</remarks>
@@ -636,7 +635,7 @@ namespace FoundationDB.Layers.Directories
 
 			await CheckWriteVersionAsync(trans).ConfigureAwait(false);
 
-			if (prefix == null)
+			if (prefix.IsNull)
 			{ // automatically allocate a new prefix inside the ContentSubspace
 				long id = await this.Allocator.AllocateAsync(trans).ConfigureAwait(false);
 				prefix = this.ContentSubspace.Keys.Encode(id);

@@ -28,11 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Slice buffer that emulates a pseudo-stream using a byte array that will automatically grow in size, if necessary</summary>
 	/// <remarks>IMPORTANT: This struct does not extensively check the parameters! The caller should ensure that everything is valid (this is to get the max performance when serializing keys and values)</remarks>

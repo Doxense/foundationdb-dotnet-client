@@ -28,10 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Observe the items of an async sequence</summary>
 	/// <typeparam name="TSource">Type of the observed elements</typeparam>

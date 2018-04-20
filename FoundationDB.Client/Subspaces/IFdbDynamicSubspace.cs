@@ -26,11 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public interface IFdbDynamicSubspace : IFdbSubspace

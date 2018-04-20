@@ -28,13 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Linq;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 
 	/// <summary>Factory class for keys</summary>
 	public static class FdbKey
@@ -91,7 +91,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] Merge(Slice prefix, [NotNull] Slice[] keys)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (prefix.IsNull) throw new ArgumentNullException("prefix");
 			if (keys == null) throw new ArgumentNullException("keys");
 
 			//REVIEW: merge this code with Slice.ConcatRange!
@@ -120,7 +120,7 @@ namespace FoundationDB.Client
 		[NotNull]
 		public static Slice[] Merge(Slice prefix, [NotNull] IEnumerable<Slice> keys)
 		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
+			if (prefix.IsNull) throw new ArgumentNullException("prefix");
 			if (keys == null) throw new ArgumentNullException("keys");
 
 			//REVIEW: merge this code with Slice.ConcatRange!
@@ -132,7 +132,7 @@ namespace FoundationDB.Client
 			// pre-allocate with a count if we can get one...
 			var coll = keys as ICollection<Slice>;
 			var next = coll == null ? new List<int>() : new List<int>(coll.Count);
-			var writer = SliceWriter.Empty;
+			var writer = default(SliceWriter);
 
 			//TODO: use multiple buffers if item count is huge ?
 

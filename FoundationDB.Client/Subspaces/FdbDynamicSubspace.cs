@@ -26,12 +26,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Diagnostics;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using System.Diagnostics;
+	using JetBrains.Annotations;
 	public class FdbDynamicSubspace : FdbSubspace, IFdbDynamicSubspace
 	{
 		/// <summary>Encoder for the keys of this subspace</summary>

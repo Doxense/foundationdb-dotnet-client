@@ -30,14 +30,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Status;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Status;
+	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{
@@ -218,7 +219,7 @@ namespace FoundationDB.Client
 					case "0": return "ssd";
 					case "1": return "memory";
 					default:
-					{ 
+					{
 						// welcome to the future!
 						return "unknown(" + value.ToAsciiOrHexaString() + ")";
 					}
@@ -397,6 +398,7 @@ namespace FoundationDB.Client
 			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, FdbKeyRange range, CancellationToken cancellationToken)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, null, cancellationToken);
+				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
 			}
 
 			/// <summary>Estimate the number of keys in the specified range.</summary>
@@ -409,6 +411,7 @@ namespace FoundationDB.Client
 			public static Task<long> EstimateCountAsync([NotNull] IFdbDatabase db, FdbKeyRange range, IProgress<FdbTuple<long, Slice>> onProgress, CancellationToken cancellationToken)
 			{
 				return EstimateCountAsync(db, range.Begin, range.End, onProgress, cancellationToken);
+				//REVIEW: BUGBUG: REFACTORING: deal with null value for End!
 			}
 
 			/// <summary>Estimate the number of keys in the specified range.</summary>

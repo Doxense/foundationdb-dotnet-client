@@ -28,10 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
 
 	/// <summary>Iterator that reads 32-bit compressed words from a compressed bitmap</summary>
 	public struct CompressedBitmapWordIterator : IEnumerator<CompressedWord>

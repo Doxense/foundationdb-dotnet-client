@@ -28,15 +28,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Reflection;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
+	using JetBrains.Annotations;
 
 	/// <summary>Helper methods used during serialization of values to the tuple binary format</summary>
 	public static class FdbTuplePackers

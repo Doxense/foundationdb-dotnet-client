@@ -28,13 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Blobs
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Represents a potentially large binary value in FoundationDB.</summary>
 	[DebuggerDisplay("Subspace={Subspace}")]

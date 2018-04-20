@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of extensions methods shared by all FoundationDB database implementations.</summary>
 	public static class FdbDatabaseExtensions
@@ -52,10 +52,10 @@ namespace FoundationDB.Client
 		///		var result = await tr.Get(Slice.FromString("Hello"));
 		///		var items = await tr.GetRange(FdbKeyRange.StartsWith(Slice.FromString("ABC"))).ToListAsync();
 		/// }</example>
-		[NotNull]
-		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction(this IFdbDatabase db, CancellationToken cancellationToken)
+		[Pure, NotNull]
+		public static IFdbReadOnlyTransaction BeginReadOnlyTransaction([NotNull] this IFdbDatabase db, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.BeginTransaction(FdbTransactionMode.ReadOnly, cancellationToken, default(FdbOperationContext));
 		}
 
@@ -71,10 +71,10 @@ namespace FoundationDB.Client
 		///		tr.Clear(Slice.FromString("OldValue"));
 		///		await tr.CommitAsync();
 		/// }</example>
-		[NotNull]
-		public static IFdbTransaction BeginTransaction(this IFdbDatabase db, CancellationToken cancellationToken)
+		[Pure, NotNull]
+		public static IFdbTransaction BeginTransaction([NotNull] this IFdbDatabase db, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.BeginTransaction(FdbTransactionMode.Default, cancellationToken, default(FdbOperationContext));
 		}
 
@@ -85,9 +85,9 @@ namespace FoundationDB.Client
 		/// <summary>Set the size of the client location cache. Raising this value can boost performance in very large databases where clients access data in a near-random pattern. Defaults to 100000.</summary>
 		/// <param name="db">Database instance</param>
 		/// <param name="size">Max location cache entries</param>
-		public static void SetLocationCacheSize(this IFdbDatabase db, int size)
+		public static void SetLocationCacheSize([NotNull] this IFdbDatabase db, int size)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			if (size < 0) throw new FdbException(FdbError.InvalidOptionValue, "Location cache size must be a positive integer");
 
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
@@ -98,9 +98,9 @@ namespace FoundationDB.Client
 		/// <summary>Set the maximum number of watches allowed to be outstanding on a database connection. Increasing this number could result in increased resource usage. Reducing this number will not cancel any outstanding watches. Defaults to 10000 and cannot be larger than 1000000.</summary>
 		/// <param name="db">Database instance</param>
 		/// <param name="count">Max outstanding watches</param>
-		public static void SetMaxWatches(this IFdbDatabase db, int count)
+		public static void SetMaxWatches([NotNull] this IFdbDatabase db, int count)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			if (count < 0) throw new FdbException(FdbError.InvalidOptionValue, "Maximum outstanding watches count must be a positive integer");
 
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
@@ -111,9 +111,9 @@ namespace FoundationDB.Client
 		/// <summary>Specify the machine ID that was passed to fdbserver processes running on the same machine as this client, for better location-aware load balancing.</summary>
 		/// <param name="db">Database instance</param>
 		/// <param name="hexId">Hexadecimal ID</param>
-		public static void SetMachineId(this IFdbDatabase db, string hexId)
+		public static void SetMachineId([NotNull] this IFdbDatabase db, string hexId)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			db.SetOption(FdbDatabaseOption.MachineId, hexId);
@@ -122,9 +122,9 @@ namespace FoundationDB.Client
 		/// <summary>Specify the datacenter ID that was passed to fdbserver processes running in the same datacenter as this client, for better location-aware load balancing.</summary>
 		/// <param name="db">Database instance</param>
 		/// <param name="hexId">Hexadecimal ID</param>
-		public static void SetDataCenterId(this IFdbDatabase db, string hexId)
+		public static void SetDataCenterId([NotNull] this IFdbDatabase db, string hexId)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			//REVIEW: we can't really change this to a Property, because we don't have a way to get the current value for the getter, and set only properties are weird...
 			//TODO: cache this into a local variable ?
 			db.SetOption(FdbDatabaseOption.DataCenterId, hexId);
@@ -138,7 +138,8 @@ namespace FoundationDB.Client
 		/// <param name="db">Database instance</param>
 		/// <param name="key">Key to test</param>
 		/// <returns>Returns true if the key is not null or empty, does not exceed the maximum key size, and is contained in the global key space of this database instance. Otherwise, returns false.</returns>
-		public static bool IsKeyValid(this IFdbDatabase db, Slice key)
+		[Pure]
+		public static bool IsKeyValid([NotNull] this IFdbDatabase db, Slice key)
 		{
 			Exception _;
 			return FdbDatabase.ValidateKey(db, ref key, false, true, out _);
@@ -149,7 +150,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal static void EnsureKeyIsValid(this IFdbDatabase db, Slice key, bool endExclusive = false)
+		internal static void EnsureKeyIsValid([NotNull] this IFdbDatabase db, Slice key, bool endExclusive = false)
 		{
 			Exception ex;
 			if (!FdbDatabase.ValidateKey(db, ref key, endExclusive, false, out ex)) throw ex;
@@ -160,7 +161,7 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to verify</param>
 		/// <param name="endExclusive">If true, the key is allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <exception cref="FdbException">If the key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal static void EnsureKeyIsValid(this IFdbDatabase db, ref Slice key, bool endExclusive = false)
+		internal static void EnsureKeyIsValid([NotNull] this IFdbDatabase db, ref Slice key, bool endExclusive = false)
 		{
 			Exception ex;
 			if (!FdbDatabase.ValidateKey(db, ref key, endExclusive, false, out ex)) throw ex;
@@ -171,9 +172,9 @@ namespace FoundationDB.Client
 		/// <param name="keys">Array of keys to verify</param>
 		/// <param name="endExclusive">If true, the keys are allowed to be one past the maximum key allowed by the global namespace</param>
 		/// <exception cref="FdbException">If at least on key is outside of the allowed keyspace, throws an FdbException with code FdbError.KeyOutsideLegalRange</exception>
-		internal static void EnsureKeysAreValid(this IFdbDatabase db, Slice[] keys, bool endExclusive = false)
+		internal static void EnsureKeysAreValid([NotNull] this IFdbDatabase db, Slice[] keys, bool endExclusive = false)
 		{
-			if (keys == null) throw new ArgumentNullException("keys");
+			Contract.NotNull(keys, nameof(keys));
 			for (int i = 0; i < keys.Length; i++)
 			{
 				Exception ex;
@@ -192,7 +193,8 @@ namespace FoundationDB.Client
 		/// db.Extract('&lt;02&gt;TopSecret&lt;00&gt;&lt;02&gt;Password&lt;00&gt;') => Slice.Nil
 		/// db.Extract(Slice.Nil) => Slice.Nil
 		/// </example>
-		public static Slice Extract(this IFdbDatabase db, Slice keyAbsolute)
+		[Pure]
+		public static Slice Extract([NotNull] this IFdbDatabase db, Slice keyAbsolute)
 		{
 			return db.GlobalSpace.ExtractKey(keyAbsolute);
 		}
@@ -214,9 +216,9 @@ namespace FoundationDB.Client
 		/// If you need to read several keys at once, use a version of <see cref="GetValuesAsync"/>.
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task<Slice> GetAsync(this IFdbReadOnlyRetryable db, Slice key, CancellationToken cancellationToken)
+		public static Task<Slice> GetAsync([NotNull] this IFdbReadOnlyRetryable db, Slice key, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.ReadAsync((tr) => tr.GetAsync(key), cancellationToken);
 		}
 
@@ -230,9 +232,9 @@ namespace FoundationDB.Client
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		[ItemNotNull]
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyRetryable db, [NotNull] Slice[] keys, CancellationToken cancellationToken)
+		public static Task<Slice[]> GetValuesAsync([NotNull] this IFdbReadOnlyRetryable db, [NotNull] Slice[] keys, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.ReadAsync((tr) => tr.GetValuesAsync(keys), cancellationToken);
 		}
 
@@ -243,9 +245,9 @@ namespace FoundationDB.Client
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		[ItemNotNull]
-		public static Task<Slice[]> GetValuesAsync(this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<Slice> keys, CancellationToken cancellationToken)
+		public static Task<Slice[]> GetValuesAsync([NotNull] this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<Slice> keys, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.ReadAsync((tr) => tr.GetValuesAsync(keys), cancellationToken);
 		}
 
@@ -255,9 +257,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task<Slice> GetKeyAsync(this IFdbReadOnlyRetryable db, FdbKeySelector keySelector, CancellationToken cancellationToken)
+		public static Task<Slice> GetKeyAsync([NotNull] this IFdbReadOnlyRetryable db, FdbKeySelector keySelector, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.ReadAsync((tr) => tr.GetKeyAsync(keySelector), cancellationToken);
 		}
 
@@ -268,10 +270,10 @@ namespace FoundationDB.Client
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		[ItemNotNull]
-		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyRetryable db, [NotNull] FdbKeySelector[] keySelectors, CancellationToken cancellationToken)
+		public static Task<Slice[]> GetKeysAsync([NotNull] this IFdbReadOnlyRetryable db, [NotNull] FdbKeySelector[] keySelectors, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (keySelectors == null) throw new ArgumentNullException("keySelectors");
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(keySelectors, nameof(keySelectors));
 			return db.ReadAsync((tr) => tr.GetKeysAsync(keySelectors), cancellationToken);
 		}
 
@@ -282,10 +284,10 @@ namespace FoundationDB.Client
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
 		[ItemNotNull]
-		public static Task<Slice[]> GetKeysAsync(this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<FdbKeySelector> keySelectors, CancellationToken cancellationToken)
+		public static Task<Slice[]> GetKeysAsync([NotNull] this IFdbReadOnlyRetryable db, [NotNull] IEnumerable<FdbKeySelector> keySelectors, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (keySelectors == null) throw new ArgumentNullException("keySelectors");
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(keySelectors, nameof(keySelectors));
 			return db.ReadAsync((tr) => tr.GetKeysAsync(keySelectors), cancellationToken);
 		}
 
@@ -295,9 +297,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbReadOnlyRetryable.ReadAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task<FdbRangeChunk> GetRangeAsync(this IFdbReadOnlyRetryable db, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration, CancellationToken cancellationToken)
+		public static Task<FdbRangeChunk> GetRangeAsync([NotNull] this IFdbReadOnlyRetryable db, FdbKeySelector beginInclusive, FdbKeySelector endExclusive, FdbRangeOptions options, int iteration, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.ReadAsync((tr) => tr.GetRangeAsync(beginInclusive, endExclusive, options, iteration), cancellationToken);
 		}
 
@@ -307,9 +309,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task SetAsync(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		public static Task SetAsync([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.Set(key, value), cancellationToken);
 		}
 
@@ -319,9 +321,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task SetValuesAsync(this IFdbRetryable db, KeyValuePair<Slice, Slice>[] keyValuePairs, CancellationToken cancellationToken)
+		public static Task SetValuesAsync([NotNull] this IFdbRetryable db, KeyValuePair<Slice, Slice>[] keyValuePairs, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) =>
 			{
 				foreach (var kv in keyValuePairs)
@@ -337,9 +339,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task SetValuesAsync(this IFdbRetryable db, IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs, CancellationToken cancellationToken)
+		public static Task SetValuesAsync([NotNull] this IFdbRetryable db, IEnumerable<KeyValuePair<Slice, Slice>> keyValuePairs, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) =>
 			{
 				foreach (var kv in keyValuePairs)
@@ -355,9 +357,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task ClearAsync(this IFdbRetryable db, Slice key, CancellationToken cancellationToken)
+		public static Task ClearAsync([NotNull] this IFdbRetryable db, Slice key, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.Clear(key), cancellationToken);
 		}
 
@@ -366,9 +368,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task ClearRangeAsync(this IFdbRetryable db, Slice beginKeyInclusive, Slice endKeyExclusive, CancellationToken cancellationToken)
+		public static Task ClearRangeAsync([NotNull] this IFdbRetryable db, Slice beginKeyInclusive, Slice endKeyExclusive, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.ClearRange(beginKeyInclusive, endKeyExclusive), cancellationToken);
 		}
 
@@ -377,9 +379,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task ClearRangeAsync(this IFdbRetryable db, FdbKeyRange range, CancellationToken cancellationToken)
+		public static Task ClearRangeAsync([NotNull] this IFdbRetryable db, FdbKeyRange range, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.ClearRange(range), cancellationToken);
 		}
 
@@ -393,9 +395,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task AtomicAdd(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		public static Task AtomicAdd([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Add), cancellationToken);
 		}
 
@@ -404,9 +406,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task AtomicBitAnd(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		public static Task AtomicBitAnd([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitAnd), cancellationToken);
 		}
 
@@ -415,9 +417,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task AtomicBitOr(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		public static Task AtomicBitOr([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitOr), cancellationToken);
 		}
 
@@ -426,9 +428,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task AtomicBitXor(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		public static Task AtomicBitXor([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.BitXor), cancellationToken);
 		}
 
@@ -437,9 +439,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task AtomicMax(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		public static Task AtomicMax([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Max), cancellationToken);
 		}
 
@@ -448,9 +450,9 @@ namespace FoundationDB.Client
 		/// Use this method only if you intend to perform a single operation inside your execution context (ex: HTTP request).
 		/// If you need to combine multiple read or write operations, consider using on of the multiple <see cref="IFdbRetryable.WriteAsync"/> or <see cref="IFdbRetryable.ReadWriteAsync"/> overrides.
 		/// </remarks>
-		public static Task AtomicMin(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		public static Task AtomicMin([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 			return db.WriteAsync((tr) => tr.Atomic(key, value, FdbMutationType.Min), cancellationToken);
 		}
 
@@ -463,9 +465,9 @@ namespace FoundationDB.Client
 		/// <param name="key">Key to be looked up in the database</param>
 		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property contains the current value of the key.</returns>
-		public static Task<FdbWatch> GetAndWatch(this IFdbRetryable db, Slice key, CancellationToken cancellationToken)
+		public static Task<FdbWatch> GetAndWatch([NotNull] this IFdbRetryable db, Slice key, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 
 			return db.ReadWriteAsync(async (tr) =>
 			{
@@ -476,7 +478,7 @@ namespace FoundationDB.Client
 			}, cancellationToken);
 		}
 
-		public static Task<FdbWatch> GetAndWatch<TKey>(this IFdbRetryable db, TKey key, CancellationToken cancellationToken)
+		public static Task<FdbWatch> GetAndWatch<TKey>([NotNull] this IFdbRetryable db, TKey key, CancellationToken cancellationToken)
 			where TKey : IFdbKey
 		{
 			if (key == null) throw new ArgumentNullException("key");
@@ -489,11 +491,11 @@ namespace FoundationDB.Client
 		/// <param name="value">Value to be inserted into the database.</param>
 		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
 		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static async Task<FdbWatch> SetAndWatch(this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
+		public static async Task<FdbWatch> SetAndWatch([NotNull] this IFdbRetryable db, Slice key, Slice value, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			Contract.NotNull(db, nameof(db));
 
-			FdbWatch watch = default(FdbWatch);
+			var watch = default(FdbWatch);
 
 			await db.WriteAsync((tr) =>
 			{

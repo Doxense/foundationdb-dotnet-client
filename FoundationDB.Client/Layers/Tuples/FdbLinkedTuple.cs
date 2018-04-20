@@ -28,13 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
+	using JetBrains.Annotations;
 
 	/// <summary>Tuple that adds a value at the end of an already existing tuple</summary>
 	/// <typeparam name="T">Type of the last value of the tuple</typeparam>

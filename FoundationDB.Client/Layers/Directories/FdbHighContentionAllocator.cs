@@ -101,9 +101,9 @@ namespace FoundationDB.Layers.Directories
 			trans.AtomicAdd(this.Counters.Keys.Encode(start), Slice.FromFixed64(1));
 
 			// As of the snapshot being read from, the window is less than half
-            // full, so this should be expected to take 2 tries.  Under high
-            // contention (and when the window advances), there is an additional
-            // subsequent risk of conflict for this transaction.
+			// full, so this should be expected to take 2 tries.  Under high
+			// contention (and when the window advances), there is an additional
+			// subsequent risk of conflict for this transaction.
 			while (true)
 			{
 				// Find a random free slot in the current window...

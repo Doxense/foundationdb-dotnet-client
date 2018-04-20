@@ -28,15 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
-	using System.Linq;
 	using System.Linq.Expressions;
-	using System.Reflection;
-	using System.Threading;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Mode of execution of a merge operation</summary>
 	public enum FdbQueryMergeType

@@ -28,10 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	public static partial class FdbAsyncEnumerable
 	{

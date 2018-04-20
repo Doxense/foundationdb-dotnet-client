@@ -31,8 +31,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
 	using System.Collections.Generic;
@@ -40,6 +38,9 @@ namespace FoundationDB.Client.Native
 	using System.Runtime.CompilerServices;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 
 	/// <summary>Helper class to create FDBFutures</summary>
 	internal static class FdbFuture

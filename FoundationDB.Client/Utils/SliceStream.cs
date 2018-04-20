@@ -28,11 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.IO;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Async;
 
 	/// <summary>Stream that wraps a Slice for reading</summary>
 	/// <remarks>This stream is optimized for blocking and async reads</remarks>

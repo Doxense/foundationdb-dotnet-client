@@ -28,11 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Packs items from an inner sequence, into a sequence of fixed-size arrays.</summary>
 	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>
@@ -49,7 +49,7 @@ namespace FoundationDB.Linq
 		// ITERATOR
 
 		// buffer storing the items in the current window
-		private List<TInput> m_buffer;						
+		private List<TInput> m_buffer;
 
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>

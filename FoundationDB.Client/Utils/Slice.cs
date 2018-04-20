@@ -28,8 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
@@ -41,6 +39,9 @@ namespace FoundationDB.Client
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Async;
+	using FoundationDB.Client.Utils;
 
 	/// <summary>Delimits a section of a byte array</summary>
 	[ImmutableObject(true), PublicAPI, DebuggerDisplay("Count={Count}, Offset={Offset}"), DebuggerTypeProxy(typeof(Slice.DebugView))]

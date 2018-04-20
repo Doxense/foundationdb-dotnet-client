@@ -26,11 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using JetBrains.Annotations;
 
 	[PublicAPI]
 	public interface IFdbEncoderSubspace<T> : IFdbSubspace
@@ -92,7 +91,6 @@ namespace FoundationDB.Client
 
 		IFdbEncoderSubspace<T1, T2> Partial {[NotNull] get; }
 
-		//TODO: how to name <T1, T2, T3> ?
 	}
 
 }

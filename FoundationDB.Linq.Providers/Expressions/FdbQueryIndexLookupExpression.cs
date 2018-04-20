@@ -28,14 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq.Expressions
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Indexing;
-	using JetBrains.Annotations;
 	using System;
 	using System.Globalization;
 	using System.Linq.Expressions;
-	using System.Threading;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Indexing;
+	using JetBrains.Annotations;
 
 	/// <summary>Expression that represents a lookup on an FdbIndex</summary>
 	/// <typeparam name="K">Type of the Id of the enties being indexed</typeparam>

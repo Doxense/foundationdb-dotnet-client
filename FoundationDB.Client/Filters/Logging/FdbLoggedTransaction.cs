@@ -41,7 +41,7 @@ namespace FoundationDB.Filters.Logging
 	{
 		/// <summary>Default logging options</summary>
 		Default = 0,
-		
+
 		/// <summary>Capture the stacktrace of the caller method that created the transaction</summary>
 		RecordCreationStackTrace = 0x100,
 
@@ -277,7 +277,7 @@ namespace FoundationDB.Filters.Logging
 		public override FdbWatch Watch(Slice key, CancellationToken cancellationToken)
 		{
 			var cmd = new FdbTransactionLog.WatchCommand(Grab(key));
-            this.Log.AddOperation(cmd);
+			this.Log.AddOperation(cmd);
 			return m_transaction.Watch(cmd.Key, cancellationToken);
 		}
 

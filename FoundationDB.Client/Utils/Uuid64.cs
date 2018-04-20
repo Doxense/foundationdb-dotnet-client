@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Globalization;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	[DebuggerDisplay("[{ToString()}]")]
 	[ImmutableObject(true), PublicAPI, Serializable]

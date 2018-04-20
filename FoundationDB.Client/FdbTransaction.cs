@@ -31,16 +31,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Async;
+	using FoundationDB.Client.Core;
+	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
+	using JetBrains.Annotations;
 
 	/// <summary>FounrationDB transaction handle.</summary>
 	/// <remarks>An instance of this class can be used to read from and/or write to a snapshot of a FoundationDB database.</remarks>
@@ -382,7 +383,7 @@ namespace FoundationDB.Client
 			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "GetRangeCore", String.Format("Getting range '{0} <= x < {1}'", begin.ToString(), end.ToString()));
 #endif
 
-			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, TaskHelpers.Cache<KeyValuePair<Slice, Slice>>.Identity, snapshot, options);
+			return new FdbRangeQuery<KeyValuePair<Slice, Slice>>(this, begin, end, (kv) => kv, snapshot, options);
 		}
 
 		/// <summary>

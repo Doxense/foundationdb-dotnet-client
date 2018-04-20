@@ -26,11 +26,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using JetBrains.Annotations;
 
 	/// <summary>Subspace that knows how to encode and decode its key</summary>
 	/// <typeparam name="T">Type of the key handled by this subspace</typeparam>

@@ -28,13 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Core;
 
 	/// <summary>Wraps a native FDBCluster* handle</summary>
 	internal sealed class FdbNativeCluster : IFdbClusterHandler
@@ -95,7 +94,7 @@ namespace FoundationDB.Client.Native
 
 		public Task<IFdbDatabaseHandler> OpenDatabaseAsync(string databaseName, CancellationToken cancellationToken)
 		{
-			if (cancellationToken.IsCancellationRequested) return TaskHelpers.FromCancellation<IFdbDatabaseHandler>(cancellationToken);
+			if (cancellationToken.IsCancellationRequested) return Task.FromCanceled<IFdbDatabaseHandler>(cancellationToken);
 
 			var future = FdbNative.ClusterCreateDatabase(m_handle, databaseName);
 			return FdbFuture.CreateTaskFromHandle(
@@ -110,7 +109,7 @@ namespace FoundationDB.Client.Native
 						throw Fdb.MapToException(err);
 					}
 					var handler = new FdbNativeDatabase(database);
-                    return (IFdbDatabaseHandler) handler;
+					return (IFdbDatabaseHandler) handler;
 				},
 				cancellationToken
 			);

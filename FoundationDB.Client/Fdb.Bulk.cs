@@ -28,14 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Filters.Logging;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Filters.Logging;
+	using JetBrains.Annotations;
 
 	public static partial class Fdb
 	{
@@ -978,7 +978,7 @@ namespace FoundationDB.Client
 				//REVIEW: what is the point if the body is not async ?
 				// > either is can read and generate past_version errors then it needs to be async
 				// > either it's not async, then it could only Write/Clear, and in which case we need a writeable transaction ... ? (and who will commit and when ??)
-				// It could maybe make sense if the source was an IFdbAsyncEnumerable<T> because you could not use Parallel.ForEach(...) for that
+				// It could maybe make sense if the source was an IAsyncEnumerable<T> because you could not use Parallel.ForEach(...) for that
 
 				return RunBatchedReadOperationAsync<TSource, TLocal, object>(db, source, localInit, body, localFinally, DefaultInitialBatchSize, cancellationToken);
 			}
@@ -1024,7 +1024,7 @@ namespace FoundationDB.Client
 				//REVIEW: what is the point if the body is not async ?
 				// > either is can read and generate past_version errors then it needs to be async
 				// > either it's not async, then it could only Write/Clear, and in which case we need a writeable transaction ... ? (and who will commit and when ??)
-				// It could maybe make sense if the source was an IFdbAsyncEnumerable<T> because you could not use Parallel.ForEach(...) for that
+				// It could maybe make sense if the source was an IAsyncEnumerable<T> because you could not use Parallel.ForEach(...) for that
 
 				return RunBatchedReadOperationAsync<TSource, object, object>(db, source, null, body, null, DefaultInitialBatchSize, cancellationToken);
 			}

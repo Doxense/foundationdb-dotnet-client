@@ -28,14 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Converters
 {
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq.Expressions;
 	using System.Threading;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 
 	/// <summary>Helper class to convert object from one type to another</summary>
 	public static class FdbConverters

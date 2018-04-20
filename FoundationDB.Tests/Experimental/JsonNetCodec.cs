@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Types.Json
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using Newtonsoft.Json;
 	using System;
 	using System.IO;
 	using System.Text;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using Newtonsoft.Json;
 
 	/// <summary>Sample codec that uses JSON.Net to serialize values into Slices</summary>
 	/// <typeparam name="TDocument"></typeparam>

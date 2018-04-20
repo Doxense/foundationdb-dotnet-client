@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Async;
 
 	/// <summary>Prefetches items from the inner sequence, before outputing them down the line.</summary>
 	/// <typeparam name="TInput">Type the the items from the source sequence</typeparam>
@@ -52,7 +52,7 @@ namespace FoundationDB.Linq
 		// buffer storing the items in the current window
 		private Queue<TInput> m_buffer;
 		// holds on to the last pending call to m_iterator.MoveNext() when our buffer is full
-		private Task<bool> m_nextTask;						
+		private Task<bool> m_nextTask;
 
 		/// <summary>Create a new batching iterator</summary>
 		/// <param name="source">Source sequence of items that must be batched by waves</param>

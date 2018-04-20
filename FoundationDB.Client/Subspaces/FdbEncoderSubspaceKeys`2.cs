@@ -26,14 +26,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Collections.Generic;
-using System.Diagnostics.Contracts;
-using FoundationDB.Layers.Tuples;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using System.Collections.Generic;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
+
 	public struct FdbEncoderSubspaceKeys<T1, T2>
 	{
 
@@ -62,7 +62,7 @@ namespace FoundationDB.Client
 
 		public Slice[] Encode<TSource>([NotNull] IEnumerable<TSource> values, [NotNull] Func<TSource, T1> selector1, [NotNull] Func<TSource, T2> selector2)
 		{
-			if (values == null) throw new ArgumentNullException("values");
+			Contract.NotNull(values, nameof(values));
 			return Batched<TSource, ICompositeKeyEncoder<T1, T2>>.Convert(
 				this.Subspace.GetWriter(),
 				values,

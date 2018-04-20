@@ -28,10 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
+	using Doxense.Diagnostics.Contracts;
 
 	[DebuggerDisplay("Mode={m_mode}")]
 	public sealed class FdbKeyRangeComparer : IComparer<FdbKeyRange>, IEqualityComparer<FdbKeyRange>

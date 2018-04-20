@@ -28,13 +28,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Converters;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
 	using System.Linq;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Converters;
 
 	/// <summary>Tuple that can hold any number of untyped items</summary>
 	public sealed class FdbListTuple : IFdbTuple

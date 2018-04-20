@@ -26,16 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using JetBrains.Annotations;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Subspace that knows how to encode and decode its key</summary>
 	/// <typeparam name="T1">Type of the first item of the keys handled by this subspace</typeparam>
 	/// <typeparam name="T2">Type of the second item of the keys handled by this subspace</typeparam>
 	/// <typeparam name="T3">Type of the third item of the keys handled by this subspace</typeparam>
+	/// <typeparam name="T4">Type of the fourth item of the keys handled by this subspace</typeparam>
 	public class FdbEncoderSubspace<T1, T2, T3, T4> : FdbSubspace, IFdbEncoderSubspace<T1, T2, T3, T4>
 	{
 		private readonly ICompositeKeyEncoder<T1, T2, T3, T4> m_encoder;
@@ -52,7 +53,7 @@ namespace FoundationDB.Client
 		internal FdbEncoderSubspace(Slice rawPrefix, bool copy, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 			: base(rawPrefix, copy)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(encoder, nameof(encoder));
 			m_encoder = encoder;
 			m_keys = new FdbEncoderSubspaceKeys<T1, T2, T3, T4>(this, encoder);
 		}

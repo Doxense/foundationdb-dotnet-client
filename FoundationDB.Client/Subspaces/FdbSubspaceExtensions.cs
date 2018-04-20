@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Extensions methods to add FdbSubspace overrides to various types</summary>
 	public static class FdbSubspaceExtensions
@@ -43,10 +43,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoding">If non-null, uses this specific instance of the TypeSystem. If null, uses the default instance for this particular TypeSystem</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbDynamicSubspace Using([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoding == null) throw new ArgumentNullException("encoding");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoding, nameof(encoding));
 			return FdbSubspace.CopyDynamic(subspace, encoding);
 		}
 
@@ -54,10 +55,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbDynamicSubspace UsingEncoder([NotNull] this IFdbSubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoder, nameof(encoder));
 			return FdbSubspace.CopyDynamic(subspace, encoder);
 		}
 
@@ -65,10 +67,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoding">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T> UsingEncoder<T>([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoding == null) throw new ArgumentNullException("encoding");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoding, nameof(encoding));
 			return FdbSubspace.CopyEncoder<T>(subspace, encoding);
 		}
 
@@ -76,10 +79,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T> UsingEncoder<T>([NotNull] this IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoder, nameof(encoder));
 			return FdbSubspace.CopyEncoder<T>(subspace, encoder);
 		}
 
@@ -87,10 +91,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoding">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T1, T2> UsingEncoder<T1, T2>([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoding == null) throw new ArgumentNullException("encoding");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoding, nameof(encoding));
 			return FdbSubspace.CopyEncoder<T1, T2>(subspace, encoding);
 		}
 
@@ -98,10 +103,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T1, T2> UsingEncoder<T1, T2>([NotNull] this IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoder, nameof(encoder));
 			return FdbSubspace.CopyEncoder<T1, T2>(subspace, encoder);
 		}
 
@@ -109,10 +115,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoding">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoding == null) throw new ArgumentNullException("encoding");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoding, nameof(encoding));
 			return FdbSubspace.CopyEncoder<T1, T2, T3>(subspace, encoding);
 		}
 
@@ -120,10 +127,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T1, T2, T3> UsingEncoder<T1, T2, T3>([NotNull] this IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoder, nameof(encoder));
 			return FdbSubspace.CopyEncoder<T1, T2, T3>(subspace, encoder);
 		}
 
@@ -131,10 +139,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoding">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>([NotNull] this IFdbSubspace subspace, [NotNull] IFdbKeyEncoding encoding)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoding == null) throw new ArgumentNullException("encoding");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoding, nameof(encoding));
 			return FdbSubspace.CopyEncoder<T1, T2, T3, T4>(subspace, encoding);
 		}
 
@@ -142,10 +151,11 @@ namespace FoundationDB.Client
 		/// <param name="subspace">Instance of a generic subspace</param>
 		/// <param name="encoder">Custom key encoder</param>
 		/// <returns>Subspace equivalent to <paramref name="subspace"/>, but augmented with a specific TypeSystem</returns>
+		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T1, T2, T3, T4> UsingEncoder<T1, T2, T3, T4>([NotNull] this IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoder, nameof(encoder));
 			return FdbSubspace.CopyEncoder<T1, T2, T3, T4>(subspace, encoder);
 		}
 
@@ -161,14 +171,14 @@ namespace FoundationDB.Client
 		/// <summary>Clear the entire content of a subspace</summary>
 		public static Task ClearRangeAsync(this IFdbRetryable db, [NotNull] IFdbSubspace subspace, CancellationToken cancellationToken)
 		{
-			if (db == null) throw new ArgumentNullException("db");
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			Contract.NotNull(db, nameof(db));
+			Contract.NotNull(subspace, nameof(subspace));
 
 			return db.WriteAsync((tr) => ClearRange(tr, subspace), cancellationToken);
 		}
 
 		/// <summary>Returns all the keys inside of a subspace</summary>
-		[NotNull]
+		[Pure, NotNull]
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRangeStartsWith(this IFdbReadOnlyTransaction trans, [NotNull] IFdbSubspace subspace, FdbRangeOptions options = null)
 		{
 			//REVIEW: should we remove this method?

@@ -26,16 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using FoundationDB.Client.Utils;
-using FoundationDB.Layers.Tuples;
-using JetBrains.Annotations;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using Doxense.Diagnostics.Contracts;
+	using System.Collections.Generic;
+	using System.Linq;
+	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Tuples;
+	using JetBrains.Annotations;
 
 	internal static class Batched<TValue, TState>
 	{
@@ -47,7 +46,7 @@ namespace FoundationDB.Client
 		{
 			Contract.Requires(values != null && handler != null);
 
-			//Note on performance: 
+			//Note on performance:
 			// - we will reuse the same buffer for each temp key, and copy them into a slice buffer
 			// - doing it this way adds a memory copy (writer => buffer) but reduce the number of byte[] allocations (and reduce the GC overhead)
 
@@ -97,12 +96,10 @@ namespace FoundationDB.Client
 		//NOTE: everytime an IFdbTuple is used here, it is as a container (vector of objects), and NOT as the Tuple Encoding scheme ! (separate concept)
 
 		/// <summary>Parent subspace</summary>
-		[NotNull]
-		public readonly IFdbSubspace Subspace;
+		[NotNull] public readonly IFdbSubspace Subspace;
 
 		/// <summary>Encoder used to format keys in this subspace</summary>
-		[NotNull]
-		public readonly IDynamicKeyEncoder Encoder;
+		[NotNull] public readonly IDynamicKeyEncoder Encoder;
 
 		public FdbDynamicSubspaceKeys([NotNull] IFdbSubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
 		{
@@ -151,7 +148,7 @@ namespace FoundationDB.Client
 		/// <param name="tuple">Tuple that will be packed and appended to the subspace prefix</param>
 		public Slice Pack([NotNull] IFdbTuple tuple)
 		{
-			if (tuple == null) throw new ArgumentNullException("tuple");
+			Contract.NotNull(tuple, nameof(tuple));
 
 			var writer = this.Subspace.GetWriter();
 			this.Encoder.PackKey(ref writer, tuple);
@@ -211,7 +208,7 @@ namespace FoundationDB.Client
 				items,
 				(ref SliceWriter writer, T item, IDynamicKeyEncoder encoder) => encoder.EncodeKey<T>(ref writer, item),
 				this.Encoder
-            );
+			);
 		}
 
 		/// <summary>Encode a batch of keys, each one composed of a single value extracted from each elements</summary>

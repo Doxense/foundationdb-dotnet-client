@@ -26,15 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Filters
 {
-	using FoundationDB.Client;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Base class for simple database filters</summary>
 	[DebuggerDisplay("Database={m_database.Name}")]
@@ -63,7 +65,7 @@ namespace FoundationDB.Filters
 
 		protected FdbDatabaseFilter([NotNull] IFdbDatabase database, bool forceReadOnly, bool ownsDatabase)
 		{
-			if (database == null) throw new ArgumentNullException("database");
+			Contract.NotNull(database, nameof(database));
 
 			m_database = database;
 			m_readOnly = forceReadOnly || database.IsReadOnly;
@@ -205,7 +207,7 @@ namespace FoundationDB.Filters
 			return m_database.ConcatKeys<TKey>(keys);
 		}
 
-        public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
+		public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
 		{
 			return m_database.ExtractKey(key, boundCheck);
 		}

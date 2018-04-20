@@ -228,9 +228,11 @@
     <Compile Include="Layers\Tuples\TypeSystem\TupleKeyEncoder.cs" />
     <Compile Include="TypeSystem\TypeSystem.cs" />
     <Compile Include="Utils\CodeAnnotations.cs" />
+    <Compile Include="Utils\ContractException.cs" />
     <Compile Include="Utils\DebugCounters.cs" />
     <Compile Include="TypeSystem\Encoders\KeyValueEncoders.cs" />
     <Compile Include="TypeSystem\FdbTypeCodec`1.cs" />
+    <Compile Include="Utils\ThrowHelper.cs" />
     <Compile Include="Utils\TinyJsonParser.cs" />
     <Compile Include="Utils\SlicePairComparer.cs" />
     <Compile Include="Utils\SliceHelpers.cs" />

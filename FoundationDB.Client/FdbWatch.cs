@@ -28,12 +28,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
 	using System.Runtime.CompilerServices;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Native;
 
 	/// <summary>Watch that triggers when the watched key is changed in the database</summary>
 	[DebuggerDisplay("Status={m_future.Task.Status}, Key={m_key}")]

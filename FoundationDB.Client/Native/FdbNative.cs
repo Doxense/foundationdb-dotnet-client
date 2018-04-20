@@ -29,18 +29,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 // enable this to help debug native calls to fdbc.dll
 //#define DEBUG_NATIVE_CALLS
 
-using FoundationDB.Client.Utils;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Runtime.CompilerServices;
-using System.Runtime.ExceptionServices;
-using System.Runtime.InteropServices;
-using System.Text;
-
 namespace FoundationDB.Client.Native
 {
+	using System;
+	using System.Collections.Generic;
+	using System.IO;
+	using System.Runtime.ExceptionServices;
+	using System.Runtime.InteropServices;
+	using Doxense.Diagnostics.Contracts;
+
 	internal static unsafe class FdbNative
 	{
 		public const int FDB_API_MIN_VERSION = 200;

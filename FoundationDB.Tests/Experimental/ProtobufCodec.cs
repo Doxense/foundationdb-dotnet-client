@@ -28,10 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Types.ProtocolBuffers
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.IO;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
 
 	public class ProtobufCodec<TDocument> : IValueEncoder<TDocument>, IUnorderedTypeCodec<TDocument>
 	{

@@ -28,14 +28,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Async;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Provides a set of static methods for querying objects that implement <see cref="IFdbAsyncEnumerable{T}"/>.</summary>
 	public static partial class FdbAsyncEnumerable

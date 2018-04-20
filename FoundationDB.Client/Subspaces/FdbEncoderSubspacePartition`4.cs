@@ -26,12 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using System;
-using JetBrains.Annotations;
-using FoundationDB.Client.Utils;
-
 namespace FoundationDB.Client
 {
+	using System;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
+	using FoundationDB.Client.Utils;
+
 	public struct FdbEncoderSubspacePartition<T1, T2, T3, T4>
 	{
 		[NotNull]

@@ -28,9 +28,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Tuples
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections;
 	using System.Collections.Generic;
@@ -38,6 +35,9 @@ namespace FoundationDB.Layers.Tuples
 	using System.Globalization;
 	using System.Linq;
 	using System.Text;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client;
+	using JetBrains.Annotations;
 
 	/// <summary>Factory class for Tuples</summary>
 	[PublicAPI]

@@ -28,9 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
+	using System;
+	using Doxense.Diagnostics.Contracts;
 	using FoundationDB.Layers.Tuples;
 	using JetBrains.Annotations;
-	using System;
 
 	public struct FdbDynamicSubspacePartition
 	{
@@ -42,8 +43,8 @@ namespace FoundationDB.Client
 
 		public FdbDynamicSubspacePartition([NotNull] IFdbDynamicSubspace subspace, [NotNull] IDynamicKeyEncoder encoder)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoder, nameof(encoder));
 			this.Subspace = subspace;
 			this.Encoder = encoder;
 		}
@@ -55,9 +56,10 @@ namespace FoundationDB.Client
 		/// This should only be used for one-off usages where creating a new subspace just to encode one key would be overkill.
 		/// If you are calling this in a loop, consider creating a new subspace using that encoding.
 		/// </remarks>
+		[Pure]
 		public FdbDynamicSubspacePartition Using([NotNull] IFdbKeyEncoding encoding)
 		{
-			if (encoding == null) throw new ArgumentNullException("encoding");
+			Contract.NotNull(encoding, nameof(encoding));
 			var encoder = encoding.GetDynamicEncoder();
 			return UsingEncoder(encoder);
 		}
@@ -69,6 +71,7 @@ namespace FoundationDB.Client
 		/// This should only be used for one-off usages where creating a new subspace just to encode one key would be overkill.
 		/// If you are calling this in a loop, consider creating a new subspace using that encoder.
 		/// </remarks>
+		[Pure]
 		public FdbDynamicSubspacePartition UsingEncoder([NotNull] IDynamicKeyEncoder encoder)
 		{
 			return new FdbDynamicSubspacePartition(this.Subspace, encoder);
@@ -82,7 +85,7 @@ namespace FoundationDB.Client
 			[NotNull]
 			get
 			{
-				if (suffix.IsNull) throw new ArgumentException("Partition suffix cannot be null", "suffix");
+				if (suffix.IsNull) throw new ArgumentException("Partition suffix cannot be null", nameof(suffix));
 				//TODO: find a way to limit the number of copies of the key?
 				return new FdbDynamicSubspace(this.Subspace.ConcatKey(suffix), false, this.Encoder);
 			}
@@ -118,7 +121,7 @@ namespace FoundationDB.Client
 			[ContractAnnotation("null => halt; notnull => notnull")]
 			get
 			{
-				if (item == null) throw new ArgumentNullException("item");
+				Contract.NotNull(item, nameof(item));
 				var tuple = item.ToTuple();
 				if (tuple == null) throw new InvalidOperationException("Formattable item returned an empty tuple");
 				return this[tuple];
@@ -133,7 +136,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts") == new FdbSubspace(["Users", "Contacts", ])
 		/// </example>
-		[NotNull]
+		[Pure, NotNull]
 		public IFdbDynamicSubspace ByKey<T>(T value)
 		{
 			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T>(value), false, this.Encoder);
@@ -149,7 +152,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("Contacts", "Friends") == new FdbSubspace(["Users", "Contacts", "Friends", ])
 		/// </example>
-		[NotNull]
+		[Pure, NotNull]
 		public IFdbDynamicSubspace ByKey<T1, T2>(T1 value1, T2 value2)
 		{
 			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2>(value1, value2), false, this.Encoder);
@@ -166,7 +169,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", ])
 		/// </example>
-		[NotNull]
+		[Pure, NotNull]
 		public IFdbDynamicSubspace ByKey<T1, T2, T3>(T1 value1, T2 value2, T3 value3)
 		{
 			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2, T3>(value1, value2, value3), false, this.Encoder);
@@ -185,7 +188,7 @@ namespace FoundationDB.Client
 		/// <example>
 		/// new FdbSubspace(["Users", ]).Partition("John Smith", "Contacts", "Friends", "Messages") == new FdbSubspace(["Users", "John Smith", "Contacts", "Friends", "Messages", ])
 		/// </example>
-		[NotNull]
+		[Pure, NotNull]
 		public IFdbDynamicSubspace ByKey<T1, T2, T3, T4>(T1 value1, T2 value2, T3 value3, T4 value4)
 		{
 			return new FdbDynamicSubspace(this.Subspace.Keys.Encode<T1, T2, T3, T4>(value1, value2, value3, value4), false, this.Encoder);

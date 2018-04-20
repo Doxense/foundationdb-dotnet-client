@@ -1,12 +1,12 @@
-﻿using JetBrains.Annotations;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Globalization;
-using System.Text;
-
+﻿
 namespace FoundationDB.Client.Utils
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Globalization;
+	using System.Text;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>Tiny JSON parser</summary>
 	internal sealed class TinyJsonParser

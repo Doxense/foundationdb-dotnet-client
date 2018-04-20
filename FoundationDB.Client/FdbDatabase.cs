@@ -26,15 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Filters.Logging;
-
 namespace FoundationDB.Client
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Directories;
 	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Concurrent;
@@ -42,6 +35,12 @@ namespace FoundationDB.Client
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Async;
+	using FoundationDB.Client.Core;
+	using FoundationDB.Client.Native;
+	using FoundationDB.Client.Utils;
+	using FoundationDB.Layers.Directories;
 
 	/// <summary>FoundationDB database session handle</summary>
 	/// <remarks>An instance of this class can be used to create any number of concurrent transactions that will read and/or write to this particular database.</remarks>
@@ -129,9 +128,9 @@ namespace FoundationDB.Client
 		/// <param name="ownsCluster">If true, the cluster instance lifetime is linked with the database instance</param>
 		public static FdbDatabase Create(IFdbCluster cluster, IFdbDatabaseHandler handler, string name, IFdbSubspace contentSubspace, IFdbDirectory directory, bool readOnly, bool ownsCluster)
 		{
-			if (cluster == null) throw new ArgumentNullException("cluster");
-			if (handler == null) throw new ArgumentNullException("handler");
-			if (contentSubspace == null) throw new ArgumentNullException("contentSubspace");
+			if (cluster == null) throw new ArgumentNullException(nameof(cluster));
+			if (handler == null) throw new ArgumentNullException(nameof(handler));
+			if (contentSubspace == null) throw new ArgumentNullException(nameof(contentSubspace));
 
 			return new FdbDatabase(cluster, handler, name, contentSubspace, directory, readOnly, ownsCluster);
 		}
@@ -411,7 +410,7 @@ namespace FoundationDB.Client
 		{
 			ThrowIfDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting database option {0}", option.ToString()));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option}");
 
 			m_handler.SetOption(option, Slice.Nil);
 		}
@@ -423,7 +422,7 @@ namespace FoundationDB.Client
 		{
 			ThrowIfDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting database option {0} to '{1}'", option.ToString(), value ?? "<null>"));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to '{value ?? "<null>"}'");
 
 			var data = FdbNative.ToNativeString(value, nullTerminated: true);
 			m_handler.SetOption(option, data);
@@ -436,7 +435,7 @@ namespace FoundationDB.Client
 		{
 			ThrowIfDisposed();
 
-			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", String.Format("Setting database option {0} to {1}", option.ToString(), value));
+			if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "SetOption", $"Setting database option {option} to {value}");
 
 			// Spec says: "If the option is documented as taking an Int parameter, value must point to a signed 64-bit integer (little-endian), and value_length must be 8."
 			var data = Slice.FromFixed64(value);
@@ -675,7 +674,7 @@ namespace FoundationDB.Client
 			get { return m_defaultTimeout; }
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "Timeout value cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "Timeout value cannot be negative");
 				m_defaultTimeout = value;
 			}
 		}
@@ -687,7 +686,7 @@ namespace FoundationDB.Client
 			get { return m_defaultRetryLimit; }
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "RetryLimit value cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "RetryLimit value cannot be negative");
 				m_defaultRetryLimit = value;
 			}
 		}
@@ -699,7 +698,7 @@ namespace FoundationDB.Client
 			get { return m_defaultMaxRetryDelay; }
 			set
 			{
-				if (value < 0) throw new ArgumentOutOfRangeException("value", value, "MaxRetryDelay value cannot be negative");
+				if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), value, "MaxRetryDelay value cannot be negative");
 				m_defaultMaxRetryDelay = value;
 			}
 		}
@@ -732,7 +731,7 @@ namespace FoundationDB.Client
 					{
 						// mark this db has dead, but keep the handle alive until after all the callbacks have fired
 
-						//TODO: kill all pending transactions on this db? 
+						//TODO: kill all pending transactions on this db?
 						foreach (var trans in m_transactions.Values)
 						{
 							if (trans != null && trans.StillAlive)
@@ -749,7 +748,7 @@ namespace FoundationDB.Client
 					{
 						if (m_handler != null)
 						{
-							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", String.Format("Disposing database {0} handler", m_name));
+							if (Logging.On && Logging.IsVerbose) Logging.Verbose(this, "Dispose", $"Disposing database {m_name} handler");
 							try { m_handler.Dispose(); }
 							catch (Exception e)
 							{

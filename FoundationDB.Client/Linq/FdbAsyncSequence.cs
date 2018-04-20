@@ -28,10 +28,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Linq
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Async;
+	using JetBrains.Annotations;
 
 	/// <summary>Wraps an async sequence of items into another async sequence of items</summary>
 	/// <typeparam name="TSource">Type of elements of the inner async sequence</typeparam>

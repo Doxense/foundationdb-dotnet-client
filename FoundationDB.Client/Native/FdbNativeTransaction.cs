@@ -33,14 +33,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client.Native
 {
-	using FoundationDB.Client.Core;
-	using FoundationDB.Client.Utils;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Client.Core;
+	using JetBrains.Annotations;
 
 	/// <summary>Wraps a native FDB_TRANSACTION handle</summary>
 	[DebuggerDisplay("Handle={m_handle}, Size={m_payloadBytes}, Closed={m_handle.IsClosed}")]
@@ -189,7 +189,7 @@ namespace FoundationDB.Client.Native
 		{
 			Contract.Requires(keys != null);
 
-			if (keys.Length == 0) return Task.FromResult(Slice.EmptySliceArray);
+			if (keys.Length == 0) return Task.FromResult(Array.Empty<Slice>());
 
 			var futures = new FutureHandle[keys.Length];
 			try

@@ -28,9 +28,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Client
 {
-	using FoundationDB.Client.Utils;
 	using System;
 	using System.Diagnostics;
+	using Doxense.Diagnostics.Contracts;
 
 	/// <summary>Represents a pair of keys defining the range 'Begin &lt;= key &gt; End'</summary>
 	[DebuggerDisplay("Begin={Begin}, End={End}")]

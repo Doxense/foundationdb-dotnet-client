@@ -28,16 +28,16 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Collections
 {
-	using FoundationDB.Async;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Linq;
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Diagnostics.Contracts;
+	using FoundationDB.Async;
+	using FoundationDB.Client;
+	using FoundationDB.Linq;
+	using JetBrains.Annotations;
 
 	[DebuggerDisplay("Name={Name}, Subspace={Subspace}")]
 	public class FdbMap<TKey, TValue>
