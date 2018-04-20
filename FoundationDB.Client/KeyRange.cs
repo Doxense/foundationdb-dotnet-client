@@ -63,17 +63,6 @@ namespace FoundationDB.Client
 			Contract.Ensures(m_begin <= m_end, "The range is inverted");
 		}
 
-		public KeyRange(IFdbKey begin, IFdbKey end)
-		{
-			if (begin == null) throw new ArgumentNullException("begin");
-			if (end == null) throw new ArgumentNullException("end");
-
-			m_begin = begin.ToFoundationDbKey();
-			m_end = end.ToFoundationDbKey();
-
-			Contract.Ensures(m_begin <= m_end, "The range is inverted");
-		}
-
 		public static KeyRange Create(Slice a, Slice b)
 		{
 			return new KeyRange(a, b);
@@ -95,13 +84,6 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static KeyRange StartsWith<TKey>(TKey prefix)
-			where TKey : IFdbKey
-		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			return StartsWith(prefix.ToFoundationDbKey());
-		}
-
 		/// <summary>Create a range that selects all keys starting with <paramref name="prefix"/>, but not the prefix itself: ('prefix\x00' &lt;= k &lt; string('prefix')</summary>
 		/// <param name="prefix">Key prefix (that will be excluded from the range)</param>
 		/// <returns>Range including all keys with the specified prefix.</returns>
@@ -114,13 +96,6 @@ namespace FoundationDB.Client
 				prefix + FdbKey.MinValue,
 				FdbKey.Increment(prefix)
 			);
-		}
-
-		public static KeyRange PrefixedBy<TKey>(TKey prefix)
-			where TKey : IFdbKey
-		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			return PrefixedBy(prefix.ToFoundationDbKey());
 		}
 
 		/// <summary>Create a range that will only return <paramref name="key"/> itself ('key' &lt;= k &lt; 'key\x00')</summary>
@@ -139,13 +114,6 @@ namespace FoundationDB.Client
 				key,
 				key + FdbKey.MinValue
 			);
-		}
-
-		public static KeyRange FromKey<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return FromKey(key.ToFoundationDbKey());
 		}
 
 		public override bool Equals(object obj)
@@ -245,13 +213,6 @@ namespace FoundationDB.Client
 			return key.CompareTo(m_begin) >= 0 && key.CompareTo(m_end) < 0;
 		}
 
-		public bool Contains<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return Contains(key.ToFoundationDbKey());
-		}
-
 		/// <summary>Test if <paramref name="key"/> is contained inside the range</summary>
 		/// <param name="key">Key that will be compared with the the range's bounds</param>
 		/// <param name="endIncluded">If true, the End bound is inclusive, otherwise it is exclusive</param>
@@ -263,13 +224,6 @@ namespace FoundationDB.Client
 			if (m_begin.IsPresent && key.CompareTo(m_begin) < 0) return -1;
 			if (m_end.IsPresent && key.CompareTo(m_end) >= (endIncluded ? 1 : 0)) return +1;
 			return 0;
-		}
-
-		public int Test<TKey>(TKey key, bool endIncluded = false)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return Test(key.ToFoundationDbKey(), endIncluded);
 		}
 
 		/// <summary>Returns a printable version of the range</summary>

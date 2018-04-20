@@ -115,15 +115,6 @@ namespace FoundationDB.Layers.Tuples.Tests
 		}
 
 		[Test]
-		public void Test_Cannot_Create_Or_Partition_Subspace_With_Null_Tuple()
-		{
-			Assert.That(() => FdbSubspace.Create(default(IFdbTuple)), Throws.InstanceOf<ArgumentNullException>());
-			//FIXME: typed subspaces refactoring !
-			//Assert.That(() => FdbSubspace.Empty.Partition[default(IFdbTuple)], Throws.InstanceOf<ArgumentNullException>());
-			//Assert.That(() => FdbSubspace.Create(FdbKey.Directory).Partition[default(IFdbTuple)], Throws.InstanceOf<ArgumentNullException>());
-		}
-
-		[Test]
 		[Category("LocalCluster")]
 		public void Test_Subspace_With_Tuple_Prefix()
 		{

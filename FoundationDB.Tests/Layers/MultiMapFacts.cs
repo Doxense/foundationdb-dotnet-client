@@ -89,7 +89,8 @@ namespace FoundationDB.Layers.Collections.Tests
 				// directly read the value, behind the table's back
 				using (var tr = db.BeginTransaction(this.Cancellation))
 				{
-					var value = await tr.GetAsync(map.Subspace[FdbTuple.Create("hello", "world")]);
+					var loc = map.Subspace.Using(TypeSystem.Tuples);
+					var value = await tr.GetAsync(loc.Keys.Encode("hello", "world"));
 					Assert.That(value, Is.Not.EqualTo(Slice.Nil));
 					Assert.That(value.ToInt64(), Is.EqualTo(1));
 				}
@@ -112,7 +113,8 @@ namespace FoundationDB.Layers.Collections.Tests
 					Assert.That(count, Is.Null);
 
 					// also check directly
-					var data = await tr.GetAsync(map.Subspace[FdbTuple.Create("hello", "world")]);
+					var loc = map.Subspace.Using(TypeSystem.Tuples);
+					var data = await tr.GetAsync(loc.Keys.Encode("hello", "world"));
 					Assert.That(data, Is.EqualTo(Slice.Nil));
 				}
 

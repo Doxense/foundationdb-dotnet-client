@@ -34,7 +34,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Database connection context.</summary>
 	[PublicAPI]
-	public interface IFdbDatabase : IFdbReadOnlyRetryable, IFdbRetryable, IFdbDynamicSubspace, IFdbKey, IDisposable
+	public interface IFdbDatabase : IFdbReadOnlyRetryable, IFdbRetryable, IFdbDynamicSubspace, IDisposable
 	{
 		/// <summary>Name of the database</summary>
 		string Name { [NotNull] get; }

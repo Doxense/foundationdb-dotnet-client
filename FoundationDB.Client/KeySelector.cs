@@ -58,15 +58,6 @@ namespace FoundationDB.Client
 			this.Offset = offset;
 		}
 
-		/// <summary>Creates a new selector</summary>
-		public KeySelector(IFdbKey key, bool orEqual, int offset)
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			m_key = key.ToFoundationDbKey();
-			this.OrEqual = orEqual;
-			this.Offset = offset;
-		}
-
 		/// <summary>Returns a displayable representation of the key selector</summary>
 		[Pure]
 		public string PrettyPrint(FdbKey.PrettyPrintMode mode)
@@ -141,38 +132,6 @@ namespace FoundationDB.Client
 		{
 			// #define FDB_KEYSEL_FIRST_GREATER_OR_EQUAL(k, l) k, l, 0, 1
 			return new KeySelector(key, false, 1);
-		}
-
-		/// <summary>Creates a key selector that will select the last key that is less than <paramref name="key"/></summary>
-		public static KeySelector LastLessThan<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return LastLessThan(key.ToFoundationDbKey());
-		}
-
-		/// <summary>Creates a key selector that will select the last key that is less than or equal to <paramref name="key"/></summary>
-		public static KeySelector LastLessOrEqual<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return LastLessOrEqual(key.ToFoundationDbKey());
-		}
-
-		/// <summary>Creates a key selector that will select the first key that is greater than <paramref name="key"/></summary>
-		public static KeySelector FirstGreaterThan<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return FirstGreaterThan(key.ToFoundationDbKey());
-		}
-
-		/// <summary>Creates a key selector that will select the first key that is greater than or equal to <paramref name="key"/></summary>
-		public static KeySelector FirstGreaterOrEqual<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return FirstGreaterOrEqual(key.ToFoundationDbKey());
 		}
 
 		/// <summary>Add a value to the selector's offset</summary>

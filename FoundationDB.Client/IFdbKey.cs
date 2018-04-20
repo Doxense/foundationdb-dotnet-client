@@ -31,9 +31,11 @@ namespace FoundationDB.Client
 	using System;
 
 	/// <summary>Allows a layer or custom class to be used as keys in a FoundationDB database</summary>
+	[Obsolete("Remove Me")]
 	public interface IFdbKey
 	{
 		/// <summary>Returns a binary representation of this instance, to be used as a complete key in the database</summary>
+		[Obsolete("Remove Me", error: true)]
 		Slice ToFoundationDbKey();
 	}
 

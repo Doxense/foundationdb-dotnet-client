@@ -184,23 +184,6 @@ namespace FoundationDB.Client
 
 		#region Get...
 
-		/// <summary>Reads a value from the database snapshot represented by by the current transaction.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key">Key to be looked up in the database</param>
-		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
-		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
-		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
-		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static Task<Slice> GetAsync<TKey>(this IFdbReadOnlyTransaction trans, TKey key)
-			where TKey : IFdbKey
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
-			return trans.GetAsync(key.ToFoundationDbKey());
-		}
-
 		/// <summary>Reads and decode a value from the database snapshot represented by by the current transaction.</summary>
 		/// <typeparam name="TValue">Type of the value.</typeparam>
 		/// <param name="trans">Transaction to use for the operation</param>
@@ -219,41 +202,9 @@ namespace FoundationDB.Client
 			return encoder.DecodeValue(await trans.GetAsync(key).ConfigureAwait(false));
 		}
 
-		/// <summary>Reads and decode a value from the database snapshot represented by by the current transaction.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
-		/// <typeparam name="TValue">Type of the value.</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="encoder">Encoder used to decode the value of the key.</param>
-		/// <returns>Task that will return the value of the key if it is found, Slice.Nil if the key does not exist, or an exception</returns>
-		/// <exception cref="System.ArgumentException">If the <paramref name="key"/> is null</exception>
-		/// <exception cref="System.OperationCanceledException">If the cancellation token is already triggered</exception>
-		/// <exception cref="System.ObjectDisposedException">If the transaction has already been completed</exception>
-		/// <exception cref="System.InvalidOperationException">If the operation method is called from the Network Thread</exception>
-		public static Task<TValue> GetAsync<TKey, TValue>([NotNull] this IFdbReadOnlyTransaction trans, TKey key, [NotNull] IValueEncoder<TValue> encoder)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return GetAsync<TValue>(trans, key.ToFoundationDbKey(), encoder);
-		}
-
 		#endregion
 
 		#region Set...
-
-		/// <summary>Set the value of a key in the database.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key"></param>
-		/// <param name="value"></param>
-		public static void Set<TKey>([NotNull] this IFdbTransaction trans, TKey key, Slice value)
-			where TKey : IFdbKey
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
-
-			trans.Set(key.ToFoundationDbKey(), value);
-		}
 
 		/// <summary>Set the value of a key in the database, using a custom value encoder.</summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
@@ -267,20 +218,6 @@ namespace FoundationDB.Client
 			Contract.NotNull(encoder, nameof(encoder));
 
 			trans.Set(key, encoder.EncodeValue(value));
-		}
-
-		/// <summary>Set the value of a key in the database, using a custom value encoder.</summary>
-		/// <typeparam name="TKey">Type of the key that implements IFdbKey.</typeparam>
-		/// <typeparam name="TValue">Type of the value</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key">Key to set</param>
-		/// <param name="value">Value of the key</param>
-		/// <param name="encoder">Encoder used to convert <paramref name="value"/> into a binary slice.</param>
-		public static void Set<TKey, TValue>([NotNull] this IFdbTransaction trans, TKey key, TValue value, [NotNull] IValueEncoder<TValue> encoder)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			Set<TValue>(trans, key.ToFoundationDbKey(), value, encoder);
 		}
 
 		/// <summary>Set the value of a key in the database, using the content of a Stream</summary>
@@ -429,20 +366,6 @@ namespace FoundationDB.Client
 			trans.Atomic(key, value, FdbMutationType.Add);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to add <paramref name="value"/> to the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Value to add to existing value of key.</param>
-		public static void AtomicAdd<TKey>([NotNull] this IFdbTransaction trans, TKey key, Slice value)
-			where TKey : IFdbKey
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
-
-			trans.Atomic(key.ToFoundationDbKey(), value, FdbMutationType.Add);
-		}
-
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise AND between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
@@ -453,21 +376,6 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans, nameof(trans));
 
 			trans.Atomic(key, mask, FdbMutationType.BitAnd);
-		}
-
-		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise AND between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="mask">Bit mask.</param>
-		public static void AtomicAnd<TKey>([NotNull] this IFdbTransaction trans, TKey key, Slice mask)
-			where TKey : IFdbKey
-		{
-			//TODO: rename this to AtomicBitAnd(...) ?
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
-
-			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.BitAnd);
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise OR between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
@@ -482,21 +390,6 @@ namespace FoundationDB.Client
 			trans.Atomic(key, mask, FdbMutationType.BitOr);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise OR between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="mask">Bit mask.</param>
-		public static void AtomicOr<TKey>(this IFdbTransaction trans, TKey key, Slice mask)
-			where TKey : IFdbKey
-		{
-			//TODO: rename this to AtomicBitOr(...) ?
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
-
-			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.BitOr);
-		}
-
 		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise XOR between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
@@ -507,21 +400,6 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans, nameof(trans));
 
 			trans.Atomic(key, mask, FdbMutationType.BitXor);
-		}
-
-		/// <summary>Modify the database snapshot represented by this transaction to perform a bitwise XOR between <paramref name="mask"/> and the value stored by the given <paramref name="key"/>.</summary>
-		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="mask">Bit mask.</param>
-		public static void AtomicXor<TKey>(this IFdbTransaction trans, TKey key, Slice mask)
-			where TKey : IFdbKey
-		{
-			//TODO: rename this to AtomicBitXOr(...) ?
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
-
-			trans.Atomic(key.ToFoundationDbKey(), mask, FdbMutationType.BitXor);
 		}
 
 		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is larger than the value in the database.</summary>
@@ -535,20 +413,6 @@ namespace FoundationDB.Client
 			trans.Atomic(key, value, FdbMutationType.Max);
 		}
 
-		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is larger than the value in the database.</summary>
-		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Bit mask.</param>
-		public static void AtomicMax<TKey>(this IFdbTransaction trans, TKey key, Slice value)
-			where TKey : IFdbKey
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
-
-			trans.Atomic(key.ToFoundationDbKey(), value, FdbMutationType.Max);
-		}
-
 		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is smaller than the value in the database.</summary>
 		/// <param name="trans">Transaction instance</param>
 		/// <param name="key">Name of the key whose value is to be mutated.</param>
@@ -558,20 +422,6 @@ namespace FoundationDB.Client
 			Contract.NotNull(trans, nameof(trans));
 
 			trans.Atomic(key, value, FdbMutationType.Min);
-		}
-
-		/// <summary>Modify the database snapshot represented by this transaction to update a value if it is smaller than the value in the database.</summary>
-		/// <typeparam name="TKey">Type of the key that implements <see cref="IFdbKey"/>.</typeparam>
-		/// <param name="trans">Transaction instance</param>
-		/// <param name="key">Name of the key whose value is to be mutated.</param>
-		/// <param name="value">Bit mask.</param>
-		public static void AtomicMin<TKey>(this IFdbTransaction trans, TKey key, Slice value)
-			where TKey : IFdbKey
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
-
-			trans.Atomic(key.ToFoundationDbKey(), value, FdbMutationType.Min);
 		}
 
 		#endregion
@@ -609,27 +459,9 @@ namespace FoundationDB.Client
 			);
 		}
 
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange<TKey>(this IFdbReadOnlyTransaction trans, TKey beginKeyInclusive, TKey endKeyExclusive, FdbRangeOptions options = null)
-			where TKey : IFdbKey
-		{
-			//TODO: TKey in, but Slice out ? Maybe we need to get a ISliceSerializer<TKey> to convert the slices back to a TKey ?
-			if (beginKeyInclusive == null) throw new ArgumentNullException("beginKeyInclusive");
-			if (endKeyExclusive == null) throw new ArgumentNullException("endKeyExclusive");
-			return GetRange(trans, beginKeyInclusive.ToFoundationDbKey(), endKeyExclusive.ToFoundationDbKey(), options);
-		}
-
 		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange([NotNull] this IFdbReadOnlyTransaction trans, Slice beginKeyInclusive, Slice endKeyExclusive, int limit, bool reverse = false)
 		{
 			return GetRange(trans, beginKeyInclusive, endKeyExclusive, new FdbRangeOptions(limit: limit, reverse: reverse));
-		}
-
-		public static FdbRangeQuery<KeyValuePair<Slice, Slice>> GetRange<TKey>(this IFdbReadOnlyTransaction trans, TKey beginKeyInclusive, TKey endKeyExclusive, int limit, bool reverse = false)
-			where TKey : IFdbKey
-		{
-			if (beginKeyInclusive == null) throw new ArgumentNullException("beginKeyInclusive");
-			if (endKeyExclusive == null) throw new ArgumentNullException("endKeyExclusive");
-
-			return GetRange(trans, beginKeyInclusive.ToFoundationDbKey(), endKeyExclusive.ToFoundationDbKey(), new FdbRangeOptions(limit: limit, reverse: reverse));
 		}
 
 		/// <summary>
@@ -705,19 +537,6 @@ namespace FoundationDB.Client
 		#region Clear...
 
 		/// <summary>
-		/// Modify the database snapshot represented by this transaction to remove the given key from the database. If the key was not previously present in the database, there is no effect.
-		/// </summary>
-		/// <param name="key">Key to be removed from the database.</param>
-		public static void Clear<TKey>(this IFdbTransaction trans, TKey key)
-			where TKey : IFdbKey
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (key == null) throw new ArgumentNullException("key");
-
-			trans.Clear(key.ToFoundationDbKey());
-		}
-
-		/// <summary>
 		/// Modify the database snapshot represented by this transaction to remove all keys (if any) which are lexicographically greater than or equal to the given begin key and lexicographically less than the given end_key.
 		/// Sets and clears affect the actual database only if transaction is later committed with CommitAsync().
 		/// </summary>
@@ -767,34 +586,11 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
-		/// Adds a range of keys to the transaction’s read conflict ranges as if you had read the range. As a result, other transactions that write a key in this range could cause the transaction to fail with a conflict.
-		/// </summary>
-		public static void AddReadConflictRange<TKey>(this IFdbTransaction trans, TKey beginKeyInclusive, TKey endKeyExclusive)
-			where TKey : IFdbKey
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (beginKeyInclusive == null) throw new ArgumentNullException("beginKeyInclusive");
-			if (endKeyExclusive == null) throw new ArgumentNullException("endKeyExclusive");
-
-			trans.AddConflictRange(beginKeyInclusive.ToFoundationDbKey(), endKeyExclusive.ToFoundationDbKey(), FdbConflictRangeType.Read);
-		}
-
-		/// <summary>
 		/// Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
 		/// </summary>
 		public static void AddReadConflictKey([NotNull] this IFdbTransaction trans, Slice key)
 		{
 			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Read);
-		}
-
-		/// <summary>
-		/// Adds a key to the transaction’s read conflict ranges as if you had read the key. As a result, other transactions that write to this key could cause the transaction to fail with a conflict.
-		/// </summary>
-		public static void AddReadConflictKey<TKey>(this IFdbTransaction trans, TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			AddConflictRange(trans, KeyRange.FromKey(key.ToFoundationDbKey()), FdbConflictRangeType.Read);
 		}
 
 		/// <summary>
@@ -816,34 +612,11 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>
-		/// Adds a range of keys to the transaction’s write conflict ranges as if you had cleared the range. As a result, other transactions that concurrently read a key in this range could fail with a conflict.
-		/// </summary>
-		public static void AddWriteConflictRange<TKey>(this IFdbTransaction trans, TKey beginKeyInclusive, TKey endKeyExclusive)
-			where TKey : IFdbKey
-		{
-			if (trans == null) throw new ArgumentNullException("trans");
-			if (beginKeyInclusive == null) throw new ArgumentNullException("beginKeyInclusive");
-			if (endKeyExclusive == null) throw new ArgumentNullException("endKeyExclusive");
-
-			trans.AddConflictRange(beginKeyInclusive.ToFoundationDbKey(), endKeyExclusive.ToFoundationDbKey(), FdbConflictRangeType.Write);
-		}
-
-		/// <summary>
 		/// Adds a key to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
 		/// </summary>
 		public static void AddWriteConflictKey([NotNull] this IFdbTransaction trans, Slice key)
 		{
 			AddConflictRange(trans, KeyRange.FromKey(key), FdbConflictRangeType.Write);
-		}
-
-		/// <summary>
-		/// Adds a key to the transaction’s write conflict ranges as if you had cleared the key. As a result, other transactions that concurrently read this key could fail with a conflict.
-		/// </summary>
-		public static void AddWriteConflictKey<TKey>(this IFdbTransaction trans, TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			AddConflictRange(trans, KeyRange.FromKey(key.ToFoundationDbKey()), FdbConflictRangeType.Write);
 		}
 
 		#endregion
@@ -867,19 +640,6 @@ namespace FoundationDB.Client
 			return watch;
 		}
 
-		/// <summary>Reads the value associated with <paramref name="key"/>, and returns a Watch that will complete after a subsequent change to key in the database.</summary>
-		/// <typeparam name="TKey">Type of the key, which must implement the IFdbKey interface</typeparam>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Key to be looked up in the database</param>
-		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
-		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property contains the current value of the key.</returns>
-		public static Task<FdbWatch> GetAndWatchAsync<TKey>(this IFdbTransaction trans, TKey key, CancellationToken cancellationToken)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return GetAndWatchAsync(trans, key.ToFoundationDbKey(), cancellationToken);
-		}
-
 		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
@@ -899,20 +659,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
-		/// <typeparam name="TKey">Type of the key, which must implement the IFdbKey interface</typeparam>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
-		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static FdbWatch SetAndWatch<TKey>(this IFdbTransaction trans, TKey key, Slice value, CancellationToken cancellationToken)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return SetAndWatch(trans, key.ToFoundationDbKey(), value, cancellationToken);
-		}
-
-		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
 		/// <typeparam name="TValue">Type of the value</typeparam>
 		/// <param name="trans">Transaction to use for the operation</param>
 		/// <param name="key">Name of the key to be inserted into the database.</param>
@@ -925,24 +671,6 @@ namespace FoundationDB.Client
 			Contract.NotNull(encoder, nameof(encoder));
 			cancellationToken.ThrowIfCancellationRequested();
 			return SetAndWatch(trans, key, encoder.EncodeValue(value), cancellationToken);
-		}
-
-		/// <summary>Sets <paramref name="key"/> to <paramref name="value"/> and returns a Watch that will complete after a subsequent change to the key in the database.</summary>
-		/// <typeparam name="TKey">Type of the key, which must implement the IFdbKey interface</typeparam>
-		/// <typeparam name="TValue">Type of the value</typeparam>
-		/// <param name="trans">Transaction to use for the operation</param>
-		/// <param name="key">Name of the key to be inserted into the database.</param>
-		/// <param name="value">Value to be inserted into the database.</param>
-		/// <param name="encoder">Encoder use to convert <paramref name="value"/> into a slice</param>
-		/// <param name="cancellationToken">Token that can be used to cancel the Watch from the outside.</param>
-		/// <returns>A new Watch that will track any changes to <paramref name="key"/> in the database, and whose <see cref="FdbWatch.Value">Value</see> property will be a copy of <paramref name="value"/> argument</returns>
-		public static FdbWatch SetAndWatch<TKey, TValue>(this IFdbTransaction trans, TKey key, TValue value, [NotNull] IValueEncoder<TValue> encoder, CancellationToken cancellationToken)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			cancellationToken.ThrowIfCancellationRequested();
-			return SetAndWatch(trans, key.ToFoundationDbKey(), encoder.EncodeValue(value), cancellationToken);
 		}
 
 		#endregion
@@ -980,35 +708,6 @@ namespace FoundationDB.Client
 			Contract.NotNull(decoder, nameof(decoder));
 
 			return decoder.DecodeValues(await GetValuesAsync(trans, keys).ConfigureAwait(false));
-		}
-
-		/// <summary>
-		/// Reads several values from the database snapshot represented by the current transaction
-		/// </summary>
-		/// <param name="keys">Sequence of keys to be looked up in the database</param>
-		/// <returns>Task that will return an array of values, or an exception. The position of each item in the array is the same as its coresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value will be Slice.Nil.</returns>
-		[ItemNotNull]
-		public static Task<Slice[]> GetValuesAsync<TKey>(this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> keys)
-			where TKey : IFdbKey
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			return GetValuesAsync(trans, keys.Select(key => key.ToFoundationDbKey()));
-		}
-
-		/// <summary>
-		/// Reads several values from the database snapshot represented by the current transaction.
-		/// </summary>
-		/// <param name="keys">Sequence of keys to be looked up in the database</param>
-		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
-		/// <returns>Task that will return an array of decoded values, or an exception. The position of each item in the array is the same as its coresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
-		[ItemNotNull]
-		public static Task<TValue[]> GetValuesAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> keys, [NotNull] IValueEncoder<TValue> decoder)
-			where TKey : IFdbKey
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-
-			return GetValuesAsync<TValue>(trans, keys.Select(key => key.ToFoundationDbKey()), decoder);
 		}
 
 		/// <summary>
@@ -1111,34 +810,6 @@ namespace FoundationDB.Client
 				array[i] = new KeyValuePair<Slice, TValue>(keys[i], decoder.DecodeValue(results[i]));
 			}
 			return array;
-		}
-
-		/// <summary>
-		/// Reads several values from the database snapshot represented by the current transaction.
-		/// </summary>
-		/// <param name="keys">Sequence of keys to be looked up in the database</param>
-		/// <returns>Task that will return an array of key/value pairs, or an exception. Each pair in the array will contain the key at the same index in <paramref name="keys"/>, and its corresponding value in the database or Slice.Nil if that key does not exist.</returns>
-		/// <remarks>This method is equivalent to calling <see cref="IFdbReadOnlyTransaction.GetValuesAsync"/>, except that it will return the keys in addition to the values.</remarks>
-		[ItemNotNull]
-		public static Task<KeyValuePair<Slice, Slice>[]> GetBatchAsync<TKey>(this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> keys)
-			where TKey : IFdbKey
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-			return GetBatchAsync(trans, keys.Select(key => key.ToFoundationDbKey()).ToArray());
-		}
-
-		/// <summary>
-		/// Reads several values from the database snapshot represented by the current transaction.
-		/// </summary>
-		/// <param name="keys">Sequence of keys to be looked up in the database</param>
-		/// <param name="decoder">Decoder used to decoded the results into values of type <typeparamref name="TValue"/></param>
-		/// <returns>Task that will return an array of pairs of key and decoded values, or an exception. The position of each item in the array is the same as its coresponding key in <paramref name="keys"/>. If a key does not exist in the database, its value depends on the behavior of <paramref name="decoder"/>.</returns>
-		[ItemNotNull]
-		public static Task<KeyValuePair<Slice, TValue>[]> GetBatchAsync<TKey, TValue>(this IFdbReadOnlyTransaction trans, [NotNull] IEnumerable<TKey> keys, [NotNull] IValueEncoder<TValue> decoder)
-			where TKey : IFdbKey
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-			return GetBatchAsync<TValue>(trans, keys.Select(key => key.ToFoundationDbKey()).ToArray(), decoder);
 		}
 
 		#endregion

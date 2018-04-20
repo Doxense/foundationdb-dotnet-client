@@ -175,11 +175,6 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.EncodeKey(this.Item1, this.Item2);
 		}
 
-		Slice IFdbKey.ToFoundationDbKey()
-		{
-			return this.ToSlice();
-		}
-
 		public override string ToString()
 		{
 			return "(" + FdbTuple.Stringify(this.Item1) + ", " + FdbTuple.Stringify(this.Item2) + ")";

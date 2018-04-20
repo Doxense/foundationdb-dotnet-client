@@ -150,19 +150,9 @@ namespace FoundationDB.Filters
 			return this.GlobalSpace.ToRange(suffix);
 		}
 
-		KeyRange IFdbSubspace.ToRange<TKey>(TKey key)
-		{
-			return this.GlobalSpace.ToRange(key);
-		}
-
 		IFdbSubspace IFdbSubspace.this[Slice suffix]
 		{
 			get { return this.GlobalSpace[suffix]; }
-		}
-
-		IFdbSubspace IFdbSubspace.this[IFdbKey key]
-		{
-			get { return this.GlobalSpace[key]; }
 		}
 
 		public virtual FdbDynamicSubspacePartition Partition
@@ -190,21 +180,9 @@ namespace FoundationDB.Filters
 			return m_database.ConcatKey(key);
 		}
 
-		public virtual Slice ConcatKey<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			return m_database.ConcatKey<TKey>(key);
-		}
-
 		public virtual Slice[] ConcatKeys(IEnumerable<Slice> keys)
 		{
 			return m_database.ConcatKeys(keys);
-		}
-
-		public virtual Slice[] ConcatKeys<TKey>(IEnumerable<TKey> keys)
-			where TKey : IFdbKey
-		{
-			return m_database.ConcatKeys<TKey>(keys);
 		}
 
 		public virtual Slice ExtractKey(Slice key, bool boundCheck = false)
@@ -402,15 +380,6 @@ namespace FoundationDB.Filters
 					m_database.Dispose();
 				}
 			}
-		}
-
-		#endregion
-
-		#region IFdbSubspace Members...
-
-		Slice IFdbKey.ToFoundationDbKey()
-		{
-			return m_database.ToFoundationDbKey();
 		}
 
 		#endregion

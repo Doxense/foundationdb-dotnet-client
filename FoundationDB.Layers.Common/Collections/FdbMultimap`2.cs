@@ -75,13 +75,13 @@ namespace FoundationDB.Layers.Collections
 		#region Public Properties...
 
 		/// <summary>Subspace used as a prefix for all items in this map</summary>
-		public IFdbSubspace Subspace { [NotNull] get; private set; }
+		public IFdbSubspace Subspace { [NotNull] get; }
 
 		/// <summary>If true, allow negative or zero values to stay in the map.</summary>
-		public bool AllowNegativeValues { get; private set; }
+		public bool AllowNegativeValues { get; }
 
 		/// <summary>Subspace used to encoded the keys for the items</summary>
-		protected IFdbEncoderSubspace<TKey, TValue> Location { [NotNull] get; private set; }
+		protected IFdbEncoderSubspace<TKey, TValue> Location { [NotNull] get; }
 
 		#endregion
 

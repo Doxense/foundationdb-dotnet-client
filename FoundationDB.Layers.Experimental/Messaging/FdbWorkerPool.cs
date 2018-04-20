@@ -322,7 +322,7 @@ namespace FoundationDB.Layers.Messaging
 								var prefix = this.TaskStore.Partition.ByKey(msg.Id);
 								//TODO: replace this with a get_range ?
 								var data = await tr.GetValuesAsync(new [] {
-									prefix.ToFoundationDbKey(),
+									prefix.Key,
 									prefix.Keys.Encode(TASK_META_SCHEDULED)
 								}).ConfigureAwait(false);
 

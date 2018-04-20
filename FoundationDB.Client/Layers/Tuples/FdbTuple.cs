@@ -99,11 +99,6 @@ namespace FoundationDB.Layers.Tuples
 				return Slice.Empty;
 			}
 
-			Slice IFdbKey.ToFoundationDbKey()
-			{
-				return this.ToSlice();
-			}
-
 			public void CopyTo(object[] array, int offset)
 			{
 				//NO-OP

@@ -95,15 +95,6 @@ namespace FoundationDB.Layers.Tuples
 				}
 			}
 
-			if (typeof(IFdbKey).IsAssignableFrom(type))
-			{
-				method = typeof(FdbTuplePackers).GetMethod("SerializeFdbKeyTo", BindingFlags.Static | BindingFlags.Public);
-				if (method != null)
-				{
-					return method.CreateDelegate(typeof(Encoder<>).MakeGenericType(type));
-				}
-			}
-
 			var nullableType = Nullable.GetUnderlyingType(type);
 			if (nullableType != null)
 			{ // nullable types can reuse the underlying type serializer
@@ -507,13 +498,6 @@ namespace FoundationDB.Layers.Tuples
 			FdbTupleParser.BeginTuple(ref writer);
 			tuple.PackTo(ref writer);
 			FdbTupleParser.EndTuple(ref writer);
-		}
-
-		public static void SerializeFdbKeyTo(ref TupleWriter writer, IFdbKey key)
-		{
-			Contract.Requires(key != null);
-			var slice = key.ToFoundationDbKey();
-			FdbTupleParser.WriteBytes(ref writer, slice);
 		}
 
 		#endregion

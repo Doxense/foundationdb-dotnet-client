@@ -151,11 +151,6 @@ namespace FoundationDB.Layers.Tuples
 			return FdbTuple.EncodeKey(this.Item1);
 		}
 
-		Slice IFdbKey.ToFoundationDbKey()
-		{
-			return this.ToSlice();
-		}
-
 		public override string ToString()
 		{
 			// singleton tuples end with a trailing ','

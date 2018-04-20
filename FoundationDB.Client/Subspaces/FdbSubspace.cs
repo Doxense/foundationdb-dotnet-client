@@ -38,7 +38,7 @@ namespace FoundationDB.Client
 
 	/// <summary>Adds a prefix on every keys, to group them inside a common subspace</summary>
 	[PublicAPI]
-	public class FdbSubspace : IFdbSubspace, IFdbKey, IEquatable<IFdbSubspace>, IComparable<IFdbSubspace>
+	public class FdbSubspace : IFdbSubspace, IEquatable<IFdbSubspace>, IComparable<IFdbSubspace>
 	{
 		/// <summary>Empty subspace, that does not add any prefix to the keys</summary>
 		public static readonly IFdbSubspace Empty = new FdbSubspace(Slice.Empty);
@@ -60,7 +60,7 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(copy, nameof(copy));
 			var sub = copy as FdbSubspace;
-			Slice key = sub != null ? sub.m_rawPrefix : copy.ToFoundationDbKey();
+			Slice key = sub != null ? sub.m_rawPrefix : copy.Key;
 			if (key.IsNull) throw new ArgumentException("The subspace key cannot be null. Use Slice.Empty if you want a subspace with no prefix.", nameof(copy));
 			m_rawPrefix = key;
 		}
@@ -94,13 +94,6 @@ namespace FoundationDB.Client
 			return new FdbDynamicSubspace(slice, TypeSystem.Default.GetDynamicEncoder());
 		}
 
-		public static IFdbSubspace Create<TKey>([NotNull] TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return new FdbSubspace(key.ToFoundationDbKey());
-		}
-
 		/// <summary>Create a new Subspace using a binary key as the prefix</summary>
 		/// <param name="slice">Prefix of the new subspace</param>
 		/// <param name="encoding">Type System used to encode the keys of this subspace</param>
@@ -121,22 +114,6 @@ namespace FoundationDB.Client
 		{
 			Contract.NotNull(encoder, nameof(encoder));
 			return new FdbDynamicSubspace(slice, encoder);
-		}
-
-		public static IFdbDynamicSubspace CreateDynamic<TKey>([NotNull] TKey key, IFdbKeyEncoding encoding = null)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			var encoder = (encoding ?? TypeSystem.Default).GetDynamicEncoder();
-			return new FdbDynamicSubspace(key.ToFoundationDbKey(), encoder);
-		}
-
-		public static IFdbDynamicSubspace CreateDynamic<TKey>([NotNull] TKey key, IDynamicKeyEncoder encoder)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			if (encoder == null) throw new ArgumentNullException("encoder");
-			return new FdbDynamicSubspace(key.ToFoundationDbKey(), encoder);
 		}
 
 		/// <summary>Create a new Subspace using a tuples as the prefix</summary>
@@ -261,7 +238,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T> CopyEncoder<T>([NotNull] IFdbSubspace subspace, [NotNull] IKeyEncoder<T> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(encoder, nameof(encoder));
 			return new FdbEncoderSubspace<T>(subspace.Key, true, encoder);
 		}
 
@@ -279,7 +256,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T1, T2> CopyEncoder<T1, T2>([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(encoder, nameof(encoder));
 			return new FdbEncoderSubspace<T1, T2>(subspace.Key, true, encoder);
 		}
 
@@ -297,7 +274,7 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T1, T2, T3> CopyEncoder<T1, T2, T3>([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(encoder, nameof(encoder));
 			return new FdbEncoderSubspace<T1, T2, T3>(subspace.Key, true, encoder);
 		}
 
@@ -315,17 +292,8 @@ namespace FoundationDB.Client
 		[Pure, NotNull]
 		public static IFdbEncoderSubspace<T1, T2, T3, T4> CopyEncoder<T1, T2, T3, T4>([NotNull] IFdbSubspace subspace, [NotNull] ICompositeKeyEncoder<T1, T2, T3, T4> encoder)
 		{
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(encoder, nameof(encoder));
 			return new FdbEncoderSubspace<T1, T2, T3, T4>(subspace.Key, true, encoder);
-		}
-
-		#endregion
-
-		#region IFdbKey...
-
-		Slice IFdbKey.ToFoundationDbKey()
-		{
-			return GetKeyPrefix();
 		}
 
 		#endregion
@@ -363,25 +331,9 @@ namespace FoundationDB.Client
 			return KeyRange.StartsWith(ConcatKey(suffix));
 		}
 
-		public virtual KeyRange ToRange<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			return KeyRange.StartsWith(ConcatKey(key.ToFoundationDbKey()));
-		}
-
 		public IFdbSubspace this[Slice suffix]
 		{
 			get { return CreateChildren(suffix); }
-		}
-
-		public IFdbSubspace this[IFdbKey key]
-		{
-			get
-			{
-				if (key == null) throw new ArgumentNullException("key");
-				return CreateChildren(key.ToFoundationDbKey());
-			}
 		}
 
 		/// <summary>Tests whether the specified <paramref name="key"/> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="key"/>.</summary>
@@ -400,14 +352,6 @@ namespace FoundationDB.Client
 			return GetKeyPrefix().Concat(suffix);
 		}
 
-		public Slice ConcatKey<TKey>(TKey key)
-			where TKey : IFdbKey
-		{
-			if (key == null) throw new ArgumentNullException("key");
-			var suffix = key.ToFoundationDbKey();
-			return GetKeyPrefix().Concat(suffix);
-		}
-
 		/// <summary>Merge an array of keys with the subspace's prefix, all sharing the same buffer</summary>
 		/// <param name="keys">Array of keys to pack</param>
 		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
@@ -416,17 +360,6 @@ namespace FoundationDB.Client
 			Contract.NotNull(keys, nameof(keys));
 			//REVIEW: what to do with keys that are Slice.Nil ?
 			return Slice.ConcatRange(GetKeyPrefix(), keys);
-		}
-
-		/// <summary>Merge an array of keys with the subspace's prefix, all sharing the same buffer</summary>
-		/// <param name="keys">Array of keys to pack</param>
-		/// <returns>Array of slices (for all keys) that share the same underlying buffer</returns>
-		public Slice[] ConcatKeys<TKey>(IEnumerable<TKey> keys)
-			where TKey : IFdbKey
-		{
-			if (keys == null) throw new ArgumentNullException("keys");
-			//REVIEW: what to do with keys that are Slice.Nil ?
-			return Slice.ConcatRange(GetKeyPrefix(), keys.Select(key => key.ToFoundationDbKey()));
 		}
 
 		/// <summary>Remove the subspace prefix from a binary key, and only return the tail, or Slice.Nil if the key does not fit inside the namespace</summary>
@@ -523,7 +456,7 @@ namespace FoundationDB.Client
 			if (sub != null)
 				return this.InternalKey.CompareTo(sub.InternalKey);
 			else
-				return this.InternalKey.CompareTo(other.ToFoundationDbKey());
+				return this.InternalKey.CompareTo(other.Key);
 		}
 
 		/// <summary>Test if both subspaces have the same prefix</summary>
@@ -535,7 +468,7 @@ namespace FoundationDB.Client
 			if (sub != null)
 				return this.InternalKey.Equals(sub.InternalKey);
 			else
-				return this.InternalKey.Equals(other.ToFoundationDbKey());
+				return this.InternalKey.Equals(other.Key);
 		}
 
 		/// <summary>Test if an object is a subspace with the same prefix</summary>

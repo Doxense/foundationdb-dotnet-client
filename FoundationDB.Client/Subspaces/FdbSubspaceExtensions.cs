@@ -165,7 +165,7 @@ namespace FoundationDB.Client
 			Contract.Requires(trans != null && subspace != null);
 
 			//BUGBUG: should we call subspace.ToRange() ?
-			trans.ClearRange(KeyRange.StartsWith(subspace.ToFoundationDbKey()));
+			trans.ClearRange(subspace.ToRange());
 		}
 
 		/// <summary>Clear the entire content of a subspace</summary>
@@ -184,19 +184,7 @@ namespace FoundationDB.Client
 			//REVIEW: should we remove this method?
 			Contract.Requires(trans != null && subspace != null);
 
-			return trans.GetRange(KeyRange.StartsWith(subspace.ToFoundationDbKey()), options);
-		}
-
-		/// <summary>Tests whether the specified <paramref name="key"/> starts with this Subspace's prefix, indicating that the Subspace logically contains <paramref name="key"/>.</summary>
-		/// <param name="subspace"/>
-		/// <param name="key">The key to be tested</param>
-		/// <exception cref="System.ArgumentNullException">If <paramref name="key"/> is null</exception>
-		public static bool Contains<TKey>([NotNull] this IFdbSubspace subspace, [NotNull] TKey key)
-			where TKey : IFdbKey
-		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (key == null) throw new ArgumentNullException("key");
-			return subspace.Contains(key.ToFoundationDbKey());
+			return trans.GetRange(subspace.ToRange(), options);
 		}
 
 	}

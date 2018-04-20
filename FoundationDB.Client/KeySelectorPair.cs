@@ -71,18 +71,6 @@ namespace FoundationDB.Client
 		}
 
 		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
-		public static KeySelectorPair Create<TKey>(TKey begin, TKey end)
-			where TKey : IFdbKey
-		{
-			if (begin == null) throw new ArgumentNullException("begin");
-			if (end == null) throw new ArgumentNullException("end");
-			return new KeySelectorPair(
-				KeySelector.FirstGreaterOrEqual(begin.ToFoundationDbKey()),
-				KeySelector.FirstGreaterOrEqual(end.ToFoundationDbKey())
-			);
-		}
-
-		/// <summary>Create a new pair of key selectors using FIRST_GREATER_OR_EQUAL on both keys</summary>
 		public static KeySelectorPair Create(KeyRange range)
 		{
 			return new KeySelectorPair(
@@ -100,14 +88,6 @@ namespace FoundationDB.Client
 				KeySelector.FirstGreaterOrEqual(range.Begin),
 				KeySelector.FirstGreaterOrEqual(range.End)
 			);
-		}
-
-		/// <summary>Create a new pair of key selectors that will select all the keys that start with the specified prefix</summary>
-		public static KeySelectorPair StartsWith<TKey>(TKey prefix)
-			where TKey : IFdbKey
-		{
-			if (prefix == null) throw new ArgumentNullException("prefix");
-			return StartsWith(prefix.ToFoundationDbKey());
 		}
 
 		/// <summary>Returns a printable version of the pair of key selectors</summary>

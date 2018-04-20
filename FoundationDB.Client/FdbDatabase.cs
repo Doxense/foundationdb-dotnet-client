@@ -446,11 +446,6 @@ namespace FoundationDB.Client
 
 		#region Key Space Management...
 
-		Slice IFdbKey.ToFoundationDbKey()
-		{
-			return m_globalSpaceCopy.Key;
-		}
-
 		/// <summary>Change the current global namespace.</summary>
 		/// <remarks>Do NOT call this, unless you know exactly what you are doing !</remarks>
 		internal void ChangeRoot(IFdbSubspace subspace, IFdbDirectory directory, bool readOnly)
@@ -544,19 +539,9 @@ namespace FoundationDB.Client
 			return m_globalSpace.ConcatKey(key);
 		}
 
-		Slice IFdbSubspace.ConcatKey<TKey>(TKey key)
-		{
-			return m_globalSpace.ConcatKey<TKey>(key);
-		}
-
 		Slice[] IFdbSubspace.ConcatKeys(IEnumerable<Slice> keys)
 		{
 			return m_globalSpace.ConcatKeys(keys);
-		}
-
-		Slice[] IFdbSubspace.ConcatKeys<TKey>(IEnumerable<TKey> keys)
-		{
-			return m_globalSpace.ConcatKeys<TKey>(keys);
 		}
 
 		/// <summary>Remove the database global subspace prefix from a binary key, or throw if the key is outside of the global subspace.</summary>
@@ -589,14 +574,6 @@ namespace FoundationDB.Client
 			}
 		}
 
-		IFdbSubspace IFdbSubspace.this[IFdbKey key]
-		{
-			get
-			{
-				return m_globalSpace[key];
-			}
-		}
-
 		KeyRange IFdbSubspace.ToRange()
 		{
 			return m_globalSpace.ToRange();
@@ -605,11 +582,6 @@ namespace FoundationDB.Client
 		KeyRange IFdbSubspace.ToRange(Slice suffix)
 		{
 			return m_globalSpace.ToRange(suffix);
-		}
-
-		KeyRange IFdbSubspace.ToRange<TKey>(TKey key)
-		{
-			return m_globalSpace.ToRange(key);
 		}
 
 		public FdbDynamicSubspacePartition Partition

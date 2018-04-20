@@ -270,7 +270,7 @@ namespace FoundationDB.Client.Tests
 		public async Task Test_Can_Open_Database_With_Non_Empty_GlobalSpace()
 		{
 			// using a tuple prefix
-			using (var db = await Fdb.OpenAsync(null, "DB", FdbSubspace.Create(FdbTuple.Create("test")), false, this.Cancellation))
+			using (var db = await Fdb.OpenAsync(null, "DB", FdbSubspace.Create(FdbTuple.EncodeKey("test")), false, this.Cancellation))
 			{
 				Assert.That(db, Is.Not.Null);
 				Assert.That(db.GlobalSpace, Is.Not.Null);

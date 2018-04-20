@@ -98,7 +98,7 @@ namespace FoundationDB.Layers.Collections
 				if ((keyHash & ((1 << (level * LEVEL_FAN_POW)) - 1)) != 0)
 				{
 					//Console.WriteLine("> [" + level + "] Incrementing previous key: " + FdbKey.Dump(prevKey));
-					trans.AtomicAdd(this.Subspace.Partition.ByKey(level, prevKey), EncodeCount(1));
+					trans.AtomicAdd(this.Subspace.Keys.Encode(level, prevKey), EncodeCount(1));
 				}
 				else
 				{
@@ -138,7 +138,7 @@ namespace FoundationDB.Layers.Collections
 			for (int level = 0; level < MAX_LEVELS; level++)
 			{
 				// This could be optimized with hash
-				var k = this.Subspace.Partition.ByKey(level, key);
+				var k = this.Subspace.Keys.Encode(level, key);
 				var c = await trans.GetAsync(k).ConfigureAwait(false);
 				if (c.HasValue) trans.Clear(k);
 				if (level == 0) continue;

@@ -874,11 +874,7 @@ namespace FoundationDB.Layers.Directories
 				// Key
 				shouldFail(() => { var _ = partition.Key; });
 
-				// ToFoundationDBKey
-				shouldFail(() => ((IFdbKey)partition).ToFoundationDbKey());
-
 				// Contains
-				shouldFail(() => partition.Contains(subdir));
 				shouldFail(() => partition.Contains(barKey));
 
 				// Extract / ExtractAndCheck / BoundCheck
@@ -900,12 +896,10 @@ namespace FoundationDB.Layers.Directories
 
 				shouldFail(() => { var _ = partition[Slice.FromString("hello")]; });
 				shouldFail(() => { var _ = partition[location.Key]; });
-				shouldFail(() => { var _ = partition[location]; });
 
 				shouldFail(() => partition.ToRange());
 				shouldFail(() => partition.ToRange(Slice.FromString("hello")));
 				shouldFail(() => partition.ToRange(FdbTuple.EncodeKey("hello")));
-				shouldFail(() => partition.ToRange(location));
 
  				// Tuples
 

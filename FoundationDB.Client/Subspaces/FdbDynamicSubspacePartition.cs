@@ -91,20 +91,6 @@ namespace FoundationDB.Client
 			}
 		}
 
-		/// <summary>Create a new subspace by adding a <paramref name="key"/> to the current subspace's prefix</summary>
-		/// <param name="key">Key that will be appended to the current prefix</param>
-		/// <returns>New subspace whose prefix is the concatenation of the parent prefix, and the packed representation of <paramref name="key"/></returns>
-		public IFdbDynamicSubspace this[IFdbKey key]
-		{
-			[ContractAnnotation("null => halt; notnull => notnull")]
-			get
-			{
-				if (key == null) throw new ArgumentNullException("key");
-				var packed = key.ToFoundationDbKey();
-				return this[packed];
-			}
-		}
-
 		public IFdbDynamicSubspace this[IFdbTuple tuple]
 		{
 			[ContractAnnotation("null => halt; notnull => notnull")]

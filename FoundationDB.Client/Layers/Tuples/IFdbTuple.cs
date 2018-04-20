@@ -37,7 +37,7 @@ namespace FoundationDB.Layers.Tuples
 	/// <summary>Represents a Tuple of N elements</summary>
 	[ImmutableObject(true)]
 	[CannotApplyEqualityOperator]
-	public interface IFdbTuple : IEnumerable<object>, IEquatable<IFdbTuple>, IReadOnlyCollection<object>, IFdbKey
+	public interface IFdbTuple : IEnumerable<object>, IEquatable<IFdbTuple>, IReadOnlyCollection<object>
 #if !NET_4_0
 		, IReadOnlyList<object>
 		, System.Collections.IStructuralEquatable

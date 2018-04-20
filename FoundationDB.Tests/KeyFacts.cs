@@ -256,10 +256,10 @@ namespace FoundationDB.Client.Tests
 			Assert.That(range.Test(Slice.FromAscii("\xFF"), endIncluded: true), Is.EqualTo(AFTER));
 
 			range = KeyRange.Create(FdbTuple.EncodeKey("A"), FdbTuple.EncodeKey("Z"));
-			Assert.That(range.Test(FdbTuple.Create("@")), Is.EqualTo((BEFORE)));
-			Assert.That(range.Test(FdbTuple.Create("A")), Is.EqualTo((INSIDE)));
-			Assert.That(range.Test(FdbTuple.Create("Z")), Is.EqualTo((AFTER)));
-			Assert.That(range.Test(FdbTuple.Create("Z"), endIncluded: true), Is.EqualTo(INSIDE));
+			Assert.That(range.Test(FdbTuple.EncodeKey("@")), Is.EqualTo((BEFORE)));
+			Assert.That(range.Test(FdbTuple.EncodeKey("A")), Is.EqualTo((INSIDE)));
+			Assert.That(range.Test(FdbTuple.EncodeKey("Z")), Is.EqualTo((AFTER)));
+			Assert.That(range.Test(FdbTuple.EncodeKey("Z"), endIncluded: true), Is.EqualTo(INSIDE));
 		}
 
 		[Test]
