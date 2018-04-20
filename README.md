@@ -1,52 +1,6 @@
 FoundationDB.Net Client
 =======================
 
-__Important Notice__
-
-> As you may or may not know, the FoundationDB K/V Store engine is no longer available for download, following the acquisition of FoundationDB LLC by Apple. This means that, even though the .NET binding itself is open source, it is not usable without access to a license for the underlying database engine. Given these circumstances, this means that this project is no longer under active development, and will now transition into a maintenance state.
-
-> If you are actively using the .NET FoundationDB Binding in your application, and are in a situation where you have an existing infrastructure to support, please know that this repository will stay up as long as is needed, and there are currently no plans to close it down. If you want to be safe, please feel free to clone or fork it! We will try to help you fix any bug or issues, as is humanely possible. Since the license of the .NET Binding is open source (3-clause BSD), we encourage you to fork it and use it in anyway you think is necessary to help you transition to something else. In any case, we urge you to contact people at FoundationDB to help you on that (according to the message on the Community Forum, you should get in touch with info@foundationdb.com)
-
-> If you were looking for a new database solution for a new project, you'll have to keep looking. Good luck, because FoundationDB was probably the best in its class.
-
-> Some parts of this project could probably be lifted up and used or recycled in some shape or form into other projects (ex: Tuples, Slice, AsyncLINQ, ...). Please get in touch if you are interested in this!
-
-> I'd like to thank everyone who participated in this project, and hope that you all will be able to land back on your feet! It was a fun ride and an invaluable experience. Merci à vous!
-
-__Q&A / tl;dr__
-
-What is the situation regarding FoundationDB (the database)?
-> Apple acquired the company that makes FoundationDB. It does not seem to be available for download anymore. That's all we know. Please contact info@foundationdb.com if you want more details.
-
-What is this project exactly?
-> This project was a .NET wrapper for the underlying native Client API for the FoundationDB Key/Value Store, as well a some infrastructure to make it easier to work with key/value stores using C#. The wrapper itself is opensource, but it needs a native DLL (fdb_c.dll) to talk to the database, which was licensed by FoundationDB LLC and was closed source.
-
-Where can I find the SQL layer or parsers?
-> This project only dealt specifically with the Key/Value Store engine, and did not have any link with either the SQL Layer or the SQL parser. We don't have any knowledge on the fate of these two projects.
-
-Is this project under active development?
-> Not anymore. Bugs will be fixed but don't expect any major activity.
-
-Will this repository go away like the other ones?
-> No plans for that. If you want to make sure, please clone or fork it!
-
-I'm using it in production, what gives?
-> Please contact the folks at info@foundationdb.com ASAP!
-
-Then, what can I use to replace FoundationDB in my application?
-> If you find something as good as FDB, please let us know :)
-
-What attributes should I look for, if I want something similar?
-> You'll need an ordered key/value store, with multi-key transaction support, and ACID guarantees. Most of the Layers are designed to work with an underlying K/V store that offers strong ACID guarantees, and will probably not work with other K/V store that don't offer these. If we find something that works as a replacement, we'll make sure to update this notice. For know, you should maybe look at PostgreSQL.
-
-I have a bug, can you help us?
-> Please open an Issue and if this is at the .NET binding level, we will try to help you if we can!
-
-Are there some interesting bits in this project worth looking at?
-> Yes! Please take a look at the Tuple, Slice and FdbAsyncEnumerable classes! This was a fun project to make C# work well with an API mostly designed with dynamic languages (like Python or node.js) in mind. There is also the Memory Stoage project which was an attempt to have an in-memory version of the K/V store (for unit tests or embedded scenarios).
-
-__End of Important Notice__
-
 This code is licensed under the 3-clause BSD Licence.
 
 [![Build status](https://ci.appveyor.com/api/projects/status/83u4pd2ckevdtb57?svg=true)](https://ci.appveyor.com/project/KrzysFR/foundationdb-dotnet-client)
@@ -241,7 +195,7 @@ How to build
 
 ### Visual Studio Solution
 
-You will need Visual Studio .NET 2012 or 2013 and .NET 4.5 minimum to compile the solution.
+You will need Visual Studio .NET 2012 or 2013 and .NET 4.6.1 minimum to compile the solution.
 
 You will also need to obtain the 'fdb_c.dll' C API binding from the foundationdb.com wesite, by installing the client SDK:
 
