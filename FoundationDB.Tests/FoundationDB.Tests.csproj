@@ -75,6 +75,7 @@
     <Compile Include="..\Common\VersionInfo.cs">
       <Link>Properties\VersionInfo.cs</Link>
     </Compile>
+    <Compile Include="ExoticTestCases.cs" />
     <Compile Include="Experimental\Indexing\SuperSlowUncompressedBitmap.cs" />
     <Compile Include="Experimental\Indexing\CompressedBitmapsFacts.cs" />
     <Compile Include="FdbTest.cs" />
