@@ -2103,7 +2103,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_4()
 		{
-			Fdb.Start(300);
 			using (var db = await Fdb.OpenAsync(this.Cancellation))
 			{
 				{
@@ -2137,7 +2136,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_5()
 		{
-			Fdb.Start(300);
 			using (var db = await Fdb.OpenAsync(this.Cancellation))
 			{
 				{
@@ -2157,7 +2155,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_6()
 		{
-			Fdb.Start(300);
 			using (var db = await Fdb.OpenAsync(this.Cancellation))
 			{
 				{
@@ -2183,7 +2180,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_6b()
 		{
-			Fdb.Start(300);
 			using (var db = await Fdb.OpenAsync(this.Cancellation))
 			{
 				Slice init = Slice.Repeat(0xCC, 9);
@@ -2224,8 +2220,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_7()
 		{
-
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
@@ -2304,8 +2298,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_8()
 		{
-
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
@@ -2339,8 +2331,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_9()
 		{
-
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
@@ -2381,8 +2371,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_10()
 		{
-
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
@@ -2419,8 +2407,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_11()
 		{
-
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
@@ -2474,8 +2460,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_12()
 		{
-
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
@@ -2510,7 +2494,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_13()
 		{
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
@@ -2553,7 +2536,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_14()
 		{
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
@@ -2592,7 +2574,6 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_15()
 		{
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
 				var db = FoundationDB.Filters.Logging.FdbLoggingExtensions.Logged(zedb, (tr) => Console.WriteLine(tr.Log.GetTimingsReport(true)));
@@ -2628,12 +2609,10 @@ namespace FoundationDB.Client.Tests
 		[Test]
 		public async void Test_Case_16()
 		{
-			Fdb.Start(300);
-
 			Slice aaa = Slice.FromString("KAAA");
 			Slice bbb = Slice.FromString("KBBB");
 			Slice ccc = Slice.FromString("KCCC");
-			Slice hugeValue = Slice.FromString("BIGVALUE_" + new string('Z', 100));
+			//Slice hugeValue = Slice.FromString("BIGVALUE_" + new string('Z', 100));
 
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
@@ -2719,13 +2698,11 @@ namespace FoundationDB.Client.Tests
 		}
 
 
-		[Test]
+		[Test][Ignore("This test requires the database to be stopped!")]
 		public async void Test_Case_17()
 		{
-			Fdb.Start(300);
 			using (var zedb = await Fdb.OpenAsync(this.Cancellation))
 			{
-
 				//THIS TEST MUST BE PERFORMED WITH THE CLUSTER DOWN! (net stop fdbmonitor)
 
 				// measured latencies:
