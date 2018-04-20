@@ -1,22 +1,9 @@
-﻿using FoundationDB.Async;
-using FoundationDB.Client;
-using FoundationDB.Filters.Logging;
-using FoundationDB.Layers.Directories;
-using FoundationDB.Layers.Tuples;
-using FoundationDB.Samples.Benchmarks;
-using FoundationDB.Samples.Tutorials;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Net;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿//TODO: License for samples/tutorials ???
 
 namespace FoundationDB.Samples
 {
+	using System;
+	using System.Diagnostics;
 
 	public static class PerfCounters
 	{

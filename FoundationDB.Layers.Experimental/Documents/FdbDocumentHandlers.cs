@@ -28,15 +28,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Documents
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
-	using System.Threading;
-	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
 
 	/// <summary>Interface that defines a class that knows of to chop instances of <typeparamref name="TDocument"/> into slices</summary>
 	/// <typeparam name="TDocument">Type of documents</typeparam>
@@ -95,11 +91,11 @@ namespace FoundationDB.Layers.Documents
 
 			private readonly IEqualityComparer<string> m_keyComparer;
 
-			public string IdName { get; private set; }
+			public string IdName { get; }
 
 			public KeyValuePair<IFdbTuple, Slice>[] Split(List<KeyValuePair<string, IFdbTuple>> document)
 			{
-				if (document == null) throw new ArgumentNullException("document");
+				if (document == null) throw new ArgumentNullException(nameof(document));
 
 				return document
 					// don't include the id
@@ -114,7 +110,7 @@ namespace FoundationDB.Layers.Documents
 
 			public List<KeyValuePair<string, IFdbTuple>> Build(KeyValuePair<IFdbTuple, Slice>[] parts)
 			{
-				if (parts == null) throw new ArgumentNullException("parts");
+				if (parts == null) throw new ArgumentNullException(nameof(parts));
 
 				var list = new List<KeyValuePair<string, IFdbTuple>>(parts.Length);
 				foreach(var part in parts)

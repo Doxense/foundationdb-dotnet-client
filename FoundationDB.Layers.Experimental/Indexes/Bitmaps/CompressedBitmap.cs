@@ -48,9 +48,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public CompressedBitmap(Slice data)
 		{
-			if (data.IsNull) throw new ArgumentNullException("data");
-			if (data.Count > 0 && data.Count < 8) throw new ArgumentException("A compressed bitmap must either be empty, or at least 8 bytes long", "data");
-			if ((data.Count & 3) != 0) throw new ArgumentException("A compressed bitmap size must be a multiple of 4 bytes", "data");
+			if (data.IsNull) throw new ArgumentNullException(nameof(data));
+			if (data.Count > 0 && data.Count < 8) throw new ArgumentException("A compressed bitmap must either be empty, or at least 8 bytes long", nameof(data));
+			if ((data.Count & 3) != 0) throw new ArgumentException("A compressed bitmap size must be a multiple of 4 bytes", nameof(data));
 
 			if (data.Count == 0)
 			{
@@ -66,7 +66,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		internal CompressedBitmap(Slice data, BitRange bounds)
 		{
-			if (data.IsNull) throw new ArgumentNullException("data");
+			if (data.IsNull) throw new ArgumentNullException(nameof(data));
 
 			if (data.Count == 0)
 			{
@@ -75,8 +75,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			}
 			else
 			{
-				if ((data.Count & 3) != 0) throw new ArgumentException("A compressed bitmap size must be a multiple of 4 bytes", "data");
-				if (data.Count < 4) throw new ArgumentException("A compressed bitmap must be at least 4 bytes long", "data");
+				if ((data.Count & 3) != 0) throw new ArgumentException("A compressed bitmap size must be a multiple of 4 bytes", nameof(data));
+				if (data.Count < 4) throw new ArgumentException("A compressed bitmap must be at least 4 bytes long", nameof(data));
 				m_data = data;
 				m_bounds = bounds;
 			}
@@ -93,16 +93,13 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		/// <summary>Gets the underlying buffer of the compressed bitmap</summary>
 		/// <remarks>The content of the buffer MUST NOT be modified directly</remarks>
-		internal Slice Data { get { return m_data; } }
+		internal Slice Data => m_data;
 
 		/// <summary>Gets the bounds of the compressed bitmap</summary>
-		public BitRange Bounds { get { return m_bounds; } }
+		public BitRange Bounds => m_bounds;
 
 		/// <summary>Number of Data Words in the compressed bitmap</summary>
-		public int Count
-		{
-			get { return m_data.IsNullOrEmpty ? 0 : (m_data.Count >> 2) - 1; }
-		}
+		public int Count => m_data.IsNullOrEmpty ? 0 : (m_data.Count >> 2) - 1;
 
 		/// <summary>Test if the specified bit is set</summary>
 		/// <param name="bitOffset">Offset of the bit to test</param>
@@ -149,8 +146,8 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		internal static BitRange ComputeBounds(Slice data, int words = -1)
 		{
 			int count = data.Count;
-			if (count > 0 && count < 8) throw new ArgumentException("Bitmap buffer size is too small", "data");
-			if ((count & 3) != 0) throw new ArgumentException("Bitmap buffer size must be a multiple of 4 bytes", "data");
+			if (count > 0 && count < 8) throw new ArgumentException("Bitmap buffer size is too small", nameof(data));
+			if ((count & 3) != 0) throw new ArgumentException("Bitmap buffer size must be a multiple of 4 bytes", nameof(data));
 
 			// if the bitmap is empty, return 0..0
 			if (count == 0) return BitRange.Empty;

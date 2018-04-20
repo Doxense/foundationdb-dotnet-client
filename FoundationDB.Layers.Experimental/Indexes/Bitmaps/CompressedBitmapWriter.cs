@@ -73,7 +73,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		public CompressedBitmapWriter(int capacity)
 			: this(new SliceWriter(Math.Max(4 + capacity  * 4, 20)), true)
 		{
-			if (capacity < 0) throw new ArgumentOutOfRangeException("capacity");
+			if (capacity < 0) throw new ArgumentOutOfRangeException(nameof(capacity));
 		}
 
 		/// <summary>Create a new compressed bitmap writer, with a specific underlying buffer</summary>

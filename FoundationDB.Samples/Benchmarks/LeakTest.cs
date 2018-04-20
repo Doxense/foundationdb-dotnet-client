@@ -2,14 +2,13 @@
 
 namespace FoundationDB.Samples.Benchmarks
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
 	using System.IO;
 	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Client.Utils;
 
 	public class LeakTest : IAsyncTest
 	{
@@ -22,10 +21,13 @@ namespace FoundationDB.Samples.Benchmarks
 			this.Delay = delay;
 		}
 
-		public int K { get; private set; }
-		public int M { get; private set; }
-		public int N { get; private set; }
-		public TimeSpan Delay { get; private set; }
+		public int K { get; }
+
+		public int M { get; }
+
+		public int N { get; }
+
+		public TimeSpan Delay { get; }
 
 		public IFdbDynamicSubspace Subspace { get; private set; }
 

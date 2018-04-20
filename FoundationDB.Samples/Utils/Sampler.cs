@@ -2,19 +2,15 @@
 
 namespace FoundationDB.Samples.Benchmarks
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Layers.Directories;
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Linq;
 	using System.IO;
-	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
 	using Doxense.Mathematics.Statistics;
-	using System.Diagnostics;
+	using FoundationDB.Client;
 
 	public class SamplerTest : IAsyncTest
 	{
@@ -24,7 +20,7 @@ namespace FoundationDB.Samples.Benchmarks
 			this.Ratio = ratio;
 		}
 
-		public double Ratio { get; private set; }
+		public double Ratio { get; }
 
 		#region IAsyncTest...
 

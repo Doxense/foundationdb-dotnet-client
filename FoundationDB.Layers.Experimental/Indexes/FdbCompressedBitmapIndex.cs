@@ -26,6 +26,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+using Doxense.Diagnostics.Contracts;
+
 namespace FoundationDB.Layers.Experimental.Indexing
 {
 	using FoundationDB.Client;
@@ -50,9 +52,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public FdbCompressedBitmapIndex([NotNull] string name, [NotNull] FdbSubspace subspace, IEqualityComparer<TValue> valueComparer, bool indexNullValues, [NotNull] IKeyEncoder<TValue> encoder)
 		{
-			if (name == null) throw new ArgumentNullException("name");
-			if (subspace == null) throw new ArgumentNullException("subspace");
-			if (encoder == null) throw new ArgumentNullException("encoder");
+			Contract.NotNull(name, nameof(name));
+			Contract.NotNull(subspace, nameof(subspace));
+			Contract.NotNull(encoder, nameof(encoder));
 
 			this.Name = name;
 			this.Subspace = subspace;
@@ -61,17 +63,17 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			this.Location = subspace.UsingEncoder(encoder);
 		}
 
-		public string Name { [NotNull] get; private set; }
+		public string Name { [NotNull] get; }
 
-		public FdbSubspace Subspace { [NotNull] get; private set; }
+		public FdbSubspace Subspace { [NotNull] get; }
 
-		protected IFdbEncoderSubspace<TValue> Location { [NotNull] get; private set; }
+		protected IFdbEncoderSubspace<TValue> Location { [NotNull] get; }
 
-		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; private set; }
+		public IEqualityComparer<TValue> ValueComparer { [NotNull] get; }
 
 		/// <summary>If true, null values are inserted in the index. If false (default), they are ignored</summary>
 		/// <remarks>This has no effect if <typeparam name="TValue" /> is not a reference type</remarks>
-		public bool IndexNullValues { get; private set; }
+		public bool IndexNullValues { get; }
 
 		/// <summary>Insert a newly created entity to the index</summary>
 		/// <param name="trans">Transaction to use</param>
@@ -80,7 +82,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <returns>True if a value was inserted into the index; or false if <paramref name="value"/> is null and <see cref="IndexNullValues"/> is false, or if this <paramref name="id"/> was already indexed at this <paramref name="value"/>.</returns>
 		public async Task<bool> AddAsync([NotNull] IFdbTransaction trans, long id, TValue value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			if (this.IndexNullValues || value != null)
 			{
@@ -107,7 +109,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <remarks>If <paramref name="newValue"/> and <paramref name="previousValue"/> are identical, then nothing will be done. Otherwise, the old index value will be deleted and the new value will be added</remarks>
 		public async Task<bool> UpdateAsync([NotNull] IFdbTransaction trans, long id, TValue newValue, TValue previousValue)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			if (!this.ValueComparer.Equals(newValue, previousValue))
 			{
@@ -146,7 +148,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		/// <param name="value">Previous value of the entity in the index</param>
 		public async Task<bool> RemoveAsync([NotNull] IFdbTransaction trans, long id, TValue value)
 		{
-			if (trans == null) throw new ArgumentNullException("trans");
+			if (trans == null) throw new ArgumentNullException(nameof(trans));
 
 			var key = this.Location.Keys.Encode(value);
 			var data = await trans.GetAsync(key).ConfigureAwait(false);

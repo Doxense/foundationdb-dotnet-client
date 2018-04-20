@@ -60,7 +60,7 @@ namespace FoundationDB.Layers.Messaging
 
 		private async Task RunAsync(IFdbDatabase db, IFdbDynamicSubspace location, CancellationToken ct, Action done, int N, int K, int W)
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException(nameof(db));
 
 			StringBuilder sb = new StringBuilder();
 

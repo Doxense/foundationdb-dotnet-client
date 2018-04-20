@@ -2,19 +2,15 @@
 
 namespace FoundationDB.Samples.Tutorials
 {
-	using FoundationDB.Client;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
 	using System.Collections.Generic;
-	using System.Diagnostics;
-	using System.Globalization;
 	using System.IO;
 	using System.Linq;
-	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
+	using FoundationDB.Linq;
 
 	public class ClassScheduling : IAsyncTest
 	{
@@ -32,7 +28,7 @@ namespace FoundationDB.Samples.Tutorials
 				.ToArray();
 		}
 
-		public string[] ClassNames { get; private set; }
+		public string[] ClassNames { get; }
 
 		public IFdbDynamicSubspace Subspace { get; private set; }
 
@@ -204,7 +200,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		#region IAsyncTest...
 
-		public string Name { get { return "ClassScheduling"; } }
+		public string Name => "ClassScheduling";
 
 		public async Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{

@@ -2,22 +2,16 @@
 
 namespace FoundationDB.Samples.Benchmarks
 {
-	using Doxense.Mathematics.Statistics;
-	using FoundationDB.Client;
-	using FoundationDB.Client.Native;
-	using FoundationDB.Layers.Directories;
-	using FoundationDB.Layers.Messaging;
-	using FoundationDB.Layers.Tuples;
-	using FoundationDB.Linq;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.IO;
 	using System.Linq;
-	using System.Text;
 	using System.Threading;
 	using System.Threading.Tasks;
+	using Doxense.Mathematics.Statistics;
+	using FoundationDB.Client;
+	using FoundationDB.Layers.Tuples;
 
 	public class BenchRunner : IAsyncTest
 	{
@@ -40,15 +34,15 @@ namespace FoundationDB.Samples.Benchmarks
 			this.Histo = new RobustHistogram();
 		}
 
-		public string Name { get { return "Bench" + this.Mode.ToString(); } }
+		public string Name => "Bench" + this.Mode.ToString();
 
-		public int Value { get; private set; }
+		public int Value { get; set; }
 
-		public BenchMode Mode { get; private set; }
+		public BenchMode Mode { get; }
 
 		public IFdbDynamicSubspace Subspace { get; private set; }
 
-		public RobustHistogram Histo { get; private set; }
+		public RobustHistogram Histo { get; }
 
 
 		/// <summary>
@@ -132,10 +126,8 @@ namespace FoundationDB.Samples.Benchmarks
 								var w = await db.GetAndWatch(foo, ct);
 								var v = w.Value;
 
-								if (v == bar)
-									v = barf;
-								else
-									v = bar;
+								// swap
+								v = v == bar ? barf : bar;
 
 								await db.WriteAsync((tr) => tr.Set(foo, v), ct);
 

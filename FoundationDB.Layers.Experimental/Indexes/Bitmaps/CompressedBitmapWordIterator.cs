@@ -65,15 +65,9 @@ namespace FoundationDB.Layers.Experimental.Indexing
 			return true;
 		}
 
-		public CompressedWord Current
-		{
-			get { return new CompressedWord(m_current); }
-		}
+		public CompressedWord Current => new CompressedWord(m_current);
 
-		object System.Collections.IEnumerator.Current
-		{
-			get { return this.Current; }
-		}
+		object System.Collections.IEnumerator.Current => this.Current;
 
 		public void Reset()
 		{

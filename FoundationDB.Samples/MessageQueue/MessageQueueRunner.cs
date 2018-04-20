@@ -46,16 +46,19 @@ namespace FoundationDB.Samples.Tutorials
 			);
 		}
 
-		public string Id { get; private set; }
-		public AgentRole Role { get; private set; }
-		public TimeSpan DelayMin { get; private set; }
-		public TimeSpan DelayMax { get; private set; }
+		public string Id { get; }
+
+		public AgentRole Role { get; }
+
+		public TimeSpan DelayMin { get; }
+
+		public TimeSpan DelayMax { get; }
 
 		public FdbSubspace Subspace { get; private set; }
 
 		public FdbWorkerPool WorkerPool { get; private set; }
 
-		public RobustTimeLine TimeLine { get; private set; }
+		public RobustTimeLine TimeLine { get; }
 
 		/// <summary>
 		/// Setup the initial state of the database
@@ -76,18 +79,13 @@ namespace FoundationDB.Samples.Tutorials
 		{
 			int cnt = 0;
 
-			var rnd = new Random(123456);
-
-			DateTime last = DateTime.Now;
-
-			rnd = new Random();
+			var rnd = new Random();
 			this.TimeLine.Start();
 			while (!ct.IsCancellationRequested)
 			{
 				int k = cnt++;
 				Slice taskId = FdbTuple.EncodeKey(this.Id.GetHashCode(), k);
 
-				var ts = Stopwatch.GetTimestamp();
 				string msg = "Message #" + k + " from producer " + this.Id + " (" + DateTime.UtcNow.ToString("O") + ")";
 
 				var latency = Stopwatch.StartNew();
@@ -98,7 +96,7 @@ namespace FoundationDB.Samples.Tutorials
 				this.TimeLine.Add(latency.Elapsed.TotalMilliseconds);
 
 				TimeSpan delay = TimeSpan.FromTicks(rnd.Next((int)this.DelayMin.Ticks, (int)this.DelayMax.Ticks));
-				await Task.Delay(delay).ConfigureAwait(false);
+				await Task.Delay(delay, ct).ConfigureAwait(false);
 			}
 			this.TimeLine.Stop();
 
@@ -110,14 +108,11 @@ namespace FoundationDB.Samples.Tutorials
 		{
 			var rnd = new Random();
 
-			DateTime last = DateTime.Now;
 			int received = 0;
 
 			this.TimeLine.Start();
 			await this.WorkerPool.RunWorkerAsync(db, async (msg, _ct) =>
 			{
-				long ts = Stopwatch.GetTimestamp();
-
 				var latency = msg.Received - msg.Scheduled;
 				Interlocked.Increment(ref received);
 
@@ -125,9 +120,8 @@ namespace FoundationDB.Samples.Tutorials
 
 				this.TimeLine.Add(latency.TotalMilliseconds);
 
-				//Console.Write(".");
 				TimeSpan delay = TimeSpan.FromTicks(rnd.Next((int)this.DelayMin.Ticks, (int)this.DelayMax.Ticks));
-				await Task.Delay(delay).ConfigureAwait(false);
+				await Task.Delay(delay, ct).ConfigureAwait(false);
 			}, ct);
 			this.TimeLine.Stop();
 
@@ -184,7 +178,7 @@ namespace FoundationDB.Samples.Tutorials
 
 		#region IAsyncTest...
 
-		public string Name { get { return "MessageQueueTest"; } }
+		public string Name => "MessageQueueTest";
 
 		public async Task Run(IFdbDatabase db, TextWriter log, CancellationToken ct)
 		{

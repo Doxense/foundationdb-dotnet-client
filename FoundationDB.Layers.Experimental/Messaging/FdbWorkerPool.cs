@@ -26,19 +26,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
-using FoundationDB.Client;
-using FoundationDB.Layers.Tuples;
-using FoundationDB.Filters.Logging;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Security.Cryptography;
-using System.Threading;
-using System.Threading.Tasks;
-using FoundationDB.Layers.Counters;
-
 namespace FoundationDB.Layers.Messaging
 {
+	using System;
+	using System.Collections.Generic;
+	using System.Diagnostics;
+	using System.Security.Cryptography;
+	using System.Threading;
+	using System.Threading.Tasks;
+	using FoundationDB.Client;
+	using FoundationDB.Filters.Logging;
+	using FoundationDB.Layers.Counters;
 
 	public class FdbWorkerMessage
 	{
@@ -64,17 +62,17 @@ namespace FoundationDB.Layers.Messaging
 
 		private readonly RandomNumberGenerator m_rng = RandomNumberGenerator.Create();
 
-		public IFdbDynamicSubspace Subspace { get; private set; }
+		public IFdbDynamicSubspace Subspace { get; }
 
-		internal IFdbDynamicSubspace TaskStore { get; private set; }
+		internal IFdbDynamicSubspace TaskStore { get; }
 
-		internal IFdbDynamicSubspace IdleRing { get; private set; }
+		internal IFdbDynamicSubspace IdleRing { get; }
 
-		internal IFdbDynamicSubspace BusyRing { get; private set; }
+		internal IFdbDynamicSubspace BusyRing { get; }
 
-		internal IFdbDynamicSubspace UnassignedTaskRing { get; private set; }
+		internal IFdbDynamicSubspace UnassignedTaskRing { get; }
 
-		internal FdbCounterMap<int> Counters { get; private set; }
+		internal FdbCounterMap<int> Counters { get; }
 
 		#region Profiling...
 
@@ -110,7 +108,7 @@ namespace FoundationDB.Layers.Messaging
 
 		public FdbWorkerPool(IFdbSubspace subspace)
 		{
-			if (subspace == null) throw new ArgumentNullException("subspace");
+			if (subspace == null) throw new ArgumentNullException(nameof(subspace));
 
 			this.Subspace = subspace.Using(TypeSystem.Tuples);
 
@@ -201,7 +199,7 @@ namespace FoundationDB.Layers.Messaging
 		/// <returns></returns>
 		public async Task ScheduleTaskAsync(IFdbRetryable db, Slice taskId, Slice taskBody, CancellationToken ct = default(CancellationToken))
 		{
-			if (db == null) throw new ArgumentNullException("db");
+			if (db == null) throw new ArgumentNullException(nameof(db));
 			var now = DateTime.UtcNow;
 
 			await db.ReadWriteAsync(async (tr) =>

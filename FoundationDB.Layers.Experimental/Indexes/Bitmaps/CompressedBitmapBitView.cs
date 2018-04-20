@@ -26,11 +26,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #endregion
 
+
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using JetBrains.Annotations;
 	using System;
 	using System.Collections.Generic;
+	using Doxense.Diagnostics.Contracts;
+	using JetBrains.Annotations;
 
 	/// <summary>View that reads the indexes of all the set bits in a bitmap</summary>
 	public class CompressedBitmapBitView : IEnumerable<int>
@@ -39,7 +41,7 @@ namespace FoundationDB.Layers.Experimental.Indexing
 
 		public CompressedBitmapBitView(CompressedBitmap bitmap)
 		{
-			if (bitmap == null) throw new ArgumentNullException("bitmap");
+			Contract.NotNull(bitmap, nameof(bitmap));
 			m_bitmap = bitmap;
 		}
 

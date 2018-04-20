@@ -28,14 +28,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 namespace FoundationDB.Layers.Experimental.Indexing
 {
-	using FoundationDB.Client;
-	using FoundationDB.Client.Utils;
-	using FoundationDB.Layers.Tuples;
 	using System;
-	using System.Collections.Generic;
 	using System.Diagnostics;
-	using System.Globalization;
-	using System.Text;
 
 	/// <summary>Bounds of a Compressed Bitmaps, from the Lowest Set Bit to the Highest Set Bit</summary>
 	[DebuggerDisplay("[{Lowest}, {Highest}]")]
@@ -44,14 +38,15 @@ namespace FoundationDB.Layers.Experimental.Indexing
 		private const int LOWEST_UNDEFINED = 0;
 		private const int HIGHEST_UNDEFINED = -1;
 
-		public static BitRange Empty { get { return new BitRange(LOWEST_UNDEFINED, HIGHEST_UNDEFINED); } }
+		public static BitRange Empty => new BitRange(LOWEST_UNDEFINED, HIGHEST_UNDEFINED);
 
 		/// <summary>Index of the lowest bit that is set to 1 in the source Bitmap</summary>
 		public readonly int Lowest;
+
 		/// <summary>Index of the highest bit that is set to 1 in the source Bitmap</summary>
 		public readonly int Highest;
 
-		public bool IsEmpty { get { return this.Highest < this.Lowest; } }
+		public bool IsEmpty => this.Highest < this.Lowest;
 
 		public BitRange(int lowest, int highest)
 		{
