@@ -518,4 +518,29 @@ namespace JetBrains.Annotations
 	[Conditional("JETBRAINS_ANNOTATIONS")]
 	internal sealed class NoReorder : Attribute { }
 
+	// ====================================================
+	// === CUSTOM CONTRACT ATTRIBUTES
+	// ====================================================
+
+	// NOTE: these attributes are not recognize by Resharper (yet?) but can be used
+	// by Roslyn Analyzers or other static analysis tools to further verify the code.
+
+	// DO NOT OVERWRITE THESE WHEN UPDATING THE OFFICAL CONTRACT ATTRIBUTES!
+
+	/// <summary>The value cannot be negative</summary>
+	/// <remarks>REQUIRES: x >= 0</remarks>
+	[AttributeUsage(
+	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
+	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class PositiveAttribute : Attribute { }
+
+	/// <summary>The value must be a power of two</summary>
+	/// <remarks>REQUIRES: x == 1 &lt;&lt; Round(Log2(X))</remarks>
+	[AttributeUsage(
+	  AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property |
+	  AttributeTargets.Delegate | AttributeTargets.Field | AttributeTargets.Event)]
+	[Conditional("JETBRAINS_ANNOTATIONS")]
+	internal sealed class PowerOfTwoAttribute : Attribute { }
+
 }
